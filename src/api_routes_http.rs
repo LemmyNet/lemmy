@@ -260,6 +260,16 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.post())
           .route(web::get().to(get_captcha)),
       )
+      .service(
+        web::resource("/user/export_settings")
+          .wrap(rate_limit.import_user_settings())
+          .route(web::get().to(export_settings)),
+      )
+      .service(
+        web::resource("/user/import_settings")
+          .wrap(rate_limit.import_user_settings())
+          .route(web::post().to(import_settings)),
+      )
       // User actions
       .service(
         web::scope("/user")
@@ -299,12 +309,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/totp/update", web::post().to(update_totp))
           .route("/list_logins", web::get().to(list_logins))
           .route("/validate_auth", web::get().to(validate_auth)),
-      )
-      .service(
-        web::scope("/user")
-          .wrap(rate_limit.import_user_settings())
-          .route("/export_settings", web::get().to(export_settings))
-          .route("/import_settings", web::post().to(import_settings)),
       )
       // Admin Actions
       .service(

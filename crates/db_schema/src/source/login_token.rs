@@ -12,9 +12,9 @@ use ts_rs::TS;
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = login_token))]
+#[cfg_attr(feature = "full", diesel(primary_key(token)))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct LoginToken {
-  pub id: i32,
   /// Jwt token for this login
   #[serde(skip)]
   pub token: String,

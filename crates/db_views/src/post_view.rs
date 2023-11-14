@@ -857,7 +857,6 @@ mod tests {
     let inserted_post_like = PostLike::like(pool, &post_like_form).await.unwrap();
 
     let expected_post_like = PostLike {
-      id: inserted_post_like.id,
       post_id: data.inserted_post.id,
       person_id: data.local_user_view.person.id,
       published: inserted_post_like.published,
@@ -1339,7 +1338,6 @@ mod tests {
         featured_url: inserted_community.featured_url.clone(),
       },
       counts: PostAggregates {
-        id: agg.id,
         post_id: inserted_post.id,
         comments: 0,
         score: 0,

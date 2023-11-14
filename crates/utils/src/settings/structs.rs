@@ -79,9 +79,16 @@ pub struct PictrsConfig {
   #[default(None)]
   pub api_key: Option<String>,
 
-  /// Cache remote images
+  /// By default the thumbnails for external links are stored in pict-rs. This ensures that they
+  /// can be reliably retrieved and can be resized using pict-rs APIs. However it also increases
+  /// storage usage. In case this is disabled, the Opengraph image is directly returned as
+  /// thumbnail.
+  ///
+  /// In some countries it is forbidden to copy preview images from newspaper articles and only
+  /// hotlinking is allowed. If that is the case for your instance, make sure that this setting is
+  /// disabled.
   #[default(true)]
-  pub cache_remote_images: bool,
+  pub cache_external_link_previews: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

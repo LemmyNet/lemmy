@@ -1,4 +1,4 @@
-use crate::newtypes::{CommunityBlockId, CommunityId, PersonId};
+use crate::newtypes::{CommunityId, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::community_block;
 use chrono::{DateTime, Utc};
@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
   diesel(belongs_to(crate::source::community::Community))
 )]
 #[cfg_attr(feature = "full", diesel(table_name = community_block))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
 pub struct CommunityBlock {
-  pub id: CommunityBlockId,
   pub person_id: PersonId,
   pub community_id: CommunityId,
   pub published: DateTime<Utc>,

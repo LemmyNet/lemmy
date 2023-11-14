@@ -155,15 +155,11 @@ impl Followable for PersonFollower {
     unimplemented!()
   }
   async fn unfollow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<usize, Error> {
-    use crate::schema::person_follower::dsl::{follower_id, person_follower, person_id};
+    use crate::schema::person_follower::dsl::person_follower;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      person_follower
-        .filter(follower_id.eq(&form.follower_id))
-        .filter(person_id.eq(&form.person_id)),
-    )
-    .execute(conn)
-    .await
+    diesel::delete(person_follower.find((form.follower_id, form.person_id)))
+      .execute(conn)
+      .await
   }
 }
 
