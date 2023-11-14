@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
   diesel(belongs_to(crate::source::instance::Instance))
 )]
 #[cfg_attr(feature = "full", diesel(table_name = instance_block))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, instance_id)))]
 pub struct InstanceBlock {
-  pub id: i32,
   pub person_id: PersonId,
   pub instance_id: InstanceId,
   pub published: DateTime<Utc>,

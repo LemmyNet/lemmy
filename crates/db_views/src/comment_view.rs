@@ -110,14 +110,14 @@ fn queries<'a>() -> Queries<
     post::all_columns,
     community::all_columns,
     comment_aggregates::all_columns,
-    community_person_ban::id.nullable().is_not_null(),
+    community_person_ban::community_id.nullable().is_not_null(),
     aliases::community_moderator1
-      .field(community_moderator::id)
+      .field(community_moderator::community_id)
       .nullable()
       .is_not_null(),
     CommunityFollower::select_subscribed_type(),
-    comment_saved::id.nullable().is_not_null(),
-    person_block::id.nullable().is_not_null(),
+    comment_saved::comment_id.nullable().is_not_null(),
+    person_block::person_id.nullable().is_not_null(),
     comment_like::score.nullable(),
   );
 
@@ -509,7 +509,6 @@ mod tests {
       .unwrap();
 
     let expected_block = PersonBlock {
-      id: inserted_block.id,
       person_id: inserted_person.id,
       target_id: inserted_person_2.id,
       published: inserted_block.published,
@@ -947,7 +946,6 @@ mod tests {
         featured_url: data.inserted_community.featured_url.clone(),
       },
       counts: CommentAggregates {
-        id: agg.id,
         comment_id: data.inserted_comment_0.id,
         score: 1,
         upvotes: 1,

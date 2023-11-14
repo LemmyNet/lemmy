@@ -9,7 +9,6 @@ use diesel::{
   dsl::{exists, insert_into},
   result::Error,
   select,
-  ExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -22,9 +21,7 @@ impl CommunityBlock {
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
     select(exists(
-      community_block
-        .filter(community_id.eq(for_community_id))
-        .filter(person_id.eq(for_person_id)),
+      community_block.find((for_person_id, for_community_id)),
     ))
     .get_result(conn)
     .await
@@ -49,11 +46,10 @@ impl Blockable for CommunityBlock {
     community_block_form: &Self::Form,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      community_block
-        .filter(person_id.eq(community_block_form.person_id))
-        .filter(community_id.eq(community_block_form.community_id)),
-    )
+    diesel::delete(community_block.find((
+      community_block_form.person_id,
+      community_block_form.community_id,
+    )))
     .execute(conn)
     .await
   }

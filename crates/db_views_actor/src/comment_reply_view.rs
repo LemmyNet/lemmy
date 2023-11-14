@@ -96,11 +96,11 @@ fn queries<'a>() -> Queries<
         community::all_columns,
         aliases::person1.fields(person::all_columns),
         comment_aggregates::all_columns,
-        community_person_ban::id.nullable().is_not_null(),
-        community_moderator::id.nullable().is_not_null(),
+        community_person_ban::community_id.nullable().is_not_null(),
+        community_moderator::community_id.nullable().is_not_null(),
         CommunityFollower::select_subscribed_type(),
-        comment_saved::id.nullable().is_not_null(),
-        person_block::id.nullable().is_not_null(),
+        comment_saved::comment_id.nullable().is_not_null(),
+        person_block::person_id.nullable().is_not_null(),
         comment_like::score.nullable(),
       ))
   };
