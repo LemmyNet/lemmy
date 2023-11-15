@@ -40,7 +40,7 @@ test("Upload image and delete it", async () => {
 
   // ensure that image is deleted
   const content2 = downloadFileSync(upload.url);
-  expect(content2).toBe(0);
+  expect(content2).toBe("");
 });
 
 // TODO: add tests for image purging
