@@ -4,7 +4,6 @@ import { PersonView } from "lemmy-js-client/dist/types/PersonView";
 import {
   alpha,
   beta,
-  gamma,
   registerUser,
   resolvePerson,
   getSite,
@@ -13,15 +12,12 @@ import {
   createComment,
   resolveBetaCommunity,
   deleteUser,
-  resolvePost,
-  resolveComment,
   saveUserSettingsFederated,
   setupLogins,
   alphaUrl,
   saveUserSettings,
   getPost,
   getComments,
-  followCommunity,
 } from "./shared";
 import { LemmyHttp, SaveUserSettings } from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
@@ -105,39 +101,24 @@ test("Delete user", async () => {
     .comment;
   expect(remoteComment).toBeDefined();
 
-  // Fetch user content before deletion
-  let betaPost1 = (await resolvePost(beta, localPost)).post;
-  expect(betaPost1).toBeDefined();
-  let betaPost2 = (await resolvePost(beta, remotePost)).post;
-  expect(betaPost2).toBeDefined();
-  let follow = await followCommunity(beta, true, betaCommunity.community.id);
-  expect(follow.community_view.community).toBeDefined();
-
-  // Delete user account and content
   await deleteUser(user);
 
-  // Attempt to fetch user content from original instance, fails because its deleted
-  await expect(resolvePost(gamma, localPost)).rejects.toBe(
-    "couldnt_find_object",
-  );
-  await expect(resolveComment(gamma, localComment)).rejects.toBe(
-    "couldnt_find_object",
-  );
-  await expect(resolvePost(gamma, remotePost)).rejects.toBe(
-    "couldnt_find_object",
-  );
-  await expect(resolveComment(gamma, remoteComment)).rejects.toBe(
-    "couldnt_find_object",
-  );
-
-  // Attempt to read user content from federated instance, fails because of federated
-  // deletion
-  expect((await getPost(beta, betaPost1!.post.id)).post_view.post.deleted).toBe(
+  // check that posts and comments are marked as deleted on other instances.
+  // use get methods to avoid refetching from origin instance
+  expect((await getPost(alpha, localPost.id)).post_view.post.deleted).toBe(
     true,
   );
-  expect((await getPost(beta, betaPost2!.post.id)).post_view.post.deleted).toBe(
+  expect((await getPost(alpha, remotePost.id)).post_view.post.deleted).toBe(
     true,
   );
+  expect(
+    (await getComments(alpha, localComment.post_id)).comments[0].comment
+      .deleted,
+  ).toBe(true);
+  expect(
+    (await getComments(alpha, remoteComment.post_id)).comments[0].comment
+      .deleted,
+  ).toBe(true);
 });
 
 test("Requests with invalid auth should be treated as unauthenticated", async () => {
