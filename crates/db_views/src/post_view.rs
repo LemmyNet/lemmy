@@ -93,16 +93,16 @@ enum Ord {
 }
 
 trait OrderAndPageFilter {
-  fn order_and_page_filter(
+  fn order_and_page_filter<'a>(
     &self,
-    query: BoxedQuery,
+    query: BoxedQuery<'a>,
     range: [Option<&PaginationCursorData>; 2],
-  ) -> BoxedQuery;
+  ) -> BoxedQuery<'a>;
 }
 
 impl<C, T, F> OrderAndPageFilter for (Ord, C, F)
 where
-  BoxedQuery: boxed_meth::ThenOrderDsl<dsl::Desc<C>>
+  for<'a> BoxedQuery<'a>: boxed_meth::ThenOrderDsl<dsl::Desc<C>>
     + boxed_meth::ThenOrderDsl<dsl::Asc<C>>
     + boxed_meth::FilterDsl<dsl::GtEq<C, T>>
     + boxed_meth::FilterDsl<dsl::LtEq<C, T>>,
@@ -111,11 +111,11 @@ where
   T: AsExpression<C::SqlType>,
   F: Fn(&PostAggregates) -> T + Copy,
 {
-  fn order_and_page_filter(
+  fn order_and_page_filter<'a>(
     &self,
-    query: BoxedQuery,
+    query: BoxedQuery<'a>,
     [first, last]: [Option<&PaginationCursorData>; 2],
-  ) -> BoxedQuery {
+  ) -> BoxedQuery<'a> {
     let (order, column, getter) = *self;
     let (mut query, min, max) = match order {
       Ord::Desc => (query.then_order_by(column.desc()), last, first),
@@ -147,8 +147,8 @@ macro_rules! asc {
   }};
 }
 
-type BoxedQuery = dsl::IntoBoxed<
-  'static,
+type BoxedQuery<'a> = dsl::IntoBoxed<
+  'a,
   type_chain!(
   post_aggregates::table
     .InnerJoin<person::table>
@@ -159,7 +159,7 @@ type BoxedQuery = dsl::IntoBoxed<
 >;
 
 fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
-  let mut query: BoxedQuery = post_aggregates::table
+  let mut query: BoxedQuery<'_> = post_aggregates::table
     .inner_join(person::table)
     .inner_join(community::table)
     .inner_join(post::table)
