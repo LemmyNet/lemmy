@@ -12,8 +12,8 @@ import {
 
 beforeAll(setupLogins);
 
-afterAll( () => {
- unfollowRemotes(alpha);
+afterAll(() => {
+  unfollowRemotes(alpha);
 });
 
 test("Follow federated community", async () => {

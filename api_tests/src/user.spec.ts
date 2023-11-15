@@ -101,17 +101,17 @@ test("Delete user", async () => {
 
   await deleteUser(user);
 
-  await expect(resolvePost(alpha, localPost)).rejects.toBe(
-    "couldnt_find_object",
+  await expect(resolvePost(alpha, localPost)).rejects.toStrictEqual(
+    Error("couldnt_find_object"),
   );
-  await expect(resolveComment(alpha, localComment)).rejects.toBe(
-    "couldnt_find_object",
+  await expect(resolveComment(alpha, localComment)).rejects.toStrictEqual(
+    Error("couldnt_find_object"),
   );
-  await expect(resolvePost(alpha, remotePost)).rejects.toBe(
-    "couldnt_find_object",
+  await expect(resolvePost(alpha, remotePost)).rejects.toStrictEqual(
+    Error("couldnt_find_object"),
   );
-  await expect(resolveComment(alpha, remoteComment)).rejects.toBe(
-    "couldnt_find_object",
+  await expect(resolveComment(alpha, remoteComment)).rejects.toStrictEqual(
+    Error("couldnt_find_object"),
   );
 });
 

@@ -21,7 +21,7 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
- unfollowRemotes(alpha);
+  unfollowRemotes(alpha);
 });
 
 test("Create a private message", async () => {

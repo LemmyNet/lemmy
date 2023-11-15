@@ -2286,10 +2286,10 @@ kleur@^3.0.3:
   resolved "https://registry.yarnpkg.com/kleur/-/kleur-3.0.3.tgz#a79c9ecc86ee1ce3fa6206d1216c501f147fc07e"
   integrity sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==
 
-lemmy-js-client@0.19.0-alpha.16:
-  version "0.19.0-alpha.16"
-  resolved "https://registry.yarnpkg.com/lemmy-js-client/-/lemmy-js-client-0.19.0-alpha.16.tgz#4ec26e393856db7ddf86dba83f24633eeacee7c4"
-  integrity sha512-pmfrkPrHBkhEFhw/BDiTPy2/aQLoURLwBftMa4Lc+ZYiRfVClCOPkbKiqDSYXYlWcPz5MtwM/bjSNxasvVHfTA==
+lemmy-js-client@0.19.0-alpha.17:
+  version "0.19.0-alpha.17"
+  resolved "https://registry.yarnpkg.com/lemmy-js-client/-/lemmy-js-client-0.19.0-alpha.17.tgz#cc0ff4500606bbae981a86ee1cb465aeaeedde8e"
+  integrity sha512-okhGknuJTcQ8QG7CPOt7Wcb4uuRruC34XtHzSwGAadot5TXEWdO5GVSUV194BatjKS6NJWr6xTed2rJRoFPfmQ==
   dependencies:
     cross-fetch "^3.1.5"
     form-data "^4.0.0"

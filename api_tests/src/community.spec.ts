@@ -64,8 +64,8 @@ test("Create community", async () => {
 
   // A dupe check
   let prevName = communityRes.community_view.community.name;
-  await expect(createCommunity(alpha, prevName)).rejects.toBe(
-    "community_already_exists",
+  await expect(createCommunity(alpha, prevName)).rejects.toStrictEqual(
+    Error("community_already_exists"),
   );
 
   // Cache the community on beta, make sure it has the other fields
@@ -331,8 +331,8 @@ test("Get community for different casing on domain", async () => {
 
   // A dupe check
   let prevName = communityRes.community_view.community.name;
-  await expect(createCommunity(alpha, prevName)).rejects.toBe(
-    "community_already_exists",
+  await expect(createCommunity(alpha, prevName)).rejects.toStrictEqual(
+    Error("community_already_exists"),
   );
 
   // Cache the community on beta, make sure it has the other fields
