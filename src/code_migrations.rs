@@ -50,7 +50,7 @@ pub async fn run_advanced_migrations(
   private_message_updates_2020_05_05(pool, protocol_and_hostname).await?;
   post_thumbnail_url_updates_2020_07_27(pool, protocol_and_hostname).await?;
   apub_columns_2021_02_02(pool, settings).await?;
-  instance_actor_2022_01_28(pool, protocol_and_hostname, &settings).await?;
+  instance_actor_2022_01_28(pool, protocol_and_hostname, settings).await?;
   regenerate_public_keys_2022_07_05(pool).await?;
   initialize_local_site_2022_10_10(pool, settings).await?;
 

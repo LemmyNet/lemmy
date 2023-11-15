@@ -21,6 +21,7 @@ import {
   saveUserSettings,
   getPost,
   getComments,
+  followCommunity,
 } from "./shared";
 import { LemmyHttp, SaveUserSettings } from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
@@ -109,6 +110,8 @@ test("Delete user", async () => {
   expect(betaPost1).toBeDefined();
   let betaPost2 = (await resolvePost(beta, remotePost)).post;
   expect(betaPost2).toBeDefined();
+  let follow = await followCommunity(beta, true, betaCommunity.community.id);
+  expect(follow.community_view.community).toBeDefined();
 
   // Delete user account and content
   await deleteUser(user);
