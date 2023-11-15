@@ -56,7 +56,7 @@ pub async fn follow_community(
       SendActivityData::FollowCommunity(community, local_user_view.person.clone(), data.follow),
       &context,
     )
-        .await?;
+    .await?;
   }
 
   let community_id = data.community_id;
