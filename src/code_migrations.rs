@@ -493,7 +493,7 @@ async fn initialize_local_site_2022_10_10(
     .instance_id(instance.id)
     .actor_id(Some(site_actor_id.clone().into()))
     .last_refreshed_at(Some(naive_now()))
-    .inbox_url(Some(generate_shared_inbox_url(&settings)?))
+    .inbox_url(Some(generate_shared_inbox_url(settings)?))
     .private_key(Some(site_key_pair.private_key))
     .public_key(Some(site_key_pair.public_key))
     .build();
