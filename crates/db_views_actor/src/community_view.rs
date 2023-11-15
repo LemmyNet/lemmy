@@ -189,10 +189,11 @@ impl CommunityView {
     let is_mod =
       CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await?;
     if is_mod {
-      return Ok(true);
+      Ok(true)
+    } else {
+      let is_admin = PersonView::read(pool, person_id).await?.is_admin;
+      Ok(is_admin)
     }
-
-    PersonView::is_admin(pool, person_id).await
   }
 }
 

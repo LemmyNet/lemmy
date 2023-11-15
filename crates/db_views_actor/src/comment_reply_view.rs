@@ -22,6 +22,7 @@ use lemmy_db_schema::{
     community_follower,
     community_moderator,
     community_person_ban,
+    local_user,
     person,
     person_block,
     post,
@@ -88,6 +89,14 @@ fn queries<'a>() -> Queries<
             .and(community_moderator::person_id.eq(comment::creator_id)),
         ),
       )
+      // This will only join if the admin is true, so you can use is_not_null() below
+      .left_join(
+        local_user::table.on(
+          comment::creator_id
+            .eq(local_user::person_id)
+            .and(local_user::admin.eq(true)),
+        ),
+      )
       .select((
         comment_reply::all_columns,
         comment::all_columns,
@@ -98,6 +107,7 @@ fn queries<'a>() -> Queries<
         comment_aggregates::all_columns,
         community_person_ban::community_id.nullable().is_not_null(),
         community_moderator::community_id.nullable().is_not_null(),
+        local_user::admin.nullable().is_not_null(),
         CommunityFollower::select_subscribed_type(),
         comment_saved::comment_id.nullable().is_not_null(),
         person_block::person_id.nullable().is_not_null(),

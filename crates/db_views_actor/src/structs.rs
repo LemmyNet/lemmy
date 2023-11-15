@@ -100,6 +100,7 @@ pub struct PersonMentionView {
   pub counts: CommentAggregates,
   pub creator_banned_from_community: bool,
   pub creator_is_moderator: bool,
+  pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
   pub saved: bool,
   pub creator_blocked: bool,
@@ -121,6 +122,7 @@ pub struct CommentReplyView {
   pub counts: CommentAggregates,
   pub creator_banned_from_community: bool,
   pub creator_is_moderator: bool,
+  pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
   pub saved: bool,
   pub creator_blocked: bool,
@@ -134,4 +136,5 @@ pub struct CommentReplyView {
 pub struct PersonView {
   pub person: Person,
   pub counts: PersonAggregates,
+  pub is_admin: bool,
 }
