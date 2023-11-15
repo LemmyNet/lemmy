@@ -132,19 +132,19 @@ where
 }
 
 macro_rules! desc {
-  ($name:ident) => {
+  ($name:ident) => {{
     &(Ord::Desc, post_aggregates::$name, |e: &PostAggregates| {
       e.$name
     })
-  };
+  }};
 }
 
 macro_rules! asc {
-  ($name:ident) => {
+  ($name:ident) => {{
     &(Ord::Asc, post_aggregates::$name, |e: &PostAggregates| {
       e.$name
     })
-  };
+  }};
 }
 
 type BoxedQuery = dsl::IntoBoxed<
@@ -302,49 +302,47 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
     query = query.filter(not(community::hidden).or(subscribe().is_not_null()))
   }
 
-  let sort_by = |mut query: BoxedQuery, s: &[&dyn OrderAndPageFilter]| {
-    for i in s {
-      query = i.order_and_page_filter(query, [options.page_after, options.page_before_or_equal]);
-    }
-    query
-  };
+  let range = [options.page_after, options.page_before_or_equal];
 
   if options.sort_by_featured_local {
-    query = sort_by(query, &[desc!(featured_local)]);
+    query = desc!(featured_local).order_and_page_filter(query, range);
   }
   if options.sort_by_featured_community {
-    query = sort_by(query, &[desc!(featured_community)]);
+    query = desc!(featured_community).order_and_page_filter(query, range);
   }
   if let Some(sort) = options.sort {
-    let top = |query: BoxedQuery, interval: PgInterval| {
-      let now = diesel::dsl::now.into_sql::<Timestamptz>();
-      sort_by(
-        query.filter(post_aggregates::published.gt(now - interval)),
-        &[desc!(score), desc!(published)],
-      )
+    let top: &[&dyn OrderAndPageFilter] = &[desc!(score), desc!(published)];
+
+    let (sorts, interval): (&[&dyn OrderAndPageFilter], Option<PgInterval>) = match sort {
+      SortType::Active => (&[desc!(hot_rank_active), desc!(published)], None),
+      SortType::Hot => (&[desc!(hot_rank), desc!(published)], None),
+      SortType::Scaled => (&[desc!(scaled_rank), desc!(published)], None),
+      SortType::Controversial => (&[desc!(controversy_rank), desc!(published)], None),
+      SortType::New => (&[desc!(published)], None),
+      SortType::Old => (&[asc!(published)], None),
+      SortType::NewComments => (&[desc!(newest_comment_time)], None),
+      SortType::MostComments => (&[desc!(comments), desc!(published)], None),
+      SortType::TopAll => (&[desc!(score), desc!(published)], None),
+      SortType::TopYear => (top, Some(1.years())),
+      SortType::TopMonth => (top, Some(1.months())),
+      SortType::TopWeek => (top, Some(1.weeks())),
+      SortType::TopDay => (top, Some(1.days())),
+      SortType::TopHour => (top, Some(1.hours())),
+      SortType::TopSixHour => (top, Some(6.hours())),
+      SortType::TopTwelveHour => (top, Some(12.hours())),
+      SortType::TopThreeMonths => (top, Some(3.months())),
+      SortType::TopSixMonths => (top, Some(6.months())),
+      SortType::TopNineMonths => (top, Some(9.months())),
     };
 
-    query = match sort {
-      SortType::Active => sort_by(query, &[desc!(hot_rank_active), desc!(published)]),
-      SortType::Hot => sort_by(query, &[desc!(hot_rank), desc!(published)]),
-      SortType::Scaled => sort_by(query, &[desc!(scaled_rank), desc!(published)]),
-      SortType::Controversial => sort_by(query, &[desc!(controversy_rank), desc!(published)]),
-      SortType::New => sort_by(query, &[desc!(published)]),
-      SortType::Old => sort_by(query, &[asc!(published)]),
-      SortType::NewComments => sort_by(query, &[desc!(newest_comment_time)]),
-      SortType::MostComments => sort_by(query, &[desc!(comments), desc!(published)]),
-      SortType::TopAll => sort_by(query, &[desc!(score), desc!(published)]),
-      SortType::TopYear => top(query, 1.years()),
-      SortType::TopMonth => top(query, 1.months()),
-      SortType::TopWeek => top(query, 1.weeks()),
-      SortType::TopDay => top(query, 1.days()),
-      SortType::TopHour => top(query, 1.hours()),
-      SortType::TopSixHour => top(query, 6.hours()),
-      SortType::TopTwelveHour => top(query, 12.hours()),
-      SortType::TopThreeMonths => top(query, 3.months()),
-      SortType::TopSixMonths => top(query, 6.months()),
-      SortType::TopNineMonths => top(query, 9.months()),
-    };
+    if let Some(interval) = interval {
+      let now = diesel::dsl::now.into_sql::<Timestamptz>();
+      query = query.filter(post_aggregates::published.gt(now - interval));
+    }
+
+    for i in sorts {
+      query = i.order_and_page_filter(query, range);
+    }
   }
 
   let query = query.select((
