@@ -59,6 +59,7 @@ pub struct CommunityAggregates {
   pub users_active_half_year: i64,
   #[serde(skip)]
   pub hot_rank: f64,
+  pub local_subscribers: i64,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Default)]
