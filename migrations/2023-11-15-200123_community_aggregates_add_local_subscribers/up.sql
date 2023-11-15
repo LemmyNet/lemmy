@@ -19,11 +19,7 @@ SET
                 FROM
                     person
                 WHERE
-                    local
-            )
-    )
-;
-
+                    local));
 
 CREATE OR REPLACE FUNCTION community_aggregates_subscriber_count ()
     RETURNS TRIGGER

@@ -1,5 +1,5 @@
 ALTER TABLE community_aggregates
-		DROP COLUMN local_subscribers;
+    DROP COLUMN local_subscribers;
 
 CREATE OR REPLACE FUNCTION community_aggregates_subscriber_count ()
     RETURNS TRIGGER
