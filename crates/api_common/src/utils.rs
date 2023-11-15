@@ -784,12 +784,6 @@ pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{actor_id}/inbox"))?.into())
 }
 
-pub fn generate_site_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  let mut actor_id: Url = actor_id.clone().into();
-  actor_id.set_path("site_inbox");
-  Ok(actor_id.into())
-}
-
 pub fn generate_shared_inbox_url(settings: &Settings) -> Result<DbUrl, LemmyError> {
   let url = format!("{}/inbox", settings.get_protocol_and_hostname());
   Ok(Url::parse(&url)?.into())
