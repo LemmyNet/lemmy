@@ -59,10 +59,6 @@ mod tests {
       .await
       .unwrap();
 
-    let another_inserted_instance = Instance::read_or_create(pool, "my_domain_2.tld".to_string())
-      .await
-      .unwrap();
-
     let new_person = PersonInsertForm::builder()
       .name("thommy_community_agg".into())
       .public_key("pubkey".to_string())
@@ -78,14 +74,6 @@ mod tests {
       .build();
 
     let another_inserted_person = Person::create(pool, &another_person).await.unwrap();
-
-    let third_person = PersonInsertForm::builder()
-      .name("ismail_community_agg".into())
-      .public_key("pubkey".to_string())
-      .instance_id(another_inserted_instance.id)
-      .build();
-
-    let third_inserted_person = Person::create(pool, &third_person).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("TIL_community_agg".into())
@@ -125,19 +113,9 @@ mod tests {
       .await
       .unwrap();
 
-    let third_person_follow = CommunityFollowerForm {
-      community_id: inserted_community.id,
-      person_id: third_inserted_person.id,
-      pending: false,
-    };
-
-    CommunityFollower::follow(pool, &third_person_follow)
-      .await
-      .unwrap();
-
     let another_community_follow = CommunityFollowerForm {
       community_id: another_inserted_community.id,
-      person_id: third_inserted_person.id,
+      person_id: inserted_person.id,
       pending: false,
     };
 
@@ -176,8 +154,7 @@ mod tests {
       .await
       .unwrap();
 
-    assert_eq!(3, community_aggregates_before_delete.subscribers);
-    assert_eq!(2, community_aggregates_before_delete.local_subscribers);
+    assert_eq!(2, community_aggregates_before_delete.subscribers);
     assert_eq!(1, community_aggregates_before_delete.posts);
     assert_eq!(2, community_aggregates_before_delete.comments);
 
@@ -186,7 +163,6 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(1, another_community_aggs.subscribers);
-    assert_eq!(1, another_community_aggs.local_subscribers);
     assert_eq!(0, another_community_aggs.posts);
     assert_eq!(0, another_community_aggs.comments);
 
@@ -197,8 +173,7 @@ mod tests {
     let after_unfollow = CommunityAggregates::read(pool, inserted_community.id)
       .await
       .unwrap();
-    assert_eq!(2, after_unfollow.subscribers);
-    assert_eq!(1, after_unfollow.local_subscribers);
+    assert_eq!(1, after_unfollow.subscribers);
 
     // Follow again just for the later tests
     CommunityFollower::follow(pool, &second_person_follow)
@@ -207,8 +182,7 @@ mod tests {
     let after_follow_again = CommunityAggregates::read(pool, inserted_community.id)
       .await
       .unwrap();
-    assert_eq!(3, after_follow_again.subscribers);
-    assert_eq!(2, after_follow_again.local_subscribers);
+    assert_eq!(2, after_follow_again.subscribers);
 
     // Remove a parent post (the comment count should also be 0)
     Post::delete(pool, inserted_post.id).await.unwrap();
@@ -218,18 +192,14 @@ mod tests {
     assert_eq!(0, after_parent_post_delete.comments);
     assert_eq!(0, after_parent_post_delete.posts);
 
-    // Remove the 2nd and 3rd person
+    // Remove the 2nd person
     Person::delete(pool, another_inserted_person.id)
-      .await
-      .unwrap();
-    Person::delete(pool, third_inserted_person.id)
       .await
       .unwrap();
     let after_person_delete = CommunityAggregates::read(pool, inserted_community.id)
       .await
       .unwrap();
     assert_eq!(1, after_person_delete.subscribers);
-    assert_eq!(1, after_person_delete.local_subscribers);
 
     // This should delete all the associated rows, and fire triggers
     let person_num_deleted = Person::delete(pool, inserted_person.id).await.unwrap();
