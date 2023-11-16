@@ -1,4 +1,4 @@
-use crate::newtypes::{ExternalAuthId, DbUrl, LocalSiteId};
+use crate::newtypes::{ExternalAuthId, LocalSiteId};
 #[cfg(feature = "full")]
 use crate::schema::external_auth;
 use chrono::{DateTime, Utc};
@@ -23,9 +23,9 @@ pub struct ExternalAuth {
   pub local_site_id: LocalSiteId,
   pub display_name: String,
   pub auth_type: String,
-  pub auth_endpoint: DbUrl,
-  pub token_endpoint: DbUrl,
-  pub user_endpoint: DbUrl,
+  pub auth_endpoint: String,
+  pub token_endpoint: String,
+  pub user_endpoint: String,
   pub id_attribute: String,
   pub issuer: String,
   pub client_id: String,
@@ -42,9 +42,9 @@ pub struct ExternalAuthInsertForm {
   pub local_site_id: LocalSiteId,
   pub display_name: String,
   pub auth_type: String,
-  pub auth_endpoint: DbUrl,
-  pub token_endpoint: DbUrl,
-  pub user_endpoint: DbUrl,
+  pub auth_endpoint: String,
+  pub token_endpoint: String,
+  pub user_endpoint: String,
   pub id_attribute: String,
   pub issuer: String,
   pub client_id: String,
@@ -59,9 +59,9 @@ pub struct ExternalAuthUpdateForm {
   pub local_site_id: LocalSiteId,
   pub display_name: String,
   pub auth_type: String,
-  pub auth_endpoint: DbUrl,
-  pub token_endpoint: DbUrl,
-  pub user_endpoint: DbUrl,
+  pub auth_endpoint: String,
+  pub token_endpoint: String,
+  pub user_endpoint: String,
   pub id_attribute: String,
   pub issuer: String,
   pub client_id: String,

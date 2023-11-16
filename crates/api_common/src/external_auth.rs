@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use url::Url;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
@@ -13,12 +12,9 @@ use url::Url;
 pub struct CreateExternalAuth {
   pub display_name: String,
   pub auth_type: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub auth_endpoint: Url,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub token_endpoint: Url,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub user_endpoint: Url,
+  pub auth_endpoint: String,
+  pub token_endpoint: String,
+  pub user_endpoint: String,
   pub id_attribute: String,
   pub issuer: String,
   pub client_id: String,
@@ -34,12 +30,9 @@ pub struct EditExternalAuth {
   pub id: ExternalAuthId,
   pub display_name: String,
   pub auth_type: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub auth_endpoint: Url,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub token_endpoint: Url,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub user_endpoint: Url,
+  pub auth_endpoint: String,
+  pub token_endpoint: String,
+  pub user_endpoint: String,
   pub id_attribute: String,
   pub issuer: String,
   pub client_id: String,
@@ -93,4 +86,14 @@ pub struct TokenResponse {
   pub expires_in: Option<i64>,
   pub refresh_token: Option<String>,
   pub scope: Option<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// State parameter from the auth endpoint response
+pub struct OAuthResponse {
+  pub external_auth: i32,
+  pub client_redirect_uri: String,
 }

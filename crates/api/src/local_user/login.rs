@@ -36,7 +36,7 @@ pub async fn login(
       .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
 
   // Verify the password
-  let valid: bool = verify(
+  let valid: bool = local_user_view.local_user.password_encrypted != "" && verify(
     &data.password,
     &local_user_view.local_user.password_encrypted,
   )

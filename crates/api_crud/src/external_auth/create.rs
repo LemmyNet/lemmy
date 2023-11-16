@@ -22,15 +22,15 @@ pub async fn create_external_auth(
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
-  let clonedData = data.clone();
+  let cloned_data = data.clone();
   let external_auth_form = ExternalAuthInsertForm::builder()
     .local_site_id(local_site.id)
-    .display_name(clonedData.display_name.into())
+    .display_name(cloned_data.display_name.into())
     .auth_type(data.auth_type.to_string())
-    .auth_endpoint(clonedData.auth_endpoint.into())
-    .token_endpoint(clonedData.token_endpoint.into())
-    .user_endpoint(clonedData.user_endpoint.into())
-    .id_attribute(clonedData.id_attribute.into())
+    .auth_endpoint(cloned_data.auth_endpoint.into())
+    .token_endpoint(cloned_data.token_endpoint.into())
+    .user_endpoint(cloned_data.user_endpoint.into())
+    .id_attribute(cloned_data.id_attribute.into())
     .issuer(data.issuer.to_string())
     .client_id(data.client_id.to_string())
     .client_secret(data.client_secret.to_string())

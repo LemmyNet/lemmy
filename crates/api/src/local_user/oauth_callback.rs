@@ -1,122 +1,161 @@
+use activitypub_federation::{config::Data};
 use actix_web::{
   http::StatusCode,
-  web::{Data, Query},
+  web::Query,
   HttpRequest,
   HttpResponse,
 };
 use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
-  external_auth::{OAuth, TokenResponse},
+  external_auth::{OAuth, OAuthResponse, TokenResponse},
   utils::{create_login_cookie},
 };
+use lemmy_api_crud::user::create::register_from_oauth;
 use lemmy_db_schema::{
-  source::{local_site::LocalSite, registration_application::RegistrationApplication},
-  utils::DbPool,
+  newtypes::ExternalAuthId,
   RegistrationMode,
+  source::local_user::LocalUser,
 };
 use lemmy_db_views::structs::{ExternalAuthView, LocalUserView, SiteView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use url::Url;
 
 #[tracing::instrument(skip(context))]
 pub async fn oauth_callback(
   data: Query<OAuth>,
   req: HttpRequest,
   context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+) -> HttpResponse {
+  let site_view = SiteView::read_local(&mut context.pool()).await;
 
-  if !data.state.contains("|") {
-    Err(LemmyErrorType::IncorrectLogin)?
+  if !site_view.is_ok() {    
+    return HttpResponse::Found().append_header(("Location", "/login?err=internal")).finish();
   }
 
-  let stateParts = data.state.split("|");
-  let client_id = stateParts.next();
-  let client_redirect_uri = stateParts.next();
+  let state = serde_json::from_str::<OAuthResponse>(&data.state);
+  if !state.is_ok() {
+    return HttpResponse::Found().append_header(("Location", "/login?err=oauth_response")).finish();
+  }
+  let oauth_state = state.unwrap();
 
   // Fetch the auth method
-  let external_auth = ExternalAuthView::get(&mut context.pool(), ExternalAuthId(client_id.into()))
-    .await
-    .with_lemmy_type(LemmyErrorType::IncorrectLogin)?
-    .external_auth;
-  let client_secret = ExternalAuthView::get_client_secret(&mut context.pool(), client_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
+  let external_auth_id = ExternalAuthId(oauth_state.external_auth);
+  let external_auth_view = ExternalAuthView::get(&mut context.pool(), external_auth_id).await;
+  if !external_auth_view.is_ok() {
+    return HttpResponse::Found().append_header(("Location", "/login?err=external_auth")).finish();
+  }
+  let external_auth = external_auth_view.unwrap().external_auth;
+  let client_secret = ExternalAuthView::get_client_secret(&mut context.pool(), external_auth_id)
+    .await;
+  if !client_secret.is_ok() {
+    return HttpResponse::Found().append_header(("Location", "/login?err=external_auth")).finish();
+  }
 
   // Send token request
-  let response = context.client()
-    .post(external_auth.token_endpoint)
+  let token_endpoint = Url::parse(&external_auth.token_endpoint);
+  if !token_endpoint.is_ok() {
+    return HttpResponse::Found().append_header(("Location", "/login?err=external_auth")).finish();
+  }
+  let mut response = context.client()
+    .post(token_endpoint.unwrap())
     .form(&[
         ("grant_type", "authorization_code"),
-        ("code", data.code),
-        ("redirect_uri", req.uri),
-        ("client_id", client_id),
-        ("client_secret", client_secret),
+        ("code", &data.code),
+        ("redirect_uri", &req.uri().to_string()),
+        ("client_id", &external_auth.client_id),
+        ("client_secret", &client_secret.unwrap()),
     ])
     .send()
-    .await?;
-
-  // Check token response
-  if req.status != StatusCode::OK {
-    Err(LemmyErrorType::IncorrectLogin)?
+    .await;
+  if !response.is_ok() {
+    return HttpResponse::Found().append_header(("Location", "/login?err=token")).finish();
+  }
+  let mut res = response.unwrap();
+  if res.status() != StatusCode::OK {
+    return HttpResponse::Found().append_header(("Location", "/login?err=token")).finish();
   }
 
   // Obtain access token
-  let access_token = response.json::<TokenResponse>().await?.access_token;
+  let token_response = res.json::<TokenResponse>().await;
+  if !token_response.is_ok() {
+    return HttpResponse::Found().append_header(("Location", "/login?err=token")).finish();
+  }
+  let access_token = token_response.unwrap().access_token;
 
   // Make user info request
-  let response = context.client()
-    .post(external_auth.user_endpoint)
+  let user_endpoint = Url::parse(&external_auth.user_endpoint);
+  if !user_endpoint.is_ok() {
+    return HttpResponse::Found().append_header(("Location", "/login?err=external_auth")).finish();
+  }
+  response = context.client()
+    .post(user_endpoint.unwrap())
     .bearer_auth(access_token)
     .send()
-    .await?;
+    .await;
+  if !response.is_ok() {
+    return HttpResponse::Found().append_header(("Location", "/login?err=userinfo")).finish();
+  }
+  res = response.unwrap();
+  if res.status() != StatusCode::OK {
+    return HttpResponse::Found().append_header(("Location", "/login?err=userinfo")).finish();
+  }
 
   // Find or create user
-  let email = response.json::<serde_json::Value>().await?;
+  let userinfo = res.json::<serde_json::Value>().await;
+  if !userinfo.is_ok() {
+    return HttpResponse::Found().append_header(("Location", "/login?err=external_auth")).finish();
+  }
+  let user_info = userinfo.unwrap();
+  let user_id = serde_json::from_value::<String>(user_info["email"].clone());
+  if !user_id.is_ok() {
+    return HttpResponse::Found().append_header(("Location", "/login?err=user")).finish();
+  }
+  let email = user_id.unwrap();
+
   let local_user_view =
-    LocalUserView::find_by_email_or_name(&mut context.pool(), &email)
-      .await;
+    LocalUserView::find_by_email(&mut context.pool(), &email).await;
+  let local_site = site_view.unwrap().local_site;
+  let local_user: LocalUser;
   if local_user_view.is_ok() {
-    // Found user
-    check_registration_application(&local_user_view, &site_view.local_site, &mut context.pool())
-        .await?;
-    // Check email is verified regardless of site setting, to prevent potential account theft
-    if !local_user_view.local_user.admin && !local_user_view.local_user.email_verified {
-        Err(LemmyErrorType::EmailNotVerified)?
-    }
+    local_user = local_user_view.unwrap().local_user;
   } else {
-    // TODO register user - how to handle registration applications? show_nsfw? overriding username?
-    Err(LemmyErrorType::IncorrectLogin)?
+    let username = serde_json::from_value::<String>(user_info[external_auth.id_attribute]
+      .clone());
+    if !username.is_ok() {
+      return HttpResponse::Found().append_header(("Location", "/login?err=external_auth")).finish();
+    }
+    let registered_user = register_from_oauth(username.unwrap(), email, &context).await;
+    if !registered_user.is_ok() {
+      return HttpResponse::Found().append_header(("Location", "/login?err=user")).finish();
+    }
+    local_user = registered_user.unwrap();
+
+    // if registration is not allowed
+    // return HttpResponse::Found().append_header(("Location", "/signup")).finish();
   }
 
-  let jwt = Claims::generate(local_user_view.local_user.id, req, &context).await?;
-
-  let mut res = HttpResponse::build(StatusCode::FOUND)
-    .insert_header(("Location", client_redirect_uri))
-    .finish();
-  res.add_cookie(&create_login_cookie(jwt))?;
-  Ok(res)
-}
-
-async fn check_registration_application(
-  local_user_view: &LocalUserView,
-  local_site: &LocalSite,
-  pool: &mut DbPool<'_>,
-) -> Result<(), LemmyError> {
   if (local_site.registration_mode == RegistrationMode::RequireApplication
     || local_site.registration_mode == RegistrationMode::Closed)
-    && !local_user_view.local_user.accepted_application
-    && !local_user_view.local_user.admin
-  {
-    // Fetch the registration application. If no admin id is present its still pending. Otherwise it
-    // was processed (either accepted or denied).
-    let local_user_id = local_user_view.local_user.id;
-    let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id).await?;
-    if registration.admin_id.is_some() {
-      Err(LemmyErrorType::RegistrationDenied(registration.deny_reason))?
-    } else {
-      Err(LemmyErrorType::RegistrationApplicationIsPending)?
-    }
+    && !local_user.accepted_application
+    && !local_user.admin {
+    return HttpResponse::Found().append_header(("Location", "/login?err=application")).finish();
   }
-  Ok(())
+
+  // Check email is verified regardless of site setting, to prevent potential account theft
+  if !local_user.admin && !local_user.email_verified {
+    return HttpResponse::Found().append_header(("Location", "/login?err=email")).finish();
+  }
+
+  let jwt = Claims::generate(local_user.id, req, &context).await;
+  if !jwt.is_ok() {
+    return HttpResponse::Found().append_header(("Location", "/login?err=jwt")).finish();
+  }
+
+  let mut res = HttpResponse::build(StatusCode::FOUND)
+    .insert_header(("Location", oauth_state.client_redirect_uri))
+    .finish();
+  if !res.add_cookie(&create_login_cookie(jwt.unwrap())).is_ok() {
+    return HttpResponse::Found().append_header(("Location", "/login?err=jwt")).finish();
+  }
+  return res;  
 }

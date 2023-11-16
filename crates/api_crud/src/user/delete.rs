@@ -19,7 +19,7 @@ pub async fn delete_account(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
   // Verify the password
-  let valid: bool = verify(
+  let valid: bool = local_user_view.local_user.password_encrypted == "" || verify(
     &data.password,
     &local_user_view.local_user.password_encrypted,
   )
