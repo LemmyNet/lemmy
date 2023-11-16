@@ -13,7 +13,6 @@ import {
   registerUser,
   betaUrl,
 } from "./shared";
-import exp = require("constants");
 
 beforeAll(async () => {
   await setupLogins();
