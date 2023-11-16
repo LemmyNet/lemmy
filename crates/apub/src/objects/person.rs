@@ -208,9 +208,6 @@ impl GetActorType for ApubPerson {
 
 #[cfg(test)]
 pub(crate) mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
-
   use super::*;
   use crate::{
     objects::{
@@ -221,60 +218,64 @@ pub(crate) mod tests {
   };
   use activitypub_federation::fetch::object_id::ObjectId;
   use lemmy_db_schema::{source::site::Site, traits::Crud};
+  use lemmy_utils::error::LemmyResult;
   use serial_test::serial;
 
-  pub(crate) async fn parse_lemmy_person(context: &Data<LemmyContext>) -> (ApubPerson, ApubSite) {
-    let site = parse_lemmy_instance(context).await;
-    let json = file_to_json_object("assets/lemmy/objects/person.json").unwrap();
-    let url = Url::parse("https://enterprise.lemmy.ml/u/picard").unwrap();
-    ApubPerson::verify(&json, &url, context).await.unwrap();
-    let person = ApubPerson::from_json(json, context).await.unwrap();
+  pub(crate) async fn parse_lemmy_person(
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<(ApubPerson, ApubSite)> {
+    let site = parse_lemmy_instance(context).await?;
+    let json = file_to_json_object("assets/lemmy/objects/person.json")?;
+    let url = Url::parse("https://enterprise.lemmy.ml/u/picard")?;
+    ApubPerson::verify(&json, &url, context).await?;
+    let person = ApubPerson::from_json(json, context).await?;
     assert_eq!(context.request_count(), 0);
-    (person, site)
+    Ok((person, site))
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_parse_lemmy_person() {
-    let context = init_context().await;
-    let (person, site) = parse_lemmy_person(&context).await;
+  async fn test_parse_lemmy_person() -> LemmyResult<()> {
+    let context = init_context().await?;
+    let (person, site) = parse_lemmy_person(&context).await?;
 
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
     assert!(!person.local);
-    assert_eq!(person.bio.as_ref().unwrap().len(), 39);
+    assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(39));
 
-    cleanup((person, site), &context).await;
+    cleanup((person, site), &context).await?;
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_parse_pleroma_person() {
-    let context = init_context().await;
+  async fn test_parse_pleroma_person() -> LemmyResult<()> {
+    let context = init_context().await?;
 
     // create and parse a fake pleroma instance actor, to avoid network request during test
-    let mut json: Instance = file_to_json_object("assets/lemmy/objects/instance.json").unwrap();
-    json.id = ObjectId::parse("https://queer.hacktivis.me/").unwrap();
-    let url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
-    ApubSite::verify(&json, &url, &context).await.unwrap();
-    let site = ApubSite::from_json(json, &context).await.unwrap();
+    let mut json: Instance = file_to_json_object("assets/lemmy/objects/instance.json")?;
+    json.id = ObjectId::parse("https://queer.hacktivis.me/")?;
+    let url = Url::parse("https://queer.hacktivis.me/users/lanodan")?;
+    ApubSite::verify(&json, &url, &context).await?;
+    let site = ApubSite::from_json(json, &context).await?;
 
-    let json = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
-    ApubPerson::verify(&json, &url, &context).await.unwrap();
-    let person = ApubPerson::from_json(json, &context).await.unwrap();
+    let json = file_to_json_object("assets/pleroma/objects/person.json")?;
+    ApubPerson::verify(&json, &url, &context).await?;
+    let person = ApubPerson::from_json(json, &context).await?;
 
     assert_eq!(person.actor_id, url.into());
     assert_eq!(person.name, "lanodan");
     assert!(!person.local);
     assert_eq!(context.request_count(), 0);
-    assert_eq!(person.bio.as_ref().unwrap().len(), 873);
+    assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(873));
 
-    cleanup((person, site), &context).await;
+    cleanup((person, site), &context).await?;
+    Ok(())
   }
 
-  async fn cleanup(data: (ApubPerson, ApubSite), context: &LemmyContext) {
-    DbPerson::delete(&mut context.pool(), data.0.id)
-      .await
-      .unwrap();
-    Site::delete(&mut context.pool(), data.1.id).await.unwrap();
+  async fn cleanup(data: (ApubPerson, ApubSite), context: &LemmyContext) -> LemmyResult<()> {
+    DbPerson::delete(&mut context.pool(), data.0.id).await?;
+    Site::delete(&mut context.pool(), data.1.id).await?;
+    Ok(())
   }
 }

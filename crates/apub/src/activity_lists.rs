@@ -134,44 +134,43 @@ impl InCommunity for AnnouncableActivities {
 
 #[cfg(test)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
   use crate::{
     activity_lists::{GroupInboxActivities, PersonInboxActivities, SiteInboxActivities},
     protocol::tests::{test_json, test_parse_lemmy_item},
   };
+  use lemmy_utils::error::LemmyResult;
 
   #[test]
-  fn test_group_inbox() {
-    test_parse_lemmy_item::<GroupInboxActivities>("assets/lemmy/activities/following/follow.json")
-      .unwrap();
+  fn test_group_inbox() -> LemmyResult<()> {
+    test_parse_lemmy_item::<GroupInboxActivities>("assets/lemmy/activities/following/follow.json")?;
     test_parse_lemmy_item::<GroupInboxActivities>(
       "assets/lemmy/activities/create_or_update/create_note.json",
-    )
-    .unwrap();
+    )?;
+    Ok(())
   }
 
   #[test]
-  fn test_person_inbox() {
-    test_parse_lemmy_item::<PersonInboxActivities>("assets/lemmy/activities/following/accept.json")
-      .unwrap();
+  fn test_person_inbox() -> LemmyResult<()> {
+    test_parse_lemmy_item::<PersonInboxActivities>(
+      "assets/lemmy/activities/following/accept.json",
+    )?;
     test_parse_lemmy_item::<PersonInboxActivities>(
       "assets/lemmy/activities/create_or_update/create_note.json",
-    )
-    .unwrap();
+    )?;
     test_parse_lemmy_item::<PersonInboxActivities>(
       "assets/lemmy/activities/create_or_update/create_private_message.json",
-    )
-    .unwrap();
-    test_json::<PersonInboxActivities>("assets/mastodon/activities/follow.json").unwrap();
+    )?;
+    test_json::<PersonInboxActivities>("assets/mastodon/activities/follow.json")?;
+    Ok(())
   }
 
   #[test]
-  fn test_site_inbox() {
+  fn test_site_inbox() -> LemmyResult<()> {
     test_parse_lemmy_item::<SiteInboxActivities>(
       "assets/lemmy/activities/deletion/delete_user.json",
-    )
-    .unwrap();
+    )?;
+    Ok(())
   }
 }
