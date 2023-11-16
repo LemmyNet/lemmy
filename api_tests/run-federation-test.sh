@@ -1,17 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-# pictrs setup
-if ! [ -f "pict-rs" ]; then
-  curl "https://git.asonix.dog/asonix/pict-rs/releases/download/v0.5.0-beta.2/pict-rs-linux-amd64" -o pict-rs
-  chmod +x pict-rs
-fi
-./pict-rs \
-  run -a 0.0.0.0:8080 \
-  --danger-dummy-mode \
-  filesystem -p /tmp/pictrs/files \
-  sled -p /tmp/pictrs/sled-repo 2>&1 &
-
 export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432
 pushd ..
 cargo build
