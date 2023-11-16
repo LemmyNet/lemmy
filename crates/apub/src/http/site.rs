@@ -1,16 +1,10 @@
 use crate::{
-  activity_lists::SiteInboxActivities,
   http::create_apub_response,
-  objects::{instance::ApubSite, person::ApubPerson},
+  objects::instance::ApubSite,
   protocol::collections::empty_outbox::EmptyOutbox,
 };
-use activitypub_federation::{
-  actix_web::inbox::receive_activity,
-  config::Data,
-  protocol::context::WithContext,
-  traits::Object,
-};
-use actix_web::{web::Bytes, HttpRequest, HttpResponse};
+use activitypub_federation::{config::Data, traits::Object};
+use actix_web::HttpResponse;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::error::LemmyError;
@@ -35,16 +29,4 @@ pub(crate) async fn get_apub_site_outbox(
   );
   let outbox = EmptyOutbox::new(Url::parse(&outbox_id)?)?;
   create_apub_response(&outbox)
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn get_apub_site_inbox(
-  request: HttpRequest,
-  body: Bytes,
-  data: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
-  receive_activity::<WithContext<SiteInboxActivities>, ApubPerson, LemmyContext>(
-    request, body, &data,
-  )
-  .await
 }

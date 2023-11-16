@@ -16,7 +16,7 @@ use crate::{
         note::CreateOrUpdateNote,
         page::CreateOrUpdatePage,
       },
-      deletion::{delete::Delete, delete_user::DeleteUser, undo_delete::UndoDelete},
+      deletion::{delete::Delete, undo_delete::UndoDelete},
       following::{accept::AcceptFollow, follow::Follow, undo_follow::UndoFollow},
       voting::{undo_vote::UndoVote, vote::Vote},
     },
@@ -98,16 +98,6 @@ pub enum AnnouncableActivities {
   Page(Page),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-#[enum_delegate::implement(ActivityHandler)]
-#[allow(clippy::enum_variant_names)]
-pub enum SiteInboxActivities {
-  BlockUser(BlockUser),
-  UndoBlockUser(UndoBlockUser),
-  DeleteUser(DeleteUser),
-}
-
 #[async_trait::async_trait]
 impl InCommunity for AnnouncableActivities {
   #[tracing::instrument(skip(self, context))]
@@ -137,7 +127,7 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use crate::{
-    activity_lists::{GroupInboxActivities, PersonInboxActivities, SiteInboxActivities},
+    activity_lists::{GroupInboxActivities, PersonInboxActivities, SharedInboxActivities},
     protocol::tests::{test_json, test_parse_lemmy_item},
   };
   use lemmy_utils::error::LemmyResult;
@@ -167,8 +157,8 @@ mod tests {
   }
 
   #[test]
-  fn test_site_inbox() -> LemmyResult<()> {
-    test_parse_lemmy_item::<SiteInboxActivities>(
+  fn test_shared_inbox() -> LemmyResult<()> {
+    test_parse_lemmy_item::<SharedInboxActivities>(
       "assets/lemmy/activities/deletion/delete_user.json",
     )?;
     Ok(())
