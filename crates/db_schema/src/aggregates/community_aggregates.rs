@@ -83,7 +83,6 @@ mod tests {
       .name("ismail_community_agg".into())
       .public_key("pubkey".to_string())
       .instance_id(another_inserted_instance.id)
-      .local(Some(false))
       .build();
 
     let third_inserted_person = Person::create(pool, &third_person).await.unwrap();
