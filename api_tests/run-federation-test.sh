@@ -14,6 +14,8 @@ yarn
 yarn api-test || true
 
 killall -s1 lemmy_server || true
+killall -s1 pict-rs || true
 for INSTANCE in lemmy_alpha lemmy_beta lemmy_gamma lemmy_delta lemmy_epsilon; do
   psql "$LEMMY_DATABASE_URL" -c "DROP DATABASE $INSTANCE"
 done
+rm -r /tmp/pictrs

@@ -52,15 +52,6 @@ impl Follow {
     community: &ApubCommunity,
     context: &Data<LemmyContext>,
   ) -> Result<(), LemmyError> {
-    let community_follower_form = CommunityFollowerForm {
-      community_id: community.id,
-      person_id: actor.id,
-      pending: true,
-    };
-    CommunityFollower::follow(&mut context.pool(), &community_follower_form)
-      .await
-      .ok();
-
     let follow = Follow::new(actor, community, context)?;
     let inbox = if community.local {
       ActivitySendTargets::empty()
