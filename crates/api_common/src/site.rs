@@ -328,6 +328,7 @@ pub struct FederatedInstances {
   pub blocked: Vec<InstanceWithFederationState>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -350,6 +351,7 @@ impl From<FederationQueueState> for ReadableFederationState {
   }
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]

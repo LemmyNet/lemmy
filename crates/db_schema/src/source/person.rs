@@ -115,8 +115,8 @@ pub struct PersonUpdateForm {
 #[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
 #[cfg_attr(feature = "full", diesel(table_name = person_follower))]
+#[cfg_attr(feature = "full", diesel(primary_key(follower_id, person_id)))]
 pub struct PersonFollower {
-  pub id: i32,
   pub person_id: PersonId,
   pub follower_id: PersonId,
   pub published: DateTime<Utc>,

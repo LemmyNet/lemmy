@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetReportCount, GetReportCountResponse},
@@ -14,7 +14,7 @@ use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn report_count(
-  data: Json<GetReportCount>,
+  data: Query<GetReportCount>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<GetReportCountResponse>, LemmyError> {

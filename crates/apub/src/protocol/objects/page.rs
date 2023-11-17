@@ -242,9 +242,6 @@ where
 
 #[cfg(test)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
-
   use crate::protocol::{objects::page::Page, tests::test_parse_lemmy_item};
 
   #[test]

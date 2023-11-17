@@ -39,16 +39,15 @@ impl SentActivity {
 
 impl ReceivedActivity {
   pub async fn create(pool: &mut DbPool<'_>, ap_id_: &DbUrl) -> Result<(), Error> {
-    use crate::schema::received_activity::dsl::{ap_id, id, received_activity};
+    use crate::schema::received_activity::dsl::{ap_id, received_activity};
     let conn = &mut get_conn(pool).await?;
-    let res = insert_into(received_activity)
+    let rows_affected = insert_into(received_activity)
       .values(ap_id.eq(ap_id_))
       .on_conflict_do_nothing()
-      .returning(id)
-      .get_result::<i64>(conn)
+      .execute(conn)
       .await
       .optional()?;
-    if res.is_some() {
+    if rows_affected == Some(1) {
       // new activity inserted successfully
       Ok(())
     } else {
