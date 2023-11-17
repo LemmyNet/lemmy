@@ -8,6 +8,17 @@ export RUST_LOG="warn,lemmy_server=debug,lemmy_federate=debug,lemmy_api=debug,le
 
 export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queue has delays in the scale of 30s-5min
 
+# pictrs setup
+if ! [ -f "pict-rs" ]; then
+  curl "https://git.asonix.dog/asonix/pict-rs/releases/download/v0.5.0-beta.2/pict-rs-linux-amd64" -o api_tests/pict-rs
+  chmod +x api_tests/pict-rs
+fi
+./api_tests/pict-rs \
+  run -a 0.0.0.0:8080 \
+  --danger-dummy-mode \
+  filesystem -p /tmp/pictrs/files \
+  sled -p /tmp/pictrs/sled-repo 2>&1 &
+
 for INSTANCE in lemmy_alpha lemmy_beta lemmy_gamma lemmy_delta lemmy_epsilon; do
   echo "DB URL: ${LEMMY_DATABASE_URL} INSTANCE: $INSTANCE"
   psql "${LEMMY_DATABASE_URL}/lemmy" -c "DROP DATABASE IF EXISTS $INSTANCE"
