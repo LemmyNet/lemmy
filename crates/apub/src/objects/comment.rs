@@ -183,9 +183,6 @@ impl Object for ApubComment {
 
 #[cfg(test)]
 pub(crate) mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
-
   use super::*;
   use crate::{
     objects::{
@@ -200,46 +197,45 @@ pub(crate) mod tests {
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;
   use lemmy_db_schema::source::site::Site;
+  use lemmy_utils::error::LemmyResult;
   use serial_test::serial;
 
   async fn prepare_comment_test(
     url: &Url,
     context: &Data<LemmyContext>,
-  ) -> (ApubPerson, ApubCommunity, ApubPost, ApubSite) {
+  ) -> LemmyResult<(ApubPerson, ApubCommunity, ApubPost, ApubSite)> {
     // use separate counter so this doesnt affect tests
     let context2 = context.reset_request_count();
-    let (person, site) = parse_lemmy_person(&context2).await;
-    let community = parse_lemmy_community(&context2).await;
-    let post_json = file_to_json_object("assets/lemmy/objects/page.json").unwrap();
-    ApubPost::verify(&post_json, url, &context2).await.unwrap();
-    let post = ApubPost::from_json(post_json, &context2).await.unwrap();
-    (person, community, post, site)
+    let (person, site) = parse_lemmy_person(&context2).await?;
+    let community = parse_lemmy_community(&context2).await?;
+    let post_json = file_to_json_object("assets/lemmy/objects/page.json")?;
+    ApubPost::verify(&post_json, url, &context2).await?;
+    let post = ApubPost::from_json(post_json, &context2).await?;
+    Ok((person, community, post, site))
   }
 
-  async fn cleanup(data: (ApubPerson, ApubCommunity, ApubPost, ApubSite), context: &LemmyContext) {
-    Post::delete(&mut context.pool(), data.2.id).await.unwrap();
-    Community::delete(&mut context.pool(), data.1.id)
-      .await
-      .unwrap();
-    Person::delete(&mut context.pool(), data.0.id)
-      .await
-      .unwrap();
-    Site::delete(&mut context.pool(), data.3.id).await.unwrap();
-    LocalSite::delete(&mut context.pool()).await.unwrap();
+  async fn cleanup(
+    data: (ApubPerson, ApubCommunity, ApubPost, ApubSite),
+    context: &LemmyContext,
+  ) -> LemmyResult<()> {
+    Post::delete(&mut context.pool(), data.2.id).await?;
+    Community::delete(&mut context.pool(), data.1.id).await?;
+    Person::delete(&mut context.pool(), data.0.id).await?;
+    Site::delete(&mut context.pool(), data.3.id).await?;
+    LocalSite::delete(&mut context.pool()).await?;
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  pub(crate) async fn test_parse_lemmy_comment() {
-    let context = init_context().await;
-    let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
-    let data = prepare_comment_test(&url, &context).await;
+  pub(crate) async fn test_parse_lemmy_comment() -> LemmyResult<()> {
+    let context = init_context().await?;
+    let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
+    let data = prepare_comment_test(&url, &context).await?;
 
-    let json: Note = file_to_json_object("assets/lemmy/objects/note.json").unwrap();
-    ApubComment::verify(&json, &url, &context).await.unwrap();
-    let comment = ApubComment::from_json(json.clone(), &context)
-      .await
-      .unwrap();
+    let json: Note = file_to_json_object("assets/lemmy/objects/note.json")?;
+    ApubComment::verify(&json, &url, &context).await?;
+    let comment = ApubComment::from_json(json.clone(), &context).await?;
 
     assert_eq!(comment.ap_id, url.into());
     assert_eq!(comment.content.len(), 14);
@@ -247,45 +243,38 @@ pub(crate) mod tests {
     assert_eq!(context.request_count(), 0);
 
     let comment_id = comment.id;
-    let to_apub = comment.into_json(&context).await.unwrap();
+    let to_apub = comment.into_json(&context).await?;
     assert_json_include!(actual: json, expected: to_apub);
 
-    Comment::delete(&mut context.pool(), comment_id)
-      .await
-      .unwrap();
-    cleanup(data, &context).await;
+    Comment::delete(&mut context.pool(), comment_id).await?;
+    cleanup(data, &context).await?;
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_parse_pleroma_comment() {
-    let context = init_context().await;
-    let url = Url::parse("https://enterprise.lemmy.ml/comment/38741").unwrap();
-    let data = prepare_comment_test(&url, &context).await;
+  async fn test_parse_pleroma_comment() -> LemmyResult<()> {
+    let context = init_context().await?;
+    let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
+    let data = prepare_comment_test(&url, &context).await?;
 
     let pleroma_url =
-      Url::parse("https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2")
-        .unwrap();
-    let person_json = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
-    ApubPerson::verify(&person_json, &pleroma_url, &context)
-      .await
-      .unwrap();
-    ApubPerson::from_json(person_json, &context).await.unwrap();
-    let json = file_to_json_object("assets/pleroma/objects/note.json").unwrap();
-    ApubComment::verify(&json, &pleroma_url, &context)
-      .await
-      .unwrap();
-    let comment = ApubComment::from_json(json, &context).await.unwrap();
+      Url::parse("https://queer.hacktivis.me/objects/8d4973f4-53de-49cd-8c27-df160e16a9c2")?;
+    let person_json = file_to_json_object("assets/pleroma/objects/person.json")?;
+    ApubPerson::verify(&person_json, &pleroma_url, &context).await?;
+    ApubPerson::from_json(person_json, &context).await?;
+    let json = file_to_json_object("assets/pleroma/objects/note.json")?;
+    ApubComment::verify(&json, &pleroma_url, &context).await?;
+    let comment = ApubComment::from_json(json, &context).await?;
 
     assert_eq!(comment.ap_id, pleroma_url.into());
     assert_eq!(comment.content.len(), 64);
     assert!(!comment.local);
     assert_eq!(context.request_count(), 1);
 
-    Comment::delete(&mut context.pool(), comment.id)
-      .await
-      .unwrap();
-    cleanup(data, &context).await;
+    Comment::delete(&mut context.pool(), comment.id).await?;
+    cleanup(data, &context).await?;
+    Ok(())
   }
 
   #[tokio::test]
