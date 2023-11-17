@@ -165,6 +165,28 @@ fn queries<'a>() -> Queries<
       .single_value()
   };
 
+  let is_community_followed = |person_id| {
+    community_follower::table
+      .filter(
+        post_aggregates::community_id
+          .eq(community_follower::community_id)
+          .and(community_follower::person_id.eq(person_id)),
+      )
+      .select(community_follower::pending.nullable())
+      .single_value()
+  };
+
+  let number_of_read_comments = |person_id| {
+    person_post_aggregates::table
+      .filter(
+        post_aggregates::post_id
+          .eq(person_post_aggregates::post_id)
+          .and(person_post_aggregates::person_id.eq(person_id)),
+      )
+      .select(person_post_aggregates::read_comments.nullable())
+      .single_value()
+  };
+
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>,
                         saved_only: bool| {
@@ -194,16 +216,7 @@ fn queries<'a>() -> Queries<
     let subscribed_type_selection: Box<
       dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>,
     > = if let Some(person_id) = my_person_id {
-      Box::new(
-        community_follower::table
-          .filter(
-            post_aggregates::community_id
-              .eq(community_follower::community_id)
-              .and(community_follower::person_id.eq(person_id)),
-          )
-          .select(community_follower::pending.nullable())
-          .single_value(),
-      )
+      Box::new(is_community_followed(person_id))
     } else {
       Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
     };
@@ -216,19 +229,10 @@ fn queries<'a>() -> Queries<
       Box::new(None::<i16>.into_sql::<sql_types::Nullable<sql_types::SmallInt>>())
     };
 
-    let read_comments: Box<
+    let read_comments_selection: Box<
       dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::BigInt>>,
     > = if let Some(person_id) = my_person_id {
-      Box::new(
-        person_post_aggregates::table
-          .filter(
-            post_aggregates::post_id
-              .eq(person_post_aggregates::post_id)
-              .and(person_post_aggregates::person_id.eq(person_id)),
-          )
-          .select(person_post_aggregates::read_comments.nullable())
-          .single_value(),
-      )
+      Box::new(number_of_read_comments(person_id))
     } else {
       Box::new(None::<i64>.into_sql::<sql_types::Nullable<sql_types::BigInt>>())
     };
@@ -251,7 +255,7 @@ fn queries<'a>() -> Queries<
         is_creator_blocked_selection,
         score_selection,
         coalesce(
-          post_aggregates::comments.nullable() - read_comments,
+          post_aggregates::comments.nullable() - read_comments_selection,
           post_aggregates::comments,
         ),
       ))
