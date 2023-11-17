@@ -54,8 +54,8 @@ beforeAll(async () => {
   }
 });
 
-afterAll(async () => {
-  await unfollows();
+afterAll(() => {
+  unfollows();
 });
 
 function assertCommentFederation(
@@ -94,7 +94,9 @@ test("Create a comment", async () => {
 });
 
 test("Create a comment in a non-existent post", async () => {
-  await expect(createComment(alpha, -1)).rejects.toBe("couldnt_find_post");
+  await expect(createComment(alpha, -1)).rejects.toStrictEqual(
+    Error("couldnt_find_post"),
+  );
 });
 
 test("Update a comment", async () => {
@@ -143,7 +145,7 @@ test("Delete a comment", async () => {
     await waitUntil(
       () =>
         resolveComment(gamma, commentRes.comment_view.comment).catch(e => e),
-      r => r !== "couldnt_find_object",
+      r => r.message !== "couldnt_find_object",
     )
   ).comment;
   if (!gammaComment) {
@@ -160,13 +162,13 @@ test("Delete a comment", async () => {
   // Make sure that comment is undefined on beta
   await waitUntil(
     () => resolveComment(beta, commentRes.comment_view.comment).catch(e => e),
-    e => e === "couldnt_find_object",
+    e => e.message == "couldnt_find_object",
   );
 
   // Make sure that comment is undefined on gamma after delete
   await waitUntil(
     () => resolveComment(gamma, commentRes.comment_view.comment).catch(e => e),
-    e => e === "couldnt_find_object",
+    e => e.message === "couldnt_find_object",
   );
 
   // Test undeleting the comment
@@ -181,7 +183,7 @@ test("Delete a comment", async () => {
   let betaComment2 = (
     await waitUntil(
       () => resolveComment(beta, commentRes.comment_view.comment).catch(e => e),
-      e => e !== "couldnt_find_object",
+      e => e.message !== "couldnt_find_object",
     )
   ).comment;
   expect(betaComment2?.comment.deleted).toBe(false);

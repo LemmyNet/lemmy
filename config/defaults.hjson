@@ -52,6 +52,8 @@
     # hotlinking is allowed. If that is the case for your instance, make sure that this setting is
     # disabled.
     cache_external_link_previews: true
+    # Timeout for uploading images to pictrs (in seconds)
+    upload_timeout: 30
   }
   # Email sending configuration. All options except login/password are mandatory
   email: {
