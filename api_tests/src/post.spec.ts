@@ -50,8 +50,8 @@ beforeAll(async () => {
   await unfollows();
 });
 
-afterAll(async () => {
-  await unfollows();
+afterAll(() => {
+  unfollows();
 });
 
 function assertPostFederation(postOne?: PostView, postTwo?: PostView) {
@@ -96,18 +96,20 @@ test("Create a post", async () => {
   assertPostFederation(betaPost, postRes.post_view);
 
   // Delta only follows beta, so it should not see an alpha ap_id
-  await expect(resolvePost(delta, postRes.post_view.post)).rejects.toBe(
-    "couldnt_find_object",
-  );
+  await expect(
+    resolvePost(delta, postRes.post_view.post),
+  ).rejects.toStrictEqual(Error("couldnt_find_object"));
 
   // Epsilon has alpha blocked, it should not see the alpha post
-  await expect(resolvePost(epsilon, postRes.post_view.post)).rejects.toBe(
-    "couldnt_find_object",
-  );
+  await expect(
+    resolvePost(epsilon, postRes.post_view.post),
+  ).rejects.toStrictEqual(Error("couldnt_find_object"));
 });
 
 test("Create a post in a non-existent community", async () => {
-  await expect(createPost(alpha, -2)).rejects.toBe("couldnt_find_community");
+  await expect(createPost(alpha, -2)).rejects.toStrictEqual(
+    Error("couldnt_find_community"),
+  );
 });
 
 test("Unlike a post", async () => {
@@ -157,8 +159,8 @@ test("Update a post", async () => {
   assertPostFederation(betaPost, updatedPost.post_view);
 
   // Make sure lemmy beta cannot update the post
-  await expect(editPost(beta, betaPost.post)).rejects.toBe(
-    "no_post_edit_allowed",
+  await expect(editPost(beta, betaPost.post)).rejects.toStrictEqual(
+    Error("no_post_edit_allowed"),
   );
 });
 
@@ -226,7 +228,9 @@ test("Lock a post", async () => {
   );
 
   // Try to make a new comment there, on alpha
-  await expect(createComment(alpha, alphaPost1.post.id)).rejects.toBe("locked");
+  await expect(createComment(alpha, alphaPost1.post.id)).rejects.toStrictEqual(
+    Error("locked"),
+  );
 
   // Unlock a post
   let unlockedPost = await lockPost(beta, false, betaPost1.post);
@@ -281,8 +285,8 @@ test("Delete a post", async () => {
   assertPostFederation(betaPost2, undeletedPost.post_view);
 
   // Make sure lemmy beta cannot delete the post
-  await expect(deletePost(beta, true, betaPost2.post)).rejects.toBe(
-    "no_post_edit_allowed",
+  await expect(deletePost(beta, true, betaPost2.post)).rejects.toStrictEqual(
+    Error("no_post_edit_allowed"),
   );
 });
 
@@ -483,12 +487,12 @@ test.skip("Enforce community ban for federated user", async () => {
 
   // ensure that the post by alpha got removed
   await expect(getPost(alpha, searchBeta1.posts[0].post.id)).rejects.toBe(
-    "unknown",
+    Error("unknown"),
   );
 
   // Alpha tries to make post on beta, but it fails because of ban
   await expect(createPost(alpha, betaCommunity.community.id)).rejects.toBe(
-    "banned_from_community",
+    Error("banned_from_community"),
   );
 
   // Unban alpha

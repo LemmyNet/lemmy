@@ -14,12 +14,10 @@ import {
   betaUrl,
 } from "./shared";
 
-beforeAll(async () => {
-  await setupLogins();
-});
+beforeAll(setupLogins);
 
-afterAll(async () => {
-  await unfollowRemotes(alpha);
+afterAll(() => {
+  unfollowRemotes(alpha);
 });
 
 test("Follow local community", async () => {

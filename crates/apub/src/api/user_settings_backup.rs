@@ -277,7 +277,6 @@ pub async fn import_settings(
 
 #[cfg(test)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
   use crate::{
@@ -297,7 +296,7 @@ mod tests {
   };
   use lemmy_db_views::structs::LocalUserView;
   use lemmy_db_views_actor::structs::CommunityFollowerView;
-  use lemmy_utils::error::LemmyErrorType;
+  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use std::time::Duration;
   use tokio::time::sleep;
@@ -306,10 +305,8 @@ mod tests {
     name: String,
     bio: Option<String>,
     context: &Data<LemmyContext>,
-  ) -> LocalUserView {
-    let instance = Instance::read_or_create(&mut context.pool(), "example.com".to_string())
-      .await
-      .unwrap();
+  ) -> LemmyResult<LocalUserView> {
+    let instance = Instance::read_or_create(&mut context.pool(), "example.com".to_string()).await?;
     let person_form = PersonInsertForm::builder()
       .name(name.clone())
       .display_name(Some(name.clone()))
@@ -317,63 +314,49 @@ mod tests {
       .public_key("asd".to_string())
       .instance_id(instance.id)
       .build();
-    let person = Person::create(&mut context.pool(), &person_form)
-      .await
-      .unwrap();
+    let person = Person::create(&mut context.pool(), &person_form).await?;
 
     let user_form = LocalUserInsertForm::builder()
       .person_id(person.id)
       .password_encrypted("pass".to_string())
       .build();
-    let local_user = LocalUser::create(&mut context.pool(), &user_form)
-      .await
-      .unwrap();
+    let local_user = LocalUser::create(&mut context.pool(), &user_form).await?;
 
-    LocalUserView::read(&mut context.pool(), local_user.id)
-      .await
-      .unwrap()
+    Ok(LocalUserView::read(&mut context.pool(), local_user.id).await?)
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_settings_export_import() {
-    let context = init_context().await;
+  async fn test_settings_export_import() -> LemmyResult<()> {
+    let context = init_context().await?;
 
-    let export_user = create_user("hanna".to_string(), Some("my bio".to_string()), &context).await;
+    let export_user =
+      create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
 
     let community_form = CommunityInsertForm::builder()
       .name("testcom".to_string())
       .title("testcom".to_string())
       .instance_id(export_user.person.instance_id)
       .build();
-    let community = Community::create(&mut context.pool(), &community_form)
-      .await
-      .unwrap();
+    let community = Community::create(&mut context.pool(), &community_form).await?;
     let follower_form = CommunityFollowerForm {
       community_id: community.id,
       person_id: export_user.person.id,
       pending: false,
     };
-    CommunityFollower::follow(&mut context.pool(), &follower_form)
-      .await
-      .unwrap();
+    CommunityFollower::follow(&mut context.pool(), &follower_form).await?;
 
-    let backup = export_settings(export_user.clone(), context.reset_request_count())
-      .await
-      .unwrap();
+    let backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
 
-    let import_user = create_user("charles".to_string(), None, &context).await;
+    let import_user = create_user("charles".to_string(), None, &context).await?;
 
-    import_settings(backup, import_user.clone(), context.reset_request_count())
-      .await
-      .unwrap();
+    import_settings(backup, import_user.clone(), context.reset_request_count()).await?;
 
     // wait for background task to finish
     sleep(Duration::from_millis(1000)).await;
 
-    let import_user_updated = LocalUserView::read(&mut context.pool(), import_user.local_user.id)
-      .await
-      .unwrap();
+    let import_user_updated =
+      LocalUserView::read(&mut context.pool(), import_user.local_user.id).await?;
 
     assert_eq!(
       export_user.person.display_name,
@@ -381,61 +364,49 @@ mod tests {
     );
     assert_eq!(export_user.person.bio, import_user_updated.person.bio);
 
-    let follows = CommunityFollowerView::for_person(&mut context.pool(), import_user.person.id)
-      .await
-      .unwrap();
+    let follows =
+      CommunityFollowerView::for_person(&mut context.pool(), import_user.person.id).await?;
     assert_eq!(follows.len(), 1);
     assert_eq!(follows[0].community.actor_id, community.actor_id);
 
-    LocalUser::delete(&mut context.pool(), export_user.local_user.id)
-      .await
-      .unwrap();
-    LocalUser::delete(&mut context.pool(), import_user.local_user.id)
-      .await
-      .unwrap();
+    LocalUser::delete(&mut context.pool(), export_user.local_user.id).await?;
+    LocalUser::delete(&mut context.pool(), import_user.local_user.id).await?;
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn disallow_large_backup() {
-    let context = init_context().await;
+  async fn disallow_large_backup() -> LemmyResult<()> {
+    let context = init_context().await?;
 
-    let export_user = create_user("hanna".to_string(), Some("my bio".to_string()), &context).await;
+    let export_user =
+      create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
 
-    let mut backup = export_settings(export_user.clone(), context.reset_request_count())
-      .await
-      .unwrap();
+    let mut backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
 
     for _ in 0..251 {
       backup
         .followed_communities
-        .push("http://example.com".parse().unwrap());
+        .push("http://example.com".parse()?);
       backup
         .blocked_communities
-        .push("http://example2.com".parse().unwrap());
-      backup
-        .saved_posts
-        .push("http://example3.com".parse().unwrap());
-      backup
-        .saved_comments
-        .push("http://example4.com".parse().unwrap());
+        .push("http://example2.com".parse()?);
+      backup.saved_posts.push("http://example3.com".parse()?);
+      backup.saved_comments.push("http://example4.com".parse()?);
     }
 
-    let import_user = create_user("charles".to_string(), None, &context).await;
+    let import_user = create_user("charles".to_string(), None, &context).await?;
 
     let imported =
       import_settings(backup, import_user.clone(), context.reset_request_count()).await;
 
     assert_eq!(
-      imported.err().unwrap().error_type,
-      LemmyErrorType::TooManyItems
+      imported.err().map(|e| e.error_type),
+      Some(LemmyErrorType::TooManyItems)
     );
 
-    LocalUser::delete(&mut context.pool(), export_user.local_user.id)
-      .await
-      .unwrap();
-    LocalUser::delete(&mut context.pool(), import_user.local_user.id)
-      .await
-      .unwrap();
+    LocalUser::delete(&mut context.pool(), export_user.local_user.id).await?;
+    LocalUser::delete(&mut context.pool(), import_user.local_user.id).await?;
+    Ok(())
   }
 }
