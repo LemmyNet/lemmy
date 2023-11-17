@@ -1,6 +1,5 @@
 pub mod boxed_meth;
 
-use diesel::Table;
 use crate::{
   diesel::Connection,
   diesel_migrations::MigrationHarness,
@@ -18,10 +17,10 @@ use diesel::{
   expression::{AsExpression, TypedExpressionType},
   helper_types::AsExprOf,
   pg::Pg,
-  query_dsl::methods::{self, FindDsl, FilterDsl, BoxedDsl},
+  query_dsl::methods::FilterDsl,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_types::{self, SingleValue, SqlType, Text, Timestamptz},
+  sql_types::{SingleValue, SqlType, Text, Timestamptz},
   BoxableExpression,
   ExpressionMethods,
   IntoSql,
@@ -467,26 +466,6 @@ macro_rules! sql_try {
 
     expr
   }};
-}
-
-pub fn find_if_some<Q, PK>(query: Q, key: Option<PK>) -> dsl::IntoBoxed<'static, Q, Pg>
-where
-  /*Q: QueryDsl + methods::BoxedDsl<'static, Pg>,
-  dsl::IntoBoxed<'static, Q, Pg>: QueryDsl
-    + boxed_meth::FindDsl<PK>
-    + boxed_meth::FilterDsl<dsl::AsExprOf<bool, sql_types::Bool>>,*/
-  Q: FindDsl<PK> + BoxedDsl<'static, Pg>,
-  dsl::Find<Q, PK>: BoxedDsl<'static, Pg, Output = dsl::IntoBoxed<'static, Q, Pg>>,
-  dsl::IntoBoxed<'static, Q, Pg>: boxed_meth::FilterDsl<dsl::AsExprOf<bool, sql_types::Bool>>,
-{
-  if let Some(key) = key {
-    query.find(key).internal_into_boxed()
-  } else {
-    let t: dsl::AsExprOf<bool, sql_types::Bool> = false.into_sql::<sql_types::Bool>();
-    //query.filter(t/*false.into_sql::<sql_types::Bool>()*/).internal_into_boxed()
-    //query.internal_into_boxed()
-    query.internal_into_boxed().filter(t)
-  }
 }
 
 pub trait FirstOrLoad<U: Send + 'static>:

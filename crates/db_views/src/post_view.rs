@@ -42,7 +42,6 @@ use lemmy_db_schema::{
   utils::{
     boxed_meth,
     filter_var_eq,
-    find_if_some,
     fuzzy_search,
     get_conn,
     limit_and_offset,
@@ -183,13 +182,9 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
 
   let mut saved = for_me(|me| {
     Box::new(exists(
-      post_saved::table.find((me, post_aggregates::post_id)).into_boxed(),
+      post_saved::table.find((me, post_aggregates::post_id)),
     ))
   });
-  /*let mut saved: BoxExpr<_, sql_types::Bool> = Box::new(exists(find_if_some(
-    post_saved::table,
-    options.me.map(|me| (me, post_aggregates::post_id)),
-  )));*/
   let mut read = for_me(|me| {
     Box::new(exists(
       post_read::table.find((me, post_aggregates::post_id)),
