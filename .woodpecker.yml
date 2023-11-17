@@ -2,7 +2,7 @@
 # See https://github.com/woodpecker-ci/woodpecker/issues/1677
 
 variables:
-  - &rust_image "rust:1.72.1"
+  - &rust_image "rust:1.74.0"
   - &slow_check_paths
     - path:
         # rust source code
