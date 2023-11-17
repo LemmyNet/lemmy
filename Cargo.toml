@@ -20,6 +20,9 @@ repository.workspace = true
 [lib]
 doctest = false
 
+[lints]
+workspace = true
+
 [profile.release]
 debug = 0
 lto = "thin"
@@ -57,6 +60,32 @@ members = [
   "crates/routes",
   "crates/federate",
 ]
+
+[workspace.lints.rust]
+warnings = "deny"
+deprecated = "deny"
+
+[workspace.lints.clippy]
+cast_lossless = "deny"
+complexity = "deny"
+correctness = "deny"
+dbg_macro = "deny"
+explicit_into_iter_loop = "deny"
+explicit_iter_loop = "deny"
+get_first = "deny"
+implicit_clone = "deny"
+indexing_slicing = "deny"
+inefficient_to_string = "deny"
+items-after-statements = "deny"
+manual_string_new = "deny"
+needless_collect = "deny"
+perf = "deny"
+redundant_closure_for_method_calls = "deny"
+style = "deny"
+suspicious = "deny"
+uninlined_format_args = "allow"
+unused_self = "deny"
+unwrap_used = "deny"
 
 [workspace.dependencies]
 lemmy_api = { version = "=0.19.0-rc.4", path = "./crates/api" }

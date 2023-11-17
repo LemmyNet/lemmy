@@ -27,6 +27,8 @@ pub mod private_message_report;
 pub mod site;
 pub mod sitemap;
 
+fn lint_test() {}
+
 /// Converts the captcha to a base64 encoded wav audio file
 pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyError> {
   let letters = captcha.as_wav();
