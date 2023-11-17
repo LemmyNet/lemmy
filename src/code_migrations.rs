@@ -15,7 +15,6 @@ use lemmy_api_common::{
     generate_inbox_url,
     generate_local_apub_endpoint,
     generate_shared_inbox_url,
-    generate_site_inbox_url,
     EndpointType,
   },
 };
@@ -50,8 +49,8 @@ pub async fn run_advanced_migrations(
   comment_updates_2020_04_03(pool, protocol_and_hostname).await?;
   private_message_updates_2020_05_05(pool, protocol_and_hostname).await?;
   post_thumbnail_url_updates_2020_07_27(pool, protocol_and_hostname).await?;
-  apub_columns_2021_02_02(pool).await?;
-  instance_actor_2022_01_28(pool, protocol_and_hostname).await?;
+  apub_columns_2021_02_02(pool, settings).await?;
+  instance_actor_2022_01_28(pool, protocol_and_hostname, settings).await?;
   regenerate_public_keys_2022_07_05(pool).await?;
   initialize_local_site_2022_10_10(pool, settings).await?;
 
@@ -283,7 +282,10 @@ async fn post_thumbnail_url_updates_2020_07_27(
 
 /// We are setting inbox and follower URLs for local and remote actors alike, because for now
 /// all federated instances are also Lemmy and use the same URL scheme.
-async fn apub_columns_2021_02_02(pool: &mut DbPool<'_>) -> Result<(), LemmyError> {
+async fn apub_columns_2021_02_02(
+  pool: &mut DbPool<'_>,
+  settings: &Settings,
+) -> Result<(), LemmyError> {
   let conn = &mut get_conn(pool).await?;
   info!("Running apub_columns_2021_02_02");
   {
@@ -295,7 +297,7 @@ async fn apub_columns_2021_02_02(pool: &mut DbPool<'_>) -> Result<(), LemmyError
 
     for p in &persons {
       let inbox_url_ = generate_inbox_url(&p.actor_id)?;
-      let shared_inbox_url_ = generate_shared_inbox_url(&p.actor_id)?;
+      let shared_inbox_url_ = generate_shared_inbox_url(settings)?;
       diesel::update(person.find(p.id))
         .set((
           inbox_url.eq(inbox_url_),
@@ -321,7 +323,7 @@ async fn apub_columns_2021_02_02(pool: &mut DbPool<'_>) -> Result<(), LemmyError
     for c in &communities {
       let followers_url_ = generate_followers_url(&c.actor_id)?;
       let inbox_url_ = generate_inbox_url(&c.actor_id)?;
-      let shared_inbox_url_ = generate_shared_inbox_url(&c.actor_id)?;
+      let shared_inbox_url_ = generate_shared_inbox_url(settings)?;
       diesel::update(community.find(c.id))
         .set((
           followers_url.eq(followers_url_),
@@ -343,6 +345,7 @@ async fn apub_columns_2021_02_02(pool: &mut DbPool<'_>) -> Result<(), LemmyError
 async fn instance_actor_2022_01_28(
   pool: &mut DbPool<'_>,
   protocol_and_hostname: &str,
+  settings: &Settings,
 ) -> Result<(), LemmyError> {
   info!("Running instance_actor_2021_09_29");
   if let Ok(site_view) = SiteView::read_local(pool).await {
@@ -356,7 +359,7 @@ async fn instance_actor_2022_01_28(
     let site_form = SiteUpdateForm {
       actor_id: Some(actor_id.clone().into()),
       last_refreshed_at: Some(naive_now()),
-      inbox_url: Some(generate_site_inbox_url(&actor_id.into())?),
+      inbox_url: Some(generate_shared_inbox_url(settings)?),
       private_key: Some(Some(key_pair.private_key)),
       public_key: Some(key_pair.public_key),
       ..Default::default()
@@ -462,7 +465,7 @@ async fn initialize_local_site_2022_10_10(
       .private_key(Some(person_keypair.private_key))
       .public_key(person_keypair.public_key)
       .inbox_url(Some(generate_inbox_url(&person_actor_id)?))
-      .shared_inbox_url(Some(generate_shared_inbox_url(&person_actor_id)?))
+      .shared_inbox_url(Some(generate_shared_inbox_url(settings)?))
       .build();
     let person_inserted = Person::create(pool, &person_form).await?;
 
@@ -490,7 +493,7 @@ async fn initialize_local_site_2022_10_10(
     .instance_id(instance.id)
     .actor_id(Some(site_actor_id.clone().into()))
     .last_refreshed_at(Some(naive_now()))
-    .inbox_url(Some(generate_site_inbox_url(&site_actor_id.into())?))
+    .inbox_url(Some(generate_shared_inbox_url(settings)?))
     .private_key(Some(site_key_pair.private_key))
     .public_key(Some(site_key_pair.public_key))
     .build();
