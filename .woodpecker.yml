@@ -163,7 +163,7 @@ steps:
     commands:
       # when adding new clippy lints, make sure to also add them in scripts/lint.sh
       - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets --features console
+      - cargo clippy --workspace --tests --all-targets --features console -- -D warnings
     when: *slow_check_paths
 
   cargo_build:
