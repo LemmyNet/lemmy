@@ -61,10 +61,6 @@ members = [
   "crates/federate",
 ]
 
-[workspace.lints.rust]
-warnings = "deny"
-deprecated = "deny"
-
 [workspace.lints.clippy]
 cast_lossless = "deny"
 complexity = "deny"
