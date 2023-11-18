@@ -40,6 +40,9 @@ pub struct Delete {
   /// If summary is present, this is a mod action (Remove in Lemmy terms). Otherwise, its a user
   /// deleting their own content.
   pub(crate) summary: Option<String>,
+  /// Nonstandard field, only valid if object refers to a Person. If present, all content from the
+  /// user should be deleted along with the account
+  pub(crate) remove_data: Option<bool>,
 }
 
 #[async_trait::async_trait]
@@ -52,6 +55,7 @@ impl InCommunity for Delete {
         post.community_id
       }
       DeletableObjects::Post(p) => p.community_id,
+      DeletableObjects::Person(_) => return Err(anyhow!("Person is not part of community").into()),
       DeletableObjects::PrivateMessage(_) => {
         return Err(anyhow!("Private message is not part of community").into())
       }
