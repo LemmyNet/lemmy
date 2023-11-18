@@ -10,12 +10,16 @@ use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Associations, Identifiable, TS)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = custom_emoji))]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::local_site::LocalSite))
 )]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A custom emoji.
 pub struct CustomEmoji {
