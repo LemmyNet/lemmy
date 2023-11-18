@@ -194,6 +194,19 @@ impl CommunityView {
 
     PersonView::is_admin(pool, person_id).await
   }
+
+  pub async fn is_mod_of_any_or_admin(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+  ) -> Result<bool, Error> {
+    let is_mod_of_any =
+      CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await?;
+    if is_mod_of_any {
+      return Ok(true);
+    }
+
+    PersonView::is_admin(pool, person_id).await
+  }
 }
 
 #[derive(Default)]
