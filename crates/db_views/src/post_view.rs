@@ -374,14 +374,15 @@ impl PostView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    my_person_id: Option<PersonId>,
+    local_user_view: Option<&LocalUserView>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
     build_query(QueryInput {
       post_id: Some(post_id),
       hide_removed: !is_mod_or_admin,
       hide_deleted_unless_creator_viewing: !is_mod_or_admin,
-      me: my_person_id,
+      me: local_user_view.map(|l| l.person.id),
+      my_local_user_id: local_user_view.map(|l| l.local_user.id),
       ..Default::default()
     })
     .first(&mut *get_conn(pool).await?)
@@ -728,7 +729,7 @@ mod tests {
     let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person.id),
+      Some(&data.local_user_view),
       false,
     )
     .await
@@ -866,7 +867,7 @@ mod tests {
     let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person.id),
+      Some(&data.local_user_view),
       false,
     )
     .await

@@ -71,16 +71,16 @@ pub async fn build_community_response(
 pub async fn build_post_response(
   context: &LemmyContext,
   community_id: CommunityId,
-  person: &Person,
+  local_user_view: &LocalUserView,
   post_id: PostId,
 ) -> Result<Json<PostResponse>, LemmyError> {
-  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), person, community_id)
+  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view.person, community_id)
     .await
     .is_ok();
   let post_view = PostView::read(
     &mut context.pool(),
     post_id,
-    Some(person.id),
+    Some(local_user_view),
     is_mod_or_admin,
   )
   .await?;

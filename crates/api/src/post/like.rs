@@ -83,7 +83,7 @@ pub async fn like_post(
   build_post_response(
     context.deref(),
     post.community_id,
-    &local_user_view.person,
+    &local_user_view,
     post_id,
   )
   .await

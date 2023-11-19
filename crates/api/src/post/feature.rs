@@ -70,11 +70,5 @@ pub async fn feature_post(
   )
   .await?;
 
-  build_post_response(
-    &context,
-    orig_post.community_id,
-    &local_user_view.person,
-    post_id,
-  )
-  .await
+  build_post_response(&context, orig_post.community_id, &local_user_view, post_id).await
 }

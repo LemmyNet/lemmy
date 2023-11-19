@@ -11,7 +11,7 @@ use lemmy_api_common::{
   site::{ResolveObject, ResolveObjectResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::DbPool};
+use lemmy_db_schema::{source::local_site::LocalSite, utils::DbPool};
 use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};
 use lemmy_db_views_actor::structs::{CommunityView, PersonView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
@@ -24,7 +24,7 @@ pub async fn resolve_object(
 ) -> Result<Json<ResolveObjectResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
   check_private_instance(&local_user_view, &local_site)?;
-  let person_id = local_user_view.map(|v| v.person.id);
+  let person_id = local_user_view.as_ref().map(|v| v.person.id);
   // If we get a valid personId back we can safely assume that the user is authenticated,
   // if there's no personId then the JWT was missing or invalid.
   let is_authenticated = person_id.is_some();
@@ -38,17 +38,18 @@ pub async fn resolve_object(
   }
   .with_lemmy_type(LemmyErrorType::CouldntFindObject)?;
 
-  convert_response(res, person_id, &mut context.pool())
+  convert_response(res, local_user_view.as_ref(), &mut context.pool())
     .await
     .with_lemmy_type(LemmyErrorType::CouldntFindObject)
 }
 
 async fn convert_response(
   object: SearchableObjects,
-  user_id: Option<PersonId>,
+  local_user_view: Option<&LocalUserView>,
   pool: &mut DbPool<'_>,
 ) -> Result<Json<ResolveObjectResponse>, LemmyError> {
   use SearchableObjects::*;
+  let user_id = local_user_view.map(|l| l.person.id);
   let removed_or_deleted;
   let mut res = ResolveObjectResponse::default();
   match object {
@@ -62,7 +63,7 @@ async fn convert_response(
     }
     Post(p) => {
       removed_or_deleted = p.deleted || p.removed;
-      res.post = Some(PostView::read(pool, p.id, user_id, false).await?)
+      res.post = Some(PostView::read(pool, p.id, local_user_view, false).await?)
     }
     Comment(c) => {
       removed_or_deleted = c.deleted || c.removed;
