@@ -58,29 +58,17 @@ use tracing::debug;
 sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
 
 #[derive(Default, Clone)]
-struct QueryInput<'a> {
-  community_id: Option<CommunityId>,
-  creator_id: Option<PersonId>,
-  url_search: Option<String>,
-  search_term: Option<String>,
+struct QueryInput {
   saved_only: bool,
   liked_only: bool,
   disliked_only: bool,
-  hide_removed: bool,
-  hide_nsfw: bool,
-  hide_bot: bool,
   hide_read: bool,
   hide_deleted_unless_creator_viewing: bool,
   hide_disabled_language: bool,
   hide_blocked: bool,
   listing_type: Option<ListingType>,
-  sort_by_featured_local: bool,
-  sort_by_featured_community: bool,
-  sort: Option<SortType>,
   limit: Option<i64>,
   offset: Option<i64>,
-  page_after: Option<&'a PaginationCursorData>,
-  page_before_or_equal: Option<&'a PaginationCursorData>,
   me: Option<PersonId>,
   my_local_user_id: Option<LocalUserId>,
 }
@@ -167,7 +155,7 @@ fn new_query<'a>() -> BoxedQuery<'a> {
 
 fn build_query<'a>(
   mut query: BoxedQuery<'a>,
-  options: QueryInput<'_>,
+  options: QueryInput,
 ) -> impl FirstOrLoad<'a, PostView> {
   if let Some(limit) = options.limit {
     query = query.limit(limit);
@@ -249,24 +237,6 @@ fn build_query<'a>(
     }
   }
 
-  if let Some(community_id) = options.community_id {
-    query = query.filter(post_aggregates::community_id.eq(community_id));
-  }
-  if let Some(creator_id) = options.creator_id {
-    query = query.filter(post_aggregates::creator_id.eq(creator_id));
-  }
-  if let Some(url_search) = options.url_search {
-    query = query.filter(post::url.eq(url_search));
-  }
-  if let Some(search_term) = &options.search_term {
-    let searcher = fuzzy_search(search_term);
-    query = query.filter(
-      post::name
-        .ilike(searcher.clone())
-        .or(post::body.ilike(searcher)),
-    );
-  }
-
   if options.saved_only {
     query = filter_var_eq(query, &mut saved, true);
   }
@@ -278,15 +248,6 @@ fn build_query<'a>(
   }
   if options.hide_read {
     query = filter_var_eq(query, &mut read, false);
-  }
-  if options.hide_removed {
-    query = query.filter(not(community::removed.or(post::removed)));
-  }
-  if options.hide_nsfw {
-    query = query.filter(not(post::nsfw.or(community::nsfw)))
-  }
-  if options.hide_bot {
-    query = query.filter(not(person::bot_account));
   }
   if options.hide_deleted_unless_creator_viewing {
     let not_deleted = not(community::deleted.or(post::deleted));
@@ -301,49 +262,6 @@ fn build_query<'a>(
   }
   if ![None, Some(ListingType::ModeratorView)].contains(&options.listing_type) {
     query = query.filter(not(community::hidden).or(subscribe().is_not_null()))
-  }
-
-  let range = [options.page_after, options.page_before_or_equal];
-
-  if options.sort_by_featured_local {
-    query = desc!(featured_local).order_and_page_filter(query, range);
-  }
-  if options.sort_by_featured_community {
-    query = desc!(featured_community).order_and_page_filter(query, range);
-  }
-  if let Some(sort) = options.sort {
-    let top: &[&dyn OrderAndPageFilter] = &[desc!(score), desc!(published)];
-
-    let (sorts, interval): (&[&dyn OrderAndPageFilter], Option<PgInterval>) = match sort {
-      SortType::Active => (&[desc!(hot_rank_active), desc!(published)], None),
-      SortType::Hot => (&[desc!(hot_rank), desc!(published)], None),
-      SortType::Scaled => (&[desc!(scaled_rank), desc!(published)], None),
-      SortType::Controversial => (&[desc!(controversy_rank), desc!(published)], None),
-      SortType::New => (&[desc!(published)], None),
-      SortType::Old => (&[asc!(published)], None),
-      SortType::NewComments => (&[desc!(newest_comment_time)], None),
-      SortType::MostComments => (&[desc!(comments), desc!(published)], None),
-      SortType::TopAll => (&[desc!(score), desc!(published)], None),
-      SortType::TopYear => (top, Some(1.years())),
-      SortType::TopMonth => (top, Some(1.months())),
-      SortType::TopWeek => (top, Some(1.weeks())),
-      SortType::TopDay => (top, Some(1.days())),
-      SortType::TopHour => (top, Some(1.hours())),
-      SortType::TopSixHour => (top, Some(6.hours())),
-      SortType::TopTwelveHour => (top, Some(12.hours())),
-      SortType::TopThreeMonths => (top, Some(3.months())),
-      SortType::TopSixMonths => (top, Some(6.months())),
-      SortType::TopNineMonths => (top, Some(9.months())),
-    };
-
-    if let Some(interval) = interval {
-      let now = diesel::dsl::now.into_sql::<Timestamptz>();
-      query = query.filter(post_aggregates::published.gt(now - interval));
-    }
-
-    for i in sorts {
-      query = i.order_and_page_filter(query, range);
-    }
   }
 
   let query = query.select((
@@ -378,10 +296,15 @@ impl PostView {
     local_user_view: Option<&LocalUserView>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
+    let mut query = new_query().filter(post_aggregates::post_id.eq(post_id));
+
+    if !is_mod_or_admin {
+      query = query.filter(not(post::removed.or(community::removed)));
+    }
+
     build_query(
-      new_query().filter(post_aggregates::post_id.eq(post_id)),
+      query,
       QueryInput {
-        hide_removed: !is_mod_or_admin,
         hide_deleted_unless_creator_viewing: !is_mod_or_admin,
         me: local_user_view.map(|l| l.person.id),
         my_local_user_id: local_user_view.map(|l| l.local_user.id),
@@ -445,57 +368,122 @@ impl<'a> PostQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
-    let mut input = QueryInput {
-      search_term: self.search_term,
-      url_search: self.url_search,
-      creator_id: self.creator_id,
-      community_id: self.community_id,
-      listing_type: self.listing_type,
-      saved_only: self.saved_only,
-      liked_only: self.liked_only,
-      disliked_only: self.disliked_only,
-      hide_blocked: self.listing_type != Some(ListingType::ModeratorView),
-      hide_nsfw: true,
-      hide_removed: true,
-      hide_deleted_unless_creator_viewing: true,
-      sort_by_featured_local: self.community_id.is_none(),
-      sort_by_featured_community: self.community_id.is_some(),
-      sort: Some(self.sort.unwrap_or(SortType::Hot)),
-      limit: Some(limit),
-      offset: Some(if self.page_after.is_some() {
+    let get_query = |page_before_or_equal: Option<PaginationCursorData>| {
+      let mut query = new_query();
+
+      if let Some(search_term) = &self.search_term {
+        let searcher = fuzzy_search(search_term);
+        query = query.filter(
+          post::name
+            .ilike(searcher.clone())
+            .or(post::body.ilike(searcher)),
+        );
+      }
+      if let Some(community_id) = self.community_id {
+        query = query.filter(post_aggregates::community_id.eq(community_id));
+      }
+      if let Some(creator_id) = self.creator_id {
+        query = query.filter(post_aggregates::creator_id.eq(creator_id));
+      }
+      if let Some(url_search) = &self.url_search {
+        query = query.filter(post::url.eq(url_search));
+      }
+
+      let l = self.local_user.map(|l| &l.local_user);
+      let admin = l.map(|l| l.admin).unwrap_or(false);
+      let show_nsfw = l.map(|l| l.show_nsfw).unwrap_or(false);
+      let show_bot_accounts = l.map(|l| l.show_nsfw).unwrap_or(true);
+
+      if !show_nsfw {
+        query = query.filter(not(post::nsfw.or(community::nsfw)));
+      }
+      if !(admin && self.is_profile_view) {
+        query = query.filter(not(post::removed.or(community::removed)));
+      }
+      if !show_bot_accounts {
+        query = query.filter(not(person::bot_account));
+      }
+
+      let range = [self.page_after.as_ref(), page_before_or_equal.as_ref()];
+
+      if self.community_id.is_some() {
+        query = desc!(featured_community).order_and_page_filter(query, range);
+      } else {
+        query = desc!(featured_local).order_and_page_filter(query, range);
+      }
+
+      let top: &[&dyn OrderAndPageFilter] = &[desc!(score), desc!(published)];
+
+      let (sorts, interval): (&[&dyn OrderAndPageFilter], Option<PgInterval>) =
+        match self.sort.unwrap_or(SortType::Hot) {
+          SortType::Active => (&[desc!(hot_rank_active), desc!(published)], None),
+          SortType::Hot => (&[desc!(hot_rank), desc!(published)], None),
+          SortType::Scaled => (&[desc!(scaled_rank), desc!(published)], None),
+          SortType::Controversial => (&[desc!(controversy_rank), desc!(published)], None),
+          SortType::New => (&[desc!(published)], None),
+          SortType::Old => (&[asc!(published)], None),
+          SortType::NewComments => (&[desc!(newest_comment_time)], None),
+          SortType::MostComments => (&[desc!(comments), desc!(published)], None),
+          SortType::TopAll => (&[desc!(score), desc!(published)], None),
+          SortType::TopYear => (top, Some(1.years())),
+          SortType::TopMonth => (top, Some(1.months())),
+          SortType::TopWeek => (top, Some(1.weeks())),
+          SortType::TopDay => (top, Some(1.days())),
+          SortType::TopHour => (top, Some(1.hours())),
+          SortType::TopSixHour => (top, Some(6.hours())),
+          SortType::TopTwelveHour => (top, Some(12.hours())),
+          SortType::TopThreeMonths => (top, Some(3.months())),
+          SortType::TopSixMonths => (top, Some(6.months())),
+          SortType::TopNineMonths => (top, Some(9.months())),
+        };
+
+      if let Some(interval) = interval {
+        let now = diesel::dsl::now.into_sql::<Timestamptz>();
+        query = query.filter(post_aggregates::published.gt(now - interval));
+      }
+
+      for i in sorts {
+        query = i.order_and_page_filter(query, range);
+      }
+
+      query.limit(limit).offset(if self.page_after.is_some() {
         // always skip exactly one post because that's the last post of the previous page
         // fixing the where clause is more difficult because we'd have to change only the last order-by-where clause
         // e.g. WHERE (featured_local<=, hot_rank<=, published<=) to WHERE (<=, <=, <)
         1
       } else {
         offset
-      }),
-      page_after: self.page_after.as_ref(),
-      page_before_or_equal: self.page_before_or_equal.as_ref(),
+      })
+    };
+
+    let mut input = QueryInput {
+      listing_type: self.listing_type,
+      saved_only: self.saved_only,
+      liked_only: self.liked_only,
+      disliked_only: self.disliked_only,
+      hide_blocked: self.listing_type != Some(ListingType::ModeratorView),
+      hide_deleted_unless_creator_viewing: true,
       ..Default::default()
     };
 
     if let Some(local_user_view) = self.local_user.as_ref() {
       let l = &local_user_view.local_user;
       input = QueryInput {
-        hide_bot: !l.show_bot_accounts,
-        hide_nsfw: !l.show_nsfw,
         hide_read: !(l.show_read_posts || self.saved_only || self.is_profile_view),
         hide_disabled_language: self.listing_type != Some(ListingType::ModeratorView),
-        hide_removed: !(l.admin && self.is_profile_view),
         me: Some(local_user_view.person.id),
         my_local_user_id: Some(l.id),
         ..input
       };
     }
 
-    let last_post;
+    let mut page_before_or_equal = self.page_before_or_equal;
 
     if let (Some(local_user), Some(ListingType::Subscribed), None, None) = (
       self.local_user,
       self.listing_type,
       self.community_id,
-      &self.page_before_or_equal,
+      &page_before_or_equal,
     ) {
       // first get one page for the most popular community to get an upper bound for the the page end for the real query
       // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
@@ -521,7 +509,7 @@ impl<'a> PostQuery<'a> {
         ))
         .order_by(community_aggregates::users_active_month.desc())
         .select(community_aggregates::community_id)
-        .first(&mut *get_conn(pool).await?)
+        .first::<CommunityId>(&mut *get_conn(pool).await?)
         .await
         .optional()?;
 
@@ -531,11 +519,8 @@ impl<'a> PostQuery<'a> {
       };
 
       let posts = build_query(
-        new_query(),
-        QueryInput {
-          community_id: Some(largest_subscribed),
-          ..input.clone()
-        },
+        get_query(None).filter(post_aggregates::community_id.eq(largest_subscribed)),
+        input.clone(),
       )
       .load(&mut *get_conn(pool).await?)
       .await?;
@@ -544,13 +529,12 @@ impl<'a> PostQuery<'a> {
       // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
       if (posts.len() as i64) >= limit {
         if let Some(post) = posts.into_iter().last() {
-          last_post = PaginationCursorData(post.counts);
-          input.page_before_or_equal = Some(&last_post);
+          page_before_or_equal = Some(PaginationCursorData(post.counts));
         }
       }
-    }
+    };
 
-    build_query(new_query(), input)
+    build_query(get_query(page_before_or_equal), input)
       .load(&mut *get_conn(pool).await?)
       .await
   }
