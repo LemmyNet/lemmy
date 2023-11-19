@@ -59,7 +59,6 @@ sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_type
 
 #[derive(Default, Clone)]
 struct QueryInput<'a> {
-  post_id: Option<PostId>,
   community_id: Option<CommunityId>,
   creator_id: Option<PersonId>,
   url_search: Option<String>,
@@ -158,13 +157,18 @@ type BoxedQuery<'a> = dsl::IntoBoxed<
   Pg,
 >;
 
-fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
-  let mut query: BoxedQuery<'_> = post_aggregates::table
+fn new_query<'a>() -> BoxedQuery<'a> {
+  post_aggregates::table
     .inner_join(person::table)
     .inner_join(community::table)
     .inner_join(post::table)
-    .into_boxed();
+    .into_boxed()
+}
 
+fn build_query<'a>(
+  mut query: BoxedQuery<'a>,
+  options: QueryInput<'_>,
+) -> impl FirstOrLoad<'a, PostView> {
   if let Some(limit) = options.limit {
     query = query.limit(limit);
   }
@@ -245,9 +249,6 @@ fn build_query(options: QueryInput<'_>) -> impl FirstOrLoad<PostView> {
     }
   }
 
-  if let Some(post_id) = options.post_id {
-    query = query.filter(post_aggregates::post_id.eq(post_id));
-  }
   if let Some(community_id) = options.community_id {
     query = query.filter(post_aggregates::community_id.eq(community_id));
   }
@@ -377,14 +378,16 @@ impl PostView {
     local_user_view: Option<&LocalUserView>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
-    build_query(QueryInput {
-      post_id: Some(post_id),
-      hide_removed: !is_mod_or_admin,
-      hide_deleted_unless_creator_viewing: !is_mod_or_admin,
-      me: local_user_view.map(|l| l.person.id),
-      my_local_user_id: local_user_view.map(|l| l.local_user.id),
-      ..Default::default()
-    })
+    build_query(
+      new_query().filter(post_aggregates::post_id.eq(post_id)),
+      QueryInput {
+        hide_removed: !is_mod_or_admin,
+        hide_deleted_unless_creator_viewing: !is_mod_or_admin,
+        me: local_user_view.map(|l| l.person.id),
+        my_local_user_id: local_user_view.map(|l| l.local_user.id),
+        ..Default::default()
+      },
+    )
     .first(&mut *get_conn(pool).await?)
     .await
   }
@@ -527,10 +530,13 @@ impl<'a> PostQuery<'a> {
         return Ok(vec![]);
       };
 
-      let posts = build_query(QueryInput {
-        community_id: Some(largest_subscribed),
-        ..input.clone()
-      })
+      let posts = build_query(
+        new_query(),
+        QueryInput {
+          community_id: Some(largest_subscribed),
+          ..input.clone()
+        },
+      )
       .load(&mut *get_conn(pool).await?)
       .await?;
 
@@ -544,7 +550,9 @@ impl<'a> PostQuery<'a> {
       }
     }
 
-    build_query(input).load(&mut *get_conn(pool).await?).await
+    build_query(new_query(), input)
+      .load(&mut *get_conn(pool).await?)
+      .await
   }
 }
 

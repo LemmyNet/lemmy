@@ -468,14 +468,14 @@ macro_rules! sql_try {
   }};
 }
 
-pub trait FirstOrLoad<U: Send + 'static>:
-  boxed_meth::LimitDsl + LoadQuery<'static, AsyncPgConnection, U> + Send + 'static
+pub trait FirstOrLoad<'a, U: Send + 'static>:
+  boxed_meth::LimitDsl + LoadQuery<'a, AsyncPgConnection, U> + Send + 'a
 {
 }
 
-impl<T, U> FirstOrLoad<U> for T
+impl<'a, T, U> FirstOrLoad<'a, U> for T
 where
-  T: boxed_meth::LimitDsl + LoadQuery<'static, AsyncPgConnection, U> + Send + 'static,
+  T: boxed_meth::LimitDsl + LoadQuery<'a, AsyncPgConnection, U> + Send + 'a,
   U: Send + 'static,
 {
 }
