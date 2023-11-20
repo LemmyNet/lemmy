@@ -63,12 +63,11 @@ struct QueryInput {
   liked_only: bool,
   disliked_only: bool,
   hide_read: bool,
+  hide_removed: bool,
   hide_deleted_unless_creator_viewing: bool,
   hide_disabled_language: bool,
   hide_blocked: bool,
   listing_type: Option<ListingType>,
-  limit: Option<i64>,
-  offset: Option<i64>,
   me: Option<PersonId>,
   my_local_user_id: Option<LocalUserId>,
 }
@@ -157,13 +156,6 @@ fn build_query<'a>(
   mut query: BoxedQuery<'a>,
   options: QueryInput,
 ) -> impl FirstOrLoad<'a, PostView> {
-  if let Some(limit) = options.limit {
-    query = query.limit(limit);
-  }
-  if let Some(offset) = options.offset {
-    query = query.offset(offset);
-  }
-
   let for_me = |f: fn(PersonId) -> _| -> BoxExpr<_, sql_types::Bool> {
     if let Some(me) = options.me {
       f(me)
@@ -249,6 +241,9 @@ fn build_query<'a>(
   if options.hide_read {
     query = filter_var_eq(query, &mut read, false);
   }
+  if options.hide_removed {
+    query = query.filter(not(post::removed.or(community::removed)));
+  }
   if options.hide_deleted_unless_creator_viewing {
     let not_deleted = not(community::deleted.or(post::deleted));
     query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.me)));
@@ -296,15 +291,12 @@ impl PostView {
     local_user_view: Option<&LocalUserView>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
-    let mut query = new_query().filter(post_aggregates::post_id.eq(post_id));
-
-    if !is_mod_or_admin {
-      query = query.filter(not(post::removed.or(community::removed)));
-    }
+    let query = new_query().filter(post_aggregates::post_id.eq(post_id));
 
     build_query(
       query,
       QueryInput {
+        hide_removed: !is_mod_or_admin,
         hide_deleted_unless_creator_viewing: !is_mod_or_admin,
         me: local_user_view.map(|l| l.person.id),
         my_local_user_id: local_user_view.map(|l| l.local_user.id),
@@ -368,6 +360,11 @@ impl<'a> PostQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
 
+    let l = self.local_user.map(|l| &l.local_user);
+    let admin = l.map(|l| l.admin).unwrap_or(false);
+    let show_nsfw = l.map(|l| l.show_nsfw).unwrap_or(false);
+    let show_bot_accounts = l.map(|l| l.show_nsfw).unwrap_or(true);
+    
     let get_query = |page_before_or_equal: Option<PaginationCursorData>| {
       let mut query = new_query();
 
@@ -388,17 +385,8 @@ impl<'a> PostQuery<'a> {
       if let Some(url_search) = &self.url_search {
         query = query.filter(post::url.eq(url_search));
       }
-
-      let l = self.local_user.map(|l| &l.local_user);
-      let admin = l.map(|l| l.admin).unwrap_or(false);
-      let show_nsfw = l.map(|l| l.show_nsfw).unwrap_or(false);
-      let show_bot_accounts = l.map(|l| l.show_nsfw).unwrap_or(true);
-
       if !show_nsfw {
         query = query.filter(not(post::nsfw.or(community::nsfw)));
-      }
-      if !(admin && self.is_profile_view) {
-        query = query.filter(not(post::removed.or(community::removed)));
       }
       if !show_bot_accounts {
         query = query.filter(not(person::bot_account));
@@ -462,6 +450,7 @@ impl<'a> PostQuery<'a> {
       liked_only: self.liked_only,
       disliked_only: self.disliked_only,
       hide_blocked: self.listing_type != Some(ListingType::ModeratorView),
+      hide_removed: !(admin && self.is_profile_view),
       hide_deleted_unless_creator_viewing: true,
       ..Default::default()
     };
