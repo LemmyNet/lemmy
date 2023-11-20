@@ -20,7 +20,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
-  newtypes::{CommunityId, LocalUserId, PersonId, PostId},
+  newtypes::{CommunityId, PersonId, PostId},
   schema::{
     community,
     community_aggregates,
@@ -65,11 +65,9 @@ struct QueryInput {
   hide_read: bool,
   hide_removed: bool,
   hide_deleted_unless_creator_viewing: bool,
-  hide_disabled_language: bool,
   hide_blocked: bool,
   listing_type: Option<ListingType>,
   me: Option<PersonId>,
-  my_local_user_id: Option<LocalUserId>,
 }
 
 #[derive(Clone, Copy)]
@@ -186,7 +184,7 @@ fn build_query<'a>(
   let mut subscribe: Box<dyn Fn() -> BoxExpr<_, sql_types::Nullable<sql_types::Bool>>> =
     Box::new(|| Box::new(None::<bool>.into_sql()));
 
-  if let (Some(me), Some(my_local_user_id)) = (options.me, options.my_local_user_id) {
+  if let Some(me) = options.me {
     my_vote = Box::new(
       post_like::table
         .find((me, post_aggregates::post_id))
@@ -208,11 +206,6 @@ fn build_query<'a>(
       )
     });
 
-    if options.hide_disabled_language {
-      query = query.filter(exists(
-        local_user_language::table.find((my_local_user_id, post::language_id)),
-      ));
-    }
     if options.listing_type == Some(ListingType::ModeratorView) {
       query = query.filter(exists(
         community_moderator::table.find((me, post_aggregates::community_id)),
@@ -228,7 +221,7 @@ fn build_query<'a>(
       )));
     }
   }
-
+  
   if options.saved_only {
     query = filter_var_eq(query, &mut saved, true);
   }
@@ -248,7 +241,7 @@ fn build_query<'a>(
     let not_deleted = not(community::deleted.or(post::deleted));
     query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.me)));
   }
-
+  
   if options.listing_type == Some(ListingType::Subscribed) {
     query = query.filter(subscribe().is_not_null());
   }
@@ -258,14 +251,14 @@ fn build_query<'a>(
   if ![None, Some(ListingType::ModeratorView)].contains(&options.listing_type) {
     query = query.filter(not(community::hidden).or(subscribe().is_not_null()))
   }
-
+  
   let query = query.select((
     post::all_columns,
     person::all_columns,
     community::all_columns,
     exists(
       community_person_ban::table
-        .find((post_aggregates::creator_id, post_aggregates::community_id)),
+      .find((post_aggregates::creator_id, post_aggregates::community_id)),
     ),
     exists(
       community_moderator::table.find((post_aggregates::creator_id, post_aggregates::community_id)),
@@ -278,9 +271,9 @@ fn build_query<'a>(
     my_vote,
     post_aggregates::comments - coalesce(read_comments, 0),
   ));
-
+  
   debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
-
+  
   query
 }
 
@@ -292,14 +285,13 @@ impl PostView {
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
     let query = new_query().filter(post_aggregates::post_id.eq(post_id));
-
+    
     build_query(
       query,
       QueryInput {
         hide_removed: !is_mod_or_admin,
         hide_deleted_unless_creator_viewing: !is_mod_or_admin,
         me: local_user_view.map(|l| l.person.id),
-        my_local_user_id: local_user_view.map(|l| l.local_user.id),
         ..Default::default()
       },
     )
@@ -320,10 +312,10 @@ impl PaginationCursor {
         pool,
         PostId(
           self
-            .0
-            .get(1..)
-            .and_then(|e| i32::from_str_radix(e, 16).ok())
-            .ok_or_else(|| Error::QueryBuilderError("Could not parse pagination token".into()))?,
+          .0
+          .get(1..)
+          .and_then(|e| i32::from_str_radix(e, 16).ok())
+          .ok_or_else(|| Error::QueryBuilderError("Could not parse pagination token".into()))?,
         ),
       )
       .await?,
@@ -359,21 +351,31 @@ pub struct PostQuery<'a> {
 impl<'a> PostQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-
+    
     let l = self.local_user.map(|l| &l.local_user);
     let admin = l.map(|l| l.admin).unwrap_or(false);
     let show_nsfw = l.map(|l| l.show_nsfw).unwrap_or(false);
     let show_bot_accounts = l.map(|l| l.show_nsfw).unwrap_or(true);
     
+    let moderator_view = self.listing_type == Some(ListingType::ModeratorView);
+    
     let get_query = |page_before_or_equal: Option<PaginationCursorData>| {
       let mut query = new_query();
-
+      
+      if let Some(me) = self.local_user {
+        if !moderator_view {
+          query = query.filter(exists(
+            local_user_language::table.find((me.local_user.id, post::language_id)),
+          ));
+        }
+      }
+      
       if let Some(search_term) = &self.search_term {
         let searcher = fuzzy_search(search_term);
         query = query.filter(
           post::name
-            .ilike(searcher.clone())
-            .or(post::body.ilike(searcher)),
+          .ilike(searcher.clone())
+          .or(post::body.ilike(searcher)),
         );
       }
       if let Some(community_id) = self.community_id {
@@ -459,16 +461,14 @@ impl<'a> PostQuery<'a> {
       let l = &local_user_view.local_user;
       input = QueryInput {
         hide_read: !(l.show_read_posts || self.saved_only || self.is_profile_view),
-        hide_disabled_language: self.listing_type != Some(ListingType::ModeratorView),
         me: Some(local_user_view.person.id),
-        my_local_user_id: Some(l.id),
         ..input
       };
     }
 
     let mut page_before_or_equal = self.page_before_or_equal;
 
-    if let (Some(local_user), Some(ListingType::Subscribed), None, None) = (
+    if let (Some(me), Some(ListingType::Subscribed), None, None) = (
       self.local_user,
       self.listing_type,
       self.community_id,
@@ -492,9 +492,7 @@ impl<'a> PostQuery<'a> {
 
       let largest_subscribed = community_aggregates::table
         .filter(exists(
-          community_follower::table
-            .filter(community_follower::person_id.eq(local_user.local_user.person_id))
-            .filter(community_follower::community_id.eq(community_aggregates::community_id)),
+          community_follower::table.find((me.person.id, community_aggregates::community_id)),
         ))
         .order_by(community_aggregates::users_active_month.desc())
         .select(community_aggregates::community_id)
