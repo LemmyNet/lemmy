@@ -62,7 +62,7 @@ fn queries<'a>() -> Queries<
     person::all_columns,
     aliases::person1.fields(person::all_columns),
     comment_aggregates::all_columns,
-    community_person_ban::id.nullable().is_not_null(),
+    community_person_ban::community_id.nullable().is_not_null(),
     comment_like::score.nullable(),
     aliases::person2.fields(person::all_columns).nullable(),
   );
@@ -112,7 +112,7 @@ fn queries<'a>() -> Queries<
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
     query = query
-      .order_by(comment_report::published.desc())
+      .order_by(comment_report::published.asc())
       .limit(limit)
       .offset(offset);
 
@@ -425,7 +425,6 @@ mod tests {
       },
       creator_banned_from_community: false,
       counts: CommentAggregates {
-        id: agg.id,
         comment_id: inserted_comment.id,
         score: 0,
         upvotes: 0,
@@ -476,8 +475,8 @@ mod tests {
     assert_eq!(
       reports,
       [
+        expected_sara_report_view.clone(),
         expected_jessica_report_view.clone(),
-        expected_sara_report_view.clone()
       ]
     );
 

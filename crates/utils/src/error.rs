@@ -110,6 +110,8 @@ pub enum LemmyErrorType {
   CouldntFindCommunity,
   CouldntFindPerson,
   PersonIsBlocked,
+  CommunityIsBlocked,
+  InstanceIsBlocked,
   DownvotesAreDisabled,
   InstanceIsPrivate,
   /// Password must be between 10 and 60 characters

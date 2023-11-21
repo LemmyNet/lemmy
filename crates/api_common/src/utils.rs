@@ -1,20 +1,19 @@
 use crate::{
   context::LemmyContext,
   request::purge_image_from_pictrs,
-  sensitive::Sensitive,
-  site::FederatedInstances,
+  site::{FederatedInstances, InstanceWithFederationState},
 };
-use actix_web::cookie::{Cookie, SameSite};
-use anyhow::Context;
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
+    community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
     instance::Instance,
+    instance_block::InstanceBlock,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     password_reset_request::PasswordResetRequest,
@@ -34,7 +33,6 @@ use lemmy_db_views_actor::structs::{
 use lemmy_utils::{
   email::{send_email, translations::Lang},
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  location_info,
   rate_limit::{ActionType, BucketConfig},
   settings::structs::Settings,
   utils::slurs::build_slur_regex,
@@ -222,20 +220,63 @@ pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   }
 }
 
+/// Throws an error if a recipient has blocked a person.
 #[tracing::instrument(skip_all)]
 pub async fn check_person_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
   pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
-  let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id)
-    .await
-    .is_ok();
+  let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id).await?;
   if is_blocked {
     Err(LemmyErrorType::PersonIsBlocked)?
   } else {
     Ok(())
   }
+}
+
+/// Throws an error if a recipient has blocked a community.
+#[tracing::instrument(skip_all)]
+async fn check_community_block(
+  community_id: CommunityId,
+  person_id: PersonId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  let is_blocked = CommunityBlock::read(pool, person_id, community_id).await?;
+  if is_blocked {
+    Err(LemmyErrorType::CommunityIsBlocked)?
+  } else {
+    Ok(())
+  }
+}
+
+/// Throws an error if a recipient has blocked an instance.
+#[tracing::instrument(skip_all)]
+async fn check_instance_block(
+  instance_id: InstanceId,
+  person_id: PersonId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  let is_blocked = InstanceBlock::read(pool, person_id, instance_id).await?;
+  if is_blocked {
+    Err(LemmyErrorType::InstanceIsBlocked)?
+  } else {
+    Ok(())
+  }
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn check_person_instance_community_block(
+  my_id: PersonId,
+  potential_blocker_id: PersonId,
+  instance_id: InstanceId,
+  community_id: CommunityId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  check_person_block(my_id, potential_blocker_id, pool).await?;
+  check_instance_block(instance_id, potential_blocker_id, pool).await?;
+  check_community_block(community_id, potential_blocker_id, pool).await?;
+  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -275,12 +316,27 @@ pub async fn build_federated_instances(
   pool: &mut DbPool<'_>,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
   if local_site.federation_enabled {
-    // TODO I hate that this requires 3 queries
-    let (linked, allowed, blocked) = lemmy_db_schema::try_join_with_pool!(pool => (
-      Instance::linked,
-      Instance::allowlist,
-      Instance::blocklist
-    ))?;
+    let mut linked = Vec::new();
+    let mut allowed = Vec::new();
+    let mut blocked = Vec::new();
+
+    let all = Instance::read_all_with_fed_state(pool).await?;
+    for (instance, federation_state, is_blocked, is_allowed) in all {
+      let i = InstanceWithFederationState {
+        instance,
+        federation_state: federation_state.map(std::convert::Into::into),
+      };
+      if is_blocked {
+        // blocked instances will only have an entry here if they had been federated with in the past.
+        blocked.push(i);
+      } else if is_allowed {
+        allowed.push(i.clone());
+        linked.push(i);
+      } else {
+        // not explicitly allowed but implicitly linked
+        linked.push(i);
+      }
+    }
 
     Ok(Some(FederatedInstances {
       linked,
@@ -728,24 +784,8 @@ pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{actor_id}/inbox"))?.into())
 }
 
-pub fn generate_site_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  let mut actor_id: Url = actor_id.clone().into();
-  actor_id.set_path("site_inbox");
-  Ok(actor_id.into())
-}
-
-pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> {
-  let actor_id: Url = actor_id.clone().into();
-  let url = format!(
-    "{}://{}{}/inbox",
-    &actor_id.scheme(),
-    &actor_id.host_str().context(location_info!())?,
-    if let Some(port) = actor_id.port() {
-      format!(":{port}")
-    } else {
-      String::new()
-    },
-  );
+pub fn generate_shared_inbox_url(settings: &Settings) -> Result<DbUrl, LemmyError> {
+  let url = format!("{}/inbox", settings.get_protocol_and_hostname());
   Ok(Url::parse(&url)?.into())
 }
 
@@ -759,14 +799,6 @@ pub fn generate_featured_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
 
 pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
-}
-
-pub fn create_login_cookie(jwt: Sensitive<String>) -> Cookie<'static> {
-  let mut cookie = Cookie::new(AUTH_COOKIE_NAME, jwt.into_inner());
-  cookie.set_secure(true);
-  cookie.set_same_site(SameSite::Lax);
-  cookie.set_http_only(true);
-  cookie
 }
 
 /// Ensure that ban/block expiry is in valid range. If its in past, throw error. If its more

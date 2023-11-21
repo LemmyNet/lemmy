@@ -24,10 +24,10 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::public,
-  protocol::verification::verify_domains_match,
+  protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{Actor, Object},
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::purge_user_account};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{
@@ -45,7 +45,6 @@ use std::ops::Deref;
 use url::Url;
 
 pub mod delete;
-pub mod delete_user;
 pub mod undo_delete;
 
 /// Parameter `reason` being set indicates that this is a removal by a mod. If its unset, this
@@ -135,8 +134,26 @@ pub(crate) async fn send_apub_delete_private_message(
   Ok(())
 }
 
+pub async fn send_apub_delete_user(
+  person: Person,
+  remove_data: bool,
+  context: Data<LemmyContext>,
+) -> Result<(), LemmyError> {
+  let person: ApubPerson = person.into();
+
+  let deletable = DeletableObjects::Person(person.clone());
+  let mut delete: Delete = Delete::new(&person, deletable, public(), None, None, &context)?;
+  delete.remove_data = Some(remove_data);
+
+  let inboxes = ActivitySendTargets::to_all_instances();
+
+  send_lemmy_activity(&context, delete, &person, inboxes, true).await?;
+  Ok(())
+}
+
 pub enum DeletableObjects {
   Community(ApubCommunity),
+  Person(ApubPerson),
   Comment(ApubComment),
   Post(ApubPost),
   PrivateMessage(ApubPrivateMessage),
@@ -150,6 +167,9 @@ impl DeletableObjects {
   ) -> Result<DeletableObjects, LemmyError> {
     if let Some(c) = ApubCommunity::read_from_id(ap_id.clone(), context).await? {
       return Ok(DeletableObjects::Community(c));
+    }
+    if let Some(p) = ApubPerson::read_from_id(ap_id.clone(), context).await? {
+      return Ok(DeletableObjects::Person(p));
     }
     if let Some(p) = ApubPost::read_from_id(ap_id.clone(), context).await? {
       return Ok(DeletableObjects::Post(p));
@@ -166,6 +186,7 @@ impl DeletableObjects {
   pub(crate) fn id(&self) -> Url {
     match self {
       DeletableObjects::Community(c) => c.id(),
+      DeletableObjects::Person(p) => p.id(),
       DeletableObjects::Comment(c) => c.ap_id.clone().into(),
       DeletableObjects::Post(p) => p.ap_id.clone().into(),
       DeletableObjects::PrivateMessage(p) => p.ap_id.clone().into(),
@@ -190,6 +211,11 @@ pub(in crate::activities) async fn verify_delete_activity(
       }
       // community deletion is always a mod (or admin) action
       verify_mod_action(&activity.actor, &community, context).await?;
+    }
+    DeletableObjects::Person(person) => {
+      verify_is_public(&activity.to, &[])?;
+      verify_person(&activity.actor, context).await?;
+      verify_urls_match(person.actor_id.inner(), activity.object.id())?;
     }
     DeletableObjects::Post(p) => {
       verify_is_public(&activity.to, &[])?;
@@ -245,6 +271,7 @@ async fn receive_delete_action(
   object: &Url,
   actor: &ObjectId<ApubPerson>,
   deleted: bool,
+  do_purge_user_account: Option<bool>,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   match DeletableObjects::read_from_db(object, context).await? {
@@ -265,6 +292,13 @@ async fn receive_delete_action(
         },
       )
       .await?;
+    }
+    DeletableObjects::Person(person) => {
+      if do_purge_user_account.unwrap_or(false) {
+        purge_user_account(person.id, context).await?;
+      } else {
+        Person::delete_account(&mut context.pool(), person.id).await?;
+      }
     }
     DeletableObjects::Post(post) => {
       if deleted != post.deleted {

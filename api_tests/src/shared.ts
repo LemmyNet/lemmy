@@ -1,12 +1,16 @@
 import {
+  BlockCommunity,
+  BlockCommunityResponse,
   BlockInstance,
   BlockInstanceResponse,
+  CommunityId,
   GetReplies,
   GetRepliesResponse,
   GetUnreadCountResponse,
   InstanceId,
   LemmyHttp,
   PostView,
+  SuccessResponse,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -55,7 +59,6 @@ import { Register } from "lemmy-js-client/dist/types/Register";
 import { SaveUserSettings } from "lemmy-js-client/dist/types/SaveUserSettings";
 import { DeleteAccount } from "lemmy-js-client/dist/types/DeleteAccount";
 import { GetSiteResponse } from "lemmy-js-client/dist/types/GetSiteResponse";
-import { DeleteAccountResponse } from "lemmy-js-client/dist/types/DeleteAccountResponse";
 import { PrivateMessagesResponse } from "lemmy-js-client/dist/types/PrivateMessagesResponse";
 import { GetPrivateMessages } from "lemmy-js-client/dist/types/GetPrivateMessages";
 import { PostReportResponse } from "lemmy-js-client/dist/types/PostReportResponse";
@@ -422,8 +425,9 @@ export async function followCommunity(
   };
   const res = await api.followCommunity(form);
   await waitUntil(
-    () => resolveCommunity(api, res.community_view.community.actor_id),
-    g => g.community?.subscribed === (follow ? "Subscribed" : "NotSubscribed"),
+    () => getCommunity(api, res.community_view.community.id),
+    g =>
+      g.community_view.subscribed === (follow ? "Subscribed" : "NotSubscribed"),
   );
   // wait FOLLOW_ADDITIONS_RECHECK_DELAY (there's no API to wait for this currently)
   await delay(2000);
@@ -634,7 +638,7 @@ export async function loginUser(
 
 export async function saveUserSettingsBio(
   api: LemmyHttp,
-): Promise<LoginResponse> {
+): Promise<SuccessResponse> {
   let form: SaveUserSettings = {
     show_nsfw: true,
     blur_nsfw: false,
@@ -652,7 +656,7 @@ export async function saveUserSettingsBio(
 
 export async function saveUserSettingsFederated(
   api: LemmyHttp,
-): Promise<LoginResponse> {
+): Promise<SuccessResponse> {
   let avatar = "https://image.flaticon.com/icons/png/512/35/35896.png";
   let banner = "https://image.flaticon.com/icons/png/512/36/35896.png";
   let bio = "a changed bio";
@@ -676,7 +680,7 @@ export async function saveUserSettingsFederated(
 export async function saveUserSettings(
   api: LemmyHttp,
   form: SaveUserSettings,
-): Promise<LoginResponse> {
+): Promise<SuccessResponse> {
   return api.saveUserSettings(form);
 }
 export async function getPersonDetails(
@@ -689,9 +693,7 @@ export async function getPersonDetails(
   return api.getPersonDetails(form);
 }
 
-export async function deleteUser(
-  api: LemmyHttp,
-): Promise<DeleteAccountResponse> {
+export async function deleteUser(api: LemmyHttp): Promise<SuccessResponse> {
   let form: DeleteAccount = {
     delete_content: true,
     password,
@@ -794,6 +796,18 @@ export function blockInstance(
     block,
   };
   return api.blockInstance(form);
+}
+
+export function blockCommunity(
+  api: LemmyHttp,
+  community_id: CommunityId,
+  block: boolean,
+): Promise<BlockCommunityResponse> {
+  let form: BlockCommunity = {
+    community_id,
+    block,
+  };
+  return api.blockCommunity(form);
 }
 
 export function delay(millis = 500) {

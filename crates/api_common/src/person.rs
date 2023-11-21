@@ -115,9 +115,6 @@ pub struct SaveUserSettings {
   pub show_bot_accounts: Option<bool>,
   /// Whether to show read posts.
   pub show_read_posts: Option<bool>,
-  /// Whether to show notifications for new posts.
-  // TODO notifs need to be reworked.
-  pub show_new_post_notifs: Option<bool>,
   /// A list of languages you are able to see discussion in.
   pub discussion_languages: Option<Vec<LanguageId>>,
   /// Open links in a new tab
@@ -129,6 +126,8 @@ pub struct SaveUserSettings {
   pub enable_keyboard_navigation: Option<bool>,
   /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or should be paused
   pub enable_animated_images: Option<bool>,
+  /// Whether to auto-collapse bot comments.
+  pub collapse_bot_comments: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
