@@ -20,6 +20,7 @@ full = [
   "tracing",
   "ts-rs",
   "actix-web",
+  "lemmy_db_schema/full"
 ]
 
 [dependencies]
