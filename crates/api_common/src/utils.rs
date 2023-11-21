@@ -3,7 +3,6 @@ use crate::{
   request::purge_image_from_pictrs,
   site::{FederatedInstances, InstanceWithFederationState},
 };
-use anyhow::Context;
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
@@ -34,7 +33,6 @@ use lemmy_db_views_actor::structs::{
 use lemmy_utils::{
   email::{send_email, translations::Lang},
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  location_info,
   rate_limit::{ActionType, BucketConfig},
   settings::structs::Settings,
   utils::slurs::build_slur_regex,
@@ -77,6 +75,26 @@ pub async fn is_mod_or_admin_opt(
     }
   } else {
     Err(LemmyErrorType::NotAModOrAdmin)?
+  }
+}
+
+/// Check that a person is either a mod of any community, or an admin
+///
+/// Should only be used for read operations
+#[tracing::instrument(skip_all)]
+pub async fn check_community_mod_of_any_or_admin_action(
+  local_user_view: &LocalUserView,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
+  let person = &local_user_view.person;
+
+  check_user_valid(person)?;
+
+  let is_mod_of_any_or_admin = CommunityView::is_mod_of_any_or_admin(pool, person.id).await?;
+  if !is_mod_of_any_or_admin {
+    Err(LemmyErrorType::NotAModOrAdmin)?
+  } else {
+    Ok(())
   }
 }
 
@@ -197,19 +215,6 @@ pub async fn check_community_mod_action(
   // it must be possible to restore deleted community
   if !allow_deleted {
     check_community_deleted_removed(community_id, pool).await?;
-  }
-  Ok(())
-}
-
-pub async fn check_community_mod_action_opt(
-  local_user_view: &LocalUserView,
-  community_id: Option<CommunityId>,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  if let Some(community_id) = community_id {
-    check_community_mod_action(&local_user_view.person, community_id, false, pool).await?;
-  } else {
-    is_admin(local_user_view)?;
   }
   Ok(())
 }
@@ -786,24 +791,8 @@ pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{actor_id}/inbox"))?.into())
 }
 
-pub fn generate_site_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  let mut actor_id: Url = actor_id.clone().into();
-  actor_id.set_path("site_inbox");
-  Ok(actor_id.into())
-}
-
-pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> {
-  let actor_id: Url = actor_id.clone().into();
-  let url = format!(
-    "{}://{}{}/inbox",
-    &actor_id.scheme(),
-    &actor_id.host_str().context(location_info!())?,
-    if let Some(port) = actor_id.port() {
-      format!(":{port}")
-    } else {
-      String::new()
-    },
-  );
+pub fn generate_shared_inbox_url(settings: &Settings) -> Result<DbUrl, LemmyError> {
+  let url = format!("{}/inbox", settings.get_protocol_and_hostname());
   Ok(Url::parse(&url)?.into())
 }
 

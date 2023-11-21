@@ -13,6 +13,9 @@ name = "lemmy_api_common"
 path = "src/lib.rs"
 doctest = false
 
+[lints]
+workspace = true
+
 [features]
 full = [
   "tracing",
@@ -56,7 +59,6 @@ webpage = { version = "1.6", default-features = false, features = [
   "serde",
 ], optional = true }
 encoding = { version = "0.2.33", optional = true }
-anyhow = { workspace = true }
 futures = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }

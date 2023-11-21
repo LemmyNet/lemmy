@@ -12,19 +12,17 @@ import {
   createComment,
   resolveBetaCommunity,
   deleteUser,
-  resolvePost,
-  resolveComment,
   saveUserSettingsFederated,
   setupLogins,
   alphaUrl,
   saveUserSettings,
+  getPost,
+  getComments,
 } from "./shared";
 import { LemmyHttp, SaveUserSettings } from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 
-beforeAll(async () => {
-  await setupLogins();
-});
+beforeAll(setupLogins);
 
 let apShortname: string;
 
@@ -103,18 +101,22 @@ test("Delete user", async () => {
 
   await deleteUser(user);
 
-  await expect(resolvePost(alpha, localPost)).rejects.toBe(
-    "couldnt_find_object",
+  // check that posts and comments are marked as deleted on other instances.
+  // use get methods to avoid refetching from origin instance
+  expect((await getPost(alpha, localPost.id)).post_view.post.deleted).toBe(
+    true,
   );
-  await expect(resolveComment(alpha, localComment)).rejects.toBe(
-    "couldnt_find_object",
+  expect((await getPost(alpha, remotePost.id)).post_view.post.deleted).toBe(
+    true,
   );
-  await expect(resolvePost(alpha, remotePost)).rejects.toBe(
-    "couldnt_find_object",
-  );
-  await expect(resolveComment(alpha, remoteComment)).rejects.toBe(
-    "couldnt_find_object",
-  );
+  expect(
+    (await getComments(alpha, localComment.post_id)).comments[0].comment
+      .deleted,
+  ).toBe(true);
+  expect(
+    (await getComments(alpha, remoteComment.post_id)).comments[0].comment
+      .deleted,
+  ).toBe(true);
 });
 
 test("Requests with invalid auth should be treated as unauthenticated", async () => {

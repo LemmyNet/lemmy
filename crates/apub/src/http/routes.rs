@@ -12,7 +12,7 @@ use crate::http::{
   person::{get_apub_person_http, get_apub_person_outbox, person_inbox},
   post::get_apub_post,
   shared_inbox,
-  site::{get_apub_site_http, get_apub_site_inbox, get_apub_site_outbox},
+  site::{get_apub_site_http, get_apub_site_outbox},
 };
 use actix_web::{
   guard::{Guard, GuardContext},
@@ -58,8 +58,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       .guard(InboxRequestGuard)
       .route("/c/{community_name}/inbox", web::post().to(community_inbox))
       .route("/u/{user_name}/inbox", web::post().to(person_inbox))
-      .route("/inbox", web::post().to(shared_inbox))
-      .route("/site_inbox", web::post().to(get_apub_site_inbox)),
+      .route("/inbox", web::post().to(shared_inbox)),
   );
 }
 

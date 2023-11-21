@@ -11,6 +11,9 @@ repository.workspace = true
 [lib]
 doctest = false
 
+[lints]
+workspace = true
+
 [dependencies]
 lemmy_utils = { workspace = true }
 lemmy_db_views = { workspace = true }
