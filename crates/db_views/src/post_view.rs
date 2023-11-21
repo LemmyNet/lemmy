@@ -364,8 +364,8 @@ fn queries<'a>() -> Queries<
       match options.listing_type.unwrap_or_default() {
         ListingType::Subscribed => {
           query = query
-              .filter(community::local.eq(true))
-              .filter(community::hidden.eq(false));
+            .filter(community::local.eq(true))
+            .filter(community::hidden.eq(false));
         }
         _ => query = query.filter(community::hidden.eq(false)),
       }
