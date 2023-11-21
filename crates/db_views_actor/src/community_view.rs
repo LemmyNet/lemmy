@@ -195,6 +195,7 @@ impl CommunityView {
     PersonView::is_admin(pool, person_id).await
   }
 
+  /// Checks if a person is an admin, or moderator of any community.
   pub async fn is_mod_of_any_or_admin(
     pool: &mut DbPool<'_>,
     person_id: PersonId,

@@ -28,7 +28,7 @@ impl CommunityModeratorView {
     .await
   }
 
-  pub async fn is_community_moderator_of_any(
+  pub(crate) async fn is_community_moderator_of_any(
     pool: &mut DbPool<'_>,
     find_person_id: PersonId,
   ) -> Result<bool, Error> {

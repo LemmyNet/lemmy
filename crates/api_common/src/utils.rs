@@ -78,11 +78,16 @@ pub async fn is_mod_or_admin_opt(
   }
 }
 
+/// Check that a person is either a mod of any community, or an admin
+///
+/// Should only be used for read operations
 #[tracing::instrument(skip_all)]
-pub async fn is_mod_of_any_or_admin(
+pub async fn check_community_mod_of_any_or_admin_action(
+  local_user_view: &LocalUserView,
   pool: &mut DbPool<'_>,
-  person: &Person,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
+  let person = &local_user_view.person;
+
   check_user_valid(person)?;
 
   let is_mod_of_any_or_admin = CommunityView::is_mod_of_any_or_admin(pool, person.id).await?;
@@ -211,17 +216,6 @@ pub async fn check_community_mod_action(
   if !allow_deleted {
     check_community_deleted_removed(community_id, pool).await?;
   }
-  Ok(())
-}
-
-/// Check that a person is either a mod of any community, or an admin
-///
-/// Should only be used for read operations
-pub async fn check_community_mod_of_any_or_admin_action(
-  local_user_view: &LocalUserView,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  is_mod_of_any_or_admin(pool, &local_user_view.person).await?;
   Ok(())
 }
 
