@@ -1,10 +1,10 @@
 use crate::structs::PersonView;
 use diesel::{
+  dsl::exists,
   pg::Pg,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
-  JoinOnDsl,
   NullableExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
@@ -48,22 +48,21 @@ fn post_to_person_sort_type(sort: SortType) -> PersonSortType {
 
 fn queries<'a>(
 ) -> Queries<impl ReadFn<'a, PersonView, PersonId>, impl ListFn<'a, PersonView, ListMode>> {
-  let all_joins = |query: person::BoxedQuery<'a, Pg>| {
+  let creator_is_admin = exists(
+    local_user::table.filter(
+      person::id
+        .eq(local_user::person_id)
+        .and(local_user::admin.eq(true)),
+    ),
+  );
+  let all_joins = move |query: person::BoxedQuery<'a, Pg>| {
     query
       .inner_join(person_aggregates::table)
-      // This will only join if the admin is true, so you can use is_not_null() below
-      .left_join(
-        local_user::table.on(
-          person::id
-            .eq(local_user::person_id)
-            .and(local_user::admin.eq(true)),
-        ),
-      )
       .filter(person::deleted.eq(false))
       .select((
         person::all_columns,
         person_aggregates::all_columns,
-        local_user::admin.nullable().is_not_null(),
+        creator_is_admin,
       ))
   };
 
@@ -78,7 +77,7 @@ fn queries<'a>(
     match mode {
       ListMode::Admins => {
         query = query
-          .filter(local_user::admin.eq(true))
+          .filter(creator_is_admin.eq(true))
           .filter(person::deleted.eq(false))
           .order_by(person::published);
       }
