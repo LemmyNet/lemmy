@@ -11,6 +11,9 @@ repository.workspace = true
 [lib]
 doctest = false
 
+[lints]
+workspace = true
+
 [features]
 full = [
   "lemmy_utils",
