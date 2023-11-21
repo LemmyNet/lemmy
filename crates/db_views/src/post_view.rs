@@ -296,12 +296,14 @@ fn queries<'a>() -> Queries<
       options.saved_only,
     );
 
-    let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
+    // hide posts from deleted communities
+    query = query.filter(community::deleted.eq(false));
+
     // only show deleted posts to creator
-    if is_creator {
-      query = query
-        .filter(community::deleted.eq(false))
-        .filter(post::deleted.eq(false));
+    if let Some(person_id) = person_id {
+      query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
+    } else {
+      query = query.filter(post::deleted.eq(false));
     }
 
     let is_admin = options
