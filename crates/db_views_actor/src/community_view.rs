@@ -207,7 +207,8 @@ impl CommunityView {
       return Ok(true);
     }
 
-    PersonView::is_admin(pool, person_id).await
+    let is_admin = PersonView::read(pool, person_id).await?.is_admin;
+    Ok(is_admin)
   }
 }
 
