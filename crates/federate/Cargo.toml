@@ -15,7 +15,6 @@ lemmy_api_common.workspace = true
 lemmy_apub.workspace = true
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_views_actor.workspace = true
-lemmy_utils.workspace = true
 
 activitypub_federation.workspace = true
 anyhow.workspace = true

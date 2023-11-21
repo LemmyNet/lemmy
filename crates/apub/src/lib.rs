@@ -1,6 +1,8 @@
 use crate::fetcher::post_or_comment::PostOrComment;
-use activitypub_federation::config::{Data, UrlVerifier};
-use activitypub_federation::error::Error as ActivityPubError;
+use activitypub_federation::{
+  config::{Data, UrlVerifier},
+  error::Error as ActivityPubError,
+};
 use async_trait::async_trait;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
@@ -47,7 +49,7 @@ impl UrlVerifier for VerifyUrlData {
       LemmyError {
         error_type: LemmyErrorType::FederationDisabled,
         ..
-      } => ActivityPubError::Other(format!("Federation disabled")),
+      } => ActivityPubError::Other("Federation disabled".into()),
       LemmyError {
         error_type: LemmyErrorType::DomainBlocked(domain),
         ..
@@ -56,7 +58,7 @@ impl UrlVerifier for VerifyUrlData {
         error_type: LemmyErrorType::DomainNotInAllowList(domain),
         ..
       } => ActivityPubError::Other(format!("Domain {domain:?} is not in allowlist")),
-      _ => ActivityPubError::Other(format!("Failed validating apub id")),
+      _ => ActivityPubError::Other("Failed validating apub id".into()),
     })?;
     Ok(())
   }

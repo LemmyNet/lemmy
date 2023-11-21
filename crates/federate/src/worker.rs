@@ -21,7 +21,6 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
-use lemmy_utils::error::LemmyErrorExt2;
 use once_cell::sync::Lazy;
 use reqwest::Url;
 use std::{
@@ -218,8 +217,8 @@ impl InstanceWorker {
       .context("failed getting actor instance (was it marked deleted / removed?)")?;
 
     let inbox_urls = inbox_urls.into_iter().collect();
-    let requests = SendActivityTask::prepare(object, actor.as_ref(), inbox_urls, &self.context)
-      .await?;
+    let requests =
+      SendActivityTask::prepare(object, actor.as_ref(), inbox_urls, &self.context).await?;
     for task in requests {
       // usually only one due to shared inbox
       tracing::info!("sending out {}", task);
