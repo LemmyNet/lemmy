@@ -334,7 +334,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(post_aggregates::creator_id.eq(creator_id));
     }
 
-    if let (Some(listing_type), Some(person_id)) = (options.listing_type, person_id) {
+    if let Some(person_id) = person_id {
       let is_subscribed = exists(
         community_follower::table.filter(
           post_aggregates::community_id
@@ -342,7 +342,7 @@ fn queries<'a>() -> Queries<
             .and(community_follower::person_id.eq(person_id)),
         ),
       );
-      match listing_type {
+      match options.listing_type.unwrap_or_default() {
         ListingType::Subscribed => query = query.filter(is_subscribed),
         ListingType::Local => {
           query = query
@@ -359,6 +359,15 @@ fn queries<'a>() -> Queries<
             ),
           ));
         }
+      }
+    } else {
+      match options.listing_type.unwrap_or_default() {
+        ListingType::Subscribed => {
+          query = query
+              .filter(community::local.eq(true))
+              .filter(community::hidden.eq(false));
+        }
+        _ => query = query.filter(community::hidden.eq(false)),
       }
     }
 
