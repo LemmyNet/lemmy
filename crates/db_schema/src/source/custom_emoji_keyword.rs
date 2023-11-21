@@ -7,13 +7,17 @@ use ts_rs::TS;
 use typed_builder::TypedBuilder;
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Associations, Identifiable, TS)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = custom_emoji_keyword))]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::custom_emoji::CustomEmoji))
 )]
 #[cfg_attr(feature = "full", diesel(primary_key(custom_emoji_id, keyword)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A custom keyword for an emoji.
 pub struct CustomEmojiKeyword {
