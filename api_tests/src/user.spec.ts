@@ -37,11 +37,7 @@ function assertUserFederation(userOne?: PersonView, userTwo?: PersonView) {
 }
 
 test("Create user", async () => {
-  let userRes = await registerUser(alpha);
-  expect(userRes.jwt).toBeDefined();
-  let user = new LemmyHttp(alphaUrl, {
-    headers: { Authorization: `Bearer ${userRes.jwt ?? ""}` },
-  });
+  let user = await registerUser(alpha, alphaUrl);
 
   let site = await getSite(user);
   expect(site.my_user).toBeDefined();
@@ -68,11 +64,7 @@ test("Set some user settings, check that they are federated", async () => {
 });
 
 test("Delete user", async () => {
-  let userRes = await registerUser(alpha);
-  expect(userRes.jwt).toBeDefined();
-  let user = new LemmyHttp(alphaUrl, {
-    headers: { Authorization: `Bearer ${userRes.jwt ?? ""}` },
-  });
+  let user = await registerUser(alpha, alphaUrl);
 
   // make a local post and comment
   let alphaCommunity = (await resolveCommunity(user, "!main@lemmy-alpha:8541"))
@@ -133,11 +125,7 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
 });
 
 test("Create user with Arabic name", async () => {
-  let userRes = await registerUser(alpha, "تجريب");
-  expect(userRes.jwt).toBeDefined();
-  let user = new LemmyHttp(alphaUrl, {
-    headers: { Authorization: `Bearer ${userRes.jwt ?? ""}` },
-  });
+  let user = await registerUser(alpha, alphaUrl, "تجريب");
 
   let site = await getSite(user);
   expect(site.my_user).toBeDefined();
