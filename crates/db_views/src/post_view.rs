@@ -362,7 +362,7 @@ fn queries<'a>() -> Queries<
       }
     } else {
       match options.listing_type.unwrap_or_default() {
-        ListingType::Subscribed => {
+        ListingType::Local => {
           query = query
             .filter(community::local.eq(true))
             .filter(community::hidden.eq(false));
