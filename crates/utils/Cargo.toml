@@ -13,6 +13,9 @@ name = "lemmy_utils"
 path = "src/lib.rs"
 doctest = false
 
+[lints]
+workspace = true
+
 [features]
 full = ["ts-rs"]
 
