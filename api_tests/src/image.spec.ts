@@ -1,7 +1,23 @@
 jest.setTimeout(120000);
 
-import { UploadImage, DeleteImage, PurgePerson, PurgePost } from "lemmy-js-client";
-import { alpha, alphaUrl, beta, betaUrl, createPost, getSite, registerUser, resolveBetaCommunity, setupLogins, unfollowRemotes } from "./shared";
+import {
+  UploadImage,
+  DeleteImage,
+  PurgePerson,
+  PurgePost,
+} from "lemmy-js-client";
+import {
+  alpha,
+  alphaUrl,
+  beta,
+  betaUrl,
+  createPost,
+  getSite,
+  registerUser,
+  resolveBetaCommunity,
+  setupLogins,
+  unfollowRemotes,
+} from "./shared";
 import fs = require("fs");
 const downloadFileSync = require("download-file-sync");
 
@@ -42,7 +58,7 @@ test("Upload image and delete it", async () => {
 
 test("Purge user, uploaded image removed", async () => {
   let user = await registerUser(alpha, alphaUrl);
-  
+
   // upload test image
   const upload_image = fs.readFileSync("test.png");
   const upload_form: UploadImage = {
@@ -71,10 +87,9 @@ test("Purge user, uploaded image removed", async () => {
   expect(content2).toBe("");
 });
 
-
 test.only("Purge post, linked image removed", async () => {
   let user = await registerUser(beta, betaUrl);
-  
+
   // upload test image
   const upload_image = fs.readFileSync("test.png");
   const upload_form: UploadImage = {
@@ -91,12 +106,16 @@ test.only("Purge post, linked image removed", async () => {
   expect(content.length).toBeGreaterThan(0);
 
   let community = await resolveBetaCommunity(user);
-  let post = await createPost(user, community.community!.community.id, upload.url);
+  let post = await createPost(
+    user,
+    community.community!.community.id,
+    upload.url,
+  );
   expect(post.post_view.post.url).toBe(upload.url);
-  
+
   // purge post
   const purge_form: PurgePost = {
-    post_id: post.post_view.post.id
+    post_id: post.post_view.post.id,
   };
   const delete_ = await alpha.purgePost(purge_form);
   expect(delete_.success).toBe(true);
