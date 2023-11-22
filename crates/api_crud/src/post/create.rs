@@ -32,7 +32,7 @@ use lemmy_utils::{
   spawn_try_task,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
-    validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
+    validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title, is_valid_post_title_length},
   },
 };
 use tracing::Instrument;
@@ -56,6 +56,7 @@ pub async fn create_post(
   let url = data_url.map(clean_url_params).map(Into::into); // TODO no good way to handle a "clear"
 
   is_valid_post_title(&data.name)?;
+  is_valid_post_title_length(&data.name)?;
   is_valid_body_field(&data.body, true)?;
   check_url_scheme(&data.url)?;
 

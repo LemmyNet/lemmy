@@ -25,6 +25,7 @@ const BIO_MAX_LENGTH: usize = 300;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
+const MAX_POST_TITLE_LEN: usize = 200;
 //Invisible unicode characters, taken from https://invisible-characters.com/
 const FORBIDDEN_DISPLAY_CHARS: [char; 53] = [
   '\u{0009}',
@@ -153,6 +154,16 @@ pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
   let check = VALID_POST_TITLE_REGEX.is_match(title) && !has_newline(title);
   if !check {
     Err(LemmyErrorType::InvalidPostTitle.into())
+  } else {
+    Ok(())
+  }
+}
+
+pub fn is_valid_post_title_length(title: &str) -> LemmyResult<()> {
+  let title_len = title.trim().len();
+  let check = title_len > 0 && title_len <= MAX_POST_TITLE_LEN;
+  if !check {
+    Err(LemmyErrorType::InvalidPostTitleLength.into())
   } else {
     Ok(())
   }
@@ -305,6 +316,7 @@ mod tests {
       is_valid_display_name,
       is_valid_matrix_id,
       is_valid_post_title,
+      is_valid_post_title_length,
       site_description_length_check,
       site_name_length_check,
       BIO_MAX_LENGTH,
@@ -333,6 +345,14 @@ mod tests {
     assert!(is_valid_post_title("n\n\n\n\nanother").is_err());
     assert!(is_valid_post_title("hello there!\n this is a test.").is_err());
     assert!(is_valid_post_title("hello there! this is a test.").is_ok());
+  }
+
+  #[test]
+  fn post_title_check() {
+    assert!(is_valid_post_title_length("Lemmy is Awesome").is_ok());
+    assert!(is_valid_post_title_length("  ").is_err());
+    assert!(is_valid_post_title_length("abcd".repeat(50).as_str()).is_ok());
+    assert!(is_valid_post_title_length(("abcd".repeat(50) + "x").as_str()).is_err());
   }
 
   #[test]

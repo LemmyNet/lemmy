@@ -165,6 +165,7 @@ pub enum LemmyErrorType {
   InvalidDisplayName,
   InvalidMatrixId,
   InvalidPostTitle,
+  InvalidPostTitleLength,
   InvalidBodyField,
   BioLengthOverflow,
   MissingTotpToken,
