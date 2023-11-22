@@ -410,7 +410,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Blockable, Crud, Joinable, Likeable},
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, RANK_DEFAULT},
     SubscribedType,
   };
   use serial_test::serial;
@@ -1044,7 +1044,7 @@ mod tests {
         downvotes: 0,
         published: agg.published,
         child_count: 5,
-        hot_rank: 0.1728,
+        hot_rank: RANK_DEFAULT,
         controversy_rank: 0.0,
       },
     }
