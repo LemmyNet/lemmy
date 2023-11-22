@@ -514,16 +514,17 @@ impl<'a> PostQuery<'a> {
         return Ok(vec![]);
       };
 
-      let posts: Vec<PostView> = get_query(None)
+      let posts_aggregates: Vec<PostAggregates> = get_query(None)
         .filter(post_aggregates::community_id.eq(largest_subscribed))
+        .select(post_aggregates::all_columns)
         .load(&mut *get_conn(pool).await?)
         .await?;
 
       // take last element of array. if this query returned less than LIMIT elements,
       // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
-      if (posts.len() as i64) >= limit {
-        if let Some(post) = posts.into_iter().last() {
-          page_before_or_equal = Some(PaginationCursorData(post.counts));
+      if (posts_aggregates.len() as i64) >= limit {
+        if let Some(aggregates) = posts_aggregates.into_iter().last() {
+          page_before_or_equal = Some(PaginationCursorData(aggregates));
         }
       }
     };
