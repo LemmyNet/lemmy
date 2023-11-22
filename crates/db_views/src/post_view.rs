@@ -42,13 +42,14 @@ use lemmy_db_schema::{
   },
   utils::{
     boxed_meth,
-    filter_var_eq,
     fuzzy_search,
     get_conn,
     limit_and_offset,
+    now,
     BoxExpr,
     BoxedSelection,
     DbPool,
+    FilterVarEq,
   },
   ListingType,
   SortType,
@@ -57,19 +58,6 @@ use lemmy_utils::type_chain;
 use tracing::debug;
 
 sql_function!(fn coalesce(x: st::Nullable<st::BigInt>, y: st::BigInt) -> st::BigInt);
-
-#[derive(Default, Clone)]
-struct QueryInput {
-  saved_only: bool,
-  liked_only: bool,
-  disliked_only: bool,
-  hide_read: bool,
-  hide_removed: bool,
-  hide_deleted_unless_creator_viewing: bool,
-  hide_blocked: bool,
-  listing_type: Option<ListingType>,
-  me: Option<PersonId>,
-}
 
 #[derive(Clone, Copy)]
 enum Ord {
@@ -157,6 +145,19 @@ type BoxedQuery<'a> = BoxedSelection<
   ),
 >;
 
+#[derive(Default, Clone)]
+struct QueryInput {
+  saved_only: bool,
+  liked_only: bool,
+  disliked_only: bool,
+  hide_read: bool,
+  hide_removed: bool,
+  hide_deleted_unless_creator_viewing: bool,
+  hide_blocked: bool,
+  listing_type: Option<ListingType>,
+  me: Option<PersonId>,
+}
+
 fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
   let mut query = post_aggregates::table
     .inner_join(person::table)
@@ -207,7 +208,7 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
     });
 
     if options.hide_blocked {
-      query = filter_var_eq(query, &mut creator_blocked, false);
+      query = query.filter_var_eq(&mut creator_blocked, false);
       query = query.filter(not(exists(
         community_block::table.find((me, post_aggregates::community_id)),
       )));
@@ -226,16 +227,16 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
   }
 
   if options.saved_only {
-    query = filter_var_eq(query, &mut saved, true);
+    query = query.filter_var_eq(&mut saved, true);
   }
   if options.liked_only {
-    query = filter_var_eq(query, &mut my_vote, 1);
+    query = query.filter_var_eq(&mut my_vote, 1);
   }
   if options.disliked_only {
-    query = filter_var_eq(query, &mut my_vote, -1);
+    query = query.filter_var_eq(&mut my_vote, -1);
   }
   if options.hide_read {
-    query = filter_var_eq(query, &mut read, false);
+    query = query.filter_var_eq(&mut read, false);
   }
   if options.hide_removed {
     query = query.filter(not(post::removed.or(community::removed)));
@@ -245,7 +246,7 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
     query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.me)));
   }
   if options.listing_type == Some(ListingType::ModeratorView) {
-    query = filter_var_eq(query, &mut i_am_moderator, true);
+    query = query.filter_var_eq(&mut i_am_moderator, true);
   }
   if options.listing_type == Some(ListingType::Subscribed) {
     query = query.filter(subscribe().is_not_null());
@@ -360,16 +361,19 @@ pub struct PostQuery<'a> {
 impl<'a> PostQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-
-    let l = self.local_user.map(|l| &l.local_user);
-    let admin = l.map(|l| l.admin).unwrap_or(false);
-    let show_nsfw = l.map(|l| l.show_nsfw).unwrap_or(false);
-    let show_bot_accounts = l.map(|l| l.show_bot_accounts).unwrap_or(true);
-    let show_read_posts = l.map(|l| l.show_read_posts).unwrap_or(true);
-
-    let moderator_view = self.listing_type == Some(ListingType::ModeratorView);
+    if offset != 0 && self.page_after.is_some() {
+      return Err(Error::QueryBuilderError(
+        "legacy pagination cannot be combined with v2 pagination".into(),
+      ));
+    }
 
     let get_query = |page_before_or_equal: Option<PaginationCursorData>| {
+      let l = self.local_user.map(|l| &l.local_user);
+      let admin = l.map(|l| l.admin).unwrap_or(false);
+      let show_nsfw = l.map(|l| l.show_nsfw).unwrap_or(false);
+      let show_bot_accounts = l.map(|l| l.show_bot_accounts).unwrap_or(true);
+      let show_read_posts = l.map(|l| l.show_read_posts).unwrap_or(true);
+
       let mut query = build_query(QueryInput {
         listing_type: Some(self.listing_type.unwrap_or_default()),
         saved_only: self.saved_only,
@@ -383,7 +387,7 @@ impl<'a> PostQuery<'a> {
       });
 
       if let Some(me) = self.local_user {
-        if !moderator_view {
+        if self.listing_type != Some(ListingType::ModeratorView) {
           query = query.filter(exists(
             local_user_language::table.find((me.local_user.id, post::language_id)),
           ));
@@ -415,15 +419,13 @@ impl<'a> PostQuery<'a> {
       }
 
       let range = [self.page_after.as_ref(), page_before_or_equal.as_ref()];
-
-      if self.community_id.is_some() {
-        query = desc!(featured_community).order_and_page_filter(query, range);
-      } else {
-        query = desc!(featured_local).order_and_page_filter(query, range);
-      }
-
       let top: &[&dyn OrderAndPageFilter] = &[desc!(score), desc!(published)];
 
+      let featured_sort: &dyn OrderAndPageFilter = if self.community_id.is_some() {
+        desc!(featured_community)
+      } else {
+        desc!(featured_local)
+      };
       let (sorts, interval): (&[&dyn OrderAndPageFilter], Option<PgInterval>) =
         match self.sort.unwrap_or(SortType::Hot) {
           SortType::Active => (&[desc!(hot_rank_active), desc!(published)], None),
@@ -448,11 +450,10 @@ impl<'a> PostQuery<'a> {
         };
 
       if let Some(interval) = interval {
-        let now = diesel::dsl::now.into_sql::<st::Timestamptz>();
-        query = query.filter(post_aggregates::published.gt(now - interval));
+        query = query.filter(post_aggregates::published.gt(now() - interval));
       }
 
-      for i in sorts {
+      for i in [&[featured_sort], sorts].into_iter().flatten() {
         query = i.order_and_page_filter(query, range);
       }
 
@@ -483,12 +484,6 @@ impl<'a> PostQuery<'a> {
       //
       // the results are correct no matter which community we fetch these for, since it basically covers the "worst case" of the whole page consisting of posts from one community
       // but using the largest community decreases the pagination-frame so make the real query more efficient.
-
-      if offset != 0 && self.page_after.is_some() {
-        return Err(Error::QueryBuilderError(
-          "legacy pagination cannot be combined with v2 pagination".into(),
-        ));
-      }
 
       let largest_subscribed: Option<CommunityId> = community_aggregates::table
         .filter(exists(

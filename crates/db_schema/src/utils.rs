@@ -17,7 +17,6 @@ use diesel::{
   expression::{AsExpression, SqlLiteral, TypedExpressionType},
   helper_types::AsExprOf,
   pg::Pg,
-  query_dsl::methods::FilterDsl,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
   sql_types::{SingleValue, SqlType, Text, Timestamptz},
@@ -403,68 +402,23 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
 
 pub type BoxExpr<QS, T> = Box<dyn BoxableExpression<QS, Pg, SqlType = T>>;
 
-/// Returns `query.filter(expr.eq(other))` and changes `expr` to `other` so it's only evaluated once
-pub fn filter_var_eq<Q, Q2, QS, T, U>(query: Q, expr: &mut BoxExpr<QS, T>, other: U) -> Q2
+pub trait FilterVarEq<T, U> {
+  /// Returns `self.filter(expr.eq(other))` and changes `expr` to `other` so it's only evaluated once
+  fn filter_var_eq(self, expr: &mut T, other: U) -> Self;
+}
+
+impl<Q, QS, T, U> FilterVarEq<BoxExpr<QS, T>, U> for Q
 where
-  Q: FilterDsl<dsl::Eq<BoxExpr<QS, T>, dsl::AsExprOf<U, T>>, Output = Q2>,
+  Q: boxed_meth::FilterDsl<dsl::Eq<BoxExpr<QS, T>, dsl::AsExprOf<U, T>>>,
   U: AsExpression<T> + Sized,
   dsl::AsExprOf<U, T>: Clone + BoxableExpression<QS, Pg, SqlType = T> + 'static,
   T: SqlType + TypedExpressionType + SingleValue,
 {
-  let other_sql = other.into_sql::<T>();
-  let old_expr = std::mem::replace(expr, Box::new(other_sql.clone()));
-  query.filter(old_expr.eq(other_sql))
-}
-
-/// Like `exists`, but in the query you can put `?` after an `Option` value, and `false` will be returned
-/// if it is `None`, otherwise the value in `Some` will be used.
-///
-/// This is useful when using the `find` method, which doesn't accept nullable values.
-///
-/// `BoxExpr<_, diesel::sql_types::Bool>` is returned.
-///
-/// When there's no `?`, `exists_if_some!(expr)` is equivalent to `Box::new(exists(expr))`.
-#[macro_export]
-macro_rules! exists_if_some {
-  ($expr:expr) => {{
-    let selection = (|| -> ::std::option::Option<_> { ::std::option::Option::Some($expr) })();
-
-    let expr: $crate::utils::BoxExpr<_, ::diesel::sql_types::Bool> =
-      if let Some(selection) = selection {
-        ::std::boxed::Box::new(::diesel::dsl::exists(selection))
-      } else {
-        ::std::boxed::Box::new(::diesel::IntoSql::into_sql::<::diesel::sql_types::Bool>(
-          false,
-        ))
-      };
-
-    expr
-  }};
-}
-
-/// Like `exists_if_some`, but accepts and returns a nullable expression and doesn't call `exists`.
-/// Null is returned if a value before `?` is `None`.
-///
-/// `BoxExpr<_, diesel::sql_types::Nullable<$ty>>` is returned.
-///
-/// When there's no `?`, `sql_try!(expr)` is equivalent to `Box::new(expr)`.
-#[macro_export]
-macro_rules! sql_try {
-  ($ty:path, $expr:expr) => {{
-    let selection = (|| -> ::std::option::Option<_> { ::std::option::Option::Some($expr) })();
-
-    let expr: $crate::utils::BoxExpr<_, ::diesel::sql_types::Nullable<$ty>> =
-      if let Some(selection) = selection {
-        ::std::boxed::Box::new(selection)
-      } else {
-        // `None.into_sql()` is not used because it would require specifying the type for `Opti
-        ::std::boxed::Box::new(::diesel::dsl::sql::<::diesel::sql_types::Nullable<$ty>>(
-          "(NULL)",
-        ))
-      };
-
-    expr
-  }};
+  fn filter_var_eq(self, expr: &mut BoxExpr<QS, T>, other: U) -> Self {
+    let other_sql = other.into_sql::<T>();
+    let old_expr = std::mem::replace(expr, Box::new(other_sql.clone()));
+    self.filter(old_expr.eq(other_sql))
+  }
 }
 
 pub type BoxedSelection<'a, Source, ST> = dsl::Select<
