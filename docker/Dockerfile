@@ -43,7 +43,7 @@ RUN set -ex; \
 # ARM64 builder
 # NB(raskyld): this is a hack to be able to COPY --from= this image, because the variable doesn't
 # seem to be expended in --form arg of COPY :(
-FROM ${ARM_RUNNER_IMAGE} AS build-arm64
+FROM ${ARM_BUILDER_IMAGE} AS build-arm64
 
 # amd64 base runner
 FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
@@ -55,8 +55,6 @@ COPY --from=build-amd64 --chmod=0755 /lemmy/lemmy /usr/local/bin
 
 # arm base runner
 FROM ${ARM_RUNNER_IMAGE} AS runner-linux-arm64
-
-ARG ARM_BUILDER_IMAGE
 
 RUN apt update && apt install -y ca-certificates libssl-dev libpq-dev
 
