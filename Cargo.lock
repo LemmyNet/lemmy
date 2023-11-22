@@ -1557,9 +1557,9 @@ checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 
 [[package]]
 name = "dyn-clone"
-version = "1.0.16"
+version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "545b22097d44f8a9581187cdf93de7a71e4722bf51200cfaba810865b49a495d"
+checksum = "23d2f3407d9a573d666de4b5bdf10569d73ca9478087346697dcbae6244bfbcd"
 
 [[package]]
 name = "either"
@@ -2662,7 +2662,6 @@ dependencies = [
  "diesel-derive-newtype",
  "diesel_ltree",
  "diesel_migrations",
- "dyn-clone",
  "futures-util",
  "lemmy_utils",
  "once_cell",

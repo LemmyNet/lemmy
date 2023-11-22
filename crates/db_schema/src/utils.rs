@@ -34,7 +34,6 @@ use diesel_async::{
   },
 };
 use diesel_migrations::EmbeddedMigrations;
-use dyn_clone::DynClone;
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
@@ -402,13 +401,7 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
   diesel::dsl::now.into_sql::<Timestamptz>()
 }
 
-pub type BoxExpr<QS, T> = Box<dyn ClonableBoxableExpression<QS, SqlType = T>>;
-
-pub trait ClonableBoxableExpression<QS>: BoxableExpression<QS, Pg> + DynClone {}
-
-impl<T: BoxableExpression<QS, Pg> + DynClone, QS> ClonableBoxableExpression<QS> for T {}
-
-dyn_clone::clone_trait_object!(<QS, T> ClonableBoxableExpression<QS, SqlType = T>);
+pub type BoxExpr<QS, T> = Box<dyn BoxableExpression<QS, Pg, SqlType = T>>;
 
 /// Returns `query.filter(expr.eq(other))` and changes `expr` to `other` so it's only evaluated once
 pub fn filter_var_eq<Q, Q2, QS, T, U>(query: Q, expr: &mut BoxExpr<QS, T>, other: U) -> Q2
