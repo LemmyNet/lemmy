@@ -272,7 +272,7 @@ fn build_query<'a>(
     post_aggregates::comments - coalesce(read_comments, 0),
   ));
   
-  debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
+  //println!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
   
   query
 }
@@ -355,7 +355,7 @@ impl<'a> PostQuery<'a> {
     let l = self.local_user.map(|l| &l.local_user);
     let admin = l.map(|l| l.admin).unwrap_or(false);
     let show_nsfw = l.map(|l| l.show_nsfw).unwrap_or(false);
-    let show_bot_accounts = l.map(|l| l.show_nsfw).unwrap_or(true);
+    let show_bot_accounts = l.map(|l| l.show_bot_accounts).unwrap_or(true);
     
     let moderator_view = self.listing_type == Some(ListingType::ModeratorView);
     
