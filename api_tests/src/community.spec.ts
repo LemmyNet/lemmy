@@ -251,10 +251,7 @@ test("Admin actions in remote community are not federated to origin", async () =
 
 test("moderator view", async () => {
   // register a new user with their own community on alpha and post to it
-  let registerUserRes = await registerUser(alpha);
-  let otherUser = new LemmyHttp(alphaUrl, {
-    headers: { Authorization: `Bearer ${registerUserRes.jwt ?? ""}` },
-  });
+  let otherUser = await registerUser(alpha, alphaUrl);
 
   let otherCommunity = (await createCommunity(otherUser)).community_view;
   expect(otherCommunity.community.name).toBeDefined();

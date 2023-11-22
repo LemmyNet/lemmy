@@ -196,12 +196,11 @@ export async function setupLogins() {
 export async function createPost(
   api: LemmyHttp,
   community_id: number,
+  // use example.com for consistent title and embed description
+  url: string = "https://example.com/",
 ): Promise<PostResponse> {
   let name = randomString(5);
   let body = randomString(10);
-  // switch from google.com to example.com for consistent title (embed_title and embed_description)
-  // google switches description when a google doodle appears
-  let url = "https://example.com/";
   let form: CreatePost = {
     name,
     url,
@@ -615,15 +614,22 @@ export async function deletePrivateMessage(
 
 export async function registerUser(
   api: LemmyHttp,
+  url: string,
   username: string = randomString(5),
-): Promise<LoginResponse> {
+): Promise<LemmyHttp> {
   let form: Register = {
     username,
     password,
     password_verify: password,
     show_nsfw: true,
   };
-  return api.register(form);
+  let login_response = await api.register(form);
+
+  expect(login_response.jwt).toBeDefined();
+  let lemmy_http = new LemmyHttp(url, {
+    headers: { Authorization: `Bearer ${login_response.jwt ?? ""}` },
+  });
+  return lemmy_http;
 }
 
 export async function loginUser(

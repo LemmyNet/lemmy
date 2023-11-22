@@ -390,11 +390,7 @@ test("Enforce site ban for federated user", async () => {
     throw "Missing beta community";
   }
   // create a test user
-  let alphaUserJwt = await registerUser(alpha);
-  expect(alphaUserJwt).toBeDefined();
-  let alpha_user = new LemmyHttp(alphaUrl, {
-    headers: { Authorization: `Bearer ${alphaUserJwt.jwt ?? ""}` },
-  });
+  let alpha_user = await registerUser(alpha, alphaUrl);
   let alphaUserPerson = (await getSite(alpha_user)).my_user?.local_user_view
     .person;
   let alphaUserActorId = alphaUserPerson?.actor_id;

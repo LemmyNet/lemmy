@@ -1,6 +1,5 @@
 jest.setTimeout(120000);
 
-import { LemmyHttp } from "lemmy-js-client";
 import {
   alpha,
   setupLogins,
@@ -10,8 +9,8 @@ import {
   getSite,
   waitUntil,
   beta,
-  registerUser,
   betaUrl,
+  registerUser,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -21,11 +20,7 @@ afterAll(() => {
 });
 
 test("Follow local community", async () => {
-  let userRes = await registerUser(beta);
-  expect(userRes.jwt).toBeDefined();
-  let user = new LemmyHttp(betaUrl, {
-    headers: { Authorization: `Bearer ${userRes.jwt ?? ""}` },
-  });
+  let user = await registerUser(beta, betaUrl);
 
   let community = (await resolveBetaCommunity(user)).community!;
   expect(community.counts.subscribers).toBe(1);
