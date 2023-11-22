@@ -14,7 +14,7 @@ use diesel::{
   backend::Backend,
   deserialize::FromSql,
   dsl,
-  expression::{AsExpression, TypedExpressionType},
+  expression::{AsExpression, SqlLiteral, TypedExpressionType},
   helper_types::AsExprOf,
   pg::Pg,
   query_dsl::methods::FilterDsl,
@@ -27,7 +27,6 @@ use diesel::{
   PgConnection,
 };
 use diesel_async::{
-  methods::LoadQuery,
   pg::AsyncPgConnection,
   pooled_connection::{
     deadpool::{Object as PooledConnection, Pool},
@@ -468,17 +467,11 @@ macro_rules! sql_try {
   }};
 }
 
-pub trait FirstOrLoad<'a, U: Send + 'static>:
-  boxed_meth::LimitDsl + LoadQuery<'a, AsyncPgConnection, U> + Send + 'a
-{
-}
-
-impl<'a, T, U> FirstOrLoad<'a, U> for T
-where
-  T: boxed_meth::LimitDsl + LoadQuery<'a, AsyncPgConnection, U> + Send + 'a,
-  U: Send + 'static,
-{
-}
+pub type BoxedSelection<'a, Source, ST> = dsl::Select<
+  dsl::IntoBoxed<'a, Source, Pg>,
+  // Because the query is boxed, the type below only needs a matching SQL type.
+  SqlLiteral<ST>,
+>;
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
 

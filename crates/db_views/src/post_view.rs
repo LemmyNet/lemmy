@@ -47,8 +47,8 @@ use lemmy_db_schema::{
     get_conn,
     limit_and_offset,
     BoxExpr,
+    BoxedSelection,
     DbPool,
-    FirstOrLoad,
   },
   ListingType,
   SortType,
@@ -132,7 +132,7 @@ macro_rules! asc {
   }};
 }
 
-type BoxedQuery<'a> = dsl::IntoBoxed<
+type BoxedQuery<'a> = BoxedSelection<
   'a,
   type_chain!(
   post_aggregates::table
@@ -140,21 +140,30 @@ type BoxedQuery<'a> = dsl::IntoBoxed<
     .InnerJoin<community::table>
     .InnerJoin<post::table>
   ),
-  Pg,
+  (
+    post::SqlType,
+    person::SqlType,
+    community::SqlType,
+    sql_types::Bool,
+    sql_types::Bool,
+    sql_types::Bool,
+    post_aggregates::SqlType,
+    sql_types::Nullable<sql_types::Bool>,
+    sql_types::Bool,
+    sql_types::Bool,
+    sql_types::Bool,
+    sql_types::Nullable<sql_types::SmallInt>,
+    sql_types::BigInt,
+  ),
 >;
 
-fn new_query<'a>() -> BoxedQuery<'a> {
-  post_aggregates::table
+fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
+  let mut query = post_aggregates::table
     .inner_join(person::table)
     .inner_join(community::table)
     .inner_join(post::table)
-    .into_boxed()
-}
+    .into_boxed();
 
-fn build_query<'a>(
-  mut query: BoxedQuery<'a>,
-  options: QueryInput,
-) -> impl FirstOrLoad<'a, PostView> {
   let for_me = |f: fn(PersonId) -> _| -> BoxExpr<_, sql_types::Bool> {
     if let Some(me) = options.me {
       f(me)
@@ -290,17 +299,13 @@ impl PostView {
     local_user_view: Option<&LocalUserView>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
-    let query = new_query().filter(post_aggregates::post_id.eq(post_id));
-
-    build_query(
-      query,
-      QueryInput {
-        hide_removed: !is_mod_or_admin,
-        hide_deleted_unless_creator_viewing: !is_mod_or_admin,
-        me: local_user_view.map(|l| l.person.id),
-        ..Default::default()
-      },
-    )
+    build_query(QueryInput {
+      hide_removed: !is_mod_or_admin,
+      hide_deleted_unless_creator_viewing: !is_mod_or_admin,
+      me: local_user_view.map(|l| l.person.id),
+      ..Default::default()
+    })
+    .filter(post_aggregates::post_id.eq(post_id))
     .first(&mut *get_conn(pool).await?)
     .await
   }
@@ -366,7 +371,27 @@ impl<'a> PostQuery<'a> {
     let moderator_view = self.listing_type == Some(ListingType::ModeratorView);
 
     let get_query = |page_before_or_equal: Option<PaginationCursorData>| {
-      let mut query = new_query();
+      let mut input = QueryInput {
+        listing_type: Some(self.listing_type.unwrap_or_default()),
+        saved_only: self.saved_only,
+        liked_only: self.liked_only,
+        disliked_only: self.disliked_only,
+        hide_blocked: self.listing_type != Some(ListingType::ModeratorView),
+        hide_removed: !(admin && self.is_profile_view),
+        hide_deleted_unless_creator_viewing: true,
+        ..Default::default()
+      };
+
+      if let Some(local_user_view) = self.local_user.as_ref() {
+        let l = &local_user_view.local_user;
+        input = QueryInput {
+          hide_read: !(l.show_read_posts || self.saved_only || self.is_profile_view),
+          me: Some(local_user_view.person.id),
+          ..input
+        };
+      }
+
+      let mut query = build_query(input);
 
       if let Some(me) = self.local_user {
         if !moderator_view {
@@ -452,26 +477,6 @@ impl<'a> PostQuery<'a> {
       })
     };
 
-    let mut input = QueryInput {
-      listing_type: Some(self.listing_type.unwrap_or_default()),
-      saved_only: self.saved_only,
-      liked_only: self.liked_only,
-      disliked_only: self.disliked_only,
-      hide_blocked: self.listing_type != Some(ListingType::ModeratorView),
-      hide_removed: !(admin && self.is_profile_view),
-      hide_deleted_unless_creator_viewing: true,
-      ..Default::default()
-    };
-
-    if let Some(local_user_view) = self.local_user.as_ref() {
-      let l = &local_user_view.local_user;
-      input = QueryInput {
-        hide_read: !(l.show_read_posts || self.saved_only || self.is_profile_view),
-        me: Some(local_user_view.person.id),
-        ..input
-      };
-    }
-
     let mut page_before_or_equal = self.page_before_or_equal;
 
     if let (Some(me), Some(ListingType::Subscribed), None, None) = (
@@ -496,13 +501,13 @@ impl<'a> PostQuery<'a> {
         ));
       }
 
-      let largest_subscribed = community_aggregates::table
+      let largest_subscribed: Option<CommunityId> = community_aggregates::table
         .filter(exists(
           community_follower::table.find((me.person.id, community_aggregates::community_id)),
         ))
         .order_by(community_aggregates::users_active_month.desc())
         .select(community_aggregates::community_id)
-        .first::<CommunityId>(&mut *get_conn(pool).await?)
+        .first(&mut *get_conn(pool).await?)
         .await
         .optional()?;
 
@@ -511,12 +516,10 @@ impl<'a> PostQuery<'a> {
         return Ok(vec![]);
       };
 
-      let posts = build_query(
-        get_query(None).filter(post_aggregates::community_id.eq(largest_subscribed)),
-        input.clone(),
-      )
-      .load(&mut *get_conn(pool).await?)
-      .await?;
+      let posts: Vec<PostView> = get_query(None)
+        .filter(post_aggregates::community_id.eq(largest_subscribed))
+        .load(&mut *get_conn(pool).await?)
+        .await?;
 
       // take last element of array. if this query returned less than LIMIT elements,
       // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
@@ -527,7 +530,7 @@ impl<'a> PostQuery<'a> {
       }
     };
 
-    build_query(get_query(page_before_or_equal), input)
+    get_query(page_before_or_equal)
       .load(&mut *get_conn(pool).await?)
       .await
   }
