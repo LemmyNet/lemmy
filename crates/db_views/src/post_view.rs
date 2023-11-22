@@ -453,7 +453,7 @@ impl<'a> PostQuery<'a> {
     };
 
     let mut input = QueryInput {
-      listing_type: self.listing_type,
+      listing_type: Some(self.listing_type.unwrap_or_default()),
       saved_only: self.saved_only,
       liked_only: self.liked_only,
       disliked_only: self.disliked_only,

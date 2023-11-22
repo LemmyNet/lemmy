@@ -16,6 +16,7 @@ fi
 ./api_tests/pict-rs \
   run -a 0.0.0.0:8080 \
   --danger-dummy-mode \
+  --api-key "my-pictrs-key" \
   filesystem -p /tmp/pictrs/files \
   sled -p /tmp/pictrs/sled-repo 2>&1 &
 
