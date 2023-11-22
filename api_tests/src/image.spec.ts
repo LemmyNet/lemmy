@@ -87,7 +87,7 @@ test("Purge user, uploaded image removed", async () => {
   expect(content2).toBe("");
 });
 
-test.only("Purge post, linked image removed", async () => {
+test("Purge post, linked image removed", async () => {
   let user = await registerUser(beta, betaUrl);
 
   // upload test image
@@ -117,12 +117,10 @@ test.only("Purge post, linked image removed", async () => {
   const purge_form: PurgePost = {
     post_id: post.post_view.post.id,
   };
-  const delete_ = await alpha.purgePost(purge_form);
+  const delete_ = await beta.purgePost(purge_form);
   expect(delete_.success).toBe(true);
 
   // ensure that image is deleted
   const content2 = downloadFileSync(upload.url);
   expect(content2).toBe("");
 });
-
-// TODO: add tests for image purging
