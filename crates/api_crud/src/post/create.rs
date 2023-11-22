@@ -7,12 +7,8 @@ use lemmy_api_common::{
   request::fetch_site_data,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_user_action,
-    generate_local_apub_endpoint,
-    honeypot_check,
-    local_site_to_slur_regex,
-    mark_post_as_read,
-    EndpointType,
+    check_community_user_action, generate_local_apub_endpoint, honeypot_check,
+    local_site_to_slur_regex, mark_post_as_read, EndpointType,
   },
 };
 use lemmy_db_schema::{
@@ -32,7 +28,10 @@ use lemmy_utils::{
   spawn_try_task,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
-    validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title, is_valid_post_title_length},
+    validation::{
+      check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title,
+      is_valid_post_title_length,
+    },
   },
 };
 use tracing::Instrument;
