@@ -290,6 +290,7 @@ export async function searchPostLocal(
     q: post.name,
     type_: "Posts",
     sort: "TopAll",
+    listing_type: "All"
   };
   return api.search(form);
 }
