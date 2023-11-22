@@ -154,6 +154,7 @@ futures-util = "0.3.28"
 tokio-postgres = "0.7.10"
 tokio-postgres-rustls = "0.10.0"
 enum-map = "2.7"
+dyn-clone = "1.0.16"
 
 [dependencies]
 lemmy_api = { workspace = true }
