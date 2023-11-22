@@ -1,5 +1,6 @@
 use crate::structs::PersonView;
 use diesel::{
+  dsl::exists,
   pg::Pg,
   result::Error,
   BoolExpressionMethods,
@@ -11,9 +12,8 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
-  schema,
   schema::{local_user, person, person_aggregates},
-  utils::{fuzzy_search, get_conn, limit_and_offset, now, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{fuzzy_search, limit_and_offset, now, DbConn, DbPool, ListFn, Queries, ReadFn},
   SortType,
 };
 use serde::{Deserialize, Serialize};
@@ -48,12 +48,22 @@ fn post_to_person_sort_type(sort: SortType) -> PersonSortType {
 
 fn queries<'a>(
 ) -> Queries<impl ReadFn<'a, PersonView, PersonId>, impl ListFn<'a, PersonView, ListMode>> {
-  let all_joins = |query: person::BoxedQuery<'a, Pg>| {
+  let creator_is_admin = exists(
+    local_user::table.filter(
+      person::id
+        .eq(local_user::person_id)
+        .and(local_user::admin.eq(true)),
+    ),
+  );
+  let all_joins = move |query: person::BoxedQuery<'a, Pg>| {
     query
       .inner_join(person_aggregates::table)
-      .left_join(local_user::table)
       .filter(person::deleted.eq(false))
-      .select((person::all_columns, person_aggregates::all_columns))
+      .select((
+        person::all_columns,
+        person_aggregates::all_columns,
+        creator_is_admin,
+      ))
   };
 
   let read = move |mut conn: DbConn<'a>, person_id: PersonId| async move {
@@ -67,7 +77,7 @@ fn queries<'a>(
     match mode {
       ListMode::Admins => {
         query = query
-          .filter(local_user::admin.eq(true))
+          .filter(creator_is_admin.eq(true))
           .filter(person::deleted.eq(false))
           .order_by(person::published);
       }
@@ -113,21 +123,6 @@ fn queries<'a>(
 impl PersonView {
   pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     queries().read(pool, person_id).await
-  }
-
-  pub async fn is_admin(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<bool, Error> {
-    use schema::{
-      local_user::dsl::admin,
-      person::dsl::{id, person},
-    };
-    let conn = &mut get_conn(pool).await?;
-    let is_admin = person
-      .inner_join(local_user::table)
-      .filter(id.eq(person_id))
-      .select(admin)
-      .first::<bool>(conn)
-      .await?;
-    Ok(is_admin)
   }
 
   pub async fn admins(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
@@ -251,7 +246,13 @@ mod tests {
     let read = PersonView::read(pool, data.alice.id).await;
     assert_eq!(read.err(), Some(NotFound));
 
-    let list = PersonQuery::default().list(pool).await.unwrap();
+    let list = PersonQuery {
+      sort: Some(SortType::New),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
     assert_eq!(list.len(), 1);
     assert_eq!(list[0].person.id, data.bob.id);
 
@@ -305,10 +306,13 @@ mod tests {
     assert_eq!(list.len(), 1);
     assert_eq!(list[0].person.id, data.alice.id);
 
-    let is_admin = PersonView::is_admin(pool, data.alice.id).await.unwrap();
+    let is_admin = PersonView::read(pool, data.alice.id)
+      .await
+      .unwrap()
+      .is_admin;
     assert!(is_admin);
 
-    let is_admin = PersonView::is_admin(pool, data.bob.id).await.unwrap();
+    let is_admin = PersonView::read(pool, data.bob.id).await.unwrap().is_admin;
     assert!(!is_admin);
 
     cleanup(data, pool).await;
