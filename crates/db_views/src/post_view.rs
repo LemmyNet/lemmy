@@ -7,7 +7,7 @@ use diesel::{
   pg::Pg,
   result::Error,
   sql_function,
-  sql_types::{self, SingleValue, SqlType, Timestamptz},
+  sql_types::{self as st, SingleValue, SqlType},
   BoolExpressionMethods,
   Expression,
   ExpressionMethods,
@@ -56,7 +56,7 @@ use lemmy_db_schema::{
 use lemmy_utils::type_chain;
 use tracing::debug;
 
-sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
+sql_function!(fn coalesce(x: st::Nullable<st::BigInt>, y: st::BigInt) -> st::BigInt);
 
 #[derive(Default, Clone)]
 struct QueryInput {
@@ -144,16 +144,16 @@ type BoxedQuery<'a> = BoxedSelection<
     post::SqlType,
     person::SqlType,
     community::SqlType,
-    sql_types::Bool,
-    sql_types::Bool,
-    sql_types::Bool,
+    st::Bool,
+    st::Bool,
+    st::Bool,
     post_aggregates::SqlType,
-    sql_types::Nullable<sql_types::Bool>,
-    sql_types::Bool,
-    sql_types::Bool,
-    sql_types::Bool,
-    sql_types::Nullable<sql_types::SmallInt>,
-    sql_types::BigInt,
+    st::Nullable<st::Bool>,
+    st::Bool,
+    st::Bool,
+    st::Bool,
+    st::Nullable<st::SmallInt>,
+    st::BigInt,
   ),
 >;
 
@@ -164,37 +164,27 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
     .inner_join(post::table)
     .into_boxed();
 
-  let for_me = |f: fn(PersonId) -> _| -> BoxExpr<_, sql_types::Bool> {
-    if let Some(me) = options.me {
-      f(me)
-    } else {
-      Box::new(false.into_sql::<sql_types::Bool>())
-    }
-  };
-
-  let mut saved = for_me(|me| {
-    Box::new(exists(
-      post_saved::table.find((me, post_aggregates::post_id)),
-    ))
-  });
-  let mut read = for_me(|me| {
-    Box::new(exists(
-      post_read::table.find((me, post_aggregates::post_id)),
-    ))
-  });
-  let mut creator_blocked = for_me(|me| {
-    Box::new(exists(
-      person_block::table.find((me, post_aggregates::creator_id)),
-    ))
-  });
-  let mut my_vote: BoxExpr<_, sql_types::Nullable<sql_types::SmallInt>> =
-    Box::new(None::<i16>.into_sql());
-  let mut read_comments: BoxExpr<_, sql_types::Nullable<sql_types::BigInt>> =
-    Box::new(None::<i64>.into_sql());
-  let mut subscribe: Box<dyn Fn() -> BoxExpr<_, sql_types::Nullable<sql_types::Bool>>> =
-    Box::new(|| Box::new(None::<bool>.into_sql()));
+  let mut i_am_moderator: BoxExpr<_, st::Bool>;
+  let mut saved: BoxExpr<_, st::Bool>;
+  let mut read: BoxExpr<_, st::Bool>;
+  let mut creator_blocked: BoxExpr<_, st::Bool>;
+  let mut my_vote: BoxExpr<_, st::Nullable<st::SmallInt>>;
+  let read_comments: BoxExpr<_, st::Nullable<st::BigInt>>;
+  let subscribe: Box<dyn Fn() -> BoxExpr<_, st::Nullable<st::Bool>>>;
 
   if let Some(me) = options.me {
+    i_am_moderator = Box::new(exists(
+      community_moderator::table.find((me, post_aggregates::community_id)),
+    ));
+    saved = Box::new(exists(
+      post_saved::table.find((me, post_aggregates::post_id)),
+    ));
+    read = Box::new(exists(
+      post_read::table.find((me, post_aggregates::post_id)),
+    ));
+    creator_blocked = Box::new(exists(
+      person_block::table.find((me, post_aggregates::creator_id)),
+    ));
     my_vote = Box::new(
       post_like::table
         .find((me, post_aggregates::post_id))
@@ -216,11 +206,6 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
       )
     });
 
-    if options.listing_type == Some(ListingType::ModeratorView) {
-      query = query.filter(exists(
-        community_moderator::table.find((me, post_aggregates::community_id)),
-      ));
-    }
     if options.hide_blocked {
       query = filter_var_eq(query, &mut creator_blocked, false);
       query = query.filter(not(exists(
@@ -230,6 +215,14 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
         instance_block::table.find((me, post_aggregates::instance_id)),
       )));
     }
+  } else {
+    i_am_moderator = Box::new(false.into_sql::<st::Bool>());
+    saved = Box::new(false.into_sql::<st::Bool>());
+    read = Box::new(false.into_sql::<st::Bool>());
+    creator_blocked = Box::new(false.into_sql::<st::Bool>());
+    my_vote = Box::new(None::<i16>.into_sql::<st::Nullable<st::SmallInt>>());
+    read_comments = Box::new(None::<i64>.into_sql::<st::Nullable<st::BigInt>>());
+    subscribe = Box::new(|| Box::new(None::<bool>.into_sql::<st::Nullable<st::Bool>>()));
   }
 
   if options.saved_only {
@@ -251,7 +244,9 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
     let not_deleted = not(community::deleted.or(post::deleted));
     query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.me)));
   }
-
+  if options.listing_type == Some(ListingType::ModeratorView) {
+    query = filter_var_eq(query, &mut i_am_moderator, true);
+  }
   if options.listing_type == Some(ListingType::Subscribed) {
     query = query.filter(subscribe().is_not_null());
   }
@@ -262,22 +257,25 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
     query = query.filter(not(community::hidden).or(subscribe().is_not_null()))
   }
 
+  let creator_banned_from_community = exists(
+    community_person_ban::table.find((post_aggregates::creator_id, post_aggregates::community_id)),
+  );
+  let creator_is_moderator = exists(
+    community_moderator::table.find((post_aggregates::creator_id, post_aggregates::community_id)),
+  );
+  let creator_is_admin = exists(
+    local_user::table
+      .find(post_aggregates::creator_id)
+      .filter(local_user::admin),
+  );
+
   let query = query.select((
     post::all_columns,
     person::all_columns,
     community::all_columns,
-    exists(
-      community_person_ban::table
-        .find((post_aggregates::creator_id, post_aggregates::community_id)),
-    ),
-    exists(
-      community_moderator::table.find((post_aggregates::creator_id, post_aggregates::community_id)),
-    ),
-    exists(
-      local_user::table
-        .find(post_aggregates::creator_id)
-        .filter(local_user::admin),
-    ),
+    creator_banned_from_community,
+    creator_is_moderator,
+    creator_is_admin,
     post_aggregates::all_columns,
     subscribe(),
     saved,
@@ -459,7 +457,7 @@ impl<'a> PostQuery<'a> {
         };
 
       if let Some(interval) = interval {
-        let now = diesel::dsl::now.into_sql::<Timestamptz>();
+        let now = diesel::dsl::now.into_sql::<st::Timestamptz>();
         query = query.filter(post_aggregates::published.gt(now - interval));
       }
 
