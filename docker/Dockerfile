@@ -54,7 +54,7 @@ RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates
 COPY --from=build-amd64 --chmod=0755 /lemmy/lemmy /usr/local/bin
 
 # arm base runner
-FROM ${ARM_RUNNER_IMAGE} AS runner-linux-arm
+FROM ${ARM_RUNNER_IMAGE} AS runner-linux-arm64
 
 ARG ARM_BUILDER_IMAGE
 
