@@ -29,6 +29,7 @@ use lemmy_db_schema::{
     community_moderator,
     community_person_ban,
     instance_block,
+    local_user,
     local_user_language,
     person,
     person_block,
@@ -112,6 +113,14 @@ fn queries<'a>() -> Queries<
       post_aggregates::community_id
         .eq(community_moderator::community_id)
         .and(community_moderator::person_id.eq(post_aggregates::creator_id)),
+    ),
+  );
+
+  let creator_is_admin = exists(
+    local_user::table.filter(
+      post_aggregates::creator_id
+        .eq(local_user::person_id)
+        .and(local_user::admin.eq(true)),
     ),
   );
 
@@ -234,6 +243,7 @@ fn queries<'a>() -> Queries<
         community::all_columns,
         is_creator_banned_from_community,
         creator_is_moderator,
+        creator_is_admin,
         post_aggregates::all_columns,
         subscribed_type_selection,
         is_saved_selection,
@@ -296,12 +306,14 @@ fn queries<'a>() -> Queries<
       options.saved_only,
     );
 
-    let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
+    // hide posts from deleted communities
+    query = query.filter(community::deleted.eq(false));
+
     // only show deleted posts to creator
-    if is_creator {
-      query = query
-        .filter(community::deleted.eq(false))
-        .filter(post::deleted.eq(false));
+    if let Some(person_id) = person_id {
+      query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
+    } else {
+      query = query.filter(post::deleted.eq(false));
     }
 
     let is_admin = options
@@ -756,6 +768,7 @@ mod tests {
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
+      .admin(Some(true))
       .password_encrypted(String::new())
       .build();
     let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
@@ -1087,7 +1100,7 @@ mod tests {
     CommunityModerator::join(pool, &form).await.unwrap();
 
     let post_listing = PostQuery {
-      sort: (Some(SortType::New)),
+      sort: (Some(SortType::Old)),
       community_id: (Some(data.inserted_community.id)),
       local_user: (Some(&data.local_user_view)),
       ..Default::default()
@@ -1096,7 +1109,38 @@ mod tests {
     .await
     .unwrap();
 
-    assert!(post_listing[1].creator_is_moderator);
+    assert_eq!(post_listing[0].creator.name, "tegan");
+    assert!(post_listing[0].creator_is_moderator);
+
+    assert_eq!(post_listing[1].creator.name, "mybot");
+    assert!(!post_listing[1].creator_is_moderator);
+
+    cleanup(data, pool).await;
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn creator_is_admin() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    let post_listing = PostQuery {
+      sort: (Some(SortType::Old)),
+      community_id: (Some(data.inserted_community.id)),
+      local_user: (Some(&data.local_user_view)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+
+    assert_eq!(post_listing[0].creator.name, "tegan");
+    assert!(post_listing[0].creator_is_admin);
+
+    assert_eq!(post_listing[1].creator.name, "mybot");
+    assert!(!post_listing[1].creator_is_admin);
+
     cleanup(data, pool).await;
   }
 
@@ -1434,6 +1478,7 @@ mod tests {
       },
       creator_banned_from_community: false,
       creator_is_moderator: false,
+      creator_is_admin: true,
       community: Community {
         id: inserted_community.id,
         name: inserted_community.name.clone(),

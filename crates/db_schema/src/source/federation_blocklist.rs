@@ -6,13 +6,17 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Associations, Identifiable)
+)]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::instance::Instance))
 )]
 #[cfg_attr(feature = "full", diesel(table_name = federation_blocklist))]
 #[cfg_attr(feature = "full", diesel(primary_key(instance_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct FederationBlockList {
   pub instance_id: InstanceId,
   pub published: DateTime<Utc>,
