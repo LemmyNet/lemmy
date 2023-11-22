@@ -27,6 +27,20 @@ impl CommunityModeratorView {
     .get_result::<bool>(conn)
     .await
   }
+
+  pub(crate) async fn is_community_moderator_of_any(
+    pool: &mut DbPool<'_>,
+    find_person_id: PersonId,
+  ) -> Result<bool, Error> {
+    use lemmy_db_schema::schema::community_moderator::dsl::{community_moderator, person_id};
+    let conn = &mut get_conn(pool).await?;
+    select(exists(
+      community_moderator.filter(person_id.eq(find_person_id)),
+    ))
+    .get_result::<bool>(conn)
+    .await
+  }
+
   pub async fn for_community(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,

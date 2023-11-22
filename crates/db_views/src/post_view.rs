@@ -29,6 +29,7 @@ use lemmy_db_schema::{
     community_moderator,
     community_person_ban,
     instance_block,
+    local_user,
     local_user_language,
     person,
     person_block,
@@ -221,7 +222,7 @@ fn build_query<'a>(
       )));
     }
   }
-  
+
   if options.saved_only {
     query = filter_var_eq(query, &mut saved, true);
   }
@@ -241,7 +242,7 @@ fn build_query<'a>(
     let not_deleted = not(community::deleted.or(post::deleted));
     query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.me)));
   }
-  
+
   if options.listing_type == Some(ListingType::Subscribed) {
     query = query.filter(subscribe().is_not_null());
   }
@@ -251,17 +252,22 @@ fn build_query<'a>(
   if ![None, Some(ListingType::ModeratorView)].contains(&options.listing_type) {
     query = query.filter(not(community::hidden).or(subscribe().is_not_null()))
   }
-  
+
   let query = query.select((
     post::all_columns,
     person::all_columns,
     community::all_columns,
     exists(
       community_person_ban::table
-      .find((post_aggregates::creator_id, post_aggregates::community_id)),
+        .find((post_aggregates::creator_id, post_aggregates::community_id)),
     ),
     exists(
       community_moderator::table.find((post_aggregates::creator_id, post_aggregates::community_id)),
+    ),
+    exists(
+      local_user::table
+        .find(post_aggregates::creator_id)
+        .filter(local_user::admin),
     ),
     post_aggregates::all_columns,
     subscribe(),
@@ -285,7 +291,7 @@ impl PostView {
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
     let query = new_query().filter(post_aggregates::post_id.eq(post_id));
-    
+
     build_query(
       query,
       QueryInput {
@@ -312,10 +318,10 @@ impl PaginationCursor {
         pool,
         PostId(
           self
-          .0
-          .get(1..)
-          .and_then(|e| i32::from_str_radix(e, 16).ok())
-          .ok_or_else(|| Error::QueryBuilderError("Could not parse pagination token".into()))?,
+            .0
+            .get(1..)
+            .and_then(|e| i32::from_str_radix(e, 16).ok())
+            .ok_or_else(|| Error::QueryBuilderError("Could not parse pagination token".into()))?,
         ),
       )
       .await?,
@@ -351,17 +357,17 @@ pub struct PostQuery<'a> {
 impl<'a> PostQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-    
+
     let l = self.local_user.map(|l| &l.local_user);
     let admin = l.map(|l| l.admin).unwrap_or(false);
     let show_nsfw = l.map(|l| l.show_nsfw).unwrap_or(false);
     let show_bot_accounts = l.map(|l| l.show_bot_accounts).unwrap_or(true);
-    
+
     let moderator_view = self.listing_type == Some(ListingType::ModeratorView);
-    
+
     let get_query = |page_before_or_equal: Option<PaginationCursorData>| {
       let mut query = new_query();
-      
+
       if let Some(me) = self.local_user {
         if !moderator_view {
           query = query.filter(exists(
@@ -369,13 +375,13 @@ impl<'a> PostQuery<'a> {
           ));
         }
       }
-      
+
       if let Some(search_term) = &self.search_term {
         let searcher = fuzzy_search(search_term);
         query = query.filter(
           post::name
-          .ilike(searcher.clone())
-          .or(post::body.ilike(searcher)),
+            .ilike(searcher.clone())
+            .or(post::body.ilike(searcher)),
         );
       }
       if let Some(community_id) = self.community_id {
@@ -585,6 +591,7 @@ mod tests {
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
+      .admin(Some(true))
       .password_encrypted(String::new())
       .build();
     let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
@@ -928,7 +935,7 @@ mod tests {
     CommunityModerator::join(pool, &form).await.unwrap();
 
     let post_listing = PostQuery {
-      sort: (Some(SortType::New)),
+      sort: (Some(SortType::Old)),
       community_id: (Some(data.inserted_community.id)),
       local_user: (Some(&data.local_user_view)),
       ..Default::default()
@@ -937,7 +944,38 @@ mod tests {
     .await
     .unwrap();
 
-    assert!(post_listing[1].creator_is_moderator);
+    assert_eq!(post_listing[0].creator.name, "tegan");
+    assert!(post_listing[0].creator_is_moderator);
+
+    assert_eq!(post_listing[1].creator.name, "mybot");
+    assert!(!post_listing[1].creator_is_moderator);
+
+    cleanup(data, pool).await;
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn creator_is_admin() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    let post_listing = PostQuery {
+      sort: (Some(SortType::Old)),
+      community_id: (Some(data.inserted_community.id)),
+      local_user: (Some(&data.local_user_view)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+
+    assert_eq!(post_listing[0].creator.name, "tegan");
+    assert!(post_listing[0].creator_is_admin);
+
+    assert_eq!(post_listing[1].creator.name, "mybot");
+    assert!(!post_listing[1].creator_is_admin);
+
     cleanup(data, pool).await;
   }
 
@@ -1290,6 +1328,7 @@ mod tests {
       },
       creator_banned_from_community: false,
       creator_is_moderator: false,
+      creator_is_admin: true,
       community: Community {
         id: inserted_community.id,
         name: inserted_community.name.clone(),

@@ -20,6 +20,9 @@ repository.workspace = true
 [lib]
 doctest = false
 
+[lints]
+workspace = true
+
 [profile.release]
 debug = 0
 lto = "thin"
@@ -58,6 +61,28 @@ members = [
   "crates/federate",
 ]
 
+[workspace.lints.clippy]
+cast_lossless = "deny"
+complexity = "deny"
+correctness = "deny"
+dbg_macro = "deny"
+explicit_into_iter_loop = "deny"
+explicit_iter_loop = "deny"
+get_first = "deny"
+implicit_clone = "deny"
+indexing_slicing = "deny"
+inefficient_to_string = "deny"
+items-after-statements = "deny"
+manual_string_new = "deny"
+needless_collect = "deny"
+perf = "deny"
+redundant_closure_for_method_calls = "deny"
+style = "deny"
+suspicious = "deny"
+uninlined_format_args = "allow"
+unused_self = "deny"
+unwrap_used = "deny"
+
 [workspace.dependencies]
 lemmy_api = { version = "=0.19.0-rc.5", path = "./crates/api" }
 lemmy_api_crud = { version = "=0.19.0-rc.5", path = "./crates/api_crud" }
@@ -69,7 +94,7 @@ lemmy_routes = { version = "=0.19.0-rc.5", path = "./crates/routes" }
 lemmy_db_views = { version = "=0.19.0-rc.5", path = "./crates/db_views" }
 lemmy_db_views_actor = { version = "=0.19.0-rc.5", path = "./crates/db_views_actor" }
 lemmy_db_views_moderator = { version = "=0.19.0-rc.5", path = "./crates/db_views_moderator" }
-activitypub_federation = { version = "0.5.0-beta.4", default-features = false, features = [
+activitypub_federation = { version = "0.5.0-beta.5", default-features = false, features = [
   "actix-web",
 ] }
 diesel = "2.1.3"

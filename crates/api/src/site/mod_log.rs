@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{GetModlog, GetModlogResponse},
-  utils::{check_community_mod_action_opt, check_private_instance, is_admin},
+  utils::{check_community_mod_of_any_or_admin_action, check_private_instance},
 };
 use lemmy_db_schema::{source::local_site::LocalSite, ModlogActionType};
 use lemmy_db_views::structs::LocalUserView;
@@ -41,11 +41,9 @@ pub async fn get_mod_log(
   let community_id = data.community_id;
 
   let is_mod_or_admin = if let Some(local_user_view) = local_user_view {
-    let is_mod = community_id.is_some()
-      && check_community_mod_action_opt(&local_user_view, community_id, &mut context.pool())
-        .await
-        .is_ok();
-    is_mod || is_admin(&local_user_view).is_ok()
+    check_community_mod_of_any_or_admin_action(&local_user_view, &mut context.pool())
+      .await
+      .is_ok()
   } else {
     false
   };
