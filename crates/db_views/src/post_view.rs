@@ -265,7 +265,7 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
   );
   let creator_is_admin = exists(
     local_user::table
-      .find(post_aggregates::creator_id)
+      .filter(local_user::person_id.eq(post_aggregates::creator_id))
       .filter(local_user::admin),
   );
 
