@@ -365,11 +365,12 @@ impl<'a> PostQuery<'a> {
     let admin = l.map(|l| l.admin).unwrap_or(false);
     let show_nsfw = l.map(|l| l.show_nsfw).unwrap_or(false);
     let show_bot_accounts = l.map(|l| l.show_bot_accounts).unwrap_or(true);
+    let show_read_posts = l.map(|l| l.show_read_posts).unwrap_or(true);
 
     let moderator_view = self.listing_type == Some(ListingType::ModeratorView);
 
     let get_query = |page_before_or_equal: Option<PaginationCursorData>| {
-      let mut input = QueryInput {
+      let mut query = build_query(QueryInput {
         listing_type: Some(self.listing_type.unwrap_or_default()),
         saved_only: self.saved_only,
         liked_only: self.liked_only,
@@ -377,19 +378,9 @@ impl<'a> PostQuery<'a> {
         hide_blocked: self.listing_type != Some(ListingType::ModeratorView),
         hide_removed: !(admin && self.is_profile_view),
         hide_deleted_unless_creator_viewing: true,
-        ..Default::default()
-      };
-
-      if let Some(local_user_view) = self.local_user.as_ref() {
-        let l = &local_user_view.local_user;
-        input = QueryInput {
-          hide_read: !(l.show_read_posts || self.saved_only || self.is_profile_view),
-          me: Some(local_user_view.person.id),
-          ..input
-        };
-      }
-
-      let mut query = build_query(input);
+        hide_read: !(show_read_posts || self.saved_only || self.is_profile_view),
+        me: l.map(|l| l.person_id),
+      });
 
       if let Some(me) = self.local_user {
         if !moderator_view {
