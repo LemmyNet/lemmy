@@ -271,9 +271,9 @@ fn build_query<'a>(
     my_vote,
     post_aggregates::comments - coalesce(read_comments, 0),
   ));
-  
-  //println!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
-  
+
+  debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
+
   query
 }
 

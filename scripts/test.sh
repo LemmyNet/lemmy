@@ -23,7 +23,7 @@ else
 fi
 
 # Testing lemmy utils all features in particular (for ts-rs bindings)
-cargo test -p lemmy_utils --all-features --no-fail-fast -- --nocapture
+cargo test -p lemmy_utils --all-features --no-fail-fast
 
 # Add this to do printlns: -- --nocapture
 
