@@ -43,7 +43,7 @@ RUN set -ex; \
 # ARM64 builder
 # NB(raskyld): this is a hack to be able to COPY --from= this image, because the variable doesn't
 # seem to be expended in --form arg of COPY :(
-FROM ${ARM_BUILDER_IMAGE} AS build-arm64
+FROM --platform=linux/amd64 ${ARM_BUILDER_IMAGE} AS build-arm64
 
 # amd64 base runner
 FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
