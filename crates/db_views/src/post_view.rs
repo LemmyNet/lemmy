@@ -125,10 +125,10 @@ macro_rules! asc {
 type BoxedQuery<'a> = BoxedSelection<
   'a,
   type_chain!(
-  post_aggregates::table
-    .InnerJoin<person::table>
-    .InnerJoin<community::table>
-    .InnerJoin<post::table>
+    post_aggregates::table
+      .InnerJoin<person::table>
+      .InnerJoin<community::table>
+      .InnerJoin<post::table>
   ),
   (
     post::SqlType,
