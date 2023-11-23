@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   source::{
     images::LocalImage,
     moderator::{AdminPurgePerson, AdminPurgePersonForm},
-    person::Person,
+    person::{Person, PersonUpdateForm},
   },
   traits::Crud,
 };
@@ -29,17 +29,29 @@ pub async fn purge_person(
   // Read the person to get their images
   let person_id = data.person_id;
 
-  let local_user = LocalUserView::read_person(&mut context.pool(), person_id).await?;
-  let pictrs_uploads =
-    LocalImage::get_all_by_local_user_id(&mut context.pool(), &local_user.local_user.id).await?;
+  if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), person_id).await {
+    let pictrs_uploads =
+      LocalImage::get_all_by_local_user_id(&mut context.pool(), &local_user.local_user.id).await?;
 
-  for upload in pictrs_uploads {
-    delete_image_from_pictrs(&upload.pictrs_alias, &upload.pictrs_delete_token, &context)
-      .await
-      .ok();
+    for upload in pictrs_uploads {
+      delete_image_from_pictrs(&upload.pictrs_alias, &upload.pictrs_delete_token, &context)
+        .await
+        .ok();
+    }
   }
 
-  Person::delete(&mut context.pool(), person_id).await?;
+  // Clear profile data.
+  Person::delete_account(&mut context.pool(), person_id).await?;
+  // Keep person record, but mark as banned to prevent login or refetching from home instance.
+  Person::update(
+    &mut context.pool(),
+    person_id,
+    &PersonUpdateForm {
+      banned: Some(true),
+      ..Default::default()
+    },
+  )
+  .await?;
 
   // Mod tables
   let form = AdminPurgePersonForm {

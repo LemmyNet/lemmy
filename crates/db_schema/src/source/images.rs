@@ -1,4 +1,4 @@
-use crate::newtypes::{DbUrl, LocalImageId, LocalUserId};
+use crate::newtypes::{DbUrl, LocalUserId};
 #[cfg(feature = "full")]
 use crate::schema::{local_image, remote_image};
 use chrono::{DateTime, Utc};
@@ -8,14 +8,13 @@ use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(feature = "full", derive(Queryable, Associations))]
 #[cfg_attr(feature = "full", diesel(table_name = local_image))]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::local_user::LocalUser))
 )]
 pub struct LocalImage {
-  pub id: LocalImageId,
   pub local_user_id: LocalUserId,
   pub pictrs_alias: String,
   pub pictrs_delete_token: String,

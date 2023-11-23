@@ -111,7 +111,7 @@ async fn upload(
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
   };
   let res = client_req
-    .timeout(Duration::from_secs(30))
+    .timeout(Duration::from_secs(pictrs_config.upload_timeout))
     .body(Body::wrap_stream(make_send(body)))
     .send()
     .await

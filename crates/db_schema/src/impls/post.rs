@@ -266,13 +266,9 @@ impl Likeable for PostLike {
   ) -> Result<usize, Error> {
     use crate::schema::post_like::dsl;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      dsl::post_like
-        .filter(dsl::post_id.eq(post_id))
-        .filter(dsl::person_id.eq(person_id)),
-    )
-    .execute(conn)
-    .await
+    diesel::delete(dsl::post_like.find((person_id, post_id)))
+      .execute(conn)
+      .await
   }
 }
 
@@ -291,15 +287,11 @@ impl Saveable for PostSaved {
       .await
   }
   async fn unsave(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
-    use crate::schema::post_saved::dsl::{person_id, post_id, post_saved};
+    use crate::schema::post_saved::dsl::post_saved;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      post_saved
-        .filter(post_id.eq(post_saved_form.post_id))
-        .filter(person_id.eq(post_saved_form.person_id)),
-    )
-    .execute(conn)
-    .await
+    diesel::delete(post_saved.find((post_saved_form.person_id, post_saved_form.post_id)))
+      .execute(conn)
+      .await
   }
 }
 
@@ -445,7 +437,6 @@ mod tests {
     let inserted_post_like = PostLike::like(pool, &post_like_form).await.unwrap();
 
     let expected_post_like = PostLike {
-      id: inserted_post_like.id,
       post_id: inserted_post.id,
       person_id: inserted_person.id,
       published: inserted_post_like.published,
@@ -461,7 +452,6 @@ mod tests {
     let inserted_post_saved = PostSaved::save(pool, &post_saved_form).await.unwrap();
 
     let expected_post_saved = PostSaved {
-      id: inserted_post_saved.id,
       post_id: inserted_post.id,
       person_id: inserted_person.id,
       published: inserted_post_saved.published,

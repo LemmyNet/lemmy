@@ -14,10 +14,14 @@ use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Associations, Identifiable, TS)
+)]
 #[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A comment.
 pub struct Comment {
   pub id: CommentId,
@@ -83,11 +87,15 @@ pub struct CommentUpdateForm {
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_like))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct CommentLike {
-  pub id: i32,
   pub person_id: PersonId,
   pub comment_id: CommentId,
   pub post_id: PostId, // TODO this is redundant
@@ -106,11 +114,15 @@ pub struct CommentLikeForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_saved))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct CommentSaved {
-  pub id: i32,
   pub comment_id: CommentId,
   pub person_id: PersonId,
   pub published: DateTime<Utc>,

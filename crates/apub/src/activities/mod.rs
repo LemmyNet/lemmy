@@ -9,10 +9,10 @@ use crate::{
     },
     create_or_update::private_message::send_create_or_update_pm,
     deletion::{
-      delete_user::delete_user,
       send_apub_delete_in_community,
       send_apub_delete_in_community_new,
       send_apub_delete_private_message,
+      send_apub_delete_user,
       DeletableObjects,
     },
     voting::send_like_activity,
@@ -330,7 +330,7 @@ pub async fn match_outgoing_activities(
       DeletePrivateMessage(person, pm, deleted) => {
         send_apub_delete_private_message(&person.into(), pm, deleted, context).await
       }
-      DeleteUser(person, delete_content) => delete_user(person, delete_content, context).await,
+      DeleteUser(person, remove_data) => send_apub_delete_user(person, remove_data, context).await,
       CreateReport(url, actor, community, reason) => {
         Report::send(ObjectId::from(url), actor, community, reason, context).await
       }

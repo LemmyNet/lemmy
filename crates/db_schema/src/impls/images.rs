@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{DbUrl, LocalImageId, LocalUserId},
+  newtypes::{DbUrl, LocalUserId},
   schema::{
     local_image::dsl::{local_image, local_user_id, pictrs_alias},
     remote_image::dsl::{link, remote_image},
@@ -38,16 +38,6 @@ impl LocalImage {
       .filter(local_user_id.eq(user_id))
       .select(local_image::all_columns())
       .load::<LocalImage>(conn)
-      .await
-  }
-
-  pub async fn delete(
-    pool: &mut DbPool<'_>,
-    image_upload_id: LocalImageId,
-  ) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(local_image.find(image_upload_id))
-      .execute(conn)
       .await
   }
 

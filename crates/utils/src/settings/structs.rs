@@ -98,6 +98,10 @@ pub struct PictrsConfig {
   /// `cache_external_link_previews` are both disabled.
   #[default(true)]
   pub cache_external_link_previews: bool,
+
+  /// Timeout for uploading images to pictrs (in seconds)
+  #[default(30)]
+  pub upload_timeout: u64,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

@@ -1,9 +1,13 @@
 use crate::structs::{CommentView, LocalUserView};
 use diesel::{
+  dsl::{exists, not},
   pg::Pg,
   result::Error,
+  sql_types,
   BoolExpressionMethods,
+  BoxableExpression,
   ExpressionMethods,
+  IntoSql,
   JoinOnDsl,
   NullableExpressionMethods,
   PgTextExpressionMethods,
@@ -12,7 +16,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
-  aliases,
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     comment,
@@ -25,12 +28,12 @@ use lemmy_db_schema::{
     community_moderator,
     community_person_ban,
     instance_block,
+    local_user,
     local_user_language,
     person,
     person_block,
     post,
   },
-  source::community::CommunityFollower,
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
   ListingType,
@@ -40,93 +43,137 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommentView, (CommentId, Option<PersonId>)>,
   impl ListFn<'a, CommentView, CommentQuery<'a>>,
 > {
-  let all_joins = |query: comment::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
-    // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
+  let is_creator_banned_from_community = exists(
+    community_person_ban::table.filter(
+      community::id
+        .eq(community_person_ban::community_id)
+        .and(community_person_ban::person_id.eq(comment::creator_id)),
+    ),
+  );
+
+  let is_saved = |person_id| {
+    exists(
+      comment_saved::table.filter(
+        comment::id
+          .eq(comment_saved::comment_id)
+          .and(comment_saved::person_id.eq(person_id)),
+      ),
+    )
+  };
+
+  let is_community_followed = |person_id| {
+    community_follower::table
+      .filter(
+        post::community_id
+          .eq(community_follower::community_id)
+          .and(community_follower::person_id.eq(person_id)),
+      )
+      .select(community_follower::pending.nullable())
+      .single_value()
+  };
+
+  let is_creator_blocked = |person_id| {
+    exists(
+      person_block::table.filter(
+        comment::creator_id
+          .eq(person_block::target_id)
+          .and(person_block::person_id.eq(person_id)),
+      ),
+    )
+  };
+
+  let score = |person_id| {
+    comment_like::table
+      .filter(
+        comment::id
+          .eq(comment_like::comment_id)
+          .and(comment_like::person_id.eq(person_id)),
+      )
+      .select(comment_like::score.nullable())
+      .single_value()
+  };
+
+  let creator_is_moderator = exists(
+    community_moderator::table.filter(
+      community::id
+        .eq(community_moderator::community_id)
+        .and(community_moderator::person_id.eq(comment::creator_id)),
+    ),
+  );
+
+  let creator_is_admin = exists(
+    local_user::table.filter(
+      comment::creator_id
+        .eq(local_user::person_id)
+        .and(local_user::admin.eq(true)),
+    ),
+  );
+
+  let all_joins = move |query: comment::BoxedQuery<'a, Pg>,
+                        my_person_id: Option<PersonId>,
+                        saved_only: bool| {
+    let score_selection: Box<
+      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
+    > = if let Some(person_id) = my_person_id {
+      Box::new(score(person_id))
+    } else {
+      Box::new(None::<i16>.into_sql::<sql_types::Nullable<sql_types::SmallInt>>())
+    };
+
+    let subscribed_type_selection: Box<
+      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>,
+    > = if let Some(person_id) = my_person_id {
+      Box::new(is_community_followed(person_id))
+    } else {
+      Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
+    };
+
+    let is_saved_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
+      if saved_only {
+        Box::new(true.into_sql::<sql_types::Bool>())
+      } else if let Some(person_id) = my_person_id {
+        Box::new(is_saved(person_id))
+      } else {
+        Box::new(false.into_sql::<sql_types::Bool>())
+      };
+
+    let is_creator_blocked_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
+      if let Some(person_id) = my_person_id {
+        Box::new(is_creator_blocked(person_id))
+      } else {
+        Box::new(false.into_sql::<sql_types::Bool>())
+      };
+
     query
       .inner_join(person::table)
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(comment_aggregates::table)
-      .left_join(
-        community_person_ban::table.on(
-          community::id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id)),
-        ),
-      )
-      .left_join(
-        community_follower::table.on(
-          post::community_id
-            .eq(community_follower::community_id)
-            .and(community_follower::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        comment_saved::table.on(
-          comment::id
-            .eq(comment_saved::comment_id)
-            .and(comment_saved::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        person_block::table.on(
-          comment::creator_id
-            .eq(person_block::target_id)
-            .and(person_block::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        comment_like::table.on(
-          comment::id
-            .eq(comment_like::comment_id)
-            .and(comment_like::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        community_moderator::table.on(
-          post::id
-            .eq(comment::post_id)
-            .and(post::community_id.eq(community_moderator::community_id))
-            .and(community_moderator::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        aliases::community_moderator1.on(
-          community::id
-            .eq(aliases::community_moderator1.field(community_moderator::community_id))
-            .and(
-              aliases::community_moderator1
-                .field(community_moderator::person_id)
-                .eq(comment::creator_id),
-            ),
-        ),
-      )
+      .select((
+        comment::all_columns,
+        person::all_columns,
+        post::all_columns,
+        community::all_columns,
+        comment_aggregates::all_columns,
+        is_creator_banned_from_community,
+        creator_is_moderator,
+        creator_is_admin,
+        subscribed_type_selection,
+        is_saved_selection,
+        is_creator_blocked_selection,
+        score_selection,
+      ))
   };
-
-  let selection = (
-    comment::all_columns,
-    person::all_columns,
-    post::all_columns,
-    community::all_columns,
-    comment_aggregates::all_columns,
-    community_person_ban::id.nullable().is_not_null(),
-    aliases::community_moderator1
-      .field(community_moderator::id)
-      .nullable()
-      .is_not_null(),
-    CommunityFollower::select_subscribed_type(),
-    comment_saved::id.nullable().is_not_null(),
-    person_block::id.nullable().is_not_null(),
-    comment_like::score.nullable(),
-  );
 
   let read = move |mut conn: DbConn<'a>,
                    (comment_id, my_person_id): (CommentId, Option<PersonId>)| async move {
-    all_joins(comment::table.find(comment_id).into_boxed(), my_person_id)
-      .select(selection)
-      .first::<CommentView>(&mut conn)
-      .await
+    all_joins(
+      comment::table.find(comment_id).into_boxed(),
+      my_person_id,
+      false,
+    )
+    .first::<CommentView>(&mut conn)
+    .await
   };
 
   let list = move |mut conn: DbConn<'a>, options: CommentQuery<'a>| async move {
@@ -137,29 +184,7 @@ fn queries<'a>() -> Queries<
     let person_id_join = person_id.unwrap_or(PersonId(-1));
     let local_user_id_join = local_user_id.unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(comment::table.into_boxed(), person_id)
-      .left_join(
-        instance_block::table.on(
-          community::instance_id
-            .eq(instance_block::instance_id)
-            .and(instance_block::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        community_block::table.on(
-          community::id
-            .eq(community_block::community_id)
-            .and(community_block::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        local_user_language::table.on(
-          comment::language_id
-            .eq(local_user_language::language_id)
-            .and(local_user_language::local_user_id.eq(local_user_id_join)),
-        ),
-      )
-      .select(selection);
+    let mut query = all_joins(comment::table.into_boxed(), person_id, options.saved_only);
 
     if let Some(creator_id) = options.creator_id {
       query = query.filter(comment::creator_id.eq(creator_id));
@@ -182,36 +207,42 @@ fn queries<'a>() -> Queries<
     }
 
     if let Some(listing_type) = options.listing_type {
+      let is_subscribed = exists(
+        community_follower::table.filter(
+          post::community_id
+            .eq(community_follower::community_id)
+            .and(community_follower::person_id.eq(person_id_join)),
+        ),
+      );
+
       match listing_type {
-        ListingType::Subscribed => query = query.filter(community_follower::pending.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
+        ListingType::Subscribed => query = query.filter(is_subscribed), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
         ListingType::Local => {
-          query = query.filter(community::local.eq(true)).filter(
-            community::hidden
-              .eq(false)
-              .or(community_follower::person_id.eq(person_id_join)),
-          )
+          query = query
+            .filter(community::local.eq(true))
+            .filter(community::hidden.eq(false).or(is_subscribed))
         }
-        ListingType::All => {
-          query = query.filter(
-            community::hidden
-              .eq(false)
-              .or(community_follower::person_id.eq(person_id_join)),
-          )
-        }
+        ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
         ListingType::ModeratorView => {
-          query = query.filter(community_moderator::person_id.is_not_null());
+          query = query.filter(exists(
+            community_moderator::table.filter(
+              post::community_id
+                .eq(community_moderator::community_id)
+                .and(community_moderator::person_id.eq(person_id_join)),
+            ),
+          ));
         }
       }
     }
 
     if options.saved_only {
-      query = query.filter(comment_saved::comment_id.is_not_null());
+      query = query.filter(is_saved(person_id_join));
     }
 
     if options.liked_only {
-      query = query.filter(comment_like::score.eq(1));
+      query = query.filter(score(person_id_join).eq(1));
     } else if options.disliked_only {
-      query = query.filter(comment_like::score.eq(-1));
+      query = query.filter(score(person_id_join).eq(-1));
     }
 
     if !options
@@ -226,15 +257,31 @@ fn queries<'a>() -> Queries<
       && options.listing_type.unwrap_or_default() != ListingType::ModeratorView
     {
       // Filter out the rows with missing languages
-      query = query.filter(local_user_language::language_id.is_not_null());
+      query = query.filter(exists(
+        local_user_language::table.filter(
+          comment::language_id
+            .eq(local_user_language::language_id)
+            .and(local_user_language::local_user_id.eq(local_user_id_join)),
+        ),
+      ));
 
       // Don't show blocked communities or persons
-      if options.post_id.is_none() {
-        query = query.filter(instance_block::person_id.is_null());
-        query = query.filter(community_block::person_id.is_null());
-      }
-      query = query.filter(person_block::person_id.is_null());
-    }
+      query = query.filter(not(exists(
+        instance_block::table.filter(
+          community::instance_id
+            .eq(instance_block::instance_id)
+            .and(instance_block::person_id.eq(person_id_join)),
+        ),
+      )));
+      query = query.filter(not(exists(
+        community_block::table.filter(
+          community::id
+            .eq(community_block::community_id)
+            .and(community_block::person_id.eq(person_id_join)),
+        ),
+      )));
+      query = query.filter(not(is_creator_blocked(person_id_join)));
+    };
 
     // A Max depth given means its a tree fetch
     let (limit, offset) = if let Some(max_depth) = options.max_depth {
@@ -374,8 +421,8 @@ mod tests {
     inserted_comment_1: Comment,
     inserted_comment_2: Comment,
     inserted_post: Post,
-    local_user_view: LocalUserView,
-    inserted_person_2: Person,
+    timmy_local_user_view: LocalUserView,
+    inserted_sara_person: Person,
     inserted_community: Community,
   }
 
@@ -384,24 +431,27 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
+    let timmy_person_form = PersonInsertForm::builder()
       .name("timmy".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
-    let inserted_person = Person::create(pool, &new_person).await.unwrap();
-    let local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_person.id)
+    let inserted_timmy_person = Person::create(pool, &timmy_person_form).await.unwrap();
+    let timmy_local_user_form = LocalUserInsertForm::builder()
+      .person_id(inserted_timmy_person.id)
+      .admin(Some(true))
       .password_encrypted(String::new())
       .build();
-    let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+    let inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form)
+      .await
+      .unwrap();
 
-    let new_person_2 = PersonInsertForm::builder()
+    let sara_person_form = PersonInsertForm::builder()
       .name("sara".into())
       .public_key("pubkey".to_string())
       .instance_id(inserted_instance.id)
       .build();
-    let inserted_person_2 = Person::create(pool, &new_person_2).await.unwrap();
+    let inserted_sara_person = Person::create(pool, &sara_person_form).await.unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("test community 5".to_string())
@@ -414,7 +464,7 @@ mod tests {
 
     let new_post = PostInsertForm::builder()
       .name("A test post 2".into())
-      .creator_id(inserted_person.id)
+      .creator_id(inserted_timmy_person.id)
       .community_id(inserted_community.id)
       .build();
 
@@ -431,7 +481,7 @@ mod tests {
     //     5
     let comment_form_0 = CommentInsertForm::builder()
       .content("Comment 0".into())
-      .creator_id(inserted_person.id)
+      .creator_id(inserted_timmy_person.id)
       .post_id(inserted_post.id)
       .language_id(english_id)
       .build();
@@ -440,7 +490,7 @@ mod tests {
 
     let comment_form_1 = CommentInsertForm::builder()
       .content("Comment 1, A test blocked comment".into())
-      .creator_id(inserted_person_2.id)
+      .creator_id(inserted_sara_person.id)
       .post_id(inserted_post.id)
       .language_id(english_id)
       .build();
@@ -452,7 +502,7 @@ mod tests {
     let finnish_id = Language::read_id_from_code(pool, Some("fi")).await.unwrap();
     let comment_form_2 = CommentInsertForm::builder()
       .content("Comment 2".into())
-      .creator_id(inserted_person.id)
+      .creator_id(inserted_timmy_person.id)
       .post_id(inserted_post.id)
       .language_id(finnish_id)
       .build();
@@ -463,7 +513,7 @@ mod tests {
 
     let comment_form_3 = CommentInsertForm::builder()
       .content("Comment 3".into())
-      .creator_id(inserted_person.id)
+      .creator_id(inserted_timmy_person.id)
       .post_id(inserted_post.id)
       .language_id(english_id)
       .build();
@@ -479,7 +529,7 @@ mod tests {
       .unwrap();
     let comment_form_4 = CommentInsertForm::builder()
       .content("Comment 4".into())
-      .creator_id(inserted_person.id)
+      .creator_id(inserted_timmy_person.id)
       .post_id(inserted_post.id)
       .language_id(Some(polish_id))
       .build();
@@ -490,7 +540,7 @@ mod tests {
 
     let comment_form_5 = CommentInsertForm::builder()
       .content("Comment 5".into())
-      .creator_id(inserted_person.id)
+      .creator_id(inserted_timmy_person.id)
       .post_id(inserted_post.id)
       .build();
 
@@ -500,8 +550,8 @@ mod tests {
         .unwrap();
 
     let timmy_blocks_sara_form = PersonBlockForm {
-      person_id: inserted_person.id,
-      target_id: inserted_person_2.id,
+      person_id: inserted_timmy_person.id,
+      target_id: inserted_sara_person.id,
     };
 
     let inserted_block = PersonBlock::block(pool, &timmy_blocks_sara_form)
@@ -509,9 +559,8 @@ mod tests {
       .unwrap();
 
     let expected_block = PersonBlock {
-      id: inserted_block.id,
-      person_id: inserted_person.id,
-      target_id: inserted_person_2.id,
+      person_id: inserted_timmy_person.id,
+      target_id: inserted_sara_person.id,
       published: inserted_block.published,
     };
     assert_eq!(expected_block, inserted_block);
@@ -519,15 +568,15 @@ mod tests {
     let comment_like_form = CommentLikeForm {
       comment_id: inserted_comment_0.id,
       post_id: inserted_post.id,
-      person_id: inserted_person.id,
+      person_id: inserted_timmy_person.id,
       score: 1,
     };
 
     let _inserted_comment_like = CommentLike::like(pool, &comment_like_form).await.unwrap();
 
-    let local_user_view = LocalUserView {
-      local_user: inserted_local_user.clone(),
-      person: inserted_person.clone(),
+    let timmy_local_user_view = LocalUserView {
+      local_user: inserted_timmy_local_user.clone(),
+      person: inserted_timmy_person.clone(),
       counts: Default::default(),
     };
     Data {
@@ -536,8 +585,8 @@ mod tests {
       inserted_comment_1,
       inserted_comment_2,
       inserted_post,
-      local_user_view,
-      inserted_person_2,
+      timmy_local_user_view,
+      inserted_sara_person,
       inserted_community,
     }
   }
@@ -571,7 +620,7 @@ mod tests {
     let read_comment_views_with_person = CommentQuery {
       sort: (Some(CommentSortType::Old)),
       post_id: (Some(data.inserted_post.id)),
-      local_user: (Some(&data.local_user_view)),
+      local_user: (Some(&data.timmy_local_user_view)),
       ..Default::default()
     }
     .list(pool)
@@ -589,7 +638,7 @@ mod tests {
     let read_comment_from_blocked_person = CommentView::read(
       pool,
       data.inserted_comment_1.id,
-      Some(data.local_user_view.person.id),
+      Some(data.timmy_local_user_view.person.id),
     )
     .await
     .unwrap();
@@ -598,7 +647,7 @@ mod tests {
     assert!(read_comment_from_blocked_person.creator_blocked);
 
     let read_liked_comment_views = CommentQuery {
-      local_user: (Some(&data.local_user_view)),
+      local_user: (Some(&data.timmy_local_user_view)),
       liked_only: (true),
       ..Default::default()
     }
@@ -614,7 +663,7 @@ mod tests {
     assert_eq!(1, read_liked_comment_views.len());
 
     let read_disliked_comment_views: Vec<CommentView> = CommentQuery {
-      local_user: (Some(&data.local_user_view)),
+      local_user: (Some(&data.timmy_local_user_view)),
       disliked_only: (true),
       ..Default::default()
     }
@@ -714,7 +763,7 @@ mod tests {
     // by default, user has all languages enabled and should see all comments
     // (except from blocked user)
     let all_languages = CommentQuery {
-      local_user: (Some(&data.local_user_view)),
+      local_user: (Some(&data.timmy_local_user_view)),
       ..Default::default()
     }
     .list(pool)
@@ -727,11 +776,15 @@ mod tests {
       .await
       .unwrap()
       .unwrap();
-    LocalUserLanguage::update(pool, vec![finnish_id], data.local_user_view.local_user.id)
-      .await
-      .unwrap();
+    LocalUserLanguage::update(
+      pool,
+      vec![finnish_id],
+      data.timmy_local_user_view.local_user.id,
+    )
+    .await
+    .unwrap();
     let finnish_comments = CommentQuery {
-      local_user: (Some(&data.local_user_view)),
+      local_user: (Some(&data.timmy_local_user_view)),
       ..Default::default()
     }
     .list(pool)
@@ -751,12 +804,12 @@ mod tests {
     LocalUserLanguage::update(
       pool,
       vec![UNDETERMINED_ID],
-      data.local_user_view.local_user.id,
+      data.timmy_local_user_view.local_user.id,
     )
     .await
     .unwrap();
     let undetermined_comment = CommentQuery {
-      local_user: (Some(&data.local_user_view)),
+      local_user: (Some(&data.timmy_local_user_view)),
       ..Default::default()
     }
     .list(pool)
@@ -803,7 +856,7 @@ mod tests {
     let data = init_data(pool).await;
 
     // Make one of the inserted persons a moderator
-    let person_id = data.inserted_person_2.id;
+    let person_id = data.inserted_sara_person.id;
     let community_id = data.inserted_community.id;
     let form = CommunityModeratorForm {
       community_id,
@@ -812,9 +865,43 @@ mod tests {
     CommunityModerator::join(pool, &form).await.unwrap();
 
     // Make sure that they come back as a mod in the list
-    let comments = CommentQuery::default().list(pool).await.unwrap();
+    let comments = CommentQuery {
+      sort: (Some(CommentSortType::Old)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
 
+    assert_eq!(comments[1].creator.name, "sara");
     assert!(comments[1].creator_is_moderator);
+    assert!(!comments[0].creator_is_moderator);
+
+    cleanup(data, pool).await;
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_creator_is_admin() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    let comments = CommentQuery {
+      sort: (Some(CommentSortType::Old)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+
+    // Timmy is an admin, and make sure that field is true
+    assert_eq!(comments[0].creator.name, "timmy");
+    assert!(comments[0].creator_is_admin);
+
+    // Sara isn't, make sure its false
+    assert_eq!(comments[1].creator.name, "sara");
+    assert!(!comments[1].creator_is_admin);
 
     cleanup(data, pool).await;
   }
@@ -822,7 +909,7 @@ mod tests {
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) {
     CommentLike::remove(
       pool,
-      data.local_user_view.person.id,
+      data.timmy_local_user_view.person.id,
       data.inserted_comment_0.id,
     )
     .await
@@ -837,10 +924,13 @@ mod tests {
     Community::delete(pool, data.inserted_community.id)
       .await
       .unwrap();
-    Person::delete(pool, data.local_user_view.person.id)
+    Person::delete(pool, data.timmy_local_user_view.person.id)
       .await
       .unwrap();
-    Person::delete(pool, data.inserted_person_2.id)
+    LocalUser::delete(pool, data.timmy_local_user_view.local_user.id)
+      .await
+      .unwrap();
+    Person::delete(pool, data.inserted_sara_person.id)
       .await
       .unwrap();
     Instance::delete(pool, data.inserted_instance.id)
@@ -855,6 +945,7 @@ mod tests {
     CommentView {
       creator_banned_from_community: false,
       creator_is_moderator: false,
+      creator_is_admin: true,
       my_vote: None,
       subscribed: SubscribedType::NotSubscribed,
       saved: false,
@@ -862,7 +953,7 @@ mod tests {
       comment: Comment {
         id: data.inserted_comment_0.id,
         content: "Comment 0".into(),
-        creator_id: data.local_user_view.person.id,
+        creator_id: data.timmy_local_user_view.person.id,
         post_id: data.inserted_post.id,
         removed: false,
         deleted: false,
@@ -875,12 +966,12 @@ mod tests {
         language_id: LanguageId(37),
       },
       creator: Person {
-        id: data.local_user_view.person.id,
+        id: data.timmy_local_user_view.person.id,
         name: "timmy".into(),
         display_name: None,
-        published: data.local_user_view.person.published,
+        published: data.timmy_local_user_view.person.published,
         avatar: None,
-        actor_id: data.local_user_view.person.actor_id.clone(),
+        actor_id: data.timmy_local_user_view.person.actor_id.clone(),
         local: true,
         banned: false,
         deleted: false,
@@ -888,19 +979,19 @@ mod tests {
         bio: None,
         banner: None,
         updated: None,
-        inbox_url: data.local_user_view.person.inbox_url.clone(),
+        inbox_url: data.timmy_local_user_view.person.inbox_url.clone(),
         shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
         instance_id: data.inserted_instance.id,
-        private_key: data.local_user_view.person.private_key.clone(),
-        public_key: data.local_user_view.person.public_key.clone(),
-        last_refreshed_at: data.local_user_view.person.last_refreshed_at,
+        private_key: data.timmy_local_user_view.person.private_key.clone(),
+        public_key: data.timmy_local_user_view.person.public_key.clone(),
+        last_refreshed_at: data.timmy_local_user_view.person.last_refreshed_at,
       },
       post: Post {
         id: data.inserted_post.id,
         name: data.inserted_post.name.clone(),
-        creator_id: data.local_user_view.person.id,
+        creator_id: data.timmy_local_user_view.person.id,
         url: None,
         body: None,
         published: data.inserted_post.published,
@@ -948,7 +1039,6 @@ mod tests {
         featured_url: data.inserted_community.featured_url.clone(),
       },
       counts: CommentAggregates {
-        id: agg.id,
         comment_id: data.inserted_comment_0.id,
         score: 1,
         upvotes: 1,

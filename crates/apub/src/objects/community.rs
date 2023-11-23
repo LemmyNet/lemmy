@@ -256,9 +256,6 @@ impl ApubCommunity {
 
 #[cfg(test)]
 pub(crate) mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
-
   use super::*;
   use crate::{
     objects::instance::tests::parse_lemmy_instance,
@@ -266,41 +263,44 @@ pub(crate) mod tests {
   };
   use activitypub_federation::fetch::collection_id::CollectionId;
   use lemmy_db_schema::{source::site::Site, traits::Crud};
+  use lemmy_utils::error::LemmyResult;
   use serial_test::serial;
 
-  pub(crate) async fn parse_lemmy_community(context: &Data<LemmyContext>) -> ApubCommunity {
+  pub(crate) async fn parse_lemmy_community(
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<ApubCommunity> {
     // use separate counter so this doesnt affect tests
     let context2 = context.reset_request_count();
-    let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json").unwrap();
+    let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json")?;
     // change these links so they dont fetch over the network
     json.attributed_to = None;
-    json.outbox =
-      CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox").unwrap();
-    json.followers =
-      CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_followers").unwrap();
+    json.outbox = CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox")?;
+    json.followers = CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_followers")?;
 
-    let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
-    ApubCommunity::verify(&json, &url, &context2).await.unwrap();
-    let community = ApubCommunity::from_json(json, &context2).await.unwrap();
+    let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward")?;
+    ApubCommunity::verify(&json, &url, &context2).await?;
+    let community = ApubCommunity::from_json(json, &context2).await?;
     // this makes requests to the (intentionally broken) outbox and followers collections
     assert_eq!(context2.request_count(), 2);
-    community
+    Ok(community)
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_parse_lemmy_community() {
+  async fn test_parse_lemmy_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let site = parse_lemmy_instance(&context).await;
-    let community = parse_lemmy_community(&context).await;
+    let site = parse_lemmy_instance(&context).await?;
+    let community = parse_lemmy_community(&context).await?;
 
     assert_eq!(community.title, "Ten Forward");
     assert!(!community.local);
-    assert_eq!(community.description.as_ref().unwrap().len(), 132);
+    assert_eq!(
+      community.description.as_ref().map(std::string::String::len),
+      Some(132)
+    );
 
-    Community::delete(&mut context.pool(), community.id)
-      .await
-      .unwrap();
-    Site::delete(&mut context.pool(), site.id).await.unwrap();
+    Community::delete(&mut context.pool(), community.id).await?;
+    Site::delete(&mut context.pool(), site.id).await?;
+    Ok(())
   }
 }

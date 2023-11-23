@@ -21,8 +21,12 @@
   pictrs: {
     url: "http://pictrs:8080/"
     # api_key: "API_KEY"
+<<<<<<< HEAD
     cache_remote_images: true
     image_proxy: true
+=======
+    cache_external_link_previews: true
+>>>>>>> main
   }
 
   #opentelemetry_url: "http://otel:4137"

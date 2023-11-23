@@ -1,21 +1,20 @@
 use crate::{
   context::LemmyContext,
   request::purge_image_from_pictrs,
-  sensitive::Sensitive,
   site::{FederatedInstances, InstanceWithFederationState},
 };
-use actix_web::cookie::{Cookie, SameSite};
-use anyhow::Context;
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
+    community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
     images::RemoteImage,
     instance::Instance,
+    instance_block::InstanceBlock,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     password_reset_request::PasswordResetRequest,
@@ -35,7 +34,6 @@ use lemmy_db_views_actor::structs::{
 use lemmy_utils::{
   email::{send_email, translations::Lang},
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  location_info,
   rate_limit::{ActionType, BucketConfig},
   settings::structs::Settings,
   utils::{
@@ -82,6 +80,26 @@ pub async fn is_mod_or_admin_opt(
     }
   } else {
     Err(LemmyErrorType::NotAModOrAdmin)?
+  }
+}
+
+/// Check that a person is either a mod of any community, or an admin
+///
+/// Should only be used for read operations
+#[tracing::instrument(skip_all)]
+pub async fn check_community_mod_of_any_or_admin_action(
+  local_user_view: &LocalUserView,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
+  let person = &local_user_view.person;
+
+  check_user_valid(person)?;
+
+  let is_mod_of_any_or_admin = CommunityView::is_mod_of_any_or_admin(pool, person.id).await?;
+  if !is_mod_of_any_or_admin {
+    Err(LemmyErrorType::NotAModOrAdmin)?
+  } else {
+    Ok(())
   }
 }
 
@@ -206,19 +224,6 @@ pub async fn check_community_mod_action(
   Ok(())
 }
 
-pub async fn check_community_mod_action_opt(
-  local_user_view: &LocalUserView,
-  community_id: Option<CommunityId>,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  if let Some(community_id) = community_id {
-    check_community_mod_action(&local_user_view.person, community_id, false, pool).await?;
-  } else {
-    is_admin(local_user_view)?;
-  }
-  Ok(())
-}
-
 pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   if post.deleted || post.removed {
     Err(LemmyErrorType::Deleted)?
@@ -227,20 +232,63 @@ pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   }
 }
 
+/// Throws an error if a recipient has blocked a person.
 #[tracing::instrument(skip_all)]
 pub async fn check_person_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
   pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
-  let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id)
-    .await
-    .is_ok();
+  let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id).await?;
   if is_blocked {
     Err(LemmyErrorType::PersonIsBlocked)?
   } else {
     Ok(())
   }
+}
+
+/// Throws an error if a recipient has blocked a community.
+#[tracing::instrument(skip_all)]
+async fn check_community_block(
+  community_id: CommunityId,
+  person_id: PersonId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  let is_blocked = CommunityBlock::read(pool, person_id, community_id).await?;
+  if is_blocked {
+    Err(LemmyErrorType::CommunityIsBlocked)?
+  } else {
+    Ok(())
+  }
+}
+
+/// Throws an error if a recipient has blocked an instance.
+#[tracing::instrument(skip_all)]
+async fn check_instance_block(
+  instance_id: InstanceId,
+  person_id: PersonId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  let is_blocked = InstanceBlock::read(pool, person_id, instance_id).await?;
+  if is_blocked {
+    Err(LemmyErrorType::InstanceIsBlocked)?
+  } else {
+    Ok(())
+  }
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn check_person_instance_community_block(
+  my_id: PersonId,
+  potential_blocker_id: PersonId,
+  instance_id: InstanceId,
+  community_id: CommunityId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  check_person_block(my_id, potential_blocker_id, pool).await?;
+  check_instance_block(instance_id, potential_blocker_id, pool).await?;
+  check_community_block(community_id, potential_blocker_id, pool).await?;
+  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -748,24 +796,8 @@ pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{actor_id}/inbox"))?.into())
 }
 
-pub fn generate_site_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  let mut actor_id: Url = actor_id.clone().into();
-  actor_id.set_path("site_inbox");
-  Ok(actor_id.into())
-}
-
-pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> {
-  let actor_id: Url = actor_id.clone().into();
-  let url = format!(
-    "{}://{}{}/inbox",
-    &actor_id.scheme(),
-    &actor_id.host_str().context(location_info!())?,
-    if let Some(port) = actor_id.port() {
-      format!(":{port}")
-    } else {
-      String::new()
-    },
-  );
+pub fn generate_shared_inbox_url(settings: &Settings) -> Result<DbUrl, LemmyError> {
+  let url = format!("{}/inbox", settings.get_protocol_and_hostname());
   Ok(Url::parse(&url)?.into())
 }
 
@@ -779,14 +811,6 @@ pub fn generate_featured_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
 
 pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError> {
   Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
-}
-
-pub fn create_login_cookie(jwt: Sensitive<String>) -> Cookie<'static> {
-  let mut cookie = Cookie::new(AUTH_COOKIE_NAME, jwt.into_inner());
-  cookie.set_secure(true);
-  cookie.set_same_site(SameSite::Lax);
-  cookie.set_http_only(true);
-  cookie
 }
 
 /// Ensure that ban/block expiry is in valid range. If its in past, throw error. If its more

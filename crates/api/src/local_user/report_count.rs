@@ -1,8 +1,8 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetReportCount, GetReportCountResponse},
-  utils::check_community_mod_action_opt,
+  utils::check_community_mod_of_any_or_admin_action,
 };
 use lemmy_db_views::structs::{
   CommentReportView,
@@ -14,7 +14,7 @@ use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn report_count(
-  data: Json<GetReportCount>,
+  data: Query<GetReportCount>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<GetReportCountResponse>, LemmyError> {
@@ -22,7 +22,7 @@ pub async fn report_count(
   let admin = local_user_view.local_user.admin;
   let community_id = data.community_id;
 
-  check_community_mod_action_opt(&local_user_view, community_id, &mut context.pool()).await?;
+  check_community_mod_of_any_or_admin_action(&local_user_view, &mut context.pool()).await?;
 
   let comment_reports =
     CommentReportView::get_report_count(&mut context.pool(), person_id, admin, community_id)

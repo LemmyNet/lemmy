@@ -13,8 +13,9 @@ use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A person.
 pub struct Person {
@@ -112,11 +113,15 @@ pub struct PersonUpdateForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
 #[cfg_attr(feature = "full", diesel(table_name = person_follower))]
+#[cfg_attr(feature = "full", diesel(primary_key(follower_id, person_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct PersonFollower {
-  pub id: i32,
   pub person_id: PersonId,
   pub follower_id: PersonId,
   pub published: DateTime<Utc>,

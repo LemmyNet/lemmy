@@ -34,9 +34,7 @@ import {
 } from "./shared";
 import { EditSite, LemmyHttp } from "lemmy-js-client";
 
-beforeAll(async () => {
-  await setupLogins();
-});
+beforeAll(setupLogins);
 
 function assertCommunityFederation(
   communityOne?: CommunityView,
@@ -66,8 +64,8 @@ test("Create community", async () => {
 
   // A dupe check
   let prevName = communityRes.community_view.community.name;
-  await expect(createCommunity(alpha, prevName)).rejects.toBe(
-    "community_already_exists",
+  await expect(createCommunity(alpha, prevName)).rejects.toStrictEqual(
+    Error("community_already_exists"),
   );
 
   // Cache the community on beta, make sure it has the other fields
@@ -253,10 +251,7 @@ test("Admin actions in remote community are not federated to origin", async () =
 
 test("moderator view", async () => {
   // register a new user with their own community on alpha and post to it
-  let registerUserRes = await registerUser(alpha);
-  let otherUser = new LemmyHttp(alphaUrl, {
-    headers: { Authorization: `Bearer ${registerUserRes.jwt ?? ""}` },
-  });
+  let otherUser = await registerUser(alpha, alphaUrl);
 
   let otherCommunity = (await createCommunity(otherUser)).community_view;
   expect(otherCommunity.community.name).toBeDefined();
@@ -333,8 +328,8 @@ test("Get community for different casing on domain", async () => {
 
   // A dupe check
   let prevName = communityRes.community_view.community.name;
-  await expect(createCommunity(alpha, prevName)).rejects.toBe(
-    "community_already_exists",
+  await expect(createCommunity(alpha, prevName)).rejects.toStrictEqual(
+    Error("community_already_exists"),
   );
 
   // Cache the community on beta, make sure it has the other fields

@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{CreateSite, SiteResponse},
   utils::{
-    generate_site_inbox_url,
+    generate_shared_inbox_url,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
@@ -54,7 +54,7 @@ pub async fn create_site(
   validate_create_payload(&local_site, &data)?;
 
   let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
-  let inbox_url = Some(generate_site_inbox_url(&actor_id)?);
+  let inbox_url = Some(generate_shared_inbox_url(context.settings())?);
   let keypair = generate_actor_keypair()?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
