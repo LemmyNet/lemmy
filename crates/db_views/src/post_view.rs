@@ -168,6 +168,7 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
     .inner_join(post::table)
     .into_boxed();
 
+  let i_am_creator: Box<dyn Fn() -> BoxExpr<_, st::Bool>>;
   let mut i_am_moderator: BoxExpr<_, st::Bool>;
   let mut saved: BoxExpr<_, st::Bool>;
   let mut read: BoxExpr<_, st::Bool>;
@@ -177,6 +178,7 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
   let subscribe: Box<dyn Fn() -> BoxExpr<_, st::Nullable<st::Bool>>>;
 
   if let Some(me) = options.me {
+    i_am_creator = Box::new(move || Box::new(post_aggregates::creator_id.eq(me)));
     i_am_moderator = Box::new(exists(
       community_moderator::table.find((me, post_aggregates::community_id)),
     ));
@@ -220,6 +222,7 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
       )));
     }
   } else {
+    i_am_creator = Box::new(|| Box::new(false.into_sql::<st::Bool>()));
     i_am_moderator = Box::new(false.into_sql::<st::Bool>());
     saved = Box::new(false.into_sql::<st::Bool>());
     read = Box::new(false.into_sql::<st::Bool>());
@@ -228,6 +231,9 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
     read_comments = Box::new(None::<i64>.into_sql::<st::Nullable<st::BigInt>>());
     subscribe = Box::new(|| Box::new(None::<bool>.into_sql::<st::Nullable<st::Bool>>()));
   }
+
+  let not_removed = not(community::removed.or(post::removed));
+  let not_deleted = not(community::deleted.or(post::deleted));
 
   if options.saved_only {
     query = query.filter_var_eq(&mut saved, true);
@@ -242,15 +248,13 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
     query = query.filter_var_eq(&mut read, false);
   }
   if options.hide_removed {
-    query = query.filter(not(post::removed.or(community::removed)));
+    query = query.filter(not_removed);
   }
   if options.hide_removed_unless_creator_viewing {
-    let not_removed = not(community::removed.or(post::removed));
-    query = query.filter(not_removed.or(post::creator_id.nullable().eq(options.me)));
+    query = query.filter(not_removed.or(i_am_creator()));
   }
   if options.hide_deleted_unless_creator_viewing {
-    let not_deleted = not(community::deleted.or(post::deleted));
-    query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.me)));
+    query = query.filter(not_deleted.or(i_am_creator()));
   }
   if options.listing_type == Some(ListingType::ModeratorView) {
     query = query.filter_var_eq(&mut i_am_moderator, true);
