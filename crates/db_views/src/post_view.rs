@@ -154,6 +154,7 @@ struct QueryInput {
   disliked_only: bool,
   hide_read: bool,
   hide_removed: bool,
+  hide_removed_unless_creator_viewing: bool,
   hide_deleted_unless_creator_viewing: bool,
   hide_blocked: bool,
   listing_type: Option<ListingType>,
@@ -243,6 +244,10 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
   if options.hide_removed {
     query = query.filter(not(post::removed.or(community::removed)));
   }
+  if options.hide_removed_unless_creator_viewing {
+    let not_removed = not(community::removed.or(post::removed));
+    query = query.filter(not_removed.or(post::creator_id.nullable().eq(options.me)));
+  }
   if options.hide_deleted_unless_creator_viewing {
     let not_deleted = not(community::deleted.or(post::deleted));
     query = query.filter(not_deleted.or(post::creator_id.nullable().eq(options.me)));
@@ -301,7 +306,7 @@ impl PostView {
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
     build_query(QueryInput {
-      hide_removed: !is_mod_or_admin,
+      hide_removed_unless_creator_viewing: !is_mod_or_admin,
       hide_deleted_unless_creator_viewing: !is_mod_or_admin,
       me: local_user_view.map(|l| l.person.id),
       ..Default::default()
@@ -383,6 +388,7 @@ impl<'a> PostQuery<'a> {
         disliked_only: self.disliked_only,
         hide_blocked: self.listing_type != Some(ListingType::ModeratorView),
         hide_removed: !(admin && self.is_profile_view),
+        hide_removed_unless_creator_viewing: false,
         hide_deleted_unless_creator_viewing: true,
         hide_read: !(show_read_posts || self.saved_only || self.is_profile_view),
         me: l.map(|l| l.person_id),
