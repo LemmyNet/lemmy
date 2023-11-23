@@ -163,9 +163,9 @@ steps:
     commands:
       # run check with all features including pict-rs
       - cargo check --all-features
-      # when adding new clippy lints, make sure to also add them in scripts/lint.sh
       - rustup component add clippy
       # specify features manually to exclude pict-rs
+      # when adding new clippy lints, make sure to also add them in scripts/lint.sh
       - cargo clippy --workspace --tests --all-targets --features console,json-log -- -D warnings
     when: *slow_check_paths
 
