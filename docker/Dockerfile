@@ -72,8 +72,8 @@ ARG UNAME
 ARG GID
 ARG UID
 
-RUN addgroup -S -g ${GID} ${UNAME} && \
-    adduser -S -H -D -G ${UNAME} -u ${UID} -g "" -s /sbin/nologin ${UNAME}
+RUN groupadd -g ${GID} -o ${UNAME} && \
+    useradd -m -u ${UID} -g ${GID} -o -s /bin/bash ${UNAME}
 USER $UNAME
 
 ENTRYPOINT ["lemmy_server"]
