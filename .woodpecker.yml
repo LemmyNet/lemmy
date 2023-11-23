@@ -166,7 +166,7 @@ steps:
       # when adding new clippy lints, make sure to also add them in scripts/lint.sh
       - rustup component add clippy
       # specify features manually to exclude pict-rs
-      - cargo clippy --workspace --tests --all-targets --features console json-log -- -D warnings
+      - cargo clippy --workspace --tests --all-targets --features console,json-log -- -D warnings
     when: *slow_check_paths
 
   cargo_build:
