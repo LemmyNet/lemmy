@@ -198,7 +198,7 @@ steps:
       DO_WRITE_HOSTS_FILE: "1"
     commands:
       - apt-get update && apt-get install --no-install-recommends --no-install-suggests --yes \
-          bash curl postgresql-client
+        bash curl postgresql-client
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - yarn
