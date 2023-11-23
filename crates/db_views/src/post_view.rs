@@ -5,6 +5,7 @@ use diesel::{
   dsl::{self, exists, not, InnerJoin, IntervalDsl},
   expression::AsExpression,
   pg::Pg,
+  query_builder::{AstPass, Query, QueryFragment},
   result::Error,
   sql_function,
   sql_types::{self as st, SingleValue, SqlType},
@@ -16,6 +17,7 @@ use diesel::{
   OptionalExtension,
   PgTextExpressionMethods,
   QueryDsl,
+  QueryId,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
@@ -485,6 +487,34 @@ impl<'a> PostQuery<'a> {
       // the results are correct no matter which community we fetch these for, since it basically covers the "worst case" of the whole page consisting of posts from one community
       // but using the largest community decreases the pagination-frame so make the real query more efficient.
 
+      /// Gets the number of rows and the last row for the wrapped query
+      #[derive(QueryId)]
+      struct PrefetchQuery<T>(T);
+
+      impl<T: Query> Query for PrefetchQuery<T> {
+        type SqlType = (<dsl::CountStar as Expression>::SqlType, T::SqlType);
+      }
+
+      impl<T: QueryFragment<Pg>> QueryFragment<Pg> for PrefetchQuery<T> {
+        fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, Pg>) -> Result<(), Error> {
+          let count = "(SELECT count(*) FROM q)";
+
+          // Set `q` to the wrapped query.
+          out.push_sql("WITH q AS (");
+          self.0.walk_ast(out.reborrow())?;
+          out.push_sql(") ");
+
+          // Select the number of rows and the wrapped query's selection, then omit `{count} - 1` rows
+          // to get the last row. Offset can't be negative, so `GREATEST` changes it from -1 to 0 when
+          // there's 0 rows.
+          out.push_sql(&format!(
+            "SELECT {count}, * FROM q OFFSET GREATEST(0, {count} - 1)"
+          ));
+
+          Ok(())
+        }
+      }
+
       let largest_subscribed: Option<CommunityId> = community_aggregates::table
         .filter(exists(
           community_follower::table.find((me.person.id, community_aggregates::community_id)),
@@ -500,17 +530,20 @@ impl<'a> PostQuery<'a> {
         return Ok(vec![]);
       };
 
-      let posts_aggregates: Vec<PostAggregates> = get_query(None)
-        .filter(post_aggregates::community_id.eq(largest_subscribed))
-        .select(post_aggregates::all_columns)
-        .load(&mut *get_conn(pool).await?)
-        .await?;
+      let result: Option<(i64, PostAggregates)> = PrefetchQuery(
+        get_query(None)
+          .filter(post_aggregates::community_id.eq(largest_subscribed))
+          .select(post_aggregates::all_columns),
+      )
+      .get_result(&mut *get_conn(pool).await?)
+      .await
+      .optional()?;
 
       // take last element of array. if this query returned less than LIMIT elements,
       // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
-      if (posts_aggregates.len() as i64) >= limit {
-        if let Some(aggregates) = posts_aggregates.into_iter().last() {
-          page_before_or_equal = Some(PaginationCursorData(aggregates));
+      if let Some((len, last_item)) = result {
+        if len >= limit {
+          page_before_or_equal = Some(PaginationCursorData(last_item));
         }
       }
     };
