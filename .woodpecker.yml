@@ -161,9 +161,12 @@ steps:
     environment:
       CARGO_HOME: .cargo
     commands:
+      # run check with all features including pict-rs
+      - cargo check --all-features
       # when adding new clippy lints, make sure to also add them in scripts/lint.sh
       - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets --features console -- -D warnings
+      # specify features manually to exclude pict-rs
+      - cargo clippy --workspace --tests --all-targets --features console json-log -- -D warnings
     when: *slow_check_paths
 
   cargo_build:
@@ -194,7 +197,8 @@ steps:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
       DO_WRITE_HOSTS_FILE: "1"
     commands:
-      - apt update && apt install -y bash curl postgresql-client
+      - apt-get update && apt-get install --no-install-recommends --no-install-suggests --yes \
+          bash curl postgresql-client
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - yarn
