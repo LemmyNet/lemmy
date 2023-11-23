@@ -274,8 +274,16 @@ fn queries<'a>() -> Queries<
       // Hide deleted and removed for non-admins or mods
       if !is_mod_or_admin {
         query = query
-          .filter(community::removed.eq(false))
-          .filter(post::removed.eq(false))
+          .filter(
+            community::removed
+              .eq(false)
+              .or(post::creator_id.eq(person_id_join)),
+          )
+          .filter(
+            post::removed
+              .eq(false)
+              .or(post::creator_id.eq(person_id_join)),
+          )
           // users can see their own deleted posts
           .filter(
             community::deleted
