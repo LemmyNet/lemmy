@@ -18,7 +18,7 @@ pub async fn main() -> Result<(), LemmyError> {
       .port()
       .unwrap_or(8080);
     let pictrs_address = ["127.0.0.1", &pictrs_port.to_string()].join(":");
-    pict_rs::ConfigSource::memory(serde_json::json!({
+    let pictrs_config = pict_rs::ConfigSource::memory(serde_json::json!({
         "server": {
             "address": pictrs_address
         },
@@ -36,7 +36,7 @@ pub async fn main() -> Result<(), LemmyError> {
     }))
     .init::<&str>(None)
     .expect("initialize pictrs config");
-    let (lemmy, pictrs) = tokio::join!(start_lemmy_server(args), pict_rs::run());
+    let (lemmy, pictrs) = tokio::join!(start_lemmy_server(args), pictrs_config.run());
     lemmy?;
     pictrs.expect("run pictrs");
   }
