@@ -194,8 +194,8 @@ steps:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
       DO_WRITE_HOSTS_FILE: "1"
     commands:
-      - apt-get update && apt-get install --no-install-recommends --no-install-suggests --yes \
-        curl postgresql-client
+      - apt update && apt install --no-install-recommends --no-install-suggests --yes \
+        bash curl postgresql-client
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - yarn
