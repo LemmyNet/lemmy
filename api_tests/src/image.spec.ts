@@ -18,7 +18,7 @@ import {
   setupLogins,
   unfollowRemotes,
 } from "./shared";
-import fs = require("fs");
+import * as fs from "fs";
 const downloadFileSync = require("download-file-sync");
 
 beforeAll(setupLogins);
