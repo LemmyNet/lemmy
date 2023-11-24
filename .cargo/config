@@ -1,2 +1,3 @@
 [build]
+# these are necessary for building with embed-pictrs feature
 rustflags = ["--cfg", "tokio_unstable", "--cfg", "uuid_unstable"]
