@@ -1,6 +1,7 @@
 # build folders and similar which are not needed for the docker build
 target
 docker
+!docker/builders/lemmy-builder-arm64/docker-build.sh
 api_tests
 ansible
 tests
