@@ -4,9 +4,6 @@ use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
 use url::Url;
 
-static VALID_POST_TITLE_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r".*\S{3,200}.*").expect("compile regex"));
-
 // From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
 static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^@[A-Za-z0-9\\x21-\\x39\\x3B-\\x7F]+:[A-Za-z0-9.-]+(:[0-9]{2,5})?$")
@@ -150,7 +147,8 @@ pub fn is_valid_matrix_id(matrix_id: &str) -> LemmyResult<()> {
 }
 
 pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
-  let check = VALID_POST_TITLE_REGEX.is_match(title) && !has_newline(title);
+  let length = title.trim().len();
+  let check = length >= 3 && length <= 200 && !has_newline(title);
   if !check {
     Err(LemmyErrorType::InvalidPostTitle.into())
   } else {
@@ -330,9 +328,13 @@ mod tests {
   fn regex_checks() {
     assert!(is_valid_post_title("hi").is_err());
     assert!(is_valid_post_title("him").is_ok());
+    assert!(is_valid_post_title("  him  ").is_ok());
     assert!(is_valid_post_title("n\n\n\n\nanother").is_err());
     assert!(is_valid_post_title("hello there!\n this is a test.").is_err());
     assert!(is_valid_post_title("hello there! this is a test.").is_ok());
+    assert!(is_valid_post_title(("12345".repeat(40) + "x").as_str()).is_err());
+    assert!(is_valid_post_title("12345".repeat(40).as_str()).is_ok());
+    assert!(is_valid_post_title((("12345".repeat(40)) + "  ").as_str()).is_ok());
   }
 
   #[test]
