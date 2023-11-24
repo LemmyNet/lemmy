@@ -39,7 +39,6 @@ import {
   delay,
 } from "./shared";
 import { CommentView, CommunityView } from "lemmy-js-client";
-import { LemmyHttp } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 let postOnAlphaRes: PostResponse;

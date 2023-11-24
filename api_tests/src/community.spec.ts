@@ -32,7 +32,7 @@ import {
   resolveBetaCommunity,
   longDelay,
 } from "./shared";
-import { EditSite, LemmyHttp } from "lemmy-js-client";
+import { EditSite } from "lemmy-js-client";
 
 beforeAll(setupLogins);
 
