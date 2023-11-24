@@ -22,9 +22,6 @@ pub async fn main() -> Result<(), LemmyError> {
         "server": {
             "address": pictrs_address
         },
-        "old_db": {
-            "path": "./pictrs/old"
-        },
         "repo": {
             "type": "sled",
             "path": "./pictrs/sled-repo"
