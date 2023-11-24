@@ -36,7 +36,7 @@ pub async fn main() -> Result<(), LemmyError> {
     }))
     .init::<&str>(None)
     .expect("initialize pictrs config");
-    let (lemmy, pictrs) = tokio::join!(start_lemmy_server(args), pictrs_config.run());
+    let (lemmy, pictrs) = tokio::join!(start_lemmy_server(args), pictrs_config.run_on_localset());
     lemmy?;
     pictrs.expect("run pictrs");
   }
