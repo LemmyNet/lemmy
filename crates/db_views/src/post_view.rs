@@ -274,8 +274,16 @@ fn queries<'a>() -> Queries<
       // Hide deleted and removed for non-admins or mods
       if !is_mod_or_admin {
         query = query
-          .filter(community::removed.eq(false))
-          .filter(post::removed.eq(false))
+          .filter(
+            community::removed
+              .eq(false)
+              .or(post::creator_id.eq(person_id_join)),
+          )
+          .filter(
+            post::removed
+              .eq(false)
+              .or(post::creator_id.eq(person_id_join)),
+          )
           // users can see their own deleted posts
           .filter(
             community::deleted
@@ -745,7 +753,7 @@ mod tests {
       post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
     },
     traits::{Blockable, Crud, Joinable, Likeable},
-    utils::{build_db_pool_for_tests, DbPool},
+    utils::{build_db_pool_for_tests, DbPool, RANK_DEFAULT},
     SortType,
     SubscribedType,
   };
@@ -1525,10 +1533,10 @@ mod tests {
         newest_comment_time: inserted_post.published,
         featured_community: false,
         featured_local: false,
-        hot_rank: 0.1728,
-        hot_rank_active: 0.1728,
+        hot_rank: RANK_DEFAULT,
+        hot_rank_active: RANK_DEFAULT,
         controversy_rank: 0.0,
-        scaled_rank: 0.3621,
+        scaled_rank: RANK_DEFAULT,
         community_id: inserted_post.community_id,
         creator_id: inserted_post.creator_id,
         instance_id: data.inserted_instance.id,

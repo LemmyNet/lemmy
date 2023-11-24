@@ -18,6 +18,7 @@ import {
   saveUserSettings,
   getPost,
   getComments,
+  fetchFunction,
 } from "./shared";
 import { LemmyHttp, SaveUserSettings } from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
@@ -114,6 +115,7 @@ test("Delete user", async () => {
 test("Requests with invalid auth should be treated as unauthenticated", async () => {
   let invalid_auth = new LemmyHttp(alphaUrl, {
     headers: { Authorization: "Bearer foobar" },
+    fetchFunction,
   });
   let site = await getSite(invalid_auth);
   expect(site.my_user).toBeUndefined();

@@ -75,17 +75,20 @@ import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDe
 import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 import { ListingType } from "lemmy-js-client/dist/types/ListingType";
 
+export const fetchFunction = fetch;
+
 export let alphaUrl = "http://127.0.0.1:8541";
 export let betaUrl = "http://127.0.0.1:8551";
 export let gammaUrl = "http://127.0.0.1:8561";
 export let deltaUrl = "http://127.0.0.1:8571";
 export let epsilonUrl = "http://127.0.0.1:8581";
 
-export let alpha = new LemmyHttp(alphaUrl);
-export let beta = new LemmyHttp(betaUrl);
-export let gamma = new LemmyHttp(gammaUrl);
-export let delta = new LemmyHttp(deltaUrl);
-export let epsilon = new LemmyHttp(epsilonUrl);
+export let alpha = new LemmyHttp(alphaUrl, { fetchFunction });
+export let alphaImage = new LemmyHttp(alphaUrl);
+export let beta = new LemmyHttp(betaUrl, { fetchFunction });
+export let gamma = new LemmyHttp(gammaUrl, { fetchFunction });
+export let delta = new LemmyHttp(deltaUrl, { fetchFunction });
+export let epsilon = new LemmyHttp(epsilonUrl, { fetchFunction });
 
 export let betaAllowedInstances = [
   "lemmy-alpha",
@@ -135,6 +138,7 @@ export async function setupLogins() {
     resEpsilon,
   ]);
   alpha.setHeaders({ Authorization: `Bearer ${res[0].jwt ?? ""}` });
+  alphaImage.setHeaders({ Authorization: `Bearer ${res[0].jwt ?? ""}` });
   beta.setHeaders({ Authorization: `Bearer ${res[1].jwt ?? ""}` });
   gamma.setHeaders({ Authorization: `Bearer ${res[2].jwt ?? ""}` });
   delta.setHeaders({ Authorization: `Bearer ${res[3].jwt ?? ""}` });
