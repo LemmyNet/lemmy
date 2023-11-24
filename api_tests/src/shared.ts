@@ -84,6 +84,7 @@ export let deltaUrl = "http://127.0.0.1:8571";
 export let epsilonUrl = "http://127.0.0.1:8581";
 
 export let alpha = new LemmyHttp(alphaUrl, { fetchFunction });
+export let alphaImage = new LemmyHttp(alphaUrl);
 export let beta = new LemmyHttp(betaUrl, { fetchFunction });
 export let gamma = new LemmyHttp(gammaUrl, { fetchFunction });
 export let delta = new LemmyHttp(deltaUrl, { fetchFunction });
@@ -137,6 +138,7 @@ export async function setupLogins() {
     resEpsilon,
   ]);
   alpha.setHeaders({ Authorization: `Bearer ${res[0].jwt ?? ""}` });
+  alphaImage.setHeaders({ Authorization: `Bearer ${res[0].jwt ?? ""}` });
   beta.setHeaders({ Authorization: `Bearer ${res[1].jwt ?? ""}` });
   gamma.setHeaders({ Authorization: `Bearer ${res[2].jwt ?? ""}` });
   delta.setHeaders({ Authorization: `Bearer ${res[3].jwt ?? ""}` });

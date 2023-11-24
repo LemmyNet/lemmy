@@ -7,7 +7,7 @@ import {
   PurgePost,
 } from "lemmy-js-client";
 import {
-  alpha,
+  alphaImage,
   alphaUrl,
   beta,
   betaUrl,
@@ -18,13 +18,13 @@ import {
   setupLogins,
   unfollowRemotes,
 } from "./shared";
-import * as fs from "fs";
+import * as fs from "node:fs";
 const downloadFileSync = require("download-file-sync");
 
 beforeAll(setupLogins);
 
 afterAll(() => {
-  unfollowRemotes(alpha);
+  unfollowRemotes(alphaImage);
 });
 
 test("Upload image and delete it", async () => {
@@ -33,7 +33,7 @@ test("Upload image and delete it", async () => {
   const upload_form: UploadImage = {
     image: upload_image,
   };
-  const upload = await alpha.uploadImage(upload_form);
+  const upload = await alphaImage.uploadImage(upload_form);
   expect(upload.files![0].file).toBeDefined();
   expect(upload.files![0].delete_token).toBeDefined();
   expect(upload.url).toBeDefined();
@@ -48,7 +48,7 @@ test("Upload image and delete it", async () => {
     token: upload.files![0].delete_token,
     filename: upload.files![0].file,
   };
-  const delete_ = await alpha.deleteImage(delete_form);
+  const delete_ = await alphaImage.deleteImage(delete_form);
   expect(delete_).toBe(true);
 
   // ensure that image is deleted
@@ -57,7 +57,7 @@ test("Upload image and delete it", async () => {
 });
 
 test("Purge user, uploaded image removed", async () => {
-  let user = await registerUser(alpha, alphaUrl);
+  let user = await registerUser(alphaImage, alphaUrl);
 
   // upload test image
   const upload_image = fs.readFileSync("test.png");
@@ -79,7 +79,7 @@ test("Purge user, uploaded image removed", async () => {
   const purge_form: PurgePerson = {
     person_id: site.my_user!.local_user_view.person.id,
   };
-  const delete_ = await alpha.purgePerson(purge_form);
+  const delete_ = await alphaImage.purgePerson(purge_form);
   expect(delete_.success).toBe(true);
 
   // ensure that image is deleted
