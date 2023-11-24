@@ -1,7 +1,7 @@
 # Building Lemmy Images
 
 Lemmy's images are meant to be **built** on `linux/amd64`,
-but they can be **hosted** on both `linux/amd64` and `linux/arm64`.
+but they can be **executed** on both `linux/amd64` and `linux/arm64`.
 
 To do so we need to use a _cross toolchain_ whose goal is to build
 **from** amd64 **to** arm64.
