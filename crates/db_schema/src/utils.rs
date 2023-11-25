@@ -24,6 +24,7 @@ use diesel_async::{
   pooled_connection::{
     deadpool::{Object as PooledConnection, Pool},
     AsyncDieselConnectionManager,
+    ManagerConfig,
   },
 };
 use diesel_migrations::EmbeddedMigrations;
@@ -291,7 +292,9 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
   let manager = if tls_enabled {
     // diesel-async does not support any TLS connections out of the box, so we need to manually
     // provide a setup function which handles creating the connection
-    AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_setup(&db_url, establish_connection)
+    let mut config = ManagerConfig::default();
+    config.custom_setup = Box::new(establish_connection);
+    AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(&db_url, config)
   } else {
     AsyncDieselConnectionManager::<AsyncPgConnection>::new(&db_url)
   };
