@@ -148,7 +148,7 @@ pub fn is_valid_matrix_id(matrix_id: &str) -> LemmyResult<()> {
 
 pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
   let length = title.trim().len();
-  let check = length >= 3 && length <= 200 && !has_newline(title);
+  let check = (3..=200).contains(&length) && !has_newline(title);
   if !check {
     Err(LemmyErrorType::InvalidPostTitle.into())
   } else {
