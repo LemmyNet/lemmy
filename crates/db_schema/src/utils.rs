@@ -14,7 +14,7 @@ use diesel::{
   backend::Backend,
   deserialize::FromSql,
   dsl,
-  expression::{AsExpression, SqlLiteral, TypedExpressionType},
+  expression::{AsExpression, TypedExpressionType},
   helper_types::AsExprOf,
   pg::Pg,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
@@ -424,12 +424,6 @@ where
     self.filter(old_expr.eq(other_sql))
   }
 }
-
-pub type BoxedSelection<'a, Source, ST> = dsl::Select<
-  dsl::IntoBoxed<'a, Source, Pg>,
-  // Because the query is boxed, the type below only needs a matching SQL type.
-  SqlLiteral<ST>,
->;
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
 
