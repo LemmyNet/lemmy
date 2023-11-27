@@ -1421,21 +1421,6 @@ dependencies = [
 
 [[package]]
 name = "diesel-async"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7e7974099f0d9bde0e010dd3a673555276a474f3362a7a52ab535a57b7c5056"
-dependencies = [
- "async-trait",
- "deadpool",
- "diesel",
- "futures-util",
- "scoped-futures",
- "tokio",
- "tokio-postgres",
-]
-
-[[package]]
-name = "diesel-async"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acada1517534c92d3f382217b485db8a8638f111b0e3f2a2a8e26165050f77be"
@@ -2664,7 +2649,7 @@ dependencies = [
  "chrono",
  "deadpool",
  "diesel",
- "diesel-async 0.3.2",
+ "diesel-async",
  "diesel-derive-enum",
  "diesel-derive-newtype",
  "diesel_ltree",
@@ -2696,7 +2681,7 @@ version = "0.19.0-rc.7"
 dependencies = [
  "actix-web",
  "diesel",
- "diesel-async 0.3.2",
+ "diesel-async",
  "diesel_ltree",
  "lemmy_db_schema",
  "lemmy_utils",
@@ -2714,7 +2699,7 @@ version = "0.19.0-rc.7"
 dependencies = [
  "chrono",
  "diesel",
- "diesel-async 0.3.2",
+ "diesel-async",
  "lemmy_db_schema",
  "serde",
  "serde_with",
@@ -2730,7 +2715,7 @@ name = "lemmy_db_views_moderator"
 version = "0.19.0-rc.7"
 dependencies = [
  "diesel",
- "diesel-async 0.3.2",
+ "diesel-async",
  "lemmy_db_schema",
  "serde",
  "serde_with",
@@ -2745,7 +2730,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "diesel",
- "diesel-async 0.3.2",
+ "diesel-async",
  "futures",
  "lemmy_api_common",
  "lemmy_apub",
@@ -2796,7 +2781,7 @@ dependencies = [
  "clokwerk",
  "console-subscriber 0.1.10",
  "diesel",
- "diesel-async 0.3.2",
+ "diesel-async",
  "futures-util",
  "lemmy_api",
  "lemmy_api_common",
@@ -3773,7 +3758,7 @@ dependencies = [
  "dashmap",
  "deadpool",
  "diesel",
- "diesel-async 0.4.1",
+ "diesel-async",
  "diesel-derive-enum",
  "flume",
  "futures-core",

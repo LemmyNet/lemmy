@@ -2,7 +2,7 @@ use crate::structs::{LocalUserView, PaginationCursor, PostView};
 use diesel::{
   data_types::PgInterval,
   debug_query,
-  dsl::{self, exists, not, InnerJoin, IntervalDsl},
+  dsl::{self, exists, not, InnerJoin, InnerJoinQuerySource, IntervalDsl},
   expression::AsExpression,
   pg::Pg,
   query_builder::{AstPass, Query, QueryFragment},
@@ -70,14 +70,14 @@ enum Ord {
 trait OrderAndPageFilter {
   fn order_and_page_filter<'a>(
     &self,
-    query: BoxedQuery<'a>,
+    query: BoxedJoins<'a>,
     range: [Option<&PaginationCursorData>; 2],
-  ) -> BoxedQuery<'a>;
+  ) -> BoxedJoins<'a>;
 }
 
 impl<C, T, F> OrderAndPageFilter for (Ord, C, F)
 where
-  for<'a> BoxedQuery<'a>: boxed_meth::ThenOrderDsl<dsl::Desc<C>>
+  for<'a> BoxedJoins<'a>: boxed_meth::ThenOrderDsl<dsl::Desc<C>>
     + boxed_meth::ThenOrderDsl<dsl::Asc<C>>
     + boxed_meth::FilterDsl<dsl::GtEq<C, T>>
     + boxed_meth::FilterDsl<dsl::LtEq<C, T>>,
@@ -88,9 +88,9 @@ where
 {
   fn order_and_page_filter<'a>(
     &self,
-    query: BoxedQuery<'a>,
+    query: BoxedJoins<'a>,
     [first, last]: [Option<&PaginationCursorData>; 2],
-  ) -> BoxedQuery<'a> {
+  ) -> BoxedJoins<'a> {
     let (order, column, getter) = *self;
     let (mut query, min, max) = match order {
       Ord::Desc => (query.then_order_by(column.desc()), last, first),
@@ -124,12 +124,7 @@ macro_rules! asc {
 
 type BoxedQuery<'a> = BoxedSelection<
   'a,
-  type_chain!(
-    post_aggregates::table
-      .InnerJoin<person::table>
-      .InnerJoin<community::table>
-      .InnerJoin<post::table>
-  ),
+  Joins,
   (
     post::SqlType,
     person::SqlType,
@@ -147,126 +142,89 @@ type BoxedQuery<'a> = BoxedSelection<
   ),
 >;
 
-#[derive(Default, Clone)]
-struct QueryInput {
-  saved_only: bool,
-  liked_only: bool,
-  disliked_only: bool,
-  hide_read: bool,
-  hide_removed: bool,
-  hide_removed_unless_creator_viewing: bool,
-  hide_deleted_unless_creator_viewing: bool,
-  hide_blocked: bool,
-  listing_type: Option<ListingType>,
-  me: Option<PersonId>,
-}
+type Joins = type_chain!(post_aggregates::table.InnerJoin<person::table>.InnerJoin<community::table>.InnerJoin<post::table>);
+type BoxedJoins<'a> = dsl::IntoBoxed<'a, Joins, Pg>;
+type QS = type_chain!(post_aggregates::table.InnerJoinQuerySource<person::table>.InnerJoinQuerySource<community::table>.InnerJoinQuerySource<post::table>);
 
-fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
-  let mut query = post_aggregates::table
+fn joins<'a>() -> BoxedJoins<'a> {
+  post_aggregates::table
     .inner_join(person::table)
     .inner_join(community::table)
     .inner_join(post::table)
-    .into_boxed();
+    .into_boxed()
+}
 
-  let i_am_creator: Box<dyn Fn() -> BoxExpr<_, st::Bool>>;
-  let mut i_am_moderator: BoxExpr<_, st::Bool>;
-  let mut saved: BoxExpr<_, st::Bool>;
-  let mut read: BoxExpr<_, st::Bool>;
-  let mut creator_blocked: BoxExpr<_, st::Bool>;
-  let mut my_vote: BoxExpr<_, st::Nullable<st::SmallInt>>;
+struct QueryInput {
+  subscribe: Box<dyn Fn() -> BoxExpr<QS, st::Nullable<st::Bool>>>,
+  saved: BoxExpr<QS, st::Bool>,
+  read: BoxExpr<QS, st::Bool>,
+  creator_blocked: BoxExpr<QS, st::Bool>,
+  my_vote: BoxExpr<QS, st::Nullable<st::SmallInt>>,
+  me: Option<PersonId>,
+}
+
+impl QueryInput {
+  fn new(me: Option<PersonId>) -> Self {
+    if let Some(me) = me {
+      QueryInput {
+        subscribe: Box::new(move || {
+          Box::new(
+            community_follower::table
+              .find((me, post_aggregates::community_id))
+              .select(community_follower::pending.nullable())
+              .single_value(),
+          )
+        }),
+        saved: Box::new(exists(
+          post_saved::table.find((me, post_aggregates::post_id)),
+        )),
+        read: Box::new(exists(
+          post_read::table.find((me, post_aggregates::post_id)),
+        )),
+        creator_blocked: Box::new(exists(
+          person_block::table.find((me, post_aggregates::creator_id)),
+        )),
+        my_vote: Box::new(
+          post_like::table
+            .find((me, post_aggregates::post_id))
+            .select(post_like::score.nullable())
+            .single_value(),
+        ),
+        me: Some(me),
+      }
+    } else {
+      QueryInput {
+        subscribe: Box::new(|| Box::new(None::<bool>.into_sql::<st::Nullable<st::Bool>>())),
+        saved: Box::new(false.into_sql::<st::Bool>()),
+        read: Box::new(false.into_sql::<st::Bool>()),
+        creator_blocked: Box::new(false.into_sql::<st::Bool>()),
+        my_vote: Box::new(None::<i16>.into_sql::<st::Nullable<st::SmallInt>>()),
+        me: None,
+      }
+    }
+  }
+}
+
+fn not_removed() -> dsl::not<dsl::Or<community::removed, post::removed>> {
+  not(community::removed.or(post::removed))
+}
+
+fn not_deleted() -> dsl::not<dsl::Or<community::deleted, post::deleted>> {
+  not(community::deleted.or(post::deleted))
+}
+
+fn build_query<'a>(query: BoxedJoins<'a>, input: QueryInput) -> BoxedQuery<'a> {
   let read_comments: BoxExpr<_, st::Nullable<st::BigInt>>;
-  let subscribe: Box<dyn Fn() -> BoxExpr<_, st::Nullable<st::Bool>>>;
 
-  if let Some(me) = options.me {
-    i_am_creator = Box::new(move || Box::new(post_aggregates::creator_id.eq(me)));
-    i_am_moderator = Box::new(exists(
-      community_moderator::table.find((me, post_aggregates::community_id)),
-    ));
-    saved = Box::new(exists(
-      post_saved::table.find((me, post_aggregates::post_id)),
-    ));
-    read = Box::new(exists(
-      post_read::table.find((me, post_aggregates::post_id)),
-    ));
-    creator_blocked = Box::new(exists(
-      person_block::table.find((me, post_aggregates::creator_id)),
-    ));
-    my_vote = Box::new(
-      post_like::table
-        .find((me, post_aggregates::post_id))
-        .select(post_like::score.nullable())
-        .single_value(),
-    );
+  if let Some(me) = input.me {
     read_comments = Box::new(
       person_post_aggregates::table
         .find((me, post_aggregates::post_id))
         .select(person_post_aggregates::read_comments.nullable())
         .single_value(),
     );
-    subscribe = Box::new(move || {
-      Box::new(
-        community_follower::table
-          .find((me, post_aggregates::community_id))
-          .select(community_follower::pending.nullable())
-          .single_value(),
-      )
-    });
-
-    if options.hide_blocked {
-      query = query.filter_var_eq(&mut creator_blocked, false);
-      query = query.filter(not(exists(
-        community_block::table.find((me, post_aggregates::community_id)),
-      )));
-      query = query.filter(not(exists(
-        instance_block::table.find((me, post_aggregates::instance_id)),
-      )));
-    }
   } else {
-    i_am_creator = Box::new(|| Box::new(false.into_sql::<st::Bool>()));
-    i_am_moderator = Box::new(false.into_sql::<st::Bool>());
-    saved = Box::new(false.into_sql::<st::Bool>());
-    read = Box::new(false.into_sql::<st::Bool>());
-    creator_blocked = Box::new(false.into_sql::<st::Bool>());
-    my_vote = Box::new(None::<i16>.into_sql::<st::Nullable<st::SmallInt>>());
     read_comments = Box::new(None::<i64>.into_sql::<st::Nullable<st::BigInt>>());
-    subscribe = Box::new(|| Box::new(None::<bool>.into_sql::<st::Nullable<st::Bool>>()));
-  }
-
-  let not_removed = not(community::removed.or(post::removed));
-  let not_deleted = not(community::deleted.or(post::deleted));
-
-  if options.saved_only {
-    query = query.filter_var_eq(&mut saved, true);
-  }
-  if options.liked_only {
-    query = query.filter_var_eq(&mut my_vote, 1);
-  }
-  if options.disliked_only {
-    query = query.filter_var_eq(&mut my_vote, -1);
-  }
-  if options.hide_read {
-    query = query.filter_var_eq(&mut read, false);
-  }
-  if options.hide_removed {
-    query = query.filter(not_removed);
-  }
-  if options.hide_removed_unless_creator_viewing {
-    query = query.filter(not_removed.or(i_am_creator()));
-  }
-  if options.hide_deleted_unless_creator_viewing {
-    query = query.filter(not_deleted.or(i_am_creator()));
-  }
-  if options.listing_type == Some(ListingType::ModeratorView) {
-    query = query.filter_var_eq(&mut i_am_moderator, true);
-  }
-  if options.listing_type == Some(ListingType::Subscribed) {
-    query = query.filter(subscribe().is_not_null());
-  }
-  if options.listing_type == Some(ListingType::Local) {
-    query = query.filter(community::local);
-  }
-  if ![None, Some(ListingType::ModeratorView)].contains(&options.listing_type) {
-    query = query.filter(not(community::hidden).or(subscribe().is_not_null()))
   }
 
   let creator_banned_from_community = exists(
@@ -289,11 +247,11 @@ fn build_query<'a>(options: QueryInput) -> BoxedQuery<'a> {
     creator_is_moderator,
     creator_is_admin,
     post_aggregates::all_columns,
-    subscribe(),
-    saved,
-    read,
-    creator_blocked,
-    my_vote,
+    (input.subscribe)(),
+    input.saved,
+    input.read,
+    input.creator_blocked,
+    input.my_vote,
     post_aggregates::comments - coalesce(read_comments, 0),
   ));
 
@@ -309,15 +267,16 @@ impl PostView {
     local_user_view: Option<&LocalUserView>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
-    build_query(QueryInput {
-      hide_removed_unless_creator_viewing: !is_mod_or_admin,
-      hide_deleted_unless_creator_viewing: !is_mod_or_admin,
-      me: local_user_view.map(|l| l.person.id),
-      ..Default::default()
-    })
-    .filter(post_aggregates::post_id.eq(post_id))
-    .first(&mut *get_conn(pool).await?)
-    .await
+    let me = local_user_view.map(|l| l.person.id);
+    let mut query = joins().filter(post_aggregates::post_id.eq(post_id));
+    let input = QueryInput::new(me);
+    let i_am_creator = post_aggregates::creator_id.nullable().eq(me);
+    if !is_mod_or_admin {
+      query = query.filter(i_am_creator.or(not_removed().and(not_deleted())));
+    }
+    build_query(query, input)
+      .first(&mut *get_conn(pool).await?)
+      .await
   }
 }
 
@@ -385,25 +344,65 @@ impl<'a> PostQuery<'a> {
       let show_bot_accounts = l.map(|l| l.show_bot_accounts).unwrap_or(true);
       let show_read_posts = l.map(|l| l.show_read_posts).unwrap_or(true);
 
-      let mut query = build_query(QueryInput {
-        listing_type: Some(self.listing_type.unwrap_or_default()),
-        saved_only: self.saved_only,
-        liked_only: self.liked_only,
-        disliked_only: self.disliked_only,
-        hide_blocked: self.listing_type != Some(ListingType::ModeratorView),
-        hide_removed: !(admin && self.is_profile_view),
-        hide_removed_unless_creator_viewing: false,
-        hide_deleted_unless_creator_viewing: true,
-        hide_read: !(show_read_posts || self.saved_only || self.is_profile_view),
-        me: l.map(|l| l.person_id),
-      });
+      let mut query = joins();
+      let mut input = QueryInput::new(l.map(|l| l.person_id));
+
+      let i_am_creator = post_aggregates::creator_id
+        .nullable()
+        .eq(l.map(|l| l.person_id));
+      query = query.filter(i_am_creator.or(not_deleted()));
+
+      if !(admin && self.is_profile_view) {
+        query = query.filter(not_removed());
+      }
+
+      let mut i_am_moderator: BoxExpr<_, st::Bool>;
 
       if let Some(me) = self.local_user {
+        let l = &me.local_user;
+        i_am_moderator = Box::new(exists(
+          community_moderator::table.find((l.person_id, post_aggregates::community_id)),
+        ));
         if self.listing_type != Some(ListingType::ModeratorView) {
           query = query.filter(exists(
-            local_user_language::table.find((me.local_user.id, post::language_id)),
+            local_user_language::table.find((l.id, post::language_id)),
           ));
+          query = query.filter_var_eq(&mut input.creator_blocked, false);
+          query = query.filter(not(exists(
+            community_block::table.find((l.person_id, post_aggregates::community_id)),
+          )));
+          query = query.filter(not(exists(
+            instance_block::table.find((l.person_id, post_aggregates::instance_id)),
+          )));
         }
+      } else {
+        i_am_moderator = Box::new(false.into_sql::<st::Bool>());
+      }
+
+      if self.listing_type == Some(ListingType::ModeratorView) {
+        query = query.filter_var_eq(&mut i_am_moderator, true);
+      } else {
+        query = query.filter(not(community::hidden).or((input.subscribe)().is_not_null()))
+      }
+
+      if self.listing_type == Some(ListingType::Subscribed) {
+        query = query.filter((input.subscribe)().is_not_null());
+      }
+      if self.listing_type == Some(ListingType::Local) {
+        query = query.filter(community::local);
+      }
+
+      if self.saved_only {
+        query = query.filter_var_eq(&mut input.saved, true);
+      }
+      if self.liked_only {
+        query = query.filter_var_eq(&mut input.my_vote, 1);
+      }
+      if self.disliked_only {
+        query = query.filter_var_eq(&mut input.my_vote, -1);
+      }
+      if !(show_read_posts || self.saved_only || self.is_profile_view) {
+        query = query.filter_var_eq(&mut input.read, false);
       }
 
       if let Some(search_term) = &self.search_term {
@@ -469,14 +468,16 @@ impl<'a> PostQuery<'a> {
         query = i.order_and_page_filter(query, range);
       }
 
-      query.limit(limit).offset(if self.page_after.is_some() {
+      query = query.limit(limit).offset(if self.page_after.is_some() {
         // always skip exactly one post because that's the last post of the previous page
         // fixing the where clause is more difficult because we'd have to change only the last order-by-where clause
         // e.g. WHERE (featured_local<=, hot_rank<=, published<=) to WHERE (<=, <=, <)
         1
       } else {
         offset
-      })
+      });
+
+      build_query(query, input)
     };
 
     let mut page_before_or_equal = self.page_before_or_equal;
