@@ -470,7 +470,7 @@ impl<'a> PostQuery<'a> {
         query = i.order_and_page_filter(query, range);
       }
 
-      query
+      let query = query
         .limit(limit)
         .offset(if self.page_after.is_some() {
           // always skip exactly one post because that's the last post of the previous page
@@ -480,7 +480,11 @@ impl<'a> PostQuery<'a> {
         } else {
           offset
         })
-        .select(selection_builder.build())
+        .select(selection_builder.build());
+
+      debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
+
+      query
     };
 
     let mut page_before_or_equal = self.page_before_or_equal;
