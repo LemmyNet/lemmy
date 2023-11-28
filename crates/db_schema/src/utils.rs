@@ -19,7 +19,7 @@ use diesel::{
   pg::Pg,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_types::{SingleValue, SqlType, Text, Timestamptz},
+  sql_types::{self, SingleValue, SqlType, Text, Timestamptz},
   BoxableExpression,
   ExpressionMethods,
   IntoSql,
@@ -422,6 +422,40 @@ where
     let other_sql = other.into_sql::<T>();
     let old_expr = std::mem::replace(expr, Box::new(other_sql.clone()));
     self.filter(old_expr.eq(other_sql))
+  }
+}
+
+/// Like [`Option::is_some_and`], but the closure returns an SQL expression
+pub fn sql_option_is_some_and<QS, T, E>(
+  option: Option<T>,
+  f: impl FnOnce(T) -> E,
+) -> BoxExpr<QS, sql_types::Bool>
+where
+  E: BoxableExpression<QS, Pg, SqlType = sql_types::Bool> + 'static,
+{
+  if let Some(expr) = option.map(f) {
+    Box::new(expr)
+  } else {
+    Box::new(false.into_sql::<sql_types::Bool>())
+  }
+}
+
+/// Like [`Option::and_then`], but the closure returns an SQL expression
+pub fn sql_option_and_then<QS, T, ST, E>(
+  option: Option<T>,
+  f: impl FnOnce(T) -> E,
+) -> BoxExpr<QS, sql_types::Nullable<ST>>
+where
+  E: BoxableExpression<QS, Pg, SqlType = sql_types::Nullable<ST>> + 'static,
+  diesel::expression::SqlLiteral<sql_types::Nullable<ST>>:
+    BoxableExpression<QS, Pg, SqlType = sql_types::Nullable<ST>> + 'static,
+  ST: SingleValue,
+{
+  if let Some(expr) = option.map(f) {
+    Box::new(expr)
+  } else {
+    // `into_sql` is not used because it requires specifying the `T` in `Option<T>`
+    Box::new(dsl::sql::<sql_types::Nullable<ST>>("(NULL)"))
   }
 }
 
