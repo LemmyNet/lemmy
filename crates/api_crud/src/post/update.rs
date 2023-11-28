@@ -107,7 +107,7 @@ pub async fn update_post(
   build_post_response(
     context.deref(),
     orig_post.community_id,
-    &local_user_view,
+    &local_user_view.person,
     post_id,
   )
   .await

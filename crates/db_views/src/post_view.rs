@@ -252,10 +252,9 @@ impl PostView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    local_user_view: Option<&LocalUserView>,
+    me: Option<PersonId>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
-    let me = local_user_view.map(|l| l.person.id);
     let mut query = new_query().filter(post_aggregates::post_id.eq(post_id));
     if !is_mod_or_admin {
       query = query.filter(is_creator(me).or(not_removed().and(not_deleted())));
@@ -731,7 +730,7 @@ mod tests {
     let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(&data.local_user_view),
+      Some(data.local_user_view.person.id),
       false,
     )
     .await
@@ -869,7 +868,7 @@ mod tests {
     let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(&data.local_user_view),
+      Some(data.local_user_view.person.id),
       false,
     )
     .await

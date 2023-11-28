@@ -182,5 +182,5 @@ pub async fn create_post(
     });
   };
 
-  build_post_response(&context, community_id, &local_user_view, post_id).await
+  build_post_response(&context, community_id, &local_user_view.person, post_id).await
 }

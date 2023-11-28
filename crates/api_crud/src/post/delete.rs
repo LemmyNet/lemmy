@@ -60,7 +60,7 @@ pub async fn delete_post(
   build_post_response(
     &context,
     orig_post.community_id,
-    &local_user_view,
+    &local_user_view.person,
     data.post_id,
   )
   .await
