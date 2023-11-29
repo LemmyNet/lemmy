@@ -25,13 +25,7 @@ use lemmy_utils::{
   utils::markdown::{markdown_to_html, sanitize_html},
 };
 use once_cell::sync::Lazy;
-use rss::{
-  extension::dublincore::DublinCoreExtensionBuilder,
-  ChannelBuilder,
-  GuidBuilder,
-  Item,
-  ItemBuilder,
-};
+use rss::{extension::dublincore::DublinCoreExtensionBuilder, ChannelBuilder, GuidBuilder, Item};
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr};
 
@@ -438,22 +432,25 @@ fn build_item(
   content: &str,
   protocol_and_hostname: &str,
 ) -> Result<Item, LemmyError> {
-  let mut i = ItemBuilder::default();
-  i.title(format!("Reply from {creator_name}"));
+  let mut i = Item::default();
+  i.set_title(format!("Reply from {creator_name}"));
   let author_url = format!("{protocol_and_hostname}/u/{creator_name}");
-  i.author(format!(
+  i.set_author(format!(
     "/u/{creator_name} <a href=\"{author_url}\">(link)</a>"
   ));
   let dt = published;
-  i.pub_date(dt.to_rfc2822());
-  i.comments(url.to_owned());
-  let guid = GuidBuilder::default().permalink(true).value(url).build();
-  i.guid(guid);
-  i.link(url.to_owned());
+  i.set_pub_date(dt.to_rfc2822());
+  i.set_comments(url.to_owned());
+  let guid = GuidBuilder::default()
+    .permalink(true)
+    .value(url.to_owned())
+    .build();
+  i.set_guid(guid);
+  i.set_link(url.to_owned());
   // TODO add images
   let html = markdown_to_html(content);
-  i.description(html);
-  Ok(i.build())
+  i.set_description(html);
+  Ok(i)
 }
 
 #[tracing::instrument(skip_all)]
@@ -464,23 +461,23 @@ fn create_post_items(
   let mut items: Vec<Item> = Vec::new();
 
   for p in posts {
-    let mut i = ItemBuilder::default();
+    let mut i = Item::default();
     let mut dc_extension = DublinCoreExtensionBuilder::default();
 
-    i.title(sanitize_html(&p.post.name));
+    i.set_title(sanitize_html(&p.post.name));
 
     dc_extension.creators(vec![p.creator.actor_id.to_string()]);
 
     let dt = p.post.published;
-    i.pub_date(dt.to_rfc2822());
+    i.set_pub_date(dt.to_rfc2822());
 
     let post_url = format!("{}/post/{}", protocol_and_hostname, p.post.id);
-    i.comments(post_url.clone());
+    i.set_comments(post_url.clone());
     let guid = GuidBuilder::default()
       .permalink(true)
       .value(&post_url)
       .build();
-    i.guid(guid);
+    i.set_guid(guid);
 
     let community_url = format!(
       "{}/c/{}",
@@ -502,9 +499,9 @@ fn create_post_items(
     if let Some(url) = p.post.url {
       let link_html = format!("<br><a href=\"{url}\">{url}</a>");
       description.push_str(&link_html);
-      i.link(url.to_string());
+      i.set_link(url.to_string());
     } else {
-      i.link(post_url.clone());
+      i.set_link(post_url.clone());
     }
 
     if let Some(body) = p.post.body {
@@ -512,10 +509,10 @@ fn create_post_items(
       description.push_str(&html);
     }
 
-    i.description(description);
+    i.set_description(description);
 
-    i.dublin_core_ext(dc_extension.build());
-    items.push(i.build());
+    i.set_dublin_core_ext(dc_extension.build());
+    items.push(i);
   }
 
   Ok(items)
