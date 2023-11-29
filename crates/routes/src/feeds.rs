@@ -145,7 +145,7 @@ async fn get_feed_data(
     title: format!("{} - {}", site_view.site.name, listing_type),
     link: context.settings().get_protocol_and_hostname(),
     items,
-    ..Channel::default()
+    ..Default::default()
   };
 
   if let Some(site_desc) = site_view.site.description {
@@ -252,7 +252,7 @@ async fn get_feed_user(
     title: format!("{} - {}", site_view.site.name, person.name),
     link: person.actor_id.to_string(),
     items,
-    ..Channel::default()
+    ..Default::default()
   };
 
   Ok(channel)
@@ -288,7 +288,7 @@ async fn get_feed_community(
     title: format!("{} - {}", site_view.site.name, community.name),
     link: community.actor_id.to_string(),
     items,
-    ..Channel::default()
+    ..Default::default()
   };
 
   if let Some(community_desc) = community.description {
@@ -330,7 +330,7 @@ async fn get_feed_front(
     title: format!("{} - Subscribed", site_view.site.name),
     link: protocol_and_hostname,
     items,
-    ..Channel::default()
+    ..Default::default()
   };
 
   if let Some(site_desc) = site_view.site.description {
@@ -381,7 +381,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> Result<Channel, Le
     title: format!("{} - Inbox", site_view.site.name),
     link: format!("{protocol_and_hostname}/inbox"),
     items,
-    ..Channel::default()
+    ..Default::default()
   };
 
   if let Some(site_desc) = site_view.site.description {
@@ -437,25 +437,26 @@ fn build_item(
   content: &str,
   protocol_and_hostname: &str,
 ) -> Result<Item, LemmyError> {
-  let mut i = Item::default();
-  i.set_title(format!("Reply from {creator_name}"));
+  // TODO add images
   let author_url = format!("{protocol_and_hostname}/u/{creator_name}");
-  i.set_author(format!(
-    "/u/{creator_name} <a href=\"{author_url}\">(link)</a>"
-  ));
-  let dt = published;
-  i.set_pub_date(dt.to_rfc2822());
-  i.set_comments(url.to_owned());
-  let guid = Guid {
+  let guid = Some(Guid {
     permalink: true,
     value: url.to_owned(),
-  };
-  i.set_guid(guid);
-  i.set_link(url.to_owned());
-  // TODO add images
-  let html = markdown_to_html(content);
-  i.set_description(html);
-  Ok(i)
+  });
+  let description = Some(markdown_to_html(content));
+
+  Ok(Item {
+    title: Some(format!("Reply from {creator_name}")),
+    author: Some(format!(
+      "/u/{creator_name} <a href=\"{author_url}\">(link)</a>"
+    )),
+    pub_date: Some(published.to_rfc2822()),
+    comments: Some(url.to_owned()),
+    link: Some(url.to_owned()),
+    guid,
+    description,
+    ..Default::default()
+  })
 }
 
 #[tracing::instrument(skip_all)]
@@ -466,33 +467,21 @@ fn create_post_items(
   let mut items: Vec<Item> = Vec::new();
 
   for p in posts {
-    let mut i = Item::default();
-    let dc_extension = DublinCoreExtension {
-      creators: vec![p.creator.actor_id.to_string()],
-      ..DublinCoreExtension::default()
-    };
-
-    i.set_title(sanitize_html(&p.post.name));
-
-    let dt = p.post.published;
-    i.set_pub_date(dt.to_rfc2822());
-
+    // TODO add images
     let post_url = format!("{}/post/{}", protocol_and_hostname, p.post.id);
-    i.set_comments(post_url.clone());
-
-    let guid = Guid {
-      permalink: true,
-      value: post_url.clone(),
-    };
-    i.set_guid(guid);
-
     let community_url = format!(
       "{}/c/{}",
       protocol_and_hostname,
       sanitize_html(&p.community.name)
     );
-
-    // TODO add images
+    let dublin_core_ext = Some(DublinCoreExtension {
+      creators: vec![p.creator.actor_id.to_string()],
+      ..DublinCoreExtension::default()
+    });
+    let guid = Some(Guid {
+      permalink: true,
+      value: post_url.clone(),
+    });
     let mut description = format!("submitted by <a href=\"{}\">{}</a> to <a href=\"{}\">{}</a><br>{} points | <a href=\"{}\">{} comments</a>",
     p.creator.actor_id,
     sanitize_html(&p.creator.name),
@@ -503,22 +492,30 @@ fn create_post_items(
     p.counts.comments);
 
     // If its a url post, add it to the description
-    if let Some(url) = p.post.url {
+    let link = Some(if let Some(url) = p.post.url {
       let link_html = format!("<br><a href=\"{url}\">{url}</a>");
       description.push_str(&link_html);
-      i.set_link(url.to_string());
+      url.to_string()
     } else {
-      i.set_link(post_url.clone());
-    }
+      post_url.clone()
+    });
 
     if let Some(body) = p.post.body {
       let html = markdown_to_html(&body);
       description.push_str(&html);
     }
 
-    i.set_description(description);
+    let i = Item {
+      title: Some(sanitize_html(&p.post.name)),
+      pub_date: Some(p.post.published.to_rfc2822()),
+      comments: Some(post_url.clone()),
+      guid,
+      description: Some(description),
+      dublin_core_ext,
+      link,
+      ..Default::default()
+    };
 
-    i.set_dublin_core_ext(dc_extension);
     items.push(i);
   }
 
