@@ -1,5 +1,4 @@
 use crate::structs::{LocalUserView, PaginationCursor, PostView};
-use std::time::Duration;
 use diesel::{
   data_types::PgInterval,
   debug_query,
@@ -58,8 +57,6 @@ use lemmy_db_schema::{
   SortType,
 };
 use lemmy_utils::type_chain;
-use moka::future::Cache;
-use once_cell::sync::Lazy;
 use tracing::debug;
 
 sql_function!(fn coalesce(x: st::Nullable<st::BigInt>, y: st::BigInt) -> st::BigInt);
@@ -320,25 +317,6 @@ pub struct PostQuery<'a> {
 
 impl<'a> PostQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
-    static CACHE: Lazy<Cache<PostQuery<'static>, Vec<PostView>>> = Lazy::new(|| {
-      Cache::builder().max_capacity(1000).time_to_live(Duration::from_secs(4)).build()
-    });
-
-    if self == PostQuery {
-      listing_type: self.listing_type,
-      sort: self.sort,
-      creator_id: self.creator_id,
-      community_id: self.community_id,
-      page: self.page,
-      limit: self.limit,
-      page_after: self.page_after,
-      page_before_or_equal: self.page_before_or_equal,
-    } && ![Some(SortType::New), Some(SortType::NewComments)].contains(&self.sort_type) {
-      CACHE
-    }
-  }
-
-  async fn list_inner(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     if offset != 0 && self.page_after.is_some() {
       return Err(Error::QueryBuilderError(
