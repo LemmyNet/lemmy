@@ -105,16 +105,18 @@ fn queries<'a>() -> Queries<
       query = query.filter(post::community_id.eq(community_id));
     }
 
+    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
     if options.unresolved_only {
-      query = query.filter(comment_report::resolved.eq(false));
+      query = query
+        .filter(comment_report::resolved.eq(false))
+        .order_by(comment_report::published.asc());
+    } else {
+      query = query.order_by(comment_report::published.desc());
     }
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
-    query = query
-      .order_by(comment_report::published.asc())
-      .limit(limit)
-      .offset(offset);
+    query = query.limit(limit).offset(offset);
 
     // If its not an admin, get only the ones you mod
     if !user.local_user.admin {
@@ -475,8 +477,8 @@ mod tests {
     assert_eq!(
       reports,
       [
-        expected_sara_report_view.clone(),
         expected_jessica_report_view.clone(),
+        expected_sara_report_view.clone(),
       ]
     );
 
