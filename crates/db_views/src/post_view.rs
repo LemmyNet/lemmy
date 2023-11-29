@@ -63,8 +63,8 @@ sql_function!(fn coalesce(x: st::Nullable<st::BigInt>, y: st::BigInt) -> st::Big
 
 #[derive(Clone, Copy)]
 enum Ord {
-  Asc,
   Desc,
+  Asc,
 }
 
 trait OrderAndPageFilter {
@@ -79,10 +79,10 @@ impl<C, T, F> OrderAndPageFilter for (Ord, C, F)
 where
   for<'a> BoxedQuery<'a>: boxed_meth::ThenOrderDsl<dsl::Desc<C>>
     + boxed_meth::ThenOrderDsl<dsl::Asc<C>>
-    + boxed_meth::FilterDsl<dsl::GtEq<C, T>>
-    + boxed_meth::FilterDsl<dsl::LtEq<C, T>>,
+    + boxed_meth::FilterDsl<dsl::LtEq<C, T>>
+    + boxed_meth::FilterDsl<dsl::GtEq<C, T>>,
   C: Expression + Copy,
-  C::SqlType: SqlType + SingleValue,
+  C::SqlType: SingleValue + SqlType,
   T: AsExpression<C::SqlType>,
   F: Fn(&PostAggregates) -> T + Copy,
 {
@@ -130,13 +130,21 @@ type BoxedQuery<'a> = dsl::IntoBoxed<
 
 type QS = type_chain!(post_aggregates::table.InnerJoinQuerySource<person::table>.InnerJoinQuerySource<community::table>.InnerJoinQuerySource<post::table>);
 
-fn new_query<'a>() -> BoxedQuery<'a> {
-  post_aggregates::table
-    .inner_join(person::table)
-    .inner_join(community::table)
-    .inner_join(post::table)
-    .into_boxed()
-}
+type SelectionType = (
+  post::SqlType,
+  person::SqlType,
+  community::SqlType,
+  st::Bool,
+  st::Bool,
+  st::Bool,
+  post_aggregates::SqlType,
+  st::Nullable<st::Bool>,
+  st::Bool,
+  st::Bool,
+  st::Bool,
+  st::Nullable<st::SmallInt>,
+  st::BigInt,
+);
 
 struct SelectionBuilder {
   subscribe: Box<dyn Fn() -> BoxExpr<QS, st::Nullable<st::Bool>>>,
@@ -148,55 +156,7 @@ struct SelectionBuilder {
 }
 
 impl SelectionBuilder {
-  fn new(me: Option<PersonId>) -> Self {
-    SelectionBuilder {
-      subscribe: Box::new(move || {
-        sql_option_and_then(me, |me| {
-          community_follower::table
-            .find((me, post_aggregates::community_id))
-            .select(community_follower::pending.nullable())
-            .single_value()
-        })
-      }),
-      saved: sql_option_is_some_and(me, |me| {
-        exists(post_saved::table.find((me, post_aggregates::post_id)))
-      }),
-      read: sql_option_is_some_and(me, |me| {
-        exists(post_read::table.find((me, post_aggregates::post_id)))
-      }),
-      creator_blocked: sql_option_is_some_and(me, |me| {
-        exists(person_block::table.find((me, post_aggregates::creator_id)))
-      }),
-      my_vote: sql_option_and_then(me, |me| {
-        post_like::table
-          .find((me, post_aggregates::post_id))
-          .select(post_like::score.nullable())
-          .single_value()
-      }),
-      me,
-    }
-  }
-
-  fn build(
-    self,
-  ) -> BoxExpr<
-    QS,
-    (
-      post::SqlType,
-      person::SqlType,
-      community::SqlType,
-      st::Bool,
-      st::Bool,
-      st::Bool,
-      post_aggregates::SqlType,
-      st::Nullable<st::Bool>,
-      st::Bool,
-      st::Bool,
-      st::Bool,
-      st::Nullable<st::SmallInt>,
-      st::BigInt,
-    ),
-  > {
+  fn build(self) -> BoxExpr<QS, SelectionType> {
     let creator_banned_from_community = exists(
       community_person_ban::table
         .find((post_aggregates::creator_id, post_aggregates::community_id)),
@@ -234,6 +194,43 @@ impl SelectionBuilder {
   }
 }
 
+fn new_query<'a>(me: Option<PersonId>) -> (BoxedQuery<'a>, SelectionBuilder) {
+  let query = post_aggregates::table
+    .inner_join(person::table)
+    .inner_join(community::table)
+    .inner_join(post::table)
+    .into_boxed();
+
+  let selection_builder = SelectionBuilder {
+    subscribe: Box::new(move || {
+      sql_option_and_then(me, |me| {
+        community_follower::table
+          .find((me, post_aggregates::community_id))
+          .select(community_follower::pending.nullable())
+          .single_value()
+      })
+    }),
+    saved: sql_option_is_some_and(me, |me| {
+      exists(post_saved::table.find((me, post_aggregates::post_id)))
+    }),
+    read: sql_option_is_some_and(me, |me| {
+      exists(post_read::table.find((me, post_aggregates::post_id)))
+    }),
+    creator_blocked: sql_option_is_some_and(me, |me| {
+      exists(person_block::table.find((me, post_aggregates::creator_id)))
+    }),
+    my_vote: sql_option_and_then(me, |me| {
+      post_like::table
+        .find((me, post_aggregates::post_id))
+        .select(post_like::score.nullable())
+        .single_value()
+    }),
+    me,
+  };
+
+  (query, selection_builder)
+}
+
 fn not_removed() -> dsl::not<dsl::Or<community::removed, post::removed>> {
   not(community::removed.or(post::removed))
 }
@@ -255,15 +252,19 @@ impl PostView {
     me: Option<PersonId>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
-    let mut query = new_query().filter(post_aggregates::post_id.eq(post_id));
+    let (mut query, selection_builder) = new_query(me);
+
+    query = query.filter(post_aggregates::post_id.eq(post_id));
+
     if !is_mod_or_admin {
+      // only show removed or deleted posts to creator
       query = query.filter(is_creator(me).or(not_removed().and(not_deleted())));
     }
-    let query = query.select(SelectionBuilder::new(me).build());
 
-    debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
-
-    query.first(&mut *get_conn(pool).await?).await
+    query
+      .select(selection_builder.build())
+      .first(&mut *get_conn(pool).await?)
+      .await
   }
 }
 
@@ -333,14 +334,48 @@ impl<'a> PostQuery<'a> {
       let show_bot_accounts = local_user.map(|l| l.show_bot_accounts).unwrap_or(true);
       let show_read_posts = local_user.map(|l| l.show_read_posts).unwrap_or(true);
 
-      let mut query = new_query();
-      let mut selection_builder = SelectionBuilder::new(me);
+      let (mut query, mut selection_builder) = new_query(me);
+
+      query = query
+        // hide posts from deleted communities
+        .filter(not(community::deleted))
+        // only show deleted posts to creator
+        .filter(is_creator(me).or(not_deleted()));
+
+      // only show removed posts to admin when viewing user profile
+      if !(self.is_profile_view && admin) {
+        query = query.filter(not_removed());
+      }
+
+      if let Some(community_id) = self.community_id {
+        query = query.filter(post_aggregates::community_id.eq(community_id));
+      }
+      if let Some(creator_id) = self.creator_id {
+        query = query.filter(post_aggregates::creator_id.eq(creator_id));
+      }
+      if let Some(url_search) = &self.url_search {
+        query = query.filter(post::url.eq(url_search));
+      }
+      if let Some(search_term) = &self.search_term {
+        let pattern = fuzzy_search(search_term);
+        let name_matches = post::name.ilike(pattern.clone());
+        let body_matches = post::body.ilike(pattern);
+        query = query.filter(name_matches.or(body_matches));
+      }
 
       if listing_type == ListingType::ModeratorView {
         query = query.filter(sql_option_is_some_and(me, |me| {
           exists(community_moderator::table.find((me, post_aggregates::community_id)))
         }));
       } else {
+        // If a user is logged in, then only show posts with a language that the user enabled.
+        if let Some(local_user) = local_user {
+          query = query.filter(exists(
+            local_user_language::table.find((local_user.id, post::language_id)),
+          ));
+        }
+
+        // Hide posts from blocked instances, communities, and persons
         query = query
           .filter_var_eq(&mut selection_builder.creator_blocked, false)
           .filter(not(sql_option_is_some_and(me, |me| {
@@ -349,27 +384,30 @@ impl<'a> PostQuery<'a> {
             let instance_blocked =
               exists(instance_block::table.find((me, post_aggregates::instance_id)));
             community_blocked.or(instance_blocked)
-          })))
-          .filter(not(community::hidden).or((selection_builder.subscribe)().is_not_null()));
+          })));
 
-        // only require enabled language for logged in user
-        if let Some(local_user) = local_user {
-          query = query.filter(exists(
-            local_user_language::table.find((local_user.id, post::language_id)),
-          ));
+        let i_subscribed = (selection_builder.subscribe)().is_not_null();
+        if listing_type == ListingType::Subscribed {
+          query = query.filter(i_subscribed);
+        } else {
+          // This filter hides hidden communities for non-subscribers. The only thing the `else`
+          // block does is prevent a duplicated evaluation of `i_subscribed`.
+          query = query.filter(i_subscribed.or(not(community::hidden)));
         }
       }
 
-      query = query.filter(is_creator(me).or(not_deleted()));
-
-      if !(admin && self.is_profile_view) {
-        query = query.filter(not_removed());
-      }
-      if listing_type == ListingType::Subscribed {
-        query = query.filter((selection_builder.subscribe)().is_not_null());
-      }
       if listing_type == ListingType::Local {
         query = query.filter(community::local);
+      }
+
+      if !show_nsfw {
+        query = query.filter(not(post::nsfw.or(community::nsfw)));
+      }
+      if !show_bot_accounts {
+        query = query.filter(not(person::bot_account));
+      }
+      if !(show_read_posts || self.saved_only || self.is_profile_view) {
+        query = query.filter_var_eq(&mut selection_builder.read, false);
       }
       if self.saved_only {
         query = query.filter_var_eq(&mut selection_builder.saved, true);
@@ -379,31 +417,6 @@ impl<'a> PostQuery<'a> {
       }
       if self.disliked_only {
         query = query.filter_var_eq(&mut selection_builder.my_vote, -1);
-      }
-      if !(show_read_posts || self.saved_only || self.is_profile_view) {
-        query = query.filter_var_eq(&mut selection_builder.read, false);
-      }
-      if !show_nsfw {
-        query = query.filter(not(post::nsfw.or(community::nsfw)));
-      }
-      if !show_bot_accounts {
-        query = query.filter(not(person::bot_account));
-      }
-
-      if let Some(search_term) = &self.search_term {
-        let searcher = fuzzy_search(search_term);
-        let name_matches = post::name.ilike(searcher.clone());
-        let body_matches = post::body.ilike(searcher);
-        query = query.filter(name_matches.or(body_matches));
-      }
-      if let Some(community_id) = self.community_id {
-        query = query.filter(post_aggregates::community_id.eq(community_id));
-      }
-      if let Some(creator_id) = self.creator_id {
-        query = query.filter(post_aggregates::creator_id.eq(creator_id));
-      }
-      if let Some(url_search) = &self.url_search {
-        query = query.filter(post::url.eq(url_search));
       }
 
       let range = [self.page_after.as_ref(), page_before_or_equal.as_ref()];
