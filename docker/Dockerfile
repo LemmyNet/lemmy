@@ -2,10 +2,9 @@
 ARG RUST_VERSION=1.72.1
 ARG CARGO_BUILD_FEATURES=default
 ARG RUST_RELEASE_MODE=debug
-ARG LEMMY_VERSION="dev"
 
 ARG AMD_BUILDER_IMAGE=rust:${RUST_VERSION}
-ARG ARM_BUILDER_IMAGE="dessalines/lemmy-builder-arm64:${LEMMY_VERSION}"
+ARG ARM_BUILDER_IMAGE="ghcr.io/raskyld/aarch64-lemmy-linux-gnu:v0.1.0"
 
 ARG AMD_RUNNER_IMAGE=debian:bookworm-slim
 ARG ARM_RUNNER_IMAGE=debian:bookworm-slim
@@ -29,15 +28,16 @@ RUN --mount=type=cache,target=/lemmy/target set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
         cargo build --features "${CARGO_BUILD_FEATURES}"; \
-        mv target/debug/lemmy_server ./lemmy; \
+        mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
     fi
 
 # Release build
-RUN set -ex; \
+RUN --mount=type=cache,target=/lemmy/target set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
         echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
+        [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
-        mv target/release/lemmy_server ./lemmy; \
+        mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
     fi
 
 # ARM64 builder
@@ -45,13 +45,42 @@ RUN set -ex; \
 # seem to be expended in --form arg of COPY :(
 FROM --platform=linux/amd64 ${ARM_BUILDER_IMAGE} AS build-arm64
 
+ARG RUST_RELEASE_MODE
+ARG CARGO_BUILD_FEATURES
+
+WORKDIR /home/lemmy/src
+USER 10001:10001
+
+COPY --chown=lemmy:lemmy . ./
+
+ENV PATH="/home/lemmy/.cargo/bin:${PATH}"
+ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
+    CARGO_BUILD_FEATURES=${CARGO_BUILD_FEATURES}
+
+# Debug build
+RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
+    if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
+        echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
+        cargo build --features "${CARGO_BUILD_FEATURES}"; \
+        mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
+    fi
+
+# Release build
+RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
+    if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
+        echo "pub const VERSION: &str = \"$(git describe --tag)\";" > crates/utils/src/version.rs; \
+        [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
+        cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
+        mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
+    fi
+
 # amd64 base runner
 FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
 
 # Federation needs CA certificates
 RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates
 
-COPY --from=build-amd64 --chmod=0755 /lemmy/lemmy /usr/local/bin
+COPY --from=build-amd64 --chmod=0755 /lemmy/lemmy_server /usr/local/bin
 
 # arm base runner
 FROM ${ARM_RUNNER_IMAGE} AS runner-linux-arm64
