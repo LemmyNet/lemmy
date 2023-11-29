@@ -45,7 +45,7 @@ html2text = "0.6.0"
 stringreader = "0.1.1"
 serde_with = { workspace = true }
 enum_delegate = "0.2.0"
-moka = { version = "0.11", features = ["future"] }
+moka = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

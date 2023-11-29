@@ -23,6 +23,8 @@ full = [
   "tracing",
   "ts-rs",
   "actix-web",
+  "once_cell",
+  "moka",
   "lemmy_db_schema/full",
 ]
 
@@ -37,6 +39,8 @@ serde_with = { workspace = true }
 tracing = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
+once_cell = { workspace = true, optional = true }
+moka = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

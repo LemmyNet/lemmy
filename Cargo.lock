@@ -2685,6 +2685,8 @@ dependencies = [
  "diesel_ltree",
  "lemmy_db_schema",
  "lemmy_utils",
+ "moka",
+ "once_cell",
  "serde",
  "serde_with",
  "serial_test",
