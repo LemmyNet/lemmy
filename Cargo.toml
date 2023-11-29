@@ -190,4 +190,4 @@ futures-util = { workspace = true }
 chrono = { workspace = true }
 prometheus = { version = "0.13.3", features = ["process"] }
 serial_test = { workspace = true }
-clap = { version = "4.4.8", features = ["derive"] }
+clap = { version = "4.4.10", features = ["derive"] }
