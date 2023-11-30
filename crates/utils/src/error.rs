@@ -221,8 +221,6 @@ pub enum LemmyErrorType {
   CouldntSendWebmention,
   ContradictingFilters,
   InstanceBlockAlreadyExists,
-  /// `jwt` cookie must be marked secure and httponly
-  AuthCookieInsecure,
   /// Thrown when an API call is submitted with more than 1000 array elements, see [[MAX_API_PARAM_ELEMENTS]]
   TooManyItems,
   CommunityHasNoFollowers,
