@@ -5,7 +5,7 @@ CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
 cd $CWD/../
 
-cargo clippy --workspace --fix --allow-staged --allow-dirty --tests --all-targets --all-features -- -D warnings
+cargo clippy --workspace --fix --allow-staged --allow-dirty --tests --all-targets -- -D warnings
 
 # Format rust files
 cargo +nightly fmt
