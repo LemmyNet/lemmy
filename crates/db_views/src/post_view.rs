@@ -325,17 +325,16 @@ impl<'a> PostQuery<'a> {
       ));
     }
 
+    let listing_type = self.listing_type.unwrap_or_default();
+    let local_user = self.local_user.map(|l| &l.local_user);
+    let me = local_user.map(|l| l.person_id);
+    let admin = local_user.map(|l| l.admin).unwrap_or(false);
+    let show_nsfw = local_user.map(|l| l.show_nsfw).unwrap_or(false);
+    let show_bot_accounts = local_user.map(|l| l.show_bot_accounts).unwrap_or(true);
+    let show_read_posts = local_user.map(|l| l.show_read_posts).unwrap_or(true);
+
     let build_query = |page_before_or_equal: Option<PaginationCursorData>| {
-      let listing_type = self.listing_type.unwrap_or_default();
-      let local_user = self.local_user.map(|l| &l.local_user);
-      let me = local_user.map(|l| l.person_id);
-      let admin = local_user.map(|l| l.admin).unwrap_or(false);
-      let show_nsfw = local_user.map(|l| l.show_nsfw).unwrap_or(false);
-      let show_bot_accounts = local_user.map(|l| l.show_bot_accounts).unwrap_or(true);
-      let show_read_posts = local_user.map(|l| l.show_read_posts).unwrap_or(true);
-
       let (mut query, mut selection_builder) = new_query(me);
-
       let i_subscribed = || (selection_builder.subscribe)().is_not_null();
 
       query = query
@@ -476,14 +475,9 @@ impl<'a> PostQuery<'a> {
       query
     };
 
-    let mut page_before_or_equal = self.page_before_or_equal;
-
-    if let (Some(LocalUserView { local_user, .. }), Some(ListingType::Subscribed), None, None) = (
-      self.local_user,
-      self.listing_type,
-      self.community_id,
-      &page_before_or_equal,
-    ) {
+    let page_before_or_equal = if let Some(p) = self.page_before_or_equal {
+      Some(p)
+    } else if (listing_type, self.community_id) == (ListingType::Subscribed, None) {
       // first get one page for the most popular community to get an upper bound for the the page end for the real query
       // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
       // the query to use an index on e.g. (=, >=, >=, >=) and fetch only LIMIT rows
@@ -494,7 +488,7 @@ impl<'a> PostQuery<'a> {
       // the results are correct no matter which community we fetch these for, since it basically covers the "worst case" of the whole page consisting of posts from one community
       // but using the largest community decreases the pagination-frame so make the real query more efficient.
 
-      /// Gets the number of rows and the last row for the wrapped query
+      /// Gets the number of rows and the last row returned by the wrapped query
       #[derive(QueryId)]
       struct PrefetchQuery<T>(T);
 
@@ -506,7 +500,7 @@ impl<'a> PostQuery<'a> {
         fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, Pg>) -> Result<(), Error> {
           let count = "(SELECT count(*) FROM q)";
 
-          // Set `q` to the wrapped query.
+          // Set `q` to the result of the wrapped query.
           out.push_sql("WITH q AS (");
           self.0.walk_ast(out.reborrow())?;
           out.push_sql(") ");
@@ -523,10 +517,9 @@ impl<'a> PostQuery<'a> {
       }
 
       let largest_subscribed: Option<CommunityId> = community_aggregates::table
-        .filter(exists(
-          community_follower::table
-            .find((local_user.person_id, community_aggregates::community_id)),
-        ))
+        .filter(is_some_and(me, |me| {
+          exists(community_follower::table.find((me, community_aggregates::community_id)))
+        }))
         .order_by(community_aggregates::users_active_month.desc())
         .select(community_aggregates::community_id)
         .first(&mut *get_conn(pool).await?)
@@ -538,22 +531,25 @@ impl<'a> PostQuery<'a> {
         return Ok(vec![]);
       };
 
-      let result: Option<(i64, PostAggregates)> = PrefetchQuery(
-        build_query(None)
-          .filter(post_aggregates::community_id.eq(largest_subscribed))
-          .select(post_aggregates::all_columns),
-      )
-      .get_result(&mut *get_conn(pool).await?)
-      .await
-      .optional()?;
+      let inner_query = build_query(None)
+        .filter(post_aggregates::community_id.eq(largest_subscribed))
+        .select(post_aggregates::all_columns);
 
-      // take last row. if this query returned less than LIMIT elements,
-      // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
-      if let Some((len, last_item)) = result {
-        if len >= limit {
-          page_before_or_equal = Some(PaginationCursorData(last_item));
-        }
-      }
+      PrefetchQuery(inner_query)
+        .get_result::<(i64, PostAggregates)>(&mut *get_conn(pool).await?)
+        .await
+        .optional()?
+        .and_then(|(len, last_item)| {
+          // if `inner_query` returned less than LIMIT elements, the heuristic is invalid since we
+          // can't guarantee the full query will return >= LIMIT results (return original query)
+          if len >= limit {
+            Some(PaginationCursorData(last_item))
+          } else {
+            None
+          }
+        })
+    } else {
+      None
     };
 
     build_query(page_before_or_equal)
