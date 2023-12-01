@@ -76,7 +76,7 @@ where
         if let Err(e) = &local_user_view {
           warn!("Failed to handle user login: {e}");
         }
-        if let Some(local_user_view) = local_user_view.ok() {
+        if let Ok(local_user_view) = local_user_view {
           req.extensions_mut().insert(local_user_view);
         }
       }
@@ -86,9 +86,8 @@ where
       // Add cache-control header. If user is authenticated, mark as private. Otherwise cache
       // up to one minute.
 
-      let cache_value = if jwt.is_some() {
-        "private"
-      } else if context.settings().disable_cache_control.unwrap_or(false) {
+      let disable_cache = context.settings().disable_cache_control.unwrap_or(false);
+      let cache_value = if jwt.is_some() || disable_cache {
         "private"
       } else {
         "public, max-age=60"
