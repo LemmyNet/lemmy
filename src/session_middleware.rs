@@ -73,7 +73,7 @@ where
         //       to add a separate endpoint for that.
         //       https://github.com/LemmyNet/lemmy/issues/3702
         let local_user_view = local_user_view_from_jwt(jwt, &context).await;
-        if let Err(e) = local_user_view {
+        if let Err(e) = &local_user_view {
           warn!("Failed to handle user login: {e}");
         }
         if let Some(local_user_view) = local_user_view.ok() {
@@ -88,7 +88,7 @@ where
 
       let cache_value = if jwt.is_some() {
         "private"
-      } else if context.settings().disable_cache_control {
+      } else if context.settings().disable_cache_control.unwrap_or(false) {
         "private"
       } else {
         "public, max-age=60"
