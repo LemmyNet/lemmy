@@ -426,7 +426,7 @@ where
 }
 
 /// Like [`Option::is_some_and`], but the closure returns an SQL expression
-pub fn sql_option_is_some_and<QS, T, E>(
+pub fn is_some_and<QS, T, E>(
   option: Option<T>,
   f: impl FnOnce(T) -> E,
 ) -> BoxExpr<QS, sql_types::Bool>
@@ -441,7 +441,7 @@ where
 }
 
 /// Like [`Option::and_then`], but the closure returns an SQL expression
-pub fn sql_option_and_then<QS, T, ST, E>(
+pub fn and_then<QS, T, ST, E>(
   option: Option<T>,
   f: impl FnOnce(T) -> E,
 ) -> BoxExpr<QS, sql_types::Nullable<ST>>

@@ -42,13 +42,13 @@ use lemmy_db_schema::{
     post_saved,
   },
   utils::{
+    and_then,
     boxed_meth,
     fuzzy_search,
     get_conn,
+    is_some_and,
     limit_and_offset,
     now,
-    sql_option_and_then,
-    sql_option_is_some_and,
     BoxExpr,
     DbPool,
     FilterVarEq,
@@ -169,7 +169,7 @@ impl SelectionBuilder {
         .filter(local_user::person_id.eq(post_aggregates::creator_id))
         .filter(local_user::admin),
     );
-    let read_comments: BoxExpr<_, st::Nullable<st::BigInt>> = sql_option_and_then(self.me, |me| {
+    let read_comments: BoxExpr<_, st::Nullable<st::BigInt>> = and_then(self.me, |me| {
       person_post_aggregates::table
         .find((me, post_aggregates::post_id))
         .select(person_post_aggregates::read_comments.nullable())
@@ -203,23 +203,23 @@ fn new_query<'a>(me: Option<PersonId>) -> (BoxedQuery<'a>, SelectionBuilder) {
 
   let selection_builder = SelectionBuilder {
     subscribe: Box::new(move || {
-      sql_option_and_then(me, |me| {
+      and_then(me, |me| {
         community_follower::table
           .find((me, post_aggregates::community_id))
           .select(community_follower::pending.nullable())
           .single_value()
       })
     }),
-    saved: sql_option_is_some_and(me, |me| {
+    saved: is_some_and(me, |me| {
       exists(post_saved::table.find((me, post_aggregates::post_id)))
     }),
-    read: sql_option_is_some_and(me, |me| {
+    read: is_some_and(me, |me| {
       exists(post_read::table.find((me, post_aggregates::post_id)))
     }),
-    creator_blocked: sql_option_is_some_and(me, |me| {
+    creator_blocked: is_some_and(me, |me| {
       exists(person_block::table.find((me, post_aggregates::creator_id)))
     }),
-    my_vote: sql_option_and_then(me, |me| {
+    my_vote: and_then(me, |me| {
       post_like::table
         .find((me, post_aggregates::post_id))
         .select(post_like::score.nullable())
@@ -336,11 +336,13 @@ impl<'a> PostQuery<'a> {
 
       let (mut query, mut selection_builder) = new_query(me);
 
+      let i_subscribed = || (selection_builder.subscribe)().is_not_null();
+
       query = query
         // hide posts from deleted communities
         .filter(not(community::deleted))
         // only show deleted posts to creator
-        .filter(is_creator(me).or(not_deleted()));
+        .filter(is_creator(me).or(not(post::deleted)));
 
       // only show removed posts to admin when viewing user profile
       if !(self.is_profile_view && admin) {
@@ -363,11 +365,17 @@ impl<'a> PostQuery<'a> {
         query = query.filter(name_matches.or(body_matches));
       }
 
-      if listing_type == ListingType::ModeratorView {
-        query = query.filter(sql_option_is_some_and(me, |me| {
+      query = match listing_type {
+        ListingType::Subscribed => query.filter(i_subscribed()),
+        ListingType::Local => query.filter(community::local),
+        ListingType::All => query,
+        ListingType::ModeratorView => query.filter(is_some_and(me, |me| {
           exists(community_moderator::table.find((me, post_aggregates::community_id)))
-        }));
-      } else {
+        })),
+      };
+
+      // Filters that should not affect which posts can be moderated
+      if listing_type != ListingType::ModeratorView {
         // If a user is logged in, then only show posts with a language that the user enabled.
         if let Some(local_user) = local_user {
           query = query.filter(exists(
@@ -378,7 +386,7 @@ impl<'a> PostQuery<'a> {
         // Hide posts from blocked instances, communities, and persons
         query = query
           .filter_var_eq(&mut selection_builder.creator_blocked, false)
-          .filter(not(sql_option_is_some_and(me, |me| {
+          .filter(not(is_some_and(me, |me| {
             let community_blocked =
               exists(community_block::table.find((me, post_aggregates::community_id)));
             let instance_blocked =
@@ -386,18 +394,11 @@ impl<'a> PostQuery<'a> {
             community_blocked.or(instance_blocked)
           })));
 
-        let i_subscribed = (selection_builder.subscribe)().is_not_null();
-        if listing_type == ListingType::Subscribed {
-          query = query.filter(i_subscribed);
-        } else {
-          // This filter hides hidden communities for non-subscribers. The only thing the `else`
-          // block does is prevent a duplicated evaluation of `i_subscribed`.
-          query = query.filter(i_subscribed.or(not(community::hidden)));
+        // This filter hides hidden communities for non-subscribers. For `ListingType::Subscribed`,
+        // it is redundant and would cause a duplicated `community_follower` subquery.
+        if listing_type != ListingType::Subscribed {
+          query = query.filter(i_subscribed().or(not(community::hidden)));
         }
-      }
-
-      if listing_type == ListingType::Local {
-        query = query.filter(community::local);
       }
 
       if !show_nsfw {
@@ -511,8 +512,8 @@ impl<'a> PostQuery<'a> {
           out.push_sql(") ");
 
           // Select the number of rows and the wrapped query's selection, then omit `{count} - 1` rows
-          // to get the last row. Offset can't be negative, so `GREATEST` changes it from -1 to 0 when
-          // there's 0 rows.
+          // using `OFFSET` to get the last row. Offset can't be negative, so `GREATEST` changes it from
+          // -1 to 0 when there's 0 rows.
           out.push_sql(&format!(
             "SELECT {count}, * FROM q OFFSET GREATEST(0, {count} - 1)"
           ));
@@ -546,7 +547,7 @@ impl<'a> PostQuery<'a> {
       .await
       .optional()?;
 
-      // take last element of array. if this query returned less than LIMIT elements,
+      // take last row. if this query returned less than LIMIT elements,
       // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
       if let Some((len, last_item)) = result {
         if len >= limit {
