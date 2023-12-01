@@ -57,6 +57,9 @@ pub struct Settings {
   #[default(None)]
   #[doku(example = "*")]
   cors_origin: Option<String>,
+  /// Always send cache-control: private header for api responses, avoid problems with wrong caching.
+  #[default(None)]
+  pub disable_cache_control: Option<bool>,
 }
 
 impl Settings {

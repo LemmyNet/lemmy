@@ -15,6 +15,7 @@ use lemmy_utils::{
 };
 use std::io::Cursor;
 use totp_rs::{Secret, TOTP};
+use tracing::log::warn;
 
 pub mod comment;
 pub mod comment_report;
@@ -82,6 +83,11 @@ pub fn read_auth_token(req: &HttpRequest) -> Result<Option<String>, LemmyError> 
   }
   // If that fails, try to read from cookie
   else if let Some(cookie) = &req.cookie(AUTH_COOKIE_NAME) {
+    Ok(Some(cookie.value().to_string()))
+  }
+  // Read old auth cookie
+  else if let Some(cookie) = &req.cookie("jwt") {
+    warn!("Falling back to jwt cookie");
     Ok(Some(cookie.value().to_string()))
   }
   // Otherwise, there's no auth
