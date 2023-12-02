@@ -57,8 +57,6 @@ use lemmy_db_schema::{
 use lemmy_utils::type_chain;
 use tracing::debug;
 
-sql_function!(fn coalesce(x: st::Nullable<st::BigInt>, y: st::BigInt) -> st::BigInt);
-
 #[derive(Clone, Copy)]
 enum Ord {
   Desc,
@@ -155,6 +153,8 @@ struct SelectionBuilder {
 
 impl SelectionBuilder {
   fn build(self) -> BoxExpr<QS, SelectionType> {
+    sql_function!(fn coalesce(x: st::Nullable<st::BigInt>, y: st::BigInt) -> st::BigInt);
+
     let creator_banned_from_community = exists(
       community_person_ban::table
         .find((post_aggregates::creator_id, post_aggregates::community_id)),
@@ -306,12 +306,10 @@ pub struct PostQuery<'a> {
   pub saved_only: bool,
   pub liked_only: bool,
   pub disliked_only: bool,
-  pub moderator_view: bool,
   pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub page_after: Option<PaginationCursorData>,
-  pub page_before_or_equal: Option<PaginationCursorData>,
 }
 
 impl<'a> PostQuery<'a> {
@@ -455,14 +453,14 @@ impl<'a> PostQuery<'a> {
           SortType::TopSixMonths => (top, Some(6.months())),
           SortType::TopNineMonths => (top, Some(9.months())),
         };
+        
+        for i in [&[featured_sort], sorts].into_iter().flatten() {
+          query = i.order_and_page_filter(query, range);
+        }
 
-      if let Some(interval) = interval {
-        query = query.filter(post_aggregates::published.gt(now() - interval));
-      }
-
-      for i in [&[featured_sort], sorts].into_iter().flatten() {
-        query = i.order_and_page_filter(query, range);
-      }
+        if let Some(interval) = interval {
+          query = query.filter(post_aggregates::published.gt(now() - interval));
+        }
 
       let query = query
         .limit(limit)
@@ -474,9 +472,7 @@ impl<'a> PostQuery<'a> {
       query
     };
 
-    let page_before_or_equal = if let Some(p) = self.page_before_or_equal {
-      Some(p)
-    } else if listing_type == ListingType::Subscribed {
+    let page_before_or_equal = if listing_type == ListingType::Subscribed {
       // first get one page for the most popular community to get an upper bound for the the page end for the real query
       // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
       // the query to use an index on e.g. (=, >=, >=, >=) and fetch only LIMIT rows
@@ -508,7 +504,7 @@ impl<'a> PostQuery<'a> {
         // get no rows to prevent incorrect limiting of the final query
         .offset(offset + limit - 1)
         .select(post_aggregates::all_columns)
-        .first::<PostAggregates>(&mut *get_conn(pool).await?)
+        .first(&mut *get_conn(pool).await?)
         .await
         .optional()?
         .map(PaginationCursorData)
