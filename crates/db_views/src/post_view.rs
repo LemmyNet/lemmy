@@ -1106,7 +1106,13 @@ mod tests {
     assert!(not_contains_deleted);
 
     // Deleted post is hidden from other users
-    let post_listings_is_other_user = data.default_post_query().list(pool).await.unwrap();
+    let post_listings_is_other_user = PostQuery {
+      local_user: Some(&data.blocked_local_user_view),
+      ..data.default_post_query()
+    }
+    .list(pool)
+    .await
+    .unwrap();
     let not_contains_deleted_2 = post_listings_is_other_user
       .iter()
       .map(|p| p.post.id)
