@@ -67,7 +67,8 @@ trait OrderAndPageFilter {
   fn order_and_page_filter<'a>(
     &self,
     query: BoxedQuery<'a>,
-    range: [Option<&PaginationCursorData>; 2],
+    first: &Option<PaginationCursorData>,
+    last: &Option<PaginationCursorData>,
   ) -> BoxedQuery<'a>;
 }
 
@@ -85,7 +86,8 @@ where
   fn order_and_page_filter<'a>(
     &self,
     query: BoxedQuery<'a>,
-    [first, last]: [Option<&PaginationCursorData>; 2],
+    first: &Option<PaginationCursorData>,
+    last: &Option<PaginationCursorData>,
   ) -> BoxedQuery<'a> {
     let (order, column, getter) = *self;
     let (mut query, min, max) = match order {
@@ -315,6 +317,15 @@ pub struct PostQuery<'a> {
 impl<'a> PostQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     let (limit, mut offset) = limit_and_offset(self.page, self.limit)?;
+    let listing_type = self.listing_type.unwrap_or(ListingType::All);
+    let sort = self.sort.unwrap_or(SortType::Hot);
+    let local_user = self.local_user.map(|l| &l.local_user);
+
+    let me = local_user.map(|l| l.person_id);
+    let admin = local_user.map(|l| l.admin).unwrap_or(false);
+    let show_nsfw = local_user.map(|l| l.show_nsfw).unwrap_or(false);
+    let show_bot_accounts = local_user.map(|l| l.show_bot_accounts).unwrap_or(true);
+    let show_read_posts = local_user.map(|l| l.show_read_posts).unwrap_or(true);
 
     if self.page_after.is_some() {
       if offset != 0 {
@@ -329,16 +340,9 @@ impl<'a> PostQuery<'a> {
       offset = 1;
     }
 
-    let listing_type = self.listing_type.unwrap_or(ListingType::All);
-    let local_user = self.local_user.map(|l| &l.local_user);
-    let me = local_user.map(|l| l.person_id);
-    let admin = local_user.map(|l| l.admin).unwrap_or(false);
-    let show_nsfw = local_user.map(|l| l.show_nsfw).unwrap_or(false);
-    let show_bot_accounts = local_user.map(|l| l.show_bot_accounts).unwrap_or(true);
-    let show_read_posts = local_user.map(|l| l.show_read_posts).unwrap_or(true);
-
     let build_query = |page_before_or_equal: Option<PaginationCursorData>| {
       let (mut query, mut selection_builder) = new_query(me);
+
       let i_subscribed = || (selection_builder.subscribe)().is_not_null();
 
       query = query
@@ -423,42 +427,50 @@ impl<'a> PostQuery<'a> {
         query = query.filter_var_eq(&mut selection_builder.my_vote, -1);
       }
 
-      let range = [self.page_after.as_ref(), page_before_or_equal.as_ref()];
-      let top: &[&dyn OrderAndPageFilter] = &[desc!(score), desc!(published)];
-
+      // Show featured posts first
       let featured_sort: &dyn OrderAndPageFilter = if self.community_id.is_some() {
         desc!(featured_community)
       } else {
         desc!(featured_local)
       };
-      let (sorts, interval): (&[&dyn OrderAndPageFilter], Option<PgInterval>) =
-        match self.sort.unwrap_or(SortType::Hot) {
-          SortType::Active => (&[desc!(hot_rank_active), desc!(published)], None),
-          SortType::Hot => (&[desc!(hot_rank), desc!(published)], None),
-          SortType::Scaled => (&[desc!(scaled_rank), desc!(published)], None),
-          SortType::Controversial => (&[desc!(controversy_rank), desc!(published)], None),
-          SortType::New => (&[desc!(published)], None),
-          SortType::Old => (&[asc!(published)], None),
-          SortType::NewComments => (&[desc!(newest_comment_time)], None),
-          SortType::MostComments => (&[desc!(comments), desc!(published)], None),
-          SortType::TopAll => (&[desc!(score), desc!(published)], None),
-          SortType::TopYear => (top, Some(1.years())),
-          SortType::TopMonth => (top, Some(1.months())),
-          SortType::TopWeek => (top, Some(1.weeks())),
-          SortType::TopDay => (top, Some(1.days())),
-          SortType::TopHour => (top, Some(1.hours())),
-          SortType::TopSixHour => (top, Some(6.hours())),
-          SortType::TopTwelveHour => (top, Some(12.hours())),
-          SortType::TopThreeMonths => (top, Some(3.months())),
-          SortType::TopSixMonths => (top, Some(6.months())),
-          SortType::TopNineMonths => (top, Some(9.months())),
-        };
 
-      for i in [&[featured_sort], sorts].into_iter().flatten() {
-        query = i.order_and_page_filter(query, range);
+      let (main_sort, top_sort_interval): (&dyn OrderAndPageFilter, Option<PgInterval>) = match sort
+      {
+        SortType::Active => (desc!(hot_rank_active), None),
+        SortType::Hot => (desc!(hot_rank), None),
+        SortType::Scaled => (desc!(scaled_rank), None),
+        SortType::Controversial => (desc!(controversy_rank), None),
+        SortType::New => (desc!(published), None),
+        SortType::Old => (asc!(published), None),
+        SortType::NewComments => (desc!(newest_comment_time), None),
+        SortType::MostComments => (desc!(comments), None),
+        SortType::TopAll => (desc!(score), None),
+        SortType::TopYear => (desc!(score), Some(1.years())),
+        SortType::TopMonth => (desc!(score), Some(1.months())),
+        SortType::TopWeek => (desc!(score), Some(1.weeks())),
+        SortType::TopDay => (desc!(score), Some(1.days())),
+        SortType::TopHour => (desc!(score), Some(1.hours())),
+        SortType::TopSixHour => (desc!(score), Some(6.hours())),
+        SortType::TopTwelveHour => (desc!(score), Some(12.hours())),
+        SortType::TopThreeMonths => (desc!(score), Some(3.months())),
+        SortType::TopSixMonths => (desc!(score), Some(6.months())),
+        SortType::TopNineMonths => (desc!(score), Some(9.months())),
+      };
+
+      let newest_sort: Option<&dyn OrderAndPageFilter> = match sort {
+        // A second time-based sort would not be very useful
+        SortType::New | SortType::Old | SortType::NewComments => None,
+        _ => Some(desc!(published)),
+      };
+
+      for i in [Some(featured_sort), Some(main_sort), newest_sort]
+        .into_iter()
+        .flatten()
+      {
+        query = i.order_and_page_filter(query, &self.page_after, &page_before_or_equal);
       }
 
-      if let Some(interval) = interval {
+      if let Some(interval) = top_sort_interval {
         query = query.filter(post_aggregates::published.gt(now() - interval));
       }
 
@@ -474,6 +486,7 @@ impl<'a> PostQuery<'a> {
 
     let page_before_or_equal = if listing_type == ListingType::Subscribed {
       // first get one page for the most popular community to get an upper bound for the the page end for the real query
+      //
       // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
       // the query to use an index on e.g. (=, >=, >=, >=) and fetch only LIMIT rows
       // but for the followed-communities query it has to query the index on (IN, >=, >=, >=)
@@ -501,7 +514,8 @@ impl<'a> PostQuery<'a> {
       build_query(None)
         .filter(post_aggregates::community_id.eq(largest_subscribed))
         // If there's at least `limit` rows, then get the last row within the limit, otherwise
-        // get no rows to prevent incorrect limiting of the final query
+        // get `None` which prevents the amount of rows returned by the final query from being
+        // incorrectly limited
         .offset(offset + limit - 1)
         .select(post_aggregates::all_columns)
         .first(&mut *get_conn(pool).await?)
