@@ -1,4 +1,3 @@
-use lemmy_db_schema::source::local_user::LocalUser;
 use crate::structs::{LocalUserView, PaginationCursor, PostView};
 use diesel::{
   data_types::PgInterval,
@@ -301,7 +300,7 @@ pub struct PostQuery<'a> {
   pub sort: Option<SortType>,
   pub creator_id: Option<PersonId>,
   pub community_id: Option<CommunityId>,
-  pub local_user: Option<&'a LocalUser>,
+  pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
   pub url_search: Option<String>,
   pub saved_only: bool,
@@ -333,11 +332,12 @@ impl<'a> PostQuery<'a> {
     }
 
     let listing_type = self.listing_type.unwrap_or_default();
-    let me = self.local_user.map(|l| l.person_id);
-    let admin = self.local_user.map(|l| l.admin).unwrap_or(false);
-    let show_nsfw = self.local_user.map(|l| l.show_nsfw).unwrap_or(false);
-    let show_bot_accounts = self.local_user.map(|l| l.show_bot_accounts).unwrap_or(true);
-    let show_read_posts = self.local_user.map(|l| l.show_read_posts).unwrap_or(true);
+    let local_user = self.local_user.map(|l| &l.local_user);
+    let me = local_user.map(|l| l.person_id);
+    let admin = local_user.map(|l| l.admin).unwrap_or(false);
+    let show_nsfw = local_user.map(|l| l.show_nsfw).unwrap_or(false);
+    let show_bot_accounts = local_user.map(|l| l.show_bot_accounts).unwrap_or(true);
+    let show_read_posts = local_user.map(|l| l.show_read_posts).unwrap_or(true);
 
     let build_query = |page_before_or_equal: Option<PaginationCursorData>| {
       let (mut query, mut selection_builder) = new_query(me);
@@ -382,7 +382,7 @@ impl<'a> PostQuery<'a> {
       // Filters that should not affect which posts can be moderated
       if listing_type != ListingType::ModeratorView {
         // If a user is logged in, then only show posts with a language that the user enabled.
-        if let Some(local_user) = self.local_user {
+        if let Some(local_user) = local_user {
           query = query.filter(exists(
             local_user_language::table.find((local_user.id, post::language_id)),
           ));
@@ -556,10 +556,8 @@ mod tests {
 
   struct Data {
     inserted_instance: Instance,
-    inserted_person: Person,
-    local_user_view: LocalUser,
-    inserted_blocked_person: Person,
-    blocked_local_user_view: LocalUser,
+    local_user_view: LocalUserView,
+    blocked_local_user_view: LocalUserView,
     inserted_bot: Person,
     inserted_community: Community,
     inserted_post: Post,
@@ -655,13 +653,21 @@ mod tests {
       .build();
 
     let _inserted_bot_post = Post::create(pool, &new_bot_post).await.unwrap();
+    let local_user_view = LocalUserView {
+      local_user: inserted_local_user,
+      person: inserted_person,
+      counts: Default::default(),
+    };
+    let blocked_local_user_view = LocalUserView {
+      local_user: inserted_blocked_local_user,
+      person: inserted_blocked_person,
+      counts: Default::default(),
+    };
 
     Data {
       inserted_instance,
-      inserted_person,
-      local_user_view: inserted_local_user,
-      inserted_blocked_person,
-      blocked_local_user_view: inserted_blocked_local_user,
+      local_user_view,
+      blocked_local_user_view,
       inserted_bot,
       inserted_community,
       inserted_post,
@@ -680,10 +686,10 @@ mod tests {
       ..Default::default()
     };
     let inserted_local_user =
-      LocalUser::update(pool, data.local_user_view.id, &local_user_form)
+      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
         .unwrap();
-    data.local_user_view = inserted_local_user;
+    data.local_user_view.local_user = inserted_local_user;
 
     let read_post_listing = PostQuery {
       sort: (Some(SortType::New)),
@@ -698,7 +704,7 @@ mod tests {
     let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person_id),
+      Some(data.local_user_view.person.id),
       false,
     )
     .await
@@ -721,10 +727,10 @@ mod tests {
       ..Default::default()
     };
     let inserted_local_user =
-      LocalUser::update(pool, data.local_user_view.id, &local_user_form)
+      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
         .unwrap();
-    data.local_user_view = inserted_local_user;
+    data.local_user_view.local_user = inserted_local_user;
 
     let post_listings_with_bots = PostQuery {
       sort: (Some(SortType::New)),
@@ -787,7 +793,7 @@ mod tests {
     let data = init_data(pool).await;
 
     let community_block = CommunityBlockForm {
-      person_id: data.local_user_view.person_id,
+      person_id: data.local_user_view.person.id,
       community_id: data.inserted_community.id,
     };
     CommunityBlock::block(pool, &community_block).await.unwrap();
@@ -819,7 +825,7 @@ mod tests {
 
     let post_like_form = PostLikeForm {
       post_id: data.inserted_post.id,
-      person_id: data.local_user_view.person_id,
+      person_id: data.local_user_view.person.id,
       score: 1,
     };
 
@@ -827,7 +833,7 @@ mod tests {
 
     let expected_post_like = PostLike {
       post_id: data.inserted_post.id,
-      person_id: data.local_user_view.person_id,
+      person_id: data.local_user_view.person.id,
       published: inserted_post_like.published,
       score: 1,
     };
@@ -836,7 +842,7 @@ mod tests {
     let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person_id),
+      Some(data.local_user_view.person.id),
       false,
     )
     .await
@@ -853,10 +859,10 @@ mod tests {
       ..Default::default()
     };
     let inserted_local_user =
-      LocalUser::update(pool, data.local_user_view.id, &local_user_form)
+      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
         .await
         .unwrap();
-    data.local_user_view = inserted_local_user;
+    data.local_user_view.local_user = inserted_local_user;
 
     let read_post_listing = PostQuery {
       sort: (Some(SortType::New)),
@@ -894,7 +900,7 @@ mod tests {
     assert!(read_disliked_post_listing.is_empty());
 
     let like_removed =
-      PostLike::remove(pool, data.local_user_view.person_id, data.inserted_post.id)
+      PostLike::remove(pool, data.local_user_view.person.id, data.inserted_post.id)
         .await
         .unwrap();
     assert_eq!(1, like_removed);
@@ -909,7 +915,7 @@ mod tests {
     let data = init_data(pool).await;
 
     // Make one of the inserted persons a moderator
-    let person_id = data.local_user_view.person_id;
+    let person_id = data.local_user_view.person.id;
     let community_id = data.inserted_community.id;
     let form = CommunityModeratorForm {
       community_id,
@@ -975,7 +981,7 @@ mod tests {
       .unwrap();
     let post_spanish = PostInsertForm::builder()
       .name("asffgdsc".to_string())
-      .creator_id(data.local_user_view.person_id)
+      .creator_id(data.local_user_view.person.id)
       .community_id(data.inserted_community.id)
       .language_id(Some(spanish_id))
       .build();
@@ -998,7 +1004,7 @@ mod tests {
       .await
       .unwrap()
       .unwrap();
-    LocalUserLanguage::update(pool, vec![french_id], data.local_user_view.id)
+    LocalUserLanguage::update(pool, vec![french_id], data.local_user_view.local_user.id)
       .await
       .unwrap();
 
@@ -1020,7 +1026,7 @@ mod tests {
     LocalUserLanguage::update(
       pool,
       vec![french_id, UNDETERMINED_ID],
-      data.local_user_view.id,
+      data.local_user_view.local_user.id,
     )
     .await
     .unwrap();
@@ -1075,7 +1081,7 @@ mod tests {
     assert_eq!(1, post_listings_no_admin.len());
 
     // Removed post is shown to admins on profile page
-    data.local_user_view.admin = true;
+    data.local_user_view.local_user.admin = true;
     let post_listings_is_admin = PostQuery {
       sort: Some(SortType::New),
       local_user: Some(&data.local_user_view),
@@ -1196,7 +1202,7 @@ mod tests {
 
     // block the instance
     let block_form = InstanceBlockForm {
-      person_id: data.local_user_view.person_id,
+      person_id: data.local_user_view.person.id,
       instance_id: blocked_instance.id,
     };
     InstanceBlock::block(pool, &block_form).await.unwrap();
@@ -1239,11 +1245,11 @@ mod tests {
     Community::delete(pool, data.inserted_community.id)
       .await
       .unwrap();
-    Person::delete(pool, data.local_user_view.person_id)
+    Person::delete(pool, data.local_user_view.person.id)
       .await
       .unwrap();
     Person::delete(pool, data.inserted_bot.id).await.unwrap();
-    Person::delete(pool, data.blocked_local_user_view.person_id)
+    Person::delete(pool, data.blocked_local_user_view.person.id)
       .await
       .unwrap();
     Instance::delete(pool, data.inserted_instance.id)
@@ -1254,7 +1260,7 @@ mod tests {
 
   async fn expected_post_view(data: &Data, pool: &mut DbPool<'_>) -> PostView {
     let (inserted_person, inserted_community, inserted_post) = (
-      &data.inserted_person,
+      &data.local_user_view.person,
       &data.inserted_community,
       &data.inserted_post,
     );

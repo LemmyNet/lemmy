@@ -313,7 +313,7 @@ async fn get_feed_front(
 
   let posts = PostQuery {
     listing_type: (Some(ListingType::Subscribed)),
-    local_user: (Some(&local_user.local_user)),
+    local_user: (Some(&local_user)),
     sort: (Some(*sort_type)),
     limit: (Some(*limit)),
     page: (Some(*page)),
