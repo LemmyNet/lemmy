@@ -326,7 +326,7 @@ fn cors_config(settings: &Settings) -> Cors {
     (Some(origin), false) => {
       // Need to call send_wildcard() explicitly, passing this into allowed_origin() results in error
       if cors_origin_setting.as_deref() == Some("*") {
-        Cors::default().send_wildcard()
+        Cors::default().allow_any_origin().send_wildcard()
       } else {
         Cors::default()
           .allowed_origin(&origin)

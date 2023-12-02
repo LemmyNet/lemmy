@@ -11,6 +11,7 @@ use lemmy_api::{local_user_view_from_jwt, read_auth_token};
 use lemmy_api_common::context::LemmyContext;
 use reqwest::header::HeaderValue;
 use std::{future::ready, rc::Rc};
+use tracing::log::warn;
 
 #[derive(Clone)]
 pub struct SessionMiddleware {
@@ -71,8 +72,11 @@ where
         // TODO: this means it will be impossible to get any error message for invalid jwt. Need
         //       to add a separate endpoint for that.
         //       https://github.com/LemmyNet/lemmy/issues/3702
-        let local_user_view = local_user_view_from_jwt(jwt, &context).await.ok();
-        if let Some(local_user_view) = local_user_view {
+        let local_user_view = local_user_view_from_jwt(jwt, &context).await;
+        if let Err(e) = &local_user_view {
+          warn!("Failed to handle user login: {e}");
+        }
+        if let Ok(local_user_view) = local_user_view {
           req.extensions_mut().insert(local_user_view);
         }
       }
@@ -81,11 +85,14 @@ where
 
       // Add cache-control header. If user is authenticated, mark as private. Otherwise cache
       // up to one minute.
-      let cache_value = if jwt.is_some() {
+
+      let disable_cache = context.settings().disable_cache_control.unwrap_or(false);
+      let cache_value = if jwt.is_some() || disable_cache {
         "private"
       } else {
         "public, max-age=60"
       };
+
       res
         .headers_mut()
         .insert(CACHE_CONTROL, HeaderValue::from_static(cache_value));
