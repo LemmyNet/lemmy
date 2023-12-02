@@ -5,7 +5,6 @@ use diesel::{
   dsl::{self, exists, not, InnerJoin, InnerJoinQuerySource, IntervalDsl},
   expression::AsExpression,
   pg::Pg,
-  query_builder::{AstPass, Query, QueryFragment},
   result::Error,
   sql_function,
   sql_types::{self as st, SingleValue, SqlType},
@@ -16,7 +15,6 @@ use diesel::{
   OptionalExtension,
   PgTextExpressionMethods,
   QueryDsl,
-  QueryId,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
@@ -318,11 +316,19 @@ pub struct PostQuery<'a> {
 
 impl<'a> PostQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-    if offset != 0 && self.page_after.is_some() {
-      return Err(Error::QueryBuilderError(
-        "legacy pagination cannot be combined with v2 pagination".into(),
-      ));
+    let (limit, mut offset) = limit_and_offset(self.page, self.limit)?;
+
+    if self.page_after.is_some() {
+      if offset != 0 {
+        return Err(Error::QueryBuilderError(
+          "legacy pagination cannot be combined with v2 pagination".into(),
+        ));
+      }
+
+      // always skip exactly one post because that's the last post of the previous page
+      // fixing the where clause is more difficult because we'd have to change only the last order-by-where clause
+      // e.g. WHERE (featured_local<=, hot_rank<=, published<=) to WHERE (<=, <=, <)
+      offset = 1;
     }
 
     let listing_type = self.listing_type.unwrap_or_default();
@@ -460,14 +466,7 @@ impl<'a> PostQuery<'a> {
 
       let query = query
         .limit(limit)
-        .offset(if self.page_after.is_some() {
-          // always skip exactly one post because that's the last post of the previous page
-          // fixing the where clause is more difficult because we'd have to change only the last order-by-where clause
-          // e.g. WHERE (featured_local<=, hot_rank<=, published<=) to WHERE (<=, <=, <)
-          1
-        } else {
-          offset
-        })
+        .offset(offset)
         .select(selection_builder.build());
 
       debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
@@ -477,7 +476,7 @@ impl<'a> PostQuery<'a> {
 
     let page_before_or_equal = if let Some(p) = self.page_before_or_equal {
       Some(p)
-    } else if (listing_type, self.community_id) == (ListingType::Subscribed, None) {
+    } else if listing_type == ListingType::Subscribed {
       // first get one page for the most popular community to get an upper bound for the the page end for the real query
       // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
       // the query to use an index on e.g. (=, >=, >=, >=) and fetch only LIMIT rows
@@ -487,34 +486,6 @@ impl<'a> PostQuery<'a> {
       //
       // the results are correct no matter which community we fetch these for, since it basically covers the "worst case" of the whole page consisting of posts from one community
       // but using the largest community decreases the pagination-frame so make the real query more efficient.
-
-      /// Gets the number of rows and the last row returned by the wrapped query
-      #[derive(QueryId)]
-      struct PrefetchQuery<T>(T);
-
-      impl<T: Query> Query for PrefetchQuery<T> {
-        type SqlType = (<dsl::CountStar as Expression>::SqlType, T::SqlType);
-      }
-
-      impl<T: QueryFragment<Pg>> QueryFragment<Pg> for PrefetchQuery<T> {
-        fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, Pg>) -> Result<(), Error> {
-          let count = "(SELECT count(*) FROM q)";
-
-          // Set `q` to the result of the wrapped query.
-          out.push_sql("WITH q AS (");
-          self.0.walk_ast(out.reborrow())?;
-          out.push_sql(") ");
-
-          // Select the number of rows and the wrapped query's selection, then omit `{count} - 1` rows
-          // using `OFFSET` to get the last row. Offset can't be negative, so `GREATEST` changes it from
-          // -1 to 0 when there's 0 rows.
-          out.push_sql(&format!(
-            "SELECT {count}, * FROM q OFFSET GREATEST(0, {count} - 1)"
-          ));
-
-          Ok(())
-        }
-      }
 
       let largest_subscribed: Option<CommunityId> = community_aggregates::table
         .filter(is_some_and(me, |me| {
@@ -531,23 +502,16 @@ impl<'a> PostQuery<'a> {
         return Ok(vec![]);
       };
 
-      let inner_query = build_query(None)
+      build_query(None)
         .filter(post_aggregates::community_id.eq(largest_subscribed))
-        .select(post_aggregates::all_columns);
-
-      PrefetchQuery(inner_query)
-        .get_result::<(i64, PostAggregates)>(&mut *get_conn(pool).await?)
+        // If there's at least `limit` rows, then get the last row within the limit, otherwise
+        // get no rows to prevent incorrect limiting of the final query
+        .offset(offset + limit - 1)
+        .select(post_aggregates::all_columns)
+        .first::<PostAggregates>(&mut *get_conn(pool).await?)
         .await
         .optional()?
-        .and_then(|(len, last_item)| {
-          // if `inner_query` returned less than LIMIT elements, the heuristic is invalid since we
-          // can't guarantee the full query will return >= LIMIT results (return original query)
-          if len >= limit {
-            Some(PaginationCursorData(last_item))
-          } else {
-            None
-          }
-        })
+        .map(PaginationCursorData)
     } else {
       None
     };
