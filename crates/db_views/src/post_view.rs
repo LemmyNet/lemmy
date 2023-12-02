@@ -329,7 +329,7 @@ impl<'a> PostQuery<'a> {
       offset = 1;
     }
 
-    let listing_type = self.listing_type.unwrap_or_default();
+    let listing_type = self.listing_type.unwrap_or(ListingType::All);
     let local_user = self.local_user.map(|l| &l.local_user);
     let me = local_user.map(|l| l.person_id);
     let admin = local_user.map(|l| l.admin).unwrap_or(false);
@@ -453,14 +453,14 @@ impl<'a> PostQuery<'a> {
           SortType::TopSixMonths => (top, Some(6.months())),
           SortType::TopNineMonths => (top, Some(9.months())),
         };
-        
-        for i in [&[featured_sort], sorts].into_iter().flatten() {
-          query = i.order_and_page_filter(query, range);
-        }
 
-        if let Some(interval) = interval {
-          query = query.filter(post_aggregates::published.gt(now() - interval));
-        }
+      for i in [&[featured_sort], sorts].into_iter().flatten() {
+        query = i.order_and_page_filter(query, range);
+      }
+
+      if let Some(interval) = interval {
+        query = query.filter(post_aggregates::published.gt(now() - interval));
+      }
 
       let query = query
         .limit(limit)
