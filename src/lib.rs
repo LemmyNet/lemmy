@@ -48,7 +48,7 @@ use lemmy_utils::{
   rate_limit::RateLimitCell,
   response::jsonify_plain_text_errors,
   settings::{structs::Settings, SETTINGS},
-  version,  
+  version,
 };
 use prometheus_metrics::serve_prometheus;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
@@ -109,7 +109,7 @@ pub struct CmdArgs {
 pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   // Print version number to log
   println!("Lemmy v{}", version::VERSION.to_string());
-  
+
   // return error 503 while running db migrations and startup tasks
   let mut startup_server_handle = None;
   if args.http_server {
