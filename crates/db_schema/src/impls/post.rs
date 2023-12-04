@@ -29,7 +29,14 @@ use crate::{
     PostUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX, FETCH_LIMIT_SITEMAP},
+  utils::{
+    get_conn,
+    naive_now,
+    DbPool,
+    DELETED_REPLACEMENT_TEXT,
+    FETCH_LIMIT_MAX,
+    FETCH_LIMIT_SITEMAP,
+  },
 };
 use ::url::Url;
 use chrono::{Duration, Utc};
