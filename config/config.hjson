@@ -2,8 +2,4 @@
 # https://join-lemmy.org/docs/en/administration/configuration.html
 {
   hostname: lemmy-alpha
-  prometheus: {
-    bind: "127.0.0.1"
-    port: 10002
-  }
 }

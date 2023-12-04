@@ -16,7 +16,7 @@ use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
 use actix_web::{
   dev::{ServerHandle, ServiceResponse},
-  middleware::{self, ErrorHandlerResponse, ErrorHandlers},
+  middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
   web::Data,
   App,
   HttpResponse,
@@ -298,7 +298,10 @@ fn create_http_server(
       .app_data(Data::new(rate_limit_cell.clone()))
       .wrap(FederationMiddleware::new(federation_config.clone()))
       .wrap(SessionMiddleware::new(context.clone()))
-      .wrap(prom_api_metrics.clone());
+      .wrap(Condition::new(
+        SETTINGS.prometheus.is_some(),
+        prom_api_metrics.clone(),
+      ));
 
     // The routes
     app
