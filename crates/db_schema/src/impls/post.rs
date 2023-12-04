@@ -35,8 +35,8 @@ use crate::{
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
-    SITEMAP_LIMIT,
     SITEMAP_DAYS,
+    SITEMAP_LIMIT,
   },
 };
 use ::url::Url;
