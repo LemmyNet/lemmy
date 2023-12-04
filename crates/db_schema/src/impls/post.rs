@@ -111,7 +111,7 @@ impl Post {
       .filter(removed.eq(false))
       .filter(published.ge(Utc::now().naive_utc() - Duration::days(7)))
       .order(published.desc())
-      .limit(50000)    
+      .limit(50000)
       .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)
       .await
   }
