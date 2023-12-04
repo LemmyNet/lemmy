@@ -35,7 +35,8 @@ use crate::{
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
-    FETCH_LIMIT_SITEMAP,
+    SITEMAP_LIMIT,
+    SITEMAP_DAYS,
   },
 };
 use ::url::Url;
@@ -116,9 +117,9 @@ impl Post {
       .filter(local.eq(true))
       .filter(deleted.eq(false))
       .filter(removed.eq(false))
-      .filter(published.ge(Utc::now().naive_utc() - Duration::days(7)))
+      .filter(published.ge(Utc::now().naive_utc() - Duration::days(SITEMAP_DAYS)))
       .order(published.desc())
-      .limit(FETCH_LIMIT_SITEMAP)
+      .limit(SITEMAP_LIMIT)
       .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)
       .await
   }
