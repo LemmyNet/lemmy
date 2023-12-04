@@ -16,13 +16,14 @@ use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
 use actix_web::{
   dev::{ServerHandle, ServiceResponse},
-  middleware::{self, ErrorHandlerResponse, ErrorHandlers},
+  middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
   web::Data,
   App,
   HttpResponse,
   HttpServer,
   Result,
 };
+use actix_web_prom::PrometheusMetricsBuilder;
 use clap::{ArgAction, Parser};
 use lemmy_api_common::{
   context::LemmyContext,
@@ -49,6 +50,7 @@ use lemmy_utils::{
   response::jsonify_plain_text_errors,
   settings::{structs::Settings, SETTINGS},
 };
+use prometheus::default_registry;
 use prometheus_metrics::serve_prometheus;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_tracing::TracingMiddleware;
@@ -271,7 +273,6 @@ fn create_http_server(
 ) -> Result<ServerHandle, LemmyError> {
   // this must come before the HttpServer creation
   // creates a middleware that populates http metrics for each path, method, and status code
-  #[cfg(feature = "prometheus-metrics")]
   let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
     .registry(default_registry().clone())
     .build()
@@ -296,7 +297,11 @@ fn create_http_server(
       .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
       .wrap(FederationMiddleware::new(federation_config.clone()))
-      .wrap(SessionMiddleware::new(context.clone()));
+      .wrap(SessionMiddleware::new(context.clone()))
+      .wrap(Condition::new(
+        SETTINGS.prometheus.is_some(),
+        prom_api_metrics.clone(),
+      ));
 
     // The routes
     app
