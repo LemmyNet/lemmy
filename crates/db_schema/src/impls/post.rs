@@ -29,7 +29,7 @@ use crate::{
     PostUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX},
+  utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX, FETCH_LIMIT_SITEMAP},
 };
 use ::url::Url;
 use chrono::{Duration, Utc};
@@ -111,7 +111,7 @@ impl Post {
       .filter(removed.eq(false))
       .filter(published.ge(Utc::now().naive_utc() - Duration::days(7)))
       .order(published.desc())
-      .limit(50000)
+      .limit(FETCH_LIMIT_SITEMAP)
       .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)
       .await
   }
