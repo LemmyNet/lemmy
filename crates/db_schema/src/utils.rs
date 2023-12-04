@@ -49,6 +49,7 @@ use url::Url;
 
 const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
+pub const FETCH_LIMIT_SITEMAP: i64 = 50000;
 const POOL_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 pub const RANK_DEFAULT: f64 = 0.0001;
 
