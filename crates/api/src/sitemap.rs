@@ -26,6 +26,7 @@ async fn generate_urlset(
 }
 
 pub async fn get_sitemap(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
+  info!("Generating sitemap...",);
   let posts = Post::list_for_sitemap(&mut context.pool()).await?;
   info!("Loaded latest {} posts", posts.len());
 
