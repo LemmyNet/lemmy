@@ -49,6 +49,7 @@ use lemmy_utils::{
   rate_limit::RateLimitCell,
   response::jsonify_plain_text_errors,
   settings::{structs::Settings, SETTINGS},
+  version,
 };
 use prometheus::default_registry;
 use prometheus_metrics::serve_prometheus;
@@ -108,6 +109,9 @@ pub struct CmdArgs {
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
+  // Print version number to log
+  println!("Lemmy v{}", version::VERSION);
+
   // return error 503 while running db migrations and startup tasks
   let mut startup_server_handle = None;
   if args.http_server {
@@ -133,7 +137,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   let federation_enabled = local_site.federation_enabled;
 
   if federation_enabled {
-    println!("federation enabled, host is {}", &SETTINGS.hostname);
+    println!("Federation enabled, host is {}", &SETTINGS.hostname);
   }
 
   check_private_instance_and_federation_enabled(&local_site)?;
@@ -144,7 +148,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   let rate_limit_cell = RateLimitCell::new(rate_limit_config);
 
   println!(
-    "Starting http server at {}:{}",
+    "Starting HTTP server at {}:{}",
     SETTINGS.bind, SETTINGS.port
   );
 
