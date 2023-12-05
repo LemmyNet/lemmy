@@ -1,3 +1,9 @@
+use crate::{
+  utils::{
+    SITEMAP_DAYS,
+    SITEMAP_LIMIT,
+  },
+};
 use actix_web::{
   http::header::{self, CacheDirective},
   web::Data,
@@ -26,7 +32,7 @@ async fn generate_urlset(
 }
 
 pub async fn get_sitemap(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
-  info!("Generating sitemap with posts from last {} hours...", 24);
+  info!("Generating sitemap with posts from last {} days...", SITEMAP_DAYS);
   let posts = Post::list_for_sitemap(&mut context.pool()).await?;
   info!("Loaded latest {} posts", posts.len());
 
@@ -36,7 +42,7 @@ pub async fn get_sitemap(context: Data<LemmyContext>) -> LemmyResult<HttpRespons
   Ok(
     HttpResponse::Ok()
       .content_type("application/xml")
-      .insert_header(header::CacheControl(vec![CacheDirective::MaxAge(86_400)])) // 24 h
+      .insert_header(header::CacheControl(vec![CacheDirective::MaxAge(3_600)])) // 1 h
       .body(buf),
   )
 }
