@@ -98,6 +98,4 @@
   # Sets a response Access-Control-Allow-Origin CORS header
   # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
   cors_origin: "*"
-  # Always send cache-control: private header for api responses, avoid problems with wrong caching.
-  disable_cache_control: true
 }

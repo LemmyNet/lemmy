@@ -16,13 +16,14 @@ use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
 use actix_web::{
   dev::{ServerHandle, ServiceResponse},
-  middleware::{self, ErrorHandlerResponse, ErrorHandlers},
+  middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
   web::Data,
   App,
   HttpResponse,
   HttpServer,
   Result,
 };
+use actix_web_prom::PrometheusMetricsBuilder;
 use clap::{ArgAction, Parser};
 use lemmy_api_common::{
   context::LemmyContext,
@@ -48,7 +49,9 @@ use lemmy_utils::{
   rate_limit::RateLimitCell,
   response::jsonify_plain_text_errors,
   settings::{structs::Settings, SETTINGS},
+  version,
 };
+use prometheus::default_registry;
 use prometheus_metrics::serve_prometheus;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_tracing::TracingMiddleware;
@@ -106,6 +109,9 @@ pub struct CmdArgs {
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
+  // Print version number to log
+  println!("Lemmy v{}", version::VERSION);
+
   // return error 503 while running db migrations and startup tasks
   let mut startup_server_handle = None;
   if args.http_server {
@@ -131,7 +137,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   let federation_enabled = local_site.federation_enabled;
 
   if federation_enabled {
-    println!("federation enabled, host is {}", &SETTINGS.hostname);
+    println!("Federation enabled, host is {}", &SETTINGS.hostname);
   }
 
   check_private_instance_and_federation_enabled(&local_site)?;
@@ -142,7 +148,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   let rate_limit_cell = RateLimitCell::new(rate_limit_config);
 
   println!(
-    "Starting http server at {}:{}",
+    "Starting HTTP server at {}:{}",
     SETTINGS.bind, SETTINGS.port
   );
 
@@ -271,7 +277,6 @@ fn create_http_server(
 ) -> Result<ServerHandle, LemmyError> {
   // this must come before the HttpServer creation
   // creates a middleware that populates http metrics for each path, method, and status code
-  #[cfg(feature = "prometheus-metrics")]
   let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
     .registry(default_registry().clone())
     .build()
@@ -296,7 +301,11 @@ fn create_http_server(
       .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
       .wrap(FederationMiddleware::new(federation_config.clone()))
-      .wrap(SessionMiddleware::new(context.clone()));
+      .wrap(SessionMiddleware::new(context.clone()))
+      .wrap(Condition::new(
+        SETTINGS.prometheus.is_some(),
+        prom_api_metrics.clone(),
+      ));
 
     // The routes
     app
