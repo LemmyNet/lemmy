@@ -33,9 +33,9 @@ BEGIN
             AND pe.bot_account = FALSE
         UNION
         SELECT
-            pl.person_id, 
+            pl.person_id,
             p.community_id
-        FROM 
+        FROM
             post_like pl
             INNER JOIN post p ON pl.post_id = p.id
             INNER JOIN person pe ON c.creator_id = pe.id
@@ -44,8 +44,9 @@ BEGIN
             AND pe.bot_account = FALSE
         UNION
         SELECT
-            cl.person_id, p.community_id
-        FROM 
+            cl.person_id,
+            p.community_id
+        FROM
             comment_like cl
             INNER JOIN post p ON cl.post_id = p.id
             INNER JOIN person pe ON c.creator_id = pe.id
@@ -120,3 +121,4 @@ BEGIN
     RETURN count_;
 END;
 $$;
+
