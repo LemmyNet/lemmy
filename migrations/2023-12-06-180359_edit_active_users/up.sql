@@ -33,13 +33,14 @@ BEGIN
             AND pe.bot_account = FALSE
         UNION
         SELECT
-            pl.person_id, p.community_id
+            pl.person_id, 
+            p.community_id
         FROM 
             post_like pl
             INNER JOIN post p ON pl.post_id = p.id
             INNER JOIN person pe ON c.creator_id = pe.id
         WHERE
-            pl.published > ('now'::timestamp - i::INTERVAL)
+            pl.published > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE
         UNION
         SELECT
@@ -49,9 +50,8 @@ BEGIN
             INNER JOIN post p ON cl.post_id = p.id
             INNER JOIN person pe ON c.creator_id = pe.id
         WHERE
-            cl.published > ('now'::timestamp - i::INTERVAL)
-            AND pe.bot_account = FALSE
-    ) a
+            cl.published > ('now'::timestamp - i::interval)
+            AND pe.bot_account = FALSE) a
 GROUP BY
     community_id;
 END;
@@ -116,8 +116,7 @@ BEGIN
         WHERE
             pr.published > ('now'::timestamp - i::interval)
             AND pe.local = TRUE
-            AND pe.bot_account = FALSE
-    ) a;
+            AND pe.bot_account = FALSE) a;
     RETURN count_;
 END;
 $$;
