@@ -27,7 +27,7 @@ BEGIN
             p.community_id
         FROM
             post p
-            INNER JOIN person pe ON c.creator_id = pe.id
+            INNER JOIN person pe ON p.creator_id = pe.id
         WHERE
             p.published > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE
@@ -38,7 +38,7 @@ BEGIN
         FROM
             post_like pl
             INNER JOIN post p ON pl.post_id = p.id
-            INNER JOIN person pe ON c.creator_id = pe.id
+            INNER JOIN person pe ON pl.person_id = pe.id
         WHERE
             pl.published > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE
@@ -49,7 +49,7 @@ BEGIN
         FROM
             comment_like cl
             INNER JOIN post p ON cl.post_id = p.id
-            INNER JOIN person pe ON c.creator_id = pe.id
+            INNER JOIN person pe ON cl.person_id = pe.id
         WHERE
             cl.published > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE) a
