@@ -29,8 +29,7 @@ BEGIN
             INNER JOIN person pe ON p.creator_id = pe.id
         WHERE
             p.published > ('now'::timestamp - i::interval)
-            AND pe.bot_account = FALSE
-    ) a
+            AND pe.bot_account = FALSE) a
 GROUP BY
     community_id;
 END;
@@ -70,3 +69,4 @@ BEGIN
     RETURN count_;
 END;
 $$;
+
