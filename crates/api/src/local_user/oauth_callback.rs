@@ -51,11 +51,46 @@ pub async fn oauth_callback(
     return HttpResponse::Found().append_header(("Location", "/login?err=external_auth")).finish();
   }
 
-  // Send token request
-  let token_endpoint = Url::parse(&external_auth.token_endpoint);
-  if !token_endpoint.is_ok() {
-    return HttpResponse::Found().append_header(("Location", "/login?err=external_auth")).finish();
+  // Get endpoints
+  let token_endpoint;
+  let user_endpoint;
+  if external_auth.auth_type == "oidc" {
+    let discovery_endpoint =
+      if external_auth.issuer.ends_with("/.well-known/openid-configuration") {
+        external_auth.issuer.to_string()
+      } else {
+          format!("{}/.well-known/openid-configuration", external_auth.issuer)
+      };
+    let res = context.client().get(discovery_endpoint).send().await;
+    if !res.is_ok() {
+      return HttpResponse::Found().append_header(("Location", "/login?err=external_auth1")).finish();
+    }
+    let oidc_response = res.unwrap().json::<serde_json::Value>().await;
+    if !oidc_response.is_ok() {
+      return HttpResponse::Found().append_header(("Location", "/login?err=external_auth2")).finish();
+    }
+    let oidc_information = oidc_response.unwrap();
+    let token_endpoint_string =
+      serde_json::from_value::<String>(oidc_information["token_endpoint"].clone());
+    if !token_endpoint_string.is_ok() {
+      return HttpResponse::Found().append_header(("Location", "/login?err=external_auth3")).finish();
+    }
+    token_endpoint = Url::parse(&token_endpoint_string.unwrap());
+    let user_endpoint_string =
+      serde_json::from_value::<String>(oidc_information["userinfo_endpoint"].clone());
+    if !user_endpoint_string.is_ok() {
+      return HttpResponse::Found().append_header(("Location", "/login?err=external_auth4")).finish();
+    }
+    user_endpoint = Url::parse(&user_endpoint_string.unwrap());
+  } else {
+    token_endpoint = Url::parse(&external_auth.token_endpoint);
+    user_endpoint = Url::parse(&external_auth.user_endpoint);
+  };
+  if !token_endpoint.is_ok() || !user_endpoint.is_ok() {
+    return HttpResponse::Found().append_header(("Location", "/login?err=external_auth5")).finish();
   }
+
+  // Send token request
   let mut response = context.client()
     .post(token_endpoint.unwrap())
     .form(&[
@@ -83,10 +118,6 @@ pub async fn oauth_callback(
   let access_token = token_response.unwrap().access_token;
 
   // Make user info request
-  let user_endpoint = Url::parse(&external_auth.user_endpoint);
-  if !user_endpoint.is_ok() {
-    return HttpResponse::Found().append_header(("Location", "/login?err=external_auth")).finish();
-  }
   response = context.client()
     .post(user_endpoint.unwrap())
     .bearer_auth(access_token)
