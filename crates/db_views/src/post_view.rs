@@ -391,6 +391,8 @@ fn queries<'a>() -> Queries<
           _ => query = query.filter(community::hidden.eq(false)),
         }
       }
+    } else {
+      query = query.filter(community::hidden.eq(false));
     }
 
     if let Some(url_search) = &options.url_search {
