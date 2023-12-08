@@ -3,7 +3,7 @@ use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{ExternalAuthId, LocalSiteId},
-  schema::{external_auth},
+  schema::external_auth,
   source::external_auth::ExternalAuth,
   utils::{get_conn, DbPool},
 };
@@ -28,7 +28,10 @@ impl ExternalAuthView {
 
   // client_secret is in its own function because it should never be sent to any frontends,
   // and will only be needed when performing an oauth request by the server
-  pub async fn get_client_secret(pool: &mut DbPool<'_>, external_auth_id: ExternalAuthId) -> Result<String, Error> {
+  pub async fn get_client_secret(
+    pool: &mut DbPool<'_>,
+    external_auth_id: ExternalAuthId
+  ) -> Result<String, Error> {
     let conn = &mut get_conn(pool).await?;
     let external_auths = external_auth::table
       .find(external_auth_id)

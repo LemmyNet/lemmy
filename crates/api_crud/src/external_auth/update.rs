@@ -2,7 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
-  external_auth::{ExternalAuthResponse, EditExternalAuth},
+  external_auth::{EditExternalAuth, ExternalAuthResponse},
   utils::is_admin,
 };
 use lemmy_db_schema::source::{
@@ -40,7 +40,10 @@ pub async fn update_external_auth(
     })
     .scopes(data.scopes.to_string());
 
-  let external_auth = ExternalAuth::update(&mut context.pool(), data.id, &external_auth_form.build()).await?;
+  let external_auth =
+    ExternalAuth::update(&mut context.pool(), data.id, &external_auth_form.build()).await?;
   let view = ExternalAuthView::get(&mut context.pool(), external_auth.id).await?;
-  Ok(Json(ExternalAuthResponse { external_auth: view }))
+  Ok(Json(ExternalAuthResponse {
+    external_auth: view,
+  }))
 }

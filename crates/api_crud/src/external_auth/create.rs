@@ -38,5 +38,7 @@ pub async fn create_external_auth(
     .build();
   let external_auth = ExternalAuth::create(&mut context.pool(), &external_auth_form).await?;
   let view = ExternalAuthView::get(&mut context.pool(), external_auth.id).await?;
-  Ok(Json(ExternalAuthResponse { external_auth: view }))
+  Ok(Json(ExternalAuthResponse {
+    external_auth: view,
+  }))
 }
