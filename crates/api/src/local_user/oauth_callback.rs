@@ -63,23 +63,23 @@ pub async fn oauth_callback(
       };
     let res = context.client().get(discovery_endpoint).send().await;
     if !res.is_ok() {
-      return HttpResponse::Found().append_header(("Location", "/login?err=external_auth1")).finish();
+      return HttpResponse::Found().append_header(("Location", "/login?err=external_auth")).finish();
     }
     let oidc_response = res.unwrap().json::<serde_json::Value>().await;
     if !oidc_response.is_ok() {
-      return HttpResponse::Found().append_header(("Location", "/login?err=external_auth2")).finish();
+      return HttpResponse::Found().append_header(("Location", "/login?err=external_auth")).finish();
     }
     let oidc_information = oidc_response.unwrap();
     let token_endpoint_string =
       serde_json::from_value::<String>(oidc_information["token_endpoint"].clone());
     if !token_endpoint_string.is_ok() {
-      return HttpResponse::Found().append_header(("Location", "/login?err=external_auth3")).finish();
+      return HttpResponse::Found().append_header(("Location", "/login?err=external_auth")).finish();
     }
     token_endpoint = Url::parse(&token_endpoint_string.unwrap());
     let user_endpoint_string =
       serde_json::from_value::<String>(oidc_information["userinfo_endpoint"].clone());
     if !user_endpoint_string.is_ok() {
-      return HttpResponse::Found().append_header(("Location", "/login?err=external_auth4")).finish();
+      return HttpResponse::Found().append_header(("Location", "/login?err=external_auth")).finish();
     }
     user_endpoint = Url::parse(&user_endpoint_string.unwrap());
   } else {
@@ -149,20 +149,21 @@ pub async fn oauth_callback(
   let local_user: LocalUser;
   if local_user_view.is_ok() {
     local_user = local_user_view.unwrap().local_user;
-  } else {
+  } else if local_site.oauth_registration {
     let username = serde_json::from_value::<String>(user_info[external_auth.id_attribute]
       .clone());
     if !username.is_ok() {
       return HttpResponse::Found().append_header(("Location", "/login?err=external_auth")).finish();
     }
-    let registered_user = register_from_oauth(username.unwrap(), email, &context).await;
+    let user = str::replace(&username.unwrap(), " ", "_");
+    let registered_user = register_from_oauth(user, email, &context).await;
     if !registered_user.is_ok() {
+      tracing::error!("Failed to create user: {}", registered_user.err().unwrap());
       return HttpResponse::Found().append_header(("Location", "/login?err=user")).finish();
     }
     local_user = registered_user.unwrap();
-
-    // if registration is not allowed
-    // return HttpResponse::Found().append_header(("Location", "/signup")).finish();
+  } else {
+    return HttpResponse::Found().append_header(("Location", "/signup")).finish();
   }
 
   if (local_site.registration_mode == RegistrationMode::RequireApplication
@@ -185,7 +186,10 @@ pub async fn oauth_callback(
   let mut res = HttpResponse::build(StatusCode::FOUND)
     .insert_header(("Location", oauth_state.client_redirect_uri))
     .finish();
-  if !res.add_cookie(&create_login_cookie(jwt.unwrap())).is_ok() {
+  let mut cookie = create_login_cookie(jwt.unwrap());
+  cookie.set_path("/");
+  cookie.set_http_only(false); // We'll need to access the cookie via document.cookie for this req
+  if !res.add_cookie(&cookie).is_ok() {
     return HttpResponse::Found().append_header(("Location", "/login?err=jwt")).finish();
   }
   return res;  

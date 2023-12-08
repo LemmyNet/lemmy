@@ -89,6 +89,7 @@ pub async fn create_site(
     federation_enabled: data.federation_enabled,
     captcha_enabled: data.captcha_enabled,
     captcha_difficulty: data.captcha_difficulty.clone(),
+    oauth_registration: data.oauth_registration,
     ..Default::default()
   };
 
@@ -517,6 +518,7 @@ mod tests {
       published: Default::default(),
       updated: None,
       registration_mode: site_registration_mode,
+      oauth_registration: false,
       reports_email_admins: false,
     }
   }
@@ -575,6 +577,7 @@ mod tests {
       blocked_instances: None,
       taglines: None,
       registration_mode: site_registration_mode,
+      oauth_registration: None,
     }
   }
 }

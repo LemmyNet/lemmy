@@ -181,6 +181,7 @@ pub struct CreateSite {
   pub blocked_instances: Option<Vec<String>>,
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  pub oauth_registration: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -257,6 +258,8 @@ pub struct EditSite {
   /// A list of taglines shown at the top of the front page.
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  /// Whether or not external auth methods can auto-register users.
+  pub oauth_registration: Option<bool>,
   /// Whether to email admins for new reports.
   pub reports_email_admins: Option<bool>,
 }

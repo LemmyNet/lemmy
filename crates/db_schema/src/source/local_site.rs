@@ -58,6 +58,8 @@ pub struct LocalSite {
   pub published: DateTime<Utc>,
   pub updated: Option<DateTime<Utc>>,
   pub registration_mode: RegistrationMode,
+  /// Whether or not external auth methods can auto-register users.
+  pub oauth_registration: bool,
   /// Whether to email admins on new reports.
   pub reports_email_admins: bool,
 }
@@ -87,6 +89,7 @@ pub struct LocalSiteInsertForm {
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
+  pub oauth_registration: Option<bool>,
   pub reports_email_admins: Option<bool>,
 }
 
@@ -112,6 +115,7 @@ pub struct LocalSiteUpdateForm {
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
+  pub oauth_registration: Option<bool>,
   pub reports_email_admins: Option<bool>,
   pub updated: Option<Option<DateTime<Utc>>>,
 }

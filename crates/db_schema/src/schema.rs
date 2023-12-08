@@ -404,6 +404,7 @@ diesel::table! {
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
         registration_mode -> RegistrationModeEnum,
+        oauth_registration -> Bool,
         reports_email_admins -> Bool,
     }
 }
