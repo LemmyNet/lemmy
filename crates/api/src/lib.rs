@@ -169,4 +169,3 @@ mod tests {
     assert!(totp.is_ok());
   }
 }
-

@@ -19,7 +19,7 @@ pub async fn oauth_callback(
 ) -> HttpResponse {
   let site_view = SiteView::read_local(&mut context.pool()).await;
 
-  if !site_view.is_ok() {    
+  if !site_view.is_ok() {
     return HttpResponse::Found()
       .append_header(("Location", "/login?err=internal"))
       .finish();
@@ -60,7 +60,7 @@ pub async fn oauth_callback(
     {
       external_auth.issuer.to_string()
     } else {
-        format!("{}/.well-known/openid-configuration", external_auth.issuer)
+      format!("{}/.well-known/openid-configuration", external_auth.issuer)
     };
     let res = context.client().get(discovery_endpoint).send().await;
     if !res.is_ok() {
