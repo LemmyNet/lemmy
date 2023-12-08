@@ -229,7 +229,7 @@ pub async fn register_from_oauth(
     .private_key(Some(actor_keypair.private_key))
     .public_key(actor_keypair.public_key)
     .inbox_url(Some(generate_inbox_url(&actor_id)?))
-    .shared_inbox_url(Some(generate_shared_inbox_url(&actor_id)?))
+    .shared_inbox_url(Some(generate_shared_inbox_url(context.settings())?))
     .instance_id(site_view.site.instance_id)
     .build();
 

@@ -1,10 +1,16 @@
 use activitypub_federation::config::Data;
-use actix_web::{http::StatusCode, web::Query, HttpRequest, HttpResponse};
+use actix_web::{
+  cookie::{Cookie, SameSite},
+  http::StatusCode,
+  web::Query,
+  HttpRequest,
+  HttpResponse,
+};
 use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
   external_auth::{OAuth, OAuthResponse, TokenResponse},
-  utils::create_login_cookie,
+  utils::AUTH_COOKIE_NAME,
 };
 use lemmy_api_crud::user::create::register_from_oauth;
 use lemmy_db_schema::{newtypes::ExternalAuthId, source::local_user::LocalUser, RegistrationMode};
@@ -224,9 +230,11 @@ pub async fn oauth_callback(
   let mut res = HttpResponse::build(StatusCode::FOUND)
     .insert_header(("Location", oauth_state.client_redirect_uri))
     .finish();
-  let mut cookie = create_login_cookie(jwt.unwrap());
-  cookie.set_path("/");
+  let mut cookie = Cookie::new(AUTH_COOKIE_NAME, jwt.unwrap().into_inner());
+  cookie.set_secure(true);
+  cookie.set_same_site(SameSite::Lax);
   cookie.set_http_only(false); // We'll need to access the cookie via document.cookie for this req
+  cookie.set_path("/");
   if !res.add_cookie(&cookie).is_ok() {
     return HttpResponse::Found()
       .append_header(("Location", "/login?err=jwt"))
