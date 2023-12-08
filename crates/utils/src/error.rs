@@ -15,6 +15,9 @@ pub struct LemmyError {
   pub context: SpanTrace,
 }
 
+/// Maximum number of items in an array passed as API parameter. See [[LemmyErrorType::TooManyItems]]
+pub const MAX_API_PARAM_ELEMENTS: usize = 1000;
+
 impl<T> From<T> for LemmyError
 where
   T: Into<anyhow::Error>,
@@ -53,6 +56,9 @@ impl Display for LemmyError {
 
 impl actix_web::error::ResponseError for LemmyError {
   fn status_code(&self) -> http::StatusCode {
+    if self.error_type == LemmyErrorType::IncorrectLogin {
+      return http::StatusCode::UNAUTHORIZED;
+    }
     match self.inner.downcast_ref::<diesel::result::Error>() {
       Some(diesel::result::Error::NotFound) => http::StatusCode::NOT_FOUND,
       _ => http::StatusCode::BAD_REQUEST,
@@ -104,6 +110,8 @@ pub enum LemmyErrorType {
   CouldntFindCommunity,
   CouldntFindPerson,
   PersonIsBlocked,
+  CommunityIsBlocked,
+  InstanceIsBlocked,
   DownvotesAreDisabled,
   InstanceIsPrivate,
   /// Password must be between 10 and 60 characters
@@ -213,10 +221,12 @@ pub enum LemmyErrorType {
   CouldntSendWebmention,
   ContradictingFilters,
   InstanceBlockAlreadyExists,
-  /// `jwt` cookie must be marked secure and httponly
-  AuthCookieInsecure,
+  /// Thrown when an API call is submitted with more than 1000 array elements, see [[MAX_API_PARAM_ELEMENTS]]
+  TooManyItems,
   CommunityHasNoFollowers,
-  UserBackupTooLarge,
+  BanExpirationInPast,
+  InvalidUnixTime,
+  InvalidBotAction,
   Unknown(String),
 }
 

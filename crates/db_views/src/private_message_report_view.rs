@@ -56,7 +56,7 @@ fn queries<'a>() -> Queries<
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
     query
-      .order_by(private_message::published.desc())
+      .order_by(private_message::published.asc())
       .limit(limit)
       .offset(offset)
       .load::<PrivateMessageReportView>(&mut conn)

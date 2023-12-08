@@ -28,13 +28,14 @@ use crate::{
     PostSavedForm,
     PostUpdateForm,
   },
-  traits::{Crud, Likeable, Readable, Saveable},
+  traits::{Crud, Likeable, Saveable},
   utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX},
 };
 use ::url::Url;
 use chrono::{Duration, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
+use std::collections::HashSet;
 
 #[async_trait]
 impl Crud for Post {
@@ -265,13 +266,9 @@ impl Likeable for PostLike {
   ) -> Result<usize, Error> {
     use crate::schema::post_like::dsl;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      dsl::post_like
-        .filter(dsl::post_id.eq(post_id))
-        .filter(dsl::person_id.eq(person_id)),
-    )
-    .execute(conn)
-    .await
+    diesel::delete(dsl::post_like.find((person_id, post_id)))
+      .execute(conn)
+      .await
   }
 }
 
@@ -290,46 +287,46 @@ impl Saveable for PostSaved {
       .await
   }
   async fn unsave(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
-    use crate::schema::post_saved::dsl::{person_id, post_id, post_saved};
+    use crate::schema::post_saved::dsl::post_saved;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      post_saved
-        .filter(post_id.eq(post_saved_form.post_id))
-        .filter(person_id.eq(post_saved_form.person_id)),
-    )
-    .execute(conn)
-    .await
+    diesel::delete(post_saved.find((post_saved_form.person_id, post_saved_form.post_id)))
+      .execute(conn)
+      .await
   }
 }
 
-#[async_trait]
-impl Readable for PostRead {
-  type Form = PostReadForm;
-  async fn mark_as_read(
+impl PostRead {
+  pub async fn mark_as_read(
     pool: &mut DbPool<'_>,
-    post_read_form: &PostReadForm,
-  ) -> Result<Self, Error> {
-    use crate::schema::post_read::dsl::{person_id, post_id, post_read};
+    post_ids: HashSet<PostId>,
+    person_id: PersonId,
+  ) -> Result<usize, Error> {
+    use crate::schema::post_read::dsl::post_read;
     let conn = &mut get_conn(pool).await?;
+
+    let forms = post_ids
+      .into_iter()
+      .map(|post_id| PostReadForm { post_id, person_id })
+      .collect::<Vec<PostReadForm>>();
     insert_into(post_read)
-      .values(post_read_form)
-      .on_conflict((post_id, person_id))
-      .do_update()
-      .set(post_read_form)
-      .get_result::<Self>(conn)
+      .values(forms)
+      .on_conflict_do_nothing()
+      .execute(conn)
       .await
   }
 
-  async fn mark_as_unread(
+  pub async fn mark_as_unread(
     pool: &mut DbPool<'_>,
-    post_read_form: &PostReadForm,
+    post_id_: HashSet<PostId>,
+    person_id_: PersonId,
   ) -> Result<usize, Error> {
     use crate::schema::post_read::dsl::{person_id, post_id, post_read};
     let conn = &mut get_conn(pool).await?;
+
     diesel::delete(
       post_read
-        .filter(post_id.eq(post_read_form.post_id))
-        .filter(person_id.eq(post_read_form.person_id)),
+        .filter(post_id.eq_any(post_id_))
+        .filter(person_id.eq(person_id_)),
     )
     .execute(conn)
     .await
@@ -352,16 +349,16 @@ mod tests {
         PostLike,
         PostLikeForm,
         PostRead,
-        PostReadForm,
         PostSaved,
         PostSavedForm,
         PostUpdateForm,
       },
     },
-    traits::{Crud, Likeable, Readable, Saveable},
+    traits::{Crud, Likeable, Saveable},
     utils::build_db_pool_for_tests,
   };
   use serial_test::serial;
+  use std::collections::HashSet;
 
   #[tokio::test]
   #[serial]
@@ -398,6 +395,13 @@ mod tests {
 
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
+    let new_post2 = PostInsertForm::builder()
+      .name("A test post 2".into())
+      .creator_id(inserted_person.id)
+      .community_id(inserted_community.id)
+      .build();
+    let inserted_post2 = Post::create(pool, &new_post2).await.unwrap();
+
     let expected_post = Post {
       id: inserted_post.id,
       name: "A test post".into(),
@@ -432,7 +436,6 @@ mod tests {
     let inserted_post_like = PostLike::like(pool, &post_like_form).await.unwrap();
 
     let expected_post_like = PostLike {
-      id: inserted_post_like.id,
       post_id: inserted_post.id,
       person_id: inserted_person.id,
       published: inserted_post_like.published,
@@ -448,26 +451,20 @@ mod tests {
     let inserted_post_saved = PostSaved::save(pool, &post_saved_form).await.unwrap();
 
     let expected_post_saved = PostSaved {
-      id: inserted_post_saved.id,
       post_id: inserted_post.id,
       person_id: inserted_person.id,
       published: inserted_post_saved.published,
     };
 
     // Post Read
-    let post_read_form = PostReadForm {
-      post_id: inserted_post.id,
-      person_id: inserted_person.id,
-    };
-
-    let inserted_post_read = PostRead::mark_as_read(pool, &post_read_form).await.unwrap();
-
-    let expected_post_read = PostRead {
-      id: inserted_post_read.id,
-      post_id: inserted_post.id,
-      person_id: inserted_person.id,
-      published: inserted_post_read.published,
-    };
+    let marked_as_read = PostRead::mark_as_read(
+      pool,
+      HashSet::from([inserted_post.id, inserted_post2.id]),
+      inserted_person.id,
+    )
+    .await
+    .unwrap();
+    assert_eq!(2, marked_as_read);
 
     let read_post = Post::read(pool, inserted_post.id).await.unwrap();
 
@@ -482,11 +479,21 @@ mod tests {
     let like_removed = PostLike::remove(pool, inserted_person.id, inserted_post.id)
       .await
       .unwrap();
+    assert_eq!(1, like_removed);
     let saved_removed = PostSaved::unsave(pool, &post_saved_form).await.unwrap();
-    let read_removed = PostRead::mark_as_unread(pool, &post_read_form)
-      .await
-      .unwrap();
-    let num_deleted = Post::delete(pool, inserted_post.id).await.unwrap();
+    assert_eq!(1, saved_removed);
+    let read_removed = PostRead::mark_as_unread(
+      pool,
+      HashSet::from([inserted_post.id, inserted_post2.id]),
+      inserted_person.id,
+    )
+    .await
+    .unwrap();
+    assert_eq!(2, read_removed);
+
+    let num_deleted = Post::delete(pool, inserted_post.id).await.unwrap()
+      + Post::delete(pool, inserted_post2.id).await.unwrap();
+    assert_eq!(2, num_deleted);
     Community::delete(pool, inserted_community.id)
       .await
       .unwrap();
@@ -498,10 +505,5 @@ mod tests {
     assert_eq!(expected_post, updated_post);
     assert_eq!(expected_post_like, inserted_post_like);
     assert_eq!(expected_post_saved, inserted_post_saved);
-    assert_eq!(expected_post_read, inserted_post_read);
-    assert_eq!(1, like_removed);
-    assert_eq!(1, saved_removed);
-    assert_eq!(1, read_removed);
-    assert_eq!(1, num_deleted);
   }
 }

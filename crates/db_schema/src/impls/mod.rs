@@ -11,6 +11,7 @@ pub mod email_verification;
 pub mod external_auth;
 pub mod federation_allowlist;
 pub mod federation_blocklist;
+pub mod federation_queue_state;
 pub mod image_upload;
 pub mod instance;
 pub mod instance_block;

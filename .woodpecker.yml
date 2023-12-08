@@ -2,7 +2,7 @@
 # See https://github.com/woodpecker-ci/woodpecker/issues/1677
 
 variables:
-  - &rust_image "rust:1.72.1"
+  - &rust_image "rust:1.74.0"
   - &slow_check_paths
     - path:
         # rust source code
@@ -60,10 +60,20 @@ steps:
     image: rustlang/rust:nightly
     environment:
       # store cargo data in repo folder so that it gets cached between steps
-      CARGO_HOME: .cargo
+      CARGO_HOME: .cargo_home
     commands:
       # need make existing toolchain available
       - cargo +nightly fmt -- --check
+
+  cargo_machete:
+    group: format
+    image: rustlang/rust:nightly
+    commands:
+      - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
+      - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
+      - cp cargo-binstall /usr/local/cargo/bin
+      - cargo binstall -y cargo-machete
+      - cargo machete
 
   restore-cache:
     image: meltwater/drone-cache:v1
@@ -82,7 +92,7 @@ steps:
       cache_key: "rust-cache"
       path-style: true
       mount:
-        - ".cargo"
+        - ".cargo_home"
         - "target"
         - "api_tests/node_modules"
     secrets:
@@ -93,7 +103,7 @@ steps:
   check_api_common_default_features:
     image: *rust_image
     environment:
-      CARGO_HOME: .cargo
+      CARGO_HOME: .cargo_home
     commands:
       - cargo check --package lemmy_api_common
     when: *slow_check_paths
@@ -101,7 +111,7 @@ steps:
   lemmy_api_common_doesnt_depend_on_diesel:
     image: *rust_image
     environment:
-      CARGO_HOME: .cargo
+      CARGO_HOME: .cargo_home
     commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
     when: *slow_check_paths
@@ -109,7 +119,7 @@ steps:
   lemmy_api_common_works_with_wasm:
     image: *rust_image
     environment:
-      CARGO_HOME: .cargo
+      CARGO_HOME: .cargo_home
     commands:
       - "rustup target add wasm32-unknown-unknown"
       - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
@@ -118,7 +128,7 @@ steps:
   check_defaults_hjson_updated:
     image: *rust_image
     environment:
-      CARGO_HOME: .cargo
+      CARGO_HOME: .cargo_home
     commands:
       - export LEMMY_CONFIG_LOCATION=./config/config.hjson
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
@@ -128,7 +138,7 @@ steps:
   check_diesel_schema:
     image: willsquire/diesel-cli
     environment:
-      CARGO_HOME: .cargo
+      CARGO_HOME: .cargo_home
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
       - diesel migration run
@@ -139,7 +149,7 @@ steps:
   check_diesel_migration_revertable:
     image: willsquire/diesel-cli
     environment:
-      CARGO_HOME: .cargo
+      CARGO_HOME: .cargo_home
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
       - diesel migration run
@@ -149,31 +159,17 @@ steps:
   cargo_clippy:
     image: *rust_image
     environment:
-      CARGO_HOME: .cargo
+      CARGO_HOME: .cargo_home
     commands:
       # when adding new clippy lints, make sure to also add them in scripts/lint.sh
       - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets --features console --
-        -D warnings -D deprecated -D clippy::perf -D clippy::complexity
-        -D clippy::style -D clippy::correctness -D clippy::suspicious
-        -D clippy::dbg_macro -D clippy::inefficient_to_string
-        -D clippy::items-after-statements -D clippy::implicit_clone
-        -D clippy::cast_lossless -D clippy::manual_string_new
-        -D clippy::redundant_closure_for_method_calls
-        -D clippy::unused_self
-        -A clippy::uninlined_format_args
-        -D clippy::get_first
-        -D clippy::explicit_into_iter_loop
-        -D clippy::explicit_iter_loop
-        -D clippy::needless_collect
-        -D clippy::unwrap_used
-        -D clippy::indexing_slicing
+      - cargo clippy --workspace --tests --all-targets --features console -- -D warnings
     when: *slow_check_paths
 
   cargo_build:
     image: *rust_image
     environment:
-      CARGO_HOME: .cargo
+      CARGO_HOME: .cargo_home
     commands:
       - cargo build
       - mv target/debug/lemmy_server target/lemmy_server
@@ -185,7 +181,7 @@ steps:
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: "1"
-      CARGO_HOME: .cargo
+      CARGO_HOME: .cargo_home
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
@@ -222,7 +218,7 @@ steps:
       region: us-east-1
       path-style: true
       mount:
-        - ".cargo"
+        - ".cargo_home"
         - "target"
         - "api_tests/node_modules"
     secrets:
@@ -237,9 +233,7 @@ steps:
     settings:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile
-      # TODO fix arm build: see: https://woodpecker.join-lemmy.org/repos/129/pipeline/2888/20
-      # platforms: linux/amd64,linux/arm64
-      platforms: linux/amd64
+      platforms: linux/amd64, linux/arm64
       build_args:
         - RUST_RELEASE_MODE=release
       tag: ${CI_COMMIT_TAG}

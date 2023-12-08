@@ -2,12 +2,12 @@ use crate::{
   activity_lists::GroupInboxActivities,
   collections::{
     community_featured::ApubCommunityFeatured,
+    community_follower::ApubCommunityFollower,
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
   http::{create_apub_response, create_apub_tombstone_response},
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::collections::group_followers::GroupFollowers,
 };
 use activitypub_federation::{
   actix_web::inbox::receive_activity,
@@ -66,7 +66,7 @@ pub(crate) async fn get_apub_community_followers(
 ) -> Result<HttpResponse, LemmyError> {
   let community =
     Community::read_from_name(&mut context.pool(), &info.community_name, false).await?;
-  let followers = GroupFollowers::new(community, &context).await?;
+  let followers = ApubCommunityFollower::read_local(&community.into(), &context).await?;
   create_apub_response(&followers)
 }
 

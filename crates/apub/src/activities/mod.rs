@@ -9,10 +9,10 @@ use crate::{
     },
     create_or_update::private_message::send_create_or_update_pm,
     deletion::{
-      delete_user::delete_user,
       send_apub_delete_in_community,
       send_apub_delete_in_community_new,
       send_apub_delete_private_message,
+      send_apub_delete_user,
       DeletableObjects,
     },
     voting::send_like_activity,
@@ -44,7 +44,7 @@ use lemmy_db_schema::source::{
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::Serialize;
-use std::{ops::Deref, time::Duration};
+use std::ops::Deref;
 use tracing::info;
 use url::{ParseError, Url};
 use uuid::Uuid;
@@ -55,10 +55,6 @@ pub mod create_or_update;
 pub mod deletion;
 pub mod following;
 pub mod voting;
-
-/// Amount of time that the list of dead instances is cached. This is only updated once a day,
-/// so there is no harm in caching it for a longer time.
-pub static DEAD_INSTANCE_LIST_CACHE_DURATION: Duration = Duration::from_secs(30 * 60);
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
@@ -334,7 +330,7 @@ pub async fn match_outgoing_activities(
       DeletePrivateMessage(person, pm, deleted) => {
         send_apub_delete_private_message(&person.into(), pm, deleted, context).await
       }
-      DeleteUser(person, delete_content) => delete_user(person, delete_content, context).await,
+      DeleteUser(person, remove_data) => send_apub_delete_user(person, remove_data, context).await,
       CreateReport(url, actor, community, reason) => {
         Report::send(ObjectId::from(url), actor, community, reason, context).await
       }

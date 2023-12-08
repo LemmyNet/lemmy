@@ -66,7 +66,14 @@ impl ActivityHandler for Delete {
       )
       .await
     } else {
-      receive_delete_action(self.object.id(), &self.actor, true, context).await
+      receive_delete_action(
+        self.object.id(),
+        &self.actor,
+        true,
+        self.remove_data,
+        context,
+      )
+      .await
     }
   }
 }
@@ -94,6 +101,7 @@ impl Delete {
       summary,
       id,
       audience: community.map(|c| c.actor_id.clone().into()),
+      remove_data: None,
     })
   }
 }
@@ -115,7 +123,6 @@ pub(in crate::activities) async fn receive_remove_action(
         community_id: community.id,
         removed: Some(true),
         reason,
-        expires: None,
       };
       ModRemoveCommunity::create(&mut context.pool(), &form).await?;
       Community::update(
@@ -165,6 +172,7 @@ pub(in crate::activities) async fn receive_remove_action(
       .await?;
     }
     DeletableObjects::PrivateMessage(_) => unimplemented!(),
+    DeletableObjects::Person { .. } => unimplemented!(),
   }
   Ok(())
 }

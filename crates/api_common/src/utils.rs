@@ -1,26 +1,27 @@
 use crate::{
   context::LemmyContext,
   request::purge_image_from_pictrs,
-  sensitive::Sensitive,
-  site::FederatedInstances,
+  site::{FederatedInstances, InstanceWithFederationState},
 };
-use actix_web::cookie::{Cookie, SameSite};
-use anyhow::Context;
+use chrono::{DateTime, Days, Local, TimeZone, Utc};
+use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
+    community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
     instance::Instance,
+    instance_block::InstanceBlock,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
-    post::{Post, PostRead, PostReadForm},
+    post::{Post, PostRead},
   },
-  traits::{Crud, Readable},
+  traits::Crud,
   utils::DbPool,
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
@@ -32,17 +33,17 @@ use lemmy_db_views_actor::structs::{
 use lemmy_utils::{
   email::{send_email, translations::Lang},
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  location_info,
-  rate_limit::RateLimitConfig,
+  rate_limit::{ActionType, BucketConfig},
   settings::structs::Settings,
   utils::slurs::build_slur_regex,
 };
 use regex::Regex;
 use rosetta_i18n::{Language, LanguageId};
+use std::collections::HashSet;
 use tracing::warn;
 use url::{ParseError, Url};
 
-pub static AUTH_COOKIE_NAME: &str = "auth";
+pub static AUTH_COOKIE_NAME: &str = "jwt";
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
@@ -74,6 +75,26 @@ pub async fn is_mod_or_admin_opt(
     }
   } else {
     Err(LemmyErrorType::NotAModOrAdmin)?
+  }
+}
+
+/// Check that a person is either a mod of any community, or an admin
+///
+/// Should only be used for read operations
+#[tracing::instrument(skip_all)]
+pub async fn check_community_mod_of_any_or_admin_action(
+  local_user_view: &LocalUserView,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
+  let person = &local_user_view.person;
+
+  check_user_valid(person)?;
+
+  let is_mod_of_any_or_admin = CommunityView::is_mod_of_any_or_admin(pool, person.id).await?;
+  if !is_mod_of_any_or_admin {
+    Err(LemmyErrorType::NotAModOrAdmin)?
+  } else {
+    Ok(())
   }
 }
 
@@ -117,25 +138,11 @@ pub async fn mark_post_as_read(
   person_id: PersonId,
   post_id: PostId,
   pool: &mut DbPool<'_>,
-) -> Result<PostRead, LemmyError> {
-  let post_read_form = PostReadForm { post_id, person_id };
-
-  PostRead::mark_as_read(pool, &post_read_form)
+) -> Result<(), LemmyError> {
+  PostRead::mark_as_read(pool, HashSet::from([post_id]), person_id)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn mark_post_as_unread(
-  person_id: PersonId,
-  post_id: PostId,
-  pool: &mut DbPool<'_>,
-) -> Result<usize, LemmyError> {
-  let post_read_form = PostReadForm { post_id, person_id };
-
-  PostRead::mark_as_unread(pool, &post_read_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
+    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)?;
+  Ok(())
 }
 
 pub fn check_user_valid(person: &Person) -> Result<(), LemmyError> {
@@ -212,19 +219,6 @@ pub async fn check_community_mod_action(
   Ok(())
 }
 
-pub async fn check_community_mod_action_opt(
-  local_user_view: &LocalUserView,
-  community_id: Option<CommunityId>,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  if let Some(community_id) = community_id {
-    check_community_mod_action(&local_user_view.person, community_id, false, pool).await?;
-  } else {
-    is_admin(local_user_view)?;
-  }
-  Ok(())
-}
-
 pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   if post.deleted || post.removed {
     Err(LemmyErrorType::Deleted)?
@@ -233,15 +227,14 @@ pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   }
 }
 
+/// Throws an error if a recipient has blocked a person.
 #[tracing::instrument(skip_all)]
 pub async fn check_person_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
   pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
-  let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id)
-    .await
-    .is_ok();
+  let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id).await?;
   if is_blocked {
     Err(LemmyErrorType::PersonIsBlocked)?
   } else {
@@ -249,10 +242,64 @@ pub async fn check_person_block(
   }
 }
 
+/// Throws an error if a recipient has blocked a community.
+#[tracing::instrument(skip_all)]
+async fn check_community_block(
+  community_id: CommunityId,
+  person_id: PersonId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  let is_blocked = CommunityBlock::read(pool, person_id, community_id).await?;
+  if is_blocked {
+    Err(LemmyErrorType::CommunityIsBlocked)?
+  } else {
+    Ok(())
+  }
+}
+
+/// Throws an error if a recipient has blocked an instance.
+#[tracing::instrument(skip_all)]
+async fn check_instance_block(
+  instance_id: InstanceId,
+  person_id: PersonId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  let is_blocked = InstanceBlock::read(pool, person_id, instance_id).await?;
+  if is_blocked {
+    Err(LemmyErrorType::InstanceIsBlocked)?
+  } else {
+    Ok(())
+  }
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn check_person_instance_community_block(
+  my_id: PersonId,
+  potential_blocker_id: PersonId,
+  instance_id: InstanceId,
+  community_id: CommunityId,
+  pool: &mut DbPool<'_>,
+) -> Result<(), LemmyError> {
+  check_person_block(my_id, potential_blocker_id, pool).await?;
+  check_instance_block(instance_id, potential_blocker_id, pool).await?;
+  check_community_block(community_id, potential_blocker_id, pool).await?;
+  Ok(())
+}
+
 #[tracing::instrument(skip_all)]
 pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
   if score == -1 && !local_site.enable_downvotes {
     Err(LemmyErrorType::DownvotesAreDisabled)?
+  } else {
+    Ok(())
+  }
+}
+
+/// Dont allow bots to do certain actions, like voting
+#[tracing::instrument(skip_all)]
+pub fn check_bot_account(person: &Person) -> Result<(), LemmyError> {
+  if person.bot_account {
+    Err(LemmyErrorType::InvalidBotAction)?
   } else {
     Ok(())
   }
@@ -276,12 +323,27 @@ pub async fn build_federated_instances(
   pool: &mut DbPool<'_>,
 ) -> Result<Option<FederatedInstances>, LemmyError> {
   if local_site.federation_enabled {
-    // TODO I hate that this requires 3 queries
-    let (linked, allowed, blocked) = lemmy_db_schema::try_join_with_pool!(pool => (
-      Instance::linked,
-      Instance::allowlist,
-      Instance::blocklist
-    ))?;
+    let mut linked = Vec::new();
+    let mut allowed = Vec::new();
+    let mut blocked = Vec::new();
+
+    let all = Instance::read_all_with_fed_state(pool).await?;
+    for (instance, federation_state, is_blocked, is_allowed) in all {
+      let i = InstanceWithFederationState {
+        instance,
+        federation_state: federation_state.map(std::convert::Into::into),
+      };
+      if is_blocked {
+        // blocked instances will only have an entry here if they had been federated with in the past.
+        blocked.push(i);
+      } else if is_allowed {
+        allowed.push(i.clone());
+        linked.push(i);
+      } else {
+        // not explicitly allowed but implicitly linked
+        linked.push(i);
+      }
+    }
 
     Ok(Some(FederatedInstances {
       linked,
@@ -402,25 +464,21 @@ fn lang_str_to_lang(lang: &str) -> Lang {
 }
 
 pub fn local_site_rate_limit_to_rate_limit_config(
-  local_site_rate_limit: &LocalSiteRateLimit,
-) -> RateLimitConfig {
-  let l = local_site_rate_limit;
-  RateLimitConfig {
-    message: l.message,
-    message_per_second: l.message_per_second,
-    post: l.post,
-    post_per_second: l.post_per_second,
-    register: l.register,
-    register_per_second: l.register_per_second,
-    image: l.image,
-    image_per_second: l.image_per_second,
-    comment: l.comment,
-    comment_per_second: l.comment_per_second,
-    search: l.search,
-    search_per_second: l.search_per_second,
-    import_user_settings: l.import_user_settings,
-    import_user_settings_per_second: l.import_user_settings_per_second,
+  l: &LocalSiteRateLimit,
+) -> EnumMap<ActionType, BucketConfig> {
+  enum_map! {
+    ActionType::Message => (l.message, l.message_per_second),
+    ActionType::Post => (l.post, l.post_per_second),
+    ActionType::Register => (l.register, l.register_per_second),
+    ActionType::Image => (l.image, l.image_per_second),
+    ActionType::Comment => (l.comment, l.comment_per_second),
+    ActionType::Search => (l.search, l.search_per_second),
+    ActionType::ImportUserSettings => (l.import_user_settings, l.import_user_settings_per_second),
   }
+  .map(|_key, (capacity, secs_to_refill)| BucketConfig {
+    capacity: u32::try_from(capacity).unwrap_or(0),
+    secs_to_refill: u32::try_from(secs_to_refill).unwrap_or(0),
+  })
 }
 
 pub fn local_site_to_slur_regex(local_site: &LocalSite) -> Option<Regex> {
@@ -733,24 +791,8 @@ pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{actor_id}/inbox"))?.into())
 }
 
-pub fn generate_site_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  let mut actor_id: Url = actor_id.clone().into();
-  actor_id.set_path("site_inbox");
-  Ok(actor_id.into())
-}
-
-pub fn generate_shared_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, LemmyError> {
-  let actor_id: Url = actor_id.clone().into();
-  let url = format!(
-    "{}://{}{}/inbox",
-    &actor_id.scheme(),
-    &actor_id.host_str().context(location_info!())?,
-    if let Some(port) = actor_id.port() {
-      format!(":{port}")
-    } else {
-      String::new()
-    },
-  );
+pub fn generate_shared_inbox_url(settings: &Settings) -> Result<DbUrl, LemmyError> {
+  let url = format!("{}/inbox", settings.get_protocol_and_hostname());
   Ok(Url::parse(&url)?.into())
 }
 
@@ -766,12 +808,31 @@ pub fn generate_moderators_url(community_id: &DbUrl) -> Result<DbUrl, LemmyError
   Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
 }
 
-pub fn create_login_cookie(jwt: Sensitive<String>) -> Cookie<'static> {
-  let mut cookie = Cookie::new(AUTH_COOKIE_NAME, jwt.into_inner());
-  cookie.set_secure(true);
-  cookie.set_same_site(SameSite::Lax);
-  cookie.set_http_only(true);
-  cookie
+/// Ensure that ban/block expiry is in valid range. If its in past, throw error. If its more
+/// than 10 years in future, convert to permanent ban. Otherwise return the same value.
+pub fn check_expire_time(expires_unix_opt: Option<i64>) -> LemmyResult<Option<DateTime<Utc>>> {
+  if let Some(expires_unix) = expires_unix_opt {
+    let expires = Utc
+      .timestamp_opt(expires_unix, 0)
+      .single()
+      .ok_or(LemmyErrorType::InvalidUnixTime)?;
+
+    limit_expire_time(expires)
+  } else {
+    Ok(None)
+  }
+}
+
+fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>>> {
+  const MAX_BAN_TERM: Days = Days::new(10 * 365);
+
+  if expires < Local::now() {
+    Err(LemmyErrorType::BanExpirationInPast)?
+  } else if expires > Local::now() + MAX_BAN_TERM {
+    Ok(None)
+  } else {
+    Ok(Some(expires))
+  }
 }
 
 #[cfg(test)]
@@ -779,7 +840,8 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use crate::utils::{honeypot_check, password_length_check};
+  use crate::utils::{honeypot_check, limit_expire_time, password_length_check};
+  use chrono::{Days, Utc};
 
   #[test]
   #[rustfmt::skip]
@@ -796,5 +858,26 @@ mod tests {
     assert!(honeypot_check(&Some(String::new())).is_ok());
     assert!(honeypot_check(&Some("1".to_string())).is_err());
     assert!(honeypot_check(&Some("message".to_string())).is_err());
+  }
+
+  #[test]
+  fn test_limit_ban_term() {
+    // Ban expires in past, should throw error
+    assert!(limit_expire_time(Utc::now() - Days::new(5)).is_err());
+
+    // Legitimate ban term, return same value
+    let fourteen_days = Utc::now() + Days::new(14);
+    assert_eq!(
+      limit_expire_time(fourteen_days).unwrap(),
+      Some(fourteen_days)
+    );
+    let nine_years = Utc::now() + Days::new(365 * 9);
+    assert_eq!(limit_expire_time(nine_years).unwrap(), Some(nine_years));
+
+    // Too long ban term, changes to None (permanent ban)
+    assert_eq!(
+      limit_expire_time(Utc::now() + Days::new(365 * 11)).unwrap(),
+      None
+    );
   }
 }

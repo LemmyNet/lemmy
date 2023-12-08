@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.19.0-beta.7"
+version = "0.19.0-rc.13"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -19,6 +19,9 @@ repository.workspace = true
 
 [lib]
 doctest = false
+
+[lints]
+workspace = true
 
 [profile.release]
 debug = 0
@@ -41,7 +44,6 @@ console = [
   "reqwest-tracing/opentelemetry_0_16",
 ]
 json-log = ["tracing-subscriber/json"]
-prometheus-metrics = ["prometheus", "actix-web-prom"]
 default = []
 
 [workspace]
@@ -59,26 +61,48 @@ members = [
   "crates/federate",
 ]
 
+[workspace.lints.clippy]
+cast_lossless = "deny"
+complexity = "deny"
+correctness = "deny"
+dbg_macro = "deny"
+explicit_into_iter_loop = "deny"
+explicit_iter_loop = "deny"
+get_first = "deny"
+implicit_clone = "deny"
+indexing_slicing = "deny"
+inefficient_to_string = "deny"
+items-after-statements = "deny"
+manual_string_new = "deny"
+needless_collect = "deny"
+perf = "deny"
+redundant_closure_for_method_calls = "deny"
+style = "deny"
+suspicious = "deny"
+uninlined_format_args = "allow"
+unused_self = "deny"
+unwrap_used = "deny"
+
 [workspace.dependencies]
-lemmy_api = { version = "=0.19.0-beta.7", path = "./crates/api" }
-lemmy_api_crud = { version = "=0.19.0-beta.7", path = "./crates/api_crud" }
-lemmy_apub = { version = "=0.19.0-beta.7", path = "./crates/apub" }
-lemmy_utils = { version = "=0.19.0-beta.7", path = "./crates/utils" }
-lemmy_db_schema = { version = "=0.19.0-beta.7", path = "./crates/db_schema" }
-lemmy_api_common = { version = "=0.19.0-beta.7", path = "./crates/api_common" }
-lemmy_routes = { version = "=0.19.0-beta.7", path = "./crates/routes" }
-lemmy_db_views = { version = "=0.19.0-beta.7", path = "./crates/db_views" }
-lemmy_db_views_actor = { version = "=0.19.0-beta.7", path = "./crates/db_views_actor" }
-lemmy_db_views_moderator = { version = "=0.19.0-beta.7", path = "./crates/db_views_moderator" }
-activitypub_federation = { version = "0.5.0-beta.3", default-features = false, features = [
+lemmy_api = { version = "=0.19.0-rc.13", path = "./crates/api" }
+lemmy_api_crud = { version = "=0.19.0-rc.13", path = "./crates/api_crud" }
+lemmy_apub = { version = "=0.19.0-rc.13", path = "./crates/apub" }
+lemmy_utils = { version = "=0.19.0-rc.13", path = "./crates/utils" }
+lemmy_db_schema = { version = "=0.19.0-rc.13", path = "./crates/db_schema" }
+lemmy_api_common = { version = "=0.19.0-rc.13", path = "./crates/api_common" }
+lemmy_routes = { version = "=0.19.0-rc.13", path = "./crates/routes" }
+lemmy_db_views = { version = "=0.19.0-rc.13", path = "./crates/db_views" }
+lemmy_db_views_actor = { version = "=0.19.0-rc.13", path = "./crates/db_views_actor" }
+lemmy_db_views_moderator = { version = "=0.19.0-rc.13", path = "./crates/db_views_moderator" }
+activitypub_federation = { version = "0.5.0-beta.5", default-features = false, features = [
   "actix-web",
 ] }
-diesel = "2.1.0"
+diesel = "2.1.4"
 diesel_migrations = "2.1.0"
-diesel-async = "0.3.1"
-serde = { version = "1.0.167", features = ["derive"] }
-serde_with = "3.0.0"
-actix-web = { version = "4.3.1", default-features = false, features = [
+diesel-async = "0.4.1"
+serde = { version = "1.0.193", features = ["derive"] }
+serde_with = "3.4.0"
+actix-web = { version = "4.4.0", default-features = false, features = [
   "macros",
   "rustls",
   "compress-brotli",
@@ -86,49 +110,50 @@ actix-web = { version = "4.3.1", default-features = false, features = [
   "compress-zstd",
   "cookies",
 ] }
-tracing = "0.1.37"
-tracing-actix-web = { version = "0.7.5", default-features = false }
+tracing = "0.1.40"
+tracing-actix-web = { version = "0.7.9", default-features = false }
 tracing-error = "0.2.0"
-tracing-log = "0.1.3"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-url = { version = "2.4.0", features = ["serde"] }
-reqwest = { version = "0.11.18", features = ["json", "blocking", "gzip"] }
-reqwest-middleware = "0.2.2"
-reqwest-tracing = "0.4.5"
+tracing-log = "0.1.4"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+url = { version = "2.5.0", features = ["serde"] }
+reqwest = { version = "0.11.22", features = ["json", "blocking", "gzip"] }
+reqwest-middleware = "0.2.4"
+reqwest-tracing = "0.4.6"
 clokwerk = "0.4.0"
 doku = { version = "0.21.1", features = ["url-2"] }
 bcrypt = "0.15.0"
-chrono = { version = "0.4.26", features = ["serde"], default-features = false }
-serde_json = { version = "1.0.100", features = ["preserve_order"] }
-base64 = "0.21.2"
-uuid = { version = "1.4.0", features = ["serde", "v4"] }
-async-trait = "0.1.71"
+chrono = { version = "0.4.31", features = ["serde"], default-features = false }
+serde_json = { version = "1.0.108", features = ["preserve_order"] }
+base64 = "0.21.5"
+uuid = { version = "1.6.1", features = ["serde", "v4"] }
+async-trait = "0.1.74"
 captcha = "0.0.9"
-anyhow = { version = "1.0.71", features = [
+anyhow = { version = "1.0.75", features = [
   "backtrace",
 ] } # backtrace is on by default on nightly, but not stable rust
 diesel_ltree = "0.3.0"
-typed-builder = "0.15.0"
+typed-builder = "0.15.2"
 serial_test = "2.0.0"
-tokio = { version = "1.29.1", features = ["full"] }
-regex = "1.9.0"
+tokio = { version = "1.34.0", features = ["full"] }
+regex = "1.10.2"
 once_cell = "1.18.0"
 diesel-derive-newtype = "2.1.0"
 diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
 strum = "0.25.0"
-strum_macros = "0.25.1"
+strum_macros = "0.25.3"
 itertools = "0.11.0"
-futures = "0.3.28"
-http = "0.2.9"
-percent-encoding = "2.3.0"
+futures = "0.3.29"
+http = "0.2.11"
+percent-encoding = "2.3.1"
 rosetta-i18n = "0.1.3"
 opentelemetry = { version = "0.19.0", features = ["rt-tokio"] }
 tracing-opentelemetry = { version = "0.19.0" }
 ts-rs = { version = "7.0.0", features = ["serde-compat", "chrono-impl"] }
-rustls = { version = "0.21.3", features = ["dangerous_configuration"] }
-futures-util = "0.3.28"
-tokio-postgres = "0.7.8"
+rustls = { version = "0.21.9", features = ["dangerous_configuration"] }
+futures-util = "0.3.29"
+tokio-postgres = "0.7.10"
 tokio-postgres-rustls = "0.10.0"
+enum-map = "2.7"
 
 [dependencies]
 lemmy_api = { workspace = true }
@@ -138,11 +163,10 @@ lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_api_common = { workspace = true }
 lemmy_routes = { workspace = true }
-lemmy_federate = { version = "0.19.0-beta.7", path = "crates/federate" }
+lemmy_federate = { version = "0.19.0-rc.13", path = "crates/federate" }
 activitypub_federation = { workspace = true }
 diesel = { workspace = true }
 diesel-async = { workspace = true }
-serde = { workspace = true }
 actix-web = { workspace = true }
 tracing = { workspace = true }
 tracing-actix-web = { workspace = true }
@@ -154,22 +178,17 @@ reqwest = { workspace = true }
 reqwest-middleware = { workspace = true }
 reqwest-tracing = { workspace = true }
 clokwerk = { workspace = true }
-doku = { workspace = true }
 serde_json = { workspace = true }
 tracing-opentelemetry = { workspace = true, optional = true }
 opentelemetry = { workspace = true, optional = true }
 console-subscriber = { version = "0.1.10", optional = true }
 opentelemetry-otlp = { version = "0.12.0", optional = true }
-pict-rs = { version = "0.4.0-rc.12", optional = true }
+pict-rs = { version = "0.5.0-beta.2", optional = true }
 tokio.workspace = true
 actix-cors = "0.6.4"
-rustls = { workspace = true }
 futures-util = { workspace = true }
-tokio-postgres = { workspace = true }
-tokio-postgres-rustls = { workspace = true }
 chrono = { workspace = true }
-prometheus = { version = "0.13.3", features = ["process"], optional = true }
-actix-web-prom = { version = "0.6.0", optional = true }
+prometheus = { version = "0.13.3", features = ["process"] }
 serial_test = { workspace = true }
-clap = { version = "4.3.19", features = ["derive"] }
-actix-web-httpauth = "0.8.1"
+clap = { version = "4.4.10", features = ["derive"] }
+actix-web-prom = "0.7.0"

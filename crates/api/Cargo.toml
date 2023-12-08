@@ -13,6 +13,9 @@ name = "lemmy_api"
 path = "src/lib.rs"
 doctest = false
 
+[lints]
+workspace = true
+
 [dependencies]
 lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true, features = ["full"] }
@@ -27,8 +30,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 actix-web = { workspace = true }
 base64 = { workspace = true }
-uuid = { workspace = true }
-async-trait = { workspace = true }
 captcha = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
@@ -36,7 +37,7 @@ chrono = { workspace = true }
 url = { workspace = true }
 wav = "1.0.0"
 sitemap-rs = "0.2.0"
-totp-rs = { version = "5.0.2", features = ["gen_secret", "otpauth"] }
+totp-rs = { version = "5.4.0", features = ["gen_secret", "otpauth"] }
 actix-web-httpauth = "0.8.1"
 
 [dev-dependencies]

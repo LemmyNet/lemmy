@@ -1,16 +1,14 @@
 use crate::check_totp_2fa_valid;
 use actix_web::{
-  http::StatusCode,
   web::{Data, Json},
   HttpRequest,
-  HttpResponse,
 };
 use bcrypt::verify;
 use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
   person::{Login, LoginResponse},
-  utils::{check_user_valid, create_login_cookie},
+  utils::check_user_valid,
 };
 use lemmy_db_schema::{
   source::{local_site::LocalSite, registration_application::RegistrationApplication},
@@ -25,7 +23,7 @@ pub async fn login(
   data: Json<Login>,
   req: HttpRequest,
   context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<Json<LoginResponse>, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   // Fetch that username / email
@@ -65,15 +63,11 @@ pub async fn login(
 
   let jwt = Claims::generate(local_user_view.local_user.id, req, &context).await?;
 
-  let json = LoginResponse {
+  Ok(Json(LoginResponse {
     jwt: Some(jwt.clone()),
     verify_email_sent: false,
     registration_created: false,
-  };
-
-  let mut res = HttpResponse::build(StatusCode::OK).json(json);
-  res.add_cookie(&create_login_cookie(jwt))?;
-  Ok(res)
+  }))
 }
 
 async fn check_registration_application(

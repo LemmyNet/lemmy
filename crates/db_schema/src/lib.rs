@@ -30,8 +30,12 @@ pub mod newtypes;
 pub mod schema;
 #[cfg(feature = "full")]
 pub mod aliases {
-  use crate::schema::person;
-  diesel::alias!(person as person1: Person1, person as person2: Person2);
+  use crate::schema::{community_moderator, person};
+  diesel::alias!(
+    person as person1: Person1,
+    person as person2: Person2,
+    community_moderator as community_moderator1: CommunityModerator1
+  );
 }
 pub mod source;
 #[cfg(feature = "full")]
@@ -114,7 +118,9 @@ pub enum ListingType {
   ModeratorView,
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default,
+)]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
@@ -129,6 +135,7 @@ pub enum RegistrationMode {
   /// Open, but pending approval of a registration application.
   RequireApplication,
   /// Open to all.
+  #[default]
   Open,
 }
 

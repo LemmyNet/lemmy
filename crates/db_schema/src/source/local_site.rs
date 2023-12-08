@@ -13,10 +13,11 @@ use ts_rs::TS;
 use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The local site.
 pub struct LocalSite {
@@ -62,6 +63,9 @@ pub struct LocalSite {
   pub oauth_registration: bool,
   /// Whether to email admins on new reports.
   pub reports_email_admins: bool,
+  /// Whether to sign outgoing Activitypub fetches with private key of local instance. Some
+  /// Fediverse instances and platforms require this.
+  pub federation_signed_fetch: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -91,6 +95,7 @@ pub struct LocalSiteInsertForm {
   pub registration_mode: Option<RegistrationMode>,
   pub oauth_registration: Option<bool>,
   pub reports_email_admins: Option<bool>,
+  pub federation_signed_fetch: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -118,4 +123,5 @@ pub struct LocalSiteUpdateForm {
   pub oauth_registration: Option<bool>,
   pub reports_email_admins: Option<bool>,
   pub updated: Option<Option<DateTime<Utc>>>,
+  pub federation_signed_fetch: Option<bool>,
 }

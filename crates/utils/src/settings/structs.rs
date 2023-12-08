@@ -1,6 +1,9 @@
 use doku::Document;
 use serde::{Deserialize, Serialize};
-use std::net::{IpAddr, Ipv4Addr};
+use std::{
+  env,
+  net::{IpAddr, Ipv4Addr},
+};
 use url::Url;
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
@@ -49,6 +52,19 @@ pub struct Settings {
   #[default(None)]
   #[doku(example = "Some(Default::default())")]
   pub prometheus: Option<PrometheusConfig>,
+  /// Sets a response Access-Control-Allow-Origin CORS header
+  /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
+  #[default(None)]
+  #[doku(example = "*")]
+  cors_origin: Option<String>,
+}
+
+impl Settings {
+  pub fn cors_origin(&self) -> Option<String> {
+    env::var("LEMMY_CORS_ORIGIN")
+      .ok()
+      .or(self.cors_origin.clone())
+  }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
@@ -63,16 +79,27 @@ pub struct PictrsConfig {
   #[default(None)]
   pub api_key: Option<String>,
 
-  /// Cache remote images
+  /// By default the thumbnails for external links are stored in pict-rs. This ensures that they
+  /// can be reliably retrieved and can be resized using pict-rs APIs. However it also increases
+  /// storage usage. In case this is disabled, the Opengraph image is directly returned as
+  /// thumbnail.
+  ///
+  /// In some countries it is forbidden to copy preview images from newspaper articles and only
+  /// hotlinking is allowed. If that is the case for your instance, make sure that this setting is
+  /// disabled.
   #[default(true)]
-  pub cache_remote_images: bool,
+  pub cache_external_link_previews: bool,
+
+  /// Timeout for uploading images to pictrs (in seconds)
+  #[default(30)]
+  pub upload_timeout: u64,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default)]
 pub struct DatabaseConfig {
   #[serde(flatten, default)]
-  pub connection: DatabaseConnection,
+  pub(crate) connection: DatabaseConnection,
 
   /// Maximum number of active sql connections
   #[default(95)]
@@ -117,10 +144,10 @@ pub struct DatabaseConnectionParts {
   pub(super) user: String,
   /// Password to connect to postgres
   #[default("password")]
-  pub password: String,
+  pub(super) password: String,
   #[default("localhost")]
   /// Host where postgres is running
-  pub host: String,
+  pub(super) host: String,
   /// Port where postgres can be accessed
   #[default(5432)]
   pub(super) port: i32,
@@ -138,7 +165,7 @@ pub struct EmailConfig {
   /// Login name for smtp server
   pub smtp_login: Option<String>,
   /// Password to login to the smtp server
-  pub smtp_password: Option<String>,
+  smtp_password: Option<String>,
   #[doku(example = "noreply@example.com")]
   /// Address to send emails from, eg "noreply@your-instance.com"
   pub smtp_from_address: String,
@@ -146,6 +173,14 @@ pub struct EmailConfig {
   #[default("none")]
   #[doku(example = "none")]
   pub tls_type: String,
+}
+
+impl EmailConfig {
+  pub fn smtp_password(&self) -> Option<String> {
+    std::env::var("LEMMY_SMTP_PASSWORD")
+      .ok()
+      .or(self.smtp_password.clone())
+  }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
@@ -170,11 +205,11 @@ pub struct SetupConfig {
 #[serde(deny_unknown_fields)]
 pub struct PrometheusConfig {
   // Address that the Prometheus metrics will be served on.
-  #[default(Some(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))))]
+  #[default(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)))]
   #[doku(example = "127.0.0.1")]
-  pub bind: Option<IpAddr>,
+  pub bind: IpAddr,
   // Port that the Prometheus metrics will be served on.
-  #[default(Some(10002))]
+  #[default(10002)]
   #[doku(example = "10002")]
-  pub port: Option<i32>,
+  pub port: i32,
 }

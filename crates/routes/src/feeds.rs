@@ -2,7 +2,7 @@ use crate::local_user_view_from_jwt;
 use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
@@ -25,13 +25,7 @@ use lemmy_utils::{
   utils::markdown::{markdown_to_html, sanitize_html},
 };
 use once_cell::sync::Lazy;
-use rss::{
-  extension::dublincore::DublinCoreExtensionBuilder,
-  ChannelBuilder,
-  GuidBuilder,
-  Item,
-  ItemBuilder,
-};
+use rss::{extension::dublincore::DublinCoreExtension, Channel, Guid, Item};
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr};
 
@@ -132,6 +126,8 @@ async fn get_feed_data(
 ) -> Result<HttpResponse, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
+  check_private_instance(&None, &site_view.local_site)?;
+
   let posts = PostQuery {
     listing_type: (Some(listing_type)),
     sort: (Some(sort_type)),
@@ -144,18 +140,19 @@ async fn get_feed_data(
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
 
-  let mut channel_builder = ChannelBuilder::default();
-  channel_builder
-    .namespaces(RSS_NAMESPACE.clone())
-    .title(&format!("{} - {}", site_view.site.name, listing_type))
-    .link(context.settings().get_protocol_and_hostname())
-    .items(items);
+  let mut channel = Channel {
+    namespaces: RSS_NAMESPACE.clone(),
+    title: format!("{} - {}", site_view.site.name, listing_type),
+    link: context.settings().get_protocol_and_hostname(),
+    items,
+    ..Default::default()
+  };
 
   if let Some(site_desc) = site_view.site.description {
-    channel_builder.description(&site_desc);
+    channel.set_description(&site_desc);
   }
 
-  let rss = channel_builder.build().to_string();
+  let rss = channel.to_string();
   Ok(
     HttpResponse::Ok()
       .content_type("application/rss+xml")
@@ -215,7 +212,7 @@ async fn get_feed(
   }
   .map_err(ErrorBadRequest)?;
 
-  let rss = builder.build().to_string();
+  let rss = builder.to_string();
 
   Ok(
     HttpResponse::Ok()
@@ -231,9 +228,11 @@ async fn get_feed_user(
   limit: &i64,
   page: &i64,
   user_name: &str,
-) -> Result<ChannelBuilder, LemmyError> {
+) -> Result<Channel, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let person = Person::read_from_name(&mut context.pool(), user_name, false).await?;
+
+  check_private_instance(&None, &site_view.local_site)?;
 
   let posts = PostQuery {
     listing_type: (Some(ListingType::All)),
@@ -248,14 +247,15 @@ async fn get_feed_user(
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
 
-  let mut channel_builder = ChannelBuilder::default();
-  channel_builder
-    .namespaces(RSS_NAMESPACE.clone())
-    .title(&format!("{} - {}", site_view.site.name, person.name))
-    .link(person.actor_id.to_string())
-    .items(items);
+  let channel = Channel {
+    namespaces: RSS_NAMESPACE.clone(),
+    title: format!("{} - {}", site_view.site.name, person.name),
+    link: person.actor_id.to_string(),
+    items,
+    ..Default::default()
+  };
 
-  Ok(channel_builder)
+  Ok(channel)
 }
 
 #[tracing::instrument(skip_all)]
@@ -265,9 +265,11 @@ async fn get_feed_community(
   limit: &i64,
   page: &i64,
   community_name: &str,
-) -> Result<ChannelBuilder, LemmyError> {
+) -> Result<Channel, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let community = Community::read_from_name(&mut context.pool(), community_name, false).await?;
+
+  check_private_instance(&None, &site_view.local_site)?;
 
   let posts = PostQuery {
     sort: (Some(*sort_type)),
@@ -281,18 +283,19 @@ async fn get_feed_community(
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
 
-  let mut channel_builder = ChannelBuilder::default();
-  channel_builder
-    .namespaces(RSS_NAMESPACE.clone())
-    .title(&format!("{} - {}", site_view.site.name, community.name))
-    .link(community.actor_id.to_string())
-    .items(items);
+  let mut channel = Channel {
+    namespaces: RSS_NAMESPACE.clone(),
+    title: format!("{} - {}", site_view.site.name, community.name),
+    link: community.actor_id.to_string(),
+    items,
+    ..Default::default()
+  };
 
   if let Some(community_desc) = community.description {
-    channel_builder.description(markdown_to_html(&community_desc));
+    channel.set_description(markdown_to_html(&community_desc));
   }
 
-  Ok(channel_builder)
+  Ok(channel)
 }
 
 #[tracing::instrument(skip_all)]
@@ -302,9 +305,11 @@ async fn get_feed_front(
   limit: &i64,
   page: &i64,
   jwt: &str,
-) -> Result<ChannelBuilder, LemmyError> {
+) -> Result<Channel, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_user = local_user_view_from_jwt(jwt, context).await?;
+
+  check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
   let posts = PostQuery {
     listing_type: (Some(ListingType::Subscribed)),
@@ -320,28 +325,31 @@ async fn get_feed_front(
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let items = create_post_items(posts, &protocol_and_hostname)?;
 
-  let mut channel_builder = ChannelBuilder::default();
-  channel_builder
-    .namespaces(RSS_NAMESPACE.clone())
-    .title(&format!("{} - Subscribed", site_view.site.name))
-    .link(protocol_and_hostname)
-    .items(items);
+  let mut channel = Channel {
+    namespaces: RSS_NAMESPACE.clone(),
+    title: format!("{} - Subscribed", site_view.site.name),
+    link: protocol_and_hostname,
+    items,
+    ..Default::default()
+  };
 
   if let Some(site_desc) = site_view.site.description {
-    channel_builder.description(markdown_to_html(&site_desc));
+    channel.set_description(markdown_to_html(&site_desc));
   }
 
-  Ok(channel_builder)
+  Ok(channel)
 }
 
 #[tracing::instrument(skip_all)]
-async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> Result<ChannelBuilder, LemmyError> {
+async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> Result<Channel, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_user = local_user_view_from_jwt(jwt, context).await?;
   let person_id = local_user.local_user.person_id;
   let show_bot_accounts = local_user.local_user.show_bot_accounts;
 
   let sort = CommentSortType::New;
+
+  check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
   let replies = CommentReplyQuery {
     recipient_id: (Some(person_id)),
@@ -368,18 +376,19 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> Result<ChannelBuil
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let items = create_reply_and_mention_items(replies, mentions, &protocol_and_hostname)?;
 
-  let mut channel_builder = ChannelBuilder::default();
-  channel_builder
-    .namespaces(RSS_NAMESPACE.clone())
-    .title(&format!("{} - Inbox", site_view.site.name))
-    .link(format!("{protocol_and_hostname}/inbox",))
-    .items(items);
+  let mut channel = Channel {
+    namespaces: RSS_NAMESPACE.clone(),
+    title: format!("{} - Inbox", site_view.site.name),
+    link: format!("{protocol_and_hostname}/inbox"),
+    items,
+    ..Default::default()
+  };
 
   if let Some(site_desc) = site_view.site.description {
-    channel_builder.description(&site_desc);
+    channel.set_description(&site_desc);
   }
 
-  Ok(channel_builder)
+  Ok(channel)
 }
 
 #[tracing::instrument(skip_all)]
@@ -428,22 +437,26 @@ fn build_item(
   content: &str,
   protocol_and_hostname: &str,
 ) -> Result<Item, LemmyError> {
-  let mut i = ItemBuilder::default();
-  i.title(format!("Reply from {creator_name}"));
-  let author_url = format!("{protocol_and_hostname}/u/{creator_name}");
-  i.author(format!(
-    "/u/{creator_name} <a href=\"{author_url}\">(link)</a>"
-  ));
-  let dt = published;
-  i.pub_date(dt.to_rfc2822());
-  i.comments(url.to_owned());
-  let guid = GuidBuilder::default().permalink(true).value(url).build();
-  i.guid(guid);
-  i.link(url.to_owned());
   // TODO add images
-  let html = markdown_to_html(content);
-  i.description(html);
-  Ok(i.build())
+  let author_url = format!("{protocol_and_hostname}/u/{creator_name}");
+  let guid = Some(Guid {
+    permalink: true,
+    value: url.to_owned(),
+  });
+  let description = Some(markdown_to_html(content));
+
+  Ok(Item {
+    title: Some(format!("Reply from {creator_name}")),
+    author: Some(format!(
+      "/u/{creator_name} <a href=\"{author_url}\">(link)</a>"
+    )),
+    pub_date: Some(published.to_rfc2822()),
+    comments: Some(url.to_owned()),
+    link: Some(url.to_owned()),
+    guid,
+    description,
+    ..Default::default()
+  })
 }
 
 #[tracing::instrument(skip_all)]
@@ -454,31 +467,21 @@ fn create_post_items(
   let mut items: Vec<Item> = Vec::new();
 
   for p in posts {
-    let mut i = ItemBuilder::default();
-    let mut dc_extension = DublinCoreExtensionBuilder::default();
-
-    i.title(sanitize_html(&p.post.name));
-
-    dc_extension.creators(vec![p.creator.actor_id.to_string()]);
-
-    let dt = p.post.published;
-    i.pub_date(dt.to_rfc2822());
-
+    // TODO add images
     let post_url = format!("{}/post/{}", protocol_and_hostname, p.post.id);
-    i.comments(post_url.clone());
-    let guid = GuidBuilder::default()
-      .permalink(true)
-      .value(&post_url)
-      .build();
-    i.guid(guid);
-
     let community_url = format!(
       "{}/c/{}",
       protocol_and_hostname,
       sanitize_html(&p.community.name)
     );
-
-    // TODO add images
+    let dublin_core_ext = Some(DublinCoreExtension {
+      creators: vec![p.creator.actor_id.to_string()],
+      ..DublinCoreExtension::default()
+    });
+    let guid = Some(Guid {
+      permalink: true,
+      value: post_url.clone(),
+    });
     let mut description = format!("submitted by <a href=\"{}\">{}</a> to <a href=\"{}\">{}</a><br>{} points | <a href=\"{}\">{} comments</a>",
     p.creator.actor_id,
     sanitize_html(&p.creator.name),
@@ -489,23 +492,31 @@ fn create_post_items(
     p.counts.comments);
 
     // If its a url post, add it to the description
-    if let Some(url) = p.post.url {
+    let link = Some(if let Some(url) = p.post.url {
       let link_html = format!("<br><a href=\"{url}\">{url}</a>");
       description.push_str(&link_html);
-      i.link(url.to_string());
+      url.to_string()
     } else {
-      i.link(post_url.clone());
-    }
+      post_url.clone()
+    });
 
     if let Some(body) = p.post.body {
       let html = markdown_to_html(&body);
       description.push_str(&html);
     }
 
-    i.description(description);
+    let i = Item {
+      title: Some(sanitize_html(&p.post.name)),
+      pub_date: Some(p.post.published.to_rfc2822()),
+      comments: Some(post_url.clone()),
+      guid,
+      description: Some(description),
+      dublin_core_ext,
+      link,
+      ..Default::default()
+    };
 
-    i.dublin_core_ext(dc_extension.build());
-    items.push(i.build());
+    items.push(i);
   }
 
   Ok(items)

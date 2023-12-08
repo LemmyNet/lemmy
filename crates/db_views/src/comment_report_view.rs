@@ -62,7 +62,7 @@ fn queries<'a>() -> Queries<
     person::all_columns,
     aliases::person1.fields(person::all_columns),
     comment_aggregates::all_columns,
-    community_person_ban::id.nullable().is_not_null(),
+    community_person_ban::community_id.nullable().is_not_null(),
     comment_like::score.nullable(),
     aliases::person2.fields(person::all_columns).nullable(),
   );
@@ -105,16 +105,18 @@ fn queries<'a>() -> Queries<
       query = query.filter(post::community_id.eq(community_id));
     }
 
+    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
     if options.unresolved_only {
-      query = query.filter(comment_report::resolved.eq(false));
+      query = query
+        .filter(comment_report::resolved.eq(false))
+        .order_by(comment_report::published.asc());
+    } else {
+      query = query.order_by(comment_report::published.desc());
     }
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
-    query = query
-      .order_by(comment_report::published.desc())
-      .limit(limit)
-      .offset(offset);
+    query = query.limit(limit).offset(offset);
 
     // If its not an admin, get only the ones you mod
     if !user.local_user.admin {
@@ -230,7 +232,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Joinable, Reportable},
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, RANK_DEFAULT},
   };
   use serial_test::serial;
 
@@ -425,14 +427,13 @@ mod tests {
       },
       creator_banned_from_community: false,
       counts: CommentAggregates {
-        id: agg.id,
         comment_id: inserted_comment.id,
         score: 0,
         upvotes: 0,
         downvotes: 0,
         published: agg.published,
         child_count: 0,
-        hot_rank: 0.1728,
+        hot_rank: RANK_DEFAULT,
         controversy_rank: 0.0,
       },
       my_vote: None,
@@ -477,7 +478,7 @@ mod tests {
       reports,
       [
         expected_jessica_report_view.clone(),
-        expected_sara_report_view.clone()
+        expected_sara_report_view.clone(),
       ]
     );
 

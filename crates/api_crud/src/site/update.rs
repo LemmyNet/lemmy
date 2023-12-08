@@ -158,10 +158,7 @@ pub async fn update_site(
 
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
-  context
-    .settings_updated_channel()
-    .send(rate_limit_config)
-    .await?;
+  context.rate_limit_cell().set_config(rate_limit_config);
 
   Ok(Json(SiteResponse {
     site_view,
@@ -495,30 +492,12 @@ mod tests {
     site_registration_mode: RegistrationMode,
   ) -> LocalSite {
     LocalSite {
-      id: Default::default(),
-      site_id: Default::default(),
-      site_setup: true,
-      enable_downvotes: false,
-      enable_nsfw: false,
-      community_creation_admin_only: false,
-      require_email_verification: false,
       application_question: site_application_question,
       private_instance: site_is_private,
-      default_theme: String::new(),
-      default_post_listing_type: ListingType::All,
-      legal_information: None,
-      hide_modlog_mod_names: false,
-      application_email_admins: false,
       slur_filter_regex: site_slur_filter_regex,
-      actor_name_max_length: 0,
       federation_enabled: site_is_federated,
-      captcha_enabled: false,
-      captcha_difficulty: String::new(),
-      published: Default::default(),
-      updated: None,
       registration_mode: site_registration_mode,
-      oauth_registration: false,
-      reports_email_admins: false,
+      ..Default::default()
     }
   }
 

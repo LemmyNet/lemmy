@@ -49,8 +49,13 @@ fn queries<'a>() -> Queries<
   let list = move |mut conn: DbConn<'a>, options: RegistrationApplicationQuery| async move {
     let mut query = all_joins(registration_application::table.into_boxed());
 
+    // If viewing all applications, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
     if options.unread_only {
-      query = query.filter(registration_application::admin_id.is_null())
+      query = query
+        .filter(registration_application::admin_id.is_null())
+        .order_by(registration_application::published.asc());
+    } else {
+      query = query.order_by(registration_application::published.desc());
     }
 
     if options.verified_email_only {
@@ -59,10 +64,7 @@ fn queries<'a>() -> Queries<
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
-    query = query
-      .limit(limit)
-      .offset(offset)
-      .order_by(registration_application::published.desc());
+    query = query.limit(limit).offset(offset);
 
     query.load::<RegistrationApplicationView>(&mut conn).await
   };
@@ -267,6 +269,8 @@ mod tests {
         post_listing_mode: inserted_sara_local_user.post_listing_mode,
         totp_2fa_enabled: inserted_sara_local_user.totp_2fa_enabled,
         enable_keyboard_navigation: inserted_sara_local_user.enable_keyboard_navigation,
+        enable_animated_images: inserted_sara_local_user.enable_animated_images,
+        collapse_bot_comments: inserted_sara_local_user.collapse_bot_comments,
       },
       creator: Person {
         id: inserted_sara_person.id,
@@ -307,7 +311,7 @@ mod tests {
 
     assert_eq!(
       apps,
-      [read_jess_app_view.clone(), expected_sara_app_view.clone()]
+      [expected_sara_app_view.clone(), read_jess_app_view.clone()]
     );
 
     // Make sure the counts are correct

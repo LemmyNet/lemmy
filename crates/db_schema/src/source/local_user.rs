@@ -14,8 +14,9 @@ use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A local user.
 pub struct LocalUser {
@@ -58,6 +59,10 @@ pub struct LocalUser {
   pub totp_2fa_enabled: bool,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
   pub enable_keyboard_navigation: bool,
+  /// Whether user avatars and inline images in the UI that are gifs should be allowed to play or should be paused
+  pub enable_animated_images: bool,
+  /// Whether to auto-collapse bot comments.
+  pub collapse_bot_comments: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -91,6 +96,8 @@ pub struct LocalUserInsertForm {
   pub post_listing_mode: Option<PostListingMode>,
   pub totp_2fa_enabled: Option<bool>,
   pub enable_keyboard_navigation: Option<bool>,
+  pub enable_animated_images: Option<bool>,
+  pub collapse_bot_comments: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -120,4 +127,6 @@ pub struct LocalUserUpdateForm {
   pub post_listing_mode: Option<PostListingMode>,
   pub totp_2fa_enabled: Option<bool>,
   pub enable_keyboard_navigation: Option<bool>,
+  pub enable_animated_images: Option<bool>,
+  pub collapse_bot_comments: Option<bool>,
 }

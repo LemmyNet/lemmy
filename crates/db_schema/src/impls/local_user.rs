@@ -76,6 +76,8 @@ impl LocalUser {
       community,
       community_block,
       community_follower,
+      instance,
+      instance_block,
       person,
       person_block,
       post,
@@ -118,6 +120,13 @@ impl LocalUser {
       .get_results(conn)
       .await?;
 
+    let blocked_instances = instance_block::dsl::instance_block
+      .filter(instance_block::person_id.eq(person_id_))
+      .inner_join(instance::table)
+      .select(instance::domain)
+      .get_results(conn)
+      .await?;
+
     // TODO: use join for parallel queries?
 
     Ok(UserBackupLists {
@@ -126,6 +135,7 @@ impl LocalUser {
       saved_comments,
       blocked_communities,
       blocked_users,
+      blocked_instances,
     })
   }
 }
@@ -136,6 +146,7 @@ pub struct UserBackupLists {
   pub saved_comments: Vec<DbUrl>,
   pub blocked_communities: Vec<DbUrl>,
   pub blocked_users: Vec<DbUrl>,
+  pub blocked_instances: Vec<String>,
 }
 
 #[async_trait]

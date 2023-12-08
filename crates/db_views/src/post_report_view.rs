@@ -60,7 +60,7 @@ fn queries<'a>() -> Queries<
         community::all_columns,
         person::all_columns,
         aliases::person1.fields(person::all_columns),
-        community_person_ban::id.nullable().is_not_null(),
+        community_person_ban::community_id.nullable().is_not_null(),
         post_like::score.nullable(),
         post_aggregates::all_columns,
         aliases::person2.fields(person::all_columns.nullable()),
@@ -83,16 +83,18 @@ fn queries<'a>() -> Queries<
       query = query.filter(post::community_id.eq(community_id));
     }
 
+    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
     if options.unresolved_only {
-      query = query.filter(post_report::resolved.eq(false));
+      query = query
+        .filter(post_report::resolved.eq(false))
+        .order_by(post_report::published.asc());
+    } else {
+      query = query.order_by(post_report::published.desc());
     }
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
-    query = query
-      .order_by(post_report::published.desc())
-      .limit(limit)
-      .offset(offset);
+    query = query.limit(limit).offset(offset);
 
     // If its not an admin, get only the ones you mod
     if !user.local_user.admin {
@@ -337,8 +339,8 @@ mod tests {
       .await
       .unwrap();
 
-    assert_eq!(reports[0].creator.id, inserted_jessica.id);
     assert_eq!(reports[1].creator.id, inserted_sara.id);
+    assert_eq!(reports[0].creator.id, inserted_jessica.id);
 
     // Make sure the counts are correct
     let report_count = PostReportView::get_report_count(pool, inserted_timmy.id, false, None)

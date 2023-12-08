@@ -58,7 +58,7 @@ impl ActivityHandler for UndoDelete {
       )
       .await
     } else {
-      receive_delete_action(self.object.object.id(), &self.actor, false, context).await
+      receive_delete_action(self.object.object.id(), &self.actor, false, None, context).await
     }
   }
 }
@@ -107,7 +107,6 @@ impl UndoDelete {
           community_id: community.id,
           removed: Some(false),
           reason: None,
-          expires: None,
         };
         ModRemoveCommunity::create(&mut context.pool(), &form).await?;
         Community::update(
@@ -157,6 +156,7 @@ impl UndoDelete {
         .await?;
       }
       DeletableObjects::PrivateMessage(_) => unimplemented!(),
+      DeletableObjects::Person { .. } => unimplemented!(),
     }
     Ok(())
   }

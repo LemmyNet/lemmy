@@ -11,6 +11,9 @@ repository.workspace = true
 [lib]
 doctest = false
 
+[lints]
+workspace = true
+
 [dependencies]
 lemmy_utils = { workspace = true }
 lemmy_db_views = { workspace = true }
@@ -26,8 +29,7 @@ reqwest = { workspace = true, features = ["stream"] }
 reqwest-middleware = { workspace = true }
 serde = { workspace = true }
 url = { workspace = true }
-strum = { workspace = true }
 once_cell = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
-rss = "2.0.4"
+rss = "2.0.6"

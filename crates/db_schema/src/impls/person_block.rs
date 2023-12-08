@@ -5,7 +5,12 @@ use crate::{
   traits::Blockable,
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::{exists, insert_into},
+  result::Error,
+  select,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 
 impl PersonBlock {
@@ -13,12 +18,10 @@ impl PersonBlock {
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
     for_recipient_id: PersonId,
-  ) -> Result<Self, Error> {
+  ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
-    person_block
-      .filter(person_id.eq(for_person_id))
-      .filter(target_id.eq(for_recipient_id))
-      .first::<Self>(conn)
+    select(exists(person_block.find((for_person_id, for_recipient_id))))
+      .get_result(conn)
       .await
   }
 }
@@ -41,12 +44,8 @@ impl Blockable for PersonBlock {
   }
   async fn unblock(pool: &mut DbPool<'_>, person_block_form: &Self::Form) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      person_block
-        .filter(person_id.eq(person_block_form.person_id))
-        .filter(target_id.eq(person_block_form.target_id)),
-    )
-    .execute(conn)
-    .await
+    diesel::delete(person_block.find((person_block_form.person_id, person_block_form.target_id)))
+      .execute(conn)
+      .await
   }
 }

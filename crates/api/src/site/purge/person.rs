@@ -2,14 +2,15 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   request::delete_image_from_pictrs,
-  site::{PurgeItemResponse, PurgePerson},
+  site::PurgePerson,
   utils::is_admin,
+  SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
     image_upload::ImageUpload,
     moderator::{AdminPurgePerson, AdminPurgePersonForm},
-    person::Person,
+    person::{Person, PersonUpdateForm},
   },
   traits::Crud,
 };
@@ -21,24 +22,36 @@ pub async fn purge_person(
   data: Json<PurgePerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PurgeItemResponse>, LemmyError> {
+) -> Result<Json<SuccessResponse>, LemmyError> {
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 
   // Read the person to get their images
   let person_id = data.person_id;
 
-  let local_user = LocalUserView::read_person(&mut context.pool(), person_id).await?;
-  let pictrs_uploads =
-    ImageUpload::get_all_by_local_user_id(&mut context.pool(), &local_user.local_user.id).await?;
+  if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), person_id).await {
+    let pictrs_uploads =
+      ImageUpload::get_all_by_local_user_id(&mut context.pool(), &local_user.local_user.id).await?;
 
-  for upload in pictrs_uploads {
-    delete_image_from_pictrs(&upload.pictrs_alias, &upload.pictrs_delete_token, &context)
-      .await
-      .ok();
+    for upload in pictrs_uploads {
+      delete_image_from_pictrs(&upload.pictrs_alias, &upload.pictrs_delete_token, &context)
+        .await
+        .ok();
+    }
   }
 
-  Person::delete(&mut context.pool(), person_id).await?;
+  // Clear profile data.
+  Person::delete_account(&mut context.pool(), person_id).await?;
+  // Keep person record, but mark as banned to prevent login or refetching from home instance.
+  Person::update(
+    &mut context.pool(),
+    person_id,
+    &PersonUpdateForm {
+      banned: Some(true),
+      ..Default::default()
+    },
+  )
+  .await?;
 
   // Mod tables
   let form = AdminPurgePersonForm {
@@ -48,5 +61,5 @@ pub async fn purge_person(
 
   AdminPurgePerson::create(&mut context.pool(), &form).await?;
 
-  Ok(Json(PurgeItemResponse { success: true }))
+  Ok(Json(SuccessResponse::default()))
 }

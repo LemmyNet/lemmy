@@ -62,7 +62,7 @@ fn queries<'a>() -> Queries<
   let selection = (
     community::all_columns,
     CommunityFollower::select_subscribed_type(),
-    community_block::id.nullable().is_not_null(),
+    community_block::community_id.nullable().is_not_null(),
     community_aggregates::all_columns,
   );
 
@@ -189,10 +189,26 @@ impl CommunityView {
     let is_mod =
       CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await?;
     if is_mod {
+      Ok(true)
+    } else {
+      let is_admin = PersonView::read(pool, person_id).await?.is_admin;
+      Ok(is_admin)
+    }
+  }
+
+  /// Checks if a person is an admin, or moderator of any community.
+  pub async fn is_mod_of_any_or_admin(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+  ) -> Result<bool, Error> {
+    let is_mod_of_any =
+      CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await?;
+    if is_mod_of_any {
       return Ok(true);
     }
 
-    PersonView::is_admin(pool, person_id).await
+    let is_admin = PersonView::read(pool, person_id).await?.is_admin;
+    Ok(is_admin)
   }
 }
 
