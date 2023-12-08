@@ -28,7 +28,7 @@ impl ExternalAuth {
   }
   pub async fn delete(
     pool: &mut DbPool<'_>,
-    external_auth_id: ExternalAuthId
+    external_auth_id: ExternalAuthId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(external_auth.find(external_auth_id))

@@ -30,7 +30,7 @@ impl ExternalAuthView {
   // and will only be needed when performing an oauth request by the server
   pub async fn get_client_secret(
     pool: &mut DbPool<'_>,
-    external_auth_id: ExternalAuthId
+    external_auth_id: ExternalAuthId,
   ) -> Result<String, Error> {
     let conn = &mut get_conn(pool).await?;
     let external_auths = external_auth::table
