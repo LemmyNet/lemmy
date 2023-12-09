@@ -35,32 +35,6 @@ macro_rules! location_info {
   };
 }
 
-/// Changes `A.B<C>.D` to `D<B<A, C>>`
-#[macro_export]
-macro_rules! type_chain {
-  (
-    $($path_seg_1:ident)::*
-    $(<$($generic_ty_1:ty),*>)?
-    .
-    $($path_seg_2:ident)::*
-    $(<$($generic_ty_2:ty),*>)?
-    $(.$($remaining:tt)*)?
-  ) => {
-    type_chain!(
-      $($path_seg_2)::* <
-        $($path_seg_1)::*
-        $(<$($generic_ty_1),*>)?
-        $($(, $generic_ty_2)*)?
-      >
-      $(.$($remaining)*)?
-    )
-  };
-
-  ($($tt:tt)*) => {
-    $($tt)*
-  };
-}
-
 /// tokio::spawn, but accepts a future that may fail and also
 /// * logs errors
 /// * attaches the spawned task to the tracing span of the caller for better logging

@@ -407,7 +407,13 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
 pub type BoxExpr<QS, T> = Box<dyn BoxableExpression<QS, Pg, SqlType = T>>;
 
 pub trait FilterVarEq<T, U> {
-  /// Returns `self.filter(expr.eq(other))` and changes `expr` to `other` so it's only evaluated once
+  /// `query.filter_var_eq(&mut expr, other)` returns `query.filter(expr.eq(other))`
+  /// and changes `expr` to `other` so it's only evaluated once.
+  ///
+  /// If this was a method on the expression instead of the query, then idiots
+  /// (sometimes you are one) could do `query.filter(expr.var_eq(other).or(boom))`
+  /// without realizing that this causes `expr` to be set to the wrong value on
+  /// some rows where `boom` is `true`.
   fn filter_var_eq(self, expr: &mut T, other: U) -> Self;
 }
 
