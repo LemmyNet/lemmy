@@ -113,6 +113,7 @@ macro_rules! field {
   }};
 }
 
+#[allow(clippy::large_enum_variant)]
 enum QueryInput<'a> {
   Read {
     post_id: PostId,
@@ -512,7 +513,7 @@ impl<'a> PostQuery<'a> {
 #[cfg(test)]
 mod tests {
   use crate::{
-    post_view::{PostQuery, PostView},
+    post_view::{PaginationCursorData, PostQuery, PostView},
     structs::LocalUserView,
   };
   use chrono::Utc;
@@ -1187,7 +1188,7 @@ mod tests {
       post_ids.extend(posts.iter().map(|p| p.post.id));
 
       if let Some(p) = posts.iter().last() {
-        page_after = Some(p.post.id);
+        page_after = Some(PaginationCursorData(p.counts));
       } else {
         break;
       }
