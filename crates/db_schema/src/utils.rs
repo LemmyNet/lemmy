@@ -26,6 +26,7 @@ use diesel::{
   PgConnection,
 };
 use diesel_async::{
+  methods::LoadQuery,
   pg::AsyncPgConnection,
   pooled_connection::{
     deadpool::{Object as PooledConnection, Pool},
@@ -463,6 +464,17 @@ where
     // `into_sql` is not used because it requires specifying the `T` in `Option<T>`
     Box::new(dsl::sql::<sql_types::Nullable<ST>>("(NULL)"))
   }
+}
+
+/// Boxed query that works with `first` or `load` on dereferenced conn
+pub trait FirstOrLoad<'query, U: Send>:
+  boxed_meth::LimitDsl + LoadQuery<'query, AsyncPgConnection, U> + 'query
+{
+}
+
+impl<'query, T: boxed_meth::LimitDsl + LoadQuery<'query, AsyncPgConnection, U> + 'query, U: Send>
+  FirstOrLoad<'query, U> for T
+{
 }
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
