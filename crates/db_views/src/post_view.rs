@@ -1172,15 +1172,26 @@ mod tests {
       }
     }
 
-    let mut post_ids = PostQuery {
-      sort: Some(SortType::MostComments),
-      ..data.default_post_query()
+    let mut post_ids = vec![];
+    let mut page_after = None;
+    loop {
+      let posts = PostQuery {
+        sort: Some(SortType::MostComments),
+        page_after,
+        limit: Some(10),
+        ..data.default_post_query()
+      }
+      .list(pool)
+      .await?;
+
+      post_ids.extend(posts.iter().map(|p| p.post.id));
+
+      if let Some(p) = posts.iter().last() {
+        page_after = Some(p.post.id);
+      } else {
+        break;
+      }
     }
-    .list(pool)
-    .await?
-    .into_iter()
-    .map(|p| p.post.id)
-    .collect::<Vec<_>>();
 
     cleanup(data, pool).await?;
 
