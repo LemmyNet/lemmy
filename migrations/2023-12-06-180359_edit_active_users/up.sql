@@ -107,16 +107,6 @@ BEGIN
         WHERE
             cl.published > ('now'::timestamp - i::interval)
             AND pe.local = TRUE
-            AND pe.bot_account = FALSE
-        UNION
-        SELECT
-            pr.person_id
-        FROM
-            post_read pr
-            INNER JOIN person pe ON pr.person_id = pe.id
-        WHERE
-            pr.published > ('now'::timestamp - i::interval)
-            AND pe.local = TRUE
             AND pe.bot_account = FALSE) a;
     RETURN count_;
 END;
