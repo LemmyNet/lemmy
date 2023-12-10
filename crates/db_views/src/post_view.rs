@@ -75,9 +75,9 @@ macro_rules! field {
     PaginationCursorField {
       then_order_by_desc: |query| query.then_order_by(post_aggregates::$name.desc()),
       then_order_by_asc: |query| query.then_order_by(post_aggregates::$name.asc()),
-      le: |e| Box::new(post_aggregates::$name.le(e.$name),
-      ge: |e| Box::new(post_aggregates::$name.ge(e.$name),
-      ne: |e| Box::new(post_aggregates::$name.ne(e.$name),
+      le: |e| Box::new(post_aggregates::$name.le(e.$name)),
+      ge: |e| Box::new(post_aggregates::$name.ge(e.$name)),
+      ne: |e| Box::new(post_aggregates::$name.ne(e.$name)),
     }
   };
 }
