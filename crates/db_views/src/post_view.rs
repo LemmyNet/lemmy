@@ -1187,7 +1187,7 @@ mod tests {
 
       post_ids.extend(posts.iter().map(|p| p.post.id));
 
-      if let Some(p) = posts.iter().last() {
+      if let Some(p) = posts.into_iter().last() {
         page_after = Some(PaginationCursorData(p.counts));
       } else {
         break;
