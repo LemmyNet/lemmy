@@ -71,9 +71,10 @@ struct PaginationCursorField<Q, QS> {
 /// Returns `PaginationCursorField<_, _>` for the given name
 macro_rules! field {
   ($name:ident) => {
+    // Type inference doesn't work if normal method call syntax is used
     PaginationCursorField {
-      then_order_by_desc: |query| query.then_order_by(post_aggregates::$name.desc()),
-      then_order_by_asc: |query| query.then_order_by(post_aggregates::$name.asc()),
+      then_order_by_desc: |query| QueryDsl::then_order_by(query, post_aggregates::$name.desc()),
+      then_order_by_asc: |query| QueryDsl::then_order_by(query, post_aggregates::$name.asc()),
       le: |e| Box::new(post_aggregates::$name.le(e.$name)),
       ge: |e| Box::new(post_aggregates::$name.ge(e.$name)),
       ne: |e| Box::new(post_aggregates::$name.ne(e.$name)),
