@@ -937,11 +937,11 @@ mod tests {
 
     let spanish_id = Language::read_id_from_code(pool, Some("es"))
       .await?
-      .unwrap();
+      .expect("spanish should exist");
 
     let french_id = Language::read_id_from_code(pool, Some("fr"))
       .await?
-      .unwrap();
+      .expect("french should exist");
 
     let post_spanish = PostInsertForm::builder()
       .name(EL_POSTO.to_string())
