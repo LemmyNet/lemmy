@@ -5,7 +5,7 @@ use diesel::{
   expression::AsExpression,
   pg::Pg,
   result::Error,
-  sql_types::{SingleValue, SqlType},
+  sql_types::{self, SingleValue, SqlType},
   BoolExpressionMethods,
   Expression,
   ExpressionMethods,
@@ -39,13 +39,13 @@ use lemmy_db_schema::{
   },
   utils::{
     and_then,
-    boxed_meth,
     functions::coalesce,
     fuzzy_search,
     get_conn,
     is_some_and,
     limit_and_offset,
     now,
+    BoxExpr,
     DbPool,
     FilterVarEq,
     FirstOrLoad,
@@ -61,56 +61,25 @@ enum Ord {
   Asc,
 }
 
-trait PaginationCursorField<Q> {
-  fn order_and_page_filter(
-    &self,
-    query: Q,
-    order: Ord,
-    first: &Option<PaginationCursorData>,
-    last: &Option<PaginationCursorData>,
-  ) -> Q;
+struct PaginationCursorField<Q, QS> {
+  then_order_by_desc: fn(Q) -> Q,
+  then_order_by_asc: fn(Q) -> Q,
+  le: fn(&PostAggregates) -> BoxExpr<QS, sql_types::Bool>,
+  ge: fn(&PostAggregates) -> BoxExpr<QS, sql_types::Bool>,
+  ne: fn(&PostAggregates) -> BoxExpr<QS, sql_types::Bool>,
 }
 
-impl<Q, C, T, F> PaginationCursorField<Q> for (C, F)
-where
-  Q: boxed_meth::ThenOrderDsl<dsl::Desc<C>>
-    + boxed_meth::ThenOrderDsl<dsl::Asc<C>>
-    + boxed_meth::FilterDsl<dsl::LtEq<C, T>>
-    + boxed_meth::FilterDsl<dsl::GtEq<C, T>>,
-  C: Expression + Copy,
-  C::SqlType: SingleValue + SqlType,
-  T: AsExpression<C::SqlType>,
-  F: Fn(&PostAggregates) -> T + Copy,
-{
-  fn order_and_page_filter(
-    &self,
-    mut query: Q,
-    order: Ord,
-    first: &Option<PaginationCursorData>,
-    last: &Option<PaginationCursorData>,
-  ) -> Q {
-    let (column, getter) = *self;
-    let min;
-    let max;
-    (query, min, max) = match order {
-      Ord::Desc => (query.then_order_by(column.desc()), last, first),
-      Ord::Asc => (query.then_order_by(column.asc()), first, last),
-    };
-    if let Some(min) = min {
-      query = query.filter(column.ge(getter(&min.0)));
-    }
-    if let Some(max) = max {
-      query = query.filter(column.le(getter(&max.0)));
-    }
-    query
-  }
-}
-
-/// Returns `&dyn PaginationCursorField<_>` for the given name
+/// Returns `PaginationCursorField<_, _>` for the given name
 macro_rules! field {
-  ($name:ident) => {{
-    &(post_aggregates::$name, |e: &PostAggregates| e.$name) as &dyn PaginationCursorField<_>
-  }};
+  ($name:ident) => {
+    PaginationCursorField {
+      then_order_by_desc: |query| query.then_order_by(post_aggregates::$name.desc()),
+      then_order_by_asc: |query| query.then_order_by(post_aggregates::$name.asc()),
+      le: |e| Box::new(post_aggregates::$name.le(e.$name),
+      ge: |e| Box::new(post_aggregates::$name.ge(e.$name),
+      ne: |e| Box::new(post_aggregates::$name.ne(e.$name),
+    }
+  };
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -354,6 +323,12 @@ async fn build_query<'a>(
           _ => Some((Ord::Desc, field!(published))),
         };
 
+        let false_sql = || -> BoxExpr<_, sql_types::Bool> {
+          Box::new(false.into_sql::<sql_types::Bool>())
+        };
+        let mut previous_fields_ne_first: Box<dyn Fn() -> _> = Box::new(false_sql);
+        let mut previous_fields_ne_last: Box<dyn Fn() -> _> = Box::new(false_sql);
+
         for (order, field) in [
           Some((Ord::Desc, featured_field)),
           Some(main_sort),
@@ -362,8 +337,19 @@ async fn build_query<'a>(
         .into_iter()
         .flatten()
         {
-          query =
-            field.order_and_page_filter(query, order, &options.page_after, &page_before_or_equal);
+          let (then_order_by_field, compare_first, compare_last) = match order {
+            Ord::Desc => (field.then_order_by_desc, field.le, field.ge),
+            Ord::Asc => (field.then_order_by_asc, field.ge, field.le),
+          };
+          query = then_order_by_field(query);
+          if let Some(first) = &options.page_after {
+            query = query.filter(compare_first(&first.0).or(previous_fields_ne_first()));
+            previous_fields_ne_first = Box::new(|| previous_fields_ne_first().or((field.ne)(&first.0)));
+          }
+          if let Some(last) = &page_before_or_equal {
+            query = query.filter(compare_last(&last.0).or(previous_fields_ne_last()));
+            previous_fields_ne_last = Box::new(|| previous_fields_ne_last().or((field.ne)(&last.0)));
+          }
         }
 
         debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
