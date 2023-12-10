@@ -344,12 +344,12 @@ async fn build_query<'a>(
           if let Some(first) = &options.page_after {
             query = query.filter(compare_first(&first.0).or(previous_fields_ne_first()));
             previous_fields_ne_first =
-              Box::new(|| previous_fields_ne_first().or((field.ne)(&first.0)));
+              Box::new(|| Box::new(previous_fields_ne_first().or((field.ne)(&first.0))));
           }
           if let Some(last) = &page_before_or_equal {
             query = query.filter(compare_last(&last.0).or(previous_fields_ne_last()));
             previous_fields_ne_last =
-              Box::new(|| previous_fields_ne_last().or((field.ne)(&last.0)));
+              Box::new(|| Box::new(previous_fields_ne_last().or((field.ne)(&last.0))));
           }
         }
 
