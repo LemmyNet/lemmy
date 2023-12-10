@@ -1,14 +1,13 @@
 use crate::structs::{LocalUserView, PaginationCursor, PostView};
 use diesel::{
   debug_query,
-  dsl::{self, exists, not, IntervalDsl},
-  expression::AsExpression,
+  dsl::{exists, not, IntervalDsl},
   pg::Pg,
   result::Error,
-  sql_types::{self, SingleValue, SqlType},
+  sql_types,
   BoolExpressionMethods,
-  Expression,
   ExpressionMethods,
+  IntoSql,
   NullableExpressionMethods,
   OptionalExtension,
   PgTextExpressionMethods,
