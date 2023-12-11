@@ -328,9 +328,7 @@ async fn build_query<'a>(
           Some(main_sort),
           tie_breaker,
         ];
-        let sorts_iter = sorts
-          .iter()
-          .flatten();
+        let sorts_iter = sorts.iter().flatten();
 
         // This loop does almost the same thing as sorting by and comparing tuples. If the rows were
         // only sorted by 1 field called `foo` in descending order, then it would be like this:
@@ -365,11 +363,13 @@ async fn build_query<'a>(
             (&options.page_after, compare_first),
             (&page_before_or_equal, compare_last),
           ] {
-            let Some(cursor_data) = cursor_data else { continue };
+            let Some(cursor_data) = cursor_data else {
+              continue;
+            };
             let mut condition: BoxExpr<_, sql_types::Bool> = Box::new(compare(&cursor_data.0));
 
-            // For each field that's sorted before the current one, change `condition` to `true`
-            // if the row's value doesn't equal the cursor's value.
+            // For each field that was sorted before the current one, skip the filter by changing
+            // `condition` to `true` if the row's value doesn't equal the cursor's value.
             for (_, other_field) in sorts_iter.clone().take(i) {
               condition = Box::new(condition.or((other_field.ne)(&cursor_data.0)));
             }
