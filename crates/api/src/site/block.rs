@@ -8,7 +8,7 @@ use lemmy_db_schema::{
   source::instance_block::{InstanceBlock, InstanceBlockForm},
   traits::Blockable,
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
@@ -19,8 +19,7 @@ pub async fn block_instance(
 ) -> Result<Json<BlockInstanceResponse>, LemmyError> {
   let instance_id = data.instance_id;
   let person_id = local_user_view.person.id;
-  let local_site = SiteView::read_local(&mut context.pool()).await?;
-  if local_site.site.instance_id == instance_id {
+  if local_user_view.person.instance_id == instance_id {
     return Err(LemmyErrorType::CantBlockLocalInstance)?;
   }
 
