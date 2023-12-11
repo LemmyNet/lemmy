@@ -22,5 +22,7 @@ bcrypt = { workspace = true }
 actix-web = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
-webmention = "0.5.0"
+futures.workspace = true
 uuid = { workspace = true }
+diesel = { workspace = true }
+webmention = "0.5.0"

@@ -14,26 +14,27 @@ use crate::{
     language::Language,
     site::Site,
   },
-  utils::{get_conn, DbPool},
+  utils::{get_conn, ActualDbPool, DbPool},
 };
 use diesel::{
   delete,
   dsl::{count, exists},
   insert_into,
-  result::Error,
+  result::{Error, Error::QueryBuilderError},
   select,
   ExpressionMethods,
   QueryDsl,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use std::ops::DerefMut;
 use tokio::sync::OnceCell;
 
 pub const UNDETERMINED_ID: LanguageId = LanguageId(0);
 
 impl LocalUserLanguage {
-  pub async fn read(
-    pool: &mut DbPool<'_>,
+  async fn read_internal(
+    conn: &mut AsyncPgConnection,
     for_local_user_id: LocalUserId,
   ) -> Result<Vec<LanguageId>, Error> {
     use crate::schema::local_user_language::dsl::{
@@ -41,7 +42,6 @@ impl LocalUserLanguage {
       local_user_id,
       local_user_language,
     };
-    let conn = &mut get_conn(pool).await?;
 
     conn
       .build_transaction()
@@ -59,6 +59,15 @@ impl LocalUserLanguage {
       .await
   }
 
+  pub async fn read(
+    pool: &ActualDbPool,
+    for_local_user_id: LocalUserId,
+  ) -> Result<Vec<LanguageId>, Error> {
+    let mut conn = pool.get().await.map_err(|e| QueryBuilderError(e.into()))?;
+    let conn = conn.deref_mut();
+    LocalUserLanguage::read_internal(conn, for_local_user_id).await
+  }
+
   /// Update the user's languages.
   ///
   /// If no language_id vector is given, it will show all languages
@@ -71,7 +80,7 @@ impl LocalUserLanguage {
     let mut lang_ids = convert_update_languages(conn, language_ids).await?;
 
     // No need to update if languages are unchanged
-    let current = LocalUserLanguage::read(&mut conn.into(), for_local_user_id).await?;
+    let current = LocalUserLanguage::read_internal(conn, for_local_user_id).await?;
     if current == lang_ids {
       return Ok(());
     }

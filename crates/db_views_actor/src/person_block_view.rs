@@ -1,15 +1,21 @@
 use crate::structs::PersonBlockView;
-use diesel::{result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
+use diesel::{
+  result::{Error, Error::QueryBuilderError},
+  ExpressionMethods,
+  JoinOnDsl,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{person, person_block},
-  utils::{get_conn, DbPool},
+  utils::ActualDbPool,
 };
+use std::ops::DerefMut;
 
 impl PersonBlockView {
-  pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn for_person(pool: &ActualDbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
+    let mut conn = pool.get().await.map_err(|e| QueryBuilderError(e.into()))?;
     let target_person_alias = diesel::alias!(person as person1);
 
     person_block::table
@@ -24,7 +30,7 @@ impl PersonBlockView {
       .filter(person_block::person_id.eq(person_id))
       .filter(target_person_alias.field(person::deleted).eq(false))
       .order_by(person_block::published)
-      .load::<PersonBlockView>(conn)
+      .load::<PersonBlockView>(conn.deref_mut())
       .await
   }
 }

@@ -1,4 +1,5 @@
 use actix_web::web::{Data, Json};
+use futures::try_join;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{GetSiteResponse, MyUserInfo},
@@ -27,40 +28,27 @@ pub async fn get_site(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetSiteResponse>, LemmyError> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
-
-  let admins = PersonView::admins(&mut context.pool()).await?;
-
   // Build the local user
   let my_user = if let Some(local_user_view) = local_user_view {
     let person_id = local_user_view.person.id;
     let local_user_id = local_user_view.local_user.id;
 
-    let follows = CommunityFollowerView::for_person(&mut context.pool(), person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
-
-    let person_id = local_user_view.person.id;
-    let community_blocks = CommunityBlockView::for_person(&mut context.pool(), person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
-
-    let instance_blocks = InstanceBlockView::for_person(&mut context.pool(), person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
-
-    let person_id = local_user_view.person.id;
-    let person_blocks = PersonBlockView::for_person(&mut context.pool(), person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
-
-    let moderates = CommunityModeratorView::for_person(&mut context.pool(), person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
-
-    let discussion_languages = LocalUserLanguage::read(&mut context.pool(), local_user_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
+    let (
+      follows,
+      community_blocks,
+      instance_blocks,
+      person_blocks,
+      moderates,
+      discussion_languages,
+    ) = try_join!(
+      CommunityFollowerView::for_person(context.inner_pool(), person_id),
+      CommunityBlockView::for_person(context.inner_pool(), person_id),
+      InstanceBlockView::for_person(context.inner_pool(), person_id),
+      PersonBlockView::for_person(context.inner_pool(), person_id),
+      CommunityModeratorView::for_person(context.inner_pool(), person_id),
+      LocalUserLanguage::read(context.inner_pool(), local_user_id)
+    )
+    .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
     Some(MyUserInfo {
       local_user_view,
@@ -75,6 +63,8 @@ pub async fn get_site(
     None
   };
 
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let admins = PersonView::admins(&mut context.pool()).await?;
   let all_languages = Language::read_all(&mut context.pool()).await?;
   let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
   let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;

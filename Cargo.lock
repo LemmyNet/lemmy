@@ -2602,6 +2602,8 @@ dependencies = [
  "activitypub_federation",
  "actix-web",
  "bcrypt",
+ "diesel",
+ "futures",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
