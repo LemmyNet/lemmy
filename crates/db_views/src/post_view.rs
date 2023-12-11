@@ -103,17 +103,9 @@ async fn build_query<'a>(
     QueryInput::List { options } => options.local_user.map(|l| l.person.id),
   };
 
-  let subscribe = move || {
-    and_then(me, |me| {
-      community_follower::table
-        .find((me, post_aggregates::community_id))
-        .select(community_follower::pending.nullable())
-        .single_value()
-    })
-  };
   // This builds parts of the selection that can be changed by `filter_var_eq`. Initializing them
   // multiple times needs to be possible because of the top community prefetch for the subscribed view.
-  let init_selected_values = || {
+  let init_selected_values = move || {
     (
       is_some_and(me, |me| {
         exists(post_saved::table.find((me, post_aggregates::post_id)))
@@ -131,6 +123,14 @@ async fn build_query<'a>(
           .single_value()
       }),
     )
+  };
+  let subscribe = move || {
+    and_then(me, |me| {
+      community_follower::table
+        .find((me, post_aggregates::community_id))
+        .select(community_follower::pending.nullable())
+        .single_value()
+    })
   };
   let read_comments = and_then(me, |me| {
     person_post_aggregates::table
@@ -323,33 +323,58 @@ async fn build_query<'a>(
           _ => Some((Ord::Desc, field!(published))),
         };
 
-        let false_sql =
-          || -> BoxExpr<_, sql_types::Bool> { Box::new(false.into_sql::<sql_types::Bool>()) };
-        let mut previous_fields_ne_first: Box<dyn Fn() -> _> = Box::new(false_sql);
-        let mut previous_fields_ne_last: Box<dyn Fn() -> _> = Box::new(false_sql);
-
-        for (order, field) in [
+        let sorts = [
           Some((Ord::Desc, featured_field)),
           Some(main_sort),
           tie_breaker,
-        ]
-        .into_iter()
-        .flatten()
-        {
+        ];
+        let sorts_iter = sorts
+          .iter()
+          .flatten();
+
+        // This loop does almost the same thing as sorting by and comparing tuples. If the rows were
+        // only sorted by 1 field called `foo` in descending order, then it would be like this:
+        //
+        // ```
+        // query = query.then_order_by(foo.desc());
+        // if let Some(first) = &options.page_after {
+        //   query = query.filter(foo.le(first.foo));
+        // }
+        // if let Some(last) = &page_before_or_equal {
+        //   query = query.filter(foo.ge(last.foo));
+        // }
+        // ```
+        //
+        // If multiple rows have the same value for a sorted field, then they are
+        // grouped together, and the rows in that group are sorted by the next fields.
+        // When checking if a row is within the range determined by the cursors, a field
+        // that's sorted after other fields is only compared if the row and the cursor
+        // are in the same group created by the previous sort, which is checked by using
+        // `or` to skip the comparison if any previously sorted field is not equal.
+        for (i, (order, field)) in sorts_iter.clone().enumerate() {
+          // Both cursors are treated as inclusive here. `page_after` is made exclusive
+          // by adding `1` to the offset.
           let (then_order_by_field, compare_first, compare_last) = match order {
             Ord::Desc => (field.then_order_by_desc, field.le, field.ge),
             Ord::Asc => (field.then_order_by_asc, field.ge, field.le),
           };
+
           query = then_order_by_field(query);
-          if let Some(first) = &options.page_after {
-            query = query.filter(compare_first(&first.0).or(previous_fields_ne_first()));
-            let expr = previous_fields_ne_first().or((field.ne)(&first.0));
-            previous_fields_ne_first = Box::new(move || Box::new(expr));
-          }
-          if let Some(last) = &page_before_or_equal {
-            query = query.filter(compare_last(&last.0).or(previous_fields_ne_last()));
-            let expr = previous_fields_ne_last().or((field.ne)(&last.0));
-            previous_fields_ne_last = Box::new(move || Box::new(expr));
+
+          for (cursor_data, compare) in [
+            (&options.page_after, compare_first),
+            (&page_before_or_equal, compare_last),
+          ] {
+            let Some(cursor_data) = cursor_data else { continue };
+            let mut condition: BoxExpr<_, sql_types::Bool> = Box::new(compare(&cursor_data.0));
+
+            // For each field that's sorted before the current one, change `condition` to `true`
+            // if the row's value doesn't equal the cursor's value.
+            for (_, other_field) in sorts_iter.clone().take(i) {
+              condition = Box::new(condition.or((other_field.ne)(&cursor_data.0)));
+            }
+
+            query = query.filter(condition);
           }
         }
 
