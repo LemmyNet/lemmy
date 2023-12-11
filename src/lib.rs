@@ -72,12 +72,12 @@ use url::Url;
   long_about = "A link aggregator for the fediverse.\n\nThis is the Lemmy backend API server. This will connect to a PostgreSQL database, run any pending migrations and start accepting API requests."
 )]
 pub struct CmdArgs {
-  #[arg(long, default_value_t = false)]
   /// Disables running scheduled tasks.
   ///
   /// If you are running multiple Lemmy server processes,
   /// you probably want to disable scheduled tasks on all but one of the processes,
   /// to avoid running the tasks more often than intended.
+  #[arg(long, default_value_t = false, action=ArgAction::Set)]
   disable_scheduled_tasks: bool,
   /// Whether or not to run the HTTP server.
   ///
