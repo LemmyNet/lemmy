@@ -1149,6 +1149,14 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
+    let pre_existing_post_ids = data
+      .default_post_query()
+      .list(pool)
+      .await?
+      .into_iter()
+      .map(|p| p.post.id)
+      .collect::<Vec<_>>();
+
     let mut expected_post_ids = vec![];
     let mut comment_ids = vec![];
 
@@ -1196,7 +1204,12 @@ mod tests {
       .list(pool)
       .await?;
 
-      post_ids.extend(posts.iter().map(|p| p.post.id));
+      post_ids.extend(
+        posts
+          .iter()
+          .map(|p| p.post.id)
+          .filter(|id| !pre_existing_post_ids.contains(&id))
+      );
 
       if let Some(p) = posts.into_iter().last() {
         page_after = Some(PaginationCursorData(p.counts));
