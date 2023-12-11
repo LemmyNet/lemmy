@@ -289,8 +289,8 @@ diesel::table! {
         client_id -> Text,
         client_secret -> Text,
         scopes -> Text,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
     }
 }
 
@@ -389,9 +389,9 @@ diesel::table! {
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
         registration_mode -> RegistrationModeEnum,
-        oauth_registration -> Bool,
         reports_email_admins -> Bool,
         federation_signed_fetch -> Bool,
+        oauth_registration -> Bool,
     }
 }
 
