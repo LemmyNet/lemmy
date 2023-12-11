@@ -7,7 +7,6 @@ use diesel::{
   sql_types,
   BoolExpressionMethods,
   ExpressionMethods,
-  IntoSql,
   NullableExpressionMethods,
   OptionalExtension,
   PgTextExpressionMethods,
