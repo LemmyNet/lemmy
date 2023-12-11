@@ -154,6 +154,7 @@ futures-util = "0.3.29"
 tokio-postgres = "0.7.10"
 tokio-postgres-rustls = "0.10.0"
 enum-map = "2.7"
+moka = { version = "0.11.3", features = ["future"] }
 
 [dependencies]
 lemmy_api = { workspace = true }

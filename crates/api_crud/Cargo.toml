@@ -25,4 +25,7 @@ url = { workspace = true }
 futures.workspace = true
 uuid = { workspace = true }
 diesel = { workspace = true }
+moka.workspace = true
+once_cell.workspace = true
+anyhow.workspace = true
 webmention = "0.5.0"
