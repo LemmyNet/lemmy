@@ -17,6 +17,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{
   CommentView,
   CustomEmojiView,
+  ExternalAuthView,
   LocalUserView,
   PostView,
   RegistrationApplicationView,
@@ -187,6 +188,7 @@ pub struct CreateSite {
   pub blocked_instances: Option<Vec<String>>,
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  pub oauth_registration: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -263,6 +265,8 @@ pub struct EditSite {
   /// A list of taglines shown at the top of the front page.
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  /// Whether or not external auth methods can auto-register users.
+  pub oauth_registration: Option<bool>,
   /// Whether to email admins for new reports.
   pub reports_email_admins: Option<bool>,
 }
@@ -292,6 +296,8 @@ pub struct GetSiteResponse {
   pub taglines: Vec<Tagline>,
   /// A list of custom emojis your site supports.
   pub custom_emojis: Vec<CustomEmojiView>,
+  /// A list of external auth methods your site supports.
+  pub external_auths: Vec<ExternalAuthView>,
 }
 
 #[skip_serializing_none]

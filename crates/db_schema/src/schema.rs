@@ -275,6 +275,26 @@ diesel::table! {
 }
 
 diesel::table! {
+    external_auth (id) {
+        id -> Int4,
+        local_site_id -> Int4,
+        display_name -> Text,
+        #[max_length = 128]
+        auth_type -> Varchar,
+        auth_endpoint -> Text,
+        token_endpoint -> Text,
+        user_endpoint -> Text,
+        id_attribute -> Text,
+        issuer -> Text,
+        client_id -> Text,
+        client_secret -> Text,
+        scopes -> Text,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+    }
+}
+
+diesel::table! {
     federation_allowlist (instance_id) {
         instance_id -> Int4,
         published -> Timestamptz,
@@ -371,6 +391,7 @@ diesel::table! {
         registration_mode -> RegistrationModeEnum,
         reports_email_admins -> Bool,
         federation_signed_fetch -> Bool,
+        oauth_registration -> Bool,
     }
 }
 
@@ -918,6 +939,7 @@ diesel::joinable!(community_person_ban -> person (person_id));
 diesel::joinable!(custom_emoji -> local_site (local_site_id));
 diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
+diesel::joinable!(external_auth -> local_site (local_site_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
 diesel::joinable!(federation_queue_state -> instance (instance_id));
@@ -998,6 +1020,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     custom_emoji,
     custom_emoji_keyword,
     email_verification,
+    external_auth,
     federation_allowlist,
     federation_blocklist,
     federation_queue_state,

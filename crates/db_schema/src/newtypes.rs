@@ -136,13 +136,19 @@ pub struct ActivityId(pub i64);
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The local site id.
-pub struct LocalSiteId(i32);
+pub struct LocalSiteId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The custom emoji id.
 pub struct CustomEmojiId(i32);
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The external auth id.
+pub struct ExternalAuthId(pub i32);
 
 #[cfg(feature = "full")]
 #[derive(Serialize, Deserialize)]
