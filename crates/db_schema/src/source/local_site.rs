@@ -17,6 +17,7 @@ use typed_builder::TypedBuilder;
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The local site.
 pub struct LocalSite {

@@ -32,7 +32,7 @@ import {
   resolveBetaCommunity,
   longDelay,
 } from "./shared";
-import { EditSite, LemmyHttp } from "lemmy-js-client";
+import { EditSite } from "lemmy-js-client";
 
 beforeAll(setupLogins);
 
@@ -249,12 +249,9 @@ test("Admin actions in remote community are not federated to origin", async () =
   expect(gammaPost2.post_view.creator_banned_from_community).toBe(false);
 });
 
-test("moderator view", async () => {
+test.only("moderator view", async () => {
   // register a new user with their own community on alpha and post to it
-  let registerUserRes = await registerUser(alpha);
-  let otherUser = new LemmyHttp(alphaUrl, {
-    headers: { Authorization: `Bearer ${registerUserRes.jwt ?? ""}` },
-  });
+  let otherUser = await registerUser(alpha, alphaUrl);
 
   let otherCommunity = (await createCommunity(otherUser)).community_view;
   expect(otherCommunity.community.name).toBeDefined();
