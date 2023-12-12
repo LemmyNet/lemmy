@@ -68,4 +68,3 @@ CREATE TRIGGER community_aggregates_local_subscriber_count
     FOR EACH ROW
     EXECUTE PROCEDURE community_aggregates_local_subscriber_count ();
 
--- re-trigger
