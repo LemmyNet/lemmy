@@ -1,9 +1,7 @@
 use crate::structs::PersonView;
 use diesel::{
-  dsl::sql,
   pg::Pg,
   result::Error,
-  sql_types::{Bool, Nullable},
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
@@ -14,7 +12,17 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{local_user, person, person_aggregates},
-  utils::{fuzzy_search, limit_and_offset, now, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{
+    functions::coalesce,
+    fuzzy_search,
+    limit_and_offset,
+    now,
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+  },
   SortType,
 };
 use serde::{Deserialize, Serialize};
@@ -57,9 +65,7 @@ fn queries<'a>(
       .select((
         person::all_columns,
         person_aggregates::all_columns,
-        sql::<Bool>("COALESCE(")
-          .bind::<Nullable<Bool>, _>(local_user::admin.nullable())
-          .sql(", false)"),
+        coalesce(local_user::admin.nullable(), false),
       ))
   };
 
@@ -74,12 +80,7 @@ fn queries<'a>(
     match mode {
       ListMode::Admins => {
         query = query
-          .filter(
-            sql::<Bool>("COALESCE(")
-              .bind::<Nullable<Bool>, _>(local_user::admin.nullable())
-              .sql(", false)")
-              .and(person::deleted.eq(false)),
-          )
+          .filter(coalesce(local_user::admin.nullable(), false).and(person::deleted.eq(false)))
           .order_by(person::published);
       }
       ListMode::Banned => {
