@@ -80,7 +80,8 @@ fn queries<'a>(
     match mode {
       ListMode::Admins => {
         query = query
-          .filter(coalesce(local_user::admin.nullable(), false).and(person::deleted.eq(false)))
+          .filter(local_user::admin.eq(true))
+          .filter(person::deleted.eq(false))
           .order_by(person::published);
       }
       ListMode::Banned => {
