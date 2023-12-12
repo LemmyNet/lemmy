@@ -22,5 +22,12 @@ bcrypt = { workspace = true }
 actix-web = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
-webmention = "0.5.0"
+futures.workspace = true
 uuid = { workspace = true }
+moka.workspace = true
+once_cell.workspace = true
+anyhow.workspace = true
+webmention = "0.5.0"
+
+[package.metadata.cargo-machete]
+ignored = ["futures"]
