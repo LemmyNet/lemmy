@@ -75,6 +75,14 @@ steps:
       - cargo binstall -y cargo-machete
       - cargo machete
 
+  ignored_files:
+    group: format
+    image: alpine:3
+    commands:
+      - apk add git
+      - IGNORED=$(git ls-files --cached -i --exclude-standard)
+      - if [[ "$IGNORED" ]]; then echo "Ignored files present:\n$IGNORED\n"; exit 1; fi
+
   restore-cache:
     image: meltwater/drone-cache:v1
     pull: true
