@@ -329,7 +329,7 @@ export async function getComments(
     post_id: post_id,
     type_: listingType,
     sort: "New",
-    limit: 50
+    limit: 50,
   };
   return api.getComments(form);
 }
@@ -794,7 +794,7 @@ export function getPosts(
 ): Promise<GetPostsResponse> {
   let form: GetPosts = {
     type_: listingType,
-    limit: 50
+    limit: 50,
   };
   return api.getPosts(form);
 }
