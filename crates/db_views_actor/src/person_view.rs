@@ -56,14 +56,11 @@ fn queries<'a>(
     ),
   );
   let all_joins = move |query: person::BoxedQuery<'a, Pg>| {
-    query
-      .inner_join(person_aggregates::table)
-      .filter(person::deleted.eq(false))
-      .select((
-        person::all_columns,
-        person_aggregates::all_columns,
-        creator_is_admin,
-      ))
+    query.inner_join(person_aggregates::table).select((
+      person::all_columns,
+      person_aggregates::all_columns,
+      creator_is_admin,
+    ))
   };
 
   let read = move |mut conn: DbConn<'a>, person_id: PersonId| async move {
@@ -77,7 +74,7 @@ fn queries<'a>(
     match mode {
       ListMode::Admins => {
         query = query
-          .filter(creator_is_admin.eq(true))
+          .filter(creator_is_admin)
           .filter(person::deleted.eq(false))
           .order_by(person::published);
       }
