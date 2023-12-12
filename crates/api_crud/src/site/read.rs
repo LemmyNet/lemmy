@@ -33,7 +33,7 @@ pub async fn get_site(
   static CACHE: Lazy<Cache<(), GetSiteResponse>> = Lazy::new(|| {
     Cache::builder()
       .max_capacity(1)
-      .time_to_live(Duration::from_secs(60))
+      .time_to_live(Duration::from_secs(1))
       .build()
   });
 
