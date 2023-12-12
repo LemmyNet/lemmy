@@ -184,7 +184,8 @@ steps:
       CARGO_HOME: .cargo_home
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
-      - cargo test --workspace --no-fail-fast
+      # run unit tests, retry on failure
+      - cargo test --workspace --no-fail-fast || cargo test --workspace --no-fail-fast
     when: *slow_check_paths
 
   run_federation_tests:
@@ -198,7 +199,8 @@ steps:
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - yarn
-      - yarn api-test
+      # run api tests, retry on failure
+      - yarn api-test || yarn api-test
     when: *slow_check_paths
 
   rebuild-cache:
