@@ -1,15 +1,13 @@
 use crate::structs::{LocalUserView, PaginationCursor, PostView};
 use diesel::{
   debug_query,
-  dsl::{self, exists, not, IntervalDsl},
-  expression::AsExpression,
+  dsl::{exists, not, IntervalDsl},
   pg::Pg,
   result::Error,
   sql_function,
-  sql_types::{self, SingleValue, SqlType, Timestamptz},
+  sql_types,
   BoolExpressionMethods,
   BoxableExpression,
-  Expression,
   ExpressionMethods,
   IntoSql,
   JoinOnDsl,
@@ -35,7 +33,7 @@ use lemmy_db_schema::{
     person_block,
     person_post_aggregates,
     post,
-    post_aggregates::{self, newest_comment_time},
+    post_aggregates,
     post_like,
     post_read,
     post_saved,
@@ -451,98 +449,100 @@ fn queries<'a>() -> Queries<
       query = query.filter(not(is_creator_blocked(person_id)));
     }
 
-        let featured_field = if options.community_id.is_none() || options.community_id_just_for_prefetch {
-          field!(featured_local)
-        } else {
-          field!(featured_community)
-        };
+    let featured_field = if options.community_id.is_none() || options.community_id_just_for_prefetch
+    {
+      field!(featured_local)
+    } else {
+      field!(featured_community)
+    };
 
-        let (main_sort, top_sort_interval) = match sort {
-          SortType::Active => ((Ord::Desc, field!(hot_rank_active)), None),
-          SortType::Hot => ((Ord::Desc, field!(hot_rank)), None),
-          SortType::Scaled => ((Ord::Desc, field!(scaled_rank)), None),
-          SortType::Controversial => ((Ord::Desc, field!(controversy_rank)), None),
-          SortType::New => ((Ord::Desc, field!(published)), None),
-          SortType::Old => ((Ord::Asc, field!(published)), None),
-          SortType::NewComments => ((Ord::Desc, field!(newest_comment_time)), None),
-          SortType::MostComments => ((Ord::Desc, field!(comments)), None),
-          SortType::TopAll => ((Ord::Desc, field!(score)), None),
-          SortType::TopYear => ((Ord::Desc, field!(score)), Some(1.years())),
-          SortType::TopMonth => ((Ord::Desc, field!(score)), Some(1.months())),
-          SortType::TopWeek => ((Ord::Desc, field!(score)), Some(1.weeks())),
-          SortType::TopDay => ((Ord::Desc, field!(score)), Some(1.days())),
-          SortType::TopHour => ((Ord::Desc, field!(score)), Some(1.hours())),
-          SortType::TopSixHour => ((Ord::Desc, field!(score)), Some(6.hours())),
-          SortType::TopTwelveHour => ((Ord::Desc, field!(score)), Some(12.hours())),
-          SortType::TopThreeMonths => ((Ord::Desc, field!(score)), Some(3.months())),
-          SortType::TopSixMonths => ((Ord::Desc, field!(score)), Some(6.months())),
-          SortType::TopNineMonths => ((Ord::Desc, field!(score)), Some(9.months())),
-        };
+    let (main_sort, top_sort_interval) = match options.sort.unwrap_or(SortType::Hot) {
+      SortType::Active => ((Ord::Desc, field!(hot_rank_active)), None),
+      SortType::Hot => ((Ord::Desc, field!(hot_rank)), None),
+      SortType::Scaled => ((Ord::Desc, field!(scaled_rank)), None),
+      SortType::Controversial => ((Ord::Desc, field!(controversy_rank)), None),
+      SortType::New => ((Ord::Desc, field!(published)), None),
+      SortType::Old => ((Ord::Asc, field!(published)), None),
+      SortType::NewComments => ((Ord::Desc, field!(newest_comment_time)), None),
+      SortType::MostComments => ((Ord::Desc, field!(comments)), None),
+      SortType::TopAll => ((Ord::Desc, field!(score)), None),
+      SortType::TopYear => ((Ord::Desc, field!(score)), Some(1.years())),
+      SortType::TopMonth => ((Ord::Desc, field!(score)), Some(1.months())),
+      SortType::TopWeek => ((Ord::Desc, field!(score)), Some(1.weeks())),
+      SortType::TopDay => ((Ord::Desc, field!(score)), Some(1.days())),
+      SortType::TopHour => ((Ord::Desc, field!(score)), Some(1.hours())),
+      SortType::TopSixHour => ((Ord::Desc, field!(score)), Some(6.hours())),
+      SortType::TopTwelveHour => ((Ord::Desc, field!(score)), Some(12.hours())),
+      SortType::TopThreeMonths => ((Ord::Desc, field!(score)), Some(3.months())),
+      SortType::TopSixMonths => ((Ord::Desc, field!(score)), Some(6.months())),
+      SortType::TopNineMonths => ((Ord::Desc, field!(score)), Some(9.months())),
+    };
 
-        if let Some(interval) = top_sort_interval {
-          query = query.filter(post_aggregates::published.gt(now() - interval));
+    if let Some(interval) = top_sort_interval {
+      query = query.filter(post_aggregates::published.gt(now() - interval));
+    }
+
+    let tie_breaker = match options.sort.unwrap_or(SortType::Hot) {
+      // A second time-based sort would not be very useful
+      SortType::New | SortType::Old | SortType::NewComments => None,
+      _ => Some((Ord::Desc, field!(published))),
+    };
+
+    let sorts = [
+      Some((Ord::Desc, featured_field)),
+      Some(main_sort),
+      tie_breaker,
+    ];
+    let sorts_iter = sorts.iter().flatten();
+
+    // This loop does almost the same thing as sorting by and comparing tuples. If the rows were
+    // only sorted by 1 field called `foo` in descending order, then it would be like this:
+    //
+    // ```
+    // query = query.then_order_by(foo.desc());
+    // if let Some(first) = &options.page_after {
+    //   query = query.filter(foo.le(first.foo));
+    // }
+    // if let Some(last) = &page_before_or_equal {
+    //   query = query.filter(foo.ge(last.foo));
+    // }
+    // ```
+    //
+    // If multiple rows have the same value for a sorted field, then they are
+    // grouped together, and the rows in that group are sorted by the next fields.
+    // When checking if a row is within the range determined by the cursors, a field
+    // that's sorted after other fields is only compared if the row and the cursor
+    // are in the same group created by the previous sort, which is checked by using
+    // `or` to skip the comparison if any previously sorted field is not equal.
+    for (i, (order, field)) in sorts_iter.clone().enumerate() {
+      // Both cursors are treated as inclusive here. `page_after` is made exclusive
+      // by adding `1` to the offset.
+      let (then_order_by_field, compare_first, compare_last) = match order {
+        Ord::Desc => (field.then_order_by_desc, field.le, field.ge),
+        Ord::Asc => (field.then_order_by_asc, field.ge, field.le),
+      };
+
+      query = then_order_by_field(query);
+
+      for (cursor_data, compare) in [
+        (&options.page_after, compare_first),
+        (&options.page_before_or_equal, compare_last),
+      ] {
+        let Some(cursor_data) = cursor_data else {
+          continue;
+        };
+        let mut condition: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
+          Box::new(compare(&cursor_data.0));
+
+        // For each field that was sorted before the current one, skip the filter by changing
+        // `condition` to `true` if the row's value doesn't equal the cursor's value.
+        for (_, other_field) in sorts_iter.clone().take(i) {
+          condition = Box::new(condition.or((other_field.ne)(&cursor_data.0)));
         }
 
-        let tie_breaker = match sort {
-          // A second time-based sort would not be very useful
-          SortType::New | SortType::Old | SortType::NewComments => None,
-          _ => Some((Ord::Desc, field!(published))),
-        };
-
-        let sorts = [
-          Some((Ord::Desc, featured_field)),
-          Some(main_sort),
-          tie_breaker,
-        ];
-        let sorts_iter = sorts.iter().flatten();
-
-        // This loop does almost the same thing as sorting by and comparing tuples. If the rows were
-        // only sorted by 1 field called `foo` in descending order, then it would be like this:
-        //
-        // ```
-        // query = query.then_order_by(foo.desc());
-        // if let Some(first) = &options.page_after {
-        //   query = query.filter(foo.le(first.foo));
-        // }
-        // if let Some(last) = &page_before_or_equal {
-        //   query = query.filter(foo.ge(last.foo));
-        // }
-        // ```
-        //
-        // If multiple rows have the same value for a sorted field, then they are
-        // grouped together, and the rows in that group are sorted by the next fields.
-        // When checking if a row is within the range determined by the cursors, a field
-        // that's sorted after other fields is only compared if the row and the cursor
-        // are in the same group created by the previous sort, which is checked by using
-        // `or` to skip the comparison if any previously sorted field is not equal.
-        for (i, (order, field)) in sorts_iter.clone().enumerate() {
-          // Both cursors are treated as inclusive here. `page_after` is made exclusive
-          // by adding `1` to the offset.
-          let (then_order_by_field, compare_first, compare_last) = match order {
-            Ord::Desc => (field.then_order_by_desc, field.le, field.ge),
-            Ord::Asc => (field.then_order_by_asc, field.ge, field.le),
-          };
-
-          query = then_order_by_field(query);
-
-          for (cursor_data, compare) in [
-            (&options.page_after, compare_first),
-            (&page_before_or_equal, compare_last),
-          ] {
-            let Some(cursor_data) = cursor_data else {
-              continue;
-            };
-            let mut condition: Box<dyn BoxableExpression<QS, Pg, SqlType = sql_types::Bool>> = Box::new(compare(&cursor_data.0));
-
-            // For each field that was sorted before the current one, skip the filter by changing
-            // `condition` to `true` if the row's value doesn't equal the cursor's value.
-            for (_, other_field) in sorts_iter.clone().take(i) {
-              condition = Box::new(condition.or((other_field.ne)(&cursor_data.0)));
-            }
-
-            query = query.filter(condition);
-          }
-        }
+        query = query.filter(condition);
+      }
+    }
 
     let (limit, mut offset) = limit_and_offset(options.page, options.limit)?;
     if options.page_after.is_some() {
@@ -731,7 +731,7 @@ mod tests {
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
-      comment::{Comment, CommentInsertForm};
+      comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       community_block::{CommunityBlock, CommunityBlockForm},
       instance::Instance,
@@ -748,6 +748,7 @@ mod tests {
     SubscribedType,
   };
   use serial_test::serial;
+  use std::time::Duration;
 
   struct Data {
     inserted_instance: Instance,
@@ -1416,9 +1417,9 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn pagination_includes_each_post_once() {
-    let pool = &build_db_pool().await.unwrap();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
-    let data = init_data(pool).await.unwrap();
+    let data = init_data(pool).await;
 
     let community_form = CommunityInsertForm::builder()
       .name("yes".to_string())
@@ -1465,6 +1466,7 @@ mod tests {
         sort: Some(SortType::MostComments),
         limit: Some(10),
         page_after,
+        ..Default::default()
       }
       .list(pool)
       .await
@@ -1484,10 +1486,11 @@ mod tests {
 
     assert_eq!(inserted_post_ids, listed_post_ids);
 
-    Community::delete(pool, inserted_community.id).await.unwrap();
+    Community::delete(pool, inserted_community.id)
+      .await
+      .unwrap();
     cleanup(data, pool).await;
   }
-
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) {
     let num_deleted = Post::delete(pool, data.inserted_post.id).await.unwrap();

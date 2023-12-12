@@ -2693,6 +2693,7 @@ name = "lemmy_db_views"
 version = "0.19.0-rc.13"
 dependencies = [
  "actix-web",
+ "chrono",
  "diesel",
  "diesel-async",
  "diesel_ltree",
