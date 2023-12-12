@@ -36,11 +36,11 @@ impl RateLimitCell {
     let state_weak_ref = Arc::downgrade(&state);
 
     tokio::spawn(async move {
-      let hour = Duration::from_secs(3600);
+      let interval = Duration::from_secs(120);
 
       // This loop stops when all other references to `state` are dropped
       while let Some(state) = state_weak_ref.upgrade() {
-        tokio::time::sleep(hour).await;
+        tokio::time::sleep(interval).await;
         state
           .lock()
           .expect("Failed to lock rate limit mutex for reading")
