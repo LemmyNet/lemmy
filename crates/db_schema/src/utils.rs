@@ -17,6 +17,7 @@ use diesel::{
   expression::{AsExpression, TypedExpressionType},
   helper_types::AsExprOf,
   pg::Pg,
+  query_dsl::methods,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
   sql_types::{self, SingleValue, SqlType, Text, Timestamptz},
@@ -24,6 +25,7 @@ use diesel::{
   ExpressionMethods,
   IntoSql,
   PgConnection,
+  Selectable,
 };
 use diesel_async::{
   methods::LoadQuery,
@@ -476,6 +478,19 @@ pub trait FirstOrLoad<'query, U: Send>:
 
 impl<'query, T: boxed_meth::LimitDsl + LoadQuery<'query, AsyncPgConnection, U> + 'query, U: Send>
   FirstOrLoad<'query, U> for T
+{
+}
+
+/// Implemented if `self.select(U::as_select)` implements `FirstOrLoad`
+pub trait FirstOrLoadWithSelect<'query, U: Selectable<Pg>>: methods::SelectDsl<dsl::AsSelect<U, Pg>>
+where
+  dsl::Select<Self, dsl::AsSelect<U>>: FirstOrLoad<'query, U>,
+{
+}
+
+impl<'query, T: methods::SelectDsl<dsl::AsSelect<U>>, U: Selectable<Pg>> FirstOrLoadWithSelect<'query, U>
+where
+  dsl::Select<T, dsl::AsSelect<U>>: FirstOrLoad<'query, U>,
 {
 }
 
