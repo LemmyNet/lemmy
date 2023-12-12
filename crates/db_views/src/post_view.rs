@@ -57,9 +57,9 @@ enum Ord {
 struct PaginationCursorField<Q, QS> {
   then_order_by_desc: fn(Q) -> Q,
   then_order_by_asc: fn(Q) -> Q,
-  le: fn(&PostAggregates) -> BoxExpr<QS, sql_types::Bool>,
-  ge: fn(&PostAggregates) -> BoxExpr<QS, sql_types::Bool>,
-  ne: fn(&PostAggregates) -> BoxExpr<QS, sql_types::Bool>,
+  le: fn(&PostAggregates) -> Box<dyn BoxableExpression<QS, Pg, SqlType = sql_types::Bool>>,
+  ge: fn(&PostAggregates) -> Box<dyn BoxableExpression<QS, Pg, SqlType = sql_types::Bool>>,
+  ne: fn(&PostAggregates) -> Box<dyn BoxableExpression<QS, Pg, SqlType = sql_types::Bool>>,
 }
 
 /// Returns `PaginationCursorField<_, _>` for the given name
@@ -532,7 +532,7 @@ fn queries<'a>() -> Queries<
             let Some(cursor_data) = cursor_data else {
               continue;
             };
-            let mut condition: BoxExpr<_, sql_types::Bool> = Box::new(compare(&cursor_data.0));
+            let mut condition: Box<dyn BoxableExpression<QS, Pg, SqlType = sql_types::Bool>> = Box::new(compare(&cursor_data.0));
 
             // For each field that was sorted before the current one, skip the filter by changing
             // `condition` to `true` if the row's value doesn't equal the cursor's value.
