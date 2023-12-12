@@ -10,16 +10,16 @@ SET
         SELECT
             COUNT(*)
         FROM
-            community_follower
+            community_follower cf
         WHERE
-            community_follower.community_id = community_aggregates.community_id
+            cf.community_id = community_aggregates.community_id
             AND (
                 SELECT
                     local
                 FROM
                     person
                 WHERE
-                    person.id = community_follower.person_id));
+                    person.id = cf.person_id));
 
 CREATE OR REPLACE FUNCTION community_aggregates_local_subscriber_count ()
     RETURNS TRIGGER
