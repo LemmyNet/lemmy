@@ -18,7 +18,6 @@ import {
   setupLogins,
   unfollowRemotes,
 } from "./shared";
-import * as fs from "node:fs";
 const downloadFileSync = require("download-file-sync");
 
 beforeAll(setupLogins);
@@ -28,8 +27,9 @@ afterAll(() => {
 });
 
 test("Upload image and delete it", async () => {
-  // upload test image
-  const upload_image = fs.readFileSync("test.png");
+  // Upload test image. We use a simple string buffer as pictrs doesnt require an actual image
+  // in testing mode.
+  const upload_image = Buffer.from("test");
   const upload_form: UploadImage = {
     image: upload_image,
   };
@@ -60,7 +60,7 @@ test("Purge user, uploaded image removed", async () => {
   let user = await registerUser(alphaImage, alphaUrl);
 
   // upload test image
-  const upload_image = fs.readFileSync("test.png");
+  const upload_image = Buffer.from("test");
   const upload_form: UploadImage = {
     image: upload_image,
   };
@@ -91,7 +91,7 @@ test("Purge post, linked image removed", async () => {
   let user = await registerUser(beta, betaUrl);
 
   // upload test image
-  const upload_image = fs.readFileSync("test.png");
+  const upload_image = Buffer.from("test");
   const upload_form: UploadImage = {
     image: upload_image,
   };
