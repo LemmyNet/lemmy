@@ -209,7 +209,7 @@ async fn build_query<'a>(
           .filter(is_creator.or(not(post::deleted)));
 
         // only show removed posts to admin when viewing user profile
-        if !(options.is_profile_view && admin) {
+        if !(options.creator_id.is_some() && admin) {
           query = query.filter(not(removed));
         }
 
@@ -271,7 +271,7 @@ async fn build_query<'a>(
         if !show_bot_accounts {
           query = query.filter(not(person::bot_account));
         }
-        if !(show_read_posts || options.saved_only || options.is_profile_view) {
+        if !(show_read_posts || options.saved_only || options.creator_id.is_some()) {
           query = query.filter_var_eq(&mut read, false);
         }
         if options.saved_only {
@@ -506,7 +506,6 @@ pub struct PostQuery<'a> {
   pub saved_only: bool,
   pub liked_only: bool,
   pub disliked_only: bool,
-  pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub page_after: Option<PaginationCursorData>,
@@ -569,6 +568,7 @@ mod tests {
     inserted_bot: Person,
     inserted_community: Community,
     inserted_post: Post,
+    inserted_bot_post: Post,
   }
 
   impl Data {
@@ -671,7 +671,7 @@ mod tests {
     )
     .await?;
 
-    let _inserted_bot_post = Post::create(
+    let inserted_bot_post = Post::create(
       pool,
       &PostInsertForm::builder()
         .name(POST_BY_BOT.to_string())
@@ -699,6 +699,7 @@ mod tests {
       inserted_bot,
       inserted_community,
       inserted_post,
+      inserted_bot_post,
     })
   }
 
@@ -1013,7 +1014,7 @@ mod tests {
     // Remove the post
     Post::update(
       pool,
-      data.inserted_post.id,
+      data.inserted_bot_post.id,
       &PostUpdateForm {
         removed: Some(true),
         ..Default::default()
@@ -1025,15 +1026,15 @@ mod tests {
     let post_list = data.default_post_query().list(pool).await?;
     assert_eq!(vec![POST_BY_BOT], names(&post_list));
 
-    // Removed post is shown to admins on profile page
+    // Removed bot post is shown to admins on its profile page
     data.local_user_view.local_user.admin = true;
     let post_list_on_profile_page = PostQuery {
-      is_profile_view: true,
+      creator_id: Some(data.inserted_bot.id),
       ..data.default_post_query()
     }
     .list(pool)
     .await?;
-    assert_eq!(vec![POST_BY_BOT, POST], names(&post_list_on_profile_page));
+    assert_eq!(vec![POST_BY_BOT], names(&post_list_on_profile_page));
 
     cleanup(data, pool).await
   }
