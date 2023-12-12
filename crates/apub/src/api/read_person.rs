@@ -89,7 +89,7 @@ pub async fn read_person(
   .await?;
 
   let moderates =
-    CommunityModeratorView::for_person(context.inner_pool(), person_details_id).await?;
+    CommunityModeratorView::for_person(&mut context.pool(), person_details_id).await?;
 
   // Return the jwt
   Ok(Json(GetPersonDetailsResponse {

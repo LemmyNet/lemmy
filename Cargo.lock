@@ -2603,7 +2603,6 @@ dependencies = [
  "actix-web",
  "anyhow",
  "bcrypt",
- "diesel",
  "futures",
  "lemmy_api_common",
  "lemmy_db_schema",

@@ -1,20 +1,15 @@
 use crate::structs::CommunityBlockView;
-use diesel::{
-  result::{Error, Error::QueryBuilderError},
-  ExpressionMethods,
-  QueryDsl,
-};
+use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{community, community_block, person},
-  utils::ActualDbPool,
+  utils::{get_conn, DbPool},
 };
-use std::ops::DerefMut;
 
 impl CommunityBlockView {
-  pub async fn for_person(pool: &ActualDbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
-    let mut conn = pool.get().await.map_err(|e| QueryBuilderError(e.into()))?;
+  pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     community_block::table
       .inner_join(person::table)
       .inner_join(community::table)
@@ -23,7 +18,7 @@ impl CommunityBlockView {
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .order_by(community_block::published)
-      .load::<CommunityBlockView>(conn.deref_mut())
+      .load::<CommunityBlockView>(conn)
       .await
   }
 }

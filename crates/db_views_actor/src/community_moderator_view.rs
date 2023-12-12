@@ -1,18 +1,11 @@
 use crate::structs::CommunityModeratorView;
-use diesel::{
-  dsl::exists,
-  result::{Error, Error::QueryBuilderError},
-  select,
-  ExpressionMethods,
-  QueryDsl,
-};
+use diesel::{dsl::exists, result::Error, select, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   schema::{community, community_moderator, person},
-  utils::{get_conn, ActualDbPool, DbPool},
+  utils::{get_conn, DbPool},
 };
-use std::ops::DerefMut;
 
 impl CommunityModeratorView {
   pub async fn is_community_moderator(
@@ -63,8 +56,8 @@ impl CommunityModeratorView {
       .await
   }
 
-  pub async fn for_person(pool: &ActualDbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
-    let mut conn = pool.get().await.map_err(|e| QueryBuilderError(e.into()))?;
+  pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -72,7 +65,7 @@ impl CommunityModeratorView {
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .select((community::all_columns, person::all_columns))
-      .load::<CommunityModeratorView>(conn.deref_mut())
+      .load::<CommunityModeratorView>(conn)
       .await
   }
 

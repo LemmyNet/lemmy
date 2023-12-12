@@ -2,7 +2,7 @@ use crate::structs::CommunityFollowerView;
 use chrono::Utc;
 use diesel::{
   dsl::{count_star, not},
-  result::{Error, Error::QueryBuilderError},
+  result::Error,
   ExpressionMethods,
   QueryDsl,
 };
@@ -10,9 +10,8 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   schema::{community, community_follower, person},
-  utils::{functions::coalesce, get_conn, ActualDbPool, DbPool},
+  utils::{functions::coalesce, get_conn, DbPool},
 };
-use std::ops::DerefMut;
 
 impl CommunityFollowerView {
   /// return a list of local community ids and remote inboxes that at least one user of the given instance has followed
@@ -73,8 +72,8 @@ impl CommunityFollowerView {
     Ok(res)
   }
 
-  pub async fn for_person(pool: &ActualDbPool, person_id: PersonId) -> Result<Vec<Self>, Error> {
-    let mut conn = pool.get().await.map_err(|e| QueryBuilderError(e.into()))?;
+  pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
     community_follower::table
       .inner_join(community::table)
       .inner_join(person::table)
@@ -83,7 +82,7 @@ impl CommunityFollowerView {
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .order_by(community::title)
-      .load::<CommunityFollowerView>(conn.deref_mut())
+      .load::<CommunityFollowerView>(conn)
       .await
   }
 }

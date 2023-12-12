@@ -1,5 +1,4 @@
 use actix_web::web::{Data, Json};
-use futures::try_join;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{GetSiteResponse, MyUserInfo},
@@ -66,6 +65,7 @@ pub async fn get_site(
   site_response.my_user = if let Some(local_user_view) = local_user_view {
     let person_id = local_user_view.person.id;
     let local_user_id = local_user_view.local_user.id;
+    let pool = &mut context.pool();
 
     let (
       follows,
@@ -74,14 +74,14 @@ pub async fn get_site(
       person_blocks,
       moderates,
       discussion_languages,
-    ) = try_join!(
-      CommunityFollowerView::for_person(context.inner_pool(), person_id),
-      CommunityBlockView::for_person(context.inner_pool(), person_id),
-      InstanceBlockView::for_person(context.inner_pool(), person_id),
-      PersonBlockView::for_person(context.inner_pool(), person_id),
-      CommunityModeratorView::for_person(context.inner_pool(), person_id),
-      LocalUserLanguage::read(context.inner_pool(), local_user_id)
-    )
+    ) = lemmy_db_schema::try_join_with_pool!(pool => (
+      |pool| CommunityFollowerView::for_person(pool, person_id),
+      |pool| CommunityBlockView::for_person(pool, person_id),
+      |pool| InstanceBlockView::for_person(pool, person_id),
+      |pool| PersonBlockView::for_person(pool, person_id),
+      |pool| CommunityModeratorView::for_person(pool, person_id),
+      |pool| LocalUserLanguage::read(pool, local_user_id)
+    ))
     .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
     Some(MyUserInfo {
