@@ -1,14 +1,16 @@
 use crate::structs::PersonView;
 use diesel::{
-  dsl::exists,
+  dsl::sql,
   pg::Pg,
   result::Error,
+  sql_types::{Bool, Nullable},
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
 };
+use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{local_user, person, person_aggregates},
@@ -47,13 +49,6 @@ fn post_to_person_sort_type(sort: SortType) -> PersonSortType {
 
 fn queries<'a>(
 ) -> Queries<impl ReadFn<'a, PersonView, PersonId>, impl ListFn<'a, PersonView, ListMode>> {
-  let creator_is_admin = exists(
-    local_user::table.filter(
-      person::id
-        .eq(local_user::person_id)
-        .and(local_user::admin.eq(true)),
-    ),
-  );
   let all_joins = move |query: person::BoxedQuery<'a, Pg>| {
     query
       .inner_join(person_aggregates::table)
@@ -62,7 +57,9 @@ fn queries<'a>(
       .select((
         person::all_columns,
         person_aggregates::all_columns,
-        creator_is_admin.into(),
+        sql::<Bool>("COALESCE(")
+          .bind::<Nullable<Bool>, _>(local_user::admin.nullable())
+          .sql(", false)"),
       ))
   };
 
@@ -77,7 +74,12 @@ fn queries<'a>(
     match mode {
       ListMode::Admins => {
         query = query
-          .filter(creator_is_admin.eq(true).and(person::deleted.eq(false)))
+          .filter(
+            sql::<Bool>("COALESCE(")
+              .bind::<Nullable<Bool>, _>(local_user::admin.nullable())
+              .sql(", false)")
+              .and(person::deleted.eq(false)),
+          )
           .order_by(person::published);
       }
       ListMode::Banned => {
