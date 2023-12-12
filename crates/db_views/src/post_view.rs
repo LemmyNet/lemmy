@@ -581,7 +581,7 @@ mod tests {
     }
   }
 
-  fn person_insert_form(instance_id: InstanceId, name: &str) -> PersonInsertForm {
+  fn default_person_insert_form(instance_id: InstanceId, name: &str) -> PersonInsertForm {
     PersonInsertForm::builder()
       .name(name.to_owned())
       .public_key("pubkey".to_string())
@@ -589,7 +589,7 @@ mod tests {
       .build()
   }
 
-  fn local_user_form(person_id: PersonId) -> LocalUserInsertForm {
+  fn default_local_user_form(person_id: PersonId) -> LocalUserInsertForm {
     LocalUserInsertForm::builder()
       .person_id(person_id)
       .password_encrypted(String::new())
@@ -599,93 +599,79 @@ mod tests {
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-    let person_insert_form = |name| person_insert_form(inserted_instance.id, name);
+    let new_person = default_person_insert_form(inserted_instance.id, "tegan");
 
-    let inserted_person = Person::create(pool, &person_insert_form("tegan")).await?;
+    let inserted_person = Person::create(pool, &new_person).await?;
 
-    let inserted_local_user = LocalUser::create(
-      pool,
-      &LocalUserInsertForm {
-        admin: Some(true),
-        ..local_user_form(inserted_person.id)
-      },
-    )
-    .await?;
+    let local_user_form = LocalUserInsertForm {
+      admin: Some(true),
+      ..default_local_user_form(inserted_person.id)
+    };
+    let inserted_local_user = LocalUser::create(pool, &local_user_form).await?;
 
-    let inserted_bot = Person::create(
-      pool,
-      &PersonInsertForm {
-        bot_account: Some(true),
-        ..person_insert_form("mybot")
-      },
-    )
-    .await?;
+    let new_bot = PersonInsertForm {
+      bot_account: Some(true),
+      ..default_person_insert_form("mybot")
+    },
 
-    let inserted_community = Community::create(
-      pool,
-      &CommunityInsertForm::builder()
-        .name("test_community_3".to_string())
-        .title("nada".to_owned())
-        .public_key("pubkey".to_string())
-        .instance_id(inserted_instance.id)
-        .build(),
-    )
-    .await?;
+    let inserted_bot = Person::create(pool, &new_bot).await?;
+
+    let new_community = CommunityInsertForm::builder()
+      .name("test_community_3".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_community = Community::create(pool, &new_community).await?;
 
     // Test a person block, make sure the post query doesn't include their post
-    let inserted_blocked_person = Person::create(pool, &person_insert_form("john")).await?;
+    let blocked_person = default_person_insert_form("john");
+
+    let inserted_blocked_person = Person::create(pool, &blocked_person).await?;
 
     let inserted_blocked_local_user =
       LocalUser::create(pool, &local_user_form(inserted_blocked_person.id)).await?;
 
-    Post::create(
-      pool,
-      &PostInsertForm::builder()
-        .name(POST_BY_BLOCKED_PERSON.to_string())
-        .creator_id(inserted_blocked_person.id)
-        .community_id(inserted_community.id)
-        .language_id(Some(LanguageId(1)))
-        .build(),
-    )
-    .await?;
+    let post_from_blocked_person = PostInsertForm::builder()
+      .name(POST_BY_BLOCKED_PERSON.to_string())
+      .creator_id(inserted_blocked_person.id)
+      .community_id(inserted_community.id)
+      .language_id(Some(LanguageId(1)))
+      .build();
+
+    Post::create(pool, &post_from_blocked_person).await?;
 
     // block that person
-    PersonBlock::block(
-      pool,
-      &PersonBlockForm {
-        person_id: inserted_person.id,
-        target_id: inserted_blocked_person.id,
-      },
-    )
-    .await?;
+    let person_block = PersonBlockForm {
+      person_id: inserted_person.id,
+      target_id: inserted_blocked_person.id,
+    };
+
+    PersonBlock::block(pool, &person_block).await?;
 
     // A sample post
-    let inserted_post = Post::create(
-      pool,
-      &PostInsertForm::builder()
-        .name(POST.to_string())
-        .creator_id(inserted_person.id)
-        .community_id(inserted_community.id)
-        .language_id(Some(LanguageId(47)))
-        .build(),
-    )
-    .await?;
+    let new_post = PostInsertForm::builder()
+      .name(POST.to_string())
+      .creator_id(inserted_person.id)
+      .community_id(inserted_community.id)
+      .language_id(Some(LanguageId(47)))
+      .build();
 
-    let inserted_bot_post = Post::create(
-      pool,
-      &PostInsertForm::builder()
-        .name(POST_BY_BOT.to_string())
-        .creator_id(inserted_bot.id)
-        .community_id(inserted_community.id)
-        .build(),
-    )
-    .await?;
+    let inserted_post = Post::create(pool, &new_post).await?;
+
+    let new_bot_post = PostInsertForm::builder()
+      .name(POST_BY_BOT.to_string())
+      .creator_id(inserted_bot.id)
+      .community_id(inserted_community.id)
+      .build();
+
+    let inserted_bot_post = Post::create(pool, &new_bot_post).await?;
     let local_user_view = LocalUserView {
       local_user: inserted_local_user,
       person: inserted_person,
       counts: Default::default(),
     };
-
     let blocked_local_user_view = LocalUserView {
       local_user: inserted_blocked_local_user,
       person: inserted_blocked_person,
@@ -710,24 +696,25 @@ mod tests {
     let pool = &mut pool.into();
     let mut data = init_data(pool).await?;
 
-    data.local_user_view.local_user = LocalUser::update(
+    let local_user_form = LocalUserUpdateForm {
+      show_bot_accounts: Some(false),
+      ..Default::default()
+    };
+    let innserted_local_user = LocalUser::update(
       pool,
       data.local_user_view.local_user.id,
-      &LocalUserUpdateForm {
-        show_bot_accounts: Some(false),
-        ..Default::default()
-      },
-    )
-    .await?;
+      &local_user_form,
+    ).await?;
+    data.local_user_view.local_user = inserted_local_user;
 
-    let post_list_without_bots = PostQuery {
+    let read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       ..data.default_post_query()
     }
     .list(pool)
     .await?;
 
-    let post = PostView::read(
+    let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
       Some(data.local_user_view.person.id),
@@ -735,30 +722,31 @@ mod tests {
     )
     .await?;
 
-    let expected_post = expected_post_view(&data, pool).await?;
+    let expected_post_listing_with_user = expected_post_view(&data, pool).await?;
 
     // Should be only one person, IE the bot post, and blocked should be missing
-    assert_eq!(vec![post.clone()], post_list_without_bots);
-    assert_eq!(expected_post, post);
+    assert_eq!(vec![post_listing_single_with_person.clone()], read_post_listing);
+    assert_eq!(expected_post_listing_with_user, post_listing_single_with_person);
 
-    data.local_user_view.local_user = LocalUser::update(
+    let local_user_form = LocalUserUpdateForm {
+      show_bot_accounts: Some(false),
+      ..Default::default()
+    };
+    let innserted_local_user = LocalUser::update(
       pool,
       data.local_user_view.local_user.id,
-      &LocalUserUpdateForm {
-        show_bot_accounts: Some(true),
-        ..Default::default()
-      },
-    )
-    .await?;
+      &local_user_form,
+    ).await?;
+    data.local_user_view.local_user = inserted_local_user;
 
-    let post_list_with_bots = PostQuery {
+    let post_listings_with_bots = PostQuery {
       community_id: Some(data.inserted_community.id),
       ..data.default_post_query()
     }
     .list(pool)
     .await?;
     // should include bot post which has "undetermined" language
-    assert_eq!(vec![POST_BY_BOT, POST], names(&post_list_with_bots));
+    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_with_bots));
 
     cleanup(data, pool).await
   }
@@ -770,7 +758,7 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let post_list = PostQuery {
+    let read_post_listing_multiple_no_person = PostQuery {
       community_id: Some(data.inserted_community.id),
       local_user: None,
       ..data.default_post_query()
@@ -778,18 +766,18 @@ mod tests {
     .list(pool)
     .await?;
 
-    let post = PostView::read(pool, data.inserted_post.id, None, false).await?;
+    let read_post_listing_single_no_person = PostView::read(pool, data.inserted_post.id, None, false).await?;
 
-    let expected_post = expected_post_view(&data, pool).await?;
+    let expected_post_listing_no_person = expected_post_view(&data, pool).await?;
 
     // Should be 2 posts, with the bot post, and the blocked
     assert_eq!(
       vec![POST_BY_BOT, POST, POST_BY_BLOCKED_PERSON],
-      names(&post_list)
+      names(&read_post_listing_multiple_no_person)
     );
 
-    assert_eq!(Some(&expected_post), post_list.get(1));
-    assert_eq!(expected_post, post);
+    assert_eq!(Some(expected_post_listing_no_person), read_post_listing_multiple_no_person.get(1));
+    assert_eq!(expected_post_listing_no_person, read_post_listing_single_no_person);
 
     cleanup(data, pool).await
   }
@@ -807,14 +795,14 @@ mod tests {
     };
     CommunityBlock::block(pool, &community_block).await?;
 
-    let post_list_after_block = PostQuery {
+    let read_post_listings_with_person_after_block = PostQuery {
       community_id: Some(data.inserted_community.id),
       ..data.default_post_query()
     }
     .list(pool)
     .await?;
     // Should be 0 posts after the community block
-    assert_eq!(post_list_after_block, vec![]);
+    assert_eq!(read_post_listings_with_person_after_block, vec![]);
 
     CommunityBlock::unblock(pool, &community_block).await?;
     cleanup(data, pool).await
@@ -827,15 +815,13 @@ mod tests {
     let pool = &mut pool.into();
     let mut data = init_data(pool).await?;
 
-    let inserted_post_like = PostLike::like(
-      pool,
-      &PostLikeForm {
-        post_id: data.inserted_post.id,
-        person_id: data.local_user_view.person.id,
-        score: 1,
-      },
-    )
-    .await?;
+    let post_like_form = PostLikeForm {
+      post_id: data.inserted_post.id,
+      person_id: data.local_user_view.person.id,
+      score: 1,
+    };
+
+    let inserted_post_like = PostLike::like(pool, &post_like_form).await?;
 
     let expected_post_like = PostLike {
       post_id: data.inserted_post.id,
@@ -845,7 +831,7 @@ mod tests {
     };
     assert_eq!(expected_post_like, inserted_post_like);
 
-    let post = PostView::read(
+    let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
       Some(data.local_user_view.person.id),
@@ -857,43 +843,44 @@ mod tests {
     expected_post_with_upvote.my_vote = Some(1);
     expected_post_with_upvote.counts.score = 1;
     expected_post_with_upvote.counts.upvotes = 1;
-    assert_eq!(expected_post_with_upvote, post);
+    assert_eq!(expected_post_with_upvote, post_listing_single_with_person);
 
-    data.local_user_view.local_user = LocalUser::update(
+    let local_user_form = LocalUserUpdateForm {
+      show_bot_accounts: Some(false),
+      ..Default::default()
+    };
+    let innserted_local_user = LocalUser::update(
       pool,
       data.local_user_view.local_user.id,
-      &LocalUserUpdateForm {
-        show_bot_accounts: Some(false),
-        ..Default::default()
-      },
-    )
-    .await?;
+      &local_user_form,
+    ).await?;
+    data.local_user_view.local_user = inserted_local_user;
 
-    let post_list = PostQuery {
+    let read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       ..data.default_post_query()
     }
     .list(pool)
     .await?;
-    assert_eq!(vec![expected_post_with_upvote], post_list);
+    assert_eq!(vec![expected_post_with_upvote], read_post_listing);
 
-    let liked_post_list = PostQuery {
+    let read_liked_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       liked_only: true,
       ..data.default_post_query()
     }
     .list(pool)
     .await?;
-    assert_eq!(post_list, liked_post_list);
+    assert_eq!(post_list, read_liked_post_listing);
 
-    let disliked_post_list = PostQuery {
+    let read_disliked_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       disliked_only: true,
       ..data.default_post_query()
     }
     .list(pool)
     .await?;
-    assert_eq!(disliked_post_list, vec![]);
+    assert_eq!(read_disliked_post_listing, vec![]);
 
     let like_removed =
       PostLike::remove(pool, data.local_user_view.person.id, data.inserted_post.id).await?;
@@ -909,16 +896,15 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Make one of the inserted persons a moderator
-    CommunityModerator::join(
-      pool,
-      &CommunityModeratorForm {
-        community_id: data.inserted_community.id,
-        person_id: data.local_user_view.person.id,
-      },
-    )
-    .await?;
+    let person_id = data.local_user_view.person.id;
+    let community_id = data.inserted_community.id;
+    let form = CommunityModeratorForm {
+      community_id,
+      person_id,
+    };
+    CommunityModerator::join(pool, &form).await.unwrap();
 
-    let post_list = PostQuery {
+    let post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       ..data.default_post_query()
     }
@@ -928,12 +914,12 @@ mod tests {
     .map(|p| (p.creator.name, p.creator_is_moderator, p.creator_is_admin))
     .collect::<Vec<_>>();
 
-    let expected_post_list = vec![
+    let expected_post_listing = vec![
       ("mybot".to_owned(), false, false),
       ("tegan".to_owned(), true, true),
     ];
 
-    assert_eq!(expected_post_list, post_list);
+    assert_eq!(expected_post_listing, post_listing);
 
     cleanup(data, pool).await
   }
@@ -964,20 +950,20 @@ mod tests {
 
     Post::create(pool, &post_spanish).await?;
 
-    let post_list = data.default_post_query().list(pool).await?;
+    let post_listings_all = data.default_post_query().list(pool).await?;
 
     // no language filters specified, all posts should be returned
-    assert_eq!(vec![EL_POSTO, POST_BY_BOT, POST], names(&post_list));
+    assert_eq!(vec![EL_POSTO, POST_BY_BOT, POST], names(&post_listings_all));
 
     LocalUserLanguage::update(pool, vec![french_id], data.local_user_view.local_user.id).await?;
 
-    let french_post_list = data.default_post_query().list(pool).await?;
+    let post_listing_french = data.default_post_query().list(pool).await?;
 
     // only one post in french and one undetermined should be returned
-    assert_eq!(vec![POST_BY_BOT, POST], names(&french_post_list));
+    assert_eq!(vec![POST_BY_BOT, POST], names(&post_list_french));
     assert_eq!(
       Some(french_id),
-      french_post_list.get(1).map(|p| p.post.language_id)
+      post_listing_french.get(1).map(|p| p.post.language_id)
     );
 
     LocalUserLanguage::update(
@@ -986,20 +972,20 @@ mod tests {
       data.local_user_view.local_user.id,
     )
     .await?;
-    let french_und_post_list = data
+    let post_listings_french_und = data
       .default_post_query()
       .list(pool)
       .await?
       .into_iter()
       .map(|p| (p.post.name, p.post.language_id))
       .collect::<Vec<_>>();
-    let expected_french_und_post_list = vec![
+    let expected_post_listings_french_und = vec![
       (POST_BY_BOT.to_owned(), UNDETERMINED_ID),
       (POST.to_owned(), french_id),
     ];
 
     // french post and undetermined language post should be returned
-    assert_eq!(expected_french_und_post_list, french_und_post_list);
+    assert_eq!(expected_post_listings_french_und, post_listings_french_und);
 
     cleanup(data, pool).await
   }
@@ -1023,18 +1009,18 @@ mod tests {
     .await?;
 
     // Make sure you don't see the removed post in the results
-    let post_list = data.default_post_query().list(pool).await?;
-    assert_eq!(vec![POST_BY_BOT], names(&post_list));
+    let post_listings_no_admin = data.default_post_query().list(pool).await?;
+    assert_eq!(vec![POST_BY_BOT], names(&post_listings_no_admin));
 
     // Removed bot post is shown to admins on its profile page
     data.local_user_view.local_user.admin = true;
-    let post_list_on_profile_page = PostQuery {
+    let post_listings_is_admin = PostQuery {
       creator_id: Some(data.inserted_bot.id),
       ..data.default_post_query()
     }
     .list(pool)
     .await?;
-    assert_eq!(vec![POST_BY_BOT], names(&post_list_on_profile_page));
+    assert_eq!(vec![POST_BY_BOT], names(&post_listins_is_admin));
 
     cleanup(data, pool).await
   }
@@ -1088,33 +1074,28 @@ mod tests {
 
     let blocked_instance = Instance::read_or_create(pool, "another_domain.tld".to_string()).await?;
 
-    let inserted_community = Community::create(
-      pool,
-      &CommunityInsertForm::builder()
-        .name("test_community_4".to_string())
-        .title("none".to_owned())
-        .public_key("pubkey".to_string())
-        .instance_id(blocked_instance.id)
-        .build(),
-    )
-    .await?;
+    let community_form = CommunityInsertForm::builder()
+      .name("test_community_4".to_string())
+      .title("none".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(blocked_instance.id)
+      .build();
+    let inserted_community = Community::create(pool, &community_form).await?;
 
-    let post_from_blocked_instance = Post::create(
-      pool,
-      &PostInsertForm::builder()
-        .name(POST_FROM_BLOCKED_INSTANCE.to_string())
-        .creator_id(data.inserted_bot.id)
-        .community_id(inserted_community.id)
-        .language_id(Some(LanguageId(1)))
-        .build(),
-    )
-    .await?;
+    let post_form = PostInsertForm::builder()
+      .name(POST_FROM_BLOCKED_INSTANCE.to_string())
+      .creator_id(data.inserted_bot.id)
+      .community_id(inserted_community.id)
+      .language_id(Some(LanguageId(1)))
+      .build();
+
+    let post_from_blocked_instance = Post::create(pool, &post_form).await?;
 
     // no instance block, should return all posts
-    let post_list = data.default_post_query().list(pool).await?;
+    let post_listings_all = data.default_post_query().list(pool).await?;
     assert_eq!(
       vec![POST_FROM_BLOCKED_INSTANCE, POST_BY_BOT, POST],
-      names(&post_list)
+      names(&post_listings_all)
     );
 
     // block the instance
@@ -1125,18 +1106,18 @@ mod tests {
     InstanceBlock::block(pool, &block_form).await?;
 
     // now posts from communities on that instance should be hidden
-    let post_list_with_block = data.default_post_query().list(pool).await?;
-    assert_eq!(vec![POST_BY_BOT, POST], names(&post_list_with_block));
-    assert!(post_list_with_block
+    let post_listings_blocked = data.default_post_query().list(pool).await?;
+    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_blocked));
+    assert!(post_listings_blocked
       .iter()
       .all(|p| p.post.id != post_from_blocked_instance.id));
 
     // after unblocking it should return all posts again
     InstanceBlock::unblock(pool, &block_form).await?;
-    let post_list_with_removed_block = data.default_post_query().list(pool).await?;
+    let post_listings_blocked = data.default_post_query().list(pool).await?;
     assert_eq!(
       vec![POST_FROM_BLOCKED_INSTANCE, POST_BY_BOT, POST],
-      names(&post_list_with_removed_block)
+      names(&post_listings_blocked)
     );
 
     Instance::delete(pool, blocked_instance.id).await?;
