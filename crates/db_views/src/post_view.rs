@@ -721,15 +721,17 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use crate::{
-    post_view::{PostQuery, PostView},
+    post_view::{PaginationCursorData, PostQuery, PostView},
     structs::LocalUserView,
   };
+  use chrono::Utc;
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
     impls::actor_language::UNDETERMINED_ID,
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
+      comment::{Comment, CommentInsertForm};
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       community_block::{CommunityBlock, CommunityBlockForm},
       instance::Instance,
@@ -1413,88 +1415,77 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn pagination_includes_each_post_once() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+  async fn pagination_includes_each_post_once() {
+    let pool = &build_db_pool().await.unwrap();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
+    let data = init_data(pool).await.unwrap();
 
-    // TODO make new community instead
-    let pre_existing_post_ids = data
-      .default_post_query()
-      .list(pool)
-      .await?
-      .into_iter()
-      .map(|p| p.post.id)
-      .collect::<Vec<_>>();
+    let community_form = CommunityInsertForm::builder()
+      .name("yes".to_string())
+      .title("yes".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(data.inserted_instance.id)
+      .build();
+    let inserted_community = Community::create(pool, &community_form).await.unwrap();
 
-    let mut expected_post_ids = vec![];
-    let mut comment_ids = vec![];
+    let mut inserted_post_ids = vec![];
+    let mut inserted_comment_ids = vec![];
 
-    // Create 15 posts for each amount of comments from 0 to 9
+    // Create 150 posts with varying non-correlating values for publish date, number of comments, and featured
     for comments in 0..10 {
       for _ in 0..15 {
-        let post = Post::create(
-          pool,
-          &PostInsertForm::builder()
-            .name("keep Christ in Christmas".to_owned())
-            .creator_id(data.local_user_view.person.id)
-            .community_id(data.inserted_community.id)
-            .featured_local(Some((comments % 2) == 0))
-            .featured_community(Some((comments % 2) == 0))
-            .published(Some(Utc::now() - Duration::from_secs(comments % 3)))
-            .build(),
-        )
-        .await?;
-        expected_post_ids.push(post.id);
+        let post_form = PostInsertForm::builder()
+          .name("keep Christ in Christmas".to_owned())
+          .creator_id(data.local_user_view.person.id)
+          .community_id(inserted_community.id)
+          .featured_local(Some((comments % 2) == 0))
+          .featured_community(Some((comments % 2) == 0))
+          .published(Some(Utc::now() - Duration::from_secs(comments % 3)))
+          .build();
+        let inserted_post = Post::create(pool, &post_form).await.unwrap();
+        inserted_post_ids.push(inserted_post.id);
+
         for _ in 0..comments {
-          let comment = Comment::create(
-            pool,
-            &CommentInsertForm::builder()
-              .creator_id(data.local_user_view.person.id)
-              .post_id(post.id)
-              .content("hi".to_owned())
-              .build(),
-            None,
-          )
-          .await?;
-          comment_ids.push(comment.id);
+          let comment_form = CommentInsertForm::builder()
+            .creator_id(data.local_user_view.person.id)
+            .post_id(inserted_post.id)
+            .content("yes".to_owned())
+            .build();
+          let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
+          inserted_comment_ids.push(inserted_comment.id);
         }
       }
     }
 
-    let mut post_ids = vec![];
+    let mut listed_post_ids = vec![];
     let mut page_after = None;
     loop {
-      let posts = PostQuery {
+      let post_listings = PostQuery {
+        community_id: Some(inserted_community.id),
         sort: Some(SortType::MostComments),
-        page_after,
         limit: Some(10),
-        ..data.default_post_query()
+        page_after,
       }
       .list(pool)
-      .await?;
+      .await
+      .unwrap();
 
-      post_ids.extend(
-        posts
-          .iter()
-          .map(|p| p.post.id)
-          .filter(|id| !pre_existing_post_ids.contains(&id))
-      );
+      listed_post_ids.extend(post_listings.iter().map(|p| p.post.id));
 
-      if let Some(p) = posts.into_iter().last() {
+      if let Some(p) = post_listings.into_iter().last() {
         page_after = Some(PaginationCursorData(p.counts));
       } else {
         break;
       }
     }
 
-    cleanup(data, pool).await?;
+    inserted_post_ids.sort_unstable_by_key(|id| id.0);
+    listed_post_ids.sort_unstable_by_key(|id| id.0);
 
-    expected_post_ids.sort_unstable_by_key(|id| id.0);
-    post_ids.sort_unstable_by_key(|id| id.0);
-    assert_eq!(expected_post_ids, post_ids);
+    assert_eq!(inserted_post_ids, listed_post_ids);
 
-    Ok(())
+    Community::delete(pool, inserted_community.id).await.unwrap();
+    cleanup(data, pool).await;
   }
 
 
