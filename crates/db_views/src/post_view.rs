@@ -635,7 +635,6 @@ pub struct PostQuery<'a> {
   pub saved_only: bool,
   pub liked_only: bool,
   pub disliked_only: bool,
-  pub moderator_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub page_after: Option<PaginationCursorData>,
