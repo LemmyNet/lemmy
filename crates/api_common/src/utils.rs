@@ -43,7 +43,7 @@ use std::collections::HashSet;
 use tracing::warn;
 use url::{ParseError, Url};
 
-pub static AUTH_COOKIE_NAME: &str = "auth";
+pub static AUTH_COOKIE_NAME: &str = "jwt";
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(

@@ -227,6 +227,7 @@ pub enum LemmyErrorType {
   BanExpirationInPast,
   InvalidUnixTime,
   InvalidBotAction,
+  CantBlockLocalInstance,
   Unknown(String),
 }
 

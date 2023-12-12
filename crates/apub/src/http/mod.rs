@@ -96,6 +96,13 @@ pub(crate) async fn get_activity(
   if sensitive {
     Ok(HttpResponse::Forbidden().finish())
   } else {
-    create_apub_response(&activity.data)
+    // Don't use create_apub_response() to avoid duplicate context (the activity stored in db
+    // already includes context).
+    let json = serde_json::to_string_pretty(&activity.data)?;
+    Ok(
+      HttpResponse::Ok()
+        .content_type(FEDERATION_CONTENT_TYPE)
+        .body(json),
+    )
   }
 }
