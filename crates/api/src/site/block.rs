@@ -19,6 +19,10 @@ pub async fn block_instance(
 ) -> Result<Json<BlockInstanceResponse>, LemmyError> {
   let instance_id = data.instance_id;
   let person_id = local_user_view.person.id;
+  if local_user_view.person.instance_id == instance_id {
+    return Err(LemmyErrorType::CantBlockLocalInstance)?;
+  }
+
   let instance_block_form = InstanceBlockForm {
     person_id,
     instance_id,

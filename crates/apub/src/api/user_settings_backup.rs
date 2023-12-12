@@ -14,6 +14,8 @@ use lemmy_db_schema::{
     comment::{CommentSaved, CommentSavedForm},
     community::{CommunityFollower, CommunityFollowerForm},
     community_block::{CommunityBlock, CommunityBlockForm},
+    instance::Instance,
+    instance_block::{InstanceBlock, InstanceBlockForm},
     local_user::{LocalUser, LocalUserUpdateForm},
     person::{Person, PersonUpdateForm},
     person_block::{PersonBlock, PersonBlockForm},
@@ -58,6 +60,8 @@ pub struct UserSettingsBackup {
   pub blocked_communities: Vec<ObjectId<ApubCommunity>>,
   #[serde(default)]
   pub blocked_users: Vec<ObjectId<ApubPerson>>,
+  #[serde(default)]
+  pub blocked_instances: Vec<String>,
 }
 
 #[tracing::instrument(skip(context))]
@@ -78,6 +82,7 @@ pub async fn export_settings(
     settings: Some(local_user_view.local_user),
     followed_communities: vec_into(lists.followed_communities),
     blocked_communities: vec_into(lists.blocked_communities),
+    blocked_instances: lists.blocked_instances,
     blocked_users: lists.blocked_users.into_iter().map(Into::into).collect(),
     saved_posts: lists.saved_posts.into_iter().map(Into::into).collect(),
     saved_comments: lists.saved_comments.into_iter().map(Into::into).collect(),
@@ -130,6 +135,7 @@ pub async fn import_settings(
   let url_count = data.followed_communities.len()
     + data.blocked_communities.len()
     + data.blocked_users.len()
+    + data.blocked_instances.len()
     + data.saved_posts.len()
     + data.saved_comments.len();
   if url_count > MAX_API_PARAM_ELEMENTS {
@@ -269,6 +275,19 @@ pub async fn import_settings(
       LemmyResult::Ok(())
     }))
     .await?;
+
+    try_join_all(data.blocked_instances.iter().map(|domain| async {
+      // dont fetch unknown blocked objects from home server
+      let instance = Instance::read_or_create(&mut context.pool(), domain.clone()).await?;
+      let form = InstanceBlockForm {
+        person_id,
+        instance_id: instance.id,
+      };
+      InstanceBlock::block(&mut context.pool(), &form).await?;
+      LemmyResult::Ok(())
+    }))
+    .await?;
+
     Ok(())
   });
 

@@ -39,7 +39,7 @@ import {
   loginUser,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
-import { LemmyHttp, ResolveObject } from "lemmy-js-client";
+import { ResolveObject } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 
@@ -390,11 +390,7 @@ test("Enforce site ban for federated user", async () => {
     throw "Missing beta community";
   }
   // create a test user
-  let alphaUserJwt = await registerUser(alpha);
-  expect(alphaUserJwt).toBeDefined();
-  let alpha_user = new LemmyHttp(alphaUrl, {
-    headers: { Authorization: `Bearer ${alphaUserJwt.jwt ?? ""}` },
-  });
+  let alpha_user = await registerUser(alpha, alphaUrl);
   let alphaUserPerson = (await getSite(alpha_user)).my_user?.local_user_view
     .person;
   let alphaUserActorId = alphaUserPerson?.actor_id;

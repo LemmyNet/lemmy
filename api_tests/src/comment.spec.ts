@@ -39,7 +39,6 @@ import {
   delay,
 } from "./shared";
 import { CommentView, CommunityView } from "lemmy-js-client";
-import { LemmyHttp } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 let postOnAlphaRes: PostResponse;
@@ -230,10 +229,7 @@ test.skip("Remove a comment from admin and community on the same instance", asyn
 });
 
 test("Remove a comment from admin and community on different instance", async () => {
-  let alpha_user = await registerUser(alpha);
-  let newAlphaApi = new LemmyHttp(alphaUrl, {
-    headers: { Authorization: `Bearer ${alpha_user.jwt ?? ""}` },
-  });
+  let newAlphaApi = await registerUser(alpha, alphaUrl);
 
   // New alpha user creates a community, post, and comment.
   let newCommunity = await createCommunity(newAlphaApi);

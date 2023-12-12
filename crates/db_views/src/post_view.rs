@@ -29,6 +29,7 @@ use lemmy_db_schema::{
     community_moderator,
     community_person_ban,
     instance_block,
+    local_user,
     local_user_language,
     person,
     person_block,
@@ -112,6 +113,14 @@ fn queries<'a>() -> Queries<
       post_aggregates::community_id
         .eq(community_moderator::community_id)
         .and(community_moderator::person_id.eq(post_aggregates::creator_id)),
+    ),
+  );
+
+  let creator_is_admin = exists(
+    local_user::table.filter(
+      post_aggregates::creator_id
+        .eq(local_user::person_id)
+        .and(local_user::admin.eq(true)),
     ),
   );
 
@@ -234,6 +243,7 @@ fn queries<'a>() -> Queries<
         community::all_columns,
         is_creator_banned_from_community,
         creator_is_moderator,
+        creator_is_admin,
         post_aggregates::all_columns,
         subscribed_type_selection,
         is_saved_selection,
@@ -264,8 +274,16 @@ fn queries<'a>() -> Queries<
       // Hide deleted and removed for non-admins or mods
       if !is_mod_or_admin {
         query = query
-          .filter(community::removed.eq(false))
-          .filter(post::removed.eq(false))
+          .filter(
+            community::removed
+              .eq(false)
+              .or(post::creator_id.eq(person_id_join)),
+          )
+          .filter(
+            post::removed
+              .eq(false)
+              .or(post::creator_id.eq(person_id_join)),
+          )
           // users can see their own deleted posts
           .filter(
             community::deleted
@@ -283,25 +301,27 @@ fn queries<'a>() -> Queries<
     };
 
   let list = move |mut conn: DbConn<'a>, options: PostQuery<'a>| async move {
-    let person_id = options.local_user.map(|l| l.person.id);
-    let local_user_id = options.local_user.map(|l| l.local_user.id);
+    let my_person_id = options.local_user.map(|l| l.person.id);
+    let my_local_user_id = options.local_user.map(|l| l.local_user.id);
 
     // The left join below will return None in this case
-    let person_id_join = person_id.unwrap_or(PersonId(-1));
-    let local_user_id_join = local_user_id.unwrap_or(LocalUserId(-1));
+    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
+    let local_user_id_join = my_local_user_id.unwrap_or(LocalUserId(-1));
 
     let mut query = all_joins(
       post_aggregates::table.into_boxed(),
-      person_id,
+      my_person_id,
       options.saved_only,
     );
 
-    let is_creator = options.creator_id == options.local_user.map(|l| l.person.id);
+    // hide posts from deleted communities
+    query = query.filter(community::deleted.eq(false));
+
     // only show deleted posts to creator
-    if is_creator {
-      query = query
-        .filter(community::deleted.eq(false))
-        .filter(post::deleted.eq(false));
+    if let Some(person_id) = my_person_id {
+      query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
+    } else {
+      query = query.filter(post::deleted.eq(false));
     }
 
     let is_admin = options
@@ -309,7 +329,7 @@ fn queries<'a>() -> Queries<
       .map(|l| l.local_user.admin)
       .unwrap_or(false);
     // only show removed posts to admin when viewing user profile
-    if !(options.is_profile_view && is_admin) {
+    if !(options.creator_id.is_some() && is_admin) {
       query = query
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
@@ -332,32 +352,47 @@ fn queries<'a>() -> Queries<
       query = query.filter(post_aggregates::creator_id.eq(creator_id));
     }
 
-    if let (Some(listing_type), Some(person_id)) = (options.listing_type, person_id) {
-      let is_subscribed = exists(
-        community_follower::table.filter(
-          post_aggregates::community_id
-            .eq(community_follower::community_id)
-            .and(community_follower::person_id.eq(person_id)),
-        ),
-      );
-      match listing_type {
-        ListingType::Subscribed => query = query.filter(is_subscribed),
-        ListingType::Local => {
-          query = query
-            .filter(community::local.eq(true))
-            .filter(community::hidden.eq(false).or(is_subscribed));
-        }
-        ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
-        ListingType::ModeratorView => {
-          query = query.filter(exists(
-            community_moderator::table.filter(
-              post::community_id
-                .eq(community_moderator::community_id)
-                .and(community_moderator::person_id.eq(person_id)),
-            ),
-          ));
+    if let Some(listing_type) = options.listing_type {
+      if let Some(person_id) = my_person_id {
+        let is_subscribed = exists(
+          community_follower::table.filter(
+            post_aggregates::community_id
+              .eq(community_follower::community_id)
+              .and(community_follower::person_id.eq(person_id)),
+          ),
+        );
+        match listing_type {
+          ListingType::Subscribed => query = query.filter(is_subscribed),
+          ListingType::Local => {
+            query = query
+              .filter(community::local.eq(true))
+              .filter(community::hidden.eq(false).or(is_subscribed));
+          }
+          ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
+          ListingType::ModeratorView => {
+            query = query.filter(exists(
+              community_moderator::table.filter(
+                post::community_id
+                  .eq(community_moderator::community_id)
+                  .and(community_moderator::person_id.eq(person_id)),
+              ),
+            ));
+          }
         }
       }
+      // If your person_id is missing, only show local
+      else {
+        match listing_type {
+          ListingType::Local => {
+            query = query
+              .filter(community::local.eq(true))
+              .filter(community::hidden.eq(false));
+          }
+          _ => query = query.filter(community::hidden.eq(false)),
+        }
+      }
+    } else {
+      query = query.filter(community::hidden.eq(false));
     }
 
     if let Some(url_search) = &options.url_search {
@@ -391,7 +426,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if let (true, Some(person_id)) = (options.saved_only, person_id) {
+    if let (true, Some(person_id)) = (options.saved_only, my_person_id) {
       query = query.filter(is_saved(person_id));
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
@@ -402,12 +437,12 @@ fn queries<'a>() -> Queries<
       .unwrap_or(true)
     {
       // Do not hide read posts when it is a user profile view
-      if let (false, Some(person_id)) = (options.is_profile_view, person_id) {
+      if let (Some(_creator_id), Some(person_id)) = (options.creator_id, my_person_id) {
         query = query.filter(not(is_read(person_id)));
       }
     }
 
-    if let Some(person_id) = person_id {
+    if let Some(person_id) = my_person_id {
       if options.liked_only {
         query = query.filter(score(person_id).eq(1));
       } else if options.disliked_only {
@@ -417,7 +452,7 @@ fn queries<'a>() -> Queries<
 
     // Dont filter blocks or missing languages for moderator view type
     if let (Some(person_id), false) = (
-      person_id,
+      my_person_id,
       options.listing_type.unwrap_or_default() == ListingType::ModeratorView,
     ) {
       // Filter out the rows with missing languages
@@ -601,7 +636,6 @@ pub struct PostQuery<'a> {
   pub liked_only: bool,
   pub disliked_only: bool,
   pub moderator_view: bool,
-  pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub page_after: Option<PaginationCursorData>,
@@ -724,7 +758,7 @@ mod tests {
       post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
     },
     traits::{Blockable, Crud, Joinable, Likeable},
-    utils::{build_db_pool_for_tests, DbPool},
+    utils::{build_db_pool_for_tests, DbPool, RANK_DEFAULT},
     SortType,
     SubscribedType,
   };
@@ -737,6 +771,7 @@ mod tests {
     inserted_bot: Person,
     inserted_community: Community,
     inserted_post: Post,
+    inserted_bot_post: Post,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> Data {
@@ -756,6 +791,7 @@ mod tests {
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
+      .admin(Some(true))
       .password_encrypted(String::new())
       .build();
     let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
@@ -820,7 +856,7 @@ mod tests {
       .community_id(inserted_community.id)
       .build();
 
-    let _inserted_bot_post = Post::create(pool, &new_bot_post).await.unwrap();
+    let inserted_bot_post = Post::create(pool, &new_bot_post).await.unwrap();
     let local_user_view = LocalUserView {
       local_user: inserted_local_user,
       person: inserted_person,
@@ -834,6 +870,7 @@ mod tests {
       inserted_bot,
       inserted_community,
       inserted_post,
+      inserted_bot_post,
     }
   }
 
@@ -1087,7 +1124,7 @@ mod tests {
     CommunityModerator::join(pool, &form).await.unwrap();
 
     let post_listing = PostQuery {
-      sort: (Some(SortType::New)),
+      sort: (Some(SortType::Old)),
       community_id: (Some(data.inserted_community.id)),
       local_user: (Some(&data.local_user_view)),
       ..Default::default()
@@ -1096,7 +1133,38 @@ mod tests {
     .await
     .unwrap();
 
-    assert!(post_listing[1].creator_is_moderator);
+    assert_eq!(post_listing[0].creator.name, "tegan");
+    assert!(post_listing[0].creator_is_moderator);
+
+    assert_eq!(post_listing[1].creator.name, "mybot");
+    assert!(!post_listing[1].creator_is_moderator);
+
+    cleanup(data, pool).await;
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn creator_is_admin() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    let post_listing = PostQuery {
+      sort: (Some(SortType::Old)),
+      community_id: (Some(data.inserted_community.id)),
+      local_user: (Some(&data.local_user_view)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+
+    assert_eq!(post_listing[0].creator.name, "tegan");
+    assert!(post_listing[0].creator_is_admin);
+
+    assert_eq!(post_listing[1].creator.name, "mybot");
+    assert!(!post_listing[1].creator_is_admin);
+
     cleanup(data, pool).await;
   }
 
@@ -1192,7 +1260,7 @@ mod tests {
     // Remove the post
     Post::update(
       pool,
-      data.inserted_post.id,
+      data.inserted_bot_post.id,
       &PostUpdateForm {
         removed: Some(true),
         ..Default::default()
@@ -1212,18 +1280,21 @@ mod tests {
     .unwrap();
     assert_eq!(1, post_listings_no_admin.len());
 
-    // Removed post is shown to admins on profile page
+    // Removed bot post is shown to admins on its profile page
     data.local_user_view.local_user.admin = true;
     let post_listings_is_admin = PostQuery {
       sort: Some(SortType::New),
+      creator_id: Some(data.inserted_bot.id),
       local_user: Some(&data.local_user_view),
-      is_profile_view: true,
       ..Default::default()
     }
     .list(pool)
     .await
     .unwrap();
-    assert_eq!(2, post_listings_is_admin.len());
+    assert_eq!(
+      data.inserted_bot.id,
+      post_listings_is_admin[0].post.creator_id
+    );
 
     cleanup(data, pool).await;
   }
@@ -1434,6 +1505,7 @@ mod tests {
       },
       creator_banned_from_community: false,
       creator_is_moderator: false,
+      creator_is_admin: true,
       community: Community {
         id: inserted_community.id,
         name: inserted_community.name.clone(),
@@ -1471,10 +1543,10 @@ mod tests {
         newest_comment_time: inserted_post.published,
         featured_community: false,
         featured_local: false,
-        hot_rank: 0.1728,
-        hot_rank_active: 0.1728,
+        hot_rank: RANK_DEFAULT,
+        hot_rank_active: RANK_DEFAULT,
         controversy_rank: 0.0,
-        scaled_rank: 0.3621,
+        scaled_rank: RANK_DEFAULT,
         community_id: inserted_post.community_id,
         creator_id: inserted_post.creator_id,
         instance_id: data.inserted_instance.id,
