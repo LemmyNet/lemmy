@@ -1340,7 +1340,7 @@ mod tests {
       let contains_deleted = PostQuery {
         sort: Some(SortType::New),
         local_user,
-        ..data.default_post_query()
+        ..Default::default()
       }
       .list(pool)
       .await
