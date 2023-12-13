@@ -84,23 +84,23 @@ macro_rules! field {
 }
 
 #[allow(clippy::large_enum_variant)]
-enum QueryInput<'a> {
+enum QueryInput<'a, 'b> {
   Read {
     post_id: PostId,
     me: Option<PersonId>,
     is_mod_or_admin: bool,
   },
   List {
-    options: PostQuery<'a>,
+    options: &'a PostQuery<'b>,
     top_subscribed_prefetch: bool,
   },
 }
 
 async fn build_query<'a>(
   pool: &mut DbPool<'_>,
-  input: &'a QueryInput<'_>,
+  args: QueryInput<'a, '_>,
 ) -> Result<impl FirstOrLoad<'a, PostView> + FirstOrLoadWithSelect<'a, PostAggregates>, Error> {
-  let me = match input {
+  let me = match args {
     QueryInput::Read { me, .. } => *me,
     QueryInput::List { options, .. } => options.local_user.map(|l| l.person.id),
   };
@@ -181,6 +181,7 @@ async fn build_query<'a>(
       let (limit, mut offset) = limit_and_offset(options.page, options.limit)?;
       if options.page_after.is_some() {
         // always skip exactly one post because that's the last post of the previous page
+        //
         // fixing the where clause is more difficult because we'd have to change only the last order-by-where clause
         // e.g. WHERE (featured_local<=, hot_rank<=, published<=) to WHERE (<=, <=, <)
         offset += 1;
@@ -189,7 +190,7 @@ async fn build_query<'a>(
       let mut page_before_or_equal = None;
 
       if top_subscribed_prefetch {
-        // get the last row of one page for the most popular community, and use it as the upper bound for the the page end for the final query
+        // get the last row of one page for the most popular community, which is used as `page_before_or_equal` for the final query
         //
         // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
         // the query to use an index on e.g. (=, >=, >=, >=) and fetch only LIMIT rows
@@ -212,13 +213,14 @@ async fn build_query<'a>(
 
         query = query.filter(post_aggregates::community_id.nullable().eq(largest_subscribed));
 
-        // If there's at least `limit` rows, then get the last row within the limit. Otherwise, the offset causes
-        // all rows to be skipped, so no upper bound will be set for the final query, which prevents the amount of
-        // rows returned by the final query from being incorrectly limited.
+        // If there's at least `limit` rows, then get the last row within the limit. If there's less than `limit`
+        // rows, then using the last one as the `page_before_or_equal` bound for the final query might cause it
+        // to also have less than `limit` rows even if it shouldn't, and this offset prevents that by causing
+        // all rows to be skipped.
         offest += limit - 1;
         limit = 1;
       } else if listing_type == ListingType::Subscribed {
-        page_before_or_equal = build_query(pool, &QueryInput::List { options: options.clone(), top_subscribed_prefetch: true })
+        page_before_or_equal = build_query(pool, QueryInput::List { options, top_subscribed_prefetch: true })
           .select(PostAggregates::as_select())
           .first(&mut *get_conn(pool).await?)
           .await
@@ -229,12 +231,12 @@ async fn build_query<'a>(
       query = query.limit(limit).offset(offset)
 
       query = query
-        // hide posts from deleted communities
+        // hide posts from deleted communities, even if the post's creator is viewing
         .filter(not(community::deleted))
         // only show deleted posts to creator
         .filter(is_creator.or(not(post::deleted)));
 
-      // only show removed posts to admin when viewing user profile
+      // only show removed posts or communities to admin when viewing user profile
       if !(options.creator_id.is_some() && admin) {
         query = query.filter(not(removed));
       }
@@ -297,6 +299,7 @@ async fn build_query<'a>(
       if !show_bot_accounts {
         query = query.filter(not(person::bot_account));
       }
+      // disabled `show_read_posts` is ignored for saved view and profile view to prevent those views from becoming empty
       if !(show_read_posts || options.saved_only || options.creator_id.is_some()) {
         query = query.filter_var_eq(&mut read, false);
       }
@@ -433,7 +436,7 @@ impl PostView {
   ) -> Result<Self, Error> {
     build_query(
       pool,
-      &QueryInput::Read {
+      QueryInput::Read {
         post_id,
         me,
         is_mod_or_admin,
@@ -492,7 +495,7 @@ pub struct PostQuery<'a> {
 
 impl<'a> PostQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
-    build_query(pool, &QueryInput::List { options: self, top_community_prefetch: false })
+    build_query(pool, QueryInput::List { options: &self, top_community_prefetch: false })
       .await?
       .load(&mut *get_conn(pool).await?)
       .await
