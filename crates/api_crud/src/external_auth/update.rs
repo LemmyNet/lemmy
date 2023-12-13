@@ -5,10 +5,7 @@ use lemmy_api_common::{
   external_auth::{EditExternalAuth, ExternalAuthResponse},
   utils::is_admin,
 };
-use lemmy_db_schema::source::{
-  external_auth::{ExternalAuth, ExternalAuthUpdateForm},
-  local_site::LocalSite,
-};
+use lemmy_db_schema::source::external_auth::{ExternalAuth, ExternalAuthUpdateForm};
 use lemmy_db_views::structs::{ExternalAuthView, LocalUserView};
 use lemmy_utils::error::LemmyError;
 
@@ -18,7 +15,6 @@ pub async fn update_external_auth(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<ExternalAuthResponse>, LemmyError> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 

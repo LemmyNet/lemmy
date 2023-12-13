@@ -5,10 +5,7 @@ use lemmy_api_common::{
   external_auth::{CreateExternalAuth, ExternalAuthResponse},
   utils::is_admin,
 };
-use lemmy_db_schema::source::{
-  external_auth::{ExternalAuth, ExternalAuthInsertForm},
-  local_site::LocalSite,
-};
+use lemmy_db_schema::source::external_auth::{ExternalAuth, ExternalAuthInsertForm};
 use lemmy_db_views::structs::{ExternalAuthView, LocalUserView};
 use lemmy_utils::error::LemmyError;
 
