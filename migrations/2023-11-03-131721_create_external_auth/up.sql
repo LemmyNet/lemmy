@@ -1,6 +1,5 @@
 CREATE TABLE external_auth (
     id serial PRIMARY KEY,
-    local_site_id int REFERENCES local_site ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     display_name text NOT NULL,
     auth_type varchar(128) NOT NULL,
     auth_endpoint text NOT NULL,

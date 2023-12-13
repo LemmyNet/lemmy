@@ -24,7 +24,6 @@ pub async fn update_external_auth(
 
   let cloned_data = data.clone();
   let external_auth_form = ExternalAuthUpdateForm::builder()
-    .local_site_id(local_site.id)
     .display_name(cloned_data.display_name.into())
     .auth_type(data.auth_type.to_string())
     .auth_endpoint(cloned_data.auth_endpoint.into())

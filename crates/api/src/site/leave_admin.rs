@@ -63,7 +63,7 @@ pub async fn leave_admin(
   let custom_emojis =
     CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
   let external_auths =
-    ExternalAuthView::get_all(&mut context.pool(), site_view.local_site.id).await?;
+    ExternalAuthView::get_all(&mut context.pool()).await?;
 
   Ok(Json(GetSiteResponse {
     site_view,

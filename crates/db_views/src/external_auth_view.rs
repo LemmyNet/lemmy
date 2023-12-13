@@ -1,8 +1,8 @@
 use crate::structs::ExternalAuthView;
-use diesel::{result::Error, ExpressionMethods, QueryDsl};
+use diesel::{result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  newtypes::{ExternalAuthId, LocalSiteId},
+  newtypes::ExternalAuthId,
   schema::external_auth,
   source::external_auth::ExternalAuth,
   utils::{get_conn, DbPool},
@@ -45,13 +45,9 @@ impl ExternalAuthView {
     }
   }
 
-  pub async fn get_all(
-    pool: &mut DbPool<'_>,
-    for_local_site_id: LocalSiteId,
-  ) -> Result<Vec<Self>, Error> {
+  pub async fn get_all(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let external_auths = external_auth::table
-      .filter(external_auth::local_site_id.eq(for_local_site_id))
       .order(external_auth::id)
       .select(external_auth::all_columns)
       .load::<ExternalAuth>(conn)
@@ -67,7 +63,6 @@ impl ExternalAuthView {
         // Can't just clone entire object because client_secret must be stripped
         external_auth: ExternalAuth {
           id: item.id.clone(),
-          local_site_id: item.local_site_id.clone(),
           display_name: item.display_name.clone(),
           auth_type: item.auth_type.clone(),
           auth_endpoint: item.auth_endpoint.clone(),

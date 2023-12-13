@@ -277,7 +277,6 @@ diesel::table! {
 diesel::table! {
     external_auth (id) {
         id -> Int4,
-        local_site_id -> Int4,
         display_name -> Text,
         #[max_length = 128]
         auth_type -> Varchar,
@@ -939,7 +938,6 @@ diesel::joinable!(community_person_ban -> person (person_id));
 diesel::joinable!(custom_emoji -> local_site (local_site_id));
 diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
-diesel::joinable!(external_auth -> local_site (local_site_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
 diesel::joinable!(federation_queue_state -> instance (instance_id));

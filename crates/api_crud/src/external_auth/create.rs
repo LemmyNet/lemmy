@@ -18,13 +18,11 @@ pub async fn create_external_auth(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<ExternalAuthResponse>, LemmyError> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
   let cloned_data = data.clone();
   let external_auth_form = ExternalAuthInsertForm::builder()
-    .local_site_id(local_site.id)
     .display_name(cloned_data.display_name.into())
     .auth_type(data.auth_type.to_string())
     .auth_endpoint(cloned_data.auth_endpoint.into())

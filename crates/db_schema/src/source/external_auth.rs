@@ -1,4 +1,4 @@
-use crate::newtypes::{ExternalAuthId, LocalSiteId};
+use crate::newtypes::ExternalAuthId;
 #[cfg(feature = "full")]
 use crate::schema::external_auth;
 use chrono::{DateTime, Utc};
@@ -10,17 +10,12 @@ use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = external_auth))]
-#[cfg_attr(
-  feature = "full",
-  diesel(belongs_to(crate::source::local_site::LocalSite))
-)]
 #[cfg_attr(feature = "full", ts(export))]
 /// An external auth method.
 pub struct ExternalAuth {
   pub id: ExternalAuthId,
-  pub local_site_id: LocalSiteId,
   pub display_name: String,
   pub auth_type: String,
   pub auth_endpoint: String,
@@ -39,7 +34,6 @@ pub struct ExternalAuth {
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = external_auth))]
 pub struct ExternalAuthInsertForm {
-  pub local_site_id: LocalSiteId,
   pub display_name: String,
   pub auth_type: String,
   pub auth_endpoint: String,
@@ -56,7 +50,6 @@ pub struct ExternalAuthInsertForm {
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = external_auth))]
 pub struct ExternalAuthUpdateForm {
-  pub local_site_id: LocalSiteId,
   pub display_name: String,
   pub auth_type: String,
   pub auth_endpoint: String,
