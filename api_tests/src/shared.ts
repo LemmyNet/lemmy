@@ -863,6 +863,7 @@ export function getCommentParentId(comment: Comment): number | undefined {
   if (split.length > 1) {
     return Number(split[split.length - 2]);
   } else {
+    console.log(`Failed to extract comment parent id from ${comment.path}`);
     return undefined;
   }
 }
