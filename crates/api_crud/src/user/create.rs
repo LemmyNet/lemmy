@@ -102,7 +102,7 @@ pub async fn register(
     data.username.clone(),
     &local_site,
     site_view.site.instance_id,
-    &context
+    &context,
   )
   .await?;
 
@@ -198,13 +198,8 @@ pub async fn register_from_oauth(
   check_slurs(&username, &slur_regex)?;
 
   // We have to create both a person, and local_user
-  let inserted_person = create_person(
-    username,
-    &local_site,
-    site_view.site.instance_id,
-    &context
-  )
-  .await?;
+  let inserted_person =
+    create_person(username, &local_site, site_view.site.instance_id, &context).await?;
 
   // Create the local user
   let local_user_form = LocalUserInsertForm::builder()

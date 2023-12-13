@@ -32,10 +32,7 @@ impl Crud for ExternalAuth {
       .get_result::<Self>(conn)
       .await
   }
-  async fn delete(
-    pool: &mut DbPool<'_>,
-    external_auth_id: ExternalAuthId,
-  ) -> Result<usize, Error> {
+  async fn delete(pool: &mut DbPool<'_>, external_auth_id: ExternalAuthId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(external_auth.find(external_auth_id))
       .execute(conn)

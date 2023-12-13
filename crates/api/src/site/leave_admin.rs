@@ -60,8 +60,7 @@ pub async fn leave_admin(
   let all_languages = Language::read_all(&mut context.pool()).await?;
   let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
   let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
-  let custom_emojis =
-    CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
+  let custom_emojis = CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
   let external_auths =
     ExternalAuthView::get_all(&mut context.pool()).await?;
 

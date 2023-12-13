@@ -80,8 +80,7 @@ pub async fn get_site(
   let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
   let custom_emojis =
     CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
-  let external_auths =
-    ExternalAuthView::get_all(&mut context.pool()).await?;
+  let external_auths = ExternalAuthView::get_all(&mut context.pool()).await?;
 
   Ok(Json(GetSiteResponse {
     site_view,
