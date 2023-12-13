@@ -2,20 +2,26 @@ use crate::{
   newtypes::ExternalAuthId,
   schema::external_auth::dsl::external_auth,
   source::external_auth::{ExternalAuth, ExternalAuthInsertForm, ExternalAuthUpdateForm},
+  traits::Crud,
   utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
 
-impl ExternalAuth {
-  pub async fn create(pool: &mut DbPool<'_>, form: &ExternalAuthInsertForm) -> Result<Self, Error> {
+#[async_trait]
+impl Crud for ExternalAuth {
+  type InsertForm = ExternalAuthInsertForm;
+  type UpdateForm = ExternalAuthUpdateForm;
+  type IdType = ExternalAuthId;
+
+  async fn create(pool: &mut DbPool<'_>, form: &ExternalAuthInsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(external_auth)
       .values(form)
       .get_result::<Self>(conn)
       .await
   }
-  pub async fn update(
+  async fn update(
     pool: &mut DbPool<'_>,
     external_auth_id: ExternalAuthId,
     form: &ExternalAuthUpdateForm,
@@ -26,7 +32,7 @@ impl ExternalAuth {
       .get_result::<Self>(conn)
       .await
   }
-  pub async fn delete(
+  async fn delete(
     pool: &mut DbPool<'_>,
     external_auth_id: ExternalAuthId,
   ) -> Result<usize, Error> {

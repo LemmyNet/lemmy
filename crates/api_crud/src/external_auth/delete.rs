@@ -6,7 +6,10 @@ use lemmy_api_common::{
   utils::is_admin,
   SuccessResponse,
 };
-use lemmy_db_schema::source::external_auth::ExternalAuth;
+use lemmy_db_schema::{
+  source::external_auth::ExternalAuth,
+  traits::Crud,
+};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
