@@ -766,7 +766,7 @@ mod tests {
   struct Data {
     inserted_instance: Instance,
     local_user_view: LocalUserView,
-    inserted_blocked_person: Person,
+    blocked_local_user_view: LocalUserView,
     inserted_bot: Person,
     inserted_community: Community,
     inserted_post: Post,
@@ -822,6 +822,14 @@ mod tests {
 
     let inserted_blocked_person = Person::create(pool, &blocked_person).await.unwrap();
 
+    let blocked_local_user_form = LocalUserInsertForm::builder()
+      .person_id(inserted_blocked_person.id)
+      .password_encrypted(String::new())
+      .build();
+    let inserted_blocked_local_user = LocalUser::create(pool, &blocked_local_user_form)
+      .await
+      .unwrap();
+
     let post_from_blocked_person = PostInsertForm::builder()
       .name("blocked_person_post".to_string())
       .creator_id(inserted_blocked_person.id)
@@ -861,11 +869,16 @@ mod tests {
       person: inserted_person,
       counts: Default::default(),
     };
+    let blocked_local_user_view = LocalUserView {
+      local_user: inserted_blocked_local_user,
+      person: inserted_blocked_person,
+      counts: Default::default(),
+    };
 
     Data {
       inserted_instance,
       local_user_view,
-      inserted_blocked_person,
+      blocked_local_user_view,
       inserted_bot,
       inserted_community,
       inserted_post,
@@ -1317,34 +1330,25 @@ mod tests {
     .await
     .unwrap();
 
-    // Make sure you don't see the deleted post in the results
-    let post_listings_no_creator = PostQuery {
-      sort: Some(SortType::New),
-      ..Default::default()
-    }
-    .list(pool)
-    .await
-    .unwrap();
-    let not_contains_deleted = post_listings_no_creator
+    // Deleted post is only shown to creator
+    for (local_user, expect_contains_deleted) in [
+      (None, false),
+      (Some(&data.blocked_local_user_view), false),
+      (Some(&data.local_user_view), true),
+    ] {
+      let contains_deleted = PostQuery {
+        sort: Some(SortType::New),
+        local_user,
+        ..Default::default()
+      }
+      .list(pool)
+      .await
+      .unwrap()
       .iter()
-      .map(|p| p.post.id)
-      .all(|p| p != data.inserted_post.id);
-    assert!(not_contains_deleted);
+      .any(|p| p.post.id == data.inserted_post.id);
 
-    // Deleted post is shown to creator
-    let post_listings_is_creator = PostQuery {
-      sort: Some(SortType::New),
-      local_user: Some(&data.local_user_view),
-      ..Default::default()
+      assert_eq!(expect_contains_deleted, contains_deleted);
     }
-    .list(pool)
-    .await
-    .unwrap();
-    let contains_deleted = post_listings_is_creator
-      .iter()
-      .map(|p| p.post.id)
-      .any(|p| p == data.inserted_post.id);
-    assert!(contains_deleted);
 
     cleanup(data, pool).await;
   }
@@ -1436,7 +1440,7 @@ mod tests {
       .await
       .unwrap();
     Person::delete(pool, data.inserted_bot.id).await.unwrap();
-    Person::delete(pool, data.inserted_blocked_person.id)
+    Person::delete(pool, data.blocked_local_user_view.person.id)
       .await
       .unwrap();
     Instance::delete(pool, data.inserted_instance.id)
