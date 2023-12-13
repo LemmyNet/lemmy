@@ -11,7 +11,10 @@ CREATE TABLE external_auth (
     client_id text NOT NULL UNIQUE,
     client_secret text NOT NULL,
     scopes text NOT NULL,
-    published timestamp without time zone DEFAULT now() NOT NULL,
-    updated timestamp without time zone
+    published timestamptz without time zone DEFAULT now() NOT NULL,
+    updated timestamptz without time zone
 );
+
+ALTER TABLE local_site
+    ADD COLUMN oauth_registration boolean DEFAULT FALSE NOT NULL;
 
