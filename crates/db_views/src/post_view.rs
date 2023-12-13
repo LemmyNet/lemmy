@@ -1334,19 +1334,19 @@ mod tests {
        (None, false),
        (Some(&data.blocked_local_user_view), false),
        (Some(&data.local_user_view), true),
-     ] {
-       let contains_deleted = PostQuery {
-         sort: Some(SortType::New),
-         local_user,
-         ..data.default_post_query()
-       }
-       .list(pool)
-       .await
-       .unwrap()
-       .iter()
-       .any(|p| p.post.id == data.inserted_post.id);
+    ] {
+      let contains_deleted = PostQuery {
+        sort: Some(SortType::New),
+        local_user,
+        ..data.default_post_query()
+      }
+      .list(pool)
+      .await
+      .unwrap()
+      .iter()
+      .any(|p| p.post.id == data.inserted_post.id);
 
-       assert_eq!(expect_contains_deleted, contains_deleted);
+      assert_eq!(expect_contains_deleted, contains_deleted);
     }
 
     cleanup(data, pool).await;
