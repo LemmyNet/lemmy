@@ -17,6 +17,7 @@ use lemmy_db_schema::{newtypes::ExternalAuthId, source::local_user::LocalUser, R
 use lemmy_db_views::structs::{ExternalAuthView, LocalUserView, SiteView};
 use url::Url;
 
+// Login user using response from external identity provider
 #[tracing::instrument(skip(context))]
 pub async fn oauth_callback(
   data: Query<OAuth>,
