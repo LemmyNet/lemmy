@@ -1,3 +1,5 @@
+pub mod boxed_meth;
+
 use crate::{
   diesel::Connection,
   diesel_migrations::MigrationHarness,
@@ -11,15 +13,22 @@ use deadpool::Runtime;
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
+  dsl,
+  expression::{AsExpression, TypedExpressionType},
   helper_types::AsExprOf,
   pg::Pg,
+  query_dsl::methods,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_types::{Text, Timestamptz},
+  sql_types::{self, SingleValue, SqlType, Text, Timestamptz},
+  BoxableExpression,
+  ExpressionMethods,
   IntoSql,
   PgConnection,
+  Selectable,
 };
 use diesel_async::{
+  methods::LoadQuery,
   pg::AsyncPgConnection,
   pooled_connection::{
     deadpool::{Object as PooledConnection, Pool},
@@ -398,6 +407,91 @@ where
 pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
   // https://github.com/diesel-rs/diesel/issues/1514
   diesel::dsl::now.into_sql::<Timestamptz>()
+}
+
+pub type BoxExpr<QS, T> = Box<dyn BoxableExpression<QS, Pg, SqlType = T>>;
+
+pub trait FilterVarEq<T, U> {
+  /// `query.filter_var_eq(&mut expr, other)` returns `query.filter(expr.eq(other))`
+  /// and changes `expr` to `other` so it's only evaluated once.
+  ///
+  /// If this was a method on the expression instead of the query, then idiots
+  /// (sometimes you are one) could do `query.filter(expr.var_eq(other).or(boom))`
+  /// without realizing that this causes `expr` to be set to the wrong value on
+  /// some rows where `boom` is `true`.
+  fn filter_var_eq(self, expr: &mut T, other: U) -> Self;
+}
+
+impl<Q, QS, T, U> FilterVarEq<BoxExpr<QS, T>, U> for Q
+where
+  Q: boxed_meth::FilterDsl<dsl::Eq<BoxExpr<QS, T>, dsl::AsExprOf<U, T>>>,
+  U: AsExpression<T> + Sized,
+  dsl::AsExprOf<U, T>: Clone + BoxableExpression<QS, Pg, SqlType = T> + 'static,
+  T: SqlType + TypedExpressionType + SingleValue,
+{
+  fn filter_var_eq(self, expr: &mut BoxExpr<QS, T>, other: U) -> Self {
+    let other_sql = other.into_sql::<T>();
+    let old_expr = std::mem::replace(expr, Box::new(other_sql.clone()));
+    self.filter(old_expr.eq(other_sql))
+  }
+}
+
+/// Like [`Option::is_some_and`], but the closure returns an SQL expression
+pub fn is_some_and<QS, T, E>(
+  option: Option<T>,
+  f: impl FnOnce(T) -> E,
+) -> BoxExpr<QS, sql_types::Bool>
+where
+  E: BoxableExpression<QS, Pg, SqlType = sql_types::Bool> + 'static,
+{
+  if let Some(expr) = option.map(f) {
+    Box::new(expr)
+  } else {
+    Box::new(false.into_sql::<sql_types::Bool>())
+  }
+}
+
+/// Like [`Option::and_then`], but the closure returns an SQL expression
+pub fn and_then<QS, T, ST, E>(
+  option: Option<T>,
+  f: impl FnOnce(T) -> E,
+) -> BoxExpr<QS, sql_types::Nullable<ST>>
+where
+  E: BoxableExpression<QS, Pg, SqlType = sql_types::Nullable<ST>> + 'static,
+  diesel::expression::SqlLiteral<sql_types::Nullable<ST>>:
+    BoxableExpression<QS, Pg, SqlType = sql_types::Nullable<ST>> + 'static,
+  ST: SingleValue,
+{
+  if let Some(expr) = option.map(f) {
+    Box::new(expr)
+  } else {
+    // `into_sql` is not used because it requires specifying the `T` in `Option<T>`
+    Box::new(dsl::sql::<sql_types::Nullable<ST>>("(NULL)"))
+  }
+}
+
+/// Boxed query that works with `first` or `load` on dereferenced conn
+pub trait FirstOrLoad<'query, U: Send>:
+  boxed_meth::LimitDsl + LoadQuery<'query, AsyncPgConnection, U> + 'query
+{
+}
+
+impl<'query, T: boxed_meth::LimitDsl + LoadQuery<'query, AsyncPgConnection, U> + 'query, U: Send>
+  FirstOrLoad<'query, U> for T
+{
+}
+
+/// Implemented if `self.select(U::as_select)` implements `FirstOrLoad`
+pub trait FirstOrLoadWithSelect<'query, U: Selectable<Pg>>: methods::SelectDsl<dsl::AsSelect<U, Pg>>
+where
+  dsl::Select<Self, dsl::AsSelect<U>>: FirstOrLoad<'query, U>,
+{
+}
+
+impl<'query, T: methods::SelectDsl<dsl::AsSelect<U>>, U: Selectable<Pg>> FirstOrLoadWithSelect<'query, U>
+where
+  dsl::Select<T, dsl::AsSelect<U>>: FirstOrLoad<'query, U>,
+{
 }
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
