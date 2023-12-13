@@ -827,7 +827,9 @@ mod tests {
       .person_id(inserted_blocked_person.id)
       .password_encrypted(String::new())
       .build();
-    let inserted_blocked_local_user = LocalUser::create(pool, &blocked_local_user_form).await.unwrap();
+    let inserted_blocked_local_user = LocalUser::create(pool, &blocked_local_user_form)
+      .await
+      .unwrap();
 
     let post_from_blocked_person = PostInsertForm::builder()
       .name("blocked_person_post".to_string())
@@ -1331,9 +1333,9 @@ mod tests {
 
     // Deleted post is only shown to creator
     for (local_user, expect_contains_deleted) in [
-       (None, false),
-       (Some(&data.blocked_local_user_view), false),
-       (Some(&data.local_user_view), true),
+      (None, false),
+      (Some(&data.blocked_local_user_view), false),
+      (Some(&data.local_user_view), true),
     ] {
       let contains_deleted = PostQuery {
         sort: Some(SortType::New),
