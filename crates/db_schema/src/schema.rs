@@ -288,8 +288,8 @@ diesel::table! {
         client_id -> Text,
         client_secret -> Text,
         scopes -> Text,
-        published -> Timestamp,
-        updated -> Nullable<Timestamp>,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
     }
 }
 
