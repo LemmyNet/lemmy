@@ -6,7 +6,8 @@ variables:
   - &slow_check_paths
     - path:
         # rust source code
-        - "**/*.rs"
+        - "crates/**"
+        - "src/**"
         - "**/Cargo.toml"
         - "Cargo.lock"
         # database migrations
