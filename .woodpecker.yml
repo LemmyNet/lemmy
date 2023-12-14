@@ -88,6 +88,7 @@ steps:
       - if [[ "$IGNORED" ]]; then echo "Ignored files present:\n$IGNORED\n"; exit 1; fi
 
   restore-cache:
+    group: format
     image: meltwater/drone-cache:v1
     pull: true
     settings:
