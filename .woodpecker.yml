@@ -51,13 +51,9 @@ steps:
 
   sql_fmt:
     group: format
-    image: perl:stable
+    image: backplane/pgformatter:latest
     commands:
-      - apt update
-      - apt install -y --no-install-recommends --no-install-suggests pgformatter
-      - find migrations -type f -name '*.sql' -exec pg_format -i {} +
-      # ensure that formatting doesn't result in any git changes
-      - git diff --exit-code
+      - ./scripts/sql_format_check.sh
 
   cargo_fmt:
     group: format
