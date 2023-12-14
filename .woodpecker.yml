@@ -53,7 +53,9 @@ steps:
     group: format
     image: backplane/pgformatter:latest
     commands:
-      - ./scripts/sql_format_check.sh
+      - find migrations -type f -name '*.sql' -exec pg_format -i {} +
+      # ensure that formatting doesn't result in any git changes
+      - git diff --exit-code
 
   cargo_fmt:
     group: format
