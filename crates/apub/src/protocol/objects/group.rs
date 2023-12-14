@@ -57,6 +57,7 @@ pub struct Group {
   pub(crate) summary: Option<String>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) icon: Option<ImageObject>,
   /// banner
   pub(crate) image: Option<ImageObject>,
