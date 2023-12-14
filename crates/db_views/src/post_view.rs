@@ -492,6 +492,7 @@ fn queries<'a>() -> Queries<
       Some((Ord::Desc, featured_field)),
       Some(main_sort),
       tie_breaker,
+      Some((Ord::Desc, field!(post_id))),
     ];
     let sorts_iter = sorts.iter().flatten();
 
