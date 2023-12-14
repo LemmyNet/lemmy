@@ -70,45 +70,44 @@ impl Comment {
             .do_update()
             .set(comment_form)
             .get_result::<Self>(conn)
+            .await?;
+
+          let comment_id = inserted_comment.id;
+
+          // You need to update the ltree column
+          let ltree = Ltree(if let Some(parent_path) = parent_path {
+            // The previous parent will already have 0 in it
+            // Append this comment id
+            format!("{}.{}", parent_path.0, comment_id)
+          } else {
+            // '0' is always the first path, append to that
+            format!("{}.{}", 0, comment_id)
+          });
+
+          let updated_comment = diesel::update(comment.find(comment_id))
+            .set(path.eq(ltree))
+            .get_result::<Self>(conn)
             .await;
 
-          if let Ok(comment_insert) = inserted_comment {
-            let comment_id = comment_insert.id;
+          // Update the child count for the parent comment_aggregates
+          // You could do this with a trigger, but since you have to do this manually anyway,
+          // you can just have it here
+          if let Some(parent_path) = parent_path {
+            // You have to update counts for all parents, not just the immediate one
+            // TODO if the performance of this is terrible, it might be better to do this as part of a
+            // scheduled query... although the counts would often be wrong.
+            //
+            // The child_count query for reference:
+            // select c.id, c.path, count(c2.id) as child_count from comment c
+            // left join comment c2 on c2.path <@ c.path and c2.path != c.path
+            // group by c.id
 
-            // You need to update the ltree column
-            let ltree = Ltree(if let Some(parent_path) = parent_path {
-              // The previous parent will already have 0 in it
-              // Append this comment id
-              format!("{}.{}", parent_path.0, comment_id)
-            } else {
-              // '0' is always the first path, append to that
-              format!("{}.{}", 0, comment_id)
-            });
+            let parent_id = parent_path.0.split('.').nth(1);
 
-            let updated_comment = diesel::update(comment.find(comment_id))
-              .set(path.eq(ltree))
-              .get_result::<Self>(conn)
-              .await;
-
-            // Update the child count for the parent comment_aggregates
-            // You could do this with a trigger, but since you have to do this manually anyway,
-            // you can just have it here
-            if let Some(parent_path) = parent_path {
-              // You have to update counts for all parents, not just the immediate one
-              // TODO if the performance of this is terrible, it might be better to do this as part of a
-              // scheduled query... although the counts would often be wrong.
-              //
-              // The child_count query for reference:
-              // select c.id, c.path, count(c2.id) as child_count from comment c
-              // left join comment c2 on c2.path <@ c.path and c2.path != c.path
-              // group by c.id
-
-              let parent_id = parent_path.0.split('.').nth(1);
-
-              if let Some(parent_id) = parent_id {
-                let top_parent = format!("0.{}", parent_id);
-                let update_child_count_stmt = format!(
-                  "
+            if let Some(parent_id) = parent_id {
+              let top_parent = format!("0.{}", parent_id);
+              let update_child_count_stmt = format!(
+                "
 update comment_aggregates ca set child_count = c.child_count
 from (
   select c.id, c.path, count(c2.id) as child_count from comment c
@@ -117,15 +116,12 @@ from (
   group by c.id
 ) as c
 where ca.comment_id = c.id"
-                );
+              );
 
-                sql_query(update_child_count_stmt).execute(conn).await?;
-              }
+              sql_query(update_child_count_stmt).execute(conn).await?;
             }
-            updated_comment
-          } else {
-            inserted_comment
           }
+          updated_comment
         }) as _
       })
       .await
