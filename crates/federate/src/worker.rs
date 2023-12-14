@@ -221,7 +221,7 @@ impl InstanceWorker {
       SendActivityTask::prepare(object, actor.as_ref(), inbox_urls, &self.context).await?;
     for task in requests {
       // usually only one due to shared inbox
-      tracing::info!("sending out {}", task);
+      tracing::debug!("sending out {}", task);
       while let Err(e) = task.sign_and_send(&self.context).await {
         self.state.fail_count += 1;
         self.state.last_retry = Some(Utc::now());
