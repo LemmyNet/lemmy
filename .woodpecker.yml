@@ -36,7 +36,6 @@ steps:
       - apk add git
       - git submodule init
       - git submodule update
-      - chmod o+w . -R
 
   prettier_check:
     group: format
@@ -52,9 +51,9 @@ steps:
 
   sql_fmt:
     group: format
-    image: backplane/pgformatter:latest
+    image: debian:stable-slim
     commands:
-      - apt install git
+      - apt install -y --no-install-recommends --no-install-suggests pgformatter git
       - find migrations -type f -name '*.sql' -exec pg_format -i {} +
       # ensure that formatting doesn't result in any git changes
       - git diff --exit-code
