@@ -51,7 +51,7 @@ steps:
 
   sql_fmt:
     group: format
-    image: debian:stable-slim
+    image: perl:stable
     commands:
       - apt update
       - apt install -y --no-install-recommends --no-install-suggests pgformatter git
