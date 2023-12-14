@@ -95,12 +95,8 @@
       }
     }
   ],
-  "to": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
-  "cc": [
-    "https://peertube.stream/accounts/createurs/followers"
-  ],
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
+  "cc": ["https://peertube.stream/accounts/createurs/followers"],
   "type": "Video",
   "id": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60",
   "name": "VU du 12/12/23 : Démission \"refrusée\"",
@@ -152,9 +148,7 @@
   "preview": [
     {
       "type": "Image",
-      "rel": [
-        "storyboard"
-      ],
+      "rel": ["storyboard"],
       "url": [
         {
           "mediaType": "image/jpeg",
@@ -223,10 +217,7 @@
         },
         {
           "type": "Link",
-          "rel": [
-            "metadata",
-            "video/mp4"
-          ],
+          "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
           "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570438",
           "height": 1080,
@@ -254,10 +245,7 @@
         },
         {
           "type": "Link",
-          "rel": [
-            "metadata",
-            "video/mp4"
-          ],
+          "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
           "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570447",
           "height": 720,
@@ -285,10 +273,7 @@
         },
         {
           "type": "Link",
-          "rel": [
-            "metadata",
-            "video/mp4"
-          ],
+          "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
           "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570441",
           "height": 480,
@@ -316,10 +301,7 @@
         },
         {
           "type": "Link",
-          "rel": [
-            "metadata",
-            "video/mp4"
-          ],
+          "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
           "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570442",
           "height": 360,
@@ -347,10 +329,7 @@
         },
         {
           "type": "Link",
-          "rel": [
-            "metadata",
-            "video/mp4"
-          ],
+          "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
           "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570448",
           "height": 240,
@@ -378,10 +357,7 @@
         },
         {
           "type": "Link",
-          "rel": [
-            "metadata",
-            "video/mp4"
-          ],
+          "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
           "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570449",
           "height": 144,
@@ -409,10 +385,7 @@
         },
         {
           "type": "Link",
-          "rel": [
-            "metadata",
-            "video/mp4"
-          ],
+          "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
           "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570439",
           "height": 0,
@@ -435,19 +408,13 @@
     {
       "type": "Link",
       "name": "tracker-http",
-      "rel": [
-        "tracker",
-        "http"
-      ],
+      "rel": ["tracker", "http"],
       "href": "https://peertube.stream/tracker/announce"
     },
     {
       "type": "Link",
       "name": "tracker-websocket",
-      "rel": [
-        "tracker",
-        "websocket"
-      ],
+      "rel": ["tracker", "websocket"],
       "href": "wss://peertube.stream:443/tracker/socket"
     }
   ],
