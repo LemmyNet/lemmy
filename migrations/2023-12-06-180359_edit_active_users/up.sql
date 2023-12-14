@@ -1,5 +1,5 @@
 -- Edit community aggregates to include voters as active users
-create OR REPLACE FUNCTION community_aggregates_activity (i text)
+CREATE OR REPLACE FUNCTION community_aggregates_activity (i text)
     RETURNS TABLE (
         count_ bigint,
         community_id_ integer)

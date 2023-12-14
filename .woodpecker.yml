@@ -54,7 +54,7 @@ steps:
     image: perl:stable
     commands:
       - apt update
-      - apt install -y --no-install-recommends --no-install-suggests pgformatter git
+      - apt install -y --no-install-recommends --no-install-suggests pgformatter
       - find migrations -type f -name '*.sql' -exec pg_format -i {} +
       # ensure that formatting doesn't result in any git changes
       - git diff --exit-code
