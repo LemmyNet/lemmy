@@ -165,7 +165,7 @@ mod tests {
       person::{Person, PersonInsertForm, PersonUpdateForm},
     },
     traits::Crud,
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, get_conn},
   };
   use serial_test::serial;
 
@@ -233,6 +233,11 @@ mod tests {
   async fn exclude_deleted() {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
+
+    // Fix a bug where not all persons are cleared out for this test
+    let conn = &mut get_conn(pool).await.unwrap();
+    diesel::delete(person::table).execute(conn).await.unwrap();
+
     let data = init_data(pool).await;
 
     Person::update(
