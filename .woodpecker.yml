@@ -54,8 +54,7 @@ steps:
     group: format
     image: backplane/pgformatter:latest
     commands:
-      - ls -la
-      - id
+      - apt install git
       - find migrations -type f -name '*.sql' -exec pg_format -i {} +
       # ensure that formatting doesn't result in any git changes
       - git diff --exit-code
