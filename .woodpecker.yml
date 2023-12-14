@@ -53,6 +53,7 @@ steps:
     group: format
     image: debian:stable-slim
     commands:
+      - apt update
       - apt install -y --no-install-recommends --no-install-suggests pgformatter git
       - find migrations -type f -name '*.sql' -exec pg_format -i {} +
       # ensure that formatting doesn't result in any git changes
