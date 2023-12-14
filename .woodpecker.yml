@@ -36,6 +36,7 @@ steps:
       - apk add git
       - git submodule init
       - git submodule update
+      - chmod o+w . -R
 
   prettier_check:
     group: format
