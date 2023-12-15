@@ -83,7 +83,11 @@ steps:
       - IGNORED=$(git ls-files --cached -i --exclude-standard)
       - if [[ "$IGNORED" ]]; then echo "Ignored files present:\n$IGNORED\n"; exit 1; fi
 
+  # Restore build cache. This must run even when `*slow_check_paths` is not fulfilled, because otherwise
+  # rebuild-cache throws an error on missing files, and `when` conditions are always combined with *and*,
+  # so there is no way to rebuild cache only on main branch *and* slow_check_paths.
   restore-cache:
+    group: format
     image: meltwater/drone-cache:v1
     pull: true
     settings:
@@ -103,9 +107,9 @@ steps:
         - ".cargo_home"
         - "target"
         - "api_tests/node_modules"
+      exit_code: true
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
-    when: *slow_check_paths
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
@@ -229,6 +233,7 @@ steps:
         - ".cargo_home"
         - "target"
         - "api_tests/node_modules"
+      exit_code: true
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
     when:
