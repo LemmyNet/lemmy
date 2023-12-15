@@ -42,7 +42,7 @@ fn queries<'a>(
     query = match search {
       ReadBy::Id(local_user_id) => query.filter(local_user::id.eq(local_user_id)),
       ReadBy::Email(from_email) => {
-        query.filter(lower(coalesce(local_user::email, "")).eq(from_email))
+        query.filter(lower(coalesce(local_user::email, "")).eq(from_email.to_lowercase()))
       }
       _ => query,
     };
@@ -52,8 +52,8 @@ fn queries<'a>(
       ReadBy::Name(name) => query.filter(lower(person::name).eq(name.to_lowercase())),
       ReadBy::NameOrEmail(name_or_email) => query.filter(
         lower(person::name)
-          .eq(lower(name_or_email))
-          .or(local_user::email.eq(name_or_email)),
+          .eq(lower(name_or_email.to_lowercase()))
+          .or(lower(coalesce(local_user::email, "")).eq(name_or_email.to_lowercase())),
       ),
       _ => query,
     };
@@ -92,9 +92,7 @@ impl LocalUserView {
   }
 
   pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> Result<Self, Error> {
-    queries()
-      .read(pool, ReadBy::Name(&name.to_lowercase()))
-      .await
+    queries().read(pool, ReadBy::Name(name)).await
   }
 
   pub async fn find_by_email_or_name(
@@ -102,14 +100,12 @@ impl LocalUserView {
     name_or_email: &str,
   ) -> Result<Self, Error> {
     queries()
-      .read(pool, ReadBy::NameOrEmail(&name_or_email.to_lowercase()))
+      .read(pool, ReadBy::NameOrEmail(name_or_email))
       .await
   }
 
   pub async fn find_by_email(pool: &mut DbPool<'_>, from_email: &str) -> Result<Self, Error> {
-    queries()
-      .read(pool, ReadBy::Email(&from_email.to_lowercase()))
-      .await
+    queries().read(pool, ReadBy::Email(from_email)).await
   }
 
   pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
