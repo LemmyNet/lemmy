@@ -13,12 +13,17 @@ use crate::{
     federation_queue_state::FederationQueueState,
     instance::{Instance, InstanceForm},
   },
-  utils::{functions::lower, get_conn, naive_now, now, DbPool},
+  utils::{
+    functions::{coalesce, lower},
+    get_conn,
+    naive_now,
+    now,
+    DbPool,
+  },
 };
 use diesel::{
   dsl::{count_star, insert_into},
   result::Error,
-  sql_types::{Nullable, Timestamptz},
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
@@ -157,5 +162,3 @@ impl Instance {
       .await
   }
 }
-
-sql_function! { fn coalesce(x: Nullable<Timestamptz>, y: Timestamptz) -> Timestamptz; }
