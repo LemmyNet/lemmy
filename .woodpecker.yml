@@ -236,9 +236,9 @@ steps:
       exit_code: true
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
-    when:
-      - event: push
-        branch: main
+    #when:
+    #  - event: push
+    #    branch: main
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
