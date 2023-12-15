@@ -5,7 +5,14 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{LocalUserId, PersonId},
   schema::{local_user, person, person_aggregates},
-  utils::{functions::lower, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{
+    functions::{coalesce, lower},
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+  },
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use std::future::{ready, Ready};
@@ -34,7 +41,9 @@ fn queries<'a>(
     let mut query = local_user::table.into_boxed();
     query = match search {
       ReadBy::Id(local_user_id) => query.filter(local_user::id.eq(local_user_id)),
-      ReadBy::Email(from_email) => query.filter(local_user::email.eq(from_email)),
+      ReadBy::Email(from_email) => {
+        query.filter(lower(coalesce(local_user::email, "")).eq(from_email))
+      }
       _ => query,
     };
     let mut query = query.inner_join(person::table);
@@ -83,7 +92,9 @@ impl LocalUserView {
   }
 
   pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> Result<Self, Error> {
-    queries().read(pool, ReadBy::Name(name)).await
+    queries()
+      .read(pool, ReadBy::Name(&name.to_lowercase()))
+      .await
   }
 
   pub async fn find_by_email_or_name(
@@ -91,12 +102,14 @@ impl LocalUserView {
     name_or_email: &str,
   ) -> Result<Self, Error> {
     queries()
-      .read(pool, ReadBy::NameOrEmail(name_or_email))
+      .read(pool, ReadBy::NameOrEmail(&name_or_email.to_lowercase()))
       .await
   }
 
   pub async fn find_by_email(pool: &mut DbPool<'_>, from_email: &str) -> Result<Self, Error> {
-    queries().read(pool, ReadBy::Email(from_email)).await
+    queries()
+      .read(pool, ReadBy::Email(&from_email.to_lowercase()))
+      .await
   }
 
   pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
