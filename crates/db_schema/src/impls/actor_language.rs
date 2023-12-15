@@ -96,16 +96,18 @@ impl LocalUserLanguage {
             .execute(conn)
             .await?;
 
-          for l in lang_ids {
-            let form = LocalUserLanguageForm {
+          let forms = lang_ids
+            .into_iter()
+            .map(|l| LocalUserLanguageForm {
               local_user_id: for_local_user_id,
               language_id: l,
-            };
-            insert_into(local_user_language)
-              .values(form)
-              .get_result::<Self>(conn)
-              .await?;
-          }
+            })
+            .collect::<Vec<_>>();
+
+          insert_into(local_user_language)
+            .values(forms)
+            .execute(conn)
+            .await?;
           Ok(())
         }) as _
       })

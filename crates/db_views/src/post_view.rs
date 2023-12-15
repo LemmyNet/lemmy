@@ -1433,7 +1433,7 @@ mod tests {
     let inserted_community = Community::create(pool, &community_form).await.unwrap();
 
     let mut inserted_post_ids = vec![];
-    let mut inserted_comment_ids = vec![];
+    let mut comment_forms = vec![];
 
     // Create 150 posts with varying non-correlating values for publish date, number of comments, and featured
     for comments in 0..10 {

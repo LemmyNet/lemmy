@@ -15,9 +15,11 @@ use diesel::{
   pg::Pg,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
+  sql_query,
   sql_types::{Text, Timestamptz},
   IntoSql,
   PgConnection,
+  RunQueryDsl,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -280,6 +282,12 @@ fn run_migrations(db_url: &str) {
   // Needs to be a sync connection
   let mut conn =
     PgConnection::establish(db_url).unwrap_or_else(|e| panic!("Error connecting to {db_url}: {e}"));
+
+  // Disable auto_explain output for migrations
+  sql_query("SET auto_explain.log_min_duration = -1")
+    .execute(&mut conn)
+    .expect("failed to disable auto_explain");
+
   info!("Running Database migrations (This may take a long time)...");
   let _ = &mut conn
     .run_pending_migrations(MIGRATIONS)
