@@ -57,20 +57,36 @@ impl Comment {
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> Result<Comment, Error> {
+    Comment::create_batch(pool, &[(comment_form, parent_path)]).await?.into_iter().next().ok_or(Error::NotFound)
+  }
+  
+  pub async fn create_batch(
+    pool: &mut DbPool<'_>,
+    items: &[(&CommentInsertForm, Option<&Ltree>)],
+  ) -> Result<Vec<Comment>, Error> {
     let conn = &mut get_conn(pool).await?;
 
     conn
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
-          // Insert, to get the id
-          let inserted_comment = insert_into(comment)
-            .values(comment_form)
-            .on_conflict(ap_id)
+          let forms = items
+            .iter()
+            .map(|&(form, _)| form)
+            .collect::<Vec<_>>();
+
+          // Insert, to get the ids
+          let inserted_comments = insert_into(comment)
+            .values(&forms)
+            /*.on_conflict(ap_id)
             .do_update()
-            .set(comment_form)
+            .set()*/
             .get_result::<Self>(conn)
             .await?;
+
+          // `ap_id` unique constraint violation is handled individually for each row
+          // because batch upsert requires having the same `set` argument for all rows
+          
 
           let comment_id = inserted_comment.id;
 

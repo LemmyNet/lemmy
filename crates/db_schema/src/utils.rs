@@ -19,7 +19,7 @@ use diesel::{
   sql_types::{Text, Timestamptz},
   IntoSql,
   PgConnection,
-  RunQueryDsl,
+  RunQueryDsl, Insertable, Table, Column, AsChangeset, Expression, SelectableExpression, expression::NonAggregate, query_builder::QueryFragment,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -151,6 +151,19 @@ macro_rules! try_join_with_pool {
       }.await,
     }
   }};
+}
+
+pub async fn batch_upsert<T, U, Target, R>(conn: &mut AsyncPgConnection, target: T, records: U, conflict_target: Target) -> Result<Vec<R>, DieselError>
+where
+  T: Table,
+  T::AllColumns: Expression + SelectableExpression<T> + NonAggregate + QueryFragment<Pg>,
+  U: IntoIterator + Clone,
+  Vec<U::Item>: Insertable<T>,
+  U::Item: Insertable<T> + AsChangeset<Target = T>,
+  Target: Column<Table = T>,
+{
+  let result = diesel::insert_into(target).values(records.clone().into_iter().collect::<Vec<_>>()).load::<R>(conn).await;
+  
 }
 
 pub fn fuzzy_search(q: &str) -> String {
