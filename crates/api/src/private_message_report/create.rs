@@ -31,6 +31,11 @@ pub async fn create_pm_report(
   let private_message_id = data.private_message_id;
   let private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
 
+  // Make sure that only the recipient of the private message can create a report
+  if person_id != private_message.recipient_id {
+    Err(LemmyErrorType::CouldntCreateReport)?
+  }
+
   let report_form = PrivateMessageReportForm {
     creator_id: person_id,
     private_message_id,
