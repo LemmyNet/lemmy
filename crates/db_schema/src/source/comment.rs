@@ -67,6 +67,10 @@ pub struct CommentInsertForm {
   pub deleted: Option<bool>,
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
+  #[cfg(feature = "full")]
+  pub path: Option<Ltree>,
+  #[cfg(not(feature = "full"))]
+  pub path: Option<String>,
   pub distinguished: Option<bool>,
   pub language_id: Option<LanguageId>,
 }

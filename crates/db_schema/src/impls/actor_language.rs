@@ -166,16 +166,18 @@ impl SiteLanguage {
             .execute(conn)
             .await?;
 
-          for l in lang_ids {
-            let form = SiteLanguageForm {
+          let forms = lang_ids
+            .into_iter()
+            .map(|l| SiteLanguageForm {
               site_id: for_site_id,
               language_id: l,
-            };
-            insert_into(site_language)
-              .values(form)
-              .get_result::<Self>(conn)
-              .await?;
-          }
+            })
+            .collect::<Vec<_>>();
+
+          insert_into(site_language)
+            .values(forms)
+            .get_result::<Self>(conn)
+            .await?;
 
           CommunityLanguage::limit_languages(conn, instance_id).await?;
 

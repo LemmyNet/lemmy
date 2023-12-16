@@ -13,13 +13,15 @@ use diesel::{
   deserialize::FromSql,
   helper_types::AsExprOf,
   pg::Pg,
+  query_builder::{Query, QueryFragment},
+  query_dsl::methods::LimitDsl,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
   sql_query,
   sql_types::{Text, Timestamptz},
   IntoSql,
   PgConnection,
-  RunQueryDsl, Insertable, Table, Column, AsChangeset, Expression, SelectableExpression, expression::NonAggregate, query_builder::QueryFragment,
+  RunQueryDsl,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -153,17 +155,65 @@ macro_rules! try_join_with_pool {
   }};
 }
 
-pub async fn batch_upsert<T, U, Target, R>(conn: &mut AsyncPgConnection, target: T, records: U, conflict_target: Target) -> Result<Vec<R>, DieselError>
-where
-  T: Table,
-  T::AllColumns: Expression + SelectableExpression<T> + NonAggregate + QueryFragment<Pg>,
-  U: IntoIterator + Clone,
-  Vec<U::Item>: Insertable<T>,
-  U::Item: Insertable<T> + AsChangeset<Target = T>,
-  Target: Column<Table = T>,
-{
-  let result = diesel::insert_into(target).values(records.clone().into_iter().collect::<Vec<_>>()).load::<R>(conn).await;
-  
+/// Includes an SQL comment before `T`, which can be used to label auto_explain output
+#[derive(QueryId)]
+pub struct Commented<T> {
+  comment: String,
+  inner: T,
+}
+
+impl<T> Commented<T> {
+  pub fn new(inner: T) -> Self {
+    Commented {
+      comment: String::new(),
+      inner,
+    }
+  }
+
+  /// Adds `text` to the comment if `condition` is true
+  pub fn text_if(mut self, text: &str, condition: bool) -> Self {
+    if condition {
+      if !self.comment.is_empty() {
+        self.comment.push_str(", ");
+      }
+      self.comment.push_str(text);
+    }
+    self
+  }
+
+  /// Adds `text` to the comment
+  pub fn text(self, text: &str) -> Self {
+    self.text_if(text, true)
+  }
+}
+
+impl<T: Query> Query for Commented<T> {
+  type SqlType = T::SqlType;
+}
+
+impl<T: QueryFragment<Pg>> QueryFragment<Pg> for Commented<T> {
+  fn walk_ast<'b>(
+    &'b self,
+    mut out: diesel::query_builder::AstPass<'_, 'b, Pg>,
+  ) -> Result<(), DieselError> {
+    for line in self.comment.lines() {
+      out.push_sql("\n-- ");
+      out.push_sql(line);
+    }
+    out.push_sql("\n");
+    self.inner.walk_ast(out.reborrow())
+  }
+}
+
+impl<T: LimitDsl> LimitDsl for Commented<T> {
+  type Output = Commented<T::Output>;
+
+  fn limit(self, limit: i64) -> Self::Output {
+    Commented {
+      comment: self.comment,
+      inner: self.inner.limit(limit),
+    }
+  }
 }
 
 pub fn fuzzy_search(q: &str) -> String {
@@ -368,7 +418,10 @@ static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
 });
 
 pub mod functions {
-  use diesel::sql_types::{BigInt, Text, Timestamptz};
+  use diesel::{
+    pg::Pg,
+    sql_types::{BigInt, Text, Timestamptz},
+  };
 
   sql_function! {
     fn hot_rank(score: BigInt, time: Timestamptz) -> Double;
@@ -386,6 +439,9 @@ pub mod functions {
 
   // really this function is variadic, this just adds the two-argument version
   sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
+
+  // Use `AsText::new`
+  postfix_operator!(AsText, "::text", Text, backend: Pg);
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";

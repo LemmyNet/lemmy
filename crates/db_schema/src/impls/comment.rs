@@ -1,6 +1,16 @@
 use crate::{
   newtypes::{CommentId, DbUrl, PersonId},
-  schema::comment::dsl::{ap_id, comment, content, creator_id, deleted, path, removed, updated},
+  schema::comment::dsl::{
+    ap_id,
+    comment,
+    content,
+    creator_id,
+    deleted,
+    id,
+    path,
+    removed,
+    updated,
+  },
   source::comment::{
     Comment,
     CommentInsertForm,
@@ -11,16 +21,24 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{functions::AsText, get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use diesel::{
   dsl::{insert_into, sql_query},
   result::Error,
   ExpressionMethods,
   QueryDsl,
+  TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
-use diesel_ltree::Ltree;
+use diesel_ltree::{
+  functions::{ltree2text, text2ltree},
+  Ltree,
+};
+use futures_util::{
+  future::TryFutureExt,
+  stream::{self, StreamExt, TryStreamExt},
+};
 use url::Url;
 
 impl Comment {
@@ -57,12 +75,16 @@ impl Comment {
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> Result<Comment, Error> {
-    Comment::create_batch(pool, &[(comment_form, parent_path)]).await?.into_iter().next().ok_or(Error::NotFound)
+    Comment::create_batch(pool, &[(comment_form.clone(), parent_path.cloned())])
+      .await?
+      .into_iter()
+      .next()
+      .ok_or(Error::NotFound)
   }
-  
+
   pub async fn create_batch(
     pool: &mut DbPool<'_>,
-    items: &[(&CommentInsertForm, Option<&Ltree>)],
+    items: &[(CommentInsertForm, Option<Ltree>)],
   ) -> Result<Vec<Comment>, Error> {
     let conn = &mut get_conn(pool).await?;
 
@@ -72,43 +94,44 @@ impl Comment {
         Box::pin(async move {
           let forms = items
             .iter()
-            .map(|&(form, _)| form)
-            .collect::<Vec<_>>();
+            .map(|(comment_form, parent_path)| CommentInsertForm {
+              path: Some(parent_path.clone().unwrap_or(Ltree("0".to_owned()))),
+              ..comment_form.clone()
+            });
 
           // Insert, to get the ids
           let inserted_comments = insert_into(comment)
-            .values(&forms)
-            /*.on_conflict(ap_id)
-            .do_update()
-            .set()*/
-            .get_result::<Self>(conn)
+            .values(forms.clone().collect::<Vec<_>>())
+            .load::<Self>(conn)
+            .or_else(|_| {
+              // `ap_id` unique constraint violation is handled individually for each row
+              // because batched upsert requires having the same `set` argument for all rows
+              stream::iter(forms)
+                .then(|form| {
+                  insert_into(comment)
+                    .values(form.clone())
+                    .on_conflict(ap_id)
+                    .do_update()
+                    .set(form)
+                    .get_result::<Self>(conn)
+                })
+                .try_collect::<Vec<_>>()
+            })
             .await?;
 
-          // `ap_id` unique constraint violation is handled individually for each row
-          // because batch upsert requires having the same `set` argument for all rows
-          
-
-          let comment_id = inserted_comment.id;
-
-          // You need to update the ltree column
-          let ltree = Ltree(if let Some(parent_path) = parent_path {
-            // The previous parent will already have 0 in it
-            // Append this comment id
-            format!("{}.{}", parent_path.0, comment_id)
-          } else {
-            // '0' is always the first path, append to that
-            format!("{}.{}", 0, comment_id)
-          });
-
-          let updated_comment = diesel::update(comment.find(comment_id))
-            .set(path.eq(ltree))
-            .get_result::<Self>(conn)
-            .await;
+          // For each comment, append its id to its path
+          let updated_comments = diesel::update(comment)
+            .filter(id.eq_any(inserted_comments.into_iter().map(|c| c.id)))
+            .set(path.eq(text2ltree(
+              ltree2text(path).concat(".").concat(AsText::new(id)),
+            )))
+            .load::<Self>(conn)
+            .await?;
 
           // Update the child count for the parent comment_aggregates
           // You could do this with a trigger, but since you have to do this manually anyway,
           // you can just have it here
-          if let Some(parent_path) = parent_path {
+          for parent_path in items.iter().filter_map(|(_, p)| p.as_ref()) {
             // You have to update counts for all parents, not just the immediate one
             // TODO if the performance of this is terrible, it might be better to do this as part of a
             // scheduled query... although the counts would often be wrong.
@@ -137,7 +160,7 @@ where ca.comment_id = c.id"
               sql_query(update_child_count_stmt).execute(conn).await?;
             }
           }
-          updated_comment
+          Ok(updated_comments)
         }) as _
       })
       .await
