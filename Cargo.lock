@@ -2293,6 +2293,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "i-love-jesus"
+version = "0.1.0"
+dependencies = [
+ "diesel",
+ "i-love-jesus-macros",
+]
+
+[[package]]
+name = "i-love-jesus-macros"
+version = "0.1.0"
+dependencies = [
+ "syn 2.0.40",
+]
+
+[[package]]
 name = "iana-time-zone"
 version = "0.1.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2660,6 +2675,7 @@ dependencies = [
  "diesel_ltree",
  "diesel_migrations",
  "futures-util",
+ "i-love-jesus",
  "lemmy_utils",
  "once_cell",
  "regex",
@@ -2689,6 +2705,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "diesel_ltree",
+ "i-love-jesus",
  "lemmy_db_schema",
  "lemmy_utils",
  "serde",

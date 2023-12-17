@@ -33,6 +33,7 @@ use lemmy_db_schema::{
     person_post_aggregates,
     post,
     post_aggregates,
+    post_aggregates_keys as key,
     post_like,
     post_read,
     post_saved,
@@ -53,6 +54,7 @@ use lemmy_db_schema::{
   SortType,
 };
 use tracing::debug;
+use i_love_jesus::{PaginatedQuery, CursorKey};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Ord {
@@ -457,20 +459,34 @@ fn queries<'a>() -> Queries<
       query = query.filter(not(is_creator_blocked(person_id)));
     }
 
-    let featured_field = if options.community_id.is_none() || options.community_id_just_for_prefetch
-    {
-      field!(featured_local)
+    let mut query = PaginatedQuery::new(query);
+
+    if options.page_after.is_some() && options.page_before.is_some() {
+      return Err(Error::QueryBuilderError("page_after cannot be combined with page_before".into()));
+    }
+    if let Some(cursor) = options.page_after {
+      query = query.after(Some(cursor)).before_or_equal(options.limit_cursor);
+    }
+    if let Some(cursor) = options.page_before {
+      query = query.before(Some(cursor)).after_or_equal(options.limit_cursor).limit_and_offset_from_end();
+    }
+
+    query = if options.community_id.is_none() || options.community_id_just_for_prefetch {
+      query.then_desc(key::featured_local)
     } else {
-      field!(featured_community)
+      query.then_desc(key::featured_community)
     };
 
-    let (main_sort, top_sort_interval) = match options.sort.unwrap_or(SortType::Hot) {
-      SortType::Active => ((Ord::Desc, field!(hot_rank_active)), None),
+    let time = |interval| post_aggregates::published.gt(now() - interval);
+
+    query = match options.sort.unwrap_or(SortType::Hot) {
+      SortType::Active => query.then_desc(key::hot_rank_active),
       SortType::Hot => ((Ord::Desc, field!(hot_rank)), None),
       SortType::Scaled => ((Ord::Desc, field!(scaled_rank)), None),
       SortType::Controversial => ((Ord::Desc, field!(controversy_rank)), None),
       SortType::New => ((Ord::Desc, field!(published)), None),
-      SortType::Old => ((Ord::Asc, field!(published)), None),
+      // TODO use asc
+      SortType::Old => query.then_desc(key::published.map(|x| -x)),
       SortType::NewComments => ((Ord::Desc, field!(newest_comment_time)), None),
       SortType::MostComments => ((Ord::Desc, field!(comments)), None),
       SortType::TopAll => ((Ord::Desc, field!(score)), None),
@@ -483,19 +499,10 @@ fn queries<'a>() -> Queries<
       SortType::TopTwelveHour => ((Ord::Desc, field!(score)), Some(12.hours())),
       SortType::TopThreeMonths => ((Ord::Desc, field!(score)), Some(3.months())),
       SortType::TopSixMonths => ((Ord::Desc, field!(score)), Some(6.months())),
-      SortType::TopNineMonths => ((Ord::Desc, field!(score)), Some(9.months())),
+      SortType::TopNineMonths => query.then_desc(key::score).filter(time(9.months())),
     };
 
-    if let Some(interval) = top_sort_interval {
-      query = query.filter(post_aggregates::published.gt(now() - interval));
-    }
-
-    let sorts = [
-      Some((Ord::Desc, featured_field)),
-      Some(main_sort),
-      Some((Ord::Desc, field!(post_id))),
-    ];
-    let sorts_iter = sorts.iter().flatten();
+    query = query.then_desc(key::post_id);
 
     // This loop does almost the same thing as sorting by and comparing tuples. If the rows were
     // only sorted by 1 field called `foo` in descending order, then it would be like this:
@@ -623,7 +630,8 @@ pub struct PostQuery<'a> {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub page_after: Option<PaginationCursorData>,
-  pub page_before_or_equal: Option<PaginationCursorData>,
+  pub page_before: Option<PaginationCursorData>,
+  pub limit_cursor: Option<PaginationCursorData>,
 }
 
 impl<'a> PostQuery<'a> {
@@ -691,9 +699,15 @@ impl<'a> PostQuery<'a> {
     if (v.len() as i64) < limit {
       Ok(Some(self.clone()))
     } else {
-      let page_before_or_equal = Some(PaginationCursorData(v.pop().expect("else case").counts));
+      let item = if self.page_before.is_none() {
+        // for backwards pagination, get first element instead
+        v.into_iter().next()
+      } else {
+        v.pop()
+      };
+      let limit_cursor = Some(PaginationCursorData(item.expect("else case").counts));
       Ok(Some(PostQuery {
-        page_before_or_equal,
+        limit_cursor,
         ..self.clone()
       }))
     }
