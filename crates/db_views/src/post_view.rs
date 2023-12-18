@@ -498,7 +498,7 @@ fn queries<'a>() -> Queries<
     ];
     let sorts_iter = sorts.iter().flatten();
 
-    for (order, field) in sorts_iter().clone() {
+    for (order, field) in sorts_iter.clone() {
       query = match order {
         Ord::Desc => (field.then_order_by_desc)(query),
         Ord::Asc => (field.then_order_by_asc)(query),
@@ -536,7 +536,7 @@ fn queries<'a>() -> Queries<
       let mut condition: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
         Box::new(false.into_sql::<sql_types::Bool>());
 
-      for (i, (order, field)) in sorts_iter().clone().enumerate() {
+      for (i, (order, field)) in sorts_iter.clone().enumerate() {
         let compare = match order {
           Ord::Desc => compare_desc,
           Ord::Asc => compare_asc,
