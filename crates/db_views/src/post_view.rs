@@ -524,10 +524,9 @@ fn queries<'a>() -> Queries<
     // that's sorted after other fields is only compared if the row and the cursor
     // are in the same group created by the previous sort. This is checked with a
     // condition like `(a > 0) OR (a = 0 AND b > 1) OR (a = 0 AND b = 1 AND c > 2)`.
-    for (cursor_data, reverse_direction) in [
-      (&options.page_after, false),
-      (&options.page_before, true),
-    ] {
+    for (cursor_data, reverse_direction) in
+      [(&options.page_after, false), (&options.page_before, true)]
+    {
       let Some(cursor_data) = cursor_data else {
         continue;
       };
