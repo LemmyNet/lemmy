@@ -210,7 +210,7 @@ mod tests {
       .recipient_id(timmy.id)
       .content(message_content.clone())
       .build();
-    let _inserted_sara_timmy_message_form = PrivateMessage::create(pool, &sara_timmy_message_form)
+    let inserted_sara_timmy_message = PrivateMessage::create(pool, &sara_timmy_message_form)
       .await
       .unwrap();
 
@@ -219,7 +219,7 @@ mod tests {
       .recipient_id(jess.id)
       .content(message_content.clone())
       .build();
-    let _inserted_sara_jess_message_form = PrivateMessage::create(pool, &sara_jess_message_form)
+    let inserted_sara_jess_message = PrivateMessage::create(pool, &sara_jess_message_form)
       .await
       .unwrap();
 
@@ -228,7 +228,7 @@ mod tests {
       .recipient_id(sara.id)
       .content(message_content.clone())
       .build();
-    let _inserted_timmy_sara_message_form = PrivateMessage::create(pool, &timmy_sara_message_form)
+    let inserted_timmy_sara_message = PrivateMessage::create(pool, &timmy_sara_message_form)
       .await
       .unwrap();
 
@@ -237,13 +237,13 @@ mod tests {
       .recipient_id(timmy.id)
       .content(message_content.clone())
       .build();
-    let _inserted_jess_timmy_message_form = PrivateMessage::create(pool, &jess_timmy_message_form)
+    let inserted_jess_timmy_message = PrivateMessage::create(pool, &jess_timmy_message_form)
       .await
       .unwrap();
 
     let timmy_messages = PrivateMessageQuery {
       unread_only: false,
-      creator_id: Option::None,
+      creator_id: None,
       ..Default::default()
     }
     .list(pool, timmy.id)
@@ -260,7 +260,7 @@ mod tests {
 
     let timmy_unread_messages = PrivateMessageQuery {
       unread_only: true,
-      creator_id: Option::None,
+      creator_id: None,
       ..Default::default()
     }
     .list(pool, timmy.id)
@@ -320,7 +320,7 @@ mod tests {
 
     let timmy_messages = PrivateMessageQuery {
       unread_only: true,
-      creator_id: Option::None,
+      creator_id: None,
       ..Default::default()
     }
     .list(pool, timmy.id)
@@ -333,5 +333,14 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(timmy_unread_messages, 1);
+
+    PrivateMessage::delete(pool, inserted_sara_timmy_message.id).await.unwrap();
+    PrivateMessage::delete(pool, inserted_sara_jess_message.id).await.unwrap();
+    PrivateMessage::delete(pool, inserted_timmy_sara_message.id).await.unwrap();
+    PrivateMessage::delete(pool, inserted_jess_timmy_message.id).await.unwrap();
+    Person::delete(pool, timmy.id).await.unwrap();
+    Person::delete(pool, sara.id).await.unwrap();
+    Person::delete(pool, jess.id).await.unwrap();
+    Instance::delete(pool, instance.id).await.unwrap();
   }
 }
