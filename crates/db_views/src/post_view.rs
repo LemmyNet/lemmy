@@ -537,9 +537,9 @@ fn queries<'a>() -> Queries<
 
       for (i, (order, field)) in sorts_iter.clone().enumerate() {
         let compare = if (*order == Ord::Desc) ^ reverse_direction {
-          field.gt
-        } else {
           field.lt
+        } else {
+          field.gt
         };
 
         // Combines comparisons using `and`
