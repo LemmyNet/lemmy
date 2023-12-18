@@ -72,7 +72,6 @@ steps:
     commands:
       - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
       - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - cp cargo-binstall ./cargo-binstall
       - ./cargo-binstall -y cargo-machete
       - cargo machete
 
@@ -267,8 +266,7 @@ steps:
       image: *rust_image
       commands:
         # reuse binstall from machete step
-        - cargo install cargo-workspaces
-        - ./cargo-binstall -y cargo-machete
+        - ./cargo-binstall -y cargo-workspaces
         - 'echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"'
         - cp -r migrations crates/db_schema/
         - cargo login "$CARGO_API_TOKEN"
