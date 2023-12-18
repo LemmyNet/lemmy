@@ -536,7 +536,7 @@ fn queries<'a>() -> Queries<
         Box::new(false.into_sql::<sql_types::Bool>());
 
       for (i, (order, field)) in sorts_iter.clone().enumerate() {
-        let compare = if (order == Ord::Desc) ^ reverse_direction {
+        let compare = if (*order == Ord::Desc) ^ reverse_direction {
           field.ge
         } else {
           field.le
