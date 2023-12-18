@@ -225,11 +225,12 @@ where
   Ok(())
 }
 
-pub async fn handle_outgoing_activities(context: Data<LemmyContext>) -> LemmyResult<()> {
+pub async fn handle_outgoing_activities(context: Data<LemmyContext>) -> () {
   while let Some(data) = ActivityChannel::retrieve_activity().await {
-    match_outgoing_activities(data, &context.reset_request_count()).await?
+    if let Err(e) = match_outgoing_activities(data, &context.reset_request_count()).await {
+      tracing::warn!("error while saving outgoing activity to db: {e}");
+    }
   }
-  Ok(())
 }
 
 pub async fn match_outgoing_activities(
