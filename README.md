@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/github/license/LemmyNet/lemmy.svg)](LICENSE)
 ![GitHub stars](https://img.shields.io/github/stars/LemmyNet/lemmy?style=social)
 [![Delightful Humane Tech](https://codeberg.org/teaserbot-labs/delightful-humane-design/raw/branch/main/humane-tech-badge.svg)](https://codeberg.org/teaserbot-labs/delightful-humane-design)
-[![End Software Patents](https://static.fsf.org/nosvn/esp/logos/innovating-without-patents.svg)](https://endsoftwarepatents.org/innovating-without-patents)
+[![End Software Patents](https://static.fsf.org/nosvn/esp/logos/patent-free.svg)](https://endsoftwarepatents.org/innovating-without-patents)
 
 </div>
 
