@@ -524,8 +524,8 @@ fn queries<'a>() -> Queries<
     // that's sorted after other fields is only compared if the row and the cursor
     // are in the same group created by the previous sort. This is checked with a
     // condition like `(a > 0) OR (a = 0 AND b > 1) OR (a = 0 AND b = 1 AND c > 2)`.
-    let lt = |field: &_| field.lt;
-    let gt = |field: &_| field.gt;
+    let lt = |field: &PaginationCursorField<_, _>| field.lt;
+    let gt = |field: &PaginationCursorField<_, _>| field.gt;
     for (cursor_data, compare_desc, compare_asc) in [
       (&options.page_after, lt, gt),
       (&options.page_before, gt, lt),
