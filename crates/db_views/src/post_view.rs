@@ -37,7 +37,7 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  utils::
+  utils::{
     functions::coalesce,
     fuzzy_search,
     get_conn,
