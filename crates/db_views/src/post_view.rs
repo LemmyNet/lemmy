@@ -37,8 +37,7 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  utils::{
-    FETCH_LIMIT_MAX,
+  utils::
     functions::coalesce,
     fuzzy_search,
     get_conn,
@@ -49,6 +48,7 @@ use lemmy_db_schema::{
     ListFn,
     Queries,
     ReadFn,
+    FETCH_LIMIT_MAX,
   },
   ListingType,
   SortType,
