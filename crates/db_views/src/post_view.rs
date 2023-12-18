@@ -524,11 +524,9 @@ fn queries<'a>() -> Queries<
     // that's sorted after other fields is only compared if the row and the cursor
     // are in the same group created by the previous sort. This is checked with a
     // condition like `(a > 0) OR (a = 0 AND b > 1) OR (a = 0 AND b = 1 AND c > 2)`.
-    let lt = |field: &PaginationCursorField<_, _>| field.lt;
-    let gt = |field: &PaginationCursorField<_, _>| field.gt;
-    for (cursor_data, compare_desc, compare_asc) in [
-      (&options.page_after, lt, gt),
-      (&options.page_before, gt, lt),
+    for (cursor_data, reverse_direction) in [
+      (&options.page_after, false),
+      (&options.page_before, true),
     ] {
       let Some(cursor_data) = cursor_data else {
         continue;
@@ -539,9 +537,10 @@ fn queries<'a>() -> Queries<
         Box::new(false.into_sql::<sql_types::Bool>());
 
       for (i, (order, field)) in sorts_iter.clone().enumerate() {
-        let compare = match order {
-          Ord::Desc => compare_desc,
-          Ord::Asc => compare_asc,
+        let compare = if order == Ord::Desc ^ reverse_direction {
+          field.ge
+        } else {
+          field.le
         };
 
         // Combines comparisons using `and`
