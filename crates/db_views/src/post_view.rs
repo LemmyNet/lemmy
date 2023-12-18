@@ -537,14 +537,14 @@ fn queries<'a>() -> Queries<
 
       for (i, (order, field)) in sorts_iter.clone().enumerate() {
         let compare = if (*order == Ord::Desc) ^ reverse_direction {
-          field.ge
+          field.gt
         } else {
-          field.le
+          field.lt
         };
 
         // Combines comparisons using `and`
         let mut subcondition: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-          Box::new(compare(field)(&cursor_data.0));
+          Box::new(compare(&cursor_data.0));
 
         // For each field that was sorted before the current one, require it to equal the cursor's
         // corresponding value for `subcondition` to be true.
