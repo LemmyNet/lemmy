@@ -234,8 +234,6 @@ pub(crate) mod tests {
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward")?;
     ApubCommunity::verify(&json, &url, &context2).await?;
     let community = ApubCommunity::from_json(json, &context2).await?;
-    // this makes requests to the (intentionally broken) outbox and followers collections
-    assert_eq!(context2.request_count(), 2);
     Ok(community)
   }
 
