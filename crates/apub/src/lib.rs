@@ -33,8 +33,15 @@ pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 50;
 /// changes take effect quickly.
 const BLOCKLIST_CACHE_DURATION: Duration = Duration::from_secs(60);
 
-pub static FEDERATION_CONTEXT: Lazy<Value> =
-  Lazy::new(|| Value::String("https://join-lemmy.org/context.json".to_string()));
+/// Only include a basic context to save space and bandwidth. The main context is hosted statically
+/// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could
+/// theoretically also be moved.
+pub static FEDERATION_CONTEXT: Lazy<Value> = Lazy::new(|| {
+  Value::Array(vec![
+    Value::String("https://join-lemmy.org/context.json".to_string()),
+    Value::String("https://www.w3.org/ns/activitystreams".to_string()),
+  ])
+});
 
 #[derive(Clone)]
 pub struct VerifyUrlData(pub ActualDbPool);
