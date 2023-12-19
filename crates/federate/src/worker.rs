@@ -5,11 +5,15 @@ use crate::util::{
   LEMMY_TEST_FAST_FEDERATION,
   WORK_FINISHED_RECHECK_DELAY,
 };
-use activitypub_federation::{activity_sending::SendActivityTask, config::Data};
+use activitypub_federation::{
+  activity_sending::SendActivityTask,
+  config::Data,
+  protocol::context::WithContext,
+};
 use anyhow::{Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
 use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
-use lemmy_apub::activity_lists::SharedInboxActivities;
+use lemmy_apub::{activity_lists::SharedInboxActivities, FEDERATION_CONTEXT};
 use lemmy_db_schema::{
   newtypes::{ActivityId, CommunityId, InstanceId},
   source::{
@@ -25,6 +29,7 @@ use once_cell::sync::Lazy;
 use reqwest::Url;
 use std::{
   collections::{HashMap, HashSet},
+  ops::Deref,
   time::Duration,
 };
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
@@ -217,9 +222,10 @@ impl InstanceWorker {
       .await
       .context("failed getting actor instance (was it marked deleted / removed?)")?;
 
+    let object = WithContext::new(object.clone(), FEDERATION_CONTEXT.deref().clone());
     let inbox_urls = inbox_urls.into_iter().collect();
     let requests =
-      SendActivityTask::prepare(object, actor.as_ref(), inbox_urls, &self.context).await?;
+      SendActivityTask::prepare(&object, actor.as_ref(), inbox_urls, &self.context).await?;
     for task in requests {
       // usually only one due to shared inbox
       tracing::debug!("sending out {}", task);

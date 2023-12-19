@@ -32,7 +32,7 @@ pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 50;
 /// changes take effect quickly.
 const BLOCKLIST_CACHE_DURATION: Duration = Duration::from_secs(60);
 
-static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
+pub static FEDERATION_CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
   serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context")
 });
 
