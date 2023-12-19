@@ -791,10 +791,12 @@ export async function listCommentReports(
 export function getPosts(
   api: LemmyHttp,
   listingType?: ListingType,
+  community_id?: number,
 ): Promise<GetPostsResponse> {
   let form: GetPosts = {
     type_: listingType,
     limit: 50,
+    community_id
   };
   return api.getPosts(form);
 }

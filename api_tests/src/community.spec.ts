@@ -504,7 +504,7 @@ test("Fetch community, includes posts", async () => {
 
   await longDelay();
 
-  let post_listing = await getPosts(beta, "All");
+  let post_listing = await getPosts(beta, "All", betaCommunity?.community.id);
   expect(post_listing.posts.length).toBe(1);
   expect(post_listing.posts[0].post.ap_id).toBe(postRes.post_view.post.ap_id);
 });
