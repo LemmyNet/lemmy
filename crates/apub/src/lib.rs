@@ -33,7 +33,7 @@ pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 50;
 /// changes take effect quickly.
 const BLOCKLIST_CACHE_DURATION: Duration = Duration::from_secs(60);
 
-static CONTEXT: Lazy<Value> =
+pub static FEDERATION_CONTEXT: Lazy<Value> =
   Lazy::new(|| Value::String("https://join-lemmy.org/context.json".to_string()));
 
 #[derive(Clone)]
