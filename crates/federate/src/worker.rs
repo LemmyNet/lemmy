@@ -171,6 +171,7 @@ impl InstanceWorker {
         .await
         .context("failed reading activity from db")?
       else {
+        tracing::debug!("{}: {:?} does not exist", self.instance.domain, id);
         self.state.last_successful_id = Some(id);
         continue;
       };
