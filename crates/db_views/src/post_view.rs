@@ -413,7 +413,8 @@ fn queries<'a>() -> Queries<
       .unwrap_or(true)
     {
       // Do not hide read posts when it is a user profile view
-      if let (Some(_creator_id), Some(person_id)) = (options.creator_id, my_person_id) {
+      // Or, only hide read posts on non-profile views
+      if let (None, Some(person_id)) = (options.creator_id, my_person_id) {
         query = query.filter(not(is_read(person_id)));
       }
     }
@@ -753,7 +754,7 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
-      post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
+      post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
     },
     traits::{Blockable, Crud, Joinable, Likeable},
     utils::{build_db_pool_for_tests, DbPool, RANK_DEFAULT},
@@ -761,7 +762,7 @@ mod tests {
     SubscribedType,
   };
   use serial_test::serial;
-  use std::time::Duration;
+  use std::{collections::HashSet, time::Duration};
 
   struct Data {
     inserted_instance: Instance,
@@ -1506,6 +1507,47 @@ mod tests {
     Community::delete(pool, inserted_community.id)
       .await
       .unwrap();
+    cleanup(data, pool).await;
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listings_hide_read() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let mut data = init_data(pool).await;
+
+    // Make sure local user hides read posts
+    let local_user_form = LocalUserUpdateForm {
+      show_read_posts: Some(false),
+      ..Default::default()
+    };
+    let inserted_local_user =
+      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
+        .await
+        .unwrap();
+    data.local_user_view.local_user = inserted_local_user;
+
+    // Mark a post as read
+    PostRead::mark_as_read(
+      pool,
+      HashSet::from([data.inserted_bot_post.id]),
+      data.local_user_view.person.id,
+    )
+    .await
+    .unwrap();
+
+    // Make sure you don't see the read post in the results
+    let post_listings_hide_read = PostQuery {
+      sort: Some(SortType::New),
+      local_user: Some(&data.local_user_view),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(1, post_listings_hide_read.len());
+
     cleanup(data, pool).await;
   }
 
