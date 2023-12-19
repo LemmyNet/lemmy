@@ -12,6 +12,7 @@ use lemmy_db_schema::{
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use moka::future::Cache;
 use once_cell::sync::Lazy;
+use serde_json::Value;
 use std::{sync::Arc, time::Duration};
 use url::Url;
 
@@ -32,9 +33,8 @@ pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 50;
 /// changes take effect quickly.
 const BLOCKLIST_CACHE_DURATION: Duration = Duration::from_secs(60);
 
-static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
-  serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context")
-});
+static CONTEXT: Lazy<Value> =
+  Lazy::new(|| Value::String("https://join-lemmy.org/context.json".to_string()));
 
 #[derive(Clone)]
 pub struct VerifyUrlData(pub ActualDbPool);
