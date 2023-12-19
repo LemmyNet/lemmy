@@ -210,7 +210,7 @@ mod tests {
       .recipient_id(timmy.id)
       .content(message_content.clone())
       .build();
-    let inserted_sara_timmy_message = PrivateMessage::create(pool, &sara_timmy_message_form)
+    PrivateMessage::create(pool, &sara_timmy_message_form)
       .await
       .unwrap();
 
@@ -219,7 +219,7 @@ mod tests {
       .recipient_id(jess.id)
       .content(message_content.clone())
       .build();
-    let inserted_sara_jess_message = PrivateMessage::create(pool, &sara_jess_message_form)
+    PrivateMessage::create(pool, &sara_jess_message_form)
       .await
       .unwrap();
 
@@ -228,7 +228,7 @@ mod tests {
       .recipient_id(sara.id)
       .content(message_content.clone())
       .build();
-    let inserted_timmy_sara_message = PrivateMessage::create(pool, &timmy_sara_message_form)
+    PrivateMessage::create(pool, &timmy_sara_message_form)
       .await
       .unwrap();
 
@@ -237,7 +237,7 @@ mod tests {
       .recipient_id(timmy.id)
       .content(message_content.clone())
       .build();
-    let inserted_jess_timmy_message = PrivateMessage::create(pool, &jess_timmy_message_form)
+    PrivateMessage::create(pool, &jess_timmy_message_form)
       .await
       .unwrap();
 
@@ -334,13 +334,7 @@ mod tests {
       .unwrap();
     assert_eq!(timmy_unread_messages, 1);
 
-    PrivateMessage::delete(pool, inserted_sara_timmy_message.id).await.unwrap();
-    PrivateMessage::delete(pool, inserted_sara_jess_message.id).await.unwrap();
-    PrivateMessage::delete(pool, inserted_timmy_sara_message.id).await.unwrap();
-    PrivateMessage::delete(pool, inserted_jess_timmy_message.id).await.unwrap();
-    Person::delete(pool, timmy.id).await.unwrap();
-    Person::delete(pool, sara.id).await.unwrap();
-    Person::delete(pool, jess.id).await.unwrap();
+    // This also deletes all persons and private messages thanks to sql `on delete cascade`
     Instance::delete(pool, instance.id).await.unwrap();
   }
 }
