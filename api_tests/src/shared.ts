@@ -796,7 +796,7 @@ export function getPosts(
   let form: GetPosts = {
     type_: listingType,
     limit: 50,
-    community_id
+    community_id,
   };
   return api.getPosts(form);
 }
