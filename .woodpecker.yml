@@ -211,6 +211,7 @@ steps:
       - cd api_tests/
       - yarn
       - yarn api-test
+      - mkdir ".cargo_home" "target" "api_tests/node_modules"
     when: *slow_check_paths
 
   rebuild-cache:
