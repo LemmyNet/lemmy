@@ -486,19 +486,25 @@ test("Fetch community, includes posts", async () => {
   expect(communityRes.community_view.community.name).toBeDefined();
   expect(communityRes.community_view.counts.subscribers).toBe(1);
 
-  let postRes = await createPost(alpha, communityRes.community_view.community.id);
+  let postRes = await createPost(
+    alpha,
+    communityRes.community_view.community.id,
+  );
   expect(postRes.post_view.post).toBeDefined();
-  
+
   let resolvedCommunity = await waitUntil(
-    () => resolveCommunity(beta, communityRes.community_view.community.actor_id),
+    () =>
+      resolveCommunity(beta, communityRes.community_view.community.actor_id),
     c => c.community?.community.id != undefined,
   );
   let betaCommunity = resolvedCommunity.community;
-  expect(betaCommunity?.community.actor_id).toBe(communityRes.community_view.community.actor_id);
+  expect(betaCommunity?.community.actor_id).toBe(
+    communityRes.community_view.community.actor_id,
+  );
 
   await longDelay();
 
-  let post_listing = await getPosts(beta, 'All');
+  let post_listing = await getPosts(beta, "All");
   expect(post_listing.posts.length).toBe(1);
   expect(post_listing.posts[0].post.ap_id).toBe(postRes.post_view.post.ap_id);
 });
