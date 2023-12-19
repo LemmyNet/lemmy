@@ -113,6 +113,7 @@ steps:
     commands:
       # reuse binstall from machete step
       - ./cargo-binstall -y cargo-workspaces
+      - apt update
       - apt install --yes libssl
       - 'echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"'
       - cp -r migrations crates/db_schema/
