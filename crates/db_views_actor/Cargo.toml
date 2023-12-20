@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_db_views_actor"
-publish = false
+publish = true
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -19,7 +19,7 @@ workspace = true
 full = ["lemmy_db_schema/full", "diesel", "diesel-async", "ts-rs"]
 
 [dependencies]
-lemmy_db_schema = { workspace = true }
+lemmy_db_schema = { workspace = true, version = "0.19.1-rc.2" }
 diesel = { workspace = true, features = [
   "postgres",
   "chrono",

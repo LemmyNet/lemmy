@@ -1,6 +1,6 @@
 [package]
 name = "lemmy_db_views"
-publish = false
+publish = true
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -28,8 +28,8 @@ full = [
 ]
 
 [dependencies]
-lemmy_db_schema = { workspace = true }
-lemmy_utils = { workspace = true, optional = true }
+lemmy_db_schema = { workspace = true, version = "0.19.1-rc.2" }
+lemmy_utils = { workspace = true, optional = true, version = "0.19.1-rc.2"}
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
