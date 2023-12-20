@@ -114,6 +114,8 @@ steps:
     commands:
       # reuse binstall from machete step
       - ./cargo-binstall -y cargo-workspaces
+      - apt update
+      - apt install --no-install-recommends --no-install-suggests --yes cargo git
       - 'echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"'
       - cp -r migrations crates/db_schema/
       - cargo login "$CARGO_API_TOKEN"
