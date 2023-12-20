@@ -1,5 +1,6 @@
 [package]
 name = "lemmy_db_schema"
+publish = false
 version.workspace = true
 edition.workspace = true
 description.workspace = true
