@@ -1,5 +1,6 @@
 [workspace.package]
 version = "0.19.1-rc.2"
+publish = false
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
