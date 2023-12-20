@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use diesel::{dsl, sql_query, sql_types, ExpressionMethods, IntoSql};
+use diesel::{dsl::{self, sql}, sql_query, sql_types, ExpressionMethods, IntoSql};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   schema::post,
@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   utils::{
     build_db_pool,
     get_conn,
-    series::{self, ValuesFromSeries}, DbConn, DbPool,
+    series::{self, ValuesFromSeries}, DbConn, DbPool, now,
   },
   SortType,
 };
@@ -22,6 +22,7 @@ use lemmy_db_views::{
 };
 use lemmy_utils::error::LemmyResult;
 use std::num::NonZeroU32;
+use diesel::pg::expression::dsl::IntervalDsl;
 
 #[derive(Parser, Debug)]
 struct CmdArgs {
@@ -107,6 +108,7 @@ async fn main() -> LemmyResult<()> {
             person_id.into_sql::<sql_types::Integer>(),
             community_id.into_sql::<sql_types::Integer>(),
             series::current_value.eq(1),
+            now() - sql::<sql_types::Interval>("make_interval(secs => ").bind::<sql_types::BigInt, _>(series::current_value).sql(")"),
           ),
         })
         .into_columns((
@@ -114,6 +116,7 @@ async fn main() -> LemmyResult<()> {
           post::creator_id,
           post::community_id,
           post::featured_community,
+          post::published,
         ))
         .execute(&mut get_conn(pool).await?)
         .await?;
