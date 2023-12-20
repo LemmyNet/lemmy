@@ -172,7 +172,6 @@ impl Object for ApubComment {
       deleted: Some(false),
       ap_id: Some(note.id.into()),
       distinguished: note.distinguished,
-      path: None,
       local: Some(false),
       language_id,
     };
