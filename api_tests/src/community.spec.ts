@@ -407,6 +407,8 @@ test("Community follower count is federated", async () => {
     )
   ).community;
 
+  await longDelay();
+
   // Make sure there are 2 subscribers
   expect(followed?.counts?.subscribers).toBe(2);
 

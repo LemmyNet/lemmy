@@ -11,7 +11,7 @@ killall -s1 lemmy_server || true
 popd
 
 yarn
-yarn api-test || true
+yarn api-test-community || true
 
 killall -s1 lemmy_server || true
 killall -s1 pict-rs || true
