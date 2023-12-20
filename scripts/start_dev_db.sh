@@ -2,12 +2,14 @@
 
 export PGDATA="$PWD/dev_pgdata"
 export PGHOST=$PWD
-export LEMMY_DATABASE_URL="postgresql://lemmy:password@/lemmy?host=$PWD"
+export DATABASE_URL="postgresql://lemmy:password@/lemmy?host=$PWD"
+export LEMMY_DATABASE_URL=$DATABASE_URL
 
 # If cluster exists, stop the server and delete the cluster
 if [[ -d $PGDATA ]]
 then
   # Only stop server if it is running
+  pg_status_exit_code=0
   (pg_ctl status > /dev/null) || pg_status_exit_code=$?
   if [[ ${pg_status_exit_code} -ne 3 ]]
   then
@@ -27,7 +29,9 @@ config_args=(
 
   # Allow auto_explain to be turned on
   -c session_preload_libraries=auto_explain
-  #-c auto_explain.log_min_duration=0
+
+  # Log triggers
+  -c auto_explain.log_nested_statements=on
 
   # Include actual row amounts and run times for query plan nodes
   -c auto_explain.log_analyze=on

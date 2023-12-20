@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   utils::{
     build_db_pool,
     get_conn,
-    series::{self, ValuesFromSeries},
+    series::{self, ValuesFromSeries}, DbConn, DbPool,
   },
   SortType,
 };
@@ -31,8 +31,10 @@ struct CmdArgs {
   people: NonZeroU32,
   #[arg(long, default_value_t = 100000.try_into().unwrap())]
   posts: NonZeroU32,
+  #[arg(long, default_value_t = 0)]
+  read_post_pages: u32,
   #[arg(long)]
-  read_posts: bool,
+  explain_insertions: bool,
 }
 
 #[tokio::main]
@@ -40,6 +42,14 @@ async fn main() -> LemmyResult<()> {
   let args = CmdArgs::parse();
   let pool = &build_db_pool().await?;
   let pool = &mut pool.into();
+
+  let conn = &mut get_conn(pool).await?;
+  if args.explain_insertions {
+    sql_query("SET auto_explain.log_min_duration = 0")
+      .execute(conn)
+      .await?;
+  }
+  let pool = &mut conn.into();
 
   let instance = Instance::read_or_create(pool, "reddit.com".to_owned()).await?;
 
@@ -120,10 +130,10 @@ async fn main() -> LemmyResult<()> {
     .execute(conn)
     .await?;
   let pool = &mut conn.into();
-
-  if args.read_posts {
+  
+  {
     let mut page_after = None;
-    for page_num in 1..=2 {
+    for page_num in 1..=args.read_post_pages {
       println!(
         "👀 getting page {page_num} of posts (pagination cursor used: {})",
         page_after.is_some()
@@ -138,19 +148,31 @@ async fn main() -> LemmyResult<()> {
       }
       .list(pool)
       .await?;
-      if let Some(post_view) = post_views.into_iter().last() {
-        println!("👀 getting pagination cursor data for next page ");
-        let cursor_data = PaginationCursor::after_post(&post_view).read(pool).await?;
-        page_after = Some(cursor_data);
-      } else {
-        break;
-      }
+    if let Some(post_view) = post_views.into_iter().last() {
+      println!("👀 getting pagination cursor data for next page");
+      let cursor_data = PaginationCursor::after_post(&post_view).read(pool).await?;
+      page_after = Some(cursor_data);
+    } else {
+      println!("🚫 reached empty page");
+      break;
+    }
     }
   }
-
+  
+  // TODO show this path when there's an error
   if let Ok(path) = std::env::var("PGDATA") {
     println!("🪵 query plans written in {path}/log");
   }
-
+  
   Ok(())
+}
+
+async fn conn_with_auto_explain<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> LemmyResult<DbConn<'a>> {
+  let mut conn = get_conn(pool).await?;
+
+  sql_query("SET auto_explain.log_min_duration = 0")
+    .execute(&mut conn)
+    .await?;
+
+  Ok(conn)
 }
