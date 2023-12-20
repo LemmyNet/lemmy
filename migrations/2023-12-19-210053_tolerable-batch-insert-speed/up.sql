@@ -15,9 +15,16 @@ BEGIN
         published,
         community_id,
         creator_id,
-        (SELECT community.instance_id FROM community WHERE community.id = community_id LIMIT 1)
-    FROM
-        new_post;
+        (
+            SELECT
+                community.instance_id
+            FROM
+                community
+            WHERE
+                community.id = community_id
+            LIMIT 1)
+FROM
+    new_post;
     RETURN NULL;
 END
 $$;
@@ -27,10 +34,20 @@ CREATE OR REPLACE FUNCTION community_aggregates_post_count_insert ()
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    UPDATE community_aggregates
-    SET posts = posts + post_group.count
-    FROM (SELECT community_id, count(*) FROM new_post GROUP BY community_id) post_group
-    WHERE community_aggregates.community_id = post_group.community_id;
+    UPDATE
+        community_aggregates
+    SET
+        posts = posts + post_group.count
+    FROM (
+        SELECT
+            community_id,
+            count(*)
+        FROM
+            new_post
+        GROUP BY
+            community_id) post_group
+WHERE
+    community_aggregates.community_id = post_group.community_id;
     RETURN NULL;
 END
 $$;
@@ -40,17 +57,26 @@ CREATE OR REPLACE FUNCTION person_aggregates_post_insert ()
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    UPDATE person_aggregates
-    SET post_count = post_count + post_group.count
-    FROM (SELECT creator_id, count(*) FROM new_post GROUP BY creator_id) post_group
-    WHERE person_aggregates.person_id = post_group.creator_id;
+    UPDATE
+        person_aggregates
+    SET
+        post_count = post_count + post_group.count
+    FROM (
+        SELECT
+            creator_id,
+            count(*)
+        FROM
+            new_post
+        GROUP BY
+            creator_id) post_group
+WHERE
+    person_aggregates.person_id = post_group.creator_id;
     RETURN NULL;
 END
 $$;
 
 CREATE OR REPLACE TRIGGER post_aggregates_post
-    AFTER INSERT ON post
-    REFERENCING NEW TABLE AS new_post
+    AFTER INSERT ON post REFERENCING NEW TABLE AS new_post
     FOR EACH STATEMENT
     EXECUTE PROCEDURE post_aggregates_post ();
 
@@ -63,8 +89,7 @@ CREATE OR REPLACE TRIGGER community_aggregates_post_count
     EXECUTE PROCEDURE community_aggregates_post_count ();
 
 CREATE OR REPLACE TRIGGER community_aggregates_post_count_insert
-    AFTER INSERT ON post
-    REFERENCING NEW TABLE AS new_post
+    AFTER INSERT ON post REFERENCING NEW TABLE AS new_post
     FOR EACH STATEMENT
     EXECUTE PROCEDURE community_aggregates_post_count_insert ();
 
@@ -97,7 +122,11 @@ BEGIN
     UPDATE
         site_aggregates sa
     SET
-        posts = posts + (SELECT count(*) FROM new_post)
+        posts = posts + (
+            SELECT
+                count(*)
+            FROM
+                new_post)
     FROM
         site s
     WHERE
@@ -114,8 +143,7 @@ CREATE OR REPLACE TRIGGER site_aggregates_post_update
     EXECUTE PROCEDURE site_aggregates_post_update ();
 
 CREATE OR REPLACE TRIGGER site_aggregates_post_insert
-    AFTER INSERT ON post
-    REFERENCING NEW TABLE AS new_post
+    AFTER INSERT ON post REFERENCING NEW TABLE AS new_post
     FOR EACH STATEMENT
     EXECUTE PROCEDURE site_aggregates_post_insert ();
 
@@ -126,8 +154,7 @@ CREATE OR REPLACE TRIGGER person_aggregates_post_count
     EXECUTE PROCEDURE person_aggregates_post_count ();
 
 CREATE OR REPLACE TRIGGER person_aggregates_post_insert
-    AFTER INSERT ON post
-    REFERENCING NEW TABLE AS new_post
+    AFTER INSERT ON post REFERENCING NEW TABLE AS new_post
     FOR EACH STATEMENT
     EXECUTE PROCEDURE person_aggregates_post_insert ();
 
