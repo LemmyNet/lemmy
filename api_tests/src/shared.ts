@@ -4,12 +4,14 @@ import {
   BlockInstance,
   BlockInstanceResponse,
   CommunityId,
+  CreatePrivateMessageReport,
   GetReplies,
   GetRepliesResponse,
   GetUnreadCountResponse,
   InstanceId,
   LemmyHttp,
   PostView,
+  PrivateMessageReportResponse,
   SuccessResponse,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
@@ -779,6 +781,18 @@ export async function reportComment(
     reason,
   };
   return api.createCommentReport(form);
+}
+
+export async function reportPrivateMessage(
+  api: LemmyHttp,
+  private_message_id: number,
+  reason: string,
+): Promise<PrivateMessageReportResponse> {
+  let form: CreatePrivateMessageReport = {
+    private_message_id,
+    reason,
+  };
+  return api.createPrivateMessageReport(form);
 }
 
 export async function listCommentReports(
