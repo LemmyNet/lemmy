@@ -1446,7 +1446,7 @@ mod tests {
     let inserted_community = Community::create(pool, &community_form).await.unwrap();
 
     let mut inserted_post_ids = vec![];
-    let mut comment_forms = vec![];
+    let mut inserted_comment_ids = vec![];
 
     // Create 150 posts with varying non-correlating values for publish date, number of comments, and featured
     for comments in 0..10 {
@@ -1468,12 +1468,11 @@ mod tests {
             .post_id(inserted_post.id)
             .content("yes".to_owned())
             .build();
-          comment_forms.push((comment_form, None));
+          let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
+          inserted_comment_ids.push(inserted_comment.id);
         }
       }
     }
-
-    Comment::create_batch(pool, &comment_forms).await.unwrap();
 
     let mut listed_post_ids = vec![];
     let mut page_after = None;
