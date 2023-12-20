@@ -2662,6 +2662,7 @@ name = "lemmy_db_schema"
 version = "0.19.0"
 dependencies = [
  "activitypub_federation",
+ "anyhow",
  "async-trait",
  "bcrypt",
  "chrono",

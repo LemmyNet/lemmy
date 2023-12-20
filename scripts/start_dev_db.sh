@@ -30,9 +30,6 @@ config_args=(
   # Allow auto_explain to be turned on
   -c session_preload_libraries=auto_explain
 
-  # Log triggers
-  -c auto_explain.log_nested_statements=on
-
   # Include actual row amounts and run times for query plan nodes
   -c auto_explain.log_analyze=on
 
@@ -43,7 +40,7 @@ config_args=(
 # Create cluster
 pg_ctl init --silent --options="--username=postgres --auth=trust --no-instructions"
 
-# Start server that only listens to socket in current directory
+# Start server
 pg_ctl start --silent --options="${config_args[*]}"
 
 # Setup database

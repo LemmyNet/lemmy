@@ -41,14 +41,7 @@ use crate::{
 };
 use ::url::Url;
 use chrono::{Duration, Utc};
-use diesel::{
-  dsl::insert_into,
-  result::Error,
-  ExpressionMethods,
-  Insertable,
-  QueryDsl,
-  TextExpressionMethods,
-};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
 use std::collections::HashSet;
 

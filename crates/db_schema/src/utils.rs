@@ -8,6 +8,7 @@ use crate::{
   SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
+use anyhow::Context;
 use chrono::{DateTime, Utc};
 use deadpool::Runtime;
 use diesel::{
@@ -19,11 +20,9 @@ use diesel::{
   query_dsl::methods::LimitDsl,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_query,
   sql_types::{Text, Timestamptz},
   IntoSql,
   PgConnection,
-  RunQueryDsl,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -343,21 +342,18 @@ impl ServerCertVerifier for NoCertVerifier {
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
-fn run_migrations(db_url: &str) {
+fn run_migrations(db_url: &str) -> Result<(), LemmyError> {
   // Needs to be a sync connection
   let mut conn =
-    PgConnection::establish(db_url).unwrap_or_else(|e| panic!("Error connecting to {db_url}: {e}"));
-
-  // Disable auto_explain output for migrations
-  sql_query("SET auto_explain.log_min_duration = -1")
-    .execute(&mut conn)
-    .expect("failed to disable auto_explain");
+    PgConnection::establish(db_url).with_context(|| format!("Error connecting to {db_url}"))?;
 
   info!("Running Database migrations (This may take a long time)...");
-  let _ = &mut conn
+  conn
     .run_pending_migrations(MIGRATIONS)
-    .unwrap_or_else(|e| panic!("Couldn't run DB Migrations: {e}"));
+    .map_err(|e| anyhow::Error::msg(format!("Couldn't run DB Migrations: {e}")))?;
   info!("Database migrations complete.");
+
+  Ok(())
 }
 
 pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
@@ -381,7 +377,7 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
     .runtime(Runtime::Tokio1)
     .build()?;
 
-  run_migrations(&db_url);
+  run_migrations(&db_url)?;
 
   Ok(pool)
 }
