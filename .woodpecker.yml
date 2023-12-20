@@ -109,14 +109,10 @@ steps:
 
   # using https://github.com/pksunkara/cargo-workspaces
   publish_to_crates_io:
-    # necessary for libssl1.1 requirement of cargo-workspaces binary
-    image: debian:bullseye-slim
+    image: *rust_image
     commands:
-      # reuse binstall from machete step
-      - ./cargo-binstall -y cargo-workspaces
-      - apt update
-      - apt install --no-install-recommends --no-install-suggests --yes cargo git
       - 'echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"'
+      - cargo install cargo-workspaces
       - cp -r migrations crates/db_schema/
       - cargo login "$CARGO_API_TOKEN"
       - cargo workspaces publish --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
