@@ -1,6 +1,5 @@
 [package]
 name = "lemmy_api_common"
-publish = true
 version.workspace = true
 edition.workspace = true
 description.workspace = true
