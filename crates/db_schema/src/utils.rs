@@ -416,10 +416,7 @@ static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
 });
 
 pub mod functions {
-  use diesel::{
-    pg::Pg,
-    sql_types::{BigInt, Text, Timestamptz},
-  };
+  use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
     fn hot_rank(score: BigInt, time: Timestamptz) -> Double;
@@ -437,9 +434,6 @@ pub mod functions {
 
   // really this function is variadic, this just adds the two-argument version
   sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
-
-  // Use `AsText::new`
-  postfix_operator!(AsText, "::text", Text, backend: Pg);
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
