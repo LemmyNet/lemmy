@@ -27,8 +27,8 @@ full = [
 ]
 
 [dependencies]
-lemmy_db_schema = { workspace = true, version = "0.19.1-rc.2" }
-lemmy_utils = { workspace = true, optional = true, version = "0.19.1-rc.2" }
+lemmy_db_schema = { workspace = true }
+lemmy_utils = { workspace = true, optional = true }
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
