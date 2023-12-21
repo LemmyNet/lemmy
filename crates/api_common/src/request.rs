@@ -234,7 +234,15 @@ async fn generate_pictrs_thumbnail(
   let pictrs_config = context.settings().pictrs_config()?;
 
   if !pictrs_config.cache_external_link_previews {
-    return Ok(proxy_image_link(image_url.clone(), context).await?.into());
+    return Ok(
+      proxy_image_link(
+        image_url.clone(),
+        context.settings().pictrs_config()?.image_proxy,
+        context,
+      )
+      .await?
+      .into(),
+    );
   }
 
   // fetch remote non-pictrs images for persistent thumbnail link

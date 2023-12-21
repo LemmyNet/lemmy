@@ -862,11 +862,13 @@ pub async fn process_markdown_opt(
   }
 }
 
-pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
+pub(crate) async fn proxy_image_link(
+  link: Url,
+  image_proxy: bool,
+  context: &LemmyContext,
+) -> LemmyResult<DbUrl> {
   // Dont rewrite links pointing to local domain.
-  if link.domain() == Some(&context.settings().hostname)
-    || !context.settings().pictrs_config()?.image_proxy
-  {
+  if link.domain() == Some(&context.settings().hostname) || !image_proxy {
     return Ok(link.into());
   }
 
@@ -883,19 +885,29 @@ pub async fn proxy_image_link_opt_api(
   link: &Option<String>,
   context: &LemmyContext,
 ) -> LemmyResult<Option<Option<DbUrl>>> {
-  let link: Option<Option<DbUrl>> = match link.as_ref().map(String::as_str) {
+  proxy_image_link_api(link, context).await.map(Some)
+}
+
+pub async fn proxy_image_link_api(
+  link: &Option<String>,
+  context: &LemmyContext,
+) -> LemmyResult<Option<DbUrl>> {
+  let link: Option<DbUrl> = match link.as_ref().map(String::as_str) {
     // An empty string is an erase
-    Some("") => Some(None),
+    Some("") => None,
     Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(Some(u.into())))
+      .map(|u| Some(u.into()))
       .with_lemmy_type(LemmyErrorType::InvalidUrl)?,
     None => None,
   };
-  if let Some(Some(l)) = link {
-    proxy_image_link(l.into(), context)
-      .await
-      .map(Some)
-      .map(Some)
+  if let Some(l) = link {
+    proxy_image_link(
+      l.into(),
+      context.settings().pictrs_config()?.image_proxy,
+      context,
+    )
+    .await
+    .map(Some)
   } else {
     Ok(link)
   }
@@ -906,7 +918,9 @@ pub async fn proxy_image_link_opt_apub(
   context: &LemmyContext,
 ) -> LemmyResult<Option<DbUrl>> {
   if let Some(l) = link {
-    proxy_image_link(l, context).await.map(Some)
+    proxy_image_link(l, context.settings().pictrs_config()?.image_proxy, context)
+      .await
+      .map(Some)
   } else {
     Ok(None)
   }
@@ -967,12 +981,14 @@ mod tests {
 
     // image from local domain is unchanged
     let local_url = Url::parse("http://lemmy-alpha/image.png").unwrap();
-    let proxied = proxy_image_link(local_url.clone(), &context).await.unwrap();
+    let proxied = proxy_image_link(local_url.clone(), true, &context)
+      .await
+      .unwrap();
     assert_eq!(&local_url, proxied.inner());
 
     // image from remote domain is proxied
     let remote_image = Url::parse("http://lemmy-beta/image.png").unwrap();
-    let proxied = proxy_image_link(remote_image.clone(), &context)
+    let proxied = proxy_image_link(remote_image.clone(), true, &context)
       .await
       .unwrap();
     assert_eq!(
@@ -992,7 +1008,7 @@ mod tests {
     let context = LemmyContext::init_test_context().await;
 
     assert!(matches!(
-      proxy_image_link_opt_api(&None, &context).await,
+      proxy_image_link_api(&None, &context).await,
       Ok(None)
     ));
     assert!(matches!(

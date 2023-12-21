@@ -12,12 +12,12 @@ use lemmy_api_common::{
     is_admin,
     local_site_to_slur_regex,
     process_markdown_opt,
-    proxy_image_link,
+    proxy_image_link_api,
+    proxy_image_link_opt_api,
     EndpointType,
   },
 };
 use lemmy_db_schema::{
-  newtypes::DbUrl,
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{
@@ -39,7 +39,6 @@ use lemmy_utils::{
     validation::{is_valid_actor_name, is_valid_body_field},
   },
 };
-use url::Url;
 
 #[tracing::instrument(skip(context))]
 pub async fn create_community(
@@ -58,8 +57,8 @@ pub async fn create_community(
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
   let description = process_markdown_opt(&data.description, &slur_regex, &context).await?;
-  let icon = proxy_image_link_create(&data.icon, &context).await?;
-  let banner = proxy_image_link_create(&data.banner, &context).await?;
+  let icon = proxy_image_link_api(&data.icon, &context).await?;
+  let banner = proxy_image_link_api(&data.banner, &context).await?;
 
   is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
   is_valid_body_field(&data.description, false)?;
@@ -135,20 +134,4 @@ pub async fn create_community(
   }
 
   build_community_response(&context, local_user_view, community_id).await
-}
-
-async fn proxy_image_link_create(
-  opt: &Option<String>,
-  context: &LemmyContext,
-) -> Result<Option<DbUrl>, LemmyError> {
-  match opt.as_ref().map(String::as_str) {
-    // An empty string is nothing
-    Some("") => Ok(None),
-    Some(str_url) => {
-      let url = Url::parse(str_url).with_lemmy_type(LemmyErrorType::InvalidUrl)?;
-      let url = proxy_image_link(url, context).await?;
-      Ok(Some(url))
-    }
-    None => Ok(None),
-  }
 }
