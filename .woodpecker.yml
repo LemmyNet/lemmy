@@ -141,6 +141,7 @@ steps:
       cache_key: "rust-cache"
       region: us-east-1
       path-style: true
+      backend_operation_timeout: 10m
       mount:
         - ".cargo_home"
         - "target"
