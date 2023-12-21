@@ -386,6 +386,7 @@ mod tests {
   #[test]
   fn test_valid_matrix_id() {
     assert!(is_valid_matrix_id("@dess:matrix.org").is_ok());
+    assert!(is_valid_matrix_id("@dess_:matrix.org").is_ok());
     assert!(is_valid_matrix_id("@dess:matrix.org:443").is_ok());
     assert!(is_valid_matrix_id("dess:matrix.org").is_err());
     assert!(is_valid_matrix_id(" @dess:matrix.org").is_err());
