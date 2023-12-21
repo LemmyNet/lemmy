@@ -90,8 +90,6 @@ CREATE OR REPLACE TRIGGER community_aggregates_post_count_insert
     FOR EACH STATEMENT
     EXECUTE PROCEDURE community_aggregates_post_count_insert ();
 
-DROP FUNCTION IF EXISTS site_aggregates_community_delete CASCADE;
-
 CREATE OR REPLACE FUNCTION site_aggregates_post_update ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
