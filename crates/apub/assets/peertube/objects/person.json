@@ -1,30 +1,4 @@
 {
-  "type": "Person",
-  "id": "https://framatube.org/accounts/framasoft",
-  "following": "https://framatube.org/accounts/framasoft/following",
-  "followers": "https://framatube.org/accounts/framasoft/followers",
-  "playlists": "https://framatube.org/accounts/framasoft/playlists",
-  "inbox": "https://framatube.org/accounts/framasoft/inbox",
-  "outbox": "https://framatube.org/accounts/framasoft/outbox",
-  "preferredUsername": "framasoft",
-  "url": "https://framatube.org/accounts/framasoft",
-  "name": "Framasoft",
-  "endpoints": {
-    "sharedInbox": "https://framatube.org/inbox"
-  },
-  "publicKey": {
-    "id": "https://framatube.org/accounts/framasoft#main-key",
-    "owner": "https://framatube.org/accounts/framasoft",
-    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuRh3frgIg866D0y0FThp\nSUkJImMcHGkUvpYQYv2iUgarZZtEbwT8PfQf0bJazy+cP8KqQmMDf5PBhT7dfdny\nf/GKGMw9Olc+QISeKDj3sqZ3Csrm4KV4avMGCfth6eSU7LozojeSGCXdUFz/8UgE\nfhV4mJjEX/FbwRYoKlagv5rY9mkX5XomzZU+z9j6ZVXyofwOwJvmI1hq0SYDv2bc\neB/RgIh/H0nyMtF8o+0CT42FNEET9j9m1BKOBtPzwZHmitKRkEmui5cK256s1laB\nT61KHpcD9gQKkQ+I3sFEzCBUJYfVo6fUe+GehBZuAfq4qDhd15SfE4K9veDscDFI\nTwIDAQAB\n-----END PUBLIC KEY-----"
-  },
-  "published": "2018-03-01T15:16:17.118Z",
-  "icon": {
-    "type": "Image",
-    "mediaType": "image/png",
-    "height": null,
-    "width": null,
-    "url": "https://framatube.org/lazy-static/avatars/f73876f5-1d45-4f8a-942a-d3d5d5ac5dc1.png"
-  },
   "@context": [
     "https://www.w3.org/ns/activitystreams",
     "https://w3id.org/security/v1",
@@ -33,92 +7,52 @@
     },
     {
       "pt": "https://joinpeertube.org/ns#",
-      "sc": "http://schema.org#",
-      "Hashtag": "as:Hashtag",
-      "uuid": "sc:identifier",
-      "category": "sc:category",
-      "licence": "sc:license",
-      "subtitleLanguage": "sc:subtitleLanguage",
-      "sensitive": "as:sensitive",
-      "language": "sc:inLanguage",
-      "isLiveBroadcast": "sc:isLiveBroadcast",
-      "liveSaveReplay": {
-        "@type": "sc:Boolean",
-        "@id": "pt:liveSaveReplay"
-      },
-      "permanentLive": {
-        "@type": "sc:Boolean",
-        "@id": "pt:permanentLive"
-      },
-      "Infohash": "pt:Infohash",
-      "Playlist": "pt:Playlist",
-      "PlaylistElement": "pt:PlaylistElement",
-      "originallyPublishedAt": "sc:datePublished",
-      "views": {
-        "@type": "sc:Number",
-        "@id": "pt:views"
-      },
-      "state": {
-        "@type": "sc:Number",
-        "@id": "pt:state"
-      },
-      "size": {
-        "@type": "sc:Number",
-        "@id": "pt:size"
-      },
-      "fps": {
-        "@type": "sc:Number",
-        "@id": "pt:fps"
-      },
-      "startTimestamp": {
-        "@type": "sc:Number",
-        "@id": "pt:startTimestamp"
-      },
-      "stopTimestamp": {
-        "@type": "sc:Number",
-        "@id": "pt:stopTimestamp"
-      },
-      "position": {
-        "@type": "sc:Number",
-        "@id": "pt:position"
-      },
-      "commentsEnabled": {
-        "@type": "sc:Boolean",
-        "@id": "pt:commentsEnabled"
-      },
-      "downloadEnabled": {
-        "@type": "sc:Boolean",
-        "@id": "pt:downloadEnabled"
-      },
-      "waitTranscoding": {
-        "@type": "sc:Boolean",
-        "@id": "pt:waitTranscoding"
+      "sc": "http://schema.org/",
+      "playlists": {
+        "@id": "pt:playlists",
+        "@type": "@id"
       },
       "support": {
         "@type": "sc:Text",
         "@id": "pt:support"
       },
-      "likes": {
-        "@id": "as:likes",
-        "@type": "@id"
-      },
-      "dislikes": {
-        "@id": "as:dislikes",
-        "@type": "@id"
-      },
-      "playlists": {
-        "@id": "pt:playlists",
-        "@type": "@id"
-      },
-      "shares": {
-        "@id": "as:shares",
-        "@type": "@id"
-      },
-      "comments": {
-        "@id": "as:comments",
-        "@type": "@id"
-      }
+      "icons": "as:icon"
     }
   ],
-  "summary": null
+  "type": "Person",
+  "id": "https://peertube.stream/accounts/createurs",
+  "following": "https://peertube.stream/accounts/createurs/following",
+  "followers": "https://peertube.stream/accounts/createurs/followers",
+  "playlists": "https://peertube.stream/accounts/createurs/playlists",
+  "inbox": "https://peertube.stream/accounts/createurs/inbox",
+  "outbox": "https://peertube.stream/accounts/createurs/outbox",
+  "preferredUsername": "createurs",
+  "url": "https://peertube.stream/accounts/createurs",
+  "name": "Créateurs",
+  "endpoints": {
+    "sharedInbox": "https://peertube.stream/inbox"
+  },
+  "publicKey": {
+    "id": "https://peertube.stream/accounts/createurs#main-key",
+    "owner": "https://peertube.stream/accounts/createurs",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxqkQhbRYbA81+WTYjorR\n2lEMad3kYCnzDjGTLr4I92eanzFHxyELGnjzP6TpEvjOiB9NrCRrqU/iFPLdgrq2\nwIFcXPWdCq6Gcg7QLlaeMM0JoJmr0KTEhzg0XKCo96UsyTzaF4DISxqi8RyoyWeU\nEkgiOzlkdYTlouq3MlQH+p1PBAsNUQfIEUsU+l6k1vzbm8JRwlT+D1bNde4I/Lqs\n4uB5ru3zzInwZ2hz9+heiriNoGEBv74rZHYn966tZVX8iMGx2+m6okozEdEQbqCl\n0ekqDcd8P6CoFqqeeu8coh82OUtuFI/XsbetdWA55YQmSHyMiTsIwVbeoogIETbI\n4QIDAQAB\n-----END PUBLIC KEY-----"
+  },
+  "published": "2020-11-11T17:12:37.243Z",
+  "icon": [
+    {
+      "type": "Image",
+      "mediaType": "image/png",
+      "height": 48,
+      "width": 48,
+      "url": "https://peertube.stream/lazy-static/avatars/1760df9a-3c96-45fc-9342-c313a3bf2210.png"
+    },
+    {
+      "type": "Image",
+      "mediaType": "image/png",
+      "height": 120,
+      "width": 120,
+      "url": "https://peertube.stream/lazy-static/avatars/c27b672d-ad8f-498a-adbe-553af8da56f9.png"
+    }
+  ],
+  "summary": "Centralisation de miroirs de chaînes. La grande majorité a été contactée ou diffuse sous licence avec paternité.\n\nCompte maintenu par [Raph](https://tooter.social/@raph)."
 }

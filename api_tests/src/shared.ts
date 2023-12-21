@@ -4,12 +4,14 @@ import {
   BlockInstance,
   BlockInstanceResponse,
   CommunityId,
+  CreatePrivateMessageReport,
   GetReplies,
   GetRepliesResponse,
   GetUnreadCountResponse,
   InstanceId,
   LemmyHttp,
   PostView,
+  PrivateMessageReportResponse,
   SuccessResponse,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
@@ -75,17 +77,20 @@ import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDe
 import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 import { ListingType } from "lemmy-js-client/dist/types/ListingType";
 
+export const fetchFunction = fetch;
+
 export let alphaUrl = "http://127.0.0.1:8541";
 export let betaUrl = "http://127.0.0.1:8551";
 export let gammaUrl = "http://127.0.0.1:8561";
 export let deltaUrl = "http://127.0.0.1:8571";
 export let epsilonUrl = "http://127.0.0.1:8581";
 
-export let alpha = new LemmyHttp(alphaUrl);
-export let beta = new LemmyHttp(betaUrl);
-export let gamma = new LemmyHttp(gammaUrl);
-export let delta = new LemmyHttp(deltaUrl);
-export let epsilon = new LemmyHttp(epsilonUrl);
+export let alpha = new LemmyHttp(alphaUrl, { fetchFunction });
+export let alphaImage = new LemmyHttp(alphaUrl);
+export let beta = new LemmyHttp(betaUrl, { fetchFunction });
+export let gamma = new LemmyHttp(gammaUrl, { fetchFunction });
+export let delta = new LemmyHttp(deltaUrl, { fetchFunction });
+export let epsilon = new LemmyHttp(epsilonUrl, { fetchFunction });
 
 export let betaAllowedInstances = [
   "lemmy-alpha",
@@ -135,6 +140,7 @@ export async function setupLogins() {
     resEpsilon,
   ]);
   alpha.setHeaders({ Authorization: `Bearer ${res[0].jwt ?? ""}` });
+  alphaImage.setHeaders({ Authorization: `Bearer ${res[0].jwt ?? ""}` });
   beta.setHeaders({ Authorization: `Bearer ${res[1].jwt ?? ""}` });
   gamma.setHeaders({ Authorization: `Bearer ${res[2].jwt ?? ""}` });
   delta.setHeaders({ Authorization: `Bearer ${res[3].jwt ?? ""}` });
@@ -325,6 +331,7 @@ export async function getComments(
     post_id: post_id,
     type_: listingType,
     sort: "New",
+    limit: 50,
   };
   return api.getComments(form);
 }
@@ -776,6 +783,18 @@ export async function reportComment(
   return api.createCommentReport(form);
 }
 
+export async function reportPrivateMessage(
+  api: LemmyHttp,
+  private_message_id: number,
+  reason: string,
+): Promise<PrivateMessageReportResponse> {
+  let form: CreatePrivateMessageReport = {
+    private_message_id,
+    reason,
+  };
+  return api.createPrivateMessageReport(form);
+}
+
 export async function listCommentReports(
   api: LemmyHttp,
 ): Promise<ListCommentReportsResponse> {
@@ -789,6 +808,7 @@ export function getPosts(
 ): Promise<GetPostsResponse> {
   let form: GetPosts = {
     type_: listingType,
+    limit: 50,
   };
   return api.getPosts(form);
 }
@@ -857,6 +877,7 @@ export function getCommentParentId(comment: Comment): number | undefined {
   if (split.length > 1) {
     return Number(split[split.length - 2]);
   } else {
+    console.log(`Failed to extract comment parent id from ${comment.path}`);
     return undefined;
   }
 }

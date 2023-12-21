@@ -39,7 +39,6 @@ import {
   delay,
 } from "./shared";
 import { CommentView, CommunityView } from "lemmy-js-client";
-import { LemmyHttp } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 let postOnAlphaRes: PostResponse;
@@ -345,17 +344,26 @@ test("Federated comment like", async () => {
 test("Reply to a comment from another instance, get notification", async () => {
   await alpha.markAllAsRead();
 
-  let betaCommunity = (await resolveBetaCommunity(alpha)).community;
+  let betaCommunity = (
+    await waitUntil(
+      () => resolveBetaCommunity(alpha),
+      c => !!c.community?.community.instance_id,
+    )
+  ).community;
   if (!betaCommunity) {
     throw "Missing beta community";
   }
+
   const postOnAlphaRes = await createPost(alpha, betaCommunity.community.id);
 
   // Create a root-level trunk-branch comment on alpha
   let commentRes = await createComment(alpha, postOnAlphaRes.post_view.post.id);
   // find that comment id on beta
   let betaComment = (
-    await resolveComment(beta, commentRes.comment_view.comment)
+    await waitUntil(
+      () => resolveComment(beta, commentRes.comment_view.comment),
+      c => c.comment?.counts.score === 1,
+    )
   ).comment;
 
   if (!betaComment) {
@@ -406,7 +414,10 @@ test("Reply to a comment from another instance, get notification", async () => {
   expect(alphaUnreadCountRes.replies).toBeGreaterThanOrEqual(1);
 
   // check inbox of replies on alpha, fetching read/unread both
-  let alphaRepliesRes = await getReplies(alpha);
+  let alphaRepliesRes = await waitUntil(
+    () => getReplies(alpha),
+    r => r.replies.length > 0,
+  );
   const alphaReply = alphaRepliesRes.replies.find(
     r => r.comment.id === alphaComment.comment.id,
   );

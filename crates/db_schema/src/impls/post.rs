@@ -1,4 +1,3 @@
-use super::instance::coalesce;
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::post::dsl::{
@@ -29,7 +28,16 @@ use crate::{
     PostUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX},
+  utils::{
+    functions::coalesce,
+    get_conn,
+    naive_now,
+    DbPool,
+    DELETED_REPLACEMENT_TEXT,
+    FETCH_LIMIT_MAX,
+    SITEMAP_DAYS,
+    SITEMAP_LIMIT,
+  },
 };
 use ::url::Url;
 use chrono::{Duration, Utc};
@@ -109,8 +117,9 @@ impl Post {
       .filter(local.eq(true))
       .filter(deleted.eq(false))
       .filter(removed.eq(false))
-      .filter(published.ge(Utc::now().naive_utc() - Duration::days(1)))
+      .filter(published.ge(Utc::now().naive_utc() - Duration::days(SITEMAP_DAYS)))
       .order(published.desc())
+      .limit(SITEMAP_LIMIT)
       .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)
       .await
   }

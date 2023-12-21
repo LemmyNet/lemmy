@@ -25,7 +25,7 @@ services:
 
   lemmy:
     # use "image" to pull down an already compiled lemmy. make sure to comment out "build".
-    # image: dessalines/lemmy:0.18.4
+    # image: dessalines/lemmy:0.19.0
     # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
     # use "build" to build your local lemmy server image for development. make sure to comment out "image".
     # run: docker compose up --build
@@ -43,8 +43,8 @@ services:
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
       - RUST_BACKTRACE=full
     ports:
-      # prometheus metrics available at the path /metrics on port 10002 by default
-      # enable prometheus metrics by setting the CARGO_BUILD_FEATURES build arg above to "prometheus-metrics"
+      # prometheus metrics can be enabled with the `prometheus` config option. they are available on
+      # port 10002, path /metrics by default
       - "10002:10002"
     volumes:
       - ./lemmy.hjson:/config/config.hjson:Z
@@ -55,7 +55,7 @@ services:
 
   lemmy-ui:
     # use "image" to pull down an already compiled lemmy-ui. make sure to comment out "build".
-    image: dessalines/lemmy-ui:0.19.0-rc.3
+    image: dessalines/lemmy-ui:0.19.0
     # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
     # use "build" to build your local lemmy ui image for development. make sure to comment out "image".
     # run: docker compose up --build
@@ -77,7 +77,7 @@ services:
     init: true
 
   pictrs:
-    image: asonix/pictrs:0.5.0-alpha.20
+    image: asonix/pictrs:0.5.0-rc.2
     # this needs to match the pictrs url in lemmy.hjson
     hostname: pictrs
     # we can set options to pictrs like this, here we set max. image size and forced format for conversion

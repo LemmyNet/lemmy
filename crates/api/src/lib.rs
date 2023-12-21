@@ -82,16 +82,7 @@ pub fn read_auth_token(req: &HttpRequest) -> Result<Option<String>, LemmyError> 
   }
   // If that fails, try to read from cookie
   else if let Some(cookie) = &req.cookie(AUTH_COOKIE_NAME) {
-    // ensure that its marked as httponly and secure
-    let secure = cookie.secure().unwrap_or_default();
-    let http_only = cookie.http_only().unwrap_or_default();
-    let is_debug_mode = cfg!(debug_assertions);
-
-    if !is_debug_mode && (!secure || !http_only) {
-      Err(LemmyError::from(LemmyErrorType::AuthCookieInsecure))
-    } else {
-      Ok(Some(cookie.value().to_string()))
-    }
+    Ok(Some(cookie.value().to_string()))
   }
   // Otherwise, there's no auth
   else {

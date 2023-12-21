@@ -67,7 +67,7 @@ once_cell = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
 async-trait = { workspace = true }
 tracing = { workspace = true }
-deadpool = { version = "0.9.5", features = ["rt_tokio_1"], optional = true }
+deadpool = { version = "0.10.0", features = ["rt_tokio_1"], optional = true }
 ts-rs = { workspace = true, optional = true }
 futures-util = { workspace = true }
 tokio = { workspace = true, optional = true }

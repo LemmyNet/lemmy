@@ -177,14 +177,18 @@ fn queries<'a>() -> Queries<
   };
 
   let list = move |mut conn: DbConn<'a>, options: CommentQuery<'a>| async move {
-    let person_id = options.local_user.map(|l| l.person.id);
-    let local_user_id = options.local_user.map(|l| l.local_user.id);
+    let my_person_id = options.local_user.map(|l| l.person.id);
+    let my_local_user_id = options.local_user.map(|l| l.local_user.id);
 
     // The left join below will return None in this case
-    let person_id_join = person_id.unwrap_or(PersonId(-1));
-    let local_user_id_join = local_user_id.unwrap_or(LocalUserId(-1));
+    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
+    let local_user_id_join = my_local_user_id.unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(comment::table.into_boxed(), person_id, options.saved_only);
+    let mut query = all_joins(
+      comment::table.into_boxed(),
+      my_person_id,
+      options.saved_only,
+    );
 
     if let Some(creator_id) = options.creator_id {
       query = query.filter(comment::creator_id.eq(creator_id));
@@ -373,7 +377,6 @@ pub struct CommentQuery<'a> {
   pub saved_only: bool,
   pub liked_only: bool,
   pub disliked_only: bool,
-  pub is_profile_view: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub max_depth: Option<i32>,
@@ -410,7 +413,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Blockable, Crud, Joinable, Likeable},
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, RANK_DEFAULT},
     SubscribedType,
   };
   use serial_test::serial;
@@ -1045,7 +1048,7 @@ mod tests {
         downvotes: 0,
         published: agg.published,
         child_count: 5,
-        hot_rank: 0.1728,
+        hot_rank: RANK_DEFAULT,
         controversy_rank: 0.0,
       },
     }

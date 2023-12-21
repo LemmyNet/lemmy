@@ -39,7 +39,7 @@ import {
   loginUser,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
-import { LemmyHttp, ResolveObject } from "lemmy-js-client";
+import { ResolveObject } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 

@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetSiteMetadata, GetSiteMetadataResponse},
@@ -8,7 +8,7 @@ use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_link_metadata(
-  data: Json<GetSiteMetadata>,
+  data: Query<GetSiteMetadata>,
   context: Data<LemmyContext>,
 ) -> Result<Json<GetSiteMetadataResponse>, LemmyError> {
   let metadata = fetch_link_metadata(&data.url, false, &context).await?;
