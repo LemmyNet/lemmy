@@ -808,7 +808,7 @@ mod tests {
 
     let new_bot = PersonInsertForm {
       bot_account: Some(true),
-      ..default_person_insert_form("mybot")
+      ..default_person_insert_form(inserted_instance.id, "mybot")
     };
 
     let inserted_bot = Person::create(pool, &new_bot).await?;
@@ -823,12 +823,12 @@ mod tests {
     let inserted_community = Community::create(pool, &new_community).await?;
 
     // Test a person block, make sure the post query doesn't include their post
-    let blocked_person = default_person_insert_form("john");
+    let blocked_person = default_person_insert_form(inserted_instance.id, "john");
 
     let inserted_blocked_person = Person::create(pool, &blocked_person).await?;
 
     let inserted_blocked_local_user =
-      LocalUser::create(pool, &local_user_form(inserted_blocked_person.id)).await?;
+      LocalUser::create(pool, &default_local_user_form(inserted_blocked_person.id)).await?;
 
     let blocked_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_blocked_person.id)
@@ -905,7 +905,7 @@ mod tests {
       show_bot_accounts: Some(false),
       ..Default::default()
     };
-    let innserted_local_user =
+    let inserted_local_user =
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user = inserted_local_user;
 
@@ -940,7 +940,7 @@ mod tests {
       show_bot_accounts: Some(true),
       ..Default::default()
     };
-    let innserted_local_user =
+    let inserted_local_user =
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user = inserted_local_user;
 
@@ -983,7 +983,7 @@ mod tests {
     );
 
     assert_eq!(
-      Some(expected_post_listing_no_person),
+      Some(&expected_post_listing_no_person),
       read_post_listing_multiple_no_person.get(1)
     );
     assert_eq!(
@@ -1080,7 +1080,7 @@ mod tests {
     }
     .list(pool)
     .await?;
-    assert_eq!(post_list, read_liked_post_listing);
+    assert_eq!(read_post_listing, read_liked_post_listing);
 
     let read_disliked_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
@@ -1169,7 +1169,7 @@ mod tests {
     let post_listing_french = data.default_post_query().list(pool).await?;
 
     // only one post in french and one undetermined should be returned
-    assert_eq!(vec![POST_BY_BOT, POST], names(&post_list_french));
+    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listing_french));
     assert_eq!(
       Some(french_id),
       post_listing_french.get(1).map(|p| p.post.language_id)
@@ -1229,7 +1229,7 @@ mod tests {
     }
     .list(pool)
     .await?;
-    assert_eq!(vec![POST_BY_BOT], names(&post_listins_is_admin));
+    assert_eq!(vec![POST_BY_BOT], names(&post_listings_is_admin));
 
     cleanup(data, pool).await
   }
