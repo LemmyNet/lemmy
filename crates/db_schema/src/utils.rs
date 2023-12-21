@@ -350,7 +350,7 @@ fn run_migrations(db_url: &str) -> Result<(), LemmyError> {
   info!("Running Database migrations (This may take a long time)...");
   conn
     .run_pending_migrations(MIGRATIONS)
-    .map_err(|e| anyhow::Error::msg(format!("Couldn't run DB Migrations: {e}")))?;
+    .map_err(|e| anyhow::anyhow!("Couldn't run DB Migrations: {e}"))?;
   info!("Database migrations complete.");
 
   Ok(())
