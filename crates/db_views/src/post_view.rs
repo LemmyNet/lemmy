@@ -1211,7 +1211,7 @@ mod tests {
 
     // Make sure you don't see the removed post in the results
     let post_listings_no_admin = data.default_post_query().list(pool).await?;
-    assert_eq!(vec![POST_BY_BOT], names(&post_listings_no_admin));
+    assert_eq!(vec![POST], names(&post_listings_no_admin));
 
     // Removed bot post is shown to admins on its profile page
     data.local_user_view.local_user.admin = true;
