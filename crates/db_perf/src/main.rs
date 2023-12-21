@@ -43,7 +43,7 @@ struct CmdArgs {
 #[tokio::main]
 async fn main() -> LemmyResult<()> {
   if let Err(err) = try_main().await {
-    println!("Error: {err:?}");
+    println!("😂 Error: {err:?}");
   }
   if let Ok(path) = std::env::var("PGDATA") {
     println!("🪵 query plans and error details written in {path}/log");
@@ -80,7 +80,7 @@ async fn try_main() -> LemmyResult<()> {
     person_ids.push(Person::create(&mut conn.into(), &form).await?.id);
   }
 
-  println!("🏠 creating {} communities", args.communities);
+  println!("🌍 creating {} communities", args.communities);
   let mut community_ids = vec![];
   for i in 0..args.communities.get() {
     let form = CommunityInsertForm::builder()
@@ -95,7 +95,7 @@ async fn try_main() -> LemmyResult<()> {
   let posts_per_batch = args.posts.get() / post_batches;
   let num_posts = post_batches * posts_per_batch;
   println!(
-    "📢 creating {} posts ({} featured in community)",
+    "📜 creating {} posts ({} featured in community)",
     num_posts, post_batches
   );
   let mut num_inserted_posts = 0;
@@ -139,6 +139,7 @@ async fn try_main() -> LemmyResult<()> {
     )
     .await?;
 
+  // TODO: show execution duration stats
   let mut page_after = None;
   for page_num in 1..=args.read_post_pages {
     println!(
