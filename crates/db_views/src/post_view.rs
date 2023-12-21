@@ -1431,16 +1431,13 @@ mod tests {
     .await?;
 
     // Make sure you don't see the read post in the results
-    let post_listings_hide_read = PostQuery {
-      sort: Some(SortType::New),
-      local_user: Some(&data.local_user_view),
-      ..Default::default()
-    }
-    .list(pool)
-    .await?;
-    assert_eq!(1, post_listings_hide_read.len());
+    let post_listings_hide_read = data
+      .default_post_query()
+      .list(pool)
+      .await?;
+    assert_eq!(vec![POST], names(&post_listings_hide_read));
 
-    cleanup(data, pool).await;
+    cleanup(data, pool).await
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
