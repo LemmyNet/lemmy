@@ -107,7 +107,7 @@ steps:
         - ".cargo_home"
         - "target"
         - "api_tests/node_modules"
-      exit_code: true
+      #exit_code: true
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
     when: *slow_check_paths
