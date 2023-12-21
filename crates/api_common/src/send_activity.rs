@@ -98,9 +98,9 @@ impl ActivityChannel {
     Ok(())
   }
 
-  pub async fn close(outgoing_activities_task: JoinHandle<LemmyResult<()>>) -> LemmyResult<()> {
+  pub async fn close(outgoing_activities_task: JoinHandle<()>) -> LemmyResult<()> {
     ACTIVITY_CHANNEL.keepalive_sender.lock().await.take();
-    outgoing_activities_task.await??;
+    outgoing_activities_task.await?;
     Ok(())
   }
 }

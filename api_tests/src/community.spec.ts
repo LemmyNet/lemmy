@@ -249,7 +249,7 @@ test("Admin actions in remote community are not federated to origin", async () =
   expect(gammaPost2.post_view.creator_banned_from_community).toBe(false);
 });
 
-test.only("moderator view", async () => {
+test("moderator view", async () => {
   // register a new user with their own community on alpha and post to it
   let otherUser = await registerUser(alpha, alphaUrl);
 

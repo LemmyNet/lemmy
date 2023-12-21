@@ -25,7 +25,7 @@ services:
 
   lemmy:
     # use "image" to pull down an already compiled lemmy. make sure to comment out "build".
-    # image: dessalines/lemmy:0.18.4
+    # image: dessalines/lemmy:0.19.0
     # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
     # use "build" to build your local lemmy server image for development. make sure to comment out "image".
     # run: docker compose up --build
@@ -55,7 +55,7 @@ services:
 
   lemmy-ui:
     # use "image" to pull down an already compiled lemmy-ui. make sure to comment out "build".
-    image: dessalines/lemmy-ui:0.19.0-rc.8
+    image: dessalines/lemmy-ui:0.19.0
     # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
     # use "build" to build your local lemmy ui image for development. make sure to comment out "image".
     # run: docker compose up --build
@@ -77,7 +77,7 @@ services:
     init: true
 
   pictrs:
-    image: asonix/pictrs:0.4.0-beta.19
+    image: asonix/pictrs:0.5.0-rc.2
     # this needs to match the pictrs url in lemmy.hjson
     hostname: pictrs
     # we can set options to pictrs like this, here we set max. image size and forced format for conversion

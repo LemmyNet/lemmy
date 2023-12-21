@@ -154,7 +154,6 @@ async fn receive_print_stats(
     tokio::select! {
       ele = receiver.recv() => {
         let Some((domain, ele)) = ele else {
-          tracing::info!("done. quitting");
           print_stats(pool, &stats).await;
           return;
         };
@@ -181,9 +180,9 @@ async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQu
       .expect("0 is valid nanos")
       .to_rfc3339()
   );
-  // todo: less noisy output (only output failing instances and summary for successful)
   // todo: more stats (act/sec, avg http req duration)
   let mut ok_count = 0;
+  let mut behind_count = 0;
   for (domain, stat) in stats {
     let behind = last_id.0 - stat.last_successful_id.map(|e| e.0).unwrap_or(0);
     if stat.fail_count > 0 {
@@ -195,10 +194,11 @@ async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQu
         federate_retry_sleep_duration(stat.fail_count)
       );
     } else if behind > 0 {
-      tracing::info!("{}: Ok. {} behind", domain, behind);
+      tracing::debug!("{}: Ok. {} activities behind", domain, behind);
+      behind_count += 1;
     } else {
       ok_count += 1;
     }
   }
-  tracing::info!("{ok_count} others up to date");
+  tracing::info!("{ok_count} others up to date. {behind_count} instances behind.");
 }

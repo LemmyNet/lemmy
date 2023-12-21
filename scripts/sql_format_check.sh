@@ -7,9 +7,12 @@ CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
 cd $CWD/../
 
-find migrations -type f -name "*.sql" -print0 | while read -d $'\0' FILE
-do
-  TMP_FILE="/tmp/tmp_pg_format.sql"
-  pg_format $FILE > $TMP_FILE
-  diff -u $FILE $TMP_FILE
-done
+# Copy the files to a temp dir
+TMP_DIR=$(mktemp -d)
+cp -a migrations/. $TMP_DIR
+
+# Format the new files
+find $TMP_DIR -type f -name '*.sql' -exec pg_format -i {} +
+
+# Diff the directories
+diff -r migrations $TMP_DIR

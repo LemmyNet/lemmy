@@ -24,7 +24,7 @@ use actix_web::{
   Result,
 };
 use actix_web_prom::PrometheusMetricsBuilder;
-use clap::{ArgAction, Parser};
+use clap::Parser;
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
@@ -72,24 +72,23 @@ use url::Url;
   long_about = "A link aggregator for the fediverse.\n\nThis is the Lemmy backend API server. This will connect to a PostgreSQL database, run any pending migrations and start accepting API requests."
 )]
 pub struct CmdArgs {
-  /// Disables running scheduled tasks.
+  /// Don't run scheduled tasks.
   ///
-  /// If you are running multiple Lemmy server processes,
-  /// you probably want to disable scheduled tasks on all but one of the processes,
-  /// to avoid running the tasks more often than intended.
-  #[arg(long, default_value_t = false, action=ArgAction::Set)]
+  /// If you are running multiple Lemmy server processes, you probably want to disable scheduled tasks on
+  /// all but one of the processes, to avoid running the tasks more often than intended.
+  #[arg(long, default_value_t = false)]
   disable_scheduled_tasks: bool,
-  /// Whether or not to run the HTTP server.
+  /// Disables the HTTP server.
   ///
-  /// This can be used to run a Lemmy server process that only runs scheduled tasks.
-  #[arg(long, default_value_t = true, action=ArgAction::Set)]
-  http_server: bool,
-  /// Whether or not to emit outgoing ActivityPub messages.
+  /// This can be used to run a Lemmy server process that only performs scheduled tasks or activity sending.
+  #[arg(long, default_value_t = false)]
+  disable_http_server: bool,
+  /// Disable sending outgoing ActivityPub messages.
   ///
-  /// Set to true for a simple setup. Only set to false for horizontally scaled setups.
-  /// See https://join-lemmy.org/docs/administration/horizontal_scaling.html for detail.
-  #[arg(long, default_value_t = true, action=ArgAction::Set)]
-  federate_activities: bool,
+  /// Only pass this for horizontally scaled setups.
+  /// See https://join-lemmy.org/docs/administration/horizontal_scaling.html for details.
+  #[arg(long, default_value_t = false)]
+  disable_activity_sending: bool,
   /// The index of this outgoing federation process.
   ///
   /// Defaults to 1/1. If you want to split the federation workload onto n servers, run each server 1≤i≤n with these args:
@@ -114,7 +113,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
 
   // return error 503 while running db migrations and startup tasks
   let mut startup_server_handle = None;
-  if args.http_server {
+  if !args.disable_http_server {
     startup_server_handle = Some(create_startup_server()?);
   }
 
@@ -194,7 +193,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   let request_data = federation_config.to_request_data();
   let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(request_data));
 
-  let server = if args.http_server {
+  let server = if !args.disable_http_server {
     if let Some(startup_server_handle) = startup_server_handle {
       startup_server_handle.stop(true).await;
     }
@@ -212,7 +211,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   } else {
     None
   };
-  let federate = args.federate_activities.then(|| {
+  let federate = (!args.disable_activity_sending).then(|| {
     start_stop_federation_workers_cancellable(
       Opts {
         process_index: args.federate_process_index,
