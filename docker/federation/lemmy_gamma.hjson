@@ -10,4 +10,8 @@
   database: {
     host: postgres_gamma
   }
+  pictrs: {
+    api_key: "my-pictrs-key"
+    image_proxy: true
+  }
 }

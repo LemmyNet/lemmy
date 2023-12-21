@@ -864,7 +864,9 @@ pub async fn process_markdown_opt(
 
 pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
   // Dont rewrite links pointing to local domain.
-  if link.domain() == Some(&context.settings().hostname) {
+  if link.domain() == Some(&context.settings().hostname)
+    || !context.settings().pictrs_config()?.image_proxy
+  {
     return Ok(link.into());
   }
 

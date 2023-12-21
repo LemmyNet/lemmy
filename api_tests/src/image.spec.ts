@@ -7,16 +7,23 @@ import {
   PurgePost,
 } from "lemmy-js-client";
 import {
+  alpha,
   alphaImage,
   alphaUrl,
   beta,
   betaUrl,
+  createCommunity,
   createPost,
+  delta,
+  epsilon,
+  gamma,
   getSite,
   registerUser,
   resolveBetaCommunity,
+  resolvePost,
   setupLogins,
   unfollowRemotes,
+  waitForPost,
 } from "./shared";
 const downloadFileSync = require("download-file-sync");
 
@@ -29,9 +36,8 @@ afterAll(() => {
 test("Upload image and delete it", async () => {
   // Upload test image. We use a simple string buffer as pictrs doesnt require an actual image
   // in testing mode.
-  const upload_image = Buffer.from("test");
   const upload_form: UploadImage = {
-    image: upload_image,
+    image: Buffer.from("test"),
   };
   const upload = await alphaImage.uploadImage(upload_form);
   expect(upload.files![0].file).toBeDefined();
@@ -60,9 +66,8 @@ test("Purge user, uploaded image removed", async () => {
   let user = await registerUser(alphaImage, alphaUrl);
 
   // upload test image
-  const upload_image = Buffer.from("test");
   const upload_form: UploadImage = {
-    image: upload_image,
+    image: Buffer.from("test"),
   };
   const upload = await user.uploadImage(upload_form);
   expect(upload.files![0].file).toBeDefined();
@@ -91,9 +96,8 @@ test("Purge post, linked image removed", async () => {
   let user = await registerUser(beta, betaUrl);
 
   // upload test image
-  const upload_image = Buffer.from("test");
   const upload_form: UploadImage = {
-    image: upload_image,
+    image: Buffer.from("test"),
   };
   const upload = await user.uploadImage(upload_form);
   expect(upload.files![0].file).toBeDefined();
@@ -123,4 +127,49 @@ test("Purge post, linked image removed", async () => {
   // ensure that image is deleted
   const content2 = downloadFileSync(upload.url);
   expect(content2).toBe("");
+});
+
+test("Images in remote post are proxied", async () => {
+  let user = await registerUser(beta, betaUrl);
+  let community = await createCommunity(gamma);
+
+  const upload_form: UploadImage = {
+    image: Buffer.from("test"),
+  };
+  const upload = await user.uploadImage(upload_form);
+  console.log(upload);
+  let post = await createPost(
+    gamma,
+    community.community_view.community.id,
+    upload.url,
+    "![](http://example.com/image2.png)",
+  );
+  expect(post.post_view.post).toBeDefined();
+  // remote image gets proxied after upload
+  console.log(post.post_view.post);
+  expect(
+    post.post_view.post.url?.startsWith(
+      "http://lemmy-gamma:8561/api/v3/image_proxy?url",
+    ),
+  ).toBeTruthy();
+  expect(
+    post.post_view.post.body?.startsWith(
+      "![](http://lemmy-gamma:8561/api/v3/image_proxy?url",
+    ),
+  ).toBeTruthy();
+
+  let epsilonPost = await resolvePost(epsilon, post.post_view.post);
+  expect(epsilonPost.post).toBeDefined();
+  console.log(epsilonPost.post);
+  // remote image gets proxied after federation
+  expect(
+    epsilonPost.post!.post.url?.startsWith(
+      "http://lemmy-epsilon:8581/api/v3/image_proxy?url",
+    ),
+  ).toBeTruthy();
+  expect(
+    epsilonPost.post!.post.body?.startsWith(
+      "![](http://lemmy-epsilon:8581/api/v3/image_proxy?url",
+    ),
+  ).toBeTruthy();
 });

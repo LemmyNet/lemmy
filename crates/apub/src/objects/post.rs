@@ -228,6 +228,7 @@ impl Object for ApubPost {
       if let Some(thumbnail_url_) = metadata.thumbnail {
         thumbnail_url = Some(thumbnail_url_.into());
       }
+      let url = proxy_image_link_opt_apub(url, context).await?;
       let thumbnail_url = proxy_image_link_opt_apub(thumbnail_url, context).await?;
 
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);

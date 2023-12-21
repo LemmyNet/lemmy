@@ -204,9 +204,9 @@ export async function createPost(
   community_id: number,
   // use example.com for consistent title and embed description
   url: string = "https://example.com/",
+  body = randomString(10),
 ): Promise<PostResponse> {
   let name = randomString(5);
-  let body = randomString(10);
   let form: CreatePost = {
     name,
     url,

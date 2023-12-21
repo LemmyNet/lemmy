@@ -4,9 +4,14 @@ use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   post::{EditPost, PostResponse},
-  request::fetch_link_metadata_opt,
+  request::fetch_link_metadata,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_user_action, local_site_to_slur_regex, process_markdown_opt},
+  utils::{
+    check_community_user_action,
+    local_site_to_slur_regex,
+    process_markdown_opt,
+    proxy_image_link_opt_apub,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -65,8 +70,23 @@ pub async fn update_post(
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
-  // Fetch post links and Pictrs cached image
-  let metadata = fetch_link_metadata_opt(url.as_ref(), true, &context).await?;
+  // Fetch post links and Pictrs cached image if url was updated
+  let (embed_title, embed_description, embed_video_url, thumbnail_url) = match &url {
+    Some(url) => {
+      let metadata = fetch_link_metadata(url, true, &context).await?;
+      (
+        Some(metadata.title),
+        Some(metadata.description),
+        Some(metadata.embed_video_url),
+        Some(metadata.thumbnail),
+      )
+    }
+    _ => Default::default(),
+  };
+  let url = match url {
+    Some(url) => Some(proxy_image_link_opt_apub(Some(url), &context).await?),
+    _ => Default::default(),
+  };
 
   let language_id = data.language_id;
   CommunityLanguage::is_allowed_community_language(
@@ -78,14 +98,14 @@ pub async fn update_post(
 
   let post_form = PostUpdateForm {
     name: data.name.clone(),
-    url: Some(url.map(Into::into)),
+    url,
     body: diesel_option_overwrite(body),
     nsfw: data.nsfw,
-    embed_title: Some(metadata.title),
-    embed_description: Some(metadata.description),
-    embed_video_url: Some(metadata.embed_video_url),
+    embed_title,
+    embed_description,
+    embed_video_url,
     language_id: data.language_id,
-    thumbnail_url: Some(metadata.thumbnail),
+    thumbnail_url,
     updated: Some(Some(naive_now())),
     ..Default::default()
   };

@@ -13,6 +13,7 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     mark_post_as_read,
     process_markdown_opt,
+    proxy_image_link_opt_apub,
     EndpointType,
   },
 };
@@ -84,6 +85,7 @@ pub async fn create_post(
 
   // Fetch post links and pictrs cached image
   let metadata = fetch_link_metadata_opt(url.as_ref(), true, &context).await?;
+  let url = proxy_image_link_opt_apub(url, &context).await?;
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
@@ -109,7 +111,7 @@ pub async fn create_post(
 
   let post_form = PostInsertForm::builder()
     .name(data.name.trim().to_string())
-    .url(url.map(Into::into))
+    .url(url)
     .body(body)
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
