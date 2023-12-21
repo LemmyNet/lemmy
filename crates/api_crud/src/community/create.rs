@@ -13,7 +13,6 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_api,
-    proxy_image_link_opt_api,
     EndpointType,
   },
 };
