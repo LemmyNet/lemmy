@@ -905,11 +905,8 @@ mod tests {
       show_bot_accounts: Some(false),
       ..Default::default()
     };
-    let innserted_local_user = LocalUser::update(
-      pool,
-      data.local_user_view.local_user.id,
-      &local_user_form,
-    ).await?;
+    let innserted_local_user =
+      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user = inserted_local_user;
 
     let read_post_listing = PostQuery {
@@ -930,18 +927,21 @@ mod tests {
     let expected_post_listing_with_user = expected_post_view(&data, pool).await?;
 
     // Should be only one person, IE the bot post, and blocked should be missing
-    assert_eq!(vec![post_listing_single_with_person.clone()], read_post_listing);
-    assert_eq!(expected_post_listing_with_user, post_listing_single_with_person);
+    assert_eq!(
+      vec![post_listing_single_with_person.clone()],
+      read_post_listing
+    );
+    assert_eq!(
+      expected_post_listing_with_user,
+      post_listing_single_with_person
+    );
 
     let local_user_form = LocalUserUpdateForm {
       show_bot_accounts: Some(true),
       ..Default::default()
     };
-    let innserted_local_user = LocalUser::update(
-      pool,
-      data.local_user_view.local_user.id,
-      &local_user_form,
-    ).await?;
+    let innserted_local_user =
+      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user = inserted_local_user;
 
     let post_listings_with_bots = PostQuery {
@@ -971,7 +971,8 @@ mod tests {
     .list(pool)
     .await?;
 
-    let read_post_listing_single_no_person = PostView::read(pool, data.inserted_post.id, None, false).await?;
+    let read_post_listing_single_no_person =
+      PostView::read(pool, data.inserted_post.id, None, false).await?;
 
     let expected_post_listing_no_person = expected_post_view(&data, pool).await?;
 
@@ -981,8 +982,14 @@ mod tests {
       names(&read_post_listing_multiple_no_person)
     );
 
-    assert_eq!(Some(expected_post_listing_no_person), read_post_listing_multiple_no_person.get(1));
-    assert_eq!(expected_post_listing_no_person, read_post_listing_single_no_person);
+    assert_eq!(
+      Some(expected_post_listing_no_person),
+      read_post_listing_multiple_no_person.get(1)
+    );
+    assert_eq!(
+      expected_post_listing_no_person,
+      read_post_listing_single_no_person
+    );
 
     cleanup(data, pool).await
   }
@@ -1054,11 +1061,8 @@ mod tests {
       show_bot_accounts: Some(false),
       ..Default::default()
     };
-    let innserted_local_user = LocalUser::update(
-      pool,
-      data.local_user_view.local_user.id,
-      &local_user_form,
-    ).await?;
+    let inserted_local_user =
+      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user = inserted_local_user;
 
     let read_post_listing = PostQuery {
@@ -1418,8 +1422,7 @@ mod tests {
       ..Default::default()
     };
     let inserted_local_user =
-      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form)
-        .await?;
+      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user = inserted_local_user;
 
     // Mark a post as read
@@ -1431,10 +1434,7 @@ mod tests {
     .await?;
 
     // Make sure you don't see the read post in the results
-    let post_listings_hide_read = data
-      .default_post_query()
-      .list(pool)
-      .await?;
+    let post_listings_hide_read = data.default_post_query().list(pool).await?;
     assert_eq!(vec![POST], names(&post_listings_hide_read));
 
     cleanup(data, pool).await
