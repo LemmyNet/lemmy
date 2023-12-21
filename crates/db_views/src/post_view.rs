@@ -809,7 +809,7 @@ mod tests {
     let new_bot = PersonInsertForm {
       bot_account: Some(true),
       ..default_person_insert_form("mybot")
-    },
+    };
 
     let inserted_bot = Person::create(pool, &new_bot).await?;
 
@@ -1443,7 +1443,7 @@ mod tests {
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
     let num_deleted = Post::delete(pool, data.inserted_post.id).await.unwrap();
     Community::delete(pool, data.inserted_community.id).await?;
-    Person::delete(pool, data.local_user_view.person.id).await?
+    Person::delete(pool, data.local_user_view.person.id).await?;
     Person::delete(pool, data.inserted_bot.id).await?;
     Person::delete(pool, data.blocked_local_user_view.person.id).await?;
     Instance::delete(pool, data.inserted_instance.id).await?;
