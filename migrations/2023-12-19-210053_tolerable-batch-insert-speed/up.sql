@@ -1,7 +1,5 @@
 -- Change triggers to run once per statement instead of once per row
-
 -- post_aggregates_post trigger doesn't need to handle deletion because the post_id column has ON DELETE CASCADE
-
 CREATE OR REPLACE FUNCTION post_aggregates_post ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
@@ -81,7 +79,6 @@ CREATE OR REPLACE TRIGGER post_aggregates_post
     EXECUTE PROCEDURE post_aggregates_post ();
 
 -- Don't run old trigger for insert
-
 CREATE OR REPLACE TRIGGER community_aggregates_post_count
     AFTER DELETE OR UPDATE OF removed,
     deleted ON post
@@ -159,7 +156,6 @@ CREATE OR REPLACE TRIGGER person_aggregates_post_insert
     EXECUTE PROCEDURE person_aggregates_post_insert ();
 
 -- Avoid running hash function and random number generation for default ap_id
-
 CREATE SEQUENCE IF NOT EXISTS changeme_seq AS bigint CYCLE;
 
 CREATE OR REPLACE FUNCTION generate_unique_changeme ()
