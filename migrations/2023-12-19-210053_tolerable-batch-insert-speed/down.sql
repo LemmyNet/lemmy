@@ -78,7 +78,7 @@ CREATE OR REPLACE FUNCTION generate_unique_changeme ()
         'http://changeme.invalid/' || substr(md5(random()::text), 0, 25);
 $$;
 
-CREATE TRIGGER person_aggregates_post_count
+CREATE OR REPLACE TRIGGER person_aggregates_post_count
     AFTER INSERT OR DELETE OR UPDATE OF removed,
     deleted ON post
     FOR EACH ROW
