@@ -934,7 +934,7 @@ mod tests {
     assert_eq!(expected_post_listing_with_user, post_listing_single_with_person);
 
     let local_user_form = LocalUserUpdateForm {
-      show_bot_accounts: Some(false),
+      show_bot_accounts: Some(true),
       ..Default::default()
     };
     let innserted_local_user = LocalUser::update(
