@@ -830,14 +830,6 @@ mod tests {
     let inserted_blocked_local_user =
       LocalUser::create(pool, &default_local_user_form(inserted_blocked_person.id)).await?;
 
-    let blocked_local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_blocked_person.id)
-      .password_encrypted(String::new())
-      .build();
-    let inserted_blocked_local_user = LocalUser::create(pool, &blocked_local_user_form)
-      .await
-      .unwrap();
-
     let post_from_blocked_person = PostInsertForm::builder()
       .name(POST_BY_BLOCKED_PERSON.to_string())
       .creator_id(inserted_blocked_person.id)
@@ -1111,7 +1103,7 @@ mod tests {
       community_id,
       person_id,
     };
-    CommunityModerator::join(pool, &form).await.unwrap();
+    CommunityModerator::join(pool, &form).await?;
 
     let post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
@@ -1441,7 +1433,7 @@ mod tests {
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    let num_deleted = Post::delete(pool, data.inserted_post.id).await.unwrap();
+    let num_deleted = Post::delete(pool, data.inserted_post.id).await?;
     Community::delete(pool, data.inserted_community.id).await?;
     Person::delete(pool, data.local_user_view.person.id).await?;
     Person::delete(pool, data.inserted_bot.id).await?;
