@@ -156,7 +156,7 @@ pub struct ReverseTimestampKey<K>(pub K);
 
 impl<K, C> CursorKey<C> for ReverseTimestampKey<K>
 where
-  K: CursorKey<C, SqlType = sql_types::Timestamptz>,
+  K: CursorKey<C, SqlType = Timestamptz>,
 {
   type SqlType = sql_types::Numeric;
   type CursorValue = functions::reverse_timestamp_sort::HelperType<K::CursorValue>;
