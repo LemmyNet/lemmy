@@ -104,9 +104,9 @@ steps:
         - ".cargo_home"
         - "target"
         - "api_tests/node_modules"
-      exit_code: true
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
+    when: *slow_check_paths
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
@@ -226,12 +226,10 @@ steps:
       cache_key: "rust-cache"
       region: us-east-1
       path-style: true
-      backend_operation_timeout: 60m
       mount:
         - ".cargo_home"
         - "target"
         - "api_tests/node_modules"
-      exit_code: true
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
     when:
