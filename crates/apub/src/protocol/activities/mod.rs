@@ -18,16 +18,15 @@ pub enum CreateOrUpdateType {
 mod tests {
   use crate::protocol::{
     activities::{
-      community::announce::AnnounceActivity,
+      community::{announce::AnnounceActivity, report::Report},
       create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
       deletion::delete::Delete,
-      following::{follow::Follow, undo_follow::UndoFollow},
+      following::{accept::AcceptFollow, follow::Follow, undo_follow::UndoFollow},
       voting::{undo_vote::UndoVote, vote::Vote},
     },
     tests::test_json,
   };
   use lemmy_utils::error::LemmyResult;
-  use crate::protocol::activities::following::accept::AcceptFollow;
 
   #[test]
   fn test_parse_smithereen_activities() -> LemmyResult<()> {
@@ -93,6 +92,7 @@ mod tests {
   #[test]
   fn test_parse_mbin_activities() -> LemmyResult<()> {
     test_json::<AcceptFollow>("assets/mbin/activities/accept.json")?;
+    test_json::<Report>("assets/mbin/activities/flag.json")?;
     Ok(())
   }
 }

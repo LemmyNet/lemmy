@@ -2,7 +2,10 @@ use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
   insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{activities::community::report::Report, InCommunity},
+  protocol::{
+    activities::community::report::{Report, ReportObject},
+    InCommunity,
+  },
   PostOrComment,
 };
 use activitypub_federation::{
@@ -44,7 +47,7 @@ impl Report {
     let report = Report {
       actor: actor.id().into(),
       to: [community.id().into()],
-      object: object_id,
+      object: ReportObject::Lemmy(object_id),
       summary: reason,
       kind,
       id: id.clone(),

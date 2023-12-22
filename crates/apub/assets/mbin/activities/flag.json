@@ -1,0 +1,18 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams"
+  ],
+  "id": "https://mbin-test1/reports/45f8a01d-a73e-4575-bffa-c9f24c61f458",
+  "type": "Flag",
+  "actor": "https://mbin-test1/u/BentiGorlich",
+  "object": [
+    "https://lemmy-test/post/4",
+    "https://lemmy-test/u/BentiGorlich"
+  ],
+  "audience": "https://lemmy-test/c/test_mag",
+  "summary": "dikjhgasdpas dsaü",
+  "content": "dikjhgasdpas dsaü",
+  "to": [
+    "https://lemmy-test/c/test_mag"
+  ]
+}

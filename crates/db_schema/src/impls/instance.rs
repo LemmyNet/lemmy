@@ -102,7 +102,7 @@ impl Instance {
       .await
   }
 
-  /// returns a list of all instances, each with a flag of whether the instance is allowed or not and dead or not
+  /// returns a list of all instances, each with a flag.json of whether the instance is allowed or not and dead or not
   /// ordered by id
   pub async fn read_federated_with_blocked_and_dead(
     pool: &mut DbPool<'_>,
