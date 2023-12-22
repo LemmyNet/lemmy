@@ -1,17 +1,20 @@
--- This sets up the `r` schema, which can be safely dropped and replaced.
+-- This sets up the `r` schema, which contains things that can be safely dropped and replaced.
 --
--- Statements in this file may only affect the `r` schema (indicated by the `r.` prefix), with these exceptions:
--- * Triggers that specify a function in the `r` schema after `EXECUTE FUNCTION`
+-- Statements in this file may only create or modify things `r` schema (indicated by the `r.` prefix),
+-- except for these things which are associated with something other than a schema (usually a table):
+--   * A trigger if the function name after `EXECUTE FUNCTION` is in `r` (dropping `r` drops the trigger)
+--
+-- If you add something in `r` that depends on something (such as a table) created in a new migration, then down.sql must use
+-- `CASCADE` when dropping it. This doesn't need to be fixed in old migrations because the "transactions-without-migrations"
+-- migration runs `DROP SCHEMA IF EXISTS r CASCADE` in down.sql.
 
 BEGIN;
 
 DROP SCHEMA IF EXISTS r CASCADE;
 
+CREATE SCHEMA r;
 
-
---
-
-CREATE FUNCTION comment_aggregates_comment() RETURNS trigger
+CREATE FUNCTION r.comment_aggregates_comment() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -26,7 +29,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION comment_aggregates_score() RETURNS trigger
+CREATE FUNCTION r.comment_aggregates_score() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -91,7 +94,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION comment_removed_resolve_reports() RETURNS trigger
+CREATE FUNCTION r.comment_removed_resolve_reports() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -107,11 +110,11 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION community_aggregates_comment_count() RETURNS trigger
+CREATE FUNCTION r.community_aggregates_comment_count() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF (was_restored_or_created (TG_OP, OLD, NEW)) THEN
+    IF (r.was_restored_or_created (TG_OP, OLD, NEW)) THEN
         UPDATE
             community_aggregates ca
         SET
@@ -121,7 +124,7 @@ BEGIN
         WHERE
             p.id = NEW.post_id
             AND ca.community_id = p.community_id;
-    ELSIF (was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
+    ELSIF (r.was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
         UPDATE
             community_aggregates ca
         SET
@@ -136,7 +139,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION community_aggregates_community() RETURNS trigger
+CREATE FUNCTION r.community_aggregates_community() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -151,11 +154,11 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION community_aggregates_post_count() RETURNS trigger
+CREATE FUNCTION r.community_aggregates_post_count() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF (was_restored_or_created (TG_OP, OLD, NEW)) THEN
+    IF (r.was_restored_or_created (TG_OP, OLD, NEW)) THEN
         UPDATE
             community_aggregates
         SET
@@ -189,7 +192,7 @@ BEGIN
         WHERE
             ca.community_id = NEW.community_id;
         END IF;
-    ELSIF (was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
+    ELSIF (r.was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
         UPDATE
             community_aggregates
         SET
@@ -226,7 +229,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION community_aggregates_post_count_insert() RETURNS trigger
+CREATE FUNCTION r.community_aggregates_post_count_insert() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -238,7 +241,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION community_aggregates_subscriber_count() RETURNS trigger
+CREATE FUNCTION r.community_aggregates_subscriber_count() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -269,18 +272,18 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION person_aggregates_comment_count() RETURNS trigger
+CREATE FUNCTION r.person_aggregates_comment_count() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF (was_restored_or_created (TG_OP, OLD, NEW)) THEN
+    IF (r.was_restored_or_created (TG_OP, OLD, NEW)) THEN
         UPDATE
             person_aggregates
         SET
             comment_count = comment_count + 1
         WHERE
             person_id = NEW.creator_id;
-    ELSIF (was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
+    ELSIF (r.was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
         UPDATE
             person_aggregates
         SET
@@ -292,7 +295,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION person_aggregates_comment_score() RETURNS trigger
+CREATE FUNCTION r.person_aggregates_comment_score() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -322,7 +325,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION person_aggregates_person() RETURNS trigger
+CREATE FUNCTION r.person_aggregates_person() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -337,18 +340,18 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION person_aggregates_post_count() RETURNS trigger
+CREATE FUNCTION r.person_aggregates_post_count() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF (was_restored_or_created (TG_OP, OLD, NEW)) THEN
+    IF (r.was_restored_or_created (TG_OP, OLD, NEW)) THEN
         UPDATE
             person_aggregates
         SET
             post_count = post_count + 1
         WHERE
             person_id = NEW.creator_id;
-    ELSIF (was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
+    ELSIF (r.was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
         UPDATE
             person_aggregates
         SET
@@ -360,7 +363,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION person_aggregates_post_insert() RETURNS trigger
+CREATE FUNCTION r.person_aggregates_post_insert() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -372,7 +375,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION person_aggregates_post_score() RETURNS trigger
+CREATE FUNCTION r.person_aggregates_post_score() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -402,7 +405,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION post_aggregates_comment_count() RETURNS trigger
+CREATE FUNCTION r.post_aggregates_comment_count() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -414,14 +417,14 @@ BEGIN
             post p
         WHERE
             p.id = OLD.post_id) THEN
-        IF (was_restored_or_created (TG_OP, OLD, NEW)) THEN
+        IF (r.was_restored_or_created (TG_OP, OLD, NEW)) THEN
             UPDATE
                 post_aggregates pa
             SET
                 comments = comments + 1
             WHERE
                 pa.post_id = NEW.post_id;
-        ELSIF (was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
+        ELSIF (r.was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
             UPDATE
                 post_aggregates pa
             SET
@@ -455,7 +458,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION post_aggregates_featured_community() RETURNS trigger
+CREATE FUNCTION r.post_aggregates_featured_community() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -469,7 +472,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION post_aggregates_featured_local() RETURNS trigger
+CREATE FUNCTION r.post_aggregates_featured_local() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -483,7 +486,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION post_aggregates_post() RETURNS trigger
+CREATE FUNCTION r.post_aggregates_post() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -502,7 +505,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION post_aggregates_score() RETURNS trigger
+CREATE FUNCTION r.post_aggregates_score() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -567,7 +570,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION post_removed_resolve_reports() RETURNS trigger
+CREATE FUNCTION r.post_removed_resolve_reports() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -583,11 +586,11 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION site_aggregates_comment_delete() RETURNS trigger
+CREATE FUNCTION r.site_aggregates_comment_delete() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF (was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
+    IF (r.was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
         UPDATE
             site_aggregates sa
         SET
@@ -601,11 +604,11 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION site_aggregates_comment_insert() RETURNS trigger
+CREATE FUNCTION r.site_aggregates_comment_insert() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF (was_restored_or_created (TG_OP, OLD, NEW)) THEN
+    IF (r.was_restored_or_created (TG_OP, OLD, NEW)) THEN
         UPDATE
             site_aggregates sa
         SET
@@ -619,11 +622,11 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION site_aggregates_community_insert() RETURNS trigger
+CREATE FUNCTION r.site_aggregates_community_insert() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF (was_restored_or_created (TG_OP, OLD, NEW)) THEN
+    IF (r.was_restored_or_created (TG_OP, OLD, NEW)) THEN
         UPDATE
             site_aggregates sa
         SET
@@ -637,7 +640,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION site_aggregates_person_delete() RETURNS trigger
+CREATE FUNCTION r.site_aggregates_person_delete() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -654,7 +657,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION site_aggregates_person_insert() RETURNS trigger
+CREATE FUNCTION r.site_aggregates_person_insert() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -666,11 +669,11 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION site_aggregates_post_delete() RETURNS trigger
+CREATE FUNCTION r.site_aggregates_post_delete() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF (was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
+    IF (r.was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
         UPDATE
             site_aggregates sa
         SET
@@ -684,7 +687,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION site_aggregates_post_insert() RETURNS trigger
+CREATE FUNCTION r.site_aggregates_post_insert() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -700,11 +703,11 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION site_aggregates_post_update() RETURNS trigger
+CREATE FUNCTION r.site_aggregates_post_update() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF (was_restored_or_created (TG_OP, OLD, NEW)) THEN
+    IF (r.was_restored_or_created (TG_OP, OLD, NEW)) THEN
         UPDATE
             site_aggregates sa
         SET
@@ -718,7 +721,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION site_aggregates_site() RETURNS trigger
+CREATE FUNCTION r.site_aggregates_site() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -740,7 +743,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION was_removed_or_deleted(tg_op text, old record, new record) RETURNS boolean
+CREATE FUNCTION r.was_removed_or_deleted(tg_op text, old record, new record) RETURNS boolean
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -758,7 +761,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION was_restored_or_created(tg_op text, old record, new record) RETURNS boolean
+CREATE FUNCTION r.was_restored_or_created(tg_op text, old record, new record) RETURNS boolean
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -776,66 +779,63 @@ BEGIN
 END
 $$;
 
-CREATE TRIGGER comment_aggregates_comment AFTER INSERT OR DELETE ON comment FOR EACH ROW EXECUTE FUNCTION comment_aggregates_comment();
+CREATE TRIGGER comment_aggregates_comment AFTER INSERT OR DELETE ON comment FOR EACH ROW EXECUTE FUNCTION r.comment_aggregates_comment();
 
-CREATE TRIGGER comment_aggregates_score AFTER INSERT OR DELETE ON comment_like FOR EACH ROW EXECUTE FUNCTION comment_aggregates_score();
+CREATE TRIGGER comment_aggregates_score AFTER INSERT OR DELETE ON comment_like FOR EACH ROW EXECUTE FUNCTION r.comment_aggregates_score();
 
-CREATE TRIGGER comment_removed_resolve_reports AFTER INSERT ON mod_remove_comment FOR EACH ROW WHEN (new.removed) EXECUTE FUNCTION comment_removed_resolve_reports();
+CREATE TRIGGER comment_removed_resolve_reports AFTER INSERT ON mod_remove_comment FOR EACH ROW WHEN (new.removed) EXECUTE FUNCTION r.comment_removed_resolve_reports();
 
-CREATE TRIGGER community_aggregates_comment_count AFTER INSERT OR DELETE OR UPDATE OF removed, deleted ON comment FOR EACH ROW EXECUTE FUNCTION community_aggregates_comment_count();
+CREATE TRIGGER community_aggregates_comment_count AFTER INSERT OR DELETE OR UPDATE OF removed, deleted ON comment FOR EACH ROW EXECUTE FUNCTION r.community_aggregates_comment_count();
 
-CREATE TRIGGER community_aggregates_community AFTER INSERT OR DELETE ON community FOR EACH ROW EXECUTE FUNCTION community_aggregates_community();
+CREATE TRIGGER community_aggregates_community AFTER INSERT OR DELETE ON community FOR EACH ROW EXECUTE FUNCTION r.community_aggregates_community();
 
-CREATE TRIGGER community_aggregates_post_count AFTER DELETE OR UPDATE OF removed, deleted ON post FOR EACH ROW EXECUTE FUNCTION community_aggregates_post_count();
+CREATE TRIGGER community_aggregates_post_count AFTER DELETE OR UPDATE OF removed, deleted ON post FOR EACH ROW EXECUTE FUNCTION r.community_aggregates_post_count();
 
-CREATE TRIGGER community_aggregates_post_count_insert AFTER INSERT ON post REFERENCING NEW TABLE AS new_post FOR EACH STATEMENT EXECUTE FUNCTION community_aggregates_post_count_insert();
+CREATE TRIGGER community_aggregates_post_count_insert AFTER INSERT ON post REFERENCING NEW TABLE AS new_post FOR EACH STATEMENT EXECUTE FUNCTION r.community_aggregates_post_count_insert();
 
-CREATE TRIGGER community_aggregates_subscriber_count AFTER INSERT OR DELETE ON community_follower FOR EACH ROW EXECUTE FUNCTION community_aggregates_subscriber_count();
+CREATE TRIGGER community_aggregates_subscriber_count AFTER INSERT OR DELETE ON community_follower FOR EACH ROW EXECUTE FUNCTION r.community_aggregates_subscriber_count();
 
-CREATE TRIGGER person_aggregates_comment_count AFTER INSERT OR DELETE OR UPDATE OF removed, deleted ON comment FOR EACH ROW EXECUTE FUNCTION person_aggregates_comment_count();
+CREATE TRIGGER person_aggregates_comment_count AFTER INSERT OR DELETE OR UPDATE OF removed, deleted ON comment FOR EACH ROW EXECUTE FUNCTION r.person_aggregates_comment_count();
 
-CREATE TRIGGER person_aggregates_comment_score AFTER INSERT OR DELETE ON comment_like FOR EACH ROW EXECUTE FUNCTION person_aggregates_comment_score();
+CREATE TRIGGER person_aggregates_comment_score AFTER INSERT OR DELETE ON comment_like FOR EACH ROW EXECUTE FUNCTION r.person_aggregates_comment_score();
 
-CREATE TRIGGER person_aggregates_person AFTER INSERT OR DELETE ON person FOR EACH ROW EXECUTE FUNCTION person_aggregates_person();
+CREATE TRIGGER person_aggregates_person AFTER INSERT OR DELETE ON person FOR EACH ROW EXECUTE FUNCTION r.person_aggregates_person();
 
-CREATE TRIGGER person_aggregates_post_count AFTER DELETE OR UPDATE OF removed, deleted ON post FOR EACH ROW EXECUTE FUNCTION person_aggregates_post_count();
+CREATE TRIGGER person_aggregates_post_count AFTER DELETE OR UPDATE OF removed, deleted ON post FOR EACH ROW EXECUTE FUNCTION r.person_aggregates_post_count();
 
-CREATE TRIGGER person_aggregates_post_insert AFTER INSERT ON post REFERENCING NEW TABLE AS new_post FOR EACH STATEMENT EXECUTE FUNCTION person_aggregates_post_insert();
+CREATE TRIGGER person_aggregates_post_insert AFTER INSERT ON post REFERENCING NEW TABLE AS new_post FOR EACH STATEMENT EXECUTE FUNCTION r.person_aggregates_post_insert();
 
-CREATE TRIGGER person_aggregates_post_score AFTER INSERT OR DELETE ON post_like FOR EACH ROW EXECUTE FUNCTION person_aggregates_post_score();
+CREATE TRIGGER person_aggregates_post_score AFTER INSERT OR DELETE ON post_like FOR EACH ROW EXECUTE FUNCTION r.person_aggregates_post_score();
 
-CREATE TRIGGER post_aggregates_comment_count AFTER INSERT OR DELETE OR UPDATE OF removed, deleted ON comment FOR EACH ROW EXECUTE FUNCTION post_aggregates_comment_count();
+CREATE TRIGGER post_aggregates_comment_count AFTER INSERT OR DELETE OR UPDATE OF removed, deleted ON comment FOR EACH ROW EXECUTE FUNCTION r.post_aggregates_comment_count();
 
-CREATE TRIGGER post_aggregates_featured_community AFTER UPDATE ON post FOR EACH ROW WHEN ((old.featured_community IS DISTINCT FROM new.featured_community)) EXECUTE FUNCTION post_aggregates_featured_community();
+CREATE TRIGGER post_aggregates_featured_community AFTER UPDATE ON post FOR EACH ROW WHEN ((old.featured_community IS DISTINCT FROM new.featured_community)) EXECUTE FUNCTION r.post_aggregates_featured_community();
 
-CREATE TRIGGER post_aggregates_featured_local AFTER UPDATE ON post FOR EACH ROW WHEN ((old.featured_local IS DISTINCT FROM new.featured_local)) EXECUTE FUNCTION post_aggregates_featured_local();
+CREATE TRIGGER post_aggregates_featured_local AFTER UPDATE ON post FOR EACH ROW WHEN ((old.featured_local IS DISTINCT FROM new.featured_local)) EXECUTE FUNCTION r.post_aggregates_featured_local();
 
-CREATE TRIGGER post_aggregates_post AFTER INSERT ON post REFERENCING NEW TABLE AS new_post FOR EACH STATEMENT EXECUTE FUNCTION post_aggregates_post();
+CREATE TRIGGER post_aggregates_post AFTER INSERT ON post REFERENCING NEW TABLE AS new_post FOR EACH STATEMENT EXECUTE FUNCTION r.post_aggregates_post();
 
-CREATE TRIGGER post_aggregates_score AFTER INSERT OR DELETE ON post_like FOR EACH ROW EXECUTE FUNCTION post_aggregates_score();
+CREATE TRIGGER post_aggregates_score AFTER INSERT OR DELETE ON post_like FOR EACH ROW EXECUTE FUNCTION r.post_aggregates_score();
 
-CREATE TRIGGER post_removed_resolve_reports AFTER INSERT ON mod_remove_post FOR EACH ROW WHEN (new.removed) EXECUTE FUNCTION post_removed_resolve_reports();
+CREATE TRIGGER post_removed_resolve_reports AFTER INSERT ON mod_remove_post FOR EACH ROW WHEN (new.removed) EXECUTE FUNCTION r.post_removed_resolve_reports();
 
-CREATE TRIGGER site_aggregates_comment_delete AFTER DELETE OR UPDATE OF removed, deleted ON comment FOR EACH ROW WHEN ((old.local = true)) EXECUTE FUNCTION site_aggregates_comment_delete();
+CREATE TRIGGER site_aggregates_comment_delete AFTER DELETE OR UPDATE OF removed, deleted ON comment FOR EACH ROW WHEN ((old.local = true)) EXECUTE FUNCTION r.site_aggregates_comment_delete();
 
-CREATE TRIGGER site_aggregates_comment_insert AFTER INSERT OR UPDATE OF removed, deleted ON comment FOR EACH ROW WHEN ((new.local = true)) EXECUTE FUNCTION site_aggregates_comment_insert();
+CREATE TRIGGER site_aggregates_comment_insert AFTER INSERT OR UPDATE OF removed, deleted ON comment FOR EACH ROW WHEN ((new.local = true)) EXECUTE FUNCTION r.site_aggregates_comment_insert();
 
-CREATE TRIGGER site_aggregates_community_insert AFTER INSERT OR UPDATE OF removed, deleted ON community FOR EACH ROW WHEN ((new.local = true)) EXECUTE FUNCTION site_aggregates_community_insert();
+CREATE TRIGGER site_aggregates_community_insert AFTER INSERT OR UPDATE OF removed, deleted ON community FOR EACH ROW WHEN ((new.local = true)) EXECUTE FUNCTION r.site_aggregates_community_insert();
 
-CREATE TRIGGER site_aggregates_person_delete AFTER DELETE ON person FOR EACH ROW WHEN ((old.local = true)) EXECUTE FUNCTION site_aggregates_person_delete();
+CREATE TRIGGER site_aggregates_person_delete AFTER DELETE ON person FOR EACH ROW WHEN ((old.local = true)) EXECUTE FUNCTION r.site_aggregates_person_delete();
 
-CREATE TRIGGER site_aggregates_person_insert AFTER INSERT ON person FOR EACH ROW WHEN ((new.local = true)) EXECUTE FUNCTION site_aggregates_person_insert();
+CREATE TRIGGER site_aggregates_person_insert AFTER INSERT ON person FOR EACH ROW WHEN ((new.local = true)) EXECUTE FUNCTION r.site_aggregates_person_insert();
 
-CREATE TRIGGER site_aggregates_post_delete AFTER DELETE OR UPDATE OF removed, deleted ON post FOR EACH ROW WHEN ((old.local = true)) EXECUTE FUNCTION site_aggregates_post_delete();
+CREATE TRIGGER site_aggregates_post_delete AFTER DELETE OR UPDATE OF removed, deleted ON post FOR EACH ROW WHEN ((old.local = true)) EXECUTE FUNCTION r.site_aggregates_post_delete();
 
-CREATE TRIGGER site_aggregates_post_insert AFTER INSERT ON post REFERENCING NEW TABLE AS new_post FOR EACH STATEMENT EXECUTE FUNCTION site_aggregates_post_insert();
+CREATE TRIGGER site_aggregates_post_insert AFTER INSERT ON post REFERENCING NEW TABLE AS new_post FOR EACH STATEMENT EXECUTE FUNCTION r.site_aggregates_post_insert();
 
+CREATE TRIGGER site_aggregates_post_update AFTER UPDATE OF removed, deleted ON post FOR EACH ROW WHEN ((new.local = true)) EXECUTE FUNCTION r.site_aggregates_post_update();
 
-
-CREATE TRIGGER site_aggregates_post_update AFTER UPDATE OF removed, deleted ON post FOR EACH ROW WHEN ((new.local = true)) EXECUTE FUNCTION site_aggregates_post_update();
-
-
-CREATE TRIGGER site_aggregates_site AFTER INSERT OR DELETE ON site FOR EACH ROW EXECUTE FUNCTION site_aggregates_site();
+CREATE TRIGGER site_aggregates_site AFTER INSERT OR DELETE ON site FOR EACH ROW EXECUTE FUNCTION r.site_aggregates_site();
 
 COMMIT;
 
