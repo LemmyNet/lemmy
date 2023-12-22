@@ -84,7 +84,6 @@ steps:
       - IGNORED=$(git ls-files --cached -i --exclude-standard)
       - if [[ "$IGNORED" ]]; then echo "Ignored files present:\n$IGNORED\n"; exit 1; fi
 
-  # restore cache unconditionally to avoid failures in rebuild-cache
   restore-cache:
     image: meltwater/drone-cache:v1
     pull: true
@@ -107,7 +106,7 @@ steps:
         - ".cargo_home"
         - "target"
         - "api_tests/node_modules"
-      #exit_code: true
+      exit_code: true
     secrets:
       [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
     when: *slow_check_paths
@@ -214,35 +213,6 @@ steps:
       - yarn api-test
     when: *slow_check_paths
 
-  rebuild-cache:
-    image: meltwater/drone-cache:v1
-    pull: true
-    settings:
-      rebuild: true
-      endpoint:
-        from_secret: MINIO_ENDPOINT
-      access-key:
-        from_secret: MINIO_WRITE_USER
-      secret-key:
-        from_secret: MINIO_WRITE_PASSWORD
-      bucket:
-        from_secret: MINIO_BUCKET
-      cache_key: "rust-cache"
-      region: us-east-1
-      path-style: true
-      backend_operation_timeout: 60m
-      compression_level: 0
-      mount:
-        - ".cargo_home"
-        - "target"
-        - "api_tests/node_modules"
-      exit_code: true
-    secrets:
-      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
-    #when:
-    #  - event: push
-    #    branch: main
-
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
     secrets: [docker_username, docker_password]
@@ -281,6 +251,34 @@ steps:
     secrets: [cargo_api_token]
     when:
       event: tag
+
+  rebuild-cache:
+    image: meltwater/drone-cache:v1
+    pull: true
+    settings:
+      rebuild: true
+      endpoint:
+        from_secret: MINIO_ENDPOINT
+      access-key:
+        from_secret: MINIO_WRITE_USER
+      secret-key:
+        from_secret: MINIO_WRITE_PASSWORD
+      bucket:
+        from_secret: MINIO_BUCKET
+      cache_key: "rust-cache"
+      region: us-east-1
+      path-style: true
+      backend_operation_timeout: 60m
+      compression_level: 0
+      mount:
+        - ".cargo_home"
+        - "target"
+        - "api_tests/node_modules"
+      exit_code: true
+    secrets:
+      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
+    when:
+      event: cron
 
   notify_on_failure:
     image: alpine:3
