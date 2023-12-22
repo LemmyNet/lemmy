@@ -27,6 +27,7 @@ mod tests {
     tests::test_json,
   };
   use lemmy_utils::error::LemmyResult;
+  use crate::protocol::activities::following::accept::AcceptFollow;
 
   #[test]
   fn test_parse_smithereen_activities() -> LemmyResult<()> {
@@ -86,6 +87,12 @@ mod tests {
   #[test]
   fn test_parse_peertube_activities() -> LemmyResult<()> {
     test_json::<AnnounceActivity>("assets/peertube/activities/announce_video.json")?;
+    Ok(())
+  }
+
+  #[test]
+  fn test_parse_mbin_activities() -> LemmyResult<()> {
+    test_json::<AcceptFollow>("assets/mbin/activities/accept.json")?;
     Ok(())
   }
 }
