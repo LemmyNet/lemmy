@@ -2304,6 +2304,7 @@ dependencies = [
 name = "i-love-jesus-macros"
 version = "0.1.0"
 dependencies = [
+ "quote",
  "syn 2.0.40",
 ]
 

@@ -156,6 +156,7 @@ tokio-postgres = "0.7.10"
 tokio-postgres-rustls = "0.10.0"
 enum-map = "2.7"
 moka = { version = "0.12.1", features = ["future"] }
+# TODO: get from crates.io
 i-love-jesus = { version = "0.1.0", path = "../i-love-jesus/crates/i-love-jesus" }
 
 [dependencies]

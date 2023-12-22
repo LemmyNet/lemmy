@@ -3,6 +3,7 @@ use diesel::{
   debug_query,
   dsl::{exists, not, IntervalDsl},
   pg::Pg,
+  query_builder::AsQuery,
   result::Error,
   sql_types,
   BoolExpressionMethods,
@@ -16,8 +17,9 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  aggregates::structs::PostAggregates,
+  aggregates::structs::{post_aggregates_keys as key, PostAggregates},
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     community,
@@ -33,7 +35,6 @@ use lemmy_db_schema::{
     person_post_aggregates,
     post,
     post_aggregates,
-    post_aggregates_keys as key,
     post_like,
     post_read,
     post_saved,
@@ -49,40 +50,12 @@ use lemmy_db_schema::{
     ListFn,
     Queries,
     ReadFn,
+    ReverseTimestampKey,
   },
   ListingType,
   SortType,
 };
 use tracing::debug;
-use i_love_jesus::{PaginatedQuery, CursorKey};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Ord {
-  Desc,
-  Asc,
-}
-
-struct PaginationCursorField<Q, QS> {
-  then_order_by_desc: fn(Q) -> Q,
-  then_order_by_asc: fn(Q) -> Q,
-  le: fn(&PostAggregates) -> Box<dyn BoxableExpression<QS, Pg, SqlType = sql_types::Bool>>,
-  ge: fn(&PostAggregates) -> Box<dyn BoxableExpression<QS, Pg, SqlType = sql_types::Bool>>,
-  ne: fn(&PostAggregates) -> Box<dyn BoxableExpression<QS, Pg, SqlType = sql_types::Bool>>,
-}
-
-/// Returns `PaginationCursorField<_, _>` for the given name
-macro_rules! field {
-  ($name:ident) => {
-    // Type inference doesn't work if normal method call syntax is used
-    PaginationCursorField {
-      then_order_by_desc: |query| QueryDsl::then_order_by(query, post_aggregates::$name.desc()),
-      then_order_by_asc: |query| QueryDsl::then_order_by(query, post_aggregates::$name.asc()),
-      le: |e| Box::new(post_aggregates::$name.le(e.$name)),
-      ge: |e| Box::new(post_aggregates::$name.ge(e.$name)),
-      ne: |e| Box::new(post_aggregates::$name.ne(e.$name)),
-    }
-  };
-}
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
@@ -460,16 +433,23 @@ fn queries<'a>() -> Queries<
       query = query.filter(not(is_creator_blocked(person_id)));
     }
 
-    let mut query = PaginatedQuery::new(query);
+    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+    query = query.limit(limit).offset(offset);
 
-    if options.page_after.is_some() && options.page_before.is_some() {
-      return Err(Error::QueryBuilderError("page_after cannot be combined with page_before".into()));
-    }
-    if let Some(cursor) = options.page_after {
-      query = query.after(Some(cursor)).before_or_equal(options.limit_cursor);
-    }
-    if let Some(cursor) = options.page_before {
-      query = query.before(Some(cursor)).after_or_equal(options.limit_cursor).limit_and_offset_from_end();
+    let mut query = PaginatedQueryBuilder::new(query);
+
+    let page_after = options.page_after.map(|c| c.0);
+    let page_before_or_equal = options.page_before_or_equal.map(|c| c.0);
+
+    if options.page_back {
+      query = query
+        .before(page_after)
+        .after_or_equal(page_before_or_equal)
+        .limit_and_offset_from_end();
+    } else {
+      query = query
+        .after(page_after)
+        .before_or_equal(page_before_or_equal);
     }
 
     query = if options.community_id.is_none() || options.community_id_just_for_prefetch {
@@ -482,86 +462,30 @@ fn queries<'a>() -> Queries<
 
     query = match options.sort.unwrap_or(SortType::Hot) {
       SortType::Active => query.then_desc(key::hot_rank_active),
-      SortType::Hot => ((Ord::Desc, field!(hot_rank)), None),
-      SortType::Scaled => ((Ord::Desc, field!(scaled_rank)), None),
-      SortType::Controversial => ((Ord::Desc, field!(controversy_rank)), None),
-      SortType::New => ((Ord::Desc, field!(published)), None),
-      // TODO use asc
-      SortType::Old => query.then_desc(key::published.map(|x| -x)),
-      SortType::NewComments => ((Ord::Desc, field!(newest_comment_time)), None),
-      SortType::MostComments => ((Ord::Desc, field!(comments)), None),
-      SortType::TopAll => ((Ord::Desc, field!(score)), None),
-      SortType::TopYear => ((Ord::Desc, field!(score)), Some(1.years())),
-      SortType::TopMonth => ((Ord::Desc, field!(score)), Some(1.months())),
-      SortType::TopWeek => ((Ord::Desc, field!(score)), Some(1.weeks())),
-      SortType::TopDay => ((Ord::Desc, field!(score)), Some(1.days())),
-      SortType::TopHour => ((Ord::Desc, field!(score)), Some(1.hours())),
-      SortType::TopSixHour => ((Ord::Desc, field!(score)), Some(6.hours())),
-      SortType::TopTwelveHour => ((Ord::Desc, field!(score)), Some(12.hours())),
-      SortType::TopThreeMonths => ((Ord::Desc, field!(score)), Some(3.months())),
-      SortType::TopSixMonths => ((Ord::Desc, field!(score)), Some(6.months())),
+      SortType::Hot => query.then_desc(key::hot_rank),
+      SortType::Scaled => query.then_desc(key::scaled_rank),
+      SortType::Controversial => query.then_desc(key::controversy_rank),
+      SortType::New => query.then_desc(key::published),
+      SortType::Old => query.then_desc(ReverseTimestampKey(key::published)),
+      SortType::NewComments => query.then_desc(key::newest_comment_time),
+      SortType::MostComments => query.then_desc(key::comments),
+      SortType::TopAll => query.then_desc(key::score),
+      SortType::TopYear => query.then_desc(key::score).filter(time(1.years())),
+      SortType::TopMonth => query.then_desc(key::score).filter(time(1.months())),
+      SortType::TopWeek => query.then_desc(key::score).filter(time(1.weeks())),
+      SortType::TopDay => query.then_desc(key::score).filter(time(1.days())),
+      SortType::TopHour => query.then_desc(key::score).filter(time(1.hours())),
+      SortType::TopSixHour => query.then_desc(key::score).filter(time(6.hours())),
+      SortType::TopTwelveHour => query.then_desc(key::score).filter(time(12.hours())),
+      SortType::TopThreeMonths => query.then_desc(key::score).filter(time(3.months())),
+      SortType::TopSixMonths => query.then_desc(key::score).filter(time(6.months())),
       SortType::TopNineMonths => query.then_desc(key::score).filter(time(9.months())),
     };
 
     query = query.then_desc(key::post_id);
 
-    // This loop does almost the same thing as sorting by and comparing tuples. If the rows were
-    // only sorted by 1 field called `foo` in descending order, then it would be like this:
-    //
-    // ```
-    // query = query.then_order_by(foo.desc());
-    // if let Some(first) = &options.page_after {
-    //   query = query.filter(foo.le(first.foo));
-    // }
-    // if let Some(last) = &page_before_or_equal {
-    //   query = query.filter(foo.ge(last.foo));
-    // }
-    // ```
-    //
-    // If multiple rows have the same value for a sorted field, then they are
-    // grouped together, and the rows in that group are sorted by the next fields.
-    // When checking if a row is within the range determined by the cursors, a field
-    // that's sorted after other fields is only compared if the row and the cursor
-    // are in the same group created by the previous sort, which is checked by using
-    // `or` to skip the comparison if any previously sorted field is not equal.
-    for (i, (order, field)) in sorts_iter.clone().enumerate() {
-      // Both cursors are treated as inclusive here. `page_after` is made exclusive
-      // by adding `1` to the offset.
-      let (then_order_by_field, compare_first, compare_last) = match order {
-        Ord::Desc => (field.then_order_by_desc, field.le, field.ge),
-        Ord::Asc => (field.then_order_by_asc, field.ge, field.le),
-      };
-
-      query = then_order_by_field(query);
-
-      for (cursor_data, compare) in [
-        (&options.page_after, compare_first),
-        (&options.page_before_or_equal, compare_last),
-      ] {
-        let Some(cursor_data) = cursor_data else {
-          continue;
-        };
-        let mut condition: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-          Box::new(compare(&cursor_data.0));
-
-        // For each field that was sorted before the current one, skip the filter by changing
-        // `condition` to `true` if the row's value doesn't equal the cursor's value.
-        for (_, other_field) in sorts_iter.clone().take(i) {
-          condition = Box::new(condition.or((other_field.ne)(&cursor_data.0)));
-        }
-
-        query = query.filter(condition);
-      }
-    }
-
-    let (limit, mut offset) = limit_and_offset(options.page, options.limit)?;
-    if options.page_after.is_some() {
-      // always skip exactly one post because that's the last post of the previous page
-      // fixing the where clause is more difficult because we'd have to change only the last order-by-where clause
-      // e.g. WHERE (featured_local<=, hot_rank<=, published<=) to WHERE (<=, <=, <)
-      offset = 1;
-    }
-    query = query.limit(limit).offset(offset);
+    // Not done by debug_query
+    let query = query.as_query();
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
@@ -631,8 +555,8 @@ pub struct PostQuery<'a> {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub page_after: Option<PaginationCursorData>,
-  pub page_before: Option<PaginationCursorData>,
-  pub limit_cursor: Option<PaginationCursorData>,
+  pub page_before_or_equal: Option<PaginationCursorData>,
+  pub page_back: bool,
 }
 
 impl<'a> PostQuery<'a> {
@@ -700,15 +624,15 @@ impl<'a> PostQuery<'a> {
     if (v.len() as i64) < limit {
       Ok(Some(self.clone()))
     } else {
-      let item = if self.page_before.is_none() {
-        // for backwards pagination, get first element instead
+      let item = if self.page_back {
+        // for backward pagination, get first element instead
         v.into_iter().next()
       } else {
         v.pop()
       };
       let limit_cursor = Some(PaginationCursorData(item.expect("else case").counts));
       Ok(Some(PostQuery {
-        limit_cursor,
+        page_before_or_equal: limit_cursor,
         ..self.clone()
       }))
     }
@@ -1478,15 +1402,19 @@ mod tests {
       }
     }
 
+    let options = PostQuery {
+      community_id: Some(inserted_community.id),
+      sort: Some(SortType::MostComments),
+      limit: Some(10),
+      ..Default::default()
+    };
+
     let mut listed_post_ids = vec![];
     let mut page_after = None;
     loop {
       let post_listings = PostQuery {
-        community_id: Some(inserted_community.id),
-        sort: Some(SortType::MostComments),
-        limit: Some(10),
         page_after,
-        ..Default::default()
+        ..options.clone()
       }
       .list(pool)
       .await
@@ -1496,6 +1424,36 @@ mod tests {
 
       if let Some(p) = post_listings.into_iter().last() {
         page_after = Some(PaginationCursorData(p.counts));
+      } else {
+        break;
+      }
+    }
+
+    // Check that backward pagination matches forward pagination
+    let mut listed_post_ids_forward = listed_post_ids.clone();
+    let mut page_before = None;
+    loop {
+      println!("e");
+      let post_listings = PostQuery {
+        page_after: page_before,
+        page_back: true,
+        ..options.clone()
+      }
+      .list(pool)
+      .await
+      .unwrap();
+
+      let listed_post_ids = post_listings.iter().map(|p| p.post.id).collect::<Vec<_>>();
+
+      let index = listed_post_ids_forward.len() - listed_post_ids.len();
+      assert_eq!(
+        listed_post_ids_forward.get(index..),
+        listed_post_ids.get(..)
+      );
+      listed_post_ids_forward.truncate(index);
+
+      if let Some(p) = post_listings.into_iter().next() {
+        page_before = Some(PaginationCursorData(p.counts));
       } else {
         break;
       }

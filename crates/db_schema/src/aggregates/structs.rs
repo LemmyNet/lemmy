@@ -94,7 +94,14 @@ pub struct PersonAggregates {
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable, TS, CursorKeysModule)
+  derive(
+    Queryable,
+    Selectable,
+    Associations,
+    Identifiable,
+    TS,
+    CursorKeysModule
+  )
 )]
 #[cfg_attr(feature = "full", diesel(table_name = post_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
