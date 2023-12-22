@@ -2295,6 +2295,8 @@ dependencies = [
 [[package]]
 name = "i-love-jesus"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39fa60e3281e1529cc56d96cca925215f51f9b39a96bc677982fbfdf2663cc84"
 dependencies = [
  "diesel",
  "i-love-jesus-macros",
@@ -2303,6 +2305,8 @@ dependencies = [
 [[package]]
 name = "i-love-jesus-macros"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8215279f83f9b829403812f845aa2d0dd5966332aa2fd0334a375256f3dd0322"
 dependencies = [
  "quote",
  "syn 2.0.40",
