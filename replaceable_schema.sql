@@ -20,7 +20,34 @@ CREATE SCHEMA r;
 
 -- These triggers resolve an item's reports when the item is marked as removed.
 
-CREATE FUNCTION resolve_reports_when_post_removed () RETURNS trigger
+CREATE FUNCTION resolve_reports_when_comment_removed ()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        comment_report
+    SET
+        resolved = TRUE,
+        resolver_id = mod_person_id,
+        updated = now()
+    FROM
+        new_removal
+    WHERE
+        comment_report.comment_id = new_removal.comment_id AND new_removal.removed;
+
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER resolve_reports
+    AFTER INSERT ON mod_remove_comment
+    REFERENCING NEW TABLE AS new_removal
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION resolve_reports_when_comment_removed ();
+
+CREATE FUNCTION resolve_reports_when_post_removed ()
+    RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -33,7 +60,7 @@ BEGIN
     FROM
         new_removal
     WHERE
-        post_report.post_id = new_removal.post_id AND new_removal.removed
+        post_report.post_id = new_removal.post_id AND new_removal.removed;
 
     RETURN NULL;
 END
