@@ -10,6 +10,7 @@ use chrono::{DateTime, Utc};
 use deadpool::Runtime;
 use diesel::{
   backend::Backend,
+  connection::SimpleConnection,
   deserialize::FromSql,
   helper_types::AsExprOf,
   pg::Pg,
@@ -284,6 +285,9 @@ fn run_migrations(db_url: &str) {
   let _ = &mut conn
     .run_pending_migrations(MIGRATIONS)
     .unwrap_or_else(|e| panic!("Couldn't run DB Migrations: {e}"));
+  conn
+    .batch_execute(include_str!("../../../replaceable_schema.sql"))
+    .expect("Couldn't run replaceable_schema.sql");
   info!("Database migrations complete.");
 }
 
