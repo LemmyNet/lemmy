@@ -20,7 +20,7 @@ CREATE SCHEMA r;
 
 -- Rank calculations
 
-CREATE OR REPLACE FUNCTION controversy_rank (upvotes numeric, downvotes numeric)
+CREATE OR REPLACE FUNCTION r.controversy_rank (upvotes numeric, downvotes numeric)
     RETURNS float
     AS $$
 BEGIN
@@ -40,62 +40,49 @@ IMMUTABLE;
 
 -- These triggers resolve an item's reports when the item is marked as removed.
 
-CREATE FUNCTION resolve_reports_when_comment_removed ()
-    RETURNS trigger
+CREATE PROCEDURE r.resolve_reports_when_target_removed (target_name text)
     LANGUAGE plpgsql
-    AS $$
+    AS $a$
 BEGIN
-    UPDATE
-        comment_report
-    SET
-        resolved = TRUE,
-        resolver_id = mod_person_id,
-        updated = now()
-    FROM
-        new_removal
-    WHERE
-        comment_report.comment_id = new_removal.comment_id AND new_removal.removed;
+    EXECUTE format($b$
+        CREATE FUNCTION r.resolve_reports_when_%1$s_removed ()
+            RETURNS trigger
+            LANGUAGE plpgsql
+            AS $$
+        BEGIN
+            UPDATE
+                %1$s_report AS report
+            SET
+                resolved = TRUE,
+                resolver_id = mod_person_id,
+                updated = now()
+            FROM
+                new_removal
+            WHERE
+                report.%1$s_id = new_removal.%1$a_id AND new_removal.removed;
 
-    RETURN NULL;
+            RETURN NULL;
+        END
+        $$;
+
+        CREATE TRIGGER resolve_reports
+            AFTER INSERT ON mod_remove_%1$s
+            REFERENCING NEW TABLE AS new_removal
+            FOR EACH STATEMENT
+            EXECUTE FUNCTION r.resolve_reports_when_%1$s_removed ();
+        $b$,
+        target_name);
 END
-$$;
+$a$;
 
-CREATE TRIGGER resolve_reports
-    AFTER INSERT ON mod_remove_comment
-    REFERENCING NEW TABLE AS new_removal
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION resolve_reports_when_comment_removed ();
+CALL r.resolve_reports_when_target_removed ('comment');
 
-CREATE FUNCTION resolve_reports_when_post_removed ()
-    RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    UPDATE
-        post_report
-    SET
-        resolved = TRUE,
-        resolver_id = mod_person_id,
-        updated = now()
-    FROM
-        new_removal
-    WHERE
-        post_report.post_id = new_removal.post_id AND new_removal.removed;
-
-    RETURN NULL;
-END
-$$;
-
-CREATE TRIGGER resolve_reports
-    AFTER INSERT ON mod_remove_post
-    REFERENCING NEW TABLE AS new_removal
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION resolve_reports_when_post_removed ();
+CALL r.resolve_reports_when_target_removed ('post');
 
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
 
-CREATE FUNCTION comment_aggregates_from_comment ()
+CREATE FUNCTION r.comment_aggregates_from_comment ()
     RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -139,7 +126,7 @@ CREATE TRIGGER aggregates
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.community_aggregates_from_community ();
 
-CREATE FUNCTION person_aggregates_from_person ()
+CREATE FUNCTION r.person_aggregates_from_person ()
     RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -220,12 +207,12 @@ CREATE TRIGGER aggregates
 
 -- These triggers update aggregates in response to votes.
 
-CREATE PROCEDURE aggregates_from_like (target_name text, creator_id_getter text)
+CREATE PROCEDURE r.aggregates_from_like (target_name text, creator_id_getter text)
     LANGUAGE plpgsql
     AS $a$
 BEGIN
     EXECUTE format($b$
-        CREATE FUNCTION %1$s_aggregates_from_like ()
+        CREATE FUNCTION r.%1$s_aggregates_from_like ()
             RETURNS trigger
             LANGUAGE plpgsql
             AS $$
@@ -294,16 +281,16 @@ BEGIN
             AFTER INSERT OR DELETE OR UPDATE OF score ON %1$s_like
             REFERENCING OLD TABLE AS old_like NEW TABLE AS new_like
             FOR EACH STATEMENT
-            EXECUTE FUNCTION %1$s_aggregates_from_like;
+            EXECUTE FUNCTION r.%1$s_aggregates_from_like;
         $b$,
         target_name,
         creator_id_getter);
 END
 $a$;
 
-CALL aggregates_from_like ('comment', '(SELECT creator_id FROM comment WHERE id = vote_group.target_id LIMIT 1)');
+CALL r.aggregates_from_like ('comment', '(SELECT creator_id FROM comment WHERE id = vote_group.target_id LIMIT 1)');
 
-CALL aggregates_from_like ('post', 'target_aggregates.creator_id');
+CALL r.aggregates_from_like ('post', 'target_aggregates.creator_id');
 
 COMMIT;
 
