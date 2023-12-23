@@ -65,6 +65,27 @@ CREATE TRIGGER aggregates
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.community_aggregates_from_community ();
 
+CREATE FUNCTION person_aggregates_from_person ()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO person_aggregates (person_id)
+    SELECT
+        id,
+    FROM
+        new_person;
+
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER aggregates
+    AFTER INSERT ON person
+    REFERENCING NEW TABLE AS new_person
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.person_aggregates_from_person ();
+
 CREATE FUNCTION r.post_aggregates_from_post ()
     RETURNS trigger
     LANGUAGE plpgsql
