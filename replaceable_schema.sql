@@ -18,7 +18,7 @@ DROP SCHEMA IF EXISTS r CASCADE;
 
 CREATE SCHEMA r;
 
--- These triggers resolve an item's reports when the item is removed.
+-- These triggers resolve an item's reports when the item is marked as removed.
 
 CREATE FUNCTION resolve_reports_when_post_removed () RETURNS trigger
     LANGUAGE plpgsql
@@ -157,11 +157,10 @@ BEGIN
         1
     FROM
         site_aggregates) THEN
-        INSERT INTO site_aggregates (site_id)
-        SELECT
-            id,
-        FROM
-            new_site;
+        INSERT INTO
+            site_aggregates (site_id)
+        VALUES
+            (NEW.id);
 
     RETURN NULL;
 END
@@ -169,8 +168,7 @@ $$;
 
 CREATE TRIGGER aggregates
     AFTER INSERT ON site
-    REFERENCING NEW TABLE AS new_site
-    FOR EACH STATEMENT
+    FOR EACH ROW
     EXECUTE FUNCTION r.site_aggregates_from_site ();
 
 COMMIT;
