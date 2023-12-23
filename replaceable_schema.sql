@@ -259,7 +259,7 @@ BEGIN
                 -- Update aggregates for target
                 target_aggregates_update_result (creator_id, creator_score_change) AS (
                     UPDATE
-                        %1$s_aggregates AS aggregates
+                        %1$s_aggregates AS target_aggregates
                     SET
                         score = score + added_upvotes - added_downvotes,
                         upvotes = upvotes + added_upvotes,
@@ -271,11 +271,21 @@ BEGIN
                     FROM
                         vote_group
                     WHERE
-                        aggregates.comment_id = vote_group.target_id
+                        target_aggregates.comment_id = vote_group.target_id
                     RETURNING
                         %2$s,
-                        added_upvotes - added_downvotes;
-        
+                        added_upvotes - added_downvotes
+                )
+            -- Update aggregates for target's creator
+            UPDATE
+                person_aggregates
+            SET
+                %1$s_score = creator_score_change;
+            FROM
+                target_aggregates_update_result
+            WHERE
+                person_aggregates.person_id = creator_id;
+
             RETURN NULL;
         END
         $$;
@@ -291,9 +301,9 @@ BEGIN
 END
 $a$;
 
-CALL aggregates_from_like ('comment', '(SELECT creator_id FROM comment WHERE id = vote_group.target_id)');
+CALL aggregates_from_like ('comment', '(SELECT creator_id FROM comment WHERE id = vote_group.target_id LIMIT 1)');
 
-CALL aggregates_from_like ('post', 'creator_id');
+CALL aggregates_from_like ('post', 'target_aggregates.creator_id');
 
 COMMIT;
 
