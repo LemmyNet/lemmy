@@ -21,7 +21,30 @@ CREATE SCHEMA r;
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
 
-CREATE FUNCTION r.community_aggregates_from_community () RETURNS trigger
+CREATE FUNCTION comment_aggregates_from_comment ()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO comment_aggregates (comment_id, published)
+    SELECT
+        id,
+        published
+    FROM
+        new_comment;
+
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER aggregates
+    AFTER INSERT ON comment
+    REFERENCING NEW TABLE AS new_comment
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.comment_aggregates_from_comment ();
+
+CREATE FUNCTION r.community_aggregates_from_community ()
+    RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -42,7 +65,8 @@ CREATE TRIGGER aggregates
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.community_aggregates_from_community ();
 
-CREATE FUNCTION r.post_aggregates_from_post () RETURNS trigger
+CREATE FUNCTION r.post_aggregates_from_post ()
+    RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
