@@ -16,3 +16,8 @@ find $TMP_DIR -type f -name '*.sql' -exec pg_format -i {} +
 
 # Diff the directories
 diff -r migrations $TMP_DIR
+
+# Check formatting of replaceable_schema.sql
+cp -a replaceable_schema.sql $TMP_DIR
+pg_format -i $TMP_DIR/replaceable_schema.sql
+diff -r replaceable_schema.sql $TMP_DIR/replaceable_schema.sql
