@@ -220,7 +220,7 @@ CREATE TRIGGER aggregates
 
 -- These triggers update aggregates in response to votes.
 
-CREATE PROCEDURE aggregates_from_like (target_name text)
+CREATE PROCEDURE aggregates_from_like (target_name text, creator_id_getter text)
     LANGUAGE plpgsql
     AS $a$
 BEGIN
@@ -231,7 +231,7 @@ BEGIN
             AS $$
         BEGIN
             WITH
-                any_like (target_id, score, added) AS (
+                individual_vote (target_id, score, vote_amount_change) AS (
                     SELECT
                         %1$s_id,
                         score,
@@ -246,42 +246,54 @@ BEGIN
                     FROM
                         new_like
                 ),
-                added_to_target (target_id, added_upvotes, added_downvotes) AS (
+                vote_group (target_id, added_upvotes, added_downvotes) AS (
                     SELECT
-                        target_id,
-                        sum(added) FILTER (WHERE score = 1),
-                        sum(added) FILTER (WHERE score = -1)
+                        individual_vote.target_id,
+                        sum(vote_amount_change) FILTER (WHERE score = 1),
+                        sum(vote_amount_change) FILTER (WHERE score <> 1)
                     FROM
-                        any_like
+                        individual_vote
                     GROUP BY
-                        target_id
-                )
-            UPDATE
-                %1$s_aggregates AS aggregates
-            SET
-                score = score + added_upvotes - added_downvotes,
-                upvotes = upvotes + added_upvotes,
-                downvotes = downvotes + added_downvotes,
-                controversy_rank = controversy_rank (
-                    (upvotes + added_upvotes)::numeric,
-                    (downvotes + added_downvotes)::numeric
-                )
-            FROM
-                added_to_target
-            WHERE
-                aggregates.comment_id = added_to_comment.comment_id;
+                        individual_vote.target_id
+                ),
+                -- Update aggregates for target
+                target_aggregates_update_result (creator_id, creator_score_change) AS (
+                    UPDATE
+                        %1$s_aggregates AS aggregates
+                    SET
+                        score = score + added_upvotes - added_downvotes,
+                        upvotes = upvotes + added_upvotes,
+                        downvotes = downvotes + added_downvotes,
+                        controversy_rank = controversy_rank (
+                            (upvotes + added_upvotes)::numeric,
+                            (downvotes + added_downvotes)::numeric
+                        )
+                    FROM
+                        vote_group
+                    WHERE
+                        aggregates.comment_id = vote_group.target_id
+                    RETURNING
+                        %2$s,
+                        added_upvotes - added_downvotes;
         
             RETURN NULL;
         END
         $$;
+
+        CREATE TRIGGER aggregates
+            AFTER INSERT OR DELETE OR UPDATE OF score ON %1$s_like
+            REFERENCING OLD TABLE AS old_like NEW TABLE AS new_like
+            FOR EACH STATEMENT
+            EXECUTE FUNCTION %1$s_aggregates_from_like;
         $b$,
-        target_name);
+        target_name,
+        creator_id_getter);
 END
 $a$;
 
-CALL aggregates_from_like ('comment');
+CALL aggregates_from_like ('comment', '(SELECT creator_id FROM comment WHERE id = vote_group.target_id)');
 
-CALL aggregates_from_like ('post');
+CALL aggregates_from_like ('post', 'creator_id');
 
 COMMIT;
 
