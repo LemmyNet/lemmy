@@ -21,29 +21,57 @@ CREATE SCHEMA r;
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
 
-CREATE FUNCTION r.upsert_community_aggregates_from_community () RETURNS trigger
+CREATE FUNCTION r.community_aggregates_from_community () RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    INSERT INTO
-        community_aggregates (community_id, published)
+    INSERT INTO community_aggregates (community_id, published)
     SELECT
         community_id,
         published
     FROM
-        new_community
-    ON CONFLICT DO UPDATE SET
-        published = excluded.published;
+        new_community;
 
     RETURN NULL;
 END
 $$;
 
-CREATE TRIGGER upsert_aggregates
-    AFTER INSERT OR UPDATE OF published ON community
+CREATE TRIGGER aggregates
+    AFTER INSERT ON community
     REFERENCING NEW TABLE AS new_community
     FOR EACH STATEMENT
-    EXECUTE FUNCTION r.upsert_community_aggregates_from_community;
+    EXECUTE FUNCTION r.community_aggregates_from_community ();
+
+CREATE FUNCTION r.post_aggregates_from_post () RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO post_aggregates (post_id, published, newest_comment_time, newest_comment_time_necro, community_id, creator_id, instance_id, featured_community, featured_local)
+    SELECT
+        id,
+        published,
+        published,
+        published,
+        community_id,
+        creator_id,
+        (SELECT community.instance_id FROM community WHERE community.id = community_id LIMIT 1),
+        featured_community,
+        featured_local
+    FROM
+        new_post
+    ON CONFLICT DO UPDATE SET
+        featured_community = excluded.featured_community,
+        featured_local = excluded.featured_local;
+
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER aggregates
+    AFTER INSERT OR UPDATE OF featured_community, featured_local ON post
+    REFERENCING NEW TABLE AS new_post
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.post_aggregates_from_post ();
 
 COMMIT;
 
