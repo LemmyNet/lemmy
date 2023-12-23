@@ -18,6 +18,113 @@ DROP SCHEMA IF EXISTS r CASCADE;
 
 CREATE SCHEMA r;
 
+CREATE FUNCTION r.trg_post_count() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    WITH
+        counted_old_post AS (SELECT * FROM old_post WHERE NOT (removed OR deleted))
+        counted_new_post AS (SELECT * FROM new_post WHERE NOT (removed OR deleted))
+        updated_community_aggregates AS (UPDATE )
+END
+$$;
+
+CREATE TRIGGER count
+    AFTER INSERT OR DELETE OR UPDATE OF removed, deleted ON post
+    REFERENCING OLD TABLE AS old_post NEW TABLE AS new_post
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION trg_post_count ();
+
+--CREATE FUNCTION r.community_aggregates_post_count_insert() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE community_aggregates
+    SET posts = posts + post_group.count
+    FROM (SELECT community_id, count(*) FROM new_post GROUP BY community_id) post_group
+    WHERE community_aggregates.community_id = post_group.community_id;
+    RETURN NULL;
+END
+$$;
+
+--CREATE FUNCTION r.community_aggregates_post_count() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (r.was_restored_or_created (TG_OP, OLD, NEW)) THEN
+        UPDATE
+            community_aggregates
+        SET
+            posts = posts + 1
+        WHERE
+            community_id = NEW.community_id;
+        IF (TG_OP = 'UPDATE') THEN
+            -- Post was restored, so restore comment counts as well
+            UPDATE
+                community_aggregates ca
+            SET
+                posts = coalesce(cd.posts, 0),
+                comments = coalesce(cd.comments, 0)
+            FROM (
+                SELECT
+                    c.id,
+                    count(DISTINCT p.id) AS posts,
+                    count(DISTINCT ct.id) AS comments
+                FROM
+                    community c
+                LEFT JOIN post p ON c.id = p.community_id
+                    AND p.deleted = 'f'
+                    AND p.removed = 'f'
+            LEFT JOIN comment ct ON p.id = ct.post_id
+                AND ct.deleted = 'f'
+                AND ct.removed = 'f'
+        WHERE
+            c.id = NEW.community_id
+        GROUP BY
+            c.id) cd
+        WHERE
+            ca.community_id = NEW.community_id;
+        END IF;
+    ELSIF (r.was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
+        UPDATE
+            community_aggregates
+        SET
+            posts = posts - 1
+        WHERE
+            community_id = OLD.community_id;
+        -- Update the counts if the post got deleted
+        UPDATE
+            community_aggregates ca
+        SET
+            posts = coalesce(cd.posts, 0),
+            comments = coalesce(cd.comments, 0)
+        FROM (
+            SELECT
+                c.id,
+                count(DISTINCT p.id) AS posts,
+                count(DISTINCT ct.id) AS comments
+            FROM
+                community c
+            LEFT JOIN post p ON c.id = p.community_id
+                AND p.deleted = 'f'
+                AND p.removed = 'f'
+        LEFT JOIN comment ct ON p.id = ct.post_id
+            AND ct.deleted = 'f'
+            AND ct.removed = 'f'
+    WHERE
+        c.id = OLD.community_id
+    GROUP BY
+        c.id) cd
+    WHERE
+        ca.community_id = OLD.community_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
+
+
+--
+
 CREATE FUNCTION r.comment_aggregates_comment() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -154,93 +261,6 @@ BEGIN
         DELETE FROM community_aggregates
         WHERE community_id = OLD.id;
     END IF;
-    RETURN NULL;
-END
-$$;
-
-CREATE FUNCTION r.community_aggregates_post_count() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    IF (r.was_restored_or_created (TG_OP, OLD, NEW)) THEN
-        UPDATE
-            community_aggregates
-        SET
-            posts = posts + 1
-        WHERE
-            community_id = NEW.community_id;
-        IF (TG_OP = 'UPDATE') THEN
-            -- Post was restored, so restore comment counts as well
-            UPDATE
-                community_aggregates ca
-            SET
-                posts = coalesce(cd.posts, 0),
-                comments = coalesce(cd.comments, 0)
-            FROM (
-                SELECT
-                    c.id,
-                    count(DISTINCT p.id) AS posts,
-                    count(DISTINCT ct.id) AS comments
-                FROM
-                    community c
-                LEFT JOIN post p ON c.id = p.community_id
-                    AND p.deleted = 'f'
-                    AND p.removed = 'f'
-            LEFT JOIN comment ct ON p.id = ct.post_id
-                AND ct.deleted = 'f'
-                AND ct.removed = 'f'
-        WHERE
-            c.id = NEW.community_id
-        GROUP BY
-            c.id) cd
-        WHERE
-            ca.community_id = NEW.community_id;
-        END IF;
-    ELSIF (r.was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
-        UPDATE
-            community_aggregates
-        SET
-            posts = posts - 1
-        WHERE
-            community_id = OLD.community_id;
-        -- Update the counts if the post got deleted
-        UPDATE
-            community_aggregates ca
-        SET
-            posts = coalesce(cd.posts, 0),
-            comments = coalesce(cd.comments, 0)
-        FROM (
-            SELECT
-                c.id,
-                count(DISTINCT p.id) AS posts,
-                count(DISTINCT ct.id) AS comments
-            FROM
-                community c
-            LEFT JOIN post p ON c.id = p.community_id
-                AND p.deleted = 'f'
-                AND p.removed = 'f'
-        LEFT JOIN comment ct ON p.id = ct.post_id
-            AND ct.deleted = 'f'
-            AND ct.removed = 'f'
-    WHERE
-        c.id = OLD.community_id
-    GROUP BY
-        c.id) cd
-    WHERE
-        ca.community_id = OLD.community_id;
-    END IF;
-    RETURN NULL;
-END
-$$;
-
-CREATE FUNCTION r.community_aggregates_post_count_insert() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    UPDATE community_aggregates
-    SET posts = posts + post_group.count
-    FROM (SELECT community_id, count(*) FROM new_post GROUP BY community_id) post_group
-    WHERE community_aggregates.community_id = post_group.community_id;
     RETURN NULL;
 END
 $$;
@@ -792,10 +812,6 @@ CREATE TRIGGER comment_removed_resolve_reports AFTER INSERT ON mod_remove_commen
 CREATE TRIGGER community_aggregates_comment_count AFTER INSERT OR DELETE OR UPDATE OF removed, deleted ON comment FOR EACH ROW EXECUTE FUNCTION r.community_aggregates_comment_count();
 
 CREATE TRIGGER community_aggregates_community AFTER INSERT OR DELETE ON community FOR EACH ROW EXECUTE FUNCTION r.community_aggregates_community();
-
-CREATE TRIGGER community_aggregates_post_count AFTER DELETE OR UPDATE OF removed, deleted ON post FOR EACH ROW EXECUTE FUNCTION r.community_aggregates_post_count();
-
-CREATE TRIGGER community_aggregates_post_count_insert AFTER INSERT ON post REFERENCING NEW TABLE AS new_post FOR EACH STATEMENT EXECUTE FUNCTION r.community_aggregates_post_count_insert();
 
 CREATE TRIGGER community_aggregates_subscriber_count AFTER INSERT OR DELETE ON community_follower FOR EACH ROW EXECUTE FUNCTION r.community_aggregates_subscriber_count();
 
