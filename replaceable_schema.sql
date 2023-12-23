@@ -220,55 +220,68 @@ CREATE TRIGGER aggregates
 
 -- These triggers update aggregates in response to votes.
 
-CREATE FUNCTION comment_aggregates_from_like()
-    RETURNS trigger
+CREATE PROCEDURE aggregates_from_like (target_name text)
     LANGUAGE plpgsql
-    AS $$
+    AS $a$
 BEGIN
-    WITH
-        any_like (comment_id, score, added) AS (
-            SELECT
-                comment_id,
-                score,
-                -1
+    EXECUTE format($b$
+        CREATE FUNCTION %1$s_aggregates_from_like ()
+            RETURNS trigger
+            LANGUAGE plpgsql
+            AS $$
+        BEGIN
+            WITH
+                any_like (target_id, score, added) AS (
+                    SELECT
+                        %1$s_id,
+                        score,
+                        -1
+                    FROM
+                        old_like
+                    UNION ALL
+                    SELECT
+                        %1$s_id,
+                        score,
+                        1
+                    FROM
+                        new_like
+                ),
+                added_to_target (target_id, added_upvotes, added_downvotes) AS (
+                    SELECT
+                        target_id,
+                        sum(added) FILTER (WHERE score = 1),
+                        sum(added) FILTER (WHERE score = -1)
+                    FROM
+                        any_like
+                    GROUP BY
+                        target_id
+                )
+            UPDATE
+                %1$s_aggregates AS aggregates
+            SET
+                score = score + added_upvotes - added_downvotes,
+                upvotes = upvotes + added_upvotes,
+                downvotes = downvotes + added_downvotes,
+                controversy_rank = controversy_rank (
+                    (upvotes + added_upvotes)::numeric,
+                    (downvotes + added_downvotes)::numeric
+                )
             FROM
-                old_like
-            UNION ALL
-            SELECT
-                comment_id,
-                score,
-                1
-            FROM
-                new_like
-        ),
-        added_to_comment (comment_id, added_upvotes, added_downvotes) AS (
-            SELECT
-                comment_id,
-                sum(added) FILTER (WHERE score = 1),
-                sum(added) FILTER (WHERE score = -1)
-            FROM
-                any_like
-            GROUP BY
-                comment_id
-        )
-    UPDATE
-        comment_aggregates
-    SET
-        score = score + added_upvotes - added_downvotes,
-        upvotes = upvotes + added_upvotes,
-        downvotes = downvotes + added_downvotes,
-        controversy_rank = controversy_rank (
-            (upvotes + added_upvotes)::numeric,
-            (downvotes + added_downvotes)::numeric
-        )
-    FROM
-        added_to_comment
-    WHERE
-        comment_aggregates.comment_id = added_to_comment.comment_id;
-
-    RETURN NULL;
+                added_to_target
+            WHERE
+                aggregates.comment_id = added_to_comment.comment_id;
+        
+            RETURN NULL;
+        END
+        $$;
+        $b$,
+        target_name);
 END
-$$;
+$a$;
+
+CALL aggregates_from_like ('comment');
+
+CALL aggregates_from_like ('post');
 
 COMMIT;
 
