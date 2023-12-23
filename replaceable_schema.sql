@@ -18,6 +18,33 @@ DROP SCHEMA IF EXISTS r CASCADE;
 
 CREATE SCHEMA r;
 
+-- These triggers resolve an item's reports when the item is removed.
+
+CREATE FUNCTION resolve_reports_when_post_removed () RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        post_report
+    SET
+        resolved = TRUE,
+        resolver_id = mod_person_id,
+        updated = now()
+    FROM
+        new_removal
+    WHERE
+        post_report.post_id = new_removal.post_id AND new_removal.removed
+
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER resolve_reports
+    AFTER INSERT ON mod_remove_post
+    REFERENCING NEW TABLE AS new_removal
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION resolve_reports_when_post_removed ();
+
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
 
