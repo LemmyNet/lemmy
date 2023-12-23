@@ -10,8 +10,9 @@ variables:
         - "src/**"
         - "**/Cargo.toml"
         - "Cargo.lock"
-        # database migrations
+        # sql code
         - "migrations/**"
+        - "replaceable_schema.sql"
         # typescript tests
         - "api_tests/**"
         # config files and scripts used by ci
@@ -162,6 +163,7 @@ steps:
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
       - diesel migration run
+      - psql -f replaceable_schema.sql $DATABASE_URL
       - diesel migration redo
     when: *slow_check_paths
 
