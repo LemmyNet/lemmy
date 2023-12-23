@@ -18,6 +18,26 @@ DROP SCHEMA IF EXISTS r CASCADE;
 
 CREATE SCHEMA r;
 
+-- Rank calculations
+
+CREATE OR REPLACE FUNCTION controversy_rank (upvotes numeric, downvotes numeric)
+    RETURNS float
+    AS $$
+BEGIN
+    IF downvotes <= 0 OR upvotes <= 0 THEN
+        RETURN 0;
+    ELSE
+        RETURN (upvotes + downvotes) * CASE WHEN upvotes > downvotes THEN
+            downvotes::float / upvotes::float
+        ELSE
+            upvotes::float / downvotes::float
+        END;
+    END IF;
+END;
+$$
+LANGUAGE plpgsql
+IMMUTABLE;
+
 -- These triggers resolve an item's reports when the item is marked as removed.
 
 CREATE FUNCTION resolve_reports_when_comment_removed ()
@@ -197,6 +217,58 @@ CREATE TRIGGER aggregates
     AFTER INSERT ON site
     FOR EACH ROW
     EXECUTE FUNCTION r.site_aggregates_from_site ();
+
+-- These triggers update aggregates in response to votes.
+
+CREATE FUNCTION comment_aggregates_from_like()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    WITH
+        any_like (comment_id, score, added) AS (
+            SELECT
+                comment_id,
+                score,
+                -1
+            FROM
+                old_like
+            UNION ALL
+            SELECT
+                comment_id,
+                score,
+                1
+            FROM
+                new_like
+        ),
+        added_to_comment (comment_id, added_upvotes, added_downvotes) AS (
+            SELECT
+                comment_id,
+                sum(added) FILTER (WHERE score = 1),
+                sum(added) FILTER (WHERE score = -1)
+            FROM
+                any_like
+            GROUP BY
+                comment_id
+        )
+    UPDATE
+        comment_aggregates
+    SET
+        score = score + added_upvotes - added_downvotes,
+        upvotes = upvotes + added_upvotes,
+        downvotes = downvotes + added_downvotes,
+        controversy_rank = controversy_rank (
+            (upvotes + added_upvotes)::numeric,
+            (downvotes + added_downvotes)::numeric
+        )
+    FROM
+        added_to_comment
+    WHERE
+        comment_aggregates.comment_id = added_to_comment.comment_id;
+
+    RETURN NULL;
+END
+$$;
 
 COMMIT;
 
