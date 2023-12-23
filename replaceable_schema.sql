@@ -1,15 +1,16 @@
--- This sets up the `r` schema, which contains things that can be safely dropped and replaced.
+-- This sets up the `r` schema, which contains things that can be safely dropped and replaced instead of being
+-- changed using migrations.
 --
--- Statements in this file may only create or modify things `r` schema (indicated by the `r.` prefix),
--- except for these things which are associated with something other than a schema (usually a table):
+-- Statements in this file may not create or modify things outside of the `r` schema (indicated by the `r.` prefix),
+-- except for these things, which are associated with something other than a schema (usually a table):
 --   * A trigger if the function name after `EXECUTE FUNCTION` is in `r` (dropping `r` drops the trigger)
 --
--- `r` is not temporarily set to the default schema because it would not affect some things (such as triggers) which
+-- The default schema is not temporarily set to `r` because it would not affect some things (such as triggers) which
 -- makes it hard to tell if the rule above is being followed.
 --
--- If you add something in `r` that depends on something (such as a table) created in a new migration, then down.sql must use
--- `CASCADE` when dropping it. This doesn't need to be fixed in old migrations because the "transactions-without-migrations"
--- migration runs `DROP SCHEMA IF EXISTS r CASCADE` in down.sql.
+-- If you add something here that depends on something (such as a table) created in a new migration, then down.sql must use
+-- `CASCADE` when dropping it. This doesn't need to be fixed in old migrations because the "replaceable-schema" migration
+-- runs `DROP SCHEMA IF EXISTS r CASCADE` in down.sql.
 
 BEGIN;
 
