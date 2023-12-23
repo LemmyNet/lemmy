@@ -118,5 +118,33 @@ CREATE TRIGGER aggregates
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.post_aggregates_from_post ();
 
+CREATE FUNCTION r.site_aggregates_from_site ()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- we only ever want to have a single value in site_aggregate because the site_aggregate triggers update all rows in that table.
+    -- a cleaner check would be to insert it for the local_site but that would break assumptions at least in the tests
+    IF NOT EXISTS (
+    SELECT
+        1
+    FROM
+        site_aggregates) THEN
+        INSERT INTO site_aggregates (site_id)
+        SELECT
+            id,
+        FROM
+            new_site;
+
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER aggregates
+    AFTER INSERT ON site
+    REFERENCING NEW TABLE AS new_site
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.site_aggregates_from_site ();
+
 COMMIT;
 
