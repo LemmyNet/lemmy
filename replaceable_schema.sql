@@ -82,6 +82,18 @@ CALL r.resolve_reports_when_target_removed ('post');
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
 
+CALL r.upsert_aggregates ('comment', 'published', NULL);
+
+CALL r.upsert_aggregates ('community', 'published', NULL);
+
+CALL r.upsert_aggregates ('person', NULL, NULL);
+
+CALL r.upsert_aggregates (
+    'post',
+    'published, newest_comment_time, newest_comment_time_necro, community_id, creator_id, instance_id, featured_community, featured_local',
+    'published AS newest_comment_time, published AS newest_comment_time_necro, (SELECT community.instance_id FROM community WHERE community.id = community_id LIMIT 1) AS instance_id'
+);
+
 CREATE FUNCTION r.comment_aggregates_from_comment ()
     RETURNS trigger
     LANGUAGE plpgsql
