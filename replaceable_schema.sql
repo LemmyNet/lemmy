@@ -38,6 +38,24 @@ $$
 LANGUAGE plpgsql
 IMMUTABLE;
 
+-- Selects both old and new rows in a trigger and allows using `sum(count_diff)` to get the number to add to a count
+CREATE FUNCTION r.combine_transition_tables ()
+    RETURNS SETOF record
+    LANGUAGE sql
+    AS $$
+    SELECT
+        -1 AS count_diff,
+        *
+    FROM
+        old_table
+    UNION ALL
+    SELECT
+        1 AS count_diff,
+        *
+    FROM
+        new_table;
+$$;
+
 -- These triggers resolve an item's reports when the item is marked as removed.
 
 CREATE PROCEDURE r.resolve_reports_when_target_removed (target_name text)
@@ -230,33 +248,18 @@ BEGIN
             AS $$
         BEGIN
             WITH
-                individual_vote (target_id, score, vote_amount_change) AS (
-                    SELECT
-                        %1$s_id,
-                        score,
-                        -1
-                    FROM
-                        old_like
-                    UNION ALL
-                    SELECT
-                        %1$s_id,
-                        score,
-                        1
-                    FROM
-                        new_like
-                ),
                 vote_group (target_id, added_upvotes, added_downvotes) AS (
                     SELECT
                         target_id,
-                        sum(vote_amount_change) FILTER (WHERE score = 1),
-                        sum(vote_amount_change) FILTER (WHERE score <> 1)
+                        sum(count_diff) FILTER (WHERE score = 1),
+                        sum(count_diff) FILTER (WHERE score <> 1)
                     FROM
-                        individual_vote
+                        r.combine_transition_tables ()
                     GROUP BY
                         target_id
                 ),
-                -- Update aggregates for target
-                individual_target (creator_id, score_change) AS (
+                -- Update aggregates for targe
+                updated_target (creator_id, score_change) AS (
                     UPDATE
                         %1$s_aggregates AS target_aggregates
                     SET
@@ -274,15 +277,6 @@ BEGIN
                     RETURNING
                         %2$s,
                         added_upvotes - added_downvotes
-                ),
-                target_group (creator_id, score_change) AS (
-                    SELECT
-                        creator_id,
-                        sum(score_change)
-                    FROM
-                        individual_target
-                    GROUP BY
-                        creator_id
                 )
             -- Update aggregates for target's creator
             UPDATE
@@ -290,7 +284,13 @@ BEGIN
             SET
                 %1$s_score = %1$s_score + target_group.score_change;
             FROM
-                target_group
+                    SELECT
+                        creator_id,
+                        sum(score_change)
+                    FROM
+                        updated_target
+                    GROUP BY
+                        creator_id
             WHERE
                 person_aggregates.person_id = target_group.creator_id;
 
@@ -300,7 +300,7 @@ BEGIN
 
         CREATE TRIGGER aggregates
             AFTER INSERT OR DELETE OR UPDATE OF score ON %1$s_like
-            REFERENCING OLD TABLE AS old_like NEW TABLE AS new_like
+            REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
             FOR EACH STATEMENT
             EXECUTE FUNCTION r.%1$s_aggregates_from_like;
         $b$,
