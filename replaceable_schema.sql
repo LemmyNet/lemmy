@@ -235,16 +235,16 @@ BEGIN
                 ),
                 vote_group (target_id, added_upvotes, added_downvotes) AS (
                     SELECT
-                        individual_vote.target_id,
+                        target_id,
                         sum(vote_amount_change) FILTER (WHERE score = 1),
                         sum(vote_amount_change) FILTER (WHERE score <> 1)
                     FROM
                         individual_vote
                     GROUP BY
-                        individual_vote.target_id
+                        target_id
                 ),
                 -- Update aggregates for target
-                target_aggregates_update_result (creator_id, creator_score_change) AS (
+                individual_target (creator_id, score_change) AS (
                     UPDATE
                         %1$s_aggregates AS target_aggregates
                     SET
@@ -262,16 +262,25 @@ BEGIN
                     RETURNING
                         %2$s,
                         added_upvotes - added_downvotes
+                ),
+                target_group (creator_id, score_change) AS (
+                    SELECT
+                        creator_id,
+                        sum(score_change)
+                    FROM
+                        individual_target
+                    GROUP BY
+                        creator_id
                 )
             -- Update aggregates for target's creator
             UPDATE
                 person_aggregates
             SET
-                %1$s_score = creator_score_change;
+                %1$s_score = %1$s_score + target_group.score_change;
             FROM
-                target_aggregates_update_result
+                target_group
             WHERE
-                person_aggregates.person_id = creator_id;
+                person_aggregates.person_id = target_group.creator_id;
 
             RETURN NULL;
         END
