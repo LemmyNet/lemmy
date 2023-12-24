@@ -248,51 +248,50 @@ BEGIN
             AS $$
         BEGIN
             WITH
-                vote_group (target_id, added_upvotes, added_downvotes) AS (
-                    SELECT
-                        target_id,
-                        sum(count_diff) FILTER (WHERE score = 1),
-                        sum(count_diff) FILTER (WHERE score <> 1)
-                    FROM
-                        r.combine_transition_tables ()
-                    GROUP BY
-                        target_id
-                ),
-                -- Update aggregates for targe
-                updated_target (creator_id, score_change) AS (
+                -- Update aggregates for target
+                target_diff (creator_id, score) AS (
                     UPDATE
                         %1$s_aggregates AS target_aggregates
                     SET
-                        score = score + added_upvotes - added_downvotes,
-                        upvotes = upvotes + added_upvotes,
-                        downvotes = downvotes + added_downvotes,
+                        score = score + diff.upvotes - diff.downvotes,
+                        upvotes = upvotes + diff.upvotes,
+                        downvotes = downvotes + diff.downvotes,
                         controversy_rank = controversy_rank (
-                            (upvotes + added_upvotes)::numeric,
-                            (downvotes + added_downvotes)::numeric
+                            (upvotes + diff.upvotes)::numeric,
+                            (downvotes + diff.downvotes)::numeric
                         )
-                    FROM
-                        vote_group
+                    FROM (
+                        SELECT
+                            target_id,
+                            sum(count_diff) FILTER (WHERE score = 1) AS upvotes,
+                            sum(count_diff) FILTER (WHERE score <> 1) AS downvotes
+                        FROM
+                            r.combine_transition_tables ()
+                        GROUP BY
+                            target_id
+                    ) AS diff
                     WHERE
-                        target_aggregates.comment_id = vote_group.target_id
+                        target_aggregates.comment_id = diff.target_id
                     RETURNING
                         %2$s,
-                        added_upvotes - added_downvotes
+                        diff.upvotes - diff.downvotes
                 )
             -- Update aggregates for target's creator
             UPDATE
                 person_aggregates
             SET
-                %1$s_score = %1$s_score + target_group.score_change;
-            FROM
-                    SELECT
-                        creator_id,
-                        sum(score_change)
-                    FROM
-                        updated_target
-                    GROUP BY
-                        creator_id
+                %1$s_score = %1$s_score + diff.score;
+            FROM (
+                SELECT
+                    creator_id,
+                    sum(score)
+                FROM
+                    target_diff
+                GROUP BY
+                    creator_id
+            ) AS diff
             WHERE
-                person_aggregates.person_id = target_group.creator_id;
+                person_aggregates.person_id = diff.creator_id;
 
             RETURN NULL;
         END
@@ -309,7 +308,7 @@ BEGIN
 END
 $a$;
 
-CALL r.aggregates_from_like ('comment', '(SELECT creator_id FROM comment WHERE id = vote_group.target_id LIMIT 1)');
+CALL r.aggregates_from_like ('comment', '(SELECT creator_id FROM comment WHERE comment.id = target_aggregates.comment_id LIMIT 1)');
 
 CALL r.aggregates_from_like ('post', 'target_aggregates.creator_id');
 
