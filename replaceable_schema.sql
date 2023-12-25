@@ -11,7 +11,6 @@
 -- If you add something here that depends on something (such as a table) created in a new migration, then down.sql must use
 -- `CASCADE` when dropping it. This doesn't need to be fixed in old migrations because the "replaceable-schema" migration
 -- runs `DROP SCHEMA IF EXISTS r CASCADE` in down.sql.
-
 BEGIN;
 
 DROP SCHEMA IF EXISTS r CASCADE;
@@ -19,7 +18,6 @@ DROP SCHEMA IF EXISTS r CASCADE;
 CREATE SCHEMA r;
 
 -- Rank calculations
-
 CREATE OR REPLACE FUNCTION r.controversy_rank (upvotes numeric, downvotes numeric)
     RETURNS float
     AS $$
@@ -57,37 +55,29 @@ CREATE FUNCTION r.combine_transition_tables ()
 $$;
 
 -- These triggers resolve an item's reports when the item is marked as removed.
-
 CREATE PROCEDURE r.resolve_reports_when_target_removed (target_name text)
-    LANGUAGE plpgsql
-    AS $a$
+LANGUAGE plpgsql
+AS $a$
 BEGIN
-    EXECUTE format($b$
-        CREATE FUNCTION r.resolve_reports_when_%1$s_removed ()
-            RETURNS trigger
+    EXECUTE format($b$ CREATE FUNCTION r.resolve_reports_when_%1 $ s_removed ( )
+            RETURNS TRIGGER
             LANGUAGE plpgsql
             AS $$
-        BEGIN
-            UPDATE
-                %1$s_report AS report
-            SET
-                resolved = TRUE,
-                resolver_id = mod_person_id,
-                updated = now()
-            FROM
-                new_removal
-            WHERE
-                report.%1$s_id = new_removal.%1$a_id AND new_removal.removed;
-
-            RETURN NULL;
-        END
-        $$;
-
-        CREATE TRIGGER resolve_reports
-            AFTER INSERT ON mod_remove_%1$s
-            REFERENCING NEW TABLE AS new_removal
-            FOR EACH STATEMENT
-            EXECUTE FUNCTION r.resolve_reports_when_%1$s_removed ();
+            BEGIN
+                UPDATE
+                     %1$s_report AS report
+                SET
+                    resolved = TRUE, resolver_id = mod_person_id, updated = now()
+                FROM new_removal
+                WHERE
+                    report.%1$s_id = new_removal.%1$a_id
+                    AND new_removal.removed;
+                RETURN NULL;
+            END $$;
+    CREATE TRIGGER resolve_reports
+        AFTER INSERT ON mod_remove_ %1$s REFERENCING NEW TABLE AS new_removal
+        FOR EACH STATEMENT
+        EXECUTE FUNCTION r.resolve_reports_when_ %1 $ s_removed ( );
         $b$,
         target_name);
 END
@@ -99,21 +89,8 @@ CALL r.resolve_reports_when_target_removed ('post');
 
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
-
-CALL r.upsert_aggregates ('comment', 'published', NULL);
-
-CALL r.upsert_aggregates ('community', 'published', NULL);
-
-CALL r.upsert_aggregates ('person', NULL, NULL);
-
-CALL r.upsert_aggregates (
-    'post',
-    'published, newest_comment_time, newest_comment_time_necro, community_id, creator_id, instance_id, featured_community, featured_local',
-    'published AS newest_comment_time, published AS newest_comment_time_necro, (SELECT community.instance_id FROM community WHERE community.id = community_id LIMIT 1) AS instance_id'
-);
-
 CREATE FUNCTION r.comment_aggregates_from_comment ()
-    RETURNS trigger
+    RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -123,19 +100,17 @@ BEGIN
         published
     FROM
         new_comment;
-
     RETURN NULL;
 END
 $$;
 
 CREATE TRIGGER aggregates
-    AFTER INSERT ON comment
-    REFERENCING NEW TABLE AS new_comment
+    AFTER INSERT ON comment REFERENCING NEW TABLE AS new_comment
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.comment_aggregates_from_comment ();
 
 CREATE FUNCTION r.community_aggregates_from_community ()
-    RETURNS trigger
+    RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -145,19 +120,17 @@ BEGIN
         published
     FROM
         new_community;
-
     RETURN NULL;
 END
 $$;
 
 CREATE TRIGGER aggregates
-    AFTER INSERT ON community
-    REFERENCING NEW TABLE AS new_community
+    AFTER INSERT ON community REFERENCING NEW TABLE AS new_community
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.community_aggregates_from_community ();
 
 CREATE FUNCTION r.person_aggregates_from_person ()
-    RETURNS trigger
+    RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -166,66 +139,62 @@ BEGIN
         id,
     FROM
         new_person;
-
     RETURN NULL;
 END
 $$;
 
 CREATE TRIGGER aggregates
-    AFTER INSERT ON person
-    REFERENCING NEW TABLE AS new_person
+    AFTER INSERT ON person REFERENCING NEW TABLE AS new_person
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.person_aggregates_from_person ();
 
 CREATE FUNCTION r.post_aggregates_from_post ()
-    RETURNS trigger
+    RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
 BEGIN
     INSERT INTO post_aggregates (post_id, published, newest_comment_time, newest_comment_time_necro, community_id, creator_id, instance_id, featured_community, featured_local)
     SELECT
-        id,
-        published,
-        published,
-        published,
-        community_id,
-        creator_id,
-        (SELECT community.instance_id FROM community WHERE community.id = community_id LIMIT 1),
-        featured_community,
-        featured_local
+        new_post.id,
+        new_post.published,
+        new_post.published,
+        new_post.published,
+        new_post.community_id,
+        new_post.creator_id,
+        community.instance_id,
+        new_post.featured_community,
+        new_post.featured_local
     FROM
         new_post
-    ON CONFLICT DO UPDATE SET
-        featured_community = excluded.featured_community,
-        featured_local = excluded.featured_local;
-
+        INNER JOIN community ON community.id = new_post.community_id
+    ON CONFLICT
+        DO UPDATE SET
+            featured_community = excluded.featured_community,
+            featured_local = excluded.featured_local;
     RETURN NULL;
 END
 $$;
 
 CREATE TRIGGER aggregates
-    AFTER INSERT OR UPDATE OF featured_community, featured_local ON post
-    REFERENCING NEW TABLE AS new_post
+    AFTER INSERT OR UPDATE OF featured_community,
+    featured_local ON post REFERENCING NEW TABLE AS new_post
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.post_aggregates_from_post ();
 
 CREATE FUNCTION r.site_aggregates_from_site ()
-    RETURNS trigger
+    RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
 BEGIN
     -- we only ever want to have a single value in site_aggregate because the site_aggregate triggers update all rows in that table.
     -- a cleaner check would be to insert it for the local_site but that would break assumptions at least in the tests
     IF NOT EXISTS (
-    SELECT
-        1
-    FROM
-        site_aggregates) THEN
-        INSERT INTO
-            site_aggregates (site_id)
-        VALUES
-            (NEW.id);
-
+        SELECT
+            1
+        FROM
+            site_aggregates) THEN
+    INSERT INTO site_aggregates (site_id)
+        VALUES (NEW.id);
     RETURN NULL;
 END
 $$;
@@ -236,51 +205,36 @@ CREATE TRIGGER aggregates
     EXECUTE FUNCTION r.site_aggregates_from_site ();
 
 -- These triggers update aggregates in response to votes.
-
 CREATE PROCEDURE r.aggregates_from_like (target_name text, creator_id_getter text)
-    LANGUAGE plpgsql
-    AS $a$
+LANGUAGE plpgsql
+AS $a$
 BEGIN
-    EXECUTE format($b$
-        CREATE FUNCTION r.%1$s_aggregates_from_like ()
-            RETURNS trigger
+    EXECUTE format($b$ CREATE FUNCTION r.%1$s_aggregates_from_like ( )
+            RETURNS TRIGGER
             LANGUAGE plpgsql
             AS $$
-        BEGIN
-            WITH
+            BEGIN
+                WITH
                 -- Update aggregates for target
-                target_diff (creator_id, score) AS (
-                    UPDATE
-                        %1$s_aggregates AS target_aggregates
+                target_diff (
+                    creator_id, score
+) AS ( UPDATE
+                         %1$s_aggregates AS target_aggregates
                     SET
-                        score = score + diff.upvotes - diff.downvotes,
-                        upvotes = upvotes + diff.upvotes,
-                        downvotes = downvotes + diff.downvotes,
-                        controversy_rank = controversy_rank (
-                            (upvotes + diff.upvotes)::numeric,
-                            (downvotes + diff.downvotes)::numeric
-                        )
+                        score = score + diff.upvotes - diff.downvotes, upvotes = upvotes + diff.upvotes, downvotes = downvotes + diff.downvotes, controversy_rank = controversy_rank ((upvotes + diff.upvotes)::numeric, (downvotes + diff.downvotes)::numeric)
                     FROM (
                         SELECT
-                            target_id,
-                            sum(count_diff) FILTER (WHERE score = 1) AS upvotes,
-                            sum(count_diff) FILTER (WHERE score <> 1) AS downvotes
-                        FROM
-                            r.combine_transition_tables ()
-                        GROUP BY
-                            target_id
-                    ) AS diff
-                    WHERE
-                        target_aggregates.comment_id = diff.target_id
-                    RETURNING
-                        %2$s,
-                        diff.upvotes - diff.downvotes
-                )
-            -- Update aggregates for target's creator
-            UPDATE
-                person_aggregates
-            SET
-                %1$s_score = %1$s_score + diff.score;
+                            target_id, sum(count_diff) FILTER (WHERE score = 1) AS upvotes, sum(count_diff) FILTER (WHERE score <> 1) AS downvotes FROM r.combine_transition_tables ()
+                GROUP BY target_id) AS diff
+                WHERE
+                    target_aggregates.comment_id = diff.target_id
+                RETURNING
+                     %2$s, diff.upvotes - diff.downvotes)
+                -- Update aggregates for target's creator
+                UPDATE
+                    person_aggregates
+                SET
+                     %1$s_score =  %1$s_score + diff.score;
             FROM (
                 SELECT
                     creator_id,
@@ -288,20 +242,15 @@ BEGIN
                 FROM
                     target_diff
                 GROUP BY
-                    creator_id
-            ) AS diff
-            WHERE
-                person_aggregates.person_id = diff.creator_id;
-
-            RETURN NULL;
-        END
-        $$;
-
-        CREATE TRIGGER aggregates
-            AFTER INSERT OR DELETE OR UPDATE OF score ON %1$s_like
-            REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
-            FOR EACH STATEMENT
-            EXECUTE FUNCTION r.%1$s_aggregates_from_like;
+                    creator_id) AS diff
+        WHERE
+            person_aggregates.person_id = diff.creator_id;
+                RETURN NULL;
+            END $$;
+    CREATE TRIGGER aggregates
+        AFTER INSERT OR DELETE OR UPDATE OF score ON %1$s_like REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
+        FOR EACH STATEMENT
+        EXECUTE FUNCTION r.%1$s_aggregates_from_like;
         $b$,
         target_name,
         creator_id_getter);
