@@ -3,7 +3,9 @@
 export PGDATA="$PWD/dev_pgdata"
 export PGHOST=$PWD
 export PGUSER=postgres
-export LEMMY_DATABASE_URL="postgresql://lemmy:password@/lemmy?host=$PWD"
+export DATABASE_URL="postgresql://lemmy:password@/lemmy?host=$PWD"
+export LEMMY_DATABASE_URL=$DATABASE_URL
+export PGDATABASE=lemmy
 
 # If cluster exists, stop the server and delete the cluster
 if [ -d $PGDATA ]
@@ -21,6 +23,5 @@ initdb --username=postgres --auth=trust --no-instructions
 pg_ctl start --options="-c listen_addresses= -c unix_socket_directories=$PWD" > /dev/null
 
 # Setup database
-psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
-psql -c "CREATE DATABASE lemmy WITH OWNER lemmy;"
-export PGDATABASE=lemmy
+PGDATABASE=postgres psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
+PGDATABASE=postgres psql -c "CREATE DATABASE lemmy WITH OWNER lemmy;"

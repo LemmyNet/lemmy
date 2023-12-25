@@ -215,24 +215,22 @@ BEGIN
             AS $$
             BEGIN
                 -- Update aggregates for target, then update aggregates for target's creator
-                WITH target_diff (
-                    creator_id, score
-) AS ( UPDATE
-                        %1$s_aggregates AS target_aggregates
+                WITH target_diff AS ( UPDATE
+                        %1$s_aggregates
                     SET
-                        score = score + diff.upvotes - diff.downvotes, upvotes = upvotes + diff.upvotes, downvotes = downvotes + diff.downvotes, controversy_rank = controversy_rank ((upvotes + diff.upvotes)::numeric, (downvotes + diff.downvotes)::numeric)
+                        (score, upvotes, downvotes, controversy_rank) = (score + diff.upvotes - diff.downvotes, upvotes + diff.upvotes, downvotes + diff.downvotes, controversy_rank ((upvotes + diff.upvotes)::numeric, (downvotes + diff.downvotes)::numeric))
                     FROM (
                         SELECT
-                            target_id, sum(count_diff) FILTER (WHERE score = 1) AS upvotes, sum(count_diff) FILTER (WHERE score <> 1) AS downvotes FROM r.combine_transition_tables ()
-                GROUP BY target_id) AS diff
+                            %1$s_id, sum(count_diff) FILTER (WHERE score = 1) AS upvotes, sum(count_diff) FILTER (WHERE score <> 1) AS downvotes FROM r.combine_transition_tables ()
+                GROUP BY %1$s_id) AS diff
                 WHERE
-                    target_aggregates.comment_id = diff.target_id
+                    %1$s_aggregates.%1 $ s_id = diff.%1$s_id
                 RETURNING
-                    %2$s, diff.upvotes - diff.downvotes)
+                    %2$s AS creator_id, diff.upvotes - diff.downvotes AS score)
             UPDATE
                 person_aggregates
             SET
-                %1$s_score = %1$s_score + diff.score FROM (
+                %1$s_score = %1$s_score + diff.sum FROM (
                     SELECT
                         creator_id, sum(score)
                     FROM target_diff GROUP BY creator_id) AS diff
