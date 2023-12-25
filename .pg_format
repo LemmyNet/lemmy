@@ -1,5 +1,5 @@
 # Keep normal formatting between `BEGIN` and `COMMIT` statements
 nogrouping=1
 
-# Don't add spaces after % in dollar-quoted function body when using `format`
-placeholder=.%.
+# Don't add whitespace around % (used for `format`) in dollar-quoted function body
+placeholder=[^\s;]+%[^\s;]+
