@@ -59,7 +59,7 @@ CREATE PROCEDURE r.resolve_reports_when_target_removed (target_name text)
 LANGUAGE plpgsql
 AS $a$
 BEGIN
-    EXECUTE format($b$ CREATE FUNCTION r.resolve_reports_when_%1 $ s_removed ( )
+    EXECUTE format($b$ CREATE FUNCTION r.resolve_reports_when_%1$s_removed ( )
             RETURNS TRIGGER
             LANGUAGE plpgsql
             AS $$
@@ -70,14 +70,14 @@ BEGIN
                     resolved = TRUE, resolver_id = mod_person_id, updated = now()
                 FROM new_removal
                 WHERE
-                    report.%1$s_id = new_removal.%1$a_id
+                    report.%1$s_id = new_removal.%1$s_id
                     AND new_removal.removed;
                 RETURN NULL;
             END $$;
     CREATE TRIGGER resolve_reports
-        AFTER INSERT ON mod_remove_ %1$s REFERENCING NEW TABLE AS new_removal
+        AFTER INSERT ON mod_remove_%1$s REFERENCING NEW TABLE AS new_removal
         FOR EACH STATEMENT
-        EXECUTE FUNCTION r.resolve_reports_when_ %1 $ s_removed ( );
+        EXECUTE FUNCTION r.resolve_reports_when_%1$s_removed ( );
         $b$,
         target_name);
 END
@@ -214,8 +214,8 @@ BEGIN
             LANGUAGE plpgsql
             AS $$
             BEGIN
+                -- Update aggregates for target, then update aggregates for target's creator
                 WITH
-                -- Update aggregates for target
                 target_diff (
                     creator_id, score
 ) AS ( UPDATE
@@ -230,11 +230,10 @@ BEGIN
                     target_aggregates.comment_id = diff.target_id
                 RETURNING
                      %2$s, diff.upvotes - diff.downvotes)
-                -- Update aggregates for target's creator
                 UPDATE
                     person_aggregates
                 SET
-                     %1$s_score =  %1$s_score + diff.score;
+                     %1$s_score =  %1$s_score + diff.score
             FROM (
                 SELECT
                     creator_id,
