@@ -65,7 +65,7 @@ BEGIN
             AS $$
             BEGIN
                 UPDATE
-                     %1$s_report AS report
+                    %1$s_report AS report
                 SET
                     resolved = TRUE, resolver_id = mod_person_id, updated = now()
                 FROM new_removal
@@ -215,11 +215,10 @@ BEGIN
             AS $$
             BEGIN
                 -- Update aggregates for target, then update aggregates for target's creator
-                WITH
-                target_diff (
+                WITH target_diff (
                     creator_id, score
 ) AS ( UPDATE
-                         %1$s_aggregates AS target_aggregates
+                        %1$s_aggregates AS target_aggregates
                     SET
                         score = score + diff.upvotes - diff.downvotes, upvotes = upvotes + diff.upvotes, downvotes = downvotes + diff.downvotes, controversy_rank = controversy_rank ((upvotes + diff.upvotes)::numeric, (downvotes + diff.downvotes)::numeric)
                     FROM (
@@ -229,21 +228,16 @@ BEGIN
                 WHERE
                     target_aggregates.comment_id = diff.target_id
                 RETURNING
-                     %2$s, diff.upvotes - diff.downvotes)
-                UPDATE
-                    person_aggregates
-                SET
-                     %1$s_score =  %1$s_score + diff.score
-            FROM (
-                SELECT
-                    creator_id,
-                    sum(score)
-                FROM
-                    target_diff
-                GROUP BY
-                    creator_id) AS diff
-        WHERE
-            person_aggregates.person_id = diff.creator_id;
+                    %2$s, diff.upvotes - diff.downvotes)
+            UPDATE
+                person_aggregates
+            SET
+                %1$s_score = %1$s_score + diff.score FROM (
+                    SELECT
+                        creator_id, sum(score)
+                    FROM target_diff GROUP BY creator_id) AS diff
+                WHERE
+                    person_aggregates.person_id = diff.creator_id;
                 RETURN NULL;
             END $$;
     CREATE TRIGGER aggregates
