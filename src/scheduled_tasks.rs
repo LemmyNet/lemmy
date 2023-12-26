@@ -4,6 +4,7 @@ use diesel::{
   dsl::IntervalDsl,
   sql_query,
   sql_types::{Integer, Timestamptz},
+  BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
@@ -90,7 +91,7 @@ pub async fn setup(context: LemmyContext) -> Result<(), LemmyError> {
 
   let context_1 = context.clone();
   // Update the Instance Software
-  scheduler.every(CTimeUnits::days(1)).run(move || {
+  scheduler.every(CTimeUnits::minutes(10)).run(move || {
     let context = context_1.clone();
 
     async move {
@@ -453,7 +454,15 @@ async fn update_instance_software(
 
   match conn {
     Ok(mut conn) => {
-      let instances = instance::table.get_results::<Instance>(&mut conn).await?;
+      // get instances that have been updated more than 24 hours ago or never
+      let instances = instance::table
+        .filter(
+          instance::updated
+            .is_null()
+            .or(instance::updated.lt(now().nullable() - IntervalDsl::hours(24))),
+        )
+        .get_results::<Instance>(&mut conn)
+        .await?;
 
       for instance in instances {
         let node_info_url = format!("https://{}/nodeinfo/2.0.json", instance.domain);
