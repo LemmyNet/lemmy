@@ -22,3 +22,5 @@ pub mod registration_application_view;
 #[cfg(feature = "full")]
 pub mod site_view;
 pub mod structs;
+#[cfg(feature = "full")]
+pub mod vote_view;
