@@ -262,6 +262,19 @@ steps:
     when:
       event: cron
 
+  # using https://github.com/pksunkara/cargo-workspaces
+  publish_to_crates_io:
+    image: *rust_image
+    commands:
+      - 'echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"'
+      - cargo install cargo-workspaces
+      - cp -r migrations crates/db_schema/
+      - cargo login "$CARGO_API_TOKEN"
+      - cargo workspaces publish --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
+    secrets: [cargo_api_token]
+    when:
+      event: tag
+
   notify_on_failure:
     image: alpine:3
     commands:
