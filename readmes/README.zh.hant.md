@@ -48,8 +48,8 @@
 
 ## 關於專案
 
-| 桌面設備                                                                                                   | 行動裝置                                                                                                    |
-| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 桌面設備                                                                                                        | 行動裝置                                                                                                    |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_screen_2.webp) | ![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp) |
 
 [Lemmy](https://github.com/LemmyNet/lemmy) 與 [Reddit](https://reddit.com)、[Lobste.rs](https://lobste.rs) 或 [Hacker News](https://news.ycombinator.com/) 等網站類似：你可以訂閱你感興趣的論壇，釋出連結和討論，然後進行投票或評論。但在幕後，Lemmy 和他們不同——任何人都可以很容易地架設一個伺服器，所有伺服器都是聯邦式的（想想電子郵件），並與 [聯邦宇宙](https://zh.wikipedia.org/wiki/%E8%81%94%E9%82%A6%E5%AE%87%E5%AE%99) 互聯。

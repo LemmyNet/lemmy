@@ -45,8 +45,8 @@
 
 ## Sobre El Proyecto
 
-| Escritorio                                                                                                 | Móvil                                                                                                       |
-| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Escritorio                                                                                                      | Móvil                                                                                                       |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_screen_2.webp) | ![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp) |
 
 [Lemmy](https://github.com/LemmyNet/lemmy) es similar a sitios como [Menéame](https://www.meneame.net/), [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), o [Hacker News](https://news.ycombinator.com/): te subscribes a los foros que te interesan, publicas enlaces y debates, luego votas y comentas en ellos. Entre bastidores, es muy diferente; cualquiera puede gestionar fácilmente un servidor, y todos estos servidores son federados (piensa en el correo electrónico), y conectados al mismo universo, llamado [Fediverso](https://es.wikipedia.org/wiki/Fediverso).
