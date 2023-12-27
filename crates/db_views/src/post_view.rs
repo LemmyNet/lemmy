@@ -482,6 +482,12 @@ fn queries<'a>() -> Queries<
       SortType::TopNineMonths => query.then_desc(key::score).filter(time(9.months())),
     };
 
+    query = options.sort.unwrap_or(SortType::Hot) {
+      // A second time-based sort would not be very useful
+      SortType::New | SortType::Old | SortType::NewComments => query,
+      _ => query.then_desc(key::published),
+    };
+
     query = query.then_desc(key::post_id);
 
     // Not done by debug_query
