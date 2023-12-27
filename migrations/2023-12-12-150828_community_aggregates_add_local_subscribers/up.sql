@@ -1,12 +1,12 @@
--- Couldn't find a way to put local_subscribers right after subscribers except recreating the table.
+-- Couldn't find a way to put subscribers_local right after subscribers except recreating the table.
 ALTER TABLE community_aggregates
-    ADD COLUMN local_subscribers int8 NOT NULL DEFAULT 0;
+    ADD COLUMN subscribers_local int8 NOT NULL DEFAULT 0;
 
 -- update initial value
 UPDATE
     community_aggregates
 SET
-    local_subscribers = (
+    subscribers_local = (
         SELECT
             COUNT(*)
         FROM
@@ -21,7 +21,7 @@ SET
                 WHERE
                     person.id = cf.person_id));
 
-CREATE OR REPLACE FUNCTION community_aggregates_local_subscriber_count ()
+CREATE OR REPLACE FUNCTION community_aggregates_subscriber_local_count ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
@@ -30,7 +30,7 @@ BEGIN
         UPDATE
             community_aggregates
         SET
-            local_subscribers = local_subscribers + 1
+            subscribers_local = subscribers_local + 1
         FROM
             community c
         WHERE
@@ -46,7 +46,7 @@ BEGIN
         UPDATE
             community_aggregates
         SET
-            local_subscribers = local_subscribers - 1
+            subscribers_local = subscribers_local - 1
         FROM
             community c
         WHERE
@@ -63,8 +63,8 @@ BEGIN
 END
 $$;
 
-CREATE TRIGGER community_aggregates_local_subscriber_count
+CREATE TRIGGER community_aggregates_subscriber_local_count
     AFTER INSERT OR DELETE ON community_follower
     FOR EACH ROW
-    EXECUTE PROCEDURE community_aggregates_local_subscriber_count ();
+    EXECUTE PROCEDURE community_aggregates_subscriber_local_count ();
 
