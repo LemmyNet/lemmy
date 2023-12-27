@@ -163,7 +163,7 @@ steps:
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
       - diesel migration run
-      - psql -f replaceable_schema.sql $DATABASE_URL
+      - psql -f replaceable_schema.sql
       - diesel migration redo
     when: *slow_check_paths
 
