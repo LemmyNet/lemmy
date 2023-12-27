@@ -86,19 +86,15 @@ BEGIN
                 UPDATE
                     thing_report
                 SET
-                    resolved = TRUE, resolver_id = first_removal.mod_person_id, updated = first_removal.when_
-                FROM ( SELECT
-                        thing_id,
-                        min(when_) AS when_
-                    FROM new_removal
-                    WHERE
-                        new_removal.removed
-                    GROUP BY
-                        thing_id) AS first_removal
-                WHERE
-                    report.thing_id = first_removal.thing_id
-                    AND NOT report.resolved
-                    AND COALESCE(report.updated < first_removal.when_, TRUE);
+                    resolved = TRUE, resolver_id = first_removal.mod_person_id, updated = first_removal.when_ FROM (
+                        SELECT
+                            thing_id, min(when_) AS when_ FROM new_removal
+                        WHERE
+                            new_removal.removed GROUP BY thing_id) AS first_removal
+                        WHERE
+                            report.thing_id = first_removal.thing_id
+                            AND NOT report.resolved
+                            AND COALESCE(report.updated < first_removal.when_, TRUE);
                 RETURN NULL;
             END $$;
     CREATE TRIGGER resolve_reports
@@ -444,15 +440,15 @@ BEGIN
         FROM
             combine_transition_tables ()
         WHERE (
-            SELECT    
+            SELECT
                 local
             FROM
                 community
             WHERE
                 community.id = community_id
             LIMIT 1)
-        GROUP BY
-            community_id) AS diff
+    GROUP BY
+        community_id) AS diff
 WHERE
     a.community_id = diff.community_id;
     RETURN NULL;

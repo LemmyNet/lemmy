@@ -32,10 +32,10 @@ FROM (
                     post
                 WHERE
                     post.id = comment.post_id
-                        AND (post.deleted OR post.removed)
-                ))
-    GROUP BY
-        community.id) AS counted
+                    AND (post.deleted
+                        OR post.removed)))
+        GROUP BY
+            community.id) AS counted
 WHERE
     community_aggregates.community_id = counted.community_id;
 
