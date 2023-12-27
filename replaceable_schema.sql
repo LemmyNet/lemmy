@@ -86,16 +86,19 @@ BEGIN
                 UPDATE
                     thing_report
                 SET
-                    resolved = TRUE, resolver_id = mod_person_id, updated = now()
-                FROM ( SELECT DISTINCT
-                        thing_id
+                    resolved = TRUE, resolver_id = first_removal.mod_person_id, updated = first_removal.when_
+                FROM ( SELECT
+                        thing_id,
+                        min(when_) AS when_
                     FROM new_removal
                     WHERE
-                        new_removal.removed) AS distinct_removal
+                        new_removal.removed
+                    GROUP BY
+                        thing_id) AS first_removal
                 WHERE
-                    report.thing_id = distinct_removal.thing_id
+                    report.thing_id = first_removal.thing_id
                     AND NOT report.resolved
-                    AND COALESCE(report.updated < now(), TRUE);
+                    AND COALESCE(report.updated < first_removal.when_, TRUE);
                 RETURN NULL;
             END $$;
     CREATE TRIGGER resolve_reports
