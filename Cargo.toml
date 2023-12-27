@@ -54,6 +54,7 @@ members = [
   "crates/api_common",
   "crates/apub",
   "crates/utils",
+  "crates/db_perf",
   "crates/db_schema",
   "crates/db_views",
   "crates/db_views_actor",
@@ -156,6 +157,7 @@ tokio-postgres = "0.7.10"
 tokio-postgres-rustls = "0.10.0"
 enum-map = "2.7"
 moka = { version = "0.12.1", features = ["future"] }
+clap = { version = "4.4.11", features = ["derive"] }
 
 [dependencies]
 lemmy_api = { workspace = true }
@@ -192,5 +194,5 @@ futures-util = { workspace = true }
 chrono = { workspace = true }
 prometheus = { version = "0.13.3", features = ["process"] }
 serial_test = { workspace = true }
-clap = { version = "4.4.11", features = ["derive"] }
+clap = { workspace = true }
 actix-web-prom = "0.7.0"
