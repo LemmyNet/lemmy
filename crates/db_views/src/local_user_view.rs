@@ -5,7 +5,14 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{LocalUserId, PersonId},
   schema::{local_user, person, person_aggregates},
-  utils::{functions::lower, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{
+    functions::{coalesce, lower},
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+  },
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use std::future::{ready, Ready};
@@ -34,7 +41,9 @@ fn queries<'a>(
     let mut query = local_user::table.into_boxed();
     query = match search {
       ReadBy::Id(local_user_id) => query.filter(local_user::id.eq(local_user_id)),
-      ReadBy::Email(from_email) => query.filter(local_user::email.eq(from_email)),
+      ReadBy::Email(from_email) => {
+        query.filter(lower(coalesce(local_user::email, "")).eq(from_email.to_lowercase()))
+      }
       _ => query,
     };
     let mut query = query.inner_join(person::table);
@@ -43,8 +52,8 @@ fn queries<'a>(
       ReadBy::Name(name) => query.filter(lower(person::name).eq(name.to_lowercase())),
       ReadBy::NameOrEmail(name_or_email) => query.filter(
         lower(person::name)
-          .eq(lower(name_or_email))
-          .or(local_user::email.eq(name_or_email)),
+          .eq(lower(name_or_email.to_lowercase()))
+          .or(lower(coalesce(local_user::email, "")).eq(name_or_email.to_lowercase())),
       ),
       _ => query,
     };

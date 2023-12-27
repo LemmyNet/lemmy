@@ -4,7 +4,6 @@ use diesel::{
   dsl::{exists, not, IntervalDsl},
   pg::Pg,
   result::Error,
-  sql_function,
   sql_types,
   BoolExpressionMethods,
   BoxableExpression,
@@ -38,13 +37,22 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  utils::{fuzzy_search, get_conn, limit_and_offset, now, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{
+    functions::coalesce,
+    fuzzy_search,
+    get_conn,
+    limit_and_offset,
+    now,
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+  },
   ListingType,
   SortType,
 };
 use tracing::debug;
-
-sql_function!(fn coalesce(x: sql_types::Nullable<sql_types::BigInt>, y: sql_types::BigInt) -> sql_types::BigInt);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Ord {
@@ -482,16 +490,10 @@ fn queries<'a>() -> Queries<
       query = query.filter(post_aggregates::published.gt(now() - interval));
     }
 
-    let tie_breaker = match options.sort.unwrap_or(SortType::Hot) {
-      // A second time-based sort would not be very useful
-      SortType::New | SortType::Old | SortType::NewComments => None,
-      _ => Some((Ord::Desc, field!(published))),
-    };
-
     let sorts = [
       Some((Ord::Desc, featured_field)),
       Some(main_sort),
-      tie_breaker,
+      Some((Ord::Desc, field!(post_id))),
     ];
     let sorts_iter = sorts.iter().flatten();
 

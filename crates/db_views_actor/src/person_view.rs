@@ -230,6 +230,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
+  #[allow(clippy::dbg_macro)]
   async fn exclude_deleted() {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -256,6 +257,7 @@ mod tests {
     .list(pool)
     .await
     .unwrap();
+    dbg!(&list);
     assert_eq!(list.len(), 1);
     assert_eq!(list[0].person.id, data.bob.id);
 
