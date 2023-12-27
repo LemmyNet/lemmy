@@ -87,7 +87,7 @@ impl Comment {
           let updated_comment = diesel::update(comment.find(comment_id))
             .set(path.eq(ltree))
             .get_result::<Self>(conn)
-            .await;
+            .await?;
 
           // Update the child count for the parent comment_aggregates
           // You could do this with a trigger, but since you have to do this manually anyway,
@@ -121,7 +121,7 @@ where ca.comment_id = c.id"
               sql_query(update_child_count_stmt).execute(conn).await?;
             }
           }
-          updated_comment
+          Ok(updated_comment)
         }) as _
       })
       .await
