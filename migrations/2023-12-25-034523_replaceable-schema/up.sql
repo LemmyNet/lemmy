@@ -18,24 +18,25 @@ SET
     comments = counted.comments
 FROM (
     SELECT
-        community.id AS community_id,
+        community_id,
         count(*) AS comments
     FROM
         comment,
+        LATERAL (
+            SELECT
+                *
+            FROM
+                post
+            WHERE
+                post.id = comment.post_id
+            LIMIT 1) AS post
     WHERE
         NOT (comment.deleted
             OR comment.removed
-            OR EXISTS (
-                SELECT
-                    1
-                FROM
-                    post
-                WHERE
-                    post.id = comment.post_id
-                    AND (post.deleted
-                        OR post.removed)))
-        GROUP BY
-            community.id) AS counted
+            OR post.deleted
+            OR post.removed)
+    GROUP BY
+        community_id) AS counted
 WHERE
     community_aggregates.community_id = counted.community_id;
 

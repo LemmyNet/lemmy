@@ -33,14 +33,16 @@ BEGIN
             upvotes::float / downvotes::float
         END;
     END IF;
-END;
+END
 $$;
 
 -- Selects both old and new rows in a trigger and allows using `sum(count_diff)` to get the number to add to a count
 CREATE FUNCTION r.combine_transition_tables ()
     RETURNS SETOF record
-    LANGUAGE sql
+    LANGUAGE plpgsql
     AS $$
+BEGIN
+    RETURN QUERY
     SELECT
         -1 AS count_diff,
         *
@@ -52,24 +54,22 @@ CREATE FUNCTION r.combine_transition_tables ()
         *
     FROM
         new_table;
+END
 $$;
 
 -- Define functions
 CREATE FUNCTION r.creator_id_from_post_aggregates (agg post_aggregates)
-    RETURNS int
-    SELECT
-        creator_id
-    FROM
-        agg;
+    RETURNS int RETURN agg.creator_id;
 
 CREATE FUNCTION r.creator_id_from_comment_aggregates (agg comment_aggregates)
-    RETURNS int
-    SELECT
-        creator_id
-    FROM
-        comment
-    WHERE
-        comment.id = agg.comment_id LIMIT 1;
+    RETURNS int RETURN (
+        SELECT
+            creator_id
+        FROM
+            comment
+        WHERE
+            comment.id = agg.comment_id LIMIT 1
+);
 
 -- Create triggers for both post and comments
 CREATE PROCEDURE r.post_or_comment (thing_type text)
@@ -148,7 +148,7 @@ BEGIN
     CREATE TRIGGER aggregates
         AFTER INSERT OR DELETE OR UPDATE OF score ON thing_like REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
         FOR EACH STATEMENT
-        EXECUTE FUNCTION r.thing_aggregates_from_like;
+        EXECUTE FUNCTION r.thing_aggregates_from_like ( );
         $b$,
         'thing',
         thing_type);
