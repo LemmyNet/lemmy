@@ -71,7 +71,6 @@ CREATE FUNCTION r.creator_id_from_comment_aggregates (agg comment_aggregates)
     WHERE
         comment.id = agg.comment_id LIMIT 1;
 
-CREATE FUNCTION r.post_not_removed
 -- Create triggers for both post and comments
 CREATE PROCEDURE r.post_or_comment (thing_type text)
 LANGUAGE plpgsql
@@ -420,7 +419,8 @@ WHERE
 $$;
 
 CREATE TRIGGER comment_count
-    AFTER UPDATE OF deleted, removed ON post REFERENCING OLD TABLE AS old_post NEW TABLE AS new_post
+    AFTER UPDATE OF deleted,
+    removed ON post REFERENCING OLD TABLE AS old_post NEW TABLE AS new_post
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.update_comment_count_from_post ();
 
@@ -440,6 +440,14 @@ BEGIN
             sum(count_diff) AS subscribers
         FROM
             combine_transition_tables ()
+        WHERE (
+            SELECT    
+                local
+            FROM
+                community
+            WHERE
+                community.id = community_id
+            LIMIT 1)
         GROUP BY
             community_id) AS diff
 WHERE
