@@ -42,18 +42,34 @@ CREATE FUNCTION r.combine_transition_tables ()
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    RETURN QUERY
-    SELECT
-        -1 AS count_diff,
-        *
-    FROM
-        old_table
-    UNION ALL
-    SELECT
-        1 AS count_diff,
-        *
-    FROM
-        new_table;
+    IF (TG_OP = 'UPDATE') THEN
+        RETURN QUERY
+        SELECT
+            -1 AS count_diff,
+            *
+        FROM
+            old_table
+        UNION ALL
+        SELECT
+            1 AS count_diff,
+            *
+        FROM
+            new_table;
+    ELSIF (TG_OP = 'INSERT') THEN
+        RETURN QUERY
+        SELECT
+            1 AS count_diff,
+            *
+        FROM
+            new_table;
+    ELSE
+        RETURN QUERY
+        SELECT
+            -1 AS count_diff,
+            *
+        FROM
+            old_table;
+    END IF;
 END
 $$;
 
@@ -156,10 +172,7 @@ BEGIN
             a.person_id = diff.creator_id;
                 RETURN NULL;
             END $$;
-    CREATE TRIGGER aggregates
-        AFTER INSERT OR DELETE OR UPDATE OF score ON thing_like REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
-        FOR EACH STATEMENT
-        EXECUTE FUNCTION r.thing_aggregates_from_like ( );
+    CALL r.create_triggers ('thing_like', 'thing_aggregates_from_like');
         $b$,
         'thing',
         thing_type);
@@ -272,11 +285,7 @@ WHERE
 END
 $$;
 
-CREATE TRIGGER parent_aggregates
-    AFTER INSERT OR DELETE OR UPDATE OF deleted,
-    removed ON comment REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION r.parent_aggregates_from_comment ();
+CALL r.create_triggers ('comment', 'parent_aggregates_from_comment');
 
 CREATE FUNCTION r.parent_aggregates_from_post ()
     RETURNS TRIGGER
@@ -330,11 +339,7 @@ WHERE
 END
 $$;
 
-CREATE TRIGGER parent_aggregates
-    AFTER INSERT OR DELETE OR UPDATE OF deleted,
-    removed ON comment REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION r.parent_aggregates_from_comment ();
+CALL r.create_triggers('post', 'parent_aggregates_from_post');
 
 CREATE FUNCTION site_aggregates_from_community ()
     RETURNS TRIGGER
@@ -357,11 +362,7 @@ BEGIN
     RETURN NULL;
 $$;
 
-CREATE TRIGGER site_aggregates
-    AFTER INSERT OR DELETE OR UPDATE OF deleted,
-    removed ON community REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION r.site_aggregates_from_community ();
+CALL rcreate_triggers ('community', 'site_aggregates_from_community');
 
 CREATE FUNCTION site_aggregates_from_person ()
     RETURNS TRIGGER
@@ -382,10 +383,7 @@ BEGIN
     RETURN NULL;
 $$;
 
-CREATE TRIGGER site_aggregates
-    AFTER INSERT OR DELETE ON person REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION r.site_aggregates_from_person ();
+CALL r.create_triggers ('person', 'site_aggregates_from_person');
 
 -- For community_aggregates.comments, don't include comments of deleted or removed posts
 CREATE FUNCTION r.update_comment_count_from_post ()
@@ -466,10 +464,7 @@ WHERE
 END
 $$;
 
-CREATE TRIGGER community_aggregates
-    AFTER INSERT OR DELETE ON community_follower REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION r.community_aggregates_from_subscriber ();
+CALL r.create_triggers('community_follower', 'community_aggregates_from_subscriber');
 
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
@@ -557,20 +552,38 @@ BEGIN
                 community
             WHERE
                 community.id = new_post.community_id
-            LIMIT 1) AS community,
-    ON CONFLICT
-        DO UPDATE SET
-            featured_community = excluded.featured_community,
-            featured_local = excluded.featured_local;
+            LIMIT 1) AS community;
+    RETURN NULL;
+END
+$$;
+
+CREATE FUNCTION r.post_aggregates_from_post_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        post_aggregates
+    SET
+        featured_community = new_post.featured_community,
+        featured_local = new_post.featured_local
+    FROM
+        new_post
+    WHERE
+        post_aggregates.post_id = new_post.id;
     RETURN NULL;
 END
 $$;
 
 CREATE TRIGGER aggregates
-    AFTER INSERT OR UPDATE OF featured_community,
-    featured_local ON post REFERENCING NEW TABLE AS new_post
+    AFTER INSERT ON post REFERENCING NEW TABLE AS new_post
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.post_aggregates_from_post ();
+
+CREATE TRIGGER aggregates_update
+    AFTER UPDATE ON post REFERENCING NEW TABLE AS new_post
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.post_aggregates_from_post_update ();
 
 CREATE FUNCTION r.site_aggregates_from_site ()
     RETURNS TRIGGER
