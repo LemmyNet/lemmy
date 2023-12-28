@@ -57,6 +57,29 @@ BEGIN
 END
 $$;
 
+-- Creates triggers for all operation types, which can't be 1 trigger when transition tables are used
+CREATE PROCEDURE r.create_triggers (table_name text, function_name text)
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    EXECUTE format('CREATE TRIGGER %2$s_insert AFTER INSERT ON %1$s REFERENCING NEW TABLE AS new_table FOR EACH STATEMENT EXECUTE FUNCTION r.%2$s ();', table_name, function_name);
+    EXECUTE format('CREATE TRIGGER %2$s_delete AFTER DELETE ON %1$s REFERENCING OLD TABLE AS old_table FOR EACH STATEMENT EXECUTE FUNCTION r.%2$s ();', table_name, function_name);
+    EXECUTE format('CREATE TRIGGER %2$s_update AFTER UPDATE ON %1$s REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table FOR EACH STATEMENT EXECUTE FUNCTION r.%2$s ();', table_name, function_name);
+    -- Prevent admin from running `TRUNCATE` because it doesn't allow reading old rows which is needed by triggers
+    EXECUTE format('CREATE OR REPLACE TRIGGER no_truncate BEFORE TRUNCATE ON %s FOR EACH STATEMENT EXECUTE FUNCTION r.no_truncate ();', table_name);
+END
+    $$;
+
+CREATE FUNCTION r.no_truncate ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    RAISE EXCEPTION 'Run DELETE instead';
+    RETURN NULL;
+END
+$$;
+
 -- Define functions
 CREATE FUNCTION r.creator_id_from_post_aggregates (agg post_aggregates)
     RETURNS int RETURN agg.creator_id;
