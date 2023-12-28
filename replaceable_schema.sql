@@ -75,14 +75,14 @@ $$;
 
 -- Creates triggers for all operation types, which can't be 1 trigger when transition tables are used
 CREATE PROCEDURE r.create_triggers (table_name text, function_name text)
-    LANGUAGE plpgsql
-    AS $$
+LANGUAGE plpgsql
+AS $$
 BEGIN
     EXECUTE format('CREATE TRIGGER %2$s_insert AFTER INSERT ON %1$s REFERENCING NEW TABLE AS new_table FOR EACH STATEMENT EXECUTE FUNCTION r.%2$s ();', table_name, function_name);
     EXECUTE format('CREATE TRIGGER %2$s_delete AFTER DELETE ON %1$s REFERENCING OLD TABLE AS old_table FOR EACH STATEMENT EXECUTE FUNCTION r.%2$s ();', table_name, function_name);
     EXECUTE format('CREATE TRIGGER %2$s_update AFTER UPDATE ON %1$s REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table FOR EACH STATEMENT EXECUTE FUNCTION r.%2$s ();', table_name, function_name);
 END
-    $$;
+$$;
 
 -- Define functions
 CREATE FUNCTION r.creator_id_from_post_aggregates (agg post_aggregates)
@@ -173,9 +173,9 @@ BEGIN
                 RETURN NULL;
             END $$;
     CALL r.create_triggers ('thing_like', 'thing_aggregates_from_like');
-        $b$,
-        'thing',
-        thing_type);
+    $b$,
+    'thing',
+    thing_type);
 END
 $a$;
 
@@ -194,9 +194,9 @@ BEGIN
             post_id,
             creator_id,
             local,
-            sum(count_diff) AS comments,
+            sum(count_diff) AS comments
         FROM
-            combine_transition_tables ()
+            r.combine_transition_tables ()
         WHERE
             NOT (deleted
                 OR removed)
@@ -235,8 +235,7 @@ post_diff AS (
                     max(published)
                 FROM new_table AS new_comment
                 WHERE
-                    a.post_id = new_comment.post_id)
-            LIMIT 1),
+                    a.post_id = new_comment.post_id LIMIT 1)),
         newest_comment_time_necro = GREATEST (a.newest_comment_time_necro, (
                 SELECT
                     max(published)
@@ -297,9 +296,9 @@ BEGIN
             community_id,
             creator_id,
             local,
-            sum(count_diff) AS posts,
+            sum(count_diff) AS posts
         FROM
-            combine_transition_tables ()
+            r.combine_transition_tables ()
         WHERE
             NOT (deleted
                 OR removed)
@@ -335,13 +334,13 @@ FROM
     post_group
 WHERE
     a.community_id = post_group.community_id;
-    RETURN NULL;
+        RETURN NULL;
 END
 $$;
 
-CALL r.create_triggers('post', 'parent_aggregates_from_post');
+CALL r.create_triggers ('post', 'parent_aggregates_from_post');
 
-CREATE FUNCTION site_aggregates_from_community ()
+CREATE FUNCTION r.site_aggregates_from_community ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
@@ -354,17 +353,18 @@ BEGIN
         SELECT
             sum(change_diff) AS communities
         FROM
-            combine_transition_tables ()
+            r.combine_transition_tables ()
         WHERE
             local
             AND NOT (deleted
                 OR removed)) AS diff;
     RETURN NULL;
+END
 $$;
 
-CALL rcreate_triggers ('community', 'site_aggregates_from_community');
+CALL r.create_triggers ('community', 'site_aggregates_from_community');
 
-CREATE FUNCTION site_aggregates_from_person ()
+CREATE FUNCTION r.site_aggregates_from_person ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
@@ -377,10 +377,11 @@ BEGIN
         SELECT
             sum(change_diff) AS users
         FROM
-            combine_transition_tables ()
+            r.combine_transition_tables ()
         WHERE
             local) AS diff;
     RETURN NULL;
+END
 $$;
 
 CALL r.create_triggers ('person', 'site_aggregates_from_person');
@@ -424,11 +425,11 @@ BEGIN
 WHERE
     a.community_id = diff.community_id;
     RETURN NULL;
+END
 $$;
 
 CREATE TRIGGER comment_count
-    AFTER UPDATE OF deleted,
-    removed ON post REFERENCING OLD TABLE AS old_post NEW TABLE AS new_post
+    AFTER UPDATE ON post REFERENCING OLD TABLE AS old_post NEW TABLE AS new_post
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.update_comment_count_from_post ();
 
@@ -447,7 +448,7 @@ BEGIN
             community_id,
             sum(count_diff) AS subscribers
         FROM
-            combine_transition_tables ()
+            r.combine_transition_tables ()
         WHERE (
             SELECT
                 local
@@ -464,7 +465,7 @@ WHERE
 END
 $$;
 
-CALL r.create_triggers('community_follower', 'community_aggregates_from_subscriber');
+CALL r.create_triggers ('community_follower', 'community_aggregates_from_subscriber');
 
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
@@ -515,7 +516,7 @@ CREATE FUNCTION r.person_aggregates_from_person ()
 BEGIN
     INSERT INTO person_aggregates (person_id)
     SELECT
-        id,
+        id
     FROM
         new_person;
     RETURN NULL;
@@ -592,13 +593,14 @@ CREATE FUNCTION r.site_aggregates_from_site ()
 BEGIN
     -- we only ever want to have a single value in site_aggregate because the site_aggregate triggers update all rows in that table.
     -- a cleaner check would be to insert it for the local_site but that would break assumptions at least in the tests
-    IF NOT EXISTS (
+    IF (NOT EXISTS (
         SELECT
             1
         FROM
-            site_aggregates) THEN
-    INSERT INTO site_aggregates (site_id)
-        VALUES (NEW.id);
+            site_aggregates)) THEN
+        INSERT INTO site_aggregates (site_id)
+            VALUES (NEW.id);
+    END IF;
     RETURN NULL;
 END
 $$;
