@@ -146,30 +146,32 @@ BEGIN
                         SELECT
                             (thing_like).thing_id,
                             sum(count_diff) FILTER (WHERE (thing_like).score = 1) AS upvotes,
-                            sum(count_diff) FILTER (WHERE (thing_like).score != 1) AS downvotes
-                        FROM
-                            r.combine_transition_tables () AS (count_diff bigint, thing_like thing_like)
-                        GROUP BY
-                            (thing_like).thing_id) AS diff
-                    WHERE
-                        a.thing_id = diff.thing_id
-                    RETURNING
-                        creator_id_from_thing_aggregates (a.*) AS creator_id,
-                        diff.upvotes - diff.downvotes AS score)
-            UPDATE
-                person_aggregates AS a
-            SET
-                thing_score = a.thing_score + diff.score
-            FROM (
-                SELECT
-                    creator_id,
-                    sum(score) AS score
+                        sum(count_diff) FILTER (WHERE (thing_like).score != 1) AS downvotes
                 FROM
-                    target_diff
+                    r.combine_transition_tables ()
+                    AS (count_diff bigint,
+                    thing_like thing_like)
                 GROUP BY
-                    creator_id) AS diff
-        WHERE
-            a.person_id = diff.creator_id;
+                    (thing_like).thing_id) AS diff
+                WHERE
+                    a.thing_id = diff.thing_id
+                RETURNING
+                    creator_id_from_thing_aggregates (a.*) AS creator_id,
+                    diff.upvotes - diff.downvotes AS score)
+        UPDATE
+            person_aggregates AS a
+        SET
+            thing_score = a.thing_score + diff.score
+        FROM (
+            SELECT
+                creator_id,
+                sum(score) AS score
+            FROM
+                target_diff
+            GROUP BY
+                creator_id) AS diff
+    WHERE
+        a.person_id = diff.creator_id;
                 RETURN NULL;
             END $$;
     CALL r.create_triggers ('thing_like', 'thing_aggregates_from_like');
@@ -196,14 +198,15 @@ BEGIN
             (comment).local,
             sum(count_diff) AS comments
         FROM
-            r.combine_transition_tables () AS (count_diff bigint, comment comment)
+            r.combine_transition_tables ()
+            AS (count_diff bigint,
+            comment comment)
         WHERE
-            NOT ((comment).deleted
-                OR (comment).removed)
+            NOT ((comment).deleted OR (comment).removed)
         GROUP BY
-            GROUPING SETS ((comment)post_id,
-                (comment).creator_id,
-                (comment).local)
+            GROUPING SETS ((comment).post_id,
+            (comment).creator_id,
+            (comment).local)
 ),
 unused_person_aggregates_update_result AS (
     UPDATE
@@ -298,14 +301,15 @@ BEGIN
             (post).local,
             sum(count_diff) AS posts
         FROM
-            r.combine_transition_tables () AS (count_diff bigint, post post)
+            r.combine_transition_tables ()
+            AS (count_diff bigint,
+            post post)
         WHERE
-            NOT ((post).deleted
-                OR (post).removed)
+            NOT ((post).deleted OR (post).removed)
         GROUP BY
             GROUPING SETS ((post).community_id,
-                (post).creator_id,
-                (post).local)
+            (post).creator_id,
+            (post).local)
 ),
 unused_person_aggregates_update_result AS (
     UPDATE
@@ -353,11 +357,9 @@ BEGIN
         SELECT
             sum(count_diff) AS communities
         FROM
-            r.combine_transition_tables () AS (count_diff bigint, community community)
-        WHERE
-            (community).local
-            AND NOT ((community).deleted
-                OR (community).removed)) AS diff;
+            r.combine_transition_tables ()
+            AS (count_diff bigint, community community)
+        WHERE (community).local AND NOT ((community).deleted OR (community).removed)) AS diff;
     RETURN NULL;
 END
 $$;
@@ -377,9 +379,9 @@ BEGIN
         SELECT
             sum(count_diff) AS users
         FROM
-            r.combine_transition_tables () AS (count_diff bigint, person person)
-        WHERE
-            (person).local) AS diff;
+            r.combine_transition_tables ()
+            AS (count_diff bigint, person person)
+        WHERE (person).local) AS diff;
     RETURN NULL;
 END
 $$;
@@ -448,15 +450,16 @@ BEGIN
             (community_follower).community_id,
             sum(count_diff) AS subscribers
         FROM
-            r.combine_transition_tables () AS (count_diff bigint, community_follower community_follower)
+            r.combine_transition_tables ()
+            AS (count_diff bigint, community_follower community_follower)
         WHERE (
-            SELECT
-                local
-            FROM
-                community
-            WHERE
-                community.id = (community_follower).community_id
-            LIMIT 1)
+        SELECT
+            local
+        FROM
+            community
+        WHERE
+            community.id = (community_follower).community_id
+        LIMIT 1)
     GROUP BY
         (community_follower).community_id) AS diff
 WHERE
