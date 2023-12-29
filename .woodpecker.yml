@@ -161,6 +161,10 @@ steps:
     environment:
       CARGO_HOME: .cargo_home
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      PGUSER: lemmy
+      PGPASSWORD: password
+      PGHOST: database
+      PGDATABASE: lemmy
     commands:
       - diesel migration run
       # Make sure that the migration works both with and without the `r` schema
