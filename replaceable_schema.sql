@@ -37,7 +37,7 @@ END
 $$;
 
 -- Selects both old and new rows in a trigger and allows using `sum(count_diff)` to get the number to add to a count
-CREATE FUNCTION r.combine_transition_tables ()
+CREATE FUNCTION r.combine_transition_tables (tg_op text)
     RETURNS SETOF record
     LANGUAGE plpgsql
     AS $$
@@ -148,7 +148,7 @@ BEGIN
                             sum(count_diff) FILTER (WHERE (thing_like).score = 1) AS upvotes,
                         sum(count_diff) FILTER (WHERE (thing_like).score != 1) AS downvotes
                 FROM
-                    r.combine_transition_tables ()
+                    r.combine_transition_tables (TG_OP)
                     AS (count_diff bigint,
                     thing_like thing_like)
                 GROUP BY
@@ -198,7 +198,7 @@ BEGIN
             (comment).local,
             sum(count_diff) AS comments
         FROM
-            r.combine_transition_tables ()
+            r.combine_transition_tables (TG_OP)
             AS (count_diff bigint,
             comment comment)
         WHERE
@@ -301,7 +301,7 @@ BEGIN
             (post).local,
             sum(count_diff) AS posts
         FROM
-            r.combine_transition_tables ()
+            r.combine_transition_tables (TG_OP)
             AS (count_diff bigint,
             post post)
         WHERE
@@ -357,7 +357,7 @@ BEGIN
         SELECT
             sum(count_diff) AS communities
         FROM
-            r.combine_transition_tables ()
+            r.combine_transition_tables (TG_OP)
             AS (count_diff bigint, community community)
         WHERE (community).local AND NOT ((community).deleted OR (community).removed)) AS diff;
     RETURN NULL;
@@ -379,7 +379,7 @@ BEGIN
         SELECT
             sum(count_diff) AS users
         FROM
-            r.combine_transition_tables ()
+            r.combine_transition_tables (TG_OP)
             AS (count_diff bigint, person person)
         WHERE (person).local) AS diff;
     RETURN NULL;
@@ -450,7 +450,7 @@ BEGIN
             (community_follower).community_id,
             sum(count_diff) AS subscribers
         FROM
-            r.combine_transition_tables ()
+            r.combine_transition_tables (TG_OP)
             AS (count_diff bigint, community_follower community_follower)
         WHERE (
         SELECT
