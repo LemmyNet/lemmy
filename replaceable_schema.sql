@@ -46,13 +46,13 @@ BEGIN
         RETURN QUERY
         SELECT
             -1 AS count_diff,
-            *
+            old_table AS affected_row
         FROM
             old_table
         UNION ALL
         SELECT
             1 AS count_diff,
-            *
+            new_table AS affected_row
         FROM
             new_table;
     ELSIF (TG_OP = 'INSERT') THEN
@@ -144,13 +144,13 @@ BEGIN
                         controversy_rank = controversy_rank ((a.upvotes + diff.upvotes)::numeric, (a.downvotes + diff.downvotes)::numeric)
                     FROM (
                         SELECT
-                            thing_id,
-                            sum(count_diff) FILTER (WHERE score = 1) AS upvotes,
-                            sum(count_diff) FILTER (WHERE score != 1) AS downvotes
+                            (thing_like).thing_id,
+                            sum(count_diff) FILTER (WHERE (thing_like).score = 1) AS upvotes,
+                            sum(count_diff) FILTER (WHERE (thing_like).score != 1) AS downvotes
                         FROM
-                            r.combine_transition_tables ()
+                            r.combine_transition_tables () AS (count_diff bigint, thing_like thing_like)
                         GROUP BY
-                            thing_id) AS diff
+                            (thing_like).thing_id) AS diff
                     WHERE
                         a.thing_id = diff.thing_id
                     RETURNING
@@ -191,19 +191,19 @@ CREATE FUNCTION r.parent_aggregates_from_comment ()
 BEGIN
     WITH comment_group AS (
         SELECT
-            post_id,
-            creator_id,
-            local,
+            (comment).post_id,
+            (comment).creator_id,
+            (comment).local,
             sum(count_diff) AS comments
         FROM
-            r.combine_transition_tables ()
+            r.combine_transition_tables () AS (count_diff bigint, comment comment)
         WHERE
-            NOT (deleted
-                OR removed)
+            NOT ((comment).deleted
+                OR (comment).removed)
         GROUP BY
-            GROUPING SETS (post_id,
-                creator_id,
-                local)
+            GROUPING SETS ((comment)post_id,
+                (comment).creator_id,
+                (comment).local)
 ),
 unused_person_aggregates_update_result AS (
     UPDATE
@@ -293,19 +293,19 @@ CREATE FUNCTION r.parent_aggregates_from_post ()
 BEGIN
     WITH post_group AS (
         SELECT
-            community_id,
-            creator_id,
-            local,
+            (post).community_id,
+            (post).creator_id,
+            (post).local,
             sum(count_diff) AS posts
         FROM
-            r.combine_transition_tables ()
+            r.combine_transition_tables () AS (count_diff bigint, post post)
         WHERE
-            NOT (deleted
-                OR removed)
+            NOT ((post).deleted
+                OR (post).removed)
         GROUP BY
-            GROUPING SETS (community_id,
-                creator_id,
-                local)
+            GROUPING SETS ((post).community_id,
+                (post).creator_id,
+                (post).local)
 ),
 unused_person_aggregates_update_result AS (
     UPDATE
@@ -353,11 +353,11 @@ BEGIN
         SELECT
             sum(change_diff) AS communities
         FROM
-            r.combine_transition_tables ()
+            r.combine_transition_tables () AS (count_diff bigint, community community)
         WHERE
-            local
-            AND NOT (deleted
-                OR removed)) AS diff;
+            (community).local
+            AND NOT ((community).deleted
+                OR (community).removed)) AS diff;
     RETURN NULL;
 END
 $$;
@@ -377,7 +377,7 @@ BEGIN
         SELECT
             sum(change_diff) AS users
         FROM
-            r.combine_transition_tables ()
+            r.combine_transition_tables () AS (count_diff bigint, 
         WHERE
             local) AS diff;
     RETURN NULL;
