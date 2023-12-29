@@ -36,40 +36,30 @@ BEGIN
 END
 $$;
 
--- Selects both old and new rows in a trigger and allows using `sum(count_diff)` to get the number to add to a count
+-- Selects both old and new rows in a trigger. Column 1 is -1 if old and 1 if new, which can be used with `sum` to get
+-- the number to add to a count. Column 2 is the original row as a composite value.
 CREATE FUNCTION r.combine_transition_tables (tg_op text)
     RETURNS SETOF record
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF (TG_OP = 'UPDATE') THEN
+    IF (TG_OP IN ('UPDATE', 'DELETE')) THEN
         RETURN QUERY
         SELECT
-            -1 AS count_diff,
-            old_table AS affected_row
-        FROM
+            -1,
             old_table
-        UNION ALL
-        SELECT
-            1 AS count_diff,
-            new_table AS affected_row
-        FROM
-            new_table;
-    ELSIF (TG_OP = 'INSERT') THEN
-        RETURN QUERY
-        SELECT
-            1 AS count_diff,
-            *
-        FROM
-            new_table;
-    ELSE
-        RETURN QUERY
-        SELECT
-            -1 AS count_diff,
-            *
         FROM
             old_table;
     END IF;
+    IF (TG_OP IN ('UPDATE', 'INSERT')) THEN
+        RETURN QUERY
+        SELECT
+            1,
+            new_table
+        FROM
+            new_table;
+    END IF;
+    RETURN;
 END
 $$;
 
