@@ -351,7 +351,7 @@ BEGIN
         communities = a.communities + diff.communities
     FROM (
         SELECT
-            sum(change_diff) AS communities
+            sum(count_diff) AS communities
         FROM
             r.combine_transition_tables () AS (count_diff bigint, community community)
         WHERE
@@ -375,11 +375,11 @@ BEGIN
         users = a.users + diff.users
     FROM (
         SELECT
-            sum(change_diff) AS users
+            sum(count_diff) AS users
         FROM
-            r.combine_transition_tables () AS (count_diff bigint, 
+            r.combine_transition_tables () AS (count_diff bigint, person person)
         WHERE
-            local) AS diff;
+            (person).local) AS diff;
     RETURN NULL;
 END
 $$;
@@ -445,20 +445,20 @@ BEGIN
         subscriber = a.subscribers + diff.subscribers
     FROM (
         SELECT
-            community_id,
+            (community_follower).community_id,
             sum(count_diff) AS subscribers
         FROM
-            r.combine_transition_tables ()
+            r.combine_transition_tables () AS (count_diff bigint, community_follower community_follower)
         WHERE (
             SELECT
                 local
             FROM
                 community
             WHERE
-                community.id = community_id
+                community.id = (community_follower).community_id
             LIMIT 1)
     GROUP BY
-        community_id) AS diff
+        (community_follower).community_id) AS diff
 WHERE
     a.community_id = diff.community_id;
     RETURN NULL;
