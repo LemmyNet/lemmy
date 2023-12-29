@@ -163,6 +163,11 @@ steps:
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
       - diesel migration run
+      # Make sure that the migration works both with and without the `r` schema
+      - diesel migration redo
+      # Run replaceable_schema.sql twice, which fails on the 2nd time if `DROP SCHEMA IF EXISTS r CASCADE` drops the wrong things
+      - apt update && apt install -y postgresql-client
+      - psql -f replaceable_schema.sql
       - psql -f replaceable_schema.sql
       - diesel migration redo
     when: *slow_check_paths
