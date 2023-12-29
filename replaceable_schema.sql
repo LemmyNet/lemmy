@@ -36,42 +36,62 @@ BEGIN
 END
 $$;
 
--- Selects both old and new rows in a trigger and allows using `sum(count_diff)` to get the number to add to a count
-CREATE FUNCTION r.combine_transition_tables (tg_op text)
-    RETURNS SETOF record
-    LANGUAGE plpgsql
-    AS $$
+-- Create functions that select both old and new rows in a trigger. Column 1 is `-1` if old and `1` if new,
+-- which can be used with `sum` to get the number to add to a count. Column 2 is the original row as a composite
+-- value. A separate function is called in each `IF` statement to prevent an error from referencing transition
+-- tables that don't exist. All of this could be one function, but that would require using `RETURN QUERY EXECUTE`
+-- instead of calls to separate functions because of PostgreSQL's limited polymorphism. Parsing and planning dynamic
+-- queries at runtime is worse for performance.
+CREATE PROCEDURE r.combine_transition_tables_function (table_name text)
+LANGUAGE plpgsql
+AS $a$
 BEGIN
-    IF (TG_OP = 'UPDATE') THEN
-        RETURN QUERY
-        SELECT
-            -1 AS count_diff,
-            old_table AS affected_row
-        FROM
-            old_table
-        UNION ALL
-        SELECT
-            1 AS count_diff,
-            new_table AS affected_row
-        FROM
-            new_table;
-    ELSIF (TG_OP = 'INSERT') THEN
-        RETURN QUERY
-        SELECT
-            1 AS count_diff,
-            *
-        FROM
-            new_table;
-    ELSE
-        RETURN QUERY
-        SELECT
-            -1 AS count_diff,
-            *
-        FROM
-            old_table;
-    END IF;
+    EXECUTE replace($b$
+        CREATE FUNCTION r.get_old_thing_rows ()
+            RETURNS SETOF record
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                RETURN QUERY SELECT -1, old_table FROM old_table;
+                RETURN;
+            END
+            $$;
+        CREATE FUNCTION r.get_new_thing_rows ()
+            RETURNS SETOF record
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                RETURN QUERY SELECT 1, new_table FROM new_table;
+                RETURN;
+            END
+            $$;
+        CREATE FUNCTION r.combine_thing_transition_tables (tg_op text)
+            RETURNS SETOF record
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                IF (TG_OP IN ('UPDATE', 'DELETE')) THEN
+                    RETURN QUERY SELECT * FROM r.get_old_thing_rows () AS (count_diff bigint, thing thing);
+                END IF;
+                IF (TG_OP IN ('UPDATE', 'INSERT')) THEN
+                    RETURN QUERY SELECT * FROM r.get_new_thing_rows () AS (count_diff bigint, thing thing);
+                END IF;
+                RETURN;
+            END
+            $$;
+    $b$, 'thing', table_name);
 END
-$$;
+$a$;
+
+CALL r.combine_transition_tables_function('comment');
+
+CALL r.combine_transition_tables_function('community');
+
+CALL r.combine_transition_tables_function('community_follower');
+
+CALL r.combine_transition_tables_function('person');
+
+CALL r.combine_transition_tables_function('post');
 
 -- Creates triggers for all operation types, which can't be 1 trigger when transition tables are used
 CREATE PROCEDURE r.create_triggers (table_name text, function_name text)
@@ -148,7 +168,7 @@ BEGIN
                             sum(count_diff) FILTER (WHERE (thing_like).score = 1) AS upvotes,
                         sum(count_diff) FILTER (WHERE (thing_like).score != 1) AS downvotes
                 FROM
-                    r.combine_transition_tables (TG_OP)
+                    r.combine_thing_transition_tables (TG_OP)
                     AS (count_diff bigint,
                     thing_like thing_like)
                 GROUP BY
@@ -198,7 +218,7 @@ BEGIN
             (comment).local,
             sum(count_diff) AS comments
         FROM
-            r.combine_transition_tables (TG_OP)
+            r.combine_comment_transition_tables (TG_OP)
             AS (count_diff bigint,
             comment comment)
         WHERE
@@ -301,7 +321,7 @@ BEGIN
             (post).local,
             sum(count_diff) AS posts
         FROM
-            r.combine_transition_tables (TG_OP)
+            r.combine_post_transition_tables (TG_OP)
             AS (count_diff bigint,
             post post)
         WHERE
@@ -357,7 +377,7 @@ BEGIN
         SELECT
             sum(count_diff) AS communities
         FROM
-            r.combine_transition_tables (TG_OP)
+            r.combine_community_transition_tables (TG_OP)
             AS (count_diff bigint, community community)
         WHERE (community).local AND NOT ((community).deleted OR (community).removed)) AS diff;
     RETURN NULL;
@@ -379,7 +399,7 @@ BEGIN
         SELECT
             sum(count_diff) AS users
         FROM
-            r.combine_transition_tables (TG_OP)
+            r.combine_person_transition_tables (TG_OP)
             AS (count_diff bigint, person person)
         WHERE (person).local) AS diff;
     RETURN NULL;
@@ -450,7 +470,7 @@ BEGIN
             (community_follower).community_id,
             sum(count_diff) AS subscribers
         FROM
-            r.combine_transition_tables (TG_OP)
+            r.combine_community_follower_transition_tables (TG_OP)
             AS (count_diff bigint, community_follower community_follower)
         WHERE (
         SELECT
