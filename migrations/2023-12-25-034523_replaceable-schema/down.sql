@@ -657,6 +657,25 @@ BEGIN
 END
 $$;
 
+CREATE FUNCTION site_aggregates_community_delete ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF (was_removed_or_deleted (TG_OP, OLD, NEW)) THEN
+        UPDATE
+            site_aggregates sa
+        SET
+            communities = communities - 1
+        FROM
+            site s
+        WHERE
+            sa.site_id = s.id;
+    END IF;
+    RETURN NULL;
+END
+$$;
+
 CREATE FUNCTION site_aggregates_community_insert ()
     RETURNS TRIGGER
     LANGUAGE plpgsql

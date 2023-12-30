@@ -44,9 +44,9 @@ $$;
 --   * Transition tables are only provided to the trigger function, not to functions that it calls.
 --
 -- This function can only be called once per table. The command to run is given as the 2nd argument
--- and has access to these tables:
---   * `old_table` with old rows
---   * `new_table` with new rows
+-- and can use these tables in `FROM` clauses:
+--   * `old_table` with old rows (alias that doesn't contain `old_table` must be added)
+--   * `new_table` with new rows (alias that doesn't contain `new_table` must be added)
 --   * `combined_transition_tables` with both old and new rows, with 2 columns:
 --       1. `count_diff`: `-1` for old rows and `1` for new rows, which can be used with `sum` to get the number
 --          to add to a count
@@ -61,52 +61,65 @@ DECLARE
         RETURNS TRIGGER
         LANGUAGE plpgsql
         AS $$
-BEGIN
-    delete_command;
-        RETURN NULL;
-END $$;
-    CREATE TRIGGER delete_statement
-        AFTER DELETE ON thing REFERENCING OLD TABLE AS old_table
-        FOR EACH STATEMENT
-        EXECUTE FUNCTION r.thing_delete_statement ( );
+        BEGIN
+            delete_command;
+            RETURN NULL;
+        END $$;
+        CREATE TRIGGER delete_statement
+            AFTER DELETE ON thing REFERENCING OLD TABLE AS old_table
+            FOR EACH STATEMENT
+            EXECUTE FUNCTION r.thing_delete_statement ( );
         -- Insert
         CREATE FUNCTION r.thing_insert_statement ( )
             RETURNS TRIGGER
             LANGUAGE plpgsql
             AS $$
-BEGIN
-    insert_command;
-        RETURN NULL;
-END $$;
-    CREATE TRIGGER insert_statement
-        AFTER INSERT ON thing REFERENCING NEW TABLE AS new_table
-        FOR EACH STATEMENT
-        EXECUTE FUNCTION r.thing_insert_statement ( );
+            BEGIN
+                insert_command;
+                RETURN NULL;
+            END $$;
+        CREATE TRIGGER insert_statement
+            AFTER INSERT ON thing REFERENCING NEW TABLE AS new_table
+            FOR EACH STATEMENT
+            EXECUTE FUNCTION r.thing_insert_statement ( );
         -- Update
         CREATE FUNCTION r.thing_update_statement ( )
             RETURNS TRIGGER
             LANGUAGE plpgsql
             AS $$
-BEGIN
-    update_command;
-        RETURN NULL;
-END $$;
-    CREATE TRIGGER update_statement
-        AFTER UPDATE ON thing REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
-        FOR EACH STATEMENT
-        EXECUTE FUNCTION r.thing_update_statement ( );
+            BEGIN
+                update_command;
+                RETURN NULL;
+            END $$;
+        CREATE TRIGGER update_statement
+            AFTER UPDATE ON thing REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
+            FOR EACH STATEMENT
+            EXECUTE FUNCTION r.thing_update_statement ( );
         $b$;
         BEGIN
-            -- Couldn't get `combined_transition_tables` to work using CTE
-            defs := replace(defs, 'delete_command', replace(command, 'combined_transition_tables', '(select_old_table) AS combined_transition_tables'));
-            defs := replace(defs, 'insert_command', replace(command, 'combined_transition_tables', '(select_new_table) AS combined_transition_tables'));
-            defs := replace(defs, 'update_command', replace(command, 'combined_transition_tables', '(select_old_table UNION ALL select_new_table) AS combined_transition_tables'));
-            defs := replace(defs, 'select_old_table', $$
+            -- Couldn't get these to work using CTE
+            command := replace(command, 'combined_transition_tables', $$ (
+                    SELECT
+                        -1 AS count_diff, old_t::thing AS thing
+                    FROM old_table AS old_t
+                UNION ALL
                 SELECT
-                    -1 AS count_diff, old_table::thing AS thing FROM old_table $$);
-            defs := replace(defs, 'select_new_table', $$
-                SELECT
-                    1 AS count_diff, new_table::thing AS thing FROM new_table $$);
+                    1 AS count_diff, new_t::thing AS thing
+                FROM new_table AS new_t) AS combined_transition_tables $$);
+            -- `new_table` and `old_table` are made available as empty tables if they don't already exist
+            defs := replace(defs, 'delete_command', replace(command, 'new_table', $$ (
+                        SELECT
+                            *
+                        FROM old_table
+                        WHERE
+                            FALSE) $$));
+            defs := replace(defs, 'insert_command', replace(command, 'old_table', $$ (
+                        SELECT
+                            *
+                        FROM new_table
+                        WHERE
+                            FALSE) $$));
+            defs := replace(defs, 'update_command', command);
             defs := replace(defs, 'thing', table_name);
             EXECUTE defs;
         END
@@ -141,15 +154,18 @@ BEGIN
                 UPDATE
                     thing_report
                 SET
-                    resolved = TRUE, resolver_id = first_removal.mod_person_id, updated = first_removal.when_ FROM (
-                        SELECT
-                            thing_id, min(when_) AS when_ FROM new_removal
-                        WHERE
-                            new_removal.removed GROUP BY thing_id) AS first_removal
-                        WHERE
-                            report.thing_id = first_removal.thing_id
-                            AND NOT report.resolved
-                            AND COALESCE(report.updated < first_removal.when_, TRUE);
+                    resolved = TRUE, resolver_id = first_removal.mod_person_id, updated = first_removal.when_ FROM ( SELECT DISTINCT
+                            thing_id
+                        FROM new_removal) AS removal_group, LATERAL (
+                    SELECT
+                        *
+                    FROM new_removal
+                    WHERE
+                        new_removal.thing_id = removal_group.thing_id ORDER BY when_ ASC LIMIT 1) AS first_removal
+            WHERE
+                thing_report.thing_id = first_removal.thing_id
+                    AND NOT thing_report.resolved
+                    AND COALESCE(thing_report.updated < first_removal.when_, TRUE);
                 RETURN NULL;
             END $$;
     CREATE TRIGGER resolve_reports
@@ -163,17 +179,17 @@ BEGIN
                     score = a.score + diff.upvotes - diff.downvotes, upvotes = a.upvotes + diff.upvotes, downvotes = a.downvotes + diff.downvotes, controversy_rank = controversy_rank ((a.upvotes + diff.upvotes)::numeric, (a.downvotes + diff.downvotes)::numeric)
                 FROM (
                     SELECT
-                        (thing_like).thing_id, sum(count_diff) FILTER (WHERE (thing_like).score = 1) AS upvotes, sum(count_diff) FILTER (WHERE (thing_like).score != 1) AS downvotes FROM combined_transition_tables GROUP BY (thing_like).thing_id) AS diff
+                        (thing_like).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score != 1), 0) AS downvotes FROM combined_transition_tables GROUP BY (thing_like).thing_id) AS diff
         WHERE
             a.thing_id = diff.thing_id
         RETURNING
-            creator_id_from_thing_aggregates (a.*) AS creator_id, diff.upvotes - diff.downvotes AS score)
+            r.creator_id_from_thing_aggregates (a.*) AS creator_id, diff.upvotes - diff.downvotes AS score)
     UPDATE
         person_aggregates AS a
     SET
         thing_score = a.thing_score + diff.score FROM (
             SELECT
-                creator_id, sum(score) AS score FROM target_diff GROUP BY creator_id) AS diff
+                creator_id, sum(score) AS score FROM thing_diff GROUP BY creator_id) AS diff
         WHERE
             a.person_id = diff.creator_id $$);
         $b$,
@@ -192,7 +208,7 @@ CALL r.create_triggers ('comment', $$ WITH comment_group AS (
             (comment).post_id,
             (comment).creator_id,
             (comment).local,
-            sum(count_diff) AS comments FROM combined_transition_tables
+            coalesce(sum(count_diff), 0) AS comments FROM combined_transition_tables
             WHERE
                 NOT ((comment).deleted
                 OR (comment).removed)
@@ -238,29 +254,28 @@ unused_person_aggregates_update_result AS (
                             AND a.published > (new_comment.published - '2 days'::interval)
                         LIMIT 1))
             FROM
-                comment_group,
-                LATERAL (
+                comment_group
+            WHERE
+                a.post_id = comment_group.post_id
+            RETURNING
+                a.community_id,
+                comment_group.comments,
+                (
                     SELECT
-                        *
+                        NOT (post.deleted
+                            OR post.removed)
                     FROM
                         post
                     WHERE
                         a.post_id = post.id
-                    LIMIT 1) AS post
-        WHERE
-            a.post_id = comment_group.post_id
-        RETURNING
-            a.community_id,
-            diff.comments,
-            NOT (post.deleted
-                OR post.removed) AS include_in_community_aggregates)
+                    LIMIT 1) AS include_in_community_aggregates)
         UPDATE
             community_aggregates AS a
         SET
             comments = a.comments + diff.comments
         FROM (
             SELECT
-                community_id, sum(comments)
+                community_id, sum(comments) AS comments
             FROM
                 post_diff
             WHERE
@@ -272,7 +287,7 @@ unused_person_aggregates_update_result AS (
 
 CALL r.create_triggers ('post', $$ WITH post_group AS (
         SELECT
-            (post).community_id, (post).creator_id, (post).local, sum(count_diff) AS posts FROM combined_transition_tables
+            (post).community_id, (post).creator_id, (post).local, coalesce(sum(count_diff), 0) AS posts FROM combined_transition_tables
             WHERE
                 NOT ((post).deleted
                 OR (post).removed)
@@ -301,7 +316,7 @@ CALL r.create_triggers ('community', $$ UPDATE
     SET
         communities = a.communities + diff.communities FROM (
             SELECT
-                sum(count_diff) AS communities FROM combined_transition_tables
+                coalesce(sum(count_diff), 0) AS communities FROM combined_transition_tables
             WHERE (community).local
             AND NOT ((community).deleted
             OR (community).removed)) AS diff $$);
@@ -311,7 +326,7 @@ CALL r.create_triggers ('person', $$ UPDATE
     SET
         users = a.users + diff.users FROM (
             SELECT
-                sum(count_diff) AS users FROM combined_transition_tables
+                coalesce(sum(count_diff), 0) AS users FROM combined_transition_tables
             WHERE (person).local) AS diff $$);
 
 -- For community_aggregates.comments, don't include comments of deleted or removed posts
@@ -365,9 +380,9 @@ CREATE TRIGGER comment_count
 CALL r.create_triggers ('community_follower', $$ UPDATE
         community_aggregates AS a
     SET
-        subscriber = a.subscribers + diff.subscribers FROM (
+        subscribers = a.subscribers + diff.subscribers FROM (
             SELECT
-                (community_follower).community_id, sum(count_diff) AS subscribers FROM combined_transition_tables
+                (community_follower).community_id, coalesce(sum(count_diff), 0) AS subscribers FROM combined_transition_tables
             WHERE (
                 SELECT
                     local
