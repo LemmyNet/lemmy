@@ -36,43 +36,104 @@ BEGIN
 END
 $$;
 
--- Selects both old and new rows in a trigger. Column 1 is -1 if old and 1 if new, which can be used with `sum` to get
--- the number to add to a count. Column 2 is the original row as a composite value.
-CREATE FUNCTION r.combine_transition_tables (tg_op text)
-    RETURNS SETOF record
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    IF (TG_OP IN ('UPDATE', 'DELETE')) THEN
-        RETURN QUERY
-        SELECT
-            -1,
-            old_table
-        FROM
-            old_table;
-    END IF;
-    IF (TG_OP IN ('UPDATE', 'INSERT')) THEN
-        RETURN QUERY
-        SELECT
-            1,
-            new_table
-        FROM
-            new_table;
-    END IF;
-    RETURN;
-END
-$$;
-
--- Creates triggers for all operation types, which can't be 1 trigger when transition tables are used
-CREATE PROCEDURE r.create_triggers (table_name text, function_name text)
+-- This function creates statement-level triggers for all operation types. It's designed this way
+-- because of these limitations:
+--   * A trigger that uses transition tables can only handle 1 operation type.
+--   * Transition tables must be relevant for the operation type (for example, `NEW TABLE` is
+--     not allowed for a `DELETE` trigger)
+--   * Transition tables are only provided to the trigger function, not to functions that it calls.
+--
+-- This function can only be called once per table. The command to run is given as the 2nd argument
+-- and has access to these tables:
+--   * `old_table` with old rows
+--   * `new_table` with new rows
+--   * `combined_transition_tables` with both old and new rows, with 2 columns:
+--       1. `-1` for old rows and `1` for new rows, which can be used with `sum` to get the number
+--          to add to a count
+--       2. the old or new row as a composite value
+CREATE PROCEDURE r.create_triggers (table_name text, command text)
 LANGUAGE plpgsql
-AS $$
+AS $a$
+DECLARE
+   defs text := $b$
+        CREATE FUNCTION r.thing_delete_statement ()
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+        BEGIN
+            PERFORM (
+                WITH
+                    combined_transition_tables AS (
+                        select_old_table
+                    ),
+                    trigger_result AS command
+                SELECT
+                    1
+            );
+            RETURN NULL;
+        END
+        $$;
+        CREATE TRIGGER delete_statement
+            AFTER DELETE ON thing REFERENCING OLD TABLE AS old_table
+            FOR EACH STATEMENT
+            EXECUTE FUNCTION r.thing_delete_statement ();
+        CREATE FUNCTION r.thing_insert_statement ()
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+        BEGIN
+            PERFORM (
+                WITH
+                    combined_transition_tables AS (
+                        select_new_table
+                    ),
+                    trigger_result AS command
+                SELECT
+                    1
+            );
+            RETURN NULL;
+        END
+        $$;
+        CREATE TRIGGER insert_statement
+            AFTER DELETE ON thing REFERENCING NEW TABLE AS new_table
+            FOR EACH STATEMENT
+            EXECUTE FUNCTION r.thing_insert_statement ();
+        CREATE FUNCTION r.thing_update_statement ()
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+        BEGIN
+            PERFORM (
+                WITH
+                    combined_transition_tables AS (
+                        select_old_table
+                        UNION ALL
+                        select_new_table
+                    ),
+                    trigger_result AS command
+                SELECT
+                    1
+            );
+            RETURN NULL;
+        END
+        $$;
+        CREATE TRIGGER update_statement
+            AFTER UPDATE ON thing REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
+            FOR EACH STATEMENT
+            EXECUTE FUNCTION r.thing_update_statement ();
+    $b$;
 BEGIN
-    EXECUTE format('CREATE TRIGGER %2$s_insert AFTER INSERT ON %1$s REFERENCING NEW TABLE AS new_table FOR EACH STATEMENT EXECUTE FUNCTION r.%2$s ();', table_name, function_name);
-    EXECUTE format('CREATE TRIGGER %2$s_delete AFTER DELETE ON %1$s REFERENCING OLD TABLE AS old_table FOR EACH STATEMENT EXECUTE FUNCTION r.%2$s ();', table_name, function_name);
-    EXECUTE format('CREATE TRIGGER %2$s_update AFTER UPDATE ON %1$s REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table FOR EACH STATEMENT EXECUTE FUNCTION r.%2$s ();', table_name, function_name);
+    defs := replace(defs, 'select_old_table', $$
+        SELECT -1 AS count_diff, old_table AS thing FROM old_table
+    $$);
+    defs := replace(defs, 'select_new_table', $$
+        SELECT 1 AS count_diff, new_table AS thing FROM new_table
+    $$);
+    defs := replace(defs, 'thing', table_name);
+    defs := replace(defs, 'command', format('(%s)', command));
+    EXECUTE defs;
 END
-$$;
+$a$;
 
 -- Define functions
 CREATE FUNCTION r.creator_id_from_post_aggregates (agg post_aggregates)
@@ -119,12 +180,8 @@ BEGIN
         FOR EACH STATEMENT
         EXECUTE FUNCTION r.resolve_reports_when_thing_removed ( );
         -- When a thing gets a vote, update its aggregates and its creator's aggregates
-        CREATE FUNCTION r.thing_aggregates_from_like ( )
-            RETURNS TRIGGER
-            LANGUAGE plpgsql
-            AS $$
-            BEGIN
-                WITH thing_diff AS (
+        CALL r.create_triggers ('thing_like', $$
+            WITH thing_diff AS (
                     UPDATE
                         thing_aggregates AS a
                     SET
@@ -138,7 +195,7 @@ BEGIN
                             sum(count_diff) FILTER (WHERE (thing_like).score = 1) AS upvotes,
                         sum(count_diff) FILTER (WHERE (thing_like).score != 1) AS downvotes
                 FROM
-                    r.combine_transition_tables (TG_OP)
+                    combined_transition_tables
                     AS (count_diff bigint,
                     thing_like thing_like)
                 GROUP BY
@@ -161,13 +218,8 @@ BEGIN
             GROUP BY
                 creator_id) AS diff
     WHERE
-        a.person_id = diff.creator_id;
-                RETURN NULL;
-            END $$;
-    CALL r.create_triggers ('thing_like', 'thing_aggregates_from_like');
-    $b$,
-    'thing',
-    thing_type);
+        a.person_id = diff.creator_id
+            $$);
 END
 $a$;
 
@@ -176,11 +228,7 @@ CALL r.post_or_comment ('post');
 CALL r.post_or_comment ('comment');
 
 -- Create triggers that update counts in parent aggregates
-CREATE FUNCTION r.parent_aggregates_from_comment ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
+CALL r.create_triggers('comment', $$
     WITH comment_group AS (
         SELECT
             (comment).post_id,
@@ -188,7 +236,7 @@ BEGIN
             (comment).local,
             sum(count_diff) AS comments
         FROM
-            r.combine_transition_tables (TG_OP)
+            combined_transition_tables
             AS (count_diff bigint,
             comment comment)
         WHERE
@@ -272,18 +320,10 @@ FROM (
     GROUP BY
         community_id) AS diff
 WHERE
-    a.community_id = diff.community_id;
-        RETURN NULL;
-END
-$$;
+    a.community_id = diff.community_id
+    $$);
 
-CALL r.create_triggers ('comment', 'parent_aggregates_from_comment');
-
-CREATE FUNCTION r.parent_aggregates_from_post ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
+CALL r.create_triggers('post', $$
     WITH post_group AS (
         SELECT
             (post).community_id,
@@ -291,7 +331,7 @@ BEGIN
             (post).local,
             sum(count_diff) AS posts
         FROM
-            r.combine_transition_tables (TG_OP)
+            combined_post_transition_tables
             AS (count_diff bigint,
             post post)
         WHERE
@@ -327,18 +367,10 @@ SET
 FROM
     post_group
 WHERE
-    a.community_id = post_group.community_id;
-        RETURN NULL;
-END
-$$;
+    a.community_id = post_group.community_id
+    $$);
 
-CALL r.create_triggers ('post', 'parent_aggregates_from_post');
-
-CREATE FUNCTION r.site_aggregates_from_community ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
+CALL r.create_triggers('community', $$
     UPDATE
         site_aggregates AS a
     SET
@@ -347,20 +379,12 @@ BEGIN
         SELECT
             sum(count_diff) AS communities
         FROM
-            r.combine_transition_tables (TG_OP)
+            combined_transition_tables
             AS (count_diff bigint, community community)
-        WHERE (community).local AND NOT ((community).deleted OR (community).removed)) AS diff;
-    RETURN NULL;
-END
-$$;
+        WHERE (community).local AND NOT ((community).deleted OR (community).removed)) AS diff
+    $$);
 
-CALL r.create_triggers ('community', 'site_aggregates_from_community');
-
-CREATE FUNCTION r.site_aggregates_from_person ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
+CALL r.create_triggers('person', $$
     UPDATE
         site_aggregates AS a
     SET
@@ -369,14 +393,10 @@ BEGIN
         SELECT
             sum(count_diff) AS users
         FROM
-            r.combine_transition_tables (TG_OP)
+            combined_transition_tables
             AS (count_diff bigint, person person)
-        WHERE (person).local) AS diff;
-    RETURN NULL;
-END
-$$;
-
-CALL r.create_triggers ('person', 'site_aggregates_from_person');
+        WHERE (person).local) AS diff
+    $$);
 
 -- For community_aggregates.comments, don't include comments of deleted or removed posts
 CREATE FUNCTION r.update_comment_count_from_post ()
@@ -426,11 +446,7 @@ CREATE TRIGGER comment_count
     EXECUTE FUNCTION r.update_comment_count_from_post ();
 
 -- Count subscribers for local communities
-CREATE FUNCTION r.community_aggregates_from_subscriber ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
+CALL r.create_triggers ('community_follower', $$
     UPDATE
         community_aggregates AS a
     SET
@@ -440,7 +456,7 @@ BEGIN
             (community_follower).community_id,
             sum(count_diff) AS subscribers
         FROM
-            r.combine_transition_tables (TG_OP)
+            combine_transition_tables
             AS (count_diff bigint, community_follower community_follower)
         WHERE (
         SELECT
@@ -453,12 +469,8 @@ BEGIN
     GROUP BY
         (community_follower).community_id) AS diff
 WHERE
-    a.community_id = diff.community_id;
-    RETURN NULL;
-END
-$$;
-
-CALL r.create_triggers ('community_follower', 'community_aggregates_from_subscriber');
+    a.community_id = diff.community_id
+    $$);
 
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
@@ -551,6 +563,11 @@ BEGIN
 END
 $$;
 
+CREATE TRIGGER aggregates
+    AFTER INSERT ON post REFERENCING NEW TABLE AS new_post
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.post_aggregates_from_post ();
+
 CREATE FUNCTION r.post_aggregates_from_post_update ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
@@ -568,11 +585,6 @@ BEGIN
     RETURN NULL;
 END
 $$;
-
-CREATE TRIGGER aggregates
-    AFTER INSERT ON post REFERENCING NEW TABLE AS new_post
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION r.post_aggregates_from_post ();
 
 CREATE TRIGGER aggregates_update
     AFTER UPDATE ON post REFERENCING NEW TABLE AS new_post
