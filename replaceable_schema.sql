@@ -55,22 +55,14 @@ CREATE PROCEDURE r.create_triggers (table_name text, command text)
 LANGUAGE plpgsql
 AS $a$
 DECLARE
-    -- `PERFORM` isn't used because it doesn't allow `WITH`
     defs text := $b$
     -- Delete
     CREATE FUNCTION r.thing_delete_statement ()
         RETURNS TRIGGER
         LANGUAGE plpgsql
         AS $$
-DECLARE
-    foo int;
 BEGIN
-    WITH combined_transition_tables AS (
-select_old_table
-),
-trigger_result AS command
-SELECT
-    1 INTO foo;
+    delete_command;
         RETURN NULL;
 END $$;
     CREATE TRIGGER delete_statement
@@ -82,15 +74,8 @@ END $$;
             RETURNS TRIGGER
             LANGUAGE plpgsql
             AS $$
-DECLARE
-    foo int;
 BEGIN
-    WITH combined_transition_tables AS (
-select_new_table
-),
-trigger_result AS command
-SELECT
-    1 INTO foo;
+    insert_command;
         RETURN NULL;
 END $$;
     CREATE TRIGGER insert_statement
@@ -102,16 +87,8 @@ END $$;
             RETURNS TRIGGER
             LANGUAGE plpgsql
             AS $$
-DECLARE
-    foo int;
 BEGIN
-    WITH combined_transition_tables AS (
-select_old_table
-    UNION ALL select_new_table
-),
-trigger_result AS command
-SELECT
-    1 INTO foo;
+    update_command;
         RETURN NULL;
 END $$;
     CREATE TRIGGER update_statement
@@ -120,6 +97,10 @@ END $$;
         EXECUTE FUNCTION r.thing_update_statement ( );
         $b$;
         BEGIN
+            -- Couldn't get `combined_transition_tables` to work using CTE
+            defs := replace(defs, 'delete_command', replace(command, 'combined_transition_tables', '(select_old_table) AS combined_transition_tables'));
+            defs := replace(defs, 'insert_command', replace(command, 'combined_transition_tables', '(select_new_table) AS combined_transition_tables'));
+            defs := replace(defs, 'update_command', replace(command, 'combined_transition_tables', '(select_old_table UNION ALL select_new_table) AS combined_transition_tables'));
             defs := replace(defs, 'select_old_table', $$
                 SELECT
                     -1 AS count_diff, old_table::thing AS thing FROM old_table $$);
@@ -127,7 +108,6 @@ END $$;
                 SELECT
                     1 AS count_diff, new_table::thing AS thing FROM new_table $$);
             defs := replace(defs, 'thing', table_name);
-            defs := replace(defs, 'command', format('(%s)', command));
             EXECUTE defs;
         END
 $a$;
