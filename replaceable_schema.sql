@@ -202,8 +202,7 @@ CALL r.post_or_comment ('post');
 
 CALL r.post_or_comment ('comment');
 
--- Create triggers that update counts in parent aggregates (a trigger can run in response to deletion caused by
--- a foreign key with `ON DELETE CASCADE`, so the parent might not exist)
+-- Create triggers that update counts in parent aggregates
 CALL r.create_triggers ('comment', $$ WITH comment_group AS (
         SELECT
             (comment).post_id,
@@ -288,8 +287,7 @@ unused_person_aggregates_update_result AS (
 
 CALL r.create_triggers ('post', $$ WITH post_group AS (
         SELECT
-            (post).community_id, (post).creator_id, (post).local, coalesce(sum(count_diff), 0) AS posts,
-            coalesce(sum(count_diff * (SELECT comments FROM post_aggregates WHERE post_id = (post).id LIMIT 1)), 0) AS comments FROM combined_transition_tables
+            (post).community_id, (post).creator_id, (post).local, coalesce(sum(count_diff), 0) AS posts FROM combined_transition_tables
             WHERE
                 NOT ((post).deleted
                 OR (post).removed)
@@ -309,9 +307,7 @@ CALL r.create_triggers ('post', $$ WITH post_group AS (
     UPDATE
         community_aggregates AS a
     SET
-        posts = a.posts + post_group.posts,
-        -- Update comment count when post is deleted, removed, or restored
-        comments = a.comments + post_group.comments FROM post_group
+        posts = a.posts + post_group.posts FROM post_group
         WHERE
             a.community_id = post_group.community_id $$);
 
@@ -332,6 +328,53 @@ CALL r.create_triggers ('person', $$ UPDATE
             SELECT
                 coalesce(sum(count_diff), 0) AS users FROM combined_transition_tables
             WHERE (person).local) AS diff $$);
+
+-- For community_aggregates.comments, don't include comments of deleted or removed posts
+CREATE FUNCTION r.update_comment_count_from_post ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        community_aggregates AS a
+    SET
+        comments = a.comments + diff.comments
+    FROM (
+        SELECT
+            old_post.community_id,
+            sum((
+                CASE WHEN new_post.deleted
+                    AND new_post.removed THEN
+                    -1
+                ELSE
+                    1
+                END) * post_aggregates.comments) AS comments
+        FROM
+            new_post
+            INNER JOIN old_post ON new_post.id = old_post.id
+                AND (new_post.deleted
+                    AND new_post.removed) != (old_post.deleted
+                    AND old_post.removed),
+                LATERAL (
+                    SELECT
+                        *
+                    FROM
+                        post_aggregates
+                WHERE
+                    post_id = new_post.id
+                LIMIT 1) AS post_aggregates
+        GROUP BY
+            old_post.community_id) AS diff
+WHERE
+    a.community_id = diff.community_id;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER comment_count
+    AFTER UPDATE ON post REFERENCING OLD TABLE AS old_post NEW TABLE AS new_post
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.update_comment_count_from_post ();
 
 -- Count subscribers for local communities
 CALL r.create_triggers ('community_follower', $$ UPDATE
