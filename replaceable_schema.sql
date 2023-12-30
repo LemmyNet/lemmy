@@ -329,6 +329,23 @@ CALL r.create_triggers ('person', $$ UPDATE
                 coalesce(sum(count_diff), 0) AS users FROM combined_transition_tables
             WHERE (person).local) AS diff $$);
 
+-- Delete comments before post is deleted (normal comment trigger can't update community_aggregates after post is deleted)
+CREATE FUNCTION r.delete_comments_before_post ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    DELETE FROM comment AS c
+    WHERE c.post_id = OLD.id;
+    RETURN OLD;
+END
+$$;
+
+CREATE TRIGGER delete_comments
+    BEFORE DELETE ON post
+    FOR EACH ROW
+    EXECUTE FUNCTION r.delete_comments_before_post ();
+
 -- For community_aggregates.comments, don't include comments of deleted or removed posts
 CREATE FUNCTION r.update_comment_count_from_post ()
     RETURNS TRIGGER
