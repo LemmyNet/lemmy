@@ -288,12 +288,16 @@ unused_person_aggregates_update_result AS (
 
 CALL r.create_triggers ('post', $$ WITH post_group AS (
         SELECT
-            (post).community_id, (post).creator_id, (post).local, coalesce(sum(count_diff), 0) AS posts,
-            coalesce(sum(count_diff * (SELECT comments FROM post_aggregates WHERE post_id = (post).id LIMIT 1)), 0) AS comments FROM combined_transition_tables
-            WHERE
-                NOT ((post).deleted
-                OR (post).removed)
-        GROUP BY GROUPING SETS ((post).community_id, (post).creator_id, (post).local)
+            (post).community_id, (post).creator_id, (post).local, coalesce(sum(count_diff), 0) AS posts, coalesce(sum(count_diff * (
+                        SELECT
+                            comments
+                        FROM post_aggregates
+                        WHERE
+                            post_id = (post).id LIMIT 1)), 0) AS comments FROM combined_transition_tables
+        WHERE
+            NOT ((post).deleted
+            OR (post).removed)
+    GROUP BY GROUPING SETS ((post).community_id, (post).creator_id, (post).local)
 ), unused_person_aggregates_update_result AS ( UPDATE
         person_aggregates AS a
     SET
