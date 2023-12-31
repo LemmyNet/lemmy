@@ -331,61 +331,44 @@ END; $$);
 
 CALL r.create_triggers ('post', $$
 BEGIN
-    WITH post_group AS (
-        SELECT
-            (post).community_id,
-            (post).creator_id,
-            (post).local,
-            coalesce(sum(count_diff), 0) AS posts FROM select_old_and_new_rows AS old_and_new_rows
-            WHERE is_counted (post)
-        AND ((post).community_id IS NULL
-        OR EXISTS (
-            SELECT
-                1
-            FROM community
-            WHERE
-                id = (post).community_id))
-        AND ((post).creator_id IS NULL
-        OR EXISTS (
-            SELECT
-                1
-            FROM person
-            WHERE
-                id = (post).creator_id))
-    GROUP BY GROUPING SETS ((post).community_id, (post).creator_id, (post).local)),
-unused_person_aggregates_update_result AS (
     UPDATE
         person_aggregates AS a
     SET
-        post_count = a.post_count + post_group.posts
+        post_count = a.post_count + diff.post_count
     FROM
-        post_group
+        (SELECT (post).creator_id, coalesce(sum(count_diff), 0) AS post_count
+        FROM select_old_and_new_tables AS old_and_new_tables
+        WHERE r.is_counted (post) AND EXISTS (SELECT 1 FROM person WHERE id = a.person_id)
+        GROUP BY (post).creator_id) AS diff
     WHERE
-        a.person_id = post_group.creator_id),
-    unused_site_aggregates_update_result AS (
+        a.person_id = diff.creator_id;
+
         UPDATE
             site_aggregates AS a
         SET
-            posts = a.posts + post_group.posts
+            posts = a.posts + diff.posts
         FROM
-            post_group
+            (SELECT coalesce(sum(count_diff) AS posts, 0) AS posts
+            FROM select_old_and_new_tables AS old_and_new_tables
+            WHERE r.is_counted (post) AND (post).local) AS diff
         WHERE
-            post_group.local
-            AND EXISTS (
+            EXISTS (
                 SELECT
                     1
                 FROM
                     site
                 WHERE
-                    id = a.site_id))
+                    id = a.site_id);
             UPDATE
                 community_aggregates AS a
             SET
-                posts = a.posts + post_group.posts
+                posts = a.posts + diff.posts
             FROM
-                post_group
+                (SELECT (post).community_id, coalesce(sum(count_diff), 0) AS posts
+                FROM select_old_and_new_tables AS old_and_new_tables
+                WHERE r.is_counted (post) AND EXISTS (SELECT 1 FROM community WHERE id = (post).community_id)) AS diff
             WHERE
-                a.community_id = post_group.community_id;
+                a.community_id = diff.community_id;
 
 RETURN NULL;
 
