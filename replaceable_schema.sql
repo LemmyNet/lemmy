@@ -157,28 +157,23 @@ BEGIN
                 UPDATE
                     thing_report
                 SET
-                    resolved = TRUE,
-                    resolver_id = first_removal.mod_person_id,
-                    updated = first_removal.when_
-                FROM
-                    ( SELECT DISTINCT
-                        thing_id
-                    FROM
-                        new_removal
-                    WHERE
-                        EXISTS (SELECT 1 FROM thing WHERE id = thing_id)) AS removal_group,
-                    LATERAL (
+                    resolved = TRUE, resolver_id = first_removal.mod_person_id, updated = first_removal.when_ FROM ( SELECT DISTINCT
+                            thing_id
+                        FROM new_removal
+                        WHERE
+                            EXISTS (
+                                SELECT
+                                    1
+                                FROM thing
+                                WHERE
+                                    id = thing_id)) AS removal_group, LATERAL (
                         SELECT
                             *
-                        FROM
-                            new_removal
+                        FROM new_removal
                         WHERE
-                            new_removal.thing_id = removal_group.thing_id
-                        ORDER BY
-                            when_ ASC
-                        LIMIT 1) AS first_removal
-            WHERE
-                thing_report.thing_id = first_removal.thing_id
+                            new_removal.thing_id = removal_group.thing_id ORDER BY when_ ASC LIMIT 1) AS first_removal
+                WHERE
+                    thing_report.thing_id = first_removal.thing_id
                     AND NOT thing_report.resolved
                     AND COALESCE(thing_report.updated < first_removal.when_, TRUE);
                 RETURN NULL;
@@ -188,35 +183,41 @@ BEGIN
         FOR EACH STATEMENT
         EXECUTE FUNCTION r.resolve_reports_when_thing_removed ( );
         -- When a thing gets a vote, update its aggregates and its creator's aggregates
-        CALL r.create_triggers ('thing_like', $$
-            WITH thing_diff AS (    
-                UPDATE
+        CALL r.create_triggers ('thing_like', $$ WITH thing_diff AS ( UPDATE
                     thing_aggregates AS a
                 SET
                     score = a.score + diff.upvotes - diff.downvotes, upvotes = a.upvotes + diff.upvotes, downvotes = a.downvotes + diff.downvotes, controversy_rank = controversy_rank ((a.upvotes + diff.upvotes)::numeric, (a.downvotes + diff.downvotes)::numeric)
                 FROM (
                     SELECT
-                        (thing_like).thing_id,
-                        coalesce(sum(count_diff) FILTER (WHERE (thing_like).score = 1), 0) AS upvotes,
-                        coalesce(sum(count_diff) FILTER (WHERE (thing_like).score != 1), 0) AS downvotes
-                    FROM combined_transition_tables
+                        (thing_like).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score != 1), 0) AS downvotes FROM combined_transition_tables
+            WHERE
+                EXISTS (
+                    SELECT
+                        1
+                    FROM thing
                     WHERE
-                        EXISTS (SELECT 1 FROM thing WHERE id = (thing_like).thing_id)
-                    GROUP BY (thing_like).thing_id
-                ) AS diff
-        WHERE
-            a.thing_id = diff.thing_id
-        RETURNING
-            r.creator_id_from_thing_aggregates (a.*) AS creator_id, diff.upvotes - diff.downvotes AS score)
-    UPDATE
-        person_aggregates AS a
-    SET
-        thing_score = a.thing_score + diff.score FROM (
-            SELECT
-                creator_id, sum(score) AS score FROM thing_diff WHERE EXISTS (SELECT 1 FROM person WHERE id = creator_id) GROUP BY creator_id) AS diff
-        WHERE
-            a.person_id = diff.creator_id
-            $$);
+                        id = (thing_like).thing_id)
+            GROUP BY (thing_like).thing_id) AS diff
+            WHERE
+                a.thing_id = diff.thing_id
+            RETURNING
+                r.creator_id_from_thing_aggregates (a.*) AS creator_id, diff.upvotes - diff.downvotes AS score)
+        UPDATE
+            person_aggregates AS a
+        SET
+            thing_score = a.thing_score + diff.score FROM (
+                SELECT
+                    creator_id, sum(score) AS score FROM thing_diff
+                WHERE
+                    EXISTS (
+                        SELECT
+                            1
+                        FROM person
+                        WHERE
+                            id = creator_id)
+                GROUP BY creator_id) AS diff
+                WHERE
+                    a.person_id = diff.creator_id $$);
         $b$,
         'thing',
         table_name);
@@ -234,12 +235,23 @@ CALL r.create_triggers ('comment', $$ WITH comment_group AS (
             (comment).creator_id,
             (comment).local,
             coalesce(sum(count_diff), 0) AS comments FROM combined_transition_tables
-            WHERE
-                (NOT ((comment).deleted
+            WHERE (NOT ((comment).deleted
                 OR (comment).removed))
-                AND ((comment).post_id IS NULL OR EXISTS (SELECT 1 FROM post WHERE id = (comment).post_id))
-                AND ((comment).creator_id IS NULL OR EXISTS (SELECT 1 FROM person WHERE id = (comment).creator_id))
-        GROUP BY GROUPING SETS ((comment).post_id, (comment).creator_id, (comment).local)),
+        AND ((comment).post_id IS NULL
+        OR EXISTS (
+            SELECT
+                1
+            FROM post
+            WHERE
+                id = (comment).post_id))
+        AND ((comment).creator_id IS NULL
+        OR EXISTS (
+            SELECT
+                1
+            FROM person
+            WHERE
+                id = (comment).creator_id))
+    GROUP BY GROUPING SETS ((comment).post_id, (comment).creator_id, (comment).local)),
 unused_person_aggregates_update_result AS (
     UPDATE
         person_aggregates AS a
@@ -257,7 +269,14 @@ unused_person_aggregates_update_result AS (
         FROM
             comment_group
         WHERE
-            comment_group.local AND EXISTS (SELECT 1 FROM site WHERE id = a.site_id)),
+            comment_group.local
+            AND EXISTS (
+                SELECT
+                    1
+                FROM
+                    site
+                WHERE
+                    id = a.site_id)),
         post_diff AS (
             UPDATE
                 post_aggregates AS a
@@ -296,31 +315,49 @@ unused_person_aggregates_update_result AS (
                     WHERE
                         a.post_id = post.id
                     LIMIT 1) AS include_in_community_aggregates)
-        UPDATE
-            community_aggregates AS a
-        SET
-            comments = a.comments + diff.comments
-        FROM (
-            SELECT
-                community_id, sum(comments) AS comments
-            FROM
-                post_diff
-            WHERE
-                post_diff.include_in_community_aggregates AND EXISTS (SELECT 1 FROM community WHERE id = community_id)
-            GROUP BY
-                community_id) AS diff
-        WHERE
-            a.community_id = diff.community_id $$);
+            UPDATE
+                community_aggregates AS a
+            SET
+                comments = a.comments + diff.comments
+            FROM (
+                SELECT
+                    community_id, sum(comments) AS comments
+                FROM
+                    post_diff
+                WHERE
+                    post_diff.include_in_community_aggregates
+                    AND EXISTS (
+                        SELECT
+                            1
+                        FROM
+                            community
+                        WHERE
+                            id = community_id)
+                    GROUP BY
+                        community_id) AS diff
+                WHERE
+                    a.community_id = diff.community_id $$);
 
 CALL r.create_triggers ('post', $$ WITH post_group AS (
         SELECT
             (post).community_id, (post).creator_id, (post).local, coalesce(sum(count_diff), 0) AS posts FROM combined_transition_tables
-            WHERE
-                (NOT ((post).deleted
+            WHERE (NOT ((post).deleted
                 OR (post).removed))
-                AND ((post).community_id IS NULL OR EXISTS (SELECT 1 FROM community WHERE id = (post).community_id))
-                AND ((post).creator_id IS NULL OR EXISTS (SELECT 1 FROM person WHERE id = (post).creator_id))
-        GROUP BY GROUPING SETS ((post).community_id, (post).creator_id, (post).local)
+        AND ((post).community_id IS NULL
+        OR EXISTS (
+            SELECT
+                1
+            FROM community
+            WHERE
+                id = (post).community_id))
+    AND ((post).creator_id IS NULL
+    OR EXISTS (
+        SELECT
+            1
+        FROM person
+        WHERE
+            id = (post).creator_id))
+GROUP BY GROUPING SETS ((post).community_id, (post).creator_id, (post).local)
 ), unused_person_aggregates_update_result AS ( UPDATE
         person_aggregates AS a
     SET
@@ -332,15 +369,21 @@ CALL r.create_triggers ('post', $$ WITH post_group AS (
     SET
         posts = a.posts + post_group.posts FROM post_group
         WHERE
-            post_group.local AND EXISTS (SELECT 1 FROM site WHERE id = a.site_id))
-    UPDATE
-        community_aggregates AS a
-    SET
-        posts = a.posts + post_group.posts FROM post_group
-        WHERE
-            a.community_id = post_group.community_id $$);
+            post_group.local
+            AND EXISTS (
+                SELECT
+                    1
+                FROM site
+                WHERE
+                    id = a.site_id))
+UPDATE
+    community_aggregates AS a
+SET
+    posts = a.posts + post_group.posts FROM post_group
+    WHERE
+        a.community_id = post_group.community_id $$);
 
-CALL r.create_triggers ('community', $$UPDATE
+CALL r.create_triggers ('community', $$ UPDATE
         site_aggregates AS a
     SET
         communities = a.communities + diff.communities FROM (
@@ -350,8 +393,12 @@ CALL r.create_triggers ('community', $$UPDATE
             AND NOT ((community).deleted
             OR (community).removed)) AS diff
     WHERE
-        EXISTS (SELECT 1 FROM site WHERE id = a.site_id)
-    $$);
+        EXISTS (
+            SELECT
+                1
+            FROM site
+            WHERE
+                id = a.site_id) $$);
 
 CALL r.create_triggers ('person', $$ UPDATE
         site_aggregates AS a
@@ -360,9 +407,13 @@ CALL r.create_triggers ('person', $$ UPDATE
             SELECT
                 coalesce(sum(count_diff), 0) AS users FROM combined_transition_tables
             WHERE (person).local) AS diff
-    WHERE
-        EXISTS (SELECT 1 FROM site WHERE id = a.site_id)
-    $$);
+        WHERE
+            EXISTS (
+                SELECT
+                    1
+                FROM site
+                WHERE
+                    id = a.site_id) $$);
 
 -- Delete comments before post is deleted (normal comment trigger can't update community_aggregates after post is deleted)
 CREATE FUNCTION r.delete_comments_before_post ()
@@ -441,7 +492,12 @@ CALL r.create_triggers ('community_follower', $$ UPDATE
                 FROM community
                 WHERE
                     community.id = (community_follower).community_id LIMIT 1)
-                    AND EXISTS (SELECT 1 FROM community WHERE id = (community_follower).community_id)
+        AND EXISTS (
+            SELECT
+                1
+            FROM community
+            WHERE
+                id = (community_follower).community_id)
     GROUP BY (community_follower).community_id) AS diff
     WHERE
         a.community_id = diff.community_id $$);
