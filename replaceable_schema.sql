@@ -37,7 +37,7 @@ BEGIN
             upvotes::float / downvotes::float
         END;
     END IF;
-END
+END;
 $$;
 
 -- This function creates statement-level triggers for all operation types. It's designed this way
@@ -124,7 +124,7 @@ DECLARE
         defs := replace(defs, 'function_body_update', quote_literal(function_body));
         defs := replace(defs, 'thing', table_name);
         EXECUTE defs;
-    END
+    END;
 $a$;
 
 -- Create triggers for both post and comments
@@ -175,7 +175,7 @@ BEGIN
                     AND NOT thing_report.resolved
                     AND COALESCE(thing_report.updated < first_removal.when_, TRUE);
                 RETURN NULL;
-            END $$;
+            END; $$;
     CREATE TRIGGER resolve_reports
         AFTER INSERT ON mod_remove_thing REFERENCING NEW TABLE AS new_removal
         FOR EACH STATEMENT
@@ -219,11 +219,11 @@ BEGIN
                     WHERE
                         a.person_id = diff.creator_id;
                 RETURN NULL;
-            END $$);
+            END; $$);
     $b$,
     'thing',
     table_name);
-END
+END;
 $a$;
 
 CALL r.post_or_comment ('post');
@@ -344,7 +344,7 @@ unused_person_aggregates_update_result AS (
 
 RETURN NULL;
 
-END $$);
+END; $$);
 
 CALL r.create_triggers ('post', $$
 BEGIN
@@ -407,7 +407,7 @@ unused_person_aggregates_update_result AS (
 
 RETURN NULL;
 
-END $$);
+END; $$);
 
 CALL r.create_triggers ('community', $$
 BEGIN
@@ -433,7 +433,7 @@ WHERE
 
 RETURN NULL;
 
-END $$);
+END; $$);
 
 CALL r.create_triggers ('person', $$
 BEGIN
@@ -457,7 +457,7 @@ WHERE
 
 RETURN NULL;
 
-END $$);
+END; $$);
 
 -- Delete comments before post is deleted (comment trigger can't update community_aggregates after post is deleted)
 CREATE FUNCTION r.delete_comments_before_post ()
@@ -468,7 +468,7 @@ BEGIN
     DELETE FROM comment AS c
     WHERE c.post_id = OLD.id;
     RETURN OLD;
-END
+END;
 $$;
 
 CREATE TRIGGER delete_comments
@@ -515,7 +515,7 @@ BEGIN
 WHERE
     a.community_id = diff.community_id;
     RETURN NULL;
-END
+END;
 $$;
 
 CREATE TRIGGER comment_count
@@ -552,7 +552,7 @@ WHERE
 
 RETURN NULL;
 
-END $$);
+END; $$);
 
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
@@ -568,7 +568,7 @@ BEGIN
     FROM
         new_comment;
     RETURN NULL;
-END
+END;
 $$;
 
 CREATE TRIGGER aggregates
@@ -588,7 +588,7 @@ BEGIN
     FROM
         new_community;
     RETURN NULL;
-END
+END;
 $$;
 
 CREATE TRIGGER aggregates
@@ -607,7 +607,7 @@ BEGIN
     FROM
         new_person;
     RETURN NULL;
-END
+END;
 $$;
 
 CREATE TRIGGER aggregates
@@ -642,7 +642,7 @@ BEGIN
                 community.id = new_post.community_id
             LIMIT 1) AS community;
     RETURN NULL;
-END
+END;
 $$;
 
 CREATE TRIGGER aggregates
@@ -665,7 +665,7 @@ BEGIN
     WHERE
         post_aggregates.post_id = new_post.id;
     RETURN NULL;
-END
+END;
 $$;
 
 CREATE TRIGGER aggregates_update
@@ -689,7 +689,7 @@ BEGIN
             VALUES (NEW.id);
     END IF;
     RETURN NULL;
-END
+END;
 $$;
 
 CREATE TRIGGER aggregates
