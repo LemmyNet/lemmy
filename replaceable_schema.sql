@@ -239,67 +239,49 @@ CALL r.post_or_comment ('comment');
 -- Create triggers that update counts in parent aggregates
 CALL r.create_triggers ('comment', $$
 BEGIN
-    WITH comment_group AS (
-        SELECT
-            (comment).post_id,
-            (comment).creator_id,
-            (comment).local,
-            coalesce(sum(count_diff), 0) AS comments FROM select_old_and_new_rows AS old_and_new_rows
-            WHERE r.is_counted (comment)
-        AND ((comment).post_id IS NULL
-        OR EXISTS (
-            SELECT
-                1
-            FROM post
-            WHERE
-                id = (comment).post_id))
-        AND ((comment).creator_id IS NULL
-        OR EXISTS (
-            SELECT
-                1
-            FROM person
-            WHERE
-                id = (comment).creator_id))
-    GROUP BY GROUPING SETS ((comment).post_id, (comment).creator_id, (comment).local)),
-unused_person_aggregates_update_result AS (
     UPDATE
         person_aggregates AS a
     SET
-        comment_count = a.comment_count + comment_group.comments
+        comment_count = a.comment_count + diff.comment_count
     FROM
-        comment_group
+        (SELECT (comment).creator_id, coalesce(sum(count_diff), 0) AS comment_count
+        FROM select_old_and_new_rows AS old_and_new_rows
+        WHERE r.is_counted (comment) AND EXISTS (SELECT 1 FROM person WHERE id = (comment).creator_id)
+        GROUP BY (comment).creator_id) AS diff
     WHERE
-        a.person_id = comment_group.creator_id),
-    unused_site_aggregates_update_result AS (
+        a.person_id = diff.creator_id;
+
         UPDATE
             site_aggregates AS a
         SET
-            comments = a.comments + comment_group.comments
+            comments = a.comments + diff.comments
         FROM
-            comment_group
+            (SELECT coalesce(sum(count_diff), 0) AS comments
+            FROM select_old_and_new_rows AS old_and_new_rows
+            WHERE r.is_counted (comment) AND (comment).local) AS diff
         WHERE
-            comment_group.local
-            AND EXISTS (
+            EXISTS (
                 SELECT
                     1
                 FROM
                     site
                 WHERE
-                    id = a.site_id)),
-        post_diff AS (
+                    id = a.site_id);
+        WITH post_diff AS (
             UPDATE
                 post_aggregates AS a
             SET
-                comments = a.comments + comment_group.comments,
+                comments = a.comments + diff.comments,
                 newest_comment_time = GREATEST (a.newest_comment_time, (
                         SELECT
-                            max(published)
+                            published
                         FROM select_new_rows AS new_comment
                         WHERE
-                            a.post_id = new_comment.post_id LIMIT 1)),
+                            a.post_id = new_comment.post_id
+                        ORDER BY published DESC LIMIT 1)),
                 newest_comment_time_necro = GREATEST (a.newest_comment_time_necro, (
                         SELECT
-                            max(published)
+                            published
                         FROM select_new_rows AS new_comment
                         WHERE
                             a.post_id = new_comment.post_id
@@ -307,23 +289,19 @@ unused_person_aggregates_update_result AS (
                             AND a.creator_id != new_comment.creator_id
                             -- Ignore comments on old posts
                             AND a.published > (new_comment.published - '2 days'::interval)
-                        LIMIT 1))
+                        ORDER BY published DESC LIMIT 1))
             FROM
-                comment_group
+                (SELECT (SELECT post FROM post WHERE id = (comment).post_id) AS post, coalesce(sum(count_diff), 0)) AS comments
+                FROM select_old_and_new_rows AS old_and_new_rows
+                WHERE r.is_counted (comment)
+                GROUP BY (comment).post_id
+                HAVING post IS NOT NULL) AS diff
             WHERE
-                a.post_id = comment_group.post_id
+                a.post_id = (diff.post).id
             RETURNING
                 a.community_id,
-                comment_group.comments,
-                (
-                    SELECT
-                        NOT (post.deleted
-                            OR post.removed)
-                    FROM
-                        post
-                    WHERE
-                        a.post_id = post.id
-                    LIMIT 1) AS include_in_community_aggregates)
+                diff.comments,
+                r.is_counted(diff.post) AS include_in_community_aggregates)
             UPDATE
                 community_aggregates AS a
             SET
