@@ -127,12 +127,18 @@ DECLARE
     END;
 $a$;
 
+CREATE FUNCTION r.is_counted (item record)
+    RETURNS bool
+    IMMUTABLE PARALLEL SAFE RETURN NOT (item.deleted OR item.removed);
+
 -- Create triggers for both post and comments
 CREATE FUNCTION r.creator_id_from_post_aggregates (agg post_aggregates)
-    RETURNS int RETURN agg.creator_id;
+    RETURNS int
+    IMMUTABLE PARALLEL SAFE RETURN agg.creator_id;
 
 CREATE FUNCTION r.creator_id_from_comment_aggregates (agg comment_aggregates)
-    RETURNS int RETURN (
+    RETURNS int
+    IMMUTABLE PARALLEL SAFE RETURN (
         SELECT
             creator_id
         FROM
@@ -239,8 +245,7 @@ BEGIN
             (comment).creator_id,
             (comment).local,
             coalesce(sum(count_diff), 0) AS comments FROM select_old_and_new_rows AS old_and_new_rows
-            WHERE (NOT ((comment).deleted
-                OR (comment).removed))
+            WHERE r.is_counted (comment)
         AND ((comment).post_id IS NULL
         OR EXISTS (
             SELECT
@@ -354,8 +359,7 @@ BEGIN
             (post).creator_id,
             (post).local,
             coalesce(sum(count_diff), 0) AS posts FROM select_old_and_new_rows AS old_and_new_rows
-            WHERE (NOT ((post).deleted
-                OR (post).removed))
+            WHERE is_counted (post)
         AND ((post).community_id IS NULL
         OR EXISTS (
             SELECT
@@ -419,9 +423,8 @@ BEGIN
         SELECT
             coalesce(sum(count_diff), 0) AS communities
         FROM select_old_and_new_rows AS old_and_new_rows
-        WHERE (community).local
-        AND NOT ((community).deleted
-        OR (community).removed)) AS diff
+        WHERE is_counted (community)
+        AND (community).local) AS diff
 WHERE
     EXISTS (
         SELECT
@@ -490,18 +493,15 @@ BEGIN
         SELECT
             old_post.community_id,
             sum((
-                CASE WHEN new_post.deleted
-                    AND new_post.removed THEN
-                    -1
-                ELSE
+                CASE WHEN is_counted (new_post.*) THEN
                     1
+                ELSE
+                    -1
                 END) * post_aggregates.comments) AS comments
         FROM
             new_post
             INNER JOIN old_post ON new_post.id = old_post.id
-                AND (new_post.deleted
-                    AND new_post.removed) != (old_post.deleted
-                    AND old_post.removed),
+                AND (is_counted (new_post.*) != is_counted (old_post.*)),
                 LATERAL (
                     SELECT
                         *
