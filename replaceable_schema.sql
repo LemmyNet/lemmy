@@ -48,7 +48,7 @@ $$;
 --   * Transition tables are only provided to the trigger function, not to functions that it calls.
 --
 -- This function can only be called once per table. The trigger function body given as the 2nd argument
--- and can contain these names, which are replaced with a `SELECT` statement in parenthesis:
+-- and can contain these names, which are replaced with a `SELECT` statement in parenthesis if needed:
 --   * `select_old_rows`
 --   * `select_new_rows`
 --   * `select_old_and_new_rows` with 2 columns:
@@ -59,81 +59,72 @@ CREATE PROCEDURE r.create_triggers (table_name text, function_body text)
 LANGUAGE plpgsql
 AS $a$
 DECLARE
-    defs text :=
-    $$
+    defs text := $$
     -- Delete
     CREATE FUNCTION r.thing_delete_statement ()
         RETURNS TRIGGER
         LANGUAGE plpgsql
         AS function_body_delete;
-        CREATE TRIGGER delete_statement
-            AFTER DELETE ON thing REFERENCING OLD TABLE AS select_old_rows
-            FOR EACH STATEMENT
-            EXECUTE FUNCTION r.thing_delete_statement ( );
-        -- Insert
-        CREATE FUNCTION r.thing_insert_statement ( )
-            RETURNS TRIGGER
-            LANGUAGE plpgsql
-            AS function_body_insert;
-        CREATE TRIGGER insert_statement
-            AFTER INSERT ON thing REFERENCING NEW TABLE AS select_new_rows
-            FOR EACH STATEMENT
-            EXECUTE FUNCTION r.thing_insert_statement ( );
-        -- Update
-        CREATE FUNCTION r.thing_update_statement ( )
-            RETURNS TRIGGER
-            LANGUAGE plpgsql
-            AS function_body_update;
-        CREATE TRIGGER update_statement
-            AFTER UPDATE ON thing REFERENCING OLD TABLE AS select_old_rows NEW TABLE AS select_new_rows
-            FOR EACH STATEMENT
-            EXECUTE FUNCTION r.thing_update_statement ( );
-        $$;
-    select_old_and_new_rows text :=
-        $$
-            (
-                    SELECT
-                        -1 AS count_diff, old_table::thing AS thing
-                    FROM select_old_rows AS old_table
-                UNION ALL
-                SELECT
-                    1 AS count_diff, new_table::thing AS thing
-                FROM select_new_rows AS new_table
-            )
-        $$;
-    empty_select_new_rows text :=
-        $$
-                (
-                        SELECT
-                            *
-                        FROM
-                            -- Real transition table
-                            select_old_rows
-                        WHERE
-                            FALSE
-                )
-        $$;
-    empty_select_old_rows text :=
-        $$
-                (
-                        SELECT
-                            *
-                        FROM
-                            -- Real transition table
-                            select_new_rows
-                        WHERE
-                            FALSE
-                )
-        $$;
-        BEGIN
-            select_old_and_new_rows = replace(select_old_and_new_rows, 'thing', table_name);
-            function_body := replace(function_body, 'select_old_and_new_rows', select_old_and_new_rows);
-            -- `select_old_rows` and `select_new_rows` are made available as empty tables if they don't already exist
-            defs := replace(defs, 'function_body_delete', quote_literal(replace(function_body, 'select_new_rows',empty_select_new_rows)));
-            defs := replace(defs, 'function_body_insert', quote_literal(replace(function_body, 'select_old_rows', empty_select_old_rows)));
-            defs := replace(defs, 'function_body_update', quote_literal(function_body));
-            EXECUTE defs;
-        END
+    CREATE TRIGGER delete_statement
+        AFTER DELETE ON thing REFERENCING OLD TABLE AS select_old_rows
+        FOR EACH STATEMENT
+        EXECUTE FUNCTION r.thing_delete_statement ( );
+    -- Insert
+    CREATE FUNCTION r.thing_insert_statement ( )
+        RETURNS TRIGGER
+        LANGUAGE plpgsql
+        AS function_body_insert;
+    CREATE TRIGGER insert_statement
+        AFTER INSERT ON thing REFERENCING NEW TABLE AS select_new_rows
+        FOR EACH STATEMENT
+        EXECUTE FUNCTION r.thing_insert_statement ( );
+    -- Update
+    CREATE FUNCTION r.thing_update_statement ( )
+        RETURNS TRIGGER
+        LANGUAGE plpgsql
+        AS function_body_update;
+    CREATE TRIGGER update_statement
+        AFTER UPDATE ON thing REFERENCING OLD TABLE AS select_old_rows NEW TABLE AS select_new_rows
+        FOR EACH STATEMENT
+        EXECUTE FUNCTION r.thing_update_statement ( );
+    $$;
+    select_old_and_new_rows text := $$ (
+        SELECT
+            -1 AS count_diff,
+            old_table::thing AS thing
+        FROM
+            select_old_rows AS old_table
+        UNION ALL
+        SELECT
+            1 AS count_diff,
+            new_table::thing AS thing
+        FROM
+            select_new_rows AS new_table) $$;
+    empty_select_new_rows text := $$ (
+        SELECT
+            *
+        FROM
+            -- Real transition table
+            select_old_rows
+        WHERE
+            FALSE) $$;
+    empty_select_old_rows text := $$ (
+        SELECT
+            *
+        FROM
+            -- Real transition table
+            select_new_rows
+        WHERE
+            FALSE) $$;
+    BEGIN
+        function_body := replace(function_body, 'select_old_and_new_rows', select_old_and_new_rows);
+        -- `select_old_rows` and `select_new_rows` are made available as empty tables if they don't already exist
+        defs := replace(defs, 'function_body_delete', quote_literal(replace(function_body, 'select_new_rows', empty_select_new_rows)));
+        defs := replace(defs, 'function_body_insert', quote_literal(replace(function_body, 'select_old_rows', empty_select_old_rows)));
+        defs := replace(defs, 'function_body_update', quote_literal(function_body));
+        defs := replace(defs, 'thing', table_name);
+        EXECUTE defs;
+    END
 $a$;
 
 -- Create triggers for both post and comments
@@ -190,51 +181,48 @@ BEGIN
         FOR EACH STATEMENT
         EXECUTE FUNCTION r.resolve_reports_when_thing_removed ( );
         -- When a thing gets a vote, update its aggregates and its creator's aggregates
-        CALL r.create_triggers ('thing_like',
-            $$
+        CALL r.create_triggers ('thing_like', $$
             BEGIN
-            WITH thing_diff AS ( UPDATE
-                    thing_aggregates AS a
-                SET
-                    score = a.score + diff.upvotes - diff.downvotes, upvotes = a.upvotes + diff.upvotes, downvotes = a.downvotes + diff.downvotes, controversy_rank = controversy_rank ((a.upvotes + diff.upvotes)::numeric, (a.downvotes + diff.downvotes)::numeric)
-                FROM (
-                    SELECT
-                        (thing_like).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows
-            WHERE
-                EXISTS (
-                    SELECT
-                        1
-                    FROM thing
-                    WHERE
-                        id = (thing_like).thing_id)
-            GROUP BY (thing_like).thing_id) AS diff
-            WHERE
-                a.thing_id = diff.thing_id
-            RETURNING
-                r.creator_id_from_thing_aggregates (a.*) AS creator_id, diff.upvotes - diff.downvotes AS score)
-        UPDATE
-            person_aggregates AS a
-        SET
-            thing_score = a.thing_score + diff.score FROM (
-                SELECT
-                    creator_id, sum(score) AS score FROM thing_diff
+                WITH thing_diff AS ( UPDATE
+                        thing_aggregates AS a
+                    SET
+                        score = a.score + diff.upvotes - diff.downvotes, upvotes = a.upvotes + diff.upvotes, downvotes = a.downvotes + diff.downvotes, controversy_rank = controversy_rank ((a.upvotes + diff.upvotes)::numeric, (a.downvotes + diff.downvotes)::numeric)
+                    FROM (
+                        SELECT
+                            (thing_like).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows
                 WHERE
                     EXISTS (
                         SELECT
                             1
-                        FROM person
+                        FROM thing
                         WHERE
-                            id = creator_id)
-                GROUP BY creator_id) AS diff
+                            id = (thing_like).thing_id)
+                GROUP BY (thing_like).thing_id) AS diff
                 WHERE
-                    a.person_id = diff.creator_id;
-            RETURN NULL;
-        END
-    $$
-            );
-        $b$,
-        'thing',
-        table_name);
+                    a.thing_id = diff.thing_id
+                RETURNING
+                    r.creator_id_from_thing_aggregates (a.*) AS creator_id, diff.upvotes - diff.downvotes AS score)
+            UPDATE
+                person_aggregates AS a
+            SET
+                thing_score = a.thing_score + diff.score FROM (
+                    SELECT
+                        creator_id, sum(score) AS score FROM thing_diff
+                    WHERE
+                        EXISTS (
+                            SELECT
+                                1
+                            FROM person
+                            WHERE
+                                id = creator_id)
+                    GROUP BY creator_id) AS diff
+                    WHERE
+                        a.person_id = diff.creator_id;
+                RETURN NULL;
+            END $$);
+    $b$,
+    'thing',
+    table_name);
 END
 $a$;
 
@@ -243,9 +231,8 @@ CALL r.post_or_comment ('post');
 CALL r.post_or_comment ('comment');
 
 -- Create triggers that update counts in parent aggregates
-CALL r.create_triggers ('comment',
-    $$
-    BEGIN
+CALL r.create_triggers ('comment', $$
+BEGIN
     WITH comment_group AS (
         SELECT
             (comment).post_id,
@@ -354,17 +341,19 @@ unused_person_aggregates_update_result AS (
                         community_id) AS diff
                 WHERE
                     a.community_id = diff.community_id;
-    RETURN NULL;
-END
-    $$
-    );
 
-CALL r.create_triggers ('post',
-    $$
-    BEGIN
+RETURN NULL;
+
+END $$);
+
+CALL r.create_triggers ('post', $$
+BEGIN
     WITH post_group AS (
         SELECT
-            (post).community_id, (post).creator_id, (post).local, coalesce(sum(count_diff), 0) AS posts FROM select_old_and_new_rows AS old_and_new_rows
+            (post).community_id,
+            (post).creator_id,
+            (post).local,
+            coalesce(sum(count_diff), 0) AS posts FROM select_old_and_new_rows AS old_and_new_rows
             WHERE (NOT ((post).deleted
                 OR (post).removed))
         AND ((post).community_id IS NULL
@@ -374,88 +363,101 @@ CALL r.create_triggers ('post',
             FROM community
             WHERE
                 id = (post).community_id))
-    AND ((post).creator_id IS NULL
-    OR EXISTS (
-        SELECT
-            1
-        FROM person
-        WHERE
-            id = (post).creator_id))
-GROUP BY GROUPING SETS ((post).community_id, (post).creator_id, (post).local)
-), unused_person_aggregates_update_result AS ( UPDATE
+        AND ((post).creator_id IS NULL
+        OR EXISTS (
+            SELECT
+                1
+            FROM person
+            WHERE
+                id = (post).creator_id))
+    GROUP BY GROUPING SETS ((post).community_id, (post).creator_id, (post).local)),
+unused_person_aggregates_update_result AS (
+    UPDATE
         person_aggregates AS a
     SET
-        post_count = a.post_count + post_group.posts FROM post_group
-        WHERE
-            a.person_id = post_group.creator_id
-), unused_site_aggregates_update_result AS ( UPDATE
-        site_aggregates AS a
-    SET
-        posts = a.posts + post_group.posts FROM post_group
+        post_count = a.post_count + post_group.posts
+    FROM
+        post_group
+    WHERE
+        a.person_id = post_group.creator_id),
+    unused_site_aggregates_update_result AS (
+        UPDATE
+            site_aggregates AS a
+        SET
+            posts = a.posts + post_group.posts
+        FROM
+            post_group
         WHERE
             post_group.local
             AND EXISTS (
                 SELECT
                     1
-                FROM site
+                FROM
+                    site
                 WHERE
                     id = a.site_id))
-UPDATE
-    community_aggregates AS a
-SET
-    posts = a.posts + post_group.posts FROM post_group
-    WHERE
-        a.community_id = post_group.community_id;
-    RETURN NULL;
-END
-    $$
-    );
-
-CALL r.create_triggers ('community',
-    $$
-    BEGIN
-    UPDATE
-        site_aggregates AS a
-    SET
-        communities = a.communities + diff.communities FROM (
-            SELECT
-                coalesce(sum(count_diff), 0) AS communities FROM select_old_and_new_rows AS old_and_new_rows
-            WHERE (community).local
-            AND NOT ((community).deleted
-            OR (community).removed)) AS diff
-    WHERE
-        EXISTS (
-            SELECT
-                1
-            FROM site
+            UPDATE
+                community_aggregates AS a
+            SET
+                posts = a.posts + post_group.posts
+            FROM
+                post_group
             WHERE
-                id = a.site_id);
-    RETURN NULL;
-END
-    $$
-    );
+                a.community_id = post_group.community_id;
 
-CALL r.create_triggers ('person',
-    $$
-    BEGIN
+RETURN NULL;
+
+END $$);
+
+CALL r.create_triggers ('community', $$
+BEGIN
     UPDATE
         site_aggregates AS a
     SET
-        users = a.users + diff.users FROM (
-            SELECT
-                coalesce(sum(count_diff), 0) AS users FROM combined_transition_tables
-            WHERE (person).local) AS diff
+        communities = a.communities + diff.communities
+    FROM (
+        SELECT
+            coalesce(sum(count_diff), 0) AS communities
+        FROM select_old_and_new_rows AS old_and_new_rows
+        WHERE (community).local
+        AND NOT ((community).deleted
+        OR (community).removed)) AS diff
+WHERE
+    EXISTS (
+        SELECT
+            1
+        FROM
+            site
         WHERE
-            EXISTS (
-                SELECT
-                    1
-                FROM site
-                WHERE
-                    id = a.site_id);
-    RETURN NULL;
-END
-    $$
-    );
+            id = a.site_id);
+
+RETURN NULL;
+
+END $$);
+
+CALL r.create_triggers ('person', $$
+BEGIN
+    UPDATE
+        site_aggregates AS a
+    SET
+        users = a.users + diff.users
+    FROM (
+        SELECT
+            coalesce(sum(count_diff), 0) AS users
+        FROM select_old_and_new_rows AS old_and_new_rows
+        WHERE (person).local) AS diff
+WHERE
+    EXISTS (
+        SELECT
+            1
+        FROM
+            site
+        WHERE
+            id = a.site_id);
+
+RETURN NULL;
+
+END $$);
 
 -- Delete comments before post is deleted (comment trigger can't update community_aggregates after post is deleted)
 CREATE FUNCTION r.delete_comments_before_post ()
@@ -522,34 +524,35 @@ CREATE TRIGGER comment_count
     EXECUTE FUNCTION r.update_comment_count_from_post ();
 
 -- Count subscribers for local communities
-CALL r.create_triggers ('community_follower',
-    $$
-    BEGIN
+CALL r.create_triggers ('community_follower', $$
+BEGIN
     UPDATE
         community_aggregates AS a
     SET
-        subscribers = a.subscribers + diff.subscribers FROM (
+        subscribers = a.subscribers + diff.subscribers
+    FROM (
+        SELECT
+            (community_follower).community_id, coalesce(sum(count_diff), 0) AS subscribers
+        FROM select_old_and_new_rows AS old_and_new_rows
+        WHERE (
             SELECT
-                (community_follower).community_id, coalesce(sum(count_diff), 0) AS subscribers FROM combined_transition_tables
-            WHERE (
-                SELECT
-                    local
-                FROM community
-                WHERE
-                    community.id = (community_follower).community_id LIMIT 1)
+                local
+            FROM community
+            WHERE
+                community.id = (community_follower).community_id LIMIT 1)
         AND EXISTS (
             SELECT
                 1
             FROM community
             WHERE
                 id = (community_follower).community_id)
-    GROUP BY (community_follower).community_id) AS diff
-    WHERE
-        a.community_id = diff.community_id;
-    RETURN NULL;
-END
-    $$
-    );
+        GROUP BY (community_follower).community_id) AS diff
+WHERE
+    a.community_id = diff.community_id;
+
+RETURN NULL;
+
+END $$);
 
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
