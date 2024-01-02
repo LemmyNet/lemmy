@@ -39,7 +39,8 @@ BEGIN
         LEFT JOIN person ON person.id = NEW.person_id
     WHERE
         community.id = NEW.community_id
-            AND community.id = ca.community_id;
+            AND community.id = ca.community_id
+            AND person IS NOT NULL;
     ELSIF (TG_OP = 'DELETE') THEN
         UPDATE
             community_aggregates ca
@@ -51,7 +52,8 @@ BEGIN
         LEFT JOIN person ON person.id = OLD.person_id
     WHERE
         community.id = OLD.community_id
-            AND community.id = ca.community_id;
+            AND community.id = ca.community_id
+            AND person IS NOT NULL;
     END IF;
     RETURN NULL;
 END
