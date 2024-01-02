@@ -36,3 +36,7 @@ BEGIN
 END
 $$;
 
+DROP TRIGGER IF EXISTS delete_follow_before_person ON person;
+
+DROP FUNCTION IF EXISTS delete_follow_before_person;
+

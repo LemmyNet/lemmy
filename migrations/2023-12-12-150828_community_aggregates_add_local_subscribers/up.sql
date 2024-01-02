@@ -40,7 +40,7 @@ BEGIN
     WHERE
         community.id = NEW.community_id
             AND community.id = ca.community_id
-            AND person IS NOT NULL;
+            AND person.local IS NOT NULL;
     ELSIF (TG_OP = 'DELETE') THEN
         UPDATE
             community_aggregates ca
@@ -53,9 +53,26 @@ BEGIN
     WHERE
         community.id = OLD.community_id
             AND community.id = ca.community_id
-            AND person IS NOT NULL;
+            AND person.local IS NOT NULL;
     END IF;
     RETURN NULL;
 END
 $$;
+
+-- to be able to join person on the trigger above, we need to run it before the person is deleted: https://github.com/LemmyNet/lemmy/pull/4166#issuecomment-1874095856
+CREATE FUNCTION delete_follow_before_person ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    DELETE FROM community_follower AS c
+    WHERE c.person_id = OLD.id;
+    RETURN OLD;
+END;
+$$;
+
+CREATE TRIGGER delete_follow_before_person
+    BEFORE DELETE ON person
+    FOR EACH ROW
+    EXECUTE FUNCTION delete_follow_before_person ();
 
