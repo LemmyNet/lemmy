@@ -155,6 +155,7 @@ mod tests {
       .unwrap();
 
     assert_eq!(2, community_aggregates_before_delete.subscribers);
+    assert_eq!(2, community_aggregates_before_delete.subscribers_local);
     assert_eq!(1, community_aggregates_before_delete.posts);
     assert_eq!(2, community_aggregates_before_delete.comments);
 
@@ -163,6 +164,7 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(1, another_community_aggs.subscribers);
+    assert_eq!(1, another_community_aggs.subscribers_local);
     assert_eq!(0, another_community_aggs.posts);
     assert_eq!(0, another_community_aggs.comments);
 
@@ -174,6 +176,7 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(1, after_unfollow.subscribers);
+    assert_eq!(1, after_unfollow.subscribers_local);
 
     // Follow again just for the later tests
     CommunityFollower::follow(pool, &second_person_follow)
@@ -183,6 +186,7 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(2, after_follow_again.subscribers);
+    assert_eq!(2, after_follow_again.subscribers_local);
 
     // Remove a parent post (the comment count should also be 0)
     Post::delete(pool, inserted_post.id).await.unwrap();
@@ -200,6 +204,7 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(1, after_person_delete.subscribers);
+    assert_eq!(1, after_person_delete.subscribers_local);
 
     // This should delete all the associated rows, and fire triggers
     let person_num_deleted = Person::delete(pool, inserted_person.id).await.unwrap();
