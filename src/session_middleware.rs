@@ -14,7 +14,7 @@ use lemmy_api_common::{
   lemmy_db_views::structs::LocalUserView,
   utils::check_user_valid,
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
 use reqwest::header::HeaderValue;
 use std::{future::ready, rc::Rc};
 
@@ -75,10 +75,9 @@ where
       if let Some(jwt) = &jwt {
         let local_user_id = Claims::validate(jwt, &context)
           .await
-          .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
-        let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id)
-          .await
           .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
+        let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id)
+          .await.map_err(LemmyError::from)?;
         check_user_valid(&local_user_view.person)?;
         req.extensions_mut().insert(local_user_view);
       }
