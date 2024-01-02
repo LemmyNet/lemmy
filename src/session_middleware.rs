@@ -77,7 +77,8 @@ where
           .await
           .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
         let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id)
-          .await.map_err(LemmyError::from)?;
+          .await
+          .map_err(LemmyError::from)?;
         check_user_valid(&local_user_view.person)?;
         req.extensions_mut().insert(local_user_view);
       }
