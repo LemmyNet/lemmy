@@ -95,7 +95,7 @@ lemmy_routes = { version = "=0.19.1-rc.2", path = "./crates/routes" }
 lemmy_db_views = { version = "=0.19.1-rc.2", path = "./crates/db_views" }
 lemmy_db_views_actor = { version = "=0.19.1-rc.2", path = "./crates/db_views_actor" }
 lemmy_db_views_moderator = { version = "=0.19.1-rc.2", path = "./crates/db_views_moderator" }
-activitypub_federation = { version = "0.5.0-beta.6", default-features = false, features = [
+activitypub_federation = { path = "../activitypub-federation-rust", default-features = false, features = [
   "actix-web",
 ] }
 diesel = "2.1.4"

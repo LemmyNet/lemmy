@@ -50,6 +50,7 @@ mod tests {
     test_json::<UndoFollow>("assets/mastodon/activities/undo_follow.json")?;
     test_json::<Vote>("assets/mastodon/activities/like_page.json")?;
     test_json::<UndoVote>("assets/mastodon/activities/undo_like_page.json")?;
+    test_json::<Report>("assets/mastodon/activities/flag.json")?;
     Ok(())
   }
 
