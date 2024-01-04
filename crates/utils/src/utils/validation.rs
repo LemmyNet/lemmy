@@ -310,6 +310,7 @@ mod tests {
       SITE_NAME_MAX_LENGTH,
     },
   };
+  use pretty_assertions::assert_eq;
   use url::Url;
 
   #[test]

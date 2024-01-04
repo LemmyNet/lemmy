@@ -16,6 +16,7 @@ mod tests {
     },
     tests::{test_json, test_parse_lemmy_item},
   };
+  use pretty_assertions::assert_eq;
   use lemmy_utils::error::LemmyResult;
 
   #[test]

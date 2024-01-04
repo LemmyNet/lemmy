@@ -88,6 +88,7 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use lemmy_utils::rate_limit::RateLimitCell;
+  use pretty_assertions::assert_eq;
   use reqwest::Client;
   use reqwest_middleware::ClientBuilder;
   use serial_test::serial;

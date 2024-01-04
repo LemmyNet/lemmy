@@ -416,6 +416,7 @@ mod tests {
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
     SubscribedType,
   };
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   struct Data {
