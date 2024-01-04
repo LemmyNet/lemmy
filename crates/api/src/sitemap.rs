@@ -49,6 +49,7 @@ pub(crate) mod tests {
   use chrono::{DateTime, NaiveDate, Utc};
   use elementtree::Element;
   use lemmy_db_schema::newtypes::DbUrl;
+  use pretty_assertions::assert_eq;
   use url::Url;
 
   #[tokio::test]

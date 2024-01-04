@@ -140,6 +140,7 @@ mod tests {
 
   use crate::utils::markdown::spoiler_rule::add;
   use markdown_it::MarkdownIt;
+  use pretty_assertions::assert_eq;
 
   #[test]
   fn test_spoiler_markdown() {
