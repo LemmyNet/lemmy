@@ -300,6 +300,7 @@ mod tests {
     context::LemmyContext,
     request::{extract_opengraph_data, fetch_link_metadata},
   };
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
   use url::Url;
 

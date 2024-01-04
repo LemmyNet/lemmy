@@ -159,6 +159,7 @@ mod tests {
   use assert_json_diff::assert_json_include;
   use lemmy_db_schema::source::site::Site;
   use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   async fn prepare_comment_test(

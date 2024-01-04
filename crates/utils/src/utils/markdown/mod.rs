@@ -104,6 +104,7 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use super::*;
+  use pretty_assertions::assert_eq;
 
   #[test]
   fn test_basic_markdown() {

@@ -79,6 +79,7 @@ typed-builder = "0.15.2"
 
 [dev-dependencies]
 serial_test = { workspace = true }
+pretty_assertions = { workspace = true }
 
 [package.metadata.cargo-machete]
 ignored = ["strum"]

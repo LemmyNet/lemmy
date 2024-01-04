@@ -313,6 +313,7 @@ mod tests {
   use lemmy_db_views::structs::LocalUserView;
   use lemmy_db_views_actor::structs::CommunityFollowerView;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::time::Duration;
   use tokio::time::sleep;

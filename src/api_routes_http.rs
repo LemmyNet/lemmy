@@ -1,6 +1,11 @@
 use actix_web::{guard, web};
 use lemmy_api::{
-  comment::{distinguish::distinguish_comment, like::like_comment, save::save_comment},
+  comment::{
+    distinguish::distinguish_comment,
+    like::like_comment,
+    list_comment_likes::list_comment_likes,
+    save::save_comment,
+  },
   comment_report::{
     create::create_comment_report,
     list::list_comment_reports,
@@ -45,6 +50,7 @@ use lemmy_api::{
     feature::feature_post,
     get_link_metadata::get_link_metadata,
     like::like_post,
+    list_post_likes::list_post_likes,
     lock::lock_post,
     mark_read::mark_post_as_read,
     save::save_post,
@@ -204,6 +210,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/feature", web::post().to(feature_post))
           .route("/list", web::get().to(list_posts))
           .route("/like", web::post().to(like_post))
+          .route("/like/list", web::get().to(list_post_likes))
           .route("/save", web::put().to(save_post))
           .route("/report", web::post().to(create_post_report))
           .route("/report/resolve", web::put().to(resolve_post_report))
@@ -228,6 +235,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/mark_as_read", web::post().to(mark_reply_as_read))
           .route("/distinguish", web::post().to(distinguish_comment))
           .route("/like", web::post().to(like_comment))
+          .route("/like/list", web::get().to(list_comment_likes))
           .route("/save", web::put().to(save_comment))
           .route("/list", web::get().to(list_comments))
           .route("/report", web::post().to(create_comment_report))

@@ -1511,6 +1511,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "diff"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2540,6 +2546,7 @@ dependencies = [
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
  "lemmy_utils",
+ "pretty_assertions",
  "serial_test",
  "sitemap-rs",
  "tokio",
@@ -2570,6 +2577,7 @@ dependencies = [
  "lemmy_utils",
  "mime",
  "once_cell",
+ "pretty_assertions",
  "regex",
  "reqwest",
  "reqwest-middleware",
@@ -2634,6 +2642,7 @@ dependencies = [
  "lemmy_utils",
  "moka",
  "once_cell",
+ "pretty_assertions",
  "reqwest",
  "serde",
  "serde_json",
@@ -2665,6 +2674,7 @@ dependencies = [
  "futures-util",
  "lemmy_utils",
  "once_cell",
+ "pretty_assertions",
  "regex",
  "rustls 0.21.10",
  "serde",
@@ -2694,6 +2704,7 @@ dependencies = [
  "diesel_ltree",
  "lemmy_db_schema",
  "lemmy_utils",
+ "pretty_assertions",
  "serde",
  "serde_with",
  "serial_test",
@@ -2710,6 +2721,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "lemmy_db_schema",
+ "pretty_assertions",
  "serde",
  "serde_with",
  "serial_test",
@@ -2805,6 +2817,7 @@ dependencies = [
  "opentelemetry 0.19.0",
  "opentelemetry-otlp 0.12.0",
  "pict-rs",
+ "pretty_assertions",
  "prometheus",
  "reqwest",
  "reqwest-middleware",
@@ -2839,6 +2852,7 @@ dependencies = [
  "markdown-it",
  "once_cell",
  "openssl",
+ "pretty_assertions",
  "regex",
  "reqwest",
  "reqwest-middleware",
@@ -3945,6 +3959,16 @@ name = "precomputed-hash"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
+
+[[package]]
+name = "pretty_assertions"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af7cee1a6c8a5b9208b3cb1061f10c0cb689087b3d8ce85fb9d2dd7a29b6ba66"
+dependencies = [
+ "diff",
+ "yansi",
+]
 
 [[package]]
 name = "proc-macro2"
@@ -6446,6 +6470,12 @@ checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
 dependencies = [
  "linked-hash-map",
 ]
+
+[[package]]
+name = "yansi"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09041cd90cf85f7f8b2df60c646f853b7f535ce68f85244eb6731cf89fa498ec"
 
 [[package]]
 name = "zerocopy"

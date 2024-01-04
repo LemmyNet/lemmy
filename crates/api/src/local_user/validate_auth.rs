@@ -1,10 +1,10 @@
-use crate::{local_user_view_from_jwt, read_auth_token};
+use crate::read_auth_token;
 use actix_web::{
   web::{Data, Json},
   HttpRequest,
 };
-use lemmy_api_common::{context::LemmyContext, SuccessResponse};
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_api_common::{claims::Claims, context::LemmyContext, SuccessResponse};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
 
 /// Returns an error message if the auth token is invalid for any reason. Necessary because other
 /// endpoints silently treat any call with invalid auth as unauthenticated.
@@ -15,7 +15,9 @@ pub async fn validate_auth(
 ) -> Result<Json<SuccessResponse>, LemmyError> {
   let jwt = read_auth_token(&req)?;
   if let Some(jwt) = jwt {
-    local_user_view_from_jwt(&jwt, &context).await?;
+    Claims::validate(&jwt, &context)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
   } else {
     Err(LemmyErrorType::NotLoggedIn)?;
   }
