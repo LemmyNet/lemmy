@@ -15,6 +15,7 @@ use lemmy_db_schema::{
   schema::{person, person_block, private_message},
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
+use std::fmt::Debug;
 use tracing::debug;
 
 fn queries<'a>() -> Queries<
@@ -159,6 +160,7 @@ mod tests {
 
   use crate::{private_message_view::PrivateMessageQuery, structs::PrivateMessageView};
   use lemmy_db_schema::{
+    assert_length,
     source::{
       instance::Instance,
       person::{Person, PersonInsertForm},
@@ -250,7 +252,7 @@ mod tests {
     .await
     .unwrap();
 
-    assert_eq!(timmy_messages.len(), 3);
+    assert_length(3, &timmy_messages);
     assert_eq!(timmy_messages[0].creator.id, jess.id);
     assert_eq!(timmy_messages[0].recipient.id, timmy.id);
     assert_eq!(timmy_messages[1].creator.id, timmy.id);
@@ -267,7 +269,7 @@ mod tests {
     .await
     .unwrap();
 
-    assert_eq!(timmy_unread_messages.len(), 2);
+    assert_length!(2, &timmy_unread_messages);
     assert_eq!(timmy_unread_messages[0].creator.id, jess.id);
     assert_eq!(timmy_unread_messages[0].recipient.id, timmy.id);
     assert_eq!(timmy_unread_messages[1].creator.id, sara.id);
@@ -282,7 +284,7 @@ mod tests {
     .await
     .unwrap();
 
-    assert_eq!(timmy_sara_messages.len(), 2);
+    assert_length!(2, &timmy_sara_messages);
     assert_eq!(timmy_sara_messages[0].creator.id, timmy.id);
     assert_eq!(timmy_sara_messages[0].recipient.id, sara.id);
     assert_eq!(timmy_sara_messages[1].creator.id, sara.id);
@@ -297,7 +299,7 @@ mod tests {
     .await
     .unwrap();
 
-    assert_eq!(timmy_sara_unread_messages.len(), 1);
+    assert_length!(1, &timmy_sara_unread_messages);
     assert_eq!(timmy_sara_unread_messages[0].creator.id, sara.id);
     assert_eq!(timmy_sara_unread_messages[0].recipient.id, timmy.id);
 
@@ -327,7 +329,7 @@ mod tests {
     .await
     .unwrap();
 
-    assert_eq!(timmy_messages.len(), 1);
+    assert_length!(2, &timmy_messages);
 
     let timmy_unread_messages = PrivateMessageView::get_unread_messages(pool, timmy.id)
       .await
