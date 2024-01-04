@@ -263,6 +263,7 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use diesel_ltree::Ltree;
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
