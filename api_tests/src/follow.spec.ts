@@ -41,12 +41,18 @@ test("Follow local community", async () => {
 });
 
 test("Follow federated community", async () => {
-  let betaCommunity = (await resolveBetaCommunity(alpha)).community;
+  // It takes about 1 second for the community aggregates to federate
+  let betaCommunity = (
+    await waitUntil(
+      () => resolveBetaCommunity(alpha),
+      c =>
+        c.community?.counts.subscribers === 1 &&
+        c.community.counts.subscribers_local === 0,
+    )
+  ).community;
   if (!betaCommunity) {
     throw "Missing beta community";
   }
-  expect(betaCommunity.counts.subscribers).toBe(1);
-  expect(betaCommunity.counts.subscribers_local).toBe(0);
   let follow = await followCommunity(alpha, true, betaCommunity.community.id);
   expect(follow.community_view.subscribed).toBe("Pending");
   betaCommunity = (
