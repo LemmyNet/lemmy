@@ -184,3 +184,14 @@ pub struct CustomEmojiView {
   pub custom_emoji: CustomEmoji,
   pub keywords: Vec<CustomEmojiKeyword>,
 }
+
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A vote view for checking a post or comments votes.
+pub struct VoteView {
+  pub creator: Person,
+  pub score: i16,
+}

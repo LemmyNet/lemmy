@@ -749,6 +749,7 @@ mod tests {
     SortType,
     SubscribedType,
   };
+  use pretty_assertions::{assert_eq, assert_ne};
   use serial_test::serial;
   use std::{collections::HashSet, time::Duration};
 

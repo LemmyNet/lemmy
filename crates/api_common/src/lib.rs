@@ -43,5 +43,5 @@ impl Default for SuccessResponse {
 
 /// how long to sleep based on how many retries have already happened
 pub fn federate_retry_sleep_duration(retry_count: i32) -> Duration {
-  Duration::from_secs_f64(10.0 * 2.0_f64.powf(f64::from(retry_count)))
+  Duration::from_secs_f64(2.0_f64.powf(f64::from(retry_count)))
 }
