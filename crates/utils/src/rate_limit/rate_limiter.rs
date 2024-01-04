@@ -310,6 +310,7 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use super::{ActionType, BucketConfig, InstantSecs, RateLimitState, RateLimitedGroup};
+  use pretty_assertions::assert_eq;
 
   #[test]
   fn test_split_ipv6() {
