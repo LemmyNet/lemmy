@@ -312,7 +312,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn local_only_instance() {
+  async fn local_only_community() {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await;

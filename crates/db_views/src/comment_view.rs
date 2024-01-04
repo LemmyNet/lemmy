@@ -290,6 +290,11 @@ fn queries<'a>() -> Queries<
       query = query.filter(not(is_creator_blocked(person_id_join)));
     };
 
+    // Hide comments in local only communities from unauthenticated users
+    if options.local_user.is_none() {
+      query = query.filter(community::local_only.eq(false));
+    }
+
     // A Max depth given means its a tree fetch
     let (limit, offset) = if let Some(max_depth) = options.max_depth {
       let depth_limit = if let Some(parent_path) = options.parent_path.as_ref() {
@@ -407,7 +412,13 @@ mod tests {
     source::{
       actor_language::LocalUserLanguage,
       comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
-      community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
+      community::{
+        Community,
+        CommunityInsertForm,
+        CommunityModerator,
+        CommunityModeratorForm,
+        CommunityUpdateForm,
+      },
       instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm},
@@ -1043,6 +1054,7 @@ mod tests {
         shared_inbox_url: data.inserted_community.shared_inbox_url.clone(),
         moderators_url: data.inserted_community.moderators_url.clone(),
         featured_url: data.inserted_community.featured_url.clone(),
+        local_only: false,
       },
       counts: CommentAggregates {
         comment_id: data.inserted_comment_0.id,
@@ -1055,5 +1067,54 @@ mod tests {
         controversy_rank: 0.0,
       },
     }
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn local_only_instance() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    Community::update(
+      pool,
+      data.inserted_community.id,
+      &CommunityUpdateForm {
+        local_only: Some(true),
+        ..Default::default()
+      },
+    )
+    .await
+    .unwrap();
+
+    let unauthenticated_query = CommentQuery {
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(0, unauthenticated_query.len());
+
+    let authenticated_query = CommentQuery {
+      local_user: Some(&data.timmy_local_user_view),
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+    assert_eq!(5, authenticated_query.len());
+
+    let unauthenticated_comment = CommentView::read(pool, data.inserted_comment_0.id, None).await;
+    assert!(unauthenticated_comment.is_err());
+
+    let authenticated_comment = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(data.timmy_local_user_view.person.id),
+    )
+    .await;
+    assert!(authenticated_comment.is_ok());
+
+    cleanup(data, pool).await;
   }
 }
