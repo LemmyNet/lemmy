@@ -3,23 +3,26 @@ ALTER TABLE community_aggregates
     ADD COLUMN subscribers_local bigint NOT NULL DEFAULT 0;
 
 -- update initial value
+-- update by counting local persons who follow communities
+WITH follower_counts AS (
+    SELECT
+        community_id,
+        count(*) AS local_sub_count
+    FROM
+        community_follower cf
+        JOIN person p ON p.id = cf.person_id
+    WHERE
+        p.local = TRUE
+    GROUP BY
+        community_id)
 UPDATE
     community_aggregates ca
 SET
-    subscribers_local = (
-        SELECT
-            COUNT(*)
-        FROM
-            community_follower cf
-        WHERE
-            cf.community_id = ca.community_id
-            AND (
-                SELECT
-                    local
-                FROM
-                    person
-                WHERE
-                    person.id = cf.person_id));
+    subscribers_local = local_sub_count
+FROM
+    follower_counts
+WHERE
+    ca.community_id = follower_counts.community_id;
 
 -- subscribers should be updated only when a local community is followed by a local or remote person
 -- subscribers_local should be updated only when a local person follows a local or remote community
