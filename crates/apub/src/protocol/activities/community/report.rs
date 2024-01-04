@@ -33,8 +33,12 @@ pub struct Report {
 }
 
 impl Report {
-  pub fn reason(&self) -> String {
-    self.summary.clone().or(self.content.clone()).unwrap()
+  pub fn reason(&self) -> LemmyResult<String> {
+    self
+      .summary
+      .clone()
+      .or(self.content.clone())
+      .ok_or(LemmyErrorType::CouldntFindObject.into())
   }
 }
 
