@@ -206,6 +206,7 @@ impl InstanceWorker {
       .await
       .context("failed figuring out inbox urls")?;
     if inbox_urls.is_empty() {
+      tracing::debug!("{}: {:?} no inboxes", self.instance.domain, activity.id);
       self.state.last_successful_id = Some(activity.id);
       self.state.last_successful_published_time = Some(activity.published);
       return Ok(());
