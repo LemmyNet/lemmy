@@ -15,7 +15,6 @@ use lemmy_db_schema::{
   schema::{person, person_block, private_message},
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
-use std::fmt::Debug;
 use tracing::debug;
 
 fn queries<'a>() -> Queries<
@@ -252,7 +251,7 @@ mod tests {
     .await
     .unwrap();
 
-    assert_length(3, &timmy_messages);
+    assert_length!(3, &timmy_messages);
     assert_eq!(timmy_messages[0].creator.id, jess.id);
     assert_eq!(timmy_messages[0].recipient.id, timmy.id);
     assert_eq!(timmy_messages[1].creator.id, timmy.id);
