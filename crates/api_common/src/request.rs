@@ -49,7 +49,7 @@ pub async fn fetch_link_metadata(
   // https://github.com/LemmyNet/lemmy/issues/1964
   let html_bytes = response.bytes().await.map_err(LemmyError::from)?.to_vec();
 
-  let mut metadata = extract_opengraph_data(&html_bytes, url)?;
+  let mut metadata = extract_opengraph_data(&html_bytes, url).unwrap_or_default();
 
   metadata.content_type = content_type.map(|c| c.to_string());
   if generate_thumbnail && is_image {
@@ -71,14 +71,13 @@ pub async fn fetch_link_metadata_opt(
   url: Option<&Url>,
   generate_thumbnail: bool,
   context: &LemmyContext,
-) -> Result<LinkMetadata, LemmyError> {
-  let metadata = match &url {
+) -> LinkMetadata {
+  match &url {
     Some(url) => fetch_link_metadata(url, generate_thumbnail, context)
       .await
       .unwrap_or_default(),
     _ => Default::default(),
-  };
-  Ok(metadata)
+  }
 }
 
 /// Extract site metadata from HTML Opengraph attributes.
@@ -300,6 +299,7 @@ mod tests {
     context::LemmyContext,
     request::{extract_opengraph_data, fetch_link_metadata},
   };
+  use lemmy_utils::settings::SETTINGS;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use url::Url;

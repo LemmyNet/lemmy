@@ -30,6 +30,8 @@ pub struct LocalImageForm {
   pub pictrs_delete_token: String,
 }
 
+/// Stores all images which are hosted on remote domains. When attempting to proxy an image, it
+/// is checked against this table to avoid Lemmy being used as a general purpose proxy.
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Identifiable))]

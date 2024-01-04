@@ -84,7 +84,7 @@ pub async fn create_post(
   }
 
   // Fetch post links and pictrs cached image
-  let metadata = fetch_link_metadata_opt(url.as_ref(), true, &context).await?;
+  let metadata = fetch_link_metadata_opt(url.as_ref(), true, &context).await;
   let url = proxy_image_link_opt_apub(url, &context).await?;
 
   // Only need to check if language is allowed in case user set it explicitly. When using default

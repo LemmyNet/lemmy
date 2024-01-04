@@ -34,11 +34,10 @@ pub async fn save_user_settings(
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&site_view.local_site);
-  let bio = process_markdown_opt(&data.bio, &slur_regex, &context).await?;
+  let bio = diesel_option_overwrite(process_markdown_opt(&data.bio, &slur_regex, &context).await?);
 
   let avatar = proxy_image_link_opt_api(&data.avatar, &context).await?;
   let banner = proxy_image_link_opt_api(&data.banner, &context).await?;
-  let bio = diesel_option_overwrite(bio);
   let display_name = diesel_option_overwrite(data.display_name.clone());
   let matrix_user_id = diesel_option_overwrite(data.matrix_user_id.clone());
   let email_deref = data.email.as_deref().map(str::to_lowercase);

@@ -846,9 +846,13 @@ pub async fn process_markdown(
   context: &LemmyContext,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
-  let (text, links) = markdown_rewrite_image_links(text);
-  RemoteImage::create(&mut context.pool(), links).await?;
-  Ok(text)
+  if context.settings().pictrs_config()?.image_proxy {
+    let (text, links) = markdown_rewrite_image_links(text);
+    RemoteImage::create(&mut context.pool(), links).await?;
+    Ok(text)
+  } else {
+    Ok(text)
+  }
 }
 
 pub async fn process_markdown_opt(
@@ -862,6 +866,11 @@ pub async fn process_markdown_opt(
   }
 }
 
+/// Rewrite a link to go through `/api/v3/image_proxy` endpoint. This is only for remote urls and
+/// if image_proxy setting is enabled.
+///
+/// The parameter `image_proxy` is the config value of `pictrs.image_proxy`. Its necessary to pass
+/// as separate parameter so it can be changed in tests.
 pub(crate) async fn proxy_image_link(
   link: Url,
   image_proxy: bool,

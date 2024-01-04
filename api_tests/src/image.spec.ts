@@ -129,7 +129,7 @@ test("Purge post, linked image removed", async () => {
   expect(content2).toBe("");
 });
 
-test("Images in remote post are proxied", async () => {
+test("Images in remote post are proxied if setting enabled", async () => {
   let user = await registerUser(beta, betaUrl);
   let community = await createCommunity(gamma);
 
@@ -137,7 +137,6 @@ test("Images in remote post are proxied", async () => {
     image: Buffer.from("test"),
   };
   const upload = await user.uploadImage(upload_form);
-  console.log(upload);
   let post = await createPost(
     gamma,
     community.community_view.community.id,
@@ -145,8 +144,8 @@ test("Images in remote post are proxied", async () => {
     "![](http://example.com/image2.png)",
   );
   expect(post.post_view.post).toBeDefined();
+
   // remote image gets proxied after upload
-  console.log(post.post_view.post);
   expect(
     post.post_view.post.url?.startsWith(
       "http://lemmy-gamma:8561/api/v3/image_proxy?url",
@@ -160,7 +159,7 @@ test("Images in remote post are proxied", async () => {
 
   let epsilonPost = await resolvePost(epsilon, post.post_view.post);
   expect(epsilonPost.post).toBeDefined();
-  console.log(epsilonPost.post);
+
   // remote image gets proxied after federation
   expect(
     epsilonPost.post!.post.url?.startsWith(
@@ -172,4 +171,36 @@ test("Images in remote post are proxied", async () => {
       "![](http://lemmy-epsilon:8581/api/v3/image_proxy?url",
     ),
   ).toBeTruthy();
+});
+
+test("No image proxying if setting is disabled", async () => {
+  let user = await registerUser(beta, betaUrl);
+  let community = await createCommunity(alpha);
+
+  const upload_form: UploadImage = {
+    image: Buffer.from("test"),
+  };
+  const upload = await user.uploadImage(upload_form);
+  let post = await createPost(
+    alpha,
+    community.community_view.community.id,
+    upload.url,
+    "![](http://example.com/image2.png)",
+  );
+  expect(post.post_view.post).toBeDefined();
+
+  // remote image doesnt get proxied after upload
+  expect(
+    post.post_view.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
+  ).toBeTruthy();
+  expect(post.post_view.post.body).toBe("![](http://example.com/image2.png)");
+
+  let gammaPost = await resolvePost(delta, post.post_view.post);
+  expect(gammaPost.post).toBeDefined();
+
+  // remote image doesnt get proxied after federation
+  expect(
+    gammaPost.post!.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
+  ).toBeTruthy();
+  expect(gammaPost.post!.post.body).toBe("![](http://example.com/image2.png)");
 });
