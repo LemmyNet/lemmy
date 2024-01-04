@@ -43,7 +43,7 @@ use rustls::{
 use std::{
   ops::{Deref, DerefMut},
   sync::Arc,
-  time::{Duration, SystemTime},
+  time::SystemTime,
 };
 use tracing::{error, info};
 use url::Url;
@@ -52,7 +52,6 @@ const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
 pub const SITEMAP_LIMIT: i64 = 50000;
 pub const SITEMAP_DAYS: i64 = 31;
-const POOL_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
 pub const RANK_DEFAULT: f64 = 0.0001;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
@@ -322,9 +321,6 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
   };
   let pool = Pool::builder(manager)
     .max_size(SETTINGS.database.pool_size)
-    .wait_timeout(POOL_TIMEOUT)
-    .create_timeout(POOL_TIMEOUT)
-    .recycle_timeout(POOL_TIMEOUT)
     .runtime(Runtime::Tokio1)
     .build()?;
 
@@ -490,6 +486,7 @@ mod tests {
 
   use super::{fuzzy_search, *};
   use crate::utils::is_email_regex;
+  use pretty_assertions::assert_eq;
 
   #[test]
   fn test_fuzzy_search() {

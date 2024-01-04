@@ -31,6 +31,7 @@ import {
   searchPostLocal,
   resolveBetaCommunity,
   longDelay,
+  delay,
 } from "./shared";
 import { EditSite } from "lemmy-js-client";
 
@@ -377,7 +378,9 @@ test("User blocks instance, communities are hidden", async () => {
 
 test("Community follower count is federated", async () => {
   // Follow the beta community from alpha
-  let resolved = await resolveBetaCommunity(alpha);
+  let community = await createCommunity(beta);
+  let community_id = community.community_view.community.actor_id;
+  let resolved = await resolveCommunity(alpha, community_id);
   if (!resolved.community) {
     throw "Missing beta community";
   }
@@ -385,7 +388,7 @@ test("Community follower count is federated", async () => {
   await followCommunity(alpha, true, resolved.community.community.id);
   let followed = (
     await waitUntil(
-      () => resolveBetaCommunity(alpha),
+      () => resolveCommunity(alpha, community_id),
       c => c.community?.subscribed === "Subscribed",
     )
   ).community;
@@ -394,7 +397,7 @@ test("Community follower count is federated", async () => {
   expect(followed?.counts.subscribers).toBe(1);
 
   // Follow the community from gamma
-  resolved = await resolveBetaCommunity(gamma);
+  resolved = await resolveCommunity(gamma, community_id);
   if (!resolved.community) {
     throw "Missing beta community";
   }
@@ -402,7 +405,7 @@ test("Community follower count is federated", async () => {
   await followCommunity(gamma, true, resolved.community.community.id);
   followed = (
     await waitUntil(
-      () => resolveBetaCommunity(gamma),
+      () => resolveCommunity(gamma, community_id),
       c => c.community?.subscribed === "Subscribed",
     )
   ).community;
@@ -411,7 +414,7 @@ test("Community follower count is federated", async () => {
   expect(followed?.counts?.subscribers).toBe(2);
 
   // Follow the community from delta
-  resolved = await resolveBetaCommunity(delta);
+  resolved = await resolveCommunity(delta, community_id);
   if (!resolved.community) {
     throw "Missing beta community";
   }
@@ -419,7 +422,7 @@ test("Community follower count is federated", async () => {
   await followCommunity(delta, true, resolved.community.community.id);
   followed = (
     await waitUntil(
-      () => resolveBetaCommunity(delta),
+      () => resolveCommunity(delta, community_id),
       c => c.community?.subscribed === "Subscribed",
     )
   ).community;
@@ -479,4 +482,32 @@ test("Dont receive community activities after unsubscribe", async () => {
 
   let postResBeta = searchPostLocal(beta, postRes.post_view.post);
   expect((await postResBeta).posts.length).toBe(0);
+});
+
+test("Fetch community, includes posts", async () => {
+  let communityRes = await createCommunity(alpha);
+  expect(communityRes.community_view.community.name).toBeDefined();
+  expect(communityRes.community_view.counts.subscribers).toBe(1);
+
+  let postRes = await createPost(
+    alpha,
+    communityRes.community_view.community.id,
+  );
+  expect(postRes.post_view.post).toBeDefined();
+
+  let resolvedCommunity = await waitUntil(
+    () =>
+      resolveCommunity(beta, communityRes.community_view.community.actor_id),
+    c => c.community?.community.id != undefined,
+  );
+  let betaCommunity = resolvedCommunity.community;
+  expect(betaCommunity?.community.actor_id).toBe(
+    communityRes.community_view.community.actor_id,
+  );
+
+  await longDelay();
+
+  let post_listing = await getPosts(beta, "All", betaCommunity?.community.id);
+  expect(post_listing.posts.length).toBe(1);
+  expect(post_listing.posts[0].post.ap_id).toBe(postRes.post_view.post.ap_id);
 });

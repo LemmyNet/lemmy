@@ -31,6 +31,7 @@ mod tests {
     traits::Crud,
     utils::{build_db_pool_for_tests, DbPool},
   };
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   async fn prepare_site_with_community(

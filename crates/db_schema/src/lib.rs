@@ -216,3 +216,12 @@ pub enum PostFeatureType {
   /// Features to the top of the community.
   Community,
 }
+
+/// Wrapper for assert_eq! macro. Checks that vec matches the given length, and prints the
+/// vec on failure.
+#[macro_export]
+macro_rules! assert_length {
+  ($len:expr, $vec:expr) => {{
+    assert_eq!($len, $vec.len(), "Vec has wrong length: {:?}", $vec)
+  }};
+}
