@@ -328,7 +328,7 @@ mod tests {
     .await
     .unwrap();
 
-    assert_length!(2, &timmy_messages);
+    assert_length!(1, &timmy_messages);
 
     let timmy_unread_messages = PrivateMessageView::get_unread_messages(pool, timmy.id)
       .await
