@@ -399,6 +399,7 @@ mod tests {
   };
   use lemmy_db_schema::{
     aggregates::structs::CommentAggregates,
+    assert_length,
     impls::actor_language::UNDETERMINED_ID,
     newtypes::LanguageId,
     source::{
@@ -637,7 +638,7 @@ mod tests {
     );
 
     // Make sure its 1, not showing the blocked comment
-    assert_eq!(5, read_comment_views_with_person.len());
+    assert_length!(5, read_comment_views_with_person);
 
     let read_comment_from_blocked_person = CommentView::read(
       pool,
@@ -664,7 +665,7 @@ mod tests {
       read_liked_comment_views[0]
     );
 
-    assert_eq!(1, read_liked_comment_views.len());
+    assert_length!(1, read_liked_comment_views);
 
     let read_disliked_comment_views: Vec<CommentView> = CommentQuery {
       local_user: (Some(&data.timmy_local_user_view)),
@@ -708,8 +709,8 @@ mod tests {
     .unwrap();
 
     // Make sure the comment parent-limited fetch is correct
-    assert_eq!(6, read_comment_views_top_path.len());
-    assert_eq!(4, read_comment_views_child_path.len());
+    assert_length!(6, read_comment_views_top_path);
+    assert_length!(4, read_comment_views_child_path);
 
     // Make sure it contains the parent, but not the comment from the other tree
     let child_comments = read_comment_views_child_path
@@ -733,7 +734,7 @@ mod tests {
       expected_comment_view(&data, pool).await,
       read_comment_views_top_max_depth[0]
     );
-    assert_eq!(1, read_comment_views_top_max_depth.len());
+    assert_length!(1, read_comment_views_top_max_depth);
 
     let child_path = data.inserted_comment_1.path.clone();
     let read_comment_views_parent_max_depth = CommentQuery {
@@ -752,7 +753,7 @@ mod tests {
       .comment
       .content
       .eq("Comment 3"));
-    assert_eq!(3, read_comment_views_parent_max_depth.len());
+    assert_length!(3, read_comment_views_parent_max_depth);
 
     cleanup(data, pool).await;
   }
@@ -773,7 +774,7 @@ mod tests {
     .list(pool)
     .await
     .unwrap();
-    assert_eq!(5, all_languages.len());
+    assert_length!(5, all_languages);
 
     // change user lang to finnish, should only show one post in finnish and one undetermined
     let finnish_id = Language::read_id_from_code(pool, Some("fi"))
@@ -794,7 +795,7 @@ mod tests {
     .list(pool)
     .await
     .unwrap();
-    assert_eq!(2, finnish_comments.len());
+    assert_length!(2, finnish_comments);
     let finnish_comment = finnish_comments
       .iter()
       .find(|c| c.comment.language_id == finnish_id);
@@ -819,7 +820,7 @@ mod tests {
     .list(pool)
     .await
     .unwrap();
-    assert_eq!(1, undetermined_comment.len());
+    assert_length!(1, undetermined_comment);
 
     cleanup(data, pool).await;
   }
