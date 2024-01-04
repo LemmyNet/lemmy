@@ -56,6 +56,7 @@ mod tests {
     source::{federation_allowlist::FederationAllowList, instance::Instance},
     utils::build_db_pool_for_tests,
   };
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]

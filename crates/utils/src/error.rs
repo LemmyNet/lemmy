@@ -110,6 +110,8 @@ pub enum LemmyErrorType {
   CouldntFindCommunity,
   CouldntFindPerson,
   PersonIsBlocked,
+  CommunityIsBlocked,
+  InstanceIsBlocked,
   DownvotesAreDisabled,
   InstanceIsPrivate,
   /// Password must be between 10 and 60 characters
@@ -219,14 +221,13 @@ pub enum LemmyErrorType {
   CouldntSendWebmention,
   ContradictingFilters,
   InstanceBlockAlreadyExists,
-  /// `jwt` cookie must be marked secure and httponly
-  AuthCookieInsecure,
   /// Thrown when an API call is submitted with more than 1000 array elements, see [[MAX_API_PARAM_ELEMENTS]]
   TooManyItems,
   CommunityHasNoFollowers,
   BanExpirationInPast,
   InvalidUnixTime,
   InvalidBotAction,
+  CantBlockLocalInstance,
   Unknown(String),
 }
 
@@ -278,6 +279,7 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
   use super::*;
   use actix_web::{body::MessageBody, ResponseError};
+  use pretty_assertions::assert_eq;
   use std::fs::read_to_string;
   use strum::IntoEnumIterator;
 

@@ -45,18 +45,19 @@ pub async fn follow_community(
         .await
         .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
     }
-  }
-  if !data.follow {
+  } else {
     CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
       .await
       .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
   }
 
-  ActivityChannel::submit_activity(
-    SendActivityData::FollowCommunity(community, local_user_view.person.clone(), data.follow),
-    &context,
-  )
-  .await?;
+  if !community.local {
+    ActivityChannel::submit_activity(
+      SendActivityData::FollowCommunity(community, local_user_view.person.clone(), data.follow),
+      &context,
+    )
+    .await?;
+  }
 
   let community_id = data.community_id;
   let person_id = local_user_view.person.id;

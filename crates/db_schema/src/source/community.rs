@@ -13,8 +13,9 @@ use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A community.
 pub struct Community {
@@ -133,14 +134,18 @@ pub struct CommunityUpdateForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::community::Community))
 )]
 #[cfg_attr(feature = "full", diesel(table_name = community_moderator))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct CommunityModerator {
-  pub id: i32,
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub published: DateTime<Utc>,
@@ -155,14 +160,18 @@ pub struct CommunityModeratorForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::community::Community))
 )]
 #[cfg_attr(feature = "full", diesel(table_name = community_person_ban))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct CommunityPersonBan {
-  pub id: i32,
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub published: DateTime<Utc>,
@@ -179,14 +188,18 @@ pub struct CommunityPersonBanForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::community::Community))
 )]
 #[cfg_attr(feature = "full", diesel(table_name = community_follower))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct CommunityFollower {
-  pub id: i32,
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub published: DateTime<Utc>,

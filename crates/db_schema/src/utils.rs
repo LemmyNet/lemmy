@@ -24,6 +24,7 @@ use diesel_async::{
   pooled_connection::{
     deadpool::{Object as PooledConnection, Pool},
     AsyncDieselConnectionManager,
+    ManagerConfig,
   },
 };
 use diesel_migrations::EmbeddedMigrations;
@@ -48,7 +49,10 @@ use url::Url;
 
 const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
+pub const SITEMAP_LIMIT: i64 = 50000;
+pub const SITEMAP_DAYS: i64 = 31;
 const POOL_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5));
+pub const RANK_DEFAULT: f64 = 0.0001;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
@@ -290,7 +294,9 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
   let manager = if tls_enabled {
     // diesel-async does not support any TLS connections out of the box, so we need to manually
     // provide a setup function which handles creating the connection
-    AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_setup(&db_url, establish_connection)
+    let mut config = ManagerConfig::default();
+    config.custom_setup = Box::new(establish_connection);
+    AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(&db_url, config)
   } else {
     AsyncDieselConnectionManager::<AsyncPgConnection>::new(&db_url)
   };
@@ -462,6 +468,7 @@ mod tests {
 
   use super::{fuzzy_search, *};
   use crate::utils::is_email_regex;
+  use pretty_assertions::assert_eq;
 
   #[test]
   fn test_fuzzy_search() {

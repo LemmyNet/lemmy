@@ -89,9 +89,6 @@ pub trait InCommunity {
 
 #[cfg(test)]
 pub(crate) mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
-
   use activitypub_federation::protocol::context::WithContext;
   use assert_json_diff::assert_json_include;
   use lemmy_utils::error::LemmyError;

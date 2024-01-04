@@ -141,9 +141,6 @@ impl Object for ApubPrivateMessage {
 
 #[cfg(test)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
-
   use super::*;
   use crate::{
     objects::{
@@ -155,90 +152,76 @@ mod tests {
   };
   use assert_json_diff::assert_json_include;
   use lemmy_db_schema::source::site::Site;
+  use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   async fn prepare_comment_test(
     url: &Url,
     context: &Data<LemmyContext>,
-  ) -> (ApubPerson, ApubPerson, ApubSite) {
+  ) -> LemmyResult<(ApubPerson, ApubPerson, ApubSite)> {
     let context2 = context.reset_request_count();
-    let lemmy_person = file_to_json_object("assets/lemmy/objects/person.json").unwrap();
-    let site = parse_lemmy_instance(&context2).await;
-    ApubPerson::verify(&lemmy_person, url, &context2)
-      .await
-      .unwrap();
-    let person1 = ApubPerson::from_json(lemmy_person, &context2)
-      .await
-      .unwrap();
-    let pleroma_person = file_to_json_object("assets/pleroma/objects/person.json").unwrap();
-    let pleroma_url = Url::parse("https://queer.hacktivis.me/users/lanodan").unwrap();
-    ApubPerson::verify(&pleroma_person, &pleroma_url, &context2)
-      .await
-      .unwrap();
-    let person2 = ApubPerson::from_json(pleroma_person, &context2)
-      .await
-      .unwrap();
-    (person1, person2, site)
+    let lemmy_person = file_to_json_object("assets/lemmy/objects/person.json")?;
+    let site = parse_lemmy_instance(&context2).await?;
+    ApubPerson::verify(&lemmy_person, url, &context2).await?;
+    let person1 = ApubPerson::from_json(lemmy_person, &context2).await?;
+    let pleroma_person = file_to_json_object("assets/pleroma/objects/person.json")?;
+    let pleroma_url = Url::parse("https://queer.hacktivis.me/users/lanodan")?;
+    ApubPerson::verify(&pleroma_person, &pleroma_url, &context2).await?;
+    let person2 = ApubPerson::from_json(pleroma_person, &context2).await?;
+    Ok((person1, person2, site))
   }
 
-  async fn cleanup(data: (ApubPerson, ApubPerson, ApubSite), context: &Data<LemmyContext>) {
-    Person::delete(&mut context.pool(), data.0.id)
-      .await
-      .unwrap();
-    Person::delete(&mut context.pool(), data.1.id)
-      .await
-      .unwrap();
-    Site::delete(&mut context.pool(), data.2.id).await.unwrap();
+  async fn cleanup(
+    data: (ApubPerson, ApubPerson, ApubSite),
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<()> {
+    Person::delete(&mut context.pool(), data.0.id).await?;
+    Person::delete(&mut context.pool(), data.1.id).await?;
+    Site::delete(&mut context.pool(), data.2.id).await?;
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_parse_lemmy_pm() {
-    let context = init_context().await;
-    let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
-    let data = prepare_comment_test(&url, &context).await;
-    let json: ChatMessage = file_to_json_object("assets/lemmy/objects/chat_message.json").unwrap();
-    ApubPrivateMessage::verify(&json, &url, &context)
-      .await
-      .unwrap();
-    let pm = ApubPrivateMessage::from_json(json.clone(), &context)
-      .await
-      .unwrap();
+  async fn test_parse_lemmy_pm() -> LemmyResult<()> {
+    let context = init_context().await?;
+    let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621")?;
+    let data = prepare_comment_test(&url, &context).await?;
+    let json: ChatMessage = file_to_json_object("assets/lemmy/objects/chat_message.json")?;
+    ApubPrivateMessage::verify(&json, &url, &context).await?;
+    let pm = ApubPrivateMessage::from_json(json.clone(), &context).await?;
 
     assert_eq!(pm.ap_id.clone(), url.into());
     assert_eq!(pm.content.len(), 20);
     assert_eq!(context.request_count(), 0);
 
     let pm_id = pm.id;
-    let to_apub = pm.into_json(&context).await.unwrap();
+    let to_apub = pm.into_json(&context).await?;
     assert_json_include!(actual: json, expected: to_apub);
 
-    PrivateMessage::delete(&mut context.pool(), pm_id)
-      .await
-      .unwrap();
-    cleanup(data, &context).await;
+    PrivateMessage::delete(&mut context.pool(), pm_id).await?;
+    cleanup(data, &context).await?;
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_parse_pleroma_pm() {
-    let context = init_context().await;
-    let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621").unwrap();
-    let data = prepare_comment_test(&url, &context).await;
-    let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2").unwrap();
-    let json = file_to_json_object("assets/pleroma/objects/chat_message.json").unwrap();
-    ApubPrivateMessage::verify(&json, &pleroma_url, &context)
-      .await
-      .unwrap();
-    let pm = ApubPrivateMessage::from_json(json, &context).await.unwrap();
+  async fn test_parse_pleroma_pm() -> LemmyResult<()> {
+    let context = init_context().await?;
+    let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621")?;
+    let data = prepare_comment_test(&url, &context).await?;
+    let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2")?;
+    let json = file_to_json_object("assets/pleroma/objects/chat_message.json")?;
+    ApubPrivateMessage::verify(&json, &pleroma_url, &context).await?;
+    let pm = ApubPrivateMessage::from_json(json, &context).await?;
 
     assert_eq!(pm.ap_id, pleroma_url.into());
     assert_eq!(pm.content.len(), 3);
     assert_eq!(context.request_count(), 0);
 
-    PrivateMessage::delete(&mut context.pool(), pm.id)
-      .await
-      .unwrap();
-    cleanup(data, &context).await;
+    PrivateMessage::delete(&mut context.pool(), pm.id).await?;
+    cleanup(data, &context).await?;
+    Ok(())
   }
 }

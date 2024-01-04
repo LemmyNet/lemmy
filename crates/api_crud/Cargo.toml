@@ -1,5 +1,6 @@
 [package]
 name = "lemmy_api_crud"
+publish = false
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -7,6 +8,9 @@ license.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
+
+[lints]
+workspace = true
 
 [dependencies]
 lemmy_utils = { workspace = true }
@@ -19,5 +23,12 @@ bcrypt = { workspace = true }
 actix-web = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
-webmention = "0.5.0"
+futures.workspace = true
 uuid = { workspace = true }
+moka.workspace = true
+once_cell.workspace = true
+anyhow.workspace = true
+webmention = "0.5.0"
+
+[package.metadata.cargo-machete]
+ignored = ["futures"]

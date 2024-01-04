@@ -3,7 +3,7 @@ use lemmy_db_schema::{
   CommentSortType,
   ListingType,
 };
-use lemmy_db_views::structs::{CommentReportView, CommentView};
+use lemmy_db_views::structs::{CommentReportView, CommentView, VoteView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -175,4 +175,23 @@ pub struct ListCommentReports {
 /// The comment report list response.
 pub struct ListCommentReportsResponse {
   pub comment_reports: Vec<CommentReportView>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// List comment likes. Admins-only.
+pub struct ListCommentLikes {
+  pub comment_id: CommentId,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The comment likes response
+pub struct ListCommentLikesResponse {
+  pub comment_likes: Vec<VoteView>,
 }

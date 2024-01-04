@@ -124,7 +124,7 @@ pub(crate) async fn fetch_pictrs(
   let pictrs_config = settings.pictrs_config()?;
   is_image_content_type(client, image_url).await?;
 
-  if pictrs_config.cache_remote_images {
+  if pictrs_config.cache_external_link_previews {
     // fetch remote non-pictrs images for persistent thumbnail link
     let fetch_url = format!(
       "{}image/download?url={}",
@@ -309,6 +309,7 @@ mod tests {
 
   use crate::request::{client_builder, fetch_site_metadata, html_to_site_metadata, SiteMetadata};
   use lemmy_utils::settings::SETTINGS;
+  use pretty_assertions::assert_eq;
   use url::Url;
 
   // These helped with testing

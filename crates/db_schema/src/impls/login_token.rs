@@ -1,7 +1,7 @@
 use crate::{
   diesel::{ExpressionMethods, QueryDsl},
   newtypes::LocalUserId,
-  schema::login_token::{dsl::login_token, token, user_id},
+  schema::login_token::{dsl::login_token, user_id},
   source::login_token::{LoginToken, LoginTokenCreateForm},
   utils::{get_conn, DbPool},
 };
@@ -25,9 +25,7 @@ impl LoginToken {
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
     select(exists(
-      login_token
-        .filter(user_id.eq(user_id_))
-        .filter(token.eq(token_)),
+      login_token.find(token_).filter(user_id.eq(user_id_)),
     ))
     .get_result(conn)
     .await
@@ -48,9 +46,7 @@ impl LoginToken {
   /// Invalidate specific token on user logout.
   pub async fn invalidate(pool: &mut DbPool<'_>, token_: &str) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    delete(login_token.filter(token.eq(token_)))
-      .execute(conn)
-      .await
+    delete(login_token.find(token_)).execute(conn).await
   }
 
   /// Invalidate all logins of given user on password reset/change, account deletion or site ban.

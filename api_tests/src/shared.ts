@@ -1,12 +1,18 @@
 import {
+  BlockCommunity,
+  BlockCommunityResponse,
   BlockInstance,
   BlockInstanceResponse,
+  CommunityId,
+  CreatePrivateMessageReport,
   GetReplies,
   GetRepliesResponse,
   GetUnreadCountResponse,
   InstanceId,
   LemmyHttp,
   PostView,
+  PrivateMessageReportResponse,
+  SuccessResponse,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -55,7 +61,6 @@ import { Register } from "lemmy-js-client/dist/types/Register";
 import { SaveUserSettings } from "lemmy-js-client/dist/types/SaveUserSettings";
 import { DeleteAccount } from "lemmy-js-client/dist/types/DeleteAccount";
 import { GetSiteResponse } from "lemmy-js-client/dist/types/GetSiteResponse";
-import { DeleteAccountResponse } from "lemmy-js-client/dist/types/DeleteAccountResponse";
 import { PrivateMessagesResponse } from "lemmy-js-client/dist/types/PrivateMessagesResponse";
 import { GetPrivateMessages } from "lemmy-js-client/dist/types/GetPrivateMessages";
 import { PostReportResponse } from "lemmy-js-client/dist/types/PostReportResponse";
@@ -72,17 +77,20 @@ import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDe
 import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 import { ListingType } from "lemmy-js-client/dist/types/ListingType";
 
+export const fetchFunction = fetch;
+
 export let alphaUrl = "http://127.0.0.1:8541";
 export let betaUrl = "http://127.0.0.1:8551";
 export let gammaUrl = "http://127.0.0.1:8561";
 export let deltaUrl = "http://127.0.0.1:8571";
 export let epsilonUrl = "http://127.0.0.1:8581";
 
-export let alpha = new LemmyHttp(alphaUrl);
-export let beta = new LemmyHttp(betaUrl);
-export let gamma = new LemmyHttp(gammaUrl);
-export let delta = new LemmyHttp(deltaUrl);
-export let epsilon = new LemmyHttp(epsilonUrl);
+export let alpha = new LemmyHttp(alphaUrl, { fetchFunction });
+export let alphaImage = new LemmyHttp(alphaUrl);
+export let beta = new LemmyHttp(betaUrl, { fetchFunction });
+export let gamma = new LemmyHttp(gammaUrl, { fetchFunction });
+export let delta = new LemmyHttp(deltaUrl, { fetchFunction });
+export let epsilon = new LemmyHttp(epsilonUrl, { fetchFunction });
 
 export let betaAllowedInstances = [
   "lemmy-alpha",
@@ -132,6 +140,7 @@ export async function setupLogins() {
     resEpsilon,
   ]);
   alpha.setHeaders({ Authorization: `Bearer ${res[0].jwt ?? ""}` });
+  alphaImage.setHeaders({ Authorization: `Bearer ${res[0].jwt ?? ""}` });
   beta.setHeaders({ Authorization: `Bearer ${res[1].jwt ?? ""}` });
   gamma.setHeaders({ Authorization: `Bearer ${res[2].jwt ?? ""}` });
   delta.setHeaders({ Authorization: `Bearer ${res[3].jwt ?? ""}` });
@@ -193,12 +202,11 @@ export async function setupLogins() {
 export async function createPost(
   api: LemmyHttp,
   community_id: number,
+  // use example.com for consistent title and embed description
+  url: string = "https://example.com/",
 ): Promise<PostResponse> {
   let name = randomString(5);
   let body = randomString(10);
-  // switch from google.com to example.com for consistent title (embed_title and embed_description)
-  // google switches description when a google doodle appears
-  let url = "https://example.com/";
   let form: CreatePost = {
     name,
     url,
@@ -287,6 +295,7 @@ export async function searchPostLocal(
     q: post.name,
     type_: "Posts",
     sort: "TopAll",
+    listing_type: "All",
   };
   return api.search(form);
 }
@@ -322,6 +331,7 @@ export async function getComments(
     post_id: post_id,
     type_: listingType,
     sort: "New",
+    limit: 50,
   };
   return api.getComments(form);
 }
@@ -422,8 +432,9 @@ export async function followCommunity(
   };
   const res = await api.followCommunity(form);
   await waitUntil(
-    () => resolveCommunity(api, res.community_view.community.actor_id),
-    g => g.community?.subscribed === (follow ? "Subscribed" : "NotSubscribed"),
+    () => getCommunity(api, res.community_view.community.id),
+    g =>
+      g.community_view.subscribed === (follow ? "Subscribed" : "NotSubscribed"),
   );
   // wait FOLLOW_ADDITIONS_RECHECK_DELAY (there's no API to wait for this currently)
   await delay(2000);
@@ -610,15 +621,22 @@ export async function deletePrivateMessage(
 
 export async function registerUser(
   api: LemmyHttp,
+  url: string,
   username: string = randomString(5),
-): Promise<LoginResponse> {
+): Promise<LemmyHttp> {
   let form: Register = {
     username,
     password,
     password_verify: password,
     show_nsfw: true,
   };
-  return api.register(form);
+  let login_response = await api.register(form);
+
+  expect(login_response.jwt).toBeDefined();
+  let lemmy_http = new LemmyHttp(url, {
+    headers: { Authorization: `Bearer ${login_response.jwt ?? ""}` },
+  });
+  return lemmy_http;
 }
 
 export async function loginUser(
@@ -634,7 +652,7 @@ export async function loginUser(
 
 export async function saveUserSettingsBio(
   api: LemmyHttp,
-): Promise<LoginResponse> {
+): Promise<SuccessResponse> {
   let form: SaveUserSettings = {
     show_nsfw: true,
     blur_nsfw: false,
@@ -652,7 +670,7 @@ export async function saveUserSettingsBio(
 
 export async function saveUserSettingsFederated(
   api: LemmyHttp,
-): Promise<LoginResponse> {
+): Promise<SuccessResponse> {
   let avatar = "https://image.flaticon.com/icons/png/512/35/35896.png";
   let banner = "https://image.flaticon.com/icons/png/512/36/35896.png";
   let bio = "a changed bio";
@@ -676,7 +694,7 @@ export async function saveUserSettingsFederated(
 export async function saveUserSettings(
   api: LemmyHttp,
   form: SaveUserSettings,
-): Promise<LoginResponse> {
+): Promise<SuccessResponse> {
   return api.saveUserSettings(form);
 }
 export async function getPersonDetails(
@@ -689,9 +707,7 @@ export async function getPersonDetails(
   return api.getPersonDetails(form);
 }
 
-export async function deleteUser(
-  api: LemmyHttp,
-): Promise<DeleteAccountResponse> {
+export async function deleteUser(api: LemmyHttp): Promise<SuccessResponse> {
   let form: DeleteAccount = {
     delete_content: true,
     password,
@@ -767,6 +783,18 @@ export async function reportComment(
   return api.createCommentReport(form);
 }
 
+export async function reportPrivateMessage(
+  api: LemmyHttp,
+  private_message_id: number,
+  reason: string,
+): Promise<PrivateMessageReportResponse> {
+  let form: CreatePrivateMessageReport = {
+    private_message_id,
+    reason,
+  };
+  return api.createPrivateMessageReport(form);
+}
+
 export async function listCommentReports(
   api: LemmyHttp,
 ): Promise<ListCommentReportsResponse> {
@@ -780,6 +808,7 @@ export function getPosts(
 ): Promise<GetPostsResponse> {
   let form: GetPosts = {
     type_: listingType,
+    limit: 50,
   };
   return api.getPosts(form);
 }
@@ -794,6 +823,18 @@ export function blockInstance(
     block,
   };
   return api.blockInstance(form);
+}
+
+export function blockCommunity(
+  api: LemmyHttp,
+  community_id: CommunityId,
+  block: boolean,
+): Promise<BlockCommunityResponse> {
+  let form: BlockCommunity = {
+    community_id,
+    block,
+  };
+  return api.blockCommunity(form);
 }
 
 export function delay(millis = 500) {
@@ -836,6 +877,7 @@ export function getCommentParentId(comment: Comment): number | undefined {
   if (split.length > 1) {
     return Number(split[split.length - 2]);
   } else {
+    console.log(`Failed to extract comment parent id from ${comment.path}`);
     return undefined;
   }
 }

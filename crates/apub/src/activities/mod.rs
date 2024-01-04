@@ -9,10 +9,10 @@ use crate::{
     },
     create_or_update::private_message::send_create_or_update_pm,
     deletion::{
-      delete_user::delete_user,
       send_apub_delete_in_community,
       send_apub_delete_in_community_new,
       send_apub_delete_private_message,
+      send_apub_delete_user,
       DeletableObjects,
     },
     voting::send_like_activity,
@@ -225,11 +225,12 @@ where
   Ok(())
 }
 
-pub async fn handle_outgoing_activities(context: Data<LemmyContext>) -> LemmyResult<()> {
+pub async fn handle_outgoing_activities(context: Data<LemmyContext>) {
   while let Some(data) = ActivityChannel::retrieve_activity().await {
-    match_outgoing_activities(data, &context.reset_request_count()).await?
+    if let Err(e) = match_outgoing_activities(data, &context.reset_request_count()).await {
+      tracing::warn!("error while saving outgoing activity to db: {e}");
+    }
   }
-  Ok(())
 }
 
 pub async fn match_outgoing_activities(
@@ -330,7 +331,7 @@ pub async fn match_outgoing_activities(
       DeletePrivateMessage(person, pm, deleted) => {
         send_apub_delete_private_message(&person.into(), pm, deleted, context).await
       }
-      DeleteUser(person, delete_content) => delete_user(person, delete_content, context).await,
+      DeleteUser(person, remove_data) => send_apub_delete_user(person, remove_data, context).await,
       CreateReport(url, actor, community, reason) => {
         Report::send(ObjectId::from(url), actor, community, reason, context).await
       }

@@ -1,5 +1,6 @@
 [package]
 name = "lemmy_api"
+publish = false
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -12,6 +13,9 @@ repository.workspace = true
 name = "lemmy_api"
 path = "src/lib.rs"
 doctest = false
+
+[lints]
+workspace = true
 
 [dependencies]
 lemmy_utils = { workspace = true }
@@ -38,3 +42,4 @@ actix-web-httpauth = "0.8.1"
 serial_test = { workspace = true }
 tokio = { workspace = true }
 elementtree = "1.2.3"
+pretty_assertions = { workspace = true }

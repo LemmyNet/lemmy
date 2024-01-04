@@ -13,12 +13,17 @@ use crate::{
     federation_queue_state::FederationQueueState,
     instance::{Instance, InstanceForm},
   },
-  utils::{functions::lower, get_conn, naive_now, now, DbPool},
+  utils::{
+    functions::{coalesce, lower},
+    get_conn,
+    naive_now,
+    now,
+    DbPool,
+  },
 };
 use diesel::{
   dsl::{count_star, insert_into},
   result::Error,
-  sql_types::{Nullable, Timestamptz},
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
@@ -115,7 +120,7 @@ impl Instance {
         .left_join(federation_allowlist::table)
         .select((
           Self::as_select(),
-          federation_allowlist::id.nullable().is_not_null(),
+          federation_allowlist::instance_id.nullable().is_not_null(),
           is_dead_expr,
         ))
         .order_by(instance::id)
@@ -126,7 +131,7 @@ impl Instance {
         .left_join(federation_blocklist::table)
         .select((
           Self::as_select(),
-          federation_blocklist::id.nullable().is_null(),
+          federation_blocklist::instance_id.nullable().is_null(),
           is_dead_expr,
         ))
         .order_by(instance::id)
@@ -150,12 +155,10 @@ impl Instance {
       .select((
         Self::as_select(),
         Option::<FederationQueueState>::as_select(),
-        federation_blocklist::id.nullable().is_not_null(),
-        federation_allowlist::id.nullable().is_not_null(),
+        federation_blocklist::instance_id.nullable().is_not_null(),
+        federation_allowlist::instance_id.nullable().is_not_null(),
       ))
       .get_results(conn)
       .await
   }
 }
-
-sql_function! { fn coalesce(x: Nullable<Timestamptz>, y: Timestamptz) -> Timestamptz; }

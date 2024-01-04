@@ -2,15 +2,11 @@ use actix_web::{http::header::Header, HttpRequest};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
 use captcha::Captcha;
-use lemmy_api_common::{
-  claims::Claims,
-  context::LemmyContext,
-  utils::{check_user_valid, local_site_to_slur_regex, AUTH_COOKIE_NAME},
-};
+use lemmy_api_common::utils::{local_site_to_slur_regex, AUTH_COOKIE_NAME};
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::slurs::check_slurs,
 };
 use std::io::Cursor;
@@ -82,16 +78,7 @@ pub fn read_auth_token(req: &HttpRequest) -> Result<Option<String>, LemmyError> 
   }
   // If that fails, try to read from cookie
   else if let Some(cookie) = &req.cookie(AUTH_COOKIE_NAME) {
-    // ensure that its marked as httponly and secure
-    let secure = cookie.secure().unwrap_or_default();
-    let http_only = cookie.http_only().unwrap_or_default();
-    let is_debug_mode = cfg!(debug_assertions);
-
-    if !is_debug_mode && (!secure || !http_only) {
-      Err(LemmyError::from(LemmyErrorType::AuthCookieInsecure))
-    } else {
-      Ok(Some(cookie.value().to_string()))
-    }
+    Ok(Some(cookie.value().to_string()))
   }
   // Otherwise, there's no auth
   else {
@@ -148,20 +135,6 @@ pub(crate) fn build_totp_2fa(
     username.to_string(),
   )
   .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn local_user_view_from_jwt(
-  jwt: &str,
-  context: &LemmyContext,
-) -> Result<LocalUserView, LemmyError> {
-  let local_user_id = Claims::validate(jwt, context)
-    .await
-    .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
-  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
-  check_user_valid(&local_user_view.person)?;
-
-  Ok(local_user_view)
 }
 
 #[cfg(test)]

@@ -130,7 +130,7 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) {
 
       process_ranks_in_batches(
         &mut conn,
-        "comment_aggregates",
+        "comment",
         "a.hot_rank != 0",
         "SET hot_rank = hot_rank(a.score, a.published)",
       )
@@ -138,7 +138,7 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) {
 
       process_ranks_in_batches(
         &mut conn,
-        "community_aggregates",
+        "community",
         "a.hot_rank != 0",
         "SET hot_rank = hot_rank(a.subscribers, a.published)",
       )
@@ -180,16 +180,17 @@ async fn process_ranks_in_batches(
     // Raw `sql_query` is used as a performance optimization - Diesel does not support doing this
     // in a single query (neither as a CTE, nor using a subquery)
     let result = sql_query(format!(
-      r#"WITH batch AS (SELECT a.id
+      r#"WITH batch AS (SELECT a.{id_column}
                FROM {aggregates_table} a
                WHERE a.published > $1 AND ({where_clause})
                ORDER BY a.published
                LIMIT $2
                FOR UPDATE SKIP LOCKED)
          UPDATE {aggregates_table} a {set_clause}
-             FROM batch WHERE a.id = batch.id RETURNING a.published;
+             FROM batch WHERE a.{id_column} = batch.{id_column} RETURNING a.published;
     "#,
-      aggregates_table = table_name,
+      id_column = format!("{table_name}_id"),
+      aggregates_table = format!("{table_name}_aggregates"),
       set_clause = set_clause,
       where_clause = where_clause
     ))
@@ -228,7 +229,7 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
   let mut previous_batch_result = Some(process_start_time);
   while let Some(previous_batch_last_published) = previous_batch_result {
     let result = sql_query(
-      r#"WITH batch AS (SELECT pa.id
+      r#"WITH batch AS (SELECT pa.post_id
                FROM post_aggregates pa
                WHERE pa.published > $1
                AND (pa.hot_rank != 0 OR pa.hot_rank_active != 0)
@@ -240,7 +241,7 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
            hot_rank_active = hot_rank(pa.score, pa.newest_comment_time_necro),
            scaled_rank = scaled_rank(pa.score, pa.published, ca.users_active_month)
          FROM batch, community_aggregates ca
-         WHERE pa.id = batch.id and pa.community_id = ca.community_id RETURNING pa.published;
+         WHERE pa.post_id = batch.post_id and pa.community_id = ca.community_id RETURNING pa.published;
     "#,
     )
     .bind::<Timestamptz, _>(previous_batch_last_published)
@@ -515,6 +516,7 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use lemmy_routes::nodeinfo::NodeInfo;
+  use pretty_assertions::assert_eq;
   use reqwest::Client;
 
   #[tokio::test]

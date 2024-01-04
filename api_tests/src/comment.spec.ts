@@ -35,10 +35,10 @@ import {
   waitForPost,
   alphaUrl,
   followCommunity,
+  blockCommunity,
+  delay,
 } from "./shared";
-import { CommentView } from "lemmy-js-client/dist/types/CommentView";
-import { CommunityView } from "lemmy-js-client";
-import { LemmyHttp } from "lemmy-js-client";
+import { CommentView, CommunityView } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 let postOnAlphaRes: PostResponse;
@@ -53,8 +53,8 @@ beforeAll(async () => {
   }
 });
 
-afterAll(async () => {
-  await unfollows();
+afterAll(() => {
+  unfollows();
 });
 
 function assertCommentFederation(
@@ -93,7 +93,9 @@ test("Create a comment", async () => {
 });
 
 test("Create a comment in a non-existent post", async () => {
-  await expect(createComment(alpha, -1)).rejects.toBe("couldnt_find_post");
+  await expect(createComment(alpha, -1)).rejects.toStrictEqual(
+    Error("couldnt_find_post"),
+  );
 });
 
 test("Update a comment", async () => {
@@ -142,7 +144,7 @@ test("Delete a comment", async () => {
     await waitUntil(
       () =>
         resolveComment(gamma, commentRes.comment_view.comment).catch(e => e),
-      r => r !== "couldnt_find_object",
+      r => r.message !== "couldnt_find_object",
     )
   ).comment;
   if (!gammaComment) {
@@ -159,13 +161,13 @@ test("Delete a comment", async () => {
   // Make sure that comment is undefined on beta
   await waitUntil(
     () => resolveComment(beta, commentRes.comment_view.comment).catch(e => e),
-    e => e === "couldnt_find_object",
+    e => e.message == "couldnt_find_object",
   );
 
   // Make sure that comment is undefined on gamma after delete
   await waitUntil(
     () => resolveComment(gamma, commentRes.comment_view.comment).catch(e => e),
-    e => e === "couldnt_find_object",
+    e => e.message === "couldnt_find_object",
   );
 
   // Test undeleting the comment
@@ -180,7 +182,7 @@ test("Delete a comment", async () => {
   let betaComment2 = (
     await waitUntil(
       () => resolveComment(beta, commentRes.comment_view.comment).catch(e => e),
-      e => e !== "couldnt_find_object",
+      e => e.message !== "couldnt_find_object",
     )
   ).comment;
   expect(betaComment2?.comment.deleted).toBe(false);
@@ -227,10 +229,7 @@ test.skip("Remove a comment from admin and community on the same instance", asyn
 });
 
 test("Remove a comment from admin and community on different instance", async () => {
-  let alpha_user = await registerUser(alpha);
-  let newAlphaApi = new LemmyHttp(alphaUrl, {
-    headers: { Authorization: `Bearer ${alpha_user.jwt ?? ""}` },
-  });
+  let newAlphaApi = await registerUser(alpha, alphaUrl);
 
   // New alpha user creates a community, post, and comment.
   let newCommunity = await createCommunity(newAlphaApi);
@@ -345,17 +344,26 @@ test("Federated comment like", async () => {
 test("Reply to a comment from another instance, get notification", async () => {
   await alpha.markAllAsRead();
 
-  let betaCommunity = (await resolveBetaCommunity(alpha)).community;
+  let betaCommunity = (
+    await waitUntil(
+      () => resolveBetaCommunity(alpha),
+      c => !!c.community?.community.instance_id,
+    )
+  ).community;
   if (!betaCommunity) {
     throw "Missing beta community";
   }
+
   const postOnAlphaRes = await createPost(alpha, betaCommunity.community.id);
 
   // Create a root-level trunk-branch comment on alpha
   let commentRes = await createComment(alpha, postOnAlphaRes.post_view.post.id);
   // find that comment id on beta
   let betaComment = (
-    await resolveComment(beta, commentRes.comment_view.comment)
+    await waitUntil(
+      () => resolveComment(beta, commentRes.comment_view.comment),
+      c => c.comment?.counts.score === 1,
+    )
   ).comment;
 
   if (!betaComment) {
@@ -406,7 +414,10 @@ test("Reply to a comment from another instance, get notification", async () => {
   expect(alphaUnreadCountRes.replies).toBeGreaterThanOrEqual(1);
 
   // check inbox of replies on alpha, fetching read/unread both
-  let alphaRepliesRes = await getReplies(alpha);
+  let alphaRepliesRes = await waitUntil(
+    () => getReplies(alpha),
+    r => r.replies.length > 0,
+  );
   const alphaReply = alphaRepliesRes.replies.find(
     r => r.comment.id === alphaComment.comment.id,
   );
@@ -739,4 +750,48 @@ test("Report a comment", async () => {
     alphaReport.original_comment_text,
   );
   expect(betaReport.reason).toBe(alphaReport.reason);
+});
+
+test("Dont send a comment reply to a blocked community", async () => {
+  let newCommunity = await createCommunity(beta);
+  let newCommunityId = newCommunity.community_view.community.id;
+
+  // Create a post on beta
+  let betaPost = await createPost(beta, newCommunityId);
+
+  let alphaPost = (await resolvePost(alpha, betaPost.post_view.post))!.post;
+  if (!alphaPost) {
+    throw "unable to locate post on alpha";
+  }
+
+  // Check beta's inbox count
+  let unreadCount = await getUnreadCount(beta);
+  expect(unreadCount.replies).toBe(1);
+
+  // Beta blocks the new beta community
+  let blockRes = await blockCommunity(beta, newCommunityId, true);
+  expect(blockRes.blocked).toBe(true);
+  delay();
+
+  // Alpha creates a comment
+  let commentRes = await createComment(alpha, alphaPost.post.id);
+  expect(commentRes.comment_view.comment.content).toBeDefined();
+  let alphaComment = await resolveComment(
+    beta,
+    commentRes.comment_view.comment,
+  );
+  if (!alphaComment) {
+    throw "Missing alpha comment before block";
+  }
+
+  // Check beta's inbox count, make sure it stays the same
+  unreadCount = await getUnreadCount(beta);
+  expect(unreadCount.replies).toBe(1);
+
+  let replies = await getReplies(beta);
+  expect(replies.replies.length).toBe(1);
+
+  // Unblock the community
+  blockRes = await blockCommunity(beta, newCommunityId, false);
+  expect(blockRes.blocked).toBe(false);
 });

@@ -204,32 +204,35 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
 
 #[cfg(test)]
 pub(crate) mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
-
   use super::*;
   use crate::{objects::tests::init_context, protocol::tests::file_to_json_object};
   use lemmy_db_schema::traits::Crud;
+  use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
-  pub(crate) async fn parse_lemmy_instance(context: &Data<LemmyContext>) -> ApubSite {
-    let json: Instance = file_to_json_object("assets/lemmy/objects/instance.json").unwrap();
-    let id = Url::parse("https://enterprise.lemmy.ml/").unwrap();
-    ApubSite::verify(&json, &id, context).await.unwrap();
-    let site = ApubSite::from_json(json, context).await.unwrap();
+  pub(crate) async fn parse_lemmy_instance(context: &Data<LemmyContext>) -> LemmyResult<ApubSite> {
+    let json: Instance = file_to_json_object("assets/lemmy/objects/instance.json")?;
+    let id = Url::parse("https://enterprise.lemmy.ml/")?;
+    ApubSite::verify(&json, &id, context).await?;
+    let site = ApubSite::from_json(json, context).await?;
     assert_eq!(context.request_count(), 0);
-    site
+    Ok(site)
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_parse_lemmy_instance() {
-    let context = init_context().await;
-    let site = parse_lemmy_instance(&context).await;
+  async fn test_parse_lemmy_instance() -> LemmyResult<()> {
+    let context = init_context().await?;
+    let site = parse_lemmy_instance(&context).await?;
 
     assert_eq!(site.name, "Enterprise");
-    assert_eq!(site.description.as_ref().unwrap().len(), 15);
+    assert_eq!(
+      site.description.as_ref().map(std::string::String::len),
+      Some(15)
+    );
 
-    Site::delete(&mut context.pool(), site.id).await.unwrap();
+    Site::delete(&mut context.pool(), site.id).await?;
+    Ok(())
   }
 }

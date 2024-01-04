@@ -6,9 +6,6 @@ pub(crate) mod group_outbox;
 
 #[cfg(test)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
-
   use crate::protocol::{
     collections::{
       empty_outbox::EmptyOutbox,
@@ -19,23 +16,24 @@ mod tests {
     },
     tests::{test_json, test_parse_lemmy_item},
   };
+  use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
 
   #[test]
-  fn test_parse_lemmy_collections() {
-    test_parse_lemmy_item::<GroupFollowers>("assets/lemmy/collections/group_followers.json")
-      .unwrap();
+  fn test_parse_lemmy_collections() -> LemmyResult<()> {
+    test_parse_lemmy_item::<GroupFollowers>("assets/lemmy/collections/group_followers.json")?;
     let outbox =
-      test_parse_lemmy_item::<GroupOutbox>("assets/lemmy/collections/group_outbox.json").unwrap();
+      test_parse_lemmy_item::<GroupOutbox>("assets/lemmy/collections/group_outbox.json")?;
     assert_eq!(outbox.ordered_items.len() as i32, outbox.total_items);
-    test_parse_lemmy_item::<GroupFeatured>("assets/lemmy/collections/group_featured_posts.json")
-      .unwrap();
-    test_parse_lemmy_item::<GroupModerators>("assets/lemmy/collections/group_moderators.json")
-      .unwrap();
-    test_parse_lemmy_item::<EmptyOutbox>("assets/lemmy/collections/person_outbox.json").unwrap();
+    test_parse_lemmy_item::<GroupFeatured>("assets/lemmy/collections/group_featured_posts.json")?;
+    test_parse_lemmy_item::<GroupModerators>("assets/lemmy/collections/group_moderators.json")?;
+    test_parse_lemmy_item::<EmptyOutbox>("assets/lemmy/collections/person_outbox.json")?;
+    Ok(())
   }
 
   #[test]
-  fn test_parse_mastodon_collections() {
-    test_json::<GroupFeatured>("assets/mastodon/collections/featured.json").unwrap();
+  fn test_parse_mastodon_collections() -> LemmyResult<()> {
+    test_json::<GroupFeatured>("assets/mastodon/collections/featured.json")?;
+    Ok(())
   }
 }

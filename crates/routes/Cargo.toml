@@ -1,5 +1,6 @@
 [package]
 name = "lemmy_routes"
+publish = false
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -10,6 +11,9 @@ repository.workspace = true
 
 [lib]
 doctest = false
+
+[lints]
+workspace = true
 
 [dependencies]
 lemmy_utils = { workspace = true }

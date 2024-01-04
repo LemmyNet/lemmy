@@ -292,9 +292,6 @@ impl Object for ApubPost {
 
 #[cfg(test)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
-
   use super::*;
   use crate::{
     objects::{
@@ -307,44 +304,48 @@ mod tests {
     protocol::tests::file_to_json_object,
   };
   use lemmy_db_schema::source::site::Site;
+  use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_parse_lemmy_post() {
-    let context = init_context().await;
-    let (person, site) = parse_lemmy_person(&context).await;
-    let community = parse_lemmy_community(&context).await;
+  async fn test_parse_lemmy_post() -> LemmyResult<()> {
+    let context = init_context().await?;
+    let (person, site) = parse_lemmy_person(&context).await?;
+    let community = parse_lemmy_community(&context).await?;
 
-    let json = file_to_json_object("assets/lemmy/objects/page.json").unwrap();
-    let url = Url::parse("https://enterprise.lemmy.ml/post/55143").unwrap();
-    ApubPost::verify(&json, &url, &context).await.unwrap();
-    let post = ApubPost::from_json(json, &context).await.unwrap();
+    let json = file_to_json_object("assets/lemmy/objects/page.json")?;
+    let url = Url::parse("https://enterprise.lemmy.ml/post/55143")?;
+    ApubPost::verify(&json, &url, &context).await?;
+    let post = ApubPost::from_json(json, &context).await?;
 
     assert_eq!(post.ap_id, url.into());
     assert_eq!(post.name, "Post title");
     assert!(post.body.is_some());
-    assert_eq!(post.body.as_ref().unwrap().len(), 45);
+    assert_eq!(post.body.as_ref().map(std::string::String::len), Some(45));
     assert!(!post.locked);
     assert!(!post.featured_community);
     assert_eq!(context.request_count(), 0);
 
-    cleanup(&context, person, site, community, post).await;
+    cleanup(&context, person, site, community, post).await?;
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_convert_mastodon_post_title() {
-    let context = init_context().await;
-    let (person, site) = parse_lemmy_person(&context).await;
-    let community = parse_lemmy_community(&context).await;
+  async fn test_convert_mastodon_post_title() -> LemmyResult<()> {
+    let context = init_context().await?;
+    let (person, site) = parse_lemmy_person(&context).await?;
+    let community = parse_lemmy_community(&context).await?;
 
-    let json = file_to_json_object("assets/mastodon/objects/page.json").unwrap();
-    let post = ApubPost::from_json(json, &context).await.unwrap();
+    let json = file_to_json_object("assets/mastodon/objects/page.json")?;
+    let post = ApubPost::from_json(json, &context).await?;
 
     assert_eq!(post.name, "Variable never resetting at refresh");
 
-    cleanup(&context, person, site, community, post).await;
+    cleanup(&context, person, site, community, post).await?;
+    Ok(())
   }
 
   async fn cleanup(
@@ -353,14 +354,11 @@ mod tests {
     site: ApubSite,
     community: ApubCommunity,
     post: ApubPost,
-  ) {
-    Post::delete(&mut context.pool(), post.id).await.unwrap();
-    Person::delete(&mut context.pool(), person.id)
-      .await
-      .unwrap();
-    Community::delete(&mut context.pool(), community.id)
-      .await
-      .unwrap();
-    Site::delete(&mut context.pool(), site.id).await.unwrap();
+  ) -> LemmyResult<()> {
+    Post::delete(&mut context.pool(), post.id).await?;
+    Person::delete(&mut context.pool(), person.id).await?;
+    Community::delete(&mut context.pool(), community.id).await?;
+    Site::delete(&mut context.pool(), site.id).await?;
+    Ok(())
   }
 }

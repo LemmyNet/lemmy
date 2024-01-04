@@ -1,5 +1,6 @@
 [package]
 name = "lemmy_federate"
+publish = false
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -10,12 +11,14 @@ repository.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lints]
+workspace = true
+
 [dependencies]
 lemmy_api_common.workspace = true
 lemmy_apub.workspace = true
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_views_actor.workspace = true
-lemmy_utils.workspace = true
 
 activitypub_federation.workspace = true
 anyhow.workspace = true
@@ -28,5 +31,5 @@ reqwest.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
-moka = { version = "0.11.3", features = ["future"] }
-tokio-util = "0.7.9"
+moka.workspace = true
+tokio-util = "0.7.10"

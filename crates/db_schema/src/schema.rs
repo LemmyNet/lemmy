@@ -65,8 +65,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    captcha_answer (id) {
-        id -> Int4,
+    captcha_answer (uuid) {
         uuid -> Uuid,
         answer -> Text,
         published -> Timestamptz,
@@ -96,8 +95,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    comment_aggregates (id) {
-        id -> Int4,
+    comment_aggregates (comment_id) {
         comment_id -> Int4,
         score -> Int8,
         upvotes -> Int8,
@@ -110,8 +108,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    comment_like (id) {
-        id -> Int4,
+    comment_like (person_id, comment_id) {
         person_id -> Int4,
         comment_id -> Int4,
         post_id -> Int4,
@@ -145,8 +142,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    comment_saved (id) {
-        id -> Int4,
+    comment_saved (person_id, comment_id) {
         comment_id -> Int4,
         person_id -> Int4,
         published -> Timestamptz,
@@ -192,8 +188,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_aggregates (id) {
-        id -> Int4,
+    community_aggregates (community_id) {
         community_id -> Int4,
         subscribers -> Int8,
         posts -> Int8,
@@ -208,8 +203,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_block (id) {
-        id -> Int4,
+    community_block (person_id, community_id) {
         person_id -> Int4,
         community_id -> Int4,
         published -> Timestamptz,
@@ -217,8 +211,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_follower (id) {
-        id -> Int4,
+    community_follower (person_id, community_id) {
         community_id -> Int4,
         person_id -> Int4,
         published -> Timestamptz,
@@ -227,16 +220,14 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_language (id) {
-        id -> Int4,
+    community_language (community_id, language_id) {
         community_id -> Int4,
         language_id -> Int4,
     }
 }
 
 diesel::table! {
-    community_moderator (id) {
-        id -> Int4,
+    community_moderator (person_id, community_id) {
         community_id -> Int4,
         person_id -> Int4,
         published -> Timestamptz,
@@ -244,8 +235,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_person_ban (id) {
-        id -> Int4,
+    community_person_ban (person_id, community_id) {
         community_id -> Int4,
         person_id -> Int4,
         published -> Timestamptz,
@@ -268,8 +258,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    custom_emoji_keyword (id) {
-        id -> Int4,
+    custom_emoji_keyword (custom_emoji_id, keyword) {
         custom_emoji_id -> Int4,
         #[max_length = 128]
         keyword -> Varchar,
@@ -287,8 +276,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    federation_allowlist (id) {
-        id -> Int4,
+    federation_allowlist (instance_id) {
         instance_id -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
@@ -296,8 +284,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    federation_blocklist (id) {
-        id -> Int4,
+    federation_blocklist (instance_id) {
         instance_id -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
@@ -305,8 +292,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    federation_queue_state (id) {
-        id -> Int4,
+    federation_queue_state (instance_id) {
         instance_id -> Int4,
         last_successful_id -> Nullable<Int8>,
         fail_count -> Int4,
@@ -316,8 +302,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    image_upload (id) {
-        id -> Int4,
+    image_upload (pictrs_alias) {
         local_user_id -> Int4,
         pictrs_alias -> Text,
         pictrs_delete_token -> Text,
@@ -340,8 +325,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    instance_block (id) {
-        id -> Int4,
+    instance_block (person_id, instance_id) {
         person_id -> Int4,
         instance_id -> Int4,
         published -> Timestamptz,
@@ -392,8 +376,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    local_site_rate_limit (id) {
-        id -> Int4,
+    local_site_rate_limit (local_site_id) {
         local_site_id -> Int4,
         message -> Int4,
         message_per_second -> Int4,
@@ -453,16 +436,14 @@ diesel::table! {
 }
 
 diesel::table! {
-    local_user_language (id) {
-        id -> Int4,
+    local_user_language (local_user_id, language_id) {
         local_user_id -> Int4,
         language_id -> Int4,
     }
 }
 
 diesel::table! {
-    login_token (id) {
-        id -> Int4,
+    login_token (token) {
         token -> Text,
         user_id -> Int4,
         published -> Timestamptz,
@@ -633,8 +614,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_aggregates (id) {
-        id -> Int4,
+    person_aggregates (person_id) {
         person_id -> Int4,
         post_count -> Int8,
         post_score -> Int8,
@@ -644,16 +624,14 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_ban (id) {
-        id -> Int4,
+    person_ban (person_id) {
         person_id -> Int4,
         published -> Timestamptz,
     }
 }
 
 diesel::table! {
-    person_block (id) {
-        id -> Int4,
+    person_block (person_id, target_id) {
         person_id -> Int4,
         target_id -> Int4,
         published -> Timestamptz,
@@ -661,8 +639,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_follower (id) {
-        id -> Int4,
+    person_follower (follower_id, person_id) {
         person_id -> Int4,
         follower_id -> Int4,
         published -> Timestamptz,
@@ -681,8 +658,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_post_aggregates (id) {
-        id -> Int4,
+    person_post_aggregates (person_id, post_id) {
         person_id -> Int4,
         post_id -> Int4,
         read_comments -> Int8,
@@ -720,8 +696,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    post_aggregates (id) {
-        id -> Int4,
+    post_aggregates (post_id) {
         post_id -> Int4,
         comments -> Int8,
         score -> Int8,
@@ -743,8 +718,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    post_like (id) {
-        id -> Int4,
+    post_like (person_id, post_id) {
         post_id -> Int4,
         person_id -> Int4,
         score -> Int2,
@@ -753,8 +727,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    post_read (id) {
-        id -> Int4,
+    post_read (person_id, post_id) {
         post_id -> Int4,
         person_id -> Int4,
         published -> Timestamptz,
@@ -779,8 +752,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    post_saved (id) {
-        id -> Int4,
+    post_saved (person_id, post_id) {
         post_id -> Int4,
         person_id -> Int4,
         published -> Timestamptz,
@@ -818,8 +790,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    received_activity (id) {
-        id -> Int8,
+    received_activity (ap_id) {
         ap_id -> Text,
         published -> Timestamptz,
     }
@@ -885,8 +856,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    site_aggregates (id) {
-        id -> Int4,
+    site_aggregates (site_id) {
         site_id -> Int4,
         users -> Int8,
         posts -> Int8,
@@ -900,8 +870,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    site_language (id) {
-        id -> Int4,
+    site_language (site_id, language_id) {
         site_id -> Int4,
         language_id -> Int4,
     }

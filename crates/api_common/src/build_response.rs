@@ -3,7 +3,12 @@ use crate::{
   community::CommunityResponse,
   context::LemmyContext,
   post::PostResponse,
-  utils::{check_person_block, get_interface_language, is_mod_or_admin, send_email_to_user},
+  utils::{
+    check_person_instance_community_block,
+    get_interface_language,
+    is_mod_or_admin,
+    send_email_to_user,
+  },
 };
 use actix_web::web::Json;
 use lemmy_db_schema::{
@@ -95,6 +100,8 @@ pub async fn send_local_notifs(
   let mut recipient_ids = Vec::new();
   let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
 
+  let community_id = post.community_id;
+
   // Send the local mentions
   for mention in mentions
     .iter()
@@ -142,13 +149,18 @@ pub async fn send_local_notifs(
     // Get the parent commenter local_user
     let parent_creator_id = parent_comment.creator_id;
 
-    // Only add to recipients if that person isn't blocked
-    let creator_blocked = check_person_block(person.id, parent_creator_id, &mut context.pool())
-      .await
-      .is_err();
+    let check_blocks = check_person_instance_community_block(
+      person.id,
+      parent_creator_id,
+      person.instance_id,
+      community_id,
+      &mut context.pool(),
+    )
+    .await
+    .is_err();
 
     // Don't send a notif to yourself
-    if parent_comment.creator_id != person.id && !creator_blocked {
+    if parent_comment.creator_id != person.id && !check_blocks {
       let user_view = LocalUserView::read_person(&mut context.pool(), parent_creator_id).await;
       if let Ok(parent_user_view) = user_view {
         recipient_ids.push(parent_user_view.local_user.id);
@@ -179,13 +191,17 @@ pub async fn send_local_notifs(
       }
     }
   } else {
-    // If there's no parent, its the post creator
-    // Only add to recipients if that person isn't blocked
-    let creator_blocked = check_person_block(person.id, post.creator_id, &mut context.pool())
-      .await
-      .is_err();
+    let check_blocks = check_person_instance_community_block(
+      person.id,
+      post.creator_id,
+      person.instance_id,
+      community_id,
+      &mut context.pool(),
+    )
+    .await
+    .is_err();
 
-    if post.creator_id != person.id && !creator_blocked {
+    if post.creator_id != person.id && !check_blocks {
       let creator_id = post.creator_id;
       let parent_user = LocalUserView::read_person(&mut context.pool(), creator_id).await;
       if let Ok(parent_user_view) = parent_user {

@@ -69,6 +69,7 @@ mod test {
   #![allow(clippy::indexing_slicing)]
 
   use crate::utils::slurs::{remove_slurs, slur_check, slurs_vec_to_str};
+  use pretty_assertions::assert_eq;
   use regex::RegexBuilder;
 
   #[test]

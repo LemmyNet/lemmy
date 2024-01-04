@@ -21,7 +21,6 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
-use lemmy_utils::error::LemmyErrorExt2;
 use once_cell::sync::Lazy;
 use reqwest::Url;
 use std::{
@@ -172,6 +171,7 @@ impl InstanceWorker {
         .await
         .context("failed reading activity from db")?
       else {
+        tracing::debug!("{}: {:?} does not exist", self.instance.domain, id);
         self.state.last_successful_id = Some(id);
         continue;
       };
@@ -206,6 +206,7 @@ impl InstanceWorker {
       .await
       .context("failed figuring out inbox urls")?;
     if inbox_urls.is_empty() {
+      tracing::debug!("{}: {:?} no inboxes", self.instance.domain, activity.id);
       self.state.last_successful_id = Some(activity.id);
       self.state.last_successful_published_time = Some(activity.published);
       return Ok(());
@@ -218,12 +219,11 @@ impl InstanceWorker {
       .context("failed getting actor instance (was it marked deleted / removed?)")?;
 
     let inbox_urls = inbox_urls.into_iter().collect();
-    let requests = SendActivityTask::prepare(object, actor.as_ref(), inbox_urls, &self.context)
-      .await
-      .into_anyhow()?;
+    let requests =
+      SendActivityTask::prepare(object, actor.as_ref(), inbox_urls, &self.context).await?;
     for task in requests {
       // usually only one due to shared inbox
-      tracing::info!("sending out {}", task);
+      tracing::debug!("sending out {}", task);
       while let Err(e) = task.sign_and_send(&self.context).await {
         self.state.fail_count += 1;
         self.state.last_retry = Some(Utc::now());

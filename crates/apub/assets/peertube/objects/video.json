@@ -1,372 +1,4 @@
 {
-  "type": "Video",
-  "id": "https://framatube.org/videos/watch/4294a720-f263-4ea4-9392-cf9cea4d5277",
-  "name": "What is the Fediverse?",
-  "duration": "PT98S",
-  "uuid": "4294a720-f263-4ea4-9392-cf9cea4d5277",
-  "tag": [
-    {
-      "type": "Hashtag",
-      "name": "fediverse"
-    },
-    {
-      "type": "Hashtag",
-      "name": "framasoft"
-    },
-    {
-      "type": "Hashtag",
-      "name": "Mastodon"
-    },
-    {
-      "type": "Hashtag",
-      "name": "PeerTube "
-    }
-  ],
-  "category": {
-    "identifier": "15",
-    "name": "Science & Technology"
-  },
-  "licence": {
-    "identifier": "2",
-    "name": "Attribution - Share Alike"
-  },
-  "language": {
-    "identifier": "en",
-    "name": "English"
-  },
-  "views": 4805,
-  "sensitive": false,
-  "waitTranscoding": true,
-  "isLiveBroadcast": false,
-  "liveSaveReplay": null,
-  "permanentLive": null,
-  "state": 1,
-  "commentsEnabled": true,
-  "downloadEnabled": true,
-  "published": "2022-04-28T11:51:16.293Z",
-  "originallyPublishedAt": null,
-  "updated": "2022-05-03T11:39:02.489Z",
-  "mediaType": "text/markdown",
-  "content": "Help us translate the subtitles [on our translation tool](https://weblate.framasoft.org/projects/what-is-the-fediverse-video/subtitles/).\r\n\r\n**Animation Produced by** [LILA](https://libreart.info/) - [ZeMarmot Team](https://film.zemarmot.net/)\r\n**Direction & Animation** by Aryeom\r\n**Script & Technology** by Jehan\r\n**Voice by** Paul Peterson\r\n**Licence**: [CC-By-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)\r\n\r\n**Sponsored by** [Framasoft](https://framasoft.org/)\r\n\r\n**Sound by** ORL - [AMMD](https://ammd.net/)\r\n\r\n**Music**: \"Dolling\" by CyberSDF - [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)",
-  "support": null,
-  "subtitleLanguage": [
-    {
-      "identifier": "ca",
-      "name": "Catalan",
-      "url": "https://framatube.org/lazy-static/video-captions/6f8aedd2-c61b-47f6-a2c9-75b15af24d14-ca.vtt"
-    },
-    {
-      "identifier": "en",
-      "name": "English",
-      "url": "https://framatube.org/lazy-static/video-captions/2f199e59-5cf8-4529-a033-9d6dd4a858ca-en.vtt"
-    },
-    {
-      "identifier": "es",
-      "name": "Spanish",
-      "url": "https://framatube.org/lazy-static/video-captions/3f74c16b-925f-45e1-8388-e358428c2436-es.vtt"
-    },
-    {
-      "identifier": "eu",
-      "name": "Basque",
-      "url": "https://framatube.org/lazy-static/video-captions/c4c88e7e-b9d4-4192-bcf2-caf025ddc9fd-eu.vtt"
-    },
-    {
-      "identifier": "fr",
-      "name": "French",
-      "url": "https://framatube.org/lazy-static/video-captions/c18906e3-6257-43e7-90e4-fa2c8ded258b-fr.vtt"
-    },
-    {
-      "identifier": "hu",
-      "name": "Hungarian",
-      "url": "https://framatube.org/lazy-static/video-captions/0a8a295d-a288-404b-b7b3-a2272bc2a6fb-hu.vtt"
-    },
-    {
-      "identifier": "it",
-      "name": "Italian",
-      "url": "https://framatube.org/lazy-static/video-captions/cf857bd9-8b04-4018-af9a-23fa1ff7662d-it.vtt"
-    },
-    {
-      "identifier": "nb",
-      "name": "Norwegian Bokmål",
-      "url": "https://framatube.org/lazy-static/video-captions/12e3a0e9-a29e-4b06-8538-91bed2a11242-nb.vtt"
-    },
-    {
-      "identifier": "oc",
-      "name": "Occitan",
-      "url": "https://framatube.org/lazy-static/video-captions/d841af30-97bf-4a0c-b1f9-e163ba77f23f-oc.vtt"
-    },
-    {
-      "identifier": "sh",
-      "name": "Serbo-Croatian",
-      "url": "https://framatube.org/lazy-static/video-captions/7afe4dae-745f-4769-9f17-9c3a079235cf-sh.vtt"
-    },
-    {
-      "identifier": "tr",
-      "name": "Turkish",
-      "url": "https://framatube.org/lazy-static/video-captions/1b2ea189-760c-4a3e-98d3-16f596c151f0-tr.vtt"
-    },
-    {
-      "identifier": "vi",
-      "name": "Vietnamese",
-      "url": "https://framatube.org/lazy-static/video-captions/552b4086-54ab-4eb3-a8b3-7611a2175e77-vi.vtt"
-    }
-  ],
-  "icon": [
-    {
-      "type": "Image",
-      "url": "https://framatube.org/static/thumbnails/1f9eb76e-c089-4bdd-af14-602935a6db72.jpg",
-      "mediaType": "image/jpeg",
-      "width": 280,
-      "height": 157
-    },
-    {
-      "type": "Image",
-      "url": "https://framatube.org/lazy-static/previews/8f89d4d8-696f-4512-9a1a-72f1d12caede.jpg",
-      "mediaType": "image/jpeg",
-      "width": 850,
-      "height": 480
-    }
-  ],
-  "url": [
-    {
-      "type": "Link",
-      "mediaType": "text/html",
-      "href": "https://framatube.org/videos/watch/4294a720-f263-4ea4-9392-cf9cea4d5277"
-    },
-    {
-      "type": "Link",
-      "mediaType": "application/x-mpegURL",
-      "href": "https://framatube.org/static/streaming-playlists/hls/4294a720-f263-4ea4-9392-cf9cea4d5277/adc259cb-06f7-496c-8a50-599e58358b29-master.m3u8",
-      "tag": [
-        {
-          "type": "Infohash",
-          "name": "caf7178ddd2013e28c9fbcbb7be28df25d03a023"
-        },
-        {
-          "type": "Infohash",
-          "name": "cc18bb140f51f64090ba41c951fba85705cafa38"
-        },
-        {
-          "type": "Infohash",
-          "name": "595513d823a1aecc18abacac94a1ebb0c31ec009"
-        },
-        {
-          "type": "Infohash",
-          "name": "6ae0ce749a57d0f8ff70286878ea7661f85eebf7"
-        },
-        {
-          "type": "Infohash",
-          "name": "4eb799f42d461929ed8dd4befae274c9a4404b99"
-        },
-        {
-          "type": "Infohash",
-          "name": "b48d1ea795657668783544fd1c9baf637198a323"
-        },
-        {
-          "type": "Link",
-          "name": "sha256",
-          "mediaType": "application/json",
-          "href": "https://framatube.org/static/streaming-playlists/hls/4294a720-f263-4ea4-9392-cf9cea4d5277/b414eda3-c8af-4271-8dde-253db28aacd1-segments-sha256.json"
-        },
-        {
-          "type": "Link",
-          "mediaType": "video/mp4",
-          "href": "https://framatube.org/static/streaming-playlists/hls/4294a720-f263-4ea4-9392-cf9cea4d5277/64147344-1957-480d-9106-59dd7bbf5661-1080-fragmented.mp4",
-          "height": 1080,
-          "size": 14653991,
-          "fps": 24
-        },
-        {
-          "type": "Link",
-          "rel": ["metadata", "video/mp4"],
-          "mediaType": "application/json",
-          "href": "https://framatube.org/api/v1/videos/4294a720-f263-4ea4-9392-cf9cea4d5277/metadata/1421492",
-          "height": 1080,
-          "fps": 24
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent",
-          "href": "https://framatube.org/lazy-static/torrents/83fa27e3-aba7-4e01-9e66-931086374176-1080-hls.torrent",
-          "height": 1080
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Fframatube.org%2Flazy-static%2Ftorrents%2F83fa27e3-aba7-4e01-9e66-931086374176-1080-hls.torrent&xt=urn:btih:5651916e4301c812412f51381c5af0c1f627bfcb&dn=What+is+the+Fediverse%3F&tr=https%3A%2F%2Fframatube.org%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fframatube.org%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fframatube.org%2Fstatic%2Fstreaming-playlists%2Fhls%2F4294a720-f263-4ea4-9392-cf9cea4d5277%2F64147344-1957-480d-9106-59dd7bbf5661-1080-fragmented.mp4",
-          "height": 1080
-        },
-        {
-          "type": "Link",
-          "mediaType": "video/mp4",
-          "href": "https://framatube.org/static/streaming-playlists/hls/4294a720-f263-4ea4-9392-cf9cea4d5277/0efaeae5-7468-4c45-ade5-d3b6c732621f-720-fragmented.mp4",
-          "height": 720,
-          "size": 9939723,
-          "fps": 24
-        },
-        {
-          "type": "Link",
-          "rel": ["metadata", "video/mp4"],
-          "mediaType": "application/json",
-          "href": "https://framatube.org/api/v1/videos/4294a720-f263-4ea4-9392-cf9cea4d5277/metadata/1421496",
-          "height": 720,
-          "fps": 24
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent",
-          "href": "https://framatube.org/lazy-static/torrents/b325c824-c052-46e2-9b46-887595055521-720-hls.torrent",
-          "height": 720
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Fframatube.org%2Flazy-static%2Ftorrents%2Fb325c824-c052-46e2-9b46-887595055521-720-hls.torrent&xt=urn:btih:b5a1db245fe156edab7f1981693178dcd47075d2&dn=What+is+the+Fediverse%3F&tr=https%3A%2F%2Fframatube.org%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fframatube.org%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fframatube.org%2Fstatic%2Fstreaming-playlists%2Fhls%2F4294a720-f263-4ea4-9392-cf9cea4d5277%2F0efaeae5-7468-4c45-ade5-d3b6c732621f-720-fragmented.mp4",
-          "height": 720
-        },
-        {
-          "type": "Link",
-          "mediaType": "video/mp4",
-          "href": "https://framatube.org/static/streaming-playlists/hls/4294a720-f263-4ea4-9392-cf9cea4d5277/201f9772-4971-4bc3-8356-9b85b405ae5d-480-fragmented.mp4",
-          "height": 480,
-          "size": 7398758,
-          "fps": 24
-        },
-        {
-          "type": "Link",
-          "rel": ["metadata", "video/mp4"],
-          "mediaType": "application/json",
-          "href": "https://framatube.org/api/v1/videos/4294a720-f263-4ea4-9392-cf9cea4d5277/metadata/1421494",
-          "height": 480,
-          "fps": 24
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent",
-          "href": "https://framatube.org/lazy-static/torrents/bd99f84e-e9bc-4d36-bea6-6f06000f87c5-480-hls.torrent",
-          "height": 480
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Fframatube.org%2Flazy-static%2Ftorrents%2Fbd99f84e-e9bc-4d36-bea6-6f06000f87c5-480-hls.torrent&xt=urn:btih:6cbe09b50cf7788923a2ec4852a3b2bfd1cd1907&dn=What+is+the+Fediverse%3F&tr=https%3A%2F%2Fframatube.org%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fframatube.org%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fframatube.org%2Fstatic%2Fstreaming-playlists%2Fhls%2F4294a720-f263-4ea4-9392-cf9cea4d5277%2F201f9772-4971-4bc3-8356-9b85b405ae5d-480-fragmented.mp4",
-          "height": 480
-        },
-        {
-          "type": "Link",
-          "mediaType": "video/mp4",
-          "href": "https://framatube.org/static/streaming-playlists/hls/4294a720-f263-4ea4-9392-cf9cea4d5277/b2313ae6-da36-4fe3-bec5-aa352824a38a-360-fragmented.mp4",
-          "height": 360,
-          "size": 6133890,
-          "fps": 24
-        },
-        {
-          "type": "Link",
-          "rel": ["metadata", "video/mp4"],
-          "mediaType": "application/json",
-          "href": "https://framatube.org/api/v1/videos/4294a720-f263-4ea4-9392-cf9cea4d5277/metadata/1421495",
-          "height": 360,
-          "fps": 24
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent",
-          "href": "https://framatube.org/lazy-static/torrents/b939430a-fdfd-4da7-a030-759ecafa6ac7-360-hls.torrent",
-          "height": 360
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Fframatube.org%2Flazy-static%2Ftorrents%2Fb939430a-fdfd-4da7-a030-759ecafa6ac7-360-hls.torrent&xt=urn:btih:16693f14ad9e53fc41d335e3fa409c2f943d7b68&dn=What+is+the+Fediverse%3F&tr=https%3A%2F%2Fframatube.org%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fframatube.org%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fframatube.org%2Fstatic%2Fstreaming-playlists%2Fhls%2F4294a720-f263-4ea4-9392-cf9cea4d5277%2Fb2313ae6-da36-4fe3-bec5-aa352824a38a-360-fragmented.mp4",
-          "height": 360
-        },
-        {
-          "type": "Link",
-          "mediaType": "video/mp4",
-          "href": "https://framatube.org/static/streaming-playlists/hls/4294a720-f263-4ea4-9392-cf9cea4d5277/06a866f2-0527-4d68-93b7-c656d7374e86-240-fragmented.mp4",
-          "height": 240,
-          "size": 4861464,
-          "fps": 24
-        },
-        {
-          "type": "Link",
-          "rel": ["metadata", "video/mp4"],
-          "mediaType": "application/json",
-          "href": "https://framatube.org/api/v1/videos/4294a720-f263-4ea4-9392-cf9cea4d5277/metadata/1421497",
-          "height": 240,
-          "fps": 24
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent",
-          "href": "https://framatube.org/lazy-static/torrents/072001ee-18ad-4859-af10-9d7bf12d640c-240-hls.torrent",
-          "height": 240
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Fframatube.org%2Flazy-static%2Ftorrents%2F072001ee-18ad-4859-af10-9d7bf12d640c-240-hls.torrent&xt=urn:btih:b823f54d8cd73f9d7a55266ce683f43bf772d26a&dn=What+is+the+Fediverse%3F&tr=https%3A%2F%2Fframatube.org%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fframatube.org%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fframatube.org%2Fstatic%2Fstreaming-playlists%2Fhls%2F4294a720-f263-4ea4-9392-cf9cea4d5277%2F06a866f2-0527-4d68-93b7-c656d7374e86-240-fragmented.mp4",
-          "height": 240
-        },
-        {
-          "type": "Link",
-          "mediaType": "video/mp4",
-          "href": "https://framatube.org/static/streaming-playlists/hls/4294a720-f263-4ea4-9392-cf9cea4d5277/f8a1caed-057f-4700-a28e-004efc158b15-0-fragmented.mp4",
-          "height": 0,
-          "size": 3141179,
-          "fps": 0
-        },
-        {
-          "type": "Link",
-          "rel": ["metadata", "video/mp4"],
-          "mediaType": "application/json",
-          "href": "https://framatube.org/api/v1/videos/4294a720-f263-4ea4-9392-cf9cea4d5277/metadata/1421493",
-          "height": 0,
-          "fps": 0
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent",
-          "href": "https://framatube.org/lazy-static/torrents/77cb6940-7e90-48d1-a391-bfa463b9600c-0-hls.torrent",
-          "height": 0
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Fframatube.org%2Flazy-static%2Ftorrents%2F77cb6940-7e90-48d1-a391-bfa463b9600c-0-hls.torrent&xt=urn:btih:9bc7717ed01869507041e31a7e65baffa78ba651&dn=What+is+the+Fediverse%3F&tr=https%3A%2F%2Fframatube.org%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fframatube.org%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fframatube.org%2Fstatic%2Fstreaming-playlists%2Fhls%2F4294a720-f263-4ea4-9392-cf9cea4d5277%2Ff8a1caed-057f-4700-a28e-004efc158b15-0-fragmented.mp4",
-          "height": 0
-        }
-      ]
-    },
-    {
-      "type": "Link",
-      "name": "tracker-http",
-      "rel": ["tracker", "http"],
-      "href": "https://framatube.org/tracker/announce"
-    },
-    {
-      "type": "Link",
-      "name": "tracker-websocket",
-      "rel": ["tracker", "websocket"],
-      "href": "wss://framatube.org:443/tracker/socket"
-    }
-  ],
-  "likes": "https://framatube.org/videos/watch/4294a720-f263-4ea4-9392-cf9cea4d5277/likes",
-  "dislikes": "https://framatube.org/videos/watch/4294a720-f263-4ea4-9392-cf9cea4d5277/dislikes",
-  "shares": "https://framatube.org/videos/watch/4294a720-f263-4ea4-9392-cf9cea4d5277/announces",
-  "comments": "https://framatube.org/videos/watch/4294a720-f263-4ea4-9392-cf9cea4d5277/comments",
-  "attributedTo": [
-    {
-      "type": "Person",
-      "id": "https://framatube.org/accounts/framasoft"
-    },
-    {
-      "type": "Group",
-      "id": "https://framatube.org/video-channels/joinpeertube"
-    }
-  ],
-  "to": ["https://www.w3.org/ns/activitystreams#Public"],
-  "cc": ["https://framatube.org/accounts/framasoft/followers"],
   "@context": [
     "https://www.w3.org/ns/activitystreams",
     "https://w3id.org/security/v1",
@@ -375,7 +7,7 @@
     },
     {
       "pt": "https://joinpeertube.org/ns#",
-      "sc": "http://schema.org#",
+      "sc": "http://schema.org/",
       "Hashtag": "as:Hashtag",
       "uuid": "sc:identifier",
       "category": "sc:category",
@@ -383,6 +15,7 @@
       "subtitleLanguage": "sc:subtitleLanguage",
       "sensitive": "as:sensitive",
       "language": "sc:inLanguage",
+      "identifier": "sc:identifier",
       "isLiveBroadcast": "sc:isLiveBroadcast",
       "liveSaveReplay": {
         "@type": "sc:Boolean",
@@ -392,10 +25,26 @@
         "@type": "sc:Boolean",
         "@id": "pt:permanentLive"
       },
+      "latencyMode": {
+        "@type": "sc:Number",
+        "@id": "pt:latencyMode"
+      },
       "Infohash": "pt:Infohash",
-      "Playlist": "pt:Playlist",
-      "PlaylistElement": "pt:PlaylistElement",
+      "tileWidth": {
+        "@type": "sc:Number",
+        "@id": "pt:tileWidth"
+      },
+      "tileHeight": {
+        "@type": "sc:Number",
+        "@id": "pt:tileHeight"
+      },
+      "tileDuration": {
+        "@type": "sc:Number",
+        "@id": "pt:tileDuration"
+      },
       "originallyPublishedAt": "sc:datePublished",
+      "uploadDate": "sc:uploadDate",
+      "hasParts": "sc:hasParts",
       "views": {
         "@type": "sc:Number",
         "@id": "pt:views"
@@ -411,18 +60,6 @@
       "fps": {
         "@type": "sc:Number",
         "@id": "pt:fps"
-      },
-      "startTimestamp": {
-        "@type": "sc:Number",
-        "@id": "pt:startTimestamp"
-      },
-      "stopTimestamp": {
-        "@type": "sc:Number",
-        "@id": "pt:stopTimestamp"
-      },
-      "position": {
-        "@type": "sc:Number",
-        "@id": "pt:position"
       },
       "commentsEnabled": {
         "@type": "sc:Boolean",
@@ -448,10 +85,6 @@
         "@id": "as:dislikes",
         "@type": "@id"
       },
-      "playlists": {
-        "@id": "pt:playlists",
-        "@type": "@id"
-      },
       "shares": {
         "@id": "as:shares",
         "@type": "@id"
@@ -461,5 +94,348 @@
         "@type": "@id"
       }
     }
-  ]
+  ],
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
+  "cc": ["https://peertube.stream/accounts/createurs/followers"],
+  "type": "Video",
+  "id": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60",
+  "name": "VU du 12/12/23 : Démission \"refrusée\"",
+  "duration": "PT383S",
+  "uuid": "46cc7342-fdd5-4583-ae16-2eeb340d3b60",
+  "category": {
+    "identifier": "11",
+    "name": "News & Politics"
+  },
+  "views": 83,
+  "sensitive": false,
+  "waitTranscoding": true,
+  "state": 1,
+  "commentsEnabled": true,
+  "downloadEnabled": true,
+  "published": "2023-12-12T17:02:02.188Z",
+  "originallyPublishedAt": "2023-12-11T23:00:00.000Z",
+  "updated": "2023-12-14T06:40:34.279Z",
+  "tag": [
+    {
+      "type": "Hashtag",
+      "name": "France3"
+    },
+    {
+      "type": "Hashtag",
+      "name": "lezapping"
+    }
+  ],
+  "mediaType": "text/markdown",
+  "content": "Un regard impertinent et libre, orchestré par Patrick Menais et son équipe, sur le monde de l’image.\n\nEn avant-première du lundi au samedi à17h00 sur Facebook, Twitter et YouTube.\n\nDu lundi au samedi à 20h00 sur France 5.\n\nhttps://www.facebook.com/vufrancetv\nhttps://twitter.com/VuFrancetv",
+  "support": null,
+  "subtitleLanguage": [],
+  "icon": [
+    {
+      "type": "Image",
+      "url": "https://peertube.stream/lazy-static/thumbnails/208d2248-6fa3-4a58-a2e6-c6f176559457.jpg",
+      "mediaType": "image/jpeg",
+      "width": 280,
+      "height": 157
+    },
+    {
+      "type": "Image",
+      "url": "https://peertube.stream/lazy-static/previews/73d34e91-0233-443b-a1c3-d98a7ec6a87c.jpg",
+      "mediaType": "image/jpeg",
+      "width": 850,
+      "height": 480
+    }
+  ],
+  "preview": [
+    {
+      "type": "Image",
+      "rel": ["storyboard"],
+      "url": [
+        {
+          "mediaType": "image/jpeg",
+          "href": "https://peertube.stream/lazy-static/storyboards/fb103d5f-8f76-4c8b-bc81-f952961cacfd.jpg",
+          "width": 1920,
+          "height": 1080,
+          "tileWidth": 192,
+          "tileHeight": 108,
+          "tileDuration": "PT4S"
+        }
+      ]
+    }
+  ],
+  "url": [
+    {
+      "type": "Link",
+      "mediaType": "text/html",
+      "href": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60"
+    },
+    {
+      "type": "Link",
+      "mediaType": "application/x-mpegURL",
+      "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/7847c00b-17f0-4cd9-b788-94283bd96d5b-master.m3u8",
+      "tag": [
+        {
+          "type": "Infohash",
+          "name": "f50d9a3e851756a1fc1da7fe8b6e40f849c1f3a1"
+        },
+        {
+          "type": "Infohash",
+          "name": "fdddadfcf01c52808a5716ac9c0f09e379a1ca69"
+        },
+        {
+          "type": "Infohash",
+          "name": "c309597f071c6ab59e1a6935be3dc1ceb58c9250"
+        },
+        {
+          "type": "Infohash",
+          "name": "5c28ed3e05102a678dc047a126650fe53d45ded4"
+        },
+        {
+          "type": "Infohash",
+          "name": "085f2c72c69af02913177534ec601349ca2b4f01"
+        },
+        {
+          "type": "Infohash",
+          "name": "37b9dbeab6f433e94f80a614f888e9a1e9ee3534"
+        },
+        {
+          "type": "Infohash",
+          "name": "cc15513891e63a92743730ba65ab256f8825f071"
+        },
+        {
+          "type": "Link",
+          "name": "sha256",
+          "mediaType": "application/json",
+          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/a3f5af94-ba6b-4349-a4b0-151cebdf9af6-segments-sha256.json"
+        },
+        {
+          "type": "Link",
+          "mediaType": "video/mp4",
+          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/5a3db28f-a4b2-49ae-963e-7fd9414efe7c-1080-fragmented.mp4",
+          "height": 1080,
+          "size": 90186372,
+          "fps": 25
+        },
+        {
+          "type": "Link",
+          "rel": ["metadata", "video/mp4"],
+          "mediaType": "application/json",
+          "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570438",
+          "height": 1080,
+          "fps": 25
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent",
+          "href": "https://peertube.stream/lazy-static/torrents/c3dd78f2-ff9b-41f1-899d-55440f512e09-1080-hls.torrent",
+          "height": 1080
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
+          "href": "magnet:?xs=https%3A%2F%2Fpeertube.stream%2Flazy-static%2Ftorrents%2Fc3dd78f2-ff9b-41f1-899d-55440f512e09-1080-hls.torrent&xt=urn:btih:944323d8a38e077cdea5c1b1aa82300d1f49076a&dn=VU+du+12%2F12%2F23+%3A+D%C3%A9mission+%22refrus%C3%A9e%22&tr=https%3A%2F%2Fpeertube.stream%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.stream%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube.stream%2Fstatic%2Fstreaming-playlists%2Fhls%2F46cc7342-fdd5-4583-ae16-2eeb340d3b60%2F5a3db28f-a4b2-49ae-963e-7fd9414efe7c-1080-fragmented.mp4",
+          "height": 1080
+        },
+        {
+          "type": "Link",
+          "mediaType": "video/mp4",
+          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/557f45f0-60b7-418c-bddd-e55701b387bb-720-fragmented.mp4",
+          "height": 720,
+          "size": 50950797,
+          "fps": 25
+        },
+        {
+          "type": "Link",
+          "rel": ["metadata", "video/mp4"],
+          "mediaType": "application/json",
+          "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570447",
+          "height": 720,
+          "fps": 25
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent",
+          "href": "https://peertube.stream/lazy-static/torrents/0529c736-0c49-4efd-a9ff-c4989b4c2071-720-hls.torrent",
+          "height": 720
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
+          "href": "magnet:?xs=https%3A%2F%2Fpeertube.stream%2Flazy-static%2Ftorrents%2F0529c736-0c49-4efd-a9ff-c4989b4c2071-720-hls.torrent&xt=urn:btih:a2662d0714edf3882193f782814441eb904460be&dn=VU+du+12%2F12%2F23+%3A+D%C3%A9mission+%22refrus%C3%A9e%22&tr=https%3A%2F%2Fpeertube.stream%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.stream%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube.stream%2Fstatic%2Fstreaming-playlists%2Fhls%2F46cc7342-fdd5-4583-ae16-2eeb340d3b60%2F557f45f0-60b7-418c-bddd-e55701b387bb-720-fragmented.mp4",
+          "height": 720
+        },
+        {
+          "type": "Link",
+          "mediaType": "video/mp4",
+          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/097e6338-4c6e-4c21-8fed-7df0a245c9b3-480-fragmented.mp4",
+          "height": 480,
+          "size": 31542462,
+          "fps": 25
+        },
+        {
+          "type": "Link",
+          "rel": ["metadata", "video/mp4"],
+          "mediaType": "application/json",
+          "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570441",
+          "height": 480,
+          "fps": 25
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent",
+          "href": "https://peertube.stream/lazy-static/torrents/56b47f85-b2de-44b1-9089-db13c8534e1c-480-hls.torrent",
+          "height": 480
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
+          "href": "magnet:?xs=https%3A%2F%2Fpeertube.stream%2Flazy-static%2Ftorrents%2F56b47f85-b2de-44b1-9089-db13c8534e1c-480-hls.torrent&xt=urn:btih:9d1cc84a448ba531d2f5422a8910fd79580768ff&dn=VU+du+12%2F12%2F23+%3A+D%C3%A9mission+%22refrus%C3%A9e%22&tr=https%3A%2F%2Fpeertube.stream%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.stream%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube.stream%2Fstatic%2Fstreaming-playlists%2Fhls%2F46cc7342-fdd5-4583-ae16-2eeb340d3b60%2F097e6338-4c6e-4c21-8fed-7df0a245c9b3-480-fragmented.mp4",
+          "height": 480
+        },
+        {
+          "type": "Link",
+          "mediaType": "video/mp4",
+          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/b6db1f0c-0b6f-4f26-b811-d38631f4c42b-360-fragmented.mp4",
+          "height": 360,
+          "size": 23389554,
+          "fps": 25
+        },
+        {
+          "type": "Link",
+          "rel": ["metadata", "video/mp4"],
+          "mediaType": "application/json",
+          "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570442",
+          "height": 360,
+          "fps": 25
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent",
+          "href": "https://peertube.stream/lazy-static/torrents/89df203a-586e-4d09-b645-21c321ae81c2-360-hls.torrent",
+          "height": 360
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
+          "href": "magnet:?xs=https%3A%2F%2Fpeertube.stream%2Flazy-static%2Ftorrents%2F89df203a-586e-4d09-b645-21c321ae81c2-360-hls.torrent&xt=urn:btih:40dbe1b6fb96d87d0750b32b26fd52913f22c84e&dn=VU+du+12%2F12%2F23+%3A+D%C3%A9mission+%22refrus%C3%A9e%22&tr=https%3A%2F%2Fpeertube.stream%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.stream%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube.stream%2Fstatic%2Fstreaming-playlists%2Fhls%2F46cc7342-fdd5-4583-ae16-2eeb340d3b60%2Fb6db1f0c-0b6f-4f26-b811-d38631f4c42b-360-fragmented.mp4",
+          "height": 360
+        },
+        {
+          "type": "Link",
+          "mediaType": "video/mp4",
+          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/d0d23e04-a7b2-47f9-8072-94a06dc0c402-240-fragmented.mp4",
+          "height": 240,
+          "size": 16040535,
+          "fps": 25
+        },
+        {
+          "type": "Link",
+          "rel": ["metadata", "video/mp4"],
+          "mediaType": "application/json",
+          "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570448",
+          "height": 240,
+          "fps": 25
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent",
+          "href": "https://peertube.stream/lazy-static/torrents/29c43d5c-b26f-404c-a286-7aff2e2bb139-240-hls.torrent",
+          "height": 240
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
+          "href": "magnet:?xs=https%3A%2F%2Fpeertube.stream%2Flazy-static%2Ftorrents%2F29c43d5c-b26f-404c-a286-7aff2e2bb139-240-hls.torrent&xt=urn:btih:f3f102c22d48b8a0aec19be463d8f04fb3a3f499&dn=VU+du+12%2F12%2F23+%3A+D%C3%A9mission+%22refrus%C3%A9e%22&tr=https%3A%2F%2Fpeertube.stream%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.stream%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube.stream%2Fstatic%2Fstreaming-playlists%2Fhls%2F46cc7342-fdd5-4583-ae16-2eeb340d3b60%2Fd0d23e04-a7b2-47f9-8072-94a06dc0c402-240-fragmented.mp4",
+          "height": 240
+        },
+        {
+          "type": "Link",
+          "mediaType": "video/mp4",
+          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/6f3b1939-67c4-45f0-bd93-2508721dda69-144-fragmented.mp4",
+          "height": 144,
+          "size": 10969421,
+          "fps": 25
+        },
+        {
+          "type": "Link",
+          "rel": ["metadata", "video/mp4"],
+          "mediaType": "application/json",
+          "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570449",
+          "height": 144,
+          "fps": 25
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent",
+          "href": "https://peertube.stream/lazy-static/torrents/e39095d9-8fa2-4543-a66f-b4b9d6165a4e-144-hls.torrent",
+          "height": 144
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
+          "href": "magnet:?xs=https%3A%2F%2Fpeertube.stream%2Flazy-static%2Ftorrents%2Fe39095d9-8fa2-4543-a66f-b4b9d6165a4e-144-hls.torrent&xt=urn:btih:8b263d7e814d611597a36dcd9655d959c86605a4&dn=VU+du+12%2F12%2F23+%3A+D%C3%A9mission+%22refrus%C3%A9e%22&tr=https%3A%2F%2Fpeertube.stream%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.stream%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube.stream%2Fstatic%2Fstreaming-playlists%2Fhls%2F46cc7342-fdd5-4583-ae16-2eeb340d3b60%2F6f3b1939-67c4-45f0-bd93-2508721dda69-144-fragmented.mp4",
+          "height": 144
+        },
+        {
+          "type": "Link",
+          "mediaType": "video/mp4",
+          "href": "https://peertube.stream/static/streaming-playlists/hls/46cc7342-fdd5-4583-ae16-2eeb340d3b60/86ab6cca-46e5-4c6e-9c2c-8aef803b85f2-0-fragmented.mp4",
+          "height": 0,
+          "size": 6074306,
+          "fps": 0
+        },
+        {
+          "type": "Link",
+          "rel": ["metadata", "video/mp4"],
+          "mediaType": "application/json",
+          "href": "https://peertube.stream/api/v1/videos/46cc7342-fdd5-4583-ae16-2eeb340d3b60/metadata/1570439",
+          "height": 0,
+          "fps": 0
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent",
+          "href": "https://peertube.stream/lazy-static/torrents/25ae194d-c3ec-412a-886f-3b0d02599ca7-0-hls.torrent",
+          "height": 0
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
+          "href": "magnet:?xs=https%3A%2F%2Fpeertube.stream%2Flazy-static%2Ftorrents%2F25ae194d-c3ec-412a-886f-3b0d02599ca7-0-hls.torrent&xt=urn:btih:e4458f2445732a228e9a83e2ae53a103f5e1097e&dn=VU+du+12%2F12%2F23+%3A+D%C3%A9mission+%22refrus%C3%A9e%22&tr=https%3A%2F%2Fpeertube.stream%2Ftracker%2Fannounce&tr=wss%3A%2F%2Fpeertube.stream%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fpeertube.stream%2Fstatic%2Fstreaming-playlists%2Fhls%2F46cc7342-fdd5-4583-ae16-2eeb340d3b60%2F86ab6cca-46e5-4c6e-9c2c-8aef803b85f2-0-fragmented.mp4",
+          "height": 0
+        }
+      ]
+    },
+    {
+      "type": "Link",
+      "name": "tracker-http",
+      "rel": ["tracker", "http"],
+      "href": "https://peertube.stream/tracker/announce"
+    },
+    {
+      "type": "Link",
+      "name": "tracker-websocket",
+      "rel": ["tracker", "websocket"],
+      "href": "wss://peertube.stream:443/tracker/socket"
+    }
+  ],
+  "likes": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60/likes",
+  "dislikes": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60/dislikes",
+  "shares": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60/announces",
+  "comments": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60/comments",
+  "hasParts": "https://peertube.stream/videos/watch/46cc7342-fdd5-4583-ae16-2eeb340d3b60/chapters",
+  "attributedTo": [
+    {
+      "type": "Person",
+      "id": "https://peertube.stream/accounts/createurs"
+    },
+    {
+      "type": "Group",
+      "id": "https://peertube.stream/video-channels/vu"
+    }
+  ],
+  "isLiveBroadcast": false,
+  "liveSaveReplay": null,
+  "permanentLive": null,
+  "latencyMode": null,
+  "peertubeLiveChat": false
 }

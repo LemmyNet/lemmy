@@ -13,6 +13,9 @@ name = "lemmy_utils"
 path = "src/lib.rs"
 doctest = false
 
+[lints]
+workspace = true
+
 [features]
 full = ["ts-rs"]
 
@@ -38,17 +41,18 @@ uuid = { workspace = true, features = ["serde", "v4"] }
 rosetta-i18n = { workspace = true }
 percent-encoding = { workspace = true }
 tokio = { workspace = true }
-openssl = "0.10.57"
+openssl = "0.10.61"
 html2text = "0.6.0"
-deser-hjson = "1.2.0"
+deser-hjson = "2.2.4"
 smart-default = "0.7.1"
-lettre = { version = "0.10.4", features = ["tokio1", "tokio1-native-tls"] }
-markdown-it = "0.5.1"
+lettre = { version = "0.11.2", features = ["tokio1", "tokio1-native-tls"] }
+markdown-it = "0.6.0"
 ts-rs = { workspace = true, optional = true }
 enum-map = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true }
+pretty_assertions = { workspace = true }
 
 [build-dependencies]
 rosetta-build = { version = "0.1.3", default-features = false }

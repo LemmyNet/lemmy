@@ -11,7 +11,7 @@ impl CommentAggregates {
   pub async fn read(pool: &mut DbPool<'_>, comment_id: CommentId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     comment_aggregates::table
-      .filter(comment_aggregates::comment_id.eq(comment_id))
+      .find(comment_id)
       .first::<Self>(conn)
       .await
   }
@@ -22,8 +22,7 @@ impl CommentAggregates {
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel::update(comment_aggregates::table)
-      .filter(comment_aggregates::comment_id.eq(comment_id))
+    diesel::update(comment_aggregates::table.find(comment_id))
       .set(comment_aggregates::hot_rank.eq(hot_rank(
         comment_aggregates::score,
         comment_aggregates::published,
@@ -50,6 +49,7 @@ mod tests {
     traits::{Crud, Likeable},
     utils::build_db_pool_for_tests,
   };
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]

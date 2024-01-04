@@ -1,4 +1,3 @@
-use super::instance::coalesce;
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::post::dsl::{
@@ -29,7 +28,16 @@ use crate::{
     PostUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX},
+  utils::{
+    functions::coalesce,
+    get_conn,
+    naive_now,
+    DbPool,
+    DELETED_REPLACEMENT_TEXT,
+    FETCH_LIMIT_MAX,
+    SITEMAP_DAYS,
+    SITEMAP_LIMIT,
+  },
 };
 use ::url::Url;
 use chrono::{Duration, Utc};
@@ -109,8 +117,9 @@ impl Post {
       .filter(local.eq(true))
       .filter(deleted.eq(false))
       .filter(removed.eq(false))
-      .filter(published.ge(Utc::now().naive_utc() - Duration::days(1)))
+      .filter(published.ge(Utc::now().naive_utc() - Duration::days(SITEMAP_DAYS)))
       .order(published.desc())
+      .limit(SITEMAP_LIMIT)
       .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)
       .await
   }
@@ -266,13 +275,9 @@ impl Likeable for PostLike {
   ) -> Result<usize, Error> {
     use crate::schema::post_like::dsl;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      dsl::post_like
-        .filter(dsl::post_id.eq(post_id))
-        .filter(dsl::person_id.eq(person_id)),
-    )
-    .execute(conn)
-    .await
+    diesel::delete(dsl::post_like.find((person_id, post_id)))
+      .execute(conn)
+      .await
   }
 }
 
@@ -291,15 +296,11 @@ impl Saveable for PostSaved {
       .await
   }
   async fn unsave(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
-    use crate::schema::post_saved::dsl::{person_id, post_id, post_saved};
+    use crate::schema::post_saved::dsl::post_saved;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      post_saved
-        .filter(post_id.eq(post_saved_form.post_id))
-        .filter(person_id.eq(post_saved_form.person_id)),
-    )
-    .execute(conn)
-    .await
+    diesel::delete(post_saved.find((post_saved_form.person_id, post_saved_form.post_id)))
+      .execute(conn)
+      .await
   }
 }
 
@@ -365,6 +366,7 @@ mod tests {
     traits::{Crud, Likeable, Saveable},
     utils::build_db_pool_for_tests,
   };
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::collections::HashSet;
 
@@ -444,7 +446,6 @@ mod tests {
     let inserted_post_like = PostLike::like(pool, &post_like_form).await.unwrap();
 
     let expected_post_like = PostLike {
-      id: inserted_post_like.id,
       post_id: inserted_post.id,
       person_id: inserted_person.id,
       published: inserted_post_like.published,
@@ -460,7 +461,6 @@ mod tests {
     let inserted_post_saved = PostSaved::save(pool, &post_saved_form).await.unwrap();
 
     let expected_post_saved = PostSaved {
-      id: inserted_post_saved.id,
       post_id: inserted_post.id,
       person_id: inserted_person.id,
       published: inserted_post_saved.published,
