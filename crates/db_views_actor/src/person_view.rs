@@ -159,6 +159,7 @@ mod tests {
   use super::*;
   use diesel::NotFound;
   use lemmy_db_schema::{
+    assert_length,
     source::{
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
@@ -257,7 +258,7 @@ mod tests {
     .list(pool)
     .await
     .unwrap();
-    assert_eq!(list.len(), 1);
+    assert_length!(1, list);
     assert_eq!(list[0].person.id, data.bob.id);
 
     cleanup(data, pool).await;
@@ -282,7 +283,7 @@ mod tests {
     .unwrap();
 
     let list = PersonView::banned(pool).await.unwrap();
-    assert_eq!(list.len(), 1);
+    assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
 
     cleanup(data, pool).await;
@@ -307,7 +308,7 @@ mod tests {
     .unwrap();
 
     let list = PersonView::admins(pool).await.unwrap();
-    assert_eq!(list.len(), 1);
+    assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
 
     let is_admin = PersonView::read(pool, data.alice.id)
