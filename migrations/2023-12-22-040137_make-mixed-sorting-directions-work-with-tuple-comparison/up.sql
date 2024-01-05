@@ -1,5 +1,5 @@
 CREATE FUNCTION reverse_timestamp_sort (t timestamp with time zone)
-    RETURNS numeric
+    RETURNS bigint
     AS $$
 BEGIN
     RETURN - EXTRACT(EPOCH FROM t);
