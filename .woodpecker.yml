@@ -38,6 +38,19 @@ steps:
       - git submodule init
       - git submodule update
 
+  publish_release_docker:
+    image: woodpeckerci/plugin-docker-buildx
+    secrets: [docker_username, docker_password]
+    settings:
+      repo: dessalines/lemmy
+      dockerfile: docker/Dockerfile
+      platforms: linux/amd64, linux/arm64
+      build_args:
+        - RUST_RELEASE_MODE=release
+      tag: ${CI_COMMIT_TAG}
+    when:
+      event: tag
+
   prettier_check:
     group: format
     image: tmknom/prettier:3.0.0
@@ -241,19 +254,6 @@ steps:
     when:
       - event: push
         branch: main
-
-  publish_release_docker:
-    image: woodpeckerci/plugin-docker-buildx
-    secrets: [docker_username, docker_password]
-    settings:
-      repo: dessalines/lemmy
-      dockerfile: docker/Dockerfile
-      platforms: linux/amd64, linux/arm64
-      build_args:
-        - RUST_RELEASE_MODE=release
-      tag: ${CI_COMMIT_TAG}
-    when:
-      event: tag
 
   nightly_build:
     image: woodpeckerci/plugin-docker-buildx
