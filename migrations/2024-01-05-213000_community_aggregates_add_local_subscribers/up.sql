@@ -3,7 +3,7 @@ ALTER TABLE community_aggregates
     ADD COLUMN subscribers_local bigint NOT NULL DEFAULT 0;
 
 -- update initial value
--- update by counting local persons who follow communities
+-- update by counting local persons who follow communities.
 WITH follower_counts AS (
     SELECT
         community_id,
