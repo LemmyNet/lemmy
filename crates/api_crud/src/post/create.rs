@@ -116,9 +116,9 @@ pub async fn create_post(
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)
-    .embed_title(metadata.title)
-    .embed_description(metadata.description)
-    .embed_video_url(metadata.embed_video_url)
+    .embed_title(metadata.opengraph_data.title)
+    .embed_description(metadata.opengraph_data.description)
+    .embed_video_url(metadata.opengraph_data.embed_video_url)
     .language_id(language_id)
     .thumbnail_url(metadata.thumbnail)
     .build();
