@@ -227,6 +227,7 @@ pub(crate) mod tests {
   use activitypub_federation::fetch::object_id::ObjectId;
   use lemmy_db_schema::{source::site::Site, traits::Crud};
   use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   pub(crate) async fn parse_lemmy_person(

@@ -39,7 +39,7 @@ import {
   loginUser,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
-import { ResolveObject } from "lemmy-js-client";
+import { EditSite, ResolveObject } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 
@@ -72,6 +72,16 @@ function assertPostFederation(postOne?: PostView, postTwo?: PostView) {
 }
 
 test("Create a post", async () => {
+  // Setup some allowlists and blocklists
+  let editSiteForm: EditSite = {
+    allowed_instances: ["lemmy-beta"],
+  };
+  await delta.editSite(editSiteForm);
+
+  editSiteForm.allowed_instances = [];
+  editSiteForm.blocked_instances = ["lemmy-alpha"];
+  await epsilon.editSite(editSiteForm);
+
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -104,6 +114,12 @@ test("Create a post", async () => {
   await expect(
     resolvePost(epsilon, postRes.post_view.post),
   ).rejects.toStrictEqual(Error("couldnt_find_object"));
+
+  // remove added allow/blocklists
+  editSiteForm.allowed_instances = [];
+  editSiteForm.blocked_instances = [];
+  await delta.editSite(editSiteForm);
+  await epsilon.editSite(editSiteForm);
 });
 
 test("Create a post in a non-existent community", async () => {

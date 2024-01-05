@@ -224,7 +224,7 @@ impl Object for ApubPost {
       let do_generate_thumbnail = thumbnail_url.is_none() && allow_generate_thumbnail;
 
       // Generate local thumbnail only if no thumbnail was federated and 'sensitive' attributes allow it.
-      let metadata = fetch_link_metadata_opt(url.as_ref(), do_generate_thumbnail, context).await?;
+      let metadata = fetch_link_metadata_opt(url.as_ref(), do_generate_thumbnail, context).await;
       if let Some(thumbnail_url_) = metadata.thumbnail {
         thumbnail_url = Some(thumbnail_url_.into());
       }
@@ -303,6 +303,7 @@ mod tests {
   };
   use lemmy_db_schema::source::site::Site;
   use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]

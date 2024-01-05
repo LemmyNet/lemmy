@@ -119,6 +119,7 @@ mod tests {
     traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]

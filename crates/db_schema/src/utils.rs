@@ -439,6 +439,7 @@ mod tests {
 
   use super::{fuzzy_search, *};
   use crate::utils::is_email_regex;
+  use pretty_assertions::assert_eq;
 
   #[test]
   fn test_fuzzy_search() {

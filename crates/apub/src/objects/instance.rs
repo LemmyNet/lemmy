@@ -218,6 +218,7 @@ pub(crate) mod tests {
   use crate::protocol::tests::file_to_json_object;
   use lemmy_db_schema::traits::Crud;
   use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   pub(crate) async fn parse_lemmy_instance(context: &Data<LemmyContext>) -> LemmyResult<ApubSite> {

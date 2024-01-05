@@ -67,6 +67,7 @@ mod tests {
 
   use super::*;
   use crate::{source::activity::ActorType, utils::build_db_pool_for_tests};
+  use pretty_assertions::assert_eq;
   use serde_json::json;
   use serial_test::serial;
   use url::Url;

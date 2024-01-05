@@ -82,3 +82,4 @@ ignored = ["getrandom"]
 serial_test = { workspace = true }
 reqwest-middleware = { workspace = true }
 serde_json = { workspace = true }
+pretty_assertions = { workspace = true }
