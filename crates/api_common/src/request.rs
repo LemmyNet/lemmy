@@ -1,5 +1,10 @@
-use crate::{context::LemmyContext, post::LinkMetadata, utils::proxy_image_link};
+use crate::{
+  context::LemmyContext,
+  post::{LinkMetadata, OpenGraphData},
+  utils::proxy_image_link,
+};
 use encoding::{all::encodings, DecoderTrap};
+use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
   settings::structs::Settings,
@@ -43,29 +48,28 @@ pub async fn fetch_link_metadata(
     .get(CONTENT_TYPE)
     .and_then(|h| h.to_str().ok())
     .and_then(|h| h.parse().ok());
-  let is_image = content_type.as_ref().unwrap_or(&mime::TEXT_PLAIN).type_() == mime::IMAGE;
 
   // Can't use .text() here, because it only checks the content header, not the actual bytes
   // https://github.com/LemmyNet/lemmy/issues/1964
   let html_bytes = response.bytes().await.map_err(LemmyError::from)?.to_vec();
 
-  let mut metadata = extract_opengraph_data(&html_bytes, url).unwrap_or_default();
+  let opengraph_data = extract_opengraph_data(&html_bytes, url).unwrap_or_default();
+  let thumbnail = extract_thumbnail_from_opengraph_data(
+    url,
+    &opengraph_data,
+    &content_type,
+    generate_thumbnail,
+    context,
+  )
+  .await;
 
-  metadata.content_type = content_type.map(|c| c.to_string());
-  if generate_thumbnail && is_image {
-    let image_url = metadata
-      .image
-      .as_ref()
-      .map(lemmy_db_schema::newtypes::DbUrl::inner)
-      .unwrap_or(url);
-    metadata.thumbnail = generate_pictrs_thumbnail(image_url, context)
-      .await
-      .ok()
-      .map(Into::into);
-  }
-
-  Ok(metadata)
+  Ok(LinkMetadata {
+    opengraph_data,
+    content_type: content_type.map(|c| c.to_string()),
+    thumbnail,
+  })
 }
+
 #[tracing::instrument(skip_all)]
 pub async fn fetch_link_metadata_opt(
   url: Option<&Url>,
@@ -81,7 +85,7 @@ pub async fn fetch_link_metadata_opt(
 }
 
 /// Extract site metadata from HTML Opengraph attributes.
-fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> Result<LinkMetadata, LemmyError> {
+fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> Result<OpenGraphData, LemmyError> {
   let html = String::from_utf8_lossy(html_bytes);
 
   // Make sure the first line is doctype html
@@ -137,14 +141,36 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> Result<LinkMetadata, 
     // join also works if the target URL is absolute
     .and_then(|v| url.join(&v.url).ok());
 
-  Ok(LinkMetadata {
+  Ok(OpenGraphData {
     title: og_title.or(page_title),
     description: og_description.or(page_description),
     image: og_image.map(Into::into),
     embed_video_url: og_embed_url.map(Into::into),
-    content_type: None,
-    thumbnail: None,
   })
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn extract_thumbnail_from_opengraph_data(
+  url: &Url,
+  opengraph_data: &OpenGraphData,
+  content_type: &Option<Mime>,
+  generate_thumbnail: bool,
+  context: &LemmyContext,
+) -> Option<DbUrl> {
+  let is_image = content_type.as_ref().unwrap_or(&mime::TEXT_PLAIN).type_() == mime::IMAGE;
+  if generate_thumbnail && is_image {
+    let image_url = opengraph_data
+      .image
+      .as_ref()
+      .map(lemmy_db_schema::newtypes::DbUrl::inner)
+      .unwrap_or(url);
+    generate_pictrs_thumbnail(image_url, context)
+      .await
+      .ok()
+      .map(Into::into)
+  } else {
+    None
+  }
 }
 
 #[derive(Deserialize, Debug)]
@@ -314,11 +340,11 @@ mod tests {
       .unwrap();
     assert_eq!(
       Some("FAQ · Wiki · IzzyOnDroid / repo · GitLab".to_string()),
-      sample_res.title
+      sample_res.opengraph_data.title
     );
     assert_eq!(
       Some("The F-Droid compatible repo at https://apt.izzysoft.de/fdroid/".to_string()),
-      sample_res.description
+      sample_res.opengraph_data.description
     );
     assert_eq!(
       Some(
@@ -326,9 +352,9 @@ mod tests {
           .unwrap()
           .into()
       ),
-      sample_res.image
+      sample_res.opengraph_data.image
     );
-    assert_eq!(None, sample_res.embed_video_url);
+    assert_eq!(None, sample_res.opengraph_data.embed_video_url);
     assert_eq!(
       Some(mime::TEXT_HTML_UTF_8.to_string()),
       sample_res.content_type
