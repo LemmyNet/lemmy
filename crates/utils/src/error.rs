@@ -16,7 +16,7 @@ pub struct LemmyError {
 }
 
 /// Maximum number of items in an array passed as API parameter. See [[LemmyErrorType::TooManyItems]]
-pub const MAX_API_PARAM_ELEMENTS: usize = 1000;
+pub const MAX_API_PARAM_ELEMENTS: usize = 10_000;
 
 impl<T> From<T> for LemmyError
 where
@@ -279,6 +279,7 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
   use super::*;
   use actix_web::{body::MessageBody, ResponseError};
+  use pretty_assertions::assert_eq;
   use std::fs::read_to_string;
   use strum::IntoEnumIterator;
 

@@ -102,7 +102,7 @@ pub struct DatabaseConfig {
   pub(crate) connection: DatabaseConnection,
 
   /// Maximum number of active sql connections
-  #[default(95)]
+  #[default(30)]
   pub pool_size: usize,
 }
 

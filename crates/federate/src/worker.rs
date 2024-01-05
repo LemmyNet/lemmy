@@ -157,7 +157,15 @@ impl InstanceWorker {
       self.save_and_send_state(pool).await?;
       latest_id
     };
-    if id == latest_id {
+    if id >= latest_id {
+      if id > latest_id {
+        tracing::error!(
+          "{}: last successful id {} is higher than latest id {} in database (did the db get cleared?)",
+          self.instance.domain,
+          id.0,
+          latest_id.0
+        );
+      }
       // no more work to be done, wait before rechecking
       tokio::select! {
         () = sleep(*WORK_FINISHED_RECHECK_DELAY) => {},
@@ -211,6 +219,7 @@ impl InstanceWorker {
       .await
       .context("failed figuring out inbox urls")?;
     if inbox_urls.is_empty() {
+      tracing::debug!("{}: {:?} no inboxes", self.instance.domain, activity.id);
       self.state.last_successful_id = Some(activity.id);
       self.state.last_successful_published_time = Some(activity.published);
       return Ok(());

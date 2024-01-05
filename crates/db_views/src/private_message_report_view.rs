@@ -112,6 +112,7 @@ mod tests {
 
   use crate::private_message_report_view::PrivateMessageReportQuery;
   use lemmy_db_schema::{
+    assert_length,
     source::{
       instance::Instance,
       person::{Person, PersonInsertForm},
@@ -121,6 +122,7 @@ mod tests {
     traits::{Crud, Reportable},
     utils::build_db_pool_for_tests,
   };
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
@@ -170,7 +172,7 @@ mod tests {
       .list(pool)
       .await
       .unwrap();
-    assert_eq!(1, reports.len());
+    assert_length!(1, reports);
     assert!(!reports[0].private_message_report.resolved);
     assert_eq!(inserted_timmy.name, reports[0].private_message_creator.name);
     assert_eq!(inserted_jessica.name, reports[0].creator.name);
@@ -196,7 +198,7 @@ mod tests {
     .list(pool)
     .await
     .unwrap();
-    assert_eq!(1, reports.len());
+    assert_length!(1, reports);
     assert!(reports[0].private_message_report.resolved);
     assert!(reports[0].resolver.is_some());
     assert_eq!(

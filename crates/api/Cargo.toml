@@ -1,5 +1,6 @@
 [package]
 name = "lemmy_api"
+publish = false
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -41,3 +42,4 @@ actix-web-httpauth = "0.8.1"
 serial_test = { workspace = true }
 tokio = { workspace = true }
 elementtree = "1.2.3"
+pretty_assertions = { workspace = true }

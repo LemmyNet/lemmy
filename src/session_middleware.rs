@@ -7,8 +7,14 @@ use actix_web::{
 };
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
-use lemmy_api::{local_user_view_from_jwt, read_auth_token};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api::read_auth_token;
+use lemmy_api_common::{
+  claims::Claims,
+  context::LemmyContext,
+  lemmy_db_views::structs::LocalUserView,
+  utils::check_user_valid,
+};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
 use reqwest::header::HeaderValue;
 use std::{future::ready, rc::Rc};
 
@@ -67,28 +73,31 @@ where
       let jwt = read_auth_token(req.request())?;
 
       if let Some(jwt) = &jwt {
-        // Ignore any invalid auth so the site can still be used
-        // TODO: this means it will be impossible to get any error message for invalid jwt. Need
-        //       to add a separate endpoint for that.
-        //       https://github.com/LemmyNet/lemmy/issues/3702
-        let local_user_view = local_user_view_from_jwt(jwt, &context).await.ok();
-        if let Some(local_user_view) = local_user_view {
-          req.extensions_mut().insert(local_user_view);
-        }
+        let local_user_id = Claims::validate(jwt, &context)
+          .await
+          .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
+        let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id)
+          .await
+          .map_err(LemmyError::from)?;
+        check_user_valid(&local_user_view.person)?;
+        req.extensions_mut().insert(local_user_view);
       }
 
       let mut res = svc.call(req).await?;
 
-      // Add cache-control header. If user is authenticated, mark as private. Otherwise cache
-      // up to one minute.
-      let cache_value = if jwt.is_some() {
-        "private"
-      } else {
-        "public, max-age=60"
-      };
-      res
-        .headers_mut()
-        .insert(CACHE_CONTROL, HeaderValue::from_static(cache_value));
+      // Add cache-control header if none is present
+      if !res.headers().contains_key(CACHE_CONTROL) {
+        // If user is authenticated, mark as private. Otherwise cache
+        // up to one minute.
+        let cache_value = if jwt.is_some() {
+          "private"
+        } else {
+          "public, max-age=60"
+        };
+        res
+          .headers_mut()
+          .insert(CACHE_CONTROL, HeaderValue::from_static(cache_value));
+      }
       Ok(res)
     })
   }
@@ -113,6 +122,7 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use lemmy_utils::rate_limit::RateLimitCell;
+  use pretty_assertions::assert_eq;
   use reqwest::Client;
   use reqwest_middleware::ClientBuilder;
   use serial_test::serial;

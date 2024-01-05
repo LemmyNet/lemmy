@@ -1,5 +1,6 @@
 [package]
 name = "lemmy_apub"
+publish = false
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -52,3 +53,4 @@ serial_test = { workspace = true }
 reqwest-middleware = { workspace = true }
 task-local-extensions = "0.1.4"
 assert-json-diff = "2.0.2"
+pretty_assertions = { workspace = true }

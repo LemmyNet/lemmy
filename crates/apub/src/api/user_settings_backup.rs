@@ -316,6 +316,7 @@ mod tests {
   use lemmy_db_views::structs::LocalUserView;
   use lemmy_db_views_actor::structs::CommunityFollowerView;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::time::Duration;
   use tokio::time::sleep;
@@ -403,7 +404,7 @@ mod tests {
 
     let mut backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
 
-    for _ in 0..251 {
+    for _ in 0..2501 {
       backup
         .followed_communities
         .push("http://example.com".parse()?);
