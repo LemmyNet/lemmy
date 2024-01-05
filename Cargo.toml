@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.19.2-rc.3.publish1"
+version = "0.19.2-rc.3.publish2"
 publish = false
 edition = "2021"
 description = "A link aggregator for the fediverse"
@@ -85,16 +85,16 @@ unused_self = "deny"
 unwrap_used = "deny"
 
 [workspace.dependencies]
-lemmy_api = { version = "=0.19.2-rc.3.publish1", path = "./crates/api" }
-lemmy_api_crud = { version = "=0.19.2-rc.3.publish1", path = "./crates/api_crud" }
-lemmy_apub = { version = "=0.19.2-rc.3.publish1", path = "./crates/apub" }
-lemmy_utils = { version = "=0.19.2-rc.3.publish1", path = "./crates/utils" }
-lemmy_db_schema = { version = "=0.19.2-rc.3.publish1", path = "./crates/db_schema" }
-lemmy_api_common = { version = "=0.19.2-rc.3.publish1", path = "./crates/api_common" }
-lemmy_routes = { version = "=0.19.2-rc.3.publish1", path = "./crates/routes" }
-lemmy_db_views = { version = "=0.19.2-rc.3.publish1", path = "./crates/db_views" }
-lemmy_db_views_actor = { version = "=0.19.2-rc.3.publish1", path = "./crates/db_views_actor" }
-lemmy_db_views_moderator = { version = "=0.19.2-rc.3.publish1", path = "./crates/db_views_moderator" }
+lemmy_api = { version = "=0.19.2-rc.3.publish2", path = "./crates/api" }
+lemmy_api_crud = { version = "=0.19.2-rc.3.publish2", path = "./crates/api_crud" }
+lemmy_apub = { version = "=0.19.2-rc.3.publish2", path = "./crates/apub" }
+lemmy_utils = { version = "=0.19.2-rc.3.publish2", path = "./crates/utils" }
+lemmy_db_schema = { version = "=0.19.2-rc.3.publish2", path = "./crates/db_schema" }
+lemmy_api_common = { version = "=0.19.2-rc.3.publish2", path = "./crates/api_common" }
+lemmy_routes = { version = "=0.19.2-rc.3.publish2", path = "./crates/routes" }
+lemmy_db_views = { version = "=0.19.2-rc.3.publish2", path = "./crates/db_views" }
+lemmy_db_views_actor = { version = "=0.19.2-rc.3.publish2", path = "./crates/db_views_actor" }
+lemmy_db_views_moderator = { version = "=0.19.2-rc.3.publish2", path = "./crates/db_views_moderator" }
 activitypub_federation = { version = "0.5.0", default-features = false, features = [
   "actix-web",
 ] }
@@ -166,7 +166,7 @@ lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true }
 lemmy_api_common = { workspace = true }
 lemmy_routes = { workspace = true }
-lemmy_federate = { version = "0.19.2-rc.3.publish1", path = "crates/federate" }
+lemmy_federate = { version = "0.19.2-rc.3.publish2", path = "crates/federate" }
 activitypub_federation = { workspace = true }
 diesel = { workspace = true }
 diesel-async = { workspace = true }
