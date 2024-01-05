@@ -157,7 +157,7 @@ impl<K, C> CursorKey<C> for ReverseTimestampKey<K>
 where
   K: CursorKey<C, SqlType = Timestamptz>,
 {
-  type SqlType = sql_types::Numeric;
+  type SqlType = sql_types::BigInt;
   type CursorValue = functions::reverse_timestamp_sort::HelperType<K::CursorValue>;
   type SqlValue = functions::reverse_timestamp_sort::HelperType<K::SqlValue>;
 
@@ -377,7 +377,7 @@ pub mod functions {
     fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Double;
   }
 
-  sql_function!(fn reverse_timestamp_sort(time: Timestamptz) -> Numeric);
+  sql_function!(fn reverse_timestamp_sort(time: Timestamptz) -> BigInt);
 
   sql_function!(fn lower(x: Text) -> Text);
 
