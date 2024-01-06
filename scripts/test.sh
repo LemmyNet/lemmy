@@ -26,7 +26,6 @@ fi
 cargo test -p lemmy_utils --all-features --no-fail-fast
 
 # Add this to do printlns: -- --nocapture
-# Test bump
 
 pg_ctl stop
 rm -rf $PGDATA
