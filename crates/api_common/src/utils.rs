@@ -842,6 +842,7 @@ mod tests {
 
   use crate::utils::{honeypot_check, limit_expire_time, password_length_check};
   use chrono::{Days, Utc};
+  use pretty_assertions::assert_eq;
 
   #[test]
   #[rustfmt::skip]

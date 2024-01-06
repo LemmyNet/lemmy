@@ -516,6 +516,7 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use lemmy_routes::nodeinfo::NodeInfo;
+  use pretty_assertions::assert_eq;
   use reqwest::Client;
 
   #[tokio::test]

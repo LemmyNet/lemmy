@@ -234,6 +234,7 @@ mod tests {
     traits::{Crud, Joinable, Reportable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
   };
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]

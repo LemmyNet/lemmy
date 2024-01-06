@@ -77,3 +77,4 @@ ignored = ["getrandom"]
 [dev-dependencies]
 serial_test = { workspace = true }
 reqwest-middleware = { workspace = true }
+pretty_assertions = { workspace = true }

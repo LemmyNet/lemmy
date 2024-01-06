@@ -34,7 +34,7 @@
     # Name of the postgres database for lemmy
     database: "string"
     # Maximum number of active sql connections
-    pool_size: 95
+    pool_size: 30
   }
   # Settings related to activitypub federation
   # Pictrs image server configuration.
