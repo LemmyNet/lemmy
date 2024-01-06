@@ -661,7 +661,11 @@ diesel::table! {
         person_id -> Int4,
         post_id -> Int4,
         read_comments -> Int8,
-        published -> Timestamptz,
+        read_comments_published -> Nullable<Timestamptz>,
+        read: Nullable<Timestamptz>,
+        saved: Nullable<Timestamptz>,
+        like_score: Int2,
+        like_published: Nullable<Timestamptz>,
     }
 }
 
@@ -717,23 +721,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    post_like (person_id, post_id) {
-        post_id -> Int4,
-        person_id -> Int4,
-        score -> Int2,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    post_read (person_id, post_id) {
-        post_id -> Int4,
-        person_id -> Int4,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
     post_report (id) {
         id -> Int4,
         creator_id -> Int4,
@@ -747,14 +734,6 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
-    }
-}
-
-diesel::table! {
-    post_saved (person_id, post_id) {
-        post_id -> Int4,
-        person_id -> Int4,
-        published -> Timestamptz,
     }
 }
 
