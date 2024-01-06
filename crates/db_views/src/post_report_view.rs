@@ -196,6 +196,7 @@ mod tests {
     structs::LocalUserView,
   };
   use lemmy_db_schema::{
+    assert_length,
     source::{
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       instance::Instance,
@@ -208,6 +209,7 @@ mod tests {
     traits::{Crud, Joinable, Reportable},
     utils::build_db_pool_for_tests,
   };
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
@@ -382,7 +384,7 @@ mod tests {
     .list(pool, &timmy_view)
     .await
     .unwrap();
-    assert_eq!(reports_after_resolve.len(), 1);
+    assert_length!(1, reports_after_resolve);
     assert_eq!(reports_after_resolve[0].creator.id, inserted_sara.id);
 
     // Make sure the counts are correct

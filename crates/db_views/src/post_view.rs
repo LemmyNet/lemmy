@@ -740,6 +740,7 @@ mod tests {
   use chrono::Utc;
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
+    assert_length,
     impls::actor_language::UNDETERMINED_ID,
     newtypes::LanguageId,
     source::{
@@ -760,6 +761,7 @@ mod tests {
     SortType,
     SubscribedType,
   };
+  use pretty_assertions::{assert_eq, assert_ne};
   use serial_test::serial;
   use std::{collections::HashSet, time::Duration};
 
@@ -925,7 +927,7 @@ mod tests {
     let mut expected_post_listing_with_user = expected_post_view(&data, pool).await;
 
     // Should be only one person, IE the bot post, and blocked should be missing
-    assert_eq!(1, read_post_listing.len());
+    assert_length!(1, read_post_listing);
 
     assert_eq!(expected_post_listing_with_user, read_post_listing[0]);
     expected_post_listing_with_user.my_vote = None;
@@ -954,7 +956,7 @@ mod tests {
     .await
     .unwrap();
     // should include bot post which has "undetermined" language
-    assert_eq!(2, post_listings_with_bots.len());
+    assert_length!(2, post_listings_with_bots);
 
     cleanup(data, pool).await;
   }
@@ -983,7 +985,7 @@ mod tests {
     let expected_post_listing_no_person = expected_post_view(&data, pool).await;
 
     // Should be 2 posts, with the bot post, and the blocked
-    assert_eq!(3, read_post_listing_multiple_no_person.len());
+    assert_length!(3, read_post_listing_multiple_no_person);
 
     assert_eq!(
       expected_post_listing_no_person,
@@ -1020,7 +1022,7 @@ mod tests {
     .await
     .unwrap();
     // Should be 0 posts after the community block
-    assert_eq!(0, read_post_listings_with_person_after_block.len());
+    assert_length!(0, read_post_listings_with_person_after_block);
 
     CommunityBlock::unblock(pool, &community_block)
       .await
@@ -1085,7 +1087,7 @@ mod tests {
     .list(pool)
     .await
     .unwrap();
-    assert_eq!(1, read_post_listing.len());
+    assert_length!(1, read_post_listing);
 
     assert_eq!(expected_post_with_upvote, read_post_listing[0]);
 
@@ -1210,7 +1212,7 @@ mod tests {
     .unwrap();
 
     // no language filters specified, all posts should be returned
-    assert_eq!(3, post_listings_all.len());
+    assert_length!(3, post_listings_all);
 
     let french_id = Language::read_id_from_code(pool, Some("fr"))
       .await
@@ -1230,7 +1232,7 @@ mod tests {
     .unwrap();
 
     // only one post in french and one undetermined should be returned
-    assert_eq!(2, post_listing_french.len());
+    assert_length!(2, post_listing_french);
     assert!(post_listing_french
       .iter()
       .any(|p| p.post.language_id == french_id));
@@ -1252,7 +1254,7 @@ mod tests {
     .unwrap();
 
     // french post and undetermined language post should be returned
-    assert_eq!(2, post_listings_french_und.len());
+    assert_length!(2, post_listings_french_und);
     assert_eq!(
       UNDETERMINED_ID,
       post_listings_french_und[0].post.language_id
@@ -1290,7 +1292,7 @@ mod tests {
     .list(pool)
     .await
     .unwrap();
-    assert_eq!(1, post_listings_no_admin.len());
+    assert_length!(1, post_listings_no_admin);
 
     // Removed bot post is shown to admins on its profile page
     data.local_user_view.local_user.admin = true;
@@ -1389,7 +1391,7 @@ mod tests {
     .list(pool)
     .await
     .unwrap();
-    assert_eq!(post_listings_all.len(), 3);
+    assert_length!(3, post_listings_all);
 
     // block the instance
     let block_form = InstanceBlockForm {
@@ -1406,7 +1408,7 @@ mod tests {
     .list(pool)
     .await
     .unwrap();
-    assert_eq!(post_listings_blocked.len(), 2);
+    assert_length!(2, post_listings_blocked);
     assert_ne!(
       post_listings_blocked[0].post.id,
       post_from_blocked_instance.id
@@ -1425,7 +1427,7 @@ mod tests {
     .list(pool)
     .await
     .unwrap();
-    assert_eq!(post_listings_blocked.len(), 3);
+    assert_length!(3, post_listings_blocked);
 
     Instance::delete(pool, blocked_instance.id).await.unwrap();
     cleanup(data, pool).await;
@@ -1545,7 +1547,7 @@ mod tests {
     .list(pool)
     .await
     .unwrap();
-    assert_eq!(1, post_listings_hide_read.len());
+    assert_length!(1, post_listings_hide_read);
 
     cleanup(data, pool).await;
   }
