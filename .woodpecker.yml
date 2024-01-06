@@ -248,7 +248,7 @@ steps:
     settings:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile
-      platforms: linux/amd64
+      platforms: linux/amd64, linux/arm64
       build_args:
         - RUST_RELEASE_MODE=release
       tag: ${CI_COMMIT_TAG}
