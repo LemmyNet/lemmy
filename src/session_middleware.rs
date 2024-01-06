@@ -85,16 +85,19 @@ where
 
       let mut res = svc.call(req).await?;
 
-      // Add cache-control header. If user is authenticated, mark as private. Otherwise cache
-      // up to one minute.
-      let cache_value = if jwt.is_some() {
-        "private"
-      } else {
-        "public, max-age=60"
-      };
-      res
-        .headers_mut()
-        .insert(CACHE_CONTROL, HeaderValue::from_static(cache_value));
+      // Add cache-control header if none is present
+      if !res.headers().contains_key(CACHE_CONTROL) {
+        // If user is authenticated, mark as private. Otherwise cache
+        // up to one minute.
+        let cache_value = if jwt.is_some() {
+          "private"
+        } else {
+          "public, max-age=60"
+        };
+        res
+          .headers_mut()
+          .insert(CACHE_CONTROL, HeaderValue::from_static(cache_value));
+      }
       Ok(res)
     })
   }
@@ -119,6 +122,7 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use lemmy_utils::rate_limit::RateLimitCell;
+  use pretty_assertions::assert_eq;
   use reqwest::Client;
   use reqwest_middleware::ClientBuilder;
   use serial_test::serial;

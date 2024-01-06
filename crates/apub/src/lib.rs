@@ -12,6 +12,7 @@ use lemmy_db_schema::{
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use moka::future::Cache;
 use once_cell::sync::Lazy;
+use serde_json::Value;
 use std::{sync::Arc, time::Duration};
 use url::Url;
 
@@ -32,8 +33,14 @@ pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 50;
 /// changes take effect quickly.
 const BLOCKLIST_CACHE_DURATION: Duration = Duration::from_secs(60);
 
-static CONTEXT: Lazy<Vec<serde_json::Value>> = Lazy::new(|| {
-  serde_json::from_str(include_str!("../assets/lemmy/context.json")).expect("parse context")
+/// Only include a basic context to save space and bandwidth. The main context is hosted statically
+/// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could
+/// theoretically also be moved.
+pub static FEDERATION_CONTEXT: Lazy<Value> = Lazy::new(|| {
+  Value::Array(vec![
+    Value::String("https://join-lemmy.org/context.json".to_string()),
+    Value::String("https://www.w3.org/ns/activitystreams".to_string()),
+  ])
 });
 
 #[derive(Clone)]

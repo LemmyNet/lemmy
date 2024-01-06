@@ -46,6 +46,7 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use crate::{source::language::Language, utils::build_db_pool_for_tests};
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]

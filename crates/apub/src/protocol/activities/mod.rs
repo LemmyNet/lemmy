@@ -18,10 +18,10 @@ pub enum CreateOrUpdateType {
 mod tests {
   use crate::protocol::{
     activities::{
-      community::announce::AnnounceActivity,
+      community::{announce::AnnounceActivity, report::Report},
       create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
       deletion::delete::Delete,
-      following::{follow::Follow, undo_follow::UndoFollow},
+      following::{accept::AcceptFollow, follow::Follow, undo_follow::UndoFollow},
       voting::{undo_vote::UndoVote, vote::Vote},
     },
     tests::test_json,
@@ -50,6 +50,7 @@ mod tests {
     test_json::<UndoFollow>("assets/mastodon/activities/undo_follow.json")?;
     test_json::<Vote>("assets/mastodon/activities/like_page.json")?;
     test_json::<UndoVote>("assets/mastodon/activities/undo_like_page.json")?;
+    test_json::<Report>("assets/mastodon/activities/flag.json")?;
     Ok(())
   }
 
@@ -86,6 +87,13 @@ mod tests {
   #[test]
   fn test_parse_peertube_activities() -> LemmyResult<()> {
     test_json::<AnnounceActivity>("assets/peertube/activities/announce_video.json")?;
+    Ok(())
+  }
+
+  #[test]
+  fn test_parse_mbin_activities() -> LemmyResult<()> {
+    test_json::<AcceptFollow>("assets/mbin/activities/accept.json")?;
+    test_json::<Report>("assets/mbin/activities/flag.json")?;
     Ok(())
   }
 }
