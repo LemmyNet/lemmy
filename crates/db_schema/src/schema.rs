@@ -107,15 +107,14 @@ diesel::table! {
     }
 }
 
-diesel::table! {
-    comment_like (person_id, comment_id) {
-        person_id -> Int4,
-        comment_id -> Int4,
+person_id -> Int4,
         post_id -> Int4,
-        score -> Int2,
-        published -> Timestamptz,
-    }
-}
+        read_comments -> Int8,
+        read_comments_published -> Nullable<Timestamptz>,
+        read: Nullable<Timestamptz>,
+        saved: Nullable<Timestamptz>,
+        like_score: Int2,
+        like_published: Nullable<Timestamptz>,
 
 diesel::table! {
     comment_reply (id) {
@@ -138,14 +137,6 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
-    }
-}
-
-diesel::table! {
-    comment_saved (person_id, comment_id) {
-        comment_id -> Int4,
-        person_id -> Int4,
-        published -> Timestamptz,
     }
 }
 
@@ -653,6 +644,16 @@ diesel::table! {
         comment_id -> Int4,
         read -> Bool,
         published -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    person_comment_aggregates (person_id, comment_id) {
+        person_id -> Int4,
+        comment_id -> Int4,
+        saved: Nullable<Timestamptz>,
+        like_score: Int2,
+        like_published: Nullable<Timestamptz>,
     }
 }
 
