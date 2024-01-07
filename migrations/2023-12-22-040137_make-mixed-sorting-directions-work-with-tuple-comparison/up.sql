@@ -2,7 +2,7 @@ CREATE FUNCTION reverse_timestamp_sort (t timestamp with time zone)
     RETURNS bigint
     AS $$
 BEGIN
-    RETURN - EXTRACT(EPOCH FROM t);
+    RETURN (-1000000 * EXTRACT(EPOCH FROM t))::bigint;
 END;
 $$
 LANGUAGE plpgsql
