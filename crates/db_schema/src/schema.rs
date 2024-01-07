@@ -107,15 +107,6 @@ diesel::table! {
     }
 }
 
-person_id -> Int4,
-        post_id -> Int4,
-        read_comments -> Int8,
-        read_comments_published -> Nullable<Timestamptz>,
-        read: Nullable<Timestamptz>,
-        saved: Nullable<Timestamptz>,
-        like_score: Int2,
-        like_published: Nullable<Timestamptz>,
-
 diesel::table! {
     comment_reply (id) {
         id -> Int4,
