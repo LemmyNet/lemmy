@@ -747,7 +747,7 @@ mod tests {
     SubscribedType,
   };
   use lemmy_utils::error::LemmyResult;
-  use pretty_assertions::{assert_eq, assert_ne};
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::{collections::HashSet, time::Duration};
 
