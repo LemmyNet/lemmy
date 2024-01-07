@@ -184,43 +184,9 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_block (person_id, community_id) {
-        person_id -> Int4,
-        community_id -> Int4,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    community_follower (person_id, community_id) {
-        community_id -> Int4,
-        person_id -> Int4,
-        published -> Timestamptz,
-        pending -> Bool,
-    }
-}
-
-diesel::table! {
     community_language (community_id, language_id) {
         community_id -> Int4,
         language_id -> Int4,
-    }
-}
-
-diesel::table! {
-    community_moderator (person_id, community_id) {
-        community_id -> Int4,
-        person_id -> Int4,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    community_person_ban (person_id, community_id) {
-        community_id -> Int4,
-        person_id -> Int4,
-        published -> Timestamptz,
-        expires -> Nullable<Timestamptz>,
     }
 }
 
@@ -645,6 +611,19 @@ diesel::table! {
         saved: Nullable<Timestamptz>,
         like_score: Int2,
         like_published: Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    person_community_aggregates (person_id, community_id) {
+        person_id -> Int4,
+        community_id -> Int4,
+        block -> Nullable<Timestamptz>,
+        follow -> Nullable<Timestamptz>,
+        follow_pending -> Bool,
+        moderator -> Nullable<Timestamptz>,
+        ban: Nullable<Timestamptz>,
+        ban_expires -> Nullable<Timestamptz>,
     }
 }
 
