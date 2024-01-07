@@ -578,23 +578,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_block (person_id, target_id) {
-        person_id -> Int4,
-        target_id -> Int4,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    person_follower (follower_id, person_id) {
-        person_id -> Int4,
-        follower_id -> Int4,
-        published -> Timestamptz,
-        pending -> Bool,
-    }
-}
-
-diesel::table! {
     person_mention (id) {
         id -> Int4,
         recipient_id -> Int4,
@@ -624,6 +607,16 @@ diesel::table! {
         moderator -> Nullable<Timestamptz>,
         ban: Nullable<Timestamptz>,
         ban_expires -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    person_person_aggregates (person_id, target_id) {
+        person_id -> Int4,
+        target_id -> Int4,
+        block -> Nullable<Timestamptz>,
+        follow -> Nullable<Timestamptz>,
+        follow_pending -> Bool,
     }
 }
 
