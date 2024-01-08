@@ -13,8 +13,11 @@ use activitypub_federation::{
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use http::{header::LOCATION, StatusCode};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{newtypes::DbUrl, source::activity::SentActivity};
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_db_schema::{
+  newtypes::DbUrl,
+  source::{activity::SentActivity, community::Community},
+};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use url::Url;
@@ -105,4 +108,14 @@ pub(crate) async fn get_activity(
         .body(json),
     )
   }
+}
+
+pub fn check_community_valid(community: &Community) -> LemmyResult<()> {
+  if community.deleted || community.removed {
+    Err(LemmyErrorType::Deleted)?
+  }
+  if community.local_only {
+    return Err(LemmyErrorType::CouldntFindCommunity.into());
+  }
+  Ok(())
 }

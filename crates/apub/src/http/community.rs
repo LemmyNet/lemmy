@@ -6,7 +6,7 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  http::{create_apub_response, create_apub_tombstone_response},
+  http::{check_community_valid, create_apub_response, create_apub_tombstone_response},
   objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitypub_federation::{
@@ -16,7 +16,7 @@ use activitypub_federation::{
   traits::{Collection, Object},
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
-use lemmy_api_common::{context::LemmyContext, utils::check_community_valid};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_utils::error::LemmyError;
 use serde::Deserialize;
@@ -132,7 +132,7 @@ pub(crate) mod tests {
     },
     traits::Crud,
   };
-  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+  use lemmy_utils::error::LemmyResult;
   use serde::de::DeserializeOwned;
   use serial_test::serial;
 

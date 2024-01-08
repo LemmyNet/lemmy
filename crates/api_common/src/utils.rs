@@ -835,16 +835,6 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
   }
 }
 
-pub fn check_community_valid(community: &Community) -> LemmyResult<()> {
-  if community.deleted || community.removed {
-    Err(LemmyErrorType::Deleted)?
-  }
-  if community.local_only {
-    return Err(LemmyErrorType::CouldntFindCommunity.into());
-  }
-  Ok(())
-}
-
 #[cfg(test)]
 mod tests {
   #![allow(clippy::unwrap_used)]

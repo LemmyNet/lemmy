@@ -1,10 +1,15 @@
 use crate::{
-  http::{create_apub_response, create_apub_tombstone_response, redirect_remote_object},
+  http::{
+    check_community_valid,
+    create_apub_response,
+    create_apub_tombstone_response,
+    redirect_remote_object,
+  },
   objects::comment::ApubComment,
 };
 use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{web::Path, HttpResponse};
-use lemmy_api_common::{context::LemmyContext, utils::check_community_valid};
+use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::CommentId,
   source::{comment::Comment, community::Community, post::Post},

@@ -56,17 +56,24 @@ impl CommunityModeratorView {
       .await
   }
 
-  pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
+  pub async fn for_person(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    is_authenticated: bool,
+  ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    community_moderator::table
+    let mut query = community_moderator::table
       .inner_join(community::table)
       .inner_join(person::table)
       .filter(community_moderator::person_id.eq(person_id))
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .select((community::all_columns, person::all_columns))
-      .load::<CommunityModeratorView>(conn)
-      .await
+      .into_boxed();
+    if !is_authenticated {
+      query = query.filter(community::local_only.eq(false));
+    }
+    query.load::<CommunityModeratorView>(conn).await
   }
 
   /// Finds all communities first mods / creators
