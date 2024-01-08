@@ -75,9 +75,9 @@ pub async fn update_post(
     Some(url) => {
       let metadata = fetch_link_metadata(url, true, &context).await?;
       (
-        Some(metadata.title),
-        Some(metadata.description),
-        Some(metadata.embed_video_url),
+        Some(metadata.opengraph_data.title),
+        Some(metadata.opengraph_data.description),
+        Some(metadata.opengraph_data.embed_video_url),
         Some(metadata.thumbnail),
       )
     }

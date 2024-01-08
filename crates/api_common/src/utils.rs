@@ -866,28 +866,33 @@ pub async fn process_markdown_opt(
   }
 }
 
-/// Rewrite a link to go through `/api/v3/image_proxy` endpoint. This is only for remote urls and
-/// if image_proxy setting is enabled.
+/// A wrapper for `proxy_image_link` for use in tests.
 ///
-/// The parameter `image_proxy` is the config value of `pictrs.image_proxy`. Its necessary to pass
+/// The parameter `force_image_proxy` is the config value of `pictrs.image_proxy`. Its necessary to pass
 /// as separate parameter so it can be changed in tests.
-pub(crate) async fn proxy_image_link(
+pub(crate) async fn proxy_image_link_wrapper(
   link: Url,
-  image_proxy: bool,
+  force_image_proxy: bool,
   context: &LemmyContext,
 ) -> LemmyResult<DbUrl> {
   // Dont rewrite links pointing to local domain.
-  if link.domain() == Some(&context.settings().hostname) || !image_proxy {
-    return Ok(link.into());
+  if link.domain() == Some(&context.settings().hostname) || !force_image_proxy {
+    Ok(link.into())
+  } else {
+    let proxied = format!(
+      "{}/api/v3/image_proxy?url={}",
+      context.settings().get_protocol_and_hostname(),
+      encode(link.as_str())
+    );
+    RemoteImage::create(&mut context.pool(), vec![link]).await?;
+    Ok(Url::parse(&proxied)?.into())
   }
+}
 
-  let proxied = format!(
-    "{}/api/v3/image_proxy?url={}",
-    context.settings().get_protocol_and_hostname(),
-    encode(link.as_str())
-  );
-  RemoteImage::create(&mut context.pool(), vec![link]).await?;
-  Ok(Url::parse(&proxied)?.into())
+/// Rewrite a link to go through `/api/v3/image_proxy` endpoint. This is only for remote urls and
+/// if image_proxy setting is enabled.
+pub(crate) async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
+  proxy_image_link_wrapper(link, false, context).await
 }
 
 pub async fn proxy_image_link_opt_api(
@@ -910,13 +915,7 @@ pub async fn proxy_image_link_api(
     None => None,
   };
   if let Some(l) = link {
-    proxy_image_link(
-      l.into(),
-      context.settings().pictrs_config()?.image_proxy,
-      context,
-    )
-    .await
-    .map(Some)
+    proxy_image_link(l.into(), context).await.map(Some)
   } else {
     Ok(link)
   }
@@ -927,9 +926,7 @@ pub async fn proxy_image_link_opt_apub(
   context: &LemmyContext,
 ) -> LemmyResult<Option<DbUrl>> {
   if let Some(l) = link {
-    proxy_image_link(l, context.settings().pictrs_config()?.image_proxy, context)
-      .await
-      .map(Some)
+    proxy_image_link(l, context).await.map(Some)
   } else {
     Ok(None)
   }
@@ -991,14 +988,14 @@ mod tests {
 
     // image from local domain is unchanged
     let local_url = Url::parse("http://lemmy-alpha/image.png").unwrap();
-    let proxied = proxy_image_link(local_url.clone(), true, &context)
+    let proxied = proxy_image_link_wrapper(local_url.clone(), true, &context)
       .await
       .unwrap();
     assert_eq!(&local_url, proxied.inner());
 
     // image from remote domain is proxied
     let remote_image = Url::parse("http://lemmy-beta/image.png").unwrap();
-    let proxied = proxy_image_link(remote_image.clone(), true, &context)
+    let proxied = proxy_image_link_wrapper(remote_image.clone(), true, &context)
       .await
       .unwrap();
     assert_eq!(
