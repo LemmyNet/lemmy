@@ -7,7 +7,7 @@ use encoding::{all::encodings, DecoderTrap};
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
-  settings::structs::Settings,
+  settings::structs::{ImageProxyMode, Settings},
   version::VERSION,
   REQWEST_TIMEOUT,
 };
@@ -258,7 +258,7 @@ async fn generate_pictrs_thumbnail(
 ) -> Result<Url, LemmyError> {
   let pictrs_config = context.settings().pictrs_config()?;
 
-  if !pictrs_config.cache_external_link_previews {
+  if pictrs_config.image_mode == ImageProxyMode::ProxyAllImages {
     return Ok(proxy_image_link(image_url.clone(), context).await?.into());
   }
 

@@ -35,7 +35,7 @@ use lemmy_utils::{
   email::{send_email, translations::Lang},
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
-  settings::structs::Settings,
+  settings::structs::{ImageProxyMode, Settings},
   utils::{
     markdown::markdown_rewrite_image_links,
     slurs::{build_slur_regex, remove_slurs},
@@ -846,7 +846,7 @@ pub async fn process_markdown(
   context: &LemmyContext,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
-  if context.settings().pictrs_config()?.image_proxy {
+  if context.settings().pictrs_config()?.image_mode == ImageProxyMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
     RemoteImage::create(&mut context.pool(), links).await?;
     Ok(text)
@@ -872,13 +872,13 @@ pub async fn process_markdown_opt(
 /// as separate parameter so it can be changed in tests.
 async fn proxy_image_link_internal(
   link: Url,
-  force_image_proxy: bool,
+  image_proxy_mode: ImageProxyMode,
   context: &LemmyContext,
 ) -> LemmyResult<DbUrl> {
   // Dont rewrite links pointing to local domain.
-  if link.domain() == Some(&context.settings().hostname) || !force_image_proxy {
+  if link.domain() == Some(&context.settings().hostname) {
     Ok(link.into())
-  } else {
+  } else if image_proxy_mode == ImageProxyMode::ProxyAllImages {
     let proxied = format!(
       "{}/api/v3/image_proxy?url={}",
       context.settings().get_protocol_and_hostname(),
@@ -886,6 +886,8 @@ async fn proxy_image_link_internal(
     );
     RemoteImage::create(&mut context.pool(), vec![link]).await?;
     Ok(Url::parse(&proxied)?.into())
+  } else {
+    Ok(link.into())
   }
 }
 
@@ -894,7 +896,7 @@ async fn proxy_image_link_internal(
 pub(crate) async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
   proxy_image_link_internal(
     link,
-    context.settings().pictrs_config()?.image_proxy,
+    context.settings().pictrs_config()?.image_mode,
     context,
   )
   .await
@@ -993,16 +995,21 @@ mod tests {
 
     // image from local domain is unchanged
     let local_url = Url::parse("http://lemmy-alpha/image.png").unwrap();
-    let proxied = proxy_image_link_internal(local_url.clone(), true, &context)
-      .await
-      .unwrap();
+    let proxied =
+      proxy_image_link_internal(local_url.clone(), ImageProxyMode::ProxyAllImages, &context)
+        .await
+        .unwrap();
     assert_eq!(&local_url, proxied.inner());
 
     // image from remote domain is proxied
     let remote_image = Url::parse("http://lemmy-beta/image.png").unwrap();
-    let proxied = proxy_image_link_internal(remote_image.clone(), true, &context)
-      .await
-      .unwrap();
+    let proxied = proxy_image_link_internal(
+      remote_image.clone(),
+      ImageProxyMode::ProxyAllImages,
+      &context,
+    )
+    .await
+    .unwrap();
     assert_eq!(
       "https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
       proxied.as_str()

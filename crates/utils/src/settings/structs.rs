@@ -12,7 +12,6 @@ pub struct Settings {
   /// settings related to the postgresql database
   #[default(Default::default())]
   pub database: DatabaseConfig,
-  /// Settings related to activitypub federation
   /// Pictrs image server configuration.
   #[default(Some(Default::default()))]
   pub(crate) pictrs: Option<PictrsConfig>,
@@ -79,29 +78,35 @@ pub struct PictrsConfig {
   #[default(None)]
   pub api_key: Option<String>,
 
-  /// If enabled, all images from remote domains are rewritten to pass through `/api/v3/image_proxy`.
-  /// This improves privacy as users don't expose their IP to untrusted servers, and decreases load
-  /// on other servers. However it causes more load for the local server.
-  ///
-  /// Requires pict-rs 0.5
-  #[default(false)]
-  pub image_proxy: bool,
-
-  /// By default the thumbnails for external links are stored in pict-rs. This ensures that they
-  /// can be reliably retrieved and can be resized using pict-rs APIs. However it also increases
-  /// storage usage. In case this is disabled, the Opengraph image is directly returned as
-  /// thumbnail.Note that it still gets proxied through the local instance if `image_proxy` is
-  /// enabled.
-  ///
-  /// In some countries it is forbidden to copy preview images from newspaper articles and only
-  /// hotlinking is allowed. If that is the case for your instance, make sure that `image_proxy` and
-  /// `cache_external_link_previews` are both disabled.
-  #[default(true)]
-  pub cache_external_link_previews: bool,
+  /// Specifies how to handle remote images, so that users don't have to connect directly to remote servers.
+  #[default(ImageProxyMode::StoreLinkPreviews)]
+  pub image_mode: ImageProxyMode,
 
   /// Timeout for uploading images to pictrs (in seconds)
   #[default(30)]
   pub upload_timeout: u64,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub enum ImageProxyMode {
+  /// Leave images unchanged, don't generate any local thumbnails for post urls. Instead the the
+  /// Opengraph image is directly returned as thumbnail
+  None,
+  /// Generate thumbnails for external post urls and store them persistently in pict-rs. This
+  /// ensures that they can be reliably retrieved and can be resized using pict-rs APIs. However
+  /// it also increases storage usage.
+  ///
+  /// This is the default behaviour, and also matches Lemmy 0.18.
+  #[default]
+  StoreLinkPreviews,
+  /// If enabled, all images from remote domains are rewritten to pass through `/api/v3/image_proxy`,
+  /// including embedded images in markdown. Images are stored temporarily in pict-rs for caching.
+  /// This improves privacy as users don't expose their IP to untrusted servers, and decreases load
+  /// on other servers. However it increases bandwidth use for the local server.
+  ///
+  /// Requires pict-rs 0.5
+  ProxyAllImages,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
