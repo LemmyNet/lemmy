@@ -870,7 +870,7 @@ pub async fn process_markdown_opt(
 ///
 /// The parameter `force_image_proxy` is the config value of `pictrs.image_proxy`. Its necessary to pass
 /// as separate parameter so it can be changed in tests.
-pub(crate) async fn proxy_image_link_wrapper(
+async fn proxy_image_link_internal(
   link: Url,
   force_image_proxy: bool,
   context: &LemmyContext,
@@ -892,7 +892,12 @@ pub(crate) async fn proxy_image_link_wrapper(
 /// Rewrite a link to go through `/api/v3/image_proxy` endpoint. This is only for remote urls and
 /// if image_proxy setting is enabled.
 pub(crate) async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
-  proxy_image_link_wrapper(link, false, context).await
+  proxy_image_link_internal(
+    link,
+    context.settings().pictrs_config()?.image_proxy,
+    context,
+  )
+  .await
 }
 
 pub async fn proxy_image_link_opt_api(
@@ -988,14 +993,14 @@ mod tests {
 
     // image from local domain is unchanged
     let local_url = Url::parse("http://lemmy-alpha/image.png").unwrap();
-    let proxied = proxy_image_link_wrapper(local_url.clone(), true, &context)
+    let proxied = proxy_image_link_internal(local_url.clone(), true, &context)
       .await
       .unwrap();
     assert_eq!(&local_url, proxied.inner());
 
     // image from remote domain is proxied
     let remote_image = Url::parse("http://lemmy-beta/image.png").unwrap();
-    let proxied = proxy_image_link_wrapper(remote_image.clone(), true, &context)
+    let proxied = proxy_image_link_internal(remote_image.clone(), true, &context)
       .await
       .unwrap();
     assert_eq!(
