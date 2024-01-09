@@ -89,6 +89,7 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]

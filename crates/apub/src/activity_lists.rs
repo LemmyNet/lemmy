@@ -35,7 +35,7 @@ use url::Url;
 /// This could theoretically be defined as an enum with variants `GroupInboxActivities` and
 /// `PersonInboxActivities`. In practice we need to write it out manually so that priorities
 /// are handled correctly.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
 #[enum_delegate::implement(ActivityHandler)]
 pub enum SharedInboxActivities {

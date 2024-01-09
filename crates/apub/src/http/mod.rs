@@ -2,7 +2,7 @@ use crate::{
   activity_lists::SharedInboxActivities,
   fetcher::user_or_community::UserOrCommunity,
   protocol::objects::tombstone::Tombstone,
-  CONTEXT,
+  FEDERATION_CONTEXT,
 };
 use activitypub_federation::{
   actix_web::inbox::receive_activity,
@@ -43,7 +43,7 @@ fn create_apub_response<T>(data: &T) -> LemmyResult<HttpResponse>
 where
   T: Serialize,
 {
-  let json = serde_json::to_string_pretty(&WithContext::new(data, CONTEXT.clone()))?;
+  let json = serde_json::to_string_pretty(&WithContext::new(data, FEDERATION_CONTEXT.clone()))?;
 
   Ok(
     HttpResponse::Ok()
@@ -54,7 +54,10 @@ where
 
 fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> LemmyResult<HttpResponse> {
   let tombstone = Tombstone::new(id.into());
-  let json = serde_json::to_string_pretty(&WithContext::new(tombstone, CONTEXT.deref().clone()))?;
+  let json = serde_json::to_string_pretty(&WithContext::new(
+    tombstone,
+    FEDERATION_CONTEXT.deref().clone(),
+  ))?;
 
   Ok(
     HttpResponse::Gone()
@@ -96,13 +99,6 @@ pub(crate) async fn get_activity(
   if sensitive {
     Ok(HttpResponse::Forbidden().finish())
   } else {
-    // Don't use create_apub_response() to avoid duplicate context (the activity stored in db
-    // already includes context).
-    let json = serde_json::to_string_pretty(&activity.data)?;
-    Ok(
-      HttpResponse::Ok()
-        .content_type(FEDERATION_CONTENT_TYPE)
-        .body(json),
-    )
+    create_apub_response(&activity.data)
   }
 }
