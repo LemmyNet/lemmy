@@ -100,7 +100,7 @@ steps:
       region: us-east-1
       cache_key: "rust-cache"
       path-style: true
-      backend_operation_timeout: 15m
+      backend_operation_timeout: 30m
       compression_level: 0
       exit_code: true
       mount:
