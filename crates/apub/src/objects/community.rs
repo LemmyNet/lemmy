@@ -37,9 +37,8 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
-use lemmy_utils::{error::LemmyError, utils::markdown::markdown_to_html};
+use lemmy_utils::{error::LemmyError, spawn_try_task, utils::markdown::markdown_to_html};
 use std::ops::Deref;
-use tracing::debug;
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -182,21 +181,16 @@ impl Object for ApubCommunity {
 
     // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
     // we need to ignore these errors so that tests can work entirely offline.
-    let fetch_outbox = group.outbox.dereference(&community, context);
-    let fetch_followers = group.followers.dereference(&community, context);
-
-    if let Some(moderators) = group.attributed_to {
-      let fetch_moderators = moderators.dereference(&community, context);
-      // Fetch mods, outbox and followers in parallel
-      let res = tokio::join!(fetch_outbox, fetch_moderators, fetch_followers);
-      res.0.map_err(|e| debug!("{}", e)).ok();
-      res.1.map_err(|e| debug!("{}", e)).ok();
-      res.2.map_err(|e| debug!("{}", e)).ok();
-    } else {
-      let res = tokio::join!(fetch_outbox, fetch_followers);
-      res.0.map_err(|e| debug!("{}", e)).ok();
-      res.1.map_err(|e| debug!("{}", e)).ok();
-    }
+    let community_ = community.clone();
+    let context_ = context.reset_request_count();
+    spawn_try_task(async move {
+      group.outbox.dereference(&community_, &context_).await?;
+      group.followers.dereference(&community_, &context_).await?;
+      if let Some(moderators) = group.attributed_to {
+        moderators.dereference(&community_, &context_).await?;
+      }
+      Ok(())
+    });
 
     Ok(community)
   }
@@ -281,8 +275,6 @@ pub(crate) mod tests {
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward")?;
     ApubCommunity::verify(&json, &url, &context2).await?;
     let community = ApubCommunity::from_json(json, &context2).await?;
-    // this makes requests to the (intentionally broken) outbox and followers collections
-    assert_eq!(context2.request_count(), 2);
     Ok(community)
   }
 

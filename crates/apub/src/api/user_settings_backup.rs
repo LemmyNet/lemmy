@@ -401,7 +401,7 @@ mod tests {
 
     let mut backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
 
-    for _ in 0..251 {
+    for _ in 0..2501 {
       backup
         .followed_communities
         .push("http://example.com".parse()?);
