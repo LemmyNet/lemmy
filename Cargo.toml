@@ -1,6 +1,5 @@
 [workspace.package]
 version = "0.19.2-rc.5"
-publish = false
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -17,6 +16,7 @@ license.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
+publish = false
 
 [lib]
 doctest = false
