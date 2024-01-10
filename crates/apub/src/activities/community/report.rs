@@ -2,7 +2,10 @@ use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
   insert_received_activity,
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
-  protocol::{activities::community::report::Report, InCommunity},
+  protocol::{
+    activities::community::report::{Report, ReportObject},
+    InCommunity,
+  },
   PostOrComment,
 };
 use activitypub_federation::{
@@ -45,8 +48,9 @@ impl Report {
     let report = Report {
       actor: actor.id().into(),
       to: [community.id().into()],
-      object: object_id.clone(),
-      summary: reason,
+      object: ReportObject::Lemmy(object_id.clone()),
+      summary: Some(reason),
+      content: None,
       kind,
       id: id.clone(),
       audience: Some(community.id().into()),
@@ -97,6 +101,7 @@ impl ActivityHandler for Report {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
     let actor = self.actor.dereference(context).await?;
+    let reason = self.reason()?;
     match self.object.dereference(context).await? {
       PostOrComment::Post(post) => {
         let report_form = PostReportForm {
@@ -104,7 +109,7 @@ impl ActivityHandler for Report {
           post_id: post.id,
           original_post_name: post.name.clone(),
           original_post_url: post.url.clone(),
-          reason: self.summary.clone(),
+          reason,
           original_post_body: post.body.clone(),
         };
         PostReport::report(&mut context.pool(), &report_form).await?;
@@ -114,7 +119,7 @@ impl ActivityHandler for Report {
           creator_id: actor.id,
           comment_id: comment.id,
           original_comment_text: comment.content.clone(),
-          reason: self.summary.clone(),
+          reason,
         };
         CommentReport::report(&mut context.pool(), &report_form).await?;
       }

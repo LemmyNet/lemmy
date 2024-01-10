@@ -1,0 +1,12 @@
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://some-mbin.instance/f/object/2721ffc3-f8a9-417e-a124-af057434a3af#accept",
+  "type": "Accept",
+  "actor": "https://some-mbin.instance/m/someMag",
+  "object": {
+    "id": "https://some-other.instance/f/object/c51ea652-e594-4920-a989-f5350f0cec05",
+    "type": "Follow",
+    "actor": "https://some-other.instance/u/someUser",
+    "object": "https://some-mbin.instance/m/someMag"
+  }
+}
