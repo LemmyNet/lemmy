@@ -511,3 +511,9 @@ test("Fetch community, includes posts", async () => {
   expect(post_listing.posts.length).toBe(1);
   expect(post_listing.posts[0].post.ap_id).toBe(postRes.post_view.post.ap_id);
 });
+
+
+test("Content in local-only community doesnt federate", async () => {
+    // TODO: local only community test
+    expect(false).toBe(true);
+});
