@@ -117,11 +117,11 @@ impl Settings {
 impl PictrsConfig {
   pub fn image_mode(&self) -> PictrsImageMode {
     if let Some(cache_external_link_previews) = self.cache_external_link_previews {
-      return if cache_external_link_previews {
+      if cache_external_link_previews {
         PictrsImageMode::StoreLinkPreviews
       } else {
         PictrsImageMode::None
-      };
+      }
     } else {
       self.image_mode.clone()
     }
