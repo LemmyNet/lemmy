@@ -42,6 +42,11 @@
     url: "http://localhost:8080/"
     # Set a custom pictrs API key. ( Required for deleting images )
     api_key: "string"
+    # Backwards compatibility with 0.18.1. False is equivalent to `image_mode: None`, true is
+    # equivalent to `image_mode: StoreLinkPreviews`.
+    # 
+    # To be removed in 0.20
+    cache_external_link_previews: true
     # Specifies how to handle remote images, so that users don't have to connect directly to remote servers.
     image_mode: 
       # Leave images unchanged, don't generate any local thumbnails for post urls. Instead the the

@@ -35,7 +35,7 @@ use lemmy_utils::{
   email::{send_email, translations::Lang},
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
-  settings::structs::{ImageProxyMode, Settings},
+  settings::structs::{PictrsImageMode, Settings},
   utils::{
     markdown::markdown_rewrite_image_links,
     slurs::{build_slur_regex, remove_slurs},
@@ -846,7 +846,7 @@ pub async fn process_markdown(
   context: &LemmyContext,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
-  if context.settings().pictrs_config()?.image_mode == ImageProxyMode::ProxyAllImages {
+  if context.settings().pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
     RemoteImage::create(&mut context.pool(), links).await?;
     Ok(text)
@@ -872,13 +872,13 @@ pub async fn process_markdown_opt(
 /// as separate parameter so it can be changed in tests.
 async fn proxy_image_link_internal(
   link: Url,
-  image_proxy_mode: ImageProxyMode,
+  image_mode: PictrsImageMode,
   context: &LemmyContext,
 ) -> LemmyResult<DbUrl> {
   // Dont rewrite links pointing to local domain.
   if link.domain() == Some(&context.settings().hostname) {
     Ok(link.into())
-  } else if image_proxy_mode == ImageProxyMode::ProxyAllImages {
+  } else if image_mode == PictrsImageMode::ProxyAllImages {
     let proxied = format!(
       "{}/api/v3/image_proxy?url={}",
       context.settings().get_protocol_and_hostname(),
@@ -896,7 +896,7 @@ async fn proxy_image_link_internal(
 pub(crate) async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
   proxy_image_link_internal(
     link,
-    context.settings().pictrs_config()?.image_mode,
+    context.settings().pictrs_config()?.image_mode(),
     context,
   )
   .await
@@ -996,7 +996,7 @@ mod tests {
     // image from local domain is unchanged
     let local_url = Url::parse("http://lemmy-alpha/image.png").unwrap();
     let proxied =
-      proxy_image_link_internal(local_url.clone(), ImageProxyMode::ProxyAllImages, &context)
+      proxy_image_link_internal(local_url.clone(), PictrsImageMode::ProxyAllImages, &context)
         .await
         .unwrap();
     assert_eq!(&local_url, proxied.inner());
@@ -1005,7 +1005,7 @@ mod tests {
     let remote_image = Url::parse("http://lemmy-beta/image.png").unwrap();
     let proxied = proxy_image_link_internal(
       remote_image.clone(),
-      ImageProxyMode::ProxyAllImages,
+      PictrsImageMode::ProxyAllImages,
       &context,
     )
     .await

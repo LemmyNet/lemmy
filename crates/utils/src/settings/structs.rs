@@ -78,9 +78,15 @@ pub struct PictrsConfig {
   #[default(None)]
   pub api_key: Option<String>,
 
+  /// Backwards compatibility with 0.18.1. False is equivalent to `image_mode: None`, true is
+  /// equivalent to `image_mode: StoreLinkPreviews`.
+  ///
+  /// To be removed in 0.20
+  pub(super) cache_external_link_previews: Option<bool>,
+
   /// Specifies how to handle remote images, so that users don't have to connect directly to remote servers.
-  #[default(ImageProxyMode::StoreLinkPreviews)]
-  pub image_mode: ImageProxyMode,
+  #[default(PictrsImageMode::StoreLinkPreviews)]
+  pub(super) image_mode: PictrsImageMode,
 
   /// Timeout for uploading images to pictrs (in seconds)
   #[default(30)]
@@ -89,7 +95,7 @@ pub struct PictrsConfig {
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub enum ImageProxyMode {
+pub enum PictrsImageMode {
   /// Leave images unchanged, don't generate any local thumbnails for post urls. Instead the the
   /// Opengraph image is directly returned as thumbnail
   None,
