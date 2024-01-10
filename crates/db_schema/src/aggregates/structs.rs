@@ -111,7 +111,6 @@ pub struct PostAggregates {
   /// A newest comment time, limited to 2 days, to prevent necrobumping
   pub newest_comment_time_necro: DateTime<Utc>,
   /// The time of the newest comment in the post.
-  #[serde(skip)]
   pub newest_comment_time: DateTime<Utc>,
   /// If the post is featured on the community.
   #[serde(skip)]
