@@ -65,7 +65,6 @@ impl ActivityHandler for UndoFollow {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    insert_received_activity(&self.id, context).await?;
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
     verify_person(&self.actor, context).await?;
     self.object.verify(context).await?;
@@ -77,6 +76,7 @@ impl ActivityHandler for UndoFollow {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     let person = self.actor.dereference(context).await?;
     let object = self.object.object.dereference(context).await?;
 

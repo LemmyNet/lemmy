@@ -125,7 +125,6 @@ impl ActivityHandler for BlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    insert_received_activity(&self.id, context).await?;
     verify_is_public(&self.to, &self.cc)?;
     match self.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
@@ -149,6 +148,7 @@ impl ActivityHandler for BlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     let expires = self.expires.map(Into::into);
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.dereference(context).await?;
