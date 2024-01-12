@@ -79,6 +79,7 @@ test("Create a post", async () => {
   let postRes = await createPost(
     alpha,
     betaCommunity.community.id,
+    "https://example.com/",
     "აშშ ითხოვს ირანს დაუყოვნებლივ გაანთავისუფლოს დაკავებული ნავთობის ტანკერი",
   );
   expect(postRes.post_view.post).toBeDefined();
