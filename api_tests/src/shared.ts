@@ -203,9 +203,9 @@ export async function createPost(
   api: LemmyHttp,
   community_id: number,
   // use example.com for consistent title and embed description
-  url: string = "https://example.com/",
+  name: string = randomString(5),
 ): Promise<PostResponse> {
-  let name = randomString(5);
+  let url = "https://example.com/";
   let body = randomString(10);
   let form: CreatePost = {
     name,
