@@ -18,6 +18,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
+  aliases::creator_community_actions,
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     community,
@@ -94,134 +95,14 @@ fn queries<'a>() -> Queries<
     ),
   );
 
-  let is_saved = |person_id| {
-    exists(
-      post_saved::table.filter(
-        post_aggregates::post_id
-          .eq(post_saved::post_id)
-          .and(post_saved::person_id.eq(person_id)),
-      ),
-    )
-  };
-
-  let is_read = |person_id| {
-    exists(
-      post_read::table.filter(
-        post_aggregates::post_id
-          .eq(post_read::post_id)
-          .and(post_read::person_id.eq(person_id)),
-      ),
-    )
-  };
-
-  let is_creator_blocked = |person_id| {
-    exists(
-      person_block::table.filter(
-        post_aggregates::creator_id
-          .eq(person_block::target_id)
-          .and(person_block::person_id.eq(person_id)),
-      ),
-    )
-  };
-
-  let score = |person_id| {
-    post_like::table
-      .filter(
-        post_aggregates::post_id
-          .eq(post_like::post_id)
-          .and(post_like::person_id.eq(person_id)),
-      )
-      .select(post_like::score.nullable())
-      .single_value()
-  };
-
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>,
                         saved_only: bool| {
-    let is_saved_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if saved_only {
-        Box::new(true.into_sql::<sql_types::Bool>())
-      } else if let Some(person_id) = my_person_id {
-        Box::new(is_saved(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
-
-    let is_read_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if let Some(person_id) = my_person_id {
-        Box::new(is_read(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
-
-    let is_creator_blocked_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if let Some(person_id) = my_person_id {
-        Box::new(is_creator_blocked(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
-
-    let subscribed_type_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>,
-    > = if let Some(person_id) = my_person_id {
-      Box::new(
-        community_follower::table
-          .filter(
-            post_aggregates::community_id
-              .eq(community_follower::community_id)
-              .and(community_follower::person_id.eq(person_id)),
-          )
-          .select(community_follower::pending.nullable())
-          .single_value(),
-      )
-    } else {
-      Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
-    };
-
-    let score_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
-    > = if let Some(person_id) = my_person_id {
-      Box::new(score(person_id))
-    } else {
-      Box::new(None::<i16>.into_sql::<sql_types::Nullable<sql_types::SmallInt>>())
-    };
-
-    let read_comments: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::BigInt>>,
-    > = if let Some(person_id) = my_person_id {
-      Box::new(
-        person_post_aggregates::table
-          .filter(
-            post_aggregates::post_id
-              .eq(person_post_aggregates::post_id)
-              .and(person_post_aggregates::person_id.eq(person_id)),
-          )
-          .select(person_post_aggregates::read_comments.nullable())
-          .single_value(),
-      )
-    } else {
-      Box::new(None::<i64>.into_sql::<sql_types::Nullable<sql_types::BigInt>>())
-    };
-
     query
-      .left_join(person_person_aggregates::table
-          .on(
-            post_aggregates::creator
-              .eq(person_person_aggregates::target_id)
-              .and(person_person_aggregates::person_id.nullable().eq(my_person_id)),
-          ))
-      .left_join(person_community_aggregates::table
-          .on(
-            post_aggregates::community_id
-              .eq(person_community_aggregates::community_id)
-              .and(person_community_aggregates::person_id.nullable().eq(my_person_id)),
-          ))
-      .left_join(person_post_aggregates::table
-          .on(
-            post_aggregates::post_id
-              .eq(person_post_aggregates::post_id)
-              .and(person_post_aggregates::person_id.nullable().eq(my_person_id)),
-          ))
+      .left_join(actions(person_actions::table, my_person_id, post_aggregates::creator_id))
+      .left_join(actions(community_actions::table, my_person_id, post_aggregates::community_id))
+      .left_join(actions(creator_community_actions, post_aggregates::creator_id.nullable(), post_aggregates::community_id))
+      .left_join(actions(post_actions::table, my_person_id, post_aggregates::post_id))
       .inner_join(person::table)
       .inner_join(community::table)
       .inner_join(post::table)
@@ -229,19 +110,16 @@ fn queries<'a>() -> Queries<
         post::all_columns,
         person::all_columns,
         community::all_columns,
-        is_creator_banned_from_community,
-        creator_is_moderator,
+        creator_community_actions::received_ban.is_not_null(),
+        creator_community_actions::became_moderator.is_not_null(),
         creator_is_admin,
         post_aggregates::all_columns,
-        subscribed_type_selection,
-        person_post_aggregates::saved.is_not_null(),
-        person_post_aggregates::read.is_not_null(),
-        is_creator_blocked_selection,
-        score_selection,
-        coalesce(
-          post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
-          post_aggregates::comments,
-        ),
+        community_actions::follow_pending.nullable(),
+        post_actions::saved.is_not_null(),
+        post_actions::read.is_not_null(),
+        person_actions::blocked.is_not_null(),
+        post_actions::like_score.nullable(),
+        post_aggregates::comments - coalesce(post_actions::read_comments.nullable(), 0),
       ))
   };
 
@@ -332,13 +210,7 @@ fn queries<'a>() -> Queries<
 
     if let Some(listing_type) = options.listing_type {
       if let Some(person_id) = my_person_id {
-        let is_subscribed = exists(
-          community_follower::table.filter(
-            post_aggregates::community_id
-              .eq(community_follower::community_id)
-              .and(community_follower::person_id.eq(person_id)),
-          ),
-        );
+        let is_subscribed = community_actions::followed.is_not_null();
         match listing_type {
           ListingType::Subscribed => query = query.filter(is_subscribed),
           ListingType::Local => {
@@ -348,13 +220,7 @@ fn queries<'a>() -> Queries<
           }
           ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
           ListingType::ModeratorView => {
-            query = query.filter(exists(
-              community_moderator::table.filter(
-                post::community_id
-                  .eq(community_moderator::community_id)
-                  .and(community_moderator::person_id.eq(person_id)),
-              ),
-            ));
+            query = query.filter(community_actions::became_moderator.is_not_null());
           }
         }
       }
@@ -404,8 +270,8 @@ fn queries<'a>() -> Queries<
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if let (true, Some(person_id)) = (options.saved_only, my_person_id) {
-      query = query.filter(is_saved(person_id));
+    if options.saved_only {
+      query = query.filter(post_actions::saved.is_not_null());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
@@ -416,41 +282,32 @@ fn queries<'a>() -> Queries<
     {
       // Do not hide read posts when it is a user profile view
       // Or, only hide read posts on non-profile views
-      if let (None, Some(person_id)) = (options.creator_id, my_person_id) {
-        query = query.filter(not(is_read(person_id)));
+      if let None = options.creator_id {
+        query = query.filter(post_actions::read.is_null());
       }
     }
 
-    if let Some(person_id) = my_person_id {
-      if options.liked_only {
-        query = query.filter(score(person_id).eq(1));
-      } else if options.disliked_only {
-        query = query.filter(score(person_id).eq(-1));
-      }
-    };
+    if options.liked_only {
+      query = query.filter(post_actions::like_score.eq(1));
+    } else if options.disliked_only {
+      query = query.filter(post_actions::like_score.eq(-1));
+    }
 
     // Dont filter blocks or missing languages for moderator view type
-    if let (Some(person_id), false) = (
-      my_person_id,
-      options.listing_type.unwrap_or_default() == ListingType::ModeratorView,
-    ) {
-      // Filter out the rows with missing languages
-      query = query.filter(exists(
-        local_user_language::table.filter(
-          post::language_id
-            .eq(local_user_language::language_id)
-            .and(local_user_language::local_user_id.eq(local_user_id_join)),
-        ),
-      ));
+    if let options.listing_type.unwrap_or_default() != ListingType::ModeratorView {
+      // Filter out the rows with missing languages if user is logged in
+      if my_person_id.is_some() {
+        query = query.filter(exists(
+          local_user_language::table.filter(
+            post::language_id
+              .eq(local_user_language::language_id)
+              .and(local_user_language::local_user_id.eq(local_user_id_join)),
+          ),
+        ));
+      }
 
       // Don't show blocked instances, communities or persons
-      query = query.filter(not(exists(
-        community_block::table.filter(
-          post_aggregates::community_id
-            .eq(community_block::community_id)
-            .and(community_block::person_id.eq(person_id_join)),
-        ),
-      )));
+      query = query.filter(community_actions::blocked.is_null());
       query = query.filter(not(exists(
         instance_block::table.filter(
           post_aggregates::instance_id
