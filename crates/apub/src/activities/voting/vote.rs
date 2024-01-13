@@ -56,7 +56,6 @@ impl ActivityHandler for Vote {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    insert_received_activity(&self.id, context).await?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     let enable_downvotes = LocalSite::read(&mut context.pool())
@@ -72,6 +71,7 @@ impl ActivityHandler for Vote {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
 
