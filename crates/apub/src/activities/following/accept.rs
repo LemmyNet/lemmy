@@ -53,7 +53,6 @@ impl ActivityHandler for AcceptFollow {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    insert_received_activity(&self.id, context).await?;
     verify_urls_match(self.actor.inner(), self.object.object.inner())?;
     self.object.verify(context).await?;
     if let Some(to) = &self.to {
@@ -64,6 +63,7 @@ impl ActivityHandler for AcceptFollow {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     let community = self.actor.dereference(context).await?;
     let person = self.object.actor.dereference(context).await?;
     // This will throw an error if no follow was requested
