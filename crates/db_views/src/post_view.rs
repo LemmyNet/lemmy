@@ -222,6 +222,12 @@ fn queries<'a>() -> Queries<
       .inner_join(person::table)
       .inner_join(community::table)
       .inner_join(post::table)
+      .left_join(person_post_aggregates::table
+          .on(
+            post_aggregates::post_id
+              .eq(person_post_aggregates::post_id)
+              .and(person_post_aggregates::person_id.nullable().eq(my_person_id)),
+          ))
       .select((
         post::all_columns,
         person::all_columns,
@@ -231,12 +237,12 @@ fn queries<'a>() -> Queries<
         creator_is_admin,
         post_aggregates::all_columns,
         subscribed_type_selection,
-        is_saved_selection,
-        is_read_selection,
+        person_post_aggregates::saved.is_not_null(),
+        person_post_aggregates::read.is_not_null(),
         is_creator_blocked_selection,
         score_selection,
         coalesce(
-          post_aggregates::comments.nullable() - read_comments,
+          post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
           post_aggregates::comments,
         ),
       ))
