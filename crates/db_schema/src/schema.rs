@@ -588,7 +588,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_comment_aggregates (person_id, comment_id) {
+    person_comment_actions (person_id, comment_id) {
         person_id -> Int4,
         comment_id -> Int4,
         saved: Nullable<Timestamptz>,
@@ -598,20 +598,20 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_community_aggregates (person_id, community_id) {
+    person_community_actions (person_id, community_id) {
         person_id -> Int4,
         community_id -> Int4,
         blocked -> Nullable<Timestamptz>,
         followed -> Nullable<Timestamptz>,
         follow_pending -> Nullable<Bool>,
-        moderator -> Nullable<Timestamptz>,
-        banned: Nullable<Timestamptz>,
+        became_moderator -> Nullable<Timestamptz>,
+        received_ban: Nullable<Timestamptz>,
         ban_expires -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
-    person_person_aggregates (person_id, target_id) {
+    person_person_actions (person_id, target_id) {
         person_id -> Int4,
         target_id -> Int4,
         blocked -> Nullable<Timestamptz>,
@@ -621,7 +621,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_post_aggregates (person_id, post_id) {
+    person_post_actions (person_id, post_id) {
         person_id -> Int4,
         post_id -> Int4,
         read_comments -> Int8,
