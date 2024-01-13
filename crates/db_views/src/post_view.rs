@@ -99,10 +99,11 @@ fn queries<'a>() -> Queries<
                         my_person_id: Option<PersonId>,
                         saved_only: bool| {
     query
-      .left_join(actions(person_actions::table, my_person_id, post_aggregates::creator_id))
       .left_join(actions(community_actions::table, my_person_id, post_aggregates::community_id))
-      .left_join(actions(creator_community_actions, post_aggregates::creator_id.nullable(), post_aggregates::community_id))
+      .left_join(actions(person_actions::table, my_person_id, post_aggregates::creator_id))
       .left_join(actions(post_actions::table, my_person_id, post_aggregates::post_id))
+      .left_join(actions(instance_actions::table, my_person_id, post_aggregates::instance_id))
+      .left_join(actions(creator_community_actions, post_aggregates::creator_id.nullable(), post_aggregates::community_id))
       .inner_join(person::table)
       .inner_join(community::table)
       .inner_join(post::table)
@@ -308,14 +309,8 @@ fn queries<'a>() -> Queries<
 
       // Don't show blocked instances, communities or persons
       query = query.filter(community_actions::blocked.is_null());
-      query = query.filter(not(exists(
-        instance_block::table.filter(
-          post_aggregates::instance_id
-            .eq(instance_block::instance_id)
-            .and(instance_block::person_id.eq(person_id_join)),
-        ),
-      )));
-      query = query.filter(not(is_creator_blocked(person_id)));
+      query = query.filter(instance_actions::blocked.is_null());
+      query = query.filter(person_actions::blocked.is_null());
     }
 
     let featured_field = if options.community_id.is_none() || options.community_id_just_for_prefetch
