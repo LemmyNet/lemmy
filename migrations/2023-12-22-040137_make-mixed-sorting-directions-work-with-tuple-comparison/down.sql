@@ -1,4 +1,4 @@
-DROP INDEX idx_post_aggregates_community_published_asc;
+DROP INDEX idx_post_aggregates_community_published_asc, idx_post_aggregates_featured_community_published_asc, idx_post_aggregates_featured_local_published_asc, idx_post_aggregates_published_asc;
 
 DROP FUNCTION reverse_timestamp_sort (t timestamp with time zone);
 
