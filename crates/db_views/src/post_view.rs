@@ -1352,8 +1352,7 @@ mod tests {
         ..options.clone()
       }
       .list(pool)
-      .await
-      .unwrap();
+      .await?;
 
       let listed_post_ids = post_listings.iter().map(|p| p.post.id).collect::<Vec<_>>();
 
