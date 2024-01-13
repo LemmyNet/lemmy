@@ -95,6 +95,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    comment_actions (person_id, comment_id) {
+        person_id -> Int4,
+        comment_id -> Int4,
+        saved: Nullable<Timestamptz>,
+        liked: Nullable<Timestamptz>,
+        like_score: Nullable<Int2>,
+    }
+}
+
+diesel::table! {
     comment_aggregates (comment_id) {
         comment_id -> Int4,
         score -> Int8,
@@ -165,6 +175,19 @@ diesel::table! {
         moderators_url -> Nullable<Varchar>,
         #[max_length = 255]
         featured_url -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    community_actions (person_id, community_id) {
+        person_id -> Int4,
+        community_id -> Int4,
+        blocked -> Nullable<Timestamptz>,
+        followed -> Nullable<Timestamptz>,
+        follow_pending -> Nullable<Bool>,
+        became_moderator -> Nullable<Timestamptz>,
+        received_ban: Nullable<Timestamptz>,
+        ban_expires -> Nullable<Timestamptz>,
     }
 }
 
@@ -561,6 +584,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    person_actions (person_id, target_id) {
+        person_id -> Int4,
+        target_id -> Int4,
+        blocked -> Nullable<Timestamptz>,
+        followed -> Nullable<Timestamptz>,
+        follow_pending -> Nullable<Bool>,
+    }
+}
+
+diesel::table! {
     person_aggregates (person_id) {
         person_id -> Int4,
         post_count -> Int8,
@@ -584,52 +617,6 @@ diesel::table! {
         comment_id -> Int4,
         read -> Bool,
         published -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    person_comment_actions (person_id, comment_id) {
-        person_id -> Int4,
-        comment_id -> Int4,
-        saved: Nullable<Timestamptz>,
-        liked: Nullable<Timestamptz>,
-        like_score: Nullable<Int2>,
-    }
-}
-
-diesel::table! {
-    person_community_actions (person_id, community_id) {
-        person_id -> Int4,
-        community_id -> Int4,
-        blocked -> Nullable<Timestamptz>,
-        followed -> Nullable<Timestamptz>,
-        follow_pending -> Nullable<Bool>,
-        became_moderator -> Nullable<Timestamptz>,
-        received_ban: Nullable<Timestamptz>,
-        ban_expires -> Nullable<Timestamptz>,
-    }
-}
-
-diesel::table! {
-    person_person_actions (person_id, target_id) {
-        person_id -> Int4,
-        target_id -> Int4,
-        blocked -> Nullable<Timestamptz>,
-        followed -> Nullable<Timestamptz>,
-        follow_pending -> Nullable<Bool>,
-    }
-}
-
-diesel::table! {
-    person_post_actions (person_id, post_id) {
-        person_id -> Int4,
-        post_id -> Int4,
-        read_comments -> Int8,
-        read_comments_published -> Nullable<Timestamptz>,
-        read: Nullable<Timestamptz>,
-        saved: Nullable<Timestamptz>,
-        liked: Nullable<Timestamptz>,
-        like_score: Nullable<Int2>,
     }
 }
 
@@ -659,6 +646,19 @@ diesel::table! {
         language_id -> Int4,
         featured_community -> Bool,
         featured_local -> Bool,
+    }
+}
+
+diesel::table! {
+   post_actions (person_id, post_id) {
+        person_id -> Int4,
+        post_id -> Int4,
+        read_comments -> Int8,
+        read_comments_published -> Nullable<Timestamptz>,
+        read: Nullable<Timestamptz>,
+        saved: Nullable<Timestamptz>,
+        liked: Nullable<Timestamptz>,
+        like_score: Nullable<Int2>,
     }
 }
 
