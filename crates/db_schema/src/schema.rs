@@ -592,8 +592,8 @@ diesel::table! {
         person_id -> Int4,
         comment_id -> Int4,
         saved: Nullable<Timestamptz>,
-        like_score: Int2,
-        like_published: Nullable<Timestamptz>,
+        liked: Nullable<Timestamptz>,
+        like_score: Nullable<Int2>,
     }
 }
 
@@ -601,11 +601,11 @@ diesel::table! {
     person_community_aggregates (person_id, community_id) {
         person_id -> Int4,
         community_id -> Int4,
-        block -> Nullable<Timestamptz>,
-        follow -> Nullable<Timestamptz>,
-        follow_pending -> Bool,
+        blocked -> Nullable<Timestamptz>,
+        followed -> Nullable<Timestamptz>,
+        follow_pending -> Nullable<Bool>,
         moderator -> Nullable<Timestamptz>,
-        ban: Nullable<Timestamptz>,
+        banned: Nullable<Timestamptz>,
         ban_expires -> Nullable<Timestamptz>,
     }
 }
@@ -614,9 +614,9 @@ diesel::table! {
     person_person_aggregates (person_id, target_id) {
         person_id -> Int4,
         target_id -> Int4,
-        block -> Nullable<Timestamptz>,
-        follow -> Nullable<Timestamptz>,
-        follow_pending -> Bool,
+        blocked -> Nullable<Timestamptz>,
+        followed -> Nullable<Timestamptz>,
+        follow_pending -> Nullable<Bool>,
     }
 }
 
@@ -628,8 +628,8 @@ diesel::table! {
         read_comments_published -> Nullable<Timestamptz>,
         read: Nullable<Timestamptz>,
         saved: Nullable<Timestamptz>,
-        like_score: Int2,
-        like_published: Nullable<Timestamptz>,
+        liked: Nullable<Timestamptz>,
+        like_score: Nullable<Int2>,
     }
 }
 
