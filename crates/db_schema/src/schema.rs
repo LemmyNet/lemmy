@@ -91,6 +91,12 @@ diesel::table! {
         path -> Ltree,
         distinguished -> Bool,
         language_id -> Int4,
+        score -> Int8,
+        upvotes -> Int8,
+        downvotes -> Int8,
+        child_count -> Int4,
+        hot_rank -> Float8,
+        controversy_rank -> Float8,
     }
 }
 
@@ -101,19 +107,6 @@ diesel::table! {
         saved: Nullable<Timestamptz>,
         liked: Nullable<Timestamptz>,
         like_score: Nullable<Int2>,
-    }
-}
-
-diesel::table! {
-    comment_aggregates (comment_id) {
-        comment_id -> Int4,
-        score -> Int8,
-        upvotes -> Int8,
-        downvotes -> Int8,
-        published -> Timestamptz,
-        child_count -> Int4,
-        hot_rank -> Float8,
-        controversy_rank -> Float8,
     }
 }
 
@@ -580,6 +573,10 @@ diesel::table! {
         bot_account -> Bool,
         ban_expires -> Nullable<Timestamptz>,
         instance_id -> Int4,
+        post_count -> Int8,
+        post_score -> Int8,
+        comment_count -> Int8,
+        comment_score -> Int8,
     }
 }
 
@@ -590,16 +587,6 @@ diesel::table! {
         blocked -> Nullable<Timestamptz>,
         followed -> Nullable<Timestamptz>,
         follow_pending -> Nullable<Bool>,
-    }
-}
-
-diesel::table! {
-    person_aggregates (person_id) {
-        person_id -> Int4,
-        post_count -> Int8,
-        post_score -> Int8,
-        comment_count -> Int8,
-        comment_score -> Int8,
     }
 }
 
