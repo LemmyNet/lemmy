@@ -86,21 +86,6 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
   impl ListFn<'a, PostView, PostQuery<'a>>,
 > {
-  let is_creator_banned_from_community = exists(
-    community_person_ban::table.filter(
-      post_aggregates::community_id
-        .eq(community_person_ban::community_id)
-        .and(community_person_ban::person_id.eq(post_aggregates::creator_id)),
-    ),
-  );
-  let creator_is_moderator = exists(
-    community_moderator::table.filter(
-      post_aggregates::community_id
-        .eq(community_moderator::community_id)
-        .and(community_moderator::person_id.eq(post_aggregates::creator_id)),
-    ),
-  );
-
   let creator_is_admin = exists(
     local_user::table.filter(
       post_aggregates::creator_id
@@ -219,15 +204,27 @@ fn queries<'a>() -> Queries<
     };
 
     query
-      .inner_join(person::table)
-      .inner_join(community::table)
-      .inner_join(post::table)
+      .left_join(person_person_aggregates::table
+          .on(
+            post_aggregates::creator
+              .eq(person_person_aggregates::target_id)
+              .and(person_person_aggregates::person_id.nullable().eq(my_person_id)),
+          ))
+      .left_join(person_community_aggregates::table
+          .on(
+            post_aggregates::community_id
+              .eq(person_community_aggregates::community_id)
+              .and(person_community_aggregates::person_id.nullable().eq(my_person_id)),
+          ))
       .left_join(person_post_aggregates::table
           .on(
             post_aggregates::post_id
               .eq(person_post_aggregates::post_id)
               .and(person_post_aggregates::person_id.nullable().eq(my_person_id)),
           ))
+      .inner_join(person::table)
+      .inner_join(community::table)
+      .inner_join(post::table)
       .select((
         post::all_columns,
         person::all_columns,
