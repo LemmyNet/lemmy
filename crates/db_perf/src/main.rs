@@ -149,7 +149,7 @@ async fn try_main() -> LemmyResult<()> {
 
     // TODO: include local_user
     let post_views = PostQuery {
-      community_id: community_ids.get(0).cloned(),
+      community_id: community_ids.first().cloned(),
       sort: Some(SortType::New),
       limit: Some(20),
       page_after,
