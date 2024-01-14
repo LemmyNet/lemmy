@@ -633,6 +633,14 @@ diesel::table! {
         language_id -> Int4,
         featured_community -> Bool,
         featured_local -> Bool,
+        comments -> Int8,
+        upvotes -> Int8,
+        downvotes -> Int8,
+        newest_comment_time_necro -> Timestamptz,
+        newest_comment_time -> Timestamptz,
+        instance_id -> Int4,
+        ranks_time -> Timestamptz,
+        community_users_active_month -> Int8,
     }
 }
 
@@ -646,28 +654,6 @@ diesel::table! {
         saved: Nullable<Timestamptz>,
         liked: Nullable<Timestamptz>,
         like_score: Nullable<Int2>,
-    }
-}
-
-diesel::table! {
-    post_aggregates (post_id) {
-        post_id -> Int4,
-        comments -> Int8,
-        score -> Int8,
-        upvotes -> Int8,
-        downvotes -> Int8,
-        published -> Timestamptz,
-        newest_comment_time_necro -> Timestamptz,
-        newest_comment_time -> Timestamptz,
-        featured_community -> Bool,
-        featured_local -> Bool,
-        hot_rank -> Float8,
-        hot_rank_active -> Float8,
-        community_id -> Int4,
-        creator_id -> Int4,
-        controversy_rank -> Float8,
-        instance_id -> Int4,
-        scaled_rank -> Float8,
     }
 }
 
