@@ -216,6 +216,7 @@ impl InstanceWorker {
     activity: &SentActivity,
     object: &SharedInboxActivities,
   ) -> Result<()> {
+    use lemmy_db_schema::schema::instance;
     let inbox_urls = self
       .get_inbox_urls(pool, activity)
       .await
@@ -266,7 +267,6 @@ impl InstanceWorker {
         self.instance.updated = Some(Utc::now());
 
         let form = InstanceForm::builder().updated(Some(naive_now())).build();
-        use lemmy_db_schema::schema::instance;
         let mut conn = get_conn(pool).await?;
         diesel::update(instance::table.find(self.instance.id))
           .set(form)
