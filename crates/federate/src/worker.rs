@@ -11,7 +11,9 @@ use activitypub_federation::{
   protocol::context::WithContext,
 };
 use anyhow::{Context, Result};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Days, TimeZone, Utc};
+use diesel::QueryDsl;
+use diesel_async::RunQueryDsl;
 use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
 use lemmy_apub::{activity_lists::SharedInboxActivities, FEDERATION_CONTEXT};
 use lemmy_db_schema::{
@@ -19,17 +21,17 @@ use lemmy_db_schema::{
   source::{
     activity::SentActivity,
     federation_queue_state::FederationQueueState,
-    instance::Instance,
+    instance::{Instance, InstanceForm},
     site::Site,
   },
-  utils::DbPool,
+  utils::{get_conn, naive_now, DbPool},
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use once_cell::sync::Lazy;
 use reqwest::Url;
 use std::{
   collections::{HashMap, HashSet},
-  ops::Deref,
+  ops::{Add, Deref},
   time::Duration,
 };
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
@@ -256,6 +258,20 @@ impl InstanceWorker {
             return Ok(());
           }
         }
+      }
+
+      // Activity send successful, mark instance as alive if it hasn't been updated in a while.
+      let updated = self.instance.updated.unwrap_or(self.instance.published);
+      if updated.add(Days::new(1)) < Utc::now() {
+        self.instance.updated = Some(Utc::now());
+
+        let form = InstanceForm::builder().updated(Some(naive_now())).build();
+        use lemmy_db_schema::schema::instance;
+        let mut conn = get_conn(pool).await?;
+        diesel::update(instance::table.find(self.instance.id))
+          .set(form)
+          .execute(&mut conn)
+          .await?;
       }
     }
     Ok(())

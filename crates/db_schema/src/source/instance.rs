@@ -30,7 +30,6 @@ pub struct Instance {
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = instance))]
 pub struct InstanceForm {
-  #[builder(!default)]
   pub domain: String,
   pub software: Option<String>,
   pub version: Option<String>,
