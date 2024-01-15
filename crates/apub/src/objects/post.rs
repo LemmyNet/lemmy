@@ -131,6 +131,7 @@ impl Object for ApubPost {
       audience: Some(community.actor_id.into()),
       in_reply_to: None,
     };
+    dbg!(&page.attachment);
     Ok(page)
   }
 
@@ -205,6 +206,7 @@ impl Object for ApubPost {
       } else {
         None
       };
+      dbg!(&url);
       check_url_scheme(&url)?;
 
       let local_site = LocalSite::read(&mut context.pool()).await.ok();
@@ -240,6 +242,7 @@ impl Object for ApubPost {
       let language_id =
         LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 
+      dbg!(&url);
       PostInsertForm {
         name,
         url: url.map(Into::into),
