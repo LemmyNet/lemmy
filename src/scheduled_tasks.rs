@@ -494,10 +494,7 @@ async fn update_instance_software(
           }
         };
         if let Some(form) = form {
-          diesel::update(instance::table.find(instance.id))
-            .set(form)
-            .execute(&mut conn)
-            .await?;
+          Instance::update(pool, instance.id, form).await?;
         }
       }
       info!("Finished updating instances software and versions...");

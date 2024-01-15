@@ -12,8 +12,6 @@ use activitypub_federation::{
 };
 use anyhow::{Context, Result};
 use chrono::{DateTime, Days, TimeZone, Utc};
-use diesel::QueryDsl;
-use diesel_async::RunQueryDsl;
 use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
 use lemmy_apub::{activity_lists::SharedInboxActivities, FEDERATION_CONTEXT};
 use lemmy_db_schema::{
@@ -24,7 +22,7 @@ use lemmy_db_schema::{
     instance::{Instance, InstanceForm},
     site::Site,
   },
-  utils::{get_conn, naive_now, DbPool},
+  utils::{naive_now, DbPool},
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use once_cell::sync::Lazy;
@@ -216,7 +214,6 @@ impl InstanceWorker {
     activity: &SentActivity,
     object: &SharedInboxActivities,
   ) -> Result<()> {
-    use lemmy_db_schema::schema::instance;
     let inbox_urls = self
       .get_inbox_urls(pool, activity)
       .await
@@ -267,11 +264,7 @@ impl InstanceWorker {
         self.instance.updated = Some(Utc::now());
 
         let form = InstanceForm::builder().updated(Some(naive_now())).build();
-        let mut conn = get_conn(pool).await?;
-        diesel::update(instance::table.find(self.instance.id))
-          .set(form)
-          .execute(&mut conn)
-          .await?;
+        Instance::update(pool, self.instance.id, form).await?;
       }
     }
     Ok(())
