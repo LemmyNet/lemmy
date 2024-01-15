@@ -219,13 +219,13 @@ export async function createPost(
 export async function editPost(
   api: LemmyHttp,
   post: Post,
-  url?: string
+  url?: string,
 ): Promise<PostResponse> {
   let name = "A jest test federated post, updated";
   let form: EditPost = {
     name,
     post_id: post.id,
-    url
+    url,
   };
   return api.editPost(form);
 }
