@@ -22,6 +22,7 @@ use lemmy_db_schema::{
   },
   source::{community::CommunityFollower, local_user::LocalUser},
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  CommunityVisibility,
   ListingType,
   SortType,
 };
@@ -89,7 +90,7 @@ fn queries<'a>() -> Queries<
 
     // Hide local only communities from unauthenticated users
     if my_person_id.is_none() {
-      query = query.filter(community::local_only.eq(false));
+      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
     }
 
     query.first::<CommunityView>(&mut conn).await
@@ -162,7 +163,7 @@ fn queries<'a>() -> Queries<
         query = query.filter(community::nsfw.eq(false));
       }
       // Hide local only communities from unauthenticated users
-      query = query.filter(community::local_only.eq(false));
+      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
     }
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;

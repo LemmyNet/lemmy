@@ -16,6 +16,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{activity::SentActivity, community::Community},
+  CommunityVisibility,
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
@@ -110,7 +111,7 @@ pub fn check_community_valid(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
     Err(LemmyErrorType::Deleted)?
   }
-  if community.local_only {
+  if community.visibility != CommunityVisibility::Public {
     return Err(LemmyErrorType::CouldntFindCommunity.into());
   }
   Ok(())

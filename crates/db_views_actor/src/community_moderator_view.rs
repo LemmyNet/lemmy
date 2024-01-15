@@ -5,6 +5,7 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   schema::{community, community_moderator, person},
   utils::{get_conn, DbPool},
+  CommunityVisibility,
 };
 
 impl CommunityModeratorView {
@@ -71,7 +72,7 @@ impl CommunityModeratorView {
       .select((community::all_columns, person::all_columns))
       .into_boxed();
     if !is_authenticated {
-      query = query.filter(community::local_only.eq(false));
+      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
     }
     query.load::<CommunityModeratorView>(conn).await
   }

@@ -24,6 +24,7 @@ use lemmy_db_schema::{
     post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
   },
   traits::{Crud, Likeable},
+  CommunityVisibility,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
@@ -166,7 +167,7 @@ pub async fn create_post(
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
   if let Some(url) = updated_post.url.clone() {
-    if community.local_only {
+    if community.visibility == CommunityVisibility::Public {
       spawn_try_task(async move {
         let mut webmention =
           Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;

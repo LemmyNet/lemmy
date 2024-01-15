@@ -49,6 +49,7 @@ use lemmy_db_schema::{
     Queries,
     ReadFn,
   },
+  CommunityVisibility,
   ListingType,
   SortType,
 };
@@ -284,7 +285,7 @@ fn queries<'a>() -> Queries<
 
       // Hide posts in local only communities from unauthenticated users
       if my_person_id.is_none() {
-        query = query.filter(community::local_only.eq(false));
+        query = query.filter(community::visibility.eq(CommunityVisibility::Public));
       }
 
       query.first::<PostView>(&mut conn).await
@@ -433,7 +434,7 @@ fn queries<'a>() -> Queries<
 
     // Hide posts in local only communities from unauthenticated users
     if options.local_user.is_none() {
-      query = query.filter(community::local_only.eq(false));
+      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
     }
 
     // Dont filter blocks or missing languages for moderator view type

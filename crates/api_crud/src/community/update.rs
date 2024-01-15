@@ -67,7 +67,7 @@ pub async fn update_community(
     banner,
     nsfw: data.nsfw,
     posting_restricted_to_mods: data.posting_restricted_to_mods,
-    local_only: data.local_only,
+    visibility: data.visibility,
     updated: Some(Some(naive_now())),
     ..Default::default()
   };

@@ -6,7 +6,10 @@ use crate::{
 };
 use activitypub_federation::{config::Data, traits::Actor};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::source::{activity::ActivitySendTargets, person::PersonFollower};
+use lemmy_db_schema::{
+  source::{activity::ActivitySendTargets, person::PersonFollower},
+  CommunityVisibility,
+};
 use lemmy_utils::error::LemmyError;
 
 pub mod announce;
@@ -38,7 +41,7 @@ pub(crate) async fn send_activity_in_community(
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   // If community is local only, don't send anything out
-  if community.local_only {
+  if community.visibility != CommunityVisibility::Public {
     return Ok(());
   }
 

@@ -6,6 +6,10 @@ pub mod sql_types {
     pub struct ActorTypeEnum;
 
     #[derive(diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "community_visibility"))]
+    pub struct CommunityVisibility;
+
+    #[derive(diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "listing_type_enum"))]
     pub struct ListingTypeEnum;
 
@@ -150,6 +154,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::CommunityVisibility;
+
     community (id) {
         id -> Int4,
         #[max_length = 255]
@@ -183,7 +190,7 @@ diesel::table! {
         moderators_url -> Nullable<Varchar>,
         #[max_length = 255]
         featured_url -> Nullable<Varchar>,
-        local_only -> Bool,
+        visibility -> CommunityVisibility,
     }
 }
 

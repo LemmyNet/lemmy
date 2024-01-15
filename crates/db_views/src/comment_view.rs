@@ -36,6 +36,7 @@ use lemmy_db_schema::{
   },
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
+  CommunityVisibility,
   ListingType,
 };
 
@@ -174,7 +175,7 @@ fn queries<'a>() -> Queries<
     );
     // Hide local only communities from unauthenticated users
     if my_person_id.is_none() {
-      query = query.filter(community::local_only.eq(false));
+      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
     }
     query.first::<CommentView>(&mut conn).await
   };
@@ -292,7 +293,7 @@ fn queries<'a>() -> Queries<
 
     // Hide comments in local only communities from unauthenticated users
     if options.local_user.is_none() {
-      query = query.filter(community::local_only.eq(false));
+      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
     }
 
     // A Max depth given means its a tree fetch

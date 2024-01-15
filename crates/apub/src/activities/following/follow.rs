@@ -24,6 +24,7 @@ use lemmy_db_schema::{
     person::{PersonFollower, PersonFollowerForm},
   },
   traits::Followable,
+  CommunityVisibility,
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use url::Url;
@@ -104,7 +105,7 @@ impl ActivityHandler for Follow {
       }
       UserOrCommunity::Community(c) => {
         // Dont allow following local-only community via federation.
-        if c.local_only {
+        if c.visibility != CommunityVisibility::Public {
           return Err(LemmyErrorType::CouldntFindCommunity.into());
         }
         let form = CommunityFollowerForm {

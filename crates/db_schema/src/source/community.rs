@@ -3,6 +3,7 @@ use crate::schema::{community, community_follower, community_moderator, communit
 use crate::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   source::placeholder_apub_url,
+  CommunityVisibility,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -66,9 +67,7 @@ pub struct Community {
   /// Url where featured posts collection is served over Activitypub
   #[serde(skip)]
   pub featured_url: Option<DbUrl>,
-  /// A local-only community does not federate its content to other instances, and can only be seen
-  /// by local authenticated users.
-  pub local_only: bool,
+  pub visibility: CommunityVisibility,
 }
 
 #[derive(Debug, Clone, TypedBuilder, Default)]
@@ -102,7 +101,7 @@ pub struct CommunityInsertForm {
   pub posting_restricted_to_mods: Option<bool>,
   #[builder(!default)]
   pub instance_id: InstanceId,
-  pub local_only: Option<bool>,
+  pub visibility: Option<CommunityVisibility>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -130,7 +129,7 @@ pub struct CommunityUpdateForm {
   pub featured_url: Option<DbUrl>,
   pub hidden: Option<bool>,
   pub posting_restricted_to_mods: Option<bool>,
-  pub local_only: Option<bool>,
+  pub visibility: Option<CommunityVisibility>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
