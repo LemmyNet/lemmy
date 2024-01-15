@@ -758,7 +758,7 @@ mod tests {
       post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
     },
     traits::{Blockable, Crud, Joinable, Likeable},
-    utils::{build_db_pool, DbPool, RANK_DEFAULT},
+    utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
     SortType,
     SubscribedType,
   };
@@ -1576,10 +1576,10 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn local_only_instance() {
+  async fn local_only_instance() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
-    let data = init_data(pool).await;
+    let data = init_data(pool).await?;
 
     Community::update(
       pool,
@@ -1589,15 +1589,13 @@ mod tests {
         ..Default::default()
       },
     )
-    .await
-    .unwrap();
+    .await?;
 
     let unauthenticated_query = PostQuery {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
     assert_eq!(0, unauthenticated_query.len());
 
     let authenticated_query = PostQuery {
@@ -1605,8 +1603,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
     assert_eq!(2, authenticated_query.len());
 
     let unauthenticated_post = PostView::read(pool, data.inserted_post.id, None, false).await;
@@ -1621,6 +1618,7 @@ mod tests {
     .await;
     assert!(authenticated_post.is_ok());
 
-    cleanup(data, pool).await;
+    cleanup(data, pool).await?;
+    Ok(())
   }
 }
