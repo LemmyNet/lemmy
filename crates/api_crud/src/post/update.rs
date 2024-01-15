@@ -36,7 +36,6 @@ pub async fn update_post(
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let data_url = data.url.as_ref();
-  dbg!(&data_url);
 
   // TODO No good way to handle a clear.
   // Issue link: https://github.com/LemmyNet/lemmy/issues/2287
@@ -84,7 +83,6 @@ pub async fn update_post(
   )
   .await?;
 
-  dbg!(&url);
   let post_form = PostUpdateForm {
     name: data.name.clone(),
     url,
@@ -103,7 +101,6 @@ pub async fn update_post(
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
-  dbg!(&updated_post.url);
 
   ActivityChannel::submit_activity(SendActivityData::UpdatePost(updated_post), &context).await?;
 
