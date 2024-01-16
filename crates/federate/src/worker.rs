@@ -263,7 +263,10 @@ impl InstanceWorker {
       if updated.add(Days::new(1)) < Utc::now() {
         self.instance.updated = Some(Utc::now());
 
-        let form = InstanceForm::builder().updated(Some(naive_now())).build();
+        let form = InstanceForm::builder()
+          .domain(self.instance.domain.clone())
+          .updated(Some(naive_now()))
+          .build();
         Instance::update(pool, self.instance.id, form).await?;
       }
     }

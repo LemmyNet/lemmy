@@ -477,6 +477,7 @@ async fn update_instance_software(
               let software = node_info.software.as_ref();
               Some(
                 InstanceForm::builder()
+                  .domain(instance.domain)
                   .updated(Some(naive_now()))
                   .software(software.and_then(|s| s.name.clone()))
                   .version(software.and_then(|s| s.version.clone()))
