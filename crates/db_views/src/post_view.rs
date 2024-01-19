@@ -1345,7 +1345,6 @@ mod tests {
     let mut listed_post_ids_forward = listed_post_ids.clone();
     let mut page_before = None;
     loop {
-      println!("e");
       let post_listings = PostQuery {
         page_after: page_before,
         page_back: true,
