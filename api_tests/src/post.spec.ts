@@ -76,7 +76,12 @@ test("Create a post", async () => {
     throw "Missing beta community";
   }
 
-  let postRes = await createPost(alpha, betaCommunity.community.id);
+  let postRes = await createPost(
+    alpha,
+    betaCommunity.community.id,
+    "https://example.com/",
+    "აშშ ითხოვს ირანს დაუყოვნებლივ გაანთავისუფლოს დაკავებული ნავთობის ტანკერი",
+  );
   expect(postRes.post_view.post).toBeDefined();
   expect(postRes.post_view.community.local).toBe(false);
   expect(postRes.post_view.creator.local).toBe(true);
