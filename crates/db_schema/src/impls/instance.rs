@@ -64,6 +64,18 @@ impl Instance {
       e => e,
     }
   }
+  pub async fn update(
+    pool: &mut DbPool<'_>,
+    instance_id: InstanceId,
+    form: InstanceForm,
+  ) -> Result<usize, Error> {
+    let mut conn = get_conn(pool).await?;
+    diesel::update(instance::table.find(instance_id))
+      .set(form)
+      .execute(&mut conn)
+      .await
+  }
+
   pub async fn delete(pool: &mut DbPool<'_>, instance_id: InstanceId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(instance::table.find(instance_id))
