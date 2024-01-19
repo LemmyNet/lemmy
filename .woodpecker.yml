@@ -78,33 +78,6 @@ steps:
       - IGNORED=$(git ls-files --cached -i --exclude-standard)
       - if [[ "$IGNORED" ]]; then echo "Ignored files present:\n$IGNORED\n"; exit 1; fi
 
-  restore-cache:
-    image: meltwater/drone-cache:v1
-    pull: true
-    settings:
-      restore: true
-      endpoint:
-        from_secret: MINIO_ENDPOINT
-      access-key:
-        from_secret: MINIO_WRITE_USER
-      secret-key:
-        from_secret: MINIO_WRITE_PASSWORD
-      bucket:
-        from_secret: MINIO_BUCKET
-      region: us-east-1
-      cache_key: "rust-cache"
-      path-style: true
-      backend_operation_timeout: 30m
-      compression_level: 0
-      exit_code: true
-      mount:
-        - ".cargo_home"
-        - "target"
-        - "api_tests/node_modules"
-    secrets:
-      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
-    when: *slow_check_paths
-
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
     image: *rust_image
@@ -204,35 +177,6 @@ steps:
       - yarn
       - yarn api-test
     when: *slow_check_paths
-
-  rebuild-cache:
-    image: meltwater/drone-cache:v1
-    pull: true
-    settings:
-      rebuild: true
-      endpoint:
-        from_secret: MINIO_ENDPOINT
-      access-key:
-        from_secret: MINIO_WRITE_USER
-      secret-key:
-        from_secret: MINIO_WRITE_PASSWORD
-      bucket:
-        from_secret: MINIO_BUCKET
-      cache_key: "rust-cache"
-      region: us-east-1
-      path-style: true
-      backend_operation_timeout: 60m
-      compression_level: 0
-      exit_code: true
-      mount:
-        - ".cargo_home"
-        - "target"
-        - "api_tests/node_modules"
-    secrets:
-      [MINIO_ENDPOINT, MINIO_WRITE_USER, MINIO_WRITE_PASSWORD, MINIO_BUCKET]
-    when:
-      - event: push
-        branch: main
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
