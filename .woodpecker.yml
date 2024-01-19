@@ -39,25 +39,21 @@ steps:
       - git submodule update
 
   prettier_check:
-    group: format
     image: tmknom/prettier:3.0.0
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
 
   toml_fmt:
-    group: format
     image: tamasfe/taplo:0.8.1
     commands:
       - taplo format --check
 
   sql_fmt:
-    group: format
     image: backplane/pgformatter:latest
     commands:
       - ./scripts/sql_format_check.sh
 
   cargo_fmt:
-    group: format
     image: rustlang/rust:nightly
     environment:
       # store cargo data in repo folder so that it gets cached between steps
@@ -67,7 +63,6 @@ steps:
       - cargo +nightly fmt -- --check
 
   cargo_machete:
-    group: format
     image: rustlang/rust:nightly
     commands:
       - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
@@ -77,7 +72,6 @@ steps:
       - cargo machete
 
   ignored_files:
-    group: format
     image: alpine:3
     commands:
       - apk add git
@@ -188,7 +182,6 @@ steps:
     when: *slow_check_paths
 
   cargo_test:
-    group: tests
     image: *rust_image
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
@@ -200,7 +193,6 @@ steps:
     when: *slow_check_paths
 
   run_federation_tests:
-    group: tests
     image: node:20-bookworm-slim
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
