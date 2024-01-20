@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
   source::{
+    external_auth::ExternalAuth,
     federation_queue_state::FederationQueueState,
     instance::Instance,
     language::Language,
@@ -17,7 +18,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{
   CommentView,
   CustomEmojiView,
-  ExternalAuthView,
   LocalUserView,
   PostView,
   RegistrationApplicationView,
@@ -297,7 +297,7 @@ pub struct GetSiteResponse {
   /// A list of custom emojis your site supports.
   pub custom_emojis: Vec<CustomEmojiView>,
   /// A list of external auth methods your site supports.
-  pub external_auths: Vec<ExternalAuthView>,
+  pub external_auths: Vec<ExternalAuth>,
 }
 
 #[skip_serializing_none]

@@ -3,6 +3,7 @@ use lemmy_api_common::{context::LemmyContext, site::GetSiteResponse, utils::is_a
 use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
+    external_auth::ExternalAuth,
     language::Language,
     local_user::{LocalUser, LocalUserUpdateForm},
     moderator::{ModAdd, ModAddForm},
@@ -10,7 +11,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{CustomEmojiView, ExternalAuthView, LocalUserView, SiteView};
+use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
@@ -61,8 +62,7 @@ pub async fn leave_admin(
   let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
   let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
   let custom_emojis = CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
-  let external_auths =
-    ExternalAuthView::get_all(&mut context.pool()).await?;
+  let external_auths = ExternalAuth::get_all(&mut context.pool()).await?;
 
   Ok(Json(GetSiteResponse {
     site_view,

@@ -13,8 +13,12 @@ use lemmy_api_common::{
   utils::AUTH_COOKIE_NAME,
 };
 use lemmy_api_crud::user::create::register_from_oauth;
-use lemmy_db_schema::{newtypes::ExternalAuthId, source::local_user::LocalUser, RegistrationMode};
-use lemmy_db_views::structs::{ExternalAuthView, LocalUserView, SiteView};
+use lemmy_db_schema::{
+  newtypes::ExternalAuthId,
+  source::{external_auth::ExternalAuth, local_user::LocalUser},
+  RegistrationMode,
+};
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use url::Url;
 
 // Login user using response from external identity provider
@@ -42,15 +46,14 @@ pub async fn oauth_callback(
 
   // Fetch the auth method
   let external_auth_id = ExternalAuthId(oauth_state.external_auth);
-  let external_auth_view = ExternalAuthView::get(&mut context.pool(), external_auth_id).await;
+  let external_auth_view = ExternalAuth::get(&mut context.pool(), external_auth_id).await;
   if !external_auth_view.is_ok() {
     return HttpResponse::Found()
       .append_header(("Location", "/login?err=external_auth"))
       .finish();
   }
   let external_auth = external_auth_view.unwrap().external_auth;
-  let client_secret =
-    ExternalAuthView::get_client_secret(&mut context.pool(), external_auth_id).await;
+  let client_secret = ExternalAuth::get_client_secret(&mut context.pool(), external_auth_id).await;
   if !client_secret.is_ok() {
     return HttpResponse::Found()
       .append_header(("Location", "/login?err=external_auth"))

@@ -48,14 +48,6 @@ pub struct DeleteExternalAuth {
   pub id: ExternalAuthId,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// A response for an external auth method.
-pub struct ExternalAuthResponse {
-  pub external_auth: ExternalAuthView,
-}
-
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "full", derive(TS))]

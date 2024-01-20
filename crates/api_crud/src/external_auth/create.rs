@@ -2,14 +2,14 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
-  external_auth::{CreateExternalAuth, ExternalAuthResponse},
+  external_auth::CreateExternalAuth,
   utils::is_admin,
 };
 use lemmy_db_schema::{
   source::external_auth::{ExternalAuth, ExternalAuthInsertForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::{ExternalAuthView, LocalUserView};
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
@@ -17,7 +17,7 @@ pub async fn create_external_auth(
   data: Json<CreateExternalAuth>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<ExternalAuthResponse>, LemmyError> {
+) -> Result<Json<ExternalAuth>, LemmyError> {
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
@@ -35,8 +35,5 @@ pub async fn create_external_auth(
     .scopes(data.scopes.to_string())
     .build();
   let external_auth = ExternalAuth::create(&mut context.pool(), &external_auth_form).await?;
-  let view = ExternalAuthView::get(&mut context.pool(), external_auth.id).await?;
-  Ok(Json(ExternalAuthResponse {
-    external_auth: view,
-  }))
+  Ok(Json(external_auth))
 }
