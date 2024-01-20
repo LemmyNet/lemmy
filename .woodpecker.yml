@@ -210,7 +210,8 @@ steps:
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - yarn
-      - yarn api-test
+      # Run tests, then show server output if tests fail
+      - yarn api-test || (echo "Output from Lemmy servers:" && cat /tmp/lemmy_*.out)
     when: *slow_check_paths
 
   rebuild-cache:
