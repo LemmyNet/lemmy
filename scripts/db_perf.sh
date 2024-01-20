@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+# This script runs crates/lemmy_db_perf/src/main.rs, which lets you see info related to database query performance, such as query plans.
+
 set -e
 
 CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
