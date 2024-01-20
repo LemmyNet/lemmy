@@ -9,7 +9,7 @@
   "scripts": {
     "lint": "tsc --noEmit && eslint --report-unused-disable-directives --ext .js,.ts,.tsx src && prettier --check 'src/**/*.ts'",
     "fix": "prettier --write src && eslint --fix src",
-    "api-test": "jest -i follow.spec.ts && jest -i post.spec.ts && jest -i comment.spec.ts && jest -i private_message.spec.ts && jest -i user.spec.ts && jest -i community.spec.ts && jest -i image.spec.ts",
+    "api-test": "false && jest -i follow.spec.ts && jest -i post.spec.ts && jest -i comment.spec.ts && jest -i private_message.spec.ts && jest -i user.spec.ts && jest -i community.spec.ts && jest -i image.spec.ts",
     "api-test-follow": "jest -i follow.spec.ts",
     "api-test-comment": "jest -i comment.spec.ts",
     "api-test-post": "jest -i post.spec.ts",
