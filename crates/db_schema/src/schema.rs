@@ -91,12 +91,10 @@ diesel::table! {
         path -> Ltree,
         distinguished -> Bool,
         language_id -> Int4,
-        score -> Int8,
         upvotes -> Int8,
         downvotes -> Int8,
         child_count -> Int4,
-        hot_rank -> Float8,
-        controversy_rank -> Float8,
+        ranks_time -> Timestamptz,
     }
 }
 
