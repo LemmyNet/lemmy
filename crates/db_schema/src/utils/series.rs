@@ -11,6 +11,22 @@ use diesel::{
   SelectableExpression,
 };
 
+/// Gererates a series of rows for insertion.
+///
+/// An inclusive range is created from `start` and `stop`. A row for each number is generated using `selection`, which can be a tuple.
+/// [`current_value`] is an expression that gets the current value.
+///
+/// For example, if there's a `numbers` table with a `number` column, this inserts all numbers from 1 to 10 in a single statement:
+///
+/// ```
+/// dsl::insert_into(numbers::table)
+///   .values(ValuesFromSeries {
+///     start: 1,
+///     stop: 10,
+///     selection: series::current_value,
+///   })
+///   .into_columns(numbers::number)
+/// ```
 #[derive(QueryId)]
 pub struct ValuesFromSeries<S> {
   pub start: i64,
