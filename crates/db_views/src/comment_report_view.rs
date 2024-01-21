@@ -32,22 +32,18 @@ fn queries<'a>() -> Queries<
   impl ListFn<'a, CommentReportView, (CommentReportQuery, &'a LocalUserView)>,
 > {
   let all_joins = |query: comment_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
-    query
+    let my_vote = actions_subquery(comment_actions::table, my_person_id, comment_report::comment_id)
+      .select(comment_actions::like_score)
+      .single_value
+
+    comment_report::table
       .inner_join(comment::table)
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
       .inner_join(aliases::person1.on(comment::creator_id.eq(aliases::person1.field(person::id))))
-      .inner_join(
-        comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
-      )
-      .left_join(
-        comment_like::table.on(
-          comment::id
-            .eq(comment_like::comment_id)
-            .and(comment_like::person_id.eq(my_person_id)),
-        ),
-      )
+      .left_join(actions(comment_actions::table, my_person_id, comment::id))
+      .left_join(actions(community_actions::table, comment::creator_id.nullable(), post::community_id))
       .left_join(
         aliases::person2
           .on(comment_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
@@ -68,25 +64,23 @@ fn queries<'a>() -> Queries<
   );
 
   let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (CommentReportId, PersonId)| async move {
-    all_joins(
-      comment_report::table.find(report_id).into_boxed(),
-      my_person_id,
-    )
-    .left_join(
-      community_person_ban::table.on(
-        community::id
-          .eq(community_person_ban::community_id)
-          .and(community_person_ban::person_id.eq(comment::creator_id)),
-      ),
-    )
-    .select(selection)
-    .first::<CommentReportView>(&mut conn)
-    .await
+    all_joins(my_person_id)
+      .left_join(
+        community_person_ban::table.on(
+          community::id
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(comment::creator_id)),
+        ),
+      )
+      .filter(comment_report::id.eq(report_id))
+      .select(selection)
+      .first::<CommentReportView>(&mut conn)
+      .await
   };
 
   let list = move |mut conn: DbConn<'a>,
                    (options, user): (CommentReportQuery, &'a LocalUserView)| async move {
-    let mut query = all_joins(comment_report::table.into_boxed(), user.person.id)
+    let mut query = all_joins(user.person.id)
       .left_join(
         community_person_ban::table.on(
           community::id
