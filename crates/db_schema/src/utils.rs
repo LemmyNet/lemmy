@@ -251,7 +251,9 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
         error!("Database connection failed: {e}");
       }
     });
-    AsyncPgConnection::try_from(client).await
+    let mut conn = AsyncPgConnection::try_from(client).await?;
+    conn.batch_execute("SET geqo_threshold=12;SET fro_collapse_limit=11;SET join_collapse_limit=11;").await?;
+    Ok(conn)
   };
   fut.boxed()
 }
