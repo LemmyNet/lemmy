@@ -26,6 +26,7 @@ use lemmy_db_schema::{
     community_moderator,
     community_person_ban,
     instance_block,
+    local_site::dsl::local_site,
     local_user,
     local_user_language,
     person,
@@ -37,6 +38,7 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
+  source::local_site::LocalSite,
   utils::{
     functions::coalesce,
     fuzzy_search,
@@ -383,10 +385,17 @@ fn queries<'a>() -> Queries<
       );
     }
 
+    // If there is a content warning, show nsfw content by default.
+    // TODO: inefficient
+    let has_content_warning = local_site
+      .first::<LocalSite>(&mut conn)
+      .await?
+      .content_warning
+      .is_some();
     if !options
       .local_user
       .map(|l| l.local_user.show_nsfw)
-      .unwrap_or(false)
+      .unwrap_or(has_content_warning)
     {
       query = query
         .filter(post::nsfw.eq(false))

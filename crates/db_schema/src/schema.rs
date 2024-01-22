@@ -371,6 +371,7 @@ diesel::table! {
         registration_mode -> RegistrationModeEnum,
         reports_email_admins -> Bool,
         federation_signed_fetch -> Bool,
+        content_warning -> Nullable<Text>,
     }
 }
 
