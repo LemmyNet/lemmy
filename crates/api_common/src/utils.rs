@@ -20,6 +20,7 @@ use lemmy_db_schema::{
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
     post::{Post, PostRead},
+    site::Site,
   },
   traits::Crud,
   utils::DbPool,
@@ -563,6 +564,28 @@ pub fn check_private_instance_and_federation_enabled(
     Err(LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether)?
   } else {
     Ok(())
+  }
+}
+
+/// Read the site for an actor_id, but don't include it if its a local actor.
+///
+/// Used for GetCommunityResponse and GetPersonDetails
+pub async fn read_site_for_actor(
+  actor_id: DbUrl,
+  context: &LemmyContext,
+) -> Result<Option<Site>, LemmyError> {
+  let site_id = Site::instance_actor_id_from_url(actor_id.clone().into());
+  let site = Site::read_from_apub_id(&mut context.pool(), &site_id.into()).await?;
+  // no need to include metadata for local site (its already available through other endpoints).
+  // this also prevents us from leaking the federation private key.
+  if let Some(s) = &site {
+    if s.actor_id.domain() == Some(context.settings().hostname.as_ref()) {
+      Ok(None)
+    } else {
+      Ok(site)
+    }
+  } else {
+    Ok(site)
   }
 }
 
