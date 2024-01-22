@@ -138,7 +138,7 @@ test("Unlike a post", async () => {
   assertPostFederation(betaPost, postRes.post_view);
 });
 
-test.only("Update a post", async () => {
+test("Update a post", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
