@@ -147,7 +147,7 @@ pub fn is_valid_matrix_id(matrix_id: &str) -> LemmyResult<()> {
 }
 
 pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
-  let length = title.trim().len();
+  let length = title.trim().chars().count();
   let check = (3..=200).contains(&length) && !has_newline(title);
   if !check {
     Err(LemmyErrorType::InvalidPostTitle.into())
@@ -380,6 +380,10 @@ mod tests {
   #[test]
   fn test_valid_post_title() {
     assert!(is_valid_post_title("Post Title").is_ok());
+    assert!(is_valid_post_title(
+      "აშშ ითხოვს ირანს დაუყოვნებლივ გაანთავისუფლოს დაკავებული ნავთობის ტანკერი"
+    )
+    .is_ok());
     assert!(is_valid_post_title("   POST TITLE 😃😃😃😃😃").is_ok());
     assert!(is_valid_post_title("\n \n \n \n    		").is_err()); // tabs/spaces/newlines
   }

@@ -112,19 +112,18 @@ test("Delete user", async () => {
   ).toBe(true);
 });
 
-test("Requests with invalid auth should throw error", async () => {
+test("Requests with invalid auth should be treated as unauthenticated", async () => {
   let invalid_auth = new LemmyHttp(alphaUrl, {
     headers: { Authorization: "Bearer foobar" },
     fetchFunction,
   });
-  await expect(getSite(invalid_auth)).rejects.toStrictEqual(
-    Error("incorrect_login"),
-  );
+  let site = await getSite(invalid_auth);
+  expect(site.my_user).toBeUndefined();
+  expect(site.site_view).toBeDefined();
 
   let form: GetPosts = {};
-  await expect(invalid_auth.getPosts(form)).rejects.toStrictEqual(
-    Error("incorrect_login"),
-  );
+  let posts = invalid_auth.getPosts(form);
+  expect((await posts).posts).toBeDefined();
 });
 
 test("Create user with Arabic name", async () => {
