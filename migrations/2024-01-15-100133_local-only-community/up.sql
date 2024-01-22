@@ -1,4 +1,8 @@
-create type community_visibility as enum ('public', 'local-only');
+CREATE TYPE community_visibility AS enum (
+    'public',
+    'local-only'
+);
+
 ALTER TABLE community
     ADD COLUMN visibility community_visibility NOT NULL DEFAULT 'public';
 
