@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::login_token::{LoginToken, LoginTokenCreateForm},
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -25,7 +25,8 @@ impl Claims {
     validation.required_spec_claims.remove("exp");
     let jwt_secret = &context.secret().jwt_secret;
     let key = DecodingKey::from_secret(jwt_secret.as_ref());
-    let claims = decode::<Claims>(jwt, &key, &validation)?;
+    let claims =
+      decode::<Claims>(jwt, &key, &validation).with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
     let user_id = LocalUserId(claims.claims.sub.parse()?);
     let is_valid = LoginToken::validate(&mut context.pool(), user_id, jwt).await?;
     if !is_valid {
