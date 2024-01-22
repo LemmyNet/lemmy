@@ -41,7 +41,14 @@ use crate::{
 };
 use ::url::Url;
 use chrono::{Duration, Utc};
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use diesel::{
+  dsl::insert_into,
+  result::Error,
+  upsert::excluded,
+  ExpressionMethods,
+  QueryDsl,
+  TextExpressionMethods,
+};
 use diesel_async::RunQueryDsl;
 use std::collections::HashSet;
 
@@ -52,14 +59,46 @@ impl Crud for Post {
   type IdType = PostId;
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
+    use crate::schema::post::{
+      embed_description,
+      embed_title,
+      embed_video_url,
+      featured_local,
+      language_id,
+      locked,
+      nsfw,
+    };
     let conn = &mut get_conn(pool).await?;
-    insert_into(post)
-      .values(form)
-      .on_conflict(ap_id)
-      .do_update()
-      .set(form)
-      .get_result::<Self>(conn)
-      .await
+    dbg!(
+      insert_into(post)
+        .values(form)
+        .on_conflict(ap_id)
+        .do_update()
+        .set((
+          name.eq(excluded(name)),
+          url.eq(excluded(url)),
+          body.eq(excluded(body)),
+          creator_id.eq(excluded(creator_id)),
+          community_id.eq(excluded(community_id)),
+          removed.eq(excluded(removed)),
+          locked.eq(excluded(locked)),
+          published.eq(excluded(published)),
+          updated.eq(excluded(updated)),
+          deleted.eq(excluded(deleted)),
+          nsfw.eq(excluded(nsfw)),
+          embed_title.eq(excluded(embed_title)),
+          embed_description.eq(excluded(embed_description)),
+          thumbnail_url.eq(excluded(thumbnail_url)),
+          ap_id.eq(excluded(ap_id)),
+          local.eq(excluded(local)),
+          embed_video_url.eq(excluded(embed_video_url)),
+          language_id.eq(excluded(language_id)),
+          featured_community.eq(excluded(featured_community)),
+          featured_local.eq(excluded(featured_local))
+        ))
+        .get_result::<Self>(conn)
+        .await
+    )
   }
 
   async fn update(
