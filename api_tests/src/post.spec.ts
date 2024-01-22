@@ -163,6 +163,11 @@ test("Update a post", async () => {
   expect(betaPost.post.name).toBe(updatedName);
   assertPostFederation(betaPost, updatedPost.post_view);
 
+  let updatedPost2 = await editPost(alpha, postRes.post_view.post, undefined);
+  expect(updatedPost2.post_view.post.url).toEqual(undefined);
+  let betaPost2 = await waitForPost(beta, updatedPost.post_view.post);
+  expect(betaPost2.post.url).toEqual(undefined);
+
   // Make sure lemmy beta cannot update the post
   await expect(editPost(beta, betaPost.post)).rejects.toStrictEqual(
     Error("no_post_edit_allowed"),
