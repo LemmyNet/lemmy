@@ -61,9 +61,9 @@ struct PictrsParams {
 #[derive(Deserialize)]
 enum PictrsPurgeParams {
   #[serde(rename = "file")]
-  File(String),
+  File(()),
   #[serde(rename = "alias")]
-  Alias(String),
+  Alias(()),
 }
 
 fn adapt_request(
