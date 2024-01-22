@@ -4,7 +4,8 @@ use lemmy_api_common::{
   post::{ListPostLikes, ListPostLikesResponse},
   utils::is_mod_or_admin,
 };
-use lemmy_db_views::structs::{LocalUserView, PostView, VoteView};
+use lemmy_db_schema::{source::post::Post, traits::Crud};
+use lemmy_db_views::structs::{LocalUserView, VoteView};
 use lemmy_utils::error::LemmyError;
 
 /// Lists likes for a post
@@ -14,17 +15,11 @@ pub async fn list_post_likes(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<ListPostLikesResponse>, LemmyError> {
-  let post_view = PostView::read(
-    &mut context.pool(),
-    data.post_id,
-    Some(local_user_view.person.id),
-    false,
-  )
-  .await?;
+  let post = Post::read(&mut context.pool(), data.post_id).await?;
   is_mod_or_admin(
     &mut context.pool(),
     &local_user_view.person,
-    post_view.community.id,
+    post.community_id,
   )
   .await?;
 
