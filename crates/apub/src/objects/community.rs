@@ -109,6 +109,7 @@ impl Object for ApubCommunity {
       updated: self.updated,
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
       attributed_to: Some(generate_moderators_url(&self.actor_id)?.into()),
+      only_followers_can_vote: Some(self.only_followers_can_vote),
     };
     Ok(group)
   }

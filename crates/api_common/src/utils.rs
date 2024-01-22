@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
-    community::{Community, CommunityModerator, CommunityUpdateForm},
+    community::{Community, CommunityFollower, CommunityModerator, CommunityUpdateForm},
     community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
     instance::Instance,
@@ -284,25 +284,6 @@ pub async fn check_person_instance_community_block(
   check_instance_block(instance_id, potential_blocker_id, pool).await?;
   check_community_block(community_id, potential_blocker_id, pool).await?;
   Ok(())
-}
-
-#[tracing::instrument(skip_all)]
-pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
-  if score == -1 && !local_site.enable_downvotes {
-    Err(LemmyErrorType::DownvotesAreDisabled)?
-  } else {
-    Ok(())
-  }
-}
-
-/// Dont allow bots to do certain actions, like voting
-#[tracing::instrument(skip_all)]
-pub fn check_bot_account(person: &Person) -> Result<(), LemmyError> {
-  if person.bot_account {
-    Err(LemmyErrorType::InvalidBotAction)?
-  } else {
-    Ok(())
-  }
 }
 
 #[tracing::instrument(skip_all)]
@@ -833,6 +814,36 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
   } else {
     Ok(Some(expires))
   }
+}
+
+/// Enforce various voting restrictions:
+/// - Bots are not allowed to vote
+/// - Instances can disable downvotes
+/// - Communities can prevent users who are not followers from voting
+pub async fn check_vote_permission(
+  score: i16,
+  local_site: &LocalSite,
+  person: &Person,
+  community: &Community,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  // check downvotes enabled
+  if score == -1 && !local_site.enable_downvotes {
+    return Err(LemmyErrorType::DownvotesAreDisabled)?;
+  }
+
+  // prevent bots from voting
+  if person.bot_account {
+    return Err(LemmyErrorType::InvalidBotAction)?;
+  }
+
+  if community.only_followers_can_vote
+    && !CommunityFollower::is_follower(&mut context.pool(), person.id, community.id).await?
+  {
+    // TODO: lemmynsfw code checks that follow was at least 10 minutes ago
+    Err(LemmyErrorType::DownvotesAreDisabled)?
+  }
+  Ok(())
 }
 
 #[cfg(test)]

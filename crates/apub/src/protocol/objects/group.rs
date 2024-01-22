@@ -74,6 +74,7 @@ pub struct Group {
   pub(crate) language: Vec<LanguageTag>,
   pub(crate) published: Option<DateTime<Utc>>,
   pub(crate) updated: Option<DateTime<Utc>>,
+  pub(crate) only_followers_can_vote: Option<bool>,
 }
 
 impl Group {
@@ -122,6 +123,7 @@ impl Group {
       posting_restricted_to_mods: self.posting_restricted_to_mods,
       instance_id,
       featured_url: self.featured.map(Into::into),
+      only_followers_can_vote: self.only_followers_can_vote,
     }
   }
 
@@ -152,6 +154,7 @@ impl Group {
       moderators_url: self.attributed_to.map(Into::into),
       posting_restricted_to_mods: self.posting_restricted_to_mods,
       featured_url: self.featured.map(Into::into),
+      only_followers_can_vote: self.only_followers_can_vote,
     }
   }
 }

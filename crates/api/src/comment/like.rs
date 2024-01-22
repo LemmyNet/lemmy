@@ -5,16 +5,17 @@ use lemmy_api_common::{
   comment::{CommentResponse, CreateCommentLike},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_bot_account, check_community_user_action, check_downvotes_enabled},
+  utils::{check_community_user_action, check_vote_permission},
 };
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   source::{
     comment::{CommentLike, CommentLikeForm},
     comment_reply::CommentReply,
+    community::Community,
     local_site::LocalSite,
   },
-  traits::Likeable,
+  traits::{Crud, Likeable},
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
@@ -30,12 +31,18 @@ pub async fn like_comment(
 
   let mut recipient_ids = Vec::<LocalUserId>::new();
 
-  // Don't do a downvote if site has downvotes disabled
-  check_downvotes_enabled(data.score, &local_site)?;
-  check_bot_account(&local_user_view.person)?;
-
   let comment_id = data.comment_id;
   let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
+
+  let community = Community::read(&mut context.pool(), orig_comment.post.community_id).await?;
+  check_vote_permission(
+    data.score,
+    &local_site,
+    &local_user_view.person,
+    &community,
+    &context,
+  )
+  .await?;
 
   check_community_user_action(
     &local_user_view.person,
