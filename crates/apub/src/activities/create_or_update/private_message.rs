@@ -40,7 +40,7 @@ pub(crate) async fn send_create_or_update_pm(
     kind,
   };
   let inbox = ActivitySendTargets::to_inbox(recipient.shared_inbox_or_inbox());
-  send_lemmy_activity(&context, create_or_update, &actor, inbox, true).await
+  //send_lemmy_activity(&context, create_or_update, &actor, inbox, true).await
 }
 
 #[async_trait::async_trait]
