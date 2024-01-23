@@ -1,4 +1,7 @@
+mod series;
+
 use clap::Parser;
+use crate::series::ValuesFromSeries;
 use diesel::{
   dsl::{self, sql},
   sql_types,
@@ -18,7 +21,6 @@ use lemmy_db_schema::{
     build_db_pool,
     get_conn,
     now,
-    series::{self, ValuesFromSeries},
   },
   SortType,
 };
