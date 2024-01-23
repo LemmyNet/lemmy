@@ -1,8 +1,8 @@
 mod series;
 
+use crate::series::ValuesFromSeries;
 use anyhow::Context;
 use clap::Parser;
-use crate::series::ValuesFromSeries;
 use diesel::{
   dsl::{self, sql},
   sql_types,
@@ -18,15 +18,11 @@ use lemmy_db_schema::{
     person::{Person, PersonInsertForm},
   },
   traits::Crud,
-  utils::{
-    build_db_pool,
-    get_conn,
-    now,
-  },
+  utils::{build_db_pool, get_conn, now},
   SortType,
 };
 use lemmy_db_views::{post_view::PostQuery, structs::PaginationCursor};
-use lemmy_utils::error::{LemmyResult, LemmyErrorExt2};
+use lemmy_utils::error::{LemmyErrorExt2, LemmyResult};
 use std::num::NonZeroU32;
 
 #[derive(Parser, Debug)]
@@ -47,7 +43,9 @@ struct CmdArgs {
 async fn main() -> anyhow::Result<()> {
   let mut result = try_main().await.into_anyhow();
   if let Ok(path) = std::env::var("PGDATA") {
-    result = result.with_context(|| format!("Failed to run lemmy_db_perf (more details might be available in {path}/log)"));
+    result = result.with_context(|| {
+      format!("Failed to run lemmy_db_perf (more details might be available in {path}/log)")
+    });
   }
   result
 }
