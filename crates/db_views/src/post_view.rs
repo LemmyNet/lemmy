@@ -452,6 +452,7 @@ fn queries<'a>() -> Queries<
         .before_or_equal(page_before_or_equal);
     }
 
+    // featured posts first
     query = if options.community_id.is_none() || options.community_id_just_for_prefetch {
       query.then_desc(key::featured_local)
     } else {
@@ -460,6 +461,7 @@ fn queries<'a>() -> Queries<
 
     let time = |interval| post_aggregates::published.gt(now() - interval);
 
+    // then use the main sort
     query = match options.sort.unwrap_or(SortType::Hot) {
       SortType::Active => query.then_desc(key::hot_rank_active),
       SortType::Hot => query.then_desc(key::hot_rank),
@@ -482,12 +484,15 @@ fn queries<'a>() -> Queries<
       SortType::TopNineMonths => query.then_desc(key::score).filter(time(9.months())),
     };
 
+    // use publish as fallback. especially useful for hot rank which reaches zero after some days.
+    // necessary because old posts can be fetched over federation and inserted with high post id
     query = match options.sort.unwrap_or(SortType::Hot) {
       // A second time-based sort would not be very useful
       SortType::New | SortType::Old | SortType::NewComments => query,
       _ => query.then_desc(key::published),
     };
 
+    // finally use unique post id as tie breaker
     query = query.then_desc(key::post_id);
 
     // Not done by debug_query
