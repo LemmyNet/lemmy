@@ -1041,6 +1041,7 @@ mod tests {
         shared_inbox_url: data.inserted_community.shared_inbox_url.clone(),
         moderators_url: data.inserted_community.moderators_url.clone(),
         featured_url: data.inserted_community.featured_url.clone(),
+        only_followers_can_vote: data.inserted_community.only_followers_can_vote,
       },
       counts: CommentAggregates {
         comment_id: data.inserted_comment_0.id,

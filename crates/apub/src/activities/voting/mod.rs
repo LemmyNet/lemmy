@@ -132,8 +132,8 @@ pub async fn check_vote_permission(
 ) -> LemmyResult<()> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
   let community = Community::read(&mut context.pool(), community_id).await?;
-  let score = vote_type.map(|v| v.into()).unwrap_or(0);
-  lemmy_api_common::utils::check_vote_permission(score, &local_site, &person, &community, &context)
+  let score = vote_type.map(std::convert::Into::into).unwrap_or(0);
+  lemmy_api_common::utils::check_vote_permission(score, &local_site, person, &community, context)
     .await?;
   Ok(())
 }

@@ -1,2 +1,6 @@
-alter table local_site drop column content_warning;
-alter table community drop column only_followers_can_vote;
+ALTER TABLE local_site
+    DROP COLUMN content_warning;
+
+ALTER TABLE community
+    DROP COLUMN only_followers_can_vote;
+
