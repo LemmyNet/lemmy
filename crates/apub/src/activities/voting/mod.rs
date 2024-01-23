@@ -67,11 +67,9 @@ async fn vote_comment(
     person_id: actor.id,
     score: vote_type.into(),
   };
-  let person_id = actor.id;
-  // TODO: inefficient
   let post = Post::read(&mut context.pool(), comment.post_id).await?;
   check_vote_permission(Some(vote_type), &actor, post.community_id, context).await?;
-  CommentLike::remove(&mut context.pool(), person_id, comment_id).await?;
+  CommentLike::remove(&mut context.pool(), actor.id, comment_id).await?;
   CommentLike::like(&mut context.pool(), &like_form).await?;
   Ok(())
 }
@@ -102,12 +100,9 @@ async fn undo_vote_comment(
   comment: &ApubComment,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  let comment_id = comment.id;
-  let person_id = actor.id;
-  // TODO: inefficient
   let post = Post::read(&mut context.pool(), comment.post_id).await?;
   check_vote_permission(None, &actor, post.community_id, context).await?;
-  CommentLike::remove(&mut context.pool(), person_id, comment_id).await?;
+  CommentLike::remove(&mut context.pool(), actor.id, comment.id).await?;
   Ok(())
 }
 
@@ -117,10 +112,8 @@ async fn undo_vote_post(
   post: &ApubPost,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  let post_id = post.id;
-  let person_id = actor.id;
   check_vote_permission(None, &actor, post.community_id, context).await?;
-  PostLike::remove(&mut context.pool(), person_id, post_id).await?;
+  PostLike::remove(&mut context.pool(), actor.id, post.id).await?;
   Ok(())
 }
 

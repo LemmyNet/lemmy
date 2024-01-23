@@ -57,22 +57,22 @@ pub async fn list_posts(
     None
   };
 
-  let posts = PostQuery {
-    local_user: local_user_view.as_ref(),
-    listing_type,
-    sort,
-    community_id,
-    saved_only,
-    liked_only,
-    disliked_only,
-    page,
-    page_after,
-    limit,
-    ..Default::default()
-  }
-  .list(&mut context.pool())
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
+  let posts = PostQuery::builder()
+    .local_site(local_site)
+    .local_user(local_user_view.as_ref())
+    .listing_type(listing_type)
+    .sort(sort)
+    .community_id(community_id)
+    .saved_only(saved_only)
+    .liked_only(liked_only)
+    .disliked_only(disliked_only)
+    .page(page)
+    .page_after(page_after)
+    .limit(limit)
+    .build()
+    .list(&mut context.pool())
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
 
   // if this page wasn't empty, then there is a next page after the last post on this page
   let next_page = posts.last().map(PaginationCursor::after_post);

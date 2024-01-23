@@ -89,12 +89,12 @@ pub async fn get_post(
 
   // Fetch the cross_posts
   let cross_posts = if let Some(url) = &post_view.post.url {
-    let mut x_posts = PostQuery {
-      url_search: Some(url.inner().as_str().into()),
-      ..Default::default()
-    }
-    .list(&mut context.pool())
-    .await?;
+    let mut x_posts = PostQuery::builder()
+      .local_site(local_site)
+      .url_search(Some(url.inner().as_str().into()))
+      .build()
+      .list(&mut context.pool())
+      .await?;
 
     // Don't return this post as one of the cross_posts
     x_posts.retain(|x| x.post.id != post_id);

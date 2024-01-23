@@ -18,7 +18,6 @@ use lemmy_db_schema::{
     community_block,
     community_follower,
     instance_block,
-    local_site::dsl::local_site,
     local_user,
   },
   source::{community::CommunityFollower, local_site::LocalSite, local_user::LocalUser},
@@ -26,6 +25,7 @@ use lemmy_db_schema::{
   ListingType,
   SortType,
 };
+use typed_builder::TypedBuilder;
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, bool)>,
@@ -155,12 +155,7 @@ fn queries<'a>() -> Queries<
     } else {
       // No person in request, only show nsfw communities if show_nsfw is passed into request or if
       // site has content warning.
-      // TODO: inefficient
-      let has_content_warning = local_site
-        .first::<LocalSite>(&mut conn)
-        .await?
-        .content_warning
-        .is_some();
+      let has_content_warning = options.local_site.content_warning.is_some();
       if !options.show_nsfw && !has_content_warning {
         query = query.filter(community::nsfw.eq(false));
       }
@@ -220,8 +215,11 @@ impl CommunityView {
   }
 }
 
-#[derive(Default)]
+#[derive(TypedBuilder)]
+#[builder(field_defaults(default))]
 pub struct CommunityQuery<'a> {
+  #[builder(!default)]
+  pub local_site: LocalSite,
   pub listing_type: Option<ListingType>,
   pub sort: Option<SortType>,
   pub local_user: Option<&'a LocalUser>,

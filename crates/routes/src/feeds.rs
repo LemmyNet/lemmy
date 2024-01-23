@@ -128,15 +128,15 @@ async fn get_feed_data(
 
   check_private_instance(&None, &site_view.local_site)?;
 
-  let posts = PostQuery {
-    listing_type: (Some(listing_type)),
-    sort: (Some(sort_type)),
-    limit: (Some(limit)),
-    page: (Some(page)),
-    ..Default::default()
-  }
-  .list(&mut context.pool())
-  .await?;
+  let posts = PostQuery::builder()
+    .local_site(site_view.local_site)
+    .listing_type(Some(listing_type))
+    .sort(Some(sort_type))
+    .limit(Some(limit))
+    .page(Some(page))
+    .build()
+    .list(&mut context.pool())
+    .await?;
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
 
@@ -234,16 +234,16 @@ async fn get_feed_user(
 
   check_private_instance(&None, &site_view.local_site)?;
 
-  let posts = PostQuery {
-    listing_type: (Some(ListingType::All)),
-    sort: (Some(*sort_type)),
-    creator_id: (Some(person.id)),
-    limit: (Some(*limit)),
-    page: (Some(*page)),
-    ..Default::default()
-  }
-  .list(&mut context.pool())
-  .await?;
+  let posts = PostQuery::builder()
+    .local_site(site_view.local_site)
+    .listing_type(Some(ListingType::All))
+    .creator_id(Some(person.id))
+    .sort(Some(*sort_type))
+    .limit(Some(*limit))
+    .page(Some(*page))
+    .build()
+    .list(&mut context.pool())
+    .await?;
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
 
@@ -271,15 +271,15 @@ async fn get_feed_community(
 
   check_private_instance(&None, &site_view.local_site)?;
 
-  let posts = PostQuery {
-    sort: (Some(*sort_type)),
-    community_id: (Some(community.id)),
-    limit: (Some(*limit)),
-    page: (Some(*page)),
-    ..Default::default()
-  }
-  .list(&mut context.pool())
-  .await?;
+  let posts = PostQuery::builder()
+    .local_site(site_view.local_site)
+    .community_id(Some(community.id))
+    .sort(Some(*sort_type))
+    .limit(Some(*limit))
+    .page(Some(*page))
+    .build()
+    .list(&mut context.pool())
+    .await?;
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
 
@@ -311,16 +311,16 @@ async fn get_feed_front(
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
-  let posts = PostQuery {
-    listing_type: (Some(ListingType::Subscribed)),
-    local_user: (Some(&local_user)),
-    sort: (Some(*sort_type)),
-    limit: (Some(*limit)),
-    page: (Some(*page)),
-    ..Default::default()
-  }
-  .list(&mut context.pool())
-  .await?;
+  let posts = PostQuery::builder()
+    .local_site(site_view.local_site)
+    .listing_type(Some(ListingType::Subscribed))
+    .local_user(Some(&local_user))
+    .sort(Some(*sort_type))
+    .limit(Some(*limit))
+    .page(Some(*page))
+    .build()
+    .list(&mut context.pool())
+    .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let items = create_post_items(posts, &protocol_and_hostname)?;

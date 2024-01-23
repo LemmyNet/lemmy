@@ -26,7 +26,6 @@ use lemmy_db_schema::{
     community_moderator,
     community_person_ban,
     instance_block,
-    local_site::dsl::local_site,
     local_user,
     local_user_language,
     person,
@@ -55,6 +54,7 @@ use lemmy_db_schema::{
   SortType,
 };
 use tracing::debug;
+use typed_builder::TypedBuilder;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Ord {
@@ -386,12 +386,7 @@ fn queries<'a>() -> Queries<
     }
 
     // If there is a content warning, show nsfw content by default.
-    // TODO: inefficient
-    let has_content_warning = local_site
-      .first::<LocalSite>(&mut conn)
-      .await?
-      .content_warning
-      .is_some();
+    let has_content_warning = options.local_site.content_warning.is_some();
     if !options
       .local_user
       .map(|l| l.local_user.show_nsfw)
@@ -616,8 +611,11 @@ impl PaginationCursor {
 #[derive(Clone)]
 pub struct PaginationCursorData(PostAggregates);
 
-#[derive(Default, Clone)]
+#[derive(Clone, TypedBuilder)]
+#[builder(field_defaults(default))]
 pub struct PostQuery<'a> {
+  #[builder(!default)]
+  pub local_site: LocalSite,
   pub listing_type: Option<ListingType>,
   pub sort: Option<SortType>,
   pub creator_id: Option<PersonId>,

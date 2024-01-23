@@ -840,7 +840,6 @@ pub async fn check_vote_permission(
   if community.only_followers_can_vote
     && !CommunityFollower::is_follower(&mut context.pool(), person.id, community.id).await?
   {
-    // TODO: lemmynsfw code checks that follow was at least 10 minutes ago
     Err(LemmyErrorType::DownvotesAreDisabled)?
   }
   Ok(())
