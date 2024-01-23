@@ -66,6 +66,7 @@ pub struct Community {
   /// Url where featured posts collection is served over Activitypub
   #[serde(skip)]
   pub featured_url: Option<DbUrl>,
+  /// Only users who are currently following the community can vote on posts and comments
   pub only_followers_can_vote: bool,
 }
 

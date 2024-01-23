@@ -54,6 +54,8 @@ pub struct CreateCommunity {
   /// Whether to restrict posting only to moderators.
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
+  /// Only users who are currently following the community can vote on posts and comments
+  pub only_followers_can_vote: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -147,6 +149,8 @@ pub struct EditCommunity {
   /// Whether to restrict posting only to moderators.
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
+  /// Only users who are currently following the community can vote on posts and comments
+  pub only_followers_can_vote: Option<bool>,
 }
 
 #[skip_serializing_none]
