@@ -778,19 +778,19 @@ mod tests {
   }
 
   impl Data {
-    fn default_post_query<'a>(
-      &'a self,
-      local_user: Option<&'a LocalUserView>,
+    #[allow(clippy::type_complexity)]
+    fn default_post_query(
+      local_user: Option<&LocalUserView>,
     ) -> PostQueryBuilder<
       '_,
       (
         (LocalSite,),
         (),
-        (std::option::Option<SortType>,),
+        (Option<SortType>,),
         (),
         (),
         (),
-        (std::option::Option<&LocalUserView>,),
+        (Option<&LocalUserView>,),
         (),
         (),
         (),
@@ -932,8 +932,7 @@ mod tests {
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user = inserted_local_user;
 
-    let read_post_listing = data
-      .default_post_query(Some(&data.local_user_view))
+    let read_post_listing = Data::default_post_query(Some(&data.local_user_view))
       .community_id(Some(data.inserted_community.id))
       .build()
       .list(pool)
@@ -967,8 +966,7 @@ mod tests {
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user = inserted_local_user;
 
-    let post_listings_with_bots = data
-      .default_post_query(Some(&data.local_user_view))
+    let post_listings_with_bots = Data::default_post_query(Some(&data.local_user_view))
       .community_id(Some(data.inserted_community.id))
       .build()
       .list(pool)
@@ -986,8 +984,7 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let read_post_listing_multiple_no_person = data
-      .default_post_query(None)
+    let read_post_listing_multiple_no_person = Data::default_post_query(None)
       .community_id(Some(data.inserted_community.id))
       .build()
       .list(pool)
@@ -1029,12 +1026,12 @@ mod tests {
     };
     CommunityBlock::block(pool, &community_block).await?;
 
-    let read_post_listings_with_person_after_block = data
-      .default_post_query(Some(&data.local_user_view))
-      .community_id(Some(data.inserted_community.id))
-      .build()
-      .list(pool)
-      .await?;
+    let read_post_listings_with_person_after_block =
+      Data::default_post_query(Some(&data.local_user_view))
+        .community_id(Some(data.inserted_community.id))
+        .build()
+        .list(pool)
+        .await?;
     // Should be 0 posts after the community block
     assert_eq!(read_post_listings_with_person_after_block, vec![]);
 
@@ -1087,16 +1084,14 @@ mod tests {
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user = inserted_local_user;
 
-    let read_post_listing = data
-      .default_post_query(Some(&data.local_user_view))
+    let read_post_listing = Data::default_post_query(Some(&data.local_user_view))
       .community_id(Some(data.inserted_community.id))
       .build()
       .list(pool)
       .await?;
     assert_eq!(vec![expected_post_with_upvote], read_post_listing);
 
-    let read_liked_post_listing = data
-      .default_post_query(Some(&data.local_user_view))
+    let read_liked_post_listing = Data::default_post_query(Some(&data.local_user_view))
       .community_id(Some(data.inserted_community.id))
       .liked_only(true)
       .build()
@@ -1104,8 +1099,7 @@ mod tests {
       .await?;
     assert_eq!(read_post_listing, read_liked_post_listing);
 
-    let read_disliked_post_listing = data
-      .default_post_query(Some(&data.local_user_view))
+    let read_disliked_post_listing = Data::default_post_query(Some(&data.local_user_view))
       .community_id(Some(data.inserted_community.id))
       .disliked_only(true)
       .build()
@@ -1135,8 +1129,7 @@ mod tests {
     };
     CommunityModerator::join(pool, &form).await?;
 
-    let post_listing = data
-      .default_post_query(Some(&data.local_user_view))
+    let post_listing = Data::default_post_query(Some(&data.local_user_view))
       .community_id(Some(data.inserted_community.id))
       .build()
       .list(pool)
@@ -1181,8 +1174,7 @@ mod tests {
 
     Post::create(pool, &post_spanish).await?;
 
-    let post_listings_all = data
-      .default_post_query(Some(&data.local_user_view))
+    let post_listings_all = Data::default_post_query(Some(&data.local_user_view))
       .build()
       .list(pool)
       .await?;
@@ -1192,8 +1184,7 @@ mod tests {
 
     LocalUserLanguage::update(pool, vec![french_id], data.local_user_view.local_user.id).await?;
 
-    let post_listing_french = data
-      .default_post_query(Some(&data.local_user_view))
+    let post_listing_french = Data::default_post_query(Some(&data.local_user_view))
       .build()
       .list(pool)
       .await?;
@@ -1211,8 +1202,7 @@ mod tests {
       data.local_user_view.local_user.id,
     )
     .await?;
-    let post_listings_french_und = data
-      .default_post_query(Some(&data.local_user_view))
+    let post_listings_french_und = Data::default_post_query(Some(&data.local_user_view))
       .build()
       .list(pool)
       .await?
@@ -1249,8 +1239,7 @@ mod tests {
     .await?;
 
     // Make sure you don't see the removed post in the results
-    let post_listings_no_admin = data
-      .default_post_query(Some(&data.local_user_view))
+    let post_listings_no_admin = Data::default_post_query(Some(&data.local_user_view))
       .build()
       .list(pool)
       .await?;
@@ -1258,8 +1247,7 @@ mod tests {
 
     // Removed bot post is shown to admins on its profile page
     data.local_user_view.local_user.admin = true;
-    let post_listings_is_admin = data
-      .default_post_query(Some(&data.local_user_view))
+    let post_listings_is_admin = Data::default_post_query(Some(&data.local_user_view))
       .creator_id(Some(data.inserted_bot.id))
       .build()
       .list(pool)
@@ -1293,8 +1281,7 @@ mod tests {
       (Some(&data.blocked_local_user_view), false),
       (Some(&data.local_user_view), true),
     ] {
-      let contains_deleted = data
-        .default_post_query(local_user)
+      let contains_deleted = Data::default_post_query(local_user)
         .build()
         .list(pool)
         .await?
@@ -1336,8 +1323,7 @@ mod tests {
     let post_from_blocked_instance = Post::create(pool, &post_form).await?;
 
     // no instance block, should return all posts
-    let post_listings_all = data
-      .default_post_query(Some(&data.local_user_view))
+    let post_listings_all = Data::default_post_query(Some(&data.local_user_view))
       .build()
       .list(pool)
       .await?;
@@ -1354,8 +1340,7 @@ mod tests {
     InstanceBlock::block(pool, &block_form).await?;
 
     // now posts from communities on that instance should be hidden
-    let post_listings_blocked = data
-      .default_post_query(Some(&data.local_user_view))
+    let post_listings_blocked = Data::default_post_query(Some(&data.local_user_view))
       .build()
       .list(pool)
       .await?;
@@ -1366,8 +1351,7 @@ mod tests {
 
     // after unblocking it should return all posts again
     InstanceBlock::unblock(pool, &block_form).await?;
-    let post_listings_blocked = data
-      .default_post_query(Some(&data.local_user_view))
+    let post_listings_blocked = Data::default_post_query(Some(&data.local_user_view))
       .build()
       .list(pool)
       .await?;
@@ -1480,8 +1464,7 @@ mod tests {
     .await?;
 
     // Make sure you don't see the read post in the results
-    let post_listings_hide_read = data
-      .default_post_query(Some(&data.local_user_view))
+    let post_listings_hide_read = Data::default_post_query(Some(&data.local_user_view))
       .build()
       .list(pool)
       .await?;
