@@ -135,6 +135,14 @@ steps:
       - diesel migration redo
     when: *slow_check_paths
 
+  check_db_perf_tool:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+    commands:
+      - ./scripts/db_perf.sh --posts 10 --read-post-pages 1
+    when: *slow_check_paths
+
   cargo_clippy:
     image: *rust_image
     environment:
