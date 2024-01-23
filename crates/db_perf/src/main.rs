@@ -1,5 +1,6 @@
 mod series;
 
+use anyhow::Context;
 use clap::Parser;
 use crate::series::ValuesFromSeries;
 use diesel::{
@@ -25,7 +26,7 @@ use lemmy_db_schema::{
   SortType,
 };
 use lemmy_db_views::{post_view::PostQuery, structs::PaginationCursor};
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyResult, LemmyErrorExt2};
 use std::num::NonZeroU32;
 
 #[derive(Parser, Debug)]
@@ -43,15 +44,12 @@ struct CmdArgs {
 }
 
 #[tokio::main]
-async fn main() -> LemmyResult<()> {
-  if let Err(err) = try_main().await {
-    println!("😂 Error: {err:?}");
-  }
+async fn main() -> anyhow::Result<()> {
+  let mut result = try_main().await.into_anyhow();
   if let Ok(path) = std::env::var("PGDATA") {
-    println!("🪵 query plans and error details written in {path}/log");
+    result = result.with_context(|| format!("Failed to run lemmy_db_perf (more details might be available in {path}/log)"));
   }
-
-  Ok(())
+  result
 }
 
 async fn try_main() -> LemmyResult<()> {
@@ -170,6 +168,10 @@ async fn try_main() -> LemmyResult<()> {
       println!("👀 reached empty page");
       break;
     }
+  }
+
+  if let Ok(path) = std::env::var("PGDATA") {
+    println!("🪵 query plans written in {path}/log");
   }
 
   Ok(())
