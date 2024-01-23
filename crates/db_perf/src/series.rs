@@ -8,6 +8,7 @@ use diesel::{
   AppearsOnTable,
   Expression,
   Insertable,
+  QueryId,
   SelectableExpression,
 };
 
