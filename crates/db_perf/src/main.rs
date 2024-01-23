@@ -168,6 +168,9 @@ async fn try_main() -> LemmyResult<()> {
     }
   }
 
+  // Delete everything, which might prevent problems if this is not run using scripts/db_perf.sh
+  Instance::delete(instance.id).await?;
+
   if let Ok(path) = std::env::var("PGDATA") {
     println!("🪵 query plans written in {path}/log");
   }
