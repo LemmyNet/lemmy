@@ -89,6 +89,8 @@ pub async fn create_site(
     federation_enabled: data.federation_enabled,
     captcha_enabled: data.captcha_enabled,
     captcha_difficulty: data.captcha_difficulty.clone(),
+    content_warning: diesel_option_overwrite(data.content_warning.clone()),
+    auto_expand_images: data.auto_expand_images,
     ..Default::default()
   };
 
@@ -556,6 +558,8 @@ mod tests {
       blocked_instances: None,
       taglines: None,
       registration_mode: site_registration_mode,
+      content_warning: None,
+      auto_expand_images: None,
     }
   }
 }

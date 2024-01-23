@@ -187,6 +187,8 @@ pub struct CreateSite {
   pub blocked_instances: Option<Vec<String>>,
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  pub content_warning: Option<String>,
+  pub auto_expand_images: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -265,6 +267,11 @@ pub struct EditSite {
   pub registration_mode: Option<RegistrationMode>,
   /// Whether to email admins for new reports.
   pub reports_email_admins: Option<bool>,
+  /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
+  /// when the site is first opened by a user.
+  pub content_warning: Option<String>,
+  /// Automatically expand images to full size in the website without manual user action
+  pub auto_expand_images: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

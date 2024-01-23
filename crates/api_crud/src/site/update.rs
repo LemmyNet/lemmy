@@ -90,6 +90,8 @@ pub async fn update_site(
     captcha_enabled: data.captcha_enabled,
     captcha_difficulty: data.captcha_difficulty.clone(),
     reports_email_admins: data.reports_email_admins,
+    content_warning: diesel_option_overwrite(data.content_warning.clone()),
+    auto_expand_images: data.auto_expand_images,
     ..Default::default()
   };
 
@@ -555,6 +557,8 @@ mod tests {
       taglines: None,
       registration_mode: site_registration_mode,
       reports_email_admins: None,
+      content_warning: None,
+      auto_expand_images: None,
     }
   }
 }
