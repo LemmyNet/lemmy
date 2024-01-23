@@ -109,7 +109,7 @@ pub async fn import_settings(
     theme: data.settings.clone().map(|s| s.theme.clone()),
     default_sort_type: data.settings.as_ref().map(|s| s.default_sort_type),
     default_listing_type: data.settings.as_ref().map(|s| s.default_listing_type),
-    interface_language: data.settings.clone().map(|s| s.interface_language.clone()),
+    interface_language: data.settings.clone().map(|s| s.interface_language),
     show_avatars: data.settings.as_ref().map(|s| s.show_avatars),
     send_notifications_to_email: data
       .settings
