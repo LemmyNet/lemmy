@@ -253,6 +253,7 @@ mod tests {
     },
     traits::Crud,
     utils::{build_db_pool_for_tests, DbPool},
+    CommunityVisibility,
   };
   use serial_test::serial;
 
@@ -322,7 +323,7 @@ mod tests {
       pool,
       data.inserted_community.id,
       &CommunityUpdateForm {
-        local_only: Some(true),
+        visibility: Some(CommunityVisibility::LocalOnly),
         ..Default::default()
       },
     )

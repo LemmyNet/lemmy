@@ -131,6 +131,7 @@ pub(crate) mod tests {
       instance::Instance,
     },
     traits::Crud,
+    CommunityVisibility,
   };
   use lemmy_utils::error::LemmyResult;
   use serde::de::DeserializeOwned;
@@ -138,7 +139,7 @@ pub(crate) mod tests {
 
   async fn init(
     deleted: bool,
-    local_only: bool,
+    visibility: CommunityVisibility,
     context: &Data<LemmyContext>,
   ) -> Result<(Instance, Community), LemmyError> {
     let instance =
@@ -149,7 +150,7 @@ pub(crate) mod tests {
       .public_key("pubkey".to_string())
       .instance_id(instance.id)
       .deleted(Some(deleted))
-      .local_only(Some(local_only))
+      .visibility(Some(visibility))
       .build();
     let community = Community::create(&mut context.pool(), &community_form).await?;
     Ok((instance, community))
@@ -173,7 +174,7 @@ pub(crate) mod tests {
     let res = get_apub_community_http(query.into(), context.reset_request_count()).await;
     assert!(res.is_err());
 
-    let (instance, community) = init(false, false, &context).await?;
+    let (instance, community) = init(false, CommunityVisibility::Public, &context).await?;
 
     // fetch valid community
     let query = CommunityQuery {
@@ -206,7 +207,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_get_deleted_community() -> LemmyResult<()> {
     let context = init_context().await?;
-    let (instance, community) = init(true, false, &context).await?;
+    let (instance, community) = init(true, CommunityVisibility::LocalOnly, &context).await?;
 
     // should return tombstone
     let query = CommunityQuery {
@@ -238,7 +239,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_get_local_only_community() -> LemmyResult<()> {
     let context = init_context().await?;
-    let (instance, community) = init(false, true, &context).await?;
+    let (instance, community) = init(false, CommunityVisibility::LocalOnly, &context).await?;
 
     let query = CommunityQuery {
       community_name: community.name.clone(),

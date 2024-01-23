@@ -760,6 +760,7 @@ mod tests {
     },
     traits::{Blockable, Crud, Joinable, Likeable},
     utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
+    CommunityVisibility,
     SortType,
     SubscribedType,
   };
@@ -1547,7 +1548,7 @@ mod tests {
         shared_inbox_url: inserted_community.shared_inbox_url.clone(),
         moderators_url: inserted_community.moderators_url.clone(),
         featured_url: inserted_community.featured_url.clone(),
-        local_only: false,
+        visibility: CommunityVisibility::Public,
       },
       counts: PostAggregates {
         post_id: inserted_post.id,
@@ -1586,7 +1587,7 @@ mod tests {
       pool,
       data.inserted_community.id,
       &CommunityUpdateForm {
-        local_only: Some(true),
+        visibility: Some(CommunityVisibility::LocalOnly),
         ..Default::default()
       },
     )

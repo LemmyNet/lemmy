@@ -430,6 +430,7 @@ mod tests {
     },
     traits::{Blockable, Crud, Joinable, Likeable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
+    CommunityVisibility,
     SubscribedType,
   };
   use pretty_assertions::assert_eq;
@@ -1056,7 +1057,7 @@ mod tests {
         shared_inbox_url: data.inserted_community.shared_inbox_url.clone(),
         moderators_url: data.inserted_community.moderators_url.clone(),
         featured_url: data.inserted_community.featured_url.clone(),
-        local_only: false,
+        visibility: CommunityVisibility::Public,
       },
       counts: CommentAggregates {
         comment_id: data.inserted_comment_0.id,
@@ -1082,7 +1083,7 @@ mod tests {
       pool,
       data.inserted_community.id,
       &CommunityUpdateForm {
-        local_only: Some(true),
+        visibility: Some(CommunityVisibility::LocalOnly),
         ..Default::default()
       },
     )
