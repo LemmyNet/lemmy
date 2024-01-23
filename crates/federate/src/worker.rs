@@ -296,7 +296,7 @@ impl InstanceWorker {
     }
     if let Some(t) = &activity.send_community_followers_of {
       if let Some(urls) = self.followed_communities.get(t) {
-        inbox_urls.extend(urls.iter().map(std::clone::Clone::clone));
+        inbox_urls.extend(urls.iter().cloned());
       }
     }
     inbox_urls.extend(
