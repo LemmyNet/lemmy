@@ -45,15 +45,14 @@ async fn get_webfinger_response(
   let community_id: Option<Url> = Community::read_from_name(&mut context.pool(), name, false)
     .await
     .ok()
-    .map(|c| {
+    .and_then(|c| {
       if c.visibility == CommunityVisibility::Public {
         let id: Url = c.actor_id.into();
         Some(id)
       } else {
         None
       }
-    })
-    .flatten();
+    });
 
   // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
   // community last so that it gets prioritized. For Lemmy the order doesnt matter.
