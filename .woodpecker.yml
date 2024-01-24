@@ -182,7 +182,7 @@ steps:
     image: alpine:3
     commands:
       # `|| true` prevents this step from appearing to fail if the server output files don't exist
-      - cat /tmp/lemmy_*.out || true
+      - cat lemmy_*.out || true
       - "# If you can't see all output, then use the download button"
     when:
       status: [failure]
