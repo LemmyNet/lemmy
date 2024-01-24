@@ -34,7 +34,6 @@ steps:
   prepare_repo:
     image: alpine:3
     commands:
-      - "# comment test"
       - apk add git
       - git submodule init
       - git submodule update
@@ -184,6 +183,7 @@ steps:
     commands:
       # `|| true` prevents this step from appearing to fail if the server output files don't exist
       - cat /tmp/lemmy_*.out || true
+      - "# If you can't see all output, then use the download button"
     when:
       status: [failure]
 
