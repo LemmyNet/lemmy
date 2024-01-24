@@ -840,7 +840,7 @@ pub async fn check_vote_permission(
   if community.only_followers_can_vote
     && !CommunityFollower::is_follower(&mut context.pool(), person.id, community.id).await?
   {
-    Err(LemmyErrorType::DownvotesAreDisabled)?
+    Err(LemmyErrorType::OnlyFollowersCanVote)?
   }
   Ok(())
 }
