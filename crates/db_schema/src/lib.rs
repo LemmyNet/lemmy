@@ -139,7 +139,9 @@ pub enum RegistrationMode {
   Open,
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq,
+)]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
@@ -150,6 +152,7 @@ pub enum RegistrationMode {
 /// A post-view mode that changes how multiple post listings look.
 pub enum PostListingMode {
   /// A compact, list-type view.
+  #[default]
   List,
   /// A larger card-type view.
   Card,

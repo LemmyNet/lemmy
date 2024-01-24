@@ -90,7 +90,7 @@ pub async fn create_site(
     captcha_enabled: data.captcha_enabled,
     captcha_difficulty: data.captcha_difficulty.clone(),
     content_warning: diesel_option_overwrite(data.content_warning.clone()),
-    auto_expand_images: data.auto_expand_images,
+    default_post_listing_mode: data.default_post_listing_mode,
     ..Default::default()
   };
 

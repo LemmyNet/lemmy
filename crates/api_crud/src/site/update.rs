@@ -91,7 +91,7 @@ pub async fn update_site(
     captcha_difficulty: data.captcha_difficulty.clone(),
     reports_email_admins: data.reports_email_admins,
     content_warning: diesel_option_overwrite(data.content_warning.clone()),
-    auto_expand_images: data.auto_expand_images,
+    default_post_listing_mode: data.default_post_listing_mode,
     ..Default::default()
   };
 

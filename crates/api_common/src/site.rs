@@ -10,6 +10,7 @@ use lemmy_db_schema::{
   },
   ListingType,
   ModlogActionType,
+  PostListingMode,
   RegistrationMode,
   SearchType,
   SortType,
@@ -188,7 +189,7 @@ pub struct CreateSite {
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
   pub content_warning: Option<String>,
-  pub auto_expand_images: Option<bool>,
+  pub default_post_listing_mode: Option<PostListingMode>,
 }
 
 #[skip_serializing_none]
@@ -270,8 +271,8 @@ pub struct EditSite {
   /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
   /// when the site is first opened by a user.
   pub content_warning: Option<String>,
-  /// Automatically expand images to full size in the website without manual user action
-  pub auto_expand_images: Option<bool>,
+  /// Default value for [LocalUser.post_listing_mode]
+  pub default_post_listing_mode: Option<PostListingMode>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

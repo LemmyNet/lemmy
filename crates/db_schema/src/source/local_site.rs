@@ -3,6 +3,7 @@ use crate::schema::local_site;
 use crate::{
   newtypes::{LocalSiteId, SiteId},
   ListingType,
+  PostListingMode,
   RegistrationMode,
 };
 use chrono::{DateTime, Utc};
@@ -67,8 +68,8 @@ pub struct LocalSite {
   /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
   /// when the site is first opened by a user.
   pub content_warning: Option<String>,
-  /// Automatically expand images to full size in the website without manual user action
-  pub auto_expand_images: bool,
+  /// Default value for [LocalUser.post_listing_mode]
+  pub default_post_listing_mode: PostListingMode,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -99,7 +100,7 @@ pub struct LocalSiteInsertForm {
   pub reports_email_admins: Option<bool>,
   pub federation_signed_fetch: Option<bool>,
   pub content_warning: Option<String>,
-  pub auto_expand_images: Option<bool>,
+  pub default_post_listing_mode: Option<PostListingMode>,
 }
 
 #[derive(Clone, Default)]
@@ -128,5 +129,5 @@ pub struct LocalSiteUpdateForm {
   pub updated: Option<Option<DateTime<Utc>>>,
   pub federation_signed_fetch: Option<bool>,
   pub content_warning: Option<Option<String>>,
-  pub auto_expand_images: Option<bool>,
+  pub default_post_listing_mode: Option<PostListingMode>,
 }

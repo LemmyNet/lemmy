@@ -345,6 +345,7 @@ diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::ListingTypeEnum;
     use super::sql_types::RegistrationModeEnum;
+    use super::sql_types::PostListingModeEnum;
 
     local_site (id) {
         id -> Int4,
@@ -373,7 +374,7 @@ diesel::table! {
         reports_email_admins -> Bool,
         federation_signed_fetch -> Bool,
         content_warning -> Nullable<Text>,
-        auto_expand_images -> Bool,
+        default_post_listing_mode -> PostListingModeEnum,
     }
 }
 
