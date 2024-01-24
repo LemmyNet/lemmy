@@ -34,7 +34,6 @@ ts-rs = { workspace = true, optional = true }
 chrono.workspace = true
 strum = { workspace = true }
 strum_macros = { workspace = true }
-typed-builder = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

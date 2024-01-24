@@ -61,6 +61,7 @@ pub async fn create_site(
     inbox_url,
     private_key: Some(Some(keypair.private_key)),
     public_key: Some(keypair.public_key),
+    content_warning: diesel_option_overwrite(data.content_warning.clone()),
     ..Default::default()
   };
 
@@ -89,7 +90,6 @@ pub async fn create_site(
     federation_enabled: data.federation_enabled,
     captcha_enabled: data.captcha_enabled,
     captcha_difficulty: data.captcha_difficulty.clone(),
-    content_warning: diesel_option_overwrite(data.content_warning.clone()),
     default_post_listing_mode: data.default_post_listing_mode,
     ..Default::default()
   };
@@ -559,7 +559,7 @@ mod tests {
       taglines: None,
       registration_mode: site_registration_mode,
       content_warning: None,
-      auto_expand_images: None,
+      default_post_listing_mode: None,
     }
   }
 }

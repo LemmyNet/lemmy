@@ -6,11 +6,12 @@ use lemmy_api_common::{
   person::{GetPersonDetails, GetPersonDetailsResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::{
-  source::{local_site::LocalSite, person::Person},
-  utils::post_to_comment_sort_type,
+use lemmy_db_schema::{source::person::Person, utils::post_to_comment_sort_type};
+use lemmy_db_views::{
+  comment_view::CommentQuery,
+  post_view::PostQuery,
+  structs::{LocalUserView, SiteView},
 };
-use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery, structs::LocalUserView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
 
@@ -25,9 +26,9 @@ pub async fn read_person(
     Err(LemmyErrorType::NoIdGiven)?
   }
 
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?;
 
-  check_private_instance(&local_user_view, &local_site)?;
+  check_private_instance(&local_user_view, &local_site.local_site)?;
 
   let person_details_id = match data.person_id {
     Some(id) => id,
@@ -60,18 +61,18 @@ pub async fn read_person(
     None
   };
 
-  let posts = PostQuery::builder()
-    .local_site(local_site)
-    .local_user(local_user_view.as_ref())
-    .sort(sort)
-    .community_id(community_id)
-    .saved_only(saved_only)
-    .page(page)
-    .limit(limit)
-    .creator_id(creator_id)
-    .build()
-    .list(&mut context.pool())
-    .await?;
+  let posts = PostQuery {
+    sort,
+    saved_only,
+    local_user: local_user_view.as_ref(),
+    community_id,
+    page,
+    limit,
+    creator_id,
+    ..Default::default()
+  }
+  .list(&local_site.site, &mut context.pool())
+  .await?;
 
   let comments = CommentQuery {
     local_user: local_user_view.as_ref(),

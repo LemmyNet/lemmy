@@ -10,10 +10,10 @@ use lemmy_api_common::{
   post::{GetPosts, GetPostsResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
+use lemmy_db_schema::source::community::Community;
 use lemmy_db_views::{
   post_view::PostQuery,
-  structs::{LocalUserView, PaginationCursor},
+  structs::{LocalUserView, PaginationCursor, SiteView},
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
@@ -23,9 +23,9 @@ pub async fn list_posts(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetPostsResponse>, LemmyError> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?;
 
-  check_private_instance(&local_user_view, &local_site)?;
+  check_private_instance(&local_user_view, &local_site.local_site)?;
 
   let sort = data.sort;
 
@@ -47,7 +47,7 @@ pub async fn list_posts(
 
   let listing_type = Some(listing_type_with_default(
     data.type_,
-    &local_site,
+    &local_site.local_site,
     community_id,
   )?);
   // parse pagination token
@@ -57,22 +57,22 @@ pub async fn list_posts(
     None
   };
 
-  let posts = PostQuery::builder()
-    .local_site(local_site)
-    .local_user(local_user_view.as_ref())
-    .listing_type(listing_type)
-    .sort(sort)
-    .community_id(community_id)
-    .saved_only(saved_only)
-    .liked_only(liked_only)
-    .disliked_only(disliked_only)
-    .page(page)
-    .page_after(page_after)
-    .limit(limit)
-    .build()
-    .list(&mut context.pool())
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
+  let posts = PostQuery {
+    local_user: local_user_view.as_ref(),
+    listing_type,
+    sort,
+    community_id,
+    saved_only,
+    liked_only,
+    disliked_only,
+    page,
+    page_after,
+    limit,
+    ..Default::default()
+  }
+  .list(&local_site.site, &mut context.pool())
+  .await
+  .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
 
   // if this page wasn't empty, then there is a next page after the last post on this page
   let next_page = posts.last().map(PaginationCursor::after_post);

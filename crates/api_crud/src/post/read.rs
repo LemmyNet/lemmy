@@ -6,12 +6,12 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
-  source::{comment::Comment, local_site::LocalSite, post::Post},
+  source::{comment::Comment, post::Post},
   traits::Crud,
 };
 use lemmy_db_views::{
   post_view::PostQuery,
-  structs::{LocalUserView, PostView},
+  structs::{LocalUserView, PostView, SiteView},
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
@@ -22,9 +22,9 @@ pub async fn get_post(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetPostResponse>, LemmyError> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?;
 
-  check_private_instance(&local_user_view, &local_site)?;
+  check_private_instance(&local_user_view, &local_site.local_site)?;
 
   let person_id = local_user_view.as_ref().map(|u| u.person.id);
 
@@ -89,12 +89,12 @@ pub async fn get_post(
 
   // Fetch the cross_posts
   let cross_posts = if let Some(url) = &post_view.post.url {
-    let mut x_posts = PostQuery::builder()
-      .local_site(local_site)
-      .url_search(Some(url.inner().as_str().into()))
-      .build()
-      .list(&mut context.pool())
-      .await?;
+    let mut x_posts = PostQuery {
+      url_search: Some(url.inner().as_str().into()),
+      ..Default::default()
+    }
+    .list(&local_site.site, &mut context.pool())
+    .await?;
 
     // Don't return this post as one of the cross_posts
     x_posts.retain(|x| x.post.id != post_id);

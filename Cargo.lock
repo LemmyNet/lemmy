@@ -2708,7 +2708,7 @@ dependencies = [
  "tokio",
  "tracing",
  "ts-rs",
- "typed-builder",
+ "url",
 ]
 
 [[package]]
@@ -2727,7 +2727,6 @@ dependencies = [
  "strum_macros",
  "tokio",
  "ts-rs",
- "typed-builder",
 ]
 
 [[package]]

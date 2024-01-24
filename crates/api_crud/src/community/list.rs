@@ -4,8 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_private_instance, is_admin},
 };
-use lemmy_db_schema::source::local_site::LocalSite;
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_db_views_actor::community_view::CommunityQuery;
 use lemmy_utils::error::LemmyError;
 
@@ -15,13 +14,13 @@ pub async fn list_communities(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> Result<Json<ListCommunitiesResponse>, LemmyError> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?;
   let is_admin = local_user_view
     .as_ref()
     .map(|luv| is_admin(luv).is_ok())
     .unwrap_or_default();
 
-  check_private_instance(&local_user_view, &local_site)?;
+  check_private_instance(&local_user_view, &local_site.local_site)?;
 
   let sort = data.sort;
   let listing_type = data.type_;
@@ -29,18 +28,18 @@ pub async fn list_communities(
   let page = data.page;
   let limit = data.limit;
   let local_user = local_user_view.map(|l| l.local_user);
-  let communities = CommunityQuery::builder()
-    .local_site(local_site)
-    .listing_type(listing_type)
-    .show_nsfw(show_nsfw)
-    .sort(sort)
-    .local_user(local_user.as_ref())
-    .page(page)
-    .limit(limit)
-    .is_mod_or_admin(is_admin)
-    .build()
-    .list(&mut context.pool())
-    .await?;
+  let communities = CommunityQuery {
+    listing_type,
+    show_nsfw,
+    sort,
+    local_user: local_user.as_ref(),
+    page,
+    limit,
+    is_mod_or_admin: is_admin,
+    ..Default::default()
+  }
+  .list(&local_site.site, &mut context.pool())
+  .await?;
 
   // Return the jwt
   Ok(Json(ListCommunitiesResponse { communities }))

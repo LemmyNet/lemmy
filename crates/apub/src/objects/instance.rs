@@ -102,6 +102,7 @@ impl Object for ApubSite {
       outbox: Url::parse(&format!("{}/site_outbox", self.actor_id))?,
       public_key: self.public_key(),
       language,
+      content_warning: self.content_warning.clone(),
       published: self.published,
       updated: self.updated,
     };
@@ -145,6 +146,7 @@ impl Object for ApubSite {
       public_key: Some(apub.public_key.public_key_pem.clone()),
       private_key: None,
       instance_id: instance.id,
+      content_warning: apub.content_warning,
     };
     let languages = LanguageTag::to_language_id_multiple(apub.language, &mut data.pool()).await?;
 

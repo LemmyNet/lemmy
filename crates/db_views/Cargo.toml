@@ -37,7 +37,7 @@ serde_with = { workspace = true }
 tracing = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
-typed-builder = { workspace = true }
+url = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

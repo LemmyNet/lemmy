@@ -1,4 +1,4 @@
-ALTER TABLE local_site
+ALTER TABLE site
     ADD COLUMN content_warning text;
 
 ALTER TABLE local_site

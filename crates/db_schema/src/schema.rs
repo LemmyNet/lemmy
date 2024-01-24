@@ -373,7 +373,6 @@ diesel::table! {
         registration_mode -> RegistrationModeEnum,
         reports_email_admins -> Bool,
         federation_signed_fetch -> Bool,
-        content_warning -> Nullable<Text>,
         default_post_listing_mode -> PostListingModeEnum,
     }
 }
@@ -855,6 +854,7 @@ diesel::table! {
         private_key -> Nullable<Text>,
         public_key -> Text,
         instance_id -> Int4,
+        content_warning -> Nullable<Text>,
     }
 }
 

@@ -37,7 +37,7 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  source::local_site::LocalSite,
+  source::site::Site,
   utils::{
     functions::coalesce,
     fuzzy_search,
@@ -54,7 +54,6 @@ use lemmy_db_schema::{
   SortType,
 };
 use tracing::debug;
-use typed_builder::TypedBuilder;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Ord {
@@ -86,7 +85,7 @@ macro_rules! field {
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
-  impl ListFn<'a, PostView, PostQuery<'a>>,
+  impl ListFn<'a, PostView, (PostQuery<'a>, &'a Site)>,
 > {
   let is_creator_banned_from_community = exists(
     community_person_ban::table.filter(
@@ -287,7 +286,7 @@ fn queries<'a>() -> Queries<
       query.first::<PostView>(&mut conn).await
     };
 
-  let list = move |mut conn: DbConn<'a>, options: PostQuery<'a>| async move {
+  let list = move |mut conn: DbConn<'a>, (options, site): (PostQuery<'a>, &'a Site)| async move {
     let my_person_id = options.local_user.map(|l| l.person.id);
     let my_local_user_id = options.local_user.map(|l| l.local_user.id);
 
@@ -386,7 +385,7 @@ fn queries<'a>() -> Queries<
     }
 
     // If there is a content warning, show nsfw content by default.
-    let has_content_warning = options.local_site.content_warning.is_some();
+    let has_content_warning = site.content_warning.is_some();
     if !options
       .local_user
       .map(|l| l.local_user.show_nsfw)
@@ -611,11 +610,8 @@ impl PaginationCursor {
 #[derive(Clone)]
 pub struct PaginationCursorData(PostAggregates);
 
-#[derive(Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Clone, Default)]
 pub struct PostQuery<'a> {
-  #[builder(!default)]
-  pub local_site: LocalSite,
   pub listing_type: Option<ListingType>,
   pub sort: Option<SortType>,
   pub creator_id: Option<PersonId>,
@@ -637,6 +633,7 @@ pub struct PostQuery<'a> {
 impl<'a> PostQuery<'a> {
   async fn prefetch_upper_bound_for_page_before(
     &self,
+    site: &Site,
     pool: &mut DbPool<'_>,
   ) -> Result<Option<PostQuery<'a>>, Error> {
     // first get one page for the most popular community to get an upper bound for the the page end for the real query
@@ -687,11 +684,14 @@ impl<'a> PostQuery<'a> {
     let mut v = queries()
       .list(
         pool,
-        PostQuery {
-          community_id: Some(largest_subscribed),
-          community_id_just_for_prefetch: true,
-          ..self.clone()
-        },
+        (
+          PostQuery {
+            community_id: Some(largest_subscribed),
+            community_id_just_for_prefetch: true,
+            ..self.clone()
+          },
+          site,
+        ),
       )
       .await?;
     // take last element of array. if this query returned less than LIMIT elements,
@@ -707,19 +707,22 @@ impl<'a> PostQuery<'a> {
     }
   }
 
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     if self.listing_type == Some(ListingType::Subscribed)
       && self.community_id.is_none()
       && self.local_user.is_some()
       && self.page_before_or_equal.is_none()
     {
-      if let Some(query) = self.prefetch_upper_bound_for_page_before(pool).await? {
-        queries().list(pool, query).await
+      if let Some(query) = self
+        .prefetch_upper_bound_for_page_before(site, pool)
+        .await?
+      {
+        queries().list(pool, (query, site)).await
       } else {
         Ok(vec![])
       }
     } else {
-      queries().list(pool, self).await
+      queries().list(pool, (self, site)).await
     }
   }
 }
@@ -727,7 +730,7 @@ impl<'a> PostQuery<'a> {
 #[cfg(test)]
 mod tests {
   use crate::{
-    post_view::{PaginationCursorData, PostQuery, PostQueryBuilder, PostView},
+    post_view::{PaginationCursorData, PostQuery, PostView},
     structs::LocalUserView,
   };
   use chrono::Utc;
@@ -743,11 +746,11 @@ mod tests {
       instance::Instance,
       instance_block::{InstanceBlock, InstanceBlockForm},
       language::Language,
-      local_site::LocalSite,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
+      site::Site,
     },
     traits::{Blockable, Crud, Joinable, Likeable},
     utils::{build_db_pool, DbPool, RANK_DEFAULT},
@@ -758,6 +761,7 @@ mod tests {
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::{collections::HashSet, time::Duration};
+  use url::Url;
 
   const POST_BY_BLOCKED_PERSON: &str = "post by blocked person";
   const POST_BY_BOT: &str = "post by bot";
@@ -775,37 +779,16 @@ mod tests {
     inserted_community: Community,
     inserted_post: Post,
     inserted_bot_post: Post,
+    site: Site,
   }
 
   impl Data {
-    #[allow(clippy::type_complexity)]
-    fn default_post_query(
-      local_user: Option<&LocalUserView>,
-    ) -> PostQueryBuilder<
-      '_,
-      (
-        (LocalSite,),
-        (),
-        (Option<SortType>,),
-        (),
-        (),
-        (),
-        (Option<&LocalUserView>,),
-        (),
-        (),
-        (),
-        (),
-        (),
-        (),
-        (),
-        (),
-        (),
-      ),
-    > {
-      PostQuery::builder()
-        .local_site(Default::default())
-        .sort(Some(SortType::New))
-        .local_user(local_user)
+    fn default_post_query(&self) -> PostQuery<'_> {
+      PostQuery {
+        sort: Some(SortType::New),
+        local_user: Some(&self.local_user_view),
+        ..Default::default()
+      }
     }
   }
 
@@ -906,6 +889,24 @@ mod tests {
       counts: Default::default(),
     };
 
+    let site = Site {
+      id: Default::default(),
+      name: String::new(),
+      sidebar: None,
+      published: Default::default(),
+      updated: None,
+      icon: None,
+      banner: None,
+      description: None,
+      actor_id: Url::parse("http://example.com")?.into(),
+      last_refreshed_at: Default::default(),
+      inbox_url: Url::parse("http://example.com")?.into(),
+      private_key: None,
+      public_key: String::new(),
+      instance_id: Default::default(),
+      content_warning: None,
+    };
+
     Ok(Data {
       inserted_instance,
       local_user_view,
@@ -914,6 +915,7 @@ mod tests {
       inserted_community,
       inserted_post,
       inserted_bot_post,
+      site,
     })
   }
 
@@ -932,11 +934,12 @@ mod tests {
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user = inserted_local_user;
 
-    let read_post_listing = Data::default_post_query(Some(&data.local_user_view))
-      .community_id(Some(data.inserted_community.id))
-      .build()
-      .list(pool)
-      .await?;
+    let read_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
 
     let post_listing_single_with_person = PostView::read(
       pool,
@@ -966,11 +969,12 @@ mod tests {
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user = inserted_local_user;
 
-    let post_listings_with_bots = Data::default_post_query(Some(&data.local_user_view))
-      .community_id(Some(data.inserted_community.id))
-      .build()
-      .list(pool)
-      .await?;
+    let post_listings_with_bots = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
     // should include bot post which has "undetermined" language
     assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_with_bots));
 
@@ -984,11 +988,13 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let read_post_listing_multiple_no_person = Data::default_post_query(None)
-      .community_id(Some(data.inserted_community.id))
-      .build()
-      .list(pool)
-      .await?;
+    let read_post_listing_multiple_no_person = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: None,
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
 
     let read_post_listing_single_no_person =
       PostView::read(pool, data.inserted_post.id, None, false).await?;
@@ -1026,12 +1032,12 @@ mod tests {
     };
     CommunityBlock::block(pool, &community_block).await?;
 
-    let read_post_listings_with_person_after_block =
-      Data::default_post_query(Some(&data.local_user_view))
-        .community_id(Some(data.inserted_community.id))
-        .build()
-        .list(pool)
-        .await?;
+    let read_post_listings_with_person_after_block = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
     // Should be 0 posts after the community block
     assert_eq!(read_post_listings_with_person_after_block, vec![]);
 
@@ -1084,27 +1090,30 @@ mod tests {
       LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user = inserted_local_user;
 
-    let read_post_listing = Data::default_post_query(Some(&data.local_user_view))
-      .community_id(Some(data.inserted_community.id))
-      .build()
-      .list(pool)
-      .await?;
+    let read_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
     assert_eq!(vec![expected_post_with_upvote], read_post_listing);
 
-    let read_liked_post_listing = Data::default_post_query(Some(&data.local_user_view))
-      .community_id(Some(data.inserted_community.id))
-      .liked_only(true)
-      .build()
-      .list(pool)
-      .await?;
+    let read_liked_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      liked_only: true,
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
     assert_eq!(read_post_listing, read_liked_post_listing);
 
-    let read_disliked_post_listing = Data::default_post_query(Some(&data.local_user_view))
-      .community_id(Some(data.inserted_community.id))
-      .disliked_only(true)
-      .build()
-      .list(pool)
-      .await?;
+    let read_disliked_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      disliked_only: true,
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
     assert_eq!(read_disliked_post_listing, vec![]);
 
     let like_removed =
@@ -1129,14 +1138,15 @@ mod tests {
     };
     CommunityModerator::join(pool, &form).await?;
 
-    let post_listing = Data::default_post_query(Some(&data.local_user_view))
-      .community_id(Some(data.inserted_community.id))
-      .build()
-      .list(pool)
-      .await?
-      .into_iter()
-      .map(|p| (p.creator.name, p.creator_is_moderator, p.creator_is_admin))
-      .collect::<Vec<_>>();
+    let post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?
+    .into_iter()
+    .map(|p| (p.creator.name, p.creator_is_moderator, p.creator_is_admin))
+    .collect::<Vec<_>>();
 
     let expected_post_listing = vec![
       ("mybot".to_owned(), false, false),
@@ -1174,20 +1184,14 @@ mod tests {
 
     Post::create(pool, &post_spanish).await?;
 
-    let post_listings_all = Data::default_post_query(Some(&data.local_user_view))
-      .build()
-      .list(pool)
-      .await?;
+    let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
 
     // no language filters specified, all posts should be returned
     assert_eq!(vec![EL_POSTO, POST_BY_BOT, POST], names(&post_listings_all));
 
     LocalUserLanguage::update(pool, vec![french_id], data.local_user_view.local_user.id).await?;
 
-    let post_listing_french = Data::default_post_query(Some(&data.local_user_view))
-      .build()
-      .list(pool)
-      .await?;
+    let post_listing_french = data.default_post_query().list(&data.site, pool).await?;
 
     // only one post in french and one undetermined should be returned
     assert_eq!(vec![POST_BY_BOT, POST], names(&post_listing_french));
@@ -1202,9 +1206,9 @@ mod tests {
       data.local_user_view.local_user.id,
     )
     .await?;
-    let post_listings_french_und = Data::default_post_query(Some(&data.local_user_view))
-      .build()
-      .list(pool)
+    let post_listings_french_und = data
+      .default_post_query()
+      .list(&data.site, pool)
       .await?
       .into_iter()
       .map(|p| (p.post.name, p.post.language_id))
@@ -1239,19 +1243,17 @@ mod tests {
     .await?;
 
     // Make sure you don't see the removed post in the results
-    let post_listings_no_admin = Data::default_post_query(Some(&data.local_user_view))
-      .build()
-      .list(pool)
-      .await?;
+    let post_listings_no_admin = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(vec![POST], names(&post_listings_no_admin));
 
     // Removed bot post is shown to admins on its profile page
     data.local_user_view.local_user.admin = true;
-    let post_listings_is_admin = Data::default_post_query(Some(&data.local_user_view))
-      .creator_id(Some(data.inserted_bot.id))
-      .build()
-      .list(pool)
-      .await?;
+    let post_listings_is_admin = PostQuery {
+      creator_id: Some(data.inserted_bot.id),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
     assert_eq!(vec![POST_BY_BOT], names(&post_listings_is_admin));
 
     cleanup(data, pool).await
@@ -1281,12 +1283,14 @@ mod tests {
       (Some(&data.blocked_local_user_view), false),
       (Some(&data.local_user_view), true),
     ] {
-      let contains_deleted = Data::default_post_query(local_user)
-        .build()
-        .list(pool)
-        .await?
-        .iter()
-        .any(|p| p.post.id == data.inserted_post.id);
+      let contains_deleted = PostQuery {
+        local_user,
+        ..data.default_post_query()
+      }
+      .list(&data.site, pool)
+      .await?
+      .iter()
+      .any(|p| p.post.id == data.inserted_post.id);
 
       assert_eq!(expect_contains_deleted, contains_deleted);
     }
@@ -1323,10 +1327,7 @@ mod tests {
     let post_from_blocked_instance = Post::create(pool, &post_form).await?;
 
     // no instance block, should return all posts
-    let post_listings_all = Data::default_post_query(Some(&data.local_user_view))
-      .build()
-      .list(pool)
-      .await?;
+    let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(
       vec![POST_FROM_BLOCKED_INSTANCE, POST_BY_BOT, POST],
       names(&post_listings_all)
@@ -1340,10 +1341,7 @@ mod tests {
     InstanceBlock::block(pool, &block_form).await?;
 
     // now posts from communities on that instance should be hidden
-    let post_listings_blocked = Data::default_post_query(Some(&data.local_user_view))
-      .build()
-      .list(pool)
-      .await?;
+    let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_blocked));
     assert!(post_listings_blocked
       .iter()
@@ -1351,10 +1349,7 @@ mod tests {
 
     // after unblocking it should return all posts again
     InstanceBlock::unblock(pool, &block_form).await?;
-    let post_listings_blocked = Data::default_post_query(Some(&data.local_user_view))
-      .build()
-      .list(pool)
-      .await?;
+    let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(
       vec![POST_FROM_BLOCKED_INSTANCE, POST_BY_BOT, POST],
       names(&post_listings_blocked)
@@ -1411,15 +1406,15 @@ mod tests {
     let mut listed_post_ids = vec![];
     let mut page_after = None;
     loop {
-      let post_listings = PostQuery::builder()
-        .local_site(LocalSite::default())
-        .community_id(Some(inserted_community.id))
-        .sort(Some(SortType::MostComments))
-        .limit(Some(10))
-        .page_after(page_after)
-        .build()
-        .list(pool)
-        .await?;
+      let post_listings = PostQuery {
+        community_id: Some(inserted_community.id),
+        sort: Some(SortType::MostComments),
+        limit: Some(10),
+        page_after,
+        ..Default::default()
+      }
+      .list(&data.site, pool)
+      .await?;
 
       listed_post_ids.extend(post_listings.iter().map(|p| p.post.id));
 
@@ -1464,10 +1459,7 @@ mod tests {
     .await?;
 
     // Make sure you don't see the read post in the results
-    let post_listings_hide_read = Data::default_post_query(Some(&data.local_user_view))
-      .build()
-      .list(pool)
-      .await?;
+    let post_listings_hide_read = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(vec![POST], names(&post_listings_hide_read));
 
     cleanup(data, pool).await

@@ -20,16 +20,20 @@ use lemmy_db_schema::{
     instance_block,
     local_user,
   },
-  source::{community::CommunityFollower, local_site::LocalSite, local_user::LocalUser},
+  source::{
+    community::CommunityFollower,
+    local_site::LocalSite,
+    local_user::LocalUser,
+    site::Site,
+  },
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
 };
-use typed_builder::TypedBuilder;
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, bool)>,
-  impl ListFn<'a, CommunityView, CommunityQuery<'a>>,
+  impl ListFn<'a, CommunityView, (CommunityQuery<'a>, &'a Site)>,
 > {
   let all_joins = |query: community::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
     // The left join below will return None in this case
@@ -91,7 +95,7 @@ fn queries<'a>() -> Queries<
     query.first::<CommunityView>(&mut conn).await
   };
 
-  let list = move |mut conn: DbConn<'a>, options: CommunityQuery<'a>| async move {
+  let list = move |mut conn: DbConn<'a>, (options, site): (CommunityQuery<'a>, &'a Site)| async move {
     use SortType::*;
 
     let my_person_id = options.local_user.map(|l| l.person_id);
@@ -155,7 +159,7 @@ fn queries<'a>() -> Queries<
     } else {
       // No person in request, only show nsfw communities if show_nsfw is passed into request or if
       // site has content warning.
-      let has_content_warning = options.local_site.content_warning.is_some();
+      let has_content_warning = site.content_warning.is_some();
       if !options.show_nsfw && !has_content_warning {
         query = query.filter(community::nsfw.eq(false));
       }
@@ -215,10 +219,8 @@ impl CommunityView {
   }
 }
 
-#[derive(TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Default)]
 pub struct CommunityQuery<'a> {
-  #[builder(!default)]
   pub local_site: LocalSite,
   pub listing_type: Option<ListingType>,
   pub sort: Option<SortType>,
@@ -231,7 +233,7 @@ pub struct CommunityQuery<'a> {
 }
 
 impl<'a> CommunityQuery<'a> {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommunityView>, Error> {
-    queries().list(pool, self).await
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommunityView>, Error> {
+    queries().list(pool, (self, site)).await
   }
 }

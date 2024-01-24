@@ -65,9 +65,6 @@ pub struct LocalSite {
   /// Whether to sign outgoing Activitypub fetches with private key of local instance. Some
   /// Fediverse instances and platforms require this.
   pub federation_signed_fetch: bool,
-  /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
-  /// when the site is first opened by a user.
-  pub content_warning: Option<String>,
   /// Default value for [LocalUser.post_listing_mode]
   pub default_post_listing_mode: PostListingMode,
 }
@@ -99,7 +96,6 @@ pub struct LocalSiteInsertForm {
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
   pub federation_signed_fetch: Option<bool>,
-  pub content_warning: Option<String>,
   pub default_post_listing_mode: Option<PostListingMode>,
 }
 
@@ -128,6 +124,5 @@ pub struct LocalSiteUpdateForm {
   pub reports_email_admins: Option<bool>,
   pub updated: Option<Option<DateTime<Utc>>>,
   pub federation_signed_fetch: Option<bool>,
-  pub content_warning: Option<Option<String>>,
   pub default_post_listing_mode: Option<PostListingMode>,
 }

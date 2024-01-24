@@ -1,4 +1,4 @@
-ALTER TABLE local_site
+ALTER TABLE site
     DROP COLUMN content_warning;
 
 ALTER TABLE local_site
