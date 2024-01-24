@@ -101,7 +101,7 @@ pub struct PostReportView {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct PaginationCursor(pub(crate) String);
+pub struct PaginationCursor(pub String);
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
