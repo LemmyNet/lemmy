@@ -49,29 +49,29 @@ echo "$PWD"
 echo "start alpha"
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_alpha.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_alpha" \
-  target/lemmy_server >/tmp/lemmy_alpha.out 2>&1 &
+  target/lemmy_server >lemmy_alpha.out 2>&1 &
 
 echo "start beta"
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_beta.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_beta" \
-  target/lemmy_server >/tmp/lemmy_beta.out 2>&1 &
+  target/lemmy_server >lemmy_beta.out 2>&1 &
 
 echo "start gamma"
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_gamma.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_gamma" \
-  target/lemmy_server >/tmp/lemmy_gamma.out 2>&1 &
+  target/lemmy_server >lemmy_gamma.out 2>&1 &
 
 echo "start delta"
 # An instance with only an allowlist for beta
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_delta.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_delta" \
-  target/lemmy_server >/tmp/lemmy_delta.out 2>&1 &
+  target/lemmy_server >lemmy_delta.out 2>&1 &
 
 echo "start epsilon"
 # An instance who has a blocklist, with lemmy-alpha blocked
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_epsilon.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_epsilon" \
-  target/lemmy_server >/tmp/lemmy_epsilon.out 2>&1 &
+  target/lemmy_server >lemmy_epsilon.out 2>&1 &
 
 echo "wait for all instances to start"
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-alpha:8541/api/v3/site')" != "200" ]]; do sleep 1; done
