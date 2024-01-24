@@ -97,6 +97,7 @@ pub struct BanFromCommunity {
   pub ban: bool,
   pub remove_data: Option<bool>,
   pub reason: Option<String>,
+  /// A time that the ban will expire, in unix epoch seconds.
   pub expires: Option<i64>,
 }
 
