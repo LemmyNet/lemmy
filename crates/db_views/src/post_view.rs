@@ -45,6 +45,7 @@ use lemmy_db_schema::{
     get_conn,
     limit_and_offset,
     now,
+    Commented,
     DbConn,
     DbPool,
     ListFn,
@@ -257,7 +258,10 @@ fn queries<'a>() -> Queries<
           );
       }
 
-      query.first::<PostView>(&mut conn).await
+      Commented::new(query)
+        .text("PostView::read")
+        .first::<PostView>(&mut conn)
+        .await
     };
 
   let list = move |mut conn: DbConn<'a>, options: PostQuery<'a>| async move {
@@ -500,7 +504,14 @@ fn queries<'a>() -> Queries<
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
-    query.load::<PostView>(&mut conn).await
+    Commented::new(query)
+      .text("PostQuery::list")
+      .text_if(
+        "getting upper bound for next query",
+        options.community_id_just_for_prefetch,
+      )
+      .load::<PostView>(&mut conn)
+      .await
   };
 
   Queries::new(read, list)
