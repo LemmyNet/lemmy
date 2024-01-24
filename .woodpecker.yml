@@ -175,8 +175,8 @@ steps:
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - yarn
-      # Run tests, then show server output if tests fail
-      - yarn api-test || (echo "Output from Lemmy servers:" && cat /tmp/lemmy_*.out)
+      # Run tests. If they fail, then show server output and use `false` to return 1 as exit code.
+      - yarn api-test || (echo "Output from Lemmy servers:" && cat /tmp/lemmy_*.out && false)
     when: *slow_check_paths
 
   publish_release_docker:
