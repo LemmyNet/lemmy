@@ -76,7 +76,7 @@ pub async fn ban_from_site(
       moderator: local_user_view.person,
       banned_user: person_view.person.clone(),
       reason: data.reason.clone(),
-      remove_data: data.remove_data.clone(),
+      remove_data: data.remove_data,
       ban: data.ban,
       expires: data.expires,
     },
