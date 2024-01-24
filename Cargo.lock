@@ -2654,10 +2654,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_db_perf"
+version = "0.19.0"
+dependencies = [
+ "clap",
+ "diesel",
+ "diesel-async",
+ "lemmy_db_schema",
+ "lemmy_db_views",
+ "lemmy_utils",
+ "tokio",
+]
+
+[[package]]
 name = "lemmy_db_schema"
 version = "0.19.3"
 dependencies = [
  "activitypub_federation",
+ "anyhow",
  "async-trait",
  "bcrypt",
  "chrono",

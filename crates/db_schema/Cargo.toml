@@ -76,6 +76,7 @@ tokio-postgres = { workspace = true, optional = true }
 tokio-postgres-rustls = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
 uuid = { workspace = true, features = ["v4"] }
+anyhow = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

@@ -6,6 +6,7 @@ use crate::{
   SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
+use anyhow::Context;
 use chrono::{DateTime, Utc};
 use deadpool::Runtime;
 use diesel::{
@@ -13,6 +14,8 @@ use diesel::{
   deserialize::FromSql,
   helper_types::AsExprOf,
   pg::Pg,
+  query_builder::{Query, QueryFragment},
+  query_dsl::methods::LimitDsl,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
   sql_types::{Text, Timestamptz},
@@ -150,6 +153,67 @@ macro_rules! try_join_with_pool {
   }};
 }
 
+/// Includes an SQL comment before `T`, which can be used to label auto_explain output
+#[derive(QueryId)]
+pub struct Commented<T> {
+  comment: String,
+  inner: T,
+}
+
+impl<T> Commented<T> {
+  pub fn new(inner: T) -> Self {
+    Commented {
+      comment: String::new(),
+      inner,
+    }
+  }
+
+  /// Adds `text` to the comment if `condition` is true
+  pub fn text_if(mut self, text: &str, condition: bool) -> Self {
+    if condition {
+      if !self.comment.is_empty() {
+        self.comment.push_str(", ");
+      }
+      self.comment.push_str(text);
+    }
+    self
+  }
+
+  /// Adds `text` to the comment
+  pub fn text(self, text: &str) -> Self {
+    self.text_if(text, true)
+  }
+}
+
+impl<T: Query> Query for Commented<T> {
+  type SqlType = T::SqlType;
+}
+
+impl<T: QueryFragment<Pg>> QueryFragment<Pg> for Commented<T> {
+  fn walk_ast<'b>(
+    &'b self,
+    mut out: diesel::query_builder::AstPass<'_, 'b, Pg>,
+  ) -> Result<(), DieselError> {
+    for line in self.comment.lines() {
+      out.push_sql("\n-- ");
+      out.push_sql(line);
+    }
+    out.push_sql("\n");
+    self.inner.walk_ast(out.reborrow())
+  }
+}
+
+impl<T: LimitDsl> LimitDsl for Commented<T> {
+  type Output = Commented<T::Output>;
+
+  fn limit(self, limit: i64) -> Self::Output {
+    Commented {
+      comment: self.comment,
+      inner: self.inner.limit(limit),
+    }
+  }
+}
+
 pub fn fuzzy_search(q: &str) -> String {
   let replaced = q.replace('%', "\\%").replace('_', "\\_").replace(' ', "%");
   format!("%{replaced}%")
@@ -275,15 +339,18 @@ impl ServerCertVerifier for NoCertVerifier {
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
-fn run_migrations(db_url: &str) {
+fn run_migrations(db_url: &str) -> Result<(), LemmyError> {
   // Needs to be a sync connection
   let mut conn =
-    PgConnection::establish(db_url).unwrap_or_else(|e| panic!("Error connecting to {db_url}: {e}"));
+    PgConnection::establish(db_url).with_context(|| format!("Error connecting to {db_url}"))?;
+
   info!("Running Database migrations (This may take a long time)...");
-  let _ = &mut conn
+  conn
     .run_pending_migrations(MIGRATIONS)
-    .unwrap_or_else(|e| panic!("Couldn't run DB Migrations: {e}"));
+    .map_err(|e| anyhow::anyhow!("Couldn't run DB Migrations: {e}"))?;
   info!("Database migrations complete.");
+
+  Ok(())
 }
 
 pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
@@ -304,7 +371,7 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
     .runtime(Runtime::Tokio1)
     .build()?;
 
-  run_migrations(&db_url);
+  run_migrations(&db_url)?;
 
   Ok(pool)
 }
