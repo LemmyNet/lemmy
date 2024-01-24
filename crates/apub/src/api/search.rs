@@ -53,7 +53,8 @@ pub async fn search(
     data.community_id
   };
   let creator_id = data.creator_id;
-  let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
+  let local_user = local_user_view.as_ref().map(|luv| &luv.local_user);
+
   match search_type {
     SearchType::Posts => {
       posts = PostQuery {
@@ -90,7 +91,7 @@ pub async fn search(
         sort: (sort),
         listing_type: (listing_type),
         search_term: (Some(q)),
-        local_user: (local_user.as_ref()),
+        local_user,
         is_mod_or_admin: (is_admin),
         page: (page),
         limit: (limit),
@@ -155,7 +156,7 @@ pub async fn search(
           sort: (sort),
           listing_type: (listing_type),
           search_term: (Some(q)),
-          local_user: (local_user.as_ref()),
+          local_user,
           is_mod_or_admin: (is_admin),
           page: (page),
           limit: (limit),

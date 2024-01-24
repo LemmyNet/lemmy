@@ -15,7 +15,7 @@ use lemmy_utils::error::LemmyError;
 use url::Url;
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct ApubCommunityFeatured(Vec<ApubPost>);
+pub(crate) struct ApubCommunityFeatured(());
 
 #[async_trait::async_trait]
 impl Collection for ApubCommunityFeatured {
@@ -86,6 +86,6 @@ impl Collection for ApubCommunityFeatured {
     .await;
 
     // This return value is unused, so just set an empty vec
-    Ok(ApubCommunityFeatured(Vec::new()))
+    Ok(ApubCommunityFeatured(()))
   }
 }

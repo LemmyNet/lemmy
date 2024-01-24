@@ -503,8 +503,14 @@ fn queries<'a>() -> Queries<
     }
 
     let sorts = [
+      // featured posts first
       Some((Ord::Desc, featured_field)),
+      // then use the main sort
       Some(main_sort),
+      // hot rank reaches zero after some days, use publish as fallback. necessary because old
+      // posts can be fetched over federation and inserted with high post id
+      Some((Ord::Desc, field!(published))),
+      // finally use unique post id as tie breaker
       Some((Ord::Desc, field!(post_id))),
     ];
     let sorts_iter = sorts.iter().flatten();

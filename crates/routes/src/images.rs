@@ -58,14 +58,6 @@ struct PictrsParams {
   thumbnail: Option<i32>,
 }
 
-#[derive(Deserialize)]
-enum PictrsPurgeParams {
-  #[serde(rename = "file")]
-  File(String),
-  #[serde(rename = "alias")]
-  Alias(String),
-}
-
 fn adapt_request(
   request: &HttpRequest,
   client: &ClientWithMiddleware,
