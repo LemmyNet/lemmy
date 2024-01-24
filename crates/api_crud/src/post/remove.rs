@@ -57,7 +57,12 @@ pub async fn remove_post(
   ModRemovePost::create(&mut context.pool(), &form).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::RemovePost(post, local_user_view.person.clone(), data.0),
+    SendActivityData::RemovePost(
+      post,
+      local_user_view.person.clone(),
+      data.reason.clone(),
+      data.removed,
+    ),
     &context,
   )
   .await?;

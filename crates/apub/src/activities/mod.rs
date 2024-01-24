@@ -256,13 +256,13 @@ pub async fn match_outgoing_activities(
         )
         .await
       }
-      RemovePost(post, person, data) => {
+      RemovePost(post, person, reason, removed) => {
         send_apub_delete_in_community_new(
           person,
           post.community_id,
           DeletableObjects::Post(post.into()),
-          data.reason.or_else(|| Some(String::new())),
-          data.removed,
+          reason.or_else(|| Some(String::new())),
+          removed,
           context,
         )
         .await
@@ -317,7 +317,25 @@ pub async fn match_outgoing_activities(
       BanFromCommunity(mod_, community_id, target, data) => {
         send_ban_from_community(mod_, community_id, target, data, context).await
       }
-      BanFromSite(mod_, target, data) => send_ban_from_site(mod_, target, data, context).await,
+      BanFromSite {
+        moderator,
+        banned_user,
+        reason,
+        remove_data,
+        ban,
+        expires,
+      } => {
+        send_ban_from_site(
+          moderator,
+          banned_user,
+          reason,
+          remove_data,
+          ban,
+          expires,
+          context,
+        )
+        .await
+      }
       CreatePrivateMessage(pm) => {
         send_create_or_update_pm(pm, CreateOrUpdateType::Create, context).await
       }

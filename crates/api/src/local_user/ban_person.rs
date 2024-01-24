@@ -72,11 +72,14 @@ pub async fn ban_from_site(
   let person_view = PersonView::read(&mut context.pool(), data.person_id).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::BanFromSite(
-      local_user_view.person,
-      person_view.person.clone(),
-      data.0.clone(),
-    ),
+    SendActivityData::BanFromSite {
+      moderator: local_user_view.person,
+      banned_user: person_view.person.clone(),
+      reason: data.reason.clone(),
+      remove_data: data.remove_data.clone(),
+      ban: data.ban,
+      expires: data.expires,
+    },
     &context,
   )
   .await?;

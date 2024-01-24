@@ -1,9 +1,4 @@
-use crate::{
-  community::BanFromCommunity,
-  context::LemmyContext,
-  person::BanPerson,
-  post::{DeletePost, RemovePost},
-};
+use crate::{community::BanFromCommunity, context::LemmyContext, post::DeletePost};
 use activitypub_federation::config::Data;
 use futures::future::BoxFuture;
 use lemmy_db_schema::{
@@ -40,7 +35,7 @@ pub enum SendActivityData {
   CreatePost(Post),
   UpdatePost(Post),
   DeletePost(Post, Person, DeletePost),
-  RemovePost(Post, Person, RemovePost),
+  RemovePost(Post, Person, Option<String>, bool),
   LockPost(Post, Person, bool),
   FeaturePost(Post, Person, bool),
   CreateComment(Comment),
@@ -54,7 +49,14 @@ pub enum SendActivityData {
   RemoveCommunity(Person, Community, Option<String>, bool),
   AddModToCommunity(Person, CommunityId, PersonId, bool),
   BanFromCommunity(Person, CommunityId, Person, BanFromCommunity),
-  BanFromSite(Person, Person, BanPerson),
+  BanFromSite {
+    moderator: Person,
+    banned_user: Person,
+    reason: Option<String>,
+    remove_data: Option<bool>,
+    ban: bool,
+    expires: Option<i64>,
+  },
   CreatePrivateMessage(PrivateMessageView),
   UpdatePrivateMessage(PrivateMessageView),
   DeletePrivateMessage(Person, PrivateMessage, bool),
