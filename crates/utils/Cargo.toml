@@ -39,8 +39,8 @@ http = { workspace = true }
 doku = { workspace = true, features = ["url-2"] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 rosetta-i18n = { workspace = true }
-percent-encoding = { workspace = true }
 tokio = { workspace = true }
+urlencoding = { workspace = true }
 openssl = "0.10.63"
 html2text = "0.6.0"
 deser-hjson = "2.2.4"

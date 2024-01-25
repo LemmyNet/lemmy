@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{EditPrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::local_site_to_slur_regex,
+  utils::{local_site_to_slur_regex, process_markdown},
 };
 use lemmy_db_schema::{
   source::{
@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::{slurs::remove_slurs, validation::is_valid_body_field},
+  utils::validation::is_valid_body_field,
 };
 
 #[tracing::instrument(skip(context))]
@@ -36,7 +36,8 @@ pub async fn update_private_message(
   }
 
   // Doing the update
-  let content = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
+  let slur_regex = local_site_to_slur_regex(&local_site);
+  let content = process_markdown(&data.content, &slur_regex, &context).await?;
   is_valid_body_field(&Some(content.clone()), false)?;
 
   let private_message_id = data.private_message_id;

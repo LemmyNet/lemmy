@@ -2,7 +2,7 @@ use crate::{
   activities::GetActorType,
   check_apub_id_valid,
   local_site_data_cached,
-  objects::instance::fetch_instance_actor_for_object,
+  objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
     objects::{group::Group, Endpoints, LanguageTag},
     ImageObject,
@@ -17,15 +17,24 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{generate_featured_url, generate_moderators_url, generate_outbox_url},
+  utils::{
+    generate_featured_url,
+    generate_moderators_url,
+    generate_outbox_url,
+    local_site_opt_to_slur_regex,
+    process_markdown_opt,
+    proxy_image_link_opt_apub,
+  },
 };
 use lemmy_db_schema::{
   source::{
     activity::ActorType,
     actor_language::CommunityLanguage,
-    community::{Community, CommunityUpdateForm},
+    community::{Community, CommunityInsertForm, CommunityUpdateForm},
+    local_site::LocalSite,
   },
   traits::{ApubActor, Crud},
+  utils::naive_now,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{error::LemmyError, spawn_try_task, utils::markdown::markdown_to_html};
@@ -130,7 +139,38 @@ impl Object for ApubCommunity {
   ) -> Result<ApubCommunity, LemmyError> {
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
-    let form = Group::into_insert_form(group.clone(), instance_id);
+    let local_site = LocalSite::read(&mut context.pool()).await.ok();
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+    let description = read_from_string_or_source_opt(&group.summary, &None, &group.source);
+    let description = process_markdown_opt(&description, slur_regex, context).await?;
+    let icon = proxy_image_link_opt_apub(group.icon.map(|i| i.url), context).await?;
+    let banner = proxy_image_link_opt_apub(group.image.map(|i| i.url), context).await?;
+
+    let form = CommunityInsertForm {
+      name: group.preferred_username.clone(),
+      title: group.name.unwrap_or(group.preferred_username.clone()),
+      description,
+      removed: None,
+      published: group.published,
+      updated: group.updated,
+      deleted: Some(false),
+      nsfw: Some(group.sensitive.unwrap_or(false)),
+      actor_id: Some(group.id.into()),
+      local: Some(false),
+      private_key: None,
+      hidden: None,
+      public_key: group.public_key.public_key_pem,
+      last_refreshed_at: Some(naive_now()),
+      icon,
+      banner,
+      followers_url: Some(group.followers.clone().into()),
+      inbox_url: Some(group.inbox.into()),
+      shared_inbox_url: group.endpoints.map(|e| e.shared_inbox.into()),
+      moderators_url: group.attributed_to.clone().map(Into::into),
+      posting_restricted_to_mods: group.posting_restricted_to_mods,
+      instance_id,
+      featured_url: group.featured.map(Into::into),
+    };
     let languages =
       LanguageTag::to_language_id_multiple(group.language, &mut context.pool()).await?;
 
@@ -212,7 +252,7 @@ impl ApubCommunity {
 pub(crate) mod tests {
   use super::*;
   use crate::{
-    objects::{instance::tests::parse_lemmy_instance, tests::init_context},
+    objects::instance::tests::parse_lemmy_instance,
     protocol::tests::file_to_json_object,
   };
   use activitypub_federation::fetch::collection_id::CollectionId;
@@ -241,7 +281,7 @@ pub(crate) mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_community() -> LemmyResult<()> {
-    let context = init_context().await?;
+    let context = LemmyContext::init_test_context().await;
     let site = parse_lemmy_instance(&context).await?;
     let community = parse_lemmy_community(&context).await?;
 

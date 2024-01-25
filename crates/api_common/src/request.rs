@@ -1,39 +1,91 @@
-use crate::{context::LemmyContext, post::SiteMetadata};
+use crate::{
+  context::LemmyContext,
+  post::{LinkMetadata, OpenGraphData},
+  utils::proxy_image_link,
+};
 use encoding::{all::encodings, DecoderTrap};
 use lemmy_db_schema::newtypes::DbUrl;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
-  settings::structs::Settings,
+  settings::structs::{PictrsImageMode, Settings},
   version::VERSION,
   REQWEST_TIMEOUT,
 };
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
-use reqwest::{Client, ClientBuilder};
+use mime::Mime;
+use reqwest::{header::CONTENT_TYPE, Client, ClientBuilder};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
 use tracing::info;
 use url::Url;
+use urlencoding::encode;
 use webpage::HTML;
 
-/// Fetches the post link html tags (like title, description, image, etc)
+pub fn client_builder(settings: &Settings) -> ClientBuilder {
+  let user_agent = format!(
+    "Lemmy/{}; +{}",
+    VERSION,
+    settings.get_protocol_and_hostname()
+  );
+
+  Client::builder()
+    .user_agent(user_agent.clone())
+    .timeout(REQWEST_TIMEOUT)
+    .connect_timeout(REQWEST_TIMEOUT)
+}
+
+/// Fetches metadata for the given link and optionally generates thumbnail.
 #[tracing::instrument(skip_all)]
-pub async fn fetch_site_metadata(
-  client: &ClientWithMiddleware,
+pub async fn fetch_link_metadata(
   url: &Url,
-) -> Result<SiteMetadata, LemmyError> {
+  generate_thumbnail: bool,
+  context: &LemmyContext,
+) -> Result<LinkMetadata, LemmyError> {
   info!("Fetching site metadata for url: {}", url);
-  let response = client.get(url.as_str()).send().await?;
+  let response = context.client().get(url.as_str()).send().await?;
+
+  let content_type: Option<Mime> = response
+    .headers()
+    .get(CONTENT_TYPE)
+    .and_then(|h| h.to_str().ok())
+    .and_then(|h| h.parse().ok());
 
   // Can't use .text() here, because it only checks the content header, not the actual bytes
   // https://github.com/LemmyNet/lemmy/issues/1964
   let html_bytes = response.bytes().await.map_err(LemmyError::from)?.to_vec();
 
-  let tags = html_to_site_metadata(&html_bytes, url)?;
+  let opengraph_data = extract_opengraph_data(&html_bytes, url).unwrap_or_default();
+  let thumbnail = extract_thumbnail_from_opengraph_data(
+    url,
+    &opengraph_data,
+    &content_type,
+    generate_thumbnail,
+    context,
+  )
+  .await;
 
-  Ok(tags)
+  Ok(LinkMetadata {
+    opengraph_data,
+    content_type: content_type.map(|c| c.to_string()),
+    thumbnail,
+  })
 }
 
-fn html_to_site_metadata(html_bytes: &[u8], url: &Url) -> Result<SiteMetadata, LemmyError> {
+#[tracing::instrument(skip_all)]
+pub async fn fetch_link_metadata_opt(
+  url: Option<&Url>,
+  generate_thumbnail: bool,
+  context: &LemmyContext,
+) -> LinkMetadata {
+  match &url {
+    Some(url) => fetch_link_metadata(url, generate_thumbnail, context)
+      .await
+      .unwrap_or_default(),
+    _ => Default::default(),
+  }
+}
+
+/// Extract site metadata from HTML Opengraph attributes.
+fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> Result<OpenGraphData, LemmyError> {
   let html = String::from_utf8_lossy(html_bytes);
 
   // Make sure the first line is doctype html
@@ -89,7 +141,7 @@ fn html_to_site_metadata(html_bytes: &[u8], url: &Url) -> Result<SiteMetadata, L
     // join also works if the target URL is absolute
     .and_then(|v| url.join(&v.url).ok());
 
-  Ok(SiteMetadata {
+  Ok(OpenGraphData {
     title: og_title.or(page_title),
     description: og_description.or(page_description),
     image: og_image.map(Into::into),
@@ -97,57 +149,46 @@ fn html_to_site_metadata(html_bytes: &[u8], url: &Url) -> Result<SiteMetadata, L
   })
 }
 
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) struct PictrsResponse {
+#[tracing::instrument(skip_all)]
+pub async fn extract_thumbnail_from_opengraph_data(
+  url: &Url,
+  opengraph_data: &OpenGraphData,
+  content_type: &Option<Mime>,
+  generate_thumbnail: bool,
+  context: &LemmyContext,
+) -> Option<DbUrl> {
+  let is_image = content_type.as_ref().unwrap_or(&mime::TEXT_PLAIN).type_() == mime::IMAGE;
+  if generate_thumbnail && is_image {
+    let image_url = opengraph_data
+      .image
+      .as_ref()
+      .map(lemmy_db_schema::newtypes::DbUrl::inner)
+      .unwrap_or(url);
+    generate_pictrs_thumbnail(image_url, context)
+      .await
+      .ok()
+      .map(Into::into)
+  } else {
+    None
+  }
+}
+
+#[derive(Deserialize, Debug)]
+struct PictrsResponse {
   files: Vec<PictrsFile>,
   msg: String,
 }
 
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) struct PictrsFile {
+#[derive(Deserialize, Debug)]
+struct PictrsFile {
   file: String,
   #[allow(dead_code)]
   delete_token: String,
 }
 
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) struct PictrsPurgeResponse {
+#[derive(Deserialize, Debug)]
+struct PictrsPurgeResponse {
   msg: String,
-}
-
-#[tracing::instrument(skip_all)]
-pub(crate) async fn fetch_pictrs(
-  client: &ClientWithMiddleware,
-  settings: &Settings,
-  image_url: &Url,
-) -> Result<PictrsResponse, LemmyError> {
-  let pictrs_config = settings.pictrs_config()?;
-  is_image_content_type(client, image_url).await?;
-
-  if pictrs_config.cache_external_link_previews {
-    // fetch remote non-pictrs images for persistent thumbnail link
-    let fetch_url = format!(
-      "{}image/download?url={}",
-      pictrs_config.url,
-      utf8_percent_encode(image_url.as_str(), NON_ALPHANUMERIC) // TODO this might not be needed
-    );
-
-    let response = client
-      .get(&fetch_url)
-      .timeout(REQWEST_TIMEOUT)
-      .send()
-      .await?;
-
-    let response: PictrsResponse = response.json().await.map_err(LemmyError::from)?;
-
-    if response.msg == "ok" {
-      Ok(response)
-    } else {
-      Err(LemmyErrorType::PictrsResponseError(response.msg))?
-    }
-  } else {
-    Err(LemmyErrorType::PictrsCachingDisabled)?
-  }
 }
 
 /// Purges an image from pictrs
@@ -167,13 +208,6 @@ pub async fn purge_image_from_pictrs(
     .next_back()
     .ok_or(LemmyErrorType::ImageUrlMissingLastPathSegment)?;
 
-  purge_image_from_pictrs_by_alias(alias, context).await
-}
-
-pub async fn purge_image_from_pictrs_by_alias(
-  alias: &str,
-  context: &LemmyContext,
-) -> Result<(), LemmyError> {
   let pictrs_config = context.settings().pictrs_config()?;
   let purge_url = format!("{}internal/purge?alias={}", pictrs_config.url, alias);
 
@@ -190,10 +224,9 @@ pub async fn purge_image_from_pictrs_by_alias(
 
   let response: PictrsPurgeResponse = response.json().await.map_err(LemmyError::from)?;
 
-  if response.msg == "ok" {
-    Ok(())
-  } else {
-    Err(LemmyErrorType::PictrsPurgeResponseError(response.msg))?
+  match response.msg.as_str() {
+    "ok" => Ok(()),
+    _ => Err(LemmyErrorType::PictrsPurgeResponseError(response.msg))?,
   }
 }
 
@@ -217,62 +250,48 @@ pub async fn delete_image_from_pictrs(
   Ok(())
 }
 
-/// Both are options, since the URL might be either an html page, or an image
-/// Returns the SiteMetadata, and an image URL, if there is a picture associated
+/// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
 #[tracing::instrument(skip_all)]
-pub async fn fetch_site_data(
-  client: &ClientWithMiddleware,
-  settings: &Settings,
-  url: Option<&Url>,
-  include_image: bool,
-) -> (Option<SiteMetadata>, Option<DbUrl>) {
-  match &url {
-    Some(url) => {
-      // Fetch metadata
-      // Ignore errors, since it may be an image, or not have the data.
-      // Warning, this may ignore SSL errors
-      let metadata_option = fetch_site_metadata(client, url).await.ok();
-      if !include_image {
-        (metadata_option, None)
-      } else {
-        let thumbnail_url =
-          fetch_pictrs_url_from_site_metadata(client, &metadata_option, settings, url)
-            .await
-            .ok();
-        (metadata_option, thumbnail_url)
-      }
-    }
-    None => (None, None),
+async fn generate_pictrs_thumbnail(
+  image_url: &Url,
+  context: &LemmyContext,
+) -> Result<Url, LemmyError> {
+  let pictrs_config = context.settings().pictrs_config()?;
+
+  if pictrs_config.image_mode() == PictrsImageMode::ProxyAllImages {
+    return Ok(proxy_image_link(image_url.clone(), context).await?.into());
+  }
+
+  // fetch remote non-pictrs images for persistent thumbnail link
+  // TODO: should limit size once supported by pictrs
+  let fetch_url = format!(
+    "{}image/download?url={}",
+    pictrs_config.url,
+    encode(image_url.as_str())
+  );
+
+  let response = context
+    .client()
+    .get(&fetch_url)
+    .timeout(REQWEST_TIMEOUT)
+    .send()
+    .await?;
+
+  let response: PictrsResponse = response.json().await?;
+
+  if response.msg == "ok" {
+    let thumbnail_url = Url::parse(&format!(
+      "{}/pictrs/image/{}",
+      context.settings().get_protocol_and_hostname(),
+      response.files.first().expect("missing pictrs file").file
+    ))?;
+    Ok(thumbnail_url)
+  } else {
+    Err(LemmyErrorType::PictrsResponseError(response.msg))?
   }
 }
 
-async fn fetch_pictrs_url_from_site_metadata(
-  client: &ClientWithMiddleware,
-  metadata_option: &Option<SiteMetadata>,
-  settings: &Settings,
-  url: &Url,
-) -> Result<DbUrl, LemmyError> {
-  let pictrs_res = match metadata_option {
-    Some(metadata_res) => match &metadata_res.image {
-      // Metadata, with image
-      // Try to generate a small thumbnail if there's a full sized one from post-links
-      Some(metadata_image) => fetch_pictrs(client, settings, metadata_image).await,
-      // Metadata, but no image
-      None => fetch_pictrs(client, settings, url).await,
-    },
-    // No metadata, try to fetch the URL as an image
-    None => fetch_pictrs(client, settings, url).await,
-  }?;
-
-  Url::parse(&format!(
-    "{}/pictrs/image/{}",
-    settings.get_protocol_and_hostname(),
-    pictrs_res.files.first().expect("missing pictrs file").file
-  ))
-  .map(Into::into)
-  .map_err(Into::into)
-}
-
+// TODO: get rid of this by reading content type from db
 #[tracing::instrument(skip_all)]
 async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
   let response = client.get(url.as_str()).send().await?;
@@ -289,51 +308,50 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Resu
   }
 }
 
-pub fn client_builder(settings: &Settings) -> ClientBuilder {
-  let user_agent = format!(
-    "Lemmy/{}; +{}",
-    VERSION,
-    settings.get_protocol_and_hostname()
-  );
-
-  Client::builder()
-    .user_agent(user_agent)
-    .timeout(REQWEST_TIMEOUT)
-    .connect_timeout(REQWEST_TIMEOUT)
-}
-
 #[cfg(test)]
 mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use crate::request::{client_builder, fetch_site_metadata, html_to_site_metadata, SiteMetadata};
-  use lemmy_utils::settings::SETTINGS;
+  use crate::{
+    context::LemmyContext,
+    request::{extract_opengraph_data, fetch_link_metadata},
+  };
   use pretty_assertions::assert_eq;
+  use serial_test::serial;
   use url::Url;
 
   // These helped with testing
   #[tokio::test]
-  async fn test_site_metadata() {
-    let settings = &SETTINGS.clone();
-    let client = client_builder(settings).build().unwrap().into();
+  #[serial]
+  async fn test_link_metadata() {
+    let context = LemmyContext::init_test_context_with_networking().await;
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
-    let sample_res = fetch_site_metadata(&client, &sample_url).await.unwrap();
+    let sample_res = fetch_link_metadata(&sample_url, false, &context)
+      .await
+      .unwrap();
     assert_eq!(
-      SiteMetadata {
-        title: Some("FAQ · Wiki · IzzyOnDroid / repo · GitLab".to_string()),
-        description: Some(
-          "The F-Droid compatible repo at https://apt.izzysoft.de/fdroid/".to_string()
-        ),
-        image: Some(
-          Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")
-            .unwrap()
-            .into()
-        ),
-        embed_video_url: None,
-      },
-      sample_res
+      Some("FAQ · Wiki · IzzyOnDroid / repo · GitLab".to_string()),
+      sample_res.opengraph_data.title
     );
+    assert_eq!(
+      Some("The F-Droid compatible repo at https://apt.izzysoft.de/fdroid/".to_string()),
+      sample_res.opengraph_data.description
+    );
+    assert_eq!(
+      Some(
+        Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")
+          .unwrap()
+          .into()
+      ),
+      sample_res.opengraph_data.image
+    );
+    assert_eq!(None, sample_res.opengraph_data.embed_video_url);
+    assert_eq!(
+      Some(mime::TEXT_HTML_UTF_8.to_string()),
+      sample_res.content_type
+    );
+    assert_eq!(None, sample_res.thumbnail);
   }
 
   // #[test]
@@ -351,7 +369,7 @@ mod tests {
 
     // root relative url
     let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='/image.jpg'></head><body></body></html>";
-    let metadata = html_to_site_metadata(html_bytes, &url).expect("Unable to parse metadata");
+    let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
     assert_eq!(
       metadata.image,
       Some(Url::parse("https://example.com/image.jpg").unwrap().into())
@@ -359,7 +377,7 @@ mod tests {
 
     // base relative url
     let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='image.jpg'></head><body></body></html>";
-    let metadata = html_to_site_metadata(html_bytes, &url).expect("Unable to parse metadata");
+    let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
     assert_eq!(
       metadata.image,
       Some(
@@ -371,7 +389,7 @@ mod tests {
 
     // absolute url
     let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='https://cdn.host.com/image.jpg'></head><body></body></html>";
-    let metadata = html_to_site_metadata(html_bytes, &url).expect("Unable to parse metadata");
+    let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
     assert_eq!(
       metadata.image,
       Some(Url::parse("https://cdn.host.com/image.jpg").unwrap().into())
@@ -379,7 +397,7 @@ mod tests {
 
     // protocol relative url
     let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='//example.com/image.jpg'></head><body></body></html>";
-    let metadata = html_to_site_metadata(html_bytes, &url).expect("Unable to parse metadata");
+    let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
     assert_eq!(
       metadata.image,
       Some(Url::parse("https://example.com/image.jpg").unwrap().into())

@@ -20,11 +20,17 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{generate_outbox_url, local_site_opt_to_slur_regex},
+  utils::{
+    generate_outbox_url,
+    local_site_opt_to_slur_regex,
+    process_markdown_opt,
+    proxy_image_link_opt_apub,
+  },
 };
 use lemmy_db_schema::{
   source::{
     activity::ActorType,
+    local_site::LocalSite,
     person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
   },
   traits::{ApubActor, Crud},
@@ -144,7 +150,12 @@ impl Object for ApubPerson {
   ) -> Result<ApubPerson, LemmyError> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
+    let local_site = LocalSite::read(&mut context.pool()).await.ok();
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
+    let bio = process_markdown_opt(&bio, slur_regex, context).await?;
+    let avatar = proxy_image_link_opt_apub(person.icon.map(|i| i.url), context).await?;
+    let banner = proxy_image_link_opt_apub(person.image.map(|i| i.url), context).await?;
 
     // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
     // https://github.com/mastodon/mastodon/issues/25233
@@ -156,8 +167,8 @@ impl Object for ApubPerson {
       banned: None,
       ban_expires: None,
       deleted: Some(false),
-      avatar: person.icon.map(|i| i.url.into()),
-      banner: person.image.map(|i| i.url.into()),
+      avatar,
+      banner,
       published: person.published.map(Into::into),
       updated: person.updated.map(Into::into),
       actor_id: Some(person.id.into()),
@@ -210,10 +221,7 @@ impl GetActorType for ApubPerson {
 pub(crate) mod tests {
   use super::*;
   use crate::{
-    objects::{
-      instance::{tests::parse_lemmy_instance, ApubSite},
-      tests::init_context,
-    },
+    objects::instance::{tests::parse_lemmy_instance, ApubSite},
     protocol::{objects::instance::Instance, tests::file_to_json_object},
   };
   use activitypub_federation::fetch::object_id::ObjectId;
@@ -237,7 +245,7 @@ pub(crate) mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_person() -> LemmyResult<()> {
-    let context = init_context().await?;
+    let context = LemmyContext::init_test_context().await;
     let (person, site) = parse_lemmy_person(&context).await?;
 
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
@@ -251,7 +259,7 @@ pub(crate) mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_pleroma_person() -> LemmyResult<()> {
-    let context = init_context().await?;
+    let context = LemmyContext::init_test_context().await;
 
     // create and parse a fake pleroma instance actor, to avoid network request during test
     let mut json: Instance = file_to_json_object("assets/lemmy/objects/instance.json")?;

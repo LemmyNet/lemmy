@@ -55,6 +55,7 @@ pub struct Post {
   pub featured_community: bool,
   /// Whether the post is featured to its site.
   pub featured_local: bool,
+  pub url_content_type: Option<String>,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]
@@ -85,6 +86,7 @@ pub struct PostInsertForm {
   pub language_id: Option<LanguageId>,
   pub featured_community: Option<bool>,
   pub featured_local: Option<bool>,
+  pub url_content_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -109,6 +111,7 @@ pub struct PostUpdateForm {
   pub language_id: Option<LanguageId>,
   pub featured_community: Option<bool>,
   pub featured_local: Option<bool>,
+  pub url_content_type: Option<String>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
