@@ -67,12 +67,12 @@ pub async fn create_post_report(
   }
 
   ActivityChannel::submit_activity(
-    SendActivityData::CreateReport(
-      post_view.post.ap_id.inner().clone(),
-      local_user_view.person,
-      post_view.community,
-      data.reason.clone(),
-    ),
+    SendActivityData::CreateReport {
+      object_id: post_view.post.ap_id.inner().clone(),
+      actor: local_user_view.person,
+      community: post_view.community,
+      reason: data.reason.clone(),
+    },
     &context,
   )
   .await?;

@@ -2571,6 +2571,8 @@ version = "0.19.3"
 dependencies = [
  "activitypub_federation",
  "actix-web",
+ "anyhow",
+ "async-trait",
  "chrono",
  "encoding",
  "enum-map",
@@ -2582,8 +2584,8 @@ dependencies = [
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
  "lemmy_utils",
+ "mime",
  "once_cell",
- "percent-encoding",
  "pretty_assertions",
  "regex",
  "reqwest",
@@ -2592,10 +2594,12 @@ dependencies = [
  "serde",
  "serde_with",
  "serial_test",
+ "task-local-extensions",
  "tokio",
  "tracing",
  "ts-rs",
  "url",
+ "urlencoding",
  "uuid",
  "webpage",
 ]
@@ -2648,14 +2652,12 @@ dependencies = [
  "once_cell",
  "pretty_assertions",
  "reqwest",
- "reqwest-middleware",
  "serde",
  "serde_json",
  "serde_with",
  "serial_test",
  "stringreader",
  "strum_macros",
- "task-local-extensions",
  "tokio",
  "tracing",
  "url",
@@ -2811,6 +2813,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "urlencoding",
 ]
 
 [[package]]
@@ -2874,7 +2877,6 @@ dependencies = [
  "markdown-it",
  "once_cell",
  "openssl",
- "percent-encoding",
  "pretty_assertions",
  "regex",
  "reqwest",
@@ -2891,6 +2893,7 @@ dependencies = [
  "tracing-error",
  "ts-rs",
  "url",
+ "urlencoding",
  "uuid",
 ]
 
