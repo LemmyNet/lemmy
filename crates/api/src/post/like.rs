@@ -70,12 +70,12 @@ pub async fn like_post(
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::LikePostOrComment(
-      post.ap_id,
-      local_user_view.person.clone(),
-      Community::read(&mut context.pool(), post.community_id).await?,
-      data.score,
-    ),
+    SendActivityData::LikePostOrComment {
+      object_id: post.ap_id,
+      actor: local_user_view.person.clone(),
+      community: Community::read(&mut context.pool(), post.community_id).await?,
+      score: data.score,
+    },
     &context,
   )
   .await?;

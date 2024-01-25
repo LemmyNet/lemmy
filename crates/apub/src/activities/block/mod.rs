@@ -14,7 +14,6 @@ use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   community::BanFromCommunity,
   context::LemmyContext,
-  person::BanPerson,
   utils::check_expire_time,
 };
 use lemmy_db_schema::{
@@ -133,23 +132,26 @@ async fn generate_cc(
 }
 
 pub(crate) async fn send_ban_from_site(
-  mod_: Person,
+  moderator: Person,
   banned_user: Person,
-  data: BanPerson,
+  reason: Option<String>,
+  remove_data: Option<bool>,
+  ban: bool,
+  expires: Option<i64>,
   context: Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
   let site = SiteOrCommunity::Site(SiteView::read_local(&mut context.pool()).await?.site.into());
-  let expires = check_expire_time(data.expires)?;
+  let expires = check_expire_time(expires)?;
 
   // if the action affects a local user, federate to other instances
   if banned_user.local {
-    if data.ban {
+    if ban {
       BlockUser::send(
         &site,
         &banned_user.into(),
-        &mod_.into(),
-        data.remove_data.unwrap_or(false),
-        data.reason.clone(),
+        &moderator.into(),
+        remove_data.unwrap_or(false),
+        reason.clone(),
         expires,
         &context,
       )
@@ -158,8 +160,8 @@ pub(crate) async fn send_ban_from_site(
       UndoBlockUser::send(
         &site,
         &banned_user.into(),
-        &mod_.into(),
-        data.reason.clone(),
+        &moderator.into(),
+        reason.clone(),
         &context,
       )
       .await

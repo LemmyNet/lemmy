@@ -1,7 +1,9 @@
-use actix_web::web::{Data, Json};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   request::delete_image_from_pictrs,
+  send_activity::{ActivityChannel, SendActivityData},
   site::PurgePerson,
   utils::is_admin,
   SuccessResponse,
@@ -27,9 +29,7 @@ pub async fn purge_person(
   is_admin(&local_user_view)?;
 
   // Read the person to get their images
-  let person_id = data.person_id;
-
-  if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), person_id).await {
+  if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), data.person_id).await {
     let pictrs_uploads =
       LocalImage::get_all_by_local_user_id(&mut context.pool(), &local_user.local_user.id).await?;
 
@@ -41,11 +41,11 @@ pub async fn purge_person(
   }
 
   // Clear profile data.
-  Person::delete_account(&mut context.pool(), person_id).await?;
+  Person::delete_account(&mut context.pool(), data.person_id).await?;
   // Keep person record, but mark as banned to prevent login or refetching from home instance.
-  Person::update(
+  let person = Person::update(
     &mut context.pool(),
-    person_id,
+    data.person_id,
     &PersonUpdateForm {
       banned: Some(true),
       ..Default::default()
@@ -58,8 +58,20 @@ pub async fn purge_person(
     admin_person_id: local_user_view.person.id,
     reason: data.reason.clone(),
   };
-
   AdminPurgePerson::create(&mut context.pool(), &form).await?;
+
+  ActivityChannel::submit_activity(
+    SendActivityData::BanFromSite {
+      moderator: local_user_view.person,
+      banned_user: person,
+      reason: data.reason.clone(),
+      remove_data: Some(true),
+      ban: true,
+      expires: None,
+    },
+    &context,
+  )
+  .await?;
 
   Ok(Json(SuccessResponse::default()))
 }
