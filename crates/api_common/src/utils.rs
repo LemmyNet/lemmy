@@ -233,6 +233,14 @@ pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   }
 }
 
+pub fn check_comment_deleted_or_removed(comment: &Comment) -> Result<(), LemmyError> {
+  if comment.deleted || comment.removed {
+    Err(LemmyErrorType::Deleted)?
+  } else {
+    Ok(())
+  }
+}
+
 /// Throws an error if a recipient has blocked a person.
 #[tracing::instrument(skip_all)]
 pub async fn check_person_block(
