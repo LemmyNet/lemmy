@@ -50,12 +50,12 @@ pub async fn purge_post(
   AdminPurgePost::create(&mut context.pool(), &form).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::RemovePost(
+    SendActivityData::RemovePost {
       post,
-      local_user_view.person.clone(),
-      data.reason.clone(),
-      true,
-    ),
+      moderator: local_user_view.person.clone(),
+      reason: data.reason.clone(),
+      removed: true,
+    },
     &context,
   )
   .await?;

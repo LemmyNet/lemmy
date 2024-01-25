@@ -29,9 +29,9 @@ pub async fn purge_comment(
   let comment_id = data.comment_id;
 
   // Read the comment to get the post_id and community
-  let comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
+  let comment_view = CommentView::read(&mut context.pool(), comment_id, None).await?;
 
-  let post_id = comment.comment.post_id;
+  let post_id = comment_view.comment.post_id;
 
   // TODO read comments for pictrs images and purge them
 
@@ -46,12 +46,12 @@ pub async fn purge_comment(
   AdminPurgeComment::create(&mut context.pool(), &form).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::RemoveComment(
-      comment.comment,
-      local_user_view.person.clone(),
-      comment.community,
-      data.reason.clone(),
-    ),
+    SendActivityData::RemoveComment {
+      comment: comment_view.comment,
+      moderator: local_user_view.person.clone(),
+      community: comment_view.community,
+      reason: data.reason.clone(),
+    },
     &context,
   )
   .await?;

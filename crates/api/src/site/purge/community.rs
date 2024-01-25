@@ -50,12 +50,12 @@ pub async fn purge_community(
   AdminPurgeCommunity::create(&mut context.pool(), &form).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::RemoveCommunity(
-      local_user_view.person.clone(),
+    SendActivityData::RemoveCommunity {
+      moderator: local_user_view.person.clone(),
       community,
-      data.reason.clone(),
-      true,
-    ),
+      reason: data.reason.clone(),
+      removed: true,
+    },
     &context,
   )
   .await?;

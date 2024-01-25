@@ -66,12 +66,12 @@ pub async fn create_comment_report(
   }
 
   ActivityChannel::submit_activity(
-    SendActivityData::CreateReport(
-      comment_view.comment.ap_id.inner().clone(),
-      local_user_view.person,
-      comment_view.community,
-      data.reason.clone(),
-    ),
+    SendActivityData::CreateReport {
+      object_id: comment_view.comment.ap_id.inner().clone(),
+      actor: local_user_view.person,
+      community: comment_view.community,
+      reason: data.reason.clone(),
+    },
     &context,
   )
   .await?;

@@ -71,12 +71,12 @@ pub async fn remove_comment(
   let updated_comment_id = updated_comment.id;
 
   ActivityChannel::submit_activity(
-    SendActivityData::RemoveComment(
-      updated_comment,
-      local_user_view.person.clone(),
-      orig_comment.community,
-      data.reason.clone(),
-    ),
+    SendActivityData::RemoveComment {
+      comment: updated_comment,
+      moderator: local_user_view.person.clone(),
+      community: orig_comment.community,
+      reason: data.reason.clone(),
+    },
     &context,
   )
   .await?;
