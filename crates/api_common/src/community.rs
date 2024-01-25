@@ -98,6 +98,8 @@ pub struct BanFromCommunity {
   pub remove_data: Option<bool>,
   pub reason: Option<String>,
   /// A time that the ban will expire, in unix epoch seconds.
+  ///
+  /// A simple i64 unix timestamp is used for a simpler API client implementation.
   pub expires: Option<i64>,
 }
 
