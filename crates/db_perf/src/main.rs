@@ -183,7 +183,7 @@ async fn try_main() -> LemmyResult<()> {
 fn site() -> LemmyResult<Site> {
   Ok(Site {
     id: Default::default(),
-    name: "".to_string(),
+    name: String::new(),
     sidebar: None,
     published: Default::default(),
     updated: None,
@@ -194,7 +194,7 @@ fn site() -> LemmyResult<Site> {
     last_refreshed_at: Default::default(),
     inbox_url: Url::parse("http://example.com")?.into(),
     private_key: None,
-    public_key: "".to_string(),
+    public_key: String::new(),
     instance_id: Default::default(),
     content_warning: None,
   })
