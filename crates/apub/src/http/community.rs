@@ -120,10 +120,7 @@ pub(crate) mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use super::*;
-  use crate::{
-    objects::tests::init_context,
-    protocol::objects::{group::Group, tombstone::Tombstone},
-  };
+  use crate::protocol::objects::{group::Group, tombstone::Tombstone};
   use actix_web::body::to_bytes;
   use lemmy_db_schema::{
     source::{
@@ -165,7 +162,7 @@ pub(crate) mod tests {
   #[tokio::test]
   #[serial]
   async fn test_get_community() -> LemmyResult<()> {
-    let context = init_context().await?;
+    let context = LemmyContext::init_test_context().await;
 
     // fetch invalid community
     let query = CommunityQuery {
@@ -206,7 +203,7 @@ pub(crate) mod tests {
   #[tokio::test]
   #[serial]
   async fn test_get_deleted_community() -> LemmyResult<()> {
-    let context = init_context().await?;
+    let context = LemmyContext::init_test_context().await;
     let (instance, community) = init(true, CommunityVisibility::LocalOnly, &context).await?;
 
     // should return tombstone
@@ -238,7 +235,7 @@ pub(crate) mod tests {
   #[tokio::test]
   #[serial]
   async fn test_get_local_only_community() -> LemmyResult<()> {
-    let context = init_context().await?;
+    let context = LemmyContext::init_test_context().await;
     let (instance, community) = init(false, CommunityVisibility::LocalOnly, &context).await?;
 
     let query = CommunityQuery {
