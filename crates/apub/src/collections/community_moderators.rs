@@ -19,7 +19,7 @@ use lemmy_utils::error::LemmyError;
 use url::Url;
 
 #[derive(Clone, Debug)]
-pub(crate) struct ApubCommunityModerators(pub(crate) Vec<CommunityModeratorView>);
+pub(crate) struct ApubCommunityModerators(());
 
 #[async_trait::async_trait]
 impl Collection for ApubCommunityModerators {
@@ -96,7 +96,7 @@ impl Collection for ApubCommunityModerators {
     }
 
     // This return value is unused, so just set an empty vec
-    Ok(ApubCommunityModerators(Vec::new()))
+    Ok(ApubCommunityModerators(()))
   }
 }
 
