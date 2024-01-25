@@ -60,10 +60,10 @@ pub(crate) async fn send_apub_delete_in_community(
   let actor = ApubPerson::from(actor);
   let is_mod_action = reason.is_some();
   let activity = if deleted {
-    let delete = Delete::new(&actor, object, public(), Some(&community), reason, &context)?;
+    let delete = Delete::new(&actor, object, public(), Some(&community), reason, context)?;
     AnnouncableActivities::Delete(delete)
   } else {
-    let undo = UndoDelete::new(&actor, object, public(), Some(&community), reason, &context)?;
+    let undo = UndoDelete::new(&actor, object, public(), Some(&community), reason, context)?;
     AnnouncableActivities::UndoDelete(undo)
   };
   send_activity_in_community(
@@ -72,7 +72,7 @@ pub(crate) async fn send_apub_delete_in_community(
     &community.into(),
     ActivitySendTargets::empty(),
     is_mod_action,
-    &context,
+    context,
   )
   .await
 }
