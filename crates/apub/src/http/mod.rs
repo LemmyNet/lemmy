@@ -107,7 +107,8 @@ pub(crate) async fn get_activity(
   }
 }
 
-pub fn check_community_valid(community: &Community) -> LemmyResult<()> {
+/// Ensure that the community is public and not removed/deleted.
+fn check_community_public(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
     Err(LemmyErrorType::Deleted)?
   }

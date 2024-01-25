@@ -1,6 +1,6 @@
 use crate::{
   http::{
-    check_community_valid,
+    check_community_public,
     create_apub_response,
     create_apub_tombstone_response,
     redirect_remote_object,
@@ -34,7 +34,7 @@ pub(crate) async fn get_apub_comment(
   let comment: ApubComment = Comment::read(&mut context.pool(), id).await?.into();
   let post = Post::read(&mut context.pool(), comment.post_id).await?;
   let community = Community::read(&mut context.pool(), post.community_id).await?;
-  check_community_valid(&community)?;
+  check_community_public(&community)?;
 
   if !comment.local {
     Ok(redirect_remote_object(&comment.ap_id))

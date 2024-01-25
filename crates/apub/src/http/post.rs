@@ -1,6 +1,6 @@
 use crate::{
   http::{
-    check_community_valid,
+    check_community_public,
     create_apub_response,
     create_apub_tombstone_response,
     redirect_remote_object,
@@ -33,7 +33,7 @@ pub(crate) async fn get_apub_post(
   // Can't use PostView here because it excludes deleted/removed/local-only items
   let post: ApubPost = Post::read(&mut context.pool(), id).await?.into();
   let community = Community::read(&mut context.pool(), post.community_id).await?;
-  check_community_valid(&community)?;
+  check_community_public(&community)?;
 
   if !post.local {
     Ok(redirect_remote_object(&post.ap_id))

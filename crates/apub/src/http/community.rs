@@ -6,7 +6,7 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  http::{check_community_valid, create_apub_response, create_apub_tombstone_response},
+  http::{check_community_public, create_apub_response, create_apub_tombstone_response},
   objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitypub_federation::{
@@ -40,7 +40,7 @@ pub(crate) async fn get_apub_community_http(
   if community.deleted || community.removed {
     return create_apub_tombstone_response(community.actor_id.clone());
   }
-  check_community_valid(&community)?;
+  check_community_public(&community)?;
 
   let apub = community.into_json(&context).await?;
   create_apub_response(&apub)
@@ -66,7 +66,7 @@ pub(crate) async fn get_apub_community_followers(
 ) -> Result<HttpResponse, LemmyError> {
   let community =
     Community::read_from_name(&mut context.pool(), &info.community_name, false).await?;
-  check_community_valid(&community)?;
+  check_community_public(&community)?;
   let followers = ApubCommunityFollower::read_local(&community.into(), &context).await?;
   create_apub_response(&followers)
 }
@@ -81,7 +81,7 @@ pub(crate) async fn get_apub_community_outbox(
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
       .into();
-  check_community_valid(&community)?;
+  check_community_public(&community)?;
   let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
   create_apub_response(&outbox)
 }
@@ -95,7 +95,7 @@ pub(crate) async fn get_apub_community_moderators(
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
       .into();
-  check_community_valid(&community)?;
+  check_community_public(&community)?;
   let moderators = ApubCommunityModerators::read_local(&community, &context).await?;
   create_apub_response(&moderators)
 }
@@ -109,7 +109,7 @@ pub(crate) async fn get_apub_community_featured(
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
       .into();
-  check_community_valid(&community)?;
+  check_community_public(&community)?;
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;
   create_apub_response(&featured)
 }
