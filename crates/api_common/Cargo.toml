@@ -25,7 +25,6 @@ full = [
   "lemmy_db_views_actor/full",
   "lemmy_db_views_moderator/full",
   "activitypub_federation",
-  "percent-encoding",
   "encoding",
   "reqwest-middleware",
   "webpage",
@@ -55,7 +54,6 @@ tracing = { workspace = true, optional = true }
 reqwest-middleware = { workspace = true, optional = true }
 regex = { workspace = true }
 rosetta-i18n = { workspace = true, optional = true }
-percent-encoding = { workspace = true, optional = true }
 anyhow = { workspace = true }
 futures = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
