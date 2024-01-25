@@ -5,7 +5,7 @@ set -e
 
 if [ -n "$LEMMY_LOG_LEVEL" ];
 then
-  LEMMY_LOG_LEVEL=info
+  LEMMY_LOG_LEVEL=warn
 fi
 
 export RUST_BACKTRACE=1
