@@ -20,6 +20,7 @@ use lemmy_db_schema::{
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
     post::{Post, PostRead},
+    site::Site,
   },
   traits::Crud,
   utils::DbPool,
@@ -564,6 +565,18 @@ pub fn check_private_instance_and_federation_enabled(
   } else {
     Ok(())
   }
+}
+
+/// Read the site for an actor_id.
+///
+/// Used for GetCommunityResponse and GetPersonDetails
+pub async fn read_site_for_actor(
+  actor_id: DbUrl,
+  context: &LemmyContext,
+) -> Result<Option<Site>, LemmyError> {
+  let site_id = Site::instance_actor_id_from_url(actor_id.clone().into());
+  let site = Site::read_from_apub_id(&mut context.pool(), &site_id.into()).await?;
+  Ok(site)
 }
 
 pub async fn purge_image_posts_for_person(

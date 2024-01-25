@@ -27,7 +27,7 @@ use lemmy_utils::error::LemmyError;
 use url::Url;
 
 #[derive(Clone, Debug)]
-pub(crate) struct ApubCommunityOutbox(Vec<ApubPost>);
+pub(crate) struct ApubCommunityOutbox(());
 
 #[async_trait::async_trait]
 impl Collection for ApubCommunityOutbox {
@@ -111,6 +111,6 @@ impl Collection for ApubCommunityOutbox {
     .await;
 
     // This return value is unused, so just set an empty vec
-    Ok(ApubCommunityOutbox(Vec::new()))
+    Ok(ApubCommunityOutbox(()))
   }
 }
