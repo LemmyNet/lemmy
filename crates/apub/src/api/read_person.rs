@@ -4,7 +4,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetPersonDetails, GetPersonDetailsResponse},
-  utils::check_private_instance,
+  utils::{check_private_instance, read_site_for_actor},
 };
 use lemmy_db_schema::{source::person::Person, utils::post_to_comment_sort_type};
 use lemmy_db_views::{
@@ -90,9 +90,12 @@ pub async fn read_person(
   let moderates =
     CommunityModeratorView::for_person(&mut context.pool(), person_details_id).await?;
 
+  let site = read_site_for_actor(person_view.person.actor_id.clone(), &context).await?;
+
   // Return the jwt
   Ok(Json(GetPersonDetailsResponse {
     person_view,
+    site,
     moderates,
     comments,
     posts,

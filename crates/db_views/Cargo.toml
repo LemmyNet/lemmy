@@ -23,6 +23,7 @@ full = [
   "tracing",
   "ts-rs",
   "actix-web",
+  "i-love-jesus",
   "lemmy_db_schema/full",
 ]
 
@@ -37,7 +38,7 @@ serde_with = { workspace = true }
 tracing = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
-url = { workspace = true }
+i-love-jesus = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
