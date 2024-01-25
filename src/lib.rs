@@ -221,7 +221,6 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
       federation_config.clone(),
     )
   });
-  panic!("eeeeeeeeeee");
   let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;
   let mut terminate = tokio::signal::unix::signal(SignalKind::terminate())?;
 
