@@ -7,6 +7,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
+  CommunityVisibility,
 };
 use lemmy_utils::{cache_header::cache_3days, error::LemmyError};
 use serde::Deserialize;
@@ -44,7 +45,14 @@ async fn get_webfinger_response(
   let community_id: Option<Url> = Community::read_from_name(&mut context.pool(), name, false)
     .await
     .ok()
-    .map(|c| c.actor_id.into());
+    .and_then(|c| {
+      if c.visibility == CommunityVisibility::Public {
+        let id: Url = c.actor_id.into();
+        Some(id)
+      } else {
+        None
+      }
+    });
 
   // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
   // community last so that it gets prioritized. For Lemmy the order doesnt matter.

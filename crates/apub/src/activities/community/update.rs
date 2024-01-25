@@ -97,15 +97,10 @@ impl ActivityHandler for UpdateCommunity {
         &None,
         &self.object.source,
       )),
-      removed: None,
       published: self.object.published.map(Into::into),
       updated: Some(self.object.updated.map(Into::into)),
-      deleted: None,
       nsfw: Some(self.object.sensitive.unwrap_or(false)),
       actor_id: Some(self.object.id.into()),
-      local: None,
-      private_key: None,
-      hidden: None,
       public_key: Some(self.object.public_key.public_key_pem),
       last_refreshed_at: Some(naive_now()),
       icon: Some(self.object.icon.map(|i| i.url.into())),
@@ -116,6 +111,7 @@ impl ActivityHandler for UpdateCommunity {
       moderators_url: self.object.attributed_to.map(Into::into),
       posting_restricted_to_mods: self.object.posting_restricted_to_mods,
       featured_url: self.object.featured.map(Into::into),
+      ..Default::default()
     };
 
     Community::update(&mut context.pool(), community.id, &community_update_form).await?;

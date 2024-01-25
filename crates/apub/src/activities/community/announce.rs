@@ -22,7 +22,10 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityFollower};
+use lemmy_db_schema::{
+  source::{activity::ActivitySendTargets, community::CommunityFollower},
+  CommunityVisibility,
+};
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use serde_json::Value;
 use url::Url;
@@ -209,6 +212,10 @@ async fn can_accept_activity_in_community(
       && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
     {
       Err(LemmyErrorType::CommunityHasNoFollowers)?
+    }
+    // Local only community can't federate
+    if community.visibility != CommunityVisibility::Public {
+      return Err(LemmyErrorType::CouldntFindCommunity.into());
     }
   }
   Ok(())

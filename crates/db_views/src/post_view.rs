@@ -53,6 +53,7 @@ use lemmy_db_schema::{
     ReadFn,
     ReverseTimestampKey,
   },
+  CommunityVisibility,
   ListingType,
   SortType,
 };
@@ -258,6 +259,11 @@ fn queries<'a>() -> Queries<
           );
       }
 
+      // Hide posts in local only communities from unauthenticated users
+      if my_person_id.is_none() {
+        query = query.filter(community::visibility.eq(CommunityVisibility::Public));
+      }
+
       Commented::new(query)
         .text("PostView::read")
         .first::<PostView>(&mut conn)
@@ -404,6 +410,11 @@ fn queries<'a>() -> Queries<
         query = query.filter(score(person_id).eq(-1));
       }
     };
+
+    // Hide posts in local only communities from unauthenticated users
+    if options.local_user.is_none() {
+      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
+    }
 
     // Dont filter blocks or missing languages for moderator view type
     if let (Some(person_id), false) = (
@@ -691,7 +702,13 @@ mod tests {
     source::{
       actor_language::LocalUserLanguage,
       comment::{Comment, CommentInsertForm},
-      community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
+      community::{
+        Community,
+        CommunityInsertForm,
+        CommunityModerator,
+        CommunityModeratorForm,
+        CommunityUpdateForm,
+      },
       community_block::{CommunityBlock, CommunityBlockForm},
       instance::Instance,
       instance_block::{InstanceBlock, InstanceBlockForm},
@@ -702,7 +719,8 @@ mod tests {
       post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
     },
     traits::{Blockable, Crud, Joinable, Likeable},
-    utils::{build_db_pool, DbPool, RANK_DEFAULT},
+    utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
+    CommunityVisibility,
     SortType,
     SubscribedType,
   };
@@ -1523,6 +1541,7 @@ mod tests {
         shared_inbox_url: inserted_community.shared_inbox_url.clone(),
         moderators_url: inserted_community.moderators_url.clone(),
         featured_url: inserted_community.featured_url.clone(),
+        visibility: CommunityVisibility::Public,
       },
       counts: PostAggregates {
         post_id: inserted_post.id,
@@ -1548,5 +1567,53 @@ mod tests {
       saved: false,
       creator_blocked: false,
     })
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn local_only_instance() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    Community::update(
+      pool,
+      data.inserted_community.id,
+      &CommunityUpdateForm {
+        visibility: Some(CommunityVisibility::LocalOnly),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    let unauthenticated_query = PostQuery {
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(0, unauthenticated_query.len());
+
+    let authenticated_query = PostQuery {
+      local_user: Some(&data.local_user_view),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(2, authenticated_query.len());
+
+    let unauthenticated_post = PostView::read(pool, data.inserted_post.id, None, false).await;
+    assert!(unauthenticated_post.is_err());
+
+    let authenticated_post = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(data.local_user_view.person.id),
+      false,
+    )
+    .await;
+    assert!(authenticated_post.is_ok());
+
+    cleanup(data, pool).await?;
+    Ok(())
   }
 }

@@ -7,6 +7,7 @@ use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
   CommentSortType,
+  CommunityVisibility,
   ListingType,
   SortType,
 };
@@ -21,7 +22,7 @@ use lemmy_db_views_actor::{
 };
 use lemmy_utils::{
   cache_header::cache_1hour,
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorType},
   utils::markdown::{markdown_to_html, sanitize_html},
 };
 use once_cell::sync::Lazy;
@@ -268,6 +269,9 @@ async fn get_feed_community(
 ) -> Result<Channel, LemmyError> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let community = Community::read_from_name(&mut context.pool(), community_name, false).await?;
+  if community.visibility != CommunityVisibility::Public {
+    return Err(LemmyErrorType::CouldntFindCommunity.into());
+  }
 
   check_private_instance(&None, &site_view.local_site)?;
 

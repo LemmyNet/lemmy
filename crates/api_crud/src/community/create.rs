@@ -92,6 +92,7 @@ pub async fn create_community(
     .shared_inbox_url(Some(generate_shared_inbox_url(context.settings())?))
     .posting_restricted_to_mods(data.posting_restricted_to_mods)
     .instance_id(site_view.site.instance_id)
+    .visibility(data.visibility)
     .build();
 
   let inserted_community = Community::create(&mut context.pool(), &community_form)
