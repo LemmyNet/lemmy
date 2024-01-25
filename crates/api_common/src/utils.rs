@@ -288,6 +288,25 @@ pub async fn check_person_instance_community_block(
 }
 
 #[tracing::instrument(skip_all)]
+pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> Result<(), LemmyError> {
+  if score == -1 && !local_site.enable_downvotes {
+    Err(LemmyErrorType::DownvotesAreDisabled)?
+  } else {
+    Ok(())
+  }
+}
+
+/// Dont allow bots to do certain actions, like voting
+#[tracing::instrument(skip_all)]
+pub fn check_bot_account(person: &Person) -> Result<(), LemmyError> {
+  if person.bot_account {
+    Err(LemmyErrorType::InvalidBotAction)?
+  } else {
+    Ok(())
+  }
+}
+
+#[tracing::instrument(skip_all)]
 pub fn check_private_instance(
   local_user_view: &Option<LocalUserView>,
   local_site: &LocalSite,
@@ -827,26 +846,6 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
   } else {
     Ok(Some(expires))
   }
-}
-
-/// Enforce various voting restrictions:
-/// - Bots are not allowed to vote
-/// - Instances can disable downvotes
-pub async fn check_vote_permission(
-  score: i16,
-  local_site: &LocalSite,
-  person: &Person,
-) -> LemmyResult<()> {
-  // check downvotes enabled
-  if score == -1 && !local_site.enable_downvotes {
-    return Err(LemmyErrorType::DownvotesAreDisabled)?;
-  }
-
-  // prevent bots from voting
-  if person.bot_account {
-    return Err(LemmyErrorType::InvalidBotAction)?;
-  }
-  Ok(())
 }
 
 #[cfg(test)]

@@ -16,13 +16,12 @@ use lemmy_db_schema::{
     activity::ActivitySendTargets,
     comment::{CommentLike, CommentLikeForm},
     community::Community,
-    local_site::LocalSite,
     person::Person,
     post::{PostLike, PostLikeForm},
   },
   traits::Likeable,
 };
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::LemmyError;
 
 pub mod undo_vote;
 pub mod vote;
@@ -67,8 +66,8 @@ async fn vote_comment(
     person_id: actor.id,
     score: vote_type.into(),
   };
-  check_vote_permission(Some(vote_type), &actor, context).await?;
-  CommentLike::remove(&mut context.pool(), actor.id, comment_id).await?;
+  let person_id = actor.id;
+  CommentLike::remove(&mut context.pool(), person_id, comment_id).await?;
   CommentLike::like(&mut context.pool(), &like_form).await?;
   Ok(())
 }
@@ -86,9 +85,8 @@ async fn vote_post(
     person_id: actor.id,
     score: vote_type.into(),
   };
-
-  check_vote_permission(Some(vote_type), &actor, context).await?;
-  PostLike::remove(&mut context.pool(), actor.id, post_id).await?;
+  let person_id = actor.id;
+  PostLike::remove(&mut context.pool(), person_id, post_id).await?;
   PostLike::like(&mut context.pool(), &like_form).await?;
   Ok(())
 }
@@ -99,8 +97,9 @@ async fn undo_vote_comment(
   comment: &ApubComment,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  check_vote_permission(None, &actor, context).await?;
-  CommentLike::remove(&mut context.pool(), actor.id, comment.id).await?;
+  let comment_id = comment.id;
+  let person_id = actor.id;
+  CommentLike::remove(&mut context.pool(), person_id, comment_id).await?;
   Ok(())
 }
 
@@ -110,18 +109,8 @@ async fn undo_vote_post(
   post: &ApubPost,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  check_vote_permission(None, &actor, context).await?;
-  PostLike::remove(&mut context.pool(), actor.id, post.id).await?;
-  Ok(())
-}
-
-pub async fn check_vote_permission(
-  vote_type: Option<&VoteType>,
-  person: &Person,
-  context: &LemmyContext,
-) -> LemmyResult<()> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-  let score = vote_type.map(std::convert::Into::into).unwrap_or(0);
-  lemmy_api_common::utils::check_vote_permission(score, &local_site, person).await?;
+  let post_id = post.id;
+  let person_id = actor.id;
+  PostLike::remove(&mut context.pool(), person_id, post_id).await?;
   Ok(())
 }
