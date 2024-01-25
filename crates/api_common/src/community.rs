@@ -1,6 +1,7 @@
 use lemmy_db_schema::{
   newtypes::{CommunityId, LanguageId, PersonId},
   source::site::Site,
+  CommunityVisibility,
   ListingType,
   SortType,
 };
@@ -54,6 +55,7 @@ pub struct CreateCommunity {
   /// Whether to restrict posting only to moderators.
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
+  pub visibility: Option<CommunityVisibility>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -97,6 +99,9 @@ pub struct BanFromCommunity {
   pub ban: bool,
   pub remove_data: Option<bool>,
   pub reason: Option<String>,
+  /// A time that the ban will expire, in unix epoch seconds.
+  ///
+  /// An i64 unix timestamp is used for a simpler API client implementation.
   pub expires: Option<i64>,
 }
 
@@ -147,6 +152,7 @@ pub struct EditCommunity {
   /// Whether to restrict posting only to moderators.
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
+  pub visibility: Option<CommunityVisibility>,
 }
 
 #[skip_serializing_none]

@@ -35,7 +35,7 @@ use std::fmt::Debug;
 use url::Url;
 
 #[skip_serializing_none]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Group {
   #[serde(rename = "type")]

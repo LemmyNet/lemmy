@@ -32,8 +32,9 @@ import {
   resolveBetaCommunity,
   longDelay,
   delay,
+  editCommunity,
 } from "./shared";
-import { EditSite } from "lemmy-js-client";
+import { EditCommunity, EditSite } from "lemmy-js-client";
 
 beforeAll(setupLogins);
 
@@ -510,4 +511,25 @@ test("Fetch community, includes posts", async () => {
   let post_listing = await getPosts(beta, "All", betaCommunity?.community.id);
   expect(post_listing.posts.length).toBe(1);
   expect(post_listing.posts[0].post.ap_id).toBe(postRes.post_view.post.ap_id);
+});
+
+test("Content in local-only community doesnt federate", async () => {
+  // create a community and set it local-only
+  let communityRes = (await createCommunity(alpha)).community_view.community;
+  let form: EditCommunity = {
+    community_id: communityRes.id,
+    visibility: "LocalOnly",
+  };
+  await editCommunity(alpha, form);
+
+  // cant resolve the community from another instance
+  await expect(
+    resolveCommunity(beta, communityRes.actor_id),
+  ).rejects.toStrictEqual(Error("couldnt_find_object"));
+
+  // create a post, also cant resolve it
+  let postRes = await createPost(alpha, communityRes.id);
+  await expect(resolvePost(beta, postRes.post_view.post)).rejects.toStrictEqual(
+    Error("couldnt_find_object"),
+  );
 });

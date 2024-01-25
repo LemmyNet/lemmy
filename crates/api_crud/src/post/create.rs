@@ -26,6 +26,7 @@ use lemmy_db_schema::{
     post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
   },
   traits::{Crud, Likeable},
+  CommunityVisibility,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
@@ -165,20 +166,22 @@ pub async fn create_post(
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
   if let Some(url) = updated_post.url.clone() {
-    spawn_try_task(async move {
-      let mut webmention =
-        Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
-      webmention.set_checked(true);
-      match webmention
-        .send()
-        .instrument(tracing::info_span!("Sending webmention"))
-        .await
-      {
-        Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
-        Ok(_) => Ok(()),
-        Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
-      }
-    });
+    if community.visibility == CommunityVisibility::Public {
+      spawn_try_task(async move {
+        let mut webmention =
+          Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
+        webmention.set_checked(true);
+        match webmention
+          .send()
+          .instrument(tracing::info_span!("Sending webmention"))
+          .await
+        {
+          Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
+          Ok(_) => Ok(()),
+          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
+        }
+      });
+    }
   };
 
   build_post_response(&context, community_id, &local_user_view.person, post_id).await

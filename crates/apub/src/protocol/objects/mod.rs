@@ -16,14 +16,14 @@ pub(crate) mod page;
 pub(crate) mod person;
 pub(crate) mod tombstone;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Endpoints {
   pub shared_inbox: Url,
 }
 
 /// As specified in https://schema.org/Language
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct LanguageTag {
   pub(crate) identifier: String,
