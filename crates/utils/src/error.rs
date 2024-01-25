@@ -113,7 +113,6 @@ pub enum LemmyErrorType {
   CommunityIsBlocked,
   InstanceIsBlocked,
   DownvotesAreDisabled,
-  OnlyFollowersCanVote,
   InstanceIsPrivate,
   /// Password must be between 10 and 60 characters
   InvalidPassword,

@@ -21,7 +21,10 @@ use lemmy_db_schema::{
   utils::{build_db_pool, get_conn, now},
   SortType,
 };
-use lemmy_db_views::{post_view::PostQuery, structs::PaginationCursor};
+use lemmy_db_views::{
+  post_view::PostQuery,
+  structs::{PaginationCursor, SiteView},
+};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyResult};
 use std::num::NonZeroU32;
 
@@ -145,6 +148,8 @@ async fn try_main() -> LemmyResult<()> {
       page_after.is_some()
     );
 
+    let site = SiteView::read_local(&mut (&build_db_pool().await?).into()).await?;
+
     // TODO: include local_user
     let post_views = PostQuery {
       community_id: community_ids.as_slice().first().cloned(),
@@ -153,7 +158,7 @@ async fn try_main() -> LemmyResult<()> {
       page_after,
       ..Default::default()
     }
-    .list(&mut conn.into())
+    .list(&site.site, &mut conn.into())
     .await?;
 
     if let Some(post_view) = post_views.into_iter().last() {

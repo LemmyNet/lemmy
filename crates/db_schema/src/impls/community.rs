@@ -434,7 +434,6 @@ mod tests {
       hidden: false,
       posting_restricted_to_mods: false,
       instance_id: inserted_instance.id,
-      only_followers_can_vote: false,
     };
 
     let community_follower_form = CommunityFollowerForm {

@@ -12,10 +12,9 @@ use lemmy_db_schema::{
   source::{
     comment::{CommentLike, CommentLikeForm},
     comment_reply::CommentReply,
-    community::Community,
     local_site::LocalSite,
   },
-  traits::{Crud, Likeable},
+  traits::Likeable,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
@@ -34,15 +33,7 @@ pub async fn like_comment(
   let comment_id = data.comment_id;
   let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
 
-  let community = Community::read(&mut context.pool(), orig_comment.post.community_id).await?;
-  check_vote_permission(
-    data.score,
-    &local_site,
-    &local_user_view.person,
-    &community,
-    &context,
-  )
-  .await?;
+  check_vote_permission(data.score, &local_site, &local_user_view.person).await?;
 
   check_community_user_action(
     &local_user_view.person,

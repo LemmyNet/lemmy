@@ -2674,6 +2674,7 @@ dependencies = [
  "lemmy_db_views",
  "lemmy_utils",
  "tokio",
+ "url",
 ]
 
 [[package]]
@@ -2734,6 +2735,7 @@ dependencies = [
  "tokio",
  "tracing",
  "ts-rs",
+ "url",
 ]
 
 [[package]]

@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
-    community::{Community, CommunityFollower, CommunityModerator, CommunityUpdateForm},
+    community::{Community, CommunityModerator, CommunityUpdateForm},
     community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
     instance::Instance,
@@ -832,13 +832,10 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
 /// Enforce various voting restrictions:
 /// - Bots are not allowed to vote
 /// - Instances can disable downvotes
-/// - Communities can prevent users who are not followers from voting
 pub async fn check_vote_permission(
   score: i16,
   local_site: &LocalSite,
   person: &Person,
-  community: &Community,
-  context: &LemmyContext,
 ) -> LemmyResult<()> {
   // check downvotes enabled
   if score == -1 && !local_site.enable_downvotes {
@@ -848,12 +845,6 @@ pub async fn check_vote_permission(
   // prevent bots from voting
   if person.bot_account {
     return Err(LemmyErrorType::InvalidBotAction)?;
-  }
-
-  if community.only_followers_can_vote
-    && !CommunityFollower::is_follower(&mut context.pool(), person.id, community.id).await?
-  {
-    Err(LemmyErrorType::OnlyFollowersCanVote)?
   }
   Ok(())
 }

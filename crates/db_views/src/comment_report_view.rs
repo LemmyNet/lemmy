@@ -379,7 +379,6 @@ mod tests {
         moderators_url: inserted_community.moderators_url,
         featured_url: inserted_community.featured_url,
         instance_id: inserted_instance.id,
-        only_followers_can_vote: inserted_community.only_followers_can_vote,
       },
       creator: Person {
         id: inserted_jessica.id,

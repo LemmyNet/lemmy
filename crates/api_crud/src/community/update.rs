@@ -68,7 +68,6 @@ pub async fn update_community(
     nsfw: data.nsfw,
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     updated: Some(Some(naive_now())),
-    only_followers_can_vote: data.only_followers_can_vote,
     ..Default::default()
   };
 

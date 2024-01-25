@@ -66,8 +66,6 @@ pub struct Community {
   /// Url where featured posts collection is served over Activitypub
   #[serde(skip)]
   pub featured_url: Option<DbUrl>,
-  /// Only users who are currently following the community can vote on posts and comments
-  pub only_followers_can_vote: bool,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]
@@ -101,7 +99,6 @@ pub struct CommunityInsertForm {
   pub posting_restricted_to_mods: Option<bool>,
   #[builder(!default)]
   pub instance_id: InstanceId,
-  pub only_followers_can_vote: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -129,7 +126,6 @@ pub struct CommunityUpdateForm {
   pub featured_url: Option<DbUrl>,
   pub hidden: Option<bool>,
   pub posting_restricted_to_mods: Option<bool>,
-  pub only_followers_can_vote: Option<bool>,
 }
 
 #[derive(PartialEq, Eq, Debug)]

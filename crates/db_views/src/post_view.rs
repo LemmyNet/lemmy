@@ -1398,7 +1398,7 @@ mod tests {
         page_back: true,
         ..options.clone()
       }
-      .list(pool)
+      .list(&data.site, pool)
       .await?;
 
       let listed_post_ids = post_listings.iter().map(|p| p.post.id).collect::<Vec<_>>();
@@ -1554,7 +1554,6 @@ mod tests {
         shared_inbox_url: inserted_community.shared_inbox_url.clone(),
         moderators_url: inserted_community.moderators_url.clone(),
         featured_url: inserted_community.featured_url.clone(),
-        only_followers_can_vote: inserted_community.only_followers_can_vote,
       },
       counts: PostAggregates {
         post_id: inserted_post.id,

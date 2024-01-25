@@ -31,17 +31,7 @@ pub async fn like_post(
   let post_id = data.post_id;
   let post = Post::read(&mut context.pool(), post_id).await?;
 
-  // TODO: need to read community both here are for check_community_user_action(), would be good to
-  //       read it only once
-  let community = Community::read(&mut context.pool(), post.community_id).await?;
-  check_vote_permission(
-    data.score,
-    &local_site,
-    &local_user_view.person,
-    &community,
-    &context,
-  )
-  .await?;
+  check_vote_permission(data.score, &local_site, &local_user_view.person).await?;
 
   check_community_user_action(
     &local_user_view.person,
