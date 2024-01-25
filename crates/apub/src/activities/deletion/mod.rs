@@ -29,7 +29,6 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{context::LemmyContext, utils::purge_user_account};
 use lemmy_db_schema::{
-  newtypes::CommunityId,
   source::{
     activity::ActivitySendTargets,
     comment::{Comment, CommentUpdateForm},
@@ -58,38 +57,6 @@ pub(crate) async fn send_apub_delete_in_community(
   deleted: bool,
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError> {
-  let actor = ApubPerson::from(actor);
-  let is_mod_action = reason.is_some();
-  let activity = if deleted {
-    let delete = Delete::new(&actor, object, public(), Some(&community), reason, context)?;
-    AnnouncableActivities::Delete(delete)
-  } else {
-    let undo = UndoDelete::new(&actor, object, public(), Some(&community), reason, context)?;
-    AnnouncableActivities::UndoDelete(undo)
-  };
-  send_activity_in_community(
-    activity,
-    &actor,
-    &community.into(),
-    ActivitySendTargets::empty(),
-    is_mod_action,
-    context,
-  )
-  .await
-}
-
-/// Parameter `reason` being set indicates that this is a removal by a mod. If its unset, this
-/// action was done by a normal user.
-#[tracing::instrument(skip_all)]
-pub(crate) async fn send_apub_delete_in_community_new(
-  actor: Person,
-  community_id: CommunityId,
-  object: DeletableObjects,
-  reason: Option<String>,
-  deleted: bool,
-  context: Data<LemmyContext>,
-) -> Result<(), LemmyError> {
-  let community = Community::read(&mut context.pool(), community_id).await?;
   let actor = ApubPerson::from(actor);
   let is_mod_action = reason.is_some();
   let activity = if deleted {

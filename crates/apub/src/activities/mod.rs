@@ -10,7 +10,6 @@ use crate::{
     create_or_update::private_message::send_create_or_update_pm,
     deletion::{
       send_apub_delete_in_community,
-      send_apub_delete_in_community_new,
       send_apub_delete_private_message,
       send_apub_delete_user,
       DeletableObjects,
@@ -35,9 +34,12 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
 };
-use lemmy_db_schema::source::{
-  activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
-  community::Community,
+use lemmy_db_schema::{
+  source::{
+    activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
+    community::Community,
+  },
+  traits::Crud,
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -246,13 +248,14 @@ pub async fn match_outgoing_activities(
         CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Update, context).await
       }
       DeletePost(post, person, data) => {
-        send_apub_delete_in_community_new(
+        let community = Community::read(&mut context.pool(), post.community_id).await?;
+        send_apub_delete_in_community(
           person,
-          post.community_id,
+          community,
           DeletableObjects::Post(post.into()),
           None,
           data.deleted,
-          context,
+          &context,
         )
         .await
       }
@@ -262,13 +265,14 @@ pub async fn match_outgoing_activities(
         reason,
         removed,
       } => {
-        send_apub_delete_in_community_new(
+        let community = Community::read(&mut context.pool(), post.community_id).await?;
+        send_apub_delete_in_community(
           moderator,
-          post.community_id,
+          community,
           DeletableObjects::Post(post.into()),
           reason.or_else(|| Some(String::new())),
           removed,
-          context,
+          &context,
         )
         .await
       }
