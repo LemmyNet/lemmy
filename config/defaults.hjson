@@ -36,22 +36,41 @@
     # Maximum number of active sql connections
     pool_size: 30
   }
-  # Settings related to activitypub federation
   # Pictrs image server configuration.
   pictrs: {
     # Address where pictrs is available (for image hosting)
     url: "http://localhost:8080/"
     # Set a custom pictrs API key. ( Required for deleting images )
     api_key: "string"
-    # By default the thumbnails for external links are stored in pict-rs. This ensures that they
-    # can be reliably retrieved and can be resized using pict-rs APIs. However it also increases
-    # storage usage. In case this is disabled, the Opengraph image is directly returned as
-    # thumbnail.
+    # Backwards compatibility with 0.18.1. False is equivalent to `image_mode: None`, true is
+    # equivalent to `image_mode: StoreLinkPreviews`.
     # 
-    # In some countries it is forbidden to copy preview images from newspaper articles and only
-    # hotlinking is allowed. If that is the case for your instance, make sure that this setting is
-    # disabled.
+    # To be removed in 0.20
     cache_external_link_previews: true
+    # Specifies how to handle remote images, so that users don't have to connect directly to remote servers.
+    image_mode: 
+      # Leave images unchanged, don't generate any local thumbnails for post urls. Instead the the
+      # Opengraph image is directly returned as thumbnail
+      "None"
+
+      # or
+
+      # Generate thumbnails for external post urls and store them persistently in pict-rs. This
+      # ensures that they can be reliably retrieved and can be resized using pict-rs APIs. However
+      # it also increases storage usage.
+      # 
+      # This is the default behaviour, and also matches Lemmy 0.18.
+      "StoreLinkPreviews"
+
+      # or
+
+      # If enabled, all images from remote domains are rewritten to pass through `/api/v3/image_proxy`,
+      # including embedded images in markdown. Images are stored temporarily in pict-rs for caching.
+      # This improves privacy as users don't expose their IP to untrusted servers, and decreases load
+      # on other servers. However it increases bandwidth use for the local server.
+      # 
+      # Requires pict-rs 0.5
+      "ProxyAllImages"
     # Timeout for uploading images to pictrs (in seconds)
     upload_timeout: 30
   }

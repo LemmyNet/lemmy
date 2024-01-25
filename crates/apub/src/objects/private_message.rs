@@ -12,9 +12,13 @@ use activitypub_federation::{
   traits::Object,
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{context::LemmyContext, utils::check_person_block};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{check_person_block, local_site_opt_to_slur_regex, process_markdown},
+};
 use lemmy_db_schema::{
   source::{
+    local_site::LocalSite,
     person::Person,
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
@@ -121,7 +125,10 @@ impl Object for ApubPrivateMessage {
     let recipient = note.to[0].dereference(context).await?;
     check_person_block(creator.id, recipient.id, &mut context.pool()).await?;
 
+    let local_site = LocalSite::read(&mut context.pool()).await.ok();
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let content = read_from_string_or_source(&note.content, &None, &note.source);
+    let content = process_markdown(&content, slur_regex, context).await?;
 
     let form = PrivateMessageInsertForm {
       creator_id: creator.id,
@@ -146,7 +153,6 @@ mod tests {
     objects::{
       instance::{tests::parse_lemmy_instance, ApubSite},
       person::ApubPerson,
-      tests::init_context,
     },
     protocol::tests::file_to_json_object,
   };
@@ -185,7 +191,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_pm() -> LemmyResult<()> {
-    let context = init_context().await?;
+    let context = LemmyContext::init_test_context().await;
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621")?;
     let data = prepare_comment_test(&url, &context).await?;
     let json: ChatMessage = file_to_json_object("assets/lemmy/objects/chat_message.json")?;
@@ -208,7 +214,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_pleroma_pm() -> LemmyResult<()> {
-    let context = init_context().await?;
+    let context = LemmyContext::init_test_context().await;
     let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621")?;
     let data = prepare_comment_test(&url, &context).await?;
     let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2")?;

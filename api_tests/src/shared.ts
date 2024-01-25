@@ -177,13 +177,6 @@ export async function setupLogins() {
   ];
   await gamma.editSite(editSiteForm);
 
-  editSiteForm.allowed_instances = ["lemmy-beta"];
-  await delta.editSite(editSiteForm);
-
-  editSiteForm.allowed_instances = [];
-  editSiteForm.blocked_instances = ["lemmy-alpha"];
-  await epsilon.editSite(editSiteForm);
-
   // Create the main alpha/beta communities
   // Ignore thrown errors of duplicates
   try {
@@ -203,10 +196,10 @@ export async function createPost(
   api: LemmyHttp,
   community_id: number,
   url: string = "https://example.com/",
+  body = randomString(10),
   // use example.com for consistent title and embed description
   name: string = randomString(5),
 ): Promise<PostResponse> {
-  let body = randomString(10);
   let form: CreatePost = {
     name,
     url,
@@ -528,7 +521,7 @@ export async function likeComment(
 
 export async function createCommunity(
   api: LemmyHttp,
-  name_: string = randomString(5),
+  name_: string = randomString(10),
 ): Promise<CommunityResponse> {
   let description = "a sample description";
   let form: CreateCommunity = {

@@ -4,9 +4,14 @@ use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   post::{EditPost, PostResponse},
-  request::fetch_site_data,
+  request::fetch_link_metadata,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_user_action, local_site_to_slur_regex},
+  utils::{
+    check_community_user_action,
+    local_site_to_slur_regex,
+    process_markdown_opt,
+    proxy_image_link_opt_apub,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -35,21 +40,19 @@ pub async fn update_post(
 ) -> Result<Json<PostResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let data_url = data.url.as_ref();
-
   // TODO No good way to handle a clear.
   // Issue link: https://github.com/LemmyNet/lemmy/issues/2287
-  let url = Some(data_url.map(clean_url_params).map(Into::into));
+  let url = data.url.as_ref().map(clean_url_params);
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs_opt(&data.name, &slur_regex)?;
-  check_slurs_opt(&data.body, &slur_regex)?;
+  let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
 
   if let Some(name) = &data.name {
     is_valid_post_title(name)?;
   }
 
-  is_valid_body_field(&data.body, true)?;
+  is_valid_body_field(&body, true)?;
   check_url_scheme(&data.url)?;
 
   let post_id = data.post_id;
@@ -67,13 +70,23 @@ pub async fn update_post(
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
-  // Fetch post links and Pictrs cached image
-  let data_url = data.url.as_ref();
-  let (metadata_res, thumbnail_url) =
-    fetch_site_data(context.client(), context.settings(), data_url, true).await;
-  let (embed_title, embed_description, embed_video_url) = metadata_res
-    .map(|u| (Some(u.title), Some(u.description), Some(u.embed_video_url)))
-    .unwrap_or_default();
+  // Fetch post links and Pictrs cached image if url was updated
+  let (embed_title, embed_description, embed_video_url, thumbnail_url) = match &url {
+    Some(url) => {
+      let metadata = fetch_link_metadata(url, true, &context).await?;
+      (
+        Some(metadata.opengraph_data.title),
+        Some(metadata.opengraph_data.description),
+        Some(metadata.opengraph_data.embed_video_url),
+        Some(metadata.thumbnail),
+      )
+    }
+    _ => Default::default(),
+  };
+  let url = match url {
+    Some(url) => Some(proxy_image_link_opt_apub(Some(url), &context).await?),
+    _ => Default::default(),
+  };
 
   let language_id = data.language_id;
   CommunityLanguage::is_allowed_community_language(
@@ -86,13 +99,13 @@ pub async fn update_post(
   let post_form = PostUpdateForm {
     name: data.name.clone(),
     url,
-    body: diesel_option_overwrite(data.body.clone()),
+    body: diesel_option_overwrite(body),
     nsfw: data.nsfw,
     embed_title,
     embed_description,
     embed_video_url,
     language_id: data.language_id,
-    thumbnail_url: Some(thumbnail_url),
+    thumbnail_url,
     updated: Some(Some(naive_now())),
     ..Default::default()
   };

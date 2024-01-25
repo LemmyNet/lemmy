@@ -50,7 +50,5 @@ enum_delegate = "0.2.0"
 
 [dev-dependencies]
 serial_test = { workspace = true }
-reqwest-middleware = { workspace = true }
-task-local-extensions = "0.1.4"
 assert-json-diff = "2.0.2"
 pretty_assertions = { workspace = true }

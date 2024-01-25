@@ -21,6 +21,7 @@
   pictrs: {
     url: "http://pictrs:8080/"
     # api_key: "API_KEY"
+    image_proxy: true
     cache_external_link_previews: true
   }
 

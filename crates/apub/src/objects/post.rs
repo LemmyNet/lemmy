@@ -24,8 +24,14 @@ use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
-  request::fetch_site_data,
-  utils::{is_mod_or_admin, local_site_opt_to_sensitive, local_site_opt_to_slur_regex},
+  request::fetch_link_metadata_opt,
+  utils::{
+    is_mod_or_admin,
+    local_site_opt_to_sensitive,
+    local_site_opt_to_slur_regex,
+    process_markdown_opt,
+    proxy_image_link_opt_apub,
+  },
 };
 use lemmy_db_schema::{
   self,
@@ -40,11 +46,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::LemmyError,
-  utils::{
-    markdown::markdown_to_html,
-    slurs::{check_slurs_opt, remove_slurs},
-    validation::check_url_scheme,
-  },
+  utils::{markdown::markdown_to_html, slurs::check_slurs_opt, validation::check_url_scheme},
 };
 use std::ops::Deref;
 use stringreader::StringReader;
@@ -111,6 +113,13 @@ impl Object for ApubPost {
     let community = Community::read(&mut context.pool(), community_id).await?;
     let language = LanguageTag::new_single(self.language_id, &mut context.pool()).await?;
 
+    let attachment = self
+      .url
+      .clone()
+      .map(|url| Attachment::new(url.into(), self.url_content_type.clone()))
+      .into_iter()
+      .collect();
+
     let page = Page {
       kind: PageType::Page,
       id: self.ap_id.clone().into(),
@@ -121,7 +130,7 @@ impl Object for ApubPost {
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
       source: self.body.clone().map(Source::new),
-      attachment: self.url.clone().map(Attachment::new).into_iter().collect(),
+      attachment,
       image: self.thumbnail_url.clone().map(ImageObject::new),
       comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
@@ -210,33 +219,22 @@ impl Object for ApubPost {
       let local_site = LocalSite::read(&mut context.pool()).await.ok();
       let allow_sensitive = local_site_opt_to_sensitive(&local_site);
       let page_is_sensitive = page.sensitive.unwrap_or(false);
-      let include_image = allow_sensitive || !page_is_sensitive;
+      let allow_generate_thumbnail = allow_sensitive || !page_is_sensitive;
+      let mut thumbnail_url = page.image.map(|i| i.url);
+      let do_generate_thumbnail = thumbnail_url.is_none() && allow_generate_thumbnail;
 
-      // Only fetch metadata if the post has a url and was not seen previously. We dont want to
-      // waste resources by fetching metadata for the same post multiple times.
-      // Additionally, only fetch image if content is not sensitive or is allowed on local site.
-      let (metadata_res, thumbnail) = match &url {
-        Some(url) if old_post.is_err() => {
-          fetch_site_data(
-            context.client(),
-            context.settings(),
-            Some(url),
-            include_image,
-          )
-          .await
-        }
-        _ => (None, None),
-      };
-      // If no image was included with metadata, use post image instead when available.
-      let thumbnail_url = thumbnail.or_else(|| page.image.map(|i| i.url.into()));
+      // Generate local thumbnail only if no thumbnail was federated and 'sensitive' attributes allow it.
+      let metadata = fetch_link_metadata_opt(url.as_ref(), do_generate_thumbnail, context).await;
+      if let Some(thumbnail_url_) = metadata.thumbnail {
+        thumbnail_url = Some(thumbnail_url_.into());
+      }
+      let url = proxy_image_link_opt_apub(url, context).await?;
+      let thumbnail_url = proxy_image_link_opt_apub(thumbnail_url, context).await?;
 
-      let (embed_title, embed_description, embed_video_url) = metadata_res
-        .map(|u| (u.title, u.description, u.embed_video_url))
-        .unwrap_or_default();
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);
 
-      let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source)
-        .map(|s| remove_slurs(&s, slur_regex));
+      let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
+      let body = process_markdown_opt(&body, slur_regex, context).await?;
       let language_id =
         LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 
@@ -252,15 +250,16 @@ impl Object for ApubPost {
         updated: page.updated.map(Into::into),
         deleted: Some(false),
         nsfw: page.sensitive,
-        embed_title,
-        embed_description,
-        embed_video_url,
+        embed_title: metadata.opengraph_data.title,
+        embed_description: metadata.opengraph_data.description,
+        embed_video_url: metadata.opengraph_data.embed_video_url,
         thumbnail_url,
         ap_id: Some(page.id.clone().into()),
         local: Some(false),
         language_id,
         featured_community: None,
         featured_local: None,
+        url_content_type: metadata.content_type,
       }
     } else {
       // if is mod action, only update locked/stickied fields, nothing else
@@ -299,7 +298,6 @@ mod tests {
       instance::ApubSite,
       person::{tests::parse_lemmy_person, ApubPerson},
       post::ApubPost,
-      tests::init_context,
     },
     protocol::tests::file_to_json_object,
   };
@@ -311,7 +309,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_post() -> LemmyResult<()> {
-    let context = init_context().await?;
+    let context = LemmyContext::init_test_context().await;
     let (person, site) = parse_lemmy_person(&context).await?;
     let community = parse_lemmy_community(&context).await?;
 
@@ -335,7 +333,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_convert_mastodon_post_title() -> LemmyResult<()> {
-    let context = init_context().await?;
+    let context = LemmyContext::init_test_context().await;
     let (person, site) = parse_lemmy_person(&context).await?;
     let community = parse_lemmy_community(&context).await?;
 

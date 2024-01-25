@@ -1500,6 +1500,7 @@ mod tests {
         language_id: LanguageId(47),
         featured_community: false,
         featured_local: false,
+        url_content_type: None,
       },
       my_vote: None,
       unread_comments: 0,

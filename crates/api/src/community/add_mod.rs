@@ -69,12 +69,12 @@ pub async fn add_mod_to_community(
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::AddModToCommunity(
-      local_user_view.person,
-      data.community_id,
-      data.person_id,
-      data.added,
-    ),
+    SendActivityData::AddModToCommunity {
+      moderator: local_user_view.person,
+      community_id: data.community_id,
+      target: data.person_id,
+      added: data.added,
+    },
     &context,
   )
   .await?;
