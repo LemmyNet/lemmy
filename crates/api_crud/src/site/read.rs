@@ -79,7 +79,7 @@ pub async fn get_site(
       |pool| CommunityBlockView::for_person(pool, person_id),
       |pool| InstanceBlockView::for_person(pool, person_id),
       |pool| PersonBlockView::for_person(pool, person_id),
-      |pool| CommunityModeratorView::for_person(pool, person_id),
+      |pool| CommunityModeratorView::for_person(pool, person_id, true),
       |pool| LocalUserLanguage::read(pool, local_user_id)
     ))
     .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
