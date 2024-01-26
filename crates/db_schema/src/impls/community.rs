@@ -243,19 +243,6 @@ impl CommunityFollower {
     .get_result(conn)
     .await
   }
-
-  pub async fn is_follower(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    community_id: CommunityId,
-  ) -> Result<bool, Error> {
-    use crate::schema::community_follower::dsl::community_follower;
-    let conn = &mut get_conn(pool).await?;
-
-    select(exists(community_follower.find((person_id, community_id))))
-      .get_result(conn)
-      .await
-  }
 }
 
 impl Queryable<sql_types::Nullable<sql_types::Bool>, Pg> for SubscribedType {
