@@ -19,7 +19,7 @@ use lemmy_utils::error::LemmyError;
 use url::Url;
 
 #[derive(Clone, Debug)]
-pub(crate) struct ApubCommunityModerators(pub(crate) Vec<CommunityModeratorView>);
+pub(crate) struct ApubCommunityModerators(());
 
 #[async_trait::async_trait]
 impl Collection for ApubCommunityModerators {
@@ -96,7 +96,7 @@ impl Collection for ApubCommunityModerators {
     }
 
     // This return value is unused, so just set an empty vec
-    Ok(ApubCommunityModerators(Vec::new()))
+    Ok(ApubCommunityModerators(()))
   }
 }
 
@@ -106,11 +106,7 @@ mod tests {
 
   use super::*;
   use crate::{
-    objects::{
-      community::tests::parse_lemmy_community,
-      person::tests::parse_lemmy_person,
-      tests::init_context,
-    },
+    objects::{community::tests::parse_lemmy_community, person::tests::parse_lemmy_person},
     protocol::tests::file_to_json_object,
   };
   use lemmy_db_schema::{
@@ -129,7 +125,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_community_moderators() -> LemmyResult<()> {
-    let context = init_context().await?;
+    let context = LemmyContext::init_test_context().await;
     let (new_mod, site) = parse_lemmy_person(&context).await?;
     let community = parse_lemmy_community(&context).await?;
     let community_id = community.id;

@@ -146,6 +146,18 @@ steps:
       - diesel migration redo
     when: *slow_check_paths
 
+  check_db_perf_tool:
+    image: *rust_image
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: "1"
+      CARGO_HOME: .cargo_home
+    commands:
+      # same as scripts/db_perf.sh but without creating a new database server
+      - export LEMMY_CONFIG_LOCATION=config/config.hjson
+      - cargo run --package lemmy_db_perf -- --posts 10 --read-post-pages 1
+    when: *slow_check_paths
+
   cargo_clippy:
     image: *rust_image
     environment:

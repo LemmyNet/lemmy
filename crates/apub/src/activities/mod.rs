@@ -10,7 +10,6 @@ use crate::{
     create_or_update::private_message::send_create_or_update_pm,
     deletion::{
       send_apub_delete_in_community,
-      send_apub_delete_in_community_new,
       send_apub_delete_private_message,
       send_apub_delete_user,
       DeletableObjects,
@@ -35,9 +34,12 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
 };
-use lemmy_db_schema::source::{
-  activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
-  community::Community,
+use lemmy_db_schema::{
+  source::{
+    activity::{ActivitySendTargets, ActorType, SentActivity, SentActivityForm},
+    community::Community,
+  },
+  traits::Crud,
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -246,24 +248,31 @@ pub async fn match_outgoing_activities(
         CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Update, context).await
       }
       DeletePost(post, person, data) => {
-        send_apub_delete_in_community_new(
+        let community = Community::read(&mut context.pool(), post.community_id).await?;
+        send_apub_delete_in_community(
           person,
-          post.community_id,
+          community,
           DeletableObjects::Post(post.into()),
           None,
           data.deleted,
-          context,
+          &context,
         )
         .await
       }
-      RemovePost(post, person, data) => {
-        send_apub_delete_in_community_new(
-          person,
-          post.community_id,
+      RemovePost {
+        post,
+        moderator,
+        reason,
+        removed,
+      } => {
+        let community = Community::read(&mut context.pool(), post.community_id).await?;
+        send_apub_delete_in_community(
+          moderator,
+          community,
           DeletableObjects::Post(post.into()),
-          data.reason.or_else(|| Some(String::new())),
-          data.removed,
-          context,
+          reason.or_else(|| Some(String::new())),
+          removed,
+          &context,
         )
         .await
       }
@@ -282,15 +291,25 @@ pub async fn match_outgoing_activities(
         let deletable = DeletableObjects::Comment(comment.into());
         send_apub_delete_in_community(actor, community, deletable, None, is_deleted, &context).await
       }
-      RemoveComment(comment, actor, community, reason) => {
+      RemoveComment {
+        comment,
+        moderator,
+        community,
+        reason,
+      } => {
         let is_removed = comment.removed;
         let deletable = DeletableObjects::Comment(comment.into());
-        send_apub_delete_in_community(actor, community, deletable, reason, is_removed, &context)
-          .await
+        send_apub_delete_in_community(
+          moderator, community, deletable, reason, is_removed, &context,
+        )
+        .await
       }
-      LikePostOrComment(object_id, person, community, score) => {
-        send_like_activity(object_id, person, community, score, context).await
-      }
+      LikePostOrComment {
+        object_id,
+        actor,
+        community,
+        score,
+      } => send_like_activity(object_id, actor, community, score, context).await,
       FollowCommunity(community, person, follow) => {
         send_follow_community(community, person, follow, &context).await
       }
@@ -299,10 +318,15 @@ pub async fn match_outgoing_activities(
         let deletable = DeletableObjects::Community(community.clone().into());
         send_apub_delete_in_community(actor, community, deletable, None, removed, &context).await
       }
-      RemoveCommunity(actor, community, reason, removed) => {
+      RemoveCommunity {
+        moderator,
+        community,
+        reason,
+        removed,
+      } => {
         let deletable = DeletableObjects::Community(community.clone().into());
         send_apub_delete_in_community(
-          actor,
+          moderator,
           community,
           deletable,
           reason.clone().or_else(|| Some(String::new())),
@@ -311,13 +335,37 @@ pub async fn match_outgoing_activities(
         )
         .await
       }
-      AddModToCommunity(actor, community_id, updated_mod_id, added) => {
-        send_add_mod_to_community(actor, community_id, updated_mod_id, added, context).await
+      AddModToCommunity {
+        moderator,
+        community_id,
+        target,
+        added,
+      } => send_add_mod_to_community(moderator, community_id, target, added, context).await,
+      BanFromCommunity {
+        moderator,
+        community_id,
+        target,
+        data,
+      } => send_ban_from_community(moderator, community_id, target, data, context).await,
+      BanFromSite {
+        moderator,
+        banned_user,
+        reason,
+        remove_data,
+        ban,
+        expires,
+      } => {
+        send_ban_from_site(
+          moderator,
+          banned_user,
+          reason,
+          remove_data,
+          ban,
+          expires,
+          context,
+        )
+        .await
       }
-      BanFromCommunity(mod_, community_id, target, data) => {
-        send_ban_from_community(mod_, community_id, target, data, context).await
-      }
-      BanFromSite(mod_, target, data) => send_ban_from_site(mod_, target, data, context).await,
       CreatePrivateMessage(pm) => {
         send_create_or_update_pm(pm, CreateOrUpdateType::Create, context).await
       }
@@ -328,9 +376,12 @@ pub async fn match_outgoing_activities(
         send_apub_delete_private_message(&person.into(), pm, deleted, context).await
       }
       DeleteUser(person, remove_data) => send_apub_delete_user(person, remove_data, context).await,
-      CreateReport(url, actor, community, reason) => {
-        Report::send(ObjectId::from(url), actor, community, reason, context).await
-      }
+      CreateReport {
+        object_id,
+        actor,
+        community,
+        reason,
+      } => Report::send(ObjectId::from(object_id), actor, community, reason, context).await,
     }
   };
   fed_task.await?;

@@ -21,7 +21,7 @@ use diesel::{
   query_dsl::methods::LimitDsl,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
   serialize::{Output, ToSql},
-  sql_types::{Text, Timestamptz},
+  sql_types::{self, Text, Timestamptz},
   IntoSql,
   PgConnection,
 };
@@ -35,6 +35,7 @@ use diesel_async::{
 };
 use diesel_migrations::EmbeddedMigrations;
 use futures_util::{future::BoxFuture, Future, FutureExt};
+use i_love_jesus::CursorKey;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   settings::SETTINGS,
@@ -154,6 +155,25 @@ macro_rules! try_join_with_pool {
       }.await,
     }
   }};
+}
+
+pub struct ReverseTimestampKey<K>(pub K);
+
+impl<K, C> CursorKey<C> for ReverseTimestampKey<K>
+where
+  K: CursorKey<C, SqlType = Timestamptz>,
+{
+  type SqlType = sql_types::BigInt;
+  type CursorValue = functions::reverse_timestamp_sort::HelperType<K::CursorValue>;
+  type SqlValue = functions::reverse_timestamp_sort::HelperType<K::SqlValue>;
+
+  fn get_cursor_value(cursor: &C) -> Self::CursorValue {
+    functions::reverse_timestamp_sort(K::get_cursor_value(cursor))
+  }
+
+  fn get_sql_value() -> Self::SqlValue {
+    functions::reverse_timestamp_sort(K::get_sql_value())
+  }
 }
 
 /// Includes an SQL comment before `T`, which can be used to label auto_explain output
@@ -429,6 +449,8 @@ pub mod functions {
   sql_function! {
     fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Double;
   }
+
+  sql_function!(fn reverse_timestamp_sort(time: Timestamptz) -> BigInt);
 
   sql_function!(fn lower(x: Text) -> Text);
 

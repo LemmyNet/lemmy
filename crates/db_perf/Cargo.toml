@@ -13,6 +13,7 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
+anyhow = { workspace = true }
 clap = { workspace = true }
 diesel = { workspace = true }
 diesel-async = { workspace = true }

@@ -6,6 +6,10 @@ pub mod sql_types {
     pub struct ActorTypeEnum;
 
     #[derive(diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "community_visibility"))]
+    pub struct CommunityVisibility;
+
+    #[derive(diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "listing_type_enum"))]
     pub struct ListingTypeEnum;
 
@@ -150,6 +154,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::CommunityVisibility;
+
     community (id) {
         id -> Int4,
         #[max_length = 255]
@@ -183,6 +190,7 @@ diesel::table! {
         moderators_url -> Nullable<Varchar>,
         #[max_length = 255]
         featured_url -> Nullable<Varchar>,
+        visibility -> CommunityVisibility,
     }
 }
 
@@ -198,6 +206,7 @@ diesel::table! {
         users_active_month -> Int8,
         users_active_half_year -> Int8,
         hot_rank -> Float8,
+        subscribers_local -> Int8,
     }
 }
 
@@ -301,15 +310,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    image_upload (pictrs_alias) {
-        local_user_id -> Int4,
-        pictrs_alias -> Text,
-        pictrs_delete_token -> Text,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
     instance (id) {
         id -> Int4,
         #[max_length = 255]
@@ -337,6 +337,15 @@ diesel::table! {
         #[max_length = 3]
         code -> Varchar,
         name -> Text,
+    }
+}
+
+diesel::table! {
+    local_image (pictrs_alias) {
+        local_user_id -> Int4,
+        pictrs_alias -> Text,
+        pictrs_delete_token -> Text,
+        published -> Timestamptz,
     }
 }
 
@@ -691,6 +700,7 @@ diesel::table! {
         language_id -> Int4,
         featured_community -> Bool,
         featured_local -> Bool,
+        url_content_type -> Nullable<Text>,
     }
 }
 
@@ -802,6 +812,14 @@ diesel::table! {
         answer -> Text,
         admin_id -> Nullable<Int4>,
         deny_reason -> Nullable<Text>,
+        published -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    remote_image (id) {
+        id -> Int4,
+        link -> Text,
         published -> Timestamptz,
     }
 }
@@ -921,9 +939,9 @@ diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
 diesel::joinable!(federation_queue_state -> instance (instance_id));
-diesel::joinable!(image_upload -> local_user (local_user_id));
 diesel::joinable!(instance_block -> instance (instance_id));
 diesel::joinable!(instance_block -> person (person_id));
+diesel::joinable!(local_image -> local_user (local_user_id));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
@@ -1001,10 +1019,10 @@ diesel::allow_tables_to_appear_in_same_query!(
     federation_allowlist,
     federation_blocklist,
     federation_queue_state,
-    image_upload,
     instance,
     instance_block,
     language,
+    local_image,
     local_site,
     local_site_rate_limit,
     local_user,
@@ -1039,6 +1057,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     private_message_report,
     received_activity,
     registration_application,
+    remote_image,
     secret,
     sent_activity,
     site,

@@ -25,7 +25,6 @@ full = [
   "lemmy_db_views_actor/full",
   "lemmy_db_views_moderator/full",
   "activitypub_federation",
-  "percent-encoding",
   "encoding",
   "reqwest-middleware",
   "webpage",
@@ -37,6 +36,7 @@ full = [
   "futures",
   "once_cell",
   "jsonwebtoken",
+  "mime",
 ]
 
 [dependencies]
@@ -54,11 +54,7 @@ tracing = { workspace = true, optional = true }
 reqwest-middleware = { workspace = true, optional = true }
 regex = { workspace = true }
 rosetta-i18n = { workspace = true, optional = true }
-percent-encoding = { workspace = true, optional = true }
-webpage = { version = "1.6", default-features = false, features = [
-  "serde",
-], optional = true }
-encoding = { version = "0.2.33", optional = true }
+anyhow = { workspace = true }
 futures = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
@@ -66,10 +62,18 @@ reqwest = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 once_cell = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
+enum-map = { workspace = true }
+urlencoding = { workspace = true }
+async-trait = { workspace = true }
+mime = { version = "0.3.17", optional = true }
+webpage = { version = "1.6", default-features = false, features = [
+  "serde",
+], optional = true }
+encoding = { version = "0.2.33", optional = true }
 jsonwebtoken = { version = "8.3.0", optional = true }
 # necessary for wasmt compilation
-getrandom = { version = "0.2.11", features = ["js"] }
-enum-map = { workspace = true }
+getrandom = { version = "0.2.12", features = ["js"] }
+task-local-extensions = "0.1.4"
 
 [package.metadata.cargo-machete]
 ignored = ["getrandom"]

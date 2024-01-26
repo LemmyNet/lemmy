@@ -1,6 +1,7 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
+  source::site::Site,
   CommentSortType,
   ListingType,
   PostListingMode,
@@ -172,12 +173,14 @@ pub struct GetPersonDetails {
   pub saved_only: Option<bool>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A person's details response.
 pub struct GetPersonDetailsResponse {
   pub person_view: PersonView,
+  pub site: Option<Site>,
   pub comments: Vec<CommentView>,
   pub posts: Vec<PostView>,
   pub moderates: Vec<CommunityModeratorView>,
@@ -211,6 +214,9 @@ pub struct BanPerson {
   /// Optionally remove all their data. Useful for new troll accounts.
   pub remove_data: Option<bool>,
   pub reason: Option<String>,
+  /// A time that the ban will expire, in unix epoch seconds.
+  ///
+  /// An i64 unix timestamp is used for a simpler API client implementation.
   pub expires: Option<i64>,
 }
 

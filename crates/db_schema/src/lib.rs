@@ -217,6 +217,27 @@ pub enum PostFeatureType {
   Community,
 }
 
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default,
+)]
+#[cfg_attr(feature = "full", derive(DbEnum, TS))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::CommunityVisibility"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "full", ts(export))]
+/// Defines who can browse and interact with content in a community.
+///
+/// TODO: Also use this to define private communities
+pub enum CommunityVisibility {
+  /// Public community, any local or federated user can interact.
+  #[default]
+  Public,
+  /// Unfederated community, only local users can interact.
+  LocalOnly,
+}
+
 /// Wrapper for assert_eq! macro. Checks that vec matches the given length, and prints the
 /// vec on failure.
 #[macro_export]

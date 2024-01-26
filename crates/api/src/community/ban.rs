@@ -92,12 +92,12 @@ pub async fn ban_from_community(
   let person_view = PersonView::read(&mut context.pool(), data.person_id).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::BanFromCommunity(
-      local_user_view.person,
-      data.community_id,
-      person_view.person.clone(),
-      data.0.clone(),
-    ),
+    SendActivityData::BanFromCommunity {
+      moderator: local_user_view.person,
+      community_id: data.community_id,
+      target: person_view.person.clone(),
+      data: data.0.clone(),
+    },
     &context,
   )
   .await?;

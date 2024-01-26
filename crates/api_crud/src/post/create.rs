@@ -4,7 +4,7 @@ use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   post::{CreatePost, PostResponse},
-  request::fetch_site_data,
+  request::fetch_link_metadata_opt,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_user_action,
@@ -12,6 +12,8 @@ use lemmy_api_common::{
     honeypot_check,
     local_site_to_slur_regex,
     mark_post_as_read,
+    process_markdown_opt,
+    proxy_image_link_opt_apub,
     EndpointType,
   },
 };
@@ -24,6 +26,7 @@ use lemmy_db_schema::{
     post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
   },
   traits::{Crud, Likeable},
+  CommunityVisibility,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
@@ -31,7 +34,7 @@ use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   spawn_try_task,
   utils::{
-    slurs::{check_slurs, check_slurs_opt},
+    slurs::check_slurs,
     validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
   },
 };
@@ -49,14 +52,14 @@ pub async fn create_post(
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.name, &slur_regex)?;
-  check_slurs_opt(&data.body, &slur_regex)?;
+  let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
   honeypot_check(&data.honeypot)?;
 
   let data_url = data.url.as_ref();
-  let url = data_url.map(clean_url_params).map(Into::into); // TODO no good way to handle a "clear"
+  let url = data_url.map(clean_url_params); // TODO no good way to handle a "clear"
 
   is_valid_post_title(&data.name)?;
-  is_valid_body_field(&data.body, true)?;
+  is_valid_body_field(&body, true)?;
   check_url_scheme(&data.url)?;
 
   check_community_user_action(
@@ -82,11 +85,8 @@ pub async fn create_post(
   }
 
   // Fetch post links and pictrs cached image
-  let (metadata_res, thumbnail_url) =
-    fetch_site_data(context.client(), context.settings(), data_url, true).await;
-  let (embed_title, embed_description, embed_video_url) = metadata_res
-    .map(|u| (u.title, u.description, u.embed_video_url))
-    .unwrap_or_default();
+  let metadata = fetch_link_metadata_opt(url.as_ref(), true, &context).await;
+  let url = proxy_image_link_opt_apub(url, &context).await?;
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
@@ -113,15 +113,15 @@ pub async fn create_post(
   let post_form = PostInsertForm::builder()
     .name(data.name.trim().to_string())
     .url(url)
-    .body(data.body.clone())
+    .body(body)
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)
-    .embed_title(embed_title)
-    .embed_description(embed_description)
-    .embed_video_url(embed_video_url)
+    .embed_title(metadata.opengraph_data.title)
+    .embed_description(metadata.opengraph_data.description)
+    .embed_video_url(metadata.opengraph_data.embed_video_url)
     .language_id(language_id)
-    .thumbnail_url(thumbnail_url)
+    .thumbnail_url(metadata.thumbnail)
     .build();
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)
@@ -166,20 +166,22 @@ pub async fn create_post(
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
   if let Some(url) = updated_post.url.clone() {
-    spawn_try_task(async move {
-      let mut webmention =
-        Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
-      webmention.set_checked(true);
-      match webmention
-        .send()
-        .instrument(tracing::info_span!("Sending webmention"))
-        .await
-      {
-        Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
-        Ok(_) => Ok(()),
-        Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
-      }
-    });
+    if community.visibility == CommunityVisibility::Public {
+      spawn_try_task(async move {
+        let mut webmention =
+          Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
+        webmention.set_checked(true);
+        match webmention
+          .send()
+          .instrument(tracing::info_span!("Sending webmention"))
+          .await
+        {
+          Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
+          Ok(_) => Ok(()),
+          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
+        }
+      });
+    }
   };
 
   build_post_response(&context, community_id, &local_user_view.person, post_id).await

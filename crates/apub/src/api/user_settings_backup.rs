@@ -106,10 +106,10 @@ pub async fn import_settings(
 
   let local_user_form = LocalUserUpdateForm {
     show_nsfw: data.settings.as_ref().map(|s| s.show_nsfw),
-    theme: data.settings.as_ref().map(|s| s.theme.clone()),
+    theme: data.settings.clone().map(|s| s.theme.clone()),
     default_sort_type: data.settings.as_ref().map(|s| s.default_sort_type),
     default_listing_type: data.settings.as_ref().map(|s| s.default_listing_type),
-    interface_language: data.settings.as_ref().map(|s| s.interface_language.clone()),
+    interface_language: data.settings.clone().map(|s| s.interface_language),
     show_avatars: data.settings.as_ref().map(|s| s.show_avatars),
     send_notifications_to_email: data
       .settings
@@ -298,10 +298,7 @@ pub async fn import_settings(
 mod tests {
   #![allow(clippy::indexing_slicing)]
 
-  use crate::{
-    api::user_settings_backup::{export_settings, import_settings},
-    objects::tests::init_context,
-  };
+  use crate::api::user_settings_backup::{export_settings, import_settings};
   use activitypub_federation::config::Data;
   use lemmy_api_common::context::LemmyContext;
   use lemmy_db_schema::{
@@ -348,7 +345,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_settings_export_import() -> LemmyResult<()> {
-    let context = init_context().await?;
+    let context = LemmyContext::init_test_context().await;
 
     let export_user =
       create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
@@ -397,7 +394,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn disallow_large_backup() -> LemmyResult<()> {
-    let context = init_context().await?;
+    let context = LemmyContext::init_test_context().await;
 
     let export_user =
       create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
