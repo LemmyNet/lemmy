@@ -276,6 +276,17 @@ BEGIN
 END
 $$;
 
+CREATE FUNCTION delete_follow_before_person ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    DELETE FROM community_follower AS c
+    WHERE c.person_id = OLD.id;
+    RETURN OLD;
+END;
+$$;
+
 CREATE FUNCTION person_aggregates_comment_count ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
@@ -888,6 +899,11 @@ CREATE TRIGGER community_aggregates_subscriber_count
     AFTER INSERT OR DELETE ON community_follower
     FOR EACH ROW
     EXECUTE FUNCTION community_aggregates_subscriber_count ();
+
+CREATE TRIGGER delete_follow_before_person
+    BEFORE DELETE ON person
+    FOR EACH ROW
+    EXECUTE FUNCTION delete_follow_before_person ();
 
 CREATE TRIGGER person_aggregates_comment_count
     AFTER INSERT OR DELETE OR UPDATE OF removed,
