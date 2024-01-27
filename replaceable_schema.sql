@@ -489,7 +489,7 @@ END;
 
 $$);
 
--- Delete comments before post is deleted (comment trigger can't update community_aggregates after post is deleted)
+-- Change the order of some cascading deletions to make deletion triggers run before the deletion of rows that the triggers need to read
 CREATE FUNCTION r.delete_comments_before_post ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
@@ -505,6 +505,22 @@ CREATE TRIGGER delete_comments
     BEFORE DELETE ON post
     FOR EACH ROW
     EXECUTE FUNCTION r.delete_comments_before_post ();
+
+CREATE FUNCTION delete_follow_before_person ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    DELETE FROM community_follower AS c
+    WHERE c.person_id = OLD.id;
+    RETURN OLD;
+END;
+$$;
+
+CREATE TRIGGER delete_follow
+    BEFORE DELETE ON person
+    FOR EACH ROW
+    EXECUTE FUNCTION delete_follow_before_person ();
 
 -- For community_aggregates.comments, don't include comments of deleted or removed posts
 CREATE FUNCTION r.update_comment_count_from_post ()
@@ -550,29 +566,24 @@ CREATE TRIGGER comment_count
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.update_comment_count_from_post ();
 
--- Count subscribers for local communities
+-- Count subscribers for communities.
+-- subscribers should be updated only when a local community is followed by a local or remote person.
+-- subscribers_local should be updated only when a local person follows a local or remote community.
 CALL r.create_triggers ('community_follower', $$
 BEGIN
     UPDATE
         community_aggregates AS a
     SET
-        subscribers = a.subscribers + diff.subscribers
+        subscribers = a.subscribers + diff.subscribers,
+        subscribers_local = a.subscribers + diff.subscribers_local
     FROM (
         SELECT
-            (community_follower).community_id, coalesce(sum(count_diff), 0) AS subscribers
+            (community_follower).community_id,
+            coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers,
+            coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local
         FROM select_old_and_new_rows AS old_and_new_rows
-        WHERE (
-            SELECT
-                local
-            FROM community
-            WHERE
-                community.id = (community_follower).community_id LIMIT 1)
-        AND EXISTS (
-            SELECT
-                1
-            FROM community
-            WHERE
-                id = (community_follower).community_id)
+        INNER JOIN community ON community.id = (community_follower).community_id
+        LEFT JOIN person ON person.id = (community_follower).person_id
         GROUP BY (community_follower).community_id) AS diff
 WHERE
     a.community_id = diff.community_id;
