@@ -506,7 +506,7 @@ CREATE TRIGGER delete_comments
     FOR EACH ROW
     EXECUTE FUNCTION r.delete_comments_before_post ();
 
-CREATE FUNCTION delete_follow_before_person ()
+CREATE FUNCTION r.delete_follow_before_person ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
@@ -520,7 +520,7 @@ $$;
 CREATE TRIGGER delete_follow
     BEFORE DELETE ON person
     FOR EACH ROW
-    EXECUTE FUNCTION delete_follow_before_person ();
+    EXECUTE FUNCTION r.delete_follow_before_person ();
 
 -- For community_aggregates.comments, don't include comments of deleted or removed posts
 CREATE FUNCTION r.update_comment_count_from_post ()
@@ -574,17 +574,13 @@ BEGIN
     UPDATE
         community_aggregates AS a
     SET
-        subscribers = a.subscribers + diff.subscribers,
-        subscribers_local = a.subscribers + diff.subscribers_local
+        subscribers = a.subscribers + diff.subscribers, subscribers_local = a.subscribers + diff.subscribers_local
     FROM (
         SELECT
-            (community_follower).community_id,
-            coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers,
-            coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local
+            (community_follower).community_id, coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers, coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local
         FROM select_old_and_new_rows AS old_and_new_rows
         INNER JOIN community ON community.id = (community_follower).community_id
-        LEFT JOIN person ON person.id = (community_follower).person_id
-        GROUP BY (community_follower).community_id) AS diff
+        LEFT JOIN person ON person.id = (community_follower).person_id GROUP BY (community_follower).community_id) AS diff
 WHERE
     a.community_id = diff.community_id;
 
