@@ -1,5 +1,3 @@
-pub mod series;
-
 use crate::{
   diesel::Connection,
   diesel_migrations::MigrationHarness,
