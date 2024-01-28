@@ -6,10 +6,7 @@ use lemmy_api_common::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
-  CommentSortType,
-  CommunityVisibility,
-  ListingType,
-  SortType,
+  CommentSortType, CommunityVisibility, ListingType, SortType,
 };
 use lemmy_db_views::{
   post_view::PostQuery,
@@ -26,7 +23,11 @@ use lemmy_utils::{
   utils::markdown::{markdown_to_html, sanitize_html},
 };
 use once_cell::sync::Lazy;
-use rss::{extension::dublincore::DublinCoreExtension, Channel, Guid, Item};
+use rss::{
+  extension::dublincore::DublinCoreExtension,
+  extension::{ExtensionBuilder, ExtensionMap},
+  Channel, Guid, Item,
+};
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr};
 
@@ -509,6 +510,22 @@ fn create_post_items(
       description.push_str(&html);
     }
 
+    let mut extensions = ExtensionMap::new();
+
+    if let Some(url) = p.post.thumbnail_url {
+      let mut thumbnail_ext = ExtensionBuilder::default();
+      thumbnail_ext.name("media:content".to_string());
+      thumbnail_ext.attrs(BTreeMap::from([
+        ("url".to_string(), url.to_string()),
+        ("medium".to_string(), "image".to_string()),
+      ]));
+
+      extensions.insert(
+        "media".to_string(),
+        BTreeMap::from([("content".to_string(), vec![thumbnail_ext.build()])]),
+      );
+    }
+
     let i = Item {
       title: Some(sanitize_html(&p.post.name)),
       pub_date: Some(p.post.published.to_rfc2822()),
@@ -517,6 +534,7 @@ fn create_post_items(
       description: Some(description),
       dublin_core_ext,
       link,
+      extensions,
       ..Default::default()
     };
 
