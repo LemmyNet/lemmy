@@ -6,7 +6,10 @@ use lemmy_api_common::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
-  CommentSortType, CommunityVisibility, ListingType, SortType,
+  CommentSortType,
+  CommunityVisibility,
+  ListingType,
+  SortType,
 };
 use lemmy_db_views::{
   post_view::PostQuery,
@@ -24,9 +27,10 @@ use lemmy_utils::{
 };
 use once_cell::sync::Lazy;
 use rss::{
-  extension::dublincore::DublinCoreExtension,
-  extension::{ExtensionBuilder, ExtensionMap},
-  Channel, Guid, Item,
+  extension::{dublincore::DublinCoreExtension, ExtensionBuilder, ExtensionMap},
+  Channel,
+  Guid,
+  Item,
 };
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr};
