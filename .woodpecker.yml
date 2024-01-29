@@ -152,7 +152,6 @@ steps:
     environment:
       CARGO_HOME: .cargo_home
     commands:
-      # when adding new clippy lints, make sure to also add them in scripts/lint.sh
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --features console -- -D warnings
     when: *slow_check_paths
@@ -189,6 +188,15 @@ steps:
       - yarn
       - yarn api-test
     when: *slow_check_paths
+
+  federation_tests_server_output:
+    image: alpine:3
+    commands:
+      # `|| true` prevents this step from appearing to fail if the server output files don't exist
+      - cat target/log/lemmy_*.out || true
+      - "# If you can't see all output, then use the download button"
+    when:
+      status: [failure]
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
