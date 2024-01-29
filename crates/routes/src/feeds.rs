@@ -520,6 +520,8 @@ fn create_post_items(
 
     let mut extensions = ExtensionMap::new();
 
+    // If there's a thumbnail URL, add a media:content tag to display it.
+    // See https://www.rssboard.org/media-rss#media-content for details.
     if let Some(url) = p.post.thumbnail_url {
       let mut thumbnail_ext = ExtensionBuilder::default();
       thumbnail_ext.name("media:content".to_string());
