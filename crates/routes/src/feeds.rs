@@ -85,6 +85,10 @@ static RSS_NAMESPACE: Lazy<BTreeMap<String, String>> = Lazy::new(|| {
     "dc".to_string(),
     rss::extension::dublincore::NAMESPACE.to_string(),
   );
+  h.insert(
+    "media".to_string(),
+    "http://search.yahoo.com/mrss/".to_string(),
+  );
   h
 });
 
