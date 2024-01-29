@@ -22,7 +22,6 @@ use lemmy_db_schema::{
   },
   source::{
     community::CommunityFollower,
-    local_site::LocalSite,
     local_user::LocalUser,
     site::Site,
   },
@@ -221,7 +220,6 @@ impl CommunityView {
 
 #[derive(Default)]
 pub struct CommunityQuery<'a> {
-  pub local_site: LocalSite,
   pub listing_type: Option<ListingType>,
   pub sort: Option<SortType>,
   pub local_user: Option<&'a LocalUser>,
