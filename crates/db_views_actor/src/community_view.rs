@@ -20,11 +20,7 @@ use lemmy_db_schema::{
     instance_block,
     local_user,
   },
-  source::{
-    community::CommunityFollower,
-    local_user::LocalUser,
-    site::Site,
-  },
+  source::{community::CommunityFollower, local_user::LocalUser, site::Site},
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
