@@ -92,6 +92,24 @@ static RSS_NAMESPACE: Lazy<BTreeMap<String, String>> = Lazy::new(|| {
   h
 });
 
+/// Removes any characters disallowed by the XML grammar.
+/// See https://www.w3.org/TR/xml/#NT-Char for details.
+fn sanitize_xml(input: String) -> String {
+  input
+    .chars()
+    .filter(|&c| {
+      matches!(c,
+        '\u{09}'
+        | '\u{0A}'
+        | '\u{0D}'
+        | '\u{20}'..='\u{FE}'
+        | '\u{00FF}'..='\u{D7FF}'
+        | '\u{E000}'..='\u{FFFD}'
+        | '\u{10000}'..='\u{10FFFF}')
+    })
+    .collect()
+}
+
 #[tracing::instrument(skip_all)]
 async fn get_all_feed(
   info: web::Query<Params>,
@@ -256,10 +274,9 @@ async fn get_feed_user(
   .await?;
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
-
   let channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - {}", site_view.site.name, person.name),
+    title: format!("{} - {}", sanitize_xml(site_view.site.name), person.name),
     link: person.actor_id.to_string(),
     items,
     ..Default::default()
@@ -298,7 +315,7 @@ async fn get_feed_community(
 
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - {}", site_view.site.name, community.name),
+    title: format!("{} - {}", sanitize_xml(site_view.site.name), community.name),
     link: community.actor_id.to_string(),
     items,
     ..Default::default()
@@ -337,10 +354,9 @@ async fn get_feed_front(
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let items = create_post_items(posts, &protocol_and_hostname)?;
-
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - Subscribed", site_view.site.name),
+    title: format!("{} - Subscribed", sanitize_xml(site_view.site.name)),
     link: protocol_and_hostname,
     items,
     ..Default::default()
@@ -391,7 +407,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> Result<Channel, Le
 
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - Inbox", site_view.site.name),
+    title: format!("{} - Inbox", sanitize_xml(site_view.site.name)),
     link: format!("{protocol_and_hostname}/inbox"),
     items,
     ..Default::default()
@@ -537,11 +553,11 @@ fn create_post_items(
     }
 
     let i = Item {
-      title: Some(sanitize_html(&p.post.name)),
+      title: Some(sanitize_html(sanitize_xml(p.post.name).as_str())),
       pub_date: Some(p.post.published.to_rfc2822()),
       comments: Some(post_url.clone()),
       guid,
-      description: Some(description),
+      description: Some(sanitize_xml(description)),
       dublin_core_ext,
       link,
       extensions,
