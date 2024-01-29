@@ -26,7 +26,12 @@ use lemmy_utils::{
   utils::markdown::{markdown_to_html, sanitize_html},
 };
 use once_cell::sync::Lazy;
-use rss::{extension::dublincore::DublinCoreExtension, Channel, Guid, Item};
+use rss::{
+  extension::{dublincore::DublinCoreExtension, ExtensionBuilder, ExtensionMap},
+  Channel,
+  Guid,
+  Item,
+};
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr};
 
@@ -79,6 +84,10 @@ static RSS_NAMESPACE: Lazy<BTreeMap<String, String>> = Lazy::new(|| {
   h.insert(
     "dc".to_string(),
     rss::extension::dublincore::NAMESPACE.to_string(),
+  );
+  h.insert(
+    "media".to_string(),
+    "http://search.yahoo.com/mrss/".to_string(),
   );
   h
 });
@@ -509,6 +518,24 @@ fn create_post_items(
       description.push_str(&html);
     }
 
+    let mut extensions = ExtensionMap::new();
+
+    // If there's a thumbnail URL, add a media:content tag to display it.
+    // See https://www.rssboard.org/media-rss#media-content for details.
+    if let Some(url) = p.post.thumbnail_url {
+      let mut thumbnail_ext = ExtensionBuilder::default();
+      thumbnail_ext.name("media:content".to_string());
+      thumbnail_ext.attrs(BTreeMap::from([
+        ("url".to_string(), url.to_string()),
+        ("medium".to_string(), "image".to_string()),
+      ]));
+
+      extensions.insert(
+        "media".to_string(),
+        BTreeMap::from([("content".to_string(), vec![thumbnail_ext.build()])]),
+      );
+    }
+
     let i = Item {
       title: Some(sanitize_html(&p.post.name)),
       pub_date: Some(p.post.published.to_rfc2822()),
@@ -517,6 +544,7 @@ fn create_post_items(
       description: Some(description),
       dublin_core_ext,
       link,
+      extensions,
       ..Default::default()
     };
 
