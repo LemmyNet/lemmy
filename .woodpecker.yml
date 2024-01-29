@@ -42,7 +42,7 @@ steps:
   prettier_check:
     image: tmknom/prettier:3.0.0
     commands:
-      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
+      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
 
   toml_fmt:
     image: tamasfe/taplo:0.8.1
