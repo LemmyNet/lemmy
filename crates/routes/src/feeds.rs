@@ -102,8 +102,7 @@ fn sanitize_xml(input: String) -> String {
         '\u{09}'
         | '\u{0A}'
         | '\u{0D}'
-        | '\u{20}'..='\u{FE}'
-        | '\u{00FF}'..='\u{D7FF}'
+        | '\u{20}'..='\u{D7FF}'
         | '\u{E000}'..='\u{FFFD}'
         | '\u{10000}'..='\u{10FFFF}')
     })
