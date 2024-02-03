@@ -1,2 +1,0 @@
-# Keep normal formatting between `BEGIN` and `COMMIT` statements
-nogrouping=1
