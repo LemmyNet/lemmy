@@ -7,7 +7,10 @@ use crate::{
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
 use chrono::{DateTime, Utc};
-use deadpool::Runtime;
+use deadpool::{
+  managed::{Hook, HookError},
+  Runtime,
+};
 use diesel::{
   backend::Backend,
   deserialize::FromSql,
@@ -42,7 +45,7 @@ use rustls::{
 use std::{
   ops::{Deref, DerefMut},
   sync::Arc,
-  time::SystemTime,
+  time::{Duration, SystemTime},
 };
 use tracing::{error, info};
 use url::Url;
@@ -304,6 +307,14 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
   let pool = Pool::builder(manager)
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
+    // Limit connection age to prevent use of prepared statements that have query plans based on very old statistics
+    .pre_recycle(Hook::sync_fn(|_object, metrics| {
+      if metrics.age() > Duration::from_secs(3 * 24 * 60 * 60) {
+        Err(HookError::Continue(None))
+      } else {
+        Ok(())
+      }
+    }))
     .build()?;
 
   run_migrations(&db_url);
