@@ -1,26 +1,12 @@
--- This file sets up the `r` schema, which contains things that can be safely dropped and replaced instead of being
--- changed using migrations.
---
--- Statements in this file may not create or modify things outside of the `r` schema (indicated by the `r.` prefix),
--- except for these things, which are associated with something other than a schema (usually a table):
---   * A trigger if the function name after `EXECUTE FUNCTION` is in `r` (dropping `r` drops the trigger)
---
--- The default schema is not temporarily set to `r` because it would not affect some things (such as triggers) which
--- makes it hard to tell if the rule above is being followed.
---
--- If you add something here that depends on something (such as a table) created in a new migration, then down.sql must use
--- `CASCADE` when dropping it. This doesn't need to be fixed in old migrations because the "replaceable-schema" migration
--- runs `DROP SCHEMA IF EXISTS r CASCADE` in down.sql.
+-- A trigger is associated with a table instead of a schema, so they can't be in the `r` schema. This is
+-- okay if the function specified after `EXECUTE FUNCTION` is in `r`, since dropping the function drops the trigger.
 --
 -- `DELETE` triggers can run after after the deletion of a row and before the deletion of rows with a foreign key that
--- references it, so to prevent premature foreign key constraint checks, they must use `EXISTS` (or a join) in a filter
--- to avoid updating rows that have an invalid foreign key, even if the foreign key is not updated.
-BEGIN;
-
-DROP SCHEMA IF EXISTS r CASCADE;
-
-CREATE SCHEMA r;
-
+-- references it, so to prevent premature foreign key constraint checks, they must use a join to avoid updating
+-- rows that have an invalid foreign key, even if the foreign key is not updated.
+--
+--
+--
 -- Rank calculations
 CREATE FUNCTION r.controversy_rank (upvotes numeric, downvotes numeric)
     RETURNS float
@@ -169,20 +155,14 @@ BEGIN
                     resolved = TRUE, resolver_id = first_removal.mod_person_id, updated = first_removal.when_ FROM ( SELECT DISTINCT
                             thing_id
                         FROM new_removal
-                        WHERE
-                            EXISTS (
-                                SELECT
-                                    1
-                                FROM thing
-                                WHERE
-                                    id = thing_id)) AS removal_group, LATERAL (
-                        SELECT
-                            *
-                        FROM new_removal
-                        WHERE
-                            new_removal.thing_id = removal_group.thing_id ORDER BY when_ ASC LIMIT 1) AS first_removal
-                WHERE
-                    thing_report.thing_id = first_removal.thing_id
+                        INNER JOIN thing ON thing.id = new_removal.thing_id) AS removal_group, LATERAL (
+                    SELECT
+                        *
+                    FROM new_removal
+                    WHERE
+                        new_removal.thing_id = removal_group.thing_id ORDER BY when_ ASC LIMIT 1) AS first_removal
+            WHERE
+                thing_report.thing_id = first_removal.thing_id
                     AND NOT thing_report.resolved
                     AND COALESCE(thing_report.updated < first_removal.when_, TRUE);
                 RETURN NULL;
@@ -202,34 +182,20 @@ END;
                     FROM (
                         SELECT
                             (thing_like).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows
-                WHERE
-                    EXISTS (
-                        SELECT
-                            1
-                        FROM thing
-                        WHERE
-                            id = (thing_like).thing_id)
-                GROUP BY (thing_like).thing_id) AS diff
-                WHERE
-                    a.thing_id = diff.thing_id
-                RETURNING
-                    r.creator_id_from_thing_aggregates (a.*) AS creator_id, diff.upvotes - diff.downvotes AS score)
-            UPDATE
-                person_aggregates AS a
-            SET
-                thing_score = a.thing_score + diff.score FROM (
-                    SELECT
-                        creator_id, sum(score) AS score FROM thing_diff
-                    WHERE
-                        EXISTS (
-                            SELECT
-                                1
-                            FROM person
-                            WHERE
-                                id = creator_id)
-                    GROUP BY creator_id) AS diff
-                    WHERE
-                        a.person_id = diff.creator_id;
+                INNER JOIN thing ON thing.id = (thing_like).thing_id GROUP BY (thing_like).thing_id) AS diff
+            WHERE
+                a.thing_id = diff.thing_id
+            RETURNING
+                r.creator_id_from_thing_aggregates (a.*) AS creator_id, diff.upvotes - diff.downvotes AS score)
+        UPDATE
+            person_aggregates AS a
+        SET
+            thing_score = a.thing_score + diff.score FROM (
+                SELECT
+                    creator_id, sum(score) AS score FROM thing_diff
+                INNER JOIN person ON person.id = thing_diff.creator_id GROUP BY creator_id) AS diff
+            WHERE
+                a.person_id = diff.creator_id;
                 RETURN NULL;
 END;
     $$);
@@ -254,15 +220,10 @@ BEGIN
         SELECT
             (comment).creator_id, coalesce(sum(count_diff), 0) AS comment_count
         FROM select_old_and_new_rows AS old_and_new_rows
+        INNER JOIN person ON person.id = (comment).creator_id
         WHERE
             r.is_counted (comment)
-            AND EXISTS (
-                SELECT
-                    1
-                FROM person
-                WHERE
-                    id = (comment).creator_id)
-            GROUP BY (comment).creator_id) AS diff
+        GROUP BY (comment).creator_id) AS diff
 WHERE
     a.person_id = diff.creator_id;
 
@@ -278,14 +239,9 @@ FROM (
     WHERE
         r.is_counted (comment)
         AND (comment).local) AS diff
+    CROSS JOIN site
 WHERE
-    EXISTS (
-        SELECT
-            1
-        FROM
-            site
-        WHERE
-            id = a.site_id);
+    site.id = a.site_id;
 
 WITH post_diff AS (
     UPDATE
@@ -318,14 +274,8 @@ WITH post_diff AS (
     WHERE
         r.is_counted (comment)
     GROUP BY
-        (comment).post_id) AS diff,
-    LATERAL (
-        SELECT
-            *
-        FROM
-            post
-        WHERE
-            id = diff.post_id) AS post
+        (comment).post_id) AS diff
+    INNER JOIN post ON post.id = diff.post_id
     WHERE
         a.post_id = diff.post_id
     RETURNING
@@ -342,17 +292,11 @@ FROM (
         sum(comments) AS comments
     FROM
         post_diff
+        INNER JOIN community ON community.id = post_diff.community_id
     WHERE
         post_diff.include_in_community_aggregates
-        AND EXISTS (
-            SELECT
-                1
-            FROM
-                community
-            WHERE
-                id = community_id)
-        GROUP BY
-            community_id) AS diff
+    GROUP BY
+        community_id) AS diff
 WHERE
     a.community_id = diff.community_id;
 
@@ -372,15 +316,10 @@ BEGIN
         SELECT
             (post).creator_id, coalesce(sum(count_diff), 0) AS post_count
         FROM select_old_and_new_rows AS old_and_new_rows
+        INNER JOIN person ON person.id = (post).creator_id
         WHERE
             r.is_counted (post)
-            AND EXISTS (
-                SELECT
-                    1
-                FROM person
-                WHERE
-                    id = (post).creator_id)
-            GROUP BY (post).creator_id) AS diff
+        GROUP BY (post).creator_id) AS diff
 WHERE
     a.person_id = diff.creator_id;
 
@@ -396,14 +335,9 @@ FROM (
     WHERE
         r.is_counted (post)
         AND (post).local) AS diff
+    CROSS JOIN site
 WHERE
-    EXISTS (
-        SELECT
-            1
-        FROM
-            site
-        WHERE
-            id = a.site_id);
+    site.id = a.site_id;
 
 UPDATE
     community_aggregates AS a
@@ -415,17 +349,11 @@ FROM (
         coalesce(sum(count_diff), 0) AS posts
     FROM
         select_old_and_new_rows AS old_and_new_rows
+        INNER JOIN community ON community.id = (post).community_id
     WHERE
         r.is_counted (post)
-        AND EXISTS (
-            SELECT
-                1
-            FROM
-                community
-            WHERE
-                id = (post).community_id)
-        GROUP BY
-            (post).community_id) AS diff
+    GROUP BY
+        (post).community_id) AS diff
 WHERE
     a.community_id = diff.community_id;
 
@@ -448,14 +376,9 @@ BEGIN
         WHERE
             r.is_counted (community)
             AND (community).local) AS diff
+    CROSS JOIN site
 WHERE
-    EXISTS (
-        SELECT
-            1
-        FROM
-            site
-        WHERE
-            id = a.site_id);
+    site.id = a.site_id;
 
 RETURN NULL;
 
@@ -474,53 +397,15 @@ BEGIN
             coalesce(sum(count_diff), 0) AS users
         FROM select_old_and_new_rows AS old_and_new_rows
         WHERE (person).local) AS diff
+    CROSS JOIN site
 WHERE
-    EXISTS (
-        SELECT
-            1
-        FROM
-            site
-        WHERE
-            id = a.site_id);
+    site.id = a.site_id;
 
 RETURN NULL;
 
 END;
 
 $$);
-
--- Change the order of some cascading deletions to make deletion triggers run before the deletion of rows that the triggers need to read
-CREATE FUNCTION r.delete_comments_before_post ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    DELETE FROM comment AS c
-    WHERE c.post_id = OLD.id;
-    RETURN OLD;
-END;
-$$;
-
-CREATE TRIGGER delete_comments
-    BEFORE DELETE ON post
-    FOR EACH ROW
-    EXECUTE FUNCTION r.delete_comments_before_post ();
-
-CREATE FUNCTION r.delete_follow_before_person ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    DELETE FROM community_follower AS c
-    WHERE c.person_id = OLD.id;
-    RETURN OLD;
-END;
-$$;
-
-CREATE TRIGGER delete_follow
-    BEFORE DELETE ON person
-    FOR EACH ROW
-    EXECUTE FUNCTION r.delete_follow_before_person ();
 
 -- For community_aggregates.comments, don't include comments of deleted or removed posts
 CREATE FUNCTION r.update_comment_count_from_post ()
@@ -544,17 +429,10 @@ BEGIN
         FROM
             new_post
             INNER JOIN old_post ON new_post.id = old_post.id
-                AND (r.is_counted (new_post.*) != r.is_counted (old_post.*)),
-                LATERAL (
-                    SELECT
-                        *
-                    FROM
-                        post_aggregates
-                WHERE
-                    post_id = new_post.id
-                LIMIT 1) AS post_aggregates
-        GROUP BY
-            old_post.community_id) AS diff
+                AND (r.is_counted (new_post.*) != r.is_counted (old_post.*))
+                INNER JOIN post_aggregates ON post_aggregates.post_id = new_post.id
+            GROUP BY
+                old_post.community_id) AS diff
 WHERE
     a.community_id = diff.community_id;
     RETURN NULL;
@@ -668,15 +546,8 @@ BEGIN
         new_post.featured_community,
         new_post.featured_local
     FROM
-        new_post,
-        LATERAL (
-            SELECT
-                *
-            FROM
-                community
-            WHERE
-                community.id = new_post.community_id
-            LIMIT 1) AS community;
+        new_post
+        INNER JOIN community ON community.id = new_post.community_id;
     RETURN NULL;
 END;
 $$;
@@ -733,5 +604,36 @@ CREATE TRIGGER aggregates
     FOR EACH ROW
     EXECUTE FUNCTION r.site_aggregates_from_site ();
 
-COMMIT;
+-- Change the order of some cascading deletions to make deletion triggers run before the deletion of rows that the triggers need to read
+CREATE FUNCTION r.delete_comments_before_post ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    DELETE FROM comment AS c
+    WHERE c.post_id = OLD.id;
+    RETURN OLD;
+END;
+$$;
+
+CREATE TRIGGER delete_comments
+    BEFORE DELETE ON post
+    FOR EACH ROW
+    EXECUTE FUNCTION r.delete_comments_before_post ();
+
+CREATE FUNCTION r.delete_follow_before_person ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    DELETE FROM community_follower AS c
+    WHERE c.person_id = OLD.id;
+    RETURN OLD;
+END;
+$$;
+
+CREATE TRIGGER delete_follow
+    BEFORE DELETE ON person
+    FOR EACH ROW
+    EXECUTE FUNCTION r.delete_follow_before_person ();
 

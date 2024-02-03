@@ -104,6 +104,9 @@ pub struct CmdArgs {
   /// If set, make sure to set --federate-process-index differently for each.
   #[arg(long, default_value_t = 1)]
   federate_process_count: i32,
+  /// After database setup, exit instead of running the server.
+  #[arg(long, default_value_t = false)]
+  pub init_only: bool,
 }
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
@@ -134,6 +137,10 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
     .expect("local site not set up");
   let local_site = site_view.local_site;
   let federation_enabled = local_site.federation_enabled;
+
+  if args.init_only {
+    return Ok(());
+  }
 
   if federation_enabled {
     println!("Federation enabled, host is {}", &SETTINGS.hostname);

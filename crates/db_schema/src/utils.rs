@@ -1,17 +1,13 @@
 use crate::{
-  diesel::Connection,
-  diesel_migrations::MigrationHarness,
   newtypes::DbUrl,
   CommentSortType,
   SortType,
 };
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
-use anyhow::Context;
 use chrono::{DateTime, Utc};
 use deadpool::Runtime;
 use diesel::{
   backend::Backend,
-  connection::SimpleConnection,
   deserialize::FromSql,
   helper_types::AsExprOf,
   pg::Pg,
@@ -21,7 +17,6 @@ use diesel::{
   serialize::{Output, ToSql},
   sql_types::{self, Text, Timestamptz},
   IntoSql,
-  PgConnection,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -31,7 +26,6 @@ use diesel_async::{
     ManagerConfig,
   },
 };
-use diesel_migrations::EmbeddedMigrations;
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
 use lemmy_utils::{
@@ -49,7 +43,7 @@ use std::{
   sync::Arc,
   time::SystemTime,
 };
-use tracing::{error, info};
+use tracing::error;
 use url::Url;
 
 const FETCH_LIMIT_DEFAULT: i64 = 10;
@@ -358,25 +352,6 @@ impl ServerCertVerifier for NoCertVerifier {
   }
 }
 
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
-
-fn run_migrations(db_url: &str) -> Result<(), LemmyError> {
-  // Needs to be a sync connection
-  let mut conn =
-    PgConnection::establish(db_url).with_context(|| format!("Error connecting to {db_url}"))?;
-
-  info!("Running Database migrations (This may take a long time)...");
-  conn
-    .run_pending_migrations(MIGRATIONS)
-    .map_err(|e| anyhow::anyhow!("Couldn't run DB Migrations: {e}"))?;
-  conn
-    .batch_execute(include_str!("../../../replaceable_schema.sql"))
-    .with_context(|| "Couldn't run replaceable_schema.sql")?;
-  info!("Database migrations complete.");
-
-  Ok(())
-}
-
 pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
   let db_url = SETTINGS.get_database_url();
   // We only support TLS with sslmode=require currently
@@ -395,7 +370,7 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
     .runtime(Runtime::Tokio1)
     .build()?;
 
-  run_migrations(&db_url)?;
+  crate::schema_setup::run(&db_url)?;
 
   Ok(pool)
 }

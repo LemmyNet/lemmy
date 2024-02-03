@@ -126,26 +126,6 @@ steps:
       - diff tmp.schema crates/db_schema/src/schema.rs
     when: *slow_check_paths
 
-  check_diesel_migration_revertable:
-    image: willsquire/diesel-cli
-    environment:
-      CARGO_HOME: .cargo_home
-      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      PGUSER: lemmy
-      PGPASSWORD: password
-      PGHOST: database
-      PGDATABASE: lemmy
-    commands:
-      - diesel migration run
-      # Make sure that the migration works both with and without the `r` schema
-      - diesel migration redo
-      # Run replaceable_schema.sql twice, which fails on the 2nd time if `DROP SCHEMA IF EXISTS r CASCADE` drops the wrong things
-      - apt update && apt install -y postgresql-client
-      - psql -f replaceable_schema.sql
-      - psql -f replaceable_schema.sql
-      - diesel migration redo
-    when: *slow_check_paths
-
   check_db_perf_tool:
     image: *rust_image
     environment:
@@ -175,6 +155,25 @@ steps:
     commands:
       - cargo build
       - mv target/debug/lemmy_server target/lemmy_server
+    when: *slow_check_paths
+
+  check_diesel_migration_revertable:
+    image: willsquire/diesel-cli
+    environment:
+      CARGO_HOME: .cargo_home
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      PGUSER: lemmy
+      PGPASSWORD: password
+      PGHOST: database
+      PGDATABASE: lemmy
+    commands:
+      - diesel migration run
+      # Make sure that the migration works both with and without the `r` schema
+      - diesel migration redo
+      # Run schema setup twice, which fails on the 2nd time if `DROP SCHEMA IF EXISTS r CASCADE` drops the wrong things
+      - target/lemmy_server --init-only
+      - target/lemmy_server --init-only
+      - diesel migration redo
     when: *slow_check_paths
 
   cargo_test:
