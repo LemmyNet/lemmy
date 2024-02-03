@@ -1,8 +1,4 @@
-use crate::{
-  newtypes::DbUrl,
-  CommentSortType,
-  SortType,
-};
+use crate::{newtypes::DbUrl, CommentSortType, SortType};
 use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
 use chrono::{DateTime, Utc};
 use deadpool::Runtime;

@@ -1,14 +1,11 @@
-use diesel_migrations::MigrationHarness;
 use anyhow::Context;
-use diesel::{Connection, connection::SimpleConnection};
-use std::path::Path;
-use diesel::PgConnection;
-use diesel_migrations::EmbeddedMigrations;
+use diesel::{connection::SimpleConnection, Connection, PgConnection};
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness};
 use lemmy_utils::error::LemmyError;
+use std::path::Path;
 use tracing::info;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
-
 
 /// This SQL code sets up the `r` schema, which contains things that can be safely dropped and replaced
 /// instead of being changed using migrations. It may not create or modify things outside of the `r` schema
@@ -41,7 +38,15 @@ pub fn run(db_url: &str) -> Result<(), LemmyError> {
   // Replaceable schema
   conn
     .batch_execute(&REPLACEABLE_SCHEMA.join("\n"))
-    .with_context(|| format!("Couldn't run SQL files in {}", Path::new(file!()).parent().map(|p| p.to_string_lossy()).unwrap_or("".into())))?;
+    .with_context(|| {
+      format!(
+        "Couldn't run SQL files in {}",
+        Path::new(file!())
+          .parent()
+          .map(|p| p.to_string_lossy())
+          .unwrap_or("".into())
+      )
+    })?;
 
   Ok(())
 }
