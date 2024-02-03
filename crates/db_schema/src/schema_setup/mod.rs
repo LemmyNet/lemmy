@@ -21,8 +21,8 @@ const REPLACEABLE_SCHEMA: &[&str] = &[
   "BEGIN;",
   "DROP SCHEMA IF EXISTS r CASCADE;",
   "CREATE SCHEMA r;",
-  //include_str!("triggers.sql"),
-  include_str!("../../../../replaceable_schema.sql"),
+  include_str!("utils.sql"),
+  include_str!("triggers.sql"),
   "COMMIT;",
 ];
 
