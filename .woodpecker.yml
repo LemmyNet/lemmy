@@ -11,7 +11,7 @@ variables:
         - "src/**"
         - "**/Cargo.toml"
         - "Cargo.lock"
-        # sql code
+        # database migrations
         - "migrations/**"
         # typescript tests
         - "api_tests/**"
