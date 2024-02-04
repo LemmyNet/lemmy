@@ -129,6 +129,8 @@ steps:
   check_diesel_migration_revertable:
     image: willsquire/diesel-cli
     environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       PGUSER: lemmy
