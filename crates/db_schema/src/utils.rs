@@ -9,7 +9,7 @@ use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use deadpool::{
-  managed::{Hook, HookError},
+  managed::{Hook, HookError, Metrics},
   Runtime,
 };
 use diesel::{
@@ -399,7 +399,7 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
     // Limit connection age to prevent use of prepared statements that have query plans based on very old statistics
-    .pre_recycle(Hook::sync_fn(|_conn: &mut AsyncPgConnection, metrics| {
+    .pre_recycle(Hook::sync_fn(|_conn: &mut AsyncPgConnection, metrics: &Metrics| {
       if metrics.age() > Duration::from_secs(0) {
         Err(HookError::StaticMessage(""))
       } else {
