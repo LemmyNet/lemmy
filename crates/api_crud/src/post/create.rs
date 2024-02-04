@@ -87,6 +87,7 @@ pub async fn create_post(
   // Fetch post links and pictrs cached image
   let metadata = fetch_link_metadata_opt(url.as_ref(), true, &context).await;
   let url = proxy_image_link_opt_apub(url, &context).await?;
+  let thumbnail_url = data.custom_thumbnail.or(metadata.thumbnail);
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
@@ -121,7 +122,7 @@ pub async fn create_post(
     .embed_description(metadata.opengraph_data.description)
     .embed_video_url(metadata.opengraph_data.embed_video_url)
     .language_id(language_id)
-    .thumbnail_url(metadata.thumbnail)
+    .thumbnail_url(thumbnail_url)
     .build();
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)

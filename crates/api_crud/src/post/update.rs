@@ -70,7 +70,7 @@ pub async fn update_post(
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
-  // Fetch post links and Pictrs cached image if url was updated
+  // Fetch post links and thumbnail if url was updated
   let (embed_title, embed_description, embed_video_url, thumbnail_url) = match &url {
     Some(url) => {
       let metadata = fetch_link_metadata(url, true, &context).await?;
@@ -78,7 +78,7 @@ pub async fn update_post(
         Some(metadata.opengraph_data.title),
         Some(metadata.opengraph_data.description),
         Some(metadata.opengraph_data.embed_video_url),
-        Some(metadata.thumbnail),
+        Some(data.custom_thumbnail.or(metadata.thumbnail)),
       )
     }
     _ => Default::default(),
