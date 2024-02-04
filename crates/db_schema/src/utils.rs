@@ -342,7 +342,8 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
     let mut conn = AsyncPgConnection::try_from(client).await?;
     conn
       .batch_execute("SET geqo_threshold=12;SET fro_collapse_limit=11;SET join_collapse_limit=11;")
-      .await?;
+      .await
+      .map_err(ConnectionError::CouldntSetupConfiguration)?;
     Ok(conn)
   };
   fut.boxed()
@@ -398,7 +399,7 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
     // Limit connection age to prevent use of prepared statements that have query plans based on very old statistics
-    .pre_recycle(Hook::sync_fn(|_object, metrics| {
+    .pre_recycle(Hook::sync_fn(|_conn: &mut AsyncPgConnection, metrics| {
       if metrics.age() > Duration::from_secs(0) {
         Err(HookError::StaticMessage(""))
       } else {
