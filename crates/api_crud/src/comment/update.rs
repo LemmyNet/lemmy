@@ -5,7 +5,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_user_action, local_site_to_slur_regex},
+  utils::{check_community_user_action, local_site_to_slur_regex, process_markdown_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -19,11 +19,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::{
-    mention::scrape_text_for_mentions,
-    slurs::remove_slurs,
-    validation::is_valid_body_field,
-  },
+  utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
 };
 
 #[tracing::instrument(skip(context))]
@@ -57,11 +53,8 @@ pub async fn update_comment(
   )
   .await?;
 
-  // Update the Content
-  let content = data
-    .content
-    .as_ref()
-    .map(|c| remove_slurs(c, &local_site_to_slur_regex(&local_site)));
+  let slur_regex = local_site_to_slur_regex(&local_site);
+  let content = process_markdown_opt(&data.content, &slur_regex, &context).await?;
   is_valid_body_field(&content, false)?;
 
   let comment_id = data.comment_id;

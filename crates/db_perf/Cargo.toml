@@ -1,0 +1,23 @@
+[package]
+name = "lemmy_db_perf"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+diesel = { workspace = true }
+diesel-async = { workspace = true }
+lemmy_db_schema = { workspace = true }
+lemmy_db_views = { workspace = true, features = ["full"] }
+lemmy_utils = { workspace = true }
+tokio = { workspace = true }

@@ -6,12 +6,13 @@ use crate::{
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
 use once_cell::sync::Lazy;
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use regex::Regex;
 use std::{env, fs, io::Error};
+use urlencoding::encode;
 
 pub mod structs;
 
+use crate::settings::structs::PictrsImageMode;
 use structs::DatabaseConnection;
 
 static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
@@ -53,11 +54,11 @@ impl Settings {
       DatabaseConnection::Parts(parts) => {
         format!(
           "postgres://{}:{}@{}:{}/{}",
-          utf8_percent_encode(&parts.user, NON_ALPHANUMERIC),
-          utf8_percent_encode(&parts.password, NON_ALPHANUMERIC),
+          encode(&parts.user),
+          encode(&parts.password),
           parts.host,
           parts.port,
-          utf8_percent_encode(&parts.database, NON_ALPHANUMERIC),
+          encode(&parts.database),
         )
       }
     }
@@ -110,5 +111,19 @@ impl Settings {
       .pictrs
       .clone()
       .ok_or_else(|| anyhow!("images_disabled").into())
+  }
+}
+
+impl PictrsConfig {
+  pub fn image_mode(&self) -> PictrsImageMode {
+    if let Some(cache_external_link_previews) = self.cache_external_link_previews {
+      if cache_external_link_previews {
+        PictrsImageMode::StoreLinkPreviews
+      } else {
+        PictrsImageMode::None
+      }
+    } else {
+      self.image_mode.clone()
+    }
   }
 }

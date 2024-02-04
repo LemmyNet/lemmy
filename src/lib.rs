@@ -53,7 +53,7 @@ use lemmy_utils::{
 };
 use prometheus::default_registry;
 use prometheus_metrics::serve_prometheus;
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
 use serde_json::json;
 use std::{env, ops::Deref};
@@ -198,15 +198,10 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
       startup_server_handle.stop(true).await;
     }
 
-    // Pictrs cannot use proxy
-    let pictrs_client = ClientBuilder::new(client_builder(&SETTINGS).no_proxy().build()?)
-      .with(TracingMiddleware::default())
-      .build();
     Some(create_http_server(
       federation_config.clone(),
       SETTINGS.clone(),
       federation_enabled,
-      pictrs_client,
     )?)
   } else {
     None
@@ -272,7 +267,6 @@ fn create_http_server(
   federation_config: FederationConfig<LemmyContext>,
   settings: Settings,
   federation_enabled: bool,
-  pictrs_client: ClientWithMiddleware,
 ) -> Result<ServerHandle, LemmyError> {
   // this must come before the HttpServer creation
   // creates a middleware that populates http metrics for each path, method, and status code
@@ -283,6 +277,11 @@ fn create_http_server(
 
   let context: LemmyContext = federation_config.deref().clone();
   let rate_limit_cell = federation_config.rate_limit_cell().clone();
+
+  // Pictrs cannot use proxy
+  let pictrs_client = ClientBuilder::new(client_builder(&SETTINGS).no_proxy().build()?)
+    .with(TracingMiddleware::default())
+    .build();
 
   // Create Http server
   let bind = (settings.bind, settings.port);

@@ -17,13 +17,17 @@ use activitypub_federation::{
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{local_site_opt_to_slur_regex, process_markdown_opt, proxy_image_link_opt_apub},
+};
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::{
     activity::ActorType,
     actor_language::SiteLanguage,
     instance::Instance as DbInstance,
+    local_site::LocalSite,
     site::{Site, SiteInsertForm},
   },
   traits::Crud,
@@ -126,18 +130,23 @@ impl Object for ApubSite {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, LemmyError> {
+  async fn from_json(apub: Self::Kind, context: &Data<Self::DataType>) -> Result<Self, LemmyError> {
     let domain = apub.id.inner().domain().expect("group id has domain");
-    let instance = DbInstance::read_or_create(&mut data.pool(), domain.to_string()).await?;
+    let instance = DbInstance::read_or_create(&mut context.pool(), domain.to_string()).await?;
 
+    let local_site = LocalSite::read(&mut context.pool()).await.ok();
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
+    let sidebar = process_markdown_opt(&sidebar, slur_regex, context).await?;
+    let icon = proxy_image_link_opt_apub(apub.icon.map(|i| i.url), context).await?;
+    let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), context).await?;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
       sidebar,
       updated: apub.updated,
-      icon: apub.icon.clone().map(|i| i.url.into()),
-      banner: apub.image.clone().map(|i| i.url.into()),
+      icon,
+      banner,
       description: apub.summary,
       actor_id: Some(apub.id.clone().into()),
       last_refreshed_at: Some(naive_now()),
@@ -146,10 +155,11 @@ impl Object for ApubSite {
       private_key: None,
       instance_id: instance.id,
     };
-    let languages = LanguageTag::to_language_id_multiple(apub.language, &mut data.pool()).await?;
+    let languages =
+      LanguageTag::to_language_id_multiple(apub.language, &mut context.pool()).await?;
 
-    let site = Site::create(&mut data.pool(), &site_form).await?;
-    SiteLanguage::update(&mut data.pool(), languages, &site).await?;
+    let site = Site::create(&mut context.pool(), &site_form).await?;
+    SiteLanguage::update(&mut context.pool(), languages, &site).await?;
     Ok(site.into())
   }
 }
@@ -205,7 +215,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
 #[cfg(test)]
 pub(crate) mod tests {
   use super::*;
-  use crate::{objects::tests::init_context, protocol::tests::file_to_json_object};
+  use crate::protocol::tests::file_to_json_object;
   use lemmy_db_schema::traits::Crud;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -223,7 +233,7 @@ pub(crate) mod tests {
   #[tokio::test]
   #[serial]
   async fn test_parse_lemmy_instance() -> LemmyResult<()> {
-    let context = init_context().await?;
+    let context = LemmyContext::init_test_context().await;
     let site = parse_lemmy_instance(&context).await?;
 
     assert_eq!(site.name, "Enterprise");

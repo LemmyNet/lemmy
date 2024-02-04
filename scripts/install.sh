@@ -52,7 +52,7 @@ ask_to_auto_reload() {
   done
   if [ "$auto_reload_final" = 1 ]
   then
-    cd ui && yarn start
+    cd ui && pnpm dev
     cd server && cargo watch -x run
   fi
 }
@@ -62,8 +62,9 @@ ask_to_init_db
 
 # Build the web client
 cd ui
-yarn
-yarn build
+pnpm i
+pnpm prebuild:prod
+pnpm build:prod
 
 # Build and run the backend
 cd ../server
