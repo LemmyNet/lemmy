@@ -140,8 +140,8 @@ steps:
       # Make sure that the migration works both with and without the `r` schema
       - diesel migration redo
       # Run schema setup twice, which fails on the 2nd time if `DROP SCHEMA IF EXISTS r CASCADE` drops the wrong things
-      - cargo run -p lemmy_db_schema
-      - cargo run -p lemmy_db_schema
+      - cargo run -p lemmy_db_schema --features full
+      - cargo run -p lemmy_db_schema --features full
       - diesel migration redo
     when: *slow_check_paths
 
