@@ -32,6 +32,7 @@ use diesel_async::{
     AsyncDieselConnectionManager,
     ManagerConfig,
   },
+  SimpleAsyncConnection,
 };
 use diesel_migrations::EmbeddedMigrations;
 use futures_util::{future::BoxFuture, Future, FutureExt};
@@ -398,8 +399,8 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
     .runtime(Runtime::Tokio1)
     // Limit connection age to prevent use of prepared statements that have query plans based on very old statistics
     .pre_recycle(Hook::sync_fn(|_object, metrics| {
-      if metrics.age() > Duration::from_secs(3 * 24 * 60 * 60) {
-        Err(HookError::Continue(None))
+      if metrics.age() > Duration::from_secs(0) {
+        Err(HookError::StaticMessage(""))
       } else {
         Ok(())
       }
