@@ -43,6 +43,7 @@ pub async fn update_post(
   // TODO No good way to handle a clear.
   // Issue link: https://github.com/LemmyNet/lemmy/issues/2287
   let url = data.url.as_ref().map(clean_url_params);
+  let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs_opt(&data.name, &slur_regex)?;
@@ -53,7 +54,8 @@ pub async fn update_post(
   }
 
   is_valid_body_field(&body, true)?;
-  check_url_scheme(&data.url)?;
+  check_url_scheme(&url)?;
+  check_url_scheme(&custom_thumbnail)?;
 
   let post_id = data.post_id;
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
@@ -78,7 +80,7 @@ pub async fn update_post(
         Some(metadata.opengraph_data.title),
         Some(metadata.opengraph_data.description),
         Some(metadata.opengraph_data.embed_video_url),
-        Some(data.custom_thumbnail.or(metadata.thumbnail)),
+        Some(custom_thumbnail.map(Into::into).or(metadata.thumbnail)),
       )
     }
     _ => Default::default(),

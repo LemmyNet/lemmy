@@ -57,10 +57,12 @@ pub async fn create_post(
 
   let data_url = data.url.as_ref();
   let url = data_url.map(clean_url_params); // TODO no good way to handle a "clear"
+  let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);
 
   is_valid_post_title(&data.name)?;
   is_valid_body_field(&body, true)?;
-  check_url_scheme(&data.url)?;
+  check_url_scheme(&url)?;
+  check_url_scheme(&custom_thumbnail)?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -87,7 +89,7 @@ pub async fn create_post(
   // Fetch post links and pictrs cached image
   let metadata = fetch_link_metadata_opt(url.as_ref(), true, &context).await;
   let url = proxy_image_link_opt_apub(url, &context).await?;
-  let thumbnail_url = data.custom_thumbnail.or(metadata.thumbnail);
+  let thumbnail_url = custom_thumbnail.map(Into::into).or(metadata.thumbnail);
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
