@@ -399,15 +399,17 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
     // Limit connection age to prevent use of prepared statements that have query plans based on very old statistics
-    .pre_recycle(Hook::<AsyncDieselConnectionManager<AsyncPgConnection>>::sync_fn(
-      |_conn: &mut AsyncPgConnection, metrics: &Metrics| {
-        if metrics.age() > Duration::from_secs(0) {
-          Err(HookError::StaticMessage(""))
-        } else {
-          Ok(())
-        }
-      },
-    ))
+    .pre_recycle(
+      Hook::<AsyncDieselConnectionManager<AsyncPgConnection>>::sync_fn(
+        |_conn: &mut AsyncPgConnection, metrics: &Metrics| {
+          if metrics.age() > Duration::from_secs(0) {
+            Err(HookError::StaticMessage(""))
+          } else {
+            Ok(())
+          }
+        },
+      ),
+    )
     .build()?;
 
   run_migrations(&db_url)?;
