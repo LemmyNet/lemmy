@@ -20,7 +20,7 @@ x-lemmy-default: &lemmy-default
   restart: always
 
 x-postgres-default: &postgres-default
-  image: postgres:15-alpine
+  image: postgres:16-alpine
   environment:
     - POSTGRES_USER=lemmy
     - POSTGRES_PASSWORD=password
