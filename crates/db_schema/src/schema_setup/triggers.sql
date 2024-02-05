@@ -341,7 +341,7 @@ BEGIN
             (community_follower).community_id, coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers, coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local
         FROM select_old_and_new_rows AS old_and_new_rows
         INNER JOIN community ON community.id = (community_follower).community_id
-        LEFT JOIN person ON person.id = (community_follower).person_id GROUP BY (community_follower).community_id) AS diff
+        INNER JOIN person ON person.id = (community_follower).person_id GROUP BY (community_follower).community_id) AS diff
 WHERE
     a.community_id = diff.community_id;
 
