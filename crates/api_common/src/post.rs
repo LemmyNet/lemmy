@@ -28,6 +28,7 @@ pub struct CreatePost {
   pub honeypot: Option<String>,
   pub nsfw: Option<bool>,
   pub language_id: Option<LanguageId>,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
   /// Instead of fetching a thumbnail, use a custom one.
   pub custom_thumbnail: Option<Url>,
 }
@@ -116,6 +117,7 @@ pub struct EditPost {
   pub body: Option<String>,
   pub nsfw: Option<bool>,
   pub language_id: Option<LanguageId>,
+  #[cfg_attr(feature = "full", ts(type = "string"))]
   /// Instead of fetching a thumbnail, use a custom one.
   pub custom_thumbnail: Option<Url>,
 }
