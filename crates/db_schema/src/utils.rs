@@ -399,7 +399,7 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
     .pre_recycle(Hook::sync_fn(|_conn, metrics| {
       // Preventing the first recycle can cause an infinite loop when trying to get a new connection from the pool
       let conn_was_used = metrics.recycled.is_some();
-      if metrics.age() > Duration::from_secs(0) && conn_was_used {
+      if metrics.age() > Duration::from_secs(3 * 24 * 60 * 60) && conn_was_used {
         Err(HookError::Continue(None))
       } else {
         Ok(())
