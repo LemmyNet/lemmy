@@ -41,7 +41,20 @@ pub async fn fetch_link_metadata(
   context: &LemmyContext,
 ) -> Result<LinkMetadata, LemmyError> {
   info!("Fetching site metadata for url: {}", url);
-  let response = context.client().get(url.as_str()).send().await?;
+
+  // fedilinks support (see https://fedilinks.org/4 )
+  let request_url = std::borrow::Cow::Borrowed(url.as_str());
+  let request_url = if request_url.starts_with("web+") {
+    if let Ok(preview_url) = get_fallback(&request_url) {
+      std::borrow::Cow::Owned(preview_url)
+    } else {
+      request_url
+    }
+  } else {
+    request_url
+  };
+
+  let response = context.client().get(&*request_url).send().await?;
 
   let content_type: Option<Mime> = response
     .headers()
@@ -308,6 +321,103 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Resu
   }
 }
 
+// Fedi-To get_fallback implementation
+// adapted to use urlencoding instead of percent_encoding
+// see also https://fedilinks.org/4
+
+/// Error kind returned when trying to find the fallback protocol handler.
+#[derive(Copy, Clone, Debug)]
+enum FallbackError {
+  /// Returned when the given URL, while valid, does not provide a fallback
+  /// handler.
+  NoHandler,
+  /// Returned when the given target is not an URL.
+  NotAnUrl,
+}
+
+impl std::error::Error for FallbackError {}
+
+impl std::fmt::Display for FallbackError {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    match self {
+      Self::NoHandler => {
+        write!(f, "url does not contain a fallback handler")
+      }
+      Self::NotAnUrl => {
+        write!(f, "url is not an appropriate web+ url")
+      }
+    }
+  }
+}
+
+/// Checks whether the `scheme` part of `web+scheme` satisfies the desired
+/// constraints.
+fn is_scheme_invalid(scheme: &str) -> bool {
+  // valid schemes are non-empty and are entirely ascii lowercase
+  // so invalid schemes are empty or contain non-ascii-lowercase.
+  scheme.is_empty()
+    || !scheme
+      .trim_start_matches(|c: char| -> bool { c.is_ascii_lowercase() })
+      .is_empty()
+}
+
+/// Attempts to find a fallback protocol handler for the given target URL.
+///
+/// The target is assumed to be normalized, as per the WHATWG URL spec. (Note
+/// that Fedi-To doesn't actually check that it is, but that's a Fedi-To
+/// issue.)
+fn get_fallback(target: &str) -> Result<String, FallbackError> {
+  use FallbackError::*;
+  // find the scheme
+  let scheme = {
+    let colon = target.find(':').ok_or(NotAnUrl)?;
+    let scheme = target
+      .get(..colon)
+      .expect("find returned a bogus value - broken std");
+    if !scheme.starts_with("web+") {
+      return Err(NotAnUrl);
+    }
+    let scheme = scheme
+      .get(4..)
+      .expect("starts_with returned a bogus value - broken std");
+    if is_scheme_invalid(scheme) {
+      return Err(NotAnUrl);
+    }
+    scheme
+  };
+  // replace web+scheme with https
+  // this allows us to handle web+ URLs with the semantics we actually
+  // want, which is roughly the same as https, with a few differences
+  let mut as_if_https = target.to_string();
+  as_if_https.replace_range(0..4 + scheme.len(), "https");
+  // the main difference is that unlike https, authority is optional.
+  // so, first check that there should be an authority.
+  if !as_if_https.starts_with("https://") {
+    return Err(NoHandler);
+  }
+  // then also check that the authority actually exists.
+  // this is necessary so we don't end up parsing web+example:///bar as
+  // web+example://bar/ (which would be wrong).
+  // note that we do parse web+example://bar\ as an authority! (but
+  // everything else - like the path - we treat as opaque to us)
+  if as_if_https.starts_with("https:///") || as_if_https.starts_with("https://\\") {
+    return Err(NoHandler);
+  }
+  // NOTE: we only do this parse to extract the domain/port, it is up to
+  // the protocol-handler to deal with malformed or malicious input.
+  // NOTE: this is the same URL parser as used by browsers when handling
+  // `href` so this is correct.
+  let mut url = url::Url::parse(&as_if_https).map_err(|_| NoHandler)?;
+  url.set_path("/.well-known/protocol-handler");
+  let _ = url.set_username("");
+  let _ = url.set_password(None);
+  let mut params = "target=".to_owned();
+  params.push_str(&encode(target));
+  url.set_query(Some(&*params));
+  url.set_fragment(None);
+  Ok(url.into())
+}
+
 #[cfg(test)]
 mod tests {
   #![allow(clippy::unwrap_used)]
@@ -352,6 +462,21 @@ mod tests {
       sample_res.content_type
     );
     assert_eq!(None, sample_res.thumbnail);
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_fedilinks_metadata() {
+    let context = LemmyContext::init_test_context_with_networking().await;
+    let sample_url = Url::parse("web+ap://is-a.cat/@ar").unwrap();
+    let sample_res = fetch_link_metadata(&sample_url, false, &context)
+      .await
+      .unwrap();
+    assert!(sample_res.opengraph_data.title.is_some());
+    assert_eq!(
+      Some(mime::TEXT_HTML_UTF_8.to_string()),
+      sample_res.content_type
+    );
   }
 
   // #[test]

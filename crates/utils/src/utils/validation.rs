@@ -276,10 +276,16 @@ pub fn check_site_visibility_valid(
 
 pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
   if let Some(url) = url {
-    if !ALLOWED_POST_URL_SCHEMES.contains(&url.scheme()) {
-      Err(LemmyErrorType::InvalidUrlScheme.into())
-    } else {
+    if ALLOWED_POST_URL_SCHEMES.contains(&url.scheme())
+      || (url
+        .scheme()
+        .trim_end_matches(|c: char| c.is_ascii_lowercase())
+        == "web+"
+        && url.scheme() != "web+")
+    {
       Ok(())
+    } else {
+      Err(LemmyErrorType::InvalidUrlScheme.into())
     }
   } else {
     Ok(())
@@ -531,6 +537,9 @@ mod tests {
     assert!(check_url_scheme(&Some(Url::parse("http://example.com").unwrap())).is_ok());
     assert!(check_url_scheme(&Some(Url::parse("https://example.com").unwrap())).is_ok());
     assert!(check_url_scheme(&Some(Url::parse("https://example.com").unwrap())).is_ok());
+    assert!(check_url_scheme(&Some(Url::parse("web+ap://example.com").unwrap())).is_ok());
+    assert!(check_url_scheme(&Some(Url::parse("web+://example.com").unwrap())).is_err());
+    assert!(check_url_scheme(&Some(Url::parse("web+no-way://example.com").unwrap())).is_err());
     assert!(check_url_scheme(&Some(Url::parse("ftp://example.com").unwrap())).is_err());
     assert!(check_url_scheme(&Some(Url::parse("javascript:void").unwrap())).is_err());
 
