@@ -335,7 +335,7 @@ BEGIN
     UPDATE
         community_aggregates AS a
     SET
-        subscribers = a.subscribers + diff.subscribers, subscribers_local = a.subscribers + diff.subscribers_local
+        subscribers = a.subscribers + diff.subscribers, subscribers_local = a.subscribers_local + diff.subscribers_local
     FROM (
         SELECT
             (community_follower).community_id, coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers, coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local
