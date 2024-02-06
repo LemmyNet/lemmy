@@ -397,7 +397,9 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
     .runtime(Runtime::Tokio1)
     // Limit connection age to prevent use of prepared statements that have query plans based on very old statistics
     .pre_recycle(Hook::sync_fn(|_conn, metrics| {
-      if metrics.age() > Duration::from_secs(0) {
+      // Preventing the first recycle can cause an infinite loop when trying to get a new connection from the pool
+      let conn_was_used = metrics.recycled.is_some();
+      if metrics.age() > Duration::from_secs(0) && conn_was_used {
         Err(HookError::Continue(None))
       } else {
         Ok(())
