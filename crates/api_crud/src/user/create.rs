@@ -129,8 +129,9 @@ pub async fn register(
   // Get the user's preferred language using the Accept-Language header
   let language_tag = req.headers().get("Accept-Language").and_then(|hdr| {
     accept_language::parse(hdr.to_str().unwrap_or_default())
-      .get(0)
-      .map(|lang_str| lang_str.split('-').next().unwrap().to_string()) // Remove the optional region code
+      .first()
+      // Remove the optional region code
+      .map(|lang_str| lang_str.split('-').next().unwrap_or_default().to_string())
   });
 
   // Create the local user
