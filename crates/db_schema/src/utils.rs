@@ -338,7 +338,7 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
     });
     let mut conn = AsyncPgConnection::try_from(client).await?;
     conn
-      .batch_execute("SET geqo_threshold=12;SET fro_collapse_limit=11;SET join_collapse_limit=11;")
+      .batch_execute("SET geqo_threshold=12;SET from_collapse_limit=11;SET join_collapse_limit=11;")
       .await
       .map_err(ConnectionError::CouldntSetupConfiguration)?;
     Ok(conn)
