@@ -337,6 +337,8 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
       }
     });
     let mut conn = AsyncPgConnection::try_from(client).await?;
+    // * Change geqo_threshold back to default value if it was changed, so it's higher than the collapse limits
+    // * Change collapse limits from 8 to 11 so the query planner can find a better table join order for more complicated queries
     conn
       .batch_execute("SET geqo_threshold=12;SET from_collapse_limit=11;SET join_collapse_limit=11;")
       .await
