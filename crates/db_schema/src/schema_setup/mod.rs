@@ -5,7 +5,7 @@ use lemmy_utils::error::LemmyError;
 use std::path::Path;
 use tracing::info;
 
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 /// This SQL code sets up the `r` schema, which contains things that can be safely dropped and replaced
 /// instead of being changed using migrations. It may not create or modify things outside of the `r` schema
