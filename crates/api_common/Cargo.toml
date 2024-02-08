@@ -20,7 +20,6 @@ workspace = true
 full = [
   "tracing",
   "rosetta-i18n",
-  "lemmy_utils",
   "lemmy_db_views/full",
   "lemmy_db_views_actor/full",
   "lemmy_db_views_moderator/full",
@@ -44,7 +43,7 @@ lemmy_db_views = { workspace = true }
 lemmy_db_views_moderator = { workspace = true }
 lemmy_db_views_actor = { workspace = true }
 lemmy_db_schema = { workspace = true }
-lemmy_utils = { workspace = true, optional = true }
+lemmy_utils = { workspace = true }
 activitypub_federation = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
