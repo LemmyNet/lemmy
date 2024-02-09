@@ -9,6 +9,7 @@ use ts_rs::TS;
 #[cfg_attr(feature = "ts-rs", derive(TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 #[serde(tag = "error", content = "message", rename_all = "snake_case")]
+#[non_exhaustive]
 // TODO: order these based on the crate they belong to (utils, federation, db, api)
 pub enum LemmyErrorType {
   ReportReasonRequired,
