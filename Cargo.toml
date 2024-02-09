@@ -89,7 +89,7 @@ unwrap_used = "deny"
 lemmy_api = { version = "=0.19.3", path = "./crates/api" }
 lemmy_api_crud = { version = "=0.19.3", path = "./crates/api_crud" }
 lemmy_apub = { version = "=0.19.3", path = "./crates/apub" }
-lemmy_utils = { version = "=0.19.3", path = "./crates/utils" }
+lemmy_utils = { version = "=0.19.3", path = "./crates/utils", default-features = false }
 lemmy_db_schema = { version = "=0.19.3", path = "./crates/db_schema" }
 lemmy_api_common = { version = "=0.19.3", path = "./crates/api_common" }
 lemmy_routes = { version = "=0.19.3", path = "./crates/routes" }
