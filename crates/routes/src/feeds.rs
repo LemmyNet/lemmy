@@ -6,10 +6,7 @@ use lemmy_api_common::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
-  CommentSortType,
-  CommunityVisibility,
-  ListingType,
-  SortType,
+  CommentSortType, CommunityVisibility, ListingType, SortType,
 };
 use lemmy_db_views::{
   post_view::PostQuery,
@@ -28,12 +25,11 @@ use lemmy_utils::{
 use once_cell::sync::Lazy;
 use rss::{
   extension::{dublincore::DublinCoreExtension, ExtensionBuilder, ExtensionMap},
-  Channel,
-  Guid,
-  Item,
+  Channel, Enclosure, Guid, Item,
 };
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr};
+use url::Url;
 
 const RSS_FETCH_LIMIT: i64 = 20;
 
@@ -495,7 +491,6 @@ fn create_post_items(
   let mut items: Vec<Item> = Vec::new();
 
   for p in posts {
-    // TODO add images
     let post_url = format!("{}/post/{}", protocol_and_hostname, p.post.id);
     let community_url = format!(
       "{}/c/{}",
@@ -520,13 +515,28 @@ fn create_post_items(
     p.counts.comments);
 
     // If its a url post, add it to the description
-    let link = Some(if let Some(url) = p.post.url {
+    // and see if we can parse it as a media enclosure
+    let mut enclosure_opt = None;
+    if let Some(url) = p.post.url_content_type {
       let link_html = format!("<br><a href=\"{url}\">{url}</a>");
       description.push_str(&link_html);
-      url.to_string()
-    } else {
-      post_url.clone()
-    });
+
+      // Guess MIME media type from url, or fail silently by returning None
+      enclosure_opt = Url::parse(url.as_str())
+        .ok()
+        .and_then(|u| {
+          u.path_segments()
+            .and_then(|s| s.last().map(|s| s.to_string()))
+        })
+        .map(|f| {
+          let mime = mime_guess::from_path(&f).first_or_octet_stream();
+          let mut enclosure = Enclosure::default();
+          enclosure.set_url(url.as_str());
+          enclosure.set_mime_type(mime.to_string());
+          enclosure.set_length("0".to_string());
+          enclosure
+        });
+    }
 
     if let Some(body) = p.post.body {
       let html = markdown_to_html(&body);
@@ -558,8 +568,9 @@ fn create_post_items(
       guid,
       description: Some(sanitize_xml(description)),
       dublin_core_ext,
-      link,
+      link: Some(post_url.clone()),
       extensions,
+      enclosure: enclosure_opt,
       ..Default::default()
     };
 
