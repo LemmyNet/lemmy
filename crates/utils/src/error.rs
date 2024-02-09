@@ -170,113 +170,112 @@ pub enum LemmyErrorType {
 cfg_if! {
   if #[cfg(feature = "error")] {
 
-use tracing_error::SpanTrace;
-use std::fmt;
- pub type LemmyResult<T> = Result<T, LemmyError>;
+    use tracing_error::SpanTrace;
+    use std::fmt;
+    pub type LemmyResult<T> = Result<T, LemmyError>;
 
-pub struct LemmyError {
-  pub error_type: LemmyErrorType,
-  pub inner: anyhow::Error,
-  pub context: SpanTrace,
-}
-
-/// Maximum number of items in an array passed as API parameter. See [[LemmyErrorType::TooManyItems]]
-pub const MAX_API_PARAM_ELEMENTS: usize = 10_000;
-
-impl<T> From<T> for LemmyError
-where
-  T: Into<anyhow::Error>,
-{
-  fn from(t: T) -> Self {
-    let cause = t.into();
-    LemmyError {
-      error_type: LemmyErrorType::Unknown(format!("{}", &cause)),
-      inner: cause,
-      context: SpanTrace::capture(),
+    pub struct LemmyError {
+      pub error_type: LemmyErrorType,
+      pub inner: anyhow::Error,
+      pub context: SpanTrace,
     }
-  }
-}
 
-impl Debug for LemmyError {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_struct("LemmyError")
-      .field("message", &self.error_type)
-      .field("inner", &self.inner)
-      .field("context", &self.context)
-      .finish()
-  }
-}
+    /// Maximum number of items in an array passed as API parameter. See [[LemmyErrorType::TooManyItems]]
+    pub const MAX_API_PARAM_ELEMENTS: usize = 10_000;
 
-impl fmt::Display for LemmyError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "{}: ", &self.error_type)?;
-    // print anyhow including trace
-    // https://docs.rs/anyhow/latest/anyhow/struct.Error.html#display-representations
-    // this will print the anyhow trace (only if it exists)
-    // and if RUST_BACKTRACE=1, also a full backtrace
-    writeln!(f, "{:?}", self.inner)?;
-    fmt::Display::fmt(&self.context, f)
-  }
-}
-
-impl actix_web::error::ResponseError for LemmyError {
-  fn status_code(&self) -> http::StatusCode {
-    if self.error_type == LemmyErrorType::IncorrectLogin {
-      return http::StatusCode::UNAUTHORIZED;
+    impl<T> From<T> for LemmyError
+    where
+      T: Into<anyhow::Error>,
+    {
+      fn from(t: T) -> Self {
+        let cause = t.into();
+        LemmyError {
+          error_type: LemmyErrorType::Unknown(format!("{}", &cause)),
+          inner: cause,
+          context: SpanTrace::capture(),
+        }
+      }
     }
-    match self.inner.downcast_ref::<diesel::result::Error>() {
-      Some(diesel::result::Error::NotFound) => http::StatusCode::NOT_FOUND,
-      _ => http::StatusCode::BAD_REQUEST,
+
+    impl Debug for LemmyError {
+      fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LemmyError")
+         .field("message", &self.error_type)
+         .field("inner", &self.inner)
+         .field("context", &self.context)
+         .finish()
+      }
     }
-  }
 
-  fn error_response(&self) -> actix_web::HttpResponse {
-    actix_web::HttpResponse::build(self.status_code()).json(&self.error_type)
-  }
-}
-
-impl From<LemmyErrorType> for LemmyError {
-  fn from(error_type: LemmyErrorType) -> Self {
-    let inner = anyhow::anyhow!("{}", error_type);
-    LemmyError {
-      error_type,
-      inner,
-      context: SpanTrace::capture(),
+    impl fmt::Display for LemmyError {
+      fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}: ", &self.error_type)?;
+        // print anyhow including trace
+        // https://docs.rs/anyhow/latest/anyhow/struct.Error.html#display-representations
+        // this will print the anyhow trace (only if it exists)
+        // and if RUST_BACKTRACE=1, also a full backtrace
+        writeln!(f, "{:?}", self.inner)?;
+        fmt::Display::fmt(&self.context, f)
+      }
     }
-  }
-}
 
-pub trait LemmyErrorExt<T, E: Into<anyhow::Error>> {
-  fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError>;
-}
+    impl actix_web::error::ResponseError for LemmyError {
+      fn status_code(&self) -> http::StatusCode {
+        if self.error_type == LemmyErrorType::IncorrectLogin {
+          return http::StatusCode::UNAUTHORIZED;
+        }
+        match self.inner.downcast_ref::<diesel::result::Error>() {
+          Some(diesel::result::Error::NotFound) => http::StatusCode::NOT_FOUND,
+          _ => http::StatusCode::BAD_REQUEST,
+        }
+      }
 
-impl<T, E: Into<anyhow::Error>> LemmyErrorExt<T, E> for Result<T, E> {
-  fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError> {
-    self.map_err(|error| LemmyError {
-      error_type,
-      inner: error.into(),
-      context: SpanTrace::capture(),
-    })
-  }
-}
-pub trait LemmyErrorExt2<T> {
-  fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError>;
-  fn into_anyhow(self) -> Result<T, anyhow::Error>;
-}
+      fn error_response(&self) -> actix_web::HttpResponse {
+        actix_web::HttpResponse::build(self.status_code()).json(&self.error_type)
+      }
+    }
 
-impl<T> LemmyErrorExt2<T> for Result<T, LemmyError> {
-  fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError> {
-    self.map_err(|mut e| {
-      e.error_type = error_type;
-      e
-    })
-  }
-  // this function can't be an impl From or similar because it would conflict with one of the other broad Into<> implementations
-  fn into_anyhow(self) -> Result<T, anyhow::Error> {
-    self.map_err(|e| e.inner)
-  }
-}
+    impl From<LemmyErrorType> for LemmyError {
+      fn from(error_type: LemmyErrorType) -> Self {
+        let inner = anyhow::anyhow!("{}", error_type);
+        LemmyError {
+          error_type,
+          inner,
+          context: SpanTrace::capture(),
+        }
+      }
+    }
 
+    pub trait LemmyErrorExt<T, E: Into<anyhow::Error>> {
+      fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError>;
+    }
+
+    impl<T, E: Into<anyhow::Error>> LemmyErrorExt<T, E> for Result<T, E> {
+      fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError> {
+        self.map_err(|error| LemmyError {
+          error_type,
+          inner: error.into(),
+          context: SpanTrace::capture(),
+        })
+      }
+    }
+    pub trait LemmyErrorExt2<T> {
+      fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError>;
+      fn into_anyhow(self) -> Result<T, anyhow::Error>;
+    }
+
+    impl<T> LemmyErrorExt2<T> for Result<T, LemmyError> {
+      fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError> {
+        self.map_err(|mut e| {
+          e.error_type = error_type;
+          e
+        })
+      }
+      // this function can't be an impl From or similar because it would conflict with one of the other broad Into<> implementations
+      fn into_anyhow(self) -> Result<T, anyhow::Error> {
+        self.map_err(|e| e.inner)
+      }
+    }
   }
 }
 
