@@ -31,7 +31,7 @@ default = [
   "rate-limit",
   "apub",
   "cache-header",
-  "email"
+  "email",
 ]
 full = ["default", "ts-rs"]
 ts-rs = ["dep:ts-rs"]
@@ -43,7 +43,7 @@ error = [
   "dep:tracing-error",
   "dep:diesel",
   "dep:http",
-  "dep:actix-web"
+  "dep:actix-web",
 ]
 request = ["dep:reqwest-middleware", "dep:tracing", "dep:strum"]
 response = ["error", "dep:actix-web"]
@@ -55,7 +55,7 @@ settings = [
   "dep:doku",
   "dep:url",
   "dep:once_cell",
-  "dep:smart-default"
+  "dep:smart-default",
 ]
 rate-limit = [
   "error",
@@ -64,12 +64,26 @@ rate-limit = [
   "dep:actix-web",
   "dep:futures",
   "dep:tokio",
-  "dep:once_cell"
+  "dep:once_cell",
 ]
 apub = ["dep:openssl"]
 cache-header = ["dep:actix-web"]
-email = ["error", "settings", "dep:html2text", "dep:lettre", "dep:uuid", "dep:rosetta-i18n"]
-misc = ["settings", "dep:itertools", "dep:markdown-it", "dep:tokio", "dep:futures", "dep:tracing"]
+email = [
+  "error",
+  "settings",
+  "dep:html2text",
+  "dep:lettre",
+  "dep:uuid",
+  "dep:rosetta-i18n",
+]
+misc = [
+  "settings",
+  "dep:itertools",
+  "dep:markdown-it",
+  "dep:tokio",
+  "dep:futures",
+  "dep:tracing",
+]
 
 [dependencies]
 regex = { workspace = true, optional = true }
@@ -89,7 +103,7 @@ futures = { workspace = true, optional = true }
 diesel = { workspace = true, features = ["chrono"], optional = true }
 http = { workspace = true, optional = true }
 doku = { workspace = true, features = ["url-2"], optional = true }
-uuid = { workspace = true, features = ["serde", "v4"], optional = true}
+uuid = { workspace = true, features = ["serde", "v4"], optional = true }
 rosetta-i18n = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 urlencoding = { workspace = true, optional = true }
@@ -97,7 +111,10 @@ openssl = { version = "0.10.63", optional = true }
 html2text = { version = "0.6.0", optional = true }
 deser-hjson = { version = "2.2.4", optional = true }
 smart-default = { version = "0.7.1", optional = true }
-lettre = { version = "0.11.3", features = ["tokio1", "tokio1-native-tls"], optional = true }
+lettre = { version = "0.11.3", features = [
+  "tokio1",
+  "tokio1-native-tls",
+], optional = true }
 markdown-it = { version = "0.6.0", optional = true }
 ts-rs = { workspace = true, optional = true }
 enum-map = { workspace = true, optional = true }
