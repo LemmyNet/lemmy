@@ -2,8 +2,7 @@ use crate::error::{LemmyError, LemmyErrorType};
 use actix_web::dev::{ConnectionInfo, Service, ServiceRequest, ServiceResponse, Transform};
 use enum_map::{enum_map, EnumMap};
 use futures::future::{ok, Ready};
-pub use rate_limiter::{ActionType, BucketConfig};
-use rate_limiter::{InstantSecs, RateLimitState};
+use rate_limiter::{ActionType, BucketConfig, InstantSecs, RateLimitState};
 use std::{
   future::Future,
   net::{IpAddr, Ipv4Addr, SocketAddr},
