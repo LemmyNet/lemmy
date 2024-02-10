@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-# Dumps database schema, not including things added by replaceable_schema.sql
+# Dumps database schema, not including things that are added outside of migrations
 
 source CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
