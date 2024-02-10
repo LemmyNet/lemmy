@@ -13,10 +13,6 @@ name = "lemmy_db_schema"
 path = "src/lib.rs"
 doctest = false
 
-[[bin]]
-name = "lemmy_db_schema"
-required-features = ["full"]
-
 [lints]
 workspace = true
 
