@@ -5,7 +5,7 @@ use strum_macros::{Display, EnumIter};
 #[cfg(feature = "ts-rs")]
 use ts_rs::TS;
 
-#[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, EnumIter)]
+#[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 #[serde(tag = "error", content = "message", rename_all = "snake_case")]
