@@ -396,6 +396,19 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
   diesel::dsl::now.into_sql::<Timestamptz>()
 }
 
+pub fn actions<T, C, K0, K1>(actions_table: T, person_id: Option<PersonId>, target_id: C) -> dsl::On<
+  T,
+  dsl::And<
+    dsl::Eq<dsl::Nullable<K0>, BindIfSome<PersonId>>,
+    dsl::Eq<K1, C>,
+  >,
+>
+where
+  T: Table<PrimaryKey = (K0, K1)>,
+{
+  actions_table.on(K0::default().nullable().eq(BindIfSome(person_id)).and(K1::default().eq(target_id)))
+}
+
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
 
 pub trait ReadFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, T> {}
