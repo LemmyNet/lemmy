@@ -9,7 +9,7 @@ use lemmy_db_schema::{
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct Claims {
   /// local_user_id, standard claim by RFC 7519.
   pub sub: String,
