@@ -87,37 +87,31 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
   impl ListFn<'a, PostView, PostQuery<'a>>,
 > {
-  let creator_is_admin = exists(
-    local_user::table.filter(
-      post_aggregates::creator_id
-        .eq(local_user::person_id)
-        .and(local_user::admin.eq(true)),
-    ),
-  );
-
   let all_joins = move |my_person_id: Option<PersonId>| {
-    post::table
-      .left_join(actions(community_actions::table, my_person_id, post::community_id))
-      .left_join(actions(person_actions::table, my_person_id, post::creator_id))
-      .left_join(actions(post_actions::table, my_person_id, post::post_id))
-      .left_join(actions(instance_actions::table, my_person_id, post::instance_id))
-      .left_join(actions(creator_community_actions, post::creator_id.nullable(), post::community_id))
+    post_aggregates::table
       .inner_join(person::table)
+      .left_join(local_user::table)
       .inner_join(community::table)
+      .inner_join(post::table)
+      .left_join(actions(community_actions::table, my_person_id, post_aggregates::community_id))
+      .left_join(actions(person_actions::table, my_person_id, post_aggregates::creator_id))
+      .left_join(actions(post_actions::table, my_person_id, post_aggregates::post_id))
+      .left_join(actions(instance_actions::table, my_person_id, post_aggregates::instance_id))
+      .left_join(actions(creator_community_actions, post_aggregates::creator_id.nullable(), post_aggregates::community_id))
       .select((
-        Post::as_select(),
-        Person::as_select(),
-        Community::as_select(),
+        post::all_columns,
+        person::all_columns,
+        community::all_columns,
         creator_community_actions.field(community_actions::received_ban).is_not_null(),
         creator_community_actions.field(community_actions::became_moderator).is_not_null(),
         creator_is_admin,
-        PostAggregates::as_select(),
+        post_aggregates::all_columns,
         community_actions::follow_pending.nullable(),
         post_actions::saved.is_not_null(),
         post_actions::read.is_not_null(),
         person_actions::blocked.is_not_null(),
         post_actions::like_score.nullable(),
-        post::comments - coalesce(post_actions::read_comments.nullable(), 0),
+        post_aggregates::comments - coalesce(post_actions::read_comments.nullable(), 0),
       ))
       .into_boxed()
   };
@@ -130,7 +124,7 @@ fn queries<'a>() -> Queries<
 
       let mut query = all_joins(
         my_person_id,
-      ).filter(post::id.eq(post_id));
+      ).filter(post_aggregates::post_id.eq(post_id));
 
       // Hide deleted and removed for non-admins or mods
       if !is_mod_or_admin {
@@ -194,11 +188,11 @@ fn queries<'a>() -> Queries<
         .filter(post::removed.eq(false));
     }
     if let Some(community_id) = options.community_id {
-      query = query.filter(post::community_id.eq(community_id));
+      query = query.filter(post_aggregates::community_id.eq(community_id));
     }
 
     if let Some(creator_id) = options.creator_id {
-      query = query.filter(post::creator_id.eq(creator_id));
+      query = query.filter(post_aggregates::creator_id.eq(creator_id));
     }
 
     if let Some(listing_type) = options.listing_type {
