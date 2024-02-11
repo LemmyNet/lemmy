@@ -98,7 +98,7 @@ pub struct PostReportView {
 /// currently this is just a wrapper around post id, but should be seen as opaque from the client's perspective
 /// stringified since we might want to use arbitrary info later, with a P prepended to prevent ossification
 /// (api users love to make assumptions (e.g. parse stuff that looks like numbers as numbers) about apis that aren't part of the spec
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct PaginationCursor(pub String);
