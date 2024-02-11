@@ -152,7 +152,7 @@ steps:
     environment:
       CARGO_HOME: .cargo_home
     commands:
-      - cargo build
+      - OPENSSL_STATIC=1 cargo build
       - mv target/debug/lemmy_server target/lemmy_server
     when: *slow_check_paths
 
