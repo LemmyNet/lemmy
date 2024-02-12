@@ -35,6 +35,7 @@ steps:
   prepare_repo:
     image: alpine:3
     commands:
+      - ldconfig -p
       - apk add git
       - git submodule init
       - git submodule update
@@ -84,7 +85,6 @@ steps:
     image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
-      OPENSSL_STATIC: "1"
     commands:
       - cargo check --package lemmy_api_common
     when: *slow_check_paths
@@ -93,7 +93,6 @@ steps:
     image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
-      OPENSSL_STATIC: "1"
     commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
     when: *slow_check_paths
@@ -102,7 +101,6 @@ steps:
     image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
-      OPENSSL_STATIC: "1"
     commands:
       - "rustup target add wasm32-unknown-unknown"
       - "cargo check --target wasm32-unknown-unknown -p lemmy_api_common"
@@ -112,7 +110,6 @@ steps:
     image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
-      OPENSSL_STATIC: "1"
     commands:
       - export LEMMY_CONFIG_LOCATION=./config/config.hjson
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
@@ -136,7 +133,6 @@ steps:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
-      OPENSSL_STATIC: "1"
     commands:
       # same as scripts/db_perf.sh but without creating a new database server
       - export LEMMY_CONFIG_LOCATION=config/config.hjson
@@ -147,7 +143,6 @@ steps:
     image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
-      OPENSSL_STATIC: "1"
     commands:
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --features console -- -D warnings
@@ -157,10 +152,10 @@ steps:
     image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
-      OPENSSL_STATIC: "1"
     commands:
       - cargo build
       - mv target/debug/lemmy_server target/lemmy_server
+      - ldd target/lemmy_server
     when: *slow_check_paths
 
   check_diesel_migration_revertable:
