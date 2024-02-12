@@ -6,7 +6,10 @@ use lemmy_api_common::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
-  CommentSortType, CommunityVisibility, ListingType, SortType,
+  CommentSortType,
+  CommunityVisibility,
+  ListingType,
+  SortType,
 };
 use lemmy_db_views::{
   post_view::PostQuery,
@@ -25,11 +28,13 @@ use lemmy_utils::{
 use once_cell::sync::Lazy;
 use rss::{
   extension::{dublincore::DublinCoreExtension, ExtensionBuilder, ExtensionMap},
-  Channel, Enclosure, Guid, Item,
+  Channel,
+  EnclosureBuilder,
+  Guid,
+  Item,
 };
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr};
-use url::Url;
 
 const RSS_FETCH_LIMIT: i64 = 20;
 
@@ -515,28 +520,22 @@ fn create_post_items(
     p.counts.comments);
 
     // If its a url post, add it to the description
-    // and see if we can parse it as a media enclosure
-    let mut enclosure_opt = None;
-    if let Some(url) = p.post.url_content_type {
+    // and see if we can parse it as a media enclosure.
+    let enclosure_opt = p.post.url.map(|url| {
       let link_html = format!("<br><a href=\"{url}\">{url}</a>");
       description.push_str(&link_html);
 
-      // Guess MIME media type from url, or fail silently by returning None
-      enclosure_opt = Url::parse(url.as_str())
-        .ok()
-        .and_then(|u| {
-          u.path_segments()
-            .and_then(|s| s.last().map(|s| s.to_string()))
-        })
-        .map(|f| {
-          let mime = mime_guess::from_path(&f).first_or_octet_stream();
-          let mut enclosure = Enclosure::default();
-          enclosure.set_url(url.as_str());
-          enclosure.set_mime_type(mime.to_string());
-          enclosure.set_length("0".to_string());
-          enclosure
-        });
-    }
+      let mime_type = p
+        .post
+        .url_content_type
+        .unwrap_or_else(|| "application/octet-stream".to_string());
+      let mut enclosure_bld = EnclosureBuilder::default();
+
+      enclosure_bld.url(url.as_str().to_string());
+      enclosure_bld.mime_type(mime_type);
+      enclosure_bld.length("0".to_string());
+      enclosure_bld.build()
+    });
 
     if let Some(body) = p.post.body {
       let html = markdown_to_html(&body);

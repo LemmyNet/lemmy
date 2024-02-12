@@ -2812,7 +2812,6 @@ dependencies = [
  "lemmy_db_views",
  "lemmy_db_views_actor",
  "lemmy_utils",
- "mime_guess",
  "once_cell",
  "reqwest",
  "reqwest-middleware",
