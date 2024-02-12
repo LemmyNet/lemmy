@@ -5,6 +5,7 @@ use crate::{
   ListingType,
   PostListingMode,
   SortType,
+  VoteDisplayMode,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -36,6 +37,7 @@ pub struct LocalUser {
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   /// Whether to show comment / post scores.
+  // TODO now that there is a vote_display_mode, this can be gotten rid of in future releases.
   pub show_scores: bool,
   /// Whether to show bot accounts.
   pub show_bot_accounts: bool,
@@ -55,6 +57,7 @@ pub struct LocalUser {
   pub infinite_scroll_enabled: bool,
   /// Whether the person is an admin.
   pub admin: bool,
+  /// A post-view mode that changes how multiple post listings look.
   pub post_listing_mode: PostListingMode,
   pub totp_2fa_enabled: bool,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
@@ -63,6 +66,8 @@ pub struct LocalUser {
   pub enable_animated_images: bool,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: bool,
+  /// A vote-display setting that changes how votes are displayed in front ends.
+  pub vote_display_mode: VoteDisplayMode,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -98,6 +103,7 @@ pub struct LocalUserInsertForm {
   pub enable_keyboard_navigation: Option<bool>,
   pub enable_animated_images: Option<bool>,
   pub collapse_bot_comments: Option<bool>,
+  pub vote_display_mode: Option<VoteDisplayMode>,
 }
 
 #[derive(Clone, Default)]
@@ -129,4 +135,5 @@ pub struct LocalUserUpdateForm {
   pub enable_keyboard_navigation: Option<bool>,
   pub enable_animated_images: Option<bool>,
   pub collapse_bot_comments: Option<bool>,
+  pub vote_display_mode: Option<VoteDisplayMode>,
 }

@@ -123,6 +123,7 @@ pub async fn import_settings(
     auto_expand: data.settings.as_ref().map(|s| s.auto_expand),
     infinite_scroll_enabled: data.settings.as_ref().map(|s| s.infinite_scroll_enabled),
     post_listing_mode: data.settings.as_ref().map(|s| s.post_listing_mode),
+    vote_display_mode: data.settings.as_ref().map(|s| s.vote_display_mode),
     ..Default::default()
   };
   LocalUser::update(

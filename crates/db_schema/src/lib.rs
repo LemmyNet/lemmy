@@ -158,6 +158,29 @@ pub enum PostListingMode {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(DbEnum, TS))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::VoteDisplayModeEnum"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "full", ts(export))]
+// TODO, in future releases, remove hide_scores, as this supercedes it.
+/// A vote-display setting that changes how votes are displayed in front ends.
+pub enum VoteDisplayMode {
+  /// Shows the score, upvotes, and downvotes.
+  Full,
+  /// Shows the score, and upvote percentage. (the default setting)
+  ScoreAndUpvotePercentage,
+  /// Shows the upvote percentage only.
+  UpvotePercentage,
+  /// Shows the score, but hides downvotes.
+  HideDownvotes,
+  /// Hides all scores and votes.
+  HideAll,
+}
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The type of content returned from a search.

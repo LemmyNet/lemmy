@@ -6,6 +6,7 @@ use lemmy_db_schema::{
   ListingType,
   PostListingMode,
   SortType,
+  VoteDisplayMode,
 };
 use lemmy_db_views::structs::{CommentView, PostView};
 use lemmy_db_views_actor::structs::{
@@ -122,6 +123,7 @@ pub struct SaveUserSettings {
   pub open_links_in_new_tab: Option<bool>,
   /// Enable infinite scroll
   pub infinite_scroll_enabled: Option<bool>,
+  /// A post-view mode that changes how multiple post listings look.
   pub post_listing_mode: Option<PostListingMode>,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
   pub enable_keyboard_navigation: Option<bool>,
@@ -129,6 +131,8 @@ pub struct SaveUserSettings {
   pub enable_animated_images: Option<bool>,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: Option<bool>,
+  /// A vote-display setting that changes how votes are displayed in front ends.
+  pub vote_display_mode: Option<VoteDisplayMode>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

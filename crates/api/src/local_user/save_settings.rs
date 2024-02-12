@@ -127,6 +127,7 @@ pub async fn save_user_settings(
     enable_keyboard_navigation: data.enable_keyboard_navigation,
     enable_animated_images: data.enable_animated_images,
     collapse_bot_comments: data.collapse_bot_comments,
+    vote_display_mode: data.vote_display_mode,
     ..Default::default()
   };
 

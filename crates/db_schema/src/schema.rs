@@ -28,6 +28,10 @@ pub mod sql_types {
     #[derive(diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "sort_type_enum"))]
     pub struct SortTypeEnum;
+
+    #[derive(diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "vote_display_mode_enum"))]
+    pub struct VoteDisplayModeEnum;
 }
 
 diesel::table! {
@@ -410,6 +414,7 @@ diesel::table! {
     use super::sql_types::SortTypeEnum;
     use super::sql_types::ListingTypeEnum;
     use super::sql_types::PostListingModeEnum;
+    use super::sql_types::VoteDisplayModeEnum;
 
     local_user (id) {
         id -> Int4,
@@ -440,6 +445,7 @@ diesel::table! {
         enable_keyboard_navigation -> Bool,
         enable_animated_images -> Bool,
         collapse_bot_comments -> Bool,
+        vote_display_mode -> VoteDisplayModeEnum,
     }
 }
 
