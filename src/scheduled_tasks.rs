@@ -22,7 +22,10 @@ use lemmy_db_schema::{
     received_activity,
     sent_activity,
   },
-  source::instance::{Instance, InstanceForm},
+  source::{
+    instance::{Instance, InstanceForm},
+    local_user::LocalUser,
+  },
   utils::{get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::NodeInfo;
@@ -79,21 +82,16 @@ pub async fn setup(context: LemmyContext) -> Result<(), LemmyError> {
   });
 
   let context_1 = context.clone();
-  // Overwrite deleted & removed posts and comments every day
+  // Daily tasks:
+  // - Overwrite deleted & removed posts and comments every day
+  // - Delete old denied users
+  // - Update instance software
   scheduler.every(CTimeUnits::days(1)).run(move || {
     let context = context_1.clone();
 
     async move {
       overwrite_deleted_posts_and_comments(&mut context.pool()).await;
-    }
-  });
-
-  let context_1 = context.clone();
-  // Update the Instance Software
-  scheduler.every(CTimeUnits::days(1)).run(move || {
-    let context = context_1.clone();
-
-    async move {
+      delete_old_denied_users(&mut context.pool()).await;
       update_instance_software(&mut context.pool(), context.client())
         .await
         .map_err(|e| warn!("Failed to update instance software: {e}"))
@@ -115,6 +113,7 @@ async fn startup_jobs(pool: &mut DbPool<'_>) {
   update_banned_when_expired(pool).await;
   clear_old_activities(pool).await;
   overwrite_deleted_posts_and_comments(pool).await;
+  delete_old_denied_users(pool).await;
 }
 
 /// Update the hot_rank columns for the aggregates tables
@@ -318,6 +317,16 @@ async fn clear_old_activities(pool: &mut DbPool<'_>) {
       error!("Failed to get connection from pool: {e}");
     }
   }
+}
+
+async fn delete_old_denied_users(pool: &mut DbPool<'_>) {
+  LocalUser::delete_old_denied_local_users(pool)
+    .await
+    .map(|_| {
+      info!("Done.");
+    })
+    .map_err(|e| error!("Failed to deleted old denied users: {e}"))
+    .ok();
 }
 
 /// overwrite posts and comments 30d after deletion
