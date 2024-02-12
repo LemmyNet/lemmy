@@ -17,10 +17,11 @@ use diesel::{
 use diesel_async::{
   pg::AsyncPgConnection,
   pooled_connection::{
-    deadpool::{Object as PooledConnection, Pool},
+    deadpool::{Hook, HookError, Object as PooledConnection, Pool},
     AsyncDieselConnectionManager,
     ManagerConfig,
   },
+  SimpleAsyncConnection,
 };
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
@@ -37,7 +38,7 @@ use rustls::{
 use std::{
   ops::{Deref, DerefMut},
   sync::Arc,
-  time::SystemTime,
+  time::{Duration, SystemTime},
 };
 use tracing::error;
 use url::Url;
@@ -326,7 +327,14 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
         error!("Database connection failed: {e}");
       }
     });
-    AsyncPgConnection::try_from(client).await
+    let mut conn = AsyncPgConnection::try_from(client).await?;
+    // * Change geqo_threshold back to default value if it was changed, so it's higher than the collapse limits
+    // * Change collapse limits from 8 to 11 so the query planner can find a better table join order for more complicated queries
+    conn
+      .batch_execute("SET geqo_threshold=12;SET from_collapse_limit=11;SET join_collapse_limit=11;")
+      .await
+      .map_err(ConnectionError::CouldntSetupConfiguration)?;
+    Ok(conn)
   };
   fut.boxed()
 }
@@ -364,6 +372,16 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
   let pool = Pool::builder(manager)
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
+    // Limit connection age to prevent use of prepared statements that have query plans based on very old statistics
+    .pre_recycle(Hook::sync_fn(|_conn, metrics| {
+      // Preventing the first recycle can cause an infinite loop when trying to get a new connection from the pool
+      let conn_was_used = metrics.recycled.is_some();
+      if metrics.age() > Duration::from_secs(3 * 24 * 60 * 60) && conn_was_used {
+        Err(HookError::Continue(None))
+      } else {
+        Ok(())
+      }
+    }))
     .build()?;
 
   crate::schema_setup::run(&db_url)?;
