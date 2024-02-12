@@ -73,22 +73,32 @@ pub async fn update_post(
   }
 
   // Fetch post links and thumbnail if url was updated
-  let (embed_title, embed_description, embed_video_url, thumbnail_url) = match &url {
+  let (embed_title, embed_description, embed_video_url, metadata_thumbnail) = match &url {
     Some(url) => {
       let metadata = fetch_link_metadata(url, true, &context).await?;
       (
         Some(metadata.opengraph_data.title),
         Some(metadata.opengraph_data.description),
         Some(metadata.opengraph_data.embed_video_url),
-        Some(custom_thumbnail.map(Into::into).or(metadata.thumbnail)),
+        Some(metadata.thumbnail),
       )
     }
     _ => Default::default(),
   };
+
   let url = match url {
     Some(url) => Some(proxy_image_link_opt_apub(Some(url), &context).await?),
     _ => Default::default(),
   };
+
+  let custom_thumbnail = match custom_thumbnail {
+    Some(custom_thumbnail) => {
+      Some(proxy_image_link_opt_apub(Some(custom_thumbnail), &context).await?)
+    }
+    _ => Default::default(),
+  };
+
+  let thumbnail_url = custom_thumbnail.or(metadata_thumbnail);
 
   let language_id = data.language_id;
   CommunityLanguage::is_allowed_community_language(

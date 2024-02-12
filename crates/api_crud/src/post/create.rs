@@ -89,7 +89,10 @@ pub async fn create_post(
   // Fetch post links and pictrs cached image
   let metadata = fetch_link_metadata_opt(url.as_ref(), true, &context).await;
   let url = proxy_image_link_opt_apub(url, &context).await?;
-  let thumbnail_url = custom_thumbnail.map(Into::into).or(metadata.thumbnail);
+  let thumbnail_url = proxy_image_link_opt_apub(custom_thumbnail, &context)
+    .await?
+    .map(Into::into)
+    .or(metadata.thumbnail);
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
