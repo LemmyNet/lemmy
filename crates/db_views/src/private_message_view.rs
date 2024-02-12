@@ -12,7 +12,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::{PersonId, PrivateMessageId},
-  schema::{person, person_block, private_message},
+  schema::{instance_block, person, person_block, private_message},
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 use tracing::debug;
@@ -32,6 +32,13 @@ fn queries<'a>() -> Queries<
           private_message::creator_id
             .eq(person_block::target_id)
             .and(person_block::person_id.eq(aliases::person1.field(person::id))),
+        ),
+      )
+      .left_join(
+        instance_block::table.on(
+          person::instance_id
+            .eq(instance_block::instance_id)
+            .and(instance_block::person_id.eq(aliases::person1.field(person::id))),
         ),
       )
   };
@@ -55,7 +62,9 @@ fn queries<'a>() -> Queries<
     let mut query = all_joins(private_message::table.into_boxed())
       .select(selection)
       // Dont show replies from blocked users
-      .filter(person_block::person_id.is_null());
+      .filter(person_block::person_id.is_null())
+      // Dont show replies from blocked instances
+      .filter(instance_block::person_id.is_null());
 
     // If its unread, I only want the ones to me
     if options.unread_only {
@@ -116,6 +125,8 @@ impl PrivateMessageView {
     use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
     private_message::table
+      // Necessary to get the senders instance_id
+      .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
       .left_join(
         person_block::table.on(
           private_message::creator_id
@@ -123,8 +134,17 @@ impl PrivateMessageView {
             .and(person_block::person_id.eq(my_person_id)),
         ),
       )
+      .left_join(
+        instance_block::table.on(
+          person::instance_id
+            .eq(instance_block::instance_id)
+            .and(instance_block::person_id.eq(my_person_id)),
+        ),
+      )
       // Dont count replies from blocked users
       .filter(person_block::person_id.is_null())
+      // Dont count replies from blocked instances
+      .filter(instance_block::person_id.is_null())
       .filter(private_message::read.eq(false))
       .filter(private_message::recipient_id.eq(my_person_id))
       .filter(private_message::deleted.eq(false))
@@ -162,6 +182,7 @@ mod tests {
     assert_length,
     source::{
       instance::Instance,
+      instance_block::{InstanceBlock, InstanceBlockForm},
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
       private_message::{PrivateMessage, PrivateMessageInsertForm},
@@ -335,6 +356,39 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(timmy_unread_messages, 1);
+
+    // Make sure instance_blocks are working
+    let timmy_blocks_instance_form = InstanceBlockForm {
+      person_id: timmy.id,
+      instance_id: sara.instance_id,
+    };
+
+    let inserted_instance_block = InstanceBlock::block(pool, &timmy_blocks_instance_form)
+      .await
+      .unwrap();
+
+    let expected_instance_block = InstanceBlock {
+      person_id: timmy.id,
+      instance_id: sara.instance_id,
+      published: inserted_instance_block.published,
+    };
+    assert_eq!(expected_instance_block, inserted_instance_block);
+
+    let timmy_messages = PrivateMessageQuery {
+      unread_only: true,
+      creator_id: None,
+      ..Default::default()
+    }
+    .list(pool, timmy.id)
+    .await
+    .unwrap();
+
+    assert_length!(0, &timmy_messages);
+
+    let timmy_unread_messages = PrivateMessageView::get_unread_messages(pool, timmy.id)
+      .await
+      .unwrap();
+    assert_eq!(timmy_unread_messages, 0);
 
     // This also deletes all persons and private messages thanks to sql `on delete cascade`
     Instance::delete(pool, instance.id).await.unwrap();
