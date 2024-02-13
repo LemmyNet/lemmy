@@ -59,14 +59,22 @@ impl LocalUser {
   pub async fn delete_old_denied_local_users(pool: &mut DbPool<'_>) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
 
+    // Make sure:
+    // - The deny reason exists
+    // - The app is older than a week
+    // - The accepted_application is false
     let old_denied_registrations = registration_application::table
       .filter(registration_application::deny_reason.is_not_null())
       .filter(registration_application::published.lt(now() - 1.week()))
       .select(registration_application::local_user_id);
 
-    diesel::delete(local_user::table.filter(local_user::id.eq_any(old_denied_registrations)))
-      .execute(conn)
-      .await
+    // Delete based on join logic is here:
+    // https://stackoverflow.com/questions/60836040/how-do-i-perform-a-delete-with-sub-query-in-diesel-against-a-postgres-database
+    let users = local_user::table
+      .filter(local_user::id.eq_any(old_denied_registrations))
+      .filter(local_user::accepted_application.eq(false));
+
+    diesel::delete(users).execute(conn).await
   }
 
   pub async fn is_email_taken(pool: &mut DbPool<'_>, email: &str) -> Result<bool, Error> {

@@ -94,7 +94,7 @@ pub async fn setup(context: LemmyContext) -> Result<(), LemmyError> {
       delete_old_denied_users(&mut context.pool()).await;
       update_instance_software(&mut context.pool(), context.client())
         .await
-        .map_err(|e| warn!("Failed to update instance software: {e}"))
+        .inspect_err(|e| warn!("Failed to update instance software: {e}"))
         .ok();
     }
   });
@@ -276,10 +276,10 @@ async fn delete_expired_captcha_answers(pool: &mut DbPool<'_>) {
       )
       .execute(&mut conn)
       .await
-      .map(|_| {
+      .inspect(|_| {
         info!("Done.");
       })
-      .map_err(|e| error!("Failed to clear old captcha answers: {e}"))
+      .inspect_err(|e| error!("Failed to clear old captcha answers: {e}"))
       .ok();
     }
     Err(e) => {
@@ -300,7 +300,7 @@ async fn clear_old_activities(pool: &mut DbPool<'_>) {
       )
       .execute(&mut conn)
       .await
-      .map_err(|e| error!("Failed to clear old sent activities: {e}"))
+      .inspect_err(|e| error!("Failed to clear old sent activities: {e}"))
       .ok();
 
       diesel::delete(
@@ -309,8 +309,8 @@ async fn clear_old_activities(pool: &mut DbPool<'_>) {
       )
       .execute(&mut conn)
       .await
-      .map(|_| info!("Done."))
-      .map_err(|e| error!("Failed to clear old received activities: {e}"))
+      .inspect(|_| info!("Done."))
+      .inspect_err(|e| error!("Failed to clear old received activities: {e}"))
       .ok();
     }
     Err(e) => {
@@ -322,10 +322,10 @@ async fn clear_old_activities(pool: &mut DbPool<'_>) {
 async fn delete_old_denied_users(pool: &mut DbPool<'_>) {
   LocalUser::delete_old_denied_local_users(pool)
     .await
-    .map(|_| {
+    .inspect(|_| {
       info!("Done.");
     })
-    .map_err(|e| error!("Failed to deleted old denied users: {e}"))
+    .inspect(|e| error!("Failed to deleted old denied users: {e}"))
     .ok();
 }
 
@@ -348,10 +348,10 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) {
       ))
       .execute(&mut conn)
       .await
-      .map(|_| {
+      .inspect(|_| {
         info!("Done.");
       })
-      .map_err(|e| error!("Failed to overwrite deleted posts: {e}"))
+      .inspect_err(|e| error!("Failed to overwrite deleted posts: {e}"))
       .ok();
 
       info!("Overwriting deleted comments...");
@@ -364,10 +364,10 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) {
       .set(comment::content.eq(DELETED_REPLACEMENT_TEXT))
       .execute(&mut conn)
       .await
-      .map(|_| {
+      .inspect(|_| {
         info!("Done.");
       })
-      .map_err(|e| error!("Failed to overwrite deleted comments: {e}"))
+      .inspect_err(|e| error!("Failed to overwrite deleted comments: {e}"))
       .ok();
     }
     Err(e) => {
@@ -399,14 +399,14 @@ async fn active_counts(pool: &mut DbPool<'_>) {
         sql_query(update_site_stmt)
           .execute(&mut conn)
           .await
-          .map_err(|e| error!("Failed to update site stats: {e}"))
+          .inspect_err(|e| error!("Failed to update site stats: {e}"))
           .ok();
 
         let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", i.1, i.0);
         sql_query(update_community_stmt)
           .execute(&mut conn)
           .await
-          .map_err(|e| error!("Failed to update community stats: {e}"))
+          .inspect_err(|e| error!("Failed to update community stats: {e}"))
           .ok();
       }
 
@@ -433,7 +433,7 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) {
       .set(person::banned.eq(false))
       .execute(&mut conn)
       .await
-      .map_err(|e| error!("Failed to update person.banned when expires: {e}"))
+      .inspect_err(|e| error!("Failed to update person.banned when expires: {e}"))
       .ok();
 
       diesel::delete(
@@ -441,7 +441,7 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) {
       )
       .execute(&mut conn)
       .await
-      .map_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
+      .inspect_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
       .ok();
     }
     Err(e) => {
