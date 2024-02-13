@@ -1,21 +1,19 @@
--- Rank calculations
+-- Each calculation used in triggers should be a single SQL language
+-- expression so it can be inlined in migrations.
 CREATE FUNCTION r.controversy_rank (upvotes numeric, downvotes numeric)
     RETURNS float
-    LANGUAGE plpgsql
+    LANGUAGE sql
     IMMUTABLE PARALLEL SAFE
-    AS $$
-BEGIN
-    IF downvotes <= 0 OR upvotes <= 0 THEN
-        RETURN 0;
+    RETURN
+    CASE WHEN downvotes <= 0 OR upvotes <= 0 THEN
+        0
     ELSE
-        RETURN (upvotes + downvotes) * CASE WHEN upvotes > downvotes THEN
+        (upvotes + downvotes) * CASE WHEN upvotes > downvotes THEN
             downvotes::float / upvotes::float
         ELSE
             upvotes::float / downvotes::float
-        END;
-    END IF;
-END;
-$$;
+        END
+    END;
 
 -- For tables with `deleted` and `removed` columns, this function determines which rows to include in a count.
 CREATE FUNCTION r.is_counted (item record)
