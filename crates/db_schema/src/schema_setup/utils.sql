@@ -3,16 +3,16 @@
 CREATE FUNCTION r.controversy_rank (upvotes numeric, downvotes numeric)
     RETURNS float
     LANGUAGE sql
-    IMMUTABLE PARALLEL SAFE
-    RETURN
-    CASE WHEN downvotes <= 0 OR upvotes <= 0 THEN
+    IMMUTABLE PARALLEL SAFE RETURN CASE WHEN downvotes <= 0
+        OR upvotes <= 0 THEN
         0
     ELSE
-        (upvotes + downvotes) * CASE WHEN upvotes > downvotes THEN
+        (
+            upvotes + downvotes) * CASE WHEN upvotes > downvotes THEN
             downvotes::float / upvotes::float
         ELSE
             upvotes::float / downvotes::float
-        END
+    END
     END;
 
 -- For tables with `deleted` and `removed` columns, this function determines which rows to include in a count.
