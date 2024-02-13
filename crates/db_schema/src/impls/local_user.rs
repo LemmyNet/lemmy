@@ -140,6 +140,15 @@ impl LocalUser {
   }
 }
 
+impl LocalUserInsertForm {
+  pub fn test_form(person_id: PersonId) -> Self {
+    Self::builder()
+      .person_id(person_id)
+      .password_encrypted(String::new())
+      .build()
+  }
+}
+
 pub struct UserBackupLists {
   pub followed_communities: Vec<DbUrl>,
   pub saved_posts: Vec<DbUrl>,

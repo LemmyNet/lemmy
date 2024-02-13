@@ -180,6 +180,7 @@ mod tests {
   use crate::{private_message_view::PrivateMessageQuery, structs::PrivateMessageView};
   use lemmy_db_schema::{
     assert_length,
+    newtypes::InstanceId,
     source::{
       instance::Instance,
       instance_block::{InstanceBlock, InstanceBlockForm},
@@ -188,17 +189,21 @@ mod tests {
       private_message::{PrivateMessage, PrivateMessageInsertForm},
     },
     traits::{Blockable, Crud},
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, DbPool},
   };
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
-  #[tokio::test]
-  #[serial]
-  async fn test_crud() {
+  struct Data {
+    instance: Instance,
+    timmy: Person,
+    jess: Person,
+    sara: Person,
+  }
+
+  async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let message_content = String::new();
-    let pool = &build_db_pool_for_tests().await;
-    let pool = &mut pool.into();
 
     let instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
@@ -264,6 +269,32 @@ mod tests {
       .await
       .unwrap();
 
+    Ok(Data {
+      instance,
+      timmy,
+      jess,
+      sara,
+    })
+  }
+
+  async fn cleanup(instance_id: InstanceId, pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    // This also deletes all persons and private messages thanks to sql `on delete cascade`
+    Instance::delete(pool, instance_id).await.unwrap();
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn read_private_messages() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let Data {
+      timmy,
+      jess,
+      sara,
+      instance,
+    } = init_data(pool).await?;
+
     let timmy_messages = PrivateMessageQuery {
       unread_only: false,
       creator_id: None,
@@ -324,6 +355,21 @@ mod tests {
     assert_eq!(timmy_sara_unread_messages[0].creator.id, sara.id);
     assert_eq!(timmy_sara_unread_messages[0].recipient.id, timmy.id);
 
+    cleanup(instance.id, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn ensure_person_block() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let Data {
+      timmy,
+      sara,
+      instance,
+      jess: _,
+    } = init_data(pool).await?;
+
     // Make sure blocks are working
     let timmy_blocks_sara_form = PersonBlockForm {
       person_id: timmy.id,
@@ -357,6 +403,20 @@ mod tests {
       .unwrap();
     assert_eq!(timmy_unread_messages, 1);
 
+    cleanup(instance.id, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn ensure_instance_block() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let Data {
+      timmy,
+      jess: _,
+      sara,
+      instance,
+    } = init_data(pool).await?;
     // Make sure instance_blocks are working
     let timmy_blocks_instance_form = InstanceBlockForm {
       person_id: timmy.id,
@@ -389,8 +449,6 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(timmy_unread_messages, 0);
-
-    // This also deletes all persons and private messages thanks to sql `on delete cascade`
-    Instance::delete(pool, instance.id).await.unwrap();
+    cleanup(instance.id, pool).await
   }
 }
