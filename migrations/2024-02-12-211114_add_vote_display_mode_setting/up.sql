@@ -2,7 +2,7 @@ CREATE TYPE vote_display_mode_enum AS enum (
     'Full',
     'ScoreAndUpvotePercentage',
     'UpvotePercentage',
-    'HideDownvotes',
+    'Score',
     'HideAll'
 );
 

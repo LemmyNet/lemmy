@@ -174,8 +174,8 @@ pub enum VoteDisplayMode {
   ScoreAndUpvotePercentage,
   /// Shows the upvote percentage only.
   UpvotePercentage,
-  /// Shows the score, but hides downvotes.
-  HideDownvotes,
+  /// Shows the score, but hides everything else.
+  Score,
   /// Hides all scores and votes.
   HideAll,
 }
