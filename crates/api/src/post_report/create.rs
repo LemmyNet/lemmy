@@ -44,7 +44,6 @@ pub async fn create_post_report(
   )
   .await?;
 
-  // Don't allow creating reports for removed / deleted posts
   check_post_deleted_or_removed(&post_view.post)?;
 
   let report_form = PostReportForm {
