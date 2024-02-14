@@ -75,7 +75,11 @@ pub async fn update_post(
   // Fetch post links and thumbnail if url was updated
   let (embed_title, embed_description, embed_video_url, metadata_thumbnail) = match &url {
     Some(url) => {
-      let metadata = fetch_link_metadata(url, true, &context).await?;
+      // Only generate the thumbnail if there's no custom thumbnail provided,
+      // otherwise it will save it in pictrs
+      let generate_thumbnail = custom_thumbnail.is_none();
+
+      let metadata = fetch_link_metadata(url, generate_thumbnail, &context).await?;
       (
         Some(metadata.opengraph_data.title),
         Some(metadata.opengraph_data.description),

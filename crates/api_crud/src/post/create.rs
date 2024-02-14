@@ -86,8 +86,12 @@ pub async fn create_post(
     }
   }
 
+  // Only generate the thumbnail if there's no custom thumbnail provided,
+  // otherwise it will save it in pictrs
+  let generate_thumbnail = custom_thumbnail.is_none();
+
   // Fetch post links and pictrs cached image
-  let metadata = fetch_link_metadata_opt(url.as_ref(), true, &context).await;
+  let metadata = fetch_link_metadata_opt(url.as_ref(), generate_thumbnail, &context).await;
   let url = proxy_image_link_opt_apub(url, &context).await?;
   let thumbnail_url = proxy_image_link_opt_apub(custom_thumbnail, &context)
     .await?
