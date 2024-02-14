@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{DbUrl, LocalUserId, PersonId},
-  schema::{local_user, registration_application},
+  schema::{local_user, person, registration_application},
   source::{
     actor_language::{LocalUserLanguage, SiteLanguage},
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
@@ -15,7 +15,7 @@ use crate::{
 };
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{
-  dsl::{insert_into, IntervalDsl},
+  dsl::{insert_into, not, IntervalDsl},
   result::Error,
   ExpressionMethods,
   JoinOnDsl,
@@ -70,11 +70,15 @@ impl LocalUser {
 
     // Delete based on join logic is here:
     // https://stackoverflow.com/questions/60836040/how-do-i-perform-a-delete-with-sub-query-in-diesel-against-a-postgres-database
-    let users = local_user::table
+    let local_users = local_user::table
       .filter(local_user::id.eq_any(old_denied_registrations))
-      .filter(local_user::accepted_application.eq(false));
+      .filter(not(local_user::accepted_application))
+      .select(local_user::person_id);
 
-    diesel::delete(users).execute(conn).await
+    // Delete the person rows, which should automatically clear the local_user ones
+    let persons = person::table.filter(person::id.eq_any(local_users));
+
+    diesel::delete(persons).execute(conn).await
   }
 
   pub async fn is_email_taken(pool: &mut DbPool<'_>, email: &str) -> Result<bool, Error> {
@@ -100,7 +104,6 @@ impl LocalUser {
       community_follower,
       instance,
       instance_block,
-      person,
       person_block,
       post,
       post_saved,
