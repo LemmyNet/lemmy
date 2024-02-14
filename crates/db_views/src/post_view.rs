@@ -698,7 +698,7 @@ mod tests {
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
     impls::actor_language::UNDETERMINED_ID,
-    newtypes::{InstanceId, LanguageId, PersonId},
+    newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
       comment::{Comment, CommentInsertForm},
@@ -757,37 +757,22 @@ mod tests {
     }
   }
 
-  fn default_person_insert_form(instance_id: InstanceId, name: &str) -> PersonInsertForm {
-    PersonInsertForm::builder()
-      .name(name.to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(instance_id)
-      .build()
-  }
-
-  fn default_local_user_form(person_id: PersonId) -> LocalUserInsertForm {
-    LocalUserInsertForm::builder()
-      .person_id(person_id)
-      .password_encrypted(String::new())
-      .build()
-  }
-
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-    let new_person = default_person_insert_form(inserted_instance.id, "tegan");
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "tegan");
 
     let inserted_person = Person::create(pool, &new_person).await?;
 
     let local_user_form = LocalUserInsertForm {
       admin: Some(true),
-      ..default_local_user_form(inserted_person.id)
+      ..LocalUserInsertForm::test_form(inserted_person.id)
     };
     let inserted_local_user = LocalUser::create(pool, &local_user_form).await?;
 
     let new_bot = PersonInsertForm {
       bot_account: Some(true),
-      ..default_person_insert_form(inserted_instance.id, "mybot")
+      ..PersonInsertForm::test_form(inserted_instance.id, "mybot")
     };
 
     let inserted_bot = Person::create(pool, &new_bot).await?;
@@ -802,12 +787,15 @@ mod tests {
     let inserted_community = Community::create(pool, &new_community).await?;
 
     // Test a person block, make sure the post query doesn't include their post
-    let blocked_person = default_person_insert_form(inserted_instance.id, "john");
+    let blocked_person = PersonInsertForm::test_form(inserted_instance.id, "john");
 
     let inserted_blocked_person = Person::create(pool, &blocked_person).await?;
 
-    let inserted_blocked_local_user =
-      LocalUser::create(pool, &default_local_user_form(inserted_blocked_person.id)).await?;
+    let inserted_blocked_local_user = LocalUser::create(
+      pool,
+      &LocalUserInsertForm::test_form(inserted_blocked_person.id),
+    )
+    .await?;
 
     let post_from_blocked_person = PostInsertForm::builder()
       .name(POST_BY_BLOCKED_PERSON.to_string())
