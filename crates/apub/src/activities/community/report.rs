@@ -14,7 +14,10 @@ use activitypub_federation::{
   kinds::activity::FlagType,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::{context::LemmyContext, utils::check_post_deleted_or_removed};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{check_comment_deleted_or_removed, check_post_deleted_or_removed},
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -117,6 +120,8 @@ impl ActivityHandler for Report {
         PostReport::report(&mut context.pool(), &report_form).await?;
       }
       PostOrComment::Comment(comment) => {
+        check_comment_deleted_or_removed(&comment)?;
+
         let report_form = CommentReportForm {
           creator_id: actor.id,
           comment_id: comment.id,
