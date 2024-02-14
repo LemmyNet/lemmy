@@ -168,7 +168,7 @@ steps:
       PGHOST: database
       PGDATABASE: lemmy
     commands:
-      - find -name '*libssl*' /
+      - find / -name '*libssl*'
       - diesel migration run
       # Make sure that the migration works both with and without the `r` schema
       - diesel migration redo
