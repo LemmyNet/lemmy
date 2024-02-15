@@ -51,7 +51,7 @@ BEGIN
             WHERE
                 a.person_id = diff.creator_id;
                 RETURN NULL;
-END;
+            END;
     $$);
     $b$,
     'thing',
