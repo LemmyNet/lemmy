@@ -1,6 +1,9 @@
 use crate::{
-  newtypes::{PersonId, PostReportId},
-  schema::post_report::dsl::{post_report, resolved, resolver_id, updated},
+  newtypes::{PersonId, PostId, PostReportId},
+  schema::post_report::{
+    dsl::{post_report, resolved, resolver_id, updated},
+    post_id,
+  },
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
   utils::{get_conn, naive_now, DbPool},
@@ -17,6 +20,7 @@ use diesel_async::RunQueryDsl;
 impl Reportable for PostReport {
   type Form = PostReportForm;
   type IdType = PostReportId;
+  type ObjectIdType = PostId;
 
   async fn report(pool: &mut DbPool<'_>, post_report_form: &PostReportForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
@@ -33,6 +37,22 @@ impl Reportable for PostReport {
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     update(post_report.find(report_id))
+      .set((
+        resolved.eq(true),
+        resolver_id.eq(by_resolver_id),
+        updated.eq(naive_now()),
+      ))
+      .execute(conn)
+      .await
+  }
+
+  async fn resolve_all_for_object(
+    pool: &mut DbPool<'_>,
+    post_id_: PostId,
+    by_resolver_id: PersonId,
+  ) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
+    update(post_report.filter(post_id.eq(post_id_)))
       .set((
         resolved.eq(true),
         resolver_id.eq(by_resolver_id),
@@ -75,7 +95,6 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
-  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   async fn init(pool: &mut DbPool<'_>) -> (Person, PostReport) {
@@ -131,6 +150,23 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(unresolved_count, 1);
+
+    Person::delete(pool, person.id).await.unwrap();
+    Post::delete(pool, report.post_id).await.unwrap();
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_resolve_all_post_reports() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+
+    let (person, report) = init(pool).await;
+
+    let resolved_count = PostReport::resolve_all_for_object(pool, report.post_id, person.id)
+      .await
+      .unwrap();
+    assert_eq!(resolved_count, 1);
 
     Person::delete(pool, person.id).await.unwrap();
     Post::delete(pool, report.post_id).await.unwrap();
