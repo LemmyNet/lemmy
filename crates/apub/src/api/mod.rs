@@ -1,6 +1,6 @@
 use lemmy_db_schema::{
   newtypes::CommunityId,
-  source::local_site::LocalSite,
+  source::{local_site::LocalSite, local_user::LocalUser},
   ListingType,
   SortType,
 };
@@ -17,11 +17,16 @@ pub mod user_settings_backup;
 fn listing_type_with_default(
   type_: Option<ListingType>,
   local_site: &LocalSite,
+  local_user: Option<&LocalUser>,
   community_id: Option<CommunityId>,
 ) -> ListingType {
   // On frontpage use listing type from param or admin configured default
   if community_id.is_none() {
-    type_.unwrap_or(local_site.default_post_listing_type)
+    type_.unwrap_or(
+      local_user
+        .map(|u| u.default_listing_type)
+        .unwrap_or(local_site.default_post_listing_type),
+    )
   } else {
     // inside of community show everything
     ListingType::All
@@ -29,6 +34,15 @@ fn listing_type_with_default(
 }
 
 /// Returns a default instance-level sort type, if none is given by the user.
-fn sort_type_with_default(type_: Option<SortType>, local_site: &LocalSite) -> SortType {
-  type_.unwrap_or(local_site.default_sort_type)
+/// Order is type, local user default, then site default.
+fn sort_type_with_default(
+  type_: Option<SortType>,
+  local_site: &LocalSite,
+  local_user: Option<&LocalUser>,
+) -> SortType {
+  type_.unwrap_or(
+    local_user
+      .map(|u| u.default_sort_type)
+      .unwrap_or(local_site.default_sort_type),
+  )
 }

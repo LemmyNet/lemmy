@@ -43,13 +43,19 @@ pub async fn list_posts(
     return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
   }
 
+  let local_user_ref = local_user_view.as_ref().map(|u| &u.local_user);
   let listing_type = Some(listing_type_with_default(
     data.type_,
     &local_site,
+    local_user_ref,
     community_id,
   ));
 
-  let sort = Some(sort_type_with_default(data.sort, &local_site));
+  let sort = Some(sort_type_with_default(
+    data.sort,
+    &local_site,
+    local_user_ref,
+  ));
 
   // parse pagination token
   let page_after = if let Some(pa) = &data.page_cursor {
