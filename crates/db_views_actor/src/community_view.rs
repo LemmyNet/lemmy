@@ -252,17 +252,20 @@ mod tests {
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
+      site::Site,
     },
     traits::Crud,
     utils::{build_db_pool_for_tests, DbPool},
     CommunityVisibility,
   };
   use serial_test::serial;
+  use url::Url;
 
   struct Data {
     inserted_instance: Instance,
     local_user: LocalUser,
     inserted_community: Community,
+    site: Site,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> Data {
@@ -295,10 +298,30 @@ mod tests {
 
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
+    let url = Url::parse("http://example.com").unwrap();
+    let site = Site {
+      id: Default::default(),
+      name: "".to_string(),
+      sidebar: None,
+      published: Default::default(),
+      updated: None,
+      icon: None,
+      banner: None,
+      description: None,
+      actor_id: url.clone().into(),
+      last_refreshed_at: Default::default(),
+      inbox_url: url.into(),
+      private_key: None,
+      public_key: "".to_string(),
+      instance_id: Default::default(),
+      content_warning: None,
+    };
+
     Data {
       inserted_instance,
       local_user,
       inserted_community,
+      site,
     }
   }
 
@@ -335,7 +358,7 @@ mod tests {
     let unauthenticated_query = CommunityQuery {
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await
     .unwrap();
     assert_eq!(0, unauthenticated_query.len());
@@ -344,7 +367,7 @@ mod tests {
       local_user: Some(&data.local_user),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await
     .unwrap();
     assert_eq!(1, authenticated_query.len());
