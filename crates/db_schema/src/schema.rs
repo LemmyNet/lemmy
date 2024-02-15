@@ -353,6 +353,7 @@ diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::ListingTypeEnum;
     use super::sql_types::RegistrationModeEnum;
+    use super::sql_types::SortTypeEnum;
 
     local_site (id) {
         id -> Int4,
@@ -380,6 +381,7 @@ diesel::table! {
         registration_mode -> RegistrationModeEnum,
         reports_email_admins -> Bool,
         federation_signed_fetch -> Bool,
+        default_sort_type -> SortTypeEnum,
     }
 }
 

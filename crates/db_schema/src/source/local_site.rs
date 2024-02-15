@@ -4,6 +4,7 @@ use crate::{
   newtypes::{LocalSiteId, SiteId},
   ListingType,
   RegistrationMode,
+  SortType,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -64,6 +65,7 @@ pub struct LocalSite {
   /// Whether to sign outgoing Activitypub fetches with private key of local instance. Some
   /// Fediverse instances and platforms require this.
   pub federation_signed_fetch: bool,
+  pub default_sort_type: SortType,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -93,6 +95,7 @@ pub struct LocalSiteInsertForm {
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
   pub federation_signed_fetch: Option<bool>,
+  pub default_sort_type: Option<SortType>,
 }
 
 #[derive(Clone, Default)]
@@ -120,4 +123,5 @@ pub struct LocalSiteUpdateForm {
   pub reports_email_admins: Option<bool>,
   pub updated: Option<Option<DateTime<Utc>>>,
   pub federation_signed_fetch: Option<bool>,
+  pub default_sort_type: Option<SortType>,
 }

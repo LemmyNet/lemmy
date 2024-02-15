@@ -50,7 +50,7 @@ pub async fn list_comments(
     data.type_,
     &local_site,
     community_id,
-  )?);
+  ));
 
   // If a parent_id is given, fetch the comment to get the path
   let parent_path = if let Some(parent_id) = parent_id {

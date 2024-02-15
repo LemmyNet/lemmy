@@ -161,6 +161,7 @@ pub struct CreateSite {
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
   pub default_post_listing_type: Option<ListingType>,
+  pub default_sort_type: Option<SortType>,
   pub legal_information: Option<String>,
   pub application_email_admins: Option<bool>,
   pub hide_modlog_mod_names: Option<bool>,
@@ -218,6 +219,8 @@ pub struct EditSite {
   /// The default theme. Usually "browser"
   pub default_theme: Option<String>,
   pub default_post_listing_type: Option<ListingType>,
+  /// The default sort, usually "active"
+  pub default_sort_type: Option<SortType>,
   /// An optional page of legal information
   pub legal_information: Option<String>,
   /// Whether to email admins when receiving a new application.
