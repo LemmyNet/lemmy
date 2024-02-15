@@ -28,7 +28,7 @@ fn listing_type_with_default(
   }
 }
 
-/// Returns default listing type, depending if the query is for frontpage or community.
+/// Returns a default instance-level sort type, if none is given by the user.
 fn sort_type_with_default(type_: Option<SortType>, local_site: &LocalSite) -> SortType {
   type_.unwrap_or(local_site.default_sort_type)
 }
