@@ -168,7 +168,7 @@ steps:
       PGHOST: database
       PGDATABASE: lemmy
     commands:
-      - apt-get install libssl3
+      - apt-get install openssl
       - find / -name '*libssl*'
       - diesel migration run
       # Make sure that the migration works both with and without the `r` schema
