@@ -82,23 +82,6 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION comment_removed_resolve_reports ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    UPDATE
-        comment_report
-    SET
-        resolved = TRUE,
-        resolver_id = NEW.mod_person_id,
-        updated = now()
-    WHERE
-        comment_report.comment_id = NEW.comment_id;
-    RETURN NULL;
-END
-$$;
-
 CREATE FUNCTION community_aggregates_comment_count ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
@@ -609,23 +592,6 @@ BEGIN
             pa.post_id = p.id
             AND pa.post_id = OLD.post_id;
     END IF;
-    RETURN NULL;
-END
-$$;
-
-CREATE FUNCTION post_removed_resolve_reports ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    UPDATE
-        post_report
-    SET
-        resolved = TRUE,
-        resolver_id = NEW.mod_person_id,
-        updated = now()
-    WHERE
-        post_report.post_id = NEW.post_id;
     RETURN NULL;
 END
 $$;
