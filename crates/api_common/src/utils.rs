@@ -225,8 +225,17 @@ pub async fn check_community_mod_action(
   Ok(())
 }
 
+/// Don't allow creating reports for removed / deleted posts
 pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   if post.deleted || post.removed {
+    Err(LemmyErrorType::Deleted)?
+  } else {
+    Ok(())
+  }
+}
+
+pub fn check_comment_deleted_or_removed(comment: &Comment) -> Result<(), LemmyError> {
+  if comment.deleted || comment.removed {
     Err(LemmyErrorType::Deleted)?
   } else {
     Ok(())

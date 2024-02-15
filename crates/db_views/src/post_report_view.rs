@@ -201,7 +201,6 @@ mod tests {
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
-      moderator::{ModRemovePost, ModRemovePostForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
       post_report::{PostReport, PostReportForm},
@@ -350,14 +349,11 @@ mod tests {
       .unwrap();
     assert_eq!(2, report_count);
 
-    // Writing post removal to mod log should automatically resolve reports
-    let remove_form = ModRemovePostForm {
-      mod_person_id: inserted_timmy.id,
-      post_id: inserted_jessica_report.post_id,
-      reason: None,
-      removed: Some(true),
-    };
-    ModRemovePost::create(pool, &remove_form).await.unwrap();
+    // Pretend the post was removed, and resolve all reports for that object.
+    // This is called manually in the API for post removals
+    PostReport::resolve_all_for_object(pool, inserted_jessica_report.post_id, inserted_timmy.id)
+      .await
+      .unwrap();
 
     let read_jessica_report_view_after_resolve =
       PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
