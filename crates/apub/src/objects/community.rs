@@ -150,15 +150,12 @@ impl Object for ApubCommunity {
       name: group.preferred_username.clone(),
       title: group.name.unwrap_or(group.preferred_username.clone()),
       description,
-      removed: None,
       published: group.published,
       updated: group.updated,
       deleted: Some(false),
       nsfw: Some(group.sensitive.unwrap_or(false)),
       actor_id: Some(group.id.into()),
       local: Some(false),
-      private_key: None,
-      hidden: None,
       public_key: group.public_key.public_key_pem,
       last_refreshed_at: Some(naive_now()),
       icon,
@@ -170,6 +167,7 @@ impl Object for ApubCommunity {
       posting_restricted_to_mods: group.posting_restricted_to_mods,
       instance_id,
       featured_url: group.featured.map(Into::into),
+      ..Default::default()
     };
     let languages =
       LanguageTag::to_language_id_multiple(group.language, &mut context.pool()).await?;

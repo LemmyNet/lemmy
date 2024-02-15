@@ -26,6 +26,7 @@ use lemmy_db_schema::{
     post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
   },
   traits::{Crud, Likeable},
+  CommunityVisibility,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
@@ -56,10 +57,12 @@ pub async fn create_post(
 
   let data_url = data.url.as_ref();
   let url = data_url.map(clean_url_params); // TODO no good way to handle a "clear"
+  let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);
 
   is_valid_post_title(&data.name)?;
   is_valid_body_field(&body, true)?;
-  check_url_scheme(&data.url)?;
+  check_url_scheme(&url)?;
+  check_url_scheme(&custom_thumbnail)?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -83,9 +86,17 @@ pub async fn create_post(
     }
   }
 
+  // Only generate the thumbnail if there's no custom thumbnail provided,
+  // otherwise it will save it in pictrs
+  let generate_thumbnail = custom_thumbnail.is_none();
+
   // Fetch post links and pictrs cached image
-  let metadata = fetch_link_metadata_opt(url.as_ref(), true, &context).await;
+  let metadata = fetch_link_metadata_opt(url.as_ref(), generate_thumbnail, &context).await;
   let url = proxy_image_link_opt_apub(url, &context).await?;
+  let thumbnail_url = proxy_image_link_opt_apub(custom_thumbnail, &context)
+    .await?
+    .map(Into::into)
+    .or(metadata.thumbnail);
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
@@ -120,7 +131,7 @@ pub async fn create_post(
     .embed_description(metadata.opengraph_data.description)
     .embed_video_url(metadata.opengraph_data.embed_video_url)
     .language_id(language_id)
-    .thumbnail_url(metadata.thumbnail)
+    .thumbnail_url(thumbnail_url)
     .build();
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)
@@ -165,20 +176,22 @@ pub async fn create_post(
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
   if let Some(url) = updated_post.url.clone() {
-    spawn_try_task(async move {
-      let mut webmention =
-        Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
-      webmention.set_checked(true);
-      match webmention
-        .send()
-        .instrument(tracing::info_span!("Sending webmention"))
-        .await
-      {
-        Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
-        Ok(_) => Ok(()),
-        Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
-      }
-    });
+    if community.visibility == CommunityVisibility::Public {
+      spawn_try_task(async move {
+        let mut webmention =
+          Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
+        webmention.set_checked(true);
+        match webmention
+          .send()
+          .instrument(tracing::info_span!("Sending webmention"))
+          .await
+        {
+          Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
+          Ok(_) => Ok(()),
+          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
+        }
+      });
+    }
   };
 
   build_post_response(&context, community_id, &local_user_view.person, post_id).await

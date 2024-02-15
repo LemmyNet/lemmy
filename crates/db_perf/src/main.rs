@@ -132,6 +132,10 @@ async fn try_main() -> LemmyResult<()> {
   // Make sure the println above shows the correct amount
   assert_eq!(num_inserted_posts, num_posts as usize);
 
+  // Manually trigger and wait for a statistics update to ensure consistent and high amount of accuracy in the statistics used for query planning
+  println!("🧮 updating database statistics");
+  conn.batch_execute("ANALYZE;").await?;
+
   // Enable auto_explain
   conn
     .batch_execute(

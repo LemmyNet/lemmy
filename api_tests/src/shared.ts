@@ -5,6 +5,7 @@ import {
   BlockInstanceResponse,
   CommunityId,
   CreatePrivateMessageReport,
+  EditCommunity,
   GetReplies,
   GetRepliesResponse,
   GetUnreadCountResponse,
@@ -530,6 +531,13 @@ export async function createCommunity(
     description,
   };
   return api.createCommunity(form);
+}
+
+export async function editCommunity(
+  api: LemmyHttp,
+  form: EditCommunity,
+): Promise<CommunityResponse> {
+  return api.editCommunity(form);
 }
 
 export async function getCommunity(

@@ -2,7 +2,8 @@
 # See https://github.com/woodpecker-ci/woodpecker/issues/1677
 
 variables:
-  - &rust_image "rust:1.75"
+  - &rust_image "rust:1.76"
+  - &install_pnpm "corepack enable pnpm"
   - &slow_check_paths
     - path:
         # rust source code
@@ -41,7 +42,7 @@ steps:
   prettier_check:
     image: tmknom/prettier:3.0.0
     commands:
-      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations'
+      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
 
   toml_fmt:
     image: tamasfe/taplo:0.8.1
@@ -152,7 +153,6 @@ steps:
     environment:
       CARGO_HOME: .cargo_home
     commands:
-      # when adding new clippy lints, make sure to also add them in scripts/lint.sh
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets --features console -- -D warnings
     when: *slow_check_paths
@@ -183,12 +183,22 @@ steps:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
       DO_WRITE_HOSTS_FILE: "1"
     commands:
+      - *install_pnpm
       - apt update && apt install -y bash curl postgresql-client
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
-      - yarn
-      - yarn api-test
+      - pnpm i
+      - pnpm api-test
     when: *slow_check_paths
+
+  federation_tests_server_output:
+    image: alpine:3
+    commands:
+      # `|| true` prevents this step from appearing to fail if the server output files don't exist
+      - cat target/log/lemmy_*.out || true
+      - "# If you can't see all output, then use the download button"
+    when:
+      status: [failure]
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
@@ -247,7 +257,7 @@ steps:
 
 services:
   database:
-    image: postgres:15.2-alpine
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password

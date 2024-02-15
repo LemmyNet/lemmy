@@ -14,7 +14,7 @@ use lemmy_db_schema::{source::post::Post, utils::FETCH_LIMIT_MAX};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ApubCommunityFeatured(());
 
 #[async_trait::async_trait]

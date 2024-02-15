@@ -5,7 +5,11 @@ use lemmy_api_common::{
   comment::{CommentReportResponse, CreateCommentReport},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_user_action, send_new_report_email_to_admins},
+  utils::{
+    check_comment_deleted_or_removed,
+    check_community_user_action,
+    send_new_report_email_to_admins,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -39,6 +43,9 @@ pub async fn create_comment_report(
     &mut context.pool(),
   )
   .await?;
+
+  // Don't allow creating reports for removed / deleted comments
+  check_comment_deleted_or_removed(&comment_view.comment)?;
 
   let report_form = CommentReportForm {
     creator_id: person_id,

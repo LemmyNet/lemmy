@@ -87,8 +87,12 @@ pub async fn read_person(
   .list(&mut context.pool())
   .await?;
 
-  let moderates =
-    CommunityModeratorView::for_person(&mut context.pool(), person_details_id).await?;
+  let moderates = CommunityModeratorView::for_person(
+    &mut context.pool(),
+    person_details_id,
+    local_user_view.is_some(),
+  )
+  .await?;
 
   let site = read_site_for_actor(person_view.person.actor_id.clone(), &context).await?;
 

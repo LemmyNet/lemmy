@@ -10,8 +10,8 @@ killall -s1 lemmy_server || true
 ./api_tests/prepare-drone-federation-test.sh
 popd
 
-yarn
-yarn api-test || true
+pnpm i
+pnpm api-test || true
 
 killall -s1 lemmy_server || true
 killall -s1 pict-rs || true

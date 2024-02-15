@@ -5,7 +5,11 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostReport, PostReportResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_user_action, send_new_report_email_to_admins},
+  utils::{
+    check_community_user_action,
+    check_post_deleted_or_removed,
+    send_new_report_email_to_admins,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -39,6 +43,8 @@ pub async fn create_post_report(
     &mut context.pool(),
   )
   .await?;
+
+  check_post_deleted_or_removed(&post_view.post)?;
 
   let report_form = PostReportForm {
     creator_id: person_id,
