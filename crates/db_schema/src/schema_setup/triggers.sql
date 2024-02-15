@@ -26,35 +26,6 @@ LANGUAGE plpgsql
 AS $a$
 BEGIN
     EXECUTE replace($b$
-        -- When a thing is removed, resolve its reports
-        CREATE FUNCTION r.resolve_reports_when_thing_removed ( )
-            RETURNS TRIGGER
-            LANGUAGE plpgsql
-            AS $$
-            BEGIN
-                UPDATE
-                    thing_report
-                SET
-                    resolved = TRUE, resolver_id = first_removal.mod_person_id, updated = first_removal.when_ FROM ( SELECT DISTINCT
-                            thing_id
-                        FROM new_removal
-                        INNER JOIN thing ON thing.id = new_removal.thing_id) AS removal_group, LATERAL (
-                    SELECT
-                        *
-                    FROM new_removal
-                    WHERE
-                        new_removal.thing_id = removal_group.thing_id ORDER BY when_ ASC LIMIT 1) AS first_removal
-            WHERE
-                thing_report.thing_id = first_removal.thing_id
-                    AND NOT thing_report.resolved
-                    AND COALESCE(thing_report.updated < first_removal.when_, TRUE);
-                RETURN NULL;
-END;
-    $$;
-    CREATE TRIGGER resolve_reports
-        AFTER INSERT ON mod_remove_thing REFERENCING NEW TABLE AS new_removal
-        FOR EACH STATEMENT
-        EXECUTE FUNCTION r.resolve_reports_when_thing_removed ( );
         -- When a thing gets a vote, update its aggregates and its creator's aggregates
         CALL r.create_triggers ('thing_like', $$
             BEGIN
