@@ -23,20 +23,6 @@ workspace = true
 
 [features]
 default = [
-  "error",
-  "request",
-  "response",
-  "settings",
-  "misc",
-  "rate-limit",
-  "apub",
-  "cache-header",
-  "email",
-]
-full = ["default", "ts-rs"]
-ts-rs = ["dep:ts-rs"]
-error-type = ["dep:serde", "dep:strum"]
-error = [
   "error-type",
   "dep:serde_json",
   "dep:anyhow",
@@ -44,11 +30,9 @@ error = [
   "dep:diesel",
   "dep:http",
   "dep:actix-web",
-]
-request = ["dep:reqwest-middleware", "dep:tracing", "dep:strum"]
-response = ["error", "dep:actix-web"]
-settings = [
-  "error",
+  "dep:reqwest-middleware",
+  "dep:tracing",
+  "dep:actix-web",
   "dep:deser-hjson",
   "dep:regex",
   "dep:urlencoding",
@@ -56,34 +40,20 @@ settings = [
   "dep:url",
   "dep:once_cell",
   "dep:smart-default",
-]
-rate-limit = [
-  "error",
   "dep:enum-map",
-  "dep:tracing",
-  "dep:actix-web",
   "dep:futures",
   "dep:tokio",
-  "dep:once_cell",
-]
-apub = ["dep:openssl"]
-cache-header = ["dep:actix-web"]
-email = [
-  "error",
-  "settings",
+  "dep:openssl",
   "dep:html2text",
   "dep:lettre",
   "dep:uuid",
   "dep:rosetta-i18n",
-]
-misc = [
-  "settings",
   "dep:itertools",
   "dep:markdown-it",
-  "dep:tokio",
-  "dep:futures",
-  "dep:tracing",
+
 ]
+full = ["default", "dep:ts-rs"]
+error-type = ["dep:serde", "dep:strum"]
 
 [dependencies]
 regex = { workspace = true, optional = true }

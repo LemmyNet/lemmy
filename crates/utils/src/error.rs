@@ -2,7 +2,7 @@ use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use strum_macros::{Display, EnumIter};
-#[cfg(feature = "ts-rs")]
+#[cfg(feature = "full")]
 use ts_rs::TS;
 
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
@@ -168,7 +168,7 @@ pub enum LemmyErrorType {
 }
 
 cfg_if! {
-  if #[cfg(feature = "error")] {
+  if #[cfg(feature = "default")] {
 
     use tracing_error::SpanTrace;
     use std::fmt;

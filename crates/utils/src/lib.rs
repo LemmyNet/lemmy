@@ -1,22 +1,27 @@
-#[cfg(feature = "apub")]
-pub mod apub;
-#[cfg(feature = "cache-header")]
-pub mod cache_header;
-#[cfg(feature = "email")]
-pub mod email;
-#[cfg(feature = "error-type")]
-pub mod error;
-#[cfg(feature = "rate-limit")]
-pub mod rate_limit;
-#[cfg(feature = "request")]
-pub mod request;
-#[cfg(feature = "response")]
-pub mod response;
-#[cfg(feature = "settings")]
-pub mod settings;
-#[cfg(feature = "misc")]
-pub mod utils;
-pub mod version;
+use cfg_if::cfg_if;
+
+cfg_if! {
+  if #[cfg(feature = "default")] {
+    pub mod apub;
+    pub mod cache_header;
+    pub mod email;
+    pub mod error;
+    pub mod rate_limit;
+    pub mod request;
+    pub mod response;
+    pub mod settings;
+    pub mod utils;
+    pub mod version;
+  } else {
+    mod error;
+  }
+}
+
+cfg_if! {
+    if #[cfg(feature = "error-type")] {
+    pub use error::LemmyErrorType;
+  }
+}
 
 use std::time::Duration;
 
@@ -36,7 +41,7 @@ macro_rules! location_info {
   };
 }
 
-#[cfg(feature = "misc")]
+#[cfg(feature = "default")]
 /// tokio::spawn, but accepts a future that may fail and also
 /// * logs errors
 /// * attaches the spawned task to the tracing span of the caller for better logging
