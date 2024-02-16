@@ -154,12 +154,11 @@ steps:
     commands:
       - cargo build
       - mv target/debug/lemmy_server target/lemmy_server
-      - cp --recursive /usr/lib/x86_64-linux-gnu lemmy_lib
     when: *slow_check_paths
 
   check_diesel_migration_revertable:
-    image: willsquire/diesel-cli
-    pull: true
+    # TODO: use willsquire/diesel-cli image when shared libraries become optional in lemmy_server
+    image: *rust_image
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: "1"
@@ -170,12 +169,12 @@ steps:
       PGHOST: database
       PGDATABASE: lemmy
     commands:
+      - cargo install diesel_cli
       - diesel migration run
       # Make sure that the migration works both with and without the `r` schema
       - diesel migration redo
       # Run schema setup twice, which fails on the 2nd time if `DROP SCHEMA IF EXISTS r CASCADE` drops the wrong things
-      - ls $PWD/lemmy_lib
-      - alias lemmy_schema_setup="LD_LIBRARY_PATH=$PWD/lemmy_lib target/lemmy_server --disable-scheduled-tasks --disable-http-server --disable-activity-sending"
+      - alias lemmy_schema_setup="target/lemmy_server --disable-scheduled-tasks --disable-http-server --disable-activity-sending"
       - lemmy_schema_setup
       - lemmy_schema_setup
       - diesel migration redo
