@@ -32,32 +32,29 @@ fn queries<'a>() -> Queries<
   impl ListFn<'a, CommentReportView, (CommentReportQuery, &'a LocalUserView)>,
 > {
   let all_joins = |query: comment_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
-    let creator_banned_from_community = exists(
-      actions_subquery(community_actions::table, comment::creator_id.nullable(), post::community_id)
-        .filter(
-          community_actions::received_ban_from_community.is_not_null()
-            .and(
-              community_actions::ban_expires
-                .is_null()
-                .or(community_actions::ban_expires.gt(now)),
-            )
-        )
-    );
-
-    let my_vote = actions_subquery(comment_actions::table, my_person_id, comment_report::comment_id)
-      .select(comment_actions::like_score)
-      .single_value();
-
-    comment_report::table
+    query
       .inner_join(comment::table)
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
       .inner_join(aliases::person1.on(comment::creator_id.eq(aliases::person1.field(person::id))))
+      .inner_join(
+        comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
+      )
+      .left_join(actions(
+        comment_actions::table,
+        Some(my_person_id),
+        comment_report::comment_id,
+      ))
       .left_join(
         aliases::person2
           .on(comment_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
       )
+      .left_join(actions(
+        creator_community_actions,
+        comment::creator_id.nullable(),
+        post_aggregates::community_id,
+      ))
       .select((
         comment_report::all_columns,
         comment::all_columns,
@@ -65,23 +62,32 @@ fn queries<'a>() -> Queries<
         community::all_columns,
         person::all_columns,
         aliases::person1.fields(person::all_columns),
-        creator_banned_from_community,
-        my_vote,
+        comment_aggregates::all_columns,
+        creator_community_actions
+          .field(community_actions::received_ban)
+          .is_null()
+          .or(
+            creator_community_actions
+              .field(community_actions::ban_expires)
+              .gt(now),
+          ),
+        post_actions::like_score.nullable(),
         aliases::person2.fields(person::all_columns).nullable(),
       ))
   };
 
   let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (CommentReportId, PersonId)| async move {
-    all_joins(my_person_id)
-      .filter(comment_report::id.eq(report_id))
-      .select(selection)
-      .first::<CommentReportView>(&mut conn)
-      .await
+    all_joins(
+      comment_report::table.find(report_id).into_boxed(),
+      my_person_id,
+    )
+    .first::<CommentReportView>(&mut conn)
+    .await
   };
 
   let list = move |mut conn: DbConn<'a>,
                    (options, user): (CommentReportQuery, &'a LocalUserView)| async move {
-    let mut query = all_joins(user.person.id).into_boxed();
+    let mut query = all_joins(comment_report::table.into_boxed(), user.person.id);
 
     if let Some(community_id) = options.community_id {
       query = query.filter(post::community_id.eq(community_id));

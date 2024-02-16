@@ -65,23 +65,48 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
   impl ListFn<'a, PostView, (PostQuery<'a>, &'a Site)>,
 > {
-  let all_joins = move |my_person_id: Option<PersonId>| {
-    post_aggregates::table
+  let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
+                        my_person_id: Option<PersonId>| {
+    query
       .inner_join(person::table)
       .left_join(local_user::table)
       .inner_join(community::table)
       .inner_join(post::table)
-      .left_join(actions(community_actions::table, my_person_id, post_aggregates::community_id))
-      .left_join(actions(person_actions::table, my_person_id, post_aggregates::creator_id))
-      .left_join(actions(post_actions::table, my_person_id, post_aggregates::post_id))
-      .left_join(actions(instance_actions::table, my_person_id, post_aggregates::instance_id))
-      .left_join(actions(creator_community_actions, post_aggregates::creator_id.nullable(), post_aggregates::community_id))
+      .left_join(actions(
+        community_actions::table,
+        my_person_id,
+        post_aggregates::community_id,
+      ))
+      .left_join(actions(
+        person_actions::table,
+        my_person_id,
+        post_aggregates::creator_id,
+      ))
+      .left_join(actions(
+        post_actions::table,
+        my_person_id,
+        post_aggregates::post_id,
+      ))
+      .left_join(actions(
+        instance_actions::table,
+        my_person_id,
+        post_aggregates::instance_id,
+      ))
+      .left_join(actions(
+        creator_community_actions,
+        post_aggregates::creator_id.nullable(),
+        post_aggregates::community_id,
+      ))
       .select((
         post::all_columns,
         person::all_columns,
         community::all_columns,
-        creator_community_actions.field(community_actions::received_ban).is_not_null(),
-        creator_community_actions.field(community_actions::became_moderator).is_not_null(),
+        creator_community_actions
+          .field(community_actions::received_ban)
+          .is_not_null(),
+        creator_community_actions
+          .field(community_actions::became_moderator)
+          .is_not_null(),
         creator_is_admin,
         post_aggregates::all_columns,
         community_actions::follow_pending.nullable(),
@@ -91,7 +116,6 @@ fn queries<'a>() -> Queries<
         post_actions::like_score.nullable(),
         post_aggregates::comments - coalesce(post_actions::read_comments.nullable(), 0),
       ))
-      .into_boxed()
   };
 
   let read =
@@ -101,8 +125,11 @@ fn queries<'a>() -> Queries<
       let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
       let mut query = all_joins(
+        post_aggregates::table
+          .filter(post_aggregates::post_id.eq(post_id))
+          .into_boxed(),
         my_person_id,
-      ).filter(post_aggregates::post_id.eq(post_id));
+      );
 
       // Hide deleted and removed for non-admins or mods
       if !is_mod_or_admin {
@@ -149,9 +176,7 @@ fn queries<'a>() -> Queries<
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
     let local_user_id_join = my_local_user_id.unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(
-      my_person_id,
-    );
+    let mut query = all_joins(post_aggregates::table.into_boxed(), my_person_id);
 
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
@@ -274,7 +299,7 @@ fn queries<'a>() -> Queries<
     }
 
     // Dont filter blocks or missing languages for moderator view type
-    if let options.listing_type.unwrap_or_default() != ListingType::ModeratorView {
+    if options.listing_type.unwrap_or_default() != ListingType::ModeratorView {
       // Filter out the rows with missing languages if user is logged in
       if my_person_id.is_some() {
         query = query.filter(exists(

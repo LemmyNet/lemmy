@@ -201,14 +201,17 @@ diesel::table! {
 
 diesel::table! {
     community_aggregates (community_id) {
+        community_id -> Int4,
         subscribers -> Int8,
         posts -> Int8,
         comments -> Int8,
+        published -> Timestamptz,
         users_active_day -> Int8,
         users_active_week -> Int8,
         users_active_month -> Int8,
         users_active_half_year -> Int8,
-        ranks_time -> Timestamptz,
+        hot_rank -> Float8,
+        subscribers_local -> Int8,
     }
 }
 
