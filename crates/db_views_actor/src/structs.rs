@@ -80,6 +80,7 @@ pub struct CommunityView {
   pub subscribed: SubscribedType,
   pub blocked: bool,
   pub counts: CommunityAggregates,
+  pub banned: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
