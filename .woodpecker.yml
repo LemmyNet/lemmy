@@ -175,6 +175,7 @@ steps:
       - diesel migration redo
       # Run schema setup twice, which fails on the 2nd time if `DROP SCHEMA IF EXISTS r CASCADE` drops the wrong things
       - export LD_LIBRARY_PATH=$CWD/lemmy_lib
+      - ls $LD_LIBRARY_PATH
       - target/lemmy_server --disable-scheduled-tasks --disable-http-server --disable-activity-sending
       - target/lemmy_server --disable-scheduled-tasks --disable-http-server --disable-activity-sending
       - diesel migration redo
