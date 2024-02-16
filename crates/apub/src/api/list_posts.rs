@@ -1,5 +1,5 @@
 use crate::{
-  api::listing_type_with_default,
+  api::{listing_type_with_default, sort_type_with_default},
   fetcher::resolve_actor_identifier,
   objects::community::ApubCommunity,
 };
@@ -27,8 +27,6 @@ pub async fn list_posts(
 
   check_private_instance(&local_user_view, &local_site.local_site)?;
 
-  let sort = data.sort;
-
   let page = data.page;
   let limit = data.limit;
   let community_id = if let Some(name) = &data.community_name {
@@ -45,11 +43,20 @@ pub async fn list_posts(
     return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
   }
 
+  let local_user_ref = local_user_view.as_ref().map(|u| &u.local_user);
   let listing_type = Some(listing_type_with_default(
     data.type_,
+    local_user_ref,
     &local_site.local_site,
     community_id,
-  )?);
+  ));
+
+  let sort = Some(sort_type_with_default(
+    data.sort,
+    local_user_ref,
+    &local_site.local_site,
+  ));
+
   // parse pagination token
   let page_after = if let Some(pa) = &data.page_cursor {
     Some(pa.read(&mut context.pool()).await?)

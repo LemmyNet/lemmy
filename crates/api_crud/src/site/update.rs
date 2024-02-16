@@ -92,6 +92,7 @@ pub async fn update_site(
     private_instance: data.private_instance,
     default_theme: data.default_theme.clone(),
     default_post_listing_type: data.default_post_listing_type,
+    default_sort_type: data.default_sort_type,
     legal_information: diesel_option_overwrite(data.legal_information.clone()),
     application_email_admins: data.application_email_admins,
     hide_modlog_mod_names: data.hide_modlog_mod_names,
@@ -227,7 +228,7 @@ mod tests {
 
   use crate::site::update::validate_update_payload;
   use lemmy_api_common::site::EditSite;
-  use lemmy_db_schema::{source::local_site::LocalSite, ListingType, RegistrationMode};
+  use lemmy_db_schema::{source::local_site::LocalSite, ListingType, RegistrationMode, SortType};
   use lemmy_utils::error::LemmyErrorType;
 
   #[test]
@@ -248,6 +249,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           None::<String>,
           None::<bool>,
           None::<bool>,
@@ -270,6 +272,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           Some(String::from("(zeta|alpha)")),
           None::<bool>,
           None::<bool>,
@@ -292,6 +295,7 @@ mod tests {
           None::<String>,
           None::<String>,
           Some(ListingType::Subscribed),
+          None::<SortType>,
           None::<String>,
           None::<bool>,
           None::<bool>,
@@ -314,6 +318,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           None::<String>,
           Some(true),
           Some(true),
@@ -336,6 +341,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           None::<String>,
           None::<bool>,
           Some(true),
@@ -358,6 +364,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           None::<String>,
           None::<bool>,
           None::<bool>,
@@ -411,6 +418,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           None::<String>,
           None::<bool>,
           None::<bool>,
@@ -432,6 +440,7 @@ mod tests {
           Some(String::new()),
           Some(String::new()),
           Some(ListingType::All),
+          Some(SortType::Active),
           Some(String::new()),
           Some(false),
           Some(true),
@@ -453,6 +462,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           Some(String::new()),
           None::<bool>,
           None::<bool>,
@@ -474,6 +484,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           None::<String>,
           None::<bool>,
           None::<bool>,
@@ -521,6 +532,7 @@ mod tests {
     site_description: Option<String>,
     site_sidebar: Option<String>,
     site_listing_type: Option<ListingType>,
+    site_sort_type: Option<SortType>,
     site_slur_filter_regex: Option<String>,
     site_is_private: Option<bool>,
     site_is_federated: Option<bool>,
@@ -541,6 +553,7 @@ mod tests {
       private_instance: site_is_private,
       default_theme: None,
       default_post_listing_type: site_listing_type,
+      default_sort_type: site_sort_type,
       legal_information: None,
       application_email_admins: None,
       hide_modlog_mod_names: None,
