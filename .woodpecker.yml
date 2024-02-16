@@ -154,8 +154,7 @@ steps:
     commands:
       - cargo build
       - mv target/debug/lemmy_server target/lemmy_server
-      - mkdir lemmy_lib
-      - cp /usr/lib/x86_64-linux-gnu/libssl.so.3 lemmy_lib
+      - cp /usr/lib/x86_64-linux-gnu lemmy_lib
     when: *slow_check_paths
 
   check_diesel_migration_revertable:
@@ -171,15 +170,14 @@ steps:
       PGHOST: database
       PGDATABASE: lemmy
     commands:
-      - echo $LD_LIBRARY_PATH
       - diesel migration run
       # Make sure that the migration works both with and without the `r` schema
       - diesel migration redo
       # Run schema setup twice, which fails on the 2nd time if `DROP SCHEMA IF EXISTS r CASCADE` drops the wrong things
-      - export LD_LIBRARY_PATH=$PWD/lemmy_lib
       - ls $PWD/lemmy_lib
-      - target/lemmy_server --disable-scheduled-tasks --disable-http-server --disable-activity-sending
-      - target/lemmy_server --disable-scheduled-tasks --disable-http-server --disable-activity-sending
+      - alias lemmy_schema_setup="LD_LIBRARY_PATH=$PWD/lemmy_lib target/lemmy_server --disable-scheduled-tasks --disable-http-server --disable-activity-sending"
+      - lemmy_schema_setup
+      - lemmy_schema_setup
       - diesel migration redo
     when: *slow_check_paths
 
