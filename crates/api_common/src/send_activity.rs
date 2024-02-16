@@ -1,9 +1,4 @@
-use crate::{
-  community::BanFromCommunity,
-  context::LemmyContext,
-  person::BanPerson,
-  post::{DeletePost, RemovePost},
-};
+use crate::{community::BanFromCommunity, context::LemmyContext, post::DeletePost};
 use activitypub_federation::config::Data;
 use futures::future::BoxFuture;
 use lemmy_db_schema::{
@@ -40,26 +35,68 @@ pub enum SendActivityData {
   CreatePost(Post),
   UpdatePost(Post),
   DeletePost(Post, Person, DeletePost),
-  RemovePost(Post, Person, RemovePost),
+  RemovePost {
+    post: Post,
+    moderator: Person,
+    reason: Option<String>,
+    removed: bool,
+  },
   LockPost(Post, Person, bool),
   FeaturePost(Post, Person, bool),
   CreateComment(Comment),
   UpdateComment(Comment),
   DeleteComment(Comment, Person, Community),
-  RemoveComment(Comment, Person, Community, Option<String>),
-  LikePostOrComment(DbUrl, Person, Community, i16),
+  RemoveComment {
+    comment: Comment,
+    moderator: Person,
+    community: Community,
+    reason: Option<String>,
+  },
+  LikePostOrComment {
+    object_id: DbUrl,
+    actor: Person,
+    community: Community,
+    score: i16,
+  },
   FollowCommunity(Community, Person, bool),
   UpdateCommunity(Person, Community),
   DeleteCommunity(Person, Community, bool),
-  RemoveCommunity(Person, Community, Option<String>, bool),
-  AddModToCommunity(Person, CommunityId, PersonId, bool),
-  BanFromCommunity(Person, CommunityId, Person, BanFromCommunity),
-  BanFromSite(Person, Person, BanPerson),
+  RemoveCommunity {
+    moderator: Person,
+    community: Community,
+    reason: Option<String>,
+    removed: bool,
+  },
+  AddModToCommunity {
+    moderator: Person,
+    community_id: CommunityId,
+    target: PersonId,
+    added: bool,
+  },
+  BanFromCommunity {
+    moderator: Person,
+    community_id: CommunityId,
+    target: Person,
+    data: BanFromCommunity,
+  },
+  BanFromSite {
+    moderator: Person,
+    banned_user: Person,
+    reason: Option<String>,
+    remove_data: Option<bool>,
+    ban: bool,
+    expires: Option<i64>,
+  },
   CreatePrivateMessage(PrivateMessageView),
   UpdatePrivateMessage(PrivateMessageView),
   DeletePrivateMessage(Person, PrivateMessage, bool),
   DeleteUser(Person, bool),
-  CreateReport(Url, Person, Community, String),
+  CreateReport {
+    object_id: Url,
+    actor: Person,
+    community: Community,
+    reason: String,
+  },
 }
 
 // TODO: instead of static, move this into LemmyContext. make sure that stopping the process with

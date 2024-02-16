@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl, PersonId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   schema::{instance, local_user, person, person_follower},
   source::person::{
     Person,
@@ -83,6 +83,16 @@ impl Person {
       ))
       .get_result::<Self>(conn)
       .await
+  }
+}
+
+impl PersonInsertForm {
+  pub fn test_form(instance_id: InstanceId, name: &str) -> Self {
+    Self::builder()
+      .name(name.to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(instance_id)
+      .build()
   }
 }
 

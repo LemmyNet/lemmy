@@ -17,7 +17,7 @@ services:
       - "8536:8536"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro,Z
-    restart: always
+    restart: unless-stopped
     depends_on:
       - pictrs
       - lemmy-ui
@@ -25,7 +25,7 @@ services:
 
   lemmy:
     # use "image" to pull down an already compiled lemmy. make sure to comment out "build".
-    # image: dessalines/lemmy:0.19.1
+    # image: dessalines/lemmy:0.19.3
     # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
     # use "build" to build your local lemmy server image for development. make sure to comment out "image".
     # run: docker compose up --build
@@ -38,7 +38,7 @@ services:
       #   CARGO_BUILD_FEATURES: default
     # this hostname is used in nginx reverse proxy and also for lemmy ui to connect to the backend, do not change
     hostname: lemmy
-    restart: always
+    restart: unless-stopped
     environment:
       - RUST_LOG="warn,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_db_views_actor=debug,lemmy_db_views_moderator=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug"
       - RUST_BACKTRACE=full
@@ -55,7 +55,7 @@ services:
 
   lemmy-ui:
     # use "image" to pull down an already compiled lemmy-ui. make sure to comment out "build".
-    image: dessalines/lemmy-ui:0.19.1
+    image: dessalines/lemmy-ui:0.19.3
     # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
     # use "build" to build your local lemmy ui image for development. make sure to comment out "image".
     # run: docker compose up --build
@@ -72,7 +72,7 @@ services:
       - LEMMY_UI_DEBUG=true
     depends_on:
       - lemmy
-    restart: always
+    restart: unless-stopped
     logging: *default-logging
     init: true
 
@@ -95,11 +95,11 @@ services:
     user: 991:991
     volumes:
       - ./volumes/pictrs:/mnt:Z
-    restart: always
+    restart: unless-stopped
     logging: *default-logging
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     # this needs to match the database host in lemmy.hson
     # Tune your settings via
     # https://pgtune.leopard.in.ua/#/
@@ -127,5 +127,5 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/postgres:/var/lib/postgresql/data:Z
-    restart: always
+    restart: unless-stopped
     logging: *default-logging

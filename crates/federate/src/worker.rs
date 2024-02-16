@@ -11,7 +11,7 @@ use activitypub_federation::{
   protocol::context::WithContext,
 };
 use anyhow::{Context, Result};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Days, TimeZone, Utc};
 use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
 use lemmy_apub::{activity_lists::SharedInboxActivities, FEDERATION_CONTEXT};
 use lemmy_db_schema::{
@@ -19,17 +19,17 @@ use lemmy_db_schema::{
   source::{
     activity::SentActivity,
     federation_queue_state::FederationQueueState,
-    instance::Instance,
+    instance::{Instance, InstanceForm},
     site::Site,
   },
-  utils::DbPool,
+  utils::{naive_now, DbPool},
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use once_cell::sync::Lazy;
 use reqwest::Url;
 use std::{
   collections::{HashMap, HashSet},
-  ops::Deref,
+  ops::{Add, Deref},
   time::Duration,
 };
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
@@ -257,6 +257,18 @@ impl InstanceWorker {
           }
         }
       }
+
+      // Activity send successful, mark instance as alive if it hasn't been updated in a while.
+      let updated = self.instance.updated.unwrap_or(self.instance.published);
+      if updated.add(Days::new(1)) < Utc::now() {
+        self.instance.updated = Some(Utc::now());
+
+        let form = InstanceForm::builder()
+          .domain(self.instance.domain.clone())
+          .updated(Some(naive_now()))
+          .build();
+        Instance::update(pool, self.instance.id, form).await?;
+      }
     }
     Ok(())
   }
@@ -284,7 +296,7 @@ impl InstanceWorker {
     }
     if let Some(t) = &activity.send_community_followers_of {
       if let Some(urls) = self.followed_communities.get(t) {
-        inbox_urls.extend(urls.iter().map(std::clone::Clone::clone));
+        inbox_urls.extend(urls.iter().cloned());
       }
     }
     inbox_urls.extend(

@@ -14,7 +14,10 @@ use activitypub_federation::{
   kinds::activity::FlagType,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{check_comment_deleted_or_removed, check_post_deleted_or_removed},
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -92,7 +95,6 @@ impl ActivityHandler for Report {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_received_activity(&self.id, context).await?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     Ok(())
@@ -100,10 +102,13 @@ impl ActivityHandler for Report {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     let reason = self.reason()?;
     match self.object.dereference(context).await? {
       PostOrComment::Post(post) => {
+        check_post_deleted_or_removed(&post)?;
+
         let report_form = PostReportForm {
           creator_id: actor.id,
           post_id: post.id,
@@ -115,6 +120,8 @@ impl ActivityHandler for Report {
         PostReport::report(&mut context.pool(), &report_form).await?;
       }
       PostOrComment::Comment(comment) => {
+        check_comment_deleted_or_removed(&comment)?;
+
         let report_form = CommentReportForm {
           creator_id: actor.id,
           comment_id: comment.id,

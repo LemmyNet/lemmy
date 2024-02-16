@@ -12,6 +12,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
+    comment_report::CommentReport,
     community::{Community, CommunityUpdateForm},
     moderator::{
       ModRemoveComment,
@@ -22,8 +23,9 @@ use lemmy_db_schema::{
       ModRemovePostForm,
     },
     post::{Post, PostUpdateForm},
+    post_report::PostReport,
   },
-  traits::Crud,
+  traits::{Crud, Reportable},
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use url::Url;
@@ -43,13 +45,13 @@ impl ActivityHandler for Delete {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_received_activity(&self.id, context).await?;
     verify_delete_activity(self, self.summary.is_some(), context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+    insert_received_activity(&self.id, context).await?;
     if let Some(reason) = self.summary {
       // We set reason to empty string if it doesn't exist, to distinguish between delete and
       // remove. Here we change it back to option, so we don't write it to db.
@@ -136,6 +138,7 @@ pub(in crate::activities) async fn receive_remove_action(
       .await?;
     }
     DeletableObjects::Post(post) => {
+      PostReport::resolve_all_for_object(&mut context.pool(), post.id, actor.id).await?;
       let form = ModRemovePostForm {
         mod_person_id: actor.id,
         post_id: post.id,
@@ -154,6 +157,7 @@ pub(in crate::activities) async fn receive_remove_action(
       .await?;
     }
     DeletableObjects::Comment(comment) => {
+      CommentReport::resolve_all_for_object(&mut context.pool(), comment.id, actor.id).await?;
       let form = ModRemoveCommentForm {
         mod_person_id: actor.id,
         comment_id: comment.id,

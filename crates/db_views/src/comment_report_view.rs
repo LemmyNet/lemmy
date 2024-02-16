@@ -215,6 +215,7 @@ mod tests {
     },
     traits::{Crud, Joinable, Reportable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
+    CommunityVisibility,
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -361,6 +362,7 @@ mod tests {
         moderators_url: inserted_community.moderators_url,
         featured_url: inserted_community.featured_url,
         instance_id: inserted_instance.id,
+        visibility: CommunityVisibility::Public,
       },
       creator: Person {
         id: inserted_jessica.id,

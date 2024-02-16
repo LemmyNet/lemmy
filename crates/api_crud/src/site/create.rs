@@ -4,7 +4,14 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{CreateSite, SiteResponse},
-  utils::{generate_shared_inbox_url, is_admin, local_site_rate_limit_to_rate_limit_config},
+  utils::{
+    generate_shared_inbox_url,
+    is_admin,
+    local_site_rate_limit_to_rate_limit_config,
+    local_site_to_slur_regex,
+    process_markdown_opt,
+    proxy_image_link_opt_api,
+  },
 };
 use lemmy_db_schema::{
   newtypes::DbUrl,
@@ -15,7 +22,7 @@ use lemmy_db_schema::{
     tagline::Tagline,
   },
   traits::Crud,
-  utils::{diesel_option_overwrite, diesel_option_overwrite_to_url, naive_now},
+  utils::{diesel_option_overwrite, naive_now},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
@@ -50,17 +57,23 @@ pub async fn create_site(
   let inbox_url = Some(generate_shared_inbox_url(context.settings())?);
   let keypair = generate_actor_keypair()?;
 
+  let slur_regex = local_site_to_slur_regex(&local_site);
+  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &context).await?;
+  let icon = proxy_image_link_opt_api(&data.icon, &context).await?;
+  let banner = proxy_image_link_opt_api(&data.banner, &context).await?;
+
   let site_form = SiteUpdateForm {
     name: Some(data.name.clone()),
-    sidebar: diesel_option_overwrite(data.sidebar.clone()),
+    sidebar: diesel_option_overwrite(sidebar),
     description: diesel_option_overwrite(data.description.clone()),
-    icon: diesel_option_overwrite_to_url(&data.icon)?,
-    banner: diesel_option_overwrite_to_url(&data.banner)?,
+    icon,
+    banner,
     actor_id: Some(actor_id),
     last_refreshed_at: Some(naive_now()),
     inbox_url,
     private_key: Some(Some(keypair.private_key)),
     public_key: Some(keypair.public_key),
+    content_warning: diesel_option_overwrite(data.content_warning.clone()),
     ..Default::default()
   };
 
@@ -80,6 +93,7 @@ pub async fn create_site(
     private_instance: data.private_instance,
     default_theme: data.default_theme.clone(),
     default_post_listing_type: data.default_post_listing_type,
+    default_sort_type: data.default_sort_type,
     legal_information: diesel_option_overwrite(data.legal_information.clone()),
     application_email_admins: data.application_email_admins,
     hide_modlog_mod_names: data.hide_modlog_mod_names,
@@ -89,6 +103,7 @@ pub async fn create_site(
     federation_enabled: data.federation_enabled,
     captcha_enabled: data.captcha_enabled,
     captcha_difficulty: data.captcha_difficulty.clone(),
+    default_post_listing_mode: data.default_post_listing_mode,
     ..Default::default()
   };
 
@@ -178,7 +193,7 @@ mod tests {
 
   use crate::site::create::validate_create_payload;
   use lemmy_api_common::site::CreateSite;
-  use lemmy_db_schema::{source::local_site::LocalSite, ListingType, RegistrationMode};
+  use lemmy_db_schema::{source::local_site::LocalSite, ListingType, RegistrationMode, SortType};
   use lemmy_utils::error::LemmyErrorType;
 
   #[test]
@@ -200,6 +215,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           None::<String>,
           None::<bool>,
           None::<bool>,
@@ -223,6 +239,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           None::<String>,
           None::<bool>,
           None::<bool>,
@@ -246,6 +263,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           Some(String::from("(zeta|alpha)")),
           None::<bool>,
           None::<bool>,
@@ -269,6 +287,7 @@ mod tests {
           None::<String>,
           None::<String>,
           Some(ListingType::Subscribed),
+          None::<SortType>,
           None::<String>,
           None::<bool>,
           None::<bool>,
@@ -292,6 +311,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           None::<String>,
           Some(true),
           Some(true),
@@ -315,6 +335,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           None::<String>,
           None::<bool>,
           Some(true),
@@ -338,6 +359,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           None::<String>,
           None::<bool>,
           None::<bool>,
@@ -395,6 +417,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           None::<String>,
           None::<bool>,
           None::<bool>,
@@ -417,6 +440,7 @@ mod tests {
           Some(String::new()),
           Some(String::new()),
           Some(ListingType::All),
+          Some(SortType::Active),
           Some(String::new()),
           Some(false),
           Some(true),
@@ -439,6 +463,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           Some(String::new()),
           None::<bool>,
           None::<bool>,
@@ -461,6 +486,7 @@ mod tests {
           None::<String>,
           None::<String>,
           None::<ListingType>,
+          None::<SortType>,
           None::<String>,
           None::<bool>,
           None::<bool>,
@@ -510,6 +536,7 @@ mod tests {
     site_description: Option<String>,
     site_sidebar: Option<String>,
     site_listing_type: Option<ListingType>,
+    site_sort_type: Option<SortType>,
     site_slur_filter_regex: Option<String>,
     site_is_private: Option<bool>,
     site_is_federated: Option<bool>,
@@ -530,6 +557,7 @@ mod tests {
       private_instance: site_is_private,
       default_theme: None,
       default_post_listing_type: site_listing_type,
+      default_sort_type: site_sort_type,
       legal_information: None,
       application_email_admins: None,
       hide_modlog_mod_names: None,
@@ -556,6 +584,8 @@ mod tests {
       blocked_instances: None,
       taglines: None,
       registration_mode: site_registration_mode,
+      content_warning: None,
+      default_post_listing_mode: None,
     }
   }
 }

@@ -9,6 +9,8 @@ use crate::schema::{
   site_aggregates,
 };
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use i_love_jesus::CursorKeysModule;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;
@@ -66,6 +68,7 @@ pub struct CommunityAggregates {
   pub users_active_half_year: i64,
   #[serde(skip)]
   pub hot_rank: f64,
+  pub subscribers_local: i64,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Default)]
@@ -92,13 +95,21 @@ pub struct PersonAggregates {
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable, TS)
+  derive(
+    Queryable,
+    Selectable,
+    Associations,
+    Identifiable,
+    TS,
+    CursorKeysModule
+  )
 )]
 #[cfg_attr(feature = "full", diesel(table_name = post_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(primary_key(post_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = post_aggregates_keys))]
 /// Aggregate data for a post.
 pub struct PostAggregates {
   pub post_id: PostId,
@@ -111,7 +122,6 @@ pub struct PostAggregates {
   /// A newest comment time, limited to 2 days, to prevent necrobumping
   pub newest_comment_time_necro: DateTime<Utc>,
   /// The time of the newest comment in the post.
-  #[serde(skip)]
   pub newest_comment_time: DateTime<Utc>,
   /// If the post is featured on the community.
   #[serde(skip)]

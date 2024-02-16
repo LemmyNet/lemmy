@@ -4,13 +4,14 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetPersonDetails, GetPersonDetailsResponse},
-  utils::check_private_instance,
+  utils::{check_private_instance, read_site_for_actor},
 };
-use lemmy_db_schema::{
-  source::{local_site::LocalSite, person::Person},
-  utils::post_to_comment_sort_type,
+use lemmy_db_schema::{source::person::Person, utils::post_to_comment_sort_type};
+use lemmy_db_views::{
+  comment_view::CommentQuery,
+  post_view::PostQuery,
+  structs::{LocalUserView, SiteView},
 };
-use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery, structs::LocalUserView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
 
@@ -25,9 +26,9 @@ pub async fn read_person(
     Err(LemmyErrorType::NoIdGiven)?
   }
 
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?;
 
-  check_private_instance(&local_user_view, &local_site)?;
+  check_private_instance(&local_user_view, &local_site.local_site)?;
 
   let person_details_id = match data.person_id {
     Some(id) => id,
@@ -70,7 +71,7 @@ pub async fn read_person(
     creator_id,
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(&local_site.site, &mut context.pool())
   .await?;
 
   let comments = CommentQuery {
@@ -86,12 +87,19 @@ pub async fn read_person(
   .list(&mut context.pool())
   .await?;
 
-  let moderates =
-    CommunityModeratorView::for_person(&mut context.pool(), person_details_id).await?;
+  let moderates = CommunityModeratorView::for_person(
+    &mut context.pool(),
+    person_details_id,
+    local_user_view.is_some(),
+  )
+  .await?;
+
+  let site = read_site_for_actor(person_view.person.actor_id.clone(), &context).await?;
 
   // Return the jwt
   Ok(Json(GetPersonDetailsResponse {
     person_view,
+    site,
     moderates,
     comments,
     posts,

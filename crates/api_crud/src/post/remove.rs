@@ -11,8 +11,9 @@ use lemmy_db_schema::{
   source::{
     moderator::{ModRemovePost, ModRemovePostForm},
     post::{Post, PostUpdateForm},
+    post_report::PostReport,
   },
-  traits::Crud,
+  traits::{Crud, Reportable},
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
@@ -47,6 +48,9 @@ pub async fn remove_post(
   )
   .await?;
 
+  PostReport::resolve_all_for_object(&mut context.pool(), post_id, local_user_view.person.id)
+    .await?;
+
   // Mod tables
   let form = ModRemovePostForm {
     mod_person_id: local_user_view.person.id,
@@ -57,7 +61,12 @@ pub async fn remove_post(
   ModRemovePost::create(&mut context.pool(), &form).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::RemovePost(post, local_user_view.person.clone(), data.0),
+    SendActivityData::RemovePost {
+      post,
+      moderator: local_user_view.person.clone(),
+      reason: data.reason.clone(),
+      removed: data.removed,
+    },
     &context,
   )
   .await?;

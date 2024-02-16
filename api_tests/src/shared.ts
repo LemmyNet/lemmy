@@ -5,6 +5,7 @@ import {
   BlockInstanceResponse,
   CommunityId,
   CreatePrivateMessageReport,
+  EditCommunity,
   GetReplies,
   GetRepliesResponse,
   GetUnreadCountResponse,
@@ -177,13 +178,6 @@ export async function setupLogins() {
   ];
   await gamma.editSite(editSiteForm);
 
-  editSiteForm.allowed_instances = ["lemmy-beta"];
-  await delta.editSite(editSiteForm);
-
-  editSiteForm.allowed_instances = [];
-  editSiteForm.blocked_instances = ["lemmy-alpha"];
-  await epsilon.editSite(editSiteForm);
-
   // Create the main alpha/beta communities
   // Ignore thrown errors of duplicates
   try {
@@ -202,11 +196,11 @@ export async function setupLogins() {
 export async function createPost(
   api: LemmyHttp,
   community_id: number,
-  // use example.com for consistent title and embed description
   url: string = "https://example.com/",
+  body = randomString(10),
+  // use example.com for consistent title and embed description
+  name: string = randomString(5),
 ): Promise<PostResponse> {
-  let name = randomString(5);
-  let body = randomString(10);
   let form: CreatePost = {
     name,
     url,
@@ -528,7 +522,7 @@ export async function likeComment(
 
 export async function createCommunity(
   api: LemmyHttp,
-  name_: string = randomString(5),
+  name_: string = randomString(10),
 ): Promise<CommunityResponse> {
   let description = "a sample description";
   let form: CreateCommunity = {
@@ -537,6 +531,13 @@ export async function createCommunity(
     description,
   };
   return api.createCommunity(form);
+}
+
+export async function editCommunity(
+  api: LemmyHttp,
+  form: EditCommunity,
+): Promise<CommunityResponse> {
+  return api.editCommunity(form);
 }
 
 export async function getCommunity(

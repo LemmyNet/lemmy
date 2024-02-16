@@ -6,6 +6,7 @@ use actix_web::{
     StatusCode,
   },
   web,
+  web::Query,
   Error,
   HttpRequest,
   HttpResponse,
@@ -13,15 +14,17 @@ use actix_web::{
 use futures::stream::{Stream, StreamExt};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::{
-  image_upload::{ImageUpload, ImageUploadForm},
+  images::{LocalImage, LocalImageForm, RemoteImage},
   local_site::LocalSite,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{rate_limit::RateLimitCell, REQWEST_TIMEOUT};
+use lemmy_utils::{error::LemmyResult, rate_limit::RateLimitCell, REQWEST_TIMEOUT};
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use url::Url;
+use urlencoding::decode;
 
 pub fn config(
   cfg: &mut web::ServiceConfig,
@@ -58,14 +61,6 @@ struct PictrsParams {
   thumbnail: Option<i32>,
 }
 
-#[derive(Deserialize)]
-enum PictrsPurgeParams {
-  #[serde(rename = "file")]
-  File(String),
-  #[serde(rename = "alias")]
-  Alias(String),
-}
-
 fn adapt_request(
   request: &HttpRequest,
   client: &ClientWithMiddleware,
@@ -95,13 +90,14 @@ async fn upload(
   body: web::Payload,
   // require login
   local_user_view: LocalUserView,
+  client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   // TODO: check rate limit here
   let pictrs_config = context.settings().pictrs_config()?;
   let image_url = format!("{}image", pictrs_config.url);
 
-  let mut client_req = adapt_request(&req, context.client(), image_url);
+  let mut client_req = adapt_request(&req, &client, image_url);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
@@ -117,12 +113,12 @@ async fn upload(
   let images = res.json::<Images>().await.map_err(error::ErrorBadRequest)?;
   if let Some(images) = &images.files {
     for uploaded_image in images {
-      let form = ImageUploadForm {
+      let form = LocalImageForm {
         local_user_id: local_user_view.local_user.id,
         pictrs_alias: uploaded_image.file.to_string(),
         pictrs_delete_token: uploaded_image.delete_token.to_string(),
       };
-      ImageUpload::create(&mut context.pool(), &form)
+      LocalImage::create(&mut context.pool(), &form)
         .await
         .map_err(error::ErrorBadRequest)?;
     }
@@ -166,15 +162,15 @@ async fn full_res(
     url
   };
 
-  image(url, req, client).await
+  image(url, req, &client).await
 }
 
 async fn image(
   url: String,
   req: HttpRequest,
-  client: web::Data<ClientWithMiddleware>,
+  client: &ClientWithMiddleware,
 ) -> Result<HttpResponse, Error> {
-  let mut client_req = adapt_request(&req, &client, url);
+  let mut client_req = adapt_request(&req, client, url);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string());
@@ -220,11 +216,33 @@ async fn delete(
 
   let res = client_req.send().await.map_err(error::ErrorBadRequest)?;
 
-  ImageUpload::delete_by_alias(&mut context.pool(), &file)
+  LocalImage::delete_by_alias(&mut context.pool(), &file)
     .await
     .map_err(error::ErrorBadRequest)?;
 
   Ok(HttpResponse::build(res.status()).body(BodyStream::new(res.bytes_stream())))
+}
+
+#[derive(Deserialize)]
+pub struct ImageProxyParams {
+  url: String,
+}
+
+pub async fn image_proxy(
+  Query(params): Query<ImageProxyParams>,
+  context: web::Data<LemmyContext>,
+) -> LemmyResult<HttpResponse> {
+  let url = Url::parse(&decode(&params.url)?)?;
+
+  // Check that url corresponds to a federated image so that this can't be abused as a proxy
+  // for arbitrary purposes.
+  RemoteImage::validate(&mut context.pool(), url.clone().into()).await?;
+
+  let pictrs_config = context.settings().pictrs_config()?;
+  let url = format!("{}image/original?proxy={}", pictrs_config.url, &params.url);
+  let image_response = context.client().get(url).send().await?;
+
+  Ok(HttpResponse::Ok().streaming(image_response.bytes_stream()))
 }
 
 fn make_send<S>(mut stream: S) -> impl Stream<Item = S::Item> + Send + Unpin + 'static

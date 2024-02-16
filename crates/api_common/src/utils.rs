@@ -12,6 +12,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityModerator, CommunityUpdateForm},
     community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
+    images::RemoteImage,
     instance::Instance,
     instance_block::InstanceBlock,
     local_site::LocalSite,
@@ -20,6 +21,7 @@ use lemmy_db_schema::{
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
     post::{Post, PostRead},
+    site::Site,
   },
   traits::Crud,
   utils::DbPool,
@@ -34,14 +36,18 @@ use lemmy_utils::{
   email::{send_email, translations::Lang},
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
-  settings::structs::Settings,
-  utils::slurs::build_slur_regex,
+  settings::structs::{PictrsImageMode, Settings},
+  utils::{
+    markdown::markdown_rewrite_image_links,
+    slurs::{build_slur_regex, remove_slurs},
+  },
 };
 use regex::Regex;
 use rosetta_i18n::{Language, LanguageId};
 use std::collections::HashSet;
 use tracing::warn;
 use url::{ParseError, Url};
+use urlencoding::encode;
 
 pub static AUTH_COOKIE_NAME: &str = "jwt";
 
@@ -219,8 +225,17 @@ pub async fn check_community_mod_action(
   Ok(())
 }
 
+/// Don't allow creating reports for removed / deleted posts
 pub fn check_post_deleted_or_removed(post: &Post) -> Result<(), LemmyError> {
   if post.deleted || post.removed {
+    Err(LemmyErrorType::Deleted)?
+  } else {
+    Ok(())
+  }
+}
+
+pub fn check_comment_deleted_or_removed(comment: &Comment) -> Result<(), LemmyError> {
+  if comment.deleted || comment.removed {
     Err(LemmyErrorType::Deleted)?
   } else {
     Ok(())
@@ -566,6 +581,18 @@ pub fn check_private_instance_and_federation_enabled(
   }
 }
 
+/// Read the site for an actor_id.
+///
+/// Used for GetCommunityResponse and GetPersonDetails
+pub async fn read_site_for_actor(
+  actor_id: DbUrl,
+  context: &LemmyContext,
+) -> Result<Option<Site>, LemmyError> {
+  let site_id = Site::instance_actor_id_from_url(actor_id.clone().into());
+  let site = Site::read_from_apub_id(&mut context.pool(), &site_id.into()).await?;
+  Ok(site)
+}
+
 pub async fn purge_image_posts_for_person(
   banned_person_id: PersonId,
   context: &LemmyContext,
@@ -835,14 +862,115 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
   }
 }
 
+pub async fn process_markdown(
+  text: &str,
+  slur_regex: &Option<Regex>,
+  context: &LemmyContext,
+) -> LemmyResult<String> {
+  let text = remove_slurs(text, slur_regex);
+  if context.settings().pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
+    let (text, links) = markdown_rewrite_image_links(text);
+    RemoteImage::create(&mut context.pool(), links).await?;
+    Ok(text)
+  } else {
+    Ok(text)
+  }
+}
+
+pub async fn process_markdown_opt(
+  text: &Option<String>,
+  slur_regex: &Option<Regex>,
+  context: &LemmyContext,
+) -> LemmyResult<Option<String>> {
+  match text {
+    Some(t) => process_markdown(t, slur_regex, context).await.map(Some),
+    None => Ok(None),
+  }
+}
+
+/// A wrapper for `proxy_image_link` for use in tests.
+///
+/// The parameter `force_image_proxy` is the config value of `pictrs.image_proxy`. Its necessary to pass
+/// as separate parameter so it can be changed in tests.
+async fn proxy_image_link_internal(
+  link: Url,
+  image_mode: PictrsImageMode,
+  context: &LemmyContext,
+) -> LemmyResult<DbUrl> {
+  // Dont rewrite links pointing to local domain.
+  if link.domain() == Some(&context.settings().hostname) {
+    Ok(link.into())
+  } else if image_mode == PictrsImageMode::ProxyAllImages {
+    let proxied = format!(
+      "{}/api/v3/image_proxy?url={}",
+      context.settings().get_protocol_and_hostname(),
+      encode(link.as_str())
+    );
+    RemoteImage::create(&mut context.pool(), vec![link]).await?;
+    Ok(Url::parse(&proxied)?.into())
+  } else {
+    Ok(link.into())
+  }
+}
+
+/// Rewrite a link to go through `/api/v3/image_proxy` endpoint. This is only for remote urls and
+/// if image_proxy setting is enabled.
+pub(crate) async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
+  proxy_image_link_internal(
+    link,
+    context.settings().pictrs_config()?.image_mode(),
+    context,
+  )
+  .await
+}
+
+pub async fn proxy_image_link_opt_api(
+  link: &Option<String>,
+  context: &LemmyContext,
+) -> LemmyResult<Option<Option<DbUrl>>> {
+  proxy_image_link_api(link, context).await.map(Some)
+}
+
+pub async fn proxy_image_link_api(
+  link: &Option<String>,
+  context: &LemmyContext,
+) -> LemmyResult<Option<DbUrl>> {
+  let link: Option<DbUrl> = match link.as_ref().map(String::as_str) {
+    // An empty string is an erase
+    Some("") => None,
+    Some(str_url) => Url::parse(str_url)
+      .map(|u| Some(u.into()))
+      .with_lemmy_type(LemmyErrorType::InvalidUrl)?,
+    None => None,
+  };
+  if let Some(l) = link {
+    proxy_image_link(l.into(), context).await.map(Some)
+  } else {
+    Ok(link)
+  }
+}
+
+pub async fn proxy_image_link_opt_apub(
+  link: Option<Url>,
+  context: &LemmyContext,
+) -> LemmyResult<Option<DbUrl>> {
+  if let Some(l) = link {
+    proxy_image_link(l, context).await.map(Some)
+  } else {
+    Ok(None)
+  }
+}
+
 #[cfg(test)]
 mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
+  use super::*;
   use crate::utils::{honeypot_check, limit_expire_time, password_length_check};
   use chrono::{Days, Utc};
   use pretty_assertions::assert_eq;
+  use serial_test::serial;
 
   #[test]
   #[rustfmt::skip]
@@ -880,5 +1008,63 @@ mod tests {
       limit_expire_time(Utc::now() + Days::new(365 * 11)).unwrap(),
       None
     );
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_proxy_image_link() {
+    let context = LemmyContext::init_test_context().await;
+
+    // image from local domain is unchanged
+    let local_url = Url::parse("http://lemmy-alpha/image.png").unwrap();
+    let proxied =
+      proxy_image_link_internal(local_url.clone(), PictrsImageMode::ProxyAllImages, &context)
+        .await
+        .unwrap();
+    assert_eq!(&local_url, proxied.inner());
+
+    // image from remote domain is proxied
+    let remote_image = Url::parse("http://lemmy-beta/image.png").unwrap();
+    let proxied = proxy_image_link_internal(
+      remote_image.clone(),
+      PictrsImageMode::ProxyAllImages,
+      &context,
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+      "https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
+      proxied.as_str()
+    );
+    assert!(
+      RemoteImage::validate(&mut context.pool(), remote_image.into())
+        .await
+        .is_ok()
+    );
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_diesel_option_overwrite_to_url() {
+    let context = LemmyContext::init_test_context().await;
+
+    assert!(matches!(
+      proxy_image_link_api(&None, &context).await,
+      Ok(None)
+    ));
+    assert!(matches!(
+      proxy_image_link_opt_api(&Some(String::new()), &context).await,
+      Ok(Some(None))
+    ));
+    assert!(
+      proxy_image_link_opt_api(&Some("invalid_url".to_string()), &context)
+        .await
+        .is_err()
+    );
+    let example_url = "https://lemmy-alpha/image.png";
+    assert!(matches!(
+      proxy_image_link_opt_api(&Some(example_url.to_string()), &context).await,
+      Ok(Some(Some(url))) if url == Url::parse(example_url).unwrap().into()
+    ));
   }
 }
