@@ -369,8 +369,7 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 fn run_migrations(db_url: &str) -> Result<(), LemmyError> {
   // Needs to be a sync connection
-  let mut conn =
-    PgConnection::establish(db_url).with_context(|| format!("Error connecting to database"))?;
+  let mut conn = PgConnection::establish(db_url).with_context(|| "Error connecting to database")?;
 
   info!("Running Database migrations (This may take a long time)...");
   conn
