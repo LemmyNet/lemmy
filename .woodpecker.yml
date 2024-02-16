@@ -169,8 +169,8 @@ steps:
       PGHOST: database
       PGDATABASE: lemmy
     commands:
-      - source $CARGO_HOME/env
       - cargo install diesel_cli
+      - export PATH="$CARGO_HOME/bin:$PATH"
       - diesel migration run
       # Make sure that the migration works both with and without the `r` schema
       - diesel migration redo
