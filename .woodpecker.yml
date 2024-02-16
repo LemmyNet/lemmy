@@ -154,7 +154,8 @@ steps:
     commands:
       - cargo build
       - mv target/debug/lemmy_server target/lemmy_server
-      - cp --recursive /usr/lib/x86_64-linux-gnu lemmy_lib
+      - mkdir lemmy_lib
+      - cp /usr/lib/x86_64-linux-gnu/libssl.so.3 lemmy_lib
     when: *slow_check_paths
 
   check_diesel_migration_revertable:
