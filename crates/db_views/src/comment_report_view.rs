@@ -76,7 +76,7 @@ fn queries<'a>() -> Queries<
         comment_like::score.nullable(),
         aliases::person2.fields(person::all_columns).nullable(),
       ))
-  );
+  };
 
   let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (CommentReportId, PersonId)| async move {
     all_joins(
