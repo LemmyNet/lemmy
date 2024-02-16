@@ -3,7 +3,7 @@ set -e
 
 # Dumps database schema, not including things that are added outside of migrations
 
-source CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
 cd $CWD/../
 
