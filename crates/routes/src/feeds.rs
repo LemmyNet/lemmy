@@ -163,7 +163,7 @@ async fn get_feed_data(
     page: (Some(page)),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(&site_view.site, &mut context.pool())
   .await?;
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
@@ -270,7 +270,7 @@ async fn get_feed_user(
     page: (Some(*page)),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(&site_view.site, &mut context.pool())
   .await?;
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
@@ -308,7 +308,7 @@ async fn get_feed_community(
     page: (Some(*page)),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(&site_view.site, &mut context.pool())
   .await?;
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
@@ -349,7 +349,7 @@ async fn get_feed_front(
     page: (Some(*page)),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(&site_view.site, &mut context.pool())
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();

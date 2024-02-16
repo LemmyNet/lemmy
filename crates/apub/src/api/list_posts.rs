@@ -1,5 +1,5 @@
 use crate::{
-  api::listing_type_with_default,
+  api::{listing_type_with_default, sort_type_with_default},
   fetcher::resolve_actor_identifier,
   objects::community::ApubCommunity,
 };
@@ -10,10 +10,10 @@ use lemmy_api_common::{
   post::{GetPosts, GetPostsResponse},
   utils::check_private_instance,
 };
-use lemmy_db_schema::source::{community::Community, local_site::LocalSite};
+use lemmy_db_schema::source::community::Community;
 use lemmy_db_views::{
   post_view::PostQuery,
-  structs::{LocalUserView, PaginationCursor},
+  structs::{LocalUserView, PaginationCursor, SiteView},
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
@@ -23,11 +23,9 @@ pub async fn list_posts(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> Result<Json<GetPostsResponse>, LemmyError> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?;
 
-  check_private_instance(&local_user_view, &local_site)?;
-
-  let sort = data.sort;
+  check_private_instance(&local_user_view, &local_site.local_site)?;
 
   let page = data.page;
   let limit = data.limit;
@@ -45,11 +43,20 @@ pub async fn list_posts(
     return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
   }
 
+  let local_user_ref = local_user_view.as_ref().map(|u| &u.local_user);
   let listing_type = Some(listing_type_with_default(
     data.type_,
-    &local_site,
+    local_user_ref,
+    &local_site.local_site,
     community_id,
-  )?);
+  ));
+
+  let sort = Some(sort_type_with_default(
+    data.sort,
+    local_user_ref,
+    &local_site.local_site,
+  ));
+
   // parse pagination token
   let page_after = if let Some(pa) = &data.page_cursor {
     Some(pa.read(&mut context.pool()).await?)
@@ -70,7 +77,7 @@ pub async fn list_posts(
     limit,
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(&local_site.site, &mut context.pool())
   .await
   .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
 

@@ -37,6 +37,9 @@ pub struct Site {
   pub private_key: Option<String>,
   pub public_key: String,
   pub instance_id: InstanceId,
+  /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
+  /// when the site is first opened by a user.
+  pub content_warning: Option<String>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -58,6 +61,7 @@ pub struct SiteInsertForm {
   pub public_key: Option<String>,
   #[builder(!default)]
   pub instance_id: InstanceId,
+  pub content_warning: Option<String>,
 }
 
 #[derive(Clone, Default)]
@@ -76,4 +80,5 @@ pub struct SiteUpdateForm {
   pub inbox_url: Option<DbUrl>,
   pub private_key: Option<Option<String>>,
   pub public_key: Option<String>,
+  pub content_warning: Option<Option<String>>,
 }

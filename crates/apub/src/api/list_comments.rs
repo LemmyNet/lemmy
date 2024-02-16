@@ -48,9 +48,10 @@ pub async fn list_comments(
 
   let listing_type = Some(listing_type_with_default(
     data.type_,
+    local_user_view.as_ref().map(|u| &u.local_user),
     &local_site,
     community_id,
-  )?);
+  ));
 
   // If a parent_id is given, fetch the comment to get the path
   let parent_path = if let Some(parent_id) = parent_id {

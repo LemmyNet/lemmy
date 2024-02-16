@@ -142,6 +142,7 @@ pub async fn register(
     .show_nsfw(Some(data.show_nsfw))
     .accepted_application(accepted_application)
     .default_listing_type(Some(local_site.default_post_listing_type))
+    .post_listing_mode(Some(local_site.default_post_listing_mode))
     .interface_language(language_tag)
     // If its the initial site setup, they are an admin
     .admin(Some(!local_site.site_setup))

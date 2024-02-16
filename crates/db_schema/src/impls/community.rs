@@ -22,9 +22,10 @@ use crate::{
 use diesel::{
   deserialize,
   dsl,
-  dsl::insert_into,
+  dsl::{exists, insert_into},
   pg::Pg,
   result::Error,
+  select,
   sql_types,
   ExpressionMethods,
   NullableExpressionMethods,
@@ -235,7 +236,6 @@ impl CommunityFollower {
     remote_community_id: CommunityId,
   ) -> Result<bool, Error> {
     use crate::schema::community_follower::dsl::{community_follower, community_id};
-    use diesel::dsl::{exists, select};
     let conn = &mut get_conn(pool).await?;
     select(exists(
       community_follower.filter(community_id.eq(remote_community_id)),
