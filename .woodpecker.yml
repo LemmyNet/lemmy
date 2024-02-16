@@ -170,7 +170,7 @@ steps:
       PGHOST: database
       PGDATABASE: lemmy
     commands:
-      - echo "${LD_LIBRARY_PATH-none}"
+      - echo $LD_LIBRARY_PATH
       - diesel migration run
       # Make sure that the migration works both with and without the `r` schema
       - diesel migration redo
