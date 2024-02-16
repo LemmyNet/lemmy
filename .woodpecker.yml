@@ -169,6 +169,7 @@ steps:
       PGHOST: database
       PGDATABASE: lemmy
     commands:
+      - apt-get install openssl
       - diesel migration run
       # Make sure that the migration works both with and without the `r` schema
       - diesel migration redo
