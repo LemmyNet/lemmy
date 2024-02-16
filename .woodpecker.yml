@@ -154,7 +154,6 @@ steps:
     commands:
       - cargo build
       - mv target/debug/lemmy_server target/lemmy_server
-      - mkdir lib
       - cp --recursive /usr/lib/x86_64-linux-gnu lib
     when: *slow_check_paths
 
