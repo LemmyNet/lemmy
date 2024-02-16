@@ -833,12 +833,6 @@ CREATE TRIGGER comment_aggregates_score
     FOR EACH ROW
     EXECUTE FUNCTION comment_aggregates_score ();
 
-CREATE TRIGGER comment_removed_resolve_reports
-    AFTER INSERT ON mod_remove_comment
-    FOR EACH ROW
-    WHEN (new.removed)
-    EXECUTE FUNCTION comment_removed_resolve_reports ();
-
 CREATE TRIGGER community_aggregates_comment_count
     AFTER INSERT OR DELETE OR UPDATE OF removed,
     deleted ON comment
@@ -930,12 +924,6 @@ CREATE TRIGGER post_aggregates_score
     AFTER INSERT OR DELETE ON post_like
     FOR EACH ROW
     EXECUTE FUNCTION post_aggregates_score ();
-
-CREATE TRIGGER post_removed_resolve_reports
-    AFTER INSERT ON mod_remove_post
-    FOR EACH ROW
-    WHEN (new.removed)
-    EXECUTE FUNCTION post_removed_resolve_reports ();
 
 CREATE TRIGGER site_aggregates_comment_delete
     AFTER DELETE OR UPDATE OF removed,
