@@ -1,7 +1,7 @@
 use crate::{
   diesel::Connection,
   diesel_migrations::MigrationHarness,
-  newtypes::DbUrl,
+  newtypes::{DbUrl, PersonId},
   CommentSortType,
   SortType,
 };
@@ -10,17 +10,7 @@ use anyhow::Context;
 use chrono::{DateTime, Utc};
 use deadpool::Runtime;
 use diesel::{
-  backend::Backend,
-  deserialize::FromSql,
-  helper_types::AsExprOf,
-  pg::Pg,
-  query_builder::{Query, QueryFragment},
-  query_dsl::methods::LimitDsl,
-  result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
-  serialize::{Output, ToSql},
-  sql_types::{self, Text, Timestamptz},
-  IntoSql,
-  PgConnection,
+  backend::Backend, deserialize::FromSql, dsl, helper_types::AsExprOf, pg::Pg, query_builder::{Query, QueryFragment}, query_dsl::methods::LimitDsl, result::{ConnectionError, ConnectionResult, Error::{self as DieselError, QueryBuilderError}}, serialize::{Output, ToSql}, sql_types::{self, Text, Timestamptz}, IntoSql, PgConnection, Table
 };
 use diesel_async::{
   pg::AsyncPgConnection,
