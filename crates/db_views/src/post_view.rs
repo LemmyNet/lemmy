@@ -1609,7 +1609,7 @@ mod tests {
     let unauthenticated_query = PostQuery {
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_eq!(0, unauthenticated_query.len());
 
@@ -1617,7 +1617,7 @@ mod tests {
       local_user: Some(&data.local_user_view),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_eq!(2, authenticated_query.len());
 

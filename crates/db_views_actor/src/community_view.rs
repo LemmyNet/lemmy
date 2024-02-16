@@ -301,7 +301,7 @@ mod tests {
     let url = Url::parse("http://example.com").unwrap();
     let site = Site {
       id: Default::default(),
-      name: "".to_string(),
+      name: String::new(),
       sidebar: None,
       published: Default::default(),
       updated: None,
@@ -312,7 +312,7 @@ mod tests {
       last_refreshed_at: Default::default(),
       inbox_url: url.into(),
       private_key: None,
-      public_key: "".to_string(),
+      public_key: String::new(),
       instance_id: Default::default(),
       content_warning: None,
     };
