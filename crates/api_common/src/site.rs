@@ -10,6 +10,7 @@ use lemmy_db_schema::{
   },
   ListingType,
   ModlogActionType,
+  PostListingMode,
   RegistrationMode,
   SearchType,
   SortType,
@@ -187,6 +188,8 @@ pub struct CreateSite {
   pub blocked_instances: Option<Vec<String>>,
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  pub content_warning: Option<String>,
+  pub default_post_listing_mode: Option<PostListingMode>,
 }
 
 #[skip_serializing_none]
@@ -265,6 +268,11 @@ pub struct EditSite {
   pub registration_mode: Option<RegistrationMode>,
   /// Whether to email admins for new reports.
   pub reports_email_admins: Option<bool>,
+  /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
+  /// when the site is first opened by a user.
+  pub content_warning: Option<String>,
+  /// Default value for [LocalUser.post_listing_mode]
+  pub default_post_listing_mode: Option<PostListingMode>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
