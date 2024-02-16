@@ -154,7 +154,6 @@ steps:
     commands:
       - cargo build
       - mv target/debug/lemmy_server target/lemmy_server
-      - find / -name '*libssl*'
     when: *slow_check_paths
 
   check_diesel_migration_revertable:
@@ -170,8 +169,6 @@ steps:
       PGHOST: database
       PGDATABASE: lemmy
     commands:
-      - apt-get install openssl
-      - find / -name '*libssl*'
       - diesel migration run
       # Make sure that the migration works both with and without the `r` schema
       - diesel migration redo
