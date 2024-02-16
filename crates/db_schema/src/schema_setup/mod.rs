@@ -25,8 +25,7 @@ const REPLACEABLE_SCHEMA: &[&str] = &[
 
 pub fn run(db_url: &str) -> Result<(), LemmyError> {
   // Migrations don't support async connection
-  let mut conn =
-    PgConnection::establish(db_url).with_context(|| "Error connecting to database")?;
+  let mut conn = PgConnection::establish(db_url).with_context(|| "Error connecting to database")?;
 
   // Migrations
   info!("Running Database migrations (This may take a long time)...");
