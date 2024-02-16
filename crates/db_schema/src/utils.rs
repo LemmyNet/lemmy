@@ -10,7 +10,25 @@ use anyhow::Context;
 use chrono::{DateTime, Utc};
 use deadpool::Runtime;
 use diesel::{
-  backend::Backend, deserialize::FromSql, dsl, helper_types::AsExprOf, pg::Pg, query_builder::{Query, QueryFragment}, query_dsl::methods::LimitDsl, result::{ConnectionError, ConnectionResult, Error::{self as DieselError, QueryBuilderError}}, serialize::{Output, ToSql}, sql_types::{self, Text, Timestamptz}, IntoSql, PgConnection, Table
+  backend::Backend,
+  deserialize::FromSql,
+  dsl,
+  expression::AsExpression,
+  helper_types::AsExprOf,
+  pg::Pg,
+  query_builder::{Query, QueryFragment},
+  query_dsl::methods::LimitDsl,
+  result::{
+    ConnectionError,
+    ConnectionResult,
+    Error::{self as DieselError, QueryBuilderError},
+  },
+  serialize::{Output, ToSql},
+  sql_types::{self, SqlType, Text, Timestamptz},
+  Expression,
+  IntoSql,
+  PgConnection,
+  Table,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -492,18 +510,29 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
   diesel::dsl::now.into_sql::<Timestamptz>()
 }
 
+// TODO: BindIfSome
 pub fn actions<T, C, K0, K1>(
   actions_table: T,
   person_id: Option<PersonId>,
   target_id: C,
-) -> dsl::On<T, dsl::And<dsl::Eq<dsl::Nullable<K0>, BindIfSome<PersonId>>, dsl::Eq<K1, C>>>
+) -> dsl::On<T, dsl::And<dsl::Eq<dsl::Nullable<K0>, Option<PersonId>>, dsl::Eq<K1, C>>>
 where
   T: Table<PrimaryKey = (K0, K1)>,
+  K0: Default + Expression + Sized,
+  dsl::Nullable<K0>: diesel::ExpressionMethods,
+  <dsl::Nullable<K0> as Expression>::SqlType: SqlType,
+  Option<PersonId>: AsExpression<<dsl::Nullable<K0> as Expression>::SqlType>,
+  K1: Default + diesel::ExpressionMethods,
+  <K1 as Expression>::SqlType: SqlType,
+  C: AsExpression<<K1 as Expression>::SqlType>,
+  dsl::Eq<dsl::Nullable<K0>, Option<PersonId>>:
+    Expression<SqlType = sql_types::Nullable<sql_types::Bool>>,
+  dsl::Eq<K1, C>: Expression<SqlType = sql_types::Bool>,
 {
   actions_table.on(
     K0::default()
       .nullable()
-      .eq(BindIfSome(person_id))
+      .eq(person_id)
       .and(K1::default().eq(target_id)),
   )
 }
