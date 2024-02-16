@@ -20,7 +20,7 @@ use lemmy_db_schema::{
     instance_block,
     local_user,
   },
-  source::{community::CommunityFollower, local_user::LocalUser},
+  source::{community::CommunityFollower, local_user::LocalUser, site::Site},
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommunityVisibility,
   ListingType,
@@ -29,7 +29,7 @@ use lemmy_db_schema::{
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, bool)>,
-  impl ListFn<'a, CommunityView, CommunityQuery<'a>>,
+  impl ListFn<'a, CommunityView, (CommunityQuery<'a>, &'a Site)>,
 > {
   let all_joins = |query: community::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
     // The left join below will return None in this case
@@ -96,7 +96,7 @@ fn queries<'a>() -> Queries<
     query.first::<CommunityView>(&mut conn).await
   };
 
-  let list = move |mut conn: DbConn<'a>, options: CommunityQuery<'a>| async move {
+  let list = move |mut conn: DbConn<'a>, (options, site): (CommunityQuery<'a>, &'a Site)| async move {
     use SortType::*;
 
     let my_person_id = options.local_user.map(|l| l.person_id);
@@ -158,8 +158,10 @@ fn queries<'a>() -> Queries<
       query = query.filter(community_block::person_id.is_null());
       query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
     } else {
-      // No person in request, only show nsfw communities if show_nsfw is passed into request
-      if !options.show_nsfw {
+      // No person in request, only show nsfw communities if show_nsfw is passed into request or if
+      // site has content warning.
+      let has_content_warning = site.content_warning.is_some();
+      if !options.show_nsfw && !has_content_warning {
         query = query.filter(community::nsfw.eq(false));
       }
       // Hide local only communities from unauthenticated users
@@ -233,8 +235,8 @@ pub struct CommunityQuery<'a> {
 }
 
 impl<'a> CommunityQuery<'a> {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommunityView>, Error> {
-    queries().list(pool, self).await
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommunityView>, Error> {
+    queries().list(pool, (self, site)).await
   }
 }
 
@@ -250,17 +252,20 @@ mod tests {
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
+      site::Site,
     },
     traits::Crud,
     utils::{build_db_pool_for_tests, DbPool},
     CommunityVisibility,
   };
   use serial_test::serial;
+  use url::Url;
 
   struct Data {
     inserted_instance: Instance,
     local_user: LocalUser,
     inserted_community: Community,
+    site: Site,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> Data {
@@ -293,10 +298,30 @@ mod tests {
 
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
+    let url = Url::parse("http://example.com").unwrap();
+    let site = Site {
+      id: Default::default(),
+      name: String::new(),
+      sidebar: None,
+      published: Default::default(),
+      updated: None,
+      icon: None,
+      banner: None,
+      description: None,
+      actor_id: url.clone().into(),
+      last_refreshed_at: Default::default(),
+      inbox_url: url.into(),
+      private_key: None,
+      public_key: String::new(),
+      instance_id: Default::default(),
+      content_warning: None,
+    };
+
     Data {
       inserted_instance,
       local_user,
       inserted_community,
+      site,
     }
   }
 
@@ -333,7 +358,7 @@ mod tests {
     let unauthenticated_query = CommunityQuery {
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await
     .unwrap();
     assert_eq!(0, unauthenticated_query.len());
@@ -342,7 +367,7 @@ mod tests {
       local_user: Some(&data.local_user),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await
     .unwrap();
     assert_eq!(1, authenticated_query.len());

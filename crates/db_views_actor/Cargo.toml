@@ -39,6 +39,7 @@ strum_macros = { workspace = true }
 serial_test = { workspace = true }
 tokio = { workspace = true }
 pretty_assertions = { workspace = true }
+url.workspace = true
 
 [package.metadata.cargo-machete]
 ignored = ["strum"]

@@ -39,6 +39,7 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
+  source::site::Site,
   utils::{
     functions::coalesce,
     fuzzy_search,
@@ -61,7 +62,7 @@ use tracing::debug;
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
-  impl ListFn<'a, PostView, PostQuery<'a>>,
+  impl ListFn<'a, PostView, (PostQuery<'a>, &'a Site)>,
 > {
   let is_creator_banned_from_community = exists(
     community_person_ban::table.filter(
@@ -270,7 +271,7 @@ fn queries<'a>() -> Queries<
         .await
     };
 
-  let list = move |mut conn: DbConn<'a>, options: PostQuery<'a>| async move {
+  let list = move |mut conn: DbConn<'a>, (options, site): (PostQuery<'a>, &'a Site)| async move {
     let my_person_id = options.local_user.map(|l| l.person.id);
     let my_local_user_id = options.local_user.map(|l| l.local_user.id);
 
@@ -368,10 +369,12 @@ fn queries<'a>() -> Queries<
       );
     }
 
+    // If there is a content warning, show nsfw content by default.
+    let has_content_warning = site.content_warning.is_some();
     if !options
       .local_user
       .map(|l| l.local_user.show_nsfw)
-      .unwrap_or(false)
+      .unwrap_or(has_content_warning)
     {
       query = query
         .filter(post::nsfw.eq(false))
@@ -571,7 +574,7 @@ impl PaginationCursor {
 #[derive(Clone)]
 pub struct PaginationCursorData(PostAggregates);
 
-#[derive(Default, Clone)]
+#[derive(Clone, Default)]
 pub struct PostQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<SortType>,
@@ -595,6 +598,7 @@ pub struct PostQuery<'a> {
 impl<'a> PostQuery<'a> {
   async fn prefetch_upper_bound_for_page_before(
     &self,
+    site: &Site,
     pool: &mut DbPool<'_>,
   ) -> Result<Option<PostQuery<'a>>, Error> {
     // first get one page for the most popular community to get an upper bound for the the page end for the real query
@@ -645,11 +649,14 @@ impl<'a> PostQuery<'a> {
     let mut v = queries()
       .list(
         pool,
-        PostQuery {
-          community_id: Some(largest_subscribed),
-          community_id_just_for_prefetch: true,
-          ..self.clone()
-        },
+        (
+          PostQuery {
+            community_id: Some(largest_subscribed),
+            community_id_just_for_prefetch: true,
+            ..self.clone()
+          },
+          site,
+        ),
       )
       .await?;
     // take last element of array. if this query returned less than LIMIT elements,
@@ -671,19 +678,22 @@ impl<'a> PostQuery<'a> {
     }
   }
 
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     if self.listing_type == Some(ListingType::Subscribed)
       && self.community_id.is_none()
       && self.local_user.is_some()
       && self.page_before_or_equal.is_none()
     {
-      if let Some(query) = self.prefetch_upper_bound_for_page_before(pool).await? {
-        queries().list(pool, query).await
+      if let Some(query) = self
+        .prefetch_upper_bound_for_page_before(site, pool)
+        .await?
+      {
+        queries().list(pool, (query, site)).await
       } else {
         Ok(vec![])
       }
     } else {
-      queries().list(pool, self).await
+      queries().list(pool, (self, site)).await
     }
   }
 }
@@ -717,6 +727,7 @@ mod tests {
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
+      site::Site,
     },
     traits::{Blockable, Crud, Joinable, Likeable},
     utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
@@ -728,6 +739,7 @@ mod tests {
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::{collections::HashSet, time::Duration};
+  use url::Url;
 
   const POST_BY_BLOCKED_PERSON: &str = "post by blocked person";
   const POST_BY_BOT: &str = "post by bot";
@@ -745,6 +757,7 @@ mod tests {
     inserted_community: Community,
     inserted_post: Post,
     inserted_bot_post: Post,
+    site: Site,
   }
 
   impl Data {
@@ -842,6 +855,24 @@ mod tests {
       counts: Default::default(),
     };
 
+    let site = Site {
+      id: Default::default(),
+      name: String::new(),
+      sidebar: None,
+      published: Default::default(),
+      updated: None,
+      icon: None,
+      banner: None,
+      description: None,
+      actor_id: Url::parse("http://example.com")?.into(),
+      last_refreshed_at: Default::default(),
+      inbox_url: Url::parse("http://example.com")?.into(),
+      private_key: None,
+      public_key: String::new(),
+      instance_id: Default::default(),
+      content_warning: None,
+    };
+
     Ok(Data {
       inserted_instance,
       local_user_view,
@@ -850,6 +881,7 @@ mod tests {
       inserted_community,
       inserted_post,
       inserted_bot_post,
+      site,
     })
   }
 
@@ -872,7 +904,7 @@ mod tests {
       community_id: Some(data.inserted_community.id),
       ..data.default_post_query()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     let post_listing_single_with_person = PostView::read(
@@ -907,7 +939,7 @@ mod tests {
       community_id: Some(data.inserted_community.id),
       ..data.default_post_query()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     // should include bot post which has "undetermined" language
     assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_with_bots));
@@ -927,7 +959,7 @@ mod tests {
       local_user: None,
       ..data.default_post_query()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     let read_post_listing_single_no_person =
@@ -970,7 +1002,7 @@ mod tests {
       community_id: Some(data.inserted_community.id),
       ..data.default_post_query()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     // Should be 0 posts after the community block
     assert_eq!(read_post_listings_with_person_after_block, vec![]);
@@ -1028,7 +1060,7 @@ mod tests {
       community_id: Some(data.inserted_community.id),
       ..data.default_post_query()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_eq!(vec![expected_post_with_upvote], read_post_listing);
 
@@ -1037,7 +1069,7 @@ mod tests {
       liked_only: true,
       ..data.default_post_query()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_eq!(read_post_listing, read_liked_post_listing);
 
@@ -1046,7 +1078,7 @@ mod tests {
       disliked_only: true,
       ..data.default_post_query()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_eq!(read_disliked_post_listing, vec![]);
 
@@ -1076,7 +1108,7 @@ mod tests {
       community_id: Some(data.inserted_community.id),
       ..data.default_post_query()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?
     .into_iter()
     .map(|p| (p.creator.name, p.creator_is_moderator, p.creator_is_admin))
@@ -1118,14 +1150,14 @@ mod tests {
 
     Post::create(pool, &post_spanish).await?;
 
-    let post_listings_all = data.default_post_query().list(pool).await?;
+    let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
 
     // no language filters specified, all posts should be returned
     assert_eq!(vec![EL_POSTO, POST_BY_BOT, POST], names(&post_listings_all));
 
     LocalUserLanguage::update(pool, vec![french_id], data.local_user_view.local_user.id).await?;
 
-    let post_listing_french = data.default_post_query().list(pool).await?;
+    let post_listing_french = data.default_post_query().list(&data.site, pool).await?;
 
     // only one post in french and one undetermined should be returned
     assert_eq!(vec![POST_BY_BOT, POST], names(&post_listing_french));
@@ -1142,7 +1174,7 @@ mod tests {
     .await?;
     let post_listings_french_und = data
       .default_post_query()
-      .list(pool)
+      .list(&data.site, pool)
       .await?
       .into_iter()
       .map(|p| (p.post.name, p.post.language_id))
@@ -1177,7 +1209,7 @@ mod tests {
     .await?;
 
     // Make sure you don't see the removed post in the results
-    let post_listings_no_admin = data.default_post_query().list(pool).await?;
+    let post_listings_no_admin = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(vec![POST], names(&post_listings_no_admin));
 
     // Removed bot post is shown to admins on its profile page
@@ -1186,7 +1218,7 @@ mod tests {
       creator_id: Some(data.inserted_bot.id),
       ..data.default_post_query()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_eq!(vec![POST_BY_BOT], names(&post_listings_is_admin));
 
@@ -1221,7 +1253,7 @@ mod tests {
         local_user,
         ..data.default_post_query()
       }
-      .list(pool)
+      .list(&data.site, pool)
       .await?
       .iter()
       .any(|p| p.post.id == data.inserted_post.id);
@@ -1261,7 +1293,7 @@ mod tests {
     let post_from_blocked_instance = Post::create(pool, &post_form).await?;
 
     // no instance block, should return all posts
-    let post_listings_all = data.default_post_query().list(pool).await?;
+    let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(
       vec![POST_FROM_BLOCKED_INSTANCE, POST_BY_BOT, POST],
       names(&post_listings_all)
@@ -1275,7 +1307,7 @@ mod tests {
     InstanceBlock::block(pool, &block_form).await?;
 
     // now posts from communities on that instance should be hidden
-    let post_listings_blocked = data.default_post_query().list(pool).await?;
+    let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_blocked));
     assert!(post_listings_blocked
       .iter()
@@ -1283,7 +1315,7 @@ mod tests {
 
     // after unblocking it should return all posts again
     InstanceBlock::unblock(pool, &block_form).await?;
-    let post_listings_blocked = data.default_post_query().list(pool).await?;
+    let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(
       vec![POST_FROM_BLOCKED_INSTANCE, POST_BY_BOT, POST],
       names(&post_listings_blocked)
@@ -1351,7 +1383,7 @@ mod tests {
         page_after,
         ..options.clone()
       }
-      .list(pool)
+      .list(&data.site, pool)
       .await?;
 
       listed_post_ids.extend(post_listings.iter().map(|p| p.post.id));
@@ -1372,7 +1404,7 @@ mod tests {
         page_back: true,
         ..options.clone()
       }
-      .list(pool)
+      .list(&data.site, pool)
       .await?;
 
       let listed_post_ids = post_listings.iter().map(|p| p.post.id).collect::<Vec<_>>();
@@ -1425,7 +1457,7 @@ mod tests {
     .await?;
 
     // Make sure you don't see the read post in the results
-    let post_listings_hide_read = data.default_post_query().list(pool).await?;
+    let post_listings_hide_read = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(vec![POST], names(&post_listings_hide_read));
 
     cleanup(data, pool).await
@@ -1577,7 +1609,7 @@ mod tests {
     let unauthenticated_query = PostQuery {
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_eq!(0, unauthenticated_query.len());
 
@@ -1585,7 +1617,7 @@ mod tests {
       local_user: Some(&data.local_user_view),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_eq!(2, authenticated_query.len());
 

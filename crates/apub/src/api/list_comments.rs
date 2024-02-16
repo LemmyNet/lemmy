@@ -48,8 +48,8 @@ pub async fn list_comments(
 
   let listing_type = Some(listing_type_with_default(
     data.type_,
-    &local_site,
     local_user_view.as_ref().map(|u| &u.local_user),
+    &local_site,
     community_id,
   ));
 

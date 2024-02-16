@@ -71,6 +71,7 @@ pub async fn update_site(
     description: diesel_option_overwrite(data.description.clone()),
     icon,
     banner,
+    content_warning: diesel_option_overwrite(data.content_warning.clone()),
     updated: Some(Some(naive_now())),
     ..Default::default()
   };
@@ -102,6 +103,7 @@ pub async fn update_site(
     captcha_enabled: data.captcha_enabled,
     captcha_difficulty: data.captcha_difficulty.clone(),
     reports_email_admins: data.reports_email_admins,
+    default_post_listing_mode: data.default_post_listing_mode,
     ..Default::default()
   };
 
@@ -579,6 +581,8 @@ mod tests {
       taglines: None,
       registration_mode: site_registration_mode,
       reports_email_admins: None,
+      content_warning: None,
+      default_post_listing_mode: None,
     }
   }
 }

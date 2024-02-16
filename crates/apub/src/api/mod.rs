@@ -16,8 +16,8 @@ pub mod user_settings_backup;
 /// Returns default listing type, depending if the query is for frontpage or community.
 fn listing_type_with_default(
   type_: Option<ListingType>,
-  local_site: &LocalSite,
   local_user: Option<&LocalUser>,
+  local_site: &LocalSite,
   community_id: Option<CommunityId>,
 ) -> ListingType {
   // On frontpage use listing type from param or admin configured default
@@ -37,8 +37,8 @@ fn listing_type_with_default(
 /// Order is type, local user default, then site default.
 fn sort_type_with_default(
   type_: Option<SortType>,
-  local_site: &LocalSite,
   local_user: Option<&LocalUser>,
+  local_site: &LocalSite,
 ) -> SortType {
   type_.unwrap_or(
     local_user

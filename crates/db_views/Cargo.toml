@@ -45,3 +45,4 @@ serial_test = { workspace = true }
 tokio = { workspace = true }
 chrono = { workspace = true }
 pretty_assertions = { workspace = true }
+url = { workspace = true }
