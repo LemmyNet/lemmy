@@ -1,4 +1,5 @@
 use crate::structs::{CommentReportView, LocalUserView};
+
 use diesel::{
   dsl::now,
   pg::Pg,
