@@ -236,7 +236,11 @@ impl<T: LimitDsl> LimitDsl for Commented<T> {
 }
 
 pub fn fuzzy_search(q: &str) -> String {
-  let replaced = q.replace('%', "\\%").replace('_', "\\_").replace(' ', "%");
+  let replaced = q
+    .replace('\\', "\\\\")
+    .replace('%', "\\%")
+    .replace('_', "\\_")
+    .replace(' ', "%");
   format!("%{replaced}%")
 }
 
