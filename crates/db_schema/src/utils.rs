@@ -5,7 +5,6 @@ use crate::{
   CommentSortType,
   SortType,
 };
-
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use deadpool::Runtime;
