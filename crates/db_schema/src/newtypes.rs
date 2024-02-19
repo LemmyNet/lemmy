@@ -6,6 +6,14 @@ use activitypub_federation::{
   traits::Object,
 };
 #[cfg(feature = "full")]
+use diesel::{
+  backend::Backend,
+  deserialize::FromSql,
+  pg::Pg,
+  serialize::{Output, ToSql},
+  sql_types::Text,
+};
+#[cfg(feature = "full")]
 use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -236,6 +244,35 @@ impl TS for DbUrl {
   }
   fn transparent() -> bool {
     true
+  }
+}
+
+#[cfg(feature = "full")]
+impl ToSql<Text, Pg> for DbUrl {
+  fn to_sql(&self, out: &mut Output<Pg>) -> diesel::serialize::Result {
+    <std::string::String as ToSql<Text, Pg>>::to_sql(&self.0.to_string(), &mut out.reborrow())
+  }
+}
+
+#[cfg(feature = "full")]
+impl<DB: Backend> FromSql<Text, DB> for DbUrl
+where
+  String: FromSql<Text, DB>,
+{
+  fn from_sql(value: DB::RawValue<'_>) -> diesel::deserialize::Result<Self> {
+    let str = String::from_sql(value)?;
+    Ok(DbUrl(Box::new(Url::parse(&str)?)))
+  }
+}
+
+#[cfg(feature = "full")]
+impl<Kind> From<ObjectId<Kind>> for DbUrl
+where
+  Kind: Object + Send + 'static,
+  for<'de2> <Kind as Object>::Kind: serde::Deserialize<'de2>,
+{
+  fn from(id: ObjectId<Kind>) -> Self {
+    DbUrl(Box::new(id.into()))
   }
 }
 
