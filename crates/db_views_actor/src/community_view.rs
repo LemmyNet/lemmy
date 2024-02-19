@@ -17,6 +17,7 @@ use lemmy_db_schema::{
     community_aggregates,
     community_block,
     community_follower,
+    community_person_ban,
     instance_block,
     local_user,
   },
@@ -58,6 +59,13 @@ fn queries<'a>() -> Queries<
             .and(community_block::person_id.eq(person_id_join)),
         ),
       )
+      .left_join(
+        community_person_ban::table.on(
+          community::id
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(person_id_join)),
+        ),
+      )
   };
 
   let selection = (
@@ -65,6 +73,7 @@ fn queries<'a>() -> Queries<
     CommunityFollower::select_subscribed_type(),
     community_block::community_id.nullable().is_not_null(),
     community_aggregates::all_columns,
+    community_person_ban::person_id.nullable().is_not_null(),
   );
 
   let not_removed_or_deleted = community::removed
