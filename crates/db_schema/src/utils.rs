@@ -14,13 +14,13 @@ use diesel::{
   deserialize::FromSql,
   helper_types::AsExprOf,
   pg::Pg,
-  query_builder::{Query, QueryFragment},
+  query_builder::{AsQuery, Query, QueryFragment, QueryId},
   query_dsl::methods::LimitDsl,
-  result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
+  result::{ConnectionError, ConnectionResult, Error::{self as DieselError, QueryBuilderError}},
   serialize::{Output, ToSql},
   sql_types::{self, Text, Timestamptz},
   IntoSql,
-  PgConnection,
+  PgConnection, Queryable,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -505,6 +505,10 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
   // https://github.com/diesel-rs/diesel/issues/1514
   diesel::dsl::now.into_sql::<Timestamptz>()
 }
+
+pub trait RunnableQuery<U: Queryable<Self::SqlType, Pg> + Send>: AsQuery + Send where Self::Query: QueryFragment<Pg> + QueryId + Send {}
+
+impl<T: AsQuery + Send, U: Queryable<T::SqlType, Pg> + Send> RunnableQuery<U> for T where T::Query: QueryFragment<Pg> + QueryId + Send {}
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
 

@@ -52,7 +52,7 @@ use lemmy_db_schema::{
     ListFn,
     Queries,
     ReadFn,
-    ReverseTimestampKey,
+    ReverseTimestampKey,RunnableQuery
   },
   CommunityVisibility,
   ListingType,
@@ -60,10 +60,10 @@ use lemmy_db_schema::{
 };
 use tracing::debug;
 
-fn queries<'a>() -> Queries<
-  impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
-  impl ListFn<'a, PostView, (PostQuery<'a>, &'a Site)>,
-> {
+fn queries<'a, A: RunnableQuery<PostView>, B: RunnableQuery<PostView>>() -> (
+  impl Fn((PostId, Option<PersonId>, bool)) -> Result<A, Error>,
+  impl Fn((PostQuery<'a>, &'a Site)) -> Result<B, Error>,
+) {
   let is_creator_banned_from_community = exists(
     community_person_ban::table.filter(
       post_aggregates::community_id
@@ -221,8 +221,7 @@ fn queries<'a>() -> Queries<
   };
 
   let read =
-    move |mut conn: DbConn<'a>,
-          (post_id, my_person_id, is_mod_or_admin): (PostId, Option<PersonId>, bool)| async move {
+    move |(post_id, my_person_id, is_mod_or_admin): (PostId, Option<PersonId>, bool)| {
       // The left join below will return None in this case
       let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
@@ -265,13 +264,11 @@ fn queries<'a>() -> Queries<
         query = query.filter(community::visibility.eq(CommunityVisibility::Public));
       }
 
-      Commented::new(query)
-        .text("PostView::read")
-        .first::<PostView>(&mut conn)
-        .await
+      Ok(Commented::new(query)
+        .text("PostView::read"))
     };
 
-  let list = move |mut conn: DbConn<'a>, (options, site): (PostQuery<'a>, &'a Site)| async move {
+  let list = move |(options, site): (PostQuery<'a>, &'a Site)| {
     let my_person_id = options.local_user.map(|l| l.person.id);
     let my_local_user_id = options.local_user.map(|l| l.local_user.id);
 
@@ -518,31 +515,25 @@ fn queries<'a>() -> Queries<
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
-    Commented::new(query)
+    Ok(Commented::new(query)
       .text("PostQuery::list")
       .text_if(
         "getting upper bound for next query",
         options.community_id_just_for_prefetch,
-      )
-      .load::<PostView>(&mut conn)
-      .await
+      ))
   };
 
-  Queries::new(read, list)
+  (read, list)
 }
 
 impl PostView {
-  pub async fn read(
-    pool: &mut DbPool<'_>,
+  pub fn read(
     post_id: PostId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: bool,
-  ) -> Result<Self, Error> {
-    let res = queries()
-      .read(pool, (post_id, my_person_id, is_mod_or_admin))
-      .await?;
-
-    Ok(res)
+  ) -> impl RunnableQuery<Self> {
+    (queries()
+      .0)((post_id, my_person_id, is_mod_or_admin))
   }
 }
 
@@ -648,7 +639,6 @@ impl<'a> PostQuery<'a> {
 
     let mut v = queries()
       .list(
-        pool,
         (
           PostQuery {
             community_id: Some(largest_subscribed),
@@ -658,6 +648,7 @@ impl<'a> PostQuery<'a> {
           site,
         ),
       )
+      .load::<PostView>(conn)
       .await?;
     // take last element of array. if this query returned less than LIMIT elements,
     // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
@@ -678,7 +669,7 @@ impl<'a> PostQuery<'a> {
     }
   }
 
-  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<impl RunnableQuery<PostView>, Error> {
     if self.listing_type == Some(ListingType::Subscribed)
       && self.community_id.is_none()
       && self.local_user.is_some()
@@ -688,12 +679,12 @@ impl<'a> PostQuery<'a> {
         .prefetch_upper_bound_for_page_before(site, pool)
         .await?
       {
-        queries().list(pool, (query, site)).await
+        Ok(queries().list((query, site)))
       } else {
         Ok(vec![])
       }
     } else {
-      queries().list(pool, (self, site)).await
+      Ok(queries().list((self, site)))
     }
   }
 }
