@@ -1,6 +1,6 @@
 use crate::{
-  newtypes::{CommentId, DbUrl, PersonId},
-  schema::comment::dsl::{ap_id, comment, content, creator_id, deleted, path, removed, updated},
+  newtypes::{CommentId, CommunityId, DbUrl, PersonId},
+  schema::{comment, community, post},
   source::comment::{
     Comment,
     CommentInsertForm,
@@ -17,6 +17,7 @@ use diesel::{
   dsl::{insert_into, sql_query},
   result::Error,
   ExpressionMethods,
+  JoinOnDsl,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -30,11 +31,11 @@ impl Comment {
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel::update(comment.filter(creator_id.eq(for_creator_id)))
+    diesel::update(comment::table.filter(comment::creator_id.eq(for_creator_id)))
       .set((
-        content.eq(DELETED_REPLACEMENT_TEXT),
-        deleted.eq(true),
-        updated.eq(naive_now()),
+        comment::content.eq(DELETED_REPLACEMENT_TEXT),
+        comment::deleted.eq(true),
+        comment::updated.eq(naive_now()),
       ))
       .get_results::<Self>(conn)
       .await
@@ -46,9 +47,29 @@ impl Comment {
     new_removed: bool,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(comment.filter(creator_id.eq(for_creator_id)))
-      .set((removed.eq(new_removed), updated.eq(naive_now())))
+    diesel::update(comment::table.filter(comment::creator_id.eq(for_creator_id)))
+      .set((
+        comment::removed.eq(new_removed),
+        comment::updated.eq(naive_now()),
+      ))
       .get_results::<Self>(conn)
+      .await
+  }
+
+  /// Lists local community ids for all comments for a given creator.
+  pub async fn list_creators_local_community_ids(
+    pool: &mut DbPool<'_>,
+    for_creator_id: PersonId,
+  ) -> Result<Vec<CommunityId>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    comment::table
+      .inner_join(post::table)
+      .inner_join(community::table.on(post::community_id.eq(community::id)))
+      .filter(community::local.eq(true))
+      .filter(comment::creator_id.eq(for_creator_id))
+      .select(community::id)
+      .distinct()
+      .load::<CommunityId>(conn)
       .await
   }
 
@@ -64,9 +85,9 @@ impl Comment {
       .run(|conn| {
         Box::pin(async move {
           // Insert, to get the id
-          let inserted_comment = insert_into(comment)
+          let inserted_comment = insert_into(comment::table)
             .values(comment_form)
-            .on_conflict(ap_id)
+            .on_conflict(comment::ap_id)
             .do_update()
             .set(comment_form)
             .get_result::<Self>(conn)
@@ -84,8 +105,8 @@ impl Comment {
             format!("{}.{}", 0, comment_id)
           });
 
-          let updated_comment = diesel::update(comment.find(comment_id))
-            .set(path.eq(ltree))
+          let updated_comment = diesel::update(comment::table.find(comment_id))
+            .set(comment::path.eq(ltree))
             .get_result::<Self>(conn)
             .await?;
 
@@ -133,8 +154,8 @@ where ca.comment_id = c.id"
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     Ok(
-      comment
-        .filter(ap_id.eq(object_id))
+      comment::table
+        .filter(comment::ap_id.eq(object_id))
         .first::<Comment>(conn)
         .await
         .ok()
@@ -171,7 +192,7 @@ impl Crud for Comment {
     comment_form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(comment.find(comment_id))
+    diesel::update(comment::table.find(comment_id))
       .set(comment_form)
       .get_result::<Self>(conn)
       .await

@@ -1,3 +1,4 @@
+use crate::send_bans_and_removals_to_local_communities;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
@@ -47,7 +48,7 @@ pub async fn ban_from_site(
   .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
 
   // if its a local user, invalidate logins
-  let local_user = LocalUserView::read_person(&mut context.pool(), data.person_id).await;
+  let local_user = LocalUserView::read_person(&mut context.pool(), person.id).await;
   if let Ok(local_user) = local_user {
     LoginToken::invalidate_all(&mut context.pool(), local_user.local_user.id).await?;
   }
@@ -61,7 +62,7 @@ pub async fn ban_from_site(
   // Mod tables
   let form = ModBanForm {
     mod_person_id: local_user_view.person.id,
-    other_person_id: data.person_id,
+    other_person_id: person.id,
     reason: data.reason.clone(),
     banned: Some(data.ban),
     expires,
@@ -69,7 +70,16 @@ pub async fn ban_from_site(
 
   ModBan::create(&mut context.pool(), &form).await?;
 
-  let person_view = PersonView::read(&mut context.pool(), data.person_id).await?;
+  let person_view = PersonView::read(&mut context.pool(), person.id).await?;
+
+  send_bans_and_removals_to_local_communities(
+    &local_user_view,
+    &person,
+    &data.reason,
+    &data.remove_data,
+    &context,
+  )
+  .await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::BanFromSite {

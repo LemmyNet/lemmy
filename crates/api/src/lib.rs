@@ -1,13 +1,22 @@
+use activitypub_federation::config::Data;
 use actix_web::{http::header::Header, HttpRequest};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
 use captcha::Captcha;
+use itertools::Itertools;
 use lemmy_api_common::{
   claims::Claims,
+  community::BanFromCommunity,
   context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
   utils::{check_user_valid, local_site_to_slur_regex, AUTH_COOKIE_NAME},
 };
-use lemmy_db_schema::source::local_site::LocalSite;
+use lemmy_db_schema::source::{
+  comment::Comment,
+  local_site::LocalSite,
+  person::Person,
+  post::Post,
+};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
@@ -139,6 +148,52 @@ pub(crate) fn build_totp_2fa(
     username.to_string(),
   )
   .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
+}
+
+/// Since removals and bans are only federated for local users,
+/// you also need to send bans for their content to local communities.
+/// See https://github.com/LemmyNet/lemmy/issues/4118
+#[tracing::instrument(skip_all)]
+pub(crate) async fn send_bans_and_removals_to_local_communities(
+  local_user_view: &LocalUserView,
+  target: &Person,
+  reason: &Option<String>,
+  remove_data: &Option<bool>,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let posts_community_ids =
+    Post::list_creators_local_community_ids(&mut context.pool(), target.id).await?;
+  let comments_community_ids =
+    Comment::list_creators_local_community_ids(&mut context.pool(), target.id).await?;
+
+  let ids = [posts_community_ids, comments_community_ids]
+    .concat()
+    .into_iter()
+    .unique();
+
+  for community_id in ids {
+    let ban_from_community = BanFromCommunity {
+      community_id,
+      person_id: target.id,
+      ban: true,
+      remove_data: *remove_data,
+      reason: reason.clone(),
+      expires: None,
+    };
+
+    ActivityChannel::submit_activity(
+      SendActivityData::BanFromCommunity {
+        moderator: local_user_view.person.clone(),
+        community_id,
+        target: target.clone(),
+        data: ban_from_community,
+      },
+      context,
+    )
+    .await?;
+  }
+
+  Ok(())
 }
 
 #[tracing::instrument(skip_all)]
