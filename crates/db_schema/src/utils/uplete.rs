@@ -15,8 +15,8 @@ pub struct Uplete<T, F, D, U> {
   pub update_values: U,
 }
 
-impl<T: QueryFragment<Pg>, F: QueryFragment<Pg>, D: QueryFragment<Pg>, U: QueryFragment<Pg>> QueryFragment<Pg>
-  for Uplete<T, F, D, U>
+impl<T: QueryFragment<Pg>, F: QueryFragment<Pg>, D: QueryFragment<Pg>, U: QueryFragment<Pg>>
+  QueryFragment<Pg> for Uplete<T, F, D, U>
 {
   fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, Pg>) -> QueryResult<()> {
     out.push_sql("MERGE INTO ");

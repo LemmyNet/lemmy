@@ -280,7 +280,9 @@ fn uplete_actions<T>(
 > {
   Uplete {
     target: post_actions::table,
-    filter: post_actions::person_id.eq(person_id).and(post_actions::post_id.eq(post_id)),
+    filter: post_actions::person_id
+      .eq(person_id)
+      .and(post_actions::post_id.eq(post_id)),
     delete_condition: Box::new(
       post_actions::all_columns
         .into_sql::<sql_types::Record<post_actions::SqlType>>()
@@ -336,10 +338,14 @@ impl Likeable for PostLike {
     post_id: PostId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete_actions(person_id, post_id,(
-      post_actions::like_score.eq(None::<i16>),
-      post_actions::liked.eq(None::<DateTime<Utc>>),
-    ))
+    uplete_actions(
+      person_id,
+      post_id,
+      (
+        post_actions::like_score.eq(None::<i16>),
+        post_actions::liked.eq(None::<DateTime<Utc>>),
+      ),
+    )
     .execute(conn)
     .await
   }
