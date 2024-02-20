@@ -1,20 +1,23 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::post::dsl::{
-    ap_id,
-    body,
-    community_id,
-    creator_id,
-    deleted,
-    featured_community,
-    local,
-    name,
-    post,
-    published,
-    removed,
-    thumbnail_url,
-    updated,
-    url,
+  schema::{
+    post::dsl::{
+      ap_id,
+      body,
+      community_id,
+      creator_id,
+      deleted,
+      featured_community,
+      local,
+      name,
+      post,
+      published,
+      removed,
+      thumbnail_url,
+      updated,
+      url,
+    },
+    post_actions,
   },
   source::post::{
     Post,
@@ -32,6 +35,7 @@ use crate::{
     functions::coalesce,
     get_conn,
     naive_now,
+    uplete::Uplete,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
@@ -40,8 +44,19 @@ use crate::{
   },
 };
 use ::url::Url;
-use chrono::{Duration, Utc};
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use chrono::{DateTime, Duration, Utc};
+use diesel::{
+  dsl::{self, insert_into},
+  pg::Pg,
+  result::Error,
+  sql_types,
+  BoxableExpression,
+  ExpressionMethods,
+  IntoSql,
+  PgExpressionMethods,
+  QueryDsl,
+  TextExpressionMethods,
+};
 use diesel_async::RunQueryDsl;
 use std::collections::HashSet;
 
@@ -253,18 +268,65 @@ impl Post {
   }
 }
 
+fn uplete_actions<T>(
+  person_id: PersonId,
+  post_id: PostId,
+  update_values: T,
+) -> Uplete<
+  post_actions::table,
+  dsl::And<dsl::Eq<post_actions::person_id, PersonId>, dsl::Eq<post_actions::post_id, PostId>>,
+  Box<dyn BoxableExpression<post_actions::table, Pg, SqlType = sql_types::Bool>>,
+  T,
+> {
+  Uplete {
+    target: post_actions::table,
+    filter: post_actions::person_id.eq(person_id).and(post_actions::post_id.eq(post_id)),
+    delete_condition: Box::new(
+      post_actions::all_columns
+        .into_sql::<sql_types::Record<post_actions::SqlType>>()
+        .is_not_distinct_from((
+          post_actions::person_id,
+          post_actions::post_id,
+          None::<i64>,
+          None::<DateTime<Utc>>,
+          None::<DateTime<Utc>>,
+          None::<DateTime<Utc>>,
+          None::<DateTime<Utc>>,
+          None::<i16>,
+        )),
+    ),
+    update_values,
+  }
+}
+
+impl PostLike {
+  fn as_select_unwrap() -> (
+    post_actions::post_id,
+    post_actions::person_id,
+    dsl::AssumeNotNull<post_actions::like_score>,
+    dsl::AssumeNotNull<post_actions::liked>,
+  ) {
+    (
+      post_actions::post_id,
+      post_actions::person_id,
+      post_actions::like_score.assume_not_null(),
+      post_actions::liked.assume_not_null(),
+    )
+  }
+}
+
 #[async_trait]
 impl Likeable for PostLike {
   type Form = PostLikeForm;
   type IdType = PostId;
   async fn like(pool: &mut DbPool<'_>, post_like_form: &PostLikeForm) -> Result<Self, Error> {
-    use crate::schema::post_like::dsl::{person_id, post_id, post_like};
     let conn = &mut get_conn(pool).await?;
-    insert_into(post_like)
+    insert_into(post_actions::table)
       .values(post_like_form)
-      .on_conflict((post_id, person_id))
+      .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(post_like_form)
+      .returning(PostLike::as_select_unwrap())
       .get_result::<Self>(conn)
       .await
   }
@@ -273,11 +335,13 @@ impl Likeable for PostLike {
     person_id: PersonId,
     post_id: PostId,
   ) -> Result<usize, Error> {
-    use crate::schema::post_like::dsl;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(dsl::post_like.find((person_id, post_id)))
-      .execute(conn)
-      .await
+    uplete_actions(person_id, post_id,(
+      post_actions::like_score.eq(None::<i16>),
+      post_actions::liked.eq(None::<DateTime<Utc>>),
+    ))
+    .execute(conn)
+    .await
   }
 }
 

@@ -1,3 +1,5 @@
+pub mod uplete;
+
 use crate::{
   diesel::Connection,
   diesel_migrations::MigrationHarness,

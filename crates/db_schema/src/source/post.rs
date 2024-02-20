@@ -1,6 +1,6 @@
 use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
-use crate::schema::{post, post_like, post_read, post_saved};
+use crate::schema::{post, post_actions};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -115,12 +115,9 @@ pub struct PostUpdateForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
-#[cfg_attr(feature = "full", diesel(table_name = post_like))]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct PostLike {
@@ -132,10 +129,11 @@ pub struct PostLike {
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = post_like))]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostLikeForm {
   pub post_id: PostId,
   pub person_id: PersonId,
+  #[cfg_attr(feature = "full", diesel(column_name = like_score))]
   pub score: i16,
 }
 
