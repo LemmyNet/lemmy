@@ -156,7 +156,7 @@ steps:
       - mv target/debug/lemmy_server target/lemmy_server
     when: *slow_check_paths
 
-  check_diesel_migration_revertable:
+  check_diesel_migration:
     # TODO: use willsquire/diesel-cli image when shared libraries become optional in lemmy_server
     image: *rust_image
     environment:
@@ -171,14 +171,21 @@ steps:
     commands:
       - cargo install diesel_cli
       - export PATH="$CARGO_HOME/bin:$PATH"
+      # Run all migrations
       - diesel migration run
-      # Make sure that the migration works both with and without the `r` schema
+      # Dump schema to before.sqldump
+      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f before.sqldump
+      # Make sure that the newest migration is revertable without the `r` schema
       - diesel migration redo
       # Run schema setup twice, which fails on the 2nd time if `DROP SCHEMA IF EXISTS r CASCADE` drops the wrong things
       - alias lemmy_schema_setup="target/lemmy_server --disable-scheduled-tasks --disable-http-server --disable-activity-sending"
       - lemmy_schema_setup
       - lemmy_schema_setup
+      # Make sure that the newest migration is revertable with the `r` schema
       - diesel migration redo
+      # Check for changes in the schema, which would be caused by an incorrect migration
+      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f after.sqldump
+      - diff before.sqldump after.sqldump
     when: *slow_check_paths
 
   cargo_test:
