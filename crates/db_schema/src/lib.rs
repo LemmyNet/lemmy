@@ -173,6 +173,8 @@ pub enum PostListingMode {
 pub enum VoteDisplayMode {
   /// Shows the score, upvotes, and downvotes.
   Full,
+  /// Shows the score, and downvotes.
+  ScoreAndDownvote,
   /// Shows the score, and upvote percentage. (the default setting)
   ScoreAndUpvotePercentage,
   /// Shows the upvote percentage only.
