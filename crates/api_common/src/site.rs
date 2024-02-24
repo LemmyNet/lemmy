@@ -10,6 +10,7 @@ use lemmy_db_schema::{
   },
   ListingType,
   ModlogActionType,
+  PostListingMode,
   RegistrationMode,
   SearchType,
   SortType,
@@ -161,6 +162,7 @@ pub struct CreateSite {
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
   pub default_post_listing_type: Option<ListingType>,
+  pub default_sort_type: Option<SortType>,
   pub legal_information: Option<String>,
   pub application_email_admins: Option<bool>,
   pub hide_modlog_mod_names: Option<bool>,
@@ -187,6 +189,8 @@ pub struct CreateSite {
   pub blocked_instances: Option<Vec<String>>,
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  pub content_warning: Option<String>,
+  pub default_post_listing_mode: Option<PostListingMode>,
 }
 
 #[skip_serializing_none]
@@ -218,6 +222,8 @@ pub struct EditSite {
   /// The default theme. Usually "browser"
   pub default_theme: Option<String>,
   pub default_post_listing_type: Option<ListingType>,
+  /// The default sort, usually "active"
+  pub default_sort_type: Option<SortType>,
   /// An optional page of legal information
   pub legal_information: Option<String>,
   /// Whether to email admins when receiving a new application.
@@ -265,6 +271,11 @@ pub struct EditSite {
   pub registration_mode: Option<RegistrationMode>,
   /// Whether to email admins for new reports.
   pub reports_email_admins: Option<bool>,
+  /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
+  /// when the site is first opened by a user.
+  pub content_warning: Option<String>,
+  /// Default value for [LocalUser.post_listing_mode]
+  pub default_post_listing_mode: Option<PostListingMode>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

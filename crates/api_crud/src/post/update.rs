@@ -43,6 +43,7 @@ pub async fn update_post(
   // TODO No good way to handle a clear.
   // Issue link: https://github.com/LemmyNet/lemmy/issues/2287
   let url = data.url.as_ref().map(clean_url_params);
+  let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs_opt(&data.name, &slur_regex)?;
@@ -53,7 +54,8 @@ pub async fn update_post(
   }
 
   is_valid_body_field(&body, true)?;
-  check_url_scheme(&data.url)?;
+  check_url_scheme(&url)?;
+  check_url_scheme(&custom_thumbnail)?;
 
   let post_id = data.post_id;
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
@@ -70,10 +72,14 @@ pub async fn update_post(
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
-  // Fetch post links and Pictrs cached image if url was updated
-  let (embed_title, embed_description, embed_video_url, thumbnail_url) = match &url {
+  // Fetch post links and thumbnail if url was updated
+  let (embed_title, embed_description, embed_video_url, metadata_thumbnail) = match &url {
     Some(url) => {
-      let metadata = fetch_link_metadata(url, true, &context).await?;
+      // Only generate the thumbnail if there's no custom thumbnail provided,
+      // otherwise it will save it in pictrs
+      let generate_thumbnail = custom_thumbnail.is_none();
+
+      let metadata = fetch_link_metadata(url, generate_thumbnail, &context).await?;
       (
         Some(metadata.opengraph_data.title),
         Some(metadata.opengraph_data.description),
@@ -83,10 +89,20 @@ pub async fn update_post(
     }
     _ => Default::default(),
   };
+
   let url = match url {
     Some(url) => Some(proxy_image_link_opt_apub(Some(url), &context).await?),
     _ => Default::default(),
   };
+
+  let custom_thumbnail = match custom_thumbnail {
+    Some(custom_thumbnail) => {
+      Some(proxy_image_link_opt_apub(Some(custom_thumbnail), &context).await?)
+    }
+    _ => Default::default(),
+  };
+
+  let thumbnail_url = custom_thumbnail.or(metadata_thumbnail);
 
   let language_id = data.language_id;
   CommunityLanguage::is_allowed_community_language(

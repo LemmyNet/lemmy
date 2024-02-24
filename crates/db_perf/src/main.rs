@@ -16,6 +16,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityInsertForm},
     instance::Instance,
     person::{Person, PersonInsertForm},
+    site::Site,
   },
   traits::Crud,
   utils::{build_db_pool, get_conn, now},
@@ -24,6 +25,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::{post_view::PostQuery, structs::PaginationCursor};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyResult};
 use std::num::NonZeroU32;
+use url::Url;
 
 #[derive(Parser, Debug)]
 struct CmdArgs {
@@ -157,7 +159,7 @@ async fn try_main() -> LemmyResult<()> {
       page_after,
       ..Default::default()
     }
-    .list(&mut conn.into())
+    .list(&site()?, &mut conn.into())
     .await?;
 
     if let Some(post_view) = post_views.into_iter().last() {
@@ -180,4 +182,24 @@ async fn try_main() -> LemmyResult<()> {
   }
 
   Ok(())
+}
+
+fn site() -> LemmyResult<Site> {
+  Ok(Site {
+    id: Default::default(),
+    name: String::new(),
+    sidebar: None,
+    published: Default::default(),
+    updated: None,
+    icon: None,
+    banner: None,
+    description: None,
+    actor_id: Url::parse("http://example.com")?.into(),
+    last_refreshed_at: Default::default(),
+    inbox_url: Url::parse("http://example.com")?.into(),
+    private_key: None,
+    public_key: String::new(),
+    instance_id: Default::default(),
+    content_warning: None,
+  })
 }

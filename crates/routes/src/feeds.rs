@@ -29,6 +29,7 @@ use once_cell::sync::Lazy;
 use rss::{
   extension::{dublincore::DublinCoreExtension, ExtensionBuilder, ExtensionMap},
   Channel,
+  EnclosureBuilder,
   Guid,
   Item,
 };
@@ -162,7 +163,7 @@ async fn get_feed_data(
     page: (Some(page)),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(&site_view.site, &mut context.pool())
   .await?;
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
@@ -269,7 +270,7 @@ async fn get_feed_user(
     page: (Some(*page)),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(&site_view.site, &mut context.pool())
   .await?;
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
@@ -307,7 +308,7 @@ async fn get_feed_community(
     page: (Some(*page)),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(&site_view.site, &mut context.pool())
   .await?;
 
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
@@ -348,7 +349,7 @@ async fn get_feed_front(
     page: (Some(*page)),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(&site_view.site, &mut context.pool())
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
@@ -495,7 +496,6 @@ fn create_post_items(
   let mut items: Vec<Item> = Vec::new();
 
   for p in posts {
-    // TODO add images
     let post_url = format!("{}/post/{}", protocol_and_hostname, p.post.id);
     let community_url = format!(
       "{}/c/{}",
@@ -520,12 +520,21 @@ fn create_post_items(
     p.counts.comments);
 
     // If its a url post, add it to the description
-    let link = Some(if let Some(url) = p.post.url {
+    // and see if we can parse it as a media enclosure.
+    let enclosure_opt = p.post.url.map(|url| {
       let link_html = format!("<br><a href=\"{url}\">{url}</a>");
       description.push_str(&link_html);
-      url.to_string()
-    } else {
-      post_url.clone()
+
+      let mime_type = p
+        .post
+        .url_content_type
+        .unwrap_or_else(|| "application/octet-stream".to_string());
+      let mut enclosure_bld = EnclosureBuilder::default();
+
+      enclosure_bld.url(url.as_str().to_string());
+      enclosure_bld.mime_type(mime_type);
+      enclosure_bld.length("0".to_string());
+      enclosure_bld.build()
     });
 
     if let Some(body) = p.post.body {
@@ -558,8 +567,9 @@ fn create_post_items(
       guid,
       description: Some(sanitize_xml(description)),
       dublin_core_ext,
-      link,
+      link: Some(post_url.clone()),
       extensions,
+      enclosure: enclosure_opt,
       ..Default::default()
     };
 

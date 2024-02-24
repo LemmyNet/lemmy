@@ -5,20 +5,16 @@ use crate::{
   CommentSortType,
   SortType,
 };
-use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use deadpool::Runtime;
 use diesel::{
-  backend::Backend,
-  deserialize::FromSql,
   helper_types::AsExprOf,
   pg::Pg,
   query_builder::{Query, QueryFragment},
   query_dsl::methods::LimitDsl,
   result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
-  serialize::{Output, ToSql},
-  sql_types::{self, Text, Timestamptz},
+  sql_types::{self, Timestamptz},
   IntoSql,
   PgConnection,
 };
@@ -236,7 +232,11 @@ impl<T: LimitDsl> LimitDsl for Commented<T> {
 }
 
 pub fn fuzzy_search(q: &str) -> String {
-  let replaced = q.replace('%', "\\%").replace('_', "\\_").replace(' ', "%");
+  let replaced = q
+    .replace('\\', "\\\\")
+    .replace('%', "\\%")
+    .replace('_', "\\_")
+    .replace(' ', "%");
   format!("%{replaced}%")
 }
 
@@ -369,8 +369,7 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 fn run_migrations(db_url: &str) -> Result<(), LemmyError> {
   // Needs to be a sync connection
-  let mut conn =
-    PgConnection::establish(db_url).with_context(|| format!("Error connecting to {db_url}"))?;
+  let mut conn = PgConnection::establish(db_url).with_context(|| "Error connecting to database")?;
 
   info!("Running Database migrations (This may take a long time)...");
   conn
@@ -471,32 +470,6 @@ pub mod functions {
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
-
-impl ToSql<Text, Pg> for DbUrl {
-  fn to_sql(&self, out: &mut Output<Pg>) -> diesel::serialize::Result {
-    <std::string::String as ToSql<Text, Pg>>::to_sql(&self.0.to_string(), &mut out.reborrow())
-  }
-}
-
-impl<DB: Backend> FromSql<Text, DB> for DbUrl
-where
-  String: FromSql<Text, DB>,
-{
-  fn from_sql(value: DB::RawValue<'_>) -> diesel::deserialize::Result<Self> {
-    let str = String::from_sql(value)?;
-    Ok(DbUrl(Box::new(Url::parse(&str)?)))
-  }
-}
-
-impl<Kind> From<ObjectId<Kind>> for DbUrl
-where
-  Kind: Object + Send + 'static,
-  for<'de2> <Kind as Object>::Kind: serde::Deserialize<'de2>,
-{
-  fn from(id: ObjectId<Kind>) -> Self {
-    DbUrl(Box::new(id.into()))
-  }
-}
 
 pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
   // https://github.com/diesel-rs/diesel/issues/1514
