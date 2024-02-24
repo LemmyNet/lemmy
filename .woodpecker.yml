@@ -173,8 +173,10 @@ steps:
       - export PATH="$CARGO_HOME/bin:$PATH"
       # Run all migrations
       - diesel migration run
-      # Dump schema to before.sqldump
-      - apt update && apt install -y postgresql-client
+      # Dump schema to before.sqldump (PostgreSQL apt repo is used to prevent pg_dump version mismatch error)
+      - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+      - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+      - apt update && apt install -y postgresql-client-16
       - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f before.sqldump
       # Make sure that the newest migration is revertable without the `r` schema
       - diesel migration redo
