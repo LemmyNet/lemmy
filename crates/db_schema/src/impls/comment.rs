@@ -1,6 +1,9 @@
 use crate::{
   newtypes::{CommentId, DbUrl, PersonId},
-  schema::comment::dsl::{ap_id, comment, content, creator_id, deleted, path, removed, updated},
+  schema::{
+    comment::dsl::{ap_id, comment, content, creator_id, deleted, path, removed, updated},
+    comment_actions,
+  },
   source::comment::{
     Comment,
     CommentInsertForm,
@@ -11,10 +14,11 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
+use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{insert_into, sql_query},
+  dsl::{self, insert_into, sql_query},
   result::Error,
   ExpressionMethods,
   QueryDsl,
@@ -178,18 +182,40 @@ impl Crud for Comment {
   }
 }
 
+impl CommentLike {
+  fn as_select_unwrap() -> (
+    comment_actions::person_id,
+    comment_actions::comment_id,
+    comment_actions::post_id,
+    dsl::AssumeNotNull<comment_actions::like_score>,
+    dsl::AssumeNotNull<comment_actions::liked>,
+  ) {
+    (
+      comment_actions::person_id,
+      comment_actions::comment_id,
+      comment_actions::post_id,
+      comment_actions::like_score.assume_not_null(),
+      comment_actions::liked.assume_not_null(),
+    )
+  }
+}
+
 #[async_trait]
 impl Likeable for CommentLike {
   type Form = CommentLikeForm;
   type IdType = CommentId;
   async fn like(pool: &mut DbPool<'_>, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
-    use crate::schema::comment_like::dsl::{comment_id, comment_like, person_id};
     let conn = &mut get_conn(pool).await?;
-    insert_into(comment_like)
+    let comment_like_form = (
+      comment_like_form,
+      comment_actions::liked.eq(now().nullable()),
+    );
+    insert_into(comment_actions::table)
       .values(comment_like_form)
-      .on_conflict((comment_id, person_id))
+      .on_conflict((comment_actions::comment_id, comment_actions::person_id))
       .do_update()
       .set(comment_like_form)
+      .returning(Self::as_select_unwrap())
       .get_result::<Self>(conn)
       .await
   }
@@ -198,11 +224,28 @@ impl Likeable for CommentLike {
     person_id: PersonId,
     comment_id: CommentId,
   ) -> Result<usize, Error> {
-    use crate::schema::comment_like::dsl::comment_like;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(comment_like.find((person_id, comment_id)))
+    diesel::update(comment_actions::table.find((person_id, comment_id)))
+      .set((
+        comment_actions::like_score.eq(None::<i16>),
+        comment_actions::liked.eq(None::<DateTime<Utc>>),
+      ))
       .execute(conn)
       .await
+  }
+}
+
+impl CommentSaved {
+  fn as_select_unwrap() -> (
+    comment_actions::comment_id,
+    comment_actions::person_id,
+    dsl::AssumeNotNull<comment_actions::saved>,
+  ) {
+    (
+      comment_actions::comment_id,
+      comment_actions::person_id,
+      comment_actions::saved.assume_not_null(),
+    )
   }
 }
 
@@ -213,13 +256,17 @@ impl Saveable for CommentSaved {
     pool: &mut DbPool<'_>,
     comment_saved_form: &CommentSavedForm,
   ) -> Result<Self, Error> {
-    use crate::schema::comment_saved::dsl::{comment_id, comment_saved, person_id};
     let conn = &mut get_conn(pool).await?;
-    insert_into(comment_saved)
+    let comment_saved_form = (
+      comment_saved_form,
+      comment_actions::saved.eq(now().nullable()),
+    );
+    insert_into(comment_actions::table)
       .values(comment_saved_form)
-      .on_conflict((comment_id, person_id))
+      .on_conflict((comment_actions::comment_id, comment_actions::person_id))
       .do_update()
       .set(comment_saved_form)
+      .returning(Self::as_select_unwrap())
       .get_result::<Self>(conn)
       .await
   }
@@ -227,11 +274,11 @@ impl Saveable for CommentSaved {
     pool: &mut DbPool<'_>,
     comment_saved_form: &CommentSavedForm,
   ) -> Result<usize, Error> {
-    use crate::schema::comment_saved::dsl::comment_saved;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      comment_saved.find((comment_saved_form.person_id, comment_saved_form.comment_id)),
+    diesel::update(
+      comment_actions::table.find((comment_saved_form.person_id, comment_saved_form.comment_id)),
     )
+    .set(comment_actions::saved.eq(None::<DateTime<Utc>>))
     .execute(conn)
     .await
   }

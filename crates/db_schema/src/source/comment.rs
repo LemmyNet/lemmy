@@ -2,7 +2,7 @@
 use crate::newtypes::LtreeDef;
 use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
-use crate::schema::{comment, comment_like, comment_saved};
+use crate::schema::{comment, comment_actions};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
@@ -87,12 +87,9 @@ pub struct CommentUpdateForm {
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
-#[cfg_attr(feature = "full", diesel(table_name = comment_like))]
+#[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct CommentLike {
@@ -105,21 +102,19 @@ pub struct CommentLike {
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = comment_like))]
+#[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 pub struct CommentLikeForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,
   pub post_id: PostId, // TODO this is redundant
+  #[cfg_attr(feature = "full", diesel(column_name = like_score))]
   pub score: i16,
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
-#[cfg_attr(feature = "full", diesel(table_name = comment_saved))]
+#[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct CommentSaved {
@@ -129,7 +124,7 @@ pub struct CommentSaved {
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = comment_saved))]
+#[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 pub struct CommentSavedForm {
   pub comment_id: CommentId,
   pub person_id: PersonId,

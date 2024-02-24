@@ -294,7 +294,7 @@ impl Likeable for PostLike {
       .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(post_like_form)
-      .returning(PostLike::as_select_unwrap())
+      .returning(Self::as_select_unwrap())
       .get_result::<Self>(conn)
       .await
   }
@@ -339,7 +339,7 @@ impl Saveable for PostSaved {
       .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(post_saved_form)
-      .returning(PostSaved::as_select_unwrap())
+      .returning(Self::as_select_unwrap())
       .get_result::<Self>(conn)
       .await
   }
