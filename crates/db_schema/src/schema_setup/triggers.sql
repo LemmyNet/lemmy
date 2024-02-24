@@ -35,8 +35,7 @@ BEGIN
                         score = a.score + diff.upvotes - diff.downvotes, upvotes = a.upvotes + diff.upvotes, downvotes = a.downvotes + diff.downvotes, controversy_rank = controversy_rank ((a.upvotes + diff.upvotes)::numeric, (a.downvotes + diff.downvotes)::numeric)
                     FROM (
                         SELECT
-                            (thing_like).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows
-                GROUP BY (thing_like).thing_id) AS diff
+                            (thing_like).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (thing_like).thing_id) AS diff
             WHERE
                 a.thing_id = diff.thing_id
             RETURNING
@@ -46,8 +45,7 @@ BEGIN
         SET
             thing_score = a.thing_score + diff.score FROM (
                 SELECT
-                    creator_id, sum(score) AS score FROM thing_diff
-                GROUP BY creator_id) AS diff
+                    creator_id, sum(score) AS score FROM thing_diff GROUP BY creator_id) AS diff
             WHERE
                 a.person_id = diff.creator_id;
                 RETURN NULL;
@@ -295,8 +293,8 @@ BEGIN
         SELECT
             (community_follower).community_id, coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers, coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local
         FROM select_old_and_new_rows AS old_and_new_rows
-        LEFT JOIN community ON community.id = (community_follower).community_id
-        LEFT JOIN person ON person.id = (community_follower).person_id GROUP BY (community_follower).community_id) AS diff
+    LEFT JOIN community ON community.id = (community_follower).community_id
+    LEFT JOIN person ON person.id = (community_follower).person_id GROUP BY (community_follower).community_id) AS diff
 WHERE
     a.community_id = diff.community_id;
 
