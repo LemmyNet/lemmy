@@ -23,7 +23,7 @@ CREATE FUNCTION r.is_counted (item record)
     AS $$
 BEGIN
     RETURN COALESCE(NOT (item.deleted
-        OR item.removed), FALSE);
+            OR item.removed), FALSE);
 END;
 $$;
 
