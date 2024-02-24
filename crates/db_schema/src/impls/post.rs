@@ -32,23 +32,26 @@ use crate::{
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
-    functions::coalesce, get_conn, naive_now, now, uplete::Uplete, DbPool, DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX, SITEMAP_DAYS, SITEMAP_LIMIT
+    functions::coalesce,
+    get_conn,
+    naive_now,
+    now,
+    DbPool,
+    DELETED_REPLACEMENT_TEXT,
+    FETCH_LIMIT_MAX,
+    SITEMAP_DAYS,
+    SITEMAP_LIMIT,
   },
 };
 use ::url::Url;
 use chrono::{DateTime, Duration, Utc};
 use diesel::{
   dsl::{self, insert_into},
-  pg::Pg,
   result::Error,
-  sql_types,
-  BoxableExpression,
   ExpressionMethods,
-  IntoSql,
-  PgExpressionMethods,
+  NullableExpressionMethods,
   QueryDsl,
   TextExpressionMethods,
-  NullableExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
 use std::collections::HashSet;
@@ -261,36 +264,6 @@ impl Post {
   }
 }
 
-fn uplete_actions<T>(
-  keys: impl IntoIterator<Item = (PersonId, PostId)>,
-  update_values: T,
-) -> Uplete<
-  post_actions::table,
-  Vec<(dsl::AsExprOf<PersonId, sql_types::Integer>, dsl::AsExprOf<PostId, sql_types::Integer>)>,
-  Box<dyn BoxableExpression<post_actions::table, Pg, SqlType = sql_types::Bool>>,
-  T,
-> {
-  Uplete {
-    target: post_actions::table,
-    keys: keys.into_iter().map(|(a, b)| (a.into_sql::<sql_types::Integer>(), b.into_sql::<sql_types::Integer>())).collect::<Vec<_>>(),
-    delete_condition: Box::new(
-      post_actions::all_columns
-        .into_sql::<sql_types::Record<post_actions::SqlType>>()
-        .is_not_distinct_from((
-          post_actions::person_id,
-          post_actions::post_id,
-          None::<i64>,
-          None::<DateTime<Utc>>,
-          None::<DateTime<Utc>>,
-          None::<DateTime<Utc>>,
-          None::<DateTime<Utc>>,
-          None::<i16>,
-        )),
-    ),
-    update_values,
-  }
-}
-
 impl PostLike {
   fn as_select_unwrap() -> (
     post_actions::post_id,
@@ -329,16 +302,13 @@ impl Likeable for PostLike {
     post_id: PostId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete_actions(
-      [(person_id,
-      post_id,)],
-      (
+    diesel::update(post_actions::table.find((person_id, post_id)))
+      .set((
         post_actions::like_score.eq(None::<i16>),
         post_actions::liked.eq(None::<DateTime<Utc>>),
-      ),
-    )
-    .execute(conn)
-    .await
+      ))
+      .execute(conn)
+      .await
   }
 }
 
@@ -358,7 +328,8 @@ impl Saveable for PostSaved {
   }
   async fn unsave(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete_actions([(post_saved_form.person_id, post_saved_form.post_id)], post_actions::saved.eq(None::<DateTime<Utc>>))
+    diesel::update(post_actions::table.find((post_saved_form.person_id, post_saved_form.post_id)))
+      .set(post_actions::saved.eq(None::<DateTime<Utc>>))
       .execute(conn)
       .await
   }
@@ -374,10 +345,12 @@ impl PostRead {
 
     let forms = post_ids
       .into_iter()
-      .map(|post_id| (
-        PostReadForm{post_id,person_id},
-        post_actions::read.eq(now().nullable())
-      ))
+      .map(|post_id| {
+        (
+          PostReadForm { post_id, person_id },
+          post_actions::read.eq(now().nullable()),
+        )
+      })
       .collect::<Vec<_>>();
     insert_into(post_actions::table)
       .values(forms)
@@ -395,11 +368,12 @@ impl PostRead {
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel::delete(
+    diesel::update(
       post_actions::table
         .filter(post_actions::post_id.eq_any(post_id_))
         .filter(post_actions::person_id.eq(person_id_)),
     )
+    .set(post_actions::read.eq(None::<DateTime<Utc>>))
     .execute(conn)
     .await
   }
