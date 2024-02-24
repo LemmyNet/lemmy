@@ -668,8 +668,8 @@ diesel::table! {
    post_actions (person_id, post_id) {
         person_id -> Int4,
         post_id -> Int4,
-        read_comments -> Int8,
-        read_comments_published -> Nullable<Timestamptz>,
+        read_comments -> Nullable<Timestamptz>,
+        read_comments_amount -> Int8,
         read -> Nullable<Timestamptz>,
         saved -> Nullable<Timestamptz>,
         liked -> Nullable<Timestamptz>,
