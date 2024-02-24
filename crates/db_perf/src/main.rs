@@ -20,7 +20,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
   utils::{build_db_pool, get_conn, now},
-  SortType,
+  PostSortType,
 };
 use lemmy_db_views::{post_view::PostQuery, structs::PaginationCursor};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyResult};
@@ -154,7 +154,7 @@ async fn try_main() -> LemmyResult<()> {
     // TODO: include local_user
     let post_views = PostQuery {
       community_id: community_ids.as_slice().first().cloned(),
-      sort: Some(SortType::New),
+      sort: Some(PostSortType::New),
       limit: Some(20),
       page_after,
       ..Default::default()

@@ -56,7 +56,7 @@ use lemmy_db_schema::{
   },
   CommunityVisibility,
   ListingType,
-  SortType,
+  PostSortType,
 };
 use tracing::debug;
 
@@ -480,33 +480,33 @@ fn queries<'a>() -> Queries<
     let time = |interval| post_aggregates::published.gt(now() - interval);
 
     // then use the main sort
-    query = match options.sort.unwrap_or(SortType::Hot) {
-      SortType::Active => query.then_desc(key::hot_rank_active),
-      SortType::Hot => query.then_desc(key::hot_rank),
-      SortType::Scaled => query.then_desc(key::scaled_rank),
-      SortType::Controversial => query.then_desc(key::controversy_rank),
-      SortType::New => query.then_desc(key::published),
-      SortType::Old => query.then_desc(ReverseTimestampKey(key::published)),
-      SortType::NewComments => query.then_desc(key::newest_comment_time),
-      SortType::MostComments => query.then_desc(key::comments),
-      SortType::TopAll => query.then_desc(key::score),
-      SortType::TopYear => query.then_desc(key::score).filter(time(1.years())),
-      SortType::TopMonth => query.then_desc(key::score).filter(time(1.months())),
-      SortType::TopWeek => query.then_desc(key::score).filter(time(1.weeks())),
-      SortType::TopDay => query.then_desc(key::score).filter(time(1.days())),
-      SortType::TopHour => query.then_desc(key::score).filter(time(1.hours())),
-      SortType::TopSixHour => query.then_desc(key::score).filter(time(6.hours())),
-      SortType::TopTwelveHour => query.then_desc(key::score).filter(time(12.hours())),
-      SortType::TopThreeMonths => query.then_desc(key::score).filter(time(3.months())),
-      SortType::TopSixMonths => query.then_desc(key::score).filter(time(6.months())),
-      SortType::TopNineMonths => query.then_desc(key::score).filter(time(9.months())),
+    query = match options.sort.unwrap_or(PostSortType::Hot) {
+      PostSortType::Active => query.then_desc(key::hot_rank_active),
+      PostSortType::Hot => query.then_desc(key::hot_rank),
+      PostSortType::Scaled => query.then_desc(key::scaled_rank),
+      PostSortType::Controversial => query.then_desc(key::controversy_rank),
+      PostSortType::New => query.then_desc(key::published),
+      PostSortType::Old => query.then_desc(ReverseTimestampKey(key::published)),
+      PostSortType::NewComments => query.then_desc(key::newest_comment_time),
+      PostSortType::MostComments => query.then_desc(key::comments),
+      PostSortType::TopAll => query.then_desc(key::score),
+      PostSortType::TopYear => query.then_desc(key::score).filter(time(1.years())),
+      PostSortType::TopMonth => query.then_desc(key::score).filter(time(1.months())),
+      PostSortType::TopWeek => query.then_desc(key::score).filter(time(1.weeks())),
+      PostSortType::TopDay => query.then_desc(key::score).filter(time(1.days())),
+      PostSortType::TopHour => query.then_desc(key::score).filter(time(1.hours())),
+      PostSortType::TopSixHour => query.then_desc(key::score).filter(time(6.hours())),
+      PostSortType::TopTwelveHour => query.then_desc(key::score).filter(time(12.hours())),
+      PostSortType::TopThreeMonths => query.then_desc(key::score).filter(time(3.months())),
+      PostSortType::TopSixMonths => query.then_desc(key::score).filter(time(6.months())),
+      PostSortType::TopNineMonths => query.then_desc(key::score).filter(time(9.months())),
     };
 
     // use publish as fallback. especially useful for hot rank which reaches zero after some days.
     // necessary because old posts can be fetched over federation and inserted with high post id
-    query = match options.sort.unwrap_or(SortType::Hot) {
+    query = match options.sort.unwrap_or(PostSortType::Hot) {
       // A second time-based sort would not be very useful
-      SortType::New | SortType::Old | SortType::NewComments => query,
+      PostSortType::New | PostSortType::Old | PostSortType::NewComments => query,
       _ => query.then_desc(key::published),
     };
 
@@ -577,7 +577,7 @@ pub struct PaginationCursorData(PostAggregates);
 #[derive(Clone, Default)]
 pub struct PostQuery<'a> {
   pub listing_type: Option<ListingType>,
-  pub sort: Option<SortType>,
+  pub sort: Option<PostSortType>,
   pub creator_id: Option<PersonId>,
   pub community_id: Option<CommunityId>,
   // if true, the query should be handled as if community_id was not given except adding the literal filter
@@ -732,7 +732,7 @@ mod tests {
     traits::{Blockable, Crud, Joinable, Likeable},
     utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
     CommunityVisibility,
-    SortType,
+    PostSortType,
     SubscribedType,
   };
   use lemmy_utils::error::LemmyResult;
@@ -763,7 +763,7 @@ mod tests {
   impl Data {
     fn default_post_query(&self) -> PostQuery<'_> {
       PostQuery {
-        sort: Some(SortType::New),
+        sort: Some(PostSortType::New),
         local_user: Some(&self.local_user_view),
         ..Default::default()
       }
@@ -1371,7 +1371,7 @@ mod tests {
 
     let options = PostQuery {
       community_id: Some(inserted_community.id),
-      sort: Some(SortType::MostComments),
+      sort: Some(PostSortType::MostComments),
       limit: Some(10),
       ..Default::default()
     };

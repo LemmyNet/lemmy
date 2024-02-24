@@ -2,9 +2,10 @@
 use crate::schema::local_user;
 use crate::{
   newtypes::{LocalUserId, PersonId},
+  CommentSortType,
   ListingType,
   PostListingMode,
-  SortType,
+  PostSortType,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -29,7 +30,7 @@ pub struct LocalUser {
   /// Whether to show NSFW content.
   pub show_nsfw: bool,
   pub theme: String,
-  pub default_sort_type: SortType,
+  pub default_post_sort_type: PostSortType,
   pub default_listing_type: ListingType,
   pub interface_language: String,
   /// Whether to show avatars.
@@ -63,6 +64,7 @@ pub struct LocalUser {
   pub enable_animated_images: bool,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: bool,
+  pub default_comment_sort_type: CommentSortType,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -77,7 +79,7 @@ pub struct LocalUserInsertForm {
   pub email: Option<String>,
   pub show_nsfw: Option<bool>,
   pub theme: Option<String>,
-  pub default_sort_type: Option<SortType>,
+  pub default_post_sort_type: Option<PostSortType>,
   pub default_listing_type: Option<ListingType>,
   pub interface_language: Option<String>,
   pub show_avatars: Option<bool>,
@@ -98,6 +100,7 @@ pub struct LocalUserInsertForm {
   pub enable_keyboard_navigation: Option<bool>,
   pub enable_animated_images: Option<bool>,
   pub collapse_bot_comments: Option<bool>,
+  pub default_comment_sort_type: Option<CommentSortType>,
 }
 
 #[derive(Clone, Default)]
@@ -108,7 +111,7 @@ pub struct LocalUserUpdateForm {
   pub email: Option<Option<String>>,
   pub show_nsfw: Option<bool>,
   pub theme: Option<String>,
-  pub default_sort_type: Option<SortType>,
+  pub default_post_sort_type: Option<PostSortType>,
   pub default_listing_type: Option<ListingType>,
   pub interface_language: Option<String>,
   pub show_avatars: Option<bool>,
@@ -129,4 +132,5 @@ pub struct LocalUserUpdateForm {
   pub enable_keyboard_navigation: Option<bool>,
   pub enable_animated_images: Option<bool>,
   pub collapse_bot_comments: Option<bool>,
+  pub default_comment_sort_type: Option<CommentSortType>,
 }

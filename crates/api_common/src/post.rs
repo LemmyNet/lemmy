@@ -2,7 +2,7 @@ use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, PostReportId},
   ListingType,
   PostFeatureType,
-  SortType,
+  PostSortType,
 };
 use lemmy_db_views::structs::{PaginationCursor, PostReportView, PostView, VoteView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
@@ -70,7 +70,7 @@ pub struct GetPostResponse {
 /// Get a list of posts.
 pub struct GetPosts {
   pub type_: Option<ListingType>,
-  pub sort: Option<SortType>,
+  pub sort: Option<PostSortType>,
   /// DEPRECATED, use page_cursor
   pub page: Option<i64>,
   pub limit: Option<i64>,

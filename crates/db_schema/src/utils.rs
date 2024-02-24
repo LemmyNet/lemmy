@@ -3,7 +3,7 @@ use crate::{
   diesel_migrations::MigrationHarness,
   newtypes::DbUrl,
   CommentSortType,
-  SortType,
+  PostSortType,
 };
 use anyhow::Context;
 use chrono::{DateTime, Utc};
@@ -421,23 +421,25 @@ pub fn naive_now() -> DateTime<Utc> {
   Utc::now()
 }
 
-pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
+pub fn post_to_comment_sort_type(sort: PostSortType) -> CommentSortType {
   match sort {
-    SortType::Active | SortType::Hot | SortType::Scaled => CommentSortType::Hot,
-    SortType::New | SortType::NewComments | SortType::MostComments => CommentSortType::New,
-    SortType::Old => CommentSortType::Old,
-    SortType::Controversial => CommentSortType::Controversial,
-    SortType::TopHour
-    | SortType::TopSixHour
-    | SortType::TopTwelveHour
-    | SortType::TopDay
-    | SortType::TopAll
-    | SortType::TopWeek
-    | SortType::TopYear
-    | SortType::TopMonth
-    | SortType::TopThreeMonths
-    | SortType::TopSixMonths
-    | SortType::TopNineMonths => CommentSortType::Top,
+    PostSortType::Active | PostSortType::Hot | PostSortType::Scaled => CommentSortType::Hot,
+    PostSortType::New | PostSortType::NewComments | PostSortType::MostComments => {
+      CommentSortType::New
+    }
+    PostSortType::Old => CommentSortType::Old,
+    PostSortType::Controversial => CommentSortType::Controversial,
+    PostSortType::TopHour
+    | PostSortType::TopSixHour
+    | PostSortType::TopTwelveHour
+    | PostSortType::TopDay
+    | PostSortType::TopAll
+    | PostSortType::TopWeek
+    | PostSortType::TopYear
+    | PostSortType::TopMonth
+    | PostSortType::TopThreeMonths
+    | PostSortType::TopSixMonths
+    | PostSortType::TopNineMonths => CommentSortType::Top,
   }
 }
 

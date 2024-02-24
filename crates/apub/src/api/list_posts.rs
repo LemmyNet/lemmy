@@ -1,5 +1,5 @@
 use crate::{
-  api::{listing_type_with_default, sort_type_with_default},
+  api::{listing_type_with_default, post_sort_type_with_default},
   fetcher::resolve_actor_identifier,
   objects::community::ApubCommunity,
 };
@@ -51,7 +51,7 @@ pub async fn list_posts(
     community_id,
   ));
 
-  let sort = Some(sort_type_with_default(
+  let sort = Some(post_sort_type_with_default(
     data.sort,
     local_user_ref,
     &local_site.local_site,

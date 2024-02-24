@@ -1,8 +1,9 @@
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{local_site::LocalSite, local_user::LocalUser},
+  CommentSortType,
   ListingType,
-  SortType,
+  PostSortType,
 };
 
 pub mod list_comments;
@@ -33,16 +34,30 @@ fn listing_type_with_default(
   }
 }
 
-/// Returns a default instance-level sort type, if none is given by the user.
+/// Returns a default instance-level post sort type, if none is given by the user.
 /// Order is type, local user default, then site default.
-fn sort_type_with_default(
-  type_: Option<SortType>,
+fn post_sort_type_with_default(
+  type_: Option<PostSortType>,
   local_user: Option<&LocalUser>,
   local_site: &LocalSite,
-) -> SortType {
+) -> PostSortType {
   type_.unwrap_or(
     local_user
-      .map(|u| u.default_sort_type)
-      .unwrap_or(local_site.default_sort_type),
+      .map(|u| u.default_post_sort_type)
+      .unwrap_or(local_site.default_post_sort_type),
+  )
+}
+
+/// Returns a default instance-level comment sort type, if none is given by the user.
+/// Order is type, local user default, then site default.
+fn comment_sort_type_with_default(
+  type_: Option<CommentSortType>,
+  local_user: Option<&LocalUser>,
+  local_site: &LocalSite,
+) -> CommentSortType {
+  type_.unwrap_or(
+    local_user
+      .map(|u| u.default_comment_sort_type)
+      .unwrap_or(local_site.default_comment_sort_type),
   )
 }
