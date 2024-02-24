@@ -18,13 +18,13 @@ impl PersonPostAggregates {
   fn as_select_unwrap() -> (
     post_actions::person_id,
     post_actions::post_id,
-    dsl::AssumeNotNull<post_actions::read_comments_amount>,
+    post_actions::read_comments_amount,
     dsl::AssumeNotNull<post_actions::read_comments>,
   ) {
     (
       post_actions::person_id,
       post_actions::post_id,
-      post_actions::read_comments_amount.assume_not_null(),
+      post_actions::read_comments_amount,
       post_actions::read_comments.assume_not_null(),
     )
   }
@@ -53,7 +53,6 @@ impl PersonPostAggregates {
     post_actions::table
       .find((person_id_, post_id_))
       .filter(post_actions::read_comments.is_not_null())
-      .filter(post_actions::read_comments_amount.is_not_null())
       .select(Self::as_select_unwrap())
       .first::<Self>(conn)
       .await
