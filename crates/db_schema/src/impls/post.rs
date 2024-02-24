@@ -288,7 +288,7 @@ impl Likeable for PostLike {
   type IdType = PostId;
   async fn like(pool: &mut DbPool<'_>, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let post_like_form = (post_like_form.clone(), post_actions::liked.eq(now()), "a");
+    let post_like_form = (post_like_form.clone(), post_actions::liked.eq(now()));
     insert_into(post_actions::table)
       .values(post_like_form)
       .on_conflict((post_actions::post_id, post_actions::person_id))
