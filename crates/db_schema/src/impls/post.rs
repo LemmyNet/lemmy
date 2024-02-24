@@ -32,15 +32,7 @@ use crate::{
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
-    functions::coalesce,
-    get_conn,
-    naive_now,
-    uplete::Uplete,
-    DbPool,
-    DELETED_REPLACEMENT_TEXT,
-    FETCH_LIMIT_MAX,
-    SITEMAP_DAYS,
-    SITEMAP_LIMIT,
+    functions::coalesce, get_conn, naive_now, now, uplete::Uplete, DbPool, DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX, SITEMAP_DAYS, SITEMAP_LIMIT
   },
 };
 use ::url::Url;
@@ -56,6 +48,7 @@ use diesel::{
   PgExpressionMethods,
   QueryDsl,
   TextExpressionMethods,
+  NullableExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
 use std::collections::HashSet;
@@ -269,20 +262,17 @@ impl Post {
 }
 
 fn uplete_actions<T>(
-  person_id: PersonId,
-  post_id: PostId,
+  keys: impl IntoIterator<Item = (PersonId, PostId)>,
   update_values: T,
 ) -> Uplete<
   post_actions::table,
-  dsl::And<dsl::Eq<post_actions::person_id, PersonId>, dsl::Eq<post_actions::post_id, PostId>>,
+  Vec<(dsl::AsExprOf<PersonId, sql_types::Integer>, dsl::AsExprOf<PostId, sql_types::Integer>)>,
   Box<dyn BoxableExpression<post_actions::table, Pg, SqlType = sql_types::Bool>>,
   T,
 > {
   Uplete {
     target: post_actions::table,
-    filter: post_actions::person_id
-      .eq(person_id)
-      .and(post_actions::post_id.eq(post_id)),
+    keys: keys.into_iter().map(|(a, b)| (a.into_sql::<sql_types::Integer>(), b.into_sql::<sql_types::Integer>())).collect::<Vec<_>>(),
     delete_condition: Box::new(
       post_actions::all_columns
         .into_sql::<sql_types::Record<post_actions::SqlType>>()
@@ -323,6 +313,7 @@ impl Likeable for PostLike {
   type IdType = PostId;
   async fn like(pool: &mut DbPool<'_>, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
+    let post_like_form = (post_like_form.clone(), post_actions::liked.eq(now()), "a");
     insert_into(post_actions::table)
       .values(post_like_form)
       .on_conflict((post_actions::post_id, post_actions::person_id))
@@ -339,8 +330,8 @@ impl Likeable for PostLike {
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     uplete_actions(
-      person_id,
-      post_id,
+      [(person_id,
+      post_id,)],
       (
         post_actions::like_score.eq(None::<i16>),
         post_actions::liked.eq(None::<DateTime<Utc>>),
@@ -355,20 +346,19 @@ impl Likeable for PostLike {
 impl Saveable for PostSaved {
   type Form = PostSavedForm;
   async fn save(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
-    use crate::schema::post_saved::dsl::{person_id, post_id, post_saved};
     let conn = &mut get_conn(pool).await?;
-    insert_into(post_saved)
+    let post_saved_form = (post_saved_form.clone(), post_actions::saved.eq(now()));
+    insert_into(post_actions::table)
       .values(post_saved_form)
-      .on_conflict((post_id, person_id))
+      .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(post_saved_form)
       .get_result::<Self>(conn)
       .await
   }
   async fn unsave(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
-    use crate::schema::post_saved::dsl::post_saved;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(post_saved.find((post_saved_form.person_id, post_saved_form.post_id)))
+    uplete_actions([(post_saved_form.person_id, post_saved_form.post_id)], post_actions::saved.eq(None::<DateTime<Utc>>))
       .execute(conn)
       .await
   }
@@ -380,16 +370,20 @@ impl PostRead {
     post_ids: HashSet<PostId>,
     person_id: PersonId,
   ) -> Result<usize, Error> {
-    use crate::schema::post_read::dsl::post_read;
     let conn = &mut get_conn(pool).await?;
 
     let forms = post_ids
       .into_iter()
-      .map(|post_id| PostReadForm { post_id, person_id })
-      .collect::<Vec<PostReadForm>>();
-    insert_into(post_read)
+      .map(|post_id| (
+        PostReadForm{post_id,person_id},
+        post_actions::read.eq(now().nullable())
+      ))
+      .collect::<Vec<_>>();
+    insert_into(post_actions::table)
       .values(forms)
-      .on_conflict_do_nothing()
+      .on_conflict((post_actions::person_id, post_actions::post_id))
+      .do_update()
+      .set(post_actions::read.eq(now().nullable()))
       .execute(conn)
       .await
   }
@@ -399,13 +393,12 @@ impl PostRead {
     post_id_: HashSet<PostId>,
     person_id_: PersonId,
   ) -> Result<usize, Error> {
-    use crate::schema::post_read::dsl::{person_id, post_id, post_read};
     let conn = &mut get_conn(pool).await?;
 
     diesel::delete(
-      post_read
-        .filter(post_id.eq_any(post_id_))
-        .filter(person_id.eq(person_id_)),
+      post_actions::table
+        .filter(post_actions::post_id.eq_any(post_id_))
+        .filter(post_actions::person_id.eq(person_id_)),
     )
     .execute(conn)
     .await
