@@ -234,26 +234,30 @@ CREATE FUNCTION community_aggregates_subscriber_count ()
 BEGIN
     IF (TG_OP = 'INSERT') THEN
         UPDATE
-            community_aggregates
+            community_aggregates ca
         SET
-            subscribers = subscribers + 1
+            subscribers = subscribers + community.local::int,
+            subscribers_local = subscribers_local + person.local::int
         FROM
             community
-        WHERE
-            community.id = community_id
-            AND community.local
-            AND community_id = NEW.community_id;
+        LEFT JOIN person ON person.id = NEW.person_id
+    WHERE
+        community.id = NEW.community_id
+            AND community.id = ca.community_id
+            AND person.local IS NOT NULL;
     ELSIF (TG_OP = 'DELETE') THEN
         UPDATE
-            community_aggregates
+            community_aggregates ca
         SET
-            subscribers = subscribers - 1
+            subscribers = subscribers - community.local::int,
+            subscribers_local = subscribers_local - person.local::int
         FROM
             community
-        WHERE
-            community.id = community_id
-            AND community.local
-            AND community_id = OLD.community_id;
+        LEFT JOIN person ON person.id = OLD.person_id
+    WHERE
+        community.id = OLD.community_id
+            AND community.id = ca.community_id
+            AND person.local IS NOT NULL;
     END IF;
     RETURN NULL;
 END
@@ -981,4 +985,23 @@ CREATE TRIGGER site_aggregates_site
     AFTER INSERT OR DELETE ON site
     FOR EACH ROW
     EXECUTE FUNCTION site_aggregates_site ();
+
+-- Don't defer constraints
+ALTER TABLE comment_aggregates
+    ALTER CONSTRAINT comment_aggregates_comment_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE community_aggregates
+    ALTER CONSTRAINT community_aggregates_community_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE person_aggregates
+    ALTER CONSTRAINT person_aggregates_person_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE post_aggregates
+    ALTER CONSTRAINT post_aggregates_community_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT post_aggregates_creator_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT post_aggregates_instance_id_fkey NOT DEFERRABLE,
+    ALTER CONSTRAINT post_aggregates_post_id_fkey NOT DEFERRABLE;
+
+ALTER TABLE site_aggregates
+    ALTER CONSTRAINT site_aggregates_site_id_fkey NOT DEFERRABLE;
 

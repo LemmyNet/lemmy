@@ -1,9 +1,9 @@
 -- A trigger is associated with a table instead of a schema, so they can't be in the `r` schema. This is
 -- okay if the function specified after `EXECUTE FUNCTION` is in `r`, since dropping the function drops the trigger.
 --
--- `DELETE` triggers can run after after the deletion of a row and before the deletion of rows with a foreign key that
--- references it, so to prevent premature foreign key constraint checks, they must use a join to avoid updating
--- rows that have an invalid foreign key, even if the foreign key is not updated.
+-- Tables that are updated by triggers should not have foreign keys that aren't set to `INITIALLY DEFERRED`
+-- (even if only other columns are updated) because triggers can run after the deletion of referenced rows and
+-- before the automatic deletion of the row that references it. This is not a problem for insert or delete.
 --
 --
 --
@@ -36,7 +36,7 @@ BEGIN
                     FROM (
                         SELECT
                             (thing_like).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows
-                INNER JOIN thing ON thing.id = (thing_like).thing_id GROUP BY (thing_like).thing_id) AS diff
+                GROUP BY (thing_like).thing_id) AS diff
             WHERE
                 a.thing_id = diff.thing_id
             RETURNING
@@ -47,7 +47,7 @@ BEGIN
             thing_score = a.thing_score + diff.score FROM (
                 SELECT
                     creator_id, sum(score) AS score FROM thing_diff
-                INNER JOIN person ON person.id = thing_diff.creator_id GROUP BY creator_id) AS diff
+                GROUP BY creator_id) AS diff
             WHERE
                 a.person_id = diff.creator_id;
                 RETURN NULL;
@@ -74,7 +74,6 @@ BEGIN
         SELECT
             (comment).creator_id, coalesce(sum(count_diff), 0) AS comment_count
         FROM select_old_and_new_rows AS old_and_new_rows
-        INNER JOIN person ON person.id = (comment).creator_id
         WHERE
             r.is_counted (comment)
         GROUP BY (comment).creator_id) AS diff
@@ -92,10 +91,7 @@ FROM (
         select_old_and_new_rows AS old_and_new_rows
     WHERE
         r.is_counted (comment)
-        AND (comment).local) AS diff
-    CROSS JOIN site
-WHERE
-    site.id = a.site_id;
+        AND (comment).local) AS diff;
 
 WITH post_diff AS (
     UPDATE
@@ -129,7 +125,7 @@ WITH post_diff AS (
         r.is_counted (comment)
     GROUP BY
         (comment).post_id) AS diff
-    INNER JOIN post ON post.id = diff.post_id
+    LEFT JOIN post ON post.id = diff.post_id
     WHERE
         a.post_id = diff.post_id
     RETURNING
@@ -146,7 +142,6 @@ FROM (
         sum(comments) AS comments
     FROM
         post_diff
-        INNER JOIN community ON community.id = post_diff.community_id
     WHERE
         post_diff.include_in_community_aggregates
     GROUP BY
@@ -170,7 +165,6 @@ BEGIN
         SELECT
             (post).creator_id, coalesce(sum(count_diff), 0) AS post_count
         FROM select_old_and_new_rows AS old_and_new_rows
-        INNER JOIN person ON person.id = (post).creator_id
         WHERE
             r.is_counted (post)
         GROUP BY (post).creator_id) AS diff
@@ -188,10 +182,7 @@ FROM (
         select_old_and_new_rows AS old_and_new_rows
     WHERE
         r.is_counted (post)
-        AND (post).local) AS diff
-    CROSS JOIN site
-WHERE
-    site.id = a.site_id;
+        AND (post).local) AS diff;
 
 UPDATE
     community_aggregates AS a
@@ -203,7 +194,6 @@ FROM (
         coalesce(sum(count_diff), 0) AS posts
     FROM
         select_old_and_new_rows AS old_and_new_rows
-        INNER JOIN community ON community.id = (post).community_id
     WHERE
         r.is_counted (post)
     GROUP BY
@@ -229,10 +219,7 @@ BEGIN
         FROM select_old_and_new_rows AS old_and_new_rows
         WHERE
             r.is_counted (community)
-            AND (community).local) AS diff
-    CROSS JOIN site
-WHERE
-    site.id = a.site_id;
+            AND (community).local) AS diff;
 
 RETURN NULL;
 
@@ -250,10 +237,7 @@ BEGIN
         SELECT
             coalesce(sum(count_diff), 0) AS users
         FROM select_old_and_new_rows AS old_and_new_rows
-        WHERE (person).local) AS diff
-    CROSS JOIN site
-WHERE
-    site.id = a.site_id;
+        WHERE (person).local) AS diff;
 
 RETURN NULL;
 
@@ -311,8 +295,8 @@ BEGIN
         SELECT
             (community_follower).community_id, coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers, coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local
         FROM select_old_and_new_rows AS old_and_new_rows
-        INNER JOIN community ON community.id = (community_follower).community_id
-        INNER JOIN person ON person.id = (community_follower).person_id GROUP BY (community_follower).community_id) AS diff
+        LEFT JOIN community ON community.id = (community_follower).community_id
+        LEFT JOIN person ON person.id = (community_follower).person_id GROUP BY (community_follower).community_id) AS diff
 WHERE
     a.community_id = diff.community_id;
 

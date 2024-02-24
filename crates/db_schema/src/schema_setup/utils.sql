@@ -22,8 +22,8 @@ CREATE FUNCTION r.is_counted (item record)
     IMMUTABLE PARALLEL SAFE
     AS $$
 BEGIN
-    RETURN NOT (item.deleted
-        OR item.removed);
+    RETURN COALESCE(NOT (item.deleted
+        OR item.removed), FALSE);
 END;
 $$;
 
