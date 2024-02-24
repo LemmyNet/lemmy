@@ -264,6 +264,8 @@ impl Post {
   }
 }
 
+// TODO: replace `as_select_unwrap` definitions with `Default::default()` after next Diesel release which should
+// implement `Default` for `AssumeNotNull`
 impl PostLike {
   fn as_select_unwrap() -> (
     post_actions::post_id,
@@ -312,6 +314,20 @@ impl Likeable for PostLike {
   }
 }
 
+impl PostSaved {
+  fn as_select_unwrap() -> (
+    post_actions::post_id,
+    post_actions::person_id,
+    dsl::AssumeNotNull<post_actions::saved>,
+  ) {
+    (
+      post_actions::post_id,
+      post_actions::person_id,
+      post_actions::saved.assume_not_null(),
+    )
+  }
+}
+
 #[async_trait]
 impl Saveable for PostSaved {
   type Form = PostSavedForm;
@@ -323,6 +339,7 @@ impl Saveable for PostSaved {
       .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(post_saved_form)
+      .returning(PostSaved::as_select_unwrap())
       .get_result::<Self>(conn)
       .await
   }
