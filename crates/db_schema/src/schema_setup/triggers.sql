@@ -421,16 +421,13 @@ CREATE FUNCTION r.site_aggregates_from_site ()
     LANGUAGE plpgsql
     AS $$
 BEGIN
+    -- only 1 row can be in site_aggregates because of the index idx_site_aggregates_1_row_only.
     -- we only ever want to have a single value in site_aggregate because the site_aggregate triggers update all rows in that table.
     -- a cleaner check would be to insert it for the local_site but that would break assumptions at least in the tests
-    IF (NOT EXISTS (
-        SELECT
-            1
-        FROM
-            site_aggregates)) THEN
-        INSERT INTO site_aggregates (site_id)
-            VALUES (NEW.id);
-    END IF;
+    INSERT INTO site_aggregates (site_id)
+        VALUES (NEW.id)
+    ON CONFLICT ((TRUE))
+        DO NOTHING;
     RETURN NULL;
 END;
 $$;

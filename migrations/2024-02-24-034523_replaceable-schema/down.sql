@@ -1,5 +1,7 @@
 DROP SCHEMA IF EXISTS r CASCADE;
 
+DROP INDEX idx_site_aggregates_1_row_only;
+
 CREATE FUNCTION comment_aggregates_comment ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
