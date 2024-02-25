@@ -178,6 +178,7 @@ steps:
       - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
       - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
       - apt update && apt install -y postgresql-client-16
+      - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
       - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f before.sqldump
       # Make sure that the newest migration is revertable without the `r` schema
       - diesel migration redo
@@ -188,6 +189,7 @@ steps:
       # Make sure that the newest migration is revertable with the `r` schema
       - diesel migration redo
       # Check for changes in the schema, which would be caused by an incorrect migration
+      - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
       - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f after.sqldump
       - diff before.sqldump after.sqldump
     when: *slow_check_paths
