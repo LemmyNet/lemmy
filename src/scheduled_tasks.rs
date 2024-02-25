@@ -325,7 +325,7 @@ async fn delete_old_denied_users(pool: &mut DbPool<'_>) {
     .inspect(|_| {
       info!("Done.");
     })
-    .inspect(|e| error!("Failed to deleted old denied users: {e:?}"))
+    .inspect(|e| error!("Failed to deleted old denied users: {e}"))
     .ok();
 }
 
