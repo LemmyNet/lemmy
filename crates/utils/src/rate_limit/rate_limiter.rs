@@ -6,6 +6,7 @@ use std::{
   net::{IpAddr, Ipv4Addr, Ipv6Addr},
   time::Instant,
 };
+use strum_macros::AsRefStr;
 use tracing::debug;
 
 static START_TIME: Lazy<Instant> = Lazy::new(Instant::now);

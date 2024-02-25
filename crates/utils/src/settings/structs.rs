@@ -1,5 +1,6 @@
 use doku::Document;
 use serde::{Deserialize, Serialize};
+use smart_default::SmartDefault;
 use std::{
   env,
   net::{IpAddr, Ipv4Addr},
