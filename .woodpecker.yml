@@ -201,6 +201,10 @@ steps:
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
+      - cargo test --workspace --no-fail-fast
+      - cargo test --workspace --no-fail-fast
+      - cargo test --workspace --no-fail-fast
+      - cargo test --workspace --no-fail-fast
     when: *slow_check_paths
 
   run_federation_tests:
