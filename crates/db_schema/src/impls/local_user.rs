@@ -98,55 +98,60 @@ impl LocalUser {
   ) -> Result<UserBackupLists, Error> {
     use crate::schema::{
       comment,
-      comment_saved,
+      comment_actions,
       community,
-      community_block,
-      community_follower,
+      community_actions,
       instance,
-      instance_block,
-      person_block,
+      instance_actions,
+      person_actions,
       post,
-      post_saved,
+      post_actions,
     };
     let conn = &mut get_conn(pool).await?;
 
-    let followed_communities = community_follower::dsl::community_follower
-      .filter(community_follower::person_id.eq(person_id_))
-      .inner_join(community::table.on(community_follower::community_id.eq(community::id)))
+    let followed_communities = community_actions::table
+      .filter(community_actions::person_id.eq(person_id_))
+      .filter(community_actions::followed.is_not_null())
+      .inner_join(community::table.on(community_actions::community_id.eq(community::id)))
       .select(community::actor_id)
       .get_results(conn)
       .await?;
 
-    let saved_posts = post_saved::dsl::post_saved
-      .filter(post_saved::person_id.eq(person_id_))
-      .inner_join(post::table.on(post_saved::post_id.eq(post::id)))
+    let saved_posts = post_actions::table
+      .filter(post_actions::person_id.eq(person_id_))
+      .filter(post_actions::saved.is_not_null())
+      .inner_join(post::table.on(post_actions::post_id.eq(post::id)))
       .select(post::ap_id)
       .get_results(conn)
       .await?;
 
-    let saved_comments = comment_saved::dsl::comment_saved
-      .filter(comment_saved::person_id.eq(person_id_))
-      .inner_join(comment::table.on(comment_saved::comment_id.eq(comment::id)))
+    let saved_comments = comment_actions::table
+      .filter(comment_actions::person_id.eq(person_id_))
+      .filter(comment_actions::saved.is_not_null())
+      .inner_join(comment::table.on(comment_actions::comment_id.eq(comment::id)))
       .select(comment::ap_id)
       .get_results(conn)
       .await?;
 
-    let blocked_communities = community_block::dsl::community_block
-      .filter(community_block::person_id.eq(person_id_))
+    let blocked_communities = community_actions::table
+      .filter(community_actions::person_id.eq(person_id_))
+      .filter(community_actions::blocked.is_not_null())
       .inner_join(community::table)
       .select(community::actor_id)
       .get_results(conn)
       .await?;
 
-    let blocked_users = person_block::dsl::person_block
-      .filter(person_block::person_id.eq(person_id_))
-      .inner_join(person::table.on(person_block::target_id.eq(person::id)))
+    let blocked_users = person_actions::table
+      .filter(person_actions::person_id.eq(person_id_))
+      .filter(person_actions::blocked.is_not_null())
+      .inner_join(person::table.on(person_actions::target_id.eq(person::id)))
       .select(person::actor_id)
       .get_results(conn)
       .await?;
 
-    let blocked_instances = instance_block::dsl::instance_block
-      .filter(instance_block::person_id.eq(person_id_))
+    let blocked_instances = instance_actions::table
+      .filter(instance_actions::person_id.eq(person_id_))
+      .filter(instance_actions::blocked.is_not_null())
       .inner_join(instance::table)
       .select(instance::domain)
       .get_results(conn)
