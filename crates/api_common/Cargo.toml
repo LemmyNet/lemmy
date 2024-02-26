@@ -23,7 +23,7 @@ full = [
   "lemmy_db_views/full",
   "lemmy_db_views_actor/full",
   "lemmy_db_views_moderator/full",
-  "lemmy_utils/default",
+  "lemmy_utils/full",
   "activitypub_federation",
   "encoding",
   "reqwest-middleware",

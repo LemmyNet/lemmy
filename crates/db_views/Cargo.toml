@@ -29,7 +29,7 @@ full = [
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
-lemmy_utils = { workspace = true, optional = true, features = ["default"] }
+lemmy_utils = { workspace = true, optional = true }
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
