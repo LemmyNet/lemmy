@@ -306,9 +306,9 @@ impl CommunityLanguage {
             // tracing::warn!("unique error: {_info:#?}");
             // _info.constraint_name() should be = "community_language_community_id_language_id_key"
             return Ok(());
-          } else {
-            insert_res?;
           }
+          insert_res?;
+
           Ok(())
         }) as _
       })
@@ -391,27 +391,13 @@ mod tests {
 
   use super::*;
   use crate::{
-    impls::actor_language::{
-      convert_read_languages,
-      convert_update_languages,
-      default_post_language,
-      get_conn,
-      CommunityLanguage,
-      DbPool,
-      Language,
-      LanguageId,
-      LocalUserLanguage,
-      QueryDsl,
-      RunQueryDsl,
-      SiteLanguage,
-    },
     source::{
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_site::{LocalSite, LocalSiteInsertForm},
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
-      site::{Site, SiteInsertForm},
+      site::SiteInsertForm,
     },
     traits::Crud,
     utils::build_db_pool_for_tests,

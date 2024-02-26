@@ -123,10 +123,7 @@ pub(crate) mod tests {
   use crate::protocol::objects::{group::Group, tombstone::Tombstone};
   use actix_web::body::to_bytes;
   use lemmy_db_schema::{
-    source::{
-      community::{Community, CommunityInsertForm},
-      instance::Instance,
-    },
+    source::{community::CommunityInsertForm, instance::Instance},
     traits::Crud,
     CommunityVisibility,
   };
