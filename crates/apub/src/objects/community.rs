@@ -166,7 +166,7 @@ impl Object for ApubCommunity {
       moderators_url: group.attributed_to.clone().map(Into::into),
       posting_restricted_to_mods: group.posting_restricted_to_mods,
       instance_id,
-      featured_url: group.featured.map(Into::into),
+      featured_url: group.featured.clone().map(Into::into),
       ..Default::default()
     };
     let languages =
@@ -184,6 +184,9 @@ impl Object for ApubCommunity {
     spawn_try_task(async move {
       group.outbox.dereference(&community_, &context_).await?;
       group.followers.dereference(&community_, &context_).await?;
+      if let Some(featured) = group.featured {
+        featured.dereference(&community_, &context_).await?;
+      }
       if let Some(moderators) = group.attributed_to {
         moderators.dereference(&community_, &context_).await?;
       }
@@ -254,7 +257,7 @@ pub(crate) mod tests {
     protocol::tests::file_to_json_object,
   };
   use activitypub_federation::fetch::collection_id::CollectionId;
-  use lemmy_db_schema::{source::site::Site, traits::Crud};
+  use lemmy_db_schema::source::site::Site;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

@@ -248,9 +248,8 @@ pub fn limit_and_offset(
     Some(page) => {
       if page < 1 {
         return Err(QueryBuilderError("Page is < 1".into()));
-      } else {
-        page
       }
+      page
     }
     None => 1,
   };
@@ -260,9 +259,8 @@ pub fn limit_and_offset(
         return Err(QueryBuilderError(
           format!("Fetch limit is > {FETCH_LIMIT_MAX}").into(),
         ));
-      } else {
-        limit
       }
+      limit
     }
     None => FETCH_LIMIT_DEFAULT,
   };
@@ -542,8 +540,7 @@ mod tests {
   #![allow(clippy::unwrap_used)]
   #![allow(clippy::indexing_slicing)]
 
-  use super::{fuzzy_search, *};
-  use crate::utils::is_email_regex;
+  use super::*;
   use pretty_assertions::assert_eq;
 
   #[test]

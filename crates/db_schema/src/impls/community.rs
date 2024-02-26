@@ -14,6 +14,7 @@ use crate::{
       CommunityPersonBanForm,
       CommunityUpdateForm,
     },
+    post::Post,
   },
   traits::{ApubActor, Bannable, Crud, Followable, Joinable},
   utils::{functions::lower, get_conn, DbPool},
@@ -27,6 +28,7 @@ use diesel::{
   result::Error,
   select,
   sql_types,
+  update,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
@@ -136,6 +138,42 @@ impl Community {
       return Ok((c, Featured));
     }
     Err(diesel::NotFound)
+  }
+
+  pub async fn set_featured_posts(
+    community_id: CommunityId,
+    posts: Vec<Post>,
+    pool: &mut DbPool<'_>,
+  ) -> Result<(), Error> {
+    use crate::schema::post;
+    let conn = &mut get_conn(pool).await?;
+    for p in &posts {
+      debug_assert!(p.community_id == community_id);
+    }
+    conn
+      .build_transaction()
+      .run(|conn| {
+        Box::pin(async move {
+          update(
+            // first remove all existing featured posts
+            post::table,
+          )
+          .filter(post::dsl::community_id.eq(community_id))
+          .set(post::dsl::featured_community.eq(false))
+          .execute(conn)
+          .await?;
+
+          // then mark the given posts as featured
+          let post_ids: Vec<_> = posts.iter().map(|p| p.id).collect();
+          update(post::table)
+            .filter(post::dsl::id.eq_any(post_ids))
+            .set(post::dsl::featured_community.eq(true))
+            .execute(conn)
+            .await?;
+          Ok(())
+        }) as _
+      })
+      .await
   }
 }
 
