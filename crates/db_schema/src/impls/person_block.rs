@@ -1,28 +1,48 @@
 use crate::{
   newtypes::PersonId,
-  schema::person_block::dsl::{person_block, person_id, target_id},
+  schema::person_actions,
   source::person_block::{PersonBlock, PersonBlockForm},
   traits::Blockable,
-  utils::{get_conn, DbPool},
+  utils::{get_conn, now, DbPool},
 };
+use chrono::{DateTime, Utc};
 use diesel::{
+  dsl,
   dsl::{exists, insert_into},
   result::Error,
   select,
+  ExpressionMethods,
+  NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 
 impl PersonBlock {
+  fn as_select_unwrap() -> (
+    person_actions::person_id,
+    person_actions::target_id,
+    dsl::AssumeNotNull<person_actions::blocked>,
+  ) {
+    (
+      person_actions::person_id,
+      person_actions::target_id,
+      person_actions::blocked.assume_not_null(),
+    )
+  }
+
   pub async fn read(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
     for_recipient_id: PersonId,
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(person_block.find((for_person_id, for_recipient_id))))
-      .get_result(conn)
-      .await
+    select(exists(
+      person_actions::table
+        .find((for_person_id, for_recipient_id))
+        .filter(person_actions::blocked.is_not_null()),
+    ))
+    .get_result(conn)
+    .await
   }
 }
 
@@ -34,18 +54,26 @@ impl Blockable for PersonBlock {
     person_block_form: &PersonBlockForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(person_block)
+    let person_block_form = (
+      person_block_form,
+      person_actions::blocked.eq(now().nullable()),
+    );
+    insert_into(person_actions::table)
       .values(person_block_form)
-      .on_conflict((person_id, target_id))
+      .on_conflict((person_actions::person_id, person_actions::target_id))
       .do_update()
       .set(person_block_form)
+      .returning(Self::as_select_unwrap())
       .get_result::<Self>(conn)
       .await
   }
   async fn unblock(pool: &mut DbPool<'_>, person_block_form: &Self::Form) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(person_block.find((person_block_form.person_id, person_block_form.target_id)))
-      .execute(conn)
-      .await
+    diesel::update(
+      person_actions::table.find((person_block_form.person_id, person_block_form.target_id)),
+    )
+    .set(person_actions::blocked.eq(None::<DateTime<Utc>>))
+    .execute(conn)
+    .await
   }
 }
