@@ -12,14 +12,9 @@ cfg_if! {
     pub mod settings;
     pub mod utils;
     pub mod version;
+    pub use error::LemmyErrorType;
   } else {
     mod error;
-  }
-}
-
-cfg_if! {
-    if #[cfg(feature = "error-type")] {
-    pub use error::LemmyErrorType;
   }
 }
 

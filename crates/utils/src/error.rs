@@ -6,8 +6,8 @@ use strum_macros::{Display, EnumIter};
 use ts_rs::TS;
 
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 #[serde(tag = "error", content = "message", rename_all = "snake_case")]
 #[non_exhaustive]
 // TODO: order these based on the crate they belong to (utils, federation, db, api)

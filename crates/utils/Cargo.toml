@@ -23,7 +23,8 @@ workspace = true
 
 [features]
 default = [
-  "error-type",
+  "dep:serde",
+  "dep:strum",
   "dep:serde_json",
   "dep:anyhow",
   "dep:tracing-error",
@@ -53,7 +54,6 @@ default = [
 
 ]
 full = ["default", "dep:ts-rs"]
-error-type = ["dep:serde", "dep:strum"]
 
 [dependencies]
 regex = { workspace = true, optional = true }
