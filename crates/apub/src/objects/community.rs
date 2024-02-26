@@ -254,7 +254,7 @@ pub(crate) mod tests {
     protocol::tests::file_to_json_object,
   };
   use activitypub_federation::fetch::collection_id::CollectionId;
-  use lemmy_db_schema::{source::site::Site, traits::Crud};
+  use lemmy_db_schema::source::site::Site;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

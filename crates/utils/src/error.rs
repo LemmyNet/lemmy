@@ -2,7 +2,7 @@ use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use strum_macros::{Display, EnumIter};
-#[cfg(feature = "full")]
+#[cfg(feature = "ts-rs")]
 use ts_rs::TS;
 
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]

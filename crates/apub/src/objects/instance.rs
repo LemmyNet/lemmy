@@ -218,7 +218,6 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
 pub(crate) mod tests {
   use super::*;
   use crate::protocol::tests::file_to_json_object;
-  use lemmy_db_schema::traits::Crud;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
