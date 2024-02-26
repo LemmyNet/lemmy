@@ -15,7 +15,7 @@ use mime::Mime;
 use reqwest::{header::CONTENT_TYPE, Client, ClientBuilder};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
-use tracing::{info, warn};
+use tracing::info;
 use url::Url;
 use urlencoding::encode;
 use webpage::HTML;
@@ -54,7 +54,7 @@ pub async fn fetch_link_metadata(
   let html_bytes = response.bytes().await.map_err(LemmyError::from)?.to_vec();
 
   let opengraph_data = extract_opengraph_data(&html_bytes, url)
-    .map_err(|e| warn!("{e}"))
+    .map_err(|e| info!("{e}"))
     .unwrap_or_default();
   let thumbnail = extract_thumbnail_from_opengraph_data(
     url,
