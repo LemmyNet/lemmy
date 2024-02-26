@@ -37,9 +37,11 @@ import {
   waitForPost,
   alphaUrl,
   loginUser,
+  createCommunity,
+  getPosts,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
-import { EditSite, ResolveObject } from "lemmy-js-client";
+import { EditSite, ListingType, ResolveObject } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 
@@ -223,6 +225,24 @@ test("Sticky a post", async () => {
   let betaPost3 = (await resolvePost(beta, postRes.post_view.post)).post;
   expect(gammaTrySticky.post_view.post.featured_community).toBe(true);
   expect(betaPost3?.post.featured_community).toBe(false);
+});
+
+
+test("Collection of featured posts gets federated", async () => {
+  // create a new community and feature a post
+  let community = await createCommunity(alpha);
+  let post = await createPost(alpha,community.community_view.community.id);
+  let featuredPost = await featurePost(alpha, true, post.post_view.post);
+  expect(featuredPost.post_view.post.featured_community).toBe(true);
+
+  // fetch the community, ensure that post is also fetched and marked as featured
+  let betaCommunity = (await resolveCommunity(beta, community.community_view.community.actor_id));
+
+  const betaPost = await waitForPost(
+    beta,
+    post.post_view.post,
+    post => post?.post.featured_community === true,
+  );
 });
 
 test("Lock a post", async () => {
