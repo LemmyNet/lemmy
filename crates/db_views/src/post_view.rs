@@ -5,16 +5,8 @@ use diesel::{
   pg::Pg,
   query_builder::AsQuery,
   result::Error,
-  sql_types,
-  BoolExpressionMethods,
-  BoxableExpression,
-  ExpressionMethods,
-  IntoSql,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  OptionalExtension,
-  PgTextExpressionMethods,
-  QueryDsl,
+  sql_types, BoolExpressionMethods, BoxableExpression, ExpressionMethods, IntoSql, JoinOnDsl,
+  NullableExpressionMethods, OptionalExtension, PgTextExpressionMethods, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
@@ -22,41 +14,16 @@ use lemmy_db_schema::{
   aggregates::structs::{post_aggregates_keys as key, PostAggregates},
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
-    community,
-    community_block,
-    community_follower,
-    community_moderator,
-    community_person_ban,
-    instance_block,
-    local_user,
-    local_user_language,
-    person,
-    person_block,
-    person_post_aggregates,
-    post,
-    post_aggregates,
-    post_like,
-    post_read,
-    post_saved,
+    community, community_block, community_follower, community_moderator, community_person_ban,
+    instance_block, local_user, local_user_language, person, person_block, person_post_aggregates,
+    post, post_aggregates, post_like, post_read, post_saved,
   },
   source::site::Site,
   utils::{
-    functions::coalesce,
-    fuzzy_search,
-    get_conn,
-    limit_and_offset,
-    now,
-    Commented,
-    DbConn,
-    DbPool,
-    ListFn,
-    Queries,
-    ReadFn,
-    ReverseTimestampKey,
+    functions::coalesce, fuzzy_search, get_conn, limit_and_offset, now, Commented, DbConn, DbPool,
+    ListFn, Queries, ReadFn, ReverseTimestampKey,
   },
-  CommunityVisibility,
-  ListingType,
-  SortType,
+  CommunityVisibility, ListingType, SortType,
 };
 use tracing::debug;
 
@@ -470,6 +437,11 @@ fn queries<'a>() -> Queries<
         .before_or_equal(page_before_or_equal);
     }
 
+    // If its saved_only, then order by the saved time, not the post_aggregates times.
+    // if options.saved_only {
+    //   query = query.order_by(post_saved::published.desc());
+    // }
+
     // featured posts first
     query = if options.community_id.is_none() || options.community_id_just_for_prefetch {
       query.then_desc(key::featured_local)
@@ -613,9 +585,7 @@ impl<'a> PostQuery<'a> {
     use lemmy_db_schema::schema::{
       community_aggregates::dsl::{community_aggregates, community_id, users_active_month},
       community_follower::dsl::{
-        community_follower,
-        community_id as follower_community_id,
-        person_id,
+        community_follower, community_id as follower_community_id, person_id,
       },
     };
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
@@ -713,10 +683,7 @@ mod tests {
       actor_language::LocalUserLanguage,
       comment::{Comment, CommentInsertForm},
       community::{
-        Community,
-        CommunityInsertForm,
-        CommunityModerator,
-        CommunityModeratorForm,
+        Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm,
         CommunityUpdateForm,
       },
       community_block::{CommunityBlock, CommunityBlockForm},
@@ -731,9 +698,7 @@ mod tests {
     },
     traits::{Blockable, Crud, Joinable, Likeable},
     utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
-    CommunityVisibility,
-    SortType,
-    SubscribedType,
+    CommunityVisibility, SortType, SubscribedType,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

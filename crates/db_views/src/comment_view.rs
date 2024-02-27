@@ -1,43 +1,23 @@
 use crate::structs::{CommentView, LocalUserView};
+use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{exists, not},
   pg::Pg,
   result::Error,
-  sql_types,
-  BoolExpressionMethods,
-  BoxableExpression,
-  ExpressionMethods,
-  IntoSql,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  PgTextExpressionMethods,
-  QueryDsl,
+  sql_types, BoolExpressionMethods, BoxableExpression, ExpressionMethods, IntoSql, JoinOnDsl,
+  NullableExpressionMethods, PgTextExpressionMethods, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
-    comment,
-    comment_aggregates,
-    comment_like,
-    comment_saved,
-    community,
-    community_block,
-    community_follower,
-    community_moderator,
-    community_person_ban,
-    instance_block,
-    local_user,
-    local_user_language,
-    person,
-    person_block,
-    post,
+    comment, comment_aggregates, comment_like, comment_saved, community, community_block,
+    community_follower, community_moderator, community_person_ban, instance_block, local_user,
+    local_user_language, person, person_block, post,
   },
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
-  CommentSortType,
-  CommunityVisibility,
-  ListingType,
+  CommentSortType, CommunityVisibility, ListingType,
 };
 
 fn queries<'a>() -> Queries<
@@ -53,13 +33,14 @@ fn queries<'a>() -> Queries<
   );
 
   let is_saved = |person_id| {
-    exists(
-      comment_saved::table.filter(
+    comment_saved::table
+      .filter(
         comment::id
           .eq(comment_saved::comment_id)
           .and(comment_saved::person_id.eq(person_id)),
-      ),
-    )
+      )
+      .select((comment_saved::comment_id, comment_saved::published).nullable())
+      .single_value()
   };
 
   let is_community_followed = |person_id| {
@@ -129,14 +110,25 @@ fn queries<'a>() -> Queries<
       Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
     };
 
-    let is_saved_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if saved_only {
-        Box::new(true.into_sql::<sql_types::Bool>())
-      } else if let Some(person_id) = my_person_id {
-        Box::new(is_saved(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
+    let is_saved_selection: Box<
+      dyn BoxableExpression<
+        _,
+        Pg,
+        SqlType = sql_types::Nullable<(sql_types::Integer, sql_types::Timestamptz)>,
+      >,
+    > = if saved_only {
+      Box::new(
+        None::<(i32, DateTime<Utc>)>
+          .into_sql::<sql_types::Nullable<(sql_types::Integer, sql_types::Timestamptz)>>(),
+      )
+    } else if let Some(person_id) = my_person_id {
+      Box::new(is_saved(person_id))
+    } else {
+      Box::new(
+        None::<(i32, DateTime<Utc>)>
+          .into_sql::<sql_types::Nullable<(sql_types::Integer, sql_types::Timestamptz)>>(),
+      )
+    };
 
     let is_creator_blocked_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
       if let Some(person_id) = my_person_id {
@@ -244,7 +236,8 @@ fn queries<'a>() -> Queries<
     }
 
     if options.saved_only {
-      query = query.filter(is_saved(person_id_join));
+      // query = query.filter(exists(is_saved(person_id_join)));
+      // .then_order_by(comment_saved::published.desc());
     }
 
     if options.liked_only {
@@ -415,10 +408,7 @@ mod tests {
       actor_language::LocalUserLanguage,
       comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
       community::{
-        Community,
-        CommunityInsertForm,
-        CommunityModerator,
-        CommunityModeratorForm,
+        Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm,
         CommunityUpdateForm,
       },
       instance::Instance,
@@ -430,8 +420,7 @@ mod tests {
     },
     traits::{Blockable, Crud, Joinable, Likeable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
-    CommunityVisibility,
-    SubscribedType,
+    CommunityVisibility, SubscribedType,
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -1015,6 +1004,7 @@ mod tests {
         creator_id: data.timmy_local_user_view.person.id,
         url: None,
         body: None,
+        alt_text: None,
         published: data.inserted_post.published,
         updated: None,
         community_id: data.inserted_community.id,
