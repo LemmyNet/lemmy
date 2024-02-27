@@ -127,6 +127,7 @@ impl Object for ApubPost {
       cc: vec![],
       name: Some(self.name.clone()),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
+      alt_text: self.alt_text.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
       source: self.body.clone().map(Source::new),
       attachment,
@@ -234,6 +235,7 @@ impl Object for ApubPost {
 
       let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
       let body = process_markdown_opt(&body, slur_regex, context).await?;
+      let alt_text = process_markdown_opt(&page.alt_text, slur_regex, context).await?;
       let language_id =
         LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 
@@ -241,6 +243,7 @@ impl Object for ApubPost {
         name,
         url: url.map(Into::into),
         body,
+        alt_text,
         creator_id: creator.id,
         community_id: community.id,
         removed: None,

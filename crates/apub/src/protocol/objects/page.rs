@@ -52,6 +52,7 @@ pub struct Page {
   #[serde(deserialize_with = "deserialize_one_or_many", default)]
   pub(crate) cc: Vec<Url>,
   pub(crate) content: Option<String>,
+  pub(crate) alt_text: Option<String>,
   pub(crate) media_type: Option<MediaTypeMarkdownOrHtml>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,

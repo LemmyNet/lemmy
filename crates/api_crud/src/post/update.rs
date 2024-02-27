@@ -48,12 +48,14 @@ pub async fn update_post(
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs_opt(&data.name, &slur_regex)?;
   let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
+  let alt_text = process_markdown_opt(&data.alt_text, &slur_regex, &context).await?;
 
   if let Some(name) = &data.name {
     is_valid_post_title(name)?;
   }
 
   is_valid_body_field(&body, true)?;
+  is_valid_body_field(&alt_text, false)?;
   check_url_scheme(&url)?;
   check_url_scheme(&custom_thumbnail)?;
 
@@ -116,6 +118,7 @@ pub async fn update_post(
     name: data.name.clone(),
     url,
     body: diesel_option_overwrite(body),
+    alt_text: diesel_option_overwrite(alt_text),
     nsfw: data.nsfw,
     embed_title,
     embed_description,

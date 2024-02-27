@@ -1490,6 +1490,7 @@ mod tests {
         creator_id: inserted_person.id,
         url: None,
         body: None,
+        alt_text: None,
         published: inserted_post.published,
         updated: None,
         community_id: inserted_community.id,

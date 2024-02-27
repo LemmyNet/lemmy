@@ -50,10 +50,13 @@ pub async fn create_post(
 ) -> Result<Json<PostResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
+  honeypot_check(&data.honeypot)?;
+
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.name, &slur_regex)?;
+
   let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
-  honeypot_check(&data.honeypot)?;
+  let alt_text = process_markdown_opt(&data.alt_text, &slur_regex, &context).await?;
 
   let data_url = data.url.as_ref();
   let url = data_url.map(clean_url_params); // TODO no good way to handle a "clear"
@@ -61,6 +64,7 @@ pub async fn create_post(
 
   is_valid_post_title(&data.name)?;
   is_valid_body_field(&body, true)?;
+  is_valid_body_field(&alt_text, false)?;
   check_url_scheme(&url)?;
   check_url_scheme(&custom_thumbnail)?;
 
@@ -124,6 +128,7 @@ pub async fn create_post(
     .name(data.name.trim().to_string())
     .url(url)
     .body(body)
+    .alt_text(alt_text)
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)

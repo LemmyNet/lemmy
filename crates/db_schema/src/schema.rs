@@ -705,6 +705,7 @@ diesel::table! {
         featured_community -> Bool,
         featured_local -> Bool,
         url_content_type -> Nullable<Text>,
+        alt_text -> Nullable<Text>,
     }
 }
 

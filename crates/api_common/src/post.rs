@@ -24,6 +24,8 @@ pub struct CreatePost {
   pub url: Option<Url>,
   /// An optional body for the post in markdown.
   pub body: Option<String>,
+  /// An optional alt_text, usable for image posts.
+  pub alt_text: Option<String>,
   /// A honeypot to catch bots. Should be None.
   pub honeypot: Option<String>,
   pub nsfw: Option<bool>,
@@ -115,6 +117,8 @@ pub struct EditPost {
   pub url: Option<Url>,
   /// An optional body for the post in markdown.
   pub body: Option<String>,
+  /// An optional alt_text, usable for image posts.
+  pub alt_text: Option<String>,
   pub nsfw: Option<bool>,
   pub language_id: Option<LanguageId>,
   #[cfg_attr(feature = "full", ts(type = "string"))]

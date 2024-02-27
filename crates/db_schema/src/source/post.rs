@@ -56,6 +56,8 @@ pub struct Post {
   /// Whether the post is featured to its site.
   pub featured_local: bool,
   pub url_content_type: Option<String>,
+  /// An optional alt_text, usable for image posts.
+  pub alt_text: Option<String>,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]
@@ -87,6 +89,7 @@ pub struct PostInsertForm {
   pub featured_community: Option<bool>,
   pub featured_local: Option<bool>,
   pub url_content_type: Option<String>,
+  pub alt_text: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -112,6 +115,7 @@ pub struct PostUpdateForm {
   pub featured_community: Option<bool>,
   pub featured_local: Option<bool>,
   pub url_content_type: Option<String>,
+  pub alt_text: Option<Option<String>>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
