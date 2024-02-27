@@ -13,42 +13,82 @@ name = "lemmy_utils"
 path = "src/lib.rs"
 doctest = false
 
+[[bin]]
+name = "lemmy_util_bin"
+path = "src/main.rs"
+required-features = ["default"]
+
 [lints]
 workspace = true
 
 [features]
-full = ["ts-rs"]
+default = [
+  "error-type",
+  "dep:serde_json",
+  "dep:anyhow",
+  "dep:tracing-error",
+  "dep:diesel",
+  "dep:http",
+  "dep:actix-web",
+  "dep:reqwest-middleware",
+  "dep:tracing",
+  "dep:actix-web",
+  "dep:deser-hjson",
+  "dep:regex",
+  "dep:urlencoding",
+  "dep:doku",
+  "dep:url",
+  "dep:once_cell",
+  "dep:smart-default",
+  "dep:enum-map",
+  "dep:futures",
+  "dep:tokio",
+  "dep:openssl",
+  "dep:html2text",
+  "dep:lettre",
+  "dep:uuid",
+  "dep:rosetta-i18n",
+  "dep:itertools",
+  "dep:markdown-it",
+
+]
+full = ["default", "dep:ts-rs"]
+error-type = ["dep:serde", "dep:strum"]
 
 [dependencies]
-regex = { workspace = true }
-tracing = { workspace = true }
-tracing-error = { workspace = true }
-itertools = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-once_cell = { workspace = true }
-url = { workspace = true }
-actix-web = { workspace = true }
-anyhow = { workspace = true }
-reqwest-middleware = { workspace = true }
-strum = { workspace = true }
+regex = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+tracing-error = { workspace = true, optional = true }
+itertools = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+once_cell = { workspace = true, optional = true }
+url = { workspace = true, optional = true }
+actix-web = { workspace = true, optional = true }
+anyhow = { workspace = true, optional = true }
+reqwest-middleware = { workspace = true, optional = true }
+strum = { workspace = true, optional = true }
 strum_macros = { workspace = true }
-futures = { workspace = true }
-diesel = { workspace = true, features = ["chrono"] }
-http = { workspace = true }
-doku = { workspace = true, features = ["url-2"] }
-uuid = { workspace = true, features = ["serde", "v4"] }
-rosetta-i18n = { workspace = true }
-tokio = { workspace = true }
-urlencoding = { workspace = true }
-openssl = "0.10.63"
-html2text = "0.6.0"
-deser-hjson = "2.2.4"
-smart-default = "0.7.1"
-lettre = { version = "0.11.3", features = ["tokio1", "tokio1-native-tls"] }
-markdown-it = "0.6.0"
+futures = { workspace = true, optional = true }
+diesel = { workspace = true, features = ["chrono"], optional = true }
+http = { workspace = true, optional = true }
+doku = { workspace = true, features = ["url-2"], optional = true }
+uuid = { workspace = true, features = ["serde", "v4"], optional = true }
+rosetta-i18n = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+urlencoding = { workspace = true, optional = true }
+openssl = { version = "0.10.63", optional = true }
+html2text = { version = "0.6.0", optional = true }
+deser-hjson = { version = "2.2.4", optional = true }
+smart-default = { version = "0.7.1", optional = true }
+lettre = { version = "0.11.3", features = [
+  "tokio1",
+  "tokio1-native-tls",
+], optional = true }
+markdown-it = { version = "0.6.0", optional = true }
 ts-rs = { workspace = true, optional = true }
-enum-map = { workspace = true }
+enum-map = { workspace = true, optional = true }
+cfg-if = "1"
 
 [dev-dependencies]
 reqwest = { workspace = true }

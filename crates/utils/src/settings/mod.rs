@@ -1,8 +1,4 @@
-use crate::{
-  error::LemmyError,
-  location_info,
-  settings::structs::{PictrsConfig, Settings},
-};
+use crate::{error::LemmyError, location_info};
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
 use once_cell::sync::Lazy;
@@ -12,8 +8,7 @@ use urlencoding::encode;
 
 pub mod structs;
 
-use crate::settings::structs::PictrsImageMode;
-use structs::DatabaseConnection;
+use structs::{DatabaseConnection, PictrsConfig, PictrsImageMode, Settings};
 
 static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
