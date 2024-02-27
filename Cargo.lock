@@ -2555,7 +2555,6 @@ dependencies = [
  "captcha",
  "chrono",
  "elementtree",
- "itertools 0.12.0",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",

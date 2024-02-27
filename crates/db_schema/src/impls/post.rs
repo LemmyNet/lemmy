@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::{community, post},
+  schema::post,
   source::post::{
     Post,
     PostInsertForm,
@@ -235,22 +235,6 @@ impl Post {
     ))
     .get_results::<Self>(conn)
     .await
-  }
-
-  /// Lists local community ids for all posts for a given creator.
-  pub async fn list_creators_local_community_ids(
-    pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
-  ) -> Result<Vec<CommunityId>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    post::table
-      .inner_join(community::table)
-      .filter(community::local.eq(true))
-      .filter(post::creator_id.eq(for_creator_id))
-      .select(community::id)
-      .distinct()
-      .load::<CommunityId>(conn)
-      .await
   }
 }
 

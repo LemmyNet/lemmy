@@ -1,4 +1,4 @@
-use crate::send_bans_and_removals_to_local_communities;
+use crate::ban_nonlocal_user_from_local_communities;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
@@ -72,14 +72,18 @@ pub async fn ban_from_site(
 
   let person_view = PersonView::read(&mut context.pool(), person.id).await?;
 
-  send_bans_and_removals_to_local_communities(
-    &local_user_view,
-    &person,
-    &data.reason,
-    &data.remove_data,
-    &context,
-  )
-  .await?;
+  if !person.local {
+    ban_nonlocal_user_from_local_communities(
+      &local_user_view,
+      &person,
+      data.ban,
+      &data.reason,
+      &data.remove_data,
+      &data.expires,
+      &context,
+    )
+    .await?;
+  }
 
   ActivityChannel::submit_activity(
     SendActivityData::BanFromSite {

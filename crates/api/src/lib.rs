@@ -3,19 +3,26 @@ use actix_web::{http::header::Header, HttpRequest};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
 use captcha::Captcha;
-use itertools::Itertools;
 use lemmy_api_common::{
   claims::Claims,
   community::BanFromCommunity,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_user_valid, local_site_to_slur_regex, AUTH_COOKIE_NAME},
+  utils::{check_expire_time, check_user_valid, local_site_to_slur_regex, AUTH_COOKIE_NAME},
 };
-use lemmy_db_schema::source::{
-  comment::Comment,
-  local_site::LocalSite,
-  person::Person,
-  post::Post,
+use lemmy_db_schema::{
+  source::{
+    community::{
+      CommunityFollower,
+      CommunityFollowerForm,
+      CommunityPersonBan,
+      CommunityPersonBanForm,
+    },
+    local_site::LocalSite,
+    moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
+    person::Person,
+  },
+  traits::{Bannable, Crud, Followable},
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
@@ -150,35 +157,77 @@ pub(crate) fn build_totp_2fa(
   .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
 }
 
-/// Since removals and bans are only federated for local users,
-/// you also need to send bans for their content to local communities.
+/// Site bans are only federated for local users.
+/// This is a problem, because site-banning non-local users will still leave content
+/// they've posted to our local communities, on other servers.
+///
+/// So when doing a site ban for a non-local user, you need to federate/send a
+/// community ban for every local community they've participated in.
 /// See https://github.com/LemmyNet/lemmy/issues/4118
 #[tracing::instrument(skip_all)]
-pub(crate) async fn send_bans_and_removals_to_local_communities(
+pub(crate) async fn ban_nonlocal_user_from_local_communities(
   local_user_view: &LocalUserView,
   target: &Person,
+  ban: bool,
   reason: &Option<String>,
   remove_data: &Option<bool>,
+  expires: &Option<i64>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let posts_community_ids =
-    Post::list_creators_local_community_ids(&mut context.pool(), target.id).await?;
-  let comments_community_ids =
-    Comment::list_creators_local_community_ids(&mut context.pool(), target.id).await?;
-
-  let ids = [posts_community_ids, comments_community_ids]
-    .concat()
-    .into_iter()
-    .unique();
+  let ids = Person::list_local_community_ids(&mut context.pool(), target.id).await?;
 
   for community_id in ids {
+    let expires_dt = check_expire_time(*expires)?;
+
+    // Ban / unban them from our local communities
+    let community_user_ban_form = CommunityPersonBanForm {
+      community_id,
+      person_id: target.id,
+      expires: Some(expires_dt),
+    };
+
+    if ban {
+      CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form)
+        .await
+        .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
+        .ok();
+
+      // Also unsubscribe them from the community, if they are subscribed
+      let community_follower_form = CommunityFollowerForm {
+        community_id,
+        person_id: target.id,
+        pending: false,
+      };
+
+      CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
+        .await
+        .ok();
+    } else {
+      CommunityPersonBan::unban(&mut context.pool(), &community_user_ban_form)
+        .await
+        .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)?;
+    }
+
+    // Mod tables
+    let form = ModBanFromCommunityForm {
+      mod_person_id: local_user_view.person.id,
+      other_person_id: target.id,
+      community_id,
+      reason: reason.clone(),
+      banned: Some(ban),
+      expires: expires_dt,
+    };
+
+    ModBanFromCommunity::create(&mut context.pool(), &form).await?;
+
+    // Federate the ban from community
     let ban_from_community = BanFromCommunity {
       community_id,
       person_id: target.id,
-      ban: true,
-      remove_data: *remove_data,
+      ban,
       reason: reason.clone(),
-      expires: None,
+      remove_data: *remove_data,
+      expires: *expires,
     };
 
     ActivityChannel::submit_activity(

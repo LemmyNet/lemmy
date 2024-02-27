@@ -1,6 +1,6 @@
 use crate::{
-  newtypes::{CommentId, CommunityId, DbUrl, PersonId},
-  schema::{comment, community, post},
+  newtypes::{CommentId, DbUrl, PersonId},
+  schema::comment,
   source::comment::{
     Comment,
     CommentInsertForm,
@@ -17,7 +17,6 @@ use diesel::{
   dsl::{insert_into, sql_query},
   result::Error,
   ExpressionMethods,
-  JoinOnDsl,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -53,23 +52,6 @@ impl Comment {
         comment::updated.eq(naive_now()),
       ))
       .get_results::<Self>(conn)
-      .await
-  }
-
-  /// Lists local community ids for all comments for a given creator.
-  pub async fn list_creators_local_community_ids(
-    pool: &mut DbPool<'_>,
-    for_creator_id: PersonId,
-  ) -> Result<Vec<CommunityId>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    comment::table
-      .inner_join(post::table)
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .filter(community::local.eq(true))
-      .filter(comment::creator_id.eq(for_creator_id))
-      .select(community::id)
-      .distinct()
-      .load::<CommunityId>(conn)
       .await
   }
 
