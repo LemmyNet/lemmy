@@ -1,28 +1,21 @@
 use cfg_if::cfg_if;
 
 cfg_if! {
-  if #[cfg(feature = "default")] {
+  if #[cfg(feature = "full")] {
     pub mod apub;
     pub mod cache_header;
     pub mod email;
-    pub mod error;
     pub mod rate_limit;
     pub mod request;
     pub mod response;
     pub mod settings;
     pub mod utils;
     pub mod version;
-  } else {
-    mod error;
   }
 }
 
-cfg_if! {
-    if #[cfg(feature = "error-type")] {
-    pub use error::LemmyErrorType;
-  }
-}
-
+pub mod error;
+pub use error::LemmyErrorType;
 use std::time::Duration;
 
 pub type ConnectionId = usize;
@@ -41,7 +34,7 @@ macro_rules! location_info {
   };
 }
 
-#[cfg(feature = "default")]
+#[cfg(feature = "full")]
 /// tokio::spawn, but accepts a future that may fail and also
 /// * logs errors
 /// * attaches the spawned task to the tracing span of the caller for better logging

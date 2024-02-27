@@ -18,6 +18,7 @@ workspace = true
 
 [features]
 full = [
+  "lemmy_utils/full",
   "diesel",
   "diesel-derive-newtype",
   "diesel-derive-enum",
@@ -48,7 +49,7 @@ strum = { workspace = true }
 strum_macros = { workspace = true }
 serde_json = { workspace = true, optional = true }
 activitypub_federation = { workspace = true, optional = true }
-lemmy_utils = { workspace = true, optional = true, features = ["default"] }
+lemmy_utils = { workspace = true, optional = true }
 bcrypt = { workspace = true, optional = true }
 diesel = { workspace = true, features = [
   "postgres",
