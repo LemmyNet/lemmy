@@ -1,5 +1,6 @@
 CREATE TYPE vote_display_mode_enum AS enum (
     'Full',
+    'UpvoteAndDownvote',
     'ScoreAndDownvote',
     'ScoreAndUpvotePercentage',
     'UpvotePercentage',
