@@ -2,11 +2,9 @@ use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use strum_macros::{Display, EnumIter};
-#[cfg(feature = "ts-rs")]
-use ts_rs::TS;
 
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(ts_rs::TS))]
 #[cfg_attr(feature = "full", ts(export))]
 #[serde(tag = "error", content = "message", rename_all = "snake_case")]
 #[non_exhaustive]
