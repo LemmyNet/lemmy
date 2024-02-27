@@ -16,6 +16,7 @@ doctest = false
 [[bin]]
 name = "lemmy_util_bin"
 path = "src/main.rs"
+required-features = ["full"]
 
 [lints]
 workspace = true
