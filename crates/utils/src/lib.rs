@@ -1,23 +1,29 @@
-#[macro_use]
-extern crate strum_macros;
-#[macro_use]
-extern crate smart_default;
+use cfg_if::cfg_if;
 
-pub mod apub;
-pub mod cache_header;
-pub mod email;
-pub mod error;
-pub mod rate_limit;
-pub mod request;
-pub mod response;
-pub mod settings;
-pub mod utils;
-pub mod version;
+cfg_if! {
+  if #[cfg(feature = "default")] {
+    pub mod apub;
+    pub mod cache_header;
+    pub mod email;
+    pub mod error;
+    pub mod rate_limit;
+    pub mod request;
+    pub mod response;
+    pub mod settings;
+    pub mod utils;
+    pub mod version;
+  } else {
+    mod error;
+  }
+}
 
-use error::LemmyError;
-use futures::Future;
+cfg_if! {
+    if #[cfg(feature = "error-type")] {
+    pub use error::LemmyErrorType;
+  }
+}
+
 use std::time::Duration;
-use tracing::Instrument;
 
 pub type ConnectionId = usize;
 
@@ -35,10 +41,14 @@ macro_rules! location_info {
   };
 }
 
+#[cfg(feature = "default")]
 /// tokio::spawn, but accepts a future that may fail and also
 /// * logs errors
 /// * attaches the spawned task to the tracing span of the caller for better logging
-pub fn spawn_try_task(task: impl Future<Output = Result<(), LemmyError>> + Send + 'static) {
+pub fn spawn_try_task(
+  task: impl futures::Future<Output = Result<(), error::LemmyError>> + Send + 'static,
+) {
+  use tracing::Instrument;
   tokio::spawn(
     async {
       if let Err(e) = task.await {

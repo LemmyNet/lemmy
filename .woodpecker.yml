@@ -60,7 +60,7 @@ steps:
       # store cargo data in repo folder so that it gets cached between steps
       CARGO_HOME: .cargo_home
     commands:
-      # need make existing toolchain available
+      - rustup component add rustfmt
       - cargo +nightly fmt -- --check
 
   cargo_machete:

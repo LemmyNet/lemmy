@@ -34,7 +34,6 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  self,
   source::{
     community::Community,
     local_site::LocalSite,
@@ -297,7 +296,6 @@ mod tests {
       community::{tests::parse_lemmy_community, ApubCommunity},
       instance::ApubSite,
       person::{tests::parse_lemmy_person, ApubPerson},
-      post::ApubPost,
     },
     protocol::tests::file_to_json_object,
   };

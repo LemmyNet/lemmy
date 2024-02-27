@@ -23,7 +23,9 @@ pub extern crate lemmy_db_schema;
 pub extern crate lemmy_db_views;
 pub extern crate lemmy_db_views_actor;
 pub extern crate lemmy_db_views_moderator;
+pub extern crate lemmy_utils;
 
+pub use lemmy_utils::LemmyErrorType;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 

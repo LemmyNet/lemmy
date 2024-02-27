@@ -6,11 +6,14 @@ use activitypub_federation::{
   config::Data,
   kinds::collection::OrderedCollectionType,
   protocol::verification::verify_domains_match,
-  traits::{ActivityHandler, Collection, Object},
+  traits::{Collection, Object},
 };
 use futures::future::{join_all, try_join_all};
 use lemmy_api_common::{context::LemmyContext, utils::generate_featured_url};
-use lemmy_db_schema::{source::post::Post, utils::FETCH_LIMIT_MAX};
+use lemmy_db_schema::{
+  source::{community::Community, post::Post},
+  utils::FETCH_LIMIT_MAX,
+};
 use lemmy_utils::error::LemmyError;
 use url::Url;
 
@@ -55,35 +58,36 @@ impl Collection for ApubCommunityFeatured {
 
   async fn from_json(
     apub: Self::Kind,
-    _owner: &Self::Owner,
-    data: &Data<Self::DataType>,
+    owner: &Self::Owner,
+    context: &Data<Self::DataType>,
   ) -> Result<Self, Self::Error>
   where
     Self: Sized,
   {
-    let mut posts = apub.ordered_items;
-    if posts.len() as i64 > FETCH_LIMIT_MAX {
-      posts = posts
+    let mut pages = apub.ordered_items;
+    if pages.len() as i64 > FETCH_LIMIT_MAX {
+      pages = pages
         .get(0..(FETCH_LIMIT_MAX as usize))
         .unwrap_or_default()
         .to_vec();
     }
 
-    // We intentionally ignore errors here. This is because the outbox might contain posts from old
-    // Lemmy versions, or from other software which we cant parse. In that case, we simply skip the
-    // item and only parse the ones that work.
     // process items in parallel, to avoid long delay from fetch_site_metadata() and other processing
-    join_all(posts.into_iter().map(|post| {
+    let stickied_posts: Vec<Post> = join_all(pages.into_iter().map(|page| {
       async {
         // use separate request counter for each item, otherwise there will be problems with
         // parallel processing
-        let verify = post.verify(data).await;
-        if verify.is_ok() {
-          post.receive(data).await.ok();
-        }
+        ApubPost::verify(&page, &apub.id, context).await?;
+        ApubPost::from_json(page, context).await
       }
     }))
-    .await;
+    .await
+    // ignore any failed or unparseable items
+    .into_iter()
+    .filter_map(|p| p.ok().map(|p| p.0))
+    .collect();
+
+    Community::set_featured_posts(owner.id, stickied_posts, &mut context.pool()).await?;
 
     // This return value is unused, so just set an empty vec
     Ok(ApubCommunityFeatured(()))

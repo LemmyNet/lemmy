@@ -2876,6 +2876,7 @@ version = "0.19.3"
 dependencies = [
  "actix-web",
  "anyhow",
+ "cfg-if",
  "deser-hjson",
  "diesel",
  "doku",
