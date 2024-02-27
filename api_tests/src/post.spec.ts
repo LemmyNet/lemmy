@@ -227,16 +227,18 @@ test("Sticky a post", async () => {
   expect(betaPost3?.post.featured_community).toBe(false);
 });
 
-
 test("Collection of featured posts gets federated", async () => {
   // create a new community and feature a post
   let community = await createCommunity(alpha);
-  let post = await createPost(alpha,community.community_view.community.id);
+  let post = await createPost(alpha, community.community_view.community.id);
   let featuredPost = await featurePost(alpha, true, post.post_view.post);
   expect(featuredPost.post_view.post.featured_community).toBe(true);
 
   // fetch the community, ensure that post is also fetched and marked as featured
-  let betaCommunity = (await resolveCommunity(beta, community.community_view.community.actor_id));
+  let betaCommunity = await resolveCommunity(
+    beta,
+    community.community_view.community.actor_id,
+  );
 
   const betaPost = await waitForPost(
     beta,
