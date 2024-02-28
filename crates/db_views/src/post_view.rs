@@ -1520,6 +1520,9 @@ mod tests {
     .await?;
     assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_hidden));
 
+    // Make sure that hidden field is true.
+    assert!(&post_listings_show_hidden[0].hidden);
+
     cleanup(data, pool).await
   }
 
