@@ -36,6 +36,7 @@ pub async fn list_posts(
     data.community_id
   };
   let saved_only = data.saved_only.unwrap_or_default();
+  let show_hidden = data.show_hidden.unwrap_or_default();
 
   let liked_only = data.liked_only.unwrap_or_default();
   let disliked_only = data.disliked_only.unwrap_or_default();
@@ -75,6 +76,7 @@ pub async fn list_posts(
     page,
     page_after,
     limit,
+    show_hidden,
     ..Default::default()
   }
   .list(&local_site.site, &mut context.pool())

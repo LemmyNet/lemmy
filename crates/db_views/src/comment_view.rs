@@ -4,20 +4,41 @@ use diesel::{
   dsl::{exists, not},
   pg::Pg,
   result::Error,
-  sql_types, BoolExpressionMethods, BoxableExpression, ExpressionMethods, IntoSql, JoinOnDsl,
-  NullableExpressionMethods, PgTextExpressionMethods, QueryDsl,
+  sql_types,
+  BoolExpressionMethods,
+  BoxableExpression,
+  ExpressionMethods,
+  IntoSql,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  PgTextExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
-    comment, comment_aggregates, comment_like, comment_saved, community, community_block,
-    community_follower, community_moderator, community_person_ban, instance_block, local_user,
-    local_user_language, person, person_block, post,
+    comment,
+    comment_aggregates,
+    comment_like,
+    comment_saved,
+    community,
+    community_block,
+    community_follower,
+    community_moderator,
+    community_person_ban,
+    instance_block,
+    local_user,
+    local_user_language,
+    person,
+    person_block,
+    post,
   },
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
-  CommentSortType, CommunityVisibility, ListingType,
+  CommentSortType,
+  CommunityVisibility,
+  ListingType,
 };
 
 fn queries<'a>() -> Queries<
@@ -408,7 +429,10 @@ mod tests {
       actor_language::LocalUserLanguage,
       comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
       community::{
-        Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm,
+        Community,
+        CommunityInsertForm,
+        CommunityModerator,
+        CommunityModeratorForm,
         CommunityUpdateForm,
       },
       instance::Instance,
@@ -420,7 +444,8 @@ mod tests {
     },
     traits::{Blockable, Crud, Joinable, Likeable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
-    CommunityVisibility, SubscribedType,
+    CommunityVisibility,
+    SubscribedType,
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;

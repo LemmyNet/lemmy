@@ -5,8 +5,16 @@ use diesel::{
   pg::Pg,
   query_builder::AsQuery,
   result::Error,
-  sql_types, BoolExpressionMethods, BoxableExpression, ExpressionMethods, IntoSql, JoinOnDsl,
-  NullableExpressionMethods, OptionalExtension, PgTextExpressionMethods, QueryDsl,
+  sql_types,
+  BoolExpressionMethods,
+  BoxableExpression,
+  ExpressionMethods,
+  IntoSql,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  OptionalExtension,
+  PgTextExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
@@ -14,16 +22,42 @@ use lemmy_db_schema::{
   aggregates::structs::{post_aggregates_keys as key, PostAggregates},
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
-    community, community_block, community_follower, community_moderator, community_person_ban,
-    instance_block, local_user, local_user_language, person, person_block, person_post_aggregates,
-    post, post_aggregates, post_like, post_read, post_saved,
+    community,
+    community_block,
+    community_follower,
+    community_moderator,
+    community_person_ban,
+    instance_block,
+    local_user,
+    local_user_language,
+    person,
+    person_block,
+    person_post_aggregates,
+    post,
+    post_aggregates,
+    post_hide,
+    post_like,
+    post_read,
+    post_saved,
   },
   source::site::Site,
   utils::{
-    functions::coalesce, fuzzy_search, get_conn, limit_and_offset, now, Commented, DbConn, DbPool,
-    ListFn, Queries, ReadFn, ReverseTimestampKey,
+    functions::coalesce,
+    fuzzy_search,
+    get_conn,
+    limit_and_offset,
+    now,
+    Commented,
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+    ReverseTimestampKey,
   },
-  CommunityVisibility, ListingType, SortType,
+  CommunityVisibility,
+  ListingType,
+  SortType,
 };
 use tracing::debug;
 
@@ -74,6 +108,16 @@ fn queries<'a>() -> Queries<
     )
   };
 
+  let is_hidden = |person_id| {
+    exists(
+      post_hide::table.filter(
+        post_aggregates::post_id
+          .eq(post_hide::post_id)
+          .and(post_hide::person_id.eq(person_id)),
+      ),
+    )
+  };
+
   let is_creator_blocked = |person_id| {
     exists(
       person_block::table.filter(
@@ -110,6 +154,13 @@ fn queries<'a>() -> Queries<
     let is_read_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
       if let Some(person_id) = my_person_id {
         Box::new(is_read(person_id))
+      } else {
+        Box::new(false.into_sql::<sql_types::Bool>())
+      };
+
+    let is_hidden_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
+      if let Some(person_id) = my_person_id {
+        Box::new(is_hidden(person_id))
       } else {
         Box::new(false.into_sql::<sql_types::Bool>())
       };
@@ -178,6 +229,7 @@ fn queries<'a>() -> Queries<
         subscribed_type_selection,
         is_saved_selection,
         is_read_selection,
+        is_hidden_selection,
         is_creator_blocked_selection,
         score_selection,
         coalesce(
@@ -373,6 +425,13 @@ fn queries<'a>() -> Queries<
       }
     }
 
+    if !options.show_hidden {
+      // If a creator id isn't given (IE its on home or community pages), hide the hidden posts
+      if let (None, Some(person_id)) = (options.creator_id, my_person_id) {
+        query = query.filter(not(is_hidden(person_id)));
+      }
+    }
+
     if let Some(person_id) = my_person_id {
       if options.liked_only {
         query = query.filter(score(person_id).eq(1));
@@ -565,6 +624,7 @@ pub struct PostQuery<'a> {
   pub page_after: Option<PaginationCursorData>,
   pub page_before_or_equal: Option<PaginationCursorData>,
   pub page_back: bool,
+  pub show_hidden: bool,
 }
 
 impl<'a> PostQuery<'a> {
@@ -585,7 +645,9 @@ impl<'a> PostQuery<'a> {
     use lemmy_db_schema::schema::{
       community_aggregates::dsl::{community_aggregates, community_id, users_active_month},
       community_follower::dsl::{
-        community_follower, community_id as follower_community_id, person_id,
+        community_follower,
+        community_id as follower_community_id,
+        person_id,
       },
     };
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
@@ -683,7 +745,10 @@ mod tests {
       actor_language::LocalUserLanguage,
       comment::{Comment, CommentInsertForm},
       community::{
-        Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm,
+        Community,
+        CommunityInsertForm,
+        CommunityModerator,
+        CommunityModeratorForm,
         CommunityUpdateForm,
       },
       community_block::{CommunityBlock, CommunityBlockForm},
@@ -693,12 +758,14 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
-      post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
+      post::{Post, PostHide, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
       site::Site,
     },
     traits::{Blockable, Crud, Joinable, Likeable},
     utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
-    CommunityVisibility, SortType, SubscribedType,
+    CommunityVisibility,
+    SortType,
+    SubscribedType,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -1428,6 +1495,47 @@ mod tests {
     cleanup(data, pool).await
   }
 
+  #[tokio::test]
+  #[serial]
+  async fn post_listings_hide_hidden() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Mark a post as hidden
+    PostHide::hide(
+      pool,
+      HashSet::from([data.inserted_bot_post.id]),
+      data.local_user_view.person.id,
+    )
+    .await?;
+
+    // Make sure you don't see the hidden post in the results
+    let post_listings_hide_hidden = data.default_post_query().list(&data.site, pool).await?;
+    assert_eq!(vec![POST], names(&post_listings_hide_hidden));
+
+    // Make sure it does come back with the show_hidden option
+    let post_listings_show_hidden = PostQuery {
+      sort: Some(SortType::New),
+      local_user: Some(&data.local_user_view),
+      show_hidden: true,
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_hidden));
+
+    // Make sure that hidden field is true.
+    assert!(
+      &post_listings_show_hidden
+        .first()
+        .expect("first post should exist")
+        .hidden
+    );
+
+    cleanup(data, pool).await
+  }
+
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
     let num_deleted = Post::delete(pool, data.inserted_post.id).await?;
     Community::delete(pool, data.inserted_community.id).await?;
@@ -1549,6 +1657,7 @@ mod tests {
       },
       subscribed: SubscribedType::NotSubscribed,
       read: false,
+      hidden: false,
       saved: false,
       creator_blocked: false,
     })
