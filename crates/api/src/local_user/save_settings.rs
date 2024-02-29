@@ -14,10 +14,11 @@ use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserUpdateForm},
+    local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeUpdateForm},
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,
-  utils::diesel_option_overwrite,
+  utils::{diesel_option_overwrite, naive_now},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
@@ -127,7 +128,6 @@ pub async fn save_user_settings(
     enable_keyboard_navigation: data.enable_keyboard_navigation,
     enable_animated_images: data.enable_animated_images,
     collapse_bot_comments: data.collapse_bot_comments,
-    vote_display_mode: data.vote_display_mode,
     ..Default::default()
   };
 
@@ -136,6 +136,18 @@ pub async fn save_user_settings(
   LocalUser::update(&mut context.pool(), local_user_id, &local_user_form)
     .await
     .ok();
+
+  // Update the vote display modes
+  let vote_display_modes_form = LocalUserVoteDisplayModeUpdateForm {
+    score: data.show_scores,
+    upvotes: data.show_upvotes,
+    downvotes: data.show_downvotes,
+    upvote_percentage: data.show_upvote_percentage,
+    updated: Some(Some(naive_now())),
+    ..Default::default()
+  };
+  LocalUserVoteDisplayMode::update(&mut context.pool(), local_user_id, &vote_display_modes_form)
+    .await?;
 
   Ok(Json(SuccessResponse::default()))
 }

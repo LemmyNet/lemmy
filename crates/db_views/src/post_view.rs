@@ -751,6 +751,7 @@ mod tests {
       instance_block::{InstanceBlock, InstanceBlockForm},
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostHide, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
@@ -873,11 +874,13 @@ mod tests {
     let inserted_bot_post = Post::create(pool, &new_bot_post).await?;
     let local_user_view = LocalUserView {
       local_user: inserted_local_user,
+      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_person,
       counts: Default::default(),
     };
     let blocked_local_user_view = LocalUserView {
       local_user: inserted_blocked_local_user,
+      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_blocked_person,
       counts: Default::default(),
     };

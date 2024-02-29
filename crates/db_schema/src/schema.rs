@@ -28,10 +28,6 @@ pub mod sql_types {
     #[derive(diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "sort_type_enum"))]
     pub struct SortTypeEnum;
-
-    #[derive(diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "vote_display_mode_enum"))]
-    pub struct VoteDisplayModeEnum;
 }
 
 diesel::table! {
@@ -418,7 +414,6 @@ diesel::table! {
     use super::sql_types::SortTypeEnum;
     use super::sql_types::ListingTypeEnum;
     use super::sql_types::PostListingModeEnum;
-    use super::sql_types::VoteDisplayModeEnum;
 
     local_user (id) {
         id -> Int4,
@@ -449,7 +444,6 @@ diesel::table! {
         enable_keyboard_navigation -> Bool,
         enable_animated_images -> Bool,
         collapse_bot_comments -> Bool,
-        vote_display_mode -> VoteDisplayModeEnum,
     }
 }
 
@@ -457,6 +451,18 @@ diesel::table! {
     local_user_language (local_user_id, language_id) {
         local_user_id -> Int4,
         language_id -> Int4,
+    }
+}
+
+diesel::table! {
+    local_user_vote_display_mode (local_user_id) {
+        local_user_id -> Int4,
+        score -> Bool,
+        upvotes -> Bool,
+        downvotes -> Bool,
+        upvote_percentage -> Bool,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
     }
 }
 
@@ -966,6 +972,7 @@ diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
 diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
+diesel::joinable!(local_user_vote_display_mode -> local_user (local_user_id));
 diesel::joinable!(login_token -> local_user (user_id));
 diesel::joinable!(mod_add_community -> community (community_id));
 diesel::joinable!(mod_ban_from_community -> community (community_id));
@@ -1048,6 +1055,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     local_site_rate_limit,
     local_user,
     local_user_language,
+    local_user_vote_display_mode,
     login_token,
     mod_add,
     mod_add_community,

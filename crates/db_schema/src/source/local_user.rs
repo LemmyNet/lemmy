@@ -5,7 +5,6 @@ use crate::{
   ListingType,
   PostListingMode,
   SortType,
-  VoteDisplayMode,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -66,8 +65,6 @@ pub struct LocalUser {
   pub enable_animated_images: bool,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: bool,
-  /// A vote-display setting that changes how votes are displayed in front ends.
-  pub vote_display_mode: VoteDisplayMode,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -103,7 +100,6 @@ pub struct LocalUserInsertForm {
   pub enable_keyboard_navigation: Option<bool>,
   pub enable_animated_images: Option<bool>,
   pub collapse_bot_comments: Option<bool>,
-  pub vote_display_mode: Option<VoteDisplayMode>,
 }
 
 #[derive(Clone, Default)]
@@ -135,5 +131,4 @@ pub struct LocalUserUpdateForm {
   pub enable_keyboard_navigation: Option<bool>,
   pub enable_animated_images: Option<bool>,
   pub collapse_bot_comments: Option<bool>,
-  pub vote_display_mode: Option<VoteDisplayMode>,
 }

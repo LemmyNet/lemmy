@@ -6,7 +6,6 @@ use lemmy_db_schema::{
   ListingType,
   PostListingMode,
   SortType,
-  VoteDisplayMode,
 };
 use lemmy_db_views::structs::{CommentView, PostView};
 use lemmy_db_views_actor::structs::{
@@ -87,8 +86,6 @@ pub struct SaveUserSettings {
   pub show_nsfw: Option<bool>,
   pub blur_nsfw: Option<bool>,
   pub auto_expand: Option<bool>,
-  /// Show post and comment scores.
-  pub show_scores: Option<bool>,
   /// Your user's theme.
   pub theme: Option<String>,
   pub default_sort_type: Option<SortType>,
@@ -131,8 +128,11 @@ pub struct SaveUserSettings {
   pub enable_animated_images: Option<bool>,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: Option<bool>,
-  /// A vote-display setting that changes how votes are displayed in front ends.
-  pub vote_display_mode: Option<VoteDisplayMode>,
+  /// Some vote display mode settings
+  pub show_scores: Option<bool>,
+  pub show_upvotes: Option<bool>,
+  pub show_downvotes: Option<bool>,
+  pub show_upvote_percentage: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

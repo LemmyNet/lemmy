@@ -272,7 +272,6 @@ mod tests {
         enable_keyboard_navigation: inserted_sara_local_user.enable_keyboard_navigation,
         enable_animated_images: inserted_sara_local_user.enable_animated_images,
         collapse_bot_comments: inserted_sara_local_user.collapse_bot_comments,
-        vote_display_mode: inserted_sara_local_user.vote_display_mode,
       },
       creator: Person {
         id: inserted_sara_person.id,
