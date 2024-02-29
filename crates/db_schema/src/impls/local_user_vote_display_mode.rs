@@ -2,7 +2,8 @@ use crate::{
   newtypes::LocalUserId,
   schema::local_user_vote_display_mode,
   source::local_user_vote_display_mode::{
-    LocalUserVoteDisplayMode, LocalUserVoteDisplayModeInsertForm,
+    LocalUserVoteDisplayMode,
+    LocalUserVoteDisplayModeInsertForm,
     LocalUserVoteDisplayModeUpdateForm,
   },
   utils::{get_conn, DbPool},
