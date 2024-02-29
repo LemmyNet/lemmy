@@ -115,7 +115,13 @@ impl Object for ApubPost {
     let attachment = self
       .url
       .clone()
-      .map(|url| Attachment::new(url.into(), self.url_content_type.clone()))
+      .map(|url| {
+        Attachment::new(
+          url.into(),
+          self.url_content_type.clone(),
+          self.alt_text.clone(),
+        )
+      })
       .into_iter()
       .collect();
 
@@ -127,7 +133,6 @@ impl Object for ApubPost {
       cc: vec![],
       name: Some(self.name.clone()),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
-      alt_text: self.alt_text.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
       source: self.body.clone().map(Source::new),
       attachment,
@@ -204,10 +209,12 @@ impl Object for ApubPost {
     // read existing, local post if any (for generating mod log)
     let old_post = page.id.dereference_local(context).await;
 
+    let first_attachment = page.attachment.first();
+
     let form = if !page.is_mod_action(context).await? {
-      let first_attachment = page.attachment.into_iter().map(Attachment::url).next();
+      let first_attachment_url = first_attachment.cloned().map(Attachment::url);
       let url = if first_attachment.is_some() {
-        first_attachment
+        first_attachment_url
       } else if page.kind == PageType::Video {
         // we cant display videos directly, so insert a link to external video page
         Some(page.id.inner().clone())
@@ -216,6 +223,7 @@ impl Object for ApubPost {
       };
       check_url_scheme(&url)?;
 
+      let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
       let local_site = LocalSite::read(&mut context.pool()).await.ok();
       let allow_sensitive = local_site_opt_to_sensitive(&local_site);
       let page_is_sensitive = page.sensitive.unwrap_or(false);
@@ -235,7 +243,6 @@ impl Object for ApubPost {
 
       let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
       let body = process_markdown_opt(&body, slur_regex, context).await?;
-      let alt_text = process_markdown_opt(&page.alt_text, slur_regex, context).await?;
       let language_id =
         LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 

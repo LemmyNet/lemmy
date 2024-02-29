@@ -52,7 +52,6 @@ pub struct Page {
   #[serde(deserialize_with = "deserialize_one_or_many", default)]
   pub(crate) cc: Vec<Url>,
   pub(crate) content: Option<String>,
-  pub(crate) alt_text: Option<String>,
   pub(crate) media_type: Option<MediaTypeMarkdownOrHtml>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
@@ -75,6 +74,8 @@ pub(crate) struct Link {
   href: Url,
   media_type: Option<String>,
   r#type: LinkType,
+  /// Used for alt_text
+  name: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -83,6 +84,8 @@ pub(crate) struct Image {
   #[serde(rename = "type")]
   kind: ImageType,
   url: Url,
+  /// Used for alt_text
+  name: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -91,6 +94,8 @@ pub(crate) struct Document {
   #[serde(rename = "type")]
   kind: DocumentType,
   url: Url,
+  /// Used for alt_text
+  name: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -110,6 +115,17 @@ impl Attachment {
       Attachment::Image(i) => i.url,
       // sent by mobilizon
       Attachment::Document(d) => d.url,
+    }
+  }
+
+  pub(crate) fn alt_text(self) -> Option<String> {
+    match self {
+      // url as sent by Lemmy (new)
+      Attachment::Link(l) => l.name,
+      // image sent by lotide
+      Attachment::Image(i) => i.name,
+      // sent by mobilizon
+      Attachment::Document(d) => d.name,
     }
   }
 }
@@ -169,18 +185,20 @@ impl Page {
 
 impl Attachment {
   /// Creates new attachment for a given link and mime type.
-  pub(crate) fn new(url: Url, media_type: Option<String>) -> Attachment {
+  pub(crate) fn new(url: Url, media_type: Option<String>, name: Option<String>) -> Attachment {
     let is_image = media_type.clone().unwrap_or_default().starts_with("image");
     if is_image {
       Attachment::Image(Image {
         kind: Default::default(),
         url,
+        name,
       })
     } else {
       Attachment::Link(Link {
         href: url,
         media_type,
         r#type: Default::default(),
+        name,
       })
     }
   }
