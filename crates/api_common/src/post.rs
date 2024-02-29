@@ -81,6 +81,7 @@ pub struct GetPosts {
   pub saved_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
+  pub show_hidden: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
 }
 
@@ -152,10 +153,18 @@ pub struct RemovePost {
 #[cfg_attr(feature = "full", ts(export))]
 /// Mark a post as read.
 pub struct MarkPostAsRead {
-  /// TODO: deprecated, send `post_ids` instead
-  pub post_id: Option<PostId>,
-  pub post_ids: Option<Vec<PostId>>,
+  pub post_ids: Vec<PostId>,
   pub read: bool,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Hide a post from list views
+pub struct HidePost {
+  pub post_ids: Vec<PostId>,
+  pub hide: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

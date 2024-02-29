@@ -1,6 +1,6 @@
 use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
-use crate::schema::{post, post_like, post_read, post_saved};
+use crate::schema::{post, post_hide, post_like, post_read, post_saved};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -183,6 +183,28 @@ pub struct PostRead {
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_read))]
 pub(crate) struct PostReadForm {
+  pub post_id: PostId,
+  pub person_id: PersonId,
+}
+
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
+#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
+#[cfg_attr(feature = "full", diesel(table_name = post_hide))]
+#[cfg_attr(feature = "full", diesel(primary_key(post_id, person_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+pub struct PostHide {
+  pub post_id: PostId,
+  pub person_id: PersonId,
+  pub published: DateTime<Utc>,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = post_hide))]
+pub(crate) struct PostHideForm {
   pub post_id: PostId,
   pub person_id: PersonId,
 }
