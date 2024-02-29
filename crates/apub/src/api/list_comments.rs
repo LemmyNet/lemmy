@@ -1,3 +1,4 @@
+use super::comment_sort_type_with_default;
 use crate::{
   api::listing_type_with_default,
   fetcher::resolve_actor_identifier,
@@ -32,7 +33,12 @@ pub async fn list_comments(
   } else {
     data.community_id
   };
-  let sort = data.sort;
+  let local_user_ref = local_user_view.as_ref().map(|u| &u.local_user);
+  let sort = Some(comment_sort_type_with_default(
+    data.sort,
+    local_user_ref,
+    &local_site,
+  ));
   let max_depth = data.max_depth;
   let saved_only = data.saved_only.unwrap_or_default();
 

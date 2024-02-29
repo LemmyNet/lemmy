@@ -2,10 +2,11 @@
 use crate::schema::local_site;
 use crate::{
   newtypes::{LocalSiteId, SiteId},
+  CommentSortType,
   ListingType,
   PostListingMode,
+  PostSortType,
   RegistrationMode,
-  SortType,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -68,8 +69,10 @@ pub struct LocalSite {
   pub federation_signed_fetch: bool,
   /// Default value for [LocalSite.post_listing_mode]
   pub default_post_listing_mode: PostListingMode,
-  /// Default value for [LocalUser.post_listing_mode]
-  pub default_sort_type: SortType,
+  /// Default value for [LocalUser.post_sort_type]
+  pub default_post_sort_type: PostSortType,
+  /// Default value for [LocalUser.comment_sort_type]
+  pub default_comment_sort_type: CommentSortType,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -100,7 +103,8 @@ pub struct LocalSiteInsertForm {
   pub reports_email_admins: Option<bool>,
   pub federation_signed_fetch: Option<bool>,
   pub default_post_listing_mode: Option<PostListingMode>,
-  pub default_sort_type: Option<SortType>,
+  pub default_post_sort_type: Option<PostSortType>,
+  pub default_comment_sort_type: Option<CommentSortType>,
 }
 
 #[derive(Clone, Default)]
@@ -129,5 +133,6 @@ pub struct LocalSiteUpdateForm {
   pub updated: Option<Option<DateTime<Utc>>>,
   pub federation_signed_fetch: Option<bool>,
   pub default_post_listing_mode: Option<PostListingMode>,
-  pub default_sort_type: Option<SortType>,
+  pub default_post_sort_type: Option<PostSortType>,
+  pub default_comment_sort_type: Option<CommentSortType>,
 }

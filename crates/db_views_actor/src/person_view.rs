@@ -23,7 +23,7 @@ use lemmy_db_schema::{
     Queries,
     ReadFn,
   },
-  SortType,
+  PostSortType,
 };
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
@@ -45,12 +45,14 @@ enum PersonSortType {
   PostCount,
 }
 
-fn post_to_person_sort_type(sort: SortType) -> PersonSortType {
+fn post_to_person_sort_type(sort: PostSortType) -> PersonSortType {
   match sort {
-    SortType::Active | SortType::Hot | SortType::Controversial => PersonSortType::CommentScore,
-    SortType::New | SortType::NewComments => PersonSortType::New,
-    SortType::MostComments => PersonSortType::MostComments,
-    SortType::Old => PersonSortType::Old,
+    PostSortType::Active | PostSortType::Hot | PostSortType::Controversial => {
+      PersonSortType::CommentScore
+    }
+    PostSortType::New | PostSortType::NewComments => PersonSortType::New,
+    PostSortType::MostComments => PersonSortType::MostComments,
+    PostSortType::Old => PersonSortType::Old,
     _ => PersonSortType::CommentScore,
   }
 }
@@ -139,7 +141,7 @@ impl PersonView {
 
 #[derive(Default)]
 pub struct PersonQuery {
-  pub sort: Option<SortType>,
+  pub sort: Option<PostSortType>,
   pub search_term: Option<String>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -252,7 +254,7 @@ mod tests {
     assert_eq!(read.err(), Some(NotFound));
 
     let list = PersonQuery {
-      sort: Some(SortType::New),
+      sort: Some(PostSortType::New),
       ..Default::default()
     }
     .list(pool)

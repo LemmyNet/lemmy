@@ -85,7 +85,8 @@ pub async fn save_user_settings(
   let local_user_id = local_user_view.local_user.id;
   let person_id = local_user_view.person.id;
   let default_listing_type = data.default_listing_type;
-  let default_sort_type = data.default_sort_type;
+  let default_post_sort_type = data.default_post_sort_type;
+  let default_comment_sort_type = data.default_comment_sort_type;
 
   let person_form = PersonUpdateForm {
     display_name,
@@ -117,7 +118,8 @@ pub async fn save_user_settings(
     auto_expand: data.auto_expand,
     show_bot_accounts: data.show_bot_accounts,
     show_scores: data.show_scores,
-    default_sort_type,
+    default_post_sort_type,
+    default_comment_sort_type,
     default_listing_type,
     theme: data.theme.clone(),
     interface_language: data.interface_language.clone(),
