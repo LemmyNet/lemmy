@@ -61,7 +61,7 @@ pub struct CommentView {
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
-  // pub saved: bool,
+  pub saved: bool,
   pub creator_blocked: bool,
   pub my_vote: Option<i16>,
 }

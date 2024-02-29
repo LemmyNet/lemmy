@@ -1,4 +1,5 @@
 use crate::structs::{LocalUserView, PaginationCursor, PostView};
+use chrono::{DateTime, Utc};
 use diesel::{
   debug_query,
   dsl::{exists, not, IntervalDsl},
@@ -89,13 +90,14 @@ fn queries<'a>() -> Queries<
   );
 
   let is_saved = |person_id| {
-    exists(
-      post_saved::table.filter(
+    post_saved::table
+      .filter(
         post_aggregates::post_id
           .eq(post_saved::post_id)
           .and(post_saved::person_id.eq(person_id)),
-      ),
-    )
+      )
+      .select(post_saved::published.nullable())
+      .single_value()
   };
 
   let is_read = |person_id| {
@@ -142,14 +144,15 @@ fn queries<'a>() -> Queries<
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>,
                         saved_only: bool| {
-    let is_saved_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if saved_only {
-        Box::new(true.into_sql::<sql_types::Bool>())
-      } else if let Some(person_id) = my_person_id {
-        Box::new(is_saved(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
+    let is_saved_selection: Box<
+      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Timestamptz>>,
+    > = if saved_only {
+      Box::new(None::<DateTime<Utc>>.into_sql::<sql_types::Nullable<sql_types::Timestamptz>>())
+    } else if let Some(person_id) = my_person_id {
+      Box::new(is_saved(person_id))
+    } else {
+      Box::new(None::<DateTime<Utc>>.into_sql::<sql_types::Nullable<sql_types::Timestamptz>>())
+    };
 
     let is_read_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
       if let Some(person_id) = my_person_id {
@@ -227,7 +230,7 @@ fn queries<'a>() -> Queries<
         creator_is_admin,
         post_aggregates::all_columns,
         subscribed_type_selection,
-        is_saved_selection,
+        is_saved_selection.is_not_null(),
         is_read_selection,
         is_hidden_selection,
         is_creator_blocked_selection,
@@ -408,8 +411,11 @@ fn queries<'a>() -> Queries<
       query = query.filter(person::bot_account.eq(false));
     };
 
+    // If its saved only, then filter, and order by the saved time, not the comment creation time.
     if let (true, Some(person_id)) = (options.saved_only, my_person_id) {
-      query = query.filter(is_saved(person_id));
+      query = query
+        .filter(is_saved(person_id).is_not_null())
+        .then_order_by(is_saved(person_id).desc());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
@@ -495,11 +501,6 @@ fn queries<'a>() -> Queries<
         .after(page_after)
         .before_or_equal(page_before_or_equal);
     }
-
-    // If its saved_only, then order by the saved time, not the post_aggregates times.
-    // if options.saved_only {
-    //   query = query.order_by(post_saved::published.desc());
-    // }
 
     // featured posts first
     query = if options.community_id.is_none() || options.community_id_just_for_prefetch {
