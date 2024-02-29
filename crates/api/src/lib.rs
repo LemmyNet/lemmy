@@ -174,74 +174,77 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
   expires: &Option<i64>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let ids = Person::list_local_community_ids(&mut context.pool(), target.id).await?;
+  // Only run this code for federated users
+  if !target.local {
+    let ids = Person::list_local_community_ids(&mut context.pool(), target.id).await?;
 
-  for community_id in ids {
-    let expires_dt = check_expire_time(*expires)?;
+    for community_id in ids {
+      let expires_dt = check_expire_time(*expires)?;
 
-    // Ban / unban them from our local communities
-    let community_user_ban_form = CommunityPersonBanForm {
-      community_id,
-      person_id: target.id,
-      expires: Some(expires_dt),
-    };
-
-    if ban {
-      // Ignore all errors for these
-      CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form)
-        .await
-        .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
-        .ok();
-
-      // Also unsubscribe them from the community, if they are subscribed
-      let community_follower_form = CommunityFollowerForm {
+      // Ban / unban them from our local communities
+      let community_user_ban_form = CommunityPersonBanForm {
         community_id,
         person_id: target.id,
-        pending: false,
+        expires: Some(expires_dt),
       };
 
-      CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
-        .await
-        .ok();
-    } else {
-      CommunityPersonBan::unban(&mut context.pool(), &community_user_ban_form)
-        .await
-        .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
-        .ok();
-    }
+      if ban {
+        // Ignore all errors for these
+        CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form)
+          .await
+          .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
+          .ok();
 
-    // Mod tables
-    let form = ModBanFromCommunityForm {
-      mod_person_id: local_user_view.person.id,
-      other_person_id: target.id,
-      community_id,
-      reason: reason.clone(),
-      banned: Some(ban),
-      expires: expires_dt,
-    };
+        // Also unsubscribe them from the community, if they are subscribed
+        let community_follower_form = CommunityFollowerForm {
+          community_id,
+          person_id: target.id,
+          pending: false,
+        };
 
-    ModBanFromCommunity::create(&mut context.pool(), &form).await?;
+        CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
+          .await
+          .ok();
+      } else {
+        CommunityPersonBan::unban(&mut context.pool(), &community_user_ban_form)
+          .await
+          .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
+          .ok();
+      }
 
-    // Federate the ban from community
-    let ban_from_community = BanFromCommunity {
-      community_id,
-      person_id: target.id,
-      ban,
-      reason: reason.clone(),
-      remove_data: *remove_data,
-      expires: *expires,
-    };
-
-    ActivityChannel::submit_activity(
-      SendActivityData::BanFromCommunity {
-        moderator: local_user_view.person.clone(),
+      // Mod tables
+      let form = ModBanFromCommunityForm {
+        mod_person_id: local_user_view.person.id,
+        other_person_id: target.id,
         community_id,
-        target: target.clone(),
-        data: ban_from_community,
-      },
-      context,
-    )
-    .await?;
+        reason: reason.clone(),
+        banned: Some(ban),
+        expires: expires_dt,
+      };
+
+      ModBanFromCommunity::create(&mut context.pool(), &form).await?;
+
+      // Federate the ban from community
+      let ban_from_community = BanFromCommunity {
+        community_id,
+        person_id: target.id,
+        ban,
+        reason: reason.clone(),
+        remove_data: *remove_data,
+        expires: *expires,
+      };
+
+      ActivityChannel::submit_activity(
+        SendActivityData::BanFromCommunity {
+          moderator: local_user_view.person.clone(),
+          community_id,
+          target: target.clone(),
+          data: ban_from_community,
+        },
+        context,
+      )
+      .await?;
+    }
   }
 
   Ok(())

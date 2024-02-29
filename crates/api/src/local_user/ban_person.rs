@@ -72,18 +72,16 @@ pub async fn ban_from_site(
 
   let person_view = PersonView::read(&mut context.pool(), person.id).await?;
 
-  if !person.local {
-    ban_nonlocal_user_from_local_communities(
-      &local_user_view,
-      &person,
-      data.ban,
-      &data.reason,
-      &data.remove_data,
-      &data.expires,
-      &context,
-    )
-    .await?;
-  }
+  ban_nonlocal_user_from_local_communities(
+    &local_user_view,
+    &person,
+    data.ban,
+    &data.reason,
+    &data.remove_data,
+    &data.expires,
+    &context,
+  )
+  .await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::BanFromSite {
