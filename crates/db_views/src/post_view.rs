@@ -421,7 +421,7 @@ fn queries<'a>() -> Queries<
       // Do not hide read posts when it is a user profile view
       // Or, only hide read posts on non-profile views
       if let (None, Some(person_id)) = (options.creator_id, my_person_id) {
-        query = query.filter(not(is_read(person_id)))
+        query = query.filter(not(is_read(person_id)));
       }
     }
 
