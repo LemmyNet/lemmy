@@ -120,6 +120,7 @@ pub struct PostView {
   pub subscribed: SubscribedType,
   pub saved: bool,
   pub read: bool,
+  pub hidden: bool,
   pub creator_blocked: bool,
   pub my_vote: Option<i16>,
   pub unread_comments: i64,

@@ -737,6 +737,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    post_hide (person_id, post_id) {
+        post_id -> Int4,
+        person_id -> Int4,
+        published -> Timestamptz,
+    }
+}
+
+diesel::table! {
     post_like (person_id, post_id) {
         post_id -> Int4,
         person_id -> Int4,
@@ -989,6 +997,8 @@ diesel::joinable!(post_aggregates -> community (community_id));
 diesel::joinable!(post_aggregates -> instance (instance_id));
 diesel::joinable!(post_aggregates -> person (creator_id));
 diesel::joinable!(post_aggregates -> post (post_id));
+diesel::joinable!(post_hide -> person (person_id));
+diesel::joinable!(post_hide -> post (post_id));
 diesel::joinable!(post_like -> person (person_id));
 diesel::joinable!(post_like -> post (post_id));
 diesel::joinable!(post_read -> person (person_id));
@@ -1060,6 +1070,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     person_post_aggregates,
     post,
     post_aggregates,
+    post_hide,
     post_like,
     post_read,
     post_report,
