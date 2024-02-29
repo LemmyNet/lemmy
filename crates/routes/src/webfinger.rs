@@ -12,6 +12,7 @@ use lemmy_db_schema::{
 use lemmy_utils::{cache_header::cache_3days, error::LemmyError};
 use serde::Deserialize;
 use std::collections::HashMap;
+use activitypub_federation::fetch::webfinger::WEBFINGER_CONTENT_TYPE;
 use url::Url;
 
 #[derive(Deserialize)]
@@ -70,7 +71,7 @@ async fn get_webfinger_response(
     ..Default::default()
   };
 
-  Ok(HttpResponse::Ok().json(json))
+  Ok(HttpResponse::Ok().content_type(&WEBFINGER_CONTENT_TYPE).json(json))
 }
 
 fn webfinger_link_for_actor(
