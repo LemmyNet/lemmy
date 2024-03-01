@@ -15,6 +15,7 @@ use lemmy_api_common::{
     EndpointType,
   },
 };
+use lemmy_api_common::utils::is_mod_or_admin;
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
   source::{
@@ -55,7 +56,8 @@ pub async fn create_comment(
   check_post_deleted_or_removed(&post)?;
 
   // Check if post is locked, no new comments
-  if post.locked {
+  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), local_user_view.person, community_id)?;
+  if post.locked && !is_mod_or_admin {
     Err(LemmyErrorType::Locked)?
   }
 
