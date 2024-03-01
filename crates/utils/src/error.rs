@@ -208,11 +208,7 @@ cfg_if! {
     impl fmt::Display for LemmyError {
       fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}: ", &self.error_type)?;
-        // print anyhow including trace
-        // https://docs.rs/anyhow/latest/anyhow/struct.Error.html#display-representations
-        // this will print the anyhow trace (only if it exists)
-        // and if RUST_BACKTRACE=1, also a full backtrace
-        writeln!(f, "{:?}", self.inner)?;
+        writeln!(f, "{}", self.inner)?;
         fmt::Display::fmt(&self.context, f)
       }
     }
