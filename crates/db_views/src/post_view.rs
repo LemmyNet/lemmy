@@ -146,9 +146,7 @@ fn queries<'a>() -> Queries<
                         saved_only: bool| {
     let is_saved_selection: Box<
       dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Timestamptz>>,
-    > = if saved_only {
-      Box::new(None::<DateTime<Utc>>.into_sql::<sql_types::Nullable<sql_types::Timestamptz>>())
-    } else if let Some(person_id) = my_person_id {
+    > = if let Some(person_id) = my_person_id {
       Box::new(is_saved(person_id))
     } else {
       Box::new(None::<DateTime<Utc>>.into_sql::<sql_types::Nullable<sql_types::Timestamptz>>())
