@@ -12,7 +12,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
-  newtypes::{CommentReportId, CommunityId, PersonId},
+  newtypes::{CommentId, CommentReportId, CommunityId, PersonId},
   schema::{
     comment,
     comment_aggregates,
@@ -93,6 +93,10 @@ fn queries<'a>() -> Queries<
 
     if let Some(community_id) = options.community_id {
       query = query.filter(post::community_id.eq(community_id));
+    }
+
+    if let Some(comment_id) = options.comment_id {
+      query = query.filter(comment_report::comment_id.eq(comment_id));
     }
 
     // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
@@ -186,6 +190,7 @@ impl CommentReportView {
 #[derive(Default)]
 pub struct CommentReportQuery {
   pub community_id: Option<CommunityId>,
+  pub comment_id: Option<CommentId>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unresolved_only: bool,

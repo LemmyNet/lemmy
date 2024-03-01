@@ -161,6 +161,7 @@ pub struct ResolveCommentReport {
 #[cfg_attr(feature = "full", ts(export))]
 /// List comment reports.
 pub struct ListCommentReports {
+  pub comment_id: Option<CommentId>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   /// Only shows the unresolved reports
