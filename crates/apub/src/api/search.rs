@@ -104,6 +104,7 @@ pub async fn search(
       users = PersonQuery {
         sort,
         search_term: (Some(q)),
+        listing_type: (listing_type),
         page: (page),
         limit: (limit),
       }
@@ -174,6 +175,7 @@ pub async fn search(
         PersonQuery {
           sort,
           search_term: (Some(q)),
+          listing_type: (listing_type),
           page: (page),
           limit: (limit),
         }
