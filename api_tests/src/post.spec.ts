@@ -540,11 +540,8 @@ test("Enforce site ban federation for federated user", async () => {
   expect(banAlphaOnBeta.banned).toBe(true);
 
   // The beta site ban should NOT be federated to alpha
-  let alphaPerson2 = (await getSite(alphaUserHttp)).my_user?.local_user_view
+  let alphaPerson2 = (await getSite(alphaUserHttp)).my_user!.local_user_view
     .person;
-  if (!alphaPerson2) {
-    throw "Missing alpha person";
-  }
   expect(alphaPerson2.banned).toBe(false);
 
   // existing alpha post should be removed on beta

@@ -192,7 +192,6 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
         // Ignore all errors for these
         CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form)
           .await
-          .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
           .ok();
 
         // Also unsubscribe them from the community, if they are subscribed
@@ -208,7 +207,6 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
       } else {
         CommunityPersonBan::unban(&mut context.pool(), &community_user_ban_form)
           .await
-          .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)
           .ok();
       }
 
