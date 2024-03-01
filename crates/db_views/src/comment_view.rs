@@ -112,9 +112,7 @@ fn queries<'a>() -> Queries<
     ),
   );
 
-  let all_joins = move |query: comment::BoxedQuery<'a, Pg>,
-                        my_person_id: Option<PersonId>,
-                        saved_only: bool| {
+  let all_joins = move |query: comment::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
     let score_selection: Box<
       dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
     > = if let Some(person_id) = my_person_id {
@@ -169,11 +167,7 @@ fn queries<'a>() -> Queries<
 
   let read = move |mut conn: DbConn<'a>,
                    (comment_id, my_person_id): (CommentId, Option<PersonId>)| async move {
-    let mut query = all_joins(
-      comment::table.find(comment_id).into_boxed(),
-      my_person_id,
-      false,
-    );
+    let mut query = all_joins(comment::table.find(comment_id).into_boxed(), my_person_id);
     // Hide local only communities from unauthenticated users
     if my_person_id.is_none() {
       query = query.filter(community::visibility.eq(CommunityVisibility::Public));
@@ -189,11 +183,7 @@ fn queries<'a>() -> Queries<
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
     let local_user_id_join = my_local_user_id.unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(
-      comment::table.into_boxed(),
-      my_person_id,
-      options.saved_only,
-    );
+    let mut query = all_joins(comment::table.into_boxed(), my_person_id);
 
     if let Some(creator_id) = options.creator_id {
       query = query.filter(comment::creator_id.eq(creator_id));
