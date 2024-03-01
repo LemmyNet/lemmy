@@ -10,12 +10,12 @@ use lemmy_api_common::{
     check_post_deleted_or_removed,
     generate_local_apub_endpoint,
     get_post,
+    is_mod_or_admin,
     local_site_to_slur_regex,
     process_markdown,
     EndpointType,
   },
 };
-use lemmy_api_common::utils::is_mod_or_admin;
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
   source::{

@@ -18,7 +18,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{local_site_opt_to_slur_regex, process_markdown},
+  utils::{is_mod_or_admin, local_site_opt_to_slur_regex, process_markdown},
 };
 use lemmy_db_schema::{
   source::{
@@ -36,7 +36,6 @@ use lemmy_utils::{
 };
 use std::ops::Deref;
 use url::Url;
-use lemmy_api_common::utils::is_mod_or_admin;
 
 #[derive(Clone, Debug)]
 pub struct ApubComment(pub(crate) Comment);
