@@ -132,6 +132,7 @@ pub async fn create_post(
 
   let post_form = PostInsertForm::builder()
     .name(data.name.trim().to_string())
+    .url_content_type(metadata.content_type)
     .url(url)
     .body(body)
     .alt_text(alt_text.clone())

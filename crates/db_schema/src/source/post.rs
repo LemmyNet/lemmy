@@ -114,7 +114,7 @@ pub struct PostUpdateForm {
   pub language_id: Option<LanguageId>,
   pub featured_community: Option<bool>,
   pub featured_local: Option<bool>,
-  pub url_content_type: Option<String>,
+  pub url_content_type: Option<Option<String>>,
   pub alt_text: Option<Option<String>>,
 }
 

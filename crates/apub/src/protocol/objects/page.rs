@@ -74,8 +74,6 @@ pub(crate) struct Link {
   href: Url,
   media_type: Option<String>,
   r#type: LinkType,
-  /// Used for alt_text
-  name: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -94,8 +92,6 @@ pub(crate) struct Document {
   #[serde(rename = "type")]
   kind: DocumentType,
   url: Url,
-  /// Used for alt_text
-  name: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -120,12 +116,8 @@ impl Attachment {
 
   pub(crate) fn alt_text(self) -> Option<String> {
     match self {
-      // url as sent by Lemmy (new)
-      Attachment::Link(l) => l.name,
-      // image sent by lotide
       Attachment::Image(i) => i.name,
-      // sent by mobilizon
-      Attachment::Document(d) => d.name,
+      _ => None,
     }
   }
 }
@@ -198,7 +190,6 @@ impl Attachment {
         href: url,
         media_type,
         r#type: Default::default(),
-        name,
       })
     }
   }
