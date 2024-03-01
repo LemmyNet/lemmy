@@ -1,8 +1,10 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::post,
+  schema::{post, post_hide, post_like, post_read, post_saved},
   source::post::{
     Post,
+    PostHide,
+    PostHideForm,
     PostInsertForm,
     PostLike,
     PostLikeForm,
@@ -243,11 +245,10 @@ impl Likeable for PostLike {
   type Form = PostLikeForm;
   type IdType = PostId;
   async fn like(pool: &mut DbPool<'_>, post_like_form: &PostLikeForm) -> Result<Self, Error> {
-    use crate::schema::post_like::dsl::{person_id, post_id, post_like};
     let conn = &mut get_conn(pool).await?;
-    insert_into(post_like)
+    insert_into(post_like::table)
       .values(post_like_form)
-      .on_conflict((post_id, person_id))
+      .on_conflict((post_like::post_id, post_like::person_id))
       .do_update()
       .set(post_like_form)
       .get_result::<Self>(conn)
@@ -258,9 +259,8 @@ impl Likeable for PostLike {
     person_id: PersonId,
     post_id: PostId,
   ) -> Result<usize, Error> {
-    use crate::schema::post_like::dsl;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(dsl::post_like.find((person_id, post_id)))
+    diesel::delete(post_like::table.find((person_id, post_id)))
       .execute(conn)
       .await
   }
@@ -270,20 +270,18 @@ impl Likeable for PostLike {
 impl Saveable for PostSaved {
   type Form = PostSavedForm;
   async fn save(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
-    use crate::schema::post_saved::dsl::{person_id, post_id, post_saved};
     let conn = &mut get_conn(pool).await?;
-    insert_into(post_saved)
+    insert_into(post_saved::table)
       .values(post_saved_form)
-      .on_conflict((post_id, person_id))
+      .on_conflict((post_saved::post_id, post_saved::person_id))
       .do_update()
       .set(post_saved_form)
       .get_result::<Self>(conn)
       .await
   }
   async fn unsave(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
-    use crate::schema::post_saved::dsl::post_saved;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(post_saved.find((post_saved_form.person_id, post_saved_form.post_id)))
+    diesel::delete(post_saved::table.find((post_saved_form.person_id, post_saved_form.post_id)))
       .execute(conn)
       .await
   }
@@ -295,14 +293,13 @@ impl PostRead {
     post_ids: HashSet<PostId>,
     person_id: PersonId,
   ) -> Result<usize, Error> {
-    use crate::schema::post_read::dsl::post_read;
     let conn = &mut get_conn(pool).await?;
 
     let forms = post_ids
       .into_iter()
       .map(|post_id| PostReadForm { post_id, person_id })
       .collect::<Vec<PostReadForm>>();
-    insert_into(post_read)
+    insert_into(post_read::table)
       .values(forms)
       .on_conflict_do_nothing()
       .execute(conn)
@@ -314,13 +311,48 @@ impl PostRead {
     post_id_: HashSet<PostId>,
     person_id_: PersonId,
   ) -> Result<usize, Error> {
-    use crate::schema::post_read::dsl::{person_id, post_id, post_read};
     let conn = &mut get_conn(pool).await?;
 
     diesel::delete(
-      post_read
-        .filter(post_id.eq_any(post_id_))
-        .filter(person_id.eq(person_id_)),
+      post_read::table
+        .filter(post_read::post_id.eq_any(post_id_))
+        .filter(post_read::person_id.eq(person_id_)),
+    )
+    .execute(conn)
+    .await
+  }
+}
+
+impl PostHide {
+  pub async fn hide(
+    pool: &mut DbPool<'_>,
+    post_ids: HashSet<PostId>,
+    person_id: PersonId,
+  ) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    let forms = post_ids
+      .into_iter()
+      .map(|post_id| PostHideForm { post_id, person_id })
+      .collect::<Vec<PostHideForm>>();
+    insert_into(post_hide::table)
+      .values(forms)
+      .on_conflict_do_nothing()
+      .execute(conn)
+      .await
+  }
+
+  pub async fn unhide(
+    pool: &mut DbPool<'_>,
+    post_id_: HashSet<PostId>,
+    person_id_: PersonId,
+  ) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    diesel::delete(
+      post_hide::table
+        .filter(post_hide::post_id.eq_any(post_id_))
+        .filter(post_hide::person_id.eq(person_id_)),
     )
     .execute(conn)
     .await
