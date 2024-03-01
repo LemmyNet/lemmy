@@ -29,9 +29,7 @@ import {
   delta,
   betaAllowedInstances,
   searchPostLocal,
-  resolveBetaCommunity,
   longDelay,
-  delay,
   editCommunity,
 } from "./shared";
 import { EditCommunity, EditSite } from "lemmy-js-client";

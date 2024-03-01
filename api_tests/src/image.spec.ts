@@ -23,7 +23,6 @@ import {
   resolvePost,
   setupLogins,
   unfollowRemotes,
-  waitForPost,
 } from "./shared";
 const downloadFileSync = require("download-file-sync");
 
