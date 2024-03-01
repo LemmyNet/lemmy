@@ -23,6 +23,7 @@ use lemmy_db_schema::{
     Queries,
     ReadFn,
   },
+  ListingType,
   SortType,
 };
 use serde::{Deserialize, Serialize};
@@ -115,6 +116,15 @@ fn queries<'a>(
 
         let (limit, offset) = limit_and_offset(options.page, options.limit)?;
         query = query.limit(limit).offset(offset);
+
+        if let Some(listing_type) = options.listing_type {
+          query = match listing_type {
+            // return nothing as its not possible to follow users
+            ListingType::Subscribed => query.limit(0),
+            ListingType::Local => query.filter(person::local.eq(true)),
+            _ => query,
+          };
+        }
       }
     }
     query.load::<PersonView>(&mut conn).await
@@ -141,6 +151,7 @@ impl PersonView {
 pub struct PersonQuery {
   pub sort: Option<SortType>,
   pub search_term: Option<String>,
+  pub listing_type: Option<ListingType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
