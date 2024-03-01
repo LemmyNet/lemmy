@@ -394,7 +394,7 @@ export async function banPersonFromSite(
   let form: BanPerson = {
     person_id,
     ban,
-    remove_data: remove_data,
+    remove_data,
   };
   return api.banPerson(form);
 }
