@@ -18,7 +18,7 @@ use lemmy_db_schema::{
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_option_overwrite, naive_now},
+  utils::diesel_option_overwrite,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
@@ -143,8 +143,6 @@ pub async fn save_user_settings(
     upvotes: data.show_upvotes,
     downvotes: data.show_downvotes,
     upvote_percentage: data.show_upvote_percentage,
-    updated: Some(Some(naive_now())),
-    ..Default::default()
   };
   LocalUserVoteDisplayMode::update(&mut context.pool(), local_user_id, &vote_display_modes_form)
     .await?;

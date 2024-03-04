@@ -461,8 +461,6 @@ diesel::table! {
         upvotes -> Bool,
         downvotes -> Bool,
         upvote_percentage -> Bool,
-        published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
     }
 }
 

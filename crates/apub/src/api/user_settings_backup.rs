@@ -147,7 +147,6 @@ pub async fn import_settings(
       .vote_display_mode_settings
       .as_ref()
       .map(|s| s.upvote_percentage),
-    ..Default::default()
   };
 
   LocalUserVoteDisplayMode::update(

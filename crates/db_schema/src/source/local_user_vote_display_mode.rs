@@ -1,7 +1,6 @@
 use crate::newtypes::LocalUserId;
 #[cfg(feature = "full")]
 use crate::schema::local_user_vote_display_mode;
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -26,8 +25,6 @@ pub struct LocalUserVoteDisplayMode {
   pub upvotes: bool,
   pub downvotes: bool,
   pub upvote_percentage: bool,
-  pub published: DateTime<Utc>,
-  pub updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -41,8 +38,6 @@ pub struct LocalUserVoteDisplayModeInsertForm {
   pub upvotes: Option<bool>,
   pub downvotes: Option<bool>,
   pub upvote_percentage: Option<bool>,
-  pub published: Option<DateTime<Utc>>,
-  pub updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Default)]
@@ -53,6 +48,4 @@ pub struct LocalUserVoteDisplayModeUpdateForm {
   pub upvotes: Option<bool>,
   pub downvotes: Option<bool>,
   pub upvote_percentage: Option<bool>,
-  pub published: Option<DateTime<Utc>>,
-  pub updated: Option<Option<DateTime<Utc>>>,
 }

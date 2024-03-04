@@ -6,8 +6,6 @@ CREATE TABLE local_user_vote_display_mode (
     upvotes boolean DEFAULT FALSE NOT NULL,
     downvotes boolean DEFAULT FALSE NOT NULL,
     upvote_percentage boolean DEFAULT TRUE NOT NULL,
-    published timestamp with time zone NOT NULL DEFAULT now(),
-    updated timestamp with time zone,
     PRIMARY KEY (local_user_id)
 );
 
