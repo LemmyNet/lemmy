@@ -35,8 +35,6 @@ pub struct LocalUser {
   /// Whether to show avatars.
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
-  /// Whether to show comment / post scores.
-  pub show_scores: bool,
   /// Whether to show bot accounts.
   pub show_bot_accounts: bool,
   /// Whether to show read posts.
@@ -83,7 +81,6 @@ pub struct LocalUserInsertForm {
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
   pub show_bot_accounts: Option<bool>,
-  pub show_scores: Option<bool>,
   pub show_read_posts: Option<bool>,
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
@@ -114,7 +111,6 @@ pub struct LocalUserUpdateForm {
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
   pub show_bot_accounts: Option<bool>,
-  pub show_scores: Option<bool>,
   pub show_read_posts: Option<bool>,
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
