@@ -62,15 +62,13 @@ pub async fn create_post(
   check_slurs(&data.name, &slur_regex)?;
 
   let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
-  let alt_text = &data.alt_text;
-
   let data_url = data.url.as_ref();
   let url = data_url.map(clean_url_params); // TODO no good way to handle a "clear"
   let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);
 
   is_valid_post_title(&data.name)?;
   is_valid_body_field(&body, true)?;
-  is_valid_alt_text_field(alt_text)?;
+  is_valid_alt_text_field(&data.alt_text)?;
   check_url_scheme(&url)?;
   check_url_scheme(&custom_thumbnail)?;
 
@@ -135,7 +133,7 @@ pub async fn create_post(
     .url_content_type(metadata.content_type)
     .url(url)
     .body(body)
-    .alt_text(alt_text.clone())
+    .alt_text(&data.alt_text.clone())
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)

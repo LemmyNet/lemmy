@@ -54,14 +54,13 @@ pub async fn update_post(
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs_opt(&data.name, &slur_regex)?;
   let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
-  let alt_text = &data.alt_text;
 
   if let Some(name) = &data.name {
     is_valid_post_title(name)?;
   }
 
   is_valid_body_field(&body, true)?;
-  is_valid_alt_text_field(alt_text)?;
+  is_valid_alt_text_field(&data.alt_text)?;
   check_url_scheme(&url)?;
   check_url_scheme(&custom_thumbnail)?;
 
@@ -86,7 +85,7 @@ pub async fn update_post(
       Some(url) => {
         // Only generate the thumbnail if there's no custom thumbnail provided,
         // otherwise it will save it in pictrs
-        let generate_thumbnail = custom_thumbnail.is_none();
+        let generate_thumbnail = custom_thumbnail.is_none() || orig_post.thumbnail_url.is_none();
 
         let metadata = fetch_link_metadata(url, generate_thumbnail, &context).await?;
         (
@@ -127,7 +126,7 @@ pub async fn update_post(
     url,
     url_content_type: metadata_content_type,
     body: diesel_option_overwrite(body),
-    alt_text: diesel_option_overwrite(alt_text.clone()),
+    alt_text: diesel_option_overwrite(&data.alt_text.clone()),
     nsfw: data.nsfw,
     embed_title,
     embed_description,
