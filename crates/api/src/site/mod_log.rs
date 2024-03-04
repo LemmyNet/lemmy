@@ -55,10 +55,15 @@ pub async fn get_mod_log(
     data.mod_person_id
   };
   let other_person_id = data.other_person_id;
+  let post_id = data.post_id;
+  let comment_id = data.comment_id;
+
   let params = ModlogListParams {
     community_id,
     mod_person_id,
     other_person_id,
+    post_id,
+    comment_id,
     page: data.page,
     limit: data.limit,
     hide_modlog_names,
