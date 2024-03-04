@@ -54,6 +54,10 @@ impl ModRemoveCommentView {
       query = query.filter(person_alias_1.field(person::id).eq(other_person_id));
     };
 
+    if let Some(comment_id) = params.comment_id {
+      query = query.filter(comment::id.eq(comment_id));
+    }
+
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
     query
