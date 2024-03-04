@@ -91,7 +91,7 @@ pub struct CmdArgs {
   disable_activity_sending: bool,
   /// The index of this outgoing federation process.
   ///
-  /// Defaults to 1/1. If you want to split the federation workload onto n servers, run each server 1≤i≤n with these args:
+  /// Defaults to 1/1. If you want to split the federation workload onto n servers, run each server 0<i<n with these args:
   /// --federate-process-index i --federate-process-count n
   ///
   /// Make you have exactly one server with each `i` running, otherwise federation will randomly send duplicates or nothing.
