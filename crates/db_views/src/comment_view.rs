@@ -1,4 +1,5 @@
 use crate::structs::{CommentView, LocalUserView};
+use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{exists, not},
   pg::Pg,
@@ -53,13 +54,14 @@ fn queries<'a>() -> Queries<
   );
 
   let is_saved = |person_id| {
-    exists(
-      comment_saved::table.filter(
+    comment_saved::table
+      .filter(
         comment::id
           .eq(comment_saved::comment_id)
           .and(comment_saved::person_id.eq(person_id)),
-      ),
-    )
+      )
+      .select(comment_saved::published.nullable())
+      .single_value()
   };
 
   let is_community_followed = |person_id| {
@@ -110,9 +112,7 @@ fn queries<'a>() -> Queries<
     ),
   );
 
-  let all_joins = move |query: comment::BoxedQuery<'a, Pg>,
-                        my_person_id: Option<PersonId>,
-                        saved_only: bool| {
+  let all_joins = move |query: comment::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
     let score_selection: Box<
       dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
     > = if let Some(person_id) = my_person_id {
@@ -129,14 +129,13 @@ fn queries<'a>() -> Queries<
       Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
     };
 
-    let is_saved_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if saved_only {
-        Box::new(true.into_sql::<sql_types::Bool>())
-      } else if let Some(person_id) = my_person_id {
-        Box::new(is_saved(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
+    let is_saved_selection: Box<
+      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Timestamptz>>,
+    > = if let Some(person_id) = my_person_id {
+      Box::new(is_saved(person_id))
+    } else {
+      Box::new(None::<DateTime<Utc>>.into_sql::<sql_types::Nullable<sql_types::Timestamptz>>())
+    };
 
     let is_creator_blocked_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
       if let Some(person_id) = my_person_id {
@@ -160,7 +159,7 @@ fn queries<'a>() -> Queries<
         creator_is_moderator,
         creator_is_admin,
         subscribed_type_selection,
-        is_saved_selection,
+        is_saved_selection.is_not_null(),
         is_creator_blocked_selection,
         score_selection,
       ))
@@ -168,11 +167,7 @@ fn queries<'a>() -> Queries<
 
   let read = move |mut conn: DbConn<'a>,
                    (comment_id, my_person_id): (CommentId, Option<PersonId>)| async move {
-    let mut query = all_joins(
-      comment::table.find(comment_id).into_boxed(),
-      my_person_id,
-      false,
-    );
+    let mut query = all_joins(comment::table.find(comment_id).into_boxed(), my_person_id);
     // Hide local only communities from unauthenticated users
     if my_person_id.is_none() {
       query = query.filter(community::visibility.eq(CommunityVisibility::Public));
@@ -188,11 +183,7 @@ fn queries<'a>() -> Queries<
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
     let local_user_id_join = my_local_user_id.unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(
-      comment::table.into_boxed(),
-      my_person_id,
-      options.saved_only,
-    );
+    let mut query = all_joins(comment::table.into_boxed(), my_person_id);
 
     if let Some(creator_id) = options.creator_id {
       query = query.filter(comment::creator_id.eq(creator_id));
@@ -243,8 +234,11 @@ fn queries<'a>() -> Queries<
       }
     }
 
+    // If its saved only, then filter, and order by the saved time, not the comment creation time.
     if options.saved_only {
-      query = query.filter(is_saved(person_id_join));
+      query = query
+        .filter(is_saved(person_id_join).is_not_null())
+        .then_order_by(is_saved(person_id_join).desc());
     }
 
     if options.liked_only {
@@ -413,7 +407,15 @@ mod tests {
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
-      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
+      comment::{
+        Comment,
+        CommentInsertForm,
+        CommentLike,
+        CommentLikeForm,
+        CommentSaved,
+        CommentSavedForm,
+        CommentUpdateForm,
+      },
       community::{
         Community,
         CommunityInsertForm,
@@ -429,7 +431,7 @@ mod tests {
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostInsertForm},
     },
-    traits::{Blockable, Crud, Joinable, Likeable},
+    traits::{Blockable, Crud, Joinable, Likeable, Saveable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
     CommunityVisibility,
     SubscribedType,
@@ -925,6 +927,52 @@ mod tests {
     // Sara isn't, make sure its false
     assert_eq!(comments[1].creator.name, "sara");
     assert!(!comments[1].creator_is_admin);
+
+    cleanup(data, pool).await;
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_saved_order() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    // Save two comments
+    let save_comment_0_form = CommentSavedForm {
+      person_id: data.timmy_local_user_view.person.id,
+      comment_id: data.inserted_comment_0.id,
+    };
+    CommentSaved::save(pool, &save_comment_0_form)
+      .await
+      .unwrap();
+
+    let save_comment_2_form = CommentSavedForm {
+      person_id: data.timmy_local_user_view.person.id,
+      comment_id: data.inserted_comment_2.id,
+    };
+    CommentSaved::save(pool, &save_comment_2_form)
+      .await
+      .unwrap();
+
+    // Fetch the saved comments
+    let comments = CommentQuery {
+      local_user: Some(&data.timmy_local_user_view),
+      saved_only: true,
+      ..Default::default()
+    }
+    .list(pool)
+    .await
+    .unwrap();
+
+    // There should only be two comments
+    assert_eq!(2, comments.len());
+
+    // The first comment, should be the last one saved (descending order)
+    assert_eq!(comments[0].comment.id, data.inserted_comment_2.id);
+
+    // The second comment, should be the first one saved
+    assert_eq!(comments[1].comment.id, data.inserted_comment_0.id);
 
     cleanup(data, pool).await;
   }

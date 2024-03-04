@@ -10,6 +10,7 @@ use lemmy_api_common::{
     check_post_deleted_or_removed,
     generate_local_apub_endpoint,
     get_post,
+    is_mod_or_admin,
     local_site_to_slur_regex,
     process_markdown,
     EndpointType,
@@ -55,7 +56,10 @@ pub async fn create_comment(
   check_post_deleted_or_removed(&post)?;
 
   // Check if post is locked, no new comments
-  if post.locked {
+  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view.person, community_id)
+    .await
+    .is_ok();
+  if post.locked && !is_mod_or_admin {
     Err(LemmyErrorType::Locked)?
   }
 

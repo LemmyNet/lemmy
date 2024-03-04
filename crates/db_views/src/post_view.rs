@@ -1,4 +1,5 @@
 use crate::structs::{LocalUserView, PaginationCursor, PostView};
+use chrono::{DateTime, Utc};
 use diesel::{
   debug_query,
   dsl::{exists, not, IntervalDsl},
@@ -89,13 +90,14 @@ fn queries<'a>() -> Queries<
   );
 
   let is_saved = |person_id| {
-    exists(
-      post_saved::table.filter(
+    post_saved::table
+      .filter(
         post_aggregates::post_id
           .eq(post_saved::post_id)
           .and(post_saved::person_id.eq(person_id)),
-      ),
-    )
+      )
+      .select(post_saved::published.nullable())
+      .single_value()
   };
 
   let is_read = |person_id| {
@@ -140,16 +142,14 @@ fn queries<'a>() -> Queries<
   };
 
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
-                        my_person_id: Option<PersonId>,
-                        saved_only: bool| {
-    let is_saved_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if saved_only {
-        Box::new(true.into_sql::<sql_types::Bool>())
-      } else if let Some(person_id) = my_person_id {
-        Box::new(is_saved(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
+                        my_person_id: Option<PersonId>| {
+    let is_saved_selection: Box<
+      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Timestamptz>>,
+    > = if let Some(person_id) = my_person_id {
+      Box::new(is_saved(person_id))
+    } else {
+      Box::new(None::<DateTime<Utc>>.into_sql::<sql_types::Nullable<sql_types::Timestamptz>>())
+    };
 
     let is_read_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
       if let Some(person_id) = my_person_id {
@@ -227,7 +227,7 @@ fn queries<'a>() -> Queries<
         creator_is_admin,
         post_aggregates::all_columns,
         subscribed_type_selection,
-        is_saved_selection,
+        is_saved_selection.is_not_null(),
         is_read_selection,
         is_hidden_selection,
         is_creator_blocked_selection,
@@ -250,7 +250,6 @@ fn queries<'a>() -> Queries<
           .filter(post_aggregates::post_id.eq(post_id))
           .into_boxed(),
         my_person_id,
-        false,
       );
 
       // Hide deleted and removed for non-admins or mods
@@ -298,11 +297,7 @@ fn queries<'a>() -> Queries<
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
     let local_user_id_join = my_local_user_id.unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(
-      post_aggregates::table.into_boxed(),
-      my_person_id,
-      options.saved_only,
-    );
+    let mut query = all_joins(post_aggregates::table.into_boxed(), my_person_id);
 
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
@@ -408,8 +403,11 @@ fn queries<'a>() -> Queries<
       query = query.filter(person::bot_account.eq(false));
     };
 
+    // If its saved only, then filter, and order by the saved time, not the comment creation time.
     if let (true, Some(person_id)) = (options.saved_only, my_person_id) {
-      query = query.filter(is_saved(person_id));
+      query = query
+        .filter(is_saved(person_id).is_not_null())
+        .then_order_by(is_saved(person_id).desc());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
