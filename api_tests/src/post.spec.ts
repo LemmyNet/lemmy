@@ -270,8 +270,10 @@ test("Lock a post", async () => {
     post => !!post && post.post.locked,
   );
 
-  // Try to make a new comment there, on alpha
-  await expect(createComment(alpha, alphaPost1.post.id)).rejects.toStrictEqual(
+  // Try to make a new comment there, on alpha. For this we need to create a normal
+  // user account because admins/mods can comment in locked posts.
+  let user = await registerUser(alpha, alphaUrl);
+  await expect(createComment(user, alphaPost1.post.id)).rejects.toStrictEqual(
     Error("locked"),
   );
 
@@ -290,7 +292,7 @@ test("Lock a post", async () => {
   expect(alphaPost2.post.locked).toBe(false);
 
   // Try to create a new comment, on alpha
-  let commentAlpha = await createComment(alpha, alphaPost1.post.id);
+  let commentAlpha = await createComment(user, alphaPost1.post.id);
   expect(commentAlpha).toBeDefined();
 });
 
