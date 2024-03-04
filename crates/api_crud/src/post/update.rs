@@ -126,7 +126,7 @@ pub async fn update_post(
     url,
     url_content_type: metadata_content_type,
     body: diesel_option_overwrite(body),
-    alt_text: diesel_option_overwrite(&data.alt_text.clone()),
+    alt_text: diesel_option_overwrite(data.alt_text.clone()),
     nsfw: data.nsfw,
     embed_title,
     embed_description,

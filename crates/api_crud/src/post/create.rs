@@ -133,7 +133,7 @@ pub async fn create_post(
     .url_content_type(metadata.content_type)
     .url(url)
     .body(body)
-    .alt_text(&data.alt_text.clone())
+    .alt_text(data.alt_text.clone())
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)
