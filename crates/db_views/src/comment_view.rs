@@ -369,6 +369,9 @@ impl CommentView {
     if my_person_id.is_some() && res.my_vote.is_none() {
       res.my_vote = Some(0);
     }
+    if res.comment.deleted || res.comment.removed {
+      res.comment.content = String::new();
+    }
     Ok(res)
   }
 }
@@ -393,7 +396,19 @@ pub struct CommentQuery<'a> {
 
 impl<'a> CommentQuery<'a> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
-    queries().list(pool, self).await
+    Ok(
+      queries()
+        .list(pool, self)
+        .await?
+        .into_iter()
+        .map(|mut c| {
+          if c.comment.deleted || c.comment.removed {
+            c.comment.content = String::new();
+          }
+          c
+        })
+        .collect(),
+    )
   }
 }
 
