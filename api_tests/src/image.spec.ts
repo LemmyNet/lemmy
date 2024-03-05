@@ -202,4 +202,7 @@ test("No image proxying if setting is disabled", async () => {
     gammaPost.post!.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
   ).toBeTruthy();
   expect(gammaPost.post!.post.body).toBe("![](http://example.com/image2.png)");
+
+  // Make sure the alt text got federated
+  expect(post.post_view.post.alt_text).toBe(gammaPost.post!.post.alt_text);
 });

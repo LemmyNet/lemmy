@@ -101,6 +101,7 @@ pub enum LemmyErrorType {
   InvalidPostTitle,
   InvalidBodyField,
   BioLengthOverflow,
+  AltTextLengthOverflow,
   MissingTotpToken,
   MissingTotpSecret,
   IncorrectTotpToken,

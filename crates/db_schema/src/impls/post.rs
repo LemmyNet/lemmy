@@ -434,6 +434,7 @@ mod tests {
       name: "A test post".into(),
       url: None,
       body: None,
+      alt_text: None,
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
       published: inserted_post.published,

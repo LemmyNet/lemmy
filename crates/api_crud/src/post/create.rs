@@ -35,7 +35,13 @@ use lemmy_utils::{
   spawn_try_task,
   utils::{
     slurs::check_slurs,
-    validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
+    validation::{
+      check_url_scheme,
+      clean_url_params,
+      is_valid_alt_text_field,
+      is_valid_body_field,
+      is_valid_post_title,
+    },
   },
 };
 use tracing::Instrument;
@@ -50,17 +56,19 @@ pub async fn create_post(
 ) -> Result<Json<PostResponse>, LemmyError> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let slur_regex = local_site_to_slur_regex(&local_site);
-  check_slurs(&data.name, &slur_regex)?;
-  let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
   honeypot_check(&data.honeypot)?;
 
+  let slur_regex = local_site_to_slur_regex(&local_site);
+  check_slurs(&data.name, &slur_regex)?;
+
+  let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
   let data_url = data.url.as_ref();
   let url = data_url.map(clean_url_params); // TODO no good way to handle a "clear"
   let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);
 
   is_valid_post_title(&data.name)?;
   is_valid_body_field(&body, true)?;
+  is_valid_alt_text_field(&data.alt_text)?;
   check_url_scheme(&url)?;
   check_url_scheme(&custom_thumbnail)?;
 
@@ -122,8 +130,10 @@ pub async fn create_post(
 
   let post_form = PostInsertForm::builder()
     .name(data.name.trim().to_string())
+    .url_content_type(metadata.content_type)
     .url(url)
     .body(body)
+    .alt_text(data.alt_text.clone())
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)

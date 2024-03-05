@@ -115,7 +115,13 @@ impl Object for ApubPost {
     let attachment = self
       .url
       .clone()
-      .map(|url| Attachment::new(url.into(), self.url_content_type.clone()))
+      .map(|url| {
+        Attachment::new(
+          url.into(),
+          self.url_content_type.clone(),
+          self.alt_text.clone(),
+        )
+      })
       .into_iter()
       .collect();
 
@@ -203,10 +209,11 @@ impl Object for ApubPost {
     // read existing, local post if any (for generating mod log)
     let old_post = page.id.dereference_local(context).await;
 
+    let first_attachment = page.attachment.first();
+
     let form = if !page.is_mod_action(context).await? {
-      let first_attachment = page.attachment.into_iter().map(Attachment::url).next();
-      let url = if first_attachment.is_some() {
-        first_attachment
+      let url = if let Some(attachment) = first_attachment.cloned() {
+        Some(attachment.url())
       } else if page.kind == PageType::Video {
         // we cant display videos directly, so insert a link to external video page
         Some(page.id.inner().clone())
@@ -215,6 +222,7 @@ impl Object for ApubPost {
       };
       check_url_scheme(&url)?;
 
+      let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
       let local_site = LocalSite::read(&mut context.pool()).await.ok();
       let allow_sensitive = local_site_opt_to_sensitive(&local_site);
       let page_is_sensitive = page.sensitive.unwrap_or(false);
@@ -241,6 +249,7 @@ impl Object for ApubPost {
         name,
         url: url.map(Into::into),
         body,
+        alt_text,
         creator_id: creator.id,
         community_id: community.id,
         removed: None,

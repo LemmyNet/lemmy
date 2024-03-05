@@ -1063,6 +1063,7 @@ mod tests {
         creator_id: data.timmy_local_user_view.person.id,
         url: None,
         body: None,
+        alt_text: None,
         published: data.inserted_post.published,
         updated: None,
         community_id: data.inserted_community.id,

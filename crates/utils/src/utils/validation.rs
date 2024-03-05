@@ -19,6 +19,7 @@ const ALLOWED_POST_URL_SCHEMES: [&str; 3] = ["http", "https", "magnet"];
 const BODY_MAX_LENGTH: usize = 10000;
 const POST_BODY_MAX_LENGTH: usize = 50000;
 const BIO_MAX_LENGTH: usize = 300;
+const ALT_TEXT_MAX_LENGTH: usize = 300;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
@@ -170,6 +171,18 @@ pub fn is_valid_body_field(body: &Option<String>, post: bool) -> LemmyResult<()>
 
 pub fn is_valid_bio_field(bio: &str) -> LemmyResult<()> {
   max_length_check(bio, BIO_MAX_LENGTH, LemmyErrorType::BioLengthOverflow)
+}
+
+pub fn is_valid_alt_text_field(alt_text: &Option<String>) -> LemmyResult<()> {
+  if let Some(alt_text) = alt_text {
+    max_length_check(
+      alt_text,
+      ALT_TEXT_MAX_LENGTH,
+      LemmyErrorType::AltTextLengthOverflow,
+    )
+  } else {
+    Ok(())
+  }
 }
 
 /// Checks the site name length, the limit as defined in the DB.
