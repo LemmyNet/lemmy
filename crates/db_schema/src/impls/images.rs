@@ -1,11 +1,8 @@
 use crate::{
   newtypes::{DbUrl, LocalUserId},
-  schema::{
-    local_image::dsl::{local_image, local_user_id, pictrs_alias},
-    remote_image::dsl::{link, remote_image},
-  },
+  schema::{local_image, remote_image},
   source::images::{LocalImage, LocalImageForm, RemoteImage, RemoteImageForm},
-  utils::{get_conn, DbPool},
+  utils::{get_conn, limit_and_offset, DbPool},
 };
 use diesel::{
   dsl::exists,
@@ -15,7 +12,6 @@ use diesel::{
   ExpressionMethods,
   NotFound,
   QueryDsl,
-  Table,
 };
 use diesel_async::RunQueryDsl;
 use url::Url;
@@ -23,27 +19,47 @@ use url::Url;
 impl LocalImage {
   pub async fn create(pool: &mut DbPool<'_>, form: &LocalImageForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(local_image)
+    insert_into(local_image::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
   }
 
+  /// This should only be used in the internal API, since it has no page and limit
   pub async fn get_all_by_local_user_id(
     pool: &mut DbPool<'_>,
-    user_id: &LocalUserId,
+    user_id: LocalUserId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    local_image
-      .filter(local_user_id.eq(user_id))
-      .select(local_image::all_columns())
+    local_image::table
+      .filter(local_image::local_user_id.eq(user_id))
+      .select(local_image::all_columns)
+      .load::<LocalImage>(conn)
+      .await
+  }
+
+  /// This is okay for API use.
+  pub async fn get_all_paged_by_local_user_id(
+    pool: &mut DbPool<'_>,
+    user_id: LocalUserId,
+    page: Option<i64>,
+    limit: Option<i64>,
+  ) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let (limit, offset) = limit_and_offset(page, limit)?;
+
+    local_image::table
+      .filter(local_image::local_user_id.eq(user_id))
+      .select(local_image::all_columns)
+      .limit(limit)
+      .offset(offset)
       .load::<LocalImage>(conn)
       .await
   }
 
   pub async fn delete_by_alias(pool: &mut DbPool<'_>, alias: &str) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(local_image.filter(pictrs_alias.eq(alias)))
+    diesel::delete(local_image::table.filter(local_image::pictrs_alias.eq(alias)))
       .execute(conn)
       .await
   }
@@ -56,7 +72,7 @@ impl RemoteImage {
       .into_iter()
       .map(|url| RemoteImageForm { link: url.into() })
       .collect::<Vec<_>>();
-    insert_into(remote_image)
+    insert_into(remote_image::table)
       .values(forms)
       .on_conflict_do_nothing()
       .execute(conn)
@@ -66,9 +82,11 @@ impl RemoteImage {
   pub async fn validate(pool: &mut DbPool<'_>, link_: DbUrl) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let exists = select(exists(remote_image.filter((link).eq(link_))))
-      .get_result::<bool>(conn)
-      .await?;
+    let exists = select(exists(
+      remote_image::table.filter(remote_image::link.eq(link_)),
+    ))
+    .get_result::<bool>(conn)
+    .await?;
     if exists {
       Ok(())
     } else {

@@ -1,7 +1,7 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
-  source::site::Site,
+  source::{images::LocalImage, site::Site},
   CommentSortType,
   ListingType,
   PostListingMode,
@@ -417,4 +417,21 @@ pub struct UpdateTotp {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct UpdateTotpResponse {
   pub enabled: bool,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Get your user's image / media uploads.
+pub struct ListMedia {
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ListMediaResponse {
+  pub images: Vec<LocalImage>,
 }

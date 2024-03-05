@@ -48,6 +48,15 @@ test("Upload image and delete it", async () => {
   const content = downloadFileSync(upload.url);
   expect(content.length).toBeGreaterThan(0);
 
+  // Ensure that it comes back with the list_media endpoint
+  const listMediaRes = await alphaImage.listMedia({});
+  expect(listMediaRes.images.length).toBe(1);
+
+  // The deleteUrl is a combination of the endpoint, delete token, and alias
+  let firstImage = listMediaRes.images[0];
+  let deleteUrl = `${alphaUrl}/pictrs/image/delete/${firstImage.pictrs_delete_token}/${firstImage.pictrs_alias}`;
+  expect(deleteUrl).toBe(upload.delete_url);
+
   // delete image
   const delete_form: DeleteImage = {
     token: upload.files![0].delete_token,

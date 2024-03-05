@@ -29,6 +29,7 @@ use lemmy_api::{
     get_captcha::get_captcha,
     list_banned::list_banned_users,
     list_logins::list_logins,
+    list_media::list_media,
     login::login,
     logout::logout,
     notifications::{
@@ -320,7 +321,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/totp/generate", web::post().to(generate_totp_secret))
           .route("/totp/update", web::post().to(update_totp))
           .route("/list_logins", web::get().to(list_logins))
-          .route("/validate_auth", web::get().to(validate_auth)),
+          .route("/validate_auth", web::get().to(validate_auth))
+          .route("/list_media", web::get().to(list_media)),
       )
       // Admin Actions
       .service(
