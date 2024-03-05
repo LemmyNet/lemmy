@@ -149,9 +149,10 @@ When working on an issue or pull request, you can comment with any questions you
 
 - If you want to help with translating, take a look at [Weblate](https://weblate.join-lemmy.org/projects/lemmy/). You can also help by [translating the documentation](https://github.com/LemmyNet/lemmy-docs#adding-a-new-language).
 
-## Contact
+## Community
 
-- [Mastodon](https://mastodon.social/@LemmyDev)
+- [Matrix Space](https://matrix.to/#/#lemmy-space:matrix.org)
+- [Lemmy Forum](https://lemmy.ml/c/lemmy)
 - [Lemmy Support Forum](https://lemmy.ml/c/lemmy_support)
 
 ## Code Mirrors
