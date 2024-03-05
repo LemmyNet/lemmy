@@ -229,6 +229,7 @@ pub struct ListPostReports {
   pub unresolved_only: Option<bool>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
+  pub post_id: Option<PostId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

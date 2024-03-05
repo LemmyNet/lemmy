@@ -16,6 +16,7 @@ pub async fn list_comment_reports(
   local_user_view: LocalUserView,
 ) -> Result<Json<ListCommentReportsResponse>, LemmyError> {
   let community_id = data.community_id;
+  let comment_id = data.comment_id;
   let unresolved_only = data.unresolved_only.unwrap_or_default();
 
   check_community_mod_of_any_or_admin_action(&local_user_view, &mut context.pool()).await?;
@@ -24,6 +25,7 @@ pub async fn list_comment_reports(
   let limit = data.limit;
   let comment_reports = CommentReportQuery {
     community_id,
+    comment_id,
     unresolved_only,
     page,
     limit,
