@@ -616,15 +616,15 @@ pub async fn purge_image_posts_for_person(
 }
 
 /// Delete a local_user's images
-pub async fn purge_local_user_images(
+pub async fn delete_local_user_images(
   person_id: PersonId,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
-  // Delete their images
   if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), person_id).await {
     let pictrs_uploads =
       LocalImage::get_all_by_local_user_id(&mut context.pool(), &local_user.local_user.id).await?;
 
+    // Delete their images
     for upload in pictrs_uploads {
       delete_image_from_pictrs(&upload.pictrs_alias, &upload.pictrs_delete_token, context)
         .await
@@ -779,7 +779,7 @@ pub async fn purge_user_account(
   let person = Person::read(pool, person_id).await?;
 
   // Delete their local images, if they're a local user
-  purge_local_user_images(person_id, context).await.ok();
+  delete_local_user_images(person_id, context).await.ok();
 
   // No need to update avatar and banner, those are handled in Person::delete_account
   if let Some(avatar) = person.avatar {
