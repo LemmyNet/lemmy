@@ -2,15 +2,13 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
-  request::delete_image_from_pictrs,
   send_activity::{ActivityChannel, SendActivityData},
   site::PurgePerson,
-  utils::is_admin,
+  utils::{is_admin, purge_local_user_images},
   SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
-    images::LocalImage,
     moderator::{AdminPurgePerson, AdminPurgePersonForm},
     person::{Person, PersonUpdateForm},
   },
@@ -28,17 +26,7 @@ pub async fn purge_person(
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 
-  // Read the person to get their images
-  if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), data.person_id).await {
-    let pictrs_uploads =
-      LocalImage::get_all_by_local_user_id(&mut context.pool(), &local_user.local_user.id).await?;
-
-    for upload in pictrs_uploads {
-      delete_image_from_pictrs(&upload.pictrs_alias, &upload.pictrs_delete_token, &context)
-        .await
-        .ok();
-    }
-  }
+  purge_local_user_images(data.person_id, &context).await.ok();
 
   // Clear profile data.
   Person::delete_account(&mut context.pool(), data.person_id).await?;
