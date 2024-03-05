@@ -137,9 +137,13 @@ Lemmy is made possible by a generous grant from the [NLnet foundation](https://n
 
 ## Contributing
 
+Read the following documentation to setup the development environment and start coding:
+
 - [Contributing instructions](https://join-lemmy.org/docs/contributors/01-overview.html)
 - [Docker Development](https://join-lemmy.org/docs/contributors/03-docker-development.html)
 - [Local Development](https://join-lemmy.org/docs/contributors/02-local-development.html)
+
+When working on an issue or pull request, you can comment with any questions you may have so that maintainers can answer them. You can also join the [Matrix Development Chat](https://matrix.to/#/#lemmydev:matrix.org) for general assistance.
 
 ### Translations
 
