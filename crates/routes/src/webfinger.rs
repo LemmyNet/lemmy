@@ -1,6 +1,6 @@
 use activitypub_federation::{
   config::Data,
-  fetch::webfinger::{extract_webfinger_name, Webfinger, WebfingerLink},
+  fetch::webfinger::{extract_webfinger_name, Webfinger, WebfingerLink, WEBFINGER_CONTENT_TYPE},
 };
 use actix_web::{web, web::Query, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
@@ -12,7 +12,6 @@ use lemmy_db_schema::{
 use lemmy_utils::{cache_header::cache_3days, error::LemmyError};
 use serde::Deserialize;
 use std::collections::HashMap;
-use activitypub_federation::fetch::webfinger::WEBFINGER_CONTENT_TYPE;
 use url::Url;
 
 #[derive(Deserialize)]
@@ -71,7 +70,11 @@ async fn get_webfinger_response(
     ..Default::default()
   };
 
-  Ok(HttpResponse::Ok().content_type(&WEBFINGER_CONTENT_TYPE).json(json))
+  Ok(
+    HttpResponse::Ok()
+      .content_type(&WEBFINGER_CONTENT_TYPE)
+      .json(json),
+  )
 }
 
 fn webfinger_link_for_actor(
