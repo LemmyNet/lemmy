@@ -51,6 +51,7 @@ impl LocalImage {
     local_image::table
       .filter(local_image::local_user_id.eq(user_id))
       .select(local_image::all_columns)
+      .order_by(local_image::published.desc())
       .limit(limit)
       .offset(offset)
       .load::<LocalImage>(conn)
