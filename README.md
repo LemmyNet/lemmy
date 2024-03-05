@@ -154,7 +154,6 @@ When working on an issue or pull request, you can comment with any questions you
 - [Matrix Space](https://matrix.to/#/#lemmy-space:matrix.org)
 - [Lemmy Forum](https://lemmy.ml/c/lemmy)
 - [Lemmy Support Forum](https://lemmy.ml/c/lemmy_support)
-- [Mastodon](https://mastodon.social/@LemmyDev)
 
 ## Code Mirrors
 
