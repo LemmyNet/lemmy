@@ -25,6 +25,7 @@
  <img width=200px height=200px src="https://raw.githubusercontent.com/LemmyNet/lemmy-ui/main/src/assets/icons/favicon.svg"></a>
 
  <h3 align="center"><a href="https://join-lemmy.org">Lemmy</a></h3>
+ <p><strong>WARNING: Lemmy is not yet compliant with the GDPR. Hosting a public instance in the EU could incur enormous fines.</strong></p>
   <p align="center">
     A link aggregator and forum for the fediverse.
     <br />
