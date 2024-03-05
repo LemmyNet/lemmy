@@ -1,3 +1,4 @@
+use crate::ban_nonlocal_user_from_local_communities;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
@@ -27,6 +28,18 @@ pub async fn purge_person(
   is_admin(&local_user_view)?;
 
   purge_local_user_images(data.person_id, &context).await.ok();
+
+  let person = Person::read(&mut context.pool(), data.person_id).await?;
+  ban_nonlocal_user_from_local_communities(
+    &local_user_view,
+    &person,
+    true,
+    &data.reason,
+    &Some(true),
+    &None,
+    &context,
+  )
+  .await?;
 
   // Clear profile data.
   Person::delete_account(&mut context.pool(), data.person_id).await?;
