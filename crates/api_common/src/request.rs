@@ -327,7 +327,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_link_metadata() {
-    let context = LemmyContext::init_test_context_with_networking().await;
+    let context = LemmyContext::init_test_context().await;
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
     let sample_res = fetch_link_metadata(&sample_url, false, &context)
       .await
