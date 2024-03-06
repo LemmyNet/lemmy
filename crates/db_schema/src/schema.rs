@@ -342,7 +342,7 @@ diesel::table! {
 
 diesel::table! {
     local_image (pictrs_alias) {
-        local_user_id -> Int4,
+        local_user_id -> Nullable<Int4>,
         pictrs_alias -> Text,
         pictrs_delete_token -> Text,
         published -> Timestamptz,
