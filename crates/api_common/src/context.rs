@@ -1,6 +1,5 @@
 use crate::request::client_builder;
 use activitypub_federation::config::{Data, FederationConfig};
-use anyhow::anyhow;
 use lemmy_db_schema::{
   source::secret::Secret,
   utils::{build_db_pool_for_tests, ActualDbPool, DbPool},
@@ -9,10 +8,8 @@ use lemmy_utils::{
   rate_limit::RateLimitCell,
   settings::{structs::Settings, SETTINGS},
 };
-use reqwest::{Request, Response};
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, Middleware, Next};
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use std::sync::Arc;
-use task_local_extensions::Extensions;
 
 #[derive(Clone)]
 pub struct LemmyContext {

@@ -64,7 +64,6 @@ once_cell = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
 enum-map = { workspace = true }
 urlencoding = { workspace = true }
-async-trait = { workspace = true }
 mime = { version = "0.3.17", optional = true }
 webpage = { version = "1.6", default-features = false, features = [
   "serde",

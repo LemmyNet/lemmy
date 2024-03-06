@@ -2578,7 +2578,6 @@ dependencies = [
  "activitypub_federation",
  "actix-web",
  "anyhow",
- "async-trait",
  "chrono",
  "encoding",
  "enum-map",
