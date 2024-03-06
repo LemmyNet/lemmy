@@ -92,6 +92,7 @@ impl LemmyContext {
     let config = FederationConfig::builder()
       .domain(context.settings().hostname.clone())
       .app_data(context)
+      .http_fetch_limit(0)
       .build()
       .await
       .expect("build federation config");

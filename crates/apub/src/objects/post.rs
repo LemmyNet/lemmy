@@ -293,8 +293,7 @@ mod tests {
   use super::*;
   use crate::{
     objects::{
-      community::{tests::parse_lemmy_community, ApubCommunity},
-      instance::ApubSite,
+      community::tests::parse_lemmy_community,
       person::{tests::parse_lemmy_person, ApubPerson},
     },
     protocol::tests::file_to_json_object,
@@ -324,7 +323,10 @@ mod tests {
     assert!(!post.featured_community);
     assert_eq!(context.request_count(), 0);
 
-    cleanup(&context, person, site, community, post).await?;
+    Post::delete(&mut context.pool(), post.id).await?;
+    Person::delete(&mut context.pool(), person.id).await?;
+    Community::delete(&mut context.pool(), community.id).await?;
+    Site::delete(&mut context.pool(), site.id).await?;
     Ok(())
   }
 
@@ -332,29 +334,19 @@ mod tests {
   #[serial]
   async fn test_convert_mastodon_post_title() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (person, site) = parse_lemmy_person(&context).await?;
     let community = parse_lemmy_community(&context).await?;
+
+    let json = file_to_json_object("assets/mastodon/objects/person.json")?;
+    let person = ApubPerson::from_json(json, &context).await?;
 
     let json = file_to_json_object("assets/mastodon/objects/page.json")?;
     let post = ApubPost::from_json(json, &context).await?;
 
     assert_eq!(post.name, "Variable never resetting at refresh");
 
-    cleanup(&context, person, site, community, post).await?;
-    Ok(())
-  }
-
-  async fn cleanup(
-    context: &Data<LemmyContext>,
-    person: ApubPerson,
-    site: ApubSite,
-    community: ApubCommunity,
-    post: ApubPost,
-  ) -> LemmyResult<()> {
     Post::delete(&mut context.pool(), post.id).await?;
     Person::delete(&mut context.pool(), person.id).await?;
     Community::delete(&mut context.pool(), community.id).await?;
-    Site::delete(&mut context.pool(), site.id).await?;
     Ok(())
   }
 }
