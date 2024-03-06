@@ -15,6 +15,7 @@ use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::
 use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};
 use lemmy_db_views_actor::structs::{CommunityView, PersonView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
+use crate::fetcher::user_or_community::UserOrCommunity;
 
 #[tracing::instrument(skip(context))]
 pub async fn resolve_object(
@@ -31,7 +32,7 @@ pub async fn resolve_object(
 
   let res = if is_authenticated {
     // user is fully authenticated; allow remote lookups as well.
-    search_query_to_object_id(&data.q, &context).await
+    search_query_to_object_id(data.q.clone(), &context).await
   } else {
     // user isn't authenticated only allow a local search.
     search_query_to_object_id_local(&data.q, &context).await
@@ -52,14 +53,6 @@ async fn convert_response(
   let removed_or_deleted;
   let mut res = ResolveObjectResponse::default();
   match object {
-    Person(p) => {
-      removed_or_deleted = p.deleted;
-      res.person = Some(PersonView::read(pool, p.id).await?)
-    }
-    Community(c) => {
-      removed_or_deleted = c.deleted || c.removed;
-      res.community = Some(CommunityView::read(pool, c.id, user_id, false).await?)
-    }
     Post(p) => {
       removed_or_deleted = p.deleted || p.removed;
       res.post = Some(PostView::read(pool, p.id, user_id, false).await?)
@@ -67,6 +60,18 @@ async fn convert_response(
     Comment(c) => {
       removed_or_deleted = c.deleted || c.removed;
       res.comment = Some(CommentView::read(pool, c.id, user_id).await?)
+    }
+    PersonOrCommunity(p) => {
+      match p {
+        UserOrCommunity::User(u) => {
+          removed_or_deleted = u.deleted;
+          res.person = Some(PersonView::read(pool, u.id).await?)
+        }
+        UserOrCommunity::Community(c) => {
+          removed_or_deleted = c.deleted || c.removed;
+          res.community = Some(CommunityView::read(pool, c.id, user_id, false).await?)
+        }
+      }
     }
   };
   // if the object was deleted from database, dont return it
