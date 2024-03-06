@@ -59,7 +59,7 @@ async fn convert_response(
       removed_or_deleted = c.deleted || c.removed;
       res.comment = Some(CommentView::read(pool, c.id, user_id).await?)
     }
-    PersonOrCommunity(p) => match p {
+    PersonOrCommunity(p) => match *p {
       UserOrCommunity::User(u) => {
         removed_or_deleted = u.deleted;
         res.person = Some(PersonView::read(pool, u.id).await?)

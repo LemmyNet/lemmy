@@ -29,12 +29,12 @@ pub(crate) async fn search_query_to_object_id(
     }
     Err(_) => {
       // not an url, try to resolve via webfinger
-      if query.starts_with("!") || query.starts_with("@") {
+      if query.starts_with('!') || query.starts_with('@') {
         query.remove(0);
       }
-      SearchableObjects::PersonOrCommunity(
+      SearchableObjects::PersonOrCommunity(Box::new(
         webfinger_resolve_actor::<LemmyContext, UserOrCommunity>(&query, context).await?,
-      )
+      ))
     }
   })
 }
@@ -56,15 +56,15 @@ pub(crate) async fn search_query_to_object_id_local(
 pub(crate) enum SearchableObjects {
   Post(ApubPost),
   Comment(ApubComment),
-  PersonOrCommunity(UserOrCommunity),
+  PersonOrCommunity(Box<UserOrCommunity>),
 }
 
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub(crate) enum SearchableKinds {
-  Page(Page),
+  Page(Box<Page>),
   Note(Note),
-  PersonOrGroup(PersonOrGroup),
+  PersonOrGroup(Box<PersonOrGroup>),
 }
 
 #[async_trait::async_trait]
@@ -93,7 +93,7 @@ impl Object for SearchableObjects {
   ) -> Result<Option<Self>, LemmyError> {
     let uc = UserOrCommunity::read_from_id(object_id.clone(), context).await?;
     if let Some(uc) = uc {
-      return Ok(Some(SearchableObjects::PersonOrCommunity(uc)));
+      return Ok(Some(SearchableObjects::PersonOrCommunity(Box::new(uc))));
     }
     let p = ApubPost::read_from_id(object_id.clone(), context).await?;
     if let Some(p) = p {
@@ -111,7 +111,7 @@ impl Object for SearchableObjects {
     match self {
       SearchableObjects::Post(p) => p.delete(data).await,
       SearchableObjects::Comment(c) => c.delete(data).await,
-      SearchableObjects::PersonOrCommunity(pc) => match pc {
+      SearchableObjects::PersonOrCommunity(pc) => match *pc {
         UserOrCommunity::User(p) => p.delete(data).await,
         UserOrCommunity::Community(c) => c.delete(data).await,
       },
@@ -131,7 +131,7 @@ impl Object for SearchableObjects {
     match apub {
       SearchableKinds::Page(a) => ApubPost::verify(a, expected_domain, data).await,
       SearchableKinds::Note(a) => ApubComment::verify(a, expected_domain, data).await,
-      SearchableKinds::PersonOrGroup(pg) => match pg {
+      SearchableKinds::PersonOrGroup(pg) => match pg.as_ref() {
         PersonOrGroup::Person(a) => ApubPerson::verify(a, expected_domain, data).await,
         PersonOrGroup::Group(a) => ApubCommunity::verify(a, expected_domain, data).await,
       },
@@ -143,10 +143,10 @@ impl Object for SearchableObjects {
     use SearchableKinds as SAT;
     use SearchableObjects as SO;
     Ok(match apub {
-      SAT::Page(p) => SO::Post(ApubPost::from_json(p, context).await?),
+      SAT::Page(p) => SO::Post(ApubPost::from_json(*p, context).await?),
       SAT::Note(n) => SO::Comment(ApubComment::from_json(n, context).await?),
       SAT::PersonOrGroup(pg) => {
-        SO::PersonOrCommunity(UserOrCommunity::from_json(pg, context).await?)
+        SO::PersonOrCommunity(Box::new(UserOrCommunity::from_json(*pg, context).await?))
       }
     })
   }
