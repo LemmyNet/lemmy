@@ -1,4 +1,5 @@
 use crate::{
+  fetcher::user_or_community::{PersonOrGroup, UserOrCommunity},
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::objects::{note::Note, page::Page},
 };
@@ -7,14 +8,11 @@ use activitypub_federation::{
   fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
   traits::Object,
 };
-
 use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::{LemmyError};
+use lemmy_utils::error::LemmyError;
 use serde::Deserialize;
 use url::Url;
-
-use crate::fetcher::user_or_community::{PersonOrGroup, UserOrCommunity};
 
 /// Converts search query to object id. The query can either be an URL, which will be treated as
 /// ObjectId directly, or a webfinger identifier (@user@example.com or !community@example.com)
@@ -34,7 +32,9 @@ pub(crate) async fn search_query_to_object_id(
       if query.starts_with("!") || query.starts_with("@") {
         query.remove(0);
       }
-        SearchableObjects::PersonOrCommunity(webfinger_resolve_actor::<LemmyContext, UserOrCommunity>(&query, context).await?)
+      SearchableObjects::PersonOrCommunity(
+        webfinger_resolve_actor::<LemmyContext, UserOrCommunity>(&query, context).await?,
+      )
     }
   })
 }
@@ -56,7 +56,7 @@ pub(crate) async fn search_query_to_object_id_local(
 pub(crate) enum SearchableObjects {
   Post(ApubPost),
   Comment(ApubComment),
-  PersonOrCommunity(UserOrCommunity)
+  PersonOrCommunity(UserOrCommunity),
 }
 
 #[derive(Deserialize)]
@@ -64,7 +64,7 @@ pub(crate) enum SearchableObjects {
 pub(crate) enum SearchableKinds {
   Page(Page),
   Note(Note),
-  PersonOrGroup(PersonOrGroup)
+  PersonOrGroup(PersonOrGroup),
 }
 
 #[async_trait::async_trait]
@@ -111,12 +111,10 @@ impl Object for SearchableObjects {
     match self {
       SearchableObjects::Post(p) => p.delete(data).await,
       SearchableObjects::Comment(c) => c.delete(data).await,
-      SearchableObjects::PersonOrCommunity(pc) => {
-        match pc {
-          UserOrCommunity::User(p) => p.delete(data).await,
-          UserOrCommunity::Community(c) => c.delete(data).await,
-        }
-      }
+      SearchableObjects::PersonOrCommunity(pc) => match pc {
+        UserOrCommunity::User(p) => p.delete(data).await,
+        UserOrCommunity::Community(c) => c.delete(data).await,
+      },
     }
   }
 
@@ -133,12 +131,10 @@ impl Object for SearchableObjects {
     match apub {
       SearchableKinds::Page(a) => ApubPost::verify(a, expected_domain, data).await,
       SearchableKinds::Note(a) => ApubComment::verify(a, expected_domain, data).await,
-      SearchableKinds::PersonOrGroup(pg) => {
-        match pg {
-          PersonOrGroup::Person(a) => ApubPerson::verify(a, expected_domain, data).await,
-          PersonOrGroup::Group(a) => ApubCommunity::verify(a, expected_domain, data).await,
-        }
-      }
+      SearchableKinds::PersonOrGroup(pg) => match pg {
+        PersonOrGroup::Person(a) => ApubPerson::verify(a, expected_domain, data).await,
+        PersonOrGroup::Group(a) => ApubCommunity::verify(a, expected_domain, data).await,
+      },
     }
   }
 

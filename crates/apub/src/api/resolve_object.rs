@@ -1,7 +1,6 @@
-use crate::fetcher::search::{
-  search_query_to_object_id,
-  search_query_to_object_id_local,
-  SearchableObjects,
+use crate::fetcher::{
+  search::{search_query_to_object_id, search_query_to_object_id_local, SearchableObjects},
+  user_or_community::UserOrCommunity,
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
@@ -15,7 +14,6 @@ use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::
 use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};
 use lemmy_db_views_actor::structs::{CommunityView, PersonView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
-use crate::fetcher::user_or_community::UserOrCommunity;
 
 #[tracing::instrument(skip(context))]
 pub async fn resolve_object(
@@ -61,18 +59,16 @@ async fn convert_response(
       removed_or_deleted = c.deleted || c.removed;
       res.comment = Some(CommentView::read(pool, c.id, user_id).await?)
     }
-    PersonOrCommunity(p) => {
-      match p {
-        UserOrCommunity::User(u) => {
-          removed_or_deleted = u.deleted;
-          res.person = Some(PersonView::read(pool, u.id).await?)
-        }
-        UserOrCommunity::Community(c) => {
-          removed_or_deleted = c.deleted || c.removed;
-          res.community = Some(CommunityView::read(pool, c.id, user_id, false).await?)
-        }
+    PersonOrCommunity(p) => match p {
+      UserOrCommunity::User(u) => {
+        removed_or_deleted = u.deleted;
+        res.person = Some(PersonView::read(pool, u.id).await?)
       }
-    }
+      UserOrCommunity::Community(c) => {
+        removed_or_deleted = c.deleted || c.removed;
+        res.community = Some(CommunityView::read(pool, c.id, user_id, false).await?)
+      }
+    },
   };
   // if the object was deleted from database, dont return it
   if removed_or_deleted {
