@@ -118,6 +118,8 @@ pub struct GetModlog {
   pub limit: Option<i64>,
   pub type_: Option<ModlogActionType>,
   pub other_person_id: Option<PersonId>,
+  pub post_id: Option<PostId>,
+  pub comment_id: Option<CommentId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

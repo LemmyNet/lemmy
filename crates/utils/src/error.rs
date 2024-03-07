@@ -2,12 +2,10 @@ use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use strum_macros::{Display, EnumIter};
-#[cfg(feature = "full")]
-use ts_rs::TS;
 
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "full", derive(ts_rs::TS))]
+#[cfg_attr(feature = "full", ts(export))]
 #[serde(tag = "error", content = "message", rename_all = "snake_case")]
 #[non_exhaustive]
 // TODO: order these based on the crate they belong to (utils, federation, db, api)
@@ -103,6 +101,7 @@ pub enum LemmyErrorType {
   InvalidPostTitle,
   InvalidBodyField,
   BioLengthOverflow,
+  AltTextLengthOverflow,
   MissingTotpToken,
   MissingTotpSecret,
   IncorrectTotpToken,
@@ -124,6 +123,7 @@ pub enum LemmyErrorType {
   CouldntLikePost,
   CouldntSavePost,
   CouldntMarkPostAsRead,
+  CouldntHidePost,
   CouldntUpdateCommunity,
   CouldntUpdateReplies,
   CouldntUpdatePersonMentions,
@@ -168,7 +168,7 @@ pub enum LemmyErrorType {
 }
 
 cfg_if! {
-  if #[cfg(feature = "default")] {
+  if #[cfg(feature = "full")] {
 
     use tracing_error::SpanTrace;
     use std::fmt;
@@ -210,11 +210,7 @@ cfg_if! {
     impl fmt::Display for LemmyError {
       fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}: ", &self.error_type)?;
-        // print anyhow including trace
-        // https://docs.rs/anyhow/latest/anyhow/struct.Error.html#display-representations
-        // this will print the anyhow trace (only if it exists)
-        // and if RUST_BACKTRACE=1, also a full backtrace
-        writeln!(f, "{:?}", self.inner)?;
+        writeln!(f, "{}", self.inner)?;
         fmt::Display::fmt(&self.context, f)
       }
     }
@@ -276,52 +272,52 @@ cfg_if! {
         self.map_err(|e| e.inner)
       }
     }
-  }
-}
 
-#[cfg(test)]
-mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
-  use super::*;
-  use actix_web::{body::MessageBody, ResponseError};
-  use pretty_assertions::assert_eq;
-  use std::fs::read_to_string;
-  use strum::IntoEnumIterator;
+    #[cfg(test)]
+    mod tests {
+      #![allow(clippy::unwrap_used)]
+      #![allow(clippy::indexing_slicing)]
+      use super::*;
+      use actix_web::{body::MessageBody, ResponseError};
+      use pretty_assertions::assert_eq;
+      use std::fs::read_to_string;
+      use strum::IntoEnumIterator;
 
-  #[test]
-  fn deserializes_no_message() {
-    let err = LemmyError::from(LemmyErrorType::Banned).error_response();
-    let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
-    assert_eq!(&json, "{\"error\":\"banned\"}")
-  }
+      #[test]
+      fn deserializes_no_message() {
+        let err = LemmyError::from(LemmyErrorType::Banned).error_response();
+        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
+        assert_eq!(&json, "{\"error\":\"banned\"}")
+      }
 
-  #[test]
-  fn deserializes_with_message() {
-    let reg_banned = LemmyErrorType::PersonIsBannedFromSite(String::from("reason"));
-    let err = LemmyError::from(reg_banned).error_response();
-    let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
-    assert_eq!(
-      &json,
-      "{\"error\":\"person_is_banned_from_site\",\"message\":\"reason\"}"
-    )
-  }
+      #[test]
+      fn deserializes_with_message() {
+        let reg_banned = LemmyErrorType::PersonIsBannedFromSite(String::from("reason"));
+        let err = LemmyError::from(reg_banned).error_response();
+        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
+        assert_eq!(
+          &json,
+          "{\"error\":\"person_is_banned_from_site\",\"message\":\"reason\"}"
+        )
+      }
 
-  /// Check if errors match translations. Disabled because many are not translated at all.
-  #[test]
-  #[ignore]
-  fn test_translations_match() {
-    #[derive(Deserialize)]
-    struct Err {
-      error: String,
+      /// Check if errors match translations. Disabled because many are not translated at all.
+      #[test]
+      #[ignore]
+      fn test_translations_match() {
+        #[derive(Deserialize)]
+        struct Err {
+          error: String,
+        }
+
+        let translations = read_to_string("translations/translations/en.json").unwrap();
+        LemmyErrorType::iter().for_each(|e| {
+          let msg = serde_json::to_string(&e).unwrap();
+          let msg: Err = serde_json::from_str(&msg).unwrap();
+          let msg = msg.error;
+          assert!(translations.contains(&format!("\"{msg}\"")), "{msg}");
+        });
+      }
     }
-
-    let translations = read_to_string("translations/translations/en.json").unwrap();
-    LemmyErrorType::iter().for_each(|e| {
-      let msg = serde_json::to_string(&e).unwrap();
-      let msg: Err = serde_json::from_str(&msg).unwrap();
-      let msg = msg.error;
-      assert!(translations.contains(&format!("\"{msg}\"")), "{msg}");
-    });
   }
 }

@@ -18,7 +18,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{local_site_opt_to_slur_regex, process_markdown},
+  utils::{is_mod_or_admin, local_site_opt_to_slur_regex, process_markdown},
 };
 use lemmy_db_schema::{
   source::{
@@ -142,7 +142,11 @@ impl Object for ApubComment {
     verify_is_remote_object(note.id.inner(), context.settings())?;
     verify_person_in_community(&note.attributed_to, &community, context).await?;
     let (post, _) = note.get_parents(context).await?;
-    if post.locked {
+    let creator = note.attributed_to.dereference(context).await?;
+    let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &creator, community.id)
+      .await
+      .is_ok();
+    if post.locked && !is_mod_or_admin {
       Err(LemmyErrorType::PostIsLocked)?
     } else {
       Ok(())

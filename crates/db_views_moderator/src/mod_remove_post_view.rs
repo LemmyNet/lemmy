@@ -52,6 +52,10 @@ impl ModRemovePostView {
       query = query.filter(person_alias_1.field(person::id).eq(other_person_id));
     };
 
+    if let Some(post_id) = params.post_id {
+      query = query.filter(post::id.eq(post_id));
+    }
+
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
     query

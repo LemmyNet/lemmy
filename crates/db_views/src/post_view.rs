@@ -1,4 +1,5 @@
 use crate::structs::{LocalUserView, PaginationCursor, PostView};
+use chrono::{DateTime, Utc};
 use diesel::{
   debug_query,
   dsl::{exists, not, IntervalDsl},
@@ -35,6 +36,7 @@ use lemmy_db_schema::{
     person_post_aggregates,
     post,
     post_aggregates,
+    post_hide,
     post_like,
     post_read,
     post_saved,
@@ -88,13 +90,14 @@ fn queries<'a>() -> Queries<
   );
 
   let is_saved = |person_id| {
-    exists(
-      post_saved::table.filter(
+    post_saved::table
+      .filter(
         post_aggregates::post_id
           .eq(post_saved::post_id)
           .and(post_saved::person_id.eq(person_id)),
-      ),
-    )
+      )
+      .select(post_saved::published.nullable())
+      .single_value()
   };
 
   let is_read = |person_id| {
@@ -103,6 +106,16 @@ fn queries<'a>() -> Queries<
         post_aggregates::post_id
           .eq(post_read::post_id)
           .and(post_read::person_id.eq(person_id)),
+      ),
+    )
+  };
+
+  let is_hidden = |person_id| {
+    exists(
+      post_hide::table.filter(
+        post_aggregates::post_id
+          .eq(post_hide::post_id)
+          .and(post_hide::person_id.eq(person_id)),
       ),
     )
   };
@@ -129,20 +142,25 @@ fn queries<'a>() -> Queries<
   };
 
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
-                        my_person_id: Option<PersonId>,
-                        saved_only: bool| {
-    let is_saved_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if saved_only {
-        Box::new(true.into_sql::<sql_types::Bool>())
-      } else if let Some(person_id) = my_person_id {
-        Box::new(is_saved(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
+                        my_person_id: Option<PersonId>| {
+    let is_saved_selection: Box<
+      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Timestamptz>>,
+    > = if let Some(person_id) = my_person_id {
+      Box::new(is_saved(person_id))
+    } else {
+      Box::new(None::<DateTime<Utc>>.into_sql::<sql_types::Nullable<sql_types::Timestamptz>>())
+    };
 
     let is_read_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
       if let Some(person_id) = my_person_id {
         Box::new(is_read(person_id))
+      } else {
+        Box::new(false.into_sql::<sql_types::Bool>())
+      };
+
+    let is_hidden_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
+      if let Some(person_id) = my_person_id {
+        Box::new(is_hidden(person_id))
       } else {
         Box::new(false.into_sql::<sql_types::Bool>())
       };
@@ -209,8 +227,9 @@ fn queries<'a>() -> Queries<
         creator_is_admin,
         post_aggregates::all_columns,
         subscribed_type_selection,
-        is_saved_selection,
+        is_saved_selection.is_not_null(),
         is_read_selection,
+        is_hidden_selection,
         is_creator_blocked_selection,
         score_selection,
         coalesce(
@@ -231,7 +250,6 @@ fn queries<'a>() -> Queries<
           .filter(post_aggregates::post_id.eq(post_id))
           .into_boxed(),
         my_person_id,
-        false,
       );
 
       // Hide deleted and removed for non-admins or mods
@@ -279,11 +297,7 @@ fn queries<'a>() -> Queries<
     let person_id_join = my_person_id.unwrap_or(PersonId(-1));
     let local_user_id_join = my_local_user_id.unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(
-      post_aggregates::table.into_boxed(),
-      my_person_id,
-      options.saved_only,
-    );
+    let mut query = all_joins(post_aggregates::table.into_boxed(), my_person_id);
 
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
@@ -389,8 +403,11 @@ fn queries<'a>() -> Queries<
       query = query.filter(person::bot_account.eq(false));
     };
 
+    // If its saved only, then filter, and order by the saved time, not the comment creation time.
     if let (true, Some(person_id)) = (options.saved_only, my_person_id) {
-      query = query.filter(is_saved(person_id));
+      query = query
+        .filter(is_saved(person_id).is_not_null())
+        .then_order_by(is_saved(person_id).desc());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
@@ -403,6 +420,13 @@ fn queries<'a>() -> Queries<
       // Or, only hide read posts on non-profile views
       if let (None, Some(person_id)) = (options.creator_id, my_person_id) {
         query = query.filter(not(is_read(person_id)));
+      }
+    }
+
+    if !options.show_hidden {
+      // If a creator id isn't given (IE its on home or community pages), hide the hidden posts
+      if let (None, Some(person_id)) = (options.creator_id, my_person_id) {
+        query = query.filter(not(is_hidden(person_id)));
       }
     }
 
@@ -593,6 +617,7 @@ pub struct PostQuery<'a> {
   pub page_after: Option<PaginationCursorData>,
   pub page_before_or_equal: Option<PaginationCursorData>,
   pub page_back: bool,
+  pub show_hidden: bool,
 }
 
 impl<'a> PostQuery<'a> {
@@ -726,7 +751,7 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
-      post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
+      post::{Post, PostHide, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
       site::Site,
     },
     traits::{Blockable, Crud, Joinable, Likeable},
@@ -1463,6 +1488,47 @@ mod tests {
     cleanup(data, pool).await
   }
 
+  #[tokio::test]
+  #[serial]
+  async fn post_listings_hide_hidden() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Mark a post as hidden
+    PostHide::hide(
+      pool,
+      HashSet::from([data.inserted_bot_post.id]),
+      data.local_user_view.person.id,
+    )
+    .await?;
+
+    // Make sure you don't see the hidden post in the results
+    let post_listings_hide_hidden = data.default_post_query().list(&data.site, pool).await?;
+    assert_eq!(vec![POST], names(&post_listings_hide_hidden));
+
+    // Make sure it does come back with the show_hidden option
+    let post_listings_show_hidden = PostQuery {
+      sort: Some(SortType::New),
+      local_user: Some(&data.local_user_view),
+      show_hidden: true,
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_hidden));
+
+    // Make sure that hidden field is true.
+    assert!(
+      &post_listings_show_hidden
+        .first()
+        .expect("first post should exist")
+        .hidden
+    );
+
+    cleanup(data, pool).await
+  }
+
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
     let num_deleted = Post::delete(pool, data.inserted_post.id).await?;
     Community::delete(pool, data.inserted_community.id).await?;
@@ -1490,6 +1556,7 @@ mod tests {
         creator_id: inserted_person.id,
         url: None,
         body: None,
+        alt_text: None,
         published: inserted_post.published,
         updated: None,
         community_id: inserted_community.id,
@@ -1584,6 +1651,7 @@ mod tests {
       },
       subscribed: SubscribedType::NotSubscribed,
       read: false,
+      hidden: false,
       saved: false,
       creator_blocked: false,
     })

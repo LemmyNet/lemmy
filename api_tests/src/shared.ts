@@ -200,11 +200,13 @@ export async function createPost(
   body = randomString(10),
   // use example.com for consistent title and embed description
   name: string = randomString(5),
+  alt_text = randomString(10),
 ): Promise<PostResponse> {
   let form: CreatePost = {
     name,
     url,
     body,
+    alt_text,
     community_id,
   };
   return api.createPost(form);
@@ -394,7 +396,7 @@ export async function banPersonFromSite(
   let form: BanPerson = {
     person_id,
     ban,
-    remove_data: remove_data,
+    remove_data,
   };
   return api.banPerson(form);
 }

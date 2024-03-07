@@ -82,6 +82,8 @@ pub(crate) struct Image {
   #[serde(rename = "type")]
   kind: ImageType,
   url: Url,
+  /// Used for alt_text
+  name: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -90,6 +92,8 @@ pub(crate) struct Document {
   #[serde(rename = "type")]
   kind: DocumentType,
   url: Url,
+  /// Used for alt_text
+  name: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -109,6 +113,14 @@ impl Attachment {
       Attachment::Image(i) => i.url,
       // sent by mobilizon
       Attachment::Document(d) => d.url,
+    }
+  }
+
+  pub(crate) fn alt_text(self) -> Option<String> {
+    match self {
+      Attachment::Image(i) => i.name,
+      Attachment::Document(d) => d.name,
+      _ => None,
     }
   }
 }
@@ -168,12 +180,13 @@ impl Page {
 
 impl Attachment {
   /// Creates new attachment for a given link and mime type.
-  pub(crate) fn new(url: Url, media_type: Option<String>) -> Attachment {
+  pub(crate) fn new(url: Url, media_type: Option<String>, alt_text: Option<String>) -> Attachment {
     let is_image = media_type.clone().unwrap_or_default().starts_with("image");
     if is_image {
       Attachment::Image(Image {
         kind: Default::default(),
         url,
+        name: alt_text,
       })
     } else {
       Attachment::Link(Link {

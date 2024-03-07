@@ -75,18 +75,19 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
         mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
     fi
 
+
 # amd64 base runner
 FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
 
-# Federation needs CA certificates
-RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates
+# Add system packages that are needed: federation needs CA certificates, curl can be used for healthchecks
+RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates curl
 
 COPY --from=build-amd64 --chmod=0755 /lemmy/lemmy_server /usr/local/bin
 
 # arm base runner
 FROM ${ARM_RUNNER_IMAGE} AS runner-linux-arm64
 
-RUN apt update && apt install -y ca-certificates libssl-dev libpq-dev
+RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates curl
 
 COPY --from=build-arm64 --chmod=0755 /home/lemmy/lemmy_server /usr/local/bin
 

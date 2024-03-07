@@ -422,17 +422,19 @@ pub async fn send_password_reset_email(
   // Generate a random token
   let token = uuid::Uuid::new_v4().to_string();
 
-  // Insert the row
-  let local_user_id = user.local_user.id;
-  PasswordResetRequest::create_token(pool, local_user_id, token.clone()).await?;
-
   let email = &user.local_user.email.clone().expect("email");
   let lang = get_interface_language(user);
   let subject = &lang.password_reset_subject(&user.person.name);
   let protocol_and_hostname = settings.get_protocol_and_hostname();
   let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
   let body = &lang.password_reset_body(reset_link, &user.person.name);
-  send_email(subject, email, &user.person.name, body, settings).await
+  send_email(subject, email, &user.person.name, body, settings).await?;
+
+  // Insert the row after successful send, to avoid using daily reset limit while
+  // email sending is broken.
+  let local_user_id = user.local_user.id;
+  PasswordResetRequest::create_token(pool, local_user_id, token.clone()).await?;
+  Ok(())
 }
 
 /// Send a verification email
@@ -967,8 +969,6 @@ mod tests {
   #![allow(clippy::indexing_slicing)]
 
   use super::*;
-  use crate::utils::{honeypot_check, limit_expire_time, password_length_check};
-  use chrono::{Days, Utc};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
