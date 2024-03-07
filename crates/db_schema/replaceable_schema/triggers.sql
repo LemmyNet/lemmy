@@ -405,7 +405,7 @@ BEGIN
         featured_local = new_post.featured_local
     FROM
         new_post
-        INNER JOIN old_post ON old_post.post_id = new_post.post_id
+        INNER JOIN old_post ON old_post.id = new_post.id
             AND (old_post.featured_community,
                 old_post.featured_local) != (new_post.featured_community,
                 old_post.featured_local)
