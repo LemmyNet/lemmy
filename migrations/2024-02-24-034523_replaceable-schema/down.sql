@@ -989,8 +989,10 @@ CREATE TRIGGER site_aggregates_site
     EXECUTE FUNCTION site_aggregates_site ();
 
 -- Rank functions
-CREATE FUNCTION controversy_rank(upvotes numeric, downvotes numeric) RETURNS double precision
-    LANGUAGE plpgsql IMMUTABLE
+CREATE FUNCTION controversy_rank (upvotes numeric, downvotes numeric)
+    RETURNS double precision
+    LANGUAGE plpgsql
+    IMMUTABLE
     AS $$
 BEGIN
     IF downvotes <= 0 OR upvotes <= 0 THEN
@@ -1005,8 +1007,10 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION hot_rank(score numeric, published timestamp with time zone) RETURNS double precision
-    LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE
+CREATE FUNCTION hot_rank (score numeric, published timestamp with time zone)
+    RETURNS double precision
+    LANGUAGE plpgsql
+    IMMUTABLE PARALLEL SAFE
     AS $$
 DECLARE
     hours_diff numeric := EXTRACT(EPOCH FROM (now() - published)) / 3600;
@@ -1023,8 +1027,10 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION scaled_rank(score numeric, published timestamp with time zone, users_active_month numeric) RETURNS double precision
-    LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE
+CREATE FUNCTION scaled_rank (score numeric, published timestamp with time zone, users_active_month numeric)
+    RETURNS double precision
+    LANGUAGE plpgsql
+    IMMUTABLE PARALLEL SAFE
     AS $$
 BEGIN
     -- Add 2 to avoid divide by zero errors
