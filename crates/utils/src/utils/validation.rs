@@ -299,11 +299,35 @@ pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
   }
 }
 
+fn compare_urls(url: &str, blocked_url: &str) -> LemmyResult<()> {
+  let blocked = Url::parse(blocked_url)?;
+  let block_regex = if blocked_url.ends_with('/') {
+    Regex::new(&format!(
+      "({}://)?{}{}?",
+      blocked.scheme(),
+      blocked.domain().expect("No domain."),
+      blocked.path()
+    ))?
+  } else {
+    Regex::new(&format!(
+      "({}://)?{}{}",
+      blocked.scheme(),
+      blocked.domain().expect("No domain."),
+      blocked.path()
+    ))?
+  };
+
+  if block_regex.is_match(url) {
+    Err(LemmyErrorType::BlockedUrl)?
+  }
+
+  Ok(())
+}
+
 pub fn is_url_blocked(url: &Option<Url>, blocklist: Vec<String>) -> LemmyResult<()> {
   if let Some(url) = url {
-    let url = url.to_string();
-    if blocklist.contains(&url) {
-      Err(LemmyErrorType::BlockedUrl)?
+    for blocked_url in &blocklist {
+      compare_urls(url.as_str(), blocked_url)?;
     }
   }
   Ok(())
@@ -566,12 +590,19 @@ mod tests {
   fn test_url_block() {
     assert!(is_url_blocked(
       &Some(Url::parse("https://google.com").unwrap()),
-      vec![String::from("https://google.com/")]
+      vec![String::from("https://google.com")]
     )
     .is_err());
+
     assert!(is_url_blocked(
       &Some(Url::parse("https://example.com").unwrap()),
       vec![String::from("https://example.org")]
+    )
+    .is_ok());
+
+    assert!(is_url_blocked(
+      &Some(Url::parse("https://example.com").unwrap()),
+      vec![String::from("https://example.com/page/to/article")]
     )
     .is_ok());
 

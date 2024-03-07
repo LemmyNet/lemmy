@@ -1,6 +1,7 @@
 use crate::{error::LemmyResult, settings::SETTINGS, LemmyErrorType};
 use markdown_it::{plugins::cmark::inline::image::Image, MarkdownIt};
 use once_cell::sync::Lazy;
+use regex::Regex;
 use url::Url;
 use urlencoding::encode;
 
@@ -99,8 +100,25 @@ pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
 }
 
 pub fn markdown_check_links(text: &str, blocklist: Vec<String>) -> LemmyResult<()> {
-  for url in &blocklist {
-    if text.contains(url) {
+  for blocked_url in &blocklist {
+    let blocked = Url::parse(blocked_url)?;
+    let block_regex = if blocked_url.ends_with('/') {
+      Regex::new(&format!(
+        "({}://)?{}{}?",
+        blocked.scheme(),
+        blocked.domain().expect("No domain."),
+        blocked.path()
+      ))?
+    } else {
+      Regex::new(&format!(
+        "({}://)?{}{}",
+        blocked.scheme(),
+        blocked.domain().expect("No domain."),
+        blocked.path()
+      ))?
+    };
+
+    if block_regex.is_match(text) {
       Err(LemmyErrorType::BlockedUrl)?
     }
   }
@@ -251,13 +269,13 @@ mod tests {
   fn test_url_blocking() {
     assert!(markdown_check_links(
       &String::from("[](https://example.com)"),
-      vec![String::from("https://example.com")],
+      vec![String::from("https://example.com/")],
     )
     .is_err());
 
     assert!(markdown_check_links(
       &String::from("Go to https://example.com to get free Robux"),
-      vec![String::from("https://example.com")],
+      vec![String::from("https://example.com/")],
     )
     .is_err());
 
@@ -269,25 +287,47 @@ mod tests {
 
     assert!(markdown_check_links(
       &String::from("[](https://example.blog)"),
-      vec![String::from("https://example.com")],
+      vec![String::from("https://example.com/")],
     )
     .is_ok());
 
     assert!(markdown_check_links(
       &String::from("https://foo.example.com"),
-      vec![String::from("https://bar.example.com")],
+      vec![String::from("https://bar.example.com/")],
+    )
+    .is_ok());
+
+    assert!(markdown_check_links(
+      &String::from("https://example.com/page"),
+      vec![String::from("https://example.com/banned_page")],
     )
     .is_ok());
 
     assert!(markdown_check_links(
       &String::from("https://foo.example.com"),
       vec![
-        String::from("https://bar.example.com"),
-        String::from("https://quo.example.com"),
-        String::from("https://foo.example.com")
+        String::from("https://bar.example.com/"),
+        String::from("https://quo.example.com/"),
+        String::from("https://foo.example.com/")
       ],
     )
-    .is_err())
+    .is_err());
+
+    assert!(markdown_check_links(
+      &String::from("example.com"),
+      vec![String::from("https://example.com/")]
+    )
+    .is_err());
+
+    assert!(markdown_check_links(
+      "Odio exercitationem culpa sed sunt
+    et. Sit et similique tempora deserunt doloremque. Cupiditate iusto
+    repellat et quis qui. Cum veritatis facere quasi repellendus sunt
+    eveniet nemo sint. Cumque sit unde est. https://example.com Alias
+    repellendus at quos.",
+      vec![String::from("https://example.com/")]
+    )
+    .is_err());
   }
 
   #[test]
