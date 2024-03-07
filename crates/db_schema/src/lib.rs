@@ -30,7 +30,7 @@ pub mod newtypes;
 pub mod schema;
 #[cfg(feature = "full")]
 pub mod aliases {
-  use crate::schema::{person};
+  use crate::schema::person;
   diesel::alias!(
     person as person1: Person1,
     person as person2: Person2,

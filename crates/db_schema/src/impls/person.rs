@@ -15,9 +15,11 @@ use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{self, insert_into},
   result::Error,
+  CombineDsl,
   ExpressionMethods,
   JoinOnDsl,
-  QueryDsl,NullableExpressionMethods
+  NullableExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 

@@ -18,7 +18,8 @@ use diesel::{
   dsl::{self, insert_into, sql_query},
   result::Error,
   ExpressionMethods,
-  QueryDsl,NullableExpressionMethods
+  NullableExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
