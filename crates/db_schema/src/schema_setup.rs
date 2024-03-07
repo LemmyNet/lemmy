@@ -36,9 +36,7 @@ pub fn run(db_url: &str) -> Result<(), LemmyError> {
   // Replaceable schema
   conn
     .batch_execute(&REPLACEABLE_SCHEMA.join("\n"))
-    .context( 
-        "Couldn't run SQL files in crates/db_schema/replaceable_schema",
-    )?;
+    .context("Couldn't run SQL files in crates/db_schema/replaceable_schema")?;
 
   Ok(())
 }
