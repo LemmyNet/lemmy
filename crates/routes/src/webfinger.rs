@@ -38,28 +38,35 @@ async fn get_webfinger_response(
 ) -> Result<HttpResponse, LemmyError> {
   let name = extract_webfinger_name(&info.resource, &context)?;
 
-  let user_id: Option<Url> = Person::read_from_name(&mut context.pool(), name, false)
-    .await
-    .ok()
-    .map(|c| c.actor_id.into());
-  let community_id: Option<Url> = Community::read_from_name(&mut context.pool(), name, false)
-    .await
-    .ok()
-    .and_then(|c| {
-      if c.visibility == CommunityVisibility::Public {
-        let id: Url = c.actor_id.into();
-        Some(id)
-      } else {
-        None
-      }
-    });
+  let links = if name == context.domain() {
+    // webfinger response for instance actor (required for mastodon authorized fetch)
+    let url = Url::parse(&format!("https://{name}"))?;
+    vec![webfinger_link_for_actor(Some(url), "none", &context)]
+  } else {
+    // webfinger response for user/community
+    let user_id: Option<Url> = Person::read_from_name(&mut context.pool(), name, false)
+      .await
+      .ok()
+      .map(|c| c.actor_id.into());
+    let community_id: Option<Url> = Community::read_from_name(&mut context.pool(), name, false)
+      .await
+      .ok()
+      .and_then(|c| {
+        if c.visibility == CommunityVisibility::Public {
+          let id: Url = c.actor_id.into();
+          Some(id)
+        } else {
+          None
+        }
+      });
 
-  // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
-  // community last so that it gets prioritized. For Lemmy the order doesnt matter.
-  let links = vec![
-    webfinger_link_for_actor(user_id, "Person", &context),
-    webfinger_link_for_actor(community_id, "Group", &context),
-  ]
+    // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
+    // community last so that it gets prioritized. For Lemmy the order doesnt matter.
+    vec![
+      webfinger_link_for_actor(user_id, "Person", &context),
+      webfinger_link_for_actor(community_id, "Group", &context),
+    ]
+  }
   .into_iter()
   .flatten()
   .collect();
