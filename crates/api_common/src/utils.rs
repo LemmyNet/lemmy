@@ -17,6 +17,7 @@ use lemmy_db_schema::{
     instance_block::InstanceBlock,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
+    local_site_url_blocklist::LocalSiteUrlBlocklist,
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
@@ -38,7 +39,7 @@ use lemmy_utils::{
   rate_limit::{ActionType, BucketConfig},
   settings::structs::{PictrsImageMode, Settings},
   utils::{
-    markdown::markdown_rewrite_image_links,
+    markdown::{markdown_check_links, markdown_rewrite_image_links},
     slurs::{build_slur_regex, remove_slurs},
   },
 };
@@ -516,6 +517,11 @@ pub fn local_site_opt_to_sensitive(local_site: &Option<LocalSite>) -> bool {
     .unwrap_or(false)
 }
 
+pub async fn get_url_blocklist(context: &LemmyContext) -> Result<Vec<String>, LemmyError> {
+  let urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
+  Ok(urls.iter().map(|u| u.url.clone()).collect())
+}
+
 pub async fn send_application_approved_email(
   user: &LocalUserView,
   settings: &Settings,
@@ -870,6 +876,10 @@ pub async fn process_markdown(
   context: &LemmyContext,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
+  let url_blocklist = get_url_blocklist(&context).await?;
+
+  markdown_check_links(&text, url_blocklist)?;
+
   if context.settings().pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
     RemoteImage::create(&mut context.pool(), links).await?;

@@ -8,6 +8,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_user_action,
+    get_url_blocklist,
     local_site_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_apub,
@@ -30,6 +31,7 @@ use lemmy_utils::{
     validation::{
       check_url_scheme,
       clean_url_params,
+      is_url_blocked,
       is_valid_alt_text_field,
       is_valid_body_field,
       is_valid_post_title,
@@ -51,6 +53,8 @@ pub async fn update_post(
   let url = data.url.as_ref().map(clean_url_params);
   let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);
 
+  let url_blocklist = get_url_blocklist(&context).await?;
+
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs_opt(&data.name, &slur_regex)?;
   let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
@@ -61,6 +65,7 @@ pub async fn update_post(
 
   is_valid_body_field(&body, true)?;
   is_valid_alt_text_field(&data.alt_text)?;
+  is_url_blocked(&url, url_blocklist)?;
   check_url_scheme(&url)?;
   check_url_scheme(&custom_thumbnail)?;
 

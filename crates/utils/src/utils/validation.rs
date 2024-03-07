@@ -299,6 +299,16 @@ pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
   }
 }
 
+pub fn is_url_blocked(url: &Option<Url>, blocklist: Vec<String>) -> LemmyResult<()> {
+  if let Some(url) = url {
+    let url = url.to_string();
+    if blocklist.contains(&url) {
+      Err(LemmyErrorType::BlockedUrl)?
+    }
+  }
+  Ok(())
+}
+
 #[cfg(test)]
 mod tests {
   #![allow(clippy::unwrap_used)]
@@ -311,6 +321,7 @@ mod tests {
       check_site_visibility_valid,
       check_url_scheme,
       clean_url_params,
+      is_url_blocked,
       is_valid_actor_name,
       is_valid_bio_field,
       is_valid_display_name,
@@ -549,5 +560,31 @@ mod tests {
 
     let magnet_link="magnet:?xt=urn:btih:4b390af3891e323778959d5abfff4b726510f14c&dn=Ravel%20Complete%20Piano%20Sheet%20Music%20-%20Public%20Domain&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce";
     assert!(check_url_scheme(&Some(Url::parse(magnet_link).unwrap())).is_ok());
+  }
+
+  #[test]
+  fn test_url_block() {
+    assert!(is_url_blocked(
+      &Some(Url::parse("https://google.com").unwrap()),
+      vec![String::from("https://google.com/")]
+    )
+    .is_err());
+    assert!(is_url_blocked(
+      &Some(Url::parse("https://example.com").unwrap()),
+      vec![String::from("https://example.org")]
+    )
+    .is_ok());
+
+    assert!(is_url_blocked(&None, vec![String::from("https://example.com")]).is_ok());
+
+    assert!(is_url_blocked(
+      &Some(Url::parse("https://example.com").unwrap()),
+      vec![
+        String::from("https://example.org/"),
+        String::from("https://example.net"),
+        String::from("https://example.com/")
+      ]
+    )
+    .is_err());
   }
 }
