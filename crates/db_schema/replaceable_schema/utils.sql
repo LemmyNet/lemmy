@@ -15,6 +15,36 @@ CREATE FUNCTION r.controversy_rank (upvotes numeric, downvotes numeric)
     END
     END;
 
+CREATE FUNCTION r.hot_rank (score numeric, published timestamp with time zone)
+    RETURNS double precision
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE RETURN
+    -- after a week, it will default to 0.
+    CASE WHEN (
+now() - published) > '0 days'
+        AND (
+now() - published) < '7 days' THEN
+        -- Use greatest(2,score), so that the hot_rank will be positive and not ignored.
+        log (
+            greatest (2, score + 2)) / power (((EXTRACT(EPOCH FROM (now() - published)) / 3600) + 2), 1.8)
+    ELSE
+        -- if the post is from the future, set hot score to 0. otherwise you can game the post to
+        -- always be on top even with only 1 vote by setting it to the future
+        0.0
+    END;
+
+CREATE FUNCTION r.scaled_rank (score numeric, published timestamp with time zone, users_active_month numeric)
+    RETURNS double precision
+    LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE
+    -- Add 2 to avoid divide by zero errors
+    -- Default for score = 1, active users = 1, and now, is (0.1728 / log(2 + 1)) = 0.3621
+    -- There may need to be a scale factor multiplied to users_active_month, to make
+    -- the log curve less pronounced. This can be tuned in the future.
+    RETURN (
+        r.hot_rank (score, published) / log(2 + users_active_month)
+);
+
 -- For tables with `deleted` and `removed` columns, this function determines which rows to include in a count.
 CREATE FUNCTION r.is_counted (item record)
     RETURNS bool

@@ -988,6 +988,53 @@ CREATE TRIGGER site_aggregates_site
     FOR EACH ROW
     EXECUTE FUNCTION site_aggregates_site ();
 
+-- Rank functions
+CREATE FUNCTION controversy_rank(upvotes numeric, downvotes numeric) RETURNS double precision
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+BEGIN
+    IF downvotes <= 0 OR upvotes <= 0 THEN
+        RETURN 0;
+    ELSE
+        RETURN (upvotes + downvotes) * CASE WHEN upvotes > downvotes THEN
+            downvotes::float / upvotes::float
+        ELSE
+            upvotes::float / downvotes::float
+        END;
+    END IF;
+END;
+$$;
+
+CREATE FUNCTION hot_rank(score numeric, published timestamp with time zone) RETURNS double precision
+    LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE
+    AS $$
+DECLARE
+    hours_diff numeric := EXTRACT(EPOCH FROM (now() - published)) / 3600;
+BEGIN
+    -- 24 * 7 = 168, so after a week, it will default to 0.
+    IF (hours_diff > 0 AND hours_diff < 168) THEN
+        -- Use greatest(2,score), so that the hot_rank will be positive and not ignored.
+        RETURN log(greatest (2, score + 2)) / power((hours_diff + 2), 1.8);
+    ELSE
+        -- if the post is from the future, set hot score to 0. otherwise you can game the post to
+        -- always be on top even with only 1 vote by setting it to the future
+        RETURN 0.0;
+    END IF;
+END;
+$$;
+
+CREATE FUNCTION scaled_rank(score numeric, published timestamp with time zone, users_active_month numeric) RETURNS double precision
+    LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE
+    AS $$
+BEGIN
+    -- Add 2 to avoid divide by zero errors
+    -- Default for score = 1, active users = 1, and now, is (0.1728 / log(2 + 1)) = 0.3621
+    -- There may need to be a scale factor multiplied to users_active_month, to make
+    -- the log curve less pronounced. This can be tuned in the future.
+    RETURN (hot_rank (score, published) / log(2 + users_active_month));
+END;
+$$;
+
 -- Don't defer constraints
 ALTER TABLE comment_aggregates
     ALTER CONSTRAINT comment_aggregates_comment_id_fkey NOT DEFERRABLE;

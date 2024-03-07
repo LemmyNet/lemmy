@@ -424,14 +424,17 @@ pub mod functions {
   use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
+    #[sql_name = "r.hot_rank"]
     fn hot_rank(score: BigInt, time: Timestamptz) -> Double;
   }
-
+  
   sql_function! {
+    #[sql_name = "r.scaled_rank"]
     fn scaled_rank(score: BigInt, time: Timestamptz, users_active_month: BigInt) -> Double;
   }
-
+  
   sql_function! {
+    #[sql_name = "r.controversy_rank"]
     fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Double;
   }
 
