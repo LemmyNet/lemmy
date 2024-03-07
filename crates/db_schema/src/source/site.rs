@@ -34,7 +34,9 @@ pub struct Site {
   pub last_refreshed_at: DateTime<Utc>,
   /// The site inbox
   pub inbox_url: DbUrl,
+  #[serde(skip)]
   pub private_key: Option<String>,
+  #[serde(skip)]
   pub public_key: String,
   pub instance_id: InstanceId,
   /// If present, nsfw content is visible by default. Should be displayed by frontends/clients

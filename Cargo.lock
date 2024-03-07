@@ -2577,7 +2577,6 @@ version = "0.19.3"
 dependencies = [
  "activitypub_federation",
  "actix-web",
- "anyhow",
  "chrono",
  "encoding",
  "enum-map",
@@ -2599,7 +2598,6 @@ dependencies = [
  "serde",
  "serde_with",
  "serial_test",
- "task-local-extensions",
  "tokio",
  "tracing",
  "ts-rs",
