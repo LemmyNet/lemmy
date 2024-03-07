@@ -1,7 +1,11 @@
-use crate::{error::LemmyResult, settings::SETTINGS, LemmyErrorType};
+use crate::{
+  error::LemmyResult,
+  settings::SETTINGS,
+  utils::validation::block_url_regex,
+  LemmyErrorType,
+};
 use markdown_it::{plugins::cmark::inline::image::Image, MarkdownIt};
 use once_cell::sync::Lazy;
-use regex::Regex;
 use url::Url;
 use urlencoding::encode;
 
@@ -101,22 +105,7 @@ pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
 
 pub fn markdown_check_links(text: &str, blocklist: Vec<String>) -> LemmyResult<()> {
   for blocked_url in &blocklist {
-    let blocked = Url::parse(blocked_url)?;
-    let block_regex = if blocked_url.ends_with('/') {
-      Regex::new(&format!(
-        "({}://)?{}{}?",
-        blocked.scheme(),
-        blocked.domain().expect("No domain."),
-        blocked.path()
-      ))?
-    } else {
-      Regex::new(&format!(
-        "({}://)?{}{}",
-        blocked.scheme(),
-        blocked.domain().expect("No domain."),
-        blocked.path()
-      ))?
-    };
+    let block_regex = block_url_regex(blocked_url)?;
 
     if block_regex.is_match(text) {
       Err(LemmyErrorType::BlockedUrl)?
@@ -328,6 +317,10 @@ mod tests {
       vec![String::from("https://example.com/")]
     )
     .is_err());
+
+    assert!(
+      markdown_check_links("example.com", vec![String::from("https://ex.mple.com/")]).is_ok()
+    );
   }
 
   #[test]

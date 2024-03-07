@@ -1,7 +1,7 @@
 use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use regex::{Regex, RegexBuilder};
+use regex::{escape, Regex, RegexBuilder};
 use url::Url;
 
 // From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
@@ -299,37 +299,37 @@ pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
   }
 }
 
-fn compare_urls(url: &str, blocked_url: &str) -> LemmyResult<()> {
+pub fn block_url_regex(blocked_url: &str) -> LemmyResult<Regex> {
   let blocked = Url::parse(blocked_url)?;
   let block_regex = if blocked_url.ends_with('/') {
     Regex::new(&format!(
       "({}://)?{}{}?",
       blocked.scheme(),
-      blocked.domain().expect("No domain."),
-      blocked.path()
+      escape(blocked.domain().expect("No domain.")),
+      escape(blocked.path())
     ))?
   } else {
     Regex::new(&format!(
       "({}://)?{}{}",
       blocked.scheme(),
-      blocked.domain().expect("No domain."),
-      blocked.path()
+      escape(blocked.domain().expect("No domain.")),
+      escape(blocked.path())
     ))?
   };
 
-  if block_regex.is_match(url) {
-    Err(LemmyErrorType::BlockedUrl)?
-  }
-
-  Ok(())
+  Ok(block_regex)
 }
 
 pub fn is_url_blocked(url: &Option<Url>, blocklist: Vec<String>) -> LemmyResult<()> {
   if let Some(url) = url {
     for blocked_url in &blocklist {
-      compare_urls(url.as_str(), blocked_url)?;
+      let block_regex = block_url_regex(blocked_url)?;
+      if block_regex.is_match(url.as_str()) {
+        Err(LemmyErrorType::BlockedUrl)?
+      }
     }
   }
+
   Ok(())
 }
 
