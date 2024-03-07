@@ -98,8 +98,8 @@ pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
   (src, links)
 }
 
-pub fn markdown_check_links(text: &String, blocklist: Vec<String>) -> LemmyResult<()> {
-  for url in blocklist.iter() {
+pub fn markdown_check_links(text: &str, blocklist: Vec<String>) -> LemmyResult<()> {
+  for url in &blocklist {
     if text.contains(url) {
       Err(LemmyErrorType::BlockedUrl)?
     }

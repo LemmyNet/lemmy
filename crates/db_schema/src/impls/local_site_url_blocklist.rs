@@ -32,6 +32,6 @@ impl LocalSiteUrlBlocklist {
 
   pub async fn get_all(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    Ok(local_site_url_blocklist.get_results::<Self>(conn).await?)
+    local_site_url_blocklist.get_results::<Self>(conn).await
   }
 }

@@ -876,7 +876,7 @@ pub async fn process_markdown(
   context: &LemmyContext,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
-  let url_blocklist = get_url_blocklist(&context).await?;
+  let url_blocklist = get_url_blocklist(context).await?;
 
   markdown_check_links(&text, url_blocklist)?;
 
