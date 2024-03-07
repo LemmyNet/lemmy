@@ -62,6 +62,7 @@ impl Blockable for CommunityBlock {
       ))
       .do_update()
       .set(community_block_form)
+      .returning(Self::as_select_unwrap())
       .get_result::<Self>(conn)
       .await
   }

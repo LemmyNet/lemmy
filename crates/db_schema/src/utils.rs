@@ -1,3 +1,4 @@
+use diesel::JoinOnDsl;
 use crate::{
   diesel::Connection,
   diesel_migrations::MigrationHarness,
@@ -8,7 +9,7 @@ use crate::{
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use deadpool::Runtime;
-use diesel::{
+use diesel::{NullableExpressionMethods,ExpressionMethods,BoolExpressionMethods,
   dsl,
   expression::AsExpression,
   helper_types::AsExprOf,
@@ -20,7 +21,7 @@ use diesel::{
     ConnectionResult,
     Error::{self as DieselError, QueryBuilderError},
   },
-  sql_types::{self, SqlType, Text, Timestamptz},
+  sql_types::{self, SqlType, Timestamptz},
   Expression,
   IntoSql,
   PgConnection,

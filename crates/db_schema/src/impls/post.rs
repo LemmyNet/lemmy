@@ -288,12 +288,12 @@ impl Likeable for PostLike {
   type IdType = PostId;
   async fn like(pool: &mut DbPool<'_>, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let post_like_form = (post_like_form.clone(), post_actions::liked.eq(now()));
+    let post_like_form = (post_like_form.clone(), post_actions::liked.eq(now().nullable()));
     insert_into(post_actions::table)
-      .values(post_like_form)
+      .values(&post_like_form)
       .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
-      .set(post_like_form)
+      .set(&post_like_form)
       .returning(Self::as_select_unwrap())
       .get_result::<Self>(conn)
       .await
@@ -333,7 +333,7 @@ impl Saveable for PostSaved {
   type Form = PostSavedForm;
   async fn save(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let post_saved_form = (post_saved_form.clone(), post_actions::saved.eq(now()));
+    let post_saved_form = (post_saved_form.clone(), post_actions::saved.eq(now().nullable()));
     insert_into(post_actions::table)
       .values(post_saved_form)
       .on_conflict((post_actions::post_id, post_actions::person_id))

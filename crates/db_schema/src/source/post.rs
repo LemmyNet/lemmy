@@ -150,7 +150,7 @@ pub struct PostSaved {
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = post_saved))]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostSavedForm {
   pub post_id: PostId,
   pub person_id: PersonId,

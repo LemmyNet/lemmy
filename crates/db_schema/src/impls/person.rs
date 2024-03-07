@@ -17,7 +17,7 @@ use diesel::{
   result::Error,
   ExpressionMethods,
   JoinOnDsl,
-  QueryDsl,
+  QueryDsl,NullableExpressionMethods
 };
 use diesel_async::RunQueryDsl;
 
