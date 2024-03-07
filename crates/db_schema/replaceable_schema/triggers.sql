@@ -405,6 +405,10 @@ BEGIN
         featured_local = new_post.featured_local
     FROM
         new_post
+        INNER JOIN old_post ON old_post.post_id = new_post.post_id
+            AND (old_post.featured_community,
+                old_post.featured_local) != (new_post.featured_community,
+                old_post.featured_local)
     WHERE
         post_aggregates.post_id = new_post.id;
     RETURN NULL;
@@ -412,7 +416,7 @@ END;
 $$;
 
 CREATE TRIGGER aggregates_update
-    AFTER UPDATE ON post REFERENCING NEW TABLE AS new_post
+    AFTER UPDATE ON post REFERENCING OLD TABLE AS old_post NEW TABLE AS new_post
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.post_aggregates_from_post_update ();
 
