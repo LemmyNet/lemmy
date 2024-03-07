@@ -27,7 +27,13 @@ use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   utils::{
     slurs::check_slurs_opt,
-    validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
+    validation::{
+      check_url_scheme,
+      clean_url_params,
+      is_valid_alt_text_field,
+      is_valid_body_field,
+      is_valid_post_title,
+    },
   },
 };
 use std::ops::Deref;
@@ -54,6 +60,7 @@ pub async fn update_post(
   }
 
   is_valid_body_field(&body, true)?;
+  is_valid_alt_text_field(&data.alt_text)?;
   check_url_scheme(&url)?;
   check_url_scheme(&custom_thumbnail)?;
 
@@ -73,22 +80,24 @@ pub async fn update_post(
   }
 
   // Fetch post links and thumbnail if url was updated
-  let (embed_title, embed_description, embed_video_url, metadata_thumbnail) = match &url {
-    Some(url) => {
-      // Only generate the thumbnail if there's no custom thumbnail provided,
-      // otherwise it will save it in pictrs
-      let generate_thumbnail = custom_thumbnail.is_none();
+  let (embed_title, embed_description, embed_video_url, metadata_thumbnail, metadata_content_type) =
+    match &url {
+      Some(url) => {
+        // Only generate the thumbnail if there's no custom thumbnail provided,
+        // otherwise it will save it in pictrs
+        let generate_thumbnail = custom_thumbnail.is_none() || orig_post.thumbnail_url.is_none();
 
-      let metadata = fetch_link_metadata(url, generate_thumbnail, &context).await?;
-      (
-        Some(metadata.opengraph_data.title),
-        Some(metadata.opengraph_data.description),
-        Some(metadata.opengraph_data.embed_video_url),
-        Some(metadata.thumbnail),
-      )
-    }
-    _ => Default::default(),
-  };
+        let metadata = fetch_link_metadata(url, generate_thumbnail, &context).await?;
+        (
+          Some(metadata.opengraph_data.title),
+          Some(metadata.opengraph_data.description),
+          Some(metadata.opengraph_data.embed_video_url),
+          Some(metadata.thumbnail),
+          Some(metadata.content_type),
+        )
+      }
+      _ => Default::default(),
+    };
 
   let url = match url {
     Some(url) => Some(proxy_image_link_opt_apub(Some(url), &context).await?),
@@ -115,7 +124,9 @@ pub async fn update_post(
   let post_form = PostUpdateForm {
     name: data.name.clone(),
     url,
+    url_content_type: metadata_content_type,
     body: diesel_option_overwrite(body),
+    alt_text: diesel_option_overwrite(data.alt_text.clone()),
     nsfw: data.nsfw,
     embed_title,
     embed_description,

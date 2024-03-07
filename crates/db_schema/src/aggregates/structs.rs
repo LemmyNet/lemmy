@@ -173,7 +173,7 @@ pub struct PersonPostAggregatesForm {
   pub read_comments: i64,
 }
 
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Copy, Hash)]
 #[cfg_attr(
   feature = "full",
   derive(Queryable, Selectable, Associations, Identifiable, TS)

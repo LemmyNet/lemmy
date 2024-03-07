@@ -40,6 +40,7 @@ serial_test = { workspace = true }
 tokio = { workspace = true }
 pretty_assertions = { workspace = true }
 url.workspace = true
+lemmy_utils.workspace = true
 
 [package.metadata.cargo-machete]
 ignored = ["strum"]

@@ -24,6 +24,8 @@ pub struct CreatePost {
   pub url: Option<Url>,
   /// An optional body for the post in markdown.
   pub body: Option<String>,
+  /// An optional alt_text, usable for image posts.
+  pub alt_text: Option<String>,
   /// A honeypot to catch bots. Should be None.
   pub honeypot: Option<String>,
   pub nsfw: Option<bool>,
@@ -79,6 +81,7 @@ pub struct GetPosts {
   pub saved_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
+  pub show_hidden: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
 }
 
@@ -115,6 +118,8 @@ pub struct EditPost {
   pub url: Option<Url>,
   /// An optional body for the post in markdown.
   pub body: Option<String>,
+  /// An optional alt_text, usable for image posts.
+  pub alt_text: Option<String>,
   pub nsfw: Option<bool>,
   pub language_id: Option<LanguageId>,
   #[cfg_attr(feature = "full", ts(type = "string"))]
@@ -148,10 +153,18 @@ pub struct RemovePost {
 #[cfg_attr(feature = "full", ts(export))]
 /// Mark a post as read.
 pub struct MarkPostAsRead {
-  /// TODO: deprecated, send `post_ids` instead
-  pub post_id: Option<PostId>,
-  pub post_ids: Option<Vec<PostId>>,
+  pub post_ids: Vec<PostId>,
   pub read: bool,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Hide a post from list views
+pub struct HidePost {
+  pub post_ids: Vec<PostId>,
+  pub hide: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -220,6 +233,7 @@ pub struct ListPostReports {
   pub unresolved_only: Option<bool>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
+  pub post_id: Option<PostId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

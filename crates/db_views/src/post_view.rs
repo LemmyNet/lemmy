@@ -1,4 +1,5 @@
 use crate::structs::{LocalUserView, PaginationCursor, PostView};
+use chrono::{DateTime, Utc};
 use diesel::{
   debug_query,
   dsl::{exists, not, IntervalDsl},
@@ -36,6 +37,7 @@ use lemmy_db_schema::{
     person_post_aggregates,
     post,
     post_aggregates,
+    post_hide,
     post_like,
     post_read,
     post_saved,
@@ -112,6 +114,7 @@ fn queries<'a>() -> Queries<
         community_actions::follow_pending.nullable(),
         post_actions::saved.is_not_null(),
         post_actions::read.is_not_null(),
+        post_actions::hidden.is_not_null(),
         person_actions::blocked.is_not_null(),
         post_actions::like_score.nullable(),
         post_aggregates::comments - coalesce(post_actions::read_comments.nullable(), 0),
@@ -270,8 +273,11 @@ fn queries<'a>() -> Queries<
       query = query.filter(person::bot_account.eq(false));
     };
 
+    // If its saved only, then filter, and order by the saved time, not the comment creation time.
     if options.saved_only {
-      query = query.filter(post_actions::saved.is_not_null());
+      query = query
+        .filter(post_actions::saved.is_not_null())
+        .then_order_by(post_actions::saved.desc());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
@@ -285,6 +291,11 @@ fn queries<'a>() -> Queries<
       if let None = options.creator_id {
         query = query.filter(post_actions::read.is_null());
       }
+    }
+
+    // If a creator id isn't given (IE its on home or community pages), hide the hidden posts
+    if !options.show_hidden && options.creator_id.is_none() {
+      query = query.filter(post_actions::hidden.is_null());
     }
 
     if options.liked_only {
@@ -459,6 +470,7 @@ pub struct PostQuery<'a> {
   pub page_after: Option<PaginationCursorData>,
   pub page_before_or_equal: Option<PaginationCursorData>,
   pub page_back: bool,
+  pub show_hidden: bool,
 }
 
 impl<'a> PostQuery<'a> {
@@ -592,7 +604,7 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
-      post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
+      post::{Post, PostHide, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
       site::Site,
     },
     traits::{Blockable, Crud, Joinable, Likeable},
@@ -1329,6 +1341,47 @@ mod tests {
     cleanup(data, pool).await
   }
 
+  #[tokio::test]
+  #[serial]
+  async fn post_listings_hide_hidden() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Mark a post as hidden
+    PostHide::hide(
+      pool,
+      HashSet::from([data.inserted_bot_post.id]),
+      data.local_user_view.person.id,
+    )
+    .await?;
+
+    // Make sure you don't see the hidden post in the results
+    let post_listings_hide_hidden = data.default_post_query().list(&data.site, pool).await?;
+    assert_eq!(vec![POST], names(&post_listings_hide_hidden));
+
+    // Make sure it does come back with the show_hidden option
+    let post_listings_show_hidden = PostQuery {
+      sort: Some(SortType::New),
+      local_user: Some(&data.local_user_view),
+      show_hidden: true,
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_hidden));
+
+    // Make sure that hidden field is true.
+    assert!(
+      &post_listings_show_hidden
+        .first()
+        .expect("first post should exist")
+        .hidden
+    );
+
+    cleanup(data, pool).await
+  }
+
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
     let num_deleted = Post::delete(pool, data.inserted_post.id).await?;
     Community::delete(pool, data.inserted_community.id).await?;
@@ -1356,6 +1409,7 @@ mod tests {
         creator_id: inserted_person.id,
         url: None,
         body: None,
+        alt_text: None,
         published: inserted_post.published,
         updated: None,
         community_id: inserted_community.id,
@@ -1450,6 +1504,7 @@ mod tests {
       },
       subscribed: SubscribedType::NotSubscribed,
       read: false,
+      hidden: false,
       saved: false,
       creator_blocked: false,
     })

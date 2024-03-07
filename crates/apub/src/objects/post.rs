@@ -34,7 +34,6 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  self,
   source::{
     community::Community,
     local_site::LocalSite,
@@ -116,7 +115,13 @@ impl Object for ApubPost {
     let attachment = self
       .url
       .clone()
-      .map(|url| Attachment::new(url.into(), self.url_content_type.clone()))
+      .map(|url| {
+        Attachment::new(
+          url.into(),
+          self.url_content_type.clone(),
+          self.alt_text.clone(),
+        )
+      })
       .into_iter()
       .collect();
 
@@ -204,10 +209,11 @@ impl Object for ApubPost {
     // read existing, local post if any (for generating mod log)
     let old_post = page.id.dereference_local(context).await;
 
+    let first_attachment = page.attachment.first();
+
     let form = if !page.is_mod_action(context).await? {
-      let first_attachment = page.attachment.into_iter().map(Attachment::url).next();
-      let url = if first_attachment.is_some() {
-        first_attachment
+      let url = if let Some(attachment) = first_attachment.cloned() {
+        Some(attachment.url())
       } else if page.kind == PageType::Video {
         // we cant display videos directly, so insert a link to external video page
         Some(page.id.inner().clone())
@@ -216,6 +222,7 @@ impl Object for ApubPost {
       };
       check_url_scheme(&url)?;
 
+      let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
       let local_site = LocalSite::read(&mut context.pool()).await.ok();
       let allow_sensitive = local_site_opt_to_sensitive(&local_site);
       let page_is_sensitive = page.sensitive.unwrap_or(false);
@@ -242,6 +249,7 @@ impl Object for ApubPost {
         name,
         url: url.map(Into::into),
         body,
+        alt_text,
         creator_id: creator.id,
         community_id: community.id,
         removed: None,
@@ -294,10 +302,8 @@ mod tests {
   use super::*;
   use crate::{
     objects::{
-      community::{tests::parse_lemmy_community, ApubCommunity},
-      instance::ApubSite,
+      community::tests::parse_lemmy_community,
       person::{tests::parse_lemmy_person, ApubPerson},
-      post::ApubPost,
     },
     protocol::tests::file_to_json_object,
   };
@@ -326,7 +332,10 @@ mod tests {
     assert!(!post.featured_community);
     assert_eq!(context.request_count(), 0);
 
-    cleanup(&context, person, site, community, post).await?;
+    Post::delete(&mut context.pool(), post.id).await?;
+    Person::delete(&mut context.pool(), person.id).await?;
+    Community::delete(&mut context.pool(), community.id).await?;
+    Site::delete(&mut context.pool(), site.id).await?;
     Ok(())
   }
 
@@ -334,29 +343,19 @@ mod tests {
   #[serial]
   async fn test_convert_mastodon_post_title() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (person, site) = parse_lemmy_person(&context).await?;
     let community = parse_lemmy_community(&context).await?;
+
+    let json = file_to_json_object("assets/mastodon/objects/person.json")?;
+    let person = ApubPerson::from_json(json, &context).await?;
 
     let json = file_to_json_object("assets/mastodon/objects/page.json")?;
     let post = ApubPost::from_json(json, &context).await?;
 
     assert_eq!(post.name, "Variable never resetting at refresh");
 
-    cleanup(&context, person, site, community, post).await?;
-    Ok(())
-  }
-
-  async fn cleanup(
-    context: &Data<LemmyContext>,
-    person: ApubPerson,
-    site: ApubSite,
-    community: ApubCommunity,
-    post: ApubPost,
-  ) -> LemmyResult<()> {
     Post::delete(&mut context.pool(), post.id).await?;
     Person::delete(&mut context.pool(), person.id).await?;
     Community::delete(&mut context.pool(), community.id).await?;
-    Site::delete(&mut context.pool(), site.id).await?;
     Ok(())
   }
 }

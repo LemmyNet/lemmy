@@ -128,8 +128,9 @@ test("Update a comment", async () => {
 });
 
 test("Delete a comment", async () => {
+  let post = await createPost(alpha, betaCommunity!.community.id);
   // creating a comment on alpha (remote from home of community)
-  let commentRes = await createComment(alpha, postOnAlphaRes.post_view.post.id);
+  let commentRes = await createComment(alpha, post.post_view.post.id);
 
   // Find the comment on beta (home of community)
   let betaComment = (
@@ -157,6 +158,7 @@ test("Delete a comment", async () => {
     commentRes.comment_view.comment.id,
   );
   expect(deleteCommentRes.comment_view.comment.deleted).toBe(true);
+  expect(deleteCommentRes.comment_view.comment.content).toBe("");
 
   // Make sure that comment is undefined on beta
   await waitUntil(
@@ -255,6 +257,16 @@ test("Remove a comment from admin and community on different instance", async ()
     betaComment.comment.id,
   );
   expect(removeCommentRes.comment_view.comment.removed).toBe(true);
+  expect(removeCommentRes.comment_view.comment.content).toBe("");
+
+  // Comment text is also hidden from list
+  let listComments = await getComments(
+    beta,
+    removeCommentRes.comment_view.post.id,
+  );
+  expect(listComments.comments.length).toBe(1);
+  expect(listComments.comments[0].comment.removed).toBe(true);
+  expect(listComments.comments[0].comment.content).toBe("");
 
   // Make sure its not removed on alpha
   let refetchedPostComments = await getComments(

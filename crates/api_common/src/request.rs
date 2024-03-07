@@ -53,7 +53,9 @@ pub async fn fetch_link_metadata(
   // https://github.com/LemmyNet/lemmy/issues/1964
   let html_bytes = response.bytes().await.map_err(LemmyError::from)?.to_vec();
 
-  let opengraph_data = extract_opengraph_data(&html_bytes, url).unwrap_or_default();
+  let opengraph_data = extract_opengraph_data(&html_bytes, url)
+    .map_err(|e| info!("{e}"))
+    .unwrap_or_default();
   let thumbnail = extract_thumbnail_from_opengraph_data(
     url,
     &opengraph_data,
@@ -96,7 +98,7 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> Result<OpenGraphData,
     .ok_or(LemmyErrorType::NoLinesInHtml)?
     .to_lowercase();
 
-  if !first_line.starts_with("<!doctype html>") {
+  if !first_line.starts_with("<!doctype html") {
     Err(LemmyErrorType::SiteMetadataPageIsNotDoctypeHtml)?
   }
 
@@ -325,7 +327,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_link_metadata() {
-    let context = LemmyContext::init_test_context_with_networking().await;
+    let context = LemmyContext::init_test_context().await;
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
     let sample_res = fetch_link_metadata(&sample_url, false, &context)
       .await

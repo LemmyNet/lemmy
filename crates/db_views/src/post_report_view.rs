@@ -11,7 +11,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
-  newtypes::{CommunityId, PersonId, PostReportId},
+  newtypes::{CommunityId, PersonId, PostId, PostReportId},
   schema::{
     community,
     community_moderator,
@@ -81,6 +81,10 @@ fn queries<'a>() -> Queries<
 
     if let Some(community_id) = options.community_id {
       query = query.filter(post::community_id.eq(community_id));
+    }
+
+    if let Some(post_id) = options.post_id {
+      query = query.filter(post::id.eq(post_id));
     }
 
     // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
@@ -171,6 +175,7 @@ impl PostReportView {
 #[derive(Default)]
 pub struct PostReportQuery {
   pub community_id: Option<CommunityId>,
+  pub post_id: Option<PostId>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unresolved_only: bool,

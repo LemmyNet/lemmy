@@ -661,6 +661,7 @@ diesel::table! {
         featured_community -> Bool,
         featured_local -> Bool,
         url_content_type -> Nullable<Text>,
+        alt_text -> Nullable<Text>,
     }
 }
 
@@ -674,6 +675,7 @@ diesel::table! {
         saved -> Nullable<Timestamptz>,
         liked -> Nullable<Timestamptz>,
         like_score -> Nullable<Int2>,
+        hidden -> Nullable<Timestamptz>,
     }
 }
 

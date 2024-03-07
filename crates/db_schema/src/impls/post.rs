@@ -1,26 +1,10 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::{
-    post::dsl::{
-      ap_id,
-      body,
-      community_id,
-      creator_id,
-      deleted,
-      featured_community,
-      local,
-      name,
-      post,
-      published,
-      removed,
-      thumbnail_url,
-      updated,
-      url,
-    },
-    post_actions,
-  },
+  schema::{post, post_actions},
   source::post::{
     Post,
+    PostHide,
+    PostHideForm,
     PostInsertForm,
     PostLike,
     PostLikeForm,
@@ -64,9 +48,9 @@ impl Crud for Post {
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(post)
+    insert_into(post::table)
       .values(form)
-      .on_conflict(ap_id)
+      .on_conflict(post::ap_id)
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
@@ -79,7 +63,7 @@ impl Crud for Post {
     new_post: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(post.find(post_id))
+    diesel::update(post::table.find(post_id))
       .set(new_post)
       .get_result::<Self>(conn)
       .await
@@ -92,12 +76,12 @@ impl Post {
     the_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    post
-      .filter(community_id.eq(the_community_id))
-      .filter(deleted.eq(false))
-      .filter(removed.eq(false))
-      .then_order_by(featured_community.desc())
-      .then_order_by(published.desc())
+    post::table
+      .filter(post::community_id.eq(the_community_id))
+      .filter(post::deleted.eq(false))
+      .filter(post::removed.eq(false))
+      .then_order_by(post::featured_community.desc())
+      .then_order_by(post::published.desc())
       .limit(FETCH_LIMIT_MAX)
       .load::<Self>(conn)
       .await
@@ -108,12 +92,12 @@ impl Post {
     the_community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    post
-      .filter(community_id.eq(the_community_id))
-      .filter(deleted.eq(false))
-      .filter(removed.eq(false))
-      .filter(featured_community.eq(true))
-      .then_order_by(published.desc())
+    post::table
+      .filter(post::community_id.eq(the_community_id))
+      .filter(post::deleted.eq(false))
+      .filter(post::removed.eq(false))
+      .filter(post::featured_community.eq(true))
+      .then_order_by(post::published.desc())
       .limit(FETCH_LIMIT_MAX)
       .load::<Self>(conn)
       .await
@@ -123,13 +107,13 @@ impl Post {
     pool: &mut DbPool<'_>,
   ) -> Result<Vec<(DbUrl, chrono::DateTime<Utc>)>, Error> {
     let conn = &mut get_conn(pool).await?;
-    post
-      .select((ap_id, coalesce(updated, published)))
-      .filter(local.eq(true))
-      .filter(deleted.eq(false))
-      .filter(removed.eq(false))
-      .filter(published.ge(Utc::now().naive_utc() - Duration::days(SITEMAP_DAYS)))
-      .order(published.desc())
+    post::table
+      .select((post::ap_id, coalesce(post::updated, post::published)))
+      .filter(post::local.eq(true))
+      .filter(post::deleted.eq(false))
+      .filter(post::removed.eq(false))
+      .filter(post::published.ge(Utc::now().naive_utc() - Duration::days(SITEMAP_DAYS)))
+      .order(post::published.desc())
       .limit(SITEMAP_LIMIT)
       .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)
       .await
@@ -141,13 +125,13 @@ impl Post {
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel::update(post.filter(creator_id.eq(for_creator_id)))
+    diesel::update(post::table.filter(post::creator_id.eq(for_creator_id)))
       .set((
-        name.eq(DELETED_REPLACEMENT_TEXT),
-        url.eq(Option::<&str>::None),
-        body.eq(DELETED_REPLACEMENT_TEXT),
-        deleted.eq(true),
-        updated.eq(naive_now()),
+        post::name.eq(DELETED_REPLACEMENT_TEXT),
+        post::url.eq(Option::<&str>::None),
+        post::body.eq(DELETED_REPLACEMENT_TEXT),
+        post::deleted.eq(true),
+        post::updated.eq(naive_now()),
       ))
       .get_results::<Self>(conn)
       .await
@@ -161,15 +145,15 @@ impl Post {
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let mut update = diesel::update(post).into_boxed();
-    update = update.filter(creator_id.eq(for_creator_id));
+    let mut update = diesel::update(post::table).into_boxed();
+    update = update.filter(post::creator_id.eq(for_creator_id));
 
     if let Some(for_community_id) = for_community_id {
-      update = update.filter(community_id.eq(for_community_id));
+      update = update.filter(post::community_id.eq(for_community_id));
     }
 
     update
-      .set((removed.eq(new_removed), updated.eq(naive_now())))
+      .set((post::removed.eq(new_removed), post::updated.eq(naive_now())))
       .get_results::<Self>(conn)
       .await
   }
@@ -185,8 +169,8 @@ impl Post {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     Ok(
-      post
-        .filter(ap_id.eq(object_id))
+      post::table
+        .filter(post::ap_id.eq(object_id))
         .first::<Post>(conn)
         .await
         .ok()
@@ -201,9 +185,9 @@ impl Post {
     let conn = &mut get_conn(pool).await?;
     let pictrs_search = "%pictrs/image%";
 
-    post
-      .filter(creator_id.eq(for_creator_id))
-      .filter(url.like(pictrs_search))
+    post::table
+      .filter(post::creator_id.eq(for_creator_id))
+      .filter(post::url.like(pictrs_search))
       .load::<Self>(conn)
       .await
   }
@@ -217,13 +201,13 @@ impl Post {
     let pictrs_search = "%pictrs/image%";
 
     diesel::update(
-      post
-        .filter(creator_id.eq(for_creator_id))
-        .filter(url.like(pictrs_search)),
+      post::table
+        .filter(post::creator_id.eq(for_creator_id))
+        .filter(post::url.like(pictrs_search)),
     )
     .set((
-      url.eq::<Option<String>>(None),
-      thumbnail_url.eq::<Option<String>>(None),
+      post::url.eq::<Option<String>>(None),
+      post::thumbnail_url.eq::<Option<String>>(None),
     ))
     .get_results::<Self>(conn)
     .await
@@ -235,9 +219,9 @@ impl Post {
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let pictrs_search = "%pictrs/image%";
-    post
-      .filter(community_id.eq(for_community_id))
-      .filter(url.like(pictrs_search))
+    post::table
+      .filter(post::community_id.eq(for_community_id))
+      .filter(post::url.like(pictrs_search))
       .load::<Self>(conn)
       .await
   }
@@ -251,13 +235,13 @@ impl Post {
     let pictrs_search = "%pictrs/image%";
 
     diesel::update(
-      post
-        .filter(community_id.eq(for_community_id))
-        .filter(url.like(pictrs_search)),
+      post::table
+        .filter(post::community_id.eq(for_community_id))
+        .filter(post::url.like(pictrs_search)),
     )
     .set((
-      url.eq::<Option<String>>(None),
-      thumbnail_url.eq::<Option<String>>(None),
+      post::url.eq::<Option<String>>(None),
+      post::thumbnail_url.eq::<Option<String>>(None),
     ))
     .get_results::<Self>(conn)
     .await
@@ -396,6 +380,50 @@ impl PostRead {
   }
 }
 
+impl PostHide {
+  pub async fn hide(
+    pool: &mut DbPool<'_>,
+    post_ids: HashSet<PostId>,
+    person_id: PersonId,
+  ) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    let forms = post_ids
+      .into_iter()
+      .map(|post_id| {
+        (
+          PostHideForm { post_id, person_id },
+          post_actions::hidden.eq(now().nullable()),
+        )
+      })
+      .collect::<Vec<_>>();
+    insert_into(post_actions::table)
+      .values(forms)
+      .on_conflict((post_actions::person_id, post_actions::post_id))
+      .do_update()
+      .set(post_actions::hidden.eq(now().nullable()))
+      .execute(conn)
+      .await
+  }
+
+  pub async fn unhide(
+    pool: &mut DbPool<'_>,
+    post_id_: HashSet<PostId>,
+    person_id_: PersonId,
+  ) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    diesel::update(
+      post_actions::table
+        .filter(post_actions::post_id.eq_any(post_id_))
+        .filter(post_actions::person_id.eq(person_id_)),
+    )
+    .set(post_actions::hidden.eq(None::<DateTime<Utc>>))
+    .execute(conn)
+    .await
+  }
+}
+
 #[cfg(test)]
 mod tests {
   #![allow(clippy::unwrap_used)]
@@ -471,6 +499,7 @@ mod tests {
       name: "A test post".into(),
       url: None,
       body: None,
+      alt_text: None,
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
       published: inserted_post.published,

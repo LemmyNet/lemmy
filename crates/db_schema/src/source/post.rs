@@ -56,6 +56,8 @@ pub struct Post {
   /// Whether the post is featured to its site.
   pub featured_local: bool,
   pub url_content_type: Option<String>,
+  /// An optional alt_text, usable for image posts.
+  pub alt_text: Option<String>,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]
@@ -87,6 +89,7 @@ pub struct PostInsertForm {
   pub featured_community: Option<bool>,
   pub featured_local: Option<bool>,
   pub url_content_type: Option<String>,
+  pub alt_text: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -111,7 +114,8 @@ pub struct PostUpdateForm {
   pub language_id: Option<LanguageId>,
   pub featured_community: Option<bool>,
   pub featured_local: Option<bool>,
-  pub url_content_type: Option<String>,
+  pub url_content_type: Option<Option<String>>,
+  pub alt_text: Option<Option<String>>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -171,6 +175,28 @@ pub struct PostRead {
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub(crate) struct PostReadForm {
+  pub post_id: PostId,
+  pub person_id: PersonId,
+}
+
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
+#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
+#[cfg_attr(feature = "full", diesel(table_name = post_hide))]
+#[cfg_attr(feature = "full", diesel(primary_key(post_id, person_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+pub struct PostHide {
+  pub post_id: PostId,
+  pub person_id: PersonId,
+  pub published: DateTime<Utc>,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = post_hide))]
+pub(crate) struct PostHideForm {
   pub post_id: PostId,
   pub person_id: PersonId,
 }
