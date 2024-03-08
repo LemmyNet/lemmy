@@ -38,9 +38,9 @@ async fn get_webfinger_response(
 ) -> Result<HttpResponse, LemmyError> {
   let name = extract_webfinger_name(&info.resource, &context)?;
 
-  let links = if name == context.domain() {
+  let links = if name == context.settings().hostname {
     // webfinger response for instance actor (required for mastodon authorized fetch)
-    let url = Url::parse(&format!("https://{name}"))?;
+    let url = Url::parse(&context.settings().get_protocol_and_hostname())?;
     vec![webfinger_link_for_actor(Some(url), "none", &context)]
   } else {
     // webfinger response for user/community
@@ -69,19 +69,23 @@ async fn get_webfinger_response(
   }
   .into_iter()
   .flatten()
-  .collect();
+  .collect::<Vec<_>>();
 
-  let json = Webfinger {
-    subject: info.resource.clone(),
-    links,
-    ..Default::default()
-  };
+  if links.is_empty() {
+    Ok(HttpResponse::NotFound().finish())
+  } else {
+    let json = Webfinger {
+      subject: info.resource.clone(),
+      links,
+      ..Default::default()
+    };
 
-  Ok(
-    HttpResponse::Ok()
-      .content_type(&WEBFINGER_CONTENT_TYPE)
-      .json(json),
-  )
+    Ok(
+      HttpResponse::Ok()
+        .content_type(&WEBFINGER_CONTENT_TYPE)
+        .json(json),
+    )
+  }
 }
 
 fn webfinger_link_for_actor(
