@@ -11,20 +11,29 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aliases,
+  aliases::{self, creator_community_actions},
   newtypes::{CommentId, CommentReportId, CommunityId, PersonId},
   schema::{
     comment,
+    comment_actions,
     comment_aggregates,
-    comment_like,
     comment_report,
     community,
-    community_moderator,
-    community_person_ban,
+    community_actions,
     person,
     post,
   },
-  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{
+    actions,
+    functions::coalesce,
+    get_conn,
+    limit_and_offset,
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+  },
 };
 
 fn queries<'a>() -> Queries<
@@ -50,11 +59,18 @@ fn queries<'a>() -> Queries<
         aliases::person2
           .on(comment_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
       )
-      .left_join(actions(
-        creator_community_actions,
-        comment::creator_id.nullable(),
-        post_aggregates::community_id,
-      ))
+      .left_join(
+        creator_community_actions.on(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(comment::creator_id)
+            .and(
+              creator_community_actions
+                .field(community_actions::community_id)
+                .eq(post::community_id),
+            ),
+        ),
+      )
       .select((
         comment_report::all_columns,
         comment::all_columns,
@@ -63,15 +79,20 @@ fn queries<'a>() -> Queries<
         person::all_columns,
         aliases::person1.fields(person::all_columns),
         comment_aggregates::all_columns,
-        creator_community_actions
-          .field(community_actions::received_ban)
-          .is_null()
-          .or(
-            creator_community_actions
-              .field(community_actions::ban_expires)
-              .gt(now),
-          ),
-        post_actions::like_score.nullable(),
+        coalesce(
+          creator_community_actions
+            .field(community_actions::received_ban)
+            .nullable()
+            .is_null()
+            .or(
+              creator_community_actions
+                .field(community_actions::ban_expires)
+                .nullable()
+                .gt(now),
+            ),
+          false,
+        ),
+        comment_actions::like_score.nullable(),
         aliases::person2.fields(person::all_columns).nullable(),
       ))
   };
@@ -114,10 +135,11 @@ fn queries<'a>() -> Queries<
     if !user.local_user.admin {
       query
         .inner_join(
-          community_moderator::table.on(
-            community_moderator::community_id
+          community_actions::table.on(
+            community_actions::community_id
               .eq(post::community_id)
-              .and(community_moderator::person_id.eq(user.person.id)),
+              .and(community_actions::person_id.eq(user.person.id))
+              .and(community_actions::became_moderator.is_not_null()),
           ),
         )
         .load::<CommentReportView>(&mut conn)
@@ -167,10 +189,11 @@ impl CommentReportView {
     if !admin {
       query
         .inner_join(
-          community_moderator::table.on(
-            community_moderator::community_id
+          community_actions::table.on(
+            community_actions::community_id
               .eq(post::community_id)
-              .and(community_moderator::person_id.eq(my_person_id)),
+              .and(community_actions::person_id.eq(my_person_id))
+              .and(community_actions::became_moderator.is_not_null()),
           ),
         )
         .select(count(comment_report::id))
