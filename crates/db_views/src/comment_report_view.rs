@@ -18,10 +18,14 @@ use lemmy_db_schema::{
     comment_aggregates,
     comment_like,
     comment_report,
+    comment_saved,
     community,
+    community_follower,
     community_moderator,
     community_person_ban,
+    local_user,
     person,
+    person_block,
     post,
   },
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
@@ -64,6 +68,45 @@ fn queries<'a>() -> Queries<
             ),
         ),
       )
+      .left_join(
+        aliases::community_moderator1.on(
+          community::id
+            .eq(aliases::community_moderator1.field(community_moderator::community_id))
+            .and(
+              aliases::community_moderator1
+                .field(community_moderator::person_id)
+                .eq(comment::creator_id),
+            ),
+        ),
+      )
+      .left_join(
+        local_user::table.on(
+          comment::creator_id
+            .eq(local_user::person_id)
+            .and(local_user::admin.eq(true)),
+        ),
+      )
+      .left_join(
+        person_block::table.on(
+          comment::creator_id
+            .eq(person_block::target_id)
+            .and(person_block::person_id.eq(my_person_id)),
+        ),
+      )
+      .left_join(
+        community_follower::table.on(
+          post::community_id
+            .eq(community_follower::community_id)
+            .and(community_follower::person_id.eq(my_person_id)),
+        ),
+      )
+      .left_join(
+        comment_saved::table.on(
+          comment::id
+            .eq(comment_saved::comment_id)
+            .and(comment_saved::person_id.eq(my_person_id)),
+        ),
+      )
       .select((
         comment_report::all_columns,
         comment::all_columns,
@@ -73,6 +116,14 @@ fn queries<'a>() -> Queries<
         aliases::person1.fields(person::all_columns),
         comment_aggregates::all_columns,
         community_person_ban::community_id.nullable().is_not_null(),
+        aliases::community_moderator1
+          .field(community_moderator::community_id)
+          .nullable()
+          .is_not_null(),
+        local_user::admin.nullable().is_not_null(),
+        person_block::target_id.nullable().is_not_null(),
+        community_follower::pending.nullable(),
+        comment_saved::published.nullable().is_not_null(),
         comment_like::score.nullable(),
         aliases::person2.fields(person::all_columns).nullable(),
       ))
@@ -229,6 +280,7 @@ mod tests {
     traits::{Crud, Joinable, Reportable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
     CommunityVisibility,
+    SubscribedType,
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -350,6 +402,11 @@ mod tests {
       comment_report: inserted_jessica_report.clone(),
       comment: inserted_comment.clone(),
       post: inserted_post,
+      creator_is_moderator: true,
+      creator_is_admin: false,
+      creator_blocked: false,
+      subscribed: SubscribedType::NotSubscribed,
+      saved: false,
       community: Community {
         id: inserted_community.id,
         name: inserted_community.name,
