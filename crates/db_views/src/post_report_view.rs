@@ -10,19 +10,18 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aliases,
+  aliases::{self, creator_community_actions},
   newtypes::{CommunityId, PersonId, PostId, PostReportId},
   schema::{
     community,
-    community_moderator,
-    community_person_ban,
+    community_actions,
     person,
     post,
+    post_actions,
     post_aggregates,
-    post_like,
     post_report,
   },
-  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{actions, get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
 fn queries<'a>() -> Queries<
@@ -35,24 +34,23 @@ fn queries<'a>() -> Queries<
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
       .inner_join(aliases::person1.on(post::creator_id.eq(aliases::person1.field(person::id))))
-      .left_join(
-        community_person_ban::table.on(
-          post::community_id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id)),
-        ),
-      )
-      .left_join(
-        post_like::table.on(
-          post::id
-            .eq(post_like::post_id)
-            .and(post_like::person_id.eq(my_person_id)),
-        ),
-      )
       .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
       .left_join(
         aliases::person2
           .on(post_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
+      )
+      .left_join(actions(post_actions::table, Some(my_person_id), post::id))
+      .left_join(
+        creator_community_actions.on(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(post::creator_id)
+            .and(
+              creator_community_actions
+                .field(community_actions::community_id)
+                .eq(post::community_id),
+            ),
+        ),
       )
       .select((
         post_report::all_columns,
@@ -60,8 +58,11 @@ fn queries<'a>() -> Queries<
         community::all_columns,
         person::all_columns,
         aliases::person1.fields(person::all_columns),
-        community_person_ban::community_id.nullable().is_not_null(),
-        post_like::score.nullable(),
+        creator_community_actions
+          .field(community_actions::received_ban)
+          .nullable()
+          .is_not_null(),
+        post_actions::like_score.nullable(),
         post_aggregates::all_columns,
         aliases::person2.fields(person::all_columns.nullable()),
       ))
@@ -104,10 +105,11 @@ fn queries<'a>() -> Queries<
     if !user.local_user.admin {
       query
         .inner_join(
-          community_moderator::table.on(
-            community_moderator::community_id
+          community_actions::table.on(
+            community_actions::community_id
               .eq(post::community_id)
-              .and(community_moderator::person_id.eq(user.person.id)),
+              .and(community_actions::person_id.eq(user.person.id))
+              .and(community_actions::became_moderator.is_not_null()),
           ),
         )
         .load::<PostReportView>(&mut conn)
@@ -154,10 +156,11 @@ impl PostReportView {
     if !admin {
       query
         .inner_join(
-          community_moderator::table.on(
-            community_moderator::community_id
+          community_actions::table.on(
+            community_actions::community_id
               .eq(post::community_id)
-              .and(community_moderator::person_id.eq(my_person_id)),
+              .and(community_actions::person_id.eq(my_person_id))
+              .and(community_actions::became_moderator.is_not_null()),
           ),
         )
         .select(count(post_report::id))
