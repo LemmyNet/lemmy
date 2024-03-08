@@ -150,8 +150,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/block", web::post().to(block_instance))
           // URL blocklist
           .route("/url_blocks", web::get().to(list_url_blocks))
-          .route("/url_blocks", web::put().to(add_url_block))
-          .route("/url_blocks/remove", web::put().to(remove_url_block)),
+          .route("/url_blocks", web::post().to(add_url_block))
+          .route("/url_blocks/remove", web::post().to(remove_url_block)),
       )
       .service(
         web::resource("/modlog")
