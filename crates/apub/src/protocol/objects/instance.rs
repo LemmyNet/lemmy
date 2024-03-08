@@ -21,7 +21,7 @@ pub struct Instance {
   pub(crate) id: ObjectId<ApubSite>,
   /// site name
   pub(crate) name: String,
-  /// domain, necessary for mastodon authorized fetch
+  /// instance domain, necessary for mastodon authorized fetch
   pub(crate) preferred_username: String,
   pub(crate) inbox: Url,
   /// mandatory field in activitypub, lemmy currently serves an empty outbox
