@@ -153,11 +153,14 @@ fn queries<'a>() -> Queries<
         aliases::person1.fields(person::all_columns),
         comment_aggregates::all_columns,
         is_creator_banned_from_community,
-        creator_is_moderator,
-        creator_is_admin,
-        subscribed_type_selection,
+        creator_community_actions
+          .field(community_actions::became_moderator)
+          .nullable()
+          .is_not_null(),
+        coalesce(local_user::admin, false),
+        community_actions::follow_pending.nullable(),
         is_saved_selection,
-        is_creator_blocked_selection,
+        person_actions::blocked.nullable().is_not_null(),
         score_selection,
       ))
   };
