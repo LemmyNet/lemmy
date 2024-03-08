@@ -20,6 +20,8 @@ body:
           required: true
         - label: Is this only a single bug? Do not put multiple bugs in one issue.
           required: true
+        - label: Do you agree to follow the rules in our [Code of Conduct](https://join-lemmy.org/docs/code_of_conduct.html)?
+          required: true
         - label: Is this a backend issue? Use the [lemmy-ui](https://github.com/LemmyNet/lemmy-ui) repo for UI / frontend issues.
           required: true
   - type: textarea
