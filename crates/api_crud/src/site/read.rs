@@ -40,13 +40,25 @@ pub async fn get_site(
   // This data is independent from the user account so we can cache it across requests
   let mut site_response = CACHE
     .try_get_with::<_, LemmyError>((), async {
-      let site_view = SiteView::read_local(&mut context.pool()).await?;
-      let admins = PersonView::admins(&mut context.pool()).await?;
-      let all_languages = Language::read_all(&mut context.pool()).await?;
-      let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
-      let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
-      let custom_emojis =
-        CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
+      let conn = &mut get_conn(&mut context.pool()).await?;
+      let (
+        site_view,
+        CollectedRows(admins),
+        CollectedRows(all_languages),
+        CollectedRows(discussion_languages),
+        CollectedRows(taglines),
+        CollectedRows(custom_emojis),
+      ) =
+        diesel::select((
+          CollectFirstTuple(SiteView::read_local()),
+          CollectTuples(PersonView::admins()),
+          CollectTuples(Language::read_all()),
+          CollectTuples(SiteLanguage::read_local_raw()),
+          CollectTuples(Tagline::get_all(site_view.local_site.id)),
+          CollectTuples(CustomEmojiView::get_all(site_view.local_site.id)),
+        ))
+        .first(conn)
+        .await?;
       Ok(GetSiteResponse {
         site_view,
         admins,
