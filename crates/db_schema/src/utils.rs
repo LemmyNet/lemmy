@@ -15,6 +15,7 @@ use diesel::{
   pg::Pg,
   query_builder::{Query, QueryFragment},
   query_dsl::methods::LimitDsl,
+  query_source::AliasSource,
   result::{
     ConnectionError,
     ConnectionResult,
@@ -512,6 +513,36 @@ where
       .and(K1::default().eq(target_id)),
   )
 }
+
+/*pub fn actions_alias<AS, C, K0, K1>(
+  actions_table: Alias<AS>,
+  person_id: Option<PersonId>,
+  target_id: C,
+) -> dsl::On<Alias<AS>, dsl::And<dsl::Eq<dsl::Nullable<AliasedField<AS, K0>>, Option<PersonId>>, dsl::Eq<AliasedField<AS, K1>, C>>>
+where
+  AS: AliasSource,
+  Alias<AS>: QuerySource + Clone + Copy,
+  AS::Target: Table<PrimaryKey = (K0, K1)>,
+  K0: Default + Column<Table = AS::Target>,
+  AliasedField<AS, K0>: Expression + Sized,
+  dsl::Nullable<AliasedField<AS, K0>>: diesel::ExpressionMethods,
+  <dsl::Nullable<AliasedField<AS, K0>> as Expression>::SqlType: SqlType,
+  Option<PersonId>: AsExpression<<dsl::Nullable<AliasedField<AS, K0>> as Expression>::SqlType>,
+  K1: Default + Column<Table = AS::Target>,
+  AliasedField<AS, K1>: diesel::ExpressionMethods,
+  <AliasedField<AS, K1> as Expression>::SqlType: SqlType,
+  C: AsExpression<<AliasedField<AS, K1> as Expression>::SqlType>,
+  dsl::Eq<dsl::Nullable<AliasedField<AS, K0>>, Option<PersonId>>:
+    Expression<SqlType = sql_types::Nullable<sql_types::Bool>>,
+  dsl::Eq<AliasedField<AS, K1>, C>: Expression<SqlType = sql_types::Bool>,
+{
+  actions_table.on(
+    actions_table.field(K0::default())
+      .nullable()
+      .eq(person_id)
+      .and(actions_table.field(K1::default()).eq(target_id)),
+  )
+}*/
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
 

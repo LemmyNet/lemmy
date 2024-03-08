@@ -30,8 +30,9 @@ pub mod newtypes;
 pub mod schema;
 #[cfg(feature = "full")]
 pub mod aliases {
-  use crate::schema::person;
+  use crate::schema::{community_actions, person};
   diesel::alias!(
+    community_actions as creator_community_actions: CreatorCommunityActions,
     person as person1: Person1,
     person as person2: Person2,
   );

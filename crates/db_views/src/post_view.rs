@@ -1,16 +1,12 @@
 use crate::structs::{LocalUserView, PaginationCursor, PostView};
-use chrono::{DateTime, Utc};
 use diesel::{
   debug_query,
-  dsl::{exists, not, IntervalDsl},
+  dsl::{exists, IntervalDsl},
   pg::Pg,
   query_builder::AsQuery,
   result::Error,
-  sql_types,
   BoolExpressionMethods,
-  BoxableExpression,
   ExpressionMethods,
-  IntoSql,
   JoinOnDsl,
   NullableExpressionMethods,
   OptionalExtension,
@@ -25,25 +21,19 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     community,
-    community_block,
-    community_follower,
-    community_moderator,
-    community_person_ban,
-    instance_block,
+    community_actions,
+    instance_actions,
     local_user,
     local_user_language,
     person,
-    person_block,
-    person_post_aggregates,
+    person_actions,
     post,
+    post_actions,
     post_aggregates,
-    post_hide,
-    post_like,
-    post_read,
-    post_saved,
   },
   source::site::Site,
   utils::{
+    actions,
     functions::coalesce,
     fuzzy_search,
     get_conn,
@@ -70,8 +60,7 @@ fn queries<'a>() -> Queries<
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>| {
     query
-      .inner_join(person::table)
-      .left_join(local_user::table)
+      .inner_join(person::table.left_join(local_user::table))
       .inner_join(community::table)
       .inner_join(post::table)
       .left_join(actions(
@@ -94,30 +83,39 @@ fn queries<'a>() -> Queries<
         my_person_id,
         post_aggregates::instance_id,
       ))
-      .left_join(actions(
-        creator_community_actions,
-        post_aggregates::creator_id.nullable(),
-        post_aggregates::community_id,
-      ))
+      .left_join(
+        creator_community_actions.on(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(post_aggregates::creator_id)
+            .and(
+              creator_community_actions
+                .field(community_actions::community_id)
+                .eq(post_aggregates::community_id),
+            ),
+        ),
+      )
       .select((
         post::all_columns,
         person::all_columns,
         community::all_columns,
         creator_community_actions
           .field(community_actions::received_ban)
+          .nullable()
           .is_not_null(),
         creator_community_actions
           .field(community_actions::became_moderator)
+          .nullable()
           .is_not_null(),
-        creator_is_admin,
+        coalesce(local_user::admin.nullable(), false),
         post_aggregates::all_columns,
         community_actions::follow_pending.nullable(),
-        post_actions::saved.is_not_null(),
-        post_actions::read.is_not_null(),
-        post_actions::hidden.is_not_null(),
-        person_actions::blocked.is_not_null(),
+        post_actions::saved.nullable().is_not_null(),
+        post_actions::read.nullable().is_not_null(),
+        post_actions::hidden.nullable().is_not_null(),
+        person_actions::blocked.nullable().is_not_null(),
         post_actions::like_score.nullable(),
-        post_aggregates::comments - coalesce(post_actions::read_comments.nullable(), 0),
+        post_aggregates::comments - coalesce(post_actions::read_comments_amount.nullable(), 0),
       ))
   };
 
@@ -176,7 +174,6 @@ fn queries<'a>() -> Queries<
     let my_local_user_id = options.local_user.map(|l| l.local_user.id);
 
     // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
     let local_user_id_join = my_local_user_id.unwrap_or(LocalUserId(-1));
 
     let mut query = all_joins(post_aggregates::table.into_boxed(), my_person_id);
@@ -210,30 +207,17 @@ fn queries<'a>() -> Queries<
     }
 
     if let Some(listing_type) = options.listing_type {
-      if let Some(person_id) = my_person_id {
-        let is_subscribed = community_actions::followed.is_not_null();
-        match listing_type {
-          ListingType::Subscribed => query = query.filter(is_subscribed),
-          ListingType::Local => {
-            query = query
-              .filter(community::local.eq(true))
-              .filter(community::hidden.eq(false).or(is_subscribed));
-          }
-          ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
-          ListingType::ModeratorView => {
-            query = query.filter(community_actions::became_moderator.is_not_null());
-          }
+      let is_subscribed = community_actions::followed.is_not_null();
+      match listing_type {
+        ListingType::Subscribed => query = query.filter(is_subscribed),
+        ListingType::Local => {
+          query = query
+            .filter(community::local.eq(true))
+            .filter(community::hidden.eq(false).or(is_subscribed));
         }
-      }
-      // If your person_id is missing, only show local
-      else {
-        match listing_type {
-          ListingType::Local => {
-            query = query
-              .filter(community::local.eq(true))
-              .filter(community::hidden.eq(false));
-          }
-          _ => query = query.filter(community::hidden.eq(false)),
+        ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
+        ListingType::ModeratorView => {
+          query = query.filter(community_actions::became_moderator.is_not_null());
         }
       }
     } else {
@@ -488,13 +472,10 @@ impl<'a> PostQuery<'a> {
     //
     // the results are correct no matter which community we fetch these for, since it basically covers the "worst case" of the whole page consisting of posts from one community
     // but using the largest community decreases the pagination-frame so make the real query more efficient.
-    use lemmy_db_schema::schema::{
-      community_aggregates::dsl::{community_aggregates, community_id, users_active_month},
-      community_follower::dsl::{
-        community_follower,
-        community_id as follower_community_id,
-        person_id,
-      },
+    use lemmy_db_schema::schema::community_aggregates::dsl::{
+      community_aggregates,
+      community_id,
+      users_active_month,
     };
     let (limit, offset) = limit_and_offset(self.page, self.limit)?;
     if offset != 0 && self.page_after.is_some() {
@@ -509,9 +490,10 @@ impl<'a> PostQuery<'a> {
       .person_id;
     let largest_subscribed = {
       let conn = &mut get_conn(pool).await?;
-      community_follower
-        .filter(person_id.eq(self_person_id))
-        .inner_join(community_aggregates.on(community_id.eq(follower_community_id)))
+      community_actions::table
+        .filter(community_actions::person_id.eq(self_person_id))
+        .filter(community_actions::followed.is_not_null())
+        .inner_join(community_aggregates.on(community_id.eq(community_actions::community_id)))
         .order_by(users_active_month.desc())
         .select(community_id)
         .limit(1)
