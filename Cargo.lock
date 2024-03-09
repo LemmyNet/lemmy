@@ -1442,6 +1442,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "diesel-bind-if-some"
+version = "0.1.0"
+dependencies = [
+ "diesel",
+]
+
+[[package]]
 name = "diesel-derive-enum"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2695,6 +2702,7 @@ dependencies = [
  "deadpool 0.10.0",
  "diesel",
  "diesel-async",
+ "diesel-bind-if-some",
  "diesel-derive-enum",
  "diesel-derive-newtype",
  "diesel_ltree",

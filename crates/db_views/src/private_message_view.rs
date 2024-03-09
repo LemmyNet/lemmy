@@ -12,8 +12,8 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::{PersonId, PrivateMessageId},
-  schema::{instance_block, person, person_block, private_message},
-  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  schema::{instance_actions, person, person_actions, private_message},
+  utils::{actions, get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 use tracing::debug;
 
@@ -27,20 +27,16 @@ fn queries<'a>() -> Queries<
       .inner_join(
         aliases::person1.on(private_message::recipient_id.eq(aliases::person1.field(person::id))),
       )
-      .left_join(
-        person_block::table.on(
-          private_message::creator_id
-            .eq(person_block::target_id)
-            .and(person_block::person_id.eq(aliases::person1.field(person::id))),
-        ),
-      )
-      .left_join(
-        instance_block::table.on(
-          person::instance_id
-            .eq(instance_block::instance_id)
-            .and(instance_block::person_id.eq(aliases::person1.field(person::id))),
-        ),
-      )
+      .left_join(actions(
+        person_actions::table,
+        Some(aliases::person1.field(person::id)),
+        private_message::creator_id,
+      ))
+      .left_join(actions(
+        instance_actions::table,
+        Some(aliases::person1.field(person::id)),
+        person::instance_id,
+      ))
   };
 
   let selection = (
@@ -62,9 +58,9 @@ fn queries<'a>() -> Queries<
     let mut query = all_joins(private_message::table.into_boxed())
       .select(selection)
       // Dont show replies from blocked users
-      .filter(person_block::person_id.is_null())
+      .filter(person_actions::blocked.is_null())
       // Dont show replies from blocked instances
-      .filter(instance_block::person_id.is_null());
+      .filter(instance_actions::blocked.is_null());
 
     // If its unread, I only want the ones to me
     if options.unread_only {
@@ -127,24 +123,20 @@ impl PrivateMessageView {
     private_message::table
       // Necessary to get the senders instance_id
       .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
-      .left_join(
-        person_block::table.on(
-          private_message::creator_id
-            .eq(person_block::target_id)
-            .and(person_block::person_id.eq(my_person_id)),
-        ),
-      )
-      .left_join(
-        instance_block::table.on(
-          person::instance_id
-            .eq(instance_block::instance_id)
-            .and(instance_block::person_id.eq(my_person_id)),
-        ),
-      )
+      .left_join(actions(
+        person_actions::table,
+        Some(my_person_id),
+        private_message::creator_id,
+      ))
+      .left_join(actions(
+        instance_actions::table,
+        Some(my_person_id),
+        person::instance_id,
+      ))
       // Dont count replies from blocked users
-      .filter(person_block::person_id.is_null())
+      .filter(person_actions::blocked.is_null())
       // Dont count replies from blocked instances
-      .filter(instance_block::person_id.is_null())
+      .filter(instance_actions::blocked.is_null())
       .filter(private_message::read.eq(false))
       .filter(private_message::recipient_id.eq(my_person_id))
       .filter(private_message::deleted.eq(false))

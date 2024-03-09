@@ -164,6 +164,7 @@ moka = { version = "0.12.4", features = ["future"] }
 i-love-jesus = { version = "0.1.0" }
 clap = { version = "4.4.18", features = ["derive"] }
 pretty_assertions = "1.4.0"
+diesel-bind-if-some = { path = "../diesel-utils/crates/diesel-bind-if-some" }
 
 [dependencies]
 lemmy_api = { workspace = true }

@@ -40,6 +40,7 @@ use diesel_async::{
   },
   SimpleAsyncConnection,
 };
+use diesel_bind_if_some::BindIfSome;
 use diesel_migrations::EmbeddedMigrations;
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
@@ -487,29 +488,38 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
   diesel::dsl::now.into_sql::<Timestamptz>()
 }
 
-// TODO: BindIfSome
-pub fn actions<T, C, K0, K1>(
+pub fn actions<T, P, C, K0, K1>(
   actions_table: T,
-  person_id: Option<PersonId>,
+  person_id: Option<P>,
   target_id: C,
-) -> dsl::On<T, dsl::And<dsl::Eq<dsl::Nullable<K0>, Option<PersonId>>, dsl::Eq<K1, C>>>
+) -> dsl::On<
+  T,
+  dsl::And<
+    dsl::Eq<dsl::Nullable<K0>, BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>>,
+    dsl::Eq<K1, C>,
+  >,
+>
 where
+  P: AsExpression<sql_types::Integer>,
   T: Table<PrimaryKey = (K0, K1)>,
   K0: Default + Expression + Sized,
   dsl::Nullable<K0>: diesel::ExpressionMethods,
   <dsl::Nullable<K0> as Expression>::SqlType: SqlType,
-  Option<PersonId>: AsExpression<<dsl::Nullable<K0> as Expression>::SqlType>,
+  BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>:
+    AsExpression<<dsl::Nullable<K0> as Expression>::SqlType>,
   K1: Default + diesel::ExpressionMethods,
   <K1 as Expression>::SqlType: SqlType,
   C: AsExpression<<K1 as Expression>::SqlType>,
-  dsl::Eq<dsl::Nullable<K0>, Option<PersonId>>:
+  dsl::Eq<dsl::Nullable<K0>, BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>>:
     Expression<SqlType = sql_types::Nullable<sql_types::Bool>>,
   dsl::Eq<K1, C>: Expression<SqlType = sql_types::Bool>,
 {
   actions_table.on(
     K0::default()
       .nullable()
-      .eq(person_id)
+      .eq(BindIfSome(
+        person_id.map(|id| id.into_sql::<sql_types::Integer>()),
+      ))
       .and(K1::default().eq(target_id)),
   )
 }
