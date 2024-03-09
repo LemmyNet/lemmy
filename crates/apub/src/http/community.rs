@@ -72,7 +72,7 @@ pub(crate) async fn get_apub_community_followers(
 }
 
 /// Returns the community outbox, which is populated by a maximum of 20 posts (but no other
-/// activites like votes or comments).
+/// activities like votes or comments).
 pub(crate) async fn get_apub_community_outbox(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,

@@ -44,6 +44,6 @@ pub mod tagline;
 /// value is not sent by Lemmy. Necessary for crates which rely on Rust API such as lemmy-stats-crawler.
 fn placeholder_apub_url() -> DbUrl {
   DbUrl(Box::new(
-    Url::parse("http://example.com").expect("parse placeholer url"),
+    Url::parse("http://example.com").expect("parse placeholder url"),
   ))
 }

@@ -9,7 +9,7 @@ use lemmy_db_schema::{
 impl SiteView {
   pub async fn read_local(pool: &mut DbPool<'_>) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let mut res = site::table
+    site::table
       .inner_join(local_site::table)
       .inner_join(
         local_site_rate_limit::table.on(local_site::id.eq(local_site_rate_limit::local_site_id)),
@@ -22,9 +22,6 @@ impl SiteView {
         site_aggregates::all_columns,
       ))
       .first::<SiteView>(conn)
-      .await?;
-
-    res.site.private_key = None;
-    Ok(res)
+      .await
   }
 }

@@ -114,7 +114,7 @@ async fn upload(
   if let Some(images) = &images.files {
     for uploaded_image in images {
       let form = LocalImageForm {
-        local_user_id: local_user_view.local_user.id,
+        local_user_id: Some(local_user_view.local_user.id),
         pictrs_alias: uploaded_image.file.to_string(),
         pictrs_delete_token: uploaded_image.delete_token.to_string(),
       };
