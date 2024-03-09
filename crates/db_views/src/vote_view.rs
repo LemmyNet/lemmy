@@ -1,9 +1,9 @@
 use crate::structs::VoteView;
-use diesel::{result::Error, ExpressionMethods, QueryDsl};
+use diesel::{result::Error, ExpressionMethods, NullableExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommentId, PostId},
-  schema::{comment_like, person, post_like},
+  schema::{comment_actions, person, post_actions},
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
@@ -17,11 +17,15 @@ impl VoteView {
     let conn = &mut get_conn(pool).await?;
     let (limit, offset) = limit_and_offset(page, limit)?;
 
-    post_like::table
+    post_actions::table
       .inner_join(person::table)
-      .filter(post_like::post_id.eq(post_id))
-      .select((person::all_columns, post_like::score))
-      .order_by(post_like::score)
+      .filter(post_actions::post_id.eq(post_id))
+      .filter(post_actions::like_score.is_not_null())
+      .select((
+        person::all_columns,
+        post_actions::like_score.assume_not_null(),
+      ))
+      .order_by(post_actions::like_score)
       .limit(limit)
       .offset(offset)
       .load::<Self>(conn)
@@ -37,11 +41,15 @@ impl VoteView {
     let conn = &mut get_conn(pool).await?;
     let (limit, offset) = limit_and_offset(page, limit)?;
 
-    comment_like::table
+    comment_actions::table
       .inner_join(person::table)
-      .filter(comment_like::comment_id.eq(comment_id))
-      .select((person::all_columns, comment_like::score))
-      .order_by(comment_like::score)
+      .filter(comment_actions::comment_id.eq(comment_id))
+      .filter(comment_actions::like_score.is_not_null())
+      .select((
+        person::all_columns,
+        comment_actions::like_score.assume_not_null(),
+      ))
+      .order_by(comment_actions::like_score)
       .limit(limit)
       .offset(offset)
       .load::<Self>(conn)
