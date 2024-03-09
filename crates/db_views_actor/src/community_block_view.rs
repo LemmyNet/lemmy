@@ -3,21 +3,22 @@ use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
-  schema::{community, community_block, person},
+  schema::{community, community_actions, person},
   utils::{get_conn, DbPool},
 };
 
 impl CommunityBlockView {
   pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    community_block::table
+    community_actions::table
       .inner_join(person::table)
       .inner_join(community::table)
       .select((person::all_columns, community::all_columns))
-      .filter(community_block::person_id.eq(person_id))
+      .filter(community_actions::person_id.eq(person_id))
+      .filter(community_actions::blocked.is_not_null())
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
-      .order_by(community_block::published)
+      .order_by(community_actions::blocked)
       .load::<CommunityBlockView>(conn)
       .await
   }
