@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   schema::{community, community_actions, person},
-  utils::{get_conn, DbPool},
+  utils::{action_query, find_action, get_conn, DbPool},
   CommunityVisibility,
 };
 
@@ -15,11 +15,10 @@ impl CommunityModeratorView {
     find_person_id: PersonId,
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(
-      community_actions::table
-        .find((find_person_id, find_community_id))
-        .filter(community_actions::became_moderator.is_not_null()),
-    ))
+    select(exists(find_action(
+      community_actions::became_moderator,
+      (find_person_id, find_community_id),
+    )))
     .get_result::<bool>(conn)
     .await
   }
@@ -30,9 +29,8 @@ impl CommunityModeratorView {
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
     select(exists(
-      community_actions::table
-        .filter(community_actions::person_id.eq(find_person_id))
-        .filter(community_actions::became_moderator.is_not_null()),
+      action_query(community_actions::became_moderator)
+        .filter(community_actions::person_id.eq(find_person_id)),
     ))
     .get_result::<bool>(conn)
     .await
@@ -43,11 +41,10 @@ impl CommunityModeratorView {
     community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    community_actions::table
+    action_query(community_actions::became_moderator)
       .inner_join(community::table)
       .inner_join(person::table)
       .filter(community_actions::community_id.eq(community_id))
-      .filter(community_actions::became_moderator.is_not_null())
       .select((community::all_columns, person::all_columns))
       .order_by(community_actions::became_moderator)
       .load::<CommunityModeratorView>(conn)
@@ -60,11 +57,10 @@ impl CommunityModeratorView {
     is_authenticated: bool,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let mut query = community_actions::table
+    let mut query = action_query(community_actions::became_moderator)
       .inner_join(community::table)
       .inner_join(person::table)
       .filter(community_actions::person_id.eq(person_id))
-      .filter(community_actions::became_moderator.is_not_null())
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .select((community::all_columns, person::all_columns))
@@ -79,10 +75,9 @@ impl CommunityModeratorView {
   /// Ideally this should be a group by, but diesel doesn't support it yet
   pub async fn get_community_first_mods(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    community_actions::table
+    action_query(community_actions::became_moderator)
       .inner_join(community::table)
       .inner_join(person::table)
-      .filter(community_actions::became_moderator.is_not_null())
       .select((community::all_columns, person::all_columns))
       // A hacky workaround instead of group_bys
       // https://stackoverflow.com/questions/24042359/how-to-join-only-one-row-in-joined-table-with-postgres

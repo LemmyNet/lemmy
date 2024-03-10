@@ -3,7 +3,7 @@ use crate::{
   schema::community_actions,
   source::community_block::{CommunityBlock, CommunityBlockForm},
   traits::Blockable,
-  utils::{get_conn, now, DbPool},
+  utils::{find_action, get_conn, now, DbPool},
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -35,11 +35,10 @@ impl CommunityBlock {
     for_community_id: CommunityId,
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(
-      community_actions::table
-        .find((for_person_id, for_community_id))
-        .filter(community_actions::blocked.is_not_null()),
-    ))
+    select(exists(find_action(
+      community_actions::blocked,
+      (for_person_id, for_community_id),
+    )))
     .get_result(conn)
     .await
   }

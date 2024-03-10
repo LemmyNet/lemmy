@@ -3,7 +3,7 @@ use crate::{
   schema::person_actions,
   source::person_block::{PersonBlock, PersonBlockForm},
   traits::Blockable,
-  utils::{get_conn, now, DbPool},
+  utils::{find_action, get_conn, now, DbPool},
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -36,11 +36,10 @@ impl PersonBlock {
     for_recipient_id: PersonId,
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(
-      person_actions::table
-        .find((for_person_id, for_recipient_id))
-        .filter(person_actions::blocked.is_not_null()),
-    ))
+    select(exists(find_action(
+      person_actions::blocked,
+      (for_person_id, for_recipient_id),
+    )))
     .get_result(conn)
     .await
   }

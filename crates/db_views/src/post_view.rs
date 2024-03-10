@@ -33,6 +33,7 @@ use lemmy_db_schema::{
   },
   source::site::Site,
   utils::{
+    action_query,
     actions,
     functions::coalesce,
     fuzzy_search,
@@ -272,7 +273,7 @@ fn queries<'a>() -> Queries<
     {
       // Do not hide read posts when it is a user profile view
       // Or, only hide read posts on non-profile views
-      if let None = options.creator_id {
+      if options.creator_id.is_none() {
         query = query.filter(post_actions::read.is_null());
       }
     }
@@ -490,9 +491,8 @@ impl<'a> PostQuery<'a> {
       .person_id;
     let largest_subscribed = {
       let conn = &mut get_conn(pool).await?;
-      community_actions::table
+      action_query(community_actions::followed)
         .filter(community_actions::person_id.eq(self_person_id))
-        .filter(community_actions::followed.is_not_null())
         .inner_join(community_aggregates.on(community_id.eq(community_actions::community_id)))
         .order_by(users_active_month.desc())
         .select(community_id)

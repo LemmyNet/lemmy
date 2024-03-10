@@ -3,7 +3,7 @@ use crate::{
   schema::instance_actions,
   source::instance_block::{InstanceBlock, InstanceBlockForm},
   traits::Blockable,
-  utils::{get_conn, now, DbPool},
+  utils::{find_action, get_conn, now, DbPool},
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -35,11 +35,10 @@ impl InstanceBlock {
     for_instance_id: InstanceId,
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(
-      instance_actions::table
-        .find((for_person_id, for_instance_id))
-        .filter(instance_actions::blocked.is_not_null()),
-    ))
+    select(exists(find_action(
+      instance_actions::blocked,
+      (for_person_id, for_instance_id),
+    )))
     .get_result(conn)
     .await
   }

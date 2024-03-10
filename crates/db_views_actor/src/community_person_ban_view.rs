@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   schema::community_actions,
-  utils::{get_conn, DbPool},
+  utils::{find_action, get_conn, DbPool},
 };
 
 impl CommunityPersonBanView {
@@ -14,10 +14,7 @@ impl CommunityPersonBanView {
     from_community_id: CommunityId,
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(
-      community_actions::table
-        .find((from_person_id, from_community_id))
-        .filter(community_actions::received_ban.is_not_null()),
+    select(exists(find_action(community_actions::received_ban, (from_person_id, from_community_id))
     ))
     .get_result::<bool>(conn)
     .await

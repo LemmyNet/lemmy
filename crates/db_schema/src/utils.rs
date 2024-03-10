@@ -1,7 +1,7 @@
 use crate::{
   diesel::Connection,
   diesel_migrations::MigrationHarness,
-  newtypes::{DbUrl, PersonId},
+  newtypes::DbUrl,
   CommentSortType,
   SortType,
 };
@@ -14,15 +14,15 @@ use diesel::{
   helper_types::AsExprOf,
   pg::Pg,
   query_builder::{Query, QueryFragment},
-  query_dsl::methods::LimitDsl,
-  query_source::AliasSource,
+  query_dsl::methods::{FilterDsl, FindDsl, LimitDsl},
   result::{
     ConnectionError,
     ConnectionResult,
     Error::{self as DieselError, QueryBuilderError},
   },
-  sql_types::{self, SqlType, Timestamptz},
+  sql_types::{self, SingleValue, SqlType, Timestamptz},
   BoolExpressionMethods,
+  Column,
   Expression,
   ExpressionMethods,
   IntoSql,
@@ -517,9 +517,7 @@ where
   actions_table.on(
     K0::default()
       .nullable()
-      .eq(BindIfSome(
-        person_id.map(|id| id.into_sql::<sql_types::Integer>()),
-      ))
+      .eq(BindIfSome(person_id.map(diesel::IntoSql::into_sql)))
       .and(K1::default().eq(target_id)),
   )
 }
@@ -553,6 +551,43 @@ where
       .and(actions_table.field(K1::default()).eq(target_id)),
   )
 }*/
+
+/// `action_query(table_name::action_name)` is the same as
+/// `table_name::table.filter(table_name::action_name.is_not_null())`.
+pub fn action_query<C>(column: C) -> dsl::Filter<C::Table, dsl::IsNotNull<C>>
+where
+  C: Column,
+  C::Table: Default + FilterDsl<dsl::IsNotNull<C>>,
+  C::SqlType: SingleValue,
+{
+  action_query_with_fn(column, |t| t)
+}
+
+pub fn find_action<C, K>(
+  column: C,
+  key: K,
+) -> dsl::Filter<dsl::Find<C::Table, K>, dsl::IsNotNull<C>>
+where
+  C: Column,
+  C::Table: Default + FindDsl<K>,
+  dsl::Find<C::Table, K>: FilterDsl<dsl::IsNotNull<C>>,
+  C::SqlType: SingleValue,
+{
+  action_query_with_fn(column, |t| t.find(key))
+}
+
+fn action_query_with_fn<C, Q>(
+  column: C,
+  f: impl FnOnce(C::Table) -> Q,
+) -> dsl::Filter<Q, dsl::IsNotNull<C>>
+where
+  C: Column,
+  C::Table: Default,
+  C::SqlType: SingleValue,
+  Q: FilterDsl<dsl::IsNotNull<C>>,
+{
+  f(C::Table::default()).filter(column.is_not_null())
+}
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
 

@@ -2,7 +2,7 @@ use crate::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   newtypes::{PersonId, PostId},
   schema::post_actions,
-  utils::{get_conn, now, DbPool},
+  utils::{find_action, get_conn, now, DbPool},
 };
 use diesel::{
   dsl,
@@ -50,9 +50,7 @@ impl PersonPostAggregates {
     post_id_: PostId,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    post_actions::table
-      .find((person_id_, post_id_))
-      .filter(post_actions::read_comments.is_not_null())
+    find_action(post_actions::read_comments, (person_id_, post_id_))
       .select(Self::as_select_unwrap())
       .first::<Self>(conn)
       .await

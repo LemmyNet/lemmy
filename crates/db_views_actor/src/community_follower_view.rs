@@ -10,7 +10,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   schema::{community, community_actions, person},
-  utils::{functions::coalesce, get_conn, DbPool},
+  utils::{action_query, functions::coalesce, get_conn, DbPool},
 };
 
 impl CommunityFollowerView {
@@ -47,9 +47,8 @@ impl CommunityFollowerView {
     community_id: CommunityId,
   ) -> Result<Vec<DbUrl>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let res = community_actions::table
+    let res = action_query(community_actions::followed)
       .filter(community_actions::community_id.eq(community_id))
-      .filter(community_actions::followed.is_not_null())
       .filter(not(person::local))
       .inner_join(person::table)
       .select(coalesce(person::shared_inbox_url, person::inbox_url))
@@ -64,9 +63,8 @@ impl CommunityFollowerView {
     community_id: CommunityId,
   ) -> Result<i64, Error> {
     let conn = &mut get_conn(pool).await?;
-    let res = community_actions::table
+    let res = action_query(community_actions::followed)
       .filter(community_actions::community_id.eq(community_id))
-      .filter(community_actions::followed.is_not_null())
       .select(count_star())
       .first::<i64>(conn)
       .await?;
@@ -76,12 +74,11 @@ impl CommunityFollowerView {
 
   pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    community_actions::table
+    action_query(community_actions::followed)
       .inner_join(community::table)
       .inner_join(person::table)
       .select((community::all_columns, person::all_columns))
       .filter(community_actions::person_id.eq(person_id))
-      .filter(community_actions::followed.is_not_null())
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .order_by(community::title)

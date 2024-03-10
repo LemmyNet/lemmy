@@ -17,7 +17,7 @@ use crate::{
     post::Post,
   },
   traits::{ApubActor, Bannable, Crud, Followable, Joinable},
-  utils::{functions::lower, get_conn, now, DbPool},
+  utils::{action_query, find_action, functions::lower, get_conn, now, DbPool},
   SubscribedType,
 };
 use chrono::{DateTime, Utc};
@@ -227,9 +227,8 @@ impl CommunityModerator {
     for_person_id: PersonId,
   ) -> Result<Vec<CommunityId>, Error> {
     let conn = &mut get_conn(pool).await?;
-    community_actions::table
+    action_query(community_actions::became_moderator)
       .filter(community_actions::person_id.eq(for_person_id))
-      .filter(community_actions::became_moderator.is_not_null())
       .select(community_actions::community_id)
       .load::<CommunityId>(conn)
       .await
@@ -336,9 +335,8 @@ impl CommunityFollower {
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
     select(exists(
-      community_actions::table
-        .filter(community_actions::community_id.eq(remote_community_id))
-        .filter(community_actions::followed.is_not_null()),
+      action_query(community_actions::followed)
+        .filter(community_actions::community_id.eq(remote_community_id)),
     ))
     .get_result(conn)
     .await
@@ -380,11 +378,10 @@ impl Followable for CommunityFollower {
     person_id: PersonId,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(
-      community_actions::table
-        .find((person_id, community_id))
-        .filter(community_actions::follow_pending.is_not_null()),
-    )
+    diesel::update(find_action(
+      community_actions::follow_pending,
+      (person_id, community_id),
+    ))
     .set(community_actions::follow_pending.eq(Some(false)))
     .returning(Self::as_select_unwrap())
     .get_result::<Self>(conn)

@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommentId, PostId},
   schema::{comment_actions, person, post_actions},
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{action_query, get_conn, limit_and_offset, DbPool},
 };
 
 impl VoteView {
@@ -17,10 +17,9 @@ impl VoteView {
     let conn = &mut get_conn(pool).await?;
     let (limit, offset) = limit_and_offset(page, limit)?;
 
-    post_actions::table
+    action_query(post_actions::like_score)
       .inner_join(person::table)
       .filter(post_actions::post_id.eq(post_id))
-      .filter(post_actions::like_score.is_not_null())
       .select((
         person::all_columns,
         post_actions::like_score.assume_not_null(),
@@ -41,10 +40,9 @@ impl VoteView {
     let conn = &mut get_conn(pool).await?;
     let (limit, offset) = limit_and_offset(page, limit)?;
 
-    comment_actions::table
+    action_query(comment_actions::like_score)
       .inner_join(person::table)
       .filter(comment_actions::comment_id.eq(comment_id))
-      .filter(comment_actions::like_score.is_not_null())
       .select((
         person::all_columns,
         comment_actions::like_score.assume_not_null(),
