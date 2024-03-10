@@ -12,17 +12,9 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
-  schema::{
-    community,
-    community_aggregates,
-    community_block,
-    community_follower,
-    community_person_ban,
-    instance_block,
-    local_user,
-  },
+  schema::{community, community_actions, community_aggregates, instance_actions, local_user},
   source::{community::CommunityFollower, local_user::LocalUser, site::Site},
-  utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{actions, fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommunityVisibility,
   ListingType,
   SortType,
@@ -33,47 +25,26 @@ fn queries<'a>() -> Queries<
   impl ListFn<'a, CommunityView, (CommunityQuery<'a>, &'a Site)>,
 > {
   let all_joins = |query: community::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
-    // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
-
     query
       .inner_join(community_aggregates::table)
-      .left_join(
-        community_follower::table.on(
-          community::id
-            .eq(community_follower::community_id)
-            .and(community_follower::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        instance_block::table.on(
-          community::instance_id
-            .eq(instance_block::instance_id)
-            .and(instance_block::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        community_block::table.on(
-          community::id
-            .eq(community_block::community_id)
-            .and(community_block::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        community_person_ban::table.on(
-          community::id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(person_id_join)),
-        ),
-      )
+      .left_join(actions(
+        community_actions::table,
+        my_person_id,
+        community::id,
+      ))
+      .left_join(actions(
+        instance_actions::table,
+        my_person_id,
+        community::instance_id,
+      ))
   };
 
   let selection = (
     community::all_columns,
     CommunityFollower::select_subscribed_type(),
-    community_block::community_id.nullable().is_not_null(),
+    community_actions::blocked.nullable().is_not_null(),
     community_aggregates::all_columns,
-    community_person_ban::person_id.nullable().is_not_null(),
+    community_actions::received_ban.nullable().is_not_null(),
   );
 
   let not_removed_or_deleted = community::removed
@@ -129,7 +100,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(not_removed_or_deleted).filter(
         community::hidden
           .eq(false)
-          .or(community_follower::person_id.eq(person_id_join)),
+          .or(community_actions::follow_pending.is_not_null()),
       );
     }
 
@@ -154,7 +125,7 @@ fn queries<'a>() -> Queries<
 
     if let Some(listing_type) = options.listing_type {
       query = match listing_type {
-        ListingType::Subscribed => query.filter(community_follower::pending.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
+        ListingType::Subscribed => query.filter(community_actions::follow_pending.is_not_null()),
         ListingType::Local => query.filter(community::local.eq(true)),
         _ => query,
       };
@@ -163,8 +134,8 @@ fn queries<'a>() -> Queries<
     // Don't show blocked communities and communities on blocked instances. nsfw communities are
     // also hidden (based on profile setting)
     if options.local_user.is_some() {
-      query = query.filter(instance_block::person_id.is_null());
-      query = query.filter(community_block::person_id.is_null());
+      query = query.filter(instance_actions::blocked.is_null());
+      query = query.filter(community_actions::blocked.is_null());
       query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
     } else {
       // No person in request, only show nsfw communities if show_nsfw is passed into request or if
