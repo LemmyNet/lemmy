@@ -1,8 +1,8 @@
 use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use regex::{escape, Regex, RegexBuilder};
-use url::Url;
+use regex::{Regex, RegexBuilder, RegexSet};
+use url::{ParseError, Url};
 
 // From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
 static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
@@ -299,38 +299,36 @@ pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
   }
 }
 
-pub fn block_url_regex(blocked_url: &str) -> LemmyResult<Regex> {
-  let blocked = Url::parse(blocked_url)?;
-  let block_regex = if blocked_url.ends_with('/') {
-    Regex::new(&format!(
-      "({}://)?{}{}?",
-      blocked.scheme(),
-      escape(blocked.domain().expect("No domain.")),
-      escape(blocked.path())
-    ))?
-  } else {
-    Regex::new(&format!(
-      "({}://)?{}{}",
-      blocked.scheme(),
-      escape(blocked.domain().expect("No domain.")),
-      escape(blocked.path())
-    ))?
-  };
-
-  Ok(block_regex)
-}
-
-pub fn is_url_blocked(url: &Option<Url>, blocklist: Vec<String>) -> LemmyResult<()> {
+pub fn is_url_blocked(url: &Option<Url>, blocklist: &Option<RegexSet>) -> LemmyResult<()> {
   if let Some(url) = url {
-    for blocked_url in &blocklist {
-      let block_regex = block_url_regex(blocked_url)?;
-      if block_regex.is_match(url.as_str()) {
+    if let Some(blocklist) = blocklist {
+      if blocklist.is_match(url.as_str()) {
         Err(LemmyErrorType::BlockedUrl)?
       }
     }
   }
 
   Ok(())
+}
+
+pub fn check_urls_are_valid(urls: &Vec<String>) -> LemmyResult<Vec<String>> {
+  let mut parsed_urls = vec![];
+  for url in urls {
+    let url = match Url::parse(url) {
+      Ok(url) => url,
+      Err(e) => {
+        if e == ParseError::RelativeUrlWithoutBase {
+          Url::parse(&format!("https://{}", url))?
+        } else {
+          Err(e)?
+        }
+      }
+    };
+
+    parsed_urls.push(url.to_string());
+  }
+
+  Ok(parsed_urls)
 }
 
 #[cfg(test)]
@@ -588,34 +586,21 @@ mod tests {
 
   #[test]
   fn test_url_block() {
-    assert!(is_url_blocked(
-      &Some(Url::parse("https://google.com").unwrap()),
-      vec![String::from("https://google.com")]
-    )
-    .is_err());
+    let set = Some(
+      regex::RegexSet::new(vec![
+        r"(https://)?example\.org/page/to/article",
+        r"(https://)?example\.net/?",
+        r"(https://)?example\.com/?",
+      ])
+      .unwrap(),
+    );
 
-    assert!(is_url_blocked(
-      &Some(Url::parse("https://example.com").unwrap()),
-      vec![String::from("https://example.org")]
-    )
-    .is_ok());
+    assert!(is_url_blocked(&Some(Url::parse("https://example.blog").unwrap()), &set).is_ok());
 
-    assert!(is_url_blocked(
-      &Some(Url::parse("https://example.com").unwrap()),
-      vec![String::from("https://example.com/page/to/article")]
-    )
-    .is_ok());
+    assert!(is_url_blocked(&Some(Url::parse("https://example.org").unwrap()), &set).is_ok());
 
-    assert!(is_url_blocked(&None, vec![String::from("https://example.com")]).is_ok());
+    assert!(is_url_blocked(&None, &set).is_ok());
 
-    assert!(is_url_blocked(
-      &Some(Url::parse("https://example.com").unwrap()),
-      vec![
-        String::from("https://example.org/"),
-        String::from("https://example.net"),
-        String::from("https://example.com/")
-      ]
-    )
-    .is_err());
+    assert!(is_url_blocked(&Some(Url::parse("https://example.com").unwrap()), &set).is_err());
   }
 }

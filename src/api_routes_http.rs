@@ -83,7 +83,6 @@ use lemmy_api::{
       list::list_registration_applications,
       unread_count::get_unread_registration_application_count,
     },
-    url_blocklist::{add::add_url_block, list::list_url_blocks, remove::remove_url_block},
   },
   sitemap::get_sitemap,
 };
@@ -147,11 +146,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           // Admin Actions
           .route("", web::post().to(create_site))
           .route("", web::put().to(update_site))
-          .route("/block", web::post().to(block_instance))
-          // URL blocklist
-          .route("/url_blocks", web::get().to(list_url_blocks))
-          .route("/url_blocks", web::post().to(add_url_block))
-          .route("/url_blocks/remove", web::post().to(remove_url_block)),
+          .route("/block", web::post().to(block_instance)),
       )
       .service(
         web::resource("/modlog")

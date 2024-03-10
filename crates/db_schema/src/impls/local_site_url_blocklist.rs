@@ -1,37 +1,35 @@
 use crate::{
-  schema::local_site_url_blocklist::dsl::{local_site_url_blocklist, url},
+  schema::local_site_url_blocklist,
   source::local_site_url_blocklist::{LocalSiteUrlBlocklist, LocalSiteUrlBlocklistForm},
   utils::{get_conn, DbPool},
 };
-use diesel::{
-  dsl::{delete, insert_into},
-  result::Error,
-  ExpressionMethods,
-  QueryDsl,
-};
-use diesel_async::RunQueryDsl;
+use diesel::{dsl::insert_into, result::Error};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl LocalSiteUrlBlocklist {
-  pub async fn add(pool: &mut DbPool<'_>, insert_url: String) -> Result<(), Error> {
+  pub async fn replace(pool: &mut DbPool<'_>, url_blocklist: Vec<String>) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(local_site_url_blocklist)
-      .values(&LocalSiteUrlBlocklistForm { url: insert_url })
-      .execute(conn)
-      .await?;
+    Self::clear(conn).await?;
+    for url in url_blocklist {
+      insert_into(local_site_url_blocklist::table)
+        .values(&LocalSiteUrlBlocklistForm { url })
+        .execute(conn)
+        .await?;
+    }
 
     Ok(())
   }
 
-  pub async fn remove(pool: &mut DbPool<'_>, remove_url: String) -> Result<(), Error> {
-    let conn = &mut get_conn(pool).await?;
-    delete(local_site_url_blocklist.filter(url.eq(remove_url)))
+  async fn clear(conn: &mut AsyncPgConnection) -> Result<usize, Error> {
+    diesel::delete(local_site_url_blocklist::table)
       .execute(conn)
-      .await?;
-    Ok(())
+      .await
   }
 
   pub async fn get_all(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    local_site_url_blocklist.get_results::<Self>(conn).await
+    local_site_url_blocklist::table
+      .get_results::<Self>(conn)
+      .await
   }
 }

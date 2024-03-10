@@ -9,6 +9,7 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_api,
+    update_url_blocklist,
   },
 };
 use lemmy_db_schema::{
@@ -18,6 +19,7 @@ use lemmy_db_schema::{
     federation_blocklist::FederationBlockList,
     local_site::{LocalSite, LocalSiteUpdateForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
+    local_site_url_blocklist::LocalSiteUrlBlocklist,
     local_user::LocalUser,
     site::{Site, SiteUpdateForm},
     tagline::Tagline,
@@ -34,6 +36,7 @@ use lemmy_utils::{
     validation::{
       build_and_check_regex,
       check_site_visibility_valid,
+      check_urls_are_valid,
       is_valid_body_field,
       site_description_length_check,
       site_name_length_check,
@@ -136,6 +139,12 @@ pub async fn update_site(
   FederationAllowList::replace(&mut context.pool(), allowed).await?;
   let blocked = data.blocked_instances.clone();
   FederationBlockList::replace(&mut context.pool(), blocked).await?;
+
+  if let Some(url_blocklist) = data.blocked_urls.clone() {
+    let parsed_urls = check_urls_are_valid(&url_blocklist)?;
+    LocalSiteUrlBlocklist::replace(&mut context.pool(), parsed_urls).await?;
+    update_url_blocklist(&context).await?;
+  }
 
   // TODO can't think of a better way to do this.
   // If the server suddenly requires email verification, or required applications, no old users
@@ -578,6 +587,7 @@ mod tests {
       captcha_difficulty: None,
       allowed_instances: None,
       blocked_instances: None,
+      blocked_urls: None,
       taglines: None,
       registration_mode: site_registration_mode,
       reports_email_admins: None,
