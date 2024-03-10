@@ -1,37 +1,41 @@
 use crate::structs::PersonMentionView;
 use diesel::{
-  dsl::exists,
   pg::Pg,
   result::Error,
-  sql_types,
   BoolExpressionMethods,
-  BoxableExpression,
   ExpressionMethods,
-  IntoSql,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aliases,
+  aliases::{self, creator_community_actions},
   newtypes::{PersonId, PersonMentionId},
   schema::{
     comment,
+    comment_actions,
     comment_aggregates,
-    comment_like,
-    comment_saved,
     community,
-    community_follower,
-    community_moderator,
-    community_person_ban,
+    community_actions,
     local_user,
     person,
-    person_block,
+    person_actions,
     person_mention,
     post,
   },
-  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  source::community::CommunityFollower,
+  utils::{
+    actions,
+    functions::coalesce,
+    get_conn,
+    limit_and_offset,
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+  },
   CommentSortType,
 };
 
@@ -39,111 +43,39 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, PersonMentionView, (PersonMentionId, Option<PersonId>)>,
   impl ListFn<'a, PersonMentionView, PersonMentionQuery>,
 > {
-  let is_creator_banned_from_community = exists(
-    community_person_ban::table.filter(
-      community::id
-        .eq(community_person_ban::community_id)
-        .and(community_person_ban::person_id.eq(comment::creator_id)),
-    ),
-  );
-
-  let is_saved = |person_id| {
-    exists(
-      comment_saved::table.filter(
-        comment::id
-          .eq(comment_saved::comment_id)
-          .and(comment_saved::person_id.eq(person_id)),
-      ),
-    )
-  };
-
-  let is_community_followed = |person_id| {
-    community_follower::table
-      .filter(
-        post::community_id
-          .eq(community_follower::community_id)
-          .and(community_follower::person_id.eq(person_id)),
-      )
-      .select(community_follower::pending.nullable())
-      .single_value()
-  };
-
-  let is_creator_blocked = |person_id| {
-    exists(
-      person_block::table.filter(
-        comment::creator_id
-          .eq(person_block::target_id)
-          .and(person_block::person_id.eq(person_id)),
-      ),
-    )
-  };
-
-  let score = |person_id| {
-    comment_like::table
-      .filter(
-        comment::id
-          .eq(comment_like::comment_id)
-          .and(comment_like::person_id.eq(person_id)),
-      )
-      .select(comment_like::score.nullable())
-      .single_value()
-  };
-
-  let creator_is_moderator = exists(
-    community_moderator::table.filter(
-      community::id
-        .eq(community_moderator::community_id)
-        .and(community_moderator::person_id.eq(comment::creator_id)),
-    ),
-  );
-
-  let creator_is_admin = exists(
-    local_user::table.filter(
-      comment::creator_id
-        .eq(local_user::person_id)
-        .and(local_user::admin.eq(true)),
-    ),
-  );
-
   let all_joins = move |query: person_mention::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>| {
-    let score_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
-    > = if let Some(person_id) = my_person_id {
-      Box::new(score(person_id))
-    } else {
-      Box::new(None::<i16>.into_sql::<sql_types::Nullable<sql_types::SmallInt>>())
-    };
-
-    let subscribed_type_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>,
-    > = if let Some(person_id) = my_person_id {
-      Box::new(is_community_followed(person_id))
-    } else {
-      Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
-    };
-
-    let is_saved_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if let Some(person_id) = my_person_id {
-        Box::new(is_saved(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
-
-    let is_creator_blocked_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if let Some(person_id) = my_person_id {
-        Box::new(is_creator_blocked(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
-
     query
-      .inner_join(comment::table)
-      .inner_join(person::table.on(comment::creator_id.eq(person::id)))
-      .inner_join(post::table.on(comment::post_id.eq(post::id)))
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
+      .inner_join(
+        comment::table
+          .inner_join(person::table.left_join(local_user::table))
+          .inner_join(post::table.inner_join(community::table))
+          .inner_join(comment_aggregates::table),
+      )
       .inner_join(aliases::person1)
-      .inner_join(comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id)))
+      .left_join(actions(
+        community_actions::table,
+        my_person_id,
+        post::community_id,
+      ))
+      .left_join(actions(comment_actions::table, my_person_id, comment::id))
+      .left_join(actions(
+        person_actions::table,
+        my_person_id,
+        comment::creator_id,
+      ))
+      .left_join(
+        creator_community_actions.on(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(comment::creator_id)
+            .and(
+              creator_community_actions
+                .field(community_actions::community_id)
+                .eq(post::community_id),
+            ),
+        ),
+      )
       .select((
         person_mention::all_columns,
         comment::all_columns,
@@ -152,16 +84,19 @@ fn queries<'a>() -> Queries<
         community::all_columns,
         aliases::person1.fields(person::all_columns),
         comment_aggregates::all_columns,
-        is_creator_banned_from_community,
+        creator_community_actions
+          .field(community_actions::received_ban)
+          .nullable()
+          .is_not_null(),
         creator_community_actions
           .field(community_actions::became_moderator)
           .nullable()
           .is_not_null(),
-        coalesce(local_user::admin, false),
-        community_actions::follow_pending.nullable(),
-        is_saved_selection,
+        coalesce(local_user::admin.nullable(), false),
+        CommunityFollower::select_subscribed_type(),
+        comment_actions::saved.nullable().is_not_null(),
         person_actions::blocked.nullable().is_not_null(),
-        score_selection,
+        comment_actions::like_score.nullable(),
       ))
   };
 

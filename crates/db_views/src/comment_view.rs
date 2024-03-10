@@ -28,6 +28,7 @@ use lemmy_db_schema::{
     person_actions,
     post,
   },
+  source::community::CommunityFollower,
   utils::{
     actions,
     functions::coalesce,
@@ -101,7 +102,7 @@ fn queries<'a>() -> Queries<
           .nullable()
           .is_not_null(),
         coalesce(local_user::admin.nullable(), false),
-        community_actions::follow_pending.nullable(),
+        CommunityFollower::select_subscribed_type(),
         comment_actions::saved.nullable().is_not_null(),
         person_actions::blocked.nullable().is_not_null(),
         comment_actions::like_score.nullable(),

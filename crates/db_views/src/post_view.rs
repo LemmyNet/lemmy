@@ -31,7 +31,7 @@ use lemmy_db_schema::{
     post_actions,
     post_aggregates,
   },
-  source::site::Site,
+  source::{community::CommunityFollower, site::Site},
   utils::{
     action_query,
     actions,
@@ -110,7 +110,7 @@ fn queries<'a>() -> Queries<
           .is_not_null(),
         coalesce(local_user::admin.nullable(), false),
         post_aggregates::all_columns,
-        community_actions::follow_pending.nullable(),
+        CommunityFollower::select_subscribed_type(),
         post_actions::saved.nullable().is_not_null(),
         post_actions::read.nullable().is_not_null(),
         post_actions::hidden.nullable().is_not_null(),
