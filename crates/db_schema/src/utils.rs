@@ -488,69 +488,45 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
   diesel::dsl::now.into_sql::<Timestamptz>()
 }
 
+pub type AsRecordOutput<T> = dsl::AsExprOf<T, sql_types::Record<<T as Expression>::SqlType>>;
+
+pub trait AsRecord: Expression + AsExpression<sql_types::Record<Self::SqlType>>
+where
+  Self::SqlType: 'static,
+{
+}
+
+impl<T: Expression + AsExpression<sql_types::Record<T::SqlType>>> AsRecord for T where
+  T::SqlType: 'static
+{
+}
+
+// TODO: call `default` on whole tuple when impl for `Nullable` is added
 pub fn actions<T, P, C, K0, K1>(
   actions_table: T,
   person_id: Option<P>,
   target_id: C,
 ) -> dsl::On<
   T,
-  dsl::And<
-    dsl::Eq<dsl::Nullable<K0>, BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>>,
-    dsl::Eq<K1, C>,
+  dsl::Eq<
+    AsRecordOutput<(dsl::Nullable<K0>, K1)>,
+    (BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>, C),
   >,
 >
 where
-  P: AsExpression<sql_types::Integer>,
   T: Table<PrimaryKey = (K0, K1)>,
-  K0: Default + Expression + Sized,
-  dsl::Nullable<K0>: diesel::ExpressionMethods,
-  <dsl::Nullable<K0> as Expression>::SqlType: SqlType,
-  BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>:
-    AsExpression<<dsl::Nullable<K0> as Expression>::SqlType>,
-  K1: Default + diesel::ExpressionMethods,
-  <K1 as Expression>::SqlType: SqlType,
-  C: AsExpression<<K1 as Expression>::SqlType>,
-  dsl::Eq<dsl::Nullable<K0>, BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>>:
-    Expression<SqlType = sql_types::Nullable<sql_types::Bool>>,
-  dsl::Eq<K1, C>: Expression<SqlType = sql_types::Bool>,
+  K0: Default + Expression,
+  K1: Default,
+  P: AsExpression<sql_types::Integer>,
+  (dsl::Nullable<K0>, K1): AsRecord,
+  (BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>, C):
+    AsExpression<<AsRecordOutput<(dsl::Nullable<K0>, K1)> as Expression>::SqlType>,
 {
-  actions_table.on(
-    K0::default()
-      .nullable()
-      .eq(BindIfSome(person_id.map(diesel::IntoSql::into_sql)))
-      .and(K1::default().eq(target_id)),
-  )
+  actions_table.on((K0::default().nullable(), K1::default()).into_sql().eq((
+    BindIfSome(person_id.map(diesel::IntoSql::into_sql)),
+    target_id,
+  )))
 }
-
-/*pub fn actions_alias<AS, C, K0, K1>(
-  actions_table: Alias<AS>,
-  person_id: Option<PersonId>,
-  target_id: C,
-) -> dsl::On<Alias<AS>, dsl::And<dsl::Eq<dsl::Nullable<AliasedField<AS, K0>>, Option<PersonId>>, dsl::Eq<AliasedField<AS, K1>, C>>>
-where
-  AS: AliasSource,
-  Alias<AS>: QuerySource + Clone + Copy,
-  AS::Target: Table<PrimaryKey = (K0, K1)>,
-  K0: Default + Column<Table = AS::Target>,
-  AliasedField<AS, K0>: Expression + Sized,
-  dsl::Nullable<AliasedField<AS, K0>>: diesel::ExpressionMethods,
-  <dsl::Nullable<AliasedField<AS, K0>> as Expression>::SqlType: SqlType,
-  Option<PersonId>: AsExpression<<dsl::Nullable<AliasedField<AS, K0>> as Expression>::SqlType>,
-  K1: Default + Column<Table = AS::Target>,
-  AliasedField<AS, K1>: diesel::ExpressionMethods,
-  <AliasedField<AS, K1> as Expression>::SqlType: SqlType,
-  C: AsExpression<<AliasedField<AS, K1> as Expression>::SqlType>,
-  dsl::Eq<dsl::Nullable<AliasedField<AS, K0>>, Option<PersonId>>:
-    Expression<SqlType = sql_types::Nullable<sql_types::Bool>>,
-  dsl::Eq<AliasedField<AS, K1>, C>: Expression<SqlType = sql_types::Bool>,
-{
-  actions_table.on(
-    actions_table.field(K0::default())
-      .nullable()
-      .eq(person_id)
-      .and(actions_table.field(K1::default()).eq(target_id)),
-  )
-}*/
 
 /// `action_query(table_name::action_name)` is the same as
 /// `table_name::table.filter(table_name::action_name.is_not_null())`.
