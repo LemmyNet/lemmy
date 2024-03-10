@@ -78,7 +78,6 @@ pub async fn get_post(
       person_id,
       post_id,
       read_comments,
-      ..PersonPostAggregatesForm::default()
     };
     PersonPostAggregates::upsert(&mut context.pool(), &person_post_agg_form)
       .await
