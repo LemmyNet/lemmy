@@ -35,6 +35,7 @@ use lemmy_db_schema::{
   utils::{
     action_query,
     actions,
+    actions_alias,
     functions::coalesce,
     fuzzy_search,
     get_conn,
@@ -84,18 +85,11 @@ fn queries<'a>() -> Queries<
         my_person_id,
         post_aggregates::instance_id,
       ))
-      .left_join(
-        creator_community_actions.on(
-          creator_community_actions
-            .field(community_actions::person_id)
-            .eq(post_aggregates::creator_id)
-            .and(
-              creator_community_actions
-                .field(community_actions::community_id)
-                .eq(post_aggregates::community_id),
-            ),
-        ),
-      )
+      .left_join(actions_alias(
+        creator_community_actions,
+        post_aggregates::creator_id,
+        post_aggregates::community_id,
+      ))
       .select((
         post::all_columns,
         person::all_columns,

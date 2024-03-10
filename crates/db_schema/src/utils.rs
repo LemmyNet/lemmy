@@ -15,13 +15,13 @@ use diesel::{
   pg::Pg,
   query_builder::{Query, QueryFragment},
   query_dsl::methods::{FilterDsl, FindDsl, LimitDsl},
+  query_source::{Alias, AliasSource, AliasedField},
   result::{
     ConnectionError,
     ConnectionResult,
     Error::{self as DieselError, QueryBuilderError},
   },
-  sql_types::{self, SingleValue, SqlType, Timestamptz},
-  BoolExpressionMethods,
+  sql_types::{self, SingleValue, Timestamptz},
   Column,
   Expression,
   ExpressionMethods,
@@ -29,6 +29,7 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   PgConnection,
+  QuerySource,
   Table,
 };
 use diesel_async::{
@@ -526,6 +527,36 @@ where
     BindIfSome(person_id.map(diesel::IntoSql::into_sql)),
     target_id,
   )))
+}
+
+//type TargetPrimaryKey<T> = AliasedFields<T, <<T as AliasSource>::Target as Table>::PrimaryKey>;
+
+/// Like `actions` but `actions_table` is an alias and person id is not nullable
+pub fn actions_alias<T, P, C, K0, K1>(
+  actions_table: Alias<T>,
+  person_id: P,
+  target_id: C,
+) -> dsl::On<Alias<T>, dsl::Eq<AsRecordOutput<(AliasedField<T, K0>, AliasedField<T, K1>)>, (P, C)>>
+where
+  Alias<T>: QuerySource + Copy,
+  T: AliasSource,
+  T::Target: Table<PrimaryKey = (K0, K1)>,
+  K0: Default + Column<Table = T::Target>,
+  K1: Default + Column<Table = T::Target>,
+  (AliasedField<T, K0>, AliasedField<T, K1>): AsRecord,
+  (P, C): AsExpression<
+    <AsRecordOutput<(AliasedField<T, K0>, AliasedField<T, K1>)> as Expression>::SqlType,
+  >,
+{
+  // TODO: Use `default` for whole tuple when `AliasedField` when impl is added
+  actions_table.on(
+    (
+      actions_table.field(K0::default()),
+      actions_table.field(K1::default()),
+    )
+      .into_sql()
+      .eq((person_id, target_id)),
+  )
 }
 
 /// `action_query(table_name::action_name)` is the same as

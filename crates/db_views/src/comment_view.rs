@@ -31,6 +31,7 @@ use lemmy_db_schema::{
   source::community::CommunityFollower,
   utils::{
     actions,
+    actions_alias,
     functions::coalesce,
     fuzzy_search,
     limit_and_offset,
@@ -75,18 +76,11 @@ fn queries<'a>() -> Queries<
         my_person_id,
         community::instance_id,
       ))
-      .left_join(
-        creator_community_actions.on(
-          creator_community_actions
-            .field(community_actions::person_id)
-            .eq(comment::creator_id)
-            .and(
-              creator_community_actions
-                .field(community_actions::community_id)
-                .eq(post::community_id),
-            ),
-        ),
-      )
+      .left_join(actions_alias(
+        creator_community_actions,
+        comment::creator_id,
+        post::community_id,
+      ))
       .select((
         comment::all_columns,
         person::all_columns,

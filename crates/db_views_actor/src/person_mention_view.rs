@@ -1,13 +1,5 @@
 use crate::structs::PersonMentionView;
-use diesel::{
-  pg::Pg,
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
-};
+use diesel::{pg::Pg, result::Error, ExpressionMethods, NullableExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
@@ -27,6 +19,7 @@ use lemmy_db_schema::{
   source::community::CommunityFollower,
   utils::{
     actions,
+    actions_alias,
     functions::coalesce,
     get_conn,
     limit_and_offset,
@@ -64,18 +57,11 @@ fn queries<'a>() -> Queries<
         my_person_id,
         comment::creator_id,
       ))
-      .left_join(
-        creator_community_actions.on(
-          creator_community_actions
-            .field(community_actions::person_id)
-            .eq(comment::creator_id)
-            .and(
-              creator_community_actions
-                .field(community_actions::community_id)
-                .eq(post::community_id),
-            ),
-        ),
-      )
+      .left_join(actions_alias(
+        creator_community_actions,
+        comment::creator_id,
+        post::community_id,
+      ))
       .select((
         person_mention::all_columns,
         comment::all_columns,

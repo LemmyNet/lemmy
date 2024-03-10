@@ -21,7 +21,17 @@ use lemmy_db_schema::{
     post_aggregates,
     post_report,
   },
-  utils::{actions, get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{
+    actions,
+    actions_alias,
+    get_conn,
+    limit_and_offset,
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+  },
 };
 
 fn queries<'a>() -> Queries<
@@ -40,18 +50,11 @@ fn queries<'a>() -> Queries<
           .on(post_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
       )
       .left_join(actions(post_actions::table, Some(my_person_id), post::id))
-      .left_join(
-        creator_community_actions.on(
-          creator_community_actions
-            .field(community_actions::person_id)
-            .eq(post::creator_id)
-            .and(
-              creator_community_actions
-                .field(community_actions::community_id)
-                .eq(post::community_id),
-            ),
-        ),
-      )
+      .left_join(actions_alias(
+        creator_community_actions,
+        post::creator_id,
+        post::community_id,
+      ))
       .select((
         post_report::all_columns,
         post::all_columns,

@@ -25,6 +25,7 @@ use lemmy_db_schema::{
   },
   utils::{
     actions,
+    actions_alias,
     functions::coalesce,
     get_conn,
     limit_and_offset,
@@ -59,18 +60,11 @@ fn queries<'a>() -> Queries<
         aliases::person2
           .on(comment_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
       )
-      .left_join(
-        creator_community_actions.on(
-          creator_community_actions
-            .field(community_actions::person_id)
-            .eq(comment::creator_id)
-            .and(
-              creator_community_actions
-                .field(community_actions::community_id)
-                .eq(post::community_id),
-            ),
-        ),
-      )
+      .left_join(actions_alias(
+        creator_community_actions,
+        comment::creator_id,
+        post::community_id,
+      ))
       .select((
         comment_report::all_columns,
         comment::all_columns,
