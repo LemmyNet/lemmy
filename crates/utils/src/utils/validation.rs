@@ -313,10 +313,7 @@ pub fn check_urls_are_valid(urls: &Vec<String>) -> LemmyResult<Vec<String>> {
   let mut parsed_urls = vec![];
   for url in urls {
     let url = match Url::parse(url) {
-      Ok(url) => {
-        println!("{}", url.as_str());
-        url
-      }
+      Ok(url) => url,
       Err(e) => {
         if e == ParseError::RelativeUrlWithoutBase {
           Url::parse(&format!("https://{}", url))?
