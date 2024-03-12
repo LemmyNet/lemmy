@@ -99,11 +99,9 @@ pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
   (src, links)
 }
 
-pub fn markdown_check_links(text: &str, blocklist: &Option<RegexSet>) -> LemmyResult<()> {
-  if let Some(blocklist) = blocklist {
-    if blocklist.is_match(text) {
-      Err(LemmyErrorType::BlockedUrl)?
-    }
+pub fn markdown_check_for_blocked_urls(text: &str, blocklist: &RegexSet) -> LemmyResult<()> {
+  if blocklist.is_match(text) {
+    Err(LemmyErrorType::BlockedUrl)?
   }
   Ok(())
 }
@@ -249,21 +247,21 @@ mod tests {
 
   #[test]
   fn test_url_blocking() {
-    let set = Some(RegexSet::new(vec![r"(https://)?example\.com/?"]).unwrap());
+    let set = RegexSet::new(vec![r"(https://)?example\.com/?"]).unwrap();
 
-    assert!(markdown_check_links(&String::from("[](https://example.com)"), &set).is_err());
+    assert!(markdown_check_for_blocked_urls(&String::from("[](https://example.com)"), &set).is_err());
 
-    assert!(markdown_check_links(
+    assert!(markdown_check_for_blocked_urls(
       &String::from("Go to https://example.com to get free Robux"),
       &set
     )
     .is_err());
 
-    assert!(markdown_check_links(&String::from("[](https://example.blog)"), &set).is_ok());
+    assert!(markdown_check_for_blocked_urls(&String::from("[](https://example.blog)"), &set).is_ok());
 
-    assert!(markdown_check_links(&String::from("example.com"), &set).is_err());
+    assert!(markdown_check_for_blocked_urls(&String::from("example.com"), &set).is_err());
 
-    assert!(markdown_check_links(
+    assert!(markdown_check_for_blocked_urls(
       "Odio exercitationem culpa sed sunt
       et. Sit et similique tempora deserunt doloremque. Cupiditate iusto
       repellat et quis qui. Cum veritatis facere quasi repellendus sunt
@@ -273,31 +271,29 @@ mod tests {
     )
     .is_err());
 
-    let set = Some(RegexSet::new(vec![r"(https://)?example\.com/spam\.jpg"]).unwrap());
+    let set = RegexSet::new(vec![r"(https://)?example\.com/spam\.jpg"]).unwrap();
     assert!(
-      markdown_check_links(&String::from("![](https://example.com/spam.jpg)"), &set).is_err()
+      markdown_check_for_blocked_urls(&String::from("![](https://example.com/spam.jpg)"), &set).is_err()
     );
 
-    let set = Some(
-      RegexSet::new(vec![
-        r"(https://)?quo\.example\.com/?",
-        r"(https://)?foo\.example\.com/?",
-        r"(https://)?bar\.example\.com/?",
-      ])
-      .unwrap(),
-    );
+    let set = RegexSet::new(vec![
+      r"(https://)?quo\.example\.com/?",
+      r"(https://)?foo\.example\.com/?",
+      r"(https://)?bar\.example\.com/?",
+    ])
+    .unwrap();
 
-    assert!(markdown_check_links(&String::from("https://baz.example.com"), &set).is_ok());
+    assert!(markdown_check_for_blocked_urls(&String::from("https://baz.example.com"), &set).is_ok());
 
-    assert!(markdown_check_links(&String::from("https://bar.example.com"), &set).is_err());
+    assert!(markdown_check_for_blocked_urls(&String::from("https://bar.example.com"), &set).is_err());
 
-    let set = Some(RegexSet::new(vec![r"(https://)?example\.com/banned_page"]).unwrap());
+    let set = RegexSet::new(vec![r"(https://)?example\.com/banned_page"]).unwrap();
 
-    assert!(markdown_check_links(&String::from("https://example.com/page"), &set).is_ok());
+    assert!(markdown_check_for_blocked_urls(&String::from("https://example.com/page"), &set).is_ok());
 
-    let set = Some(RegexSet::new(vec![r"(https://)?ex\.mple\.com/?"]).unwrap());
+    let set = RegexSet::new(vec![r"(https://)?ex\.mple\.com/?"]).unwrap();
 
-    assert!(markdown_check_links("example.com", &set).is_ok());
+    assert!(markdown_check_for_blocked_urls("example.com", &set).is_ok());
   }
 
   #[test]

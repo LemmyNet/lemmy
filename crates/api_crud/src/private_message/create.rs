@@ -8,6 +8,7 @@ use lemmy_api_common::{
     check_person_block,
     generate_local_apub_endpoint,
     get_interface_language,
+    get_url_blocklist,
     local_site_to_slur_regex,
     process_markdown,
     send_email_to_user,
@@ -36,7 +37,8 @@ pub async fn create_private_message(
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
-  let content = process_markdown(&data.content, &slur_regex, &context).await?;
+  let url_blocklist = get_url_blocklist(&context).await?;
+  let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&Some(content.clone()), false)?;
 
   check_person_block(

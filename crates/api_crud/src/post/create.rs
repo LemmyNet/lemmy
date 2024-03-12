@@ -9,7 +9,7 @@ use lemmy_api_common::{
   utils::{
     check_community_user_action,
     generate_local_apub_endpoint,
-    get_url_blocklist_regex,
+    get_url_blocklist,
     honeypot_check,
     local_site_to_slur_regex,
     mark_post_as_read,
@@ -62,9 +62,9 @@ pub async fn create_post(
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.name, &slur_regex)?;
-  let url_blocklist = get_url_blocklist_regex(&context).await?;
+  let url_blocklist = get_url_blocklist(&context).await?;
 
-  let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
+  let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
   let data_url = data.url.as_ref();
   let url = data_url.map(clean_url_params); // TODO no good way to handle a "clear"
   let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);

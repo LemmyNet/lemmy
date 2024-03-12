@@ -7,6 +7,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_mod_action,
+    get_url_blocklist,
     local_site_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_api,
@@ -36,8 +37,10 @@ pub async fn update_community(
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
+  let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs_opt(&data.title, &slur_regex)?;
-  let description = process_markdown_opt(&data.description, &slur_regex, &context).await?;
+  let description =
+    process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&data.description, false)?;
 
   let description = diesel_option_overwrite(description);

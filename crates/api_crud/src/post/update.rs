@@ -8,7 +8,7 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_user_action,
-    get_url_blocklist_regex,
+    get_url_blocklist,
     local_site_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_apub,
@@ -53,11 +53,11 @@ pub async fn update_post(
   let url = data.url.as_ref().map(clean_url_params);
   let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);
 
-  let url_blocklist = get_url_blocklist_regex(&context).await?;
+  let url_blocklist = get_url_blocklist(&context).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs_opt(&data.name, &slur_regex)?;
-  let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
+  let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
 
   if let Some(name) = &data.name {
     is_valid_post_title(name)?;

@@ -299,12 +299,10 @@ pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
   }
 }
 
-pub fn is_url_blocked(url: &Option<Url>, blocklist: &Option<RegexSet>) -> LemmyResult<()> {
+pub fn is_url_blocked(url: &Option<Url>, blocklist: &RegexSet) -> LemmyResult<()> {
   if let Some(url) = url {
-    if let Some(blocklist) = blocklist {
-      if blocklist.is_match(url.as_str()) {
-        Err(LemmyErrorType::BlockedUrl)?
-      }
+    if blocklist.is_match(url.as_str()) {
+      Err(LemmyErrorType::BlockedUrl)?
     }
   }
 
@@ -315,7 +313,10 @@ pub fn check_urls_are_valid(urls: &Vec<String>) -> LemmyResult<Vec<String>> {
   let mut parsed_urls = vec![];
   for url in urls {
     let url = match Url::parse(url) {
-      Ok(url) => url,
+      Ok(url) => {
+        println!("{}", url.as_str());
+        url
+      }
       Err(e) => {
         if e == ParseError::RelativeUrlWithoutBase {
           Url::parse(&format!("https://{}", url))?
@@ -342,6 +343,7 @@ mod tests {
       build_and_check_regex,
       check_site_visibility_valid,
       check_url_scheme,
+      check_urls_are_valid,
       clean_url_params,
       is_url_blocked,
       is_valid_actor_name,
@@ -586,14 +588,12 @@ mod tests {
 
   #[test]
   fn test_url_block() {
-    let set = Some(
-      regex::RegexSet::new(vec![
-        r"(https://)?example\.org/page/to/article",
-        r"(https://)?example\.net/?",
-        r"(https://)?example\.com/?",
-      ])
-      .unwrap(),
-    );
+    let set = regex::RegexSet::new(vec![
+      r"(https://)?example\.org/page/to/article",
+      r"(https://)?example\.net/?",
+      r"(https://)?example\.com/?",
+    ])
+    .unwrap();
 
     assert!(is_url_blocked(&Some(Url::parse("https://example.blog").unwrap()), &set).is_ok());
 
@@ -602,5 +602,21 @@ mod tests {
     assert!(is_url_blocked(&None, &set).is_ok());
 
     assert!(is_url_blocked(&Some(Url::parse("https://example.com").unwrap()), &set).is_err());
+  }
+
+  #[test]
+  fn test_url_parsed() {
+    assert_eq!(
+      vec![String::from("https://example.com/")],
+      check_urls_are_valid(&vec![String::from("example.com")]).unwrap()
+    );
+
+    assert!(check_urls_are_valid(&vec![
+      String::from("example.com"),
+      String::from("https://example.blog")
+    ])
+    .is_ok());
+
+    assert!(check_urls_are_valid(&vec![String::from("https://example .com"),]).is_err());
   }
 }

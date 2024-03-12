@@ -4,12 +4,12 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{EditSite, SiteResponse},
   utils::{
+    get_url_blocklist,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_api,
-    update_url_blocklist,
   },
 };
 use lemmy_db_schema::{
@@ -64,7 +64,8 @@ pub async fn update_site(
   }
 
   let slur_regex = local_site_to_slur_regex(&local_site);
-  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &context).await?;
+  let url_blocklist = get_url_blocklist(&context).await?;
+  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
   let icon = proxy_image_link_opt_api(&data.icon, &context).await?;
   let banner = proxy_image_link_opt_api(&data.banner, &context).await?;
 
