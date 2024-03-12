@@ -1,6 +1,7 @@
 #[cfg(feature = "full")]
 use crate::schema::local_site_url_blocklist;
 use serde::{Deserialize, Serialize};
+use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use ts_rs::TS;
 
@@ -12,6 +13,8 @@ use ts_rs::TS;
 pub struct LocalSiteUrlBlocklist {
   pub id: i32,
   pub url: String,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Default, Clone)]
@@ -19,4 +22,5 @@ pub struct LocalSiteUrlBlocklist {
 #[cfg_attr(feature = "full", diesel(table_name = local_site_url_blocklist))]
 pub struct LocalSiteUrlBlocklistForm {
   pub url: String,
+  pub updated: Option<DateTime<Utc>>,
 }

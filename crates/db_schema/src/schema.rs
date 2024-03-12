@@ -412,7 +412,9 @@ diesel::table! {
 diesel::table! {
     local_site_url_blocklist (id) {
         id -> Int4,
-        url -> Varchar,
+        url -> Text,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
     }
 }
 
