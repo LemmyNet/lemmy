@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   schema::{
     captcha_answer,
     comment,
-    community_person_ban,
+    community_actions,
     instance,
     person,
     post,
@@ -437,7 +437,7 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) {
       .ok();
 
       diesel::delete(
-        community_person_ban::table.filter(community_person_ban::expires.lt(now().nullable())),
+        community_actions::table.filter(community_actions::ban_expires.lt(now().nullable())),
       )
       .execute(&mut conn)
       .await
