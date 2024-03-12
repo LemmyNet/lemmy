@@ -39,14 +39,15 @@ use lemmy_utils::{
   rate_limit::{ActionType, BucketConfig},
   settings::structs::{PictrsImageMode, Settings},
   utils::{
-    markdown::{markdown_check_links, markdown_rewrite_image_links},
+    markdown::{markdown_check_for_blocked_urls, markdown_rewrite_image_links},
     slurs::{build_slur_regex, remove_slurs},
   },
 };
+use moka::future::Cache;
 use once_cell::sync::Lazy;
 use regex::{escape, Regex, RegexSet};
 use rosetta_i18n::{Language, LanguageId};
-use std::{collections::HashSet, sync::RwLock};
+use std::{collections::HashSet, time::Duration};
 use tracing::warn;
 use url::{ParseError, Url};
 use urlencoding::encode;
@@ -518,57 +519,45 @@ pub fn local_site_opt_to_sensitive(local_site: &Option<LocalSite>) -> bool {
     .unwrap_or(false)
 }
 
-async fn get_url_blocklist() -> &'static RwLock<Option<RegexSet>> {
-  static URL_BLOCKLIST: Lazy<RwLock<Option<RegexSet>>> = Lazy::new(|| RwLock::new(None));
+pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> {
+  static URL_BLOCKLIST: Lazy<Cache<(), RegexSet>> = Lazy::new(|| {
+    Cache::builder()
+      .max_capacity(1)
+      .time_to_live(Duration::from_secs(60))
+      .build()
+  });
 
-  &URL_BLOCKLIST
-}
+  Ok(
+    URL_BLOCKLIST
+      .try_get_with::<_, LemmyError>((), async {
+        let urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
 
-pub async fn update_url_blocklist(context: &LemmyContext) -> LemmyResult<()> {
-  let blocklist = get_url_blocklist().await;
-  let urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
-  let mut regexes: Vec<String> = vec![];
+        let regexes = urls.iter().map(|url| {
+          let url = &url.url;
+          let parsed = Url::parse(url).expect("Coundln't parse URL.");
+          if url.ends_with('/') {
+            format!(
+              "({}://)?{}{}?",
+              parsed.scheme(),
+              escape(parsed.domain().expect("No domain.")),
+              escape(parsed.path())
+            )
+          } else {
+            format!(
+              "({}://)?{}{}",
+              parsed.scheme(),
+              escape(parsed.domain().expect("No domain.")),
+              escape(parsed.path())
+            )
+          }
+        });
 
-  for url in &urls {
-    let url = &url.url;
-    let parsed = Url::parse(url)?;
-    if url.ends_with('/') {
-      regexes.push(format!(
-        "({}://)?{}{}?",
-        parsed.scheme(),
-        escape(parsed.domain().expect("No domain.")),
-        escape(parsed.path())
-      ));
-    } else {
-      regexes.push(format!(
-        "({}://)?{}{}",
-        parsed.scheme(),
-        escape(parsed.domain().expect("No domain.")),
-        escape(parsed.path())
-      ));
-    };
-  }
-
-  let set = RegexSet::new(regexes)?;
-  match blocklist.write() {
-    Ok(mut write) => {
-      *write = Some(set);
-    }
-    Err(e) => tracing::error!("Unable to set up URL blocklist due to `{}`", e),
-  };
-
-  Ok(())
-}
-
-pub async fn get_url_blocklist_regex(context: &LemmyContext) -> LemmyResult<Option<RegexSet>> {
-  let blocklist = get_url_blocklist().await;
-  let mut read = blocklist.read().expect("URL blocklist is busy").clone();
-  if read.is_none() {
-    update_url_blocklist(context).await?;
-    read = blocklist.read().expect("URL blocklist is busy").clone();
-  }
-
-  Ok(read)
+        let set = RegexSet::new(regexes)?;
+        Ok(set)
+      })
+      .await
+      .map_err(|e| anyhow::anyhow!("Failed to build URL blocklist due to `{}`", e))?,
+  )
 }
 
 pub async fn send_application_approved_email(
@@ -922,12 +911,12 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
 pub async fn process_markdown(
   text: &str,
   slur_regex: &Option<Regex>,
+  url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
-  let url_blocklist = get_url_blocklist_regex(context).await?;
 
-  markdown_check_links(&text, &url_blocklist)?;
+  markdown_check_for_blocked_urls(&text, url_blocklist)?;
 
   if context.settings().pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
@@ -941,10 +930,13 @@ pub async fn process_markdown(
 pub async fn process_markdown_opt(
   text: &Option<String>,
   slur_regex: &Option<Regex>,
+  url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<Option<String>> {
   match text {
-    Some(t) => process_markdown(t, slur_regex, context).await.map(Some),
+    Some(t) => process_markdown(t, slur_regex, url_blocklist, context)
+      .await
+      .map(Some),
     None => Ok(None),
   }
 }

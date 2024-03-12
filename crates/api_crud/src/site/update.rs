@@ -143,7 +143,6 @@ pub async fn update_site(
   if let Some(url_blocklist) = data.blocked_urls.clone() {
     let parsed_urls = check_urls_are_valid(&url_blocklist)?;
     LocalSiteUrlBlocklist::replace(&mut context.pool(), parsed_urls).await?;
-    update_url_blocklist(&context).await?;
   }
 
   // TODO can't think of a better way to do this.

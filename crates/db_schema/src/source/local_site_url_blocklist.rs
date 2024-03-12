@@ -1,7 +1,7 @@
 #[cfg(feature = "full")]
 use crate::schema::local_site_url_blocklist;
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;
 
