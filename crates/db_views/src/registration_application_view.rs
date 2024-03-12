@@ -258,7 +258,6 @@ mod tests {
         show_avatars: inserted_sara_local_user.show_avatars,
         send_notifications_to_email: inserted_sara_local_user.send_notifications_to_email,
         show_bot_accounts: inserted_sara_local_user.show_bot_accounts,
-        show_scores: inserted_sara_local_user.show_scores,
         show_read_posts: inserted_sara_local_user.show_read_posts,
         email_verified: inserted_sara_local_user.email_verified,
         accepted_application: inserted_sara_local_user.accepted_application,
