@@ -50,7 +50,11 @@ pub async fn login(
 
   // Check the totp if enabled
   if local_user_view.local_user.totp_2fa_enabled {
-    check_totp_2fa_valid(&local_user_view, &data.totp_2fa_token, &site_view.site.name)?;
+    check_totp_2fa_valid(
+      &local_user_view,
+      &data.totp_2fa_token,
+      &context.settings().hostname,
+    )?;
   }
 
   let jwt = Claims::generate(local_user_view.local_user.id, req, &context).await?;
