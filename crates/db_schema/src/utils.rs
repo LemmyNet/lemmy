@@ -502,58 +502,49 @@ impl<T: Expression + AsExpression<sql_types::Record<T::SqlType>>> AsRecord for T
 {
 }
 
-// TODO: call `default` on whole tuple when impl for `Nullable` is added
+type OnTupleEq<T, L0, L1, R0, R1> = dsl::On<T, dsl::Eq<AsRecordOutput<(L0, L1)>, (R0, R1)>>;
+
 pub fn actions<T, P, C, K0, K1>(
   actions_table: T,
   person_id: Option<P>,
   target_id: C,
-) -> dsl::On<
-  T,
-  dsl::Eq<
-    AsRecordOutput<(dsl::Nullable<K0>, K1)>,
-    (BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>, C),
-  >,
->
+) -> OnTupleEq<T, dsl::Nullable<K0>, K1, BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>, C>
 where
-  T: Table<PrimaryKey = (K0, K1)>,
-  K0: Default + Expression,
-  K1: Default,
+  T: Table<PrimaryKey = (K0, K1)> + Copy,
+  K0: Expression,
   P: AsExpression<sql_types::Integer>,
   (dsl::Nullable<K0>, K1): AsRecord,
   (BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>, C):
     AsExpression<<AsRecordOutput<(dsl::Nullable<K0>, K1)> as Expression>::SqlType>,
 {
-  actions_table.on((K0::default().nullable(), K1::default()).into_sql().eq((
+  let (k0, k1) = actions_table.primary_key();
+  actions_table.on((k0.nullable(), k1).into_sql().eq((
     BindIfSome(person_id.map(diesel::IntoSql::into_sql)),
     target_id,
   )))
 }
 
-//type TargetPrimaryKey<T> = AliasedFields<T, <<T as AliasSource>::Target as Table>::PrimaryKey>;
-
 /// Like `actions` but `actions_table` is an alias and person id is not nullable
+#[allow(clippy::type_complexity)]
 pub fn actions_alias<T, P, C, K0, K1>(
   actions_table: Alias<T>,
   person_id: P,
   target_id: C,
-) -> dsl::On<Alias<T>, dsl::Eq<AsRecordOutput<(AliasedField<T, K0>, AliasedField<T, K1>)>, (P, C)>>
+) -> OnTupleEq<Alias<T>, AliasedField<T, K0>, AliasedField<T, K1>, P, C>
 where
   Alias<T>: QuerySource + Copy,
-  T: AliasSource,
+  T: AliasSource + Default,
   T::Target: Table<PrimaryKey = (K0, K1)>,
-  K0: Default + Column<Table = T::Target>,
-  K1: Default + Column<Table = T::Target>,
+  K0: Column<Table = T::Target>,
+  K1: Column<Table = T::Target>,
   (AliasedField<T, K0>, AliasedField<T, K1>): AsRecord,
   (P, C): AsExpression<
     <AsRecordOutput<(AliasedField<T, K0>, AliasedField<T, K1>)> as Expression>::SqlType,
   >,
 {
-  // TODO: Use `default` for whole tuple when `AliasedField` when impl is added
+  let (k0, k1) = T::default().target().primary_key();
   actions_table.on(
-    (
-      actions_table.field(K0::default()),
-      actions_table.field(K1::default()),
-    )
+    (actions_table.field(k0), actions_table.field(k1))
       .into_sql()
       .eq((person_id, target_id)),
   )
