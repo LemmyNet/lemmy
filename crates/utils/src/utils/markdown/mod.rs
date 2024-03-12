@@ -249,7 +249,9 @@ mod tests {
   fn test_url_blocking() {
     let set = RegexSet::new(vec![r"(https://)?example\.com/?"]).unwrap();
 
-    assert!(markdown_check_for_blocked_urls(&String::from("[](https://example.com)"), &set).is_err());
+    assert!(
+      markdown_check_for_blocked_urls(&String::from("[](https://example.com)"), &set).is_err()
+    );
 
     assert!(markdown_check_for_blocked_urls(
       &String::from("Go to https://example.com to get free Robux"),
@@ -257,7 +259,9 @@ mod tests {
     )
     .is_err());
 
-    assert!(markdown_check_for_blocked_urls(&String::from("[](https://example.blog)"), &set).is_ok());
+    assert!(
+      markdown_check_for_blocked_urls(&String::from("[](https://example.blog)"), &set).is_ok()
+    );
 
     assert!(markdown_check_for_blocked_urls(&String::from("example.com"), &set).is_err());
 
@@ -272,9 +276,11 @@ mod tests {
     .is_err());
 
     let set = RegexSet::new(vec![r"(https://)?example\.com/spam\.jpg"]).unwrap();
-    assert!(
-      markdown_check_for_blocked_urls(&String::from("![](https://example.com/spam.jpg)"), &set).is_err()
-    );
+    assert!(markdown_check_for_blocked_urls(
+      &String::from("![](https://example.com/spam.jpg)"),
+      &set
+    )
+    .is_err());
 
     let set = RegexSet::new(vec![
       r"(https://)?quo\.example\.com/?",
@@ -283,13 +289,19 @@ mod tests {
     ])
     .unwrap();
 
-    assert!(markdown_check_for_blocked_urls(&String::from("https://baz.example.com"), &set).is_ok());
+    assert!(
+      markdown_check_for_blocked_urls(&String::from("https://baz.example.com"), &set).is_ok()
+    );
 
-    assert!(markdown_check_for_blocked_urls(&String::from("https://bar.example.com"), &set).is_err());
+    assert!(
+      markdown_check_for_blocked_urls(&String::from("https://bar.example.com"), &set).is_err()
+    );
 
     let set = RegexSet::new(vec![r"(https://)?example\.com/banned_page"]).unwrap();
 
-    assert!(markdown_check_for_blocked_urls(&String::from("https://example.com/page"), &set).is_ok());
+    assert!(
+      markdown_check_for_blocked_urls(&String::from("https://example.com/page"), &set).is_ok()
+    );
 
     let set = RegexSet::new(vec![r"(https://)?ex\.mple\.com/?"]).unwrap();
 
