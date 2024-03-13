@@ -728,4 +728,8 @@ test("Block post that contains banned URL", async () => {
   expect(createPost(epsilon, betaCommunity.community.id)).rejects.toStrictEqual(
     Error("blocked_url"),
   );
+
+  // Later tests need this to be empty
+  editSiteForm.blocked_urls = [];
+  await epsilon.editSite(editSiteForm);
 });
