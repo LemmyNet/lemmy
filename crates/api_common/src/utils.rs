@@ -53,6 +53,10 @@ use url::{ParseError, Url};
 use urlencoding::encode;
 
 pub static AUTH_COOKIE_NAME: &str = "jwt";
+#[cfg(debug_assertions)]
+static URL_BLOCKLIST_RECHECK_DELAY: Duration = Duration::from_secs(5);
+#[cfg(not(debug_assertions))]
+static URL_BLOCKLIST_RECHECK_DELAY: Duration = Duration::from_secs(60);
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
@@ -523,7 +527,7 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
   static URL_BLOCKLIST: Lazy<Cache<(), RegexSet>> = Lazy::new(|| {
     Cache::builder()
       .max_capacity(1)
-      .time_to_live(Duration::from_secs(60))
+      .time_to_live(URL_BLOCKLIST_RECHECK_DELAY)
       .build()
   });
 

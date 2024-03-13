@@ -719,8 +719,7 @@ test("Block post that contains banned URL", async () => {
 
   await epsilon.editSite(editSiteForm);
 
-  // Regex on the backend only updates every minute
-  await delay(60_000);
+  await delay(5_000);
 
   if (!betaCommunity) {
     throw "Missing beta community";
