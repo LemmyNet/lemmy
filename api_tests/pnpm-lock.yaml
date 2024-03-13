@@ -30,8 +30,8 @@ devDependencies:
     specifier: ^29.5.0
     version: 29.7.0(@types/node@20.11.22)
   lemmy-js-client:
-    specifier: 0.19.4-alpha.6
-    version: 0.19.4-alpha.6
+    specifier: 0.19.4-alpha.8
+    version: 0.19.4-alpha.8
   prettier:
     specifier: ^3.2.5
     version: 3.2.5
@@ -2390,8 +2390,8 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
-  /lemmy-js-client@0.19.4-alpha.6:
-    resolution: {integrity: sha512-x4htMlpoZ7hzrhrIk82aompVxbpu2ZDWtmWNGraM0+27nUCDf6gYxJH5nb5R/o39BQe5KSHq6zoBdliBwAY40w==}
+  /lemmy-js-client@0.19.4-alpha.8:
+    resolution: {integrity: sha512-8vjqUYVOhyUTcmG9FvPLjrWziVwNa2/Zi+kSflTrajJsK0V+5DclJ5dhdVMUQ4DEA70gb0OuNMDlipPG2FoS5A==}
     dependencies:
       cross-fetch: 4.0.0
       form-data: 4.0.0
