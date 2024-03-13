@@ -7,8 +7,6 @@ use lemmy_db_schema::source::images::LocalImage;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
-/// Lists comment reports for a community if an id is supplied
-/// or returns all comment reports for communities a user moderates
 #[tracing::instrument(skip(context))]
 pub async fn list_media(
   data: Query<ListMedia>,

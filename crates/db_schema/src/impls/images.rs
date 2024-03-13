@@ -49,6 +49,23 @@ impl LocalImage {
       .await
   }
 
+  pub async fn get_all(
+    pool: &mut DbPool<'_>,
+    page: Option<i64>,
+    limit: Option<i64>,
+  ) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let (limit, offset) = limit_and_offset(page, limit)?;
+
+    local_image::table
+      .select(local_image::all_columns)
+      .order_by(local_image::published.desc())
+      .limit(limit)
+      .offset(offset)
+      .load::<LocalImage>(conn)
+      .await
+  }
+
   pub async fn delete_by_alias(pool: &mut DbPool<'_>, alias: &str) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(local_image::table.filter(local_image::pictrs_alias.eq(alias)))
