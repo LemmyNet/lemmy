@@ -17,11 +17,12 @@ pub async fn list_media(
 ) -> Result<Json<ListMediaResponse>, LemmyError> {
   let page = data.page;
   let limit = data.limit;
-  let images = LocalImage::get_all_paged_by_local_user_id(
+  let images = LocalImage::get_all_by_local_user_id(
     &mut context.pool(),
     local_user_view.local_user.id,
     page,
     limit,
+    false,
   )
   .await?;
   Ok(Json(ListMediaResponse { images }))

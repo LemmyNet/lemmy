@@ -212,7 +212,7 @@ impl<C: Default> RateLimitedGroup<C> {
     now: InstantSecs,
     config: BucketConfig,
   ) -> bool {
-    #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` funciton
+    #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` function
     let bucket = &mut self.total[action_type];
 
     let new_bucket = bucket.update(now, config);

@@ -204,7 +204,7 @@ pub fn site_description_length_check(description: &str) -> LemmyResult<()> {
   )
 }
 
-/// Check minumum and maximum length of input string. If the string is too short or too long, the
+/// Check minimum and maximum length of input string. If the string is too short or too long, the
 /// corresponding error is returned.
 ///
 /// HTML frontends specify maximum input length using `maxlength` attribute.

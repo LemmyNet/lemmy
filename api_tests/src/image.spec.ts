@@ -68,6 +68,10 @@ test("Upload image and delete it", async () => {
   // ensure that image is deleted
   const content2 = downloadFileSync(upload.url);
   expect(content2).toBe("");
+
+  // Ensure that it shows the image is deleted
+  const deletedListMediaRes = await alphaImage.listMedia({});
+  expect(deletedListMediaRes.images.length).toBe(0);
 });
 
 test("Purge user, uploaded image removed", async () => {

@@ -86,8 +86,6 @@ pub struct SaveUserSettings {
   pub show_nsfw: Option<bool>,
   pub blur_nsfw: Option<bool>,
   pub auto_expand: Option<bool>,
-  /// Show post and comment scores.
-  pub show_scores: Option<bool>,
   /// Your user's theme.
   pub theme: Option<String>,
   pub default_sort_type: Option<SortType>,
@@ -122,6 +120,7 @@ pub struct SaveUserSettings {
   pub open_links_in_new_tab: Option<bool>,
   /// Enable infinite scroll
   pub infinite_scroll_enabled: Option<bool>,
+  /// A post-view mode that changes how multiple post listings look.
   pub post_listing_mode: Option<PostListingMode>,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
   pub enable_keyboard_navigation: Option<bool>,
@@ -129,6 +128,11 @@ pub struct SaveUserSettings {
   pub enable_animated_images: Option<bool>,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: Option<bool>,
+  /// Some vote display mode settings
+  pub show_scores: Option<bool>,
+  pub show_upvotes: Option<bool>,
+  pub show_downvotes: Option<bool>,
+  pub show_upvote_percentage: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

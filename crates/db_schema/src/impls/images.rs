@@ -2,7 +2,7 @@ use crate::{
   newtypes::{DbUrl, LocalUserId},
   schema::{local_image, remote_image},
   source::images::{LocalImage, LocalImageForm, RemoteImage, RemoteImageForm},
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, limit_and_offset, limit_and_offset_unlimited, DbPool},
 };
 use diesel::{
   dsl::exists,
@@ -25,28 +25,19 @@ impl LocalImage {
       .await
   }
 
-  /// This should only be used in the internal API, since it has no page and limit
   pub async fn get_all_by_local_user_id(
-    pool: &mut DbPool<'_>,
-    user_id: LocalUserId,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    local_image::table
-      .filter(local_image::local_user_id.eq(user_id))
-      .select(local_image::all_columns)
-      .load::<LocalImage>(conn)
-      .await
-  }
-
-  /// This is okay for API use.
-  pub async fn get_all_paged_by_local_user_id(
     pool: &mut DbPool<'_>,
     user_id: LocalUserId,
     page: Option<i64>,
     limit: Option<i64>,
+    ignore_page_limits: bool,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (limit, offset) = limit_and_offset(page, limit)?;
+    let (limit, offset) = if ignore_page_limits {
+      limit_and_offset_unlimited(page, limit)
+    } else {
+      limit_and_offset(page, limit)?
+    };
 
     local_image::table
       .filter(local_image::local_user_id.eq(user_id))
