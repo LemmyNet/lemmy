@@ -11,6 +11,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_user::LocalUser,
+    local_user_vote_display_mode::LocalUserVoteDisplayMode,
     person::Person,
     post::Post,
     post_report::PostReport,
@@ -73,6 +74,7 @@ pub struct CommentView {
 /// A local user view.
 pub struct LocalUserView {
   pub local_user: LocalUser,
+  pub local_user_vote_display_mode: LocalUserVoteDisplayMode,
   pub person: Person,
   pub counts: PersonAggregates,
 }
