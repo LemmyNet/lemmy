@@ -26,7 +26,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   request::fetch_link_metadata_opt,
   utils::{
-    is_mod_or_admin,
     local_site_opt_to_sensitive,
     local_site_opt_to_slur_regex,
     process_markdown_opt,
@@ -50,6 +49,7 @@ use lemmy_utils::{
 use std::ops::Deref;
 use stringreader::StringReader;
 use url::Url;
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 
 const MAX_TITLE_LENGTH: usize = 200;
 
@@ -179,7 +179,7 @@ impl Object for ApubPost {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
-      is_mod_or_admin(&mut context.pool(), &creator, community.id).await?;
+      CommunityModeratorView::is_community_moderator(&mut context.pool(),  community.id, creator.id).await?;
     }
     let mut name = page
       .name
