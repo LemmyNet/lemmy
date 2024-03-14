@@ -312,16 +312,13 @@ pub fn is_url_blocked(url: &Option<Url>, blocklist: &RegexSet) -> LemmyResult<()
 pub fn check_urls_are_valid(urls: &Vec<String>) -> LemmyResult<Vec<String>> {
   let mut parsed_urls = vec![];
   for url in urls {
-    let url = match Url::parse(url) {
-      Ok(url) => url,
-      Err(e) => {
-        if e == ParseError::RelativeUrlWithoutBase {
-          Url::parse(&format!("https://{}", url))?
-        } else {
-          Err(e)?
-        }
+    let url = Url::parse(url).or_else(|e| {
+      if e == ParseError::RelativeUrlWithoutBase {
+        Url::parse(&format!("https://{url}"))
+      } else {
+        Err(e)
       }
-    };
+    })?;
 
     parsed_urls.push(url.to_string());
   }

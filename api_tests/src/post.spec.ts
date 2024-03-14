@@ -714,20 +714,20 @@ test("Fetch post via redirect", async () => {
 
 test("Block post that contains banned URL", async () => {
   let editSiteForm: EditSite = {
-    blocked_urls: ["https://example.com/"],
+    blocked_urls: ["https://evil.com/"],
   };
 
   await epsilon.editSite(editSiteForm);
 
-  await delay(5_000);
+  await delay(500);
 
   if (!betaCommunity) {
     throw "Missing beta community";
   }
 
-  expect(createPost(epsilon, betaCommunity.community.id)).rejects.toStrictEqual(
-    Error("blocked_url"),
-  );
+  expect(
+    createPost(epsilon, betaCommunity.community.id, "https://evil.com"),
+  ).rejects.toStrictEqual(Error("blocked_url"));
 
   // Later tests need this to be empty
   editSiteForm.blocked_urls = [];

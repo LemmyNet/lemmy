@@ -54,7 +54,7 @@ use urlencoding::encode;
 
 pub static AUTH_COOKIE_NAME: &str = "jwt";
 #[cfg(debug_assertions)]
-static URL_BLOCKLIST_RECHECK_DELAY: Duration = Duration::from_secs(5);
+static URL_BLOCKLIST_RECHECK_DELAY: Duration = Duration::from_millis(500);
 #[cfg(not(debug_assertions))]
 static URL_BLOCKLIST_RECHECK_DELAY: Duration = Duration::from_secs(60);
 
