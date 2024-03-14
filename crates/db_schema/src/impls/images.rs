@@ -2,7 +2,7 @@ use crate::{
   newtypes::{DbUrl, LocalUserId},
   schema::{local_image, remote_image},
   source::images::{LocalImage, LocalImageForm, RemoteImage, RemoteImageForm},
-  utils::{get_conn, limit_and_offset, limit_and_offset_unlimited, DbPool},
+  utils::{get_conn, limit_and_offset, DbPool},
 };
 use diesel::{
   dsl::exists,
@@ -33,20 +33,18 @@ impl LocalImage {
     ignore_page_limits: bool,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (limit, offset) = if ignore_page_limits {
-      limit_and_offset_unlimited(page, limit)
-    } else {
-      limit_and_offset(page, limit)?
-    };
-
-    local_image::table
+    let mut query = local_image::table
       .filter(local_image::local_user_id.eq(user_id))
       .select(local_image::all_columns)
       .order_by(local_image::published.desc())
-      .limit(limit)
-      .offset(offset)
-      .load::<LocalImage>(conn)
-      .await
+      .into_boxed();
+
+    if !ignore_page_limits {
+      let (limit, offset) = limit_and_offset(page, limit)?;
+      query = query.limit(limit).offset(offset);
+    }
+
+    query.load::<LocalImage>(conn).await
   }
 
   pub async fn get_all(
