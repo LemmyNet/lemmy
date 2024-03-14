@@ -25,26 +25,20 @@ impl LocalImage {
       .await
   }
 
-  pub async fn get_all_by_local_user_id(
+  pub async fn get_all_paged_by_local_user_id(
     pool: &mut DbPool<'_>,
     user_id: LocalUserId,
     page: Option<i64>,
     limit: Option<i64>,
-    ignore_page_limits: bool,
   ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let mut query = local_image::table
-      .filter(local_image::local_user_id.eq(user_id))
-      .select(local_image::all_columns)
-      .order_by(local_image::published.desc())
-      .into_boxed();
+    Self::get_all_helper(pool, Some(user_id), page, limit, false).await
+  }
 
-    if !ignore_page_limits {
-      let (limit, offset) = limit_and_offset(page, limit)?;
-      query = query.limit(limit).offset(offset);
-    }
-
-    query.load::<LocalImage>(conn).await
+  pub async fn get_all_by_local_user_id(
+    pool: &mut DbPool<'_>,
+    user_id: LocalUserId,
+  ) -> Result<Vec<Self>, Error> {
+    Self::get_all_helper(pool, Some(user_id), None, None, true).await
   }
 
   pub async fn get_all(
@@ -52,16 +46,32 @@ impl LocalImage {
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let (limit, offset) = limit_and_offset(page, limit)?;
+    Self::get_all_helper(pool, None, page, limit, false).await
+  }
 
-    local_image::table
+  async fn get_all_helper(
+    pool: &mut DbPool<'_>,
+    user_id: Option<LocalUserId>,
+    page: Option<i64>,
+    limit: Option<i64>,
+    ignore_page_limits: bool,
+  ) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let mut query = local_image::table
       .select(local_image::all_columns)
       .order_by(local_image::published.desc())
-      .limit(limit)
-      .offset(offset)
-      .load::<LocalImage>(conn)
-      .await
+      .into_boxed();
+
+    if let Some(user_id) = user_id {
+      query = query.filter(local_image::local_user_id.eq(user_id))
+    }
+
+    if !ignore_page_limits {
+      let (limit, offset) = limit_and_offset(page, limit)?;
+      query = query.limit(limit).offset(offset);
+    }
+
+    query.load::<LocalImage>(conn).await
   }
 
   pub async fn delete_by_alias(pool: &mut DbPool<'_>, alias: &str) -> Result<usize, Error> {
