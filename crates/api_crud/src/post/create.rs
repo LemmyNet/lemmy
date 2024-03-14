@@ -16,7 +16,7 @@ use lemmy_api_common::{
     proxy_image_link_opt_apub,
     EndpointType,
   },
-};use lemmy_db_views_actor::structs::CommunityModeratorView;
+};
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
   source::{
@@ -29,6 +29,7 @@ use lemmy_db_schema::{
   CommunityVisibility,
 };
 use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   spawn_try_task,
