@@ -4,7 +4,7 @@ use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl,
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{LocalUserId, PersonId},
-  schema::{local_user, person, person_aggregates},
+  schema::{local_user, local_user_vote_display_mode, person, person_aggregates},
   utils::{
     functions::{coalesce, lower},
     DbConn,
@@ -33,6 +33,7 @@ fn queries<'a>(
 ) -> Queries<impl ReadFn<'a, LocalUserView, ReadBy<'a>>, impl ListFn<'a, LocalUserView, ListMode>> {
   let selection = (
     local_user::all_columns,
+    local_user_vote_display_mode::all_columns,
     person::all_columns,
     person_aggregates::all_columns,
   );
@@ -58,6 +59,7 @@ fn queries<'a>(
       _ => query,
     };
     query
+      .inner_join(local_user_vote_display_mode::table)
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
       .select(selection)
       .first::<LocalUserView>(&mut conn)
@@ -68,10 +70,11 @@ fn queries<'a>(
     match mode {
       ListMode::AdminsWithEmails => {
         local_user::table
-          .filter(local_user::email.is_not_null())
-          .filter(local_user::admin.eq(true))
+          .inner_join(local_user_vote_display_mode::table)
           .inner_join(person::table)
           .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
+          .filter(local_user::email.is_not_null())
+          .filter(local_user::admin.eq(true))
           .select(selection)
           .load::<LocalUserView>(&mut conn)
           .await

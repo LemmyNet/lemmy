@@ -36,6 +36,7 @@ pub struct LocalUser {
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   /// Whether to show comment / post scores.
+  // TODO now that there is a vote_display_mode, this can be gotten rid of in future releases.
   pub show_scores: bool,
   /// Whether to show bot accounts.
   pub show_bot_accounts: bool,
@@ -55,6 +56,7 @@ pub struct LocalUser {
   pub infinite_scroll_enabled: bool,
   /// Whether the person is an admin.
   pub admin: bool,
+  /// A post-view mode that changes how multiple post listings look.
   pub post_listing_mode: PostListingMode,
   pub totp_2fa_enabled: bool,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).

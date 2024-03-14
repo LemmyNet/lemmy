@@ -15,6 +15,7 @@ use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserUpdateForm},
+    local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeUpdateForm},
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,
@@ -139,6 +140,16 @@ pub async fn save_user_settings(
   LocalUser::update(&mut context.pool(), local_user_id, &local_user_form)
     .await
     .ok();
+
+  // Update the vote display modes
+  let vote_display_modes_form = LocalUserVoteDisplayModeUpdateForm {
+    score: data.show_scores,
+    upvotes: data.show_upvotes,
+    downvotes: data.show_downvotes,
+    upvote_percentage: data.show_upvote_percentage,
+  };
+  LocalUserVoteDisplayMode::update(&mut context.pool(), local_user_id, &vote_display_modes_form)
+    .await?;
 
   Ok(Json(SuccessResponse::default()))
 }

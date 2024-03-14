@@ -5,7 +5,7 @@ use crate::{
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{
-      page::{Attachment, AttributedTo, Page, PageType},
+      page::{Attachment, AttributedTo, Hashtag, HashtagType, Page, PageType},
       LanguageTag,
     },
     ImageObject,
@@ -125,6 +125,11 @@ impl Object for ApubPost {
       })
       .into_iter()
       .collect();
+    let hashtag = Hashtag {
+      href: self.ap_id.clone().into(),
+      name: format!("#{}", &community.name),
+      kind: HashtagType::Hashtag,
+    };
 
     let page = Page {
       kind: PageType::Page,
@@ -145,6 +150,7 @@ impl Object for ApubPost {
       updated: self.updated,
       audience: Some(community.actor_id.into()),
       in_reply_to: None,
+      tag: vec![hashtag],
     };
     Ok(page)
   }
