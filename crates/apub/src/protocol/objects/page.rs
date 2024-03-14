@@ -66,6 +66,8 @@ pub struct Page {
   pub(crate) updated: Option<DateTime<Utc>>,
   pub(crate) language: Option<LanguageTag>,
   pub(crate) audience: Option<ObjectId<ApubCommunity>>,
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
+  pub(crate) tag: Vec<Hashtag>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -138,6 +140,19 @@ pub(crate) struct AttributedToPeertube {
   #[serde(rename = "type")]
   pub kind: PersonOrGroupType,
   pub id: ObjectId<UserOrCommunity>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Hashtag {
+  pub(crate) href: Url,
+  pub(crate) name: String,
+  #[serde(rename = "type")]
+  pub(crate) kind: HashtagType,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum HashtagType {
+  Hashtag,
 }
 
 impl Page {
