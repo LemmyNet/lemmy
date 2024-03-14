@@ -29,7 +29,7 @@ use lemmy_db_schema::{
   CommunityVisibility,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::CommunityView;
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
   spawn_try_task,
@@ -83,10 +83,10 @@ pub async fn create_post(
   let community = Community::read(&mut context.pool(), community_id).await?;
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;
-    let is_mod = CommunityView::is_mod_or_admin(
+    let is_mod = CommunityModeratorView::is_community_moderator(
       &mut context.pool(),
-      local_user_view.local_user.person_id,
       community_id,
+      local_user_view.local_user.person_id,
     )
     .await?;
     if !is_mod {

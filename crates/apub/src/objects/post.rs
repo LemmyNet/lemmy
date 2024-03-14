@@ -26,7 +26,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   request::fetch_link_metadata_opt,
   utils::{
-    is_mod_or_admin,
     local_site_opt_to_sensitive,
     local_site_opt_to_slur_regex,
     process_markdown_opt,
@@ -43,6 +42,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::LemmyError,
   utils::{markdown::markdown_to_html, slurs::check_slurs_opt, validation::check_url_scheme},
@@ -185,7 +185,8 @@ impl Object for ApubPost {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
-      is_mod_or_admin(&mut context.pool(), &creator, community.id).await?;
+      CommunityModeratorView::is_community_moderator(&mut context.pool(), community.id, creator.id)
+        .await?;
     }
     let mut name = page
       .name
