@@ -72,6 +72,10 @@ test("Upload image and delete it", async () => {
   // Ensure that it shows the image is deleted
   const deletedListMediaRes = await alphaImage.listMedia({});
   expect(deletedListMediaRes.images.length).toBe(0);
+
+  // Ensure that the admin shows its deleted
+  const deletedListAllMediaRes = await alphaImage.listAllMedia({});
+  expect(deletedListAllMediaRes.images.length).toBe(0);
 });
 
 test("Purge user, uploaded image removed", async () => {

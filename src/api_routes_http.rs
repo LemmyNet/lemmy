@@ -342,7 +342,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
             "/registration_application/approve",
             web::put().to(approve_registration_application),
           )
-          .route("/list_media", web::get().to(list_all_media))
+          .route("/list_all_media", web::get().to(list_all_media))
           .service(
             web::scope("/purge")
               .route("/person", web::post().to(purge_person))
