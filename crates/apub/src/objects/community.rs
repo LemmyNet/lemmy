@@ -177,18 +177,21 @@ impl Object for ApubCommunity {
 
     let community: ApubCommunity = community.into();
 
-    // Fetching mods and outbox is not necessary for Lemmy to work, so ignore errors. Besides,
-    // we need to ignore these errors so that tests can work entirely offline.
+    // These collections are not necessary for Lemmy to work, so ignore errors.
     let community_ = community.clone();
     let context_ = context.reset_request_count();
     spawn_try_task(async move {
-      group.outbox.dereference(&community_, &context_).await?;
-      group.followers.dereference(&community_, &context_).await?;
+      group.outbox.dereference(&community_, &context_).await.ok();
+      group
+        .followers
+        .dereference(&community_, &context_)
+        .await
+        .ok();
       if let Some(featured) = group.featured {
-        featured.dereference(&community_, &context_).await?;
+        featured.dereference(&community_, &context_).await.ok();
       }
       if let Some(moderators) = group.attributed_to {
-        moderators.dereference(&community_, &context_).await?;
+        moderators.dereference(&community_, &context_).await.ok();
       }
       Ok(())
     });
