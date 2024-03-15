@@ -49,8 +49,12 @@ test("Upload image and delete it", async () => {
   expect(content.length).toBeGreaterThan(0);
 
   // Ensure that it comes back with the list_media endpoint
-  const listMediaRes = await alphaImage.listMedia({});
+  const listMediaRes = await alphaImage.listMedia();
   expect(listMediaRes.images.length).toBe(1);
+
+  // Ensure that it also comes back with the admin all images
+  const listAllMediaRes = await alphaImage.listAllMedia();
+  expect(listAllMediaRes.images.length).toBe(1);
 
   // The deleteUrl is a combination of the endpoint, delete token, and alias
   let firstImage = listMediaRes.images[0];
@@ -70,11 +74,11 @@ test("Upload image and delete it", async () => {
   expect(content2).toBe("");
 
   // Ensure that it shows the image is deleted
-  const deletedListMediaRes = await alphaImage.listMedia({});
+  const deletedListMediaRes = await alphaImage.listMedia();
   expect(deletedListMediaRes.images.length).toBe(0);
 
   // Ensure that the admin shows its deleted
-  const deletedListAllMediaRes = await alphaImage.listAllMedia({});
+  const deletedListAllMediaRes = await alphaImage.listAllMedia();
   expect(deletedListAllMediaRes.images.length).toBe(0);
 });
 
