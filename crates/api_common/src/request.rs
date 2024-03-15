@@ -355,7 +355,7 @@ mod tests {
       Some(mime::TEXT_HTML_UTF_8.to_string()),
       sample_res.content_type
     );
-    assert_eq!(None, sample_res.thumbnail);
+    assert!(sample_res.thumbnail.is_some());
   }
 
   // #[test]
