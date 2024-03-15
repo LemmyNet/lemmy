@@ -45,7 +45,7 @@ test("Create user", async () => {
   if (!site.my_user) {
     throw "Missing site user";
   }
-  apShortname = `@${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
+  apShortname = `${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
 });
 
 test("Set some user settings, check that they are federated", async () => {
@@ -68,7 +68,7 @@ test("Delete user", async () => {
   let user = await registerUser(alpha, alphaUrl);
 
   // make a local post and comment
-  let alphaCommunity = (await resolveCommunity(user, "!main@lemmy-alpha:8541"))
+  let alphaCommunity = (await resolveCommunity(user, "main@lemmy-alpha:8541"))
     .community;
   if (!alphaCommunity) {
     throw "Missing alpha community";
@@ -134,7 +134,7 @@ test("Create user with Arabic name", async () => {
   if (!site.my_user) {
     throw "Missing site user";
   }
-  apShortname = `@${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
+  apShortname = `${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
 
   let alphaPerson = (await resolvePerson(alpha, apShortname)).person;
   expect(alphaPerson).toBeDefined();
