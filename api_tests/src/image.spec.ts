@@ -26,6 +26,8 @@ import {
 } from "./shared";
 const downloadFileSync = require("download-file-sync");
 
+const imageFetchLimit = 50;
+
 beforeAll(setupLogins);
 
 afterAll(() => {
@@ -53,8 +55,13 @@ test("Upload image and delete it", async () => {
   expect(listMediaRes.images.length).toBe(1);
 
   // Ensure that it also comes back with the admin all images
-  const listAllMediaRes = await alphaImage.listAllMedia();
-  expect(listAllMediaRes.images.length).toBe(1);
+  const listAllMediaRes = await alphaImage.listAllMedia({
+    limit: imageFetchLimit,
+  });
+
+  // This number comes from all the previous thumbnails fetched in other tests.
+  const previousThumbnails = 30;
+  expect(listAllMediaRes.images.length).toBe(previousThumbnails);
 
   // The deleteUrl is a combination of the endpoint, delete token, and alias
   let firstImage = listMediaRes.images[0];
@@ -78,8 +85,10 @@ test("Upload image and delete it", async () => {
   expect(deletedListMediaRes.images.length).toBe(0);
 
   // Ensure that the admin shows its deleted
-  const deletedListAllMediaRes = await alphaImage.listAllMedia();
-  expect(deletedListAllMediaRes.images.length).toBe(0);
+  const deletedListAllMediaRes = await alphaImage.listAllMedia({
+    limit: imageFetchLimit,
+  });
+  expect(deletedListAllMediaRes.images.length).toBe(previousThumbnails - 1);
 });
 
 test("Purge user, uploaded image removed", async () => {
