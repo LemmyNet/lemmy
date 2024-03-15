@@ -38,7 +38,9 @@ pub struct BlockUser {
   pub(crate) remove_data: Option<bool>,
   /// block reason, written to mod log
   pub(crate) summary: Option<String>,
+  /// deprecated
   pub(crate) expires: Option<DateTime<Utc>>,
+  pub(crate) end_time: Option<DateTime<Utc>>,
 }
 
 #[async_trait::async_trait]
