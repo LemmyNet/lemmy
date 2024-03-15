@@ -27,7 +27,7 @@ use crate::{
   },
 };
 use ::url::Url;
-use chrono::{TimeDelta, Utc};
+use chrono::Utc;
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
 use diesel_async::RunQueryDsl;
 use std::collections::HashSet;
@@ -105,12 +105,7 @@ impl Post {
       .filter(post::deleted.eq(false))
       .filter(post::removed.eq(false))
       .filter(
-        post::published.ge(
-          Utc::now().naive_utc()
-            - TimeDelta::try_days(SITEMAP_DAYS)
-              .ok_or("TimeDelta out of bounds")
-              .map_err(|e| Error::QueryBuilderError(e.into()))?,
-        ),
+        post::published.ge(Utc::now().naive_utc() - SITEMAP_DAYS.expect("TimeDelta out of bounds")),
       )
       .order(post::published.desc())
       .limit(SITEMAP_LIMIT)
