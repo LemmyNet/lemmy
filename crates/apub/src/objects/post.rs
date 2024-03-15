@@ -26,6 +26,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   request::fetch_link_metadata_opt,
   utils::{
+    get_url_blocklist,
     local_site_opt_to_sensitive,
     local_site_opt_to_slur_regex,
     process_markdown_opt,
@@ -246,9 +247,10 @@ impl Object for ApubPost {
       let thumbnail_url = proxy_image_link_opt_apub(thumbnail_url, context).await?;
 
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+      let url_blocklist = get_url_blocklist(context).await?;
 
       let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
-      let body = process_markdown_opt(&body, slur_regex, context).await?;
+      let body = process_markdown_opt(&body, slur_regex, &url_blocklist, context).await?;
       let language_id =
         LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 

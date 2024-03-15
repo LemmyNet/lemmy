@@ -9,6 +9,7 @@ use lemmy_api_common::{
     generate_inbox_url,
     generate_local_apub_endpoint,
     generate_shared_inbox_url,
+    get_url_blocklist,
     is_admin,
     local_site_to_slur_regex,
     process_markdown_opt,
@@ -53,9 +54,11 @@ pub async fn create_community(
   }
 
   let slur_regex = local_site_to_slur_regex(&local_site);
+  let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
-  let description = process_markdown_opt(&data.description, &slur_regex, &context).await?;
+  let description =
+    process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context).await?;
   let icon = proxy_image_link_api(&data.icon, &context).await?;
   let banner = proxy_image_link_api(&data.banner, &context).await?;
 

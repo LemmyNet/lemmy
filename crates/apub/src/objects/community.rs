@@ -21,6 +21,7 @@ use lemmy_api_common::{
     generate_featured_url,
     generate_moderators_url,
     generate_outbox_url,
+    get_url_blocklist,
     local_site_opt_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_apub,
@@ -141,8 +142,10 @@ impl Object for ApubCommunity {
 
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+    let url_blocklist = get_url_blocklist(context).await?;
     let description = read_from_string_or_source_opt(&group.summary, &None, &group.source);
-    let description = process_markdown_opt(&description, slur_regex, context).await?;
+    let description =
+      process_markdown_opt(&description, slur_regex, &url_blocklist, context).await?;
     let icon = proxy_image_link_opt_apub(group.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.map(|i| i.url), context).await?;
 

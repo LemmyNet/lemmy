@@ -9,6 +9,7 @@ use lemmy_api_common::{
   utils::{
     check_community_user_action,
     generate_local_apub_endpoint,
+    get_url_blocklist,
     honeypot_check,
     local_site_to_slur_regex,
     mark_post_as_read,
@@ -38,6 +39,7 @@ use lemmy_utils::{
     validation::{
       check_url_scheme,
       clean_url_params,
+      is_url_blocked,
       is_valid_alt_text_field,
       is_valid_body_field,
       is_valid_post_title,
@@ -60,8 +62,9 @@ pub async fn create_post(
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.name, &slur_regex)?;
+  let url_blocklist = get_url_blocklist(&context).await?;
 
-  let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
+  let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
   let data_url = data.url.as_ref();
   let url = data_url.map(clean_url_params); // TODO no good way to handle a "clear"
   let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);
@@ -69,6 +72,7 @@ pub async fn create_post(
   is_valid_post_title(&data.name)?;
   is_valid_body_field(&body, true)?;
   is_valid_alt_text_field(&data.alt_text)?;
+  is_url_blocked(&url, &url_blocklist)?;
   check_url_scheme(&url)?;
   check_url_scheme(&custom_thumbnail)?;
 
