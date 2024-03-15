@@ -5,7 +5,12 @@ use lemmy_api_common::{
   comment::{CommentResponse, EditComment},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_user_action, local_site_to_slur_regex, process_markdown_opt},
+  utils::{
+    check_community_user_action,
+    get_url_blocklist,
+    local_site_to_slur_regex,
+    process_markdown_opt,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -54,7 +59,8 @@ pub async fn update_comment(
   .await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
-  let content = process_markdown_opt(&data.content, &slur_regex, &context).await?;
+  let url_blocklist = get_url_blocklist(&context).await?;
+  let content = process_markdown_opt(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&content, false)?;
 
   let comment_id = data.comment_id;

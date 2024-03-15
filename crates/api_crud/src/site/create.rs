@@ -6,6 +6,7 @@ use lemmy_api_common::{
   site::{CreateSite, SiteResponse},
   utils::{
     generate_shared_inbox_url,
+    get_url_blocklist,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
@@ -58,7 +59,8 @@ pub async fn create_site(
   let keypair = generate_actor_keypair()?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
-  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &context).await?;
+  let url_blocklist = get_url_blocklist(&context).await?;
+  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
   let icon = proxy_image_link_opt_api(&data.icon, &context).await?;
   let banner = proxy_image_link_opt_api(&data.banner, &context).await?;
 

@@ -135,6 +135,7 @@ pub enum LemmyErrorType {
   CouldntSetAllRegistrationsAccepted,
   CouldntSetAllEmailVerified,
   Banned,
+  BlockedUrl,
   CouldntGetComments,
   CouldntGetPosts,
   InvalidUrl,
