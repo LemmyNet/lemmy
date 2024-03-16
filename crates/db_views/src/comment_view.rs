@@ -355,6 +355,7 @@ mod tests {
       instance::Instance,
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm},
+      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostInsertForm},
@@ -528,6 +529,7 @@ mod tests {
 
     let timmy_local_user_view = LocalUserView {
       local_user: inserted_timmy_local_user.clone(),
+      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_timmy_person.clone(),
       counts: Default::default(),
     };

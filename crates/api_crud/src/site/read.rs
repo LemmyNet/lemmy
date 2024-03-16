@@ -6,6 +6,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::source::{
   actor_language::{LocalUserLanguage, SiteLanguage},
   language::Language,
+  local_site_url_blocklist::LocalSiteUrlBlocklist,
   tagline::Tagline,
 };
 use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
@@ -47,6 +48,7 @@ pub async fn get_site(
       let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
       let custom_emojis =
         CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
+      let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
       Ok(GetSiteResponse {
         site_view,
         admins,
@@ -56,6 +58,7 @@ pub async fn get_site(
         discussion_languages,
         taglines,
         custom_emojis,
+        blocked_urls,
       })
     })
     .await

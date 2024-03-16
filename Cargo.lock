@@ -16,9 +16,9 @@ checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 
 [[package]]
 name = "activitypub_federation"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eee115a53849bbcac6c953495b5f9322b56680c0a1bdef6813183f0453f9ee3c"
+checksum = "a028034c642d3ed16b535f98f48b3df30397833c183d68852d79de16650d5ed5"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
@@ -2584,6 +2584,7 @@ version = "0.19.3"
 dependencies = [
  "activitypub_federation",
  "actix-web",
+ "anyhow",
  "chrono",
  "encoding",
  "enum-map",
@@ -2596,6 +2597,7 @@ dependencies = [
  "lemmy_db_views_moderator",
  "lemmy_utils",
  "mime",
+ "moka",
  "once_cell",
  "pretty_assertions",
  "regex",

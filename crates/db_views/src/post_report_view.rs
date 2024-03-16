@@ -15,15 +15,19 @@ use lemmy_db_schema::{
   schema::{
     community,
     community_actions,
+    local_user,
     person,
+    person_actions,
     post,
     post_actions,
     post_aggregates,
     post_report,
   },
+  source::community::CommunityFollower,
   utils::{
     actions,
     actions_alias,
+    functions::coalesce,
     get_conn,
     limit_and_offset,
     DbConn,
@@ -40,10 +44,12 @@ fn queries<'a>() -> Queries<
 > {
   let all_joins = |query: post_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
     query
-      .inner_join(post::table)
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
+      .inner_join(
+        post::table
+          .inner_join(community::table)
+          .inner_join(aliases::person1.left_join(local_user::table)),
+      )
       .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
-      .inner_join(aliases::person1.on(post::creator_id.eq(aliases::person1.field(person::id))))
       .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
       .left_join(
         aliases::person2
@@ -53,6 +59,16 @@ fn queries<'a>() -> Queries<
       .left_join(actions_alias(
         creator_community_actions,
         post::creator_id,
+        post::community_id,
+      ))
+      .left_join(actions(
+        person_actions::table,
+        Some(my_person_id),
+        post::creator_id,
+      ))
+      .left_join(actions(
+        community_actions::table,
+        Some(my_person_id),
         post::community_id,
       ))
       .select((
@@ -65,7 +81,18 @@ fn queries<'a>() -> Queries<
           .field(community_actions::received_ban)
           .nullable()
           .is_not_null(),
+        creator_community_actions
+          .field(community_actions::became_moderator)
+          .nullable()
+          .is_not_null(),
+        coalesce(local_user::admin.nullable(), false),
+        CommunityFollower::select_subscribed_type(),
+        post_actions::saved.nullable().is_not_null(),
+        post_actions::read.nullable().is_not_null(),
+        post_actions::hidden.nullable().is_not_null(),
+        person_actions::blocked.nullable().is_not_null(),
         post_actions::like_score.nullable(),
+        post_aggregates::comments - coalesce(post_actions::read_comments_amount.nullable(), 0),
         post_aggregates::all_columns,
         aliases::person2.fields(person::all_columns.nullable()),
       ))
@@ -106,20 +133,10 @@ fn queries<'a>() -> Queries<
 
     // If its not an admin, get only the ones you mod
     if !user.local_user.admin {
-      query
-        .inner_join(
-          community_actions::table.on(
-            community_actions::community_id
-              .eq(post::community_id)
-              .and(community_actions::person_id.eq(user.person.id))
-              .and(community_actions::became_moderator.is_not_null()),
-          ),
-        )
-        .load::<PostReportView>(&mut conn)
-        .await
-    } else {
-      query.load::<PostReportView>(&mut conn).await
+      query = query.filter(community_actions::became_moderator.is_not_null());
     }
+
+    query.load::<PostReportView>(&mut conn).await
   };
 
   Queries::new(read, list)
@@ -212,6 +229,7 @@ mod tests {
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
+      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
       post_report::{PostReport, PostReportForm},
@@ -247,6 +265,7 @@ mod tests {
     let timmy_local_user = LocalUser::create(pool, &new_local_user).await.unwrap();
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
+      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_timmy.clone(),
       counts: Default::default(),
     };

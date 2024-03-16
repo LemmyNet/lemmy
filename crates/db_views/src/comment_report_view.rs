@@ -20,9 +20,12 @@ use lemmy_db_schema::{
     comment_report,
     community,
     community_actions,
+    local_user,
     person,
+    person_actions,
     post,
   },
+  source::community::CommunityFollower,
   utils::{
     actions,
     actions_alias,
@@ -43,11 +46,12 @@ fn queries<'a>() -> Queries<
 > {
   let all_joins = |query: comment_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
     query
-      .inner_join(comment::table)
-      .inner_join(post::table.on(comment::post_id.eq(post::id)))
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(aliases::person1.on(comment::creator_id.eq(aliases::person1.field(person::id))))
+      .inner_join(
+        comment::table
+          .inner_join(post::table.inner_join(community::table))
+          .inner_join(aliases::person1.left_join(local_user::table)),
+      )
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
       )
@@ -55,6 +59,16 @@ fn queries<'a>() -> Queries<
         comment_actions::table,
         Some(my_person_id),
         comment_report::comment_id,
+      ))
+      .left_join(actions(
+        person_actions::table,
+        Some(my_person_id),
+        comment::creator_id,
+      ))
+      .left_join(actions(
+        community_actions::table,
+        Some(my_person_id),
+        post::community_id,
       ))
       .left_join(
         aliases::person2
@@ -77,7 +91,7 @@ fn queries<'a>() -> Queries<
           creator_community_actions
             .field(community_actions::received_ban)
             .nullable()
-            .is_null()
+            .is_not_null()
             .or(
               creator_community_actions
                 .field(community_actions::ban_expires)
@@ -86,6 +100,14 @@ fn queries<'a>() -> Queries<
             ),
           false,
         ),
+        creator_community_actions
+          .field(community_actions::became_moderator)
+          .nullable()
+          .is_not_null(),
+        coalesce(local_user::admin.nullable(), false),
+        person_actions::blocked.nullable().is_not_null(),
+        CommunityFollower::select_subscribed_type(),
+        comment_actions::saved.nullable().is_not_null(),
         comment_actions::like_score.nullable(),
         aliases::person2.fields(person::all_columns).nullable(),
       ))
@@ -127,20 +149,10 @@ fn queries<'a>() -> Queries<
 
     // If its not an admin, get only the ones you mod
     if !user.local_user.admin {
-      query
-        .inner_join(
-          community_actions::table.on(
-            community_actions::community_id
-              .eq(post::community_id)
-              .and(community_actions::person_id.eq(user.person.id))
-              .and(community_actions::became_moderator.is_not_null()),
-          ),
-        )
-        .load::<CommentReportView>(&mut conn)
-        .await
-    } else {
-      query.load::<CommentReportView>(&mut conn).await
+      query = query.filter(community_actions::became_moderator.is_not_null());
     }
+
+    query.load::<CommentReportView>(&mut conn).await
   };
 
   Queries::new(read, list)
@@ -238,12 +250,14 @@ mod tests {
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
+      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Joinable, Reportable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
     CommunityVisibility,
+    SubscribedType,
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -273,6 +287,7 @@ mod tests {
     let timmy_local_user = LocalUser::create(pool, &new_local_user).await.unwrap();
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
+      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_timmy.clone(),
       counts: Default::default(),
     };
@@ -365,6 +380,11 @@ mod tests {
       comment_report: inserted_jessica_report.clone(),
       comment: inserted_comment.clone(),
       post: inserted_post,
+      creator_is_moderator: true,
+      creator_is_admin: false,
+      creator_blocked: false,
+      subscribed: SubscribedType::NotSubscribed,
+      saved: false,
       community: Community {
         id: inserted_community.id,
         name: inserted_community.name,

@@ -30,8 +30,11 @@ pub async fn list_posts(
   let page = data.page;
   let limit = data.limit;
   let community_id = if let Some(name) = &data.community_name {
-    Some(resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &None, true).await?)
-      .map(|c| c.id)
+    Some(
+      resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
+        .await?,
+    )
+    .map(|c| c.id)
   } else {
     data.community_id
   };

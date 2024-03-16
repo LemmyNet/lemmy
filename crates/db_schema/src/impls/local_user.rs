@@ -4,6 +4,7 @@ use crate::{
   source::{
     actor_language::{LocalUserLanguage, SiteLanguage},
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+    local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeInsertForm},
   },
   traits::Crud,
   utils::{
@@ -210,6 +211,12 @@ impl Crud for LocalUser {
       // for first admin user, which is created before site)
       LocalUserLanguage::update(pool, vec![], local_user_.id).await?;
     }
+
+    // Create their vote_display_modes
+    let vote_display_mode_form = LocalUserVoteDisplayModeInsertForm::builder()
+      .local_user_id(local_user_.id)
+      .build();
+    LocalUserVoteDisplayMode::create(pool, &vote_display_mode_form).await?;
 
     Ok(local_user_)
   }

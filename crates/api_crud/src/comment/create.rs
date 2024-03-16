@@ -10,6 +10,7 @@ use lemmy_api_common::{
     check_post_deleted_or_removed,
     generate_local_apub_endpoint,
     get_post,
+    get_url_blocklist,
     is_mod_or_admin,
     local_site_to_slur_regex,
     process_markdown,
@@ -44,7 +45,8 @@ pub async fn create_comment(
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
-  let content = process_markdown(&data.content, &slur_regex, &context).await?;
+  let url_blocklist = get_url_blocklist(&context).await?;
+  let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&Some(content.clone()), false)?;
 
   // Check for a community ban
