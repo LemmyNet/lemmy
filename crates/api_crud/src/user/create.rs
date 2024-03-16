@@ -21,6 +21,7 @@ use lemmy_db_schema::{
   source::{
     captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
     local_user::{LocalUser, LocalUserInsertForm},
+    local_user_vote_display_mode::LocalUserVoteDisplayMode,
     person::{Person, PersonInsertForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
@@ -183,6 +184,7 @@ pub async fn register(
     if local_site.require_email_verification {
       let local_user_view = LocalUserView {
         local_user: inserted_local_user,
+        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
         person: inserted_person,
         counts: PersonAggregates::default(),
       };

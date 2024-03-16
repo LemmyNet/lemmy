@@ -18,7 +18,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{is_mod_or_admin, local_site_opt_to_slur_regex, process_markdown},
+  utils::{get_url_blocklist, is_mod_or_admin, local_site_opt_to_slur_regex, process_markdown},
 };
 use lemmy_db_schema::{
   source::{
@@ -165,7 +165,8 @@ impl Object for ApubComment {
 
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
-    let content = process_markdown(&content, slur_regex, context).await?;
+    let url_blocklist = get_url_blocklist(context).await?;
+    let content = process_markdown(&content, slur_regex, &url_blocklist, context).await?;
     let language_id =
       LanguageTag::to_language_id_single(note.language, &mut context.pool()).await?;
 

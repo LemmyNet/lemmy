@@ -410,6 +410,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    local_site_url_blocklist (id) {
+        id -> Int4,
+        url -> Text,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::SortTypeEnum;
     use super::sql_types::ListingTypeEnum;
@@ -451,6 +460,16 @@ diesel::table! {
     local_user_language (local_user_id, language_id) {
         local_user_id -> Int4,
         language_id -> Int4,
+    }
+}
+
+diesel::table! {
+    local_user_vote_display_mode (local_user_id) {
+        local_user_id -> Int4,
+        score -> Bool,
+        upvotes -> Bool,
+        downvotes -> Bool,
+        upvote_percentage -> Bool,
     }
 }
 
@@ -961,6 +980,7 @@ diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
 diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
+diesel::joinable!(local_user_vote_display_mode -> local_user (local_user_id));
 diesel::joinable!(login_token -> local_user (user_id));
 diesel::joinable!(mod_add_community -> community (community_id));
 diesel::joinable!(mod_ban_from_community -> community (community_id));
@@ -1041,8 +1061,10 @@ diesel::allow_tables_to_appear_in_same_query!(
     local_image,
     local_site,
     local_site_rate_limit,
+    local_site_url_blocklist,
     local_user,
     local_user_language,
+    local_user_vote_display_mode,
     login_token,
     mod_add,
     mod_add_community,

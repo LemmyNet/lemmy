@@ -18,6 +18,7 @@ import {
   resolveBetaCommunity,
   createComment,
   deletePost,
+  delay,
   removePost,
   getPost,
   unfollowRemotes,
@@ -709,4 +710,26 @@ test("Fetch post via redirect", async () => {
   expect(gammaPost).toBeDefined();
   expect(gammaPost.post?.post.ap_id).toBe(alphaPost.post_view.post.ap_id);
   await unfollowRemotes(alpha);
+});
+
+test("Block post that contains banned URL", async () => {
+  let editSiteForm: EditSite = {
+    blocked_urls: ["https://evil.com/"],
+  };
+
+  await epsilon.editSite(editSiteForm);
+
+  await delay(500);
+
+  if (!betaCommunity) {
+    throw "Missing beta community";
+  }
+
+  expect(
+    createPost(epsilon, betaCommunity.community.id, "https://evil.com"),
+  ).rejects.toStrictEqual(Error("blocked_url"));
+
+  // Later tests need this to be empty
+  editSiteForm.blocked_urls = [];
+  await epsilon.editSite(editSiteForm);
 });
