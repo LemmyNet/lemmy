@@ -34,7 +34,10 @@ SET
 FROM
     post
 WHERE
-    post_aggregates.post_id = post.id;
+    post_aggregates.post_id = post.id
+    AND (post_aggregates.featured_local,
+        post_aggregates.featured_community) != (post.featured_local,
+        post.featured_community);
 
 UPDATE
     community_aggregates
@@ -62,7 +65,8 @@ FROM (
     GROUP BY
         community_id) AS counted
 WHERE
-    community_aggregates.community_id = counted.community_id;
+    community_aggregates.community_id = counted.community_id
+    AND community_aggregates.comments != counted.comments;
 
 UPDATE
     site_aggregates
