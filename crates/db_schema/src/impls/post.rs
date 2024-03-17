@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::{post, post_hide, post_like, post_read, post_saved},
+  schema::{post, post_actions},
   source::post::{
     Post,
     PostHide,
@@ -19,6 +19,7 @@ use crate::{
     functions::coalesce,
     get_conn,
     naive_now,
+    now,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
@@ -27,8 +28,15 @@ use crate::{
   },
 };
 use ::url::Url;
-use chrono::{Duration, Utc};
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use chrono::{DateTime, Duration, Utc};
+use diesel::{
+  dsl::{self, insert_into},
+  result::Error,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  QueryDsl,
+  TextExpressionMethods,
+};
 use diesel_async::RunQueryDsl;
 use std::collections::HashSet;
 
@@ -240,17 +248,37 @@ impl Post {
   }
 }
 
+// TODO: replace `as_select_unwrap` definitions with `Default::default()` after next Diesel release which should
+// implement `Default` for `AssumeNotNull`
+impl PostLike {
+  fn as_select_unwrap() -> (
+    post_actions::post_id,
+    post_actions::person_id,
+    dsl::AssumeNotNull<post_actions::like_score>,
+    dsl::AssumeNotNull<post_actions::liked>,
+  ) {
+    (
+      post_actions::post_id,
+      post_actions::person_id,
+      post_actions::like_score.assume_not_null(),
+      post_actions::liked.assume_not_null(),
+    )
+  }
+}
+
 #[async_trait]
 impl Likeable for PostLike {
   type Form = PostLikeForm;
   type IdType = PostId;
   async fn like(pool: &mut DbPool<'_>, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(post_like::table)
+    let post_like_form = (post_like_form, post_actions::liked.eq(now().nullable()));
+    insert_into(post_actions::table)
       .values(post_like_form)
-      .on_conflict((post_like::post_id, post_like::person_id))
+      .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(post_like_form)
+      .returning(Self::as_select_unwrap())
       .get_result::<Self>(conn)
       .await
   }
@@ -260,9 +288,27 @@ impl Likeable for PostLike {
     post_id: PostId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(post_like::table.find((person_id, post_id)))
+    diesel::update(post_actions::table.find((person_id, post_id)))
+      .set((
+        post_actions::like_score.eq(None::<i16>),
+        post_actions::liked.eq(None::<DateTime<Utc>>),
+      ))
       .execute(conn)
       .await
+  }
+}
+
+impl PostSaved {
+  fn as_select_unwrap() -> (
+    post_actions::post_id,
+    post_actions::person_id,
+    dsl::AssumeNotNull<post_actions::saved>,
+  ) {
+    (
+      post_actions::post_id,
+      post_actions::person_id,
+      post_actions::saved.assume_not_null(),
+    )
   }
 }
 
@@ -271,17 +317,20 @@ impl Saveable for PostSaved {
   type Form = PostSavedForm;
   async fn save(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(post_saved::table)
+    let post_saved_form = (post_saved_form, post_actions::saved.eq(now().nullable()));
+    insert_into(post_actions::table)
       .values(post_saved_form)
-      .on_conflict((post_saved::post_id, post_saved::person_id))
+      .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(post_saved_form)
+      .returning(Self::as_select_unwrap())
       .get_result::<Self>(conn)
       .await
   }
   async fn unsave(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(post_saved::table.find((post_saved_form.person_id, post_saved_form.post_id)))
+    diesel::update(post_actions::table.find((post_saved_form.person_id, post_saved_form.post_id)))
+      .set(post_actions::saved.eq(None::<DateTime<Utc>>))
       .execute(conn)
       .await
   }
@@ -297,11 +346,18 @@ impl PostRead {
 
     let forms = post_ids
       .into_iter()
-      .map(|post_id| PostReadForm { post_id, person_id })
-      .collect::<Vec<PostReadForm>>();
-    insert_into(post_read::table)
+      .map(|post_id| {
+        (
+          PostReadForm { post_id, person_id },
+          post_actions::read.eq(now().nullable()),
+        )
+      })
+      .collect::<Vec<_>>();
+    insert_into(post_actions::table)
       .values(forms)
-      .on_conflict_do_nothing()
+      .on_conflict((post_actions::person_id, post_actions::post_id))
+      .do_update()
+      .set(post_actions::read.eq(now().nullable()))
       .execute(conn)
       .await
   }
@@ -313,11 +369,12 @@ impl PostRead {
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel::delete(
-      post_read::table
-        .filter(post_read::post_id.eq_any(post_id_))
-        .filter(post_read::person_id.eq(person_id_)),
+    diesel::update(
+      post_actions::table
+        .filter(post_actions::post_id.eq_any(post_id_))
+        .filter(post_actions::person_id.eq(person_id_)),
     )
+    .set(post_actions::read.eq(None::<DateTime<Utc>>))
     .execute(conn)
     .await
   }
@@ -333,11 +390,18 @@ impl PostHide {
 
     let forms = post_ids
       .into_iter()
-      .map(|post_id| PostHideForm { post_id, person_id })
-      .collect::<Vec<PostHideForm>>();
-    insert_into(post_hide::table)
+      .map(|post_id| {
+        (
+          PostHideForm { post_id, person_id },
+          post_actions::hidden.eq(now().nullable()),
+        )
+      })
+      .collect::<Vec<_>>();
+    insert_into(post_actions::table)
       .values(forms)
-      .on_conflict_do_nothing()
+      .on_conflict((post_actions::person_id, post_actions::post_id))
+      .do_update()
+      .set(post_actions::hidden.eq(now().nullable()))
       .execute(conn)
       .await
   }
@@ -349,11 +413,12 @@ impl PostHide {
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel::delete(
-      post_hide::table
-        .filter(post_hide::post_id.eq_any(post_id_))
-        .filter(post_hide::person_id.eq(person_id_)),
+    diesel::update(
+      post_actions::table
+        .filter(post_actions::post_id.eq_any(post_id_))
+        .filter(post_actions::person_id.eq(person_id_)),
     )
+    .set(post_actions::hidden.eq(None::<DateTime<Utc>>))
     .execute(conn)
     .await
   }

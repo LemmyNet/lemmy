@@ -1,5 +1,5 @@
 #[cfg(feature = "full")]
-use crate::schema::{community, community_follower, community_moderator, community_person_ban};
+use crate::schema::{community, community_actions};
 use crate::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   source::placeholder_apub_url,
@@ -133,15 +133,12 @@ pub struct CommunityUpdateForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::community::Community))
 )]
-#[cfg_attr(feature = "full", diesel(table_name = community_moderator))]
+#[cfg_attr(feature = "full", diesel(table_name = community_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct CommunityModerator {
@@ -152,22 +149,19 @@ pub struct CommunityModerator {
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = community_moderator))]
+#[cfg_attr(feature = "full", diesel(table_name = community_actions))]
 pub struct CommunityModeratorForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::community::Community))
 )]
-#[cfg_attr(feature = "full", diesel(table_name = community_person_ban))]
+#[cfg_attr(feature = "full", diesel(table_name = community_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct CommunityPersonBan {
@@ -179,23 +173,21 @@ pub struct CommunityPersonBan {
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = community_person_ban))]
+#[cfg_attr(feature = "full", diesel(table_name = community_actions))]
 pub struct CommunityPersonBanForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
+  #[cfg_attr(feature = "full", diesel(column_name = ban_expires))]
   pub expires: Option<Option<DateTime<Utc>>>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(
-  feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
-)]
+#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::community::Community))
 )]
-#[cfg_attr(feature = "full", diesel(table_name = community_follower))]
+#[cfg_attr(feature = "full", diesel(table_name = community_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, community_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct CommunityFollower {
@@ -207,9 +199,10 @@ pub struct CommunityFollower {
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = community_follower))]
+#[cfg_attr(feature = "full", diesel(table_name = community_actions))]
 pub struct CommunityFollowerForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
+  #[cfg_attr(feature = "full", diesel(column_name = follow_pending))]
   pub pending: bool,
 }

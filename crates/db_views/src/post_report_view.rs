@@ -10,26 +10,23 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aliases,
+  aliases::{self, creator_community_actions},
   newtypes::{CommunityId, PersonId, PostId, PostReportId},
   schema::{
     community,
-    community_follower,
-    community_moderator,
-    community_person_ban,
+    community_actions,
     local_user,
     person,
-    person_block,
-    person_post_aggregates,
+    person_actions,
     post,
+    post_actions,
     post_aggregates,
-    post_hide,
-    post_like,
-    post_read,
     post_report,
-    post_saved,
   },
+  source::community::CommunityFollower,
   utils::{
+    actions,
+    actions_alias,
     functions::coalesce,
     get_conn,
     limit_and_offset,
@@ -47,112 +44,55 @@ fn queries<'a>() -> Queries<
 > {
   let all_joins = |query: post_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
     query
-      .inner_join(post::table)
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
+      .inner_join(
+        post::table
+          .inner_join(community::table)
+          .inner_join(aliases::person1.left_join(local_user::table)),
+      )
       .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
-      .inner_join(aliases::person1.on(post::creator_id.eq(aliases::person1.field(person::id))))
-      .left_join(
-        community_person_ban::table.on(
-          post::community_id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id)),
-        ),
-      )
-      .left_join(
-        aliases::community_moderator1.on(
-          aliases::community_moderator1
-            .field(community_moderator::community_id)
-            .eq(post::community_id)
-            .and(
-              aliases::community_moderator1
-                .field(community_moderator::person_id)
-                .eq(my_person_id),
-            ),
-        ),
-      )
-      .left_join(
-        local_user::table.on(
-          post::creator_id
-            .eq(local_user::person_id)
-            .and(local_user::admin.eq(true)),
-        ),
-      )
-      .left_join(
-        post_saved::table.on(
-          post::id
-            .eq(post_saved::post_id)
-            .and(post_saved::person_id.eq(my_person_id)),
-        ),
-      )
-      .left_join(
-        post_read::table.on(
-          post::id
-            .eq(post_read::post_id)
-            .and(post_read::person_id.eq(my_person_id)),
-        ),
-      )
-      .left_join(
-        post_hide::table.on(
-          post::id
-            .eq(post_hide::post_id)
-            .and(post_hide::person_id.eq(my_person_id)),
-        ),
-      )
-      .left_join(
-        person_block::table.on(
-          post::creator_id
-            .eq(person_block::target_id)
-            .and(person_block::person_id.eq(my_person_id)),
-        ),
-      )
-      .left_join(
-        person_post_aggregates::table.on(
-          post::id
-            .eq(person_post_aggregates::post_id)
-            .and(person_post_aggregates::person_id.eq(my_person_id)),
-        ),
-      )
-      .left_join(
-        community_follower::table.on(
-          post::community_id
-            .eq(community_follower::community_id)
-            .and(community_follower::person_id.eq(my_person_id)),
-        ),
-      )
-      .left_join(
-        post_like::table.on(
-          post::id
-            .eq(post_like::post_id)
-            .and(post_like::person_id.eq(my_person_id)),
-        ),
-      )
       .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
       .left_join(
         aliases::person2
           .on(post_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
       )
+      .left_join(actions(post_actions::table, Some(my_person_id), post::id))
+      .left_join(actions_alias(
+        creator_community_actions,
+        post::creator_id,
+        post::community_id,
+      ))
+      .left_join(actions(
+        person_actions::table,
+        Some(my_person_id),
+        post::creator_id,
+      ))
+      .left_join(actions(
+        community_actions::table,
+        Some(my_person_id),
+        post::community_id,
+      ))
       .select((
         post_report::all_columns,
         post::all_columns,
         community::all_columns,
         person::all_columns,
         aliases::person1.fields(person::all_columns),
-        community_person_ban::community_id.nullable().is_not_null(),
-        aliases::community_moderator1
-          .field(community_moderator::community_id)
+        creator_community_actions
+          .field(community_actions::received_ban)
           .nullable()
           .is_not_null(),
-        local_user::admin.nullable().is_not_null(),
-        community_follower::pending.nullable(),
-        post_saved::post_id.nullable().is_not_null(),
-        post_read::post_id.nullable().is_not_null(),
-        post_hide::post_id.nullable().is_not_null(),
-        person_block::target_id.nullable().is_not_null(),
-        post_like::score.nullable(),
-        coalesce(
-          post_aggregates::comments.nullable() - person_post_aggregates::read_comments.nullable(),
-          post_aggregates::comments,
-        ),
+        creator_community_actions
+          .field(community_actions::became_moderator)
+          .nullable()
+          .is_not_null(),
+        coalesce(local_user::admin.nullable(), false),
+        CommunityFollower::select_subscribed_type(),
+        post_actions::saved.nullable().is_not_null(),
+        post_actions::read.nullable().is_not_null(),
+        post_actions::hidden.nullable().is_not_null(),
+        person_actions::blocked.nullable().is_not_null(),
+        post_actions::like_score.nullable(),
+        post_aggregates::comments - coalesce(post_actions::read_comments_amount.nullable(), 0),
         post_aggregates::all_columns,
         aliases::person2.fields(person::all_columns.nullable()),
       ))
@@ -193,19 +133,10 @@ fn queries<'a>() -> Queries<
 
     // If its not an admin, get only the ones you mod
     if !user.local_user.admin {
-      query
-        .inner_join(
-          community_moderator::table.on(
-            community_moderator::community_id
-              .eq(post::community_id)
-              .and(community_moderator::person_id.eq(user.person.id)),
-          ),
-        )
-        .load::<PostReportView>(&mut conn)
-        .await
-    } else {
-      query.load::<PostReportView>(&mut conn).await
+      query = query.filter(community_actions::became_moderator.is_not_null());
     }
+
+    query.load::<PostReportView>(&mut conn).await
   };
 
   Queries::new(read, list)
@@ -245,10 +176,11 @@ impl PostReportView {
     if !admin {
       query
         .inner_join(
-          community_moderator::table.on(
-            community_moderator::community_id
+          community_actions::table.on(
+            community_actions::community_id
               .eq(post::community_id)
-              .and(community_moderator::person_id.eq(my_person_id)),
+              .and(community_actions::person_id.eq(my_person_id))
+              .and(community_actions::became_moderator.is_not_null()),
           ),
         )
         .select(count(post_report::id))

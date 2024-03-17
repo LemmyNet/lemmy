@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
-  schema::{comment, community, instance, local_user, person, person_follower, post},
+  schema::{comment, community, instance, local_user, person, person_actions, post},
   source::person::{
     Person,
     PersonFollower,
@@ -9,9 +9,18 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Crud, Followable},
-  utils::{functions::lower, get_conn, naive_now, DbPool},
+  utils::{action_query, functions::lower, get_conn, naive_now, now, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error, CombineDsl, ExpressionMethods, JoinOnDsl, QueryDsl};
+use chrono::{DateTime, Utc};
+use diesel::{
+  dsl::{self, insert_into},
+  result::Error,
+  CombineDsl,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -170,17 +179,34 @@ impl ApubActor for Person {
   }
 }
 
+impl PersonFollower {
+  fn as_select_unwrap() -> (
+    person_actions::target_id,
+    person_actions::person_id,
+    dsl::AssumeNotNull<person_actions::followed>,
+    dsl::AssumeNotNull<person_actions::follow_pending>,
+  ) {
+    (
+      person_actions::target_id,
+      person_actions::person_id,
+      person_actions::followed.assume_not_null(),
+      person_actions::follow_pending.assume_not_null(),
+    )
+  }
+}
+
 #[async_trait]
 impl Followable for PersonFollower {
   type Form = PersonFollowerForm;
   async fn follow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<Self, Error> {
-    use crate::schema::person_follower::dsl::{follower_id, person_follower, person_id};
     let conn = &mut get_conn(pool).await?;
-    insert_into(person_follower)
+    let form = (form, person_actions::followed.eq(now().nullable()));
+    insert_into(person_actions::table)
       .values(form)
-      .on_conflict((follower_id, person_id))
+      .on_conflict((person_actions::person_id, person_actions::target_id))
       .do_update()
       .set(form)
+      .returning(Self::as_select_unwrap())
       .get_result::<Self>(conn)
       .await
   }
@@ -188,9 +214,12 @@ impl Followable for PersonFollower {
     unimplemented!()
   }
   async fn unfollow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<usize, Error> {
-    use crate::schema::person_follower::dsl::person_follower;
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(person_follower.find((form.follower_id, form.person_id)))
+    diesel::update(person_actions::table.find((form.follower_id, form.person_id)))
+      .set((
+        person_actions::followed.eq(None::<DateTime<Utc>>),
+        person_actions::follow_pending.eq(None::<bool>),
+      ))
       .execute(conn)
       .await
   }
@@ -202,9 +231,9 @@ impl PersonFollower {
     for_person_id: PersonId,
   ) -> Result<Vec<Person>, Error> {
     let conn = &mut get_conn(pool).await?;
-    person_follower::table
-      .inner_join(person::table.on(person_follower::follower_id.eq(person::id)))
-      .filter(person_follower::person_id.eq(for_person_id))
+    action_query(person_actions::followed)
+      .inner_join(person::table.on(person_actions::person_id.eq(person::id)))
+      .filter(person_actions::target_id.eq(for_person_id))
       .select(person::all_columns)
       .load(conn)
       .await

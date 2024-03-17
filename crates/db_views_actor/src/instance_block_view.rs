@@ -3,14 +3,14 @@ use diesel::{result::Error, ExpressionMethods, JoinOnDsl, NullableExpressionMeth
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
-  schema::{instance, instance_block, person, site},
-  utils::{get_conn, DbPool},
+  schema::{instance, instance_actions, person, site},
+  utils::{action_query, get_conn, DbPool},
 };
 
 impl InstanceBlockView {
   pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    instance_block::table
+    action_query(instance_actions::blocked)
       .inner_join(person::table)
       .inner_join(instance::table)
       .left_join(site::table.on(site::instance_id.eq(instance::id)))
@@ -19,8 +19,8 @@ impl InstanceBlockView {
         instance::all_columns,
         site::all_columns.nullable(),
       ))
-      .filter(instance_block::person_id.eq(person_id))
-      .order_by(instance_block::published)
+      .filter(instance_actions::person_id.eq(person_id))
+      .order_by(instance_actions::blocked)
       .load::<InstanceBlockView>(conn)
       .await
   }
