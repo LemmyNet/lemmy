@@ -1,5 +1,5 @@
 use crate::{newtypes::DbUrl, CommentSortType, SortType};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
 use deadpool::Runtime;
 use diesel::{
   helper_types::AsExprOf,
@@ -42,7 +42,7 @@ use url::Url;
 const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
 pub const SITEMAP_LIMIT: i64 = 50000;
-pub const SITEMAP_DAYS: i64 = 31;
+pub const SITEMAP_DAYS: Option<TimeDelta> = TimeDelta::try_days(31);
 pub const RANK_DEFAULT: f64 = 0.0001;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;

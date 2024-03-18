@@ -46,17 +46,17 @@ static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(60);
 /// this delay limits the maximum time until the follow actually results in activities from that community id being sent to that inbox url.
 /// This delay currently needs to not be too small because the DB load is currently fairly high because of the current structure of storing inboxes for every person, not having a separate list of shared_inboxes, and the architecture of having every instance queue be fully separate.
 /// (see https://github.com/LemmyNet/lemmy/issues/3958)
-static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::Duration> = Lazy::new(|| {
+static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::TimeDelta> = Lazy::new(|| {
   if *LEMMY_TEST_FAST_FEDERATION {
-    chrono::Duration::seconds(1)
+    chrono::TimeDelta::try_seconds(1).expect("TimeDelta out of bounds")
   } else {
-    chrono::Duration::minutes(2)
+    chrono::TimeDelta::try_minutes(2).expect("TimeDelta out of bounds")
   }
 });
 /// The same as FOLLOW_ADDITIONS_RECHECK_DELAY, but triggering when the last person on an instance unfollows a specific remote community.
 /// This is expected to happen pretty rarely and updating it in a timely manner is not too important.
-static FOLLOW_REMOVALS_RECHECK_DELAY: Lazy<chrono::Duration> =
-  Lazy::new(|| chrono::Duration::hours(1));
+static FOLLOW_REMOVALS_RECHECK_DELAY: Lazy<chrono::TimeDelta> =
+  Lazy::new(|| chrono::TimeDelta::try_hours(1).expect("TimeDelta out of bounds"));
 pub(crate) struct InstanceWorker {
   instance: Instance,
   // load site lazily because if an instance is first seen due to being on allowlist,
@@ -332,7 +332,8 @@ impl InstanceWorker {
     instance_id: InstanceId,
     last_fetch: DateTime<Utc>,
   ) -> Result<(HashMap<CommunityId, HashSet<Url>>, DateTime<Utc>)> {
-    let new_last_fetch = Utc::now() - chrono::Duration::seconds(10); // update to time before fetch to ensure overlap. subtract 10s to ensure overlap even if published date is not exact
+    let new_last_fetch =
+      Utc::now() - chrono::TimeDelta::try_seconds(10).expect("TimeDelta out of bounds"); // update to time before fetch to ensure overlap. subtract 10s to ensure overlap even if published date is not exact
     Ok((
       CommunityFollowerView::get_instance_followed_community_inboxes(pool, instance_id, last_fetch)
         .await?
