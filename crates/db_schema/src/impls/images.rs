@@ -14,6 +14,8 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use url::Url;
 
 impl LocalImage {
@@ -78,6 +80,17 @@ impl LocalImage {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(local_image::table.filter(local_image::pictrs_alias.eq(alias)))
       .execute(conn)
+      .await
+  }
+
+  pub async fn delete_by_url(pool: &mut DbPool<'_>, url: &DbUrl) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    static IMAGE_REGEX: Lazy<Regex> =
+      Lazy::new(|| Regex::new(r"^.*/pictrs/image/([a-z0-9-]+\.[a-z]+)$").expect("compile regex"));
+    let captures = IMAGE_REGEX.captures(url.as_str()).unwrap();
+    let alias = &captures[1];
+    diesel::delete(local_image::table.filter(local_image::pictrs_alias.eq(alias)))
+      .get_result(conn)
       .await
   }
 }

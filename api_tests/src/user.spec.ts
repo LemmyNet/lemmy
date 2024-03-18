@@ -19,8 +19,9 @@ import {
   getPost,
   getComments,
   fetchFunction,
+  alphaImage,
 } from "./shared";
-import { LemmyHttp, SaveUserSettings } from "lemmy-js-client";
+import { LemmyHttp, SaveUserSettings, UploadImage } from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 
 beforeAll(setupLogins);
@@ -138,4 +139,37 @@ test("Create user with Arabic name", async () => {
 
   let alphaPerson = (await resolvePerson(alpha, apShortname)).person;
   expect(alphaPerson).toBeDefined();
+});
+
+test.only("Set a new avatar, old avatar is deleted", async () => {
+  const listMediaRes = await alphaImage.listMedia();
+  expect(listMediaRes.images.length).toBe(0);
+  const upload_form1: UploadImage = {
+    image: Buffer.from("test1"),
+  };
+  const upload1 = await alphaImage.uploadImage(upload_form1);
+  expect(upload1.url).toBeDefined();
+  console.log(upload1);
+
+  let form1 = {
+    avatar: upload1.url
+  };
+  await saveUserSettings(alpha, form1);
+  const listMediaRes1 = await alphaImage.listMedia();
+  expect(listMediaRes1.images.length).toBe(1);
+  console.log(listMediaRes1);
+
+  const upload_form2: UploadImage = {
+    image: Buffer.from("test2"),
+  };
+  const upload2 = await alphaImage.uploadImage(upload_form2);
+  expect(upload2.url).toBeDefined();
+
+  let form2 = {
+    avatar: upload1.url
+  };
+  await saveUserSettings(alpha, form2);
+  // make sure only the new avatar is kept
+  const listMediaRes2 = await alphaImage.listMedia();
+  expect(listMediaRes2.images.length).toBe(1);
 });
