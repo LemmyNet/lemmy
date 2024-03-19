@@ -17,7 +17,6 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   traits::{ActivityHandler, Actor},
 };
-use anyhow::anyhow;
 use lemmy_api_common::{context::LemmyContext, utils::check_bot_account};
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_utils::error::LemmyError;
