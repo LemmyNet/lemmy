@@ -73,6 +73,17 @@ fn queries<'a>() -> Queries<
         .and(community_person_ban::person_id.eq(post_aggregates::creator_id)),
     ),
   );
+
+  let is_local_user_banned_from_community = |person_id| {
+    exists(
+      community_person_ban::table.filter(
+        post_aggregates::community_id
+          .eq(community_person_ban::community_id)
+          .and(community_person_ban::person_id.eq(person_id)),
+      ),
+    )
+  };
+
   let creator_is_moderator = exists(
     community_moderator::table.filter(
       post_aggregates::community_id
@@ -143,6 +154,14 @@ fn queries<'a>() -> Queries<
 
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>| {
+    let is_local_user_banned_from_community_selection: Box<
+      dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>,
+    > = if let Some(person_id) = my_person_id {
+      Box::new(is_local_user_banned_from_community(person_id))
+    } else {
+      Box::new(false.into_sql::<sql_types::Bool>())
+    };
+
     let is_saved_selection: Box<
       dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Timestamptz>>,
     > = if let Some(person_id) = my_person_id {
@@ -223,6 +242,7 @@ fn queries<'a>() -> Queries<
         person::all_columns,
         community::all_columns,
         is_creator_banned_from_community,
+        is_local_user_banned_from_community_selection,
         creator_is_moderator,
         creator_is_admin,
         post_aggregates::all_columns,
@@ -1604,6 +1624,7 @@ mod tests {
         last_refreshed_at: inserted_person.last_refreshed_at,
       },
       creator_banned_from_community: false,
+      banned_from_community: false,
       creator_is_moderator: false,
       creator_is_admin: true,
       community: Community {
