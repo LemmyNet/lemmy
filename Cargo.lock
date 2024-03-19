@@ -2633,6 +2633,7 @@ version = "0.19.3"
 dependencies = [
  "activitypub_federation",
  "actix-web",
+ "anyhow",
  "chrono",
  "encoding",
  "enum-map",
@@ -2645,6 +2646,7 @@ dependencies = [
  "lemmy_db_views_moderator",
  "lemmy_utils",
  "mime",
+ "moka",
  "once_cell",
  "pretty_assertions",
  "regex",
