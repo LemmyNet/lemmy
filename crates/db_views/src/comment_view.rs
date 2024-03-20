@@ -1208,4 +1208,23 @@ mod tests {
     Person::delete(pool, inserted_banned_from_comm_person.id).await?;
     cleanup(data, pool).await
   }
+
+  #[tokio::test]
+  #[serial]
+  async fn comment_listing_local_user_not_banned_from_community() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(data.timmy_local_user_view.person.id),
+    )
+    .await?;
+
+    assert!(!comment_view.banned_from_community);
+
+    cleanup(data, pool).await
+  }
 }
