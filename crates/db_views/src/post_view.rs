@@ -771,7 +771,7 @@ mod tests {
       instance_block::{InstanceBlock, InstanceBlockForm},
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      local_user_vote_display_mode::{self, LocalUserVoteDisplayMode},
+      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostHide, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
@@ -801,7 +801,6 @@ mod tests {
     inserted_instance: Instance,
     local_user_view: LocalUserView,
     blocked_local_user_view: LocalUserView,
-    banned_from_comm_local_user_view: LocalUserView,
     inserted_bot: Person,
     inserted_community: Community,
     inserted_post: Post,
@@ -876,27 +875,6 @@ mod tests {
 
     PersonBlock::block(pool, &person_block).await?;
 
-    // Test that post view shows if local user is blocked from community
-    let banned_from_comm_person = PersonInsertForm::test_form(inserted_instance.id, "jill");
-
-    let inserted_banned_from_comm_person = Person::create(pool, &banned_from_comm_person).await?;
-
-    let inserted_banned_from_comm_local_user = LocalUser::create(
-      pool,
-      &LocalUserInsertForm::test_form(inserted_banned_from_comm_person.id),
-    )
-    .await?;
-
-    CommunityPersonBan::ban(
-      pool,
-      &CommunityPersonBanForm {
-        community_id: inserted_community.id,
-        person_id: inserted_banned_from_comm_person.id,
-        expires: None,
-      },
-    )
-    .await?;
-
     // A sample post
     let new_post = PostInsertForm::builder()
       .name(POST.to_string())
@@ -926,12 +904,6 @@ mod tests {
       person: inserted_blocked_person,
       counts: Default::default(),
     };
-    let banned_from_comm_local_user_view = LocalUserView {
-      local_user: inserted_banned_from_comm_local_user,
-      person: inserted_banned_from_comm_person,
-      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
-      counts: Default::default(),
-    };
 
     let site = Site {
       id: Default::default(),
@@ -955,7 +927,6 @@ mod tests {
       inserted_instance,
       local_user_view,
       blocked_local_user_view,
-      banned_from_comm_local_user_view,
       inserted_bot,
       inserted_community,
       inserted_post,
@@ -1589,7 +1560,6 @@ mod tests {
     Person::delete(pool, data.local_user_view.person.id).await?;
     Person::delete(pool, data.inserted_bot.id).await?;
     Person::delete(pool, data.blocked_local_user_view.person.id).await?;
-    Person::delete(pool, data.banned_from_comm_local_user_view.person.id).await?;
     Instance::delete(pool, data.inserted_instance.id).await?;
     assert_eq!(1, num_deleted);
 
@@ -1766,18 +1736,40 @@ mod tests {
   async fn post_listing_local_user_banned_from_community() -> LemmyResult<()> {
     let pool = &build_db_pool().await?;
     let pool = &mut pool.into();
-    let mut data = init_data(pool).await?;
+    let data = init_data(pool).await?;
+
+    // Test that post view shows if local user is blocked from community
+    let banned_from_comm_person = PersonInsertForm::test_form(data.inserted_instance.id, "jill");
+
+    let inserted_banned_from_comm_person = Person::create(pool, &banned_from_comm_person).await?;
+
+    let inserted_banned_from_comm_local_user = LocalUser::create(
+      pool,
+      &LocalUserInsertForm::test_form(inserted_banned_from_comm_person.id),
+    )
+    .await?;
+
+    CommunityPersonBan::ban(
+      pool,
+      &CommunityPersonBanForm {
+        community_id: data.inserted_community.id,
+        person_id: inserted_banned_from_comm_person.id,
+        expires: None,
+      },
+    )
+    .await?;
 
     let post_view = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.banned_from_comm_local_user_view.person.id),
+      Some(inserted_banned_from_comm_local_user.person_id),
       false,
     )
     .await?;
 
     assert!(post_view.banned_from_community);
 
+    Person::delete(pool, inserted_banned_from_comm_person.id).await?;
     cleanup(data, pool).await
   }
 }
