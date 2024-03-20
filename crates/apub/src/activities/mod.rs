@@ -45,6 +45,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::Serialize;
+use serde_with::serde_derive::Deserialize;
 use tracing::info;
 use url::{ParseError, Url};
 use uuid::Uuid;
@@ -227,9 +228,9 @@ where
 
 /// Wrapper struct that adds `published` field with timestamp to outgoing activities. Important that
 /// the timestamp includes milliseconds and timezone.
-#[derive(Serialize)]
-struct WithPublished<T> {
-  published: DateTime<Utc>,
+#[derive(Serialize, Deserialize)]
+pub(crate) struct WithPublished<T> {
+  pub(crate) published: Option<DateTime<Utc>>,
   #[serde(flatten)]
   inner: T,
 }
@@ -237,7 +238,7 @@ struct WithPublished<T> {
 impl<T> WithPublished<T> {
   pub fn new(inner: T) -> WithPublished<T> {
     Self {
-      published: Local::now().into(),
+      published: Some(Local::now().into()),
       inner,
     }
   }

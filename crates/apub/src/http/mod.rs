@@ -1,16 +1,6 @@
-use crate::{
-  activity_lists::SharedInboxActivities,
-  fetcher::user_or_community::UserOrCommunity,
-  protocol::objects::tombstone::Tombstone,
-  FEDERATION_CONTEXT,
-};
-use activitypub_federation::{
-  actix_web::inbox::receive_activity,
-  config::Data,
-  protocol::context::WithContext,
-  FEDERATION_CONTENT_TYPE,
-};
-use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
+use crate::{protocol::objects::tombstone::Tombstone, FEDERATION_CONTEXT};
+use activitypub_federation::{protocol::context::WithContext, FEDERATION_CONTENT_TYPE};
+use actix_web::{web, HttpResponse};
 use http::{header::LOCATION, StatusCode};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
@@ -25,19 +15,11 @@ use url::Url;
 
 mod comment;
 mod community;
+pub mod inbox;
 mod person;
 mod post;
 pub mod routes;
 pub mod site;
-
-pub async fn shared_inbox(
-  request: HttpRequest,
-  body: Bytes,
-  data: Data<LemmyContext>,
-) -> LemmyResult<HttpResponse> {
-  receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext>(request, body, &data)
-    .await
-}
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
 /// headers.
