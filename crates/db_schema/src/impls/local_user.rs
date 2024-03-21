@@ -2,7 +2,6 @@ use crate::{
   newtypes::{DbUrl, LocalUserId, PersonId},
   schema::{local_user, person, registration_application},
   source::{
-    actor_language::{LocalUserLanguage, SiteLanguage},
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
     local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeInsertForm},
   },
@@ -201,16 +200,6 @@ impl Crud for LocalUser {
       .values(form_with_encrypted_password)
       .get_result::<Self>(conn)
       .await?;
-
-    let site_languages = SiteLanguage::read_local_raw(pool).await;
-    if let Ok(langs) = site_languages {
-      // if site exists, init user with site languages
-      LocalUserLanguage::update(pool, langs, local_user_.id).await?;
-    } else {
-      // otherwise, init with all languages (this only happens during tests and
-      // for first admin user, which is created before site)
-      LocalUserLanguage::update(pool, vec![], local_user_.id).await?;
-    }
 
     // Create their vote_display_modes
     let vote_display_mode_form = LocalUserVoteDisplayModeInsertForm::builder()
