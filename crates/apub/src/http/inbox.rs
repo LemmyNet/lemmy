@@ -16,7 +16,7 @@ use once_cell::sync::Lazy;
 use std::{
   cmp::Ordering,
   collections::BinaryHeap,
-  sync::{Arc, Mutex},
+  sync::{Arc, RwLock},
   thread::available_parallelism,
   time::Duration,
 };
@@ -38,26 +38,26 @@ pub async fn shared_inbox(
         request.method().clone(),
         request.uri().clone(),
       );
-      ACTIVITY_QUEUE.lock().unwrap().push(InboxActivity {
+      ACTIVITY_QUEUE.write().unwrap().push(InboxActivity {
         request_parts,
         bytes,
         published,
       });
+      Ok(HttpResponse::Ok().finish())
     }
     None => {
       // no timestamp included, process immediately
       receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext>(
         request, bytes, &data,
       )
-      .await?;
+      .await
     }
-  };
-  Ok(HttpResponse::Ok().finish())
+  }
 }
 
 /// Queue of incoming activities, ordered by oldest published first
-static ACTIVITY_QUEUE: Lazy<Arc<Mutex<BinaryHeap<InboxActivity>>>> =
-  Lazy::new(|| Arc::new(Mutex::new(BinaryHeap::new())));
+static ACTIVITY_QUEUE: Lazy<Arc<RwLock<BinaryHeap<InboxActivity>>>> =
+  Lazy::new(|| Arc::new(RwLock::new(BinaryHeap::new())));
 
 /// Minimum age of an activity before it gets processed. This ensures that an activity which was
 /// delayed still gets processed in correct order.
@@ -100,11 +100,11 @@ pub fn handle_received_activities(
 }
 
 fn peek_queue_timestamp() -> Option<DateTime<Utc>> {
-  ACTIVITY_QUEUE.lock().unwrap().peek().map(|i| i.published)
+  ACTIVITY_QUEUE.read().unwrap().peek().map(|i| i.published)
 }
 
 fn pop_queue<'a>() -> Option<InboxActivity> {
-  ACTIVITY_QUEUE.lock().unwrap().pop()
+  ACTIVITY_QUEUE.write().unwrap().pop()
 }
 
 #[derive(Clone, Debug)]
@@ -156,7 +156,7 @@ mod tests {
       bytes: Default::default(),
       published: Local::now().into(),
     };
-    let mut lock = ACTIVITY_QUEUE.lock().unwrap();
+    let mut lock = ACTIVITY_QUEUE.write().unwrap();
 
     // insert in wrong order
     lock.push(activity3.clone());
