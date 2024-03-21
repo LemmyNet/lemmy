@@ -2,7 +2,6 @@
 ARG RUST_VERSION=1.76
 ARG CARGO_BUILD_FEATURES=default
 ARG RUST_RELEASE_MODE=debug
-ARG RUSTFLAGS=
 
 ARG AMD_BUILDER_IMAGE=rust:${RUST_VERSION}
 # Repo: https://github.com/raskyld/lemmy-cross-toolchains
