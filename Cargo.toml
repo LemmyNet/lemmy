@@ -37,6 +37,8 @@ debug = 0
 
 [features]
 embed-pictrs = ["pict-rs"]
+# This feature requires building with `tokio_unstable` flag, see documentation:
+# https://docs.rs/tokio/latest/tokio/#unstable-features
 console = [
   "console-subscriber",
   "opentelemetry",
