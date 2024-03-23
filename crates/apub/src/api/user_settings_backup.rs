@@ -347,9 +347,7 @@ mod tests {
     bio: Option<String>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<LocalUserView> {
-    println!("a");
     let instance = Instance::read_or_create(&mut context.pool(), "example.com".to_string()).await?;
-    println!("b");
     let person_form = PersonInsertForm::builder()
       .name(name.clone())
       .display_name(Some(name.clone()))
@@ -358,14 +356,12 @@ mod tests {
       .instance_id(instance.id)
       .build();
     let person = Person::create(&mut context.pool(), &person_form).await?;
-    println!("c");
 
     let user_form = LocalUserInsertForm::builder()
       .person_id(person.id)
       .password_encrypted("pass".to_string())
       .build();
     let local_user = LocalUser::create(&mut context.pool(), &user_form).await?;
-    println!("d");
 
     Ok(LocalUserView::read(&mut context.pool(), local_user.id).await?)
   }
@@ -426,7 +422,6 @@ mod tests {
 
     let export_user =
       create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
-    println!("e");
 
     let mut backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
 
