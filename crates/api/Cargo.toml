@@ -34,7 +34,7 @@ tracing = { workspace = true }
 chrono = { workspace = true }
 url = { workspace = true }
 wav = "1.0.0"
-sitemap-rs = "0.2.0"
+sitemap-rs = "0.2.1"
 totp-rs = { version = "5.5.1", features = ["gen_secret", "otpauth"] }
 actix-web-httpauth = "0.8.1"
 
