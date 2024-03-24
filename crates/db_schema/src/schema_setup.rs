@@ -35,7 +35,7 @@ pub fn run(db_url: &str) -> Result<(), LemmyError> {
   info!("Running Database migrations (This may take a long time)...");
   let migrations = conn
     .pending_migrations(MIGRATIONS)
-    .context("Couldn't determine pending migrations")?;
+    .map_err(|e| anyhow::anyhow!("Couldn't determine pending migrations: {e}"))?;
   for migration in migrations.iter().rev().skip(1).rev() {
     conn
       .run_migration(migration)
