@@ -33,17 +33,19 @@ pub fn run(db_url: &str) -> Result<(), LemmyError> {
   // as `REPLACEABLE_SCHEMA`. This code will be becone less hacky when the conditional setup of things in
   // `REPLACEABLE_SCHEMA` is done without using the number of pending migrations.
   info!("Running Database migrations (This may take a long time)...");
-  let migrations = conn.pending_migrations(MIGRATIONS)?;
+  let migrations = conn
+    .pending_migrations(MIGRATIONS)
+    .context("Couldn't determine pending migrations")?;
   for migration in migrations.iter().rev().skip(1).rev() {
     conn
-      .run_migration(&migration)
+      .run_migration(migration)
       .map_err(|e| anyhow::anyhow!("Couldn't run DB Migrations: {e}"))?;
   }
   conn.transaction::<_, LemmyError, _>(|conn| {
     if let Some(migration) = migrations.last() {
       // Migration is run with a savepoint since there's already a transaction
       conn
-        .run_migration(&migration)
+        .run_migration(migration)
         .map_err(|e| anyhow::anyhow!("Couldn't run DB Migrations: {e}"))?;
     } else if !cfg!(debug_assertions) {
       // In production, skip running `REPLACEABLE_SCHEMA` to avoid locking things in the schema. In
