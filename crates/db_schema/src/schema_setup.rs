@@ -19,31 +19,44 @@ const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 /// must use `CASCADE` when dropping it. This doesn't need to be fixed in old migrations because the
 /// "replaceable-schema" migration runs `DROP SCHEMA IF EXISTS r CASCADE` in down.sql.
 const REPLACEABLE_SCHEMA: &[&str] = &[
-  "BEGIN;",
   "DROP SCHEMA IF EXISTS r CASCADE;",
   "CREATE SCHEMA r;",
   include_str!("../replaceable_schema/utils.sql"),
   include_str!("../replaceable_schema/triggers.sql"),
-  "COMMIT;",
 ];
 
 pub fn run(db_url: &str) -> Result<(), LemmyError> {
   // Migrations don't support async connection
   let mut conn = PgConnection::establish(db_url).with_context(|| "Error connecting to database")?;
 
-  // Migrations
+  // Run all pending migrations except for the newest one, then run the newest one in the same transaction
+  // as `REPLACEABLE_SCHEMA`. This code will be becone less hacky when the conditional setup of things in
+  // `REPLACEABLE_SCHEMA` is done without using the number of pending migrations.
   info!("Running Database migrations (This may take a long time)...");
-  let executed_migration_versions = conn
-    .run_pending_migrations(MIGRATIONS)
-    .map_err(|e| anyhow::anyhow!("Couldn't run DB Migrations: {e}"))?;
-  info!("Database migrations complete.");
-
-  // Replaceable schema (only run if at least 1 migration was run)
-  if !executed_migration_versions.is_empty() {
+  let migrations = conn.pending_migrations(MIGRATIONS)?;
+  for migration in migrations.iter().rev().skip(1).rev() {
+    conn
+      .run_migration(&migration)
+      .map_err(|e| anyhow::anyhow!("Couldn't run DB Migrations: {e}"))?;
+  }
+  conn.transaction::<_, LemmyError, _>(|conn| {
+    if let Some(migration) = migrations.last() {
+      // Migration is run with a savepoint since there's already a transaction
+      conn
+        .run_migration(&migration)
+        .map_err(|e| anyhow::anyhow!("Couldn't run DB Migrations: {e}"))?;
+    } else if !dbg(debug_assertions) {
+      // In production, skip running `REPLACEABLE_SCHEMA` to avoid locking things in the schema. In
+      // CI, always run it because `diesel migration` commands would otherwise prevent it.
+      return Ok(());
+    }
     conn
       .batch_execute(&REPLACEABLE_SCHEMA.join("\n"))
       .context("Couldn't run SQL files in crates/db_schema/replaceable_schema")?;
-  }
+
+    Ok(())
+  })?;
+  info!("Database migrations complete.");
 
   Ok(())
 }
