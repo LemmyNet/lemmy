@@ -45,7 +45,7 @@ pub fn run(db_url: &str) -> Result<(), LemmyError> {
       conn
         .run_migration(&migration)
         .map_err(|e| anyhow::anyhow!("Couldn't run DB Migrations: {e}"))?;
-    } else if !dbg(debug_assertions) {
+    } else if !cfg!(debug_assertions) {
       // In production, skip running `REPLACEABLE_SCHEMA` to avoid locking things in the schema. In
       // CI, always run it because `diesel migration` commands would otherwise prevent it.
       return Ok(());
