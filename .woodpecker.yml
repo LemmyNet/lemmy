@@ -5,7 +5,6 @@ variables:
   - &rust_image "rust:1.76"
   - &install_pnpm "corepack enable pnpm"
   - &slow_check_paths
-    - event: pull_request
     - path:
         include: [
             # rust source code
@@ -201,7 +200,6 @@ steps:
       - cat target/log/lemmy_*.out || true
       - "# If you can't see all output, then use the download button"
     when:
-      - event: pull_request
       - status: [failure]
 
   publish_release_docker:
@@ -249,7 +247,6 @@ steps:
       - apk add curl
       - "curl -d'Lemmy CI build failed: ${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
     when:
-      - event: pull_request
       - status: [failure]
 
   notify_on_tag_deploy:
@@ -258,7 +255,7 @@ steps:
       - apk add curl
       - "curl -d'lemmy:${CI_COMMIT_TAG} deployed' ntfy.sh/lemmy_drone_ci"
     when:
-      event: tag
+      - event: tag
 
 services:
   database:
