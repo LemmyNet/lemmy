@@ -202,6 +202,7 @@ prometheus = { version = "0.13.3", features = ["process"] }
 serial_test = { workspace = true }
 clap = { workspace = true }
 actix-web-prom = "0.7.0"
+rand = "0.8.5"
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
