@@ -1,12 +1,11 @@
 use crate::{
-  newtypes::{DbUrl, LocalUserId, PersonId},
+  newtypes::{DbUrl, LanguageId, LocalUserId, PersonId},
   schema::{local_user, person, registration_application},
   source::{
-    actor_language::{LocalUserLanguage, SiteLanguage},
+    actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
     local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeInsertForm},
   },
-  traits::Crud,
   utils::{
     functions::{coalesce, lower},
     get_conn,
@@ -25,6 +24,52 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 
 impl LocalUser {
+  pub async fn create(
+    pool: &mut DbPool<'_>,
+    form: &LocalUserInsertForm,
+    languages: Vec<LanguageId>,
+  ) -> Result<LocalUser, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let mut form_with_encrypted_password = form.clone();
+    let password_hash =
+      hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
+    form_with_encrypted_password.password_encrypted = password_hash;
+
+    let local_user_ = insert_into(local_user::table)
+      .values(form_with_encrypted_password)
+      .get_result::<Self>(conn)
+      .await?;
+
+    LocalUserLanguage::update(pool, languages, local_user_.id).await?;
+
+    // Create their vote_display_modes
+    let vote_display_mode_form = LocalUserVoteDisplayModeInsertForm::builder()
+      .local_user_id(local_user_.id)
+      .build();
+    LocalUserVoteDisplayMode::create(pool, &vote_display_mode_form).await?;
+
+    Ok(local_user_)
+  }
+
+  pub async fn update(
+    pool: &mut DbPool<'_>,
+    local_user_id: LocalUserId,
+    form: &LocalUserUpdateForm,
+  ) -> Result<LocalUser, Error> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(local_user::table.find(local_user_id))
+      .set(form)
+      .get_result::<Self>(conn)
+      .await
+  }
+
+  pub async fn delete(pool: &mut DbPool<'_>, id: LocalUserId) -> Result<usize, Error> {
+    let conn = &mut *get_conn(pool).await?;
+    diesel::delete(local_user::table.find(id))
+      .execute(conn)
+      .await
+  }
+
   pub async fn update_password(
     pool: &mut DbPool<'_>,
     local_user_id: LocalUserId,
@@ -182,53 +227,4 @@ pub struct UserBackupLists {
   pub blocked_communities: Vec<DbUrl>,
   pub blocked_users: Vec<DbUrl>,
   pub blocked_instances: Vec<String>,
-}
-
-#[async_trait]
-impl Crud for LocalUser {
-  type InsertForm = LocalUserInsertForm;
-  type UpdateForm = LocalUserUpdateForm;
-  type IdType = LocalUserId;
-
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let mut form_with_encrypted_password = form.clone();
-    let password_hash =
-      hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
-    form_with_encrypted_password.password_encrypted = password_hash;
-
-    let local_user_ = insert_into(local_user::table)
-      .values(form_with_encrypted_password)
-      .get_result::<Self>(conn)
-      .await?;
-
-    let site_languages = SiteLanguage::read_local_raw(pool).await;
-    if let Ok(langs) = site_languages {
-      // if site exists, init user with site languages
-      LocalUserLanguage::update(pool, langs, local_user_.id).await?;
-    } else {
-      // otherwise, init with all languages (this only happens during tests and
-      // for first admin user, which is created before site)
-      LocalUserLanguage::update(pool, vec![], local_user_.id).await?;
-    }
-
-    // Create their vote_display_modes
-    let vote_display_mode_form = LocalUserVoteDisplayModeInsertForm::builder()
-      .local_user_id(local_user_.id)
-      .build();
-    LocalUserVoteDisplayMode::create(pool, &vote_display_mode_form).await?;
-
-    Ok(local_user_)
-  }
-  async fn update(
-    pool: &mut DbPool<'_>,
-    local_user_id: LocalUserId,
-    form: &Self::UpdateForm,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::update(local_user::table.find(local_user_id))
-      .set(form)
-      .get_result::<Self>(conn)
-      .await
-  }
 }

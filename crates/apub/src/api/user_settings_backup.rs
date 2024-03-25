@@ -361,7 +361,7 @@ mod tests {
       .person_id(person.id)
       .password_encrypted("pass".to_string())
       .build();
-    let local_user = LocalUser::create(&mut context.pool(), &user_form).await?;
+    let local_user = LocalUser::create(&mut context.pool(), &user_form, vec![]).await?;
 
     Ok(LocalUserView::read(&mut context.pool(), local_user.id).await?)
   }
