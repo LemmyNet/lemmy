@@ -1183,6 +1183,7 @@ mod tests {
     let inserted_banned_from_comm_local_user = LocalUser::create(
       pool,
       &LocalUserInsertForm::test_form(inserted_banned_from_comm_person.id),
+      vec![],
     )
     .await?;
 
