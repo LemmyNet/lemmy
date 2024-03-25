@@ -2,6 +2,7 @@ use crate::{
   newtypes::{DbUrl, LocalUserId, PersonId},
   schema::{local_user, person, registration_application},
   source::{
+    actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
     local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeInsertForm},
   },
@@ -200,6 +201,11 @@ impl Crud for LocalUser {
       .values(form_with_encrypted_password)
       .get_result::<Self>(conn)
       .await?;
+
+    // TODO: this is necessary for tests, but causes unnecessary db writes in production as languages
+    //       are set from accept-language header immediately after. would be good if final languages
+    //       could be passed in directly.
+    LocalUserLanguage::update(pool, vec![], local_user_.id).await?;
 
     // Create their vote_display_modes
     let vote_display_mode_form = LocalUserVoteDisplayModeInsertForm::builder()
