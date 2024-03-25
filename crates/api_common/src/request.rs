@@ -313,9 +313,9 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Resu
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     context::LemmyContext,
