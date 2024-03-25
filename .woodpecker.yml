@@ -124,11 +124,6 @@ steps:
       - diesel migration run
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
-      # Without this, lemmy_server does not run any migrations in the next CI steps, which causes it
-      # to not run replaceable_schema. This hack will be removed when lemmy_server has a better way
-      # to determine what schema changes to make.
-      - diesel migration revert
-      - git checkout -- crates/db_schema/src/schema.rs
     when: *slow_check_paths
 
   check_db_perf_tool:
