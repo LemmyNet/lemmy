@@ -5,6 +5,7 @@ import {
   BlockInstanceResponse,
   CommunityId,
   CreatePrivateMessageReport,
+  DeleteImage,
   EditCommunity,
   GetReplies,
   GetRepliesResponse,
@@ -79,6 +80,7 @@ import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 import { ListingType } from "lemmy-js-client/dist/types/ListingType";
 
 export const fetchFunction = fetch;
+export const imageFetchLimit = 50;
 
 export let alphaUrl = "http://127.0.0.1:8541";
 export let betaUrl = "http://127.0.0.1:8551";
@@ -865,9 +867,25 @@ export function randomString(length: number): string {
   return result;
 }
 
+export async function deleteAllImages(api: LemmyHttp) {
+  const imagesRes = await api.listAllMedia({
+    limit: imageFetchLimit,
+  });
+  imagesRes.images;
+
+  for (const image of imagesRes.images) {
+    const form: DeleteImage = {
+      token: image.pictrs_delete_token,
+      filename: image.pictrs_alias,
+    };
+    await api.deleteImage(form);
+  }
+}
+
 export async function unfollows() {
   await Promise.all([
     unfollowRemotes(alpha),
+    unfollowRemotes(beta),
     unfollowRemotes(gamma),
     unfollowRemotes(delta),
     unfollowRemotes(epsilon),
