@@ -164,7 +164,10 @@ pub async fn create_comment(
   )
   .await?;
 
-  // If its a reply to us, mark the parent as read
+  // If we're responding to a comment where we're the recipient,
+  // (ie we're the grandparent, or the recipient of the parent comment_reply),
+  // then mark the parent as read.
+  // Then we don't have to do it manually after we respond to a comment.
   if let Some(parent) = parent_opt {
     let person_id = local_user_view.person.id;
     let parent_id = parent.id;
