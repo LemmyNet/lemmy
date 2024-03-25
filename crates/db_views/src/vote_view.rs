@@ -1,9 +1,16 @@
 use crate::structs::VoteView;
-use diesel::{result::Error, ExpressionMethods, QueryDsl};
+use diesel::{
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommentId, PostId},
-  schema::{comment_like, person, post_like},
+  schema::{comment_like, community_person_ban, person, post, post_like},
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
@@ -19,8 +26,21 @@ impl VoteView {
 
     post_like::table
       .inner_join(person::table)
+      .inner_join(post::table)
+      // Join to community_person_ban to get creator_banned_from_community
+      .left_join(
+        community_person_ban::table.on(
+          post::community_id
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(post::creator_id)),
+        ),
+      )
       .filter(post_like::post_id.eq(post_id))
-      .select((person::all_columns, post_like::score))
+      .select((
+        person::all_columns,
+        community_person_ban::community_id.nullable().is_not_null(),
+        post_like::score,
+      ))
       .order_by(post_like::score)
       .limit(limit)
       .offset(offset)
@@ -39,8 +59,21 @@ impl VoteView {
 
     comment_like::table
       .inner_join(person::table)
+      .inner_join(post::table)
+      // Join to community_person_ban to get creator_banned_from_community
+      .left_join(
+        community_person_ban::table.on(
+          post::community_id
+            .eq(community_person_ban::community_id)
+            .and(community_person_ban::person_id.eq(post::creator_id)),
+        ),
+      )
       .filter(comment_like::comment_id.eq(comment_id))
-      .select((person::all_columns, comment_like::score))
+      .select((
+        person::all_columns,
+        community_person_ban::community_id.nullable().is_not_null(),
+        comment_like::score,
+      ))
       .order_by(comment_like::score)
       .limit(limit)
       .offset(offset)
@@ -139,10 +172,12 @@ mod tests {
     let expected_post_vote_views = [
       VoteView {
         creator: inserted_sara.clone(),
+        creator_banned_from_community: false,
         score: -1,
       },
       VoteView {
         creator: inserted_timmy.clone(),
+        creator_banned_from_community: false,
         score: 1,
       },
     ];
@@ -177,10 +212,12 @@ mod tests {
     let expected_comment_vote_views = [
       VoteView {
         creator: inserted_timmy.clone(),
+        creator_banned_from_community: false,
         score: -1,
       },
       VoteView {
         creator: inserted_sara.clone(),
+        creator_banned_from_community: false,
         score: 1,
       },
     ];
