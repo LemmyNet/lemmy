@@ -523,10 +523,6 @@ mod tests {
     let pool = &mut pool.into();
 
     let (site, instance) = create_test_site(pool).await;
-    let mut test_langs = test_langs1(pool).await;
-    SiteLanguage::update(pool, test_langs.clone(), &site)
-      .await
-      .unwrap();
 
     let person_form = PersonInsertForm::builder()
       .name("my test person".to_string())
@@ -539,14 +535,13 @@ mod tests {
       .password_encrypted("my_pw".to_string())
       .build();
 
-    let local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+    let local_user = LocalUser::create(pool, &local_user_form, vec![])
+      .await
+      .unwrap();
     let local_user_langs1 = LocalUserLanguage::read(pool, local_user.id).await.unwrap();
 
-    // new user should be initialized with site languages and undetermined
-    //test_langs.push(UNDETERMINED_ID);
-    //test_langs.sort();
-    test_langs.insert(0, UNDETERMINED_ID);
-    assert_eq!(test_langs, local_user_langs1);
+    // new user should be initialized with all languages
+    assert_eq!(0, local_user_langs1.len());
 
     // update user languages
     let test_langs2 = test_langs2(pool).await;
@@ -655,7 +650,9 @@ mod tests {
       .person_id(person.id)
       .password_encrypted("my_pw".to_string())
       .build();
-    let local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+    let local_user = LocalUser::create(pool, &local_user_form, vec![])
+      .await
+      .unwrap();
     LocalUserLanguage::update(pool, test_langs2, local_user.id)
       .await
       .unwrap();

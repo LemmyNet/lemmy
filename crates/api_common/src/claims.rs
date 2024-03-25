@@ -124,7 +124,9 @@ mod tests {
       .password_encrypted("123456".to_string())
       .build();
 
-    let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+    let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![])
+      .await
+      .unwrap();
 
     let req = TestRequest::default().to_http_request();
     let jwt = Claims::generate(inserted_local_user.id, req, &context)

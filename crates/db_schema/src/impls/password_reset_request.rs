@@ -121,7 +121,9 @@ mod tests {
       .password_encrypted("pass".to_string())
       .build();
 
-    let inserted_local_user = LocalUser::create(pool, &new_local_user).await.unwrap();
+    let inserted_local_user = LocalUser::create(pool, &new_local_user, vec![])
+      .await
+      .unwrap();
 
     let token = "nope";
 

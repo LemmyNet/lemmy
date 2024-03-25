@@ -503,7 +503,7 @@ mod tests {
       .admin(Some(true))
       .password_encrypted(String::new())
       .build();
-    let inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form)
+    let inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![])
       .await
       .unwrap();
 
