@@ -284,6 +284,12 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.import_user_settings())
           .route(web::post().to(import_settings)),
       )
+      // TODO, all the current account related actions under /user need to get moved here eventually
+      .service(
+        web::scope("/account")
+          .wrap(rate_limit.message())
+          .route("/list_media", web::get().to(list_media)),
+      )
       // User actions
       .service(
         web::scope("/user")
@@ -322,8 +328,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/totp/generate", web::post().to(generate_totp_secret))
           .route("/totp/update", web::post().to(update_totp))
           .route("/list_logins", web::get().to(list_logins))
-          .route("/validate_auth", web::get().to(validate_auth))
-          .route("/list_media", web::get().to(list_media)),
+          .route("/validate_auth", web::get().to(validate_auth)),
       )
       // Admin Actions
       .service(
