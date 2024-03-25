@@ -308,7 +308,9 @@ mod tests {
       .person_id(inserted_timmy.id)
       .password_encrypted("123".to_string())
       .build();
-    let timmy_local_user = LocalUser::create(pool, &new_local_user).await.unwrap();
+    let timmy_local_user = LocalUser::create(pool, &new_local_user, vec![])
+      .await
+      .unwrap();
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
       local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),

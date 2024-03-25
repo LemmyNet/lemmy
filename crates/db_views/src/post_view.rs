@@ -807,7 +807,7 @@ mod tests {
       admin: Some(true),
       ..LocalUserInsertForm::test_form(inserted_person.id)
     };
-    let inserted_local_user = LocalUser::create(pool, &local_user_form).await?;
+    let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
 
     let new_bot = PersonInsertForm {
       bot_account: Some(true),
@@ -833,6 +833,7 @@ mod tests {
     let inserted_blocked_local_user = LocalUser::create(
       pool,
       &LocalUserInsertForm::test_form(inserted_blocked_person.id),
+      vec![],
     )
     .await?;
 

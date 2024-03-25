@@ -19,7 +19,6 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   source::{
-    actor_language::LocalUserLanguage,
     captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
     language::Language,
     local_user::{LocalUser, LocalUserInsertForm},
@@ -155,8 +154,6 @@ pub async fn register(
     .admin(Some(!local_site.site_setup))
     .build();
 
-  let inserted_local_user = LocalUser::create(&mut context.pool(), &local_user_form).await?;
-
   let all_languages = Language::read_all(&mut context.pool()).await?;
   // use hashset to avoid duplicates
   let mut language_ids = HashSet::new();
@@ -166,7 +163,9 @@ pub async fn register(
     }
   }
   let language_ids = language_ids.into_iter().collect();
-  LocalUserLanguage::update(&mut context.pool(), language_ids, inserted_local_user.id).await?;
+
+  let inserted_local_user =
+    LocalUser::create(&mut context.pool(), &local_user_form, language_ids).await?;
 
   if local_site.site_setup && require_registration_application {
     // Create the registration application

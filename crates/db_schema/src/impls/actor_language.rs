@@ -535,7 +535,9 @@ mod tests {
       .password_encrypted("my_pw".to_string())
       .build();
 
-    let local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+    let local_user = LocalUser::create(pool, &local_user_form, vec![])
+      .await
+      .unwrap();
     let local_user_langs1 = LocalUserLanguage::read(pool, local_user.id).await.unwrap();
 
     // new user should be initialized with all languages
@@ -648,7 +650,9 @@ mod tests {
       .person_id(person.id)
       .password_encrypted("my_pw".to_string())
       .build();
-    let local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+    let local_user = LocalUser::create(pool, &local_user_form, vec![])
+      .await
+      .unwrap();
     LocalUserLanguage::update(pool, test_langs2, local_user.id)
       .await
       .unwrap();
