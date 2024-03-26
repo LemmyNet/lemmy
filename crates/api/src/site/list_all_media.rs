@@ -8,7 +8,6 @@ use lemmy_db_schema::source::images::LocalImage;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
-/// Lists comment reports for a community iooo
 #[tracing::instrument(skip(context))]
 pub async fn list_all_media(
   data: Query<ListMedia>,
