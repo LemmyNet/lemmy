@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   site::PurgePerson,
-  utils::{delete_local_user_images, is_admin},
+  utils::{delete_local_user_images, is_admin, purge_user_account},
   SuccessResponse,
 };
 use lemmy_db_schema::{
@@ -26,9 +26,6 @@ pub async fn purge_person(
 ) -> Result<Json<SuccessResponse>, LemmyError> {
   // Only let admin purge an item
   is_admin(&local_user_view)?;
-  delete_local_user_images(data.person_id, &context)
-    .await
-    .ok();
 
   let person = Person::read(&mut context.pool(), data.person_id).await?;
   ban_nonlocal_user_from_local_communities(
@@ -43,7 +40,8 @@ pub async fn purge_person(
   .await?;
 
   // Clear profile data.
-  Person::delete_account(&mut context.pool(), data.person_id).await?;
+  purge_user_account(data.person_id, &mut context.pool()).await?;
+
   // Keep person record, but mark as banned to prevent login or refetching from home instance.
   let person = Person::update(
     &mut context.pool(),
