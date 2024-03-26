@@ -8,6 +8,6 @@
   "type": "Block",
   "removeData": true,
   "summary": "spam post",
-  "expires": "2021-11-01T12:23:50.151874Z",
+  "endTime": "2021-11-01T12:23:50.151874Z",
   "id": "http://enterprise.lemmy.ml/activities/block/5d42fffb-0903-4625-86d4-0b39bb344fc2"
 }

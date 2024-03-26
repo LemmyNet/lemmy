@@ -20,6 +20,7 @@ use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   source::{
     captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
+    language::Language,
     local_user::{LocalUser, LocalUserInsertForm},
     local_user_vote_display_mode::LocalUserVoteDisplayMode,
     person::{Person, PersonInsertForm},
@@ -36,6 +37,7 @@ use lemmy_utils::{
     validation::is_valid_actor_name,
   },
 };
+use std::collections::HashSet;
 
 #[tracing::instrument(skip(context))]
 pub async fn register(
@@ -128,12 +130,15 @@ pub async fn register(
   let accepted_application = Some(!require_registration_application);
 
   // Get the user's preferred language using the Accept-Language header
-  let language_tag = req.headers().get("Accept-Language").and_then(|hdr| {
-    accept_language::parse(hdr.to_str().unwrap_or_default())
-      .first()
-      // Remove the optional region code
-      .map(|lang_str| lang_str.split('-').next().unwrap_or_default().to_string())
-  });
+  let language_tags: Vec<String> = req
+    .headers()
+    .get("Accept-Language")
+    .map(|hdr| accept_language::parse(hdr.to_str().unwrap_or_default()))
+    .iter()
+    .flatten()
+    // Remove the optional region code
+    .map(|lang_str| lang_str.split('-').next().unwrap_or_default().to_string())
+    .collect();
 
   // Create the local user
   let local_user_form = LocalUserInsertForm::builder()
@@ -144,12 +149,23 @@ pub async fn register(
     .accepted_application(accepted_application)
     .default_listing_type(Some(local_site.default_post_listing_type))
     .post_listing_mode(Some(local_site.default_post_listing_mode))
-    .interface_language(language_tag)
+    .interface_language(language_tags.first().cloned())
     // If its the initial site setup, they are an admin
     .admin(Some(!local_site.site_setup))
     .build();
 
-  let inserted_local_user = LocalUser::create(&mut context.pool(), &local_user_form).await?;
+  let all_languages = Language::read_all(&mut context.pool()).await?;
+  // use hashset to avoid duplicates
+  let mut language_ids = HashSet::new();
+  for l in language_tags {
+    if let Some(found) = all_languages.iter().find(|all| all.code == l) {
+      language_ids.insert(found.id);
+    }
+  }
+  let language_ids = language_ids.into_iter().collect();
+
+  let inserted_local_user =
+    LocalUser::create(&mut context.pool(), &local_user_form, language_ids).await?;
 
   if local_site.site_setup && require_registration_application {
     // Create the registration application

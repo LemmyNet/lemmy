@@ -77,7 +77,7 @@ impl CustomEmojiView {
     }
     for emoji in &mut result {
       if let Some(keywords) = hash.get_mut(&emoji.custom_emoji.id) {
-        emoji.keywords = keywords.clone();
+        emoji.keywords.clone_from(keywords);
       }
     }
     result

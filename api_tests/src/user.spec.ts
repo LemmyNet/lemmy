@@ -45,7 +45,7 @@ test("Create user", async () => {
   if (!site.my_user) {
     throw "Missing site user";
   }
-  apShortname = `@${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
+  apShortname = `${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
 });
 
 test("Set some user settings, check that they are federated", async () => {
@@ -68,7 +68,7 @@ test("Delete user", async () => {
   let user = await registerUser(alpha, alphaUrl);
 
   // make a local post and comment
-  let alphaCommunity = (await resolveCommunity(user, "!main@lemmy-alpha:8541"))
+  let alphaCommunity = (await resolveCommunity(user, "main@lemmy-alpha:8541"))
     .community;
   if (!alphaCommunity) {
     throw "Missing alpha community";
@@ -134,8 +134,28 @@ test("Create user with Arabic name", async () => {
   if (!site.my_user) {
     throw "Missing site user";
   }
-  apShortname = `@${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
+  apShortname = `${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
 
   let alphaPerson = (await resolvePerson(alpha, apShortname)).person;
   expect(alphaPerson).toBeDefined();
+});
+
+test("Create user with accept-language", async () => {
+  let lemmy_http = new LemmyHttp(alphaUrl, {
+    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language#syntax
+    headers: { "Accept-Language": "fr-CH, en;q=0.8, de;q=0.7, *;q=0.5" },
+  });
+  let user = await registerUser(lemmy_http, alphaUrl);
+
+  let site = await getSite(user);
+  expect(site.my_user).toBeDefined();
+  expect(site.my_user?.local_user_view.local_user.interface_language).toBe(
+    "fr",
+  );
+  let langs = site.all_languages
+    .filter(a => site.my_user?.discussion_languages.includes(a.id))
+    .map(l => l.code);
+  // should have languages from accept header, as well as "undetermined"
+  // which is automatically enabled by backend
+  expect(langs).toStrictEqual(["und", "de", "en", "fr"]);
 });
