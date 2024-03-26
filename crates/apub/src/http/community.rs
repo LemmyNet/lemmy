@@ -115,9 +115,9 @@ pub(crate) async fn get_apub_community_featured(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 pub(crate) mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
   use crate::protocol::objects::{group::Group, tombstone::Tombstone};

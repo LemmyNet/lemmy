@@ -1019,9 +1019,9 @@ pub async fn proxy_image_link_opt_apub(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
   use pretty_assertions::assert_eq;

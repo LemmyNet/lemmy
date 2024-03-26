@@ -319,8 +319,8 @@ pub async fn import_settings(
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::indexing_slicing)]
 
   use crate::api::user_settings_backup::{export_settings, import_settings};
   use activitypub_federation::config::Data;
