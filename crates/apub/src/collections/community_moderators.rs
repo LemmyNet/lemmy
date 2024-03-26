@@ -101,8 +101,8 @@ impl Collection for ApubCommunityModerators {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
   use crate::{
