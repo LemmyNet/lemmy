@@ -322,11 +322,11 @@ pub async fn replace_image(
   if new_image.is_some() {
     // Ignore errors because image may be stored externally.
     if let Some(avatar) = &old_image {
-      let image = LocalImage::delete_by_url(&mut context.pool(), &avatar)
+      let image = LocalImage::delete_by_url(&mut context.pool(), avatar)
         .await
         .ok();
       if let Some(image) = image {
-        delete_image_from_pictrs(&image.pictrs_alias, &image.pictrs_delete_token, &context).await?;
+        delete_image_from_pictrs(&image.pictrs_alias, &image.pictrs_delete_token, context).await?;
       }
     }
   }
