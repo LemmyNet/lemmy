@@ -123,8 +123,8 @@ impl InCommunity for AnnouncableActivities {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     activity_lists::{GroupInboxActivities, PersonInboxActivities, SharedInboxActivities},

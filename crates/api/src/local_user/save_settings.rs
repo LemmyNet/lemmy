@@ -3,6 +3,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::SaveUserSettings,
   utils::{
+    get_url_blocklist,
     local_site_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_api,
@@ -14,6 +15,7 @@ use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserUpdateForm},
+    local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeUpdateForm},
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,
@@ -34,7 +36,10 @@ pub async fn save_user_settings(
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&site_view.local_site);
-  let bio = diesel_option_overwrite(process_markdown_opt(&data.bio, &slur_regex, &context).await?);
+  let url_blocklist = get_url_blocklist(&context).await?;
+  let bio = diesel_option_overwrite(
+    process_markdown_opt(&data.bio, &slur_regex, &url_blocklist, &context).await?,
+  );
 
   let avatar = proxy_image_link_opt_api(&data.avatar, &context).await?;
   let banner = proxy_image_link_opt_api(&data.banner, &context).await?;
@@ -135,6 +140,16 @@ pub async fn save_user_settings(
   LocalUser::update(&mut context.pool(), local_user_id, &local_user_form)
     .await
     .ok();
+
+  // Update the vote display modes
+  let vote_display_modes_form = LocalUserVoteDisplayModeUpdateForm {
+    score: data.show_scores,
+    upvotes: data.show_upvotes,
+    downvotes: data.show_downvotes,
+    upvote_percentage: data.show_upvote_percentage,
+  };
+  LocalUserVoteDisplayMode::update(&mut context.pool(), local_user_id, &vote_display_modes_form)
+    .await?;
 
   Ok(Json(SuccessResponse::default()))
 }

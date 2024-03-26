@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommentId, CommentReplyId, PersonId},
-  schema::comment_reply::dsl::{comment_id, comment_reply, read, recipient_id},
+  schema::comment_reply,
   source::comment_reply::{CommentReply, CommentReplyInsertForm, CommentReplyUpdateForm},
   traits::Crud,
   utils::{get_conn, DbPool},
@@ -22,9 +22,9 @@ impl Crud for CommentReply {
 
     // since the return here isnt utilized, we dont need to do an update
     // but get_result doesnt return the existing row here
-    insert_into(comment_reply)
+    insert_into(comment_reply::table)
       .values(comment_reply_form)
-      .on_conflict((recipient_id, comment_id))
+      .on_conflict((comment_reply::recipient_id, comment_reply::comment_id))
       .do_update()
       .set(comment_reply_form)
       .get_result::<Self>(conn)
@@ -37,7 +37,7 @@ impl Crud for CommentReply {
     comment_reply_form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(comment_reply.find(comment_reply_id))
+    diesel::update(comment_reply::table.find(comment_reply_id))
       .set(comment_reply_form)
       .get_result::<Self>(conn)
       .await
@@ -51,11 +51,11 @@ impl CommentReply {
   ) -> Result<Vec<CommentReply>, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(
-      comment_reply
-        .filter(recipient_id.eq(for_recipient_id))
-        .filter(read.eq(false)),
+      comment_reply::table
+        .filter(comment_reply::recipient_id.eq(for_recipient_id))
+        .filter(comment_reply::read.eq(false)),
     )
-    .set(read.eq(true))
+    .set(comment_reply::read.eq(true))
     .get_results::<Self>(conn)
     .await
   }
@@ -65,17 +65,30 @@ impl CommentReply {
     for_comment_id: CommentId,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    comment_reply
-      .filter(comment_id.eq(for_comment_id))
+    comment_reply::table
+      .filter(comment_reply::comment_id.eq(for_comment_id))
+      .first::<Self>(conn)
+      .await
+  }
+
+  pub async fn read_by_comment_and_person(
+    pool: &mut DbPool<'_>,
+    for_comment_id: CommentId,
+    for_recipient_id: PersonId,
+  ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    comment_reply::table
+      .filter(comment_reply::comment_id.eq(for_comment_id))
+      .filter(comment_reply::recipient_id.eq(for_recipient_id))
       .first::<Self>(conn)
       .await
   }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     source::{

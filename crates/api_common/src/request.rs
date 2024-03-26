@@ -4,7 +4,10 @@ use crate::{
   utils::proxy_image_link,
 };
 use encoding::{all::encodings, DecoderTrap};
-use lemmy_db_schema::newtypes::DbUrl;
+use lemmy_db_schema::{
+  newtypes::DbUrl,
+  source::images::{LocalImage, LocalImageForm},
+};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
   settings::structs::{PictrsImageMode, Settings},
@@ -56,14 +59,8 @@ pub async fn fetch_link_metadata(
   let opengraph_data = extract_opengraph_data(&html_bytes, url)
     .map_err(|e| info!("{e}"))
     .unwrap_or_default();
-  let thumbnail = extract_thumbnail_from_opengraph_data(
-    url,
-    &opengraph_data,
-    &content_type,
-    generate_thumbnail,
-    context,
-  )
-  .await;
+  let thumbnail =
+    extract_thumbnail_from_opengraph_data(url, &opengraph_data, generate_thumbnail, context).await;
 
   Ok(LinkMetadata {
     opengraph_data,
@@ -155,23 +152,21 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> Result<OpenGraphData,
 pub async fn extract_thumbnail_from_opengraph_data(
   url: &Url,
   opengraph_data: &OpenGraphData,
-  content_type: &Option<Mime>,
   generate_thumbnail: bool,
   context: &LemmyContext,
 ) -> Option<DbUrl> {
-  let is_image = content_type.as_ref().unwrap_or(&mime::TEXT_PLAIN).type_() == mime::IMAGE;
-  if generate_thumbnail && is_image {
+  if generate_thumbnail {
     let image_url = opengraph_data
       .image
       .as_ref()
-      .map(lemmy_db_schema::newtypes::DbUrl::inner)
+      .map(DbUrl::inner)
       .unwrap_or(url);
     generate_pictrs_thumbnail(image_url, context)
       .await
       .ok()
       .map(Into::into)
   } else {
-    None
+    opengraph_data.image.clone()
   }
 }
 
@@ -184,7 +179,6 @@ struct PictrsResponse {
 #[derive(Deserialize, Debug)]
 struct PictrsFile {
   file: String,
-  #[allow(dead_code)]
   delete_token: String,
 }
 
@@ -287,6 +281,14 @@ async fn generate_pictrs_thumbnail(
       context.settings().get_protocol_and_hostname(),
       response.files.first().expect("missing pictrs file").file
     ))?;
+    for uploaded_image in response.files {
+      let form = LocalImageForm {
+        local_user_id: None,
+        pictrs_alias: uploaded_image.file.to_string(),
+        pictrs_delete_token: uploaded_image.delete_token.to_string(),
+      };
+      LocalImage::create(&mut context.pool(), &form).await?;
+    }
     Ok(thumbnail_url)
   } else {
     Err(LemmyErrorType::PictrsResponseError(response.msg))?
@@ -311,9 +313,9 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Resu
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     context::LemmyContext,
@@ -327,7 +329,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_link_metadata() {
-    let context = LemmyContext::init_test_context_with_networking().await;
+    let context = LemmyContext::init_test_context().await;
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
     let sample_res = fetch_link_metadata(&sample_url, false, &context)
       .await
@@ -353,7 +355,7 @@ mod tests {
       Some(mime::TEXT_HTML_UTF_8.to_string()),
       sample_res.content_type
     );
-    assert_eq!(None, sample_res.thumbnail);
+    assert!(sample_res.thumbnail.is_some());
   }
 
   // #[test]

@@ -475,7 +475,7 @@ async fn initialize_local_site_2022_10_10(
       .email(setup.admin_email.clone())
       .admin(Some(true))
       .build();
-    LocalUser::create(pool, &local_user_form).await?;
+    LocalUser::create(pool, &local_user_form, vec![]).await?;
   };
 
   // Add an entry for the site table

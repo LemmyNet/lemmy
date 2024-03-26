@@ -41,9 +41,9 @@ pub fn application_question_check(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::site::{application_question_check, site_default_post_listing_type_check};
   use lemmy_db_schema::{ListingType, RegistrationMode};

@@ -163,9 +163,9 @@ impl PersonQuery {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
   use diesel::NotFound;
@@ -204,7 +204,7 @@ mod tests {
       .person_id(alice.id)
       .password_encrypted(String::new())
       .build();
-    let alice_local_user = LocalUser::create(pool, &alice_local_user_form).await?;
+    let alice_local_user = LocalUser::create(pool, &alice_local_user_form, vec![]).await?;
 
     let bob_form = PersonInsertForm::builder()
       .name("bob".to_string())
@@ -218,7 +218,7 @@ mod tests {
       .person_id(bob.id)
       .password_encrypted(String::new())
       .build();
-    let bob_local_user = LocalUser::create(pool, &bob_local_user_form).await?;
+    let bob_local_user = LocalUser::create(pool, &bob_local_user_form, vec![]).await?;
 
     Ok(Data {
       alice,

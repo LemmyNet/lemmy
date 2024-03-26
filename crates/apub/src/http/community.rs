@@ -72,7 +72,7 @@ pub(crate) async fn get_apub_community_followers(
 }
 
 /// Returns the community outbox, which is populated by a maximum of 20 posts (but no other
-/// activites like votes or comments).
+/// activities like votes or comments).
 pub(crate) async fn get_apub_community_outbox(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
@@ -115,9 +115,9 @@ pub(crate) async fn get_apub_community_featured(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 pub(crate) mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
   use crate::protocol::objects::{group::Group, tombstone::Tombstone};

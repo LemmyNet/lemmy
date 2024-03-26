@@ -61,9 +61,9 @@ impl ReceivedActivity {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
   use crate::{source::activity::ActorType, utils::build_db_pool_for_tests};

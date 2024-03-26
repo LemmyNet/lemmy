@@ -17,6 +17,7 @@ use lemmy_db_schema::{
     instance::Instance,
     instance_block::{InstanceBlock, InstanceBlockForm},
     local_user::{LocalUser, LocalUserUpdateForm},
+    local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeUpdateForm},
     person::{Person, PersonUpdateForm},
     person_block::{PersonBlock, PersonBlockForm},
     post::{PostSaved, PostSavedForm},
@@ -50,6 +51,7 @@ pub struct UserSettingsBackup {
   // TODO: might be worth making a separate struct for settings backup, to avoid breakage in case
   //       fields are renamed, and to avoid storing unnecessary fields like person_id or email
   pub settings: Option<LocalUser>,
+  pub vote_display_mode_settings: Option<LocalUserVoteDisplayMode>,
   #[serde(default)]
   pub followed_communities: Vec<ObjectId<ApubCommunity>>,
   #[serde(default)]
@@ -80,6 +82,7 @@ pub async fn export_settings(
     matrix_id: local_user_view.person.matrix_user_id,
     bot_account: local_user_view.person.bot_account.into(),
     settings: Some(local_user_view.local_user),
+    vote_display_mode_settings: Some(local_user_view.local_user_vote_display_mode),
     followed_communities: vec_into(lists.followed_communities),
     blocked_communities: vec_into(lists.blocked_communities),
     blocked_instances: lists.blocked_instances,
@@ -129,6 +132,27 @@ pub async fn import_settings(
     &mut context.pool(),
     local_user_view.local_user.id,
     &local_user_form,
+  )
+  .await?;
+
+  // Update the vote display mode settings
+  let vote_display_mode_form = LocalUserVoteDisplayModeUpdateForm {
+    score: data.vote_display_mode_settings.as_ref().map(|s| s.score),
+    upvotes: data.vote_display_mode_settings.as_ref().map(|s| s.upvotes),
+    downvotes: data
+      .vote_display_mode_settings
+      .as_ref()
+      .map(|s| s.downvotes),
+    upvote_percentage: data
+      .vote_display_mode_settings
+      .as_ref()
+      .map(|s| s.upvote_percentage),
+  };
+
+  LocalUserVoteDisplayMode::update(
+    &mut context.pool(),
+    local_user_view.local_user.id,
+    &vote_display_mode_form,
   )
   .await?;
 
@@ -295,8 +319,8 @@ pub async fn import_settings(
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::indexing_slicing)]
 
   use crate::api::user_settings_backup::{export_settings, import_settings};
   use activitypub_federation::config::Data;
@@ -337,7 +361,7 @@ mod tests {
       .person_id(person.id)
       .password_encrypted("pass".to_string())
       .build();
-    let local_user = LocalUser::create(&mut context.pool(), &user_form).await?;
+    let local_user = LocalUser::create(&mut context.pool(), &user_form, vec![]).await?;
 
     Ok(LocalUserView::read(&mut context.pool(), local_user.id).await?)
   }

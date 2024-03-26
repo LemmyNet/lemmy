@@ -4,6 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{EditSite, SiteResponse},
   utils::{
+    get_url_blocklist,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
@@ -18,6 +19,7 @@ use lemmy_db_schema::{
     federation_blocklist::FederationBlockList,
     local_site::{LocalSite, LocalSiteUpdateForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
+    local_site_url_blocklist::LocalSiteUrlBlocklist,
     local_user::LocalUser,
     site::{Site, SiteUpdateForm},
     tagline::Tagline,
@@ -34,6 +36,7 @@ use lemmy_utils::{
     validation::{
       build_and_check_regex,
       check_site_visibility_valid,
+      check_urls_are_valid,
       is_valid_body_field,
       site_description_length_check,
       site_name_length_check,
@@ -61,7 +64,8 @@ pub async fn update_site(
   }
 
   let slur_regex = local_site_to_slur_regex(&local_site);
-  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &context).await?;
+  let url_blocklist = get_url_blocklist(&context).await?;
+  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
   let icon = proxy_image_link_opt_api(&data.icon, &context).await?;
   let banner = proxy_image_link_opt_api(&data.banner, &context).await?;
 
@@ -136,6 +140,11 @@ pub async fn update_site(
   FederationAllowList::replace(&mut context.pool(), allowed).await?;
   let blocked = data.blocked_instances.clone();
   FederationBlockList::replace(&mut context.pool(), blocked).await?;
+
+  if let Some(url_blocklist) = data.blocked_urls.clone() {
+    let parsed_urls = check_urls_are_valid(&url_blocklist)?;
+    LocalSiteUrlBlocklist::replace(&mut context.pool(), parsed_urls).await?;
+  }
 
   // TODO can't think of a better way to do this.
   // If the server suddenly requires email verification, or required applications, no old users
@@ -222,9 +231,9 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::site::update::validate_update_payload;
   use lemmy_api_common::site::EditSite;
@@ -578,6 +587,7 @@ mod tests {
       captcha_difficulty: None,
       allowed_instances: None,
       blocked_instances: None,
+      blocked_urls: None,
       taglines: None,
       registration_mode: site_registration_mode,
       reports_email_admins: None,

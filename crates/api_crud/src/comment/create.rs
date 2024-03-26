@@ -10,6 +10,7 @@ use lemmy_api_common::{
     check_post_deleted_or_removed,
     generate_local_apub_endpoint,
     get_post,
+    get_url_blocklist,
     is_mod_or_admin,
     local_site_to_slur_regex,
     process_markdown,
@@ -44,7 +45,8 @@ pub async fn create_comment(
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
-  let content = process_markdown(&data.content, &slur_regex, &context).await?;
+  let url_blocklist = get_url_blocklist(&context).await?;
+  let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&Some(content.clone()), false)?;
 
   // Check for a community ban
@@ -162,10 +164,15 @@ pub async fn create_comment(
   )
   .await?;
 
-  // If its a reply, mark the parent as read
+  // If we're responding to a comment where we're the recipient,
+  // (ie we're the grandparent, or the recipient of the parent comment_reply),
+  // then mark the parent as read.
+  // Then we don't have to do it manually after we respond to a comment.
   if let Some(parent) = parent_opt {
+    let person_id = local_user_view.person.id;
     let parent_id = parent.id;
-    let comment_reply = CommentReply::read_by_comment(&mut context.pool(), parent_id).await;
+    let comment_reply =
+      CommentReply::read_by_comment_and_person(&mut context.pool(), parent_id, person_id).await;
     if let Ok(reply) = comment_reply {
       CommentReply::update(
         &mut context.pool(),
@@ -177,7 +184,6 @@ pub async fn create_comment(
     }
 
     // If the parent has PersonMentions mark them as read too
-    let person_id = local_user_view.person.id;
     let person_mention =
       PersonMention::read_by_comment_and_person(&mut context.pool(), parent_id, person_id).await;
     if let Ok(mention) = person_mention {

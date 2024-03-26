@@ -6,6 +6,7 @@ use lemmy_db_schema::{
     federation_queue_state::FederationQueueState,
     instance::Instance,
     language::Language,
+    local_site_url_blocklist::LocalSiteUrlBlocklist,
     tagline::Tagline,
   },
   ListingType,
@@ -268,6 +269,8 @@ pub struct EditSite {
   pub allowed_instances: Option<Vec<String>>,
   /// A list of blocked instances.
   pub blocked_instances: Option<Vec<String>>,
+  /// A list of blocked URLs
+  pub blocked_urls: Option<Vec<String>>,
   /// A list of taglines shown at the top of the front page.
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
@@ -305,6 +308,7 @@ pub struct GetSiteResponse {
   pub taglines: Vec<Tagline>,
   /// A list of custom emojis your site supports.
   pub custom_emojis: Vec<CustomEmojiView>,
+  pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
 }
 
 #[skip_serializing_none]

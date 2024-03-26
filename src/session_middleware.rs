@@ -98,9 +98,9 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
   use actix_web::test::TestRequest;
@@ -155,7 +155,9 @@ mod tests {
       .password_encrypted("123456".to_string())
       .build();
 
-    let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+    let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![])
+      .await
+      .unwrap();
 
     let req = TestRequest::default().to_http_request();
     let jwt = Claims::generate(inserted_local_user.id, req, &context)

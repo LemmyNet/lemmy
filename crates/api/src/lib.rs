@@ -135,11 +135,7 @@ pub(crate) fn generate_totp_2fa_secret() -> String {
   Secret::generate_secret().to_string()
 }
 
-pub(crate) fn build_totp_2fa(
-  site_name: &str,
-  username: &str,
-  secret: &str,
-) -> Result<TOTP, LemmyError> {
+fn build_totp_2fa(hostname: &str, username: &str, secret: &str) -> Result<TOTP, LemmyError> {
   let sec = Secret::Raw(secret.as_bytes().to_vec());
   let sec_bytes = sec
     .to_bytes()
@@ -151,7 +147,7 @@ pub(crate) fn build_totp_2fa(
     1,
     30,
     sec_bytes,
-    Some(site_name.to_string()),
+    Some(hostname.to_string()),
     username.to_string(),
   )
   .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
@@ -263,16 +259,16 @@ pub async fn local_user_view_from_jwt(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
 
   #[test]
   fn test_build_totp() {
     let generated_secret = generate_totp_2fa_secret();
-    let totp = build_totp_2fa("lemmy", "my_name", &generated_secret);
+    let totp = build_totp_2fa("lemmy.ml", "my_name", &generated_secret);
     assert!(totp.is_ok());
   }
 }

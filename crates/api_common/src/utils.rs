@@ -17,6 +17,7 @@ use lemmy_db_schema::{
     instance_block::InstanceBlock,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
+    local_site_url_blocklist::LocalSiteUrlBlocklist,
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
@@ -38,18 +39,24 @@ use lemmy_utils::{
   rate_limit::{ActionType, BucketConfig},
   settings::structs::{PictrsImageMode, Settings},
   utils::{
-    markdown::markdown_rewrite_image_links,
+    markdown::{markdown_check_for_blocked_urls, markdown_rewrite_image_links},
     slurs::{build_slur_regex, remove_slurs},
   },
 };
-use regex::Regex;
+use moka::future::Cache;
+use once_cell::sync::Lazy;
+use regex::{escape, Regex, RegexSet};
 use rosetta_i18n::{Language, LanguageId};
-use std::collections::HashSet;
+use std::{collections::HashSet, time::Duration};
 use tracing::warn;
 use url::{ParseError, Url};
 use urlencoding::encode;
 
 pub static AUTH_COOKIE_NAME: &str = "jwt";
+#[cfg(debug_assertions)]
+static URL_BLOCKLIST_RECHECK_DELAY: Duration = Duration::from_millis(500);
+#[cfg(not(debug_assertions))]
+static URL_BLOCKLIST_RECHECK_DELAY: Duration = Duration::from_secs(60);
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
@@ -516,6 +523,47 @@ pub fn local_site_opt_to_sensitive(local_site: &Option<LocalSite>) -> bool {
     .unwrap_or(false)
 }
 
+pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> {
+  static URL_BLOCKLIST: Lazy<Cache<(), RegexSet>> = Lazy::new(|| {
+    Cache::builder()
+      .max_capacity(1)
+      .time_to_live(URL_BLOCKLIST_RECHECK_DELAY)
+      .build()
+  });
+
+  Ok(
+    URL_BLOCKLIST
+      .try_get_with::<_, LemmyError>((), async {
+        let urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
+
+        let regexes = urls.iter().map(|url| {
+          let url = &url.url;
+          let parsed = Url::parse(url).expect("Coundln't parse URL.");
+          if url.ends_with('/') {
+            format!(
+              "({}://)?{}{}?",
+              parsed.scheme(),
+              escape(parsed.domain().expect("No domain.")),
+              escape(parsed.path())
+            )
+          } else {
+            format!(
+              "({}://)?{}{}",
+              parsed.scheme(),
+              escape(parsed.domain().expect("No domain.")),
+              escape(parsed.path())
+            )
+          }
+        });
+
+        let set = RegexSet::new(regexes)?;
+        Ok(set)
+      })
+      .await
+      .map_err(|e| anyhow::anyhow!("Failed to build URL blocklist due to `{}`", e))?,
+  )
+}
+
 pub async fn send_application_approved_email(
   user: &LocalUserView,
   settings: &Settings,
@@ -890,9 +938,13 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
 pub async fn process_markdown(
   text: &str,
   slur_regex: &Option<Regex>,
+  url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
+
+  markdown_check_for_blocked_urls(&text, url_blocklist)?;
+
   if context.settings().pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
     RemoteImage::create(&mut context.pool(), links).await?;
@@ -905,10 +957,13 @@ pub async fn process_markdown(
 pub async fn process_markdown_opt(
   text: &Option<String>,
   slur_regex: &Option<Regex>,
+  url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<Option<String>> {
   match text {
-    Some(t) => process_markdown(t, slur_regex, context).await.map(Some),
+    Some(t) => process_markdown(t, slur_regex, url_blocklist, context)
+      .await
+      .map(Some),
     None => Ok(None),
   }
 }
@@ -987,9 +1042,9 @@ pub async fn proxy_image_link_opt_apub(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
   use pretty_assertions::assert_eq;

@@ -73,6 +73,17 @@ fn queries<'a>() -> Queries<
         .and(community_person_ban::person_id.eq(post_aggregates::creator_id)),
     ),
   );
+
+  let is_local_user_banned_from_community = |person_id| {
+    exists(
+      community_person_ban::table.filter(
+        post_aggregates::community_id
+          .eq(community_person_ban::community_id)
+          .and(community_person_ban::person_id.eq(person_id)),
+      ),
+    )
+  };
+
   let creator_is_moderator = exists(
     community_moderator::table.filter(
       post_aggregates::community_id
@@ -143,6 +154,14 @@ fn queries<'a>() -> Queries<
 
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>| {
+    let is_local_user_banned_from_community_selection: Box<
+      dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>,
+    > = if let Some(person_id) = my_person_id {
+      Box::new(is_local_user_banned_from_community(person_id))
+    } else {
+      Box::new(false.into_sql::<sql_types::Bool>())
+    };
+
     let is_saved_selection: Box<
       dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Timestamptz>>,
     > = if let Some(person_id) = my_person_id {
@@ -223,6 +242,7 @@ fn queries<'a>() -> Queries<
         person::all_columns,
         community::all_columns,
         is_creator_banned_from_community,
+        is_local_user_banned_from_community_selection,
         creator_is_moderator,
         creator_is_admin,
         post_aggregates::all_columns,
@@ -742,6 +762,8 @@ mod tests {
         CommunityInsertForm,
         CommunityModerator,
         CommunityModeratorForm,
+        CommunityPersonBan,
+        CommunityPersonBanForm,
         CommunityUpdateForm,
       },
       community_block::{CommunityBlock, CommunityBlockForm},
@@ -749,12 +771,13 @@ mod tests {
       instance_block::{InstanceBlock, InstanceBlockForm},
       language::Language,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostHide, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
       site::Site,
     },
-    traits::{Blockable, Crud, Joinable, Likeable},
+    traits::{Bannable, Blockable, Crud, Joinable, Likeable},
     utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
     CommunityVisibility,
     SortType,
@@ -806,7 +829,7 @@ mod tests {
       admin: Some(true),
       ..LocalUserInsertForm::test_form(inserted_person.id)
     };
-    let inserted_local_user = LocalUser::create(pool, &local_user_form).await?;
+    let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
 
     let new_bot = PersonInsertForm {
       bot_account: Some(true),
@@ -832,6 +855,7 @@ mod tests {
     let inserted_blocked_local_user = LocalUser::create(
       pool,
       &LocalUserInsertForm::test_form(inserted_blocked_person.id),
+      vec![],
     )
     .await?;
 
@@ -871,11 +895,13 @@ mod tests {
     let inserted_bot_post = Post::create(pool, &new_bot_post).await?;
     let local_user_view = LocalUserView {
       local_user: inserted_local_user,
+      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_person,
       counts: Default::default(),
     };
     let blocked_local_user_view = LocalUserView {
       local_user: inserted_blocked_local_user,
+      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_blocked_person,
       counts: Default::default(),
     };
@@ -1601,6 +1627,7 @@ mod tests {
         last_refreshed_at: inserted_person.last_refreshed_at,
       },
       creator_banned_from_community: false,
+      banned_from_community: false,
       creator_is_moderator: false,
       creator_is_admin: true,
       community: Community {
@@ -1703,5 +1730,68 @@ mod tests {
 
     cleanup(data, pool).await?;
     Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_local_user_banned_from_community() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Test that post view shows if local user is blocked from community
+    let banned_from_comm_person = PersonInsertForm::test_form(data.inserted_instance.id, "jill");
+
+    let inserted_banned_from_comm_person = Person::create(pool, &banned_from_comm_person).await?;
+
+    let inserted_banned_from_comm_local_user = LocalUser::create(
+      pool,
+      &LocalUserInsertForm::test_form(inserted_banned_from_comm_person.id),
+      vec![],
+    )
+    .await?;
+
+    CommunityPersonBan::ban(
+      pool,
+      &CommunityPersonBanForm {
+        community_id: data.inserted_community.id,
+        person_id: inserted_banned_from_comm_person.id,
+        expires: None,
+      },
+    )
+    .await?;
+
+    let post_view = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(inserted_banned_from_comm_local_user.person_id),
+      false,
+    )
+    .await?;
+
+    assert!(post_view.banned_from_community);
+
+    Person::delete(pool, inserted_banned_from_comm_person.id).await?;
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_local_user_not_banned_from_community() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let post_view = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(data.local_user_view.person.id),
+      false,
+    )
+    .await?;
+
+    assert!(!post_view.banned_from_community);
+
+    cleanup(data, pool).await
   }
 }
