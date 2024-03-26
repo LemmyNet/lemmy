@@ -98,7 +98,7 @@ impl ActivityHandler for UndoBlockUser {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     insert_received_activity(&self.id, context).await?;
-    let expires = self.object.expires.or(self.object.end_time).map(Into::into);
+    let expires = self.object.end_time.map(Into::into);
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;
     match self.object.target.dereference(context).await? {
