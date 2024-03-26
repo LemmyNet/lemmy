@@ -211,5 +211,6 @@ pub struct CustomEmojiView {
 /// A vote view for checking a post or comments votes.
 pub struct VoteView {
   pub creator: Person,
+  pub creator_banned_from_community: bool,
   pub score: i16,
 }
