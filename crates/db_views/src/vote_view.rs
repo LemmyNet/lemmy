@@ -32,7 +32,7 @@ impl VoteView {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id)),
+            .and(community_person_ban::person_id.eq(post_like::person_id)),
         ),
       )
       .filter(post_like::post_id.eq(post_id))
@@ -65,7 +65,7 @@ impl VoteView {
         community_person_ban::table.on(
           post::community_id
             .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post::creator_id)),
+            .and(community_person_ban::person_id.eq(comment_like::person_id)),
         ),
       )
       .filter(comment_like::comment_id.eq(comment_id))
@@ -91,12 +91,12 @@ mod tests {
   use lemmy_db_schema::{
     source::{
       comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
-      community::{Community, CommunityInsertForm},
+      community::{Community, CommunityInsertForm, CommunityPersonBan, CommunityPersonBanForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm, PostLike, PostLikeForm},
     },
-    traits::{Crud, Likeable},
+    traits::{Bannable, Crud, Likeable},
     utils::build_db_pool_for_tests,
   };
   use pretty_assertions::assert_eq;
@@ -226,6 +226,41 @@ mod tests {
       .await
       .unwrap();
     assert_eq!(read_comment_vote_views, expected_comment_vote_views);
+
+    // Ban timmy from that community
+    let ban_timmy_form = CommunityPersonBanForm {
+      community_id: inserted_community.id,
+      person_id: inserted_timmy.id,
+      expires: None,
+    };
+    CommunityPersonBan::ban(pool, &ban_timmy_form)
+      .await
+      .unwrap();
+
+    // Make sure creator_banned_from_community is true
+    let read_comment_vote_views_after_ban =
+      VoteView::list_for_comment(pool, inserted_comment.id, None, None)
+        .await
+        .unwrap();
+
+    assert!(
+      read_comment_vote_views_after_ban
+        .first()
+        .unwrap()
+        .creator_banned_from_community
+    );
+
+    let read_post_vote_views_after_ban =
+      VoteView::list_for_post(pool, inserted_post.id, None, None)
+        .await
+        .unwrap();
+
+    assert!(
+      read_post_vote_views_after_ban
+        .get(1)
+        .unwrap()
+        .creator_banned_from_community
+    );
 
     // Cleanup
     Instance::delete(pool, inserted_instance.id).await.unwrap();
