@@ -319,8 +319,8 @@ pub async fn import_settings(
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::indexing_slicing)]
 
   use crate::api::user_settings_backup::{export_settings, import_settings};
   use activitypub_federation::config::Data;
@@ -361,7 +361,7 @@ mod tests {
       .person_id(person.id)
       .password_encrypted("pass".to_string())
       .build();
-    let local_user = LocalUser::create(&mut context.pool(), &user_form).await?;
+    let local_user = LocalUser::create(&mut context.pool(), &user_form, vec![]).await?;
 
     Ok(LocalUserView::read(&mut context.pool(), local_user.id).await?)
   }

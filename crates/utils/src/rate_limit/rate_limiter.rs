@@ -306,9 +306,9 @@ fn split_ipv6(ip: Ipv6Addr) -> ([u8; 6], u8, u8) {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::{ActionType, BucketConfig, InstantSecs, RateLimitState, RateLimitedGroup};
   use pretty_assertions::assert_eq;
