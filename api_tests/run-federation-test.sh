@@ -11,7 +11,7 @@ killall -s1 lemmy_server || true
 popd
 
 pnpm i
-pnpm api-test-user || true
+pnpm api-test || true
 
 killall -s1 lemmy_server || true
 killall -s1 pict-rs || true

@@ -141,7 +141,7 @@ test("Create user with Arabic name", async () => {
   expect(alphaPerson).toBeDefined();
 });
 
-test.only("Set a new avatar, old avatar is deleted", async () => {
+test("Set a new avatar, old avatar is deleted", async () => {
   const listMediaRes = await alphaImage.listMedia();
   expect(listMediaRes.images.length).toBe(0);
   const upload_form1: UploadImage = {
@@ -149,15 +149,13 @@ test.only("Set a new avatar, old avatar is deleted", async () => {
   };
   const upload1 = await alphaImage.uploadImage(upload_form1);
   expect(upload1.url).toBeDefined();
-  console.log(upload1);
 
   let form1 = {
-    avatar: upload1.url
+    avatar: upload1.url,
   };
   await saveUserSettings(alpha, form1);
   const listMediaRes1 = await alphaImage.listMedia();
   expect(listMediaRes1.images.length).toBe(1);
-  console.log(listMediaRes1);
 
   const upload_form2: UploadImage = {
     image: Buffer.from("test2"),
@@ -166,7 +164,7 @@ test.only("Set a new avatar, old avatar is deleted", async () => {
   expect(upload2.url).toBeDefined();
 
   let form2 = {
-    avatar: upload1.url
+    avatar: upload1.url,
   };
   await saveUserSettings(alpha, form2);
   // make sure only the new avatar is kept
