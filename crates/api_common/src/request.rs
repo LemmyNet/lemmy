@@ -3,6 +3,7 @@ use crate::{
   post::{LinkMetadata, OpenGraphData},
   utils::proxy_image_link,
 };
+use activitypub_federation::config::Data;
 use encoding::{all::encodings, DecoderTrap};
 use lemmy_db_schema::{
   newtypes::DbUrl,
@@ -310,6 +311,26 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Resu
   } else {
     Err(LemmyErrorType::NotAnImageType)?
   }
+}
+
+/// When adding a new avatar or similar image, delete the old one.
+pub async fn replace_image(
+  new_image: &Option<String>,
+  old_image: &Option<DbUrl>,
+  context: &Data<LemmyContext>,
+) -> Result<(), LemmyError> {
+  if new_image.is_some() {
+    // Ignore errors because image may be stored externally.
+    if let Some(avatar) = &old_image {
+      let image = LocalImage::delete_by_url(&mut context.pool(), &avatar)
+        .await
+        .ok();
+      if let Some(image) = image {
+        delete_image_from_pictrs(&image.pictrs_alias, &image.pictrs_delete_token, &context).await?;
+      }
+    }
+  }
+  Ok(())
 }
 
 #[cfg(test)]

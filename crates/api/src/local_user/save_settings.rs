@@ -1,8 +1,9 @@
-use actix_web::web::{Data, Json};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   person::SaveUserSettings,
-  request::delete_image_from_pictrs,
+  request::replace_image,
   utils::{
     get_url_blocklist,
     local_site_to_slur_regex,
@@ -15,7 +16,6 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
-    images::LocalImage,
     local_user::{LocalUser, LocalUserUpdateForm},
     local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeUpdateForm},
     person::{Person, PersonUpdateForm},
@@ -42,17 +42,8 @@ pub async fn save_user_settings(
   let bio = diesel_option_overwrite(
     process_markdown_opt(&data.bio, &slur_regex, &url_blocklist, &context).await?,
   );
-  if data.avatar.is_some() {
-    // Ignore errors because image may be stored externally.
-    if let Some(avatar) = &local_user_view.person.avatar {
-      let image = LocalImage::delete_by_url(&mut context.pool(), &avatar)
-        .await
-        .ok();
-      if let Some(image) = image {
-        delete_image_from_pictrs(&image.pictrs_alias, &image.pictrs_delete_token, &context).await?;
-      }
-    }
-  }
+  replace_image(&data.avatar, &local_user_view.person.avatar, &context).await?;
+  replace_image(&data.banner, &local_user_view.person.banner, &context).await?;
 
   let avatar = proxy_image_link_opt_api(&data.avatar, &context).await?;
   let banner = proxy_image_link_opt_api(&data.banner, &context).await?;

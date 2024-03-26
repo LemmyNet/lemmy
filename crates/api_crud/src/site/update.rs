@@ -1,7 +1,9 @@
 use crate::site::{application_question_check, site_default_post_listing_type_check};
-use actix_web::web::{Data, Json};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
+  request::replace_image,
   site::{EditSite, SiteResponse},
   utils::{
     get_url_blocklist,
@@ -62,6 +64,9 @@ pub async fn update_site(
   if let Some(discussion_languages) = data.discussion_languages.clone() {
     SiteLanguage::update(&mut context.pool(), discussion_languages.clone(), &site).await?;
   }
+
+  replace_image(&data.icon, &site.icon, &context).await?;
+  replace_image(&data.banner, &site.banner, &context).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   let url_blocklist = get_url_blocklist(&context).await?;
