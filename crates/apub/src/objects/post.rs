@@ -24,10 +24,9 @@ use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
-  request::fetch_link_metadata_opt,
+  request::generate_post_link_metadata,
   utils::{
     get_url_blocklist,
-    local_site_opt_to_sensitive,
     local_site_opt_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_apub,
@@ -218,6 +217,7 @@ impl Object for ApubPost {
     let old_post = page.id.dereference_local(context).await;
 
     let first_attachment = page.attachment.first();
+    let local_site = LocalSite::read(&mut context.pool()).await.ok();
 
     let form = if !page.is_mod_action(context).await? {
       let url = if let Some(attachment) = first_attachment.cloned() {
@@ -231,20 +231,8 @@ impl Object for ApubPost {
       check_url_scheme(&url)?;
 
       let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
-      let local_site = LocalSite::read(&mut context.pool()).await.ok();
-      let allow_sensitive = local_site_opt_to_sensitive(&local_site);
-      let page_is_sensitive = page.sensitive.unwrap_or(false);
-      let allow_generate_thumbnail = allow_sensitive || !page_is_sensitive;
-      let mut thumbnail_url = page.image.map(|i| i.url);
-      let do_generate_thumbnail = thumbnail_url.is_none() && allow_generate_thumbnail;
 
-      // Generate local thumbnail only if no thumbnail was federated and 'sensitive' attributes allow it.
-      let metadata = fetch_link_metadata_opt(url.as_ref(), do_generate_thumbnail, context).await;
-      if let Some(thumbnail_url_) = metadata.thumbnail {
-        thumbnail_url = Some(thumbnail_url_.into());
-      }
       let url = proxy_image_link_opt_apub(url, context).await?;
-      let thumbnail_url = proxy_image_link_opt_apub(thumbnail_url, context).await?;
 
       let slur_regex = &local_site_opt_to_slur_regex(&local_site);
       let url_blocklist = get_url_blocklist(context).await?;
@@ -254,30 +242,22 @@ impl Object for ApubPost {
       let language_id =
         LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 
-      PostInsertForm {
-        name,
-        url: url.map(Into::into),
-        body,
-        alt_text,
-        creator_id: creator.id,
-        community_id: community.id,
-        removed: None,
-        locked: page.comments_enabled.map(|e| !e),
-        published: page.published.map(Into::into),
-        updated: page.updated.map(Into::into),
-        deleted: Some(false),
-        nsfw: page.sensitive,
-        embed_title: metadata.opengraph_data.title,
-        embed_description: metadata.opengraph_data.description,
-        embed_video_url: metadata.opengraph_data.embed_video_url,
-        thumbnail_url,
-        ap_id: Some(page.id.clone().into()),
-        local: Some(false),
-        language_id,
-        featured_community: None,
-        featured_local: None,
-        url_content_type: metadata.content_type,
-      }
+      PostInsertForm::builder()
+        .name(name)
+        .url(url.map(Into::into))
+        .body(body)
+        .alt_text(alt_text)
+        .creator_id(creator.id)
+        .community_id(community.id)
+        .locked(page.comments_enabled.map(|e| !e))
+        .published(page.published.map(Into::into))
+        .updated(page.updated.map(Into::into))
+        .deleted(Some(false))
+        .nsfw(page.sensitive)
+        .ap_id(Some(page.id.clone().into()))
+        .local(Some(false))
+        .language_id(language_id)
+        .build()
     } else {
       // if is mod action, only update locked/stickied fields, nothing else
       PostInsertForm::builder()
@@ -291,6 +271,14 @@ impl Object for ApubPost {
     };
 
     let post = Post::create(&mut context.pool(), &form).await?;
+
+    generate_post_link_metadata(
+      post.clone(),
+      page.image.map(|i| i.url),
+      |_| None,
+      local_site,
+      context.reset_request_count(),
+    );
 
     // write mod log entry for lock
     if Page::is_locked_changed(&old_post, &page.comments_enabled) {
