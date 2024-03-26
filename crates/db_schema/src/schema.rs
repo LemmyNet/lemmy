@@ -927,6 +927,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    site_person_ban (person_id, site_id) {
+        site_id -> Int4,
+        person_id -> Int4,
+        published -> Timestamptz,
+        expires -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     tagline (id) {
         id -> Int4,
         local_site_id -> Int4,
@@ -1028,6 +1037,8 @@ diesel::joinable!(site -> instance (instance_id));
 diesel::joinable!(site_aggregates -> site (site_id));
 diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
+diesel::joinable!(site_person_ban -> person (person_id));
+diesel::joinable!(site_person_ban -> site (site_id));
 diesel::joinable!(tagline -> local_site (local_site_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
@@ -1102,5 +1113,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     site,
     site_aggregates,
     site_language,
+    site_person_ban,
     tagline,
 );

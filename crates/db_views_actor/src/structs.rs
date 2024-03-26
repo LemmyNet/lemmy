@@ -149,3 +149,12 @@ pub struct PersonView {
   pub counts: PersonAggregates,
   pub is_admin: bool,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+/// A site person ban.
+pub struct SitePersonBanView {
+  pub site: Site,
+  pub person: Person,
+}

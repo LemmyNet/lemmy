@@ -35,7 +35,7 @@ use lemmy_db_schema::{
       CommunityPersonBanForm,
     },
     moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
-    person::{Person, PersonUpdateForm},
+    site::{SitePersonBan, SitePersonBanForm},
   },
   traits::{Bannable, Crud, Followable},
 };
@@ -155,19 +155,26 @@ impl ActivityHandler for BlockUser {
     let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;
     match target {
-      SiteOrCommunity::Site(_site) => {
-        let blocked_person = Person::update(
-          &mut context.pool(),
-          blocked_person.id,
-          &PersonUpdateForm {
-            banned: Some(true),
-            ban_expires: Some(expires),
-            ..Default::default()
-          },
-        )
-        .await?;
+      SiteOrCommunity::Site(site) => {
+        let site_user_ban_form = SitePersonBanForm {
+          site_id: site.id,
+          person_id: blocked_person.id,
+          expires: Some(expires),
+        };
+        SitePersonBan::ban(&mut context.pool(), &site_user_ban_form).await?;
         if self.remove_data.unwrap_or(false) {
-          remove_user_data(blocked_person.id, context).await?;
+          let user_banned_on_home_instance = verify_domains_match(&site.id(), self.actor.inner())?
+            && verify_domains_match(&site.id(), self.object.inner())?;
+          if user_banned_on_home_instance {
+            remove_user_data(blocked_person.id, context).await?;
+          } else {
+            // Currently, remote site bans federate data removal through corresponding community
+            // bans, because remote site bans were not even stored unless they came from the user's
+            // home instance. We can continue to use community bans to federate data removal for
+            // backwards compatibility, initially but at some point, when most instances have been
+            // upgraded to have the logic of storing remote site bans, we can start doing data
+            // removal here & remove the logic of federating community bans on remote site bans.
+          }
         }
 
         // write mod log

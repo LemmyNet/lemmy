@@ -23,7 +23,7 @@ use lemmy_db_schema::{
     activity::ActivitySendTargets,
     community::{CommunityPersonBan, CommunityPersonBanForm},
     moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
-    person::{Person, PersonUpdateForm},
+    site::{SitePersonBan, SitePersonBanForm},
   },
   traits::{Bannable, Crud},
 };
@@ -102,17 +102,13 @@ impl ActivityHandler for UndoBlockUser {
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;
     match self.object.target.dereference(context).await? {
-      SiteOrCommunity::Site(_site) => {
-        let blocked_person = Person::update(
-          &mut context.pool(),
-          blocked_person.id,
-          &PersonUpdateForm {
-            banned: Some(false),
-            ban_expires: Some(expires),
-            ..Default::default()
-          },
-        )
-        .await?;
+      SiteOrCommunity::Site(site) => {
+        let site_user_ban_form = SitePersonBanForm {
+          site_id: site.id,
+          person_id: blocked_person.id,
+          expires: None,
+        };
+        SitePersonBan::unban(&mut context.pool(), &site_user_ban_form).await?;
 
         // write mod log
         let form = ModBanForm {

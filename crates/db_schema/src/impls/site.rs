@@ -3,9 +3,9 @@ use crate::{
   schema::site::dsl::{actor_id, id, instance_id, site},
   source::{
     actor_language::SiteLanguage,
-    site::{Site, SiteInsertForm, SiteUpdateForm},
+    site::{Site, SiteInsertForm, SitePersonBan, SitePersonBanForm, SiteUpdateForm},
   },
-  traits::Crud,
+  traits::{Bannable, Crud},
   utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, OptionalExtension, QueryDsl};
@@ -98,5 +98,37 @@ impl Site {
     url.set_path("");
     url.set_query(None);
     url
+  }
+}
+
+#[async_trait]
+impl Bannable for SitePersonBan {
+  type Form = SitePersonBanForm;
+  async fn ban(
+    pool: &mut DbPool<'_>,
+    site_person_ban_form: &SitePersonBanForm,
+  ) -> Result<Self, Error> {
+    use crate::schema::site_person_ban::dsl::{person_id, site_id, site_person_ban};
+    let conn = &mut get_conn(pool).await?;
+    insert_into(site_person_ban)
+      .values(site_person_ban_form)
+      .on_conflict((site_id, person_id))
+      .do_update()
+      .set(site_person_ban_form)
+      .get_result::<Self>(conn)
+      .await
+  }
+
+  async fn unban(
+    pool: &mut DbPool<'_>,
+    site_person_ban_form: &SitePersonBanForm,
+  ) -> Result<usize, Error> {
+    use crate::schema::site_person_ban::dsl::site_person_ban;
+    let conn = &mut get_conn(pool).await?;
+    diesel::delete(
+      site_person_ban.find((site_person_ban_form.person_id, site_person_ban_form.site_id)),
+    )
+    .execute(conn)
+    .await
   }
 }

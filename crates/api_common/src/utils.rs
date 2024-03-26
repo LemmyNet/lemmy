@@ -28,11 +28,7 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
-use lemmy_db_views_actor::structs::{
-  CommunityModeratorView,
-  CommunityPersonBanView,
-  CommunityView,
-};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityPersonBanView, CommunityView, SitePersonBanView};
 use lemmy_utils::{
   email::{send_email, translations::Lang},
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -51,6 +47,7 @@ use std::{collections::HashSet, time::Duration};
 use tracing::warn;
 use url::{ParseError, Url};
 use urlencoding::encode;
+use lemmy_db_views::structs::SiteView;
 
 pub static AUTH_COOKIE_NAME: &str = "jwt";
 #[cfg(debug_assertions)]
@@ -204,11 +201,26 @@ async fn check_community_ban(
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  // check if user was banned from site or community
-  let is_banned = CommunityPersonBanView::get(pool, person.id, community_id).await?;
-  if is_banned {
+  // check if user was banned from community
+  let is_banned_from_community = CommunityPersonBanView::get(pool, person.id, community_id).await?;
+  if is_banned_from_community {
     Err(LemmyErrorType::BannedFromCommunity)?
   }
+
+
+  // for remote communities, check if the user was banned on the host site
+  let community_view = CommunityView::read(pool, community_id, None, false).await?;
+  if (!community_view.community.local) {
+
+  let instance_id = community_view.community.instance_id;
+    if let Some(site) = Site::read_from_instance_id(pool, instance_id).await? {
+      let is_banned_from_site_of_community = SitePersonBanView::get(pool, person.id, site.id).await?;
+      if is_banned_from_site_of_community {
+        Err(LemmyErrorType::BannedFromCommunity)?
+      }
+    }
+  }
+
   Ok(())
 }
 
