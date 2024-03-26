@@ -47,6 +47,16 @@ fn queries<'a>() -> Queries<
     ),
   );
 
+  let is_local_user_banned_from_community = |person_id| {
+    exists(
+      community_person_ban::table.filter(
+        community::id
+          .eq(community_person_ban::community_id)
+          .and(community_person_ban::person_id.eq(person_id)),
+      ),
+    )
+  };
+
   let is_saved = |person_id| {
     exists(
       comment_saved::table.filter(
@@ -107,6 +117,13 @@ fn queries<'a>() -> Queries<
 
   let all_joins = move |query: person_mention::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>| {
+    let is_local_user_banned_from_community_selection: Box<
+      dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>,
+    > = if let Some(person_id) = my_person_id {
+      Box::new(is_local_user_banned_from_community(person_id))
+    } else {
+      Box::new(false.into_sql::<sql_types::Bool>())
+    };
     let score_selection: Box<
       dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
     > = if let Some(person_id) = my_person_id {
@@ -153,6 +170,7 @@ fn queries<'a>() -> Queries<
         aliases::person1.fields(person::all_columns),
         comment_aggregates::all_columns,
         is_creator_banned_from_community,
+        is_local_user_banned_from_community_selection,
         creator_is_moderator,
         creator_is_admin,
         subscribed_type_selection,
