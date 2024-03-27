@@ -59,12 +59,12 @@ async function assertPostFederation(postOne: PostView, postTwo: PostView) {
   // Link metadata is generated in background task and may not be ready yet at this time,
   // so wait for it explicitly. For removed posts we cant refetch anything.
   postOne = await waitForPost(beta, postOne.post, res => {
-    return res == null || res?.post.embed_title != null;
+    return res === null || res?.post.embed_title !== null;
   });
   postTwo = await waitForPost(
     beta,
     postTwo.post,
-    res => res == null || res?.post.embed_title != null,
+    res => res === null || res?.post.embed_title !== null,
   );
 
   expect(postOne?.post.ap_id).toBe(postTwo?.post.ap_id);

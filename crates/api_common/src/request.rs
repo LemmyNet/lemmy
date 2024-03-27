@@ -104,7 +104,7 @@ pub fn generate_post_link_metadata(
     let allow_sensitive = local_site_opt_to_sensitive(&local_site);
     let page_is_sensitive = post.nsfw;
     let allow_generate_thumbnail = allow_sensitive || !page_is_sensitive;
-    let mut thumbnail_url = custom_thumbnail.or(post.thumbnail_url.map(Into::into));
+    let mut thumbnail_url = custom_thumbnail.or_else(|| post.thumbnail_url.map(Into::into));
     let do_generate_thumbnail = thumbnail_url.is_none() && allow_generate_thumbnail;
 
     // Generate local thumbnail only if no thumbnail was federated and 'sensitive' attributes allow it.

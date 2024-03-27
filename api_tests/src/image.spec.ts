@@ -239,7 +239,7 @@ test("No image proxying if setting is disabled", async () => {
   let betaPost = await waitForPost(
     beta,
     post.post_view.post,
-    res => res?.post.alt_text != null,
+    res => res?.post.alt_text !== null,
   );
   expect(betaPost.post).toBeDefined();
 
