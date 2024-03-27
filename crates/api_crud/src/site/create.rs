@@ -189,9 +189,9 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::site::create::validate_create_payload;
   use lemmy_api_common::site::CreateSite;

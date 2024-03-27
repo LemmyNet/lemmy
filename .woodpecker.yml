@@ -5,22 +5,25 @@ variables:
   - &rust_image "rust:1.76"
   - &install_pnpm "corepack enable pnpm"
   - &slow_check_paths
-    - path:
-        # rust source code
-        - "crates/**"
-        - "src/**"
-        - "**/Cargo.toml"
-        - "Cargo.lock"
-        # database migrations
-        - "migrations/**"
-        # typescript tests
-        - "api_tests/**"
-        # config files and scripts used by ci
-        - ".woodpecker.yml"
-        - ".rustfmt.toml"
-        - "scripts/update_config_defaults.sh"
-        - "diesel.toml"
-        - ".gitmodules"
+    - event: pull_request
+      path:
+        include: [
+            # rust source code
+            "crates/**",
+            "src/**",
+            "**/Cargo.toml",
+            "Cargo.lock",
+            # database migrations
+            "migrations/**",
+            # typescript tests
+            "api_tests/**",
+            # config files and scripts used by ci
+            ".woodpecker.yml",
+            ".rustfmt.toml",
+            "scripts/update_config_defaults.sh",
+            "diesel.toml",
+            ".gitmodules",
+          ]
 
 # Broken for cron jobs currently, see
 # https://github.com/woodpecker-ci/woodpecker/issues/1716
@@ -38,21 +41,29 @@ steps:
       - apk add git
       - git submodule init
       - git submodule update
+    when:
+      - event: pull_request
 
   prettier_check:
     image: tmknom/prettier:3.0.0
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
+    when:
+      - event: pull_request
 
   toml_fmt:
     image: tamasfe/taplo:0.8.1
     commands:
       - taplo format --check
+    when:
+      - event: pull_request
 
   sql_fmt:
     image: backplane/pgformatter:latest
     commands:
       - ./scripts/sql_format_check.sh
+    when:
+      - event: pull_request
 
   cargo_fmt:
     image: rustlang/rust:nightly
@@ -62,6 +73,8 @@ steps:
     commands:
       - rustup component add rustfmt
       - cargo +nightly fmt -- --check
+    when:
+      - event: pull_request
 
   cargo_machete:
     image: rustlang/rust:nightly
@@ -71,6 +84,8 @@ steps:
       - cp cargo-binstall /usr/local/cargo/bin
       - cargo binstall -y cargo-machete
       - cargo machete
+    when:
+      - event: pull_request
 
   ignored_files:
     image: alpine:3
@@ -78,6 +93,8 @@ steps:
       - apk add git
       - IGNORED=$(git ls-files --cached -i --exclude-standard)
       - if [[ "$IGNORED" ]]; then echo "Ignored files present:\n$IGNORED\n"; exit 1; fi
+    when:
+      - event: pull_request
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
@@ -226,7 +243,8 @@ steps:
       - cat target/log/lemmy_*.out || true
       - "# If you can't see all output, then use the download button"
     when:
-      status: [failure]
+      - event: pull_request
+        status: failure
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
@@ -239,7 +257,7 @@ steps:
         - RUST_RELEASE_MODE=release
       tag: ${CI_COMMIT_TAG}
     when:
-      event: tag
+      - event: tag
 
   nightly_build:
     image: woodpeckerci/plugin-docker-buildx
@@ -252,7 +270,7 @@ steps:
         - RUST_RELEASE_MODE=release
       tag: dev
     when:
-      event: cron
+      - event: cron
 
   # using https://github.com/pksunkara/cargo-workspaces
   publish_to_crates_io:
@@ -265,7 +283,7 @@ steps:
       - cargo workspaces publish --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
     secrets: [cargo_api_token]
     when:
-      event: tag
+      - event: tag
 
   notify_on_failure:
     image: alpine:3
@@ -273,7 +291,8 @@ steps:
       - apk add curl
       - "curl -d'Lemmy CI build failed: ${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
     when:
-      status: [failure]
+      - event: pull_request
+        status: failure
 
   notify_on_tag_deploy:
     image: alpine:3
@@ -281,7 +300,7 @@ steps:
       - apk add curl
       - "curl -d'lemmy:${CI_COMMIT_TAG} deployed' ntfy.sh/lemmy_drone_ci"
     when:
-      event: tag
+      - event: tag
 
 services:
   database:

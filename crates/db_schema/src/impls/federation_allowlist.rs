@@ -48,9 +48,9 @@ impl FederationAllowList {
   }
 }
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     source::{federation_allowlist::FederationAllowList, instance::Instance},

@@ -42,8 +42,8 @@ pub async fn get_sitemap(context: Data<LemmyContext>) -> LemmyResult<HttpRespons
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 pub(crate) mod tests {
-  #![allow(clippy::unwrap_used)]
 
   use crate::sitemap::generate_urlset;
   use chrono::{DateTime, NaiveDate, Utc};

@@ -55,7 +55,18 @@ afterAll(() => {
   unfollows();
 });
 
-function assertPostFederation(postOne?: PostView, postTwo?: PostView) {
+async function assertPostFederation(postOne: PostView, postTwo: PostView) {
+  // Link metadata is generated in background task and may not be ready yet at this time,
+  // so wait for it explicitly. For removed posts we cant refetch anything.
+  postOne = await waitForPost(beta, postOne.post, res => {
+    return res === null || res?.post.embed_title !== null;
+  });
+  postTwo = await waitForPost(
+    beta,
+    postTwo.post,
+    res => res === null || res?.post.embed_title !== null,
+  );
+
   expect(postOne?.post.ap_id).toBe(postTwo?.post.ap_id);
   expect(postOne?.post.name).toBe(postTwo?.post.name);
   expect(postOne?.post.body).toBe(postTwo?.post.body);
@@ -109,7 +120,7 @@ test("Create a post", async () => {
   expect(betaPost?.community.local).toBe(true);
   expect(betaPost?.creator.local).toBe(false);
   expect(betaPost?.counts.score).toBe(1);
-  assertPostFederation(betaPost, postRes.post_view);
+  await assertPostFederation(betaPost, postRes.post_view);
 
   // Delta only follows beta, so it should not see an alpha ap_id
   await expect(
@@ -157,7 +168,7 @@ test("Unlike a post", async () => {
   expect(betaPost?.community.local).toBe(true);
   expect(betaPost?.creator.local).toBe(false);
   expect(betaPost?.counts.score).toBe(0);
-  assertPostFederation(betaPost, postRes.post_view);
+  await assertPostFederation(betaPost, postRes.post_view);
 });
 
 test("Update a post", async () => {
@@ -178,7 +189,7 @@ test("Update a post", async () => {
   expect(betaPost.community.local).toBe(true);
   expect(betaPost.creator.local).toBe(false);
   expect(betaPost.post.name).toBe(updatedName);
-  assertPostFederation(betaPost, updatedPost.post_view);
+  await assertPostFederation(betaPost, updatedPost.post_view);
 
   // Make sure lemmy beta cannot update the post
   await expect(editPost(beta, betaPost.post)).rejects.toStrictEqual(
@@ -329,7 +340,7 @@ test("Delete a post", async () => {
     throw "Missing beta post 2";
   }
   expect(betaPost2.post.deleted).toBe(false);
-  assertPostFederation(betaPost2, undeletedPost.post_view);
+  await assertPostFederation(betaPost2, undeletedPost.post_view);
 
   // Make sure lemmy beta cannot delete the post
   await expect(deletePost(beta, true, betaPost2.post)).rejects.toStrictEqual(
@@ -372,7 +383,7 @@ test("Remove a post from admin and community on different instance", async () =>
   // Make sure lemmy beta sees post is undeleted
   let betaPost2 = (await resolvePost(beta, postRes.post_view.post)).post;
   expect(betaPost2?.post.removed).toBe(false);
-  assertPostFederation(betaPost2, undeletedPost.post_view);
+  await assertPostFederation(betaPost2!, undeletedPost.post_view);
 });
 
 test("Remove a post from admin and community on same instance", async () => {
@@ -403,7 +414,7 @@ test("Remove a post from admin and community on same instance", async () => {
     p => p?.post_view.post.removed ?? false,
   );
   expect(alphaPost?.post_view.post.removed).toBe(true);
-  assertPostFederation(alphaPost.post_view, removePostRes.post_view);
+  await assertPostFederation(alphaPost.post_view, removePostRes.post_view);
 
   // Undelete
   let undeletedPost = await removePost(beta, false, betaPost.post);
@@ -416,7 +427,7 @@ test("Remove a post from admin and community on same instance", async () => {
     p => !!p && !p.post.removed,
   );
   expect(alphaPost2.post.removed).toBe(false);
-  assertPostFederation(alphaPost2, undeletedPost.post_view);
+  await assertPostFederation(alphaPost2, undeletedPost.post_view);
   await unfollowRemotes(alpha);
 });
 

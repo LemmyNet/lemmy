@@ -4,10 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{UpdateTotp, UpdateTotpResponse},
 };
-use lemmy_db_schema::{
-  source::local_user::{LocalUser, LocalUserUpdateForm},
-  traits::Crud,
-};
+use lemmy_db_schema::source::local_user::{LocalUser, LocalUserUpdateForm};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
