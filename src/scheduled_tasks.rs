@@ -131,7 +131,7 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) {
         &mut conn,
         "comment",
         "a.hot_rank != 0",
-        "SET hot_rank = hot_rank(a.score, a.published)",
+        "SET hot_rank = r.hot_rank(a.score, a.published)",
       )
       .await;
 
@@ -139,7 +139,7 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) {
         &mut conn,
         "community",
         "a.hot_rank != 0",
-        "SET hot_rank = hot_rank(a.subscribers, a.published)",
+        "SET hot_rank = r.hot_rank(a.subscribers, a.published)",
       )
       .await;
 
@@ -236,9 +236,9 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
                LIMIT $2
                FOR UPDATE SKIP LOCKED)
          UPDATE post_aggregates pa
-           SET hot_rank = hot_rank(pa.score, pa.published),
-           hot_rank_active = hot_rank(pa.score, pa.newest_comment_time_necro),
-           scaled_rank = scaled_rank(pa.score, pa.published, ca.users_active_month)
+           SET hot_rank = r.hot_rank(pa.score, pa.published),
+           hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro),
+           scaled_rank = r.scaled_rank(pa.score, pa.published, ca.users_active_month)
          FROM batch, community_aggregates ca
          WHERE pa.post_id = batch.post_id and pa.community_id = ca.community_id RETURNING pa.published;
     "#,
