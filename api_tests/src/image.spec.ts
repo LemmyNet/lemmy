@@ -16,13 +16,16 @@ import {
   createPost,
   delta,
   epsilon,
+  followCommunity,
   gamma,
   getSite,
   registerUser,
   resolveBetaCommunity,
+  resolveCommunity,
   resolvePost,
   setupLogins,
   unfollowRemotes,
+  waitForPost,
 } from "./shared";
 const downloadFileSync = require("download-file-sync");
 
@@ -175,6 +178,11 @@ test("Images in remote post are proxied if setting enabled", async () => {
 test("No image proxying if setting is disabled", async () => {
   let user = await registerUser(beta, betaUrl);
   let community = await createCommunity(alpha);
+  let betaCommunity = await resolveCommunity(
+    beta,
+    community.community_view.community.actor_id,
+  );
+  await followCommunity(beta, true, betaCommunity.community!.community.id);
 
   const upload_form: UploadImage = {
     image: Buffer.from("test"),
@@ -194,15 +202,19 @@ test("No image proxying if setting is disabled", async () => {
   ).toBeTruthy();
   expect(post.post_view.post.body).toBe("![](http://example.com/image2.png)");
 
-  let gammaPost = await resolvePost(delta, post.post_view.post);
-  expect(gammaPost.post).toBeDefined();
+  let betaPost = await waitForPost(
+    beta,
+    post.post_view.post,
+    res => res?.post.alt_text != null,
+  );
+  expect(betaPost.post).toBeDefined();
 
   // remote image doesnt get proxied after federation
   expect(
-    gammaPost.post!.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
+    betaPost.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
   ).toBeTruthy();
-  expect(gammaPost.post!.post.body).toBe("![](http://example.com/image2.png)");
+  expect(betaPost.post.body).toBe("![](http://example.com/image2.png)");
 
   // Make sure the alt text got federated
-  expect(post.post_view.post.alt_text).toBe(gammaPost.post!.post.alt_text);
+  expect(post.post_view.post.alt_text).toBe(betaPost.post.alt_text);
 });
