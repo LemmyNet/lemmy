@@ -664,13 +664,13 @@ pub async fn purge_image_posts_for_person(
 }
 
 /// Delete a local_user's images
-pub async fn delete_local_user_images(
+async fn delete_local_user_images(
   person_id: PersonId,
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), person_id).await {
     let pictrs_uploads =
-      LocalImage::get_all_by_local_user_id(&mut context.pool(), &local_user.local_user.id).await?;
+      LocalImage::get_all_by_local_user_id(&mut context.pool(), local_user.local_user.id).await?;
 
     // Delete their images
     for upload in pictrs_uploads {
