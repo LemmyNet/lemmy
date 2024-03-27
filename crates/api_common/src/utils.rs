@@ -1,6 +1,6 @@
 use crate::{
   context::LemmyContext,
-  request::purge_image_from_pictrs,
+  request::{delete_image_from_pictrs, purge_image_from_pictrs},
   site::{FederatedInstances, InstanceWithFederationState},
 };
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
@@ -12,7 +12,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityModerator, CommunityUpdateForm},
     community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
-    images::RemoteImage,
+    images::{LocalImage, RemoteImage},
     instance::Instance,
     instance_block::InstanceBlock,
     local_site::LocalSite,
@@ -663,6 +663,25 @@ pub async fn purge_image_posts_for_person(
   Ok(())
 }
 
+/// Delete a local_user's images
+async fn delete_local_user_images(
+  person_id: PersonId,
+  context: &LemmyContext,
+) -> Result<(), LemmyError> {
+  if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), person_id).await {
+    let pictrs_uploads =
+      LocalImage::get_all_by_local_user_id(&mut context.pool(), local_user.local_user.id).await?;
+
+    // Delete their images
+    for upload in pictrs_uploads {
+      delete_image_from_pictrs(&upload.pictrs_alias, &upload.pictrs_delete_token, context)
+        .await
+        .ok();
+    }
+  }
+  Ok(())
+}
+
 pub async fn purge_image_posts_for_community(
   banned_community_id: CommunityId,
   context: &LemmyContext,
@@ -804,15 +823,22 @@ pub async fn purge_user_account(
   context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   let pool = &mut context.pool();
-  // Delete their images
+
   let person = Person::read(pool, person_id).await?;
+
+  // Delete their local images, if they're a local user
+  delete_local_user_images(person_id, context).await.ok();
+
+  // No need to update avatar and banner, those are handled in Person::delete_account
   if let Some(avatar) = person.avatar {
     purge_image_from_pictrs(&avatar, context).await.ok();
   }
   if let Some(banner) = person.banner {
     purge_image_from_pictrs(&banner, context).await.ok();
   }
-  // No need to update avatar and banner, those are handled in Person::delete_account
+
+  // Purge image posts
+  purge_image_posts_for_person(person_id, context).await.ok();
 
   // Comments
   Comment::permadelete_for_creator(pool, person_id)
@@ -823,9 +849,6 @@ pub async fn purge_user_account(
   Post::permadelete_for_creator(pool, person_id)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
-
-  // Purge image posts
-  purge_image_posts_for_person(person_id, context).await?;
 
   // Leave communities they mod
   CommunityModerator::leave_all_communities(pool, person_id).await?;
