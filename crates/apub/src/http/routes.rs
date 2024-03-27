@@ -9,9 +9,9 @@ use crate::http::{
     get_apub_community_outbox,
   },
   get_activity,
+  inbox::shared_inbox,
   person::{get_apub_person_http, get_apub_person_outbox, person_inbox},
   post::get_apub_post,
-  shared_inbox,
   site::{get_apub_site_http, get_apub_site_outbox},
 };
 use actix_web::{

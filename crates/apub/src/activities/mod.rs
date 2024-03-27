@@ -30,6 +30,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
+use chrono::{DateTime, Local, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
@@ -44,6 +45,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::Serialize;
+use serde_with::serde_derive::Deserialize;
 use tracing::info;
 use url::{ParseError, Url};
 use uuid::Uuid;
@@ -204,8 +206,9 @@ where
 {
   info!("Saving outgoing activity to queue {}", activity.id());
 
+  let activity = WithPublished::new(activity);
   let form = SentActivityForm {
-    ap_id: activity.id().clone().into(),
+    ap_id: activity.inner.id().clone().into(),
     data: serde_json::to_value(activity)?,
     sensitive,
     send_inboxes: send_targets
@@ -221,6 +224,24 @@ where
   SentActivity::create(&mut data.pool(), form).await?;
 
   Ok(())
+}
+
+/// Wrapper struct that adds `published` field with timestamp to outgoing activities. Important that
+/// the timestamp includes milliseconds and timezone.
+#[derive(Serialize, Deserialize)]
+pub(crate) struct WithPublished<T> {
+  pub(crate) published: Option<DateTime<Utc>>,
+  #[serde(flatten)]
+  inner: T,
+}
+
+impl<T> WithPublished<T> {
+  pub fn new(inner: T) -> WithPublished<T> {
+    Self {
+      published: Some(Local::now().into()),
+      inner,
+    }
+  }
 }
 
 pub async fn handle_outgoing_activities(context: Data<LemmyContext>) {

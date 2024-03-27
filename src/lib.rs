@@ -25,6 +25,7 @@ use actix_web::{
 };
 use actix_web_prom::PrometheusMetricsBuilder;
 use clap::Parser;
+use futures_util::future::join_all;
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
@@ -37,6 +38,7 @@ use lemmy_api_common::{
 };
 use lemmy_apub::{
   activities::{handle_outgoing_activities, match_outgoing_activities},
+  http::inbox::handle_received_activities,
   objects::instance::ApubSite,
   VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
@@ -192,6 +194,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
     .expect("set function pointer");
   let request_data = federation_config.to_request_data();
   let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(request_data));
+  let request_data = federation_config.to_request_data();
+  let handle_received_activities_task = handle_received_activities(&request_data);
 
   let server = if !args.disable_http_server {
     if let Some(startup_server_handle) = startup_server_handle {
@@ -239,6 +243,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
 
   // Wait for outgoing apub sends to complete
   ActivityChannel::close(outgoing_activities_task).await?;
+  join_all(handle_received_activities_task?).await;
 
   Ok(())
 }
