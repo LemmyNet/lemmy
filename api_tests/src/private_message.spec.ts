@@ -8,9 +8,9 @@ import {
   editPrivateMessage,
   listPrivateMessages,
   deletePrivateMessage,
-  unfollowRemotes,
   waitUntil,
   reportPrivateMessage,
+  unfollows,
 } from "./shared";
 
 let recipient_id: number;
@@ -22,7 +22,7 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
-  unfollowRemotes(alpha);
+  unfollows();
 });
 
 test("Create a private message", async () => {

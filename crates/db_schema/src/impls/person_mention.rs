@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommentId, PersonId, PersonMentionId},
-  schema::person_mention::dsl::{comment_id, person_mention, read, recipient_id},
+  schema::person_mention,
   source::person_mention::{PersonMention, PersonMentionInsertForm, PersonMentionUpdateForm},
   traits::Crud,
   utils::{get_conn, DbPool},
@@ -21,9 +21,9 @@ impl Crud for PersonMention {
     let conn = &mut get_conn(pool).await?;
     // since the return here isnt utilized, we dont need to do an update
     // but get_result doesnt return the existing row here
-    insert_into(person_mention)
+    insert_into(person_mention::table)
       .values(person_mention_form)
-      .on_conflict((recipient_id, comment_id))
+      .on_conflict((person_mention::recipient_id, person_mention::comment_id))
       .do_update()
       .set(person_mention_form)
       .get_result::<Self>(conn)
@@ -36,7 +36,7 @@ impl Crud for PersonMention {
     person_mention_form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(person_mention.find(person_mention_id))
+    diesel::update(person_mention::table.find(person_mention_id))
       .set(person_mention_form)
       .get_result::<Self>(conn)
       .await
@@ -50,11 +50,11 @@ impl PersonMention {
   ) -> Result<Vec<PersonMention>, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(
-      person_mention
-        .filter(recipient_id.eq(for_recipient_id))
-        .filter(read.eq(false)),
+      person_mention::table
+        .filter(person_mention::recipient_id.eq(for_recipient_id))
+        .filter(person_mention::read.eq(false)),
     )
-    .set(read.eq(true))
+    .set(person_mention::read.eq(true))
     .get_results::<Self>(conn)
     .await
   }
@@ -65,18 +65,18 @@ impl PersonMention {
     for_recipient_id: PersonId,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    person_mention
-      .filter(comment_id.eq(for_comment_id))
-      .filter(recipient_id.eq(for_recipient_id))
+    person_mention::table
+      .filter(person_mention::comment_id.eq(for_comment_id))
+      .filter(person_mention::recipient_id.eq(for_recipient_id))
       .first::<Self>(conn)
       .await
   }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     source::{
