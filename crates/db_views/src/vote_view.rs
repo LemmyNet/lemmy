@@ -1,9 +1,7 @@
 use crate::structs::VoteView;
 use diesel::{
   result::Error,
-  BoolExpressionMethods,
   ExpressionMethods,
-  JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
 };
