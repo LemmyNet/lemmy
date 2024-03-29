@@ -517,9 +517,9 @@ async fn update_instance_software(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use lemmy_routes::nodeinfo::NodeInfo;
   use pretty_assertions::assert_eq;

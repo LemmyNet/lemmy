@@ -72,6 +72,7 @@ impl BlockUser {
       )?,
       audience,
       expires,
+      end_time: expires,
     })
   }
 
@@ -149,7 +150,7 @@ impl ActivityHandler for BlockUser {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
     insert_received_activity(&self.id, context).await?;
-    let expires = self.expires.map(Into::into);
+    let expires = self.expires.or(self.end_time).map(Into::into);
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;

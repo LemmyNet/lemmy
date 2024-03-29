@@ -28,7 +28,7 @@ use crate::{
   },
 };
 use ::url::Url;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{self, insert_into},
   result::Error,
@@ -112,7 +112,9 @@ impl Post {
       .filter(post::local.eq(true))
       .filter(post::deleted.eq(false))
       .filter(post::removed.eq(false))
-      .filter(post::published.ge(Utc::now().naive_utc() - Duration::days(SITEMAP_DAYS)))
+      .filter(
+        post::published.ge(Utc::now().naive_utc() - SITEMAP_DAYS.expect("TimeDelta out of bounds")),
+      )
       .order(post::published.desc())
       .limit(SITEMAP_LIMIT)
       .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)
@@ -425,9 +427,9 @@ impl PostHide {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     source::{

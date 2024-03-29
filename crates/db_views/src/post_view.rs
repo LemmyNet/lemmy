@@ -98,6 +98,9 @@ fn queries<'a>() -> Queries<
           .field(community_actions::received_ban)
           .nullable()
           .is_not_null(),
+        community_actions::received_ban
+          .nullable()
+          .is_not_null(),
         creator_community_actions
           .field(community_actions::became_moderator)
           .nullable()
@@ -571,6 +574,8 @@ mod tests {
         CommunityInsertForm,
         CommunityModerator,
         CommunityModeratorForm,
+        CommunityPersonBan,
+        CommunityPersonBanForm,
         CommunityUpdateForm,
       },
       community_block::{CommunityBlock, CommunityBlockForm},
@@ -584,7 +589,7 @@ mod tests {
       post::{Post, PostHide, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
       site::Site,
     },
-    traits::{Blockable, Crud, Joinable, Likeable},
+    traits::{Bannable, Blockable, Crud, Joinable, Likeable},
     utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
     CommunityVisibility,
     SortType,
@@ -636,7 +641,7 @@ mod tests {
       admin: Some(true),
       ..LocalUserInsertForm::test_form(inserted_person.id)
     };
-    let inserted_local_user = LocalUser::create(pool, &local_user_form).await?;
+    let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
 
     let new_bot = PersonInsertForm {
       bot_account: Some(true),
@@ -662,6 +667,7 @@ mod tests {
     let inserted_blocked_local_user = LocalUser::create(
       pool,
       &LocalUserInsertForm::test_form(inserted_blocked_person.id),
+      vec![],
     )
     .await?;
 
@@ -1433,6 +1439,7 @@ mod tests {
         last_refreshed_at: inserted_person.last_refreshed_at,
       },
       creator_banned_from_community: false,
+      banned_from_community: false,
       creator_is_moderator: false,
       creator_is_admin: true,
       community: Community {
@@ -1535,5 +1542,68 @@ mod tests {
 
     cleanup(data, pool).await?;
     Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_local_user_banned_from_community() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Test that post view shows if local user is blocked from community
+    let banned_from_comm_person = PersonInsertForm::test_form(data.inserted_instance.id, "jill");
+
+    let inserted_banned_from_comm_person = Person::create(pool, &banned_from_comm_person).await?;
+
+    let inserted_banned_from_comm_local_user = LocalUser::create(
+      pool,
+      &LocalUserInsertForm::test_form(inserted_banned_from_comm_person.id),
+      vec![],
+    )
+    .await?;
+
+    CommunityPersonBan::ban(
+      pool,
+      &CommunityPersonBanForm {
+        community_id: data.inserted_community.id,
+        person_id: inserted_banned_from_comm_person.id,
+        expires: None,
+      },
+    )
+    .await?;
+
+    let post_view = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(inserted_banned_from_comm_local_user.person_id),
+      false,
+    )
+    .await?;
+
+    assert!(post_view.banned_from_community);
+
+    Person::delete(pool, inserted_banned_from_comm_person.id).await?;
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_local_user_not_banned_from_community() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let post_view = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(data.local_user_view.person.id),
+      false,
+    )
+    .await?;
+
+    assert!(!post_view.banned_from_community);
+
+    cleanup(data, pool).await
   }
 }

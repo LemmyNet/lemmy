@@ -29,6 +29,7 @@ use lemmy_api::{
     get_captcha::get_captcha,
     list_banned::list_banned_users,
     list_logins::list_logins,
+    list_media::list_media,
     login::login,
     logout::logout,
     notifications::{
@@ -71,6 +72,7 @@ use lemmy_api::{
     block::block_instance,
     federated_instances::get_federated_instances,
     leave_admin::leave_admin,
+    list_all_media::list_all_media,
     mod_log::get_mod_log,
     purge::{
       comment::purge_comment,
@@ -282,6 +284,12 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.import_user_settings())
           .route(web::post().to(import_settings)),
       )
+      // TODO, all the current account related actions under /user need to get moved here eventually
+      .service(
+        web::scope("/account")
+          .wrap(rate_limit.message())
+          .route("/list_media", web::get().to(list_media)),
+      )
       // User actions
       .service(
         web::scope("/user")
@@ -339,6 +347,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
             "/registration_application/approve",
             web::put().to(approve_registration_application),
           )
+          .route("/list_all_media", web::get().to(list_all_media))
           .service(
             web::scope("/purge")
               .route("/person", web::post().to(purge_person))

@@ -221,9 +221,9 @@ impl<'a> CommunityQuery<'a> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{community_view::CommunityQuery, structs::CommunityView};
   use lemmy_db_schema::{
@@ -267,7 +267,9 @@ mod tests {
       .person_id(inserted_person.id)
       .password_encrypted(String::new())
       .build();
-    let local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+    let local_user = LocalUser::create(pool, &local_user_form, vec![])
+      .await
+      .unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("test_community_3".to_string())

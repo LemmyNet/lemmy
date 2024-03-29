@@ -215,9 +215,9 @@ impl PostReportQuery {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     post_report_view::{PostReportQuery, PostReportView},
@@ -262,7 +262,9 @@ mod tests {
       .person_id(inserted_timmy.id)
       .password_encrypted("123".to_string())
       .build();
-    let timmy_local_user = LocalUser::create(pool, &new_local_user).await.unwrap();
+    let timmy_local_user = LocalUser::create(pool, &new_local_user, vec![])
+      .await
+      .unwrap();
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
       local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),

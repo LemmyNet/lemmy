@@ -127,9 +127,9 @@ impl RegistrationApplicationQuery {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::registration_application_view::{
     RegistrationApplicationQuery,
@@ -176,7 +176,7 @@ mod tests {
       .admin(Some(true))
       .build();
 
-    let _inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form)
+    let _inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![])
       .await
       .unwrap();
 
@@ -193,7 +193,7 @@ mod tests {
       .password_encrypted("nada".to_string())
       .build();
 
-    let inserted_sara_local_user = LocalUser::create(pool, &sara_local_user_form)
+    let inserted_sara_local_user = LocalUser::create(pool, &sara_local_user_form, vec![])
       .await
       .unwrap();
 
@@ -224,7 +224,7 @@ mod tests {
       .password_encrypted("nada".to_string())
       .build();
 
-    let inserted_jess_local_user = LocalUser::create(pool, &jess_local_user_form)
+    let inserted_jess_local_user = LocalUser::create(pool, &jess_local_user_form, vec![])
       .await
       .unwrap();
 

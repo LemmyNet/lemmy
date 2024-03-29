@@ -4,6 +4,7 @@ use lemmy_api_common::{
   build_response::build_community_response,
   community::{CommunityResponse, EditCommunity},
   context::LemmyContext,
+  request::replace_image,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_mod_action,
@@ -42,6 +43,9 @@ pub async fn update_community(
   let description =
     process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&data.description, false)?;
+  let old_community = Community::read(&mut context.pool(), data.community_id).await?;
+  replace_image(&data.icon, &old_community.icon, &context).await?;
+  replace_image(&data.banner, &old_community.banner, &context).await?;
 
   let description = diesel_option_overwrite(description);
   let icon = proxy_image_link_opt_api(&data.icon, &context).await?;

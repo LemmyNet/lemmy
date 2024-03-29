@@ -64,6 +64,7 @@ pub struct CommentView {
   pub community: Community,
   pub counts: CommentAggregates,
   pub creator_banned_from_community: bool,
+  pub banned_from_community: bool,
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
@@ -129,6 +130,7 @@ pub struct PostView {
   pub creator: Person,
   pub community: Community,
   pub creator_banned_from_community: bool,
+  pub banned_from_community: bool,
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub counts: PostAggregates,
@@ -209,5 +211,6 @@ pub struct CustomEmojiView {
 /// A vote view for checking a post or comments votes.
 pub struct VoteView {
   pub creator: Person,
+  pub creator_banned_from_community: bool,
   pub score: i16,
 }

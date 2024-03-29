@@ -14,25 +14,33 @@ import {
   betaUrl,
   createCommunity,
   createPost,
+  deleteAllImages,
   delta,
   epsilon,
+  followCommunity,
   gamma,
   getSite,
+  imageFetchLimit,
   registerUser,
   resolveBetaCommunity,
+  resolveCommunity,
   resolvePost,
   setupLogins,
-  unfollowRemotes,
+  waitForPost,
+  unfollows,
 } from "./shared";
 const downloadFileSync = require("download-file-sync");
 
 beforeAll(setupLogins);
 
 afterAll(() => {
-  unfollowRemotes(alphaImage);
+  unfollows();
 });
 
 test("Upload image and delete it", async () => {
+  // Before running this test, you need to delete all previous images in the DB
+  await deleteAllImages(alpha);
+
   // Upload test image. We use a simple string buffer as pictrs doesnt require an actual image
   // in testing mode.
   const upload_form: UploadImage = {
@@ -48,6 +56,24 @@ test("Upload image and delete it", async () => {
   const content = downloadFileSync(upload.url);
   expect(content.length).toBeGreaterThan(0);
 
+  // Ensure that it comes back with the list_media endpoint
+  const listMediaRes = await alphaImage.listMedia();
+  expect(listMediaRes.images.length).toBe(1);
+
+  // Ensure that it also comes back with the admin all images
+  const listAllMediaRes = await alphaImage.listAllMedia({
+    limit: imageFetchLimit,
+  });
+
+  // This number comes from all the previous thumbnails fetched in other tests.
+  const previousThumbnails = 1;
+  expect(listAllMediaRes.images.length).toBe(previousThumbnails);
+
+  // The deleteUrl is a combination of the endpoint, delete token, and alias
+  let firstImage = listMediaRes.images[0];
+  let deleteUrl = `${alphaUrl}/pictrs/image/delete/${firstImage.pictrs_delete_token}/${firstImage.pictrs_alias}`;
+  expect(deleteUrl).toBe(upload.delete_url);
+
   // delete image
   const delete_form: DeleteImage = {
     token: upload.files![0].delete_token,
@@ -59,6 +85,16 @@ test("Upload image and delete it", async () => {
   // ensure that image is deleted
   const content2 = downloadFileSync(upload.url);
   expect(content2).toBe("");
+
+  // Ensure that it shows the image is deleted
+  const deletedListMediaRes = await alphaImage.listMedia();
+  expect(deletedListMediaRes.images.length).toBe(0);
+
+  // Ensure that the admin shows its deleted
+  const deletedListAllMediaRes = await alphaImage.listAllMedia({
+    limit: imageFetchLimit,
+  });
+  expect(deletedListAllMediaRes.images.length).toBe(previousThumbnails - 1);
 });
 
 test("Purge user, uploaded image removed", async () => {
@@ -80,10 +116,10 @@ test("Purge user, uploaded image removed", async () => {
 
   // purge user
   let site = await getSite(user);
-  const purge_form: PurgePerson = {
+  const purgeForm: PurgePerson = {
     person_id: site.my_user!.local_user_view.person.id,
   };
-  const delete_ = await alphaImage.purgePerson(purge_form);
+  const delete_ = await alphaImage.purgePerson(purgeForm);
   expect(delete_.success).toBe(true);
 
   // ensure that image is deleted
@@ -117,10 +153,11 @@ test("Purge post, linked image removed", async () => {
   expect(post.post_view.post.url).toBe(upload.url);
 
   // purge post
-  const purge_form: PurgePost = {
+
+  const purgeForm: PurgePost = {
     post_id: post.post_view.post.id,
   };
-  const delete_ = await beta.purgePost(purge_form);
+  const delete_ = await beta.purgePost(purgeForm);
   expect(delete_.success).toBe(true);
 
   // ensure that image is deleted
@@ -175,6 +212,11 @@ test("Images in remote post are proxied if setting enabled", async () => {
 test("No image proxying if setting is disabled", async () => {
   let user = await registerUser(beta, betaUrl);
   let community = await createCommunity(alpha);
+  let betaCommunity = await resolveCommunity(
+    beta,
+    community.community_view.community.actor_id,
+  );
+  await followCommunity(beta, true, betaCommunity.community!.community.id);
 
   const upload_form: UploadImage = {
     image: Buffer.from("test"),
@@ -194,15 +236,19 @@ test("No image proxying if setting is disabled", async () => {
   ).toBeTruthy();
   expect(post.post_view.post.body).toBe("![](http://example.com/image2.png)");
 
-  let gammaPost = await resolvePost(delta, post.post_view.post);
-  expect(gammaPost.post).toBeDefined();
+  let betaPost = await waitForPost(
+    beta,
+    post.post_view.post,
+    res => res?.post.alt_text != null,
+  );
+  expect(betaPost.post).toBeDefined();
 
   // remote image doesnt get proxied after federation
   expect(
-    gammaPost.post!.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
+    betaPost.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
   ).toBeTruthy();
-  expect(gammaPost.post!.post.body).toBe("![](http://example.com/image2.png)");
+  expect(betaPost.post.body).toBe("![](http://example.com/image2.png)");
 
   // Make sure the alt text got federated
-  expect(post.post_view.post.alt_text).toBe(gammaPost.post!.post.alt_text);
+  expect(post.post_view.post.alt_text).toBe(betaPost.post.alt_text);
 });

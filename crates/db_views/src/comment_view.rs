@@ -91,6 +91,9 @@ fn queries<'a>() -> Queries<
           .field(community_actions::received_ban)
           .nullable()
           .is_not_null(),
+        community_actions::received_ban
+          .nullable()
+          .is_not_null(),
         creator_community_actions
           .field(community_actions::became_moderator)
           .nullable()
@@ -321,9 +324,9 @@ impl<'a> CommentQuery<'a> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     comment_view::{CommentQuery, CommentSortType, CommentView, DbPool},
@@ -350,6 +353,8 @@ mod tests {
         CommunityInsertForm,
         CommunityModerator,
         CommunityModeratorForm,
+        CommunityPersonBan,
+        CommunityPersonBanForm,
         CommunityUpdateForm,
       },
       instance::Instance,
@@ -360,11 +365,12 @@ mod tests {
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostInsertForm},
     },
-    traits::{Blockable, Crud, Joinable, Likeable, Saveable},
+    traits::{Bannable, Blockable, Crud, Joinable, Likeable, Saveable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
     CommunityVisibility,
     SubscribedType,
   };
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -395,7 +401,7 @@ mod tests {
       .admin(Some(true))
       .password_encrypted(String::new())
       .build();
-    let inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form)
+    let inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![])
       .await
       .unwrap();
 
@@ -547,12 +553,12 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_crud() {
+  async fn test_crud() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await;
 
-    let expected_comment_view_no_person = expected_comment_view(&data, pool).await;
+    let expected_comment_view_no_person = expected_comment_view(&data, pool).await?;
 
     let mut expected_comment_view_with_person = expected_comment_view_no_person.clone();
     expected_comment_view_with_person.my_vote = Some(1);
@@ -563,8 +569,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
 
     assert_eq!(
       expected_comment_view_no_person,
@@ -578,8 +583,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
 
     assert_eq!(
       expected_comment_view_with_person,
@@ -594,8 +598,7 @@ mod tests {
       data.inserted_comment_1.id,
       Some(data.timmy_local_user_view.person.id),
     )
-    .await
-    .unwrap();
+    .await?;
 
     // Make sure block set the creator blocked
     assert!(read_comment_from_blocked_person.creator_blocked);
@@ -606,8 +609,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
 
     assert_eq!(
       expected_comment_view_with_person,
@@ -622,17 +624,16 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
 
     assert!(read_disliked_comment_views.is_empty());
 
-    cleanup(data, pool).await;
+    cleanup(data, pool).await
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_comment_tree() {
+  async fn test_comment_tree() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await;
@@ -644,8 +645,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
 
     let child_path = data.inserted_comment_1.path.clone();
     let read_comment_views_child_path = CommentQuery {
@@ -654,8 +654,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
 
     // Make sure the comment parent-limited fetch is correct
     assert_length!(6, read_comment_views_top_path);
@@ -675,12 +674,11 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
 
     // Make sure a depth limited one only has the top comment
     assert_eq!(
-      expected_comment_view(&data, pool).await,
+      expected_comment_view(&data, pool).await?,
       read_comment_views_top_max_depth[0]
     );
     assert_length!(1, read_comment_views_top_max_depth);
@@ -694,8 +692,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
 
     // Make sure a depth limited one, and given child comment 1, has 3
     assert!(read_comment_views_parent_max_depth[2]
@@ -704,12 +701,12 @@ mod tests {
       .eq("Comment 3"));
     assert_length!(3, read_comment_views_parent_max_depth);
 
-    cleanup(data, pool).await;
+    cleanup(data, pool).await
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_languages() {
+  async fn test_languages() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await;
@@ -721,29 +718,25 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
     assert_length!(5, all_languages);
 
     // change user lang to finnish, should only show one post in finnish and one undetermined
     let finnish_id = Language::read_id_from_code(pool, Some("fi"))
-      .await
-      .unwrap()
+      .await?
       .unwrap();
     LocalUserLanguage::update(
       pool,
       vec![finnish_id],
       data.timmy_local_user_view.local_user.id,
     )
-    .await
-    .unwrap();
+    .await?;
     let finnish_comments = CommentQuery {
       local_user: (Some(&data.timmy_local_user_view)),
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
     assert_length!(2, finnish_comments);
     let finnish_comment = finnish_comments
       .iter()
@@ -760,23 +753,21 @@ mod tests {
       vec![UNDETERMINED_ID],
       data.timmy_local_user_view.local_user.id,
     )
-    .await
-    .unwrap();
+    .await?;
     let undetermined_comment = CommentQuery {
       local_user: (Some(&data.timmy_local_user_view)),
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
     assert_length!(1, undetermined_comment);
 
-    cleanup(data, pool).await;
+    cleanup(data, pool).await
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_distinguished_first() {
+  async fn test_distinguished_first() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await;
@@ -785,26 +776,23 @@ mod tests {
       distinguished: Some(true),
       ..Default::default()
     };
-    Comment::update(pool, data.inserted_comment_2.id, &form)
-      .await
-      .unwrap();
+    Comment::update(pool, data.inserted_comment_2.id, &form).await?;
 
     let comments = CommentQuery {
       post_id: Some(data.inserted_comment_2.post_id),
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
     assert_eq!(comments[0].comment.id, data.inserted_comment_2.id);
     assert!(comments[0].comment.distinguished);
 
-    cleanup(data, pool).await;
+    cleanup(data, pool).await
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_creator_is_moderator() {
+  async fn test_creator_is_moderator() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await;
@@ -816,7 +804,7 @@ mod tests {
       community_id,
       person_id,
     };
-    CommunityModerator::join(pool, &form).await.unwrap();
+    CommunityModerator::join(pool, &form).await?;
 
     // Make sure that they come back as a mod in the list
     let comments = CommentQuery {
@@ -824,19 +812,18 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
 
     assert_eq!(comments[1].creator.name, "sara");
     assert!(comments[1].creator_is_moderator);
     assert!(!comments[0].creator_is_moderator);
 
-    cleanup(data, pool).await;
+    cleanup(data, pool).await
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_creator_is_admin() {
+  async fn test_creator_is_admin() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await;
@@ -846,8 +833,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
 
     // Timmy is an admin, and make sure that field is true
     assert_eq!(comments[0].creator.name, "timmy");
@@ -857,12 +843,12 @@ mod tests {
     assert_eq!(comments[1].creator.name, "sara");
     assert!(!comments[1].creator_is_admin);
 
-    cleanup(data, pool).await;
+    cleanup(data, pool).await
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_saved_order() {
+  async fn test_saved_order() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await;
@@ -872,17 +858,13 @@ mod tests {
       person_id: data.timmy_local_user_view.person.id,
       comment_id: data.inserted_comment_0.id,
     };
-    CommentSaved::save(pool, &save_comment_0_form)
-      .await
-      .unwrap();
+    CommentSaved::save(pool, &save_comment_0_form).await?;
 
     let save_comment_2_form = CommentSavedForm {
       person_id: data.timmy_local_user_view.person.id,
       comment_id: data.inserted_comment_2.id,
     };
-    CommentSaved::save(pool, &save_comment_2_form)
-      .await
-      .unwrap();
+    CommentSaved::save(pool, &save_comment_2_form).await?;
 
     // Fetch the saved comments
     let comments = CommentQuery {
@@ -891,8 +873,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
 
     // There should only be two comments
     assert_eq!(2, comments.len());
@@ -903,47 +884,33 @@ mod tests {
     // The second comment, should be the first one saved
     assert_eq!(comments[1].comment.id, data.inserted_comment_0.id);
 
-    cleanup(data, pool).await;
+    cleanup(data, pool).await
   }
 
-  async fn cleanup(data: Data, pool: &mut DbPool<'_>) {
+  async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
     CommentLike::remove(
       pool,
       data.timmy_local_user_view.person.id,
       data.inserted_comment_0.id,
     )
-    .await
-    .unwrap();
-    Comment::delete(pool, data.inserted_comment_0.id)
-      .await
-      .unwrap();
-    Comment::delete(pool, data.inserted_comment_1.id)
-      .await
-      .unwrap();
-    Post::delete(pool, data.inserted_post.id).await.unwrap();
-    Community::delete(pool, data.inserted_community.id)
-      .await
-      .unwrap();
-    Person::delete(pool, data.timmy_local_user_view.person.id)
-      .await
-      .unwrap();
-    LocalUser::delete(pool, data.timmy_local_user_view.local_user.id)
-      .await
-      .unwrap();
-    Person::delete(pool, data.inserted_sara_person.id)
-      .await
-      .unwrap();
-    Instance::delete(pool, data.inserted_instance.id)
-      .await
-      .unwrap();
+    .await?;
+    Comment::delete(pool, data.inserted_comment_0.id).await?;
+    Comment::delete(pool, data.inserted_comment_1.id).await?;
+    Post::delete(pool, data.inserted_post.id).await?;
+    Community::delete(pool, data.inserted_community.id).await?;
+    Person::delete(pool, data.timmy_local_user_view.person.id).await?;
+    LocalUser::delete(pool, data.timmy_local_user_view.local_user.id).await?;
+    Person::delete(pool, data.inserted_sara_person.id).await?;
+    Instance::delete(pool, data.inserted_instance.id).await?;
+
+    Ok(())
   }
 
-  async fn expected_comment_view(data: &Data, pool: &mut DbPool<'_>) -> CommentView {
-    let agg = CommentAggregates::read(pool, data.inserted_comment_0.id)
-      .await
-      .unwrap();
-    CommentView {
+  async fn expected_comment_view(data: &Data, pool: &mut DbPool<'_>) -> LemmyResult<CommentView> {
+    let agg = CommentAggregates::read(pool, data.inserted_comment_0.id).await?;
+    Ok(CommentView {
       creator_banned_from_community: false,
+      banned_from_community: false,
       creator_is_moderator: false,
       creator_is_admin: true,
       my_vote: None,
@@ -1050,12 +1017,12 @@ mod tests {
         hot_rank: RANK_DEFAULT,
         controversy_rank: 0.0,
       },
-    }
+    })
   }
 
   #[tokio::test]
   #[serial]
-  async fn local_only_instance() {
+  async fn local_only_instance() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await;
@@ -1068,15 +1035,13 @@ mod tests {
         ..Default::default()
       },
     )
-    .await
-    .unwrap();
+    .await?;
 
     let unauthenticated_query = CommentQuery {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
     assert_eq!(0, unauthenticated_query.len());
 
     let authenticated_query = CommentQuery {
@@ -1084,8 +1049,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
     assert_eq!(5, authenticated_query.len());
 
     let unauthenticated_comment = CommentView::read(pool, data.inserted_comment_0.id, None).await;
@@ -1099,6 +1063,67 @@ mod tests {
     .await;
     assert!(authenticated_comment.is_ok());
 
-    cleanup(data, pool).await;
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn comment_listing_local_user_banned_from_community() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    // Test that comment view shows if local user is blocked from community
+    let banned_from_comm_person = PersonInsertForm::test_form(data.inserted_instance.id, "jill");
+
+    let inserted_banned_from_comm_person = Person::create(pool, &banned_from_comm_person).await?;
+
+    let inserted_banned_from_comm_local_user = LocalUser::create(
+      pool,
+      &LocalUserInsertForm::test_form(inserted_banned_from_comm_person.id),
+      vec![],
+    )
+    .await?;
+
+    CommunityPersonBan::ban(
+      pool,
+      &CommunityPersonBanForm {
+        community_id: data.inserted_community.id,
+        person_id: inserted_banned_from_comm_person.id,
+        expires: None,
+      },
+    )
+    .await?;
+
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(inserted_banned_from_comm_local_user.person_id),
+    )
+    .await?;
+
+    assert!(comment_view.banned_from_community);
+
+    Person::delete(pool, inserted_banned_from_comm_person.id).await?;
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn comment_listing_local_user_not_banned_from_community() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(data.timmy_local_user_view.person.id),
+    )
+    .await?;
+
+    assert!(!comment_view.banned_from_community);
+
+    cleanup(data, pool).await
   }
 }

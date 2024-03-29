@@ -5,18 +5,18 @@ import {
   setupLogins,
   resolveBetaCommunity,
   followCommunity,
-  unfollowRemotes,
   getSite,
   waitUntil,
   beta,
   betaUrl,
   registerUser,
+  unfollows,
 } from "./shared";
 
 beforeAll(setupLogins);
 
 afterAll(() => {
-  unfollowRemotes(alpha);
+  unfollows();
 });
 
 test("Follow local community", async () => {
