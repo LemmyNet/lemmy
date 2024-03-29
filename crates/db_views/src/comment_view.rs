@@ -91,9 +91,7 @@ fn queries<'a>() -> Queries<
           .field(community_actions::received_ban)
           .nullable()
           .is_not_null(),
-        community_actions::received_ban
-          .nullable()
-          .is_not_null(),
+        community_actions::received_ban.nullable().is_not_null(),
         creator_community_actions
           .field(community_actions::became_moderator)
           .nullable()

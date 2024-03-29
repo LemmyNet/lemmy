@@ -9,9 +9,10 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
+  aliases::creator_community_actions,
   newtypes::{CommentId, PostId},
   schema::{comment_actions, community_actions, person, post, post_actions},
-  utils::{action_query, actions_alias, get_conn, limit_and_offset, DbPool},aliases::creator_community_actions
+  utils::{action_query, actions_alias, get_conn, limit_and_offset, DbPool},
 };
 
 impl VoteView {
@@ -27,11 +28,18 @@ impl VoteView {
     action_query(post_actions::like_score)
       .inner_join(person::table)
       .inner_join(post::table)
-      .left_join(actions_alias(creator_community_actions, post_actions::person_id, post::community_id))
+      .left_join(actions_alias(
+        creator_community_actions,
+        post_actions::person_id,
+        post::community_id,
+      ))
       .filter(post_actions::post_id.eq(post_id))
       .select((
         person::all_columns,
-        creator_community_actions.field(community_actions::received_ban).nullable().is_not_null(),
+        creator_community_actions
+          .field(community_actions::received_ban)
+          .nullable()
+          .is_not_null(),
         post_actions::like_score.assume_not_null(),
       ))
       .order_by(post_actions::like_score)
@@ -53,11 +61,18 @@ impl VoteView {
     action_query(comment_actions::like_score)
       .inner_join(person::table)
       .inner_join(post::table)
-      .left_join(actions_alias(creator_community_actions, comment_actions::person_id, post::community_id))
+      .left_join(actions_alias(
+        creator_community_actions,
+        comment_actions::person_id,
+        post::community_id,
+      ))
       .filter(comment_actions::comment_id.eq(comment_id))
       .select((
         person::all_columns,
-        creator_community_actions.field(community_actions::received_ban).nullable().is_not_null(),
+        creator_community_actions
+          .field(community_actions::received_ban)
+          .nullable()
+          .is_not_null(),
         comment_actions::like_score.assume_not_null(),
       ))
       .order_by(comment_actions::like_score)
