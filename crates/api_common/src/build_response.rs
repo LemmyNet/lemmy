@@ -112,7 +112,7 @@ pub async fn send_local_notifs(
     if let Ok(mention_user_view) = user_view {
       // TODO
       // At some point, make it so you can't tag the parent creator either
-      // This can cause two notifications, one for reply and the other for mention
+      // Potential duplication of notifications, one for reply and the other for mention, is handled below by checking recipient ids
       recipient_ids.push(mention_user_view.local_user.id);
 
       let user_mention_form = PersonMentionInsertForm {
@@ -163,6 +163,7 @@ pub async fn send_local_notifs(
     if parent_comment.creator_id != person.id && !check_blocks {
       let user_view = LocalUserView::read_person(&mut context.pool(), parent_creator_id).await;
       if let Ok(parent_user_view) = user_view {
+        // Don't duplicate notif if already mentioned by checking recipient ids
         if !recipient_ids.contains(&parent_user_view.local_user.id) {
           recipient_ids.push(parent_user_view.local_user.id);
 
