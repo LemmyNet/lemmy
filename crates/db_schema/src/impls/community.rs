@@ -29,6 +29,7 @@ use diesel::{
   select,
   sql_types,
   update,
+  BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
