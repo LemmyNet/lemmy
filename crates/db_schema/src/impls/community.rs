@@ -151,10 +151,11 @@ impl Community {
       debug_assert!(p.community_id == community_id);
     }
     // Mark the given posts as featured and all other posts as not featured
+    let post_ids = posts.iter().map(|p| p.id);
     update(post::table)
       .filter(post::dsl::community_id.eq(community_id))
       // This filter just prevents locking rows that need no update
-      .filter(post::dsl::featured_community.ne(post::dsl::id.eq_any(post_ids)))
+      .filter(post::dsl::featured_community.ne(post::dsl::id.eq_any(post_ids.clone())))
       .set(post::dsl::featured_community.eq(post::dsl::id.eq_any(post_ids)))
       .execute(conn)
       .await?;
