@@ -159,6 +159,7 @@ impl Community {
             post::table,
           )
           .filter(post::dsl::community_id.eq(community_id))
+          .filter(post::dsl::featured_community)
           .set(post::dsl::featured_community.eq(false))
           .execute(conn)
           .await?;
