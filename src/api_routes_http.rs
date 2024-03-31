@@ -104,9 +104,10 @@ use lemmy_api_crud::{
     update::update_community,
   },
   custom_emoji::{
-    create::create_custom_emoji,
-    delete::delete_custom_emoji,
-    update::update_custom_emoji,
+    create::create_custom_emoji, 
+    delete::delete_custom_emoji, 
+    list::list_custom_emojis, 
+    update::update_custom_emoji
   },
   post::{
     create::create_post,
@@ -361,7 +362,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.message())
           .route("", web::post().to(create_custom_emoji))
           .route("", web::put().to(update_custom_emoji))
-          .route("/delete", web::post().to(delete_custom_emoji)),
+          .route("/delete", web::post().to(delete_custom_emoji))
+          .route("/list", web::get().to(list_custom_emojis)),
       ),
   );
   cfg.service(
