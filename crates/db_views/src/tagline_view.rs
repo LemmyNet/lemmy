@@ -9,7 +9,6 @@ use lemmy_db_schema::{
 };
 
 impl TaglineView {
-
   pub async fn list(
     pool: &mut DbPool<'_>,
     for_local_site_id: LocalSiteId,
@@ -29,11 +28,11 @@ impl TaglineView {
 
     let mut result = Vec::new();
     for tagline in &taglines {
-      result.push(TaglineView { 
-        tagline: tagline.clone() 
+      result.push(TaglineView {
+        tagline: tagline.clone(),
       });
     }
 
     Ok(result)
   }
- }
+}

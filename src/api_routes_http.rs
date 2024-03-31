@@ -104,10 +104,10 @@ use lemmy_api_crud::{
     update::update_community,
   },
   custom_emoji::{
-    create::create_custom_emoji, 
-    delete::delete_custom_emoji, 
-    list::list_custom_emojis, 
-    update::update_custom_emoji
+    create::create_custom_emoji,
+    delete::delete_custom_emoji,
+    list::list_custom_emojis,
+    update::update_custom_emoji,
   },
   post::{
     create::create_post,
@@ -123,7 +123,7 @@ use lemmy_api_crud::{
     update::update_private_message,
   },
   site::{create::create_site, read::get_site, update::update_site},
-  tagline::list::list_taglines, 
+  tagline::list::list_taglines,
   user::{create::register, delete::delete_account},
 };
 use lemmy_apub::api::{
@@ -369,8 +369,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         web::scope("/tagline")
           .wrap(rate_limit.message())
-          .route("/list", web::get().to(list_taglines))
-      )
+          .route("/list", web::get().to(list_taglines)),
+      ),
   );
   cfg.service(
     web::scope("/sitemap.xml")

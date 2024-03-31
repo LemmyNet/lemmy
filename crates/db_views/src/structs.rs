@@ -18,7 +18,7 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
     private_message_report::PrivateMessageReport,
     registration_application::RegistrationApplication,
-    site::Site, 
+    site::Site,
     tagline::Tagline,
   },
   SubscribedType,

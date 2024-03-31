@@ -3,7 +3,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   tagline::{ListTaglines, ListTaglinesResponse},
 };
-use lemmy_db_views::structs::{TaglineView, LocalUserView, SiteView};
+use lemmy_db_views::structs::{LocalUserView, SiteView, TaglineView};
 use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
@@ -12,7 +12,6 @@ pub async fn list_taglines(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> Result<Json<ListTaglinesResponse>, LemmyError> {
-
   let local_site = SiteView::read_local(&mut context.pool()).await?;
   let taglines = TaglineView::list(
     &mut context.pool(),
@@ -20,7 +19,7 @@ pub async fn list_taglines(
     data.page,
     data.limit,
   )
-  .await    
+  .await
   .map_err(|e| anyhow::anyhow!("Failed to construct taglines response: {e}"))?;
 
   Ok(Json(ListTaglinesResponse { taglines }))

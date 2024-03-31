@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use lemmy_db_views::structs::TaglineView;
+use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;

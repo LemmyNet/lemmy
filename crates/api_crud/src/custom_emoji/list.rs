@@ -12,7 +12,6 @@ pub async fn list_custom_emojis(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> Result<Json<ListCustomEmojisResponse>, LemmyError> {
-
   let local_site = SiteView::read_local(&mut context.pool()).await?;
   let custom_emojis = CustomEmojiView::list(
     &mut context.pool(),
@@ -20,7 +19,7 @@ pub async fn list_custom_emojis(
     data.page,
     data.limit,
   )
-  .await    
+  .await
   .map_err(|e| anyhow::anyhow!("Failed to construct custom emojis response: {e}"))?;
 
   Ok(Json(ListCustomEmojisResponse { custom_emojis }))
