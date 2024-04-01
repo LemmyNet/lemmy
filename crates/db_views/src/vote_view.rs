@@ -1,10 +1,5 @@
 use crate::structs::VoteView;
-use diesel::{
-  result::Error,
-  ExpressionMethods,
-  NullableExpressionMethods,
-  QueryDsl,
-};
+use diesel::{result::Error, ExpressionMethods, NullableExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
