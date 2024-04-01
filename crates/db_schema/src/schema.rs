@@ -690,7 +690,7 @@ diesel::table! {
         person_id -> Int4,
         read -> Nullable<Timestamptz>,
         read_comments -> Nullable<Timestamptz>,
-        read_comments_amount -> Int8,
+        read_comments_amount -> Nullable<Int8>,
         saved -> Nullable<Timestamptz>,
         liked -> Nullable<Timestamptz>,
         like_score -> Nullable<Int2>,

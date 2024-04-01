@@ -166,8 +166,7 @@ ALTER TABLE post_actions
     ALTER COLUMN read DROP NOT NULL,
     ALTER COLUMN read DROP DEFAULT,
     ADD COLUMN read_comments timestamptz,
-    -- TODO make nullable
-    ADD COLUMN read_comments_amount bigint NOT NULL,
+    ADD COLUMN read_comments_amount bigint,
     ADD COLUMN saved timestamptz,
     ADD COLUMN liked timestamptz,
     ADD COLUMN like_score smallint,

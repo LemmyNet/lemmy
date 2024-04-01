@@ -18,13 +18,13 @@ impl PersonPostAggregates {
   fn as_select_unwrap() -> (
     post_actions::person_id,
     post_actions::post_id,
-    post_actions::read_comments_amount,
+    dsl::AssumeNotNull<post_actions::read_comments_amount>,
     dsl::AssumeNotNull<post_actions::read_comments>,
   ) {
     (
       post_actions::person_id,
       post_actions::post_id,
-      post_actions::read_comments_amount,
+      post_actions::read_comments_amount.assume_not_null(),
       post_actions::read_comments.assume_not_null(),
     )
   }
