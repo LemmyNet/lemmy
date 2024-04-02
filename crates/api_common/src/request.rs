@@ -8,12 +8,7 @@ use lemmy_db_schema::{
   newtypes::DbUrl,
   source::images::{LocalImage, LocalImageForm},
 };
-use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
-  settings::structs::{PictrsImageMode, Settings},
-  version::VERSION,
-  REQWEST_TIMEOUT,
-};
+use lemmy_utils::{error::{LemmyError, LemmyErrorType}, settings::structs::{PictrsImageMode, Settings}, REQWEST_TIMEOUT, VERSION};
 use mime::Mime;
 use reqwest::{header::CONTENT_TYPE, Client, ClientBuilder};
 use reqwest_middleware::ClientWithMiddleware;

@@ -44,13 +44,7 @@ use lemmy_apub::{
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_federate::{start_stop_federation_workers_cancellable, Opts};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
-use lemmy_utils::{
-  error::LemmyError,
-  rate_limit::RateLimitCell,
-  response::jsonify_plain_text_errors,
-  settings::{structs::Settings, SETTINGS},
-  version,
-};
+use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, response::jsonify_plain_text_errors, settings::{structs::Settings, SETTINGS}, VERSION};
 use prometheus::default_registry;
 use prometheus_metrics::serve_prometheus;
 use reqwest_middleware::ClientBuilder;
@@ -109,7 +103,7 @@ pub struct CmdArgs {
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   // Print version number to log
-  println!("Lemmy v{}", version::VERSION);
+  println!("Lemmy v{VERSION}");
 
   // return error 503 while running db migrations and startup tasks
   let mut startup_server_handle = None;

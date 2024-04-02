@@ -3,11 +3,7 @@ use anyhow::anyhow;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::RegistrationMode;
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{
-  cache_header::{cache_1hour, cache_3days},
-  error::LemmyError,
-  version,
-};
+use lemmy_utils::{cache_header::{cache_1hour, cache_3days}, error::LemmyError, VERSION};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -56,7 +52,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
     version: Some("2.0".to_string()),
     software: Some(NodeInfoSoftware {
       name: Some("lemmy".to_string()),
-      version: Some(version::VERSION.to_string()),
+      version: Some(VERSION.to_string()),
     }),
     protocols,
     usage: Some(NodeInfoUsage {

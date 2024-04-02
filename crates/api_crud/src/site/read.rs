@@ -18,10 +18,7 @@ use lemmy_db_views_actor::structs::{
   PersonBlockView,
   PersonView,
 };
-use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  version,
-};
+use lemmy_utils::{error::{LemmyError, LemmyErrorExt, LemmyErrorType}, VERSION};
 use moka::future::Cache;
 use once_cell::sync::Lazy;
 use std::time::Duration;
@@ -52,7 +49,7 @@ pub async fn get_site(
       Ok(GetSiteResponse {
         site_view,
         admins,
-        version: version::VERSION.to_string(),
+        version: VERSION.to_string(),
         my_user: None,
         all_languages,
         discussion_languages,
