@@ -19,7 +19,6 @@ use lemmy_db_schema::{
     private_message_report::PrivateMessageReport,
     registration_application::RegistrationApplication,
     site::Site,
-    tagline::Tagline,
   },
   SubscribedType,
 };
@@ -192,15 +191,6 @@ pub struct SiteView {
   pub local_site: LocalSite,
   pub local_site_rate_limit: LocalSiteRateLimit,
   pub counts: SiteAggregates,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
-/// A custom emoji view.
-pub struct TaglineView {
-  pub tagline: Tagline,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

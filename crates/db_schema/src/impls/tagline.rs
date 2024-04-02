@@ -1,8 +1,8 @@
 use crate::{
   newtypes::LocalSiteId,
-  schema::tagline::dsl::{local_site_id, tagline},
+  schema::tagline::dsl::{local_site_id, published, tagline},
   source::tagline::{Tagline, TaglineForm},
-  utils::{get_conn, DbPool},
+  utils::{get_conn, limit_and_offset, DbPool},
 };
 use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
@@ -51,6 +51,23 @@ impl Tagline {
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     tagline
+      .filter(local_site_id.eq(for_local_site_id))
+      .get_results::<Self>(conn)
+      .await
+  }
+
+  pub async fn list(
+    pool: &mut DbPool<'_>,
+    for_local_site_id: LocalSiteId,
+    page: Option<i64>,
+    limit: Option<i64>,
+  ) -> Result<Vec<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let (limit, offset) = limit_and_offset(page, limit)?;
+    tagline
+      .order(published.desc())
+      .offset(offset)
+      .limit(limit)
       .filter(local_site_id.eq(for_local_site_id))
       .get_results::<Self>(conn)
       .await
