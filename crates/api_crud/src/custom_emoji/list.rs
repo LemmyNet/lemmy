@@ -16,11 +16,11 @@ pub async fn list_custom_emojis(
   let custom_emojis = CustomEmojiView::list(
     &mut context.pool(),
     local_site.local_site.id,
+    &data.category,
     data.page,
     data.limit,
   )
-  .await
-  .map_err(|e| anyhow::anyhow!("Failed to construct custom emojis response: {e}"))?;
+  .await?;
 
   Ok(Json(ListCustomEmojisResponse { custom_emojis }))
 }

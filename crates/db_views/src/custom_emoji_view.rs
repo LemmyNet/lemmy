@@ -60,16 +60,25 @@ impl CustomEmojiView {
   pub async fn list(
     pool: &mut DbPool<'_>,
     for_local_site_id: LocalSiteId,
+    category: &Option<String>,
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let (limit, offset) = limit_and_offset(page, limit)?;
-    let emojis = custom_emoji::table
-      .filter(custom_emoji::local_site_id.eq(for_local_site_id))
+    let mut query = custom_emoji::table
       .left_join(
         custom_emoji_keyword::table.on(custom_emoji_keyword::custom_emoji_id.eq(custom_emoji::id)),
       )
+      .into_boxed();
+
+    query = query.filter(custom_emoji::local_site_id.eq(for_local_site_id));
+
+    if let Some(category) = category {
+      query = query.filter(custom_emoji::category.eq(category))
+    }
+
+    let emojis = query
       .order(custom_emoji::category)
       .then_order_by(custom_emoji::id)
       .select((
