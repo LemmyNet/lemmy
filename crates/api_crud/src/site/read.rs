@@ -20,7 +20,7 @@ use lemmy_db_views_actor::structs::{
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  version,
+  VERSION,
 };
 use moka::future::Cache;
 use once_cell::sync::Lazy;
@@ -52,7 +52,7 @@ pub async fn get_site(
       Ok(GetSiteResponse {
         site_view,
         admins,
-        version: version::VERSION.to_string(),
+        version: VERSION.to_string(),
         my_user: None,
         all_languages,
         discussion_languages,
