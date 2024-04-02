@@ -2,7 +2,7 @@ use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_apub_id_valid_with_strictness,
   mentions::collect_non_local_mentions,
-  objects::{read_from_string_or_source, verify_is_remote_object},
+  objects::{read_from_string_or_source, verify_is_remote_object, verify_object_timestamp},
   protocol::{
     objects::{note::Note, LanguageTag},
     InCommunity,
@@ -141,6 +141,15 @@ impl Object for ApubComment {
     check_apub_id_valid_with_strictness(note.id.inner(), community.local, context).await?;
     verify_is_remote_object(note.id.inner(), context.settings())?;
     verify_person_in_community(&note.attributed_to, &community, context).await?;
+
+    let old_comment = note.id.dereference_local(context).await;
+    let old_timestamp = old_comment
+      .as_ref()
+      .map(|c| c.updated.unwrap_or(c.published))
+      .clone()
+      .ok();
+    verify_object_timestamp(old_timestamp, note.updated.or(note.published))?;
+
     let (post, _) = note.get_parents(context).await?;
     let creator = note.attributed_to.dereference(context).await?;
     let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &creator, community.id)
