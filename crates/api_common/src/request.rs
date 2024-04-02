@@ -1,14 +1,27 @@
 use crate::{
   context::LemmyContext,
+  lemmy_db_schema::traits::Crud,
   post::{LinkMetadata, OpenGraphData},
-  utils::proxy_image_link,
+  send_activity::{ActivityChannel, SendActivityData},
+  utils::{local_site_opt_to_sensitive, proxy_image_link, proxy_image_link_opt_apub},
 };
+use activitypub_federation::config::Data;
 use encoding::{all::encodings, DecoderTrap};
 use lemmy_db_schema::{
   newtypes::DbUrl,
-  source::images::{LocalImage, LocalImageForm},
+  source::{
+    images::{LocalImage, LocalImageForm},
+    local_site::LocalSite,
+    post::{Post, PostUpdateForm},
+  },
 };
-use lemmy_utils::{error::{LemmyError, LemmyErrorType}, settings::structs::{PictrsImageMode, Settings}, REQWEST_TIMEOUT, VERSION};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorType},
+  settings::structs::{PictrsImageMode, Settings},
+  spawn_try_task,
+  REQWEST_TIMEOUT,
+  VERSION,
+};
 use mime::Mime;
 use reqwest::{header::CONTENT_TYPE, Client, ClientBuilder};
 use reqwest_middleware::ClientWithMiddleware;
@@ -19,11 +32,7 @@ use urlencoding::encode;
 use webpage::HTML;
 
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
-  let user_agent = format!(
-    "Lemmy/{}; +{}",
-    VERSION,
-    settings.get_protocol_and_hostname()
-  );
+  let user_agent = format!("Lemmy/{VERSION}; +{}", settings.get_protocol_and_hostname());
 
   Client::builder()
     .user_agent(user_agent.clone())
@@ -76,6 +85,50 @@ pub async fn fetch_link_metadata_opt(
       .unwrap_or_default(),
     _ => Default::default(),
   }
+}
+/// Generate post thumbnail in background task, because some sites can be very slow to respond.
+///
+/// Takes a callback to generate a send activity task, so that post can be federated with metadata.
+pub fn generate_post_link_metadata(
+  post: Post,
+  custom_thumbnail: Option<Url>,
+  send_activity: impl FnOnce(Post) -> Option<SendActivityData> + Send + 'static,
+  local_site: Option<LocalSite>,
+  context: Data<LemmyContext>,
+) {
+  spawn_try_task(async move {
+    let allow_sensitive = local_site_opt_to_sensitive(&local_site);
+    let page_is_sensitive = post.nsfw;
+    let allow_generate_thumbnail = allow_sensitive || !page_is_sensitive;
+    let mut thumbnail_url = custom_thumbnail.or_else(|| post.thumbnail_url.map(Into::into));
+    let do_generate_thumbnail = thumbnail_url.is_none() && allow_generate_thumbnail;
+
+    // Generate local thumbnail only if no thumbnail was federated and 'sensitive' attributes allow it.
+    let metadata = fetch_link_metadata_opt(
+      post.url.map(Into::into).as_ref(),
+      do_generate_thumbnail,
+      &context,
+    )
+    .await;
+    if let Some(thumbnail_url_) = metadata.thumbnail {
+      thumbnail_url = Some(thumbnail_url_.into());
+    }
+    let thumbnail_url = proxy_image_link_opt_apub(thumbnail_url, &context).await?;
+
+    let form = PostUpdateForm {
+      embed_title: Some(metadata.opengraph_data.title),
+      embed_description: Some(metadata.opengraph_data.description),
+      embed_video_url: Some(metadata.opengraph_data.embed_video_url),
+      thumbnail_url: Some(thumbnail_url),
+      url_content_type: Some(metadata.content_type),
+      ..Default::default()
+    };
+    let updated_post = Post::update(&mut context.pool(), post.id, &form).await?;
+    if let Some(send_activity) = send_activity(updated_post) {
+      ActivityChannel::submit_activity(send_activity, &context).await?;
+    }
+    Ok(())
+  });
 }
 
 /// Extract site metadata from HTML Opengraph attributes.
@@ -305,6 +358,26 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Resu
   } else {
     Err(LemmyErrorType::NotAnImageType)?
   }
+}
+
+/// When adding a new avatar or similar image, delete the old one.
+pub async fn replace_image(
+  new_image: &Option<String>,
+  old_image: &Option<DbUrl>,
+  context: &Data<LemmyContext>,
+) -> Result<(), LemmyError> {
+  if new_image.is_some() {
+    // Ignore errors because image may be stored externally.
+    if let Some(avatar) = &old_image {
+      let image = LocalImage::delete_by_url(&mut context.pool(), avatar)
+        .await
+        .ok();
+      if let Some(image) = image {
+        delete_image_from_pictrs(&image.pictrs_alias, &image.pictrs_delete_token, context).await?;
+      }
+    }
+  }
+  Ok(())
 }
 
 #[cfg(test)]

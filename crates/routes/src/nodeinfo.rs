@@ -3,7 +3,11 @@ use anyhow::anyhow;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::RegistrationMode;
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{cache_header::{cache_1hour, cache_3days}, error::LemmyError, VERSION};
+use lemmy_utils::{
+  cache_header::{cache_1hour, cache_3days},
+  error::LemmyError,
+  VERSION,
+};
 use serde::{Deserialize, Serialize};
 use url::Url;
 

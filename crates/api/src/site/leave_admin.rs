@@ -13,7 +13,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::{error::{LemmyError, LemmyErrorType}, VERSION};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorType},
+  VERSION,
+};
 
 #[tracing::instrument(skip(context))]
 pub async fn leave_admin(

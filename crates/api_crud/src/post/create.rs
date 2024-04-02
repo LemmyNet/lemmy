@@ -4,8 +4,8 @@ use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   post::{CreatePost, PostResponse},
-  request::fetch_link_metadata_opt,
-  send_activity::{ActivityChannel, SendActivityData},
+  request::generate_post_link_metadata,
+  send_activity::SendActivityData,
   utils::{
     check_community_user_action,
     generate_local_apub_endpoint,
@@ -75,6 +75,7 @@ pub async fn create_post(
   is_url_blocked(&url, &url_blocklist)?;
   check_url_scheme(&url)?;
   check_url_scheme(&custom_thumbnail)?;
+  let url = proxy_image_link_opt_apub(url, &context).await?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -97,18 +98,6 @@ pub async fn create_post(
       Err(LemmyErrorType::OnlyModsCanPostInCommunity)?
     }
   }
-
-  // Only generate the thumbnail if there's no custom thumbnail provided,
-  // otherwise it will save it in pictrs
-  let generate_thumbnail = custom_thumbnail.is_none();
-
-  // Fetch post links and pictrs cached image
-  let metadata = fetch_link_metadata_opt(url.as_ref(), generate_thumbnail, &context).await;
-  let url = proxy_image_link_opt_apub(url, &context).await?;
-  let thumbnail_url = proxy_image_link_opt_apub(custom_thumbnail, &context)
-    .await?
-    .map(Into::into)
-    .or(metadata.thumbnail);
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
@@ -134,18 +123,13 @@ pub async fn create_post(
 
   let post_form = PostInsertForm::builder()
     .name(data.name.trim().to_string())
-    .url_content_type(metadata.content_type)
     .url(url)
     .body(body)
     .alt_text(data.alt_text.clone())
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)
-    .embed_title(metadata.opengraph_data.title)
-    .embed_description(metadata.opengraph_data.description)
-    .embed_video_url(metadata.opengraph_data.embed_video_url)
     .language_id(language_id)
-    .thumbnail_url(thumbnail_url)
     .build();
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)
@@ -170,6 +154,14 @@ pub async fn create_post(
   .await
   .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
+  generate_post_link_metadata(
+    updated_post.clone(),
+    custom_thumbnail,
+    |post| Some(SendActivityData::CreatePost(post)),
+    Some(local_site),
+    context.reset_request_count(),
+  );
+
   // They like their own post by default
   let person_id = local_user_view.person.id;
   let post_id = inserted_post.id;
@@ -182,9 +174,6 @@ pub async fn create_post(
   PostLike::like(&mut context.pool(), &like_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
-
-  ActivityChannel::submit_activity(SendActivityData::CreatePost(updated_post.clone()), &context)
-    .await?;
 
   // Mark the post as read
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;

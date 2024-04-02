@@ -44,7 +44,13 @@ use lemmy_apub::{
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_federate::{start_stop_federation_workers_cancellable, Opts};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
-use lemmy_utils::{error::LemmyError, rate_limit::RateLimitCell, response::jsonify_plain_text_errors, settings::{structs::Settings, SETTINGS}, VERSION};
+use lemmy_utils::{
+  error::LemmyError,
+  rate_limit::RateLimitCell,
+  response::jsonify_plain_text_errors,
+  settings::{structs::Settings, SETTINGS},
+  VERSION,
+};
 use prometheus::default_registry;
 use prometheus_metrics::serve_prometheus;
 use reqwest_middleware::ClientBuilder;
