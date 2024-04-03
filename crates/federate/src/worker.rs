@@ -1,10 +1,4 @@
-use crate::util::{
-  get_activity_cached,
-  get_actor_cached,
-  get_latest_activity_id,
-  LEMMY_TEST_FAST_FEDERATION,
-  WORK_FINISHED_RECHECK_DELAY,
-};
+use crate::util::{get_activity_cached, get_actor_cached, get_latest_activity_id};
 use activitypub_federation::{
   activity_sending::SendActivityTask,
   config::Data,
@@ -12,7 +6,11 @@ use activitypub_federation::{
 };
 use anyhow::{Context, Result};
 use chrono::{DateTime, Days, TimeZone, Utc};
-use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
+use lemmy_api_common::{
+  context::LemmyContext,
+  federate_retry_sleep_duration,
+  lemmy_utils::CACHE_DURATION_SHORT,
+};
 use lemmy_apub::{activity_lists::SharedInboxActivities, FEDERATION_CONTEXT};
 use lemmy_db_schema::{
   newtypes::{ActivityId, CommunityId, InstanceId},
@@ -46,13 +44,8 @@ static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(60);
 /// this delay limits the maximum time until the follow actually results in activities from that community id being sent to that inbox url.
 /// This delay currently needs to not be too small because the DB load is currently fairly high because of the current structure of storing inboxes for every person, not having a separate list of shared_inboxes, and the architecture of having every instance queue be fully separate.
 /// (see https://github.com/LemmyNet/lemmy/issues/3958)
-static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::TimeDelta> = Lazy::new(|| {
-  if *LEMMY_TEST_FAST_FEDERATION {
-    chrono::TimeDelta::try_seconds(1).expect("TimeDelta out of bounds")
-  } else {
-    chrono::TimeDelta::try_minutes(2).expect("TimeDelta out of bounds")
-  }
-});
+static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::TimeDelta> =
+  Lazy::new(|| chrono::TimeDelta::from_std(CACHE_DURATION_SHORT).unwrap());
 /// The same as FOLLOW_ADDITIONS_RECHECK_DELAY, but triggering when the last person on an instance unfollows a specific remote community.
 /// This is expected to happen pretty rarely and updating it in a timely manner is not too important.
 static FOLLOW_REMOVALS_RECHECK_DELAY: Lazy<chrono::TimeDelta> =
@@ -160,7 +153,7 @@ impl InstanceWorker {
     if id >= latest_id {
       // no more work to be done, wait before rechecking
       tokio::select! {
-        () = sleep(*WORK_FINISHED_RECHECK_DELAY) => {},
+        () = sleep(CACHE_DURATION_SHORT) => {},
         () = self.stop.cancelled() => {}
       }
       return Ok(());
