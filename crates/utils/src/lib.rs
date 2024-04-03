@@ -23,6 +23,11 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
+#[cfg(debug_assertions)]
+pub const CACHE_DURATION_SHORT: Duration = Duration::from_millis(500);
+#[cfg(not(debug_assertions))]
+pub const CACHE_DURATION_SHORT: Duration = Duration::from_secs(60);
+
 #[macro_export]
 macro_rules! location_info {
   () => {
