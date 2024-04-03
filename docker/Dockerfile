@@ -35,7 +35,7 @@ RUN --mount=type=cache,target=/lemmy/target set -ex; \
 # Release build
 RUN --mount=type=cache,target=/lemmy/target set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
-        [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
+        cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
         mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
     fi
@@ -68,7 +68,7 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
 # Release build
 RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
-        [ -z "$USE_RELEASE_CACHE" ] && cargo clean --release; \
+        cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
         mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
     fi
