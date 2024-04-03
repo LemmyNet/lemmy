@@ -59,7 +59,7 @@ steps:
       - event: pull_request
 
   sql_fmt:
-    image: backplane/pgformatter:latest
+    image: backplane/pgformatter
     commands:
       - ./scripts/sql_format_check.sh
     when:
