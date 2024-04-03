@@ -32,7 +32,7 @@ pub struct Tagline {
 #[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = tagline))]
-pub struct TaglineForm {
+pub struct TaglineInsertForm {
   pub local_site_id: LocalSiteId,
   pub content: String,
   pub updated: Option<DateTime<Utc>>,

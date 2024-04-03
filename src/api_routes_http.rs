@@ -123,7 +123,7 @@ use lemmy_api_crud::{
     update::update_private_message,
   },
   site::{create::create_site, read::get_site, update::update_site},
-  tagline::list::list_taglines,
+  tagline::{create::create_tagline, list::list_taglines},
   user::{create::register, delete::delete_account},
 };
 use lemmy_apub::api::{
@@ -369,6 +369,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         web::scope("/tagline")
           .wrap(rate_limit.message())
+          .route("/", web::post().to(create_tagline))
           .route("/list", web::get().to(list_taglines)),
       ),
   );
