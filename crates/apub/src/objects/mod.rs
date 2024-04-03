@@ -1,7 +1,6 @@
 use crate::protocol::Source;
 use activitypub_federation::protocol::values::MediaTypeMarkdownOrHtml;
 use anyhow::anyhow;
-use chrono::{DateTime, Utc};
 use html2md::parse_html;
 use lemmy_utils::{error::LemmyError, settings::structs::Settings};
 use url::Url;
@@ -50,36 +49,5 @@ pub(crate) fn verify_is_remote_object(id: &Url, settings: &Settings) -> Result<(
     Err(anyhow!("cant accept local object from remote instance").into())
   } else {
     Ok(())
-  }
-}
-
-/// When receiving a federated object, check that the timestamp is newer than the latest version stored
-/// locally. Necessary to reject edits which are received in wrong order.
-pub(crate) fn verify_object_timestamp(
-  old_timestamp: Option<DateTime<Utc>>,
-  new_timestamp: Option<DateTime<Utc>>,
-) -> Result<(), LemmyError> {
-  if let (Some(old_timestamp), Some(new_timestamp)) = (old_timestamp, new_timestamp) {
-    if new_timestamp < old_timestamp {
-      return Err(anyhow!("Ignoring old object edit").into());
-    }
-  }
-  Ok(())
-}
-
-#[cfg(test)]
-pub(crate) mod tests {
-  use super::*;
-  use chrono::TimeZone;
-
-  #[test]
-  fn test_verify_object_timestamp() {
-    let old = Some(Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap());
-    let new = Some(Utc.with_ymd_and_hms(2024, 2, 1, 0, 0, 0).unwrap());
-
-    assert!(verify_object_timestamp(old, new).is_ok());
-    assert!(verify_object_timestamp(None, new).is_ok());
-    assert!(verify_object_timestamp(old, None).is_ok());
-    assert!(verify_object_timestamp(new, old).is_err());
   }
 }

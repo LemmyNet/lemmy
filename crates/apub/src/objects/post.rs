@@ -2,7 +2,7 @@ use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_apub_id_valid_with_strictness,
   local_site_data_cached,
-  objects::{read_from_string_or_source_opt, verify_is_remote_object, verify_object_timestamp},
+  objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{
       page::{Attachment, AttributedTo, Hashtag, HashtagType, Page, PageType},
@@ -41,6 +41,7 @@ use lemmy_db_schema::{
     post::{Post, PostInsertForm, PostUpdateForm},
   },
   traits::Crud,
+  utils::naive_now,
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
@@ -216,13 +217,6 @@ impl Object for ApubPost {
     // read existing, local post if any (for generating mod log)
     let old_post = page.id.dereference_local(context).await;
 
-    let old_timestamp = old_post
-      .as_ref()
-      .map(|p| p.updated.unwrap_or(p.published))
-      .clone()
-      .ok();
-    verify_object_timestamp(old_timestamp, page.updated.or(page.published))?;
-
     let first_attachment = page.attachment.first();
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
 
@@ -277,7 +271,8 @@ impl Object for ApubPost {
         .build()
     };
 
-    let post = Post::create(&mut context.pool(), &form).await?;
+    let timestamp = page.updated.or(page.published).unwrap_or_else(naive_now);
+    let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
 
     generate_post_link_metadata(
       post.clone(),

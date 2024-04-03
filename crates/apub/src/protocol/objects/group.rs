@@ -7,7 +7,7 @@ use crate::{
     community_outbox::ApubCommunityOutbox,
   },
   local_site_data_cached,
-  objects::{community::ApubCommunity, read_from_string_or_source_opt, verify_object_timestamp},
+  objects::{community::ApubCommunity, read_from_string_or_source_opt},
   protocol::{
     objects::{Endpoints, LanguageTag},
     ImageObject,
@@ -15,7 +15,6 @@ use crate::{
   },
 };
 use activitypub_federation::{
-  config::Data,
   fetch::{collection_id::CollectionId, object_id::ObjectId},
   kinds::actor::GroupType,
   protocol::{
@@ -76,7 +75,7 @@ impl Group {
   pub(crate) async fn verify(
     &self,
     expected_domain: &Url,
-    context: &Data<LemmyContext>,
+    context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     check_apub_id_valid_with_strictness(self.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, self.id.inner())?;
@@ -88,15 +87,6 @@ impl Group {
     check_slurs_opt(&self.name, slur_regex)?;
     let description = read_from_string_or_source_opt(&self.summary, &None, &self.source);
     check_slurs_opt(&description, slur_regex)?;
-
-    let old_communmity = self.id.dereference_local(context).await;
-    let old_timestamp = old_communmity
-      .as_ref()
-      .map(|c| c.updated.unwrap_or(c.published))
-      .clone()
-      .ok();
-    verify_object_timestamp(old_timestamp, self.updated.or(self.published))?;
-
     Ok(())
   }
 }

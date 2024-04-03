@@ -1,4 +1,5 @@
 use crate::{
+  diesel::DecoratableTarget,
   newtypes::{CommentId, DbUrl, PersonId},
   schema::comment,
   source::comment::{
@@ -13,6 +14,7 @@ use crate::{
   traits::{Crud, Likeable, Saveable},
   utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
+use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{insert_into, sql_query},
   result::Error,
@@ -60,6 +62,16 @@ impl Comment {
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> Result<Comment, Error> {
+    // TODO: shouldnt have on_conflict clause when called from here
+    Self::insert_apub(pool, naive_now(), comment_form, parent_path).await
+  }
+
+  pub async fn insert_apub(
+    pool: &mut DbPool<'_>,
+    timestamp: DateTime<Utc>,
+    comment_form: &CommentInsertForm,
+    parent_path: Option<&Ltree>,
+  ) -> Result<Comment, Error> {
     let conn = &mut get_conn(pool).await?;
 
     conn
@@ -70,6 +82,7 @@ impl Comment {
           let inserted_comment = insert_into(comment::table)
             .values(comment_form)
             .on_conflict(comment::ap_id)
+            .filter_target(comment::published.lt(timestamp))
             .do_update()
             .set(comment_form)
             .get_result::<Self>(conn)
@@ -129,6 +142,7 @@ where ca.comment_id = c.id"
       })
       .await
   }
+
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: Url,

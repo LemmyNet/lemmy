@@ -1,4 +1,5 @@
 use crate::{
+  diesel::DecoratableTarget,
   newtypes::{CommunityId, DbUrl, PersonId},
   schema::{community, community_follower, instance},
   source::{
@@ -20,6 +21,7 @@ use crate::{
   utils::{functions::lower, get_conn, DbPool},
   SubscribedType,
 };
+use chrono::{DateTime, Utc};
 use diesel::{
   deserialize,
   dsl,
@@ -43,25 +45,15 @@ impl Crud for Community {
   type IdType = CommunityId;
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
-    let is_new_community = match &form.actor_id {
-      Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
-      None => true,
-    };
     let conn = &mut get_conn(pool).await?;
 
-    // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
     let community_ = insert_into(community::table)
       .values(form)
-      .on_conflict(community::actor_id)
-      .do_update()
-      .set(form)
       .get_result::<Self>(conn)
       .await?;
 
     // Initialize languages for new community
-    if is_new_community {
-      CommunityLanguage::update(pool, vec![], community_.id).await?;
-    }
+    CommunityLanguage::update(pool, vec![], community_.id).await?;
 
     Ok(community_)
   }
@@ -115,6 +107,35 @@ pub enum CollectionType {
 }
 
 impl Community {
+  pub async fn insert_apub(
+    pool: &mut DbPool<'_>,
+    timestamp: DateTime<Utc>,
+    form: &CommunityInsertForm,
+  ) -> Result<Self, Error> {
+    let is_new_community = match &form.actor_id {
+      Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
+      None => true,
+    };
+    let conn = &mut get_conn(pool).await?;
+
+    // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
+    let community_ = insert_into(community::table)
+      .values(form)
+      .on_conflict(community::actor_id)
+      .filter_target(community::published.lt(timestamp))
+      .do_update()
+      .set(form)
+      .get_result::<Self>(conn)
+      .await?;
+
+    // Initialize languages for new community
+    if is_new_community {
+      CommunityLanguage::update(pool, vec![], community_.id).await?;
+    }
+
+    Ok(community_)
+  }
+
   /// Get the community which has a given moderators or featured url, also return the collection type
   pub async fn get_by_collection_url(
     pool: &mut DbPool<'_>,
