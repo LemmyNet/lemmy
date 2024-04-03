@@ -15,7 +15,6 @@ use chrono::{DateTime, Days, TimeZone, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
   federate_retry_sleep_duration,
-  lemmy_utils::CACHE_DURATION_SHORT,
 };
 use lemmy_apub::{activity_lists::SharedInboxActivities, FEDERATION_CONTEXT};
 use lemmy_db_schema::{
