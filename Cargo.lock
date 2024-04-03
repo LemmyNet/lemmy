@@ -2772,6 +2772,7 @@ dependencies = [
  "futures-util",
  "i-love-jesus",
  "lemmy_utils",
+ "moka",
  "once_cell",
  "pretty_assertions",
  "regex",
