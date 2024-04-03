@@ -42,7 +42,7 @@ steps:
       - git submodule init
       - git submodule update
     when:
-      - event: pull_request
+      - event: [pull_request, tag]
 
   prettier_check:
     image: tmknom/prettier:3.0.0
@@ -218,18 +218,18 @@ steps:
       - event: pull_request
         status: failure
 
-  publish_release_docker:
-    image: woodpeckerci/plugin-docker-buildx
-    secrets: [docker_username, docker_password]
-    settings:
-      repo: dessalines/lemmy
-      dockerfile: docker/Dockerfile
-      platforms: linux/amd64, linux/arm64
-      build_args:
-        - RUST_RELEASE_MODE=release
-      tag: ${CI_COMMIT_TAG}
-    when:
-      - event: tag
+  # publish_release_docker:
+  #   image: woodpeckerci/plugin-docker-buildx
+  #   secrets: [docker_username, docker_password]
+  #   settings:
+  #     repo: dessalines/lemmy
+  #     dockerfile: docker/Dockerfile
+  #     platforms: linux/amd64, linux/arm64
+  #     build_args:
+  #       - RUST_RELEASE_MODE=release
+  #     tag: ${CI_COMMIT_TAG}
+  #   when:
+  #     - event: tag
 
   nightly_build:
     image: woodpeckerci/plugin-docker-buildx
@@ -248,7 +248,6 @@ steps:
   publish_to_crates_io:
     image: *rust_image
     commands:
-      - 'echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"'
       - cargo install cargo-workspaces
       - cp -r migrations crates/db_schema/
       - cargo login "$CARGO_API_TOKEN"
