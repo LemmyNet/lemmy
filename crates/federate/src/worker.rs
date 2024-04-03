@@ -45,7 +45,7 @@ static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(60);
 /// This delay currently needs to not be too small because the DB load is currently fairly high because of the current structure of storing inboxes for every person, not having a separate list of shared_inboxes, and the architecture of having every instance queue be fully separate.
 /// (see https://github.com/LemmyNet/lemmy/issues/3958)
 static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::TimeDelta> =
-  Lazy::new(|| chrono::TimeDelta::from_std(CACHE_DURATION_SHORT).unwrap());
+  Lazy::new(|| chrono::TimeDelta::from_std(CACHE_DURATION_SHORT).expect("TimeDelta out of bounds"));
 /// The same as FOLLOW_ADDITIONS_RECHECK_DELAY, but triggering when the last person on an instance unfollows a specific remote community.
 /// This is expected to happen pretty rarely and updating it in a timely manner is not too important.
 static FOLLOW_REMOVALS_RECHECK_DELAY: Lazy<chrono::TimeDelta> =
