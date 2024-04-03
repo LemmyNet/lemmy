@@ -21,6 +21,7 @@ use lemmy_db_schema::{
     post,
     received_activity,
     sent_activity,
+    site_person_ban,
   },
   source::{
     instance::{Instance, InstanceForm},
@@ -441,8 +442,14 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) {
       )
       .execute(&mut conn)
       .await
-      .inspect_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
+      .inspect_err(|e| error!("Failed to remove community_person_ban expired rows: {e}"))
       .ok();
+
+      diesel::delete(site_person_ban::table.filter(site_person_ban::expires.lt(now().nullable())))
+        .execute(&mut conn)
+        .await
+        .inspect_err(|e| error!("Failed to remove site_person_ban expired rows: {e}"))
+        .ok();
     }
     Err(e) => {
       error!("Failed to get connection from pool: {e}");

@@ -18,4 +18,6 @@ pub mod person_block_view;
 pub mod person_mention_view;
 #[cfg(feature = "full")]
 pub mod person_view;
+#[cfg(feature = "full")]
+pub mod site_person_ban_view;
 pub mod structs;

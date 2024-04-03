@@ -1,4 +1,4 @@
-use crate::newtypes::{DbUrl, InstanceId, SiteId};
+use crate::newtypes::{CommunityId, DbUrl, InstanceId, PersonId, SiteId};
 #[cfg(feature = "full")]
 use crate::schema::site;
 use chrono::{DateTime, Utc};
@@ -83,4 +83,29 @@ pub struct SiteUpdateForm {
   pub private_key: Option<Option<String>>,
   pub public_key: Option<String>,
   pub content_warning: Option<Option<String>>,
+}
+
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
+#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]
+#[cfg_attr(feature = "full", diesel(table_name = site_person_ban))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, site_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+pub struct SitePersonBan {
+  pub site_id: SiteId,
+  pub person_id: PersonId,
+  pub published: DateTime<Utc>,
+  pub expires: Option<DateTime<Utc>>,
+}
+
+#[derive(Clone)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = site_person_ban))]
+pub struct SitePersonBanForm {
+  pub site_id: SiteId,
+  pub person_id: PersonId,
+  pub expires: Option<Option<DateTime<Utc>>>,
 }
