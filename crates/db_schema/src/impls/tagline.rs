@@ -1,7 +1,7 @@
 use crate::{
-  newtypes::LocalSiteId,
+  newtypes::{LocalSiteId, TaglineId},
   schema::tagline::dsl::{local_site_id, published, tagline},
-  source::tagline::{Tagline, TaglineInsertForm},
+  source::tagline::{Tagline, TaglineInsertForm, TaglineUpdateForm},
   utils::{get_conn, limit_and_offset, DbPool},
 };
 use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
@@ -48,6 +48,18 @@ impl Tagline {
     let conn = &mut get_conn(pool).await?;
     insert_into(tagline)
       .values(form)
+      .get_result::<Self>(conn)
+      .await
+  }
+
+  pub async fn update(
+    pool: &mut DbPool<'_>,
+    tagline_id: TaglineId,
+    form: &TaglineUpdateForm,
+  ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(tagline.find(tagline_id))
+      .set(form)
       .get_result::<Self>(conn)
       .await
   }
