@@ -41,10 +41,7 @@ impl Tagline {
     }
   }
 
-  pub async fn create(
-    pool: &mut DbPool<'_>,
-    form: &TaglineInsertForm,
-  ) -> Result<Self, Error> {
+  pub async fn create(pool: &mut DbPool<'_>, form: &TaglineInsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(tagline)
       .values(form)
@@ -62,6 +59,11 @@ impl Tagline {
       .set(form)
       .get_result::<Self>(conn)
       .await
+  }
+
+  pub async fn delete(pool: &mut DbPool<'_>, tagline_id: TaglineId) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::delete(tagline.find(tagline_id)).execute(conn).await
   }
 
   async fn clear(conn: &mut AsyncPgConnection) -> Result<usize, Error> {

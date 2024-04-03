@@ -125,6 +125,7 @@ use lemmy_api_crud::{
   site::{create::create_site, read::get_site, update::update_site},
   tagline::{
     create::create_tagline, 
+    delete::delete_tagline, 
     list::list_taglines, 
     update::update_tagline
   },
@@ -375,6 +376,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.message())
           .route("/", web::post().to(create_tagline))
           .route("/", web::put().to(update_tagline))
+          .route("/delete", web::post().to(delete_tagline))
           .route("/list", web::get().to(list_taglines)),
       ),
   );
