@@ -124,10 +124,10 @@ use lemmy_api_crud::{
   },
   site::{create::create_site, read::get_site, update::update_site},
   tagline::{
-    create::create_tagline, 
-    delete::delete_tagline, 
-    list::list_taglines, 
-    update::update_tagline
+    create::create_tagline,
+    delete::delete_tagline,
+    list::list_taglines,
+    update::update_tagline,
   },
   user::{create::register, delete::delete_account},
 };

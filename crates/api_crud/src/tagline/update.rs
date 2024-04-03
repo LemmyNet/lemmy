@@ -2,13 +2,16 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
-  tagline::{UpdateTagline, TaglineResponse},
+  tagline::{TaglineResponse, UpdateTagline},
   utils::is_admin,
 };
-use lemmy_db_schema::{source::{
-  local_site::LocalSite,
-  tagline::{Tagline, TaglineUpdateForm},
-}, utils::naive_now};
+use lemmy_db_schema::{
+  source::{
+    local_site::LocalSite,
+    tagline::{Tagline, TaglineUpdateForm},
+  },
+  utils::naive_now,
+};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
