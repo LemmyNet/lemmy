@@ -74,11 +74,16 @@ impl LocalImage {
     query.load::<LocalImage>(conn).await
   }
 
-  pub async fn delete_by_alias(pool: &mut DbPool<'_>, alias: &str) -> Result<usize, Error> {
+  pub async fn delete_by_alias(pool: &mut DbPool<'_>, alias: &str) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(local_image::table.filter(local_image::pictrs_alias.eq(alias)))
-      .execute(conn)
+      .get_result(conn)
       .await
+  }
+
+  pub async fn delete_by_url(pool: &mut DbPool<'_>, url: &DbUrl) -> Result<Self, Error> {
+    let alias = url.as_str().split('/').last().ok_or(NotFound)?;
+    Self::delete_by_alias(pool, alias).await
   }
 }
 

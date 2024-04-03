@@ -4,8 +4,8 @@ use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   post::{EditPost, PostResponse},
-  request::fetch_link_metadata,
-  send_activity::{ActivityChannel, SendActivityData},
+  request::generate_post_link_metadata,
+  send_activity::SendActivityData,
   utils::{
     check_community_user_action,
     get_url_blocklist,
@@ -84,39 +84,10 @@ pub async fn update_post(
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
-  // Fetch post links and thumbnail if url was updated
-  let (embed_title, embed_description, embed_video_url, metadata_thumbnail, metadata_content_type) =
-    match &url {
-      Some(url) => {
-        // Only generate the thumbnail if there's no custom thumbnail provided,
-        // otherwise it will save it in pictrs
-        let generate_thumbnail = custom_thumbnail.is_none() || orig_post.thumbnail_url.is_none();
-
-        let metadata = fetch_link_metadata(url, generate_thumbnail, &context).await?;
-        (
-          Some(metadata.opengraph_data.title),
-          Some(metadata.opengraph_data.description),
-          Some(metadata.opengraph_data.embed_video_url),
-          Some(metadata.thumbnail),
-          Some(metadata.content_type),
-        )
-      }
-      _ => Default::default(),
-    };
-
   let url = match url {
     Some(url) => Some(proxy_image_link_opt_apub(Some(url), &context).await?),
     _ => Default::default(),
   };
-
-  let custom_thumbnail = match custom_thumbnail {
-    Some(custom_thumbnail) => {
-      Some(proxy_image_link_opt_apub(Some(custom_thumbnail), &context).await?)
-    }
-    _ => Default::default(),
-  };
-
-  let thumbnail_url = custom_thumbnail.or(metadata_thumbnail);
 
   let language_id = data.language_id;
   CommunityLanguage::is_allowed_community_language(
@@ -129,15 +100,10 @@ pub async fn update_post(
   let post_form = PostUpdateForm {
     name: data.name.clone(),
     url,
-    url_content_type: metadata_content_type,
     body: diesel_option_overwrite(body),
     alt_text: diesel_option_overwrite(data.alt_text.clone()),
     nsfw: data.nsfw,
-    embed_title,
-    embed_description,
-    embed_video_url,
     language_id: data.language_id,
-    thumbnail_url,
     updated: Some(Some(naive_now())),
     ..Default::default()
   };
@@ -147,7 +113,13 @@ pub async fn update_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
 
-  ActivityChannel::submit_activity(SendActivityData::UpdatePost(updated_post), &context).await?;
+  generate_post_link_metadata(
+    updated_post.clone(),
+    custom_thumbnail,
+    |post| Some(SendActivityData::UpdatePost(post)),
+    Some(local_site),
+    context.reset_request_count(),
+  );
 
   build_post_response(
     context.deref(),

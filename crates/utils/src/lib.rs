@@ -10,7 +10,6 @@ cfg_if! {
     pub mod response;
     pub mod settings;
     pub mod utils;
-    pub mod version;
   }
 }
 
@@ -19,6 +18,8 @@ pub use error::LemmyErrorType;
 use std::time::Duration;
 
 pub type ConnectionId = usize;
+
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
