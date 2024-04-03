@@ -1,3 +1,6 @@
+[unstable]
+result_option_inspect = true
+
 [workspace.package]
 version = "0.19.4-beta.1a"
 edition = "2021"
