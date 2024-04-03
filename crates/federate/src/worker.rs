@@ -12,10 +12,7 @@ use activitypub_federation::{
 };
 use anyhow::{Context, Result};
 use chrono::{DateTime, Days, TimeZone, Utc};
-use lemmy_api_common::{
-  context::LemmyContext,
-  federate_retry_sleep_duration,
-};
+use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
 use lemmy_apub::{activity_lists::SharedInboxActivities, FEDERATION_CONTEXT};
 use lemmy_db_schema::{
   newtypes::{ActivityId, CommunityId, InstanceId},
