@@ -59,7 +59,7 @@ steps:
       - event: pull_request
 
   sql_fmt:
-    image: backplane/pgformatter:latest
+    image: backplane/pgformatter
     commands:
       - ./scripts/sql_format_check.sh
     when:
@@ -263,7 +263,7 @@ steps:
       - apk add curl
       - "curl -d'Lemmy CI build failed: ${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
     when:
-      - event: pull_request
+      - event: [pull_request, tag]
         status: failure
 
   notify_on_tag_deploy:

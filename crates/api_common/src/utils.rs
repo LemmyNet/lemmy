@@ -42,21 +42,18 @@ use lemmy_utils::{
     markdown::{markdown_check_for_blocked_urls, markdown_rewrite_image_links},
     slurs::{build_slur_regex, remove_slurs},
   },
+  CACHE_DURATION_SHORT,
 };
 use moka::future::Cache;
 use once_cell::sync::Lazy;
 use regex::{escape, Regex, RegexSet};
 use rosetta_i18n::{Language, LanguageId};
-use std::{collections::HashSet, time::Duration};
+use std::collections::HashSet;
 use tracing::warn;
 use url::{ParseError, Url};
 use urlencoding::encode;
 
 pub static AUTH_COOKIE_NAME: &str = "jwt";
-#[cfg(debug_assertions)]
-static URL_BLOCKLIST_RECHECK_DELAY: Duration = Duration::from_millis(500);
-#[cfg(not(debug_assertions))]
-static URL_BLOCKLIST_RECHECK_DELAY: Duration = Duration::from_secs(60);
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
@@ -527,7 +524,7 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
   static URL_BLOCKLIST: Lazy<Cache<(), RegexSet>> = Lazy::new(|| {
     Cache::builder()
       .max_capacity(1)
-      .time_to_live(URL_BLOCKLIST_RECHECK_DELAY)
+      .time_to_live(CACHE_DURATION_SHORT)
       .build()
   });
 
