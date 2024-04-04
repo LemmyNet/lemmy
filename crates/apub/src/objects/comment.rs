@@ -186,10 +186,10 @@ impl Object for ApubComment {
       language_id,
     };
     let parent_comment_path = parent_comment.map(|t| t.0.path);
-    let timestamp = note.updated.or(note.published).unwrap_or_else(naive_now);
+    let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(naive_now);
     let comment = Comment::insert_apub(
       &mut context.pool(),
-      timestamp,
+      Some(timestamp),
       &form,
       parent_comment_path.as_ref(),
     )

@@ -62,13 +62,12 @@ impl Comment {
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> Result<Comment, Error> {
-    // TODO: shouldnt have on_conflict clause when called from here
-    Self::insert_apub(pool, naive_now(), comment_form, parent_path).await
+    Self::insert_apub(pool, None, comment_form, parent_path).await
   }
 
   pub async fn insert_apub(
     pool: &mut DbPool<'_>,
-    timestamp: DateTime<Utc>,
+    timestamp: Option<DateTime<Utc>>,
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> Result<Comment, Error> {
@@ -79,14 +78,21 @@ impl Comment {
       .run(|conn| {
         Box::pin(async move {
           // Insert, to get the id
-          let inserted_comment = insert_into(comment::table)
-            .values(comment_form)
-            .on_conflict(comment::ap_id)
-            .filter_target(coalesce(comment::updated, comment::published).lt(timestamp))
-            .do_update()
-            .set(comment_form)
-            .get_result::<Self>(conn)
-            .await?;
+          let inserted_comment = if let Some(timestamp) = timestamp {
+            insert_into(comment::table)
+              .values(comment_form)
+              .on_conflict(comment::ap_id)
+              .filter_target(coalesce(comment::updated, comment::published).lt(timestamp))
+              .do_update()
+              .set(comment_form)
+              .get_result::<Self>(conn)
+              .await?
+          } else {
+            insert_into(comment::table)
+              .values(comment_form)
+              .get_result::<Self>(conn)
+              .await?
+          };
 
           let comment_id = inserted_comment.id;
 
