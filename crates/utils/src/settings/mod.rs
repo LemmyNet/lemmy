@@ -13,7 +13,7 @@ use structs::{DatabaseConnection, PictrsConfig, PictrsImageMode, Settings};
 static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
 pub static SETTINGS: Lazy<Settings> = Lazy::new(|| {
-  Settings::init().expect("Failed to load settings file, see documentation (https://join-lemmy.org/docs/en/administration/configuration.html)")
+  Settings::init().unwrap_or_default()
 });
 static WEBFINGER_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(&format!(
