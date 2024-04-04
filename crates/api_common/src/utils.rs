@@ -6,7 +6,7 @@ use crate::{
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
+  newtypes::{CommunityId, DbUrl, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
@@ -14,7 +14,6 @@ use lemmy_db_schema::{
     email_verification::{EmailVerification, EmailVerificationForm},
     images::{LocalImage, RemoteImage},
     instance::Instance,
-    instance_block::InstanceBlock,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
@@ -276,31 +275,14 @@ async fn check_community_block(
   }
 }
 
-/// Throws an error if a recipient has blocked an instance.
 #[tracing::instrument(skip_all)]
-async fn check_instance_block(
-  instance_id: InstanceId,
-  person_id: PersonId,
-  pool: &mut DbPool<'_>,
-) -> Result<(), LemmyError> {
-  let is_blocked = InstanceBlock::read(pool, person_id, instance_id).await?;
-  if is_blocked {
-    Err(LemmyErrorType::InstanceIsBlocked)?
-  } else {
-    Ok(())
-  }
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn check_person_instance_community_block(
+pub async fn check_person_community_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
-  instance_id: InstanceId,
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
   check_person_block(my_id, potential_blocker_id, pool).await?;
-  check_instance_block(instance_id, potential_blocker_id, pool).await?;
   check_community_block(community_id, potential_blocker_id, pool).await?;
   Ok(())
 }
