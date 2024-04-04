@@ -7,7 +7,6 @@ use lemmy_db_schema::{
     instance::Instance,
     language::Language,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
-    tagline::Tagline,
   },
   ListingType,
   ModlogActionType,
@@ -18,7 +17,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{
   CommentView,
-  CustomEmojiView,
   LocalUserView,
   PostView,
   RegistrationApplicationView,
@@ -190,7 +188,6 @@ pub struct CreateSite {
   pub captcha_difficulty: Option<String>,
   pub allowed_instances: Option<Vec<String>>,
   pub blocked_instances: Option<Vec<String>>,
-  pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
   pub content_warning: Option<String>,
   pub default_post_listing_mode: Option<PostListingMode>,
@@ -271,8 +268,6 @@ pub struct EditSite {
   pub blocked_instances: Option<Vec<String>>,
   /// A list of blocked URLs
   pub blocked_urls: Option<Vec<String>>,
-  /// A list of taglines shown at the top of the front page.
-  pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
   /// Whether to email admins for new reports.
   pub reports_email_admins: Option<bool>,
@@ -289,7 +284,6 @@ pub struct EditSite {
 /// The response for a site.
 pub struct SiteResponse {
   pub site_view: SiteView,
-  pub taglines: Vec<Tagline>,
 }
 
 #[skip_serializing_none]
@@ -304,10 +298,6 @@ pub struct GetSiteResponse {
   pub my_user: Option<MyUserInfo>,
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
-  /// A list of taglines shown at the top of the front page.
-  pub taglines: Vec<Tagline>,
-  /// A list of custom emojis your site supports.
-  pub custom_emojis: Vec<CustomEmojiView>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
 }
 

@@ -24,7 +24,6 @@ use lemmy_db_schema::{
     local_site_url_blocklist::LocalSiteUrlBlocklist,
     local_user::LocalUser,
     site::{Site, SiteUpdateForm},
-    tagline::Tagline,
   },
   traits::Crud,
   utils::{diesel_option_overwrite, naive_now},
@@ -178,19 +177,13 @@ pub async fn update_site(
       .with_lemmy_type(LemmyErrorType::CouldntSetAllEmailVerified)?;
   }
 
-  let new_taglines = data.taglines.clone();
-  let taglines = Tagline::replace(&mut context.pool(), local_site.id, new_taglines).await?;
-
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
   context.rate_limit_cell().set_config(rate_limit_config);
 
-  Ok(Json(SiteResponse {
-    site_view,
-    taglines,
-  }))
+  Ok(Json(SiteResponse { site_view }))
 }
 
 fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> LemmyResult<()> {
@@ -593,7 +586,6 @@ mod tests {
       allowed_instances: None,
       blocked_instances: None,
       blocked_urls: None,
-      taglines: None,
       registration_mode: site_registration_mode,
       reports_email_admins: None,
       content_warning: None,

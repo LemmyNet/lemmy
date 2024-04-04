@@ -5,42 +5,9 @@ use crate::{
   utils::{get_conn, limit_and_offset, DbPool},
 };
 use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::RunQueryDsl;
 
 impl Tagline {
-  pub async fn replace(
-    pool: &mut DbPool<'_>,
-    for_local_site_id: LocalSiteId,
-    list_content: Option<Vec<String>>,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    if let Some(list) = list_content {
-      conn
-        .build_transaction()
-        .run(|conn| {
-          Box::pin(async move {
-            Self::clear(conn).await?;
-
-            for item in list {
-              let form = TaglineInsertForm {
-                local_site_id: for_local_site_id,
-                content: item,
-                updated: None,
-              };
-              insert_into(tagline)
-                .values(form)
-                .get_result::<Self>(conn)
-                .await?;
-            }
-            Self::get_all(&mut conn.into(), for_local_site_id).await
-          }) as _
-        })
-        .await
-    } else {
-      Self::get_all(&mut conn.into(), for_local_site_id).await
-    }
-  }
-
   pub async fn create(pool: &mut DbPool<'_>, form: &TaglineInsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(tagline)
@@ -64,10 +31,6 @@ impl Tagline {
   pub async fn delete(pool: &mut DbPool<'_>, tagline_id: TaglineId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(tagline.find(tagline_id)).execute(conn).await
-  }
-
-  async fn clear(conn: &mut AsyncPgConnection) -> Result<usize, Error> {
-    diesel::delete(tagline).execute(conn).await
   }
 
   pub async fn get_all(

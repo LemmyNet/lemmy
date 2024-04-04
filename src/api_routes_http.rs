@@ -374,8 +374,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         web::scope("/tagline")
           .wrap(rate_limit.message())
-          .route("/", web::post().to(create_tagline))
-          .route("/", web::put().to(update_tagline))
+          .route("", web::post().to(create_tagline))
+          .route("", web::put().to(update_tagline))
           .route("/delete", web::post().to(delete_tagline))
           .route("/list", web::get().to(list_taglines)),
       ),
