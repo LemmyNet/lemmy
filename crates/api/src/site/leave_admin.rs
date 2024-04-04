@@ -7,6 +7,7 @@ use lemmy_db_schema::{
     local_site_url_blocklist::LocalSiteUrlBlocklist,
     local_user::{LocalUser, LocalUserUpdateForm},
     moderator::{ModAdd, ModAddForm},
+    tagline::Tagline,
   },
   traits::Crud,
 };
@@ -60,6 +61,7 @@ pub async fn leave_admin(
   let all_languages = Language::read_all(&mut context.pool()).await?;
   let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
   let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
+  let tagline = Tagline::get_random(&mut context.pool(), site_view.local_site.id).await?;
 
   Ok(Json(GetSiteResponse {
     site_view,
@@ -69,5 +71,6 @@ pub async fn leave_admin(
     all_languages,
     discussion_languages,
     blocked_urls,
+    tagline,
   }))
 }

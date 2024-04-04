@@ -7,6 +7,7 @@ use lemmy_db_schema::{
     instance::Instance,
     language::Language,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    tagline::Tagline,
   },
   ListingType,
   ModlogActionType,
@@ -298,6 +299,7 @@ pub struct GetSiteResponse {
   pub my_user: Option<MyUserInfo>,
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
+  pub tagline: Option<Tagline>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
 }
 

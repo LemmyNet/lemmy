@@ -4,7 +4,7 @@ use crate::{
   source::tagline::{Tagline, TaglineInsertForm, TaglineUpdateForm},
   utils::{get_conn, limit_and_offset, DbPool},
 };
-use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{insert_into, result::Error, ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl Tagline {
@@ -59,5 +59,20 @@ impl Tagline {
       .filter(local_site_id.eq(for_local_site_id))
       .get_results::<Self>(conn)
       .await
+  }
+
+  pub async fn get_random(
+    pool: &mut DbPool<'_>,
+    for_local_site_id: LocalSiteId,
+  ) -> Result<Option<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    sql_function!(fn random() -> Text);
+    tagline
+      .order(random())
+      .limit(1)
+      .filter(local_site_id.eq(for_local_site_id))
+      .first::<Self>(conn)
+      .await
+      .optional()
   }
 }
