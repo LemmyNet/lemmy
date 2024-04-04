@@ -106,14 +106,24 @@ pub fn generate_post_link_metadata(
 
     // Generate local thumbnail only if no thumbnail was federated and 'sensitive' attributes allow it.
     let metadata = fetch_link_metadata_opt(
-      post.url.map(Into::into).as_ref(),
+      post.url.as_ref().map(DbUrl::inner),
       do_generate_thumbnail,
       &context,
     )
     .await;
 
-    // Build the thumbnail url based on either the custom thumbnail, metadata fetch, or existing thumbnail.
-    let thumbnail_url = custom_thumbnail
+    // If its an image post, it needs to overwrite the thumbnail, and take precedence
+    let image_url = metadata.content_type.as_ref().and_then(|content_type| {
+      if content_type.starts_with("image") {
+        post.url.map(Into::into)
+      } else {
+        None
+      }
+    });
+
+    // Build the thumbnail url based on either the post image url, custom thumbnail, metadata fetch, or existing thumbnail.
+    let thumbnail_url = image_url
+      .or(custom_thumbnail)
       .or(metadata.thumbnail.map(Into::into))
       .or(post.thumbnail_url.map(Into::into));
 
