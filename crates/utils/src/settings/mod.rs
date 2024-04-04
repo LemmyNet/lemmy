@@ -12,9 +12,8 @@ use structs::{DatabaseConnection, PictrsConfig, PictrsImageMode, Settings};
 
 static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
-pub static SETTINGS: Lazy<Settings> = Lazy::new(|| {
-  Settings::init().unwrap_or_default()
-});
+pub static SETTINGS: Lazy<Settings> = Lazy::new(|| Settings::init().unwrap_or_default());
+
 static WEBFINGER_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(&format!(
     "^acct:([a-zA-Z0-9_]{{3,}})@{}$",
