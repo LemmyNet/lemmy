@@ -256,3 +256,76 @@ ALTER TABLE post_read
     DROP COLUMN like_score,
     DROP COLUMN hidden;
 
+-- Rename associated stuff
+ALTER INDEX comment_actions_pkey RENAME TO comment_like_pkey;
+
+ALTER INDEX idx_comment_actions_comment RENAME TO idx_comment_like_comment;
+
+ALTER INDEX idx_comment_actions_post RENAME TO idx_comment_like_post;
+
+ALTER TABLE comment_like RENAME CONSTRAINT comment_actions_comment_id_fkey TO comment_like_comment_id_fkey;
+
+ALTER TABLE comment_like RENAME CONSTRAINT comment_actions_person_id_fkey TO comment_like_person_id_fkey;
+
+ALTER TABLE comment_like RENAME CONSTRAINT comment_actions_post_id_fkey TO comment_like_post_id_fkey;
+
+ALTER INDEX community_actions_pkey RENAME TO community_follower_pkey;
+
+ALTER INDEX idx_community_actions_community RENAME TO idx_community_follower_community;
+
+ALTER TABLE community_follower RENAME CONSTRAINT community_actions_community_id_fkey TO community_follower_community_id_fkey;
+
+ALTER TABLE community_follower RENAME CONSTRAINT community_actions_person_id_fkey TO community_follower_person_id_fkey;
+
+ALTER INDEX instance_actions_pkey RENAME TO instance_block_pkey;
+
+ALTER TABLE instance_block RENAME CONSTRAINT instance_actions_instance_id_fkey TO instance_block_instance_id_fkey;
+
+ALTER TABLE instance_block RENAME CONSTRAINT instance_actions_person_id_fkey TO instance_block_person_id_fkey;
+
+ALTER INDEX person_actions_pkey RENAME TO person_follower_pkey;
+
+ALTER TABLE person_follower RENAME CONSTRAINT person_actions_target_id_fkey TO person_follower_person_id_fkey;
+
+ALTER TABLE person_follower RENAME CONSTRAINT person_actions_person_id_fkey TO person_follower_follower_id_fkey;
+
+ALTER INDEX post_actions_pkey RENAME TO post_read_pkey;
+
+ALTER TABLE post_read RENAME CONSTRAINT post_actions_person_id_fkey TO post_read_person_id_fkey;
+
+ALTER TABLE post_read RENAME CONSTRAINT post_actions_post_id_fkey TO post_read_post_id_fkey;
+
+-- Rename idx_community_actions_followed and remove filter
+CREATE INDEX idx_community_follower_published ON community_follower (published);
+
+DROP INDEX idx_community_actions_followed;
+
+-- Move indexes back to their original tables
+CREATE INDEX idx_comment_saved_comment ON comment_saved (comment_id);
+
+CREATE INDEX idx_comment_saved_person ON comment_saved (person_id);
+
+CREATE INDEX idx_community_block_community ON community_block (community_id);
+
+CREATE INDEX idx_community_moderator_community ON community_moderator (community_id);
+
+CREATE INDEX idx_community_moderator_published ON community_moderator (published);
+
+CREATE INDEX idx_person_block_person ON person_block (person_id);
+
+CREATE INDEX idx_person_block_target ON person_block (target_id);
+
+CREATE INDEX idx_person_post_aggregates_person ON person_post_aggregates (person_id);
+
+CREATE INDEX idx_person_post_aggregates_post ON person_post_aggregates (post_id);
+
+CREATE INDEX idx_post_like_post ON post_like (post_id);
+
+DROP INDEX idx_person_actions_person, idx_person_actions_target, idx_post_actions_person, idx_post_actions_post;
+
+-- Drop `NOT NULL` indexes of columns that still exist
+DROP INDEX idx_comment_actions_liked_not_null, idx_community_actions_followed_not_null, idx_person_actions_followed_not_null, idx_post_actions_read_not_null, idx_instance_actions_blocked_not_null;
+
+-- Drop statistics of columns that still exist
+DROP statistics comment_actions_liked_stat, community_actions_followed_stat, person_actions_followed_stat;
+

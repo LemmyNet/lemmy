@@ -245,3 +245,144 @@ RETURNING
 -- Drop old tables
 DROP TABLE comment_saved, community_block, community_moderator, community_person_ban, person_block, person_post_aggregates, post_hide, post_like, post_saved;
 
+-- Rename associated stuff
+ALTER INDEX comment_like_pkey RENAME TO comment_actions_pkey;
+
+ALTER INDEX idx_comment_like_comment RENAME TO idx_comment_actions_comment;
+
+ALTER INDEX idx_comment_like_post RENAME TO idx_comment_actions_post;
+
+ALTER TABLE comment_actions RENAME CONSTRAINT comment_like_comment_id_fkey TO comment_actions_comment_id_fkey;
+
+ALTER TABLE comment_actions RENAME CONSTRAINT comment_like_person_id_fkey TO comment_actions_person_id_fkey;
+
+ALTER TABLE comment_actions RENAME CONSTRAINT comment_like_post_id_fkey TO comment_actions_post_id_fkey;
+
+ALTER INDEX community_follower_pkey RENAME TO community_actions_pkey;
+
+ALTER INDEX idx_community_follower_community RENAME TO idx_community_actions_community;
+
+ALTER TABLE community_actions RENAME CONSTRAINT community_follower_community_id_fkey TO community_actions_community_id_fkey;
+
+ALTER TABLE community_actions RENAME CONSTRAINT community_follower_person_id_fkey TO community_actions_person_id_fkey;
+
+ALTER INDEX instance_block_pkey RENAME TO instance_actions_pkey;
+
+ALTER TABLE instance_actions RENAME CONSTRAINT instance_block_instance_id_fkey TO instance_actions_instance_id_fkey;
+
+ALTER TABLE instance_actions RENAME CONSTRAINT instance_block_person_id_fkey TO instance_actions_person_id_fkey;
+
+ALTER INDEX person_follower_pkey RENAME TO person_actions_pkey;
+
+ALTER TABLE person_actions RENAME CONSTRAINT person_follower_person_id_fkey TO person_actions_target_id_fkey;
+
+ALTER TABLE person_actions RENAME CONSTRAINT person_follower_follower_id_fkey TO person_actions_person_id_fkey;
+
+ALTER INDEX post_read_pkey RENAME TO post_actions_pkey;
+
+ALTER TABLE post_actions RENAME CONSTRAINT post_read_person_id_fkey TO post_actions_person_id_fkey;
+
+ALTER TABLE post_actions RENAME CONSTRAINT post_read_post_id_fkey TO post_actions_post_id_fkey;
+
+-- Rename idx_community_follower_published and add filter
+CREATE INDEX idx_community_actions_followed ON community_actions (followed)
+WHERE
+    followed IS NOT NULL;
+
+DROP INDEX idx_community_follower_published;
+
+-- Restore indexes of dropped tables
+CREATE INDEX idx_community_actions_became_moderator ON community_actions (became_moderator)
+WHERE
+    became_moderator IS NOT NULL;
+
+CREATE INDEX idx_person_actions_person ON person_actions (person_id);
+
+CREATE INDEX idx_person_actions_target ON person_actions (target_id);
+
+CREATE INDEX idx_post_actions_person ON post_actions (person_id);
+
+CREATE INDEX idx_post_actions_post ON post_actions (post_id);
+
+-- Create new indexes, with `OR` being used to allow `IS NOT NULL` filters in queries to use either column in
+-- a group (e.g. `liked IS NOT NULL` and `like_score IS NOT NULL` both work)
+CREATE INDEX idx_comment_actions_liked_not_null ON comment_actions (person_id, comment_id)
+WHERE
+    liked IS NOT NULL OR like_score IS NOT NULL;
+
+CREATE INDEX idx_comment_actions_saved_not_null ON comment_actions (person_id, comment_id)
+WHERE
+    saved IS NOT NULL;
+
+CREATE INDEX idx_community_actions_followed_not_null ON community_actions (person_id, community_id)
+WHERE
+    followed IS NOT NULL OR follow_pending IS NOT NULL;
+
+CREATE INDEX idx_community_actions_blocked_not_null ON community_actions (person_id, community_id)
+WHERE
+    blocked IS NOT NULL;
+
+CREATE INDEX idx_community_actions_became_moderator_not_null ON community_actions (person_id, community_id)
+WHERE
+    became_moderator IS NOT NULL;
+
+CREATE INDEX idx_community_actions_received_ban_not_null ON community_actions (person_id, community_id)
+WHERE
+    received_ban IS NOT NULL;
+
+CREATE INDEX idx_person_actions_followed_not_null ON person_actions (person_id, target_id)
+WHERE
+    followed IS NOT NULL OR follow_pending IS NOT NULL;
+
+CREATE INDEX idx_person_actions_blocked_not_null ON person_actions (person_id, target_id)
+WHERE
+    blocked IS NOT NULL;
+
+CREATE INDEX idx_post_actions_read_not_null ON post_actions (person_id, post_id)
+WHERE
+    read IS NOT NULL;
+
+CREATE INDEX idx_post_actions_read_comments_not_null ON post_actions (person_id, post_id)
+WHERE
+    read_comments IS NOT NULL OR read_comments IS NOT NULL;
+
+CREATE INDEX idx_post_actions_saved_not_null ON post_actions (person_id, post_id)
+WHERE
+    saved IS NOT NULL;
+
+CREATE INDEX idx_post_actions_liked_not_null ON post_actions (person_id, post_id)
+WHERE
+    liked IS NOT NULL OR like_score IS NOT NULL;
+
+CREATE INDEX idx_post_actions_hidden_not_null ON post_actions (person_id, post_id)
+WHERE
+    hidden IS NOT NULL;
+
+-- This index is currently redundant because instance_actions only has 1 action type, but inconsistency
+-- with other tables would make it harder to do everything correctly when adding another action type. If
+-- omitting this index is significantly beneficial, then it should be done when indexes are declared outside
+-- of migrations in `lemmy_db_schema::schema_setup` and adding this index doesn't require changing code that
+-- isn't right next to the code that needs to be changed to add another action type to instance_actions.
+CREATE INDEX idx_instance_actions_blocked_not_null ON instance_actions (person_id, instance_id)
+WHERE
+    blocked IS NOT NULL;
+
+-- Create new statistics for more accurate estimations of how much of an index will be read (e.g. for
+-- `(liked, like_score)`, the query planner might othewise assume that `(TRUE, FALSE)` and `(TRUE, TRUE)`
+-- are equally likely when only `(TRUE, TRUE)` is possible, which would make it severely underestimate
+-- the efficiency of using the index)
+CREATE statistics comment_actions_liked_stat ON (liked IS NULL), (like_score IS NULL)
+FROM comment_actions;
+
+CREATE statistics community_actions_followed_stat ON (followed IS NULL), (follow_pending IS NULL)
+FROM community_actions;
+
+CREATE statistics person_actions_followed_stat ON (followed IS NULL), (follow_pending IS NULL)
+FROM person_actions;
+
+CREATE statistics post_actions_read_comments_stat ON (read_comments IS NULL), (read_comments_amount IS NULL)
+FROM post_actions;
+
+CREATE statistics post_actions_liked_stat ON (liked IS NULL), (like_score IS NULL)
+FROM post_actions;
+
