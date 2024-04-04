@@ -76,7 +76,7 @@ impl Post {
     insert_into(post::table)
       .values(form)
       .on_conflict(post::ap_id)
-      .filter_target(post::published.lt(timestamp))
+      .filter_target(coalesce(post::updated, post::published).lt(timestamp))
       .do_update()
       .set(form)
       .get_result::<Self>(conn)

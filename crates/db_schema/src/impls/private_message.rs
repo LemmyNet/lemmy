@@ -4,7 +4,7 @@ use crate::{
   schema::private_message,
   source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
   traits::Crud,
-  utils::{get_conn, DbPool},
+  utils::{functions::coalesce, get_conn, DbPool},
 };
 use chrono::{DateTime, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
@@ -49,7 +49,7 @@ impl PrivateMessage {
     insert_into(private_message::table)
       .values(form)
       .on_conflict(private_message::ap_id)
-      .filter_target(private_message::published.lt(timestamp))
+      .filter_target(coalesce(private_message::updated, private_message::published).lt(timestamp))
       .do_update()
       .set(form)
       .get_result::<Self>(conn)

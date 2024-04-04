@@ -18,7 +18,11 @@ use crate::{
     post::Post,
   },
   traits::{ApubActor, Bannable, Crud, Followable, Joinable},
-  utils::{functions::lower, get_conn, DbPool},
+  utils::{
+    functions::{coalesce, lower},
+    get_conn,
+    DbPool,
+  },
   SubscribedType,
 };
 use chrono::{DateTime, Utc};
@@ -122,7 +126,7 @@ impl Community {
     let community_ = insert_into(community::table)
       .values(form)
       .on_conflict(community::actor_id)
-      .filter_target(community::published.lt(timestamp))
+      .filter_target(coalesce(community::updated, community::published).lt(timestamp))
       .do_update()
       .set(form)
       .get_result::<Self>(conn)

@@ -12,7 +12,7 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{functions::coalesce, get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -82,7 +82,7 @@ impl Comment {
           let inserted_comment = insert_into(comment::table)
             .values(comment_form)
             .on_conflict(comment::ap_id)
-            .filter_target(comment::published.lt(timestamp))
+            .filter_target(coalesce(comment::updated, comment::published).lt(timestamp))
             .do_update()
             .set(comment_form)
             .get_result::<Self>(conn)
