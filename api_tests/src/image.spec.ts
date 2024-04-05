@@ -298,7 +298,6 @@ test("Create an image post, and make sure a custom thumbnail doesnt overwrite it
   };
   const upload1 = await alphaImage.uploadImage(uploadForm1);
 
-  // TODO but the image content type needs to start with image/
   const uploadForm2: UploadImage = {
     image: Buffer.from("test2"),
   };
