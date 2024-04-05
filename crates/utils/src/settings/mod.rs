@@ -19,8 +19,9 @@ pub static SETTINGS: Lazy<Settings> = Lazy::new(|| {
     );
     println!("Use with other environment variables to configure this instance further; e.g. LEMMY_DATABASE_URL.");
     Settings::default()
+  } else {
+    Settings::init().expect("Failed to load settings file, see documentation (https://join-lemmy.org/docs/en/administration/configuration.html).")
   }
-  Settings::init().expect("Failed to load settings file, see documentation (https://join-lemmy.org/docs/en/administration/configuration.html).")
 });
 
 static WEBFINGER_REGEX: Lazy<Regex> = Lazy::new(|| {
