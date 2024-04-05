@@ -38,7 +38,6 @@ impl Settings {
   /// `lemmy_db_schema/src/lib.rs::get_database_url_from_env()`
   /// Warning: Only call this once.
   pub(crate) fn init() -> Result<Self, LemmyError> {
-    // Read the config file
     let config = from_str::<Settings>(&Self::read_config_file()?)?;
 
     if config.hostname == "unset" {
