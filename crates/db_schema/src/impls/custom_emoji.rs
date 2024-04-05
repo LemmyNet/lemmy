@@ -39,11 +39,6 @@ impl Crud for CustomEmoji {
       .get_result::<Self>(conn)
       .await
   }
-
-  async fn delete(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(custom_emoji.find(id)).execute(conn).await
-  }
 }
 
 impl CustomEmojiKeyword {

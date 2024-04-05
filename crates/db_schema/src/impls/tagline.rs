@@ -33,11 +33,6 @@ impl Crud for Tagline {
       .get_result::<Self>(conn)
       .await
   }
-
-  async fn delete(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::delete(tagline.find(id)).execute(conn).await
-  }
 }
 
 impl Tagline {
