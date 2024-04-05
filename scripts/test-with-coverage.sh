@@ -18,7 +18,7 @@ export RUST_BACKTRACE=1
 cargo install cargo-llvm-cov
 
 # Create lcov.info file, which is used by things like the Coverage Gutters extension for VS Code
-cargo llvm-cov --workspace --all-features --no-fail-fast --lcov --output-path lcov.info
+cargo llvm-cov --workspace --all-features --no-fail-fast --lcov --output-path target/lcov.info
 
 # Add this to do printlns: -- --nocapture
 
