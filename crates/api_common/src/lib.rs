@@ -27,7 +27,7 @@ pub extern crate lemmy_utils;
 
 pub use lemmy_utils::LemmyErrorType;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use std::{cmp::min, time::Duration};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
@@ -43,7 +43,31 @@ impl Default for SuccessResponse {
   }
 }
 
-/// how long to sleep based on how many retries have already happened
+// TODO: use from_hours once stabilized
+// https://github.com/rust-lang/rust/issues/120301
+const HOUR: Duration = Duration::from_secs(3600);
+
+/// Calculate how long to sleep until next federation send based on how many
+/// retries have already happened. Uses exponential backoff with maximum of one hour.
 pub fn federate_retry_sleep_duration(retry_count: i32) -> Duration {
-  Duration::from_secs_f64(2.0_f64.powf(f64::from(retry_count)))
+  let pow = 2.0_f64.powf(retry_count.into());
+  let pow = Duration::from_secs_f64(pow);
+  min(HOUR, pow)
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+  use super::*;
+
+  #[test]
+  fn test_federate_retry_sleep_duration() {
+    let s = |secs| Duration::from_secs(secs);
+    assert_eq!(s(1), federate_retry_sleep_duration(0));
+    assert_eq!(s(2), federate_retry_sleep_duration(1));
+    assert_eq!(s(4), federate_retry_sleep_duration(2));
+    assert_eq!(s(8), federate_retry_sleep_duration(3));
+    assert_eq!(s(16), federate_retry_sleep_duration(4));
+    assert_eq!(s(1024), federate_retry_sleep_duration(10));
+    assert_eq!(s(3600), federate_retry_sleep_duration(20));
+  }
 }
