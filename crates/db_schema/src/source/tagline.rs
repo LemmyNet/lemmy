@@ -34,7 +34,7 @@ pub struct Tagline {
 #[cfg_attr(feature = "full", diesel(table_name = tagline))]
 pub struct TaglineInsertForm {
   pub local_site_id: LocalSiteId,
-  pub content: String,
+  pub content: Option<String>,
 }
 
 #[derive(Clone, Default)]

@@ -3,7 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   tagline::{CreateTagline, TaglineResponse},
-  utils::is_admin,
+  utils::{get_url_blocklist, is_admin, local_site_to_slur_regex, process_markdown_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{error::LemmyError, utils::validation::is_valid_body_field};
 
 #[tracing::instrument(skip(context))]
 pub async fn create_tagline(
@@ -21,13 +21,19 @@ pub async fn create_tagline(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<TaglineResponse>, LemmyError> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
+  let local_site = LocalSite::read(&mut context.pool()).await?;
+
+  let slur_regex = local_site_to_slur_regex(&local_site);
+  let url_blocklist = get_url_blocklist(&context).await?;
+  let content = process_markdown_opt(&data.content, &slur_regex, &url_blocklist, &context).await?;
+  is_valid_body_field(&content, false)?;
+
   let tagline_form = TaglineInsertForm {
     local_site_id: local_site.id,
-    content: data.content.to_string(),
+    content,
   };
 
   let tagline = Tagline::create(&mut context.pool(), &tagline_form).await?;
