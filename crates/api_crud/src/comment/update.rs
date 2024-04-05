@@ -79,9 +79,8 @@ pub async fn update_comment(
   let mentions = scrape_text_for_mentions(&updated_comment_content);
   let recipient_ids = send_local_notifs(
     mentions,
-    &updated_comment,
+    comment_id,
     &local_user_view.person,
-    &orig_comment.post,
     false,
     &context,
   )
