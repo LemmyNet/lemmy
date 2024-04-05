@@ -15,8 +15,8 @@ import {
 
 beforeAll(setupLogins);
 
-afterAll(() => {
-  unfollows();
+afterAll(async () => {
+  await unfollows();
 });
 
 test("Follow local community", async () => {

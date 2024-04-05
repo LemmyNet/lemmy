@@ -21,8 +21,8 @@ beforeAll(async () => {
   recipient_id = 3;
 });
 
-afterAll(() => {
-  unfollows();
+afterAll(async () => {
+  await unfollows();
 });
 
 test("Create a private message", async () => {

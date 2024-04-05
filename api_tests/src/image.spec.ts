@@ -15,7 +15,6 @@ import {
   createCommunity,
   createPost,
   deleteAllImages,
-  delta,
   epsilon,
   followCommunity,
   gamma,
@@ -28,13 +27,16 @@ import {
   setupLogins,
   waitForPost,
   unfollows,
+  editPostThumbnail,
+  getPost,
+  waitUntil,
 } from "./shared";
 const downloadFileSync = require("download-file-sync");
 
 beforeAll(setupLogins);
 
-afterAll(() => {
-  unfollows();
+afterAll(async () => {
+  await unfollows();
 });
 
 test("Upload image and delete it", async () => {
@@ -251,4 +253,76 @@ test("No image proxying if setting is disabled", async () => {
 
   // Make sure the alt text got federated
   expect(post.post_view.post.alt_text).toBe(betaPost.post.alt_text);
+});
+
+test("Make regular post, and give it a custom thumbnail", async () => {
+  const uploadForm1: UploadImage = {
+    image: Buffer.from("testRegular1"),
+  };
+  const upload1 = await alphaImage.uploadImage(uploadForm1);
+
+  const community = await createCommunity(alphaImage);
+
+  // Use wikipedia since it has an opengraph image
+  const wikipediaUrl = "https://wikipedia.org/";
+
+  let post = await createPost(
+    alphaImage,
+    community.community_view.community.id,
+    wikipediaUrl,
+  );
+
+  // Wait for the metadata to get fetched, since this is backgrounded now
+  post = await waitUntil(
+    () => getPost(alphaImage, post.post_view.post.id),
+    p => p.post_view.post.thumbnail_url != undefined,
+  );
+  expect(post.post_view.post.url).toBe(wikipediaUrl);
+  expect(post.post_view.post.thumbnail_url).toBeDefined();
+
+  // Edit the thumbnail
+  await editPostThumbnail(alphaImage, post.post_view.post, upload1.url!);
+
+  post = await waitUntil(
+    () => getPost(alphaImage, post.post_view.post.id),
+    p => p.post_view.post.thumbnail_url == upload1.url,
+  );
+
+  // Make sure the thumbnail got edited.
+  expect(post.post_view.post.thumbnail_url).toBe(upload1.url);
+});
+
+test("Create an image post, and make sure a custom thumbnail doesnt overwrite it", async () => {
+  const uploadForm1: UploadImage = {
+    image: Buffer.from("test1"),
+  };
+  const upload1 = await alphaImage.uploadImage(uploadForm1);
+
+  // TODO but the image content type needs to start with image/
+  const uploadForm2: UploadImage = {
+    image: Buffer.from("test2"),
+  };
+  const upload2 = await alphaImage.uploadImage(uploadForm2);
+
+  const community = await createCommunity(alphaImage);
+
+  let post = await createPost(
+    alphaImage,
+    community.community_view.community.id,
+    upload1.url,
+  );
+  expect(post.post_view.post.url).toBe(upload1.url);
+
+  // Edit the post
+  await editPostThumbnail(alphaImage, post.post_view.post, upload2.url!);
+
+  // Wait for the metadata to get fetched
+  post = await waitUntil(
+    () => getPost(alphaImage, post.post_view.post.id),
+    p => p.post_view.post.thumbnail_url == upload1.url,
+  );
+
+  // Make sure the new custom thumbnail is ignored, and doesn't overwrite the image post
+  expect(post.post_view.post.url).toBe(upload1.url);
+  expect(post.post_view.post.thumbnail_url).toBe(upload1.url);
 });

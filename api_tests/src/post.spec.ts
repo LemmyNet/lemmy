@@ -51,8 +51,8 @@ beforeAll(async () => {
   await unfollows();
 });
 
-afterAll(() => {
-  unfollows();
+afterAll(async () => {
+  await unfollows();
 });
 
 async function assertPostFederation(postOne: PostView, postTwo: PostView) {

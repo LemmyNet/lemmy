@@ -226,6 +226,18 @@ export async function editPost(
   return api.editPost(form);
 }
 
+export async function editPostThumbnail(
+  api: LemmyHttp,
+  post: Post,
+  customThumbnail: string,
+): Promise<PostResponse> {
+  let form: EditPost = {
+    post_id: post.id,
+    custom_thumbnail: customThumbnail,
+  };
+  return api.editPost(form);
+}
+
 export async function deletePost(
   api: LemmyHttp,
   deleted: boolean,
