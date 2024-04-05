@@ -18,7 +18,7 @@ pub struct CreateTagline {
 /// Update a tagline
 pub struct UpdateTagline {
   pub id: TaglineId,
-  pub content: String,
+  pub content: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
