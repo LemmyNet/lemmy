@@ -4,7 +4,7 @@ use crate::{
   context::LemmyContext,
   post::PostResponse,
   utils::{
-    check_person_community_block,
+    check_person_instance_community_block,
     get_interface_language,
     is_mod_or_admin,
     send_email_to_user,
@@ -149,9 +149,10 @@ pub async fn send_local_notifs(
     // Get the parent commenter local_user
     let parent_creator_id = parent_comment.creator_id;
 
-    let check_blocks = check_person_community_block(
+    let check_blocks = check_person_instance_community_block(
       person.id,
       parent_creator_id,
+      person.instance_id,
       community_id,
       &mut context.pool(),
     )
@@ -193,9 +194,10 @@ pub async fn send_local_notifs(
       }
     }
   } else {
-    let check_blocks = check_person_community_block(
+    let check_blocks = check_person_instance_community_block(
       person.id,
       post.creator_id,
+      person.instance_id,
       community_id,
       &mut context.pool(),
     )
