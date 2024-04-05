@@ -15,12 +15,12 @@ static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 pub static SETTINGS: Lazy<Settings> = Lazy::new(|| {
   if env::var("LEMMY_INITIALIZE_WITH_DEFAULT_SETTINGS").is_ok() {
     println!(
-      "LEMMY_INITIALIZE_WITH_DEFAULT_SETTINGS was set, any configuration file has been ignored"
+      "LEMMY_INITIALIZE_WITH_DEFAULT_SETTINGS was set, any configuration file has been ignored."
     );
-    println!("Use with other environment variables to configure this instance further; e.g. LEMMY_DATABASE_URL");
-    return Settings::default();
+    println!("Use with other environment variables to configure this instance further; e.g. LEMMY_DATABASE_URL.");
+    Settings::default()
   }
-  Settings::init().expect("Failed to load settings file, see documentation (https://join-lemmy.org/docs/en/administration/configuration.html)")
+  Settings::init().expect("Failed to load settings file, see documentation (https://join-lemmy.org/docs/en/administration/configuration.html).")
 });
 
 static WEBFINGER_REGEX: Lazy<Regex> = Lazy::new(|| {
