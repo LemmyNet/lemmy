@@ -51,7 +51,7 @@ const HOUR: Duration = Duration::from_secs(3600);
 /// retries have already happened. Uses exponential backoff with maximum of one hour.
 pub fn federate_retry_sleep_duration(retry_count: i32) -> Duration {
   let pow = 2.0_f64.powf(retry_count.into());
-  let pow = Duration::from_secs_f64(pow);
+  let pow = Duration::try_from_secs_f64(pow).unwrap_or(HOUR);
   min(HOUR, pow)
 }
 
@@ -68,6 +68,6 @@ pub(crate) mod tests {
     assert_eq!(s(8), federate_retry_sleep_duration(3));
     assert_eq!(s(16), federate_retry_sleep_duration(4));
     assert_eq!(s(1024), federate_retry_sleep_duration(10));
-    assert_eq!(s(3600), federate_retry_sleep_duration(20));
+    assert_eq!(s(3600), federate_retry_sleep_duration(100));
   }
 }
