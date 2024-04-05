@@ -39,7 +39,6 @@ impl Settings {
   /// Warning: Only call this once.
   pub(crate) fn init() -> Result<Self, LemmyError> {
     let config = from_str::<Settings>(&Self::read_config_file()?)?;
-
     if config.hostname == "unset" {
       Err(anyhow!("Hostname variable is not set!").into())
     } else {
