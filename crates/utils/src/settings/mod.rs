@@ -23,8 +23,6 @@ pub static SETTINGS: Lazy<Settings> = Lazy::new(|| {
   Settings::init().expect("Failed to load settings file, see documentation (https://join-lemmy.org/docs/en/administration/configuration.html)")
 });
 
-// pub static SETTINGS: Lazy<Settings> = Lazy::new(|| Settings::init().unwrap_or_default());
-
 static WEBFINGER_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(&format!(
     "^acct:([a-zA-Z0-9_]{{3,}})@{}$",
