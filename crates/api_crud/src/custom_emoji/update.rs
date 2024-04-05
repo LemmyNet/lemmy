@@ -5,10 +5,13 @@ use lemmy_api_common::{
   custom_emoji::{CustomEmojiResponse, EditCustomEmoji},
   utils::is_admin,
 };
-use lemmy_db_schema::source::{
-  custom_emoji::{CustomEmoji, CustomEmojiUpdateForm},
-  custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},
-  local_site::LocalSite,
+use lemmy_db_schema::{
+  source::{
+    custom_emoji::{CustomEmoji, CustomEmojiUpdateForm},
+    custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},
+    local_site::LocalSite,
+  },
+  traits::Crud,
 };
 use lemmy_db_views::structs::{CustomEmojiView, LocalUserView};
 use lemmy_utils::error::LemmyError;

@@ -8,35 +8,41 @@ use crate::{
     custom_emoji::{CustomEmoji, CustomEmojiInsertForm, CustomEmojiUpdateForm},
     custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},
   },
+  traits::Crud,
   utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
-impl CustomEmoji {
-  pub async fn create(pool: &mut DbPool<'_>, form: &CustomEmojiInsertForm) -> Result<Self, Error> {
+#[async_trait]
+impl Crud for CustomEmoji {
+  type InsertForm = CustomEmojiInsertForm;
+  type UpdateForm = CustomEmojiUpdateForm;
+  type IdType = CustomEmojiId;
+
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(custom_emoji)
       .values(form)
       .get_result::<Self>(conn)
       .await
   }
-  pub async fn update(
+
+  async fn update(
     pool: &mut DbPool<'_>,
-    emoji_id: CustomEmojiId,
-    form: &CustomEmojiUpdateForm,
+    emoji_id: Self::IdType,
+    new_custom_emoji: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(custom_emoji.find(emoji_id))
-      .set(form)
+      .set(new_custom_emoji)
       .get_result::<Self>(conn)
       .await
   }
-  pub async fn delete(pool: &mut DbPool<'_>, emoji_id: CustomEmojiId) -> Result<usize, Error> {
+
+  async fn delete(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(custom_emoji.find(emoji_id))
-      .execute(conn)
-      .await
+    diesel::delete(custom_emoji.find(id)).execute(conn).await
   }
 }
 

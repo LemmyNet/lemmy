@@ -6,7 +6,7 @@ use lemmy_api_common::{
   utils::is_admin,
   SuccessResponse,
 };
-use lemmy_db_schema::source::custom_emoji::CustomEmoji;
+use lemmy_db_schema::{source::custom_emoji::CustomEmoji, traits::Crud};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
