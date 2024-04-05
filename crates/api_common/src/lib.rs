@@ -61,7 +61,7 @@ pub(crate) mod tests {
 
   #[test]
   fn test_federate_retry_sleep_duration() {
-    let s = |secs| Duration::from_secs(secs);
+    let s = Duration::from_secs;
     assert_eq!(s(1), federate_retry_sleep_duration(0));
     assert_eq!(s(2), federate_retry_sleep_duration(1));
     assert_eq!(s(4), federate_retry_sleep_duration(2));
