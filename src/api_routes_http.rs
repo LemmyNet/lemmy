@@ -361,6 +361,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/community", web::post().to(purge_community))
               .route("/post", web::post().to(purge_post))
               .route("/comment", web::post().to(purge_comment)),
+          )
+          .service(
+            web::scope("/tagline")
+              .wrap(rate_limit.message())
+              .route("", web::post().to(create_tagline))
+              .route("", web::put().to(update_tagline))
+              .route("/delete", web::post().to(delete_tagline))
+              .route("/list", web::get().to(list_taglines)),
           ),
       )
       .service(
@@ -370,14 +378,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", web::put().to(update_custom_emoji))
           .route("/delete", web::post().to(delete_custom_emoji))
           .route("/list", web::get().to(list_custom_emojis)),
-      )
-      .service(
-        web::scope("/tagline")
-          .wrap(rate_limit.message())
-          .route("", web::post().to(create_tagline))
-          .route("", web::put().to(update_tagline))
-          .route("/delete", web::post().to(delete_tagline))
-          .route("/list", web::get().to(list_taglines)),
       ),
   );
   cfg.service(
