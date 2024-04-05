@@ -5,9 +5,12 @@ use lemmy_api_common::{
   tagline::{CreateTagline, TaglineResponse},
   utils::is_admin,
 };
-use lemmy_db_schema::source::{
-  local_site::LocalSite,
-  tagline::{Tagline, TaglineInsertForm},
+use lemmy_db_schema::{
+  source::{
+    local_site::LocalSite,
+    tagline::{Tagline, TaglineInsertForm},
+  },
+  traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
@@ -25,7 +28,6 @@ pub async fn create_tagline(
   let tagline_form = TaglineInsertForm {
     local_site_id: local_site.id,
     content: data.content.to_string(),
-    updated: None,
   };
 
   let tagline = Tagline::create(&mut context.pool(), &tagline_form).await?;

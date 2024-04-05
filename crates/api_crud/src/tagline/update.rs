@@ -6,10 +6,8 @@ use lemmy_api_common::{
   utils::is_admin,
 };
 use lemmy_db_schema::{
-  source::{
-    local_site::LocalSite,
-    tagline::{Tagline, TaglineUpdateForm},
-  },
+  source::tagline::{Tagline, TaglineUpdateForm},
+  traits::Crud,
   utils::naive_now,
 };
 use lemmy_db_views::structs::LocalUserView;
@@ -21,14 +19,12 @@ pub async fn update_tagline(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<TaglineResponse>, LemmyError> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
   let tagline_form = TaglineUpdateForm {
-    local_site_id: local_site.id,
-    content: data.content.to_string(),
-    updated: Some(naive_now()),
+    content: Some(data.content.to_string()),
+    updated: Some(Some(naive_now())),
   };
 
   let tagline = Tagline::update(&mut context.pool(), data.id, &tagline_form).await?;

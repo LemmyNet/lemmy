@@ -2,13 +2,19 @@ use crate::{
   newtypes::{LocalSiteId, TaglineId},
   schema::tagline::dsl::{local_site_id, published, tagline},
   source::tagline::{Tagline, TaglineInsertForm, TaglineUpdateForm},
+  traits::Crud,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 use diesel::{insert_into, result::Error, ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
 
-impl Tagline {
-  pub async fn create(pool: &mut DbPool<'_>, form: &TaglineInsertForm) -> Result<Self, Error> {
+#[async_trait]
+impl Crud for Tagline {
+  type InsertForm = TaglineInsertForm;
+  type UpdateForm = TaglineUpdateForm;
+  type IdType = TaglineId;
+
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(tagline)
       .values(form)
@@ -16,34 +22,25 @@ impl Tagline {
       .await
   }
 
-  pub async fn update(
+  async fn update(
     pool: &mut DbPool<'_>,
     tagline_id: TaglineId,
-    form: &TaglineUpdateForm,
+    new_tagline: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(tagline.find(tagline_id))
-      .set(form)
+      .set(new_tagline)
       .get_result::<Self>(conn)
       .await
   }
 
-  pub async fn delete(pool: &mut DbPool<'_>, tagline_id: TaglineId) -> Result<usize, Error> {
+  async fn delete(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(tagline.find(tagline_id)).execute(conn).await
+    diesel::delete(tagline.find(id)).execute(conn).await
   }
+}
 
-  pub async fn get_all(
-    pool: &mut DbPool<'_>,
-    for_local_site_id: LocalSiteId,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    tagline
-      .filter(local_site_id.eq(for_local_site_id))
-      .get_results::<Self>(conn)
-      .await
-  }
-
+impl Tagline {
   pub async fn list(
     pool: &mut DbPool<'_>,
     for_local_site_id: LocalSiteId,

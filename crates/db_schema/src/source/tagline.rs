@@ -35,14 +35,12 @@ pub struct Tagline {
 pub struct TaglineInsertForm {
   pub local_site_id: LocalSiteId,
   pub content: String,
-  pub updated: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = tagline))]
 pub struct TaglineUpdateForm {
-  pub local_site_id: LocalSiteId,
-  pub content: String,
-  pub updated: Option<DateTime<Utc>>,
+  pub content: Option<String>,
+  pub updated: Option<Option<DateTime<Utc>>>,
 }
