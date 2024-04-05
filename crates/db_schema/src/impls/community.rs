@@ -30,6 +30,7 @@ use diesel::{
   select,
   sql_types,
   update,
+  BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
@@ -169,30 +170,16 @@ impl Community {
     for p in &posts {
       debug_assert!(p.community_id == community_id);
     }
-    conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          update(
-            // first remove all existing featured posts
-            post::table,
-          )
-          .filter(post::dsl::community_id.eq(community_id))
-          .set(post::dsl::featured_community.eq(false))
-          .execute(conn)
-          .await?;
-
-          // then mark the given posts as featured
-          let post_ids: Vec<_> = posts.iter().map(|p| p.id).collect();
-          update(post::table)
-            .filter(post::dsl::id.eq_any(post_ids))
-            .set(post::dsl::featured_community.eq(true))
-            .execute(conn)
-            .await?;
-          Ok(())
-        }) as _
-      })
-      .await
+    // Mark the given posts as featured and all other posts as not featured.
+    let post_ids = posts.iter().map(|p| p.id);
+    update(post::table)
+      .filter(post::dsl::community_id.eq(community_id))
+      // This filter is just for performance
+      .filter(post::dsl::featured_community.or(post::dsl::id.eq_any(post_ids.clone())))
+      .set(post::dsl::featured_community.eq(post::dsl::id.eq_any(post_ids)))
+      .execute(conn)
+      .await?;
+    Ok(())
   }
 }
 

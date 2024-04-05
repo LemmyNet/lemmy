@@ -2,7 +2,7 @@
 # See https://github.com/woodpecker-ci/woodpecker/issues/1677
 
 variables:
-  - &rust_image "rust:1.76"
+  - &rust_image "rust:1.77"
   - &install_pnpm "corepack enable pnpm"
   - &slow_check_paths
     - event: pull_request
@@ -42,7 +42,7 @@ steps:
       - git submodule init
       - git submodule update
     when:
-      - event: pull_request
+      - event: [pull_request, tag]
 
   prettier_check:
     image: tmknom/prettier:3.0.0
@@ -59,7 +59,7 @@ steps:
       - event: pull_request
 
   sql_fmt:
-    image: backplane/pgformatter:latest
+    image: backplane/pgformatter
     commands:
       - ./scripts/sql_format_check.sh
     when:
@@ -248,7 +248,6 @@ steps:
   publish_to_crates_io:
     image: *rust_image
     commands:
-      - 'echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"'
       - cargo install cargo-workspaces
       - cp -r migrations crates/db_schema/
       - cargo login "$CARGO_API_TOKEN"
@@ -263,7 +262,7 @@ steps:
       - apk add curl
       - "curl -d'Lemmy CI build failed: ${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
     when:
-      - event: pull_request
+      - event: [pull_request, tag]
         status: failure
 
   notify_on_tag_deploy:
