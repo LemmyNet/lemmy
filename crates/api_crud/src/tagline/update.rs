@@ -3,7 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   tagline::{TaglineResponse, UpdateTagline},
-  utils::{get_url_blocklist, is_admin, local_site_to_slur_regex, process_markdown_opt},
+  utils::{get_url_blocklist, is_admin, local_site_to_slur_regex, process_markdown},
 };
 use lemmy_db_schema::{
   source::{
@@ -29,14 +29,8 @@ pub async fn update_tagline(
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   let url_blocklist = get_url_blocklist(&context).await?;
-  let processed_content = process_markdown_opt(
-    &Some(data.content.to_owned()),
-    &slur_regex,
-    &url_blocklist,
-    &context,
-  )
-  .await?;
-  let content = is_valid_tagline_content(processed_content)?;
+  let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
+  is_valid_tagline_content(&content)?;
 
   let tagline_form = TaglineUpdateForm {
     content,

@@ -171,23 +171,18 @@ pub fn is_valid_body_field(body: &Option<String>, post: bool) -> LemmyResult<()>
   Ok(())
 }
 
-pub fn is_valid_tagline_content(content: Option<String>) -> LemmyResult<String> {
-  match content {
-    Some(content) => {
-      min_length_check(
-        &content,
-        TAGLINE_CONTENT_MIN_LENGTH,
-        LemmyErrorType::TaglineContentRequired,
-      )?;
-      max_length_check(
-        &content,
-        TAGLINE_CONTENT_MAX_LENGTH,
-        LemmyErrorType::TaglineContentLengthOverflow,
-      )?;
-      Ok(content)
-    }
-    None => Err(LemmyErrorType::TaglineContentRequired.into()),
-  }
+pub fn is_valid_tagline_content(content: &str) -> LemmyResult<()> {
+  min_length_check(
+    content,
+    TAGLINE_CONTENT_MIN_LENGTH,
+    LemmyErrorType::TaglineContentRequired,
+  )?;
+  max_length_check(
+    content,
+    TAGLINE_CONTENT_MAX_LENGTH,
+    LemmyErrorType::TaglineContentLengthOverflow,
+  )?;
+  Ok(())
 }
 
 pub fn is_valid_bio_field(bio: &str) -> LemmyResult<()> {
