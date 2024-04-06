@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{error::LemmyError, utils::validation::is_valid_body_field};
+use lemmy_utils::{error::LemmyError, utils::validation::is_valid_tagline_content};
 
 #[tracing::instrument(skip(context))]
 pub async fn update_tagline(
@@ -29,8 +29,14 @@ pub async fn update_tagline(
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   let url_blocklist = get_url_blocklist(&context).await?;
-  let content = process_markdown_opt(&data.content, &slur_regex, &url_blocklist, &context).await?;
-  is_valid_body_field(&content, false)?;
+  let processed_content = process_markdown_opt(
+    &Some(data.content.to_owned()),
+    &slur_regex,
+    &url_blocklist,
+    &context,
+  )
+  .await?;
+  let content = is_valid_tagline_content(processed_content)?;
 
   let tagline_form = TaglineUpdateForm {
     content,

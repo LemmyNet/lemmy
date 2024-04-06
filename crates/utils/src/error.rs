@@ -165,6 +165,8 @@ pub enum LemmyErrorType {
   InvalidUnixTime,
   InvalidBotAction,
   CantBlockLocalInstance,
+  TaglineContentRequired,
+  TaglineContentLengthOverflow,
   Unknown(String),
 }
 

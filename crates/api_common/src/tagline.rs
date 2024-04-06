@@ -9,7 +9,7 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", ts(export))]
 /// Create a tagline
 pub struct CreateTagline {
-  pub content: Option<String>,
+  pub content: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
@@ -18,7 +18,7 @@ pub struct CreateTagline {
 /// Update a tagline
 pub struct UpdateTagline {
   pub id: TaglineId,
-  pub content: Option<String>,
+  pub content: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]

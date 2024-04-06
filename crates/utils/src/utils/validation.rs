@@ -22,6 +22,8 @@ const BIO_MAX_LENGTH: usize = 300;
 const ALT_TEXT_MAX_LENGTH: usize = 300;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
+const TAGLINE_CONTENT_MIN_LENGTH: usize = 1;
+const TAGLINE_CONTENT_MAX_LENGTH: usize = 50000;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
 //Invisible unicode characters, taken from https://invisible-characters.com/
 const FORBIDDEN_DISPLAY_CHARS: [char; 53] = [
@@ -167,6 +169,25 @@ pub fn is_valid_body_field(body: &Option<String>, post: bool) -> LemmyResult<()>
     };
   }
   Ok(())
+}
+
+pub fn is_valid_tagline_content(content: Option<String>) -> LemmyResult<String> {
+  match content {
+    Some(content) => {
+      min_length_check(
+        &content,
+        TAGLINE_CONTENT_MIN_LENGTH,
+        LemmyErrorType::TaglineContentRequired,
+      )?;
+      max_length_check(
+        &content,
+        TAGLINE_CONTENT_MAX_LENGTH,
+        LemmyErrorType::TaglineContentLengthOverflow,
+      )?;
+      Ok(content)
+    }
+    None => Err(LemmyErrorType::TaglineContentRequired.into()),
+  }
 }
 
 pub fn is_valid_bio_field(bio: &str) -> LemmyResult<()> {
