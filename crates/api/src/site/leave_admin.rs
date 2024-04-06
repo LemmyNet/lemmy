@@ -15,7 +15,7 @@ use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
-  version,
+  VERSION,
 };
 
 #[tracing::instrument(skip(context))]
@@ -66,7 +66,7 @@ pub async fn leave_admin(
   Ok(Json(GetSiteResponse {
     site_view,
     admins,
-    version: version::VERSION.to_string(),
+    version: VERSION.to_string(),
     my_user: None,
     all_languages,
     discussion_languages,

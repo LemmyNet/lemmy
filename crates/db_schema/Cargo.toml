@@ -80,6 +80,7 @@ rustls = { workspace = true, optional = true }
 uuid = { workspace = true, features = ["v4"] }
 i-love-jesus = { workspace = true, optional = true }
 anyhow = { workspace = true }
+moka.workspace = true
 
 [dev-dependencies]
 serial_test = { workspace = true }

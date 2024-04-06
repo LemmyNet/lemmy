@@ -19,8 +19,8 @@ use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
   settings::structs::{PictrsImageMode, Settings},
   spawn_try_task,
-  version::VERSION,
   REQWEST_TIMEOUT,
+  VERSION,
 };
 use mime::Mime;
 use reqwest::{header::CONTENT_TYPE, Client, ClientBuilder};
@@ -32,11 +32,7 @@ use urlencoding::encode;
 use webpage::HTML;
 
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
-  let user_agent = format!(
-    "Lemmy/{}; +{}",
-    VERSION,
-    settings.get_protocol_and_hostname()
-  );
+  let user_agent = format!("Lemmy/{VERSION}; +{}", settings.get_protocol_and_hostname());
 
   Client::builder()
     .user_agent(user_agent.clone())

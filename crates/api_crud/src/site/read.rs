@@ -20,11 +20,11 @@ use lemmy_db_views_actor::structs::{
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  version,
+  CACHE_DURATION_SHORT,
+  VERSION,
 };
 use moka::future::Cache;
 use once_cell::sync::Lazy;
-use std::time::Duration;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_site(
@@ -34,7 +34,7 @@ pub async fn get_site(
   static CACHE: Lazy<Cache<(), GetSiteResponse>> = Lazy::new(|| {
     Cache::builder()
       .max_capacity(1)
-      .time_to_live(Duration::from_secs(1))
+      .time_to_live(CACHE_DURATION_SHORT)
       .build()
   });
 
@@ -50,7 +50,7 @@ pub async fn get_site(
       Ok(GetSiteResponse {
         site_view,
         admins,
-        version: version::VERSION.to_string(),
+        version: VERSION.to_string(),
         my_user: None,
         all_languages,
         discussion_languages,
