@@ -43,20 +43,13 @@ impl LocalUserLanguage {
     };
     let conn = &mut get_conn(pool).await?;
 
-    conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          let langs = local_user_language
-            .filter(local_user_id.eq(for_local_user_id))
-            .order(language_id)
-            .select(language_id)
-            .get_results(conn)
-            .await?;
-          convert_read_languages(conn, langs).await
-        }) as _
-      })
-      .await
+    let langs = local_user_language
+      .filter(local_user_id.eq(for_local_user_id))
+      .order(language_id)
+      .select(language_id)
+      .get_results(conn)
+      .await?;
+    convert_read_languages(conn, langs).await
   }
 
   /// Update the user's languages.
