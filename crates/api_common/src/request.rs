@@ -302,11 +302,13 @@ async fn generate_pictrs_thumbnail(
 ) -> Result<Url, LemmyError> {
   let pictrs_config = context.settings().pictrs_config()?;
 
-    match pictrs_config.image_mode() {
-        PictrsImageMode::None => return Ok(image_url.clone()),
-        PictrsImageMode::ProxyAllImages => return Ok(proxy_image_link(image_url.clone(), context).await?.into()),
-        _ => {}
-    };
+  match pictrs_config.image_mode() {
+    PictrsImageMode::None => return Ok(image_url.clone()),
+    PictrsImageMode::ProxyAllImages => {
+      return Ok(proxy_image_link(image_url.clone(), context).await?.into())
+    }
+    _ => {}
+  };
 
   // fetch remote non-pictrs images for persistent thumbnail link
   // TODO: should limit size once supported by pictrs
