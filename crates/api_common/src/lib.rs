@@ -43,9 +43,9 @@ impl Default for SuccessResponse {
   }
 }
 
-// TODO: use from_hours once stabilized
+// TODO: use from_days once stabilized
 // https://github.com/rust-lang/rust/issues/120301
-const DAY: Duration = Duration::from_secs(3600);
+const DAY: Duration = Duration::from_secs(24 * 60 * 60);
 
 /// Calculate how long to sleep until next federation send based on how many
 /// retries have already happened. Uses exponential backoff with maximum of one day. The first
