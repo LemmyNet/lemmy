@@ -17,7 +17,7 @@ checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 [[package]]
 name = "activitypub_federation"
 version = "0.5.2"
-source = "git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=follow-local-redirect#2cd31014b34ca7b0c27c7a921669af0e5511059b"
+source = "git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=follow-local-redirect#d1e1a41d41f60708b2aabda1b60fe780e1c4ba35"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
