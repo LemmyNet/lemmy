@@ -302,6 +302,10 @@ async fn generate_pictrs_thumbnail(
 ) -> Result<Url, LemmyError> {
   let pictrs_config = context.settings().pictrs_config()?;
 
+  if pictrs_config.image_mode() == PictrsImageMode::None {
+    return Ok(image_url.clone());
+  }
+
   if pictrs_config.image_mode() == PictrsImageMode::ProxyAllImages {
     return Ok(proxy_image_link(image_url.clone(), context).await?.into());
   }
