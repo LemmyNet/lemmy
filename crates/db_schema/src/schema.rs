@@ -254,7 +254,6 @@ diesel::table! {
 diesel::table! {
     custom_emoji (id) {
         id -> Int4,
-        local_site_id -> Int4,
         #[max_length = 128]
         shortcode -> Varchar,
         image_url -> Text,
@@ -929,7 +928,6 @@ diesel::table! {
 diesel::table! {
     tagline (id) {
         id -> Int4,
-        local_site_id -> Int4,
         content -> Text,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
@@ -966,7 +964,6 @@ diesel::joinable!(community_moderator -> community (community_id));
 diesel::joinable!(community_moderator -> person (person_id));
 diesel::joinable!(community_person_ban -> community (community_id));
 diesel::joinable!(community_person_ban -> person (person_id));
-diesel::joinable!(custom_emoji -> local_site (local_site_id));
 diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
@@ -1028,7 +1025,6 @@ diesel::joinable!(site -> instance (instance_id));
 diesel::joinable!(site_aggregates -> site (site_id));
 diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
-diesel::joinable!(tagline -> local_site (local_site_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     admin_purge_comment,

@@ -3,7 +3,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   custom_emoji::{ListCustomEmojis, ListCustomEmojisResponse},
 };
-use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
+use lemmy_db_views::structs::{CustomEmojiView, LocalUserView};
 use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
@@ -12,15 +12,8 @@ pub async fn list_custom_emojis(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> Result<Json<ListCustomEmojisResponse>, LemmyError> {
-  let local_site = SiteView::read_local(&mut context.pool()).await?;
-  let custom_emojis = CustomEmojiView::list(
-    &mut context.pool(),
-    local_site.local_site.id,
-    &data.category,
-    data.page,
-    data.limit,
-  )
-  .await?;
+  let custom_emojis =
+    CustomEmojiView::list(&mut context.pool(), &data.category, data.page, data.limit).await?;
 
   Ok(Json(ListCustomEmojisResponse { custom_emojis }))
 }

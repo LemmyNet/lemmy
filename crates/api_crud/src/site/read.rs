@@ -46,7 +46,7 @@ pub async fn get_site(
       let all_languages = Language::read_all(&mut context.pool()).await?;
       let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
       let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
-      let tagline = Tagline::get_random(&mut context.pool(), site_view.local_site.id).await?;
+      let tagline = Tagline::get_random(&mut context.pool()).await?;
       Ok(GetSiteResponse {
         site_view,
         admins,

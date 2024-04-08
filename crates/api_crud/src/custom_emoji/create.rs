@@ -9,7 +9,6 @@ use lemmy_db_schema::{
   source::{
     custom_emoji::{CustomEmoji, CustomEmojiInsertForm},
     custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},
-    local_site::LocalSite,
   },
   traits::Crud,
 };
@@ -22,12 +21,10 @@ pub async fn create_custom_emoji(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<CustomEmojiResponse>, LemmyError> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
   let emoji_form = CustomEmojiInsertForm::builder()
-    .local_site_id(local_site.id)
     .shortcode(data.shortcode.to_lowercase().trim().to_string())
     .alt_text(data.alt_text.to_string())
     .category(data.category.to_string())
