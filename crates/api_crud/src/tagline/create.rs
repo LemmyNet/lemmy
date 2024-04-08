@@ -33,7 +33,7 @@ pub async fn create_tagline(
 
   let tagline_form = TaglineInsertForm {
     local_site_id: local_site.id,
-    content: content.clone(),
+    content,
   };
 
   let tagline = Tagline::create(&mut context.pool(), &tagline_form).await?;
