@@ -175,12 +175,12 @@ pub fn is_valid_tagline_content(content: &str) -> LemmyResult<()> {
   min_length_check(
     content,
     TAGLINE_CONTENT_MIN_LENGTH,
-    LemmyErrorType::TaglineContentRequired,
+    LemmyErrorType::TaglineInvalid,
   )?;
   max_length_check(
     content,
     TAGLINE_CONTENT_MAX_LENGTH,
-    LemmyErrorType::TaglineContentLengthOverflow,
+    LemmyErrorType::TaglineInvalid,
   )?;
   Ok(())
 }
