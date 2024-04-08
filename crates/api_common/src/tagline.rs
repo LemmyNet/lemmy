@@ -39,7 +39,7 @@ pub struct TaglineResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// A response for custom emojis.
+/// A response for taglines.
 pub struct ListTaglinesResponse {
   pub taglines: Vec<Tagline>,
 }
@@ -48,7 +48,7 @@ pub struct ListTaglinesResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// Fetches a list of registration applications.
+/// Fetches a list of taglines.
 pub struct ListTaglines {
   pub page: Option<i64>,
   pub limit: Option<i64>,
