@@ -295,12 +295,12 @@ async fn check_instance_block(
 pub async fn check_person_instance_community_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
-  instance_id: InstanceId,
+  community_instance_id: InstanceId,
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
   check_person_block(my_id, potential_blocker_id, pool).await?;
-  check_instance_block(instance_id, potential_blocker_id, pool).await?;
+  check_instance_block(community_instance_id, potential_blocker_id, pool).await?;
   check_community_block(community_id, potential_blocker_id, pool).await?;
   Ok(())
 }
