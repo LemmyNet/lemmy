@@ -19,7 +19,6 @@ use lemmy_db_schema::{
     comment_reply::{CommentReply, CommentReplyInsertForm},
     person::Person,
     person_mention::{PersonMention, PersonMentionInsertForm},
-    post::Post,
   },
   traits::Crud,
 };
@@ -91,16 +90,19 @@ pub async fn build_post_response(
 #[tracing::instrument(skip_all)]
 pub async fn send_local_notifs(
   mentions: Vec<MentionData>,
-  comment: &Comment,
+  comment_id: CommentId,
   person: &Person,
-  post: &Post,
   do_send_email: bool,
   context: &LemmyContext,
 ) -> Result<Vec<LocalUserId>, LemmyError> {
   let mut recipient_ids = Vec::new();
   let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
 
-  let community_id = post.community_id;
+  // Read the comment view to get extra info
+  let comment_view = CommentView::read(&mut context.pool(), comment_id, None).await?;
+  let comment = comment_view.comment;
+  let post = comment_view.post;
+  let community = comment_view.community;
 
   // Send the local mentions
   for mention in mentions
@@ -117,7 +119,7 @@ pub async fn send_local_notifs(
 
       let user_mention_form = PersonMentionInsertForm {
         recipient_id: mention_user_view.person.id,
-        comment_id: comment.id,
+        comment_id,
         read: None,
       };
 
@@ -152,8 +154,9 @@ pub async fn send_local_notifs(
     let check_blocks = check_person_instance_community_block(
       person.id,
       parent_creator_id,
-      person.instance_id,
-      community_id,
+      // Only block from the community's instance_id
+      community.instance_id,
+      community.id,
       &mut context.pool(),
     )
     .await
@@ -194,11 +197,13 @@ pub async fn send_local_notifs(
       }
     }
   } else {
+    // Use the post creator to check blocks
     let check_blocks = check_person_instance_community_block(
       person.id,
       post.creator_id,
-      person.instance_id,
-      community_id,
+      // Only block from the community's instance_id
+      community.instance_id,
+      community.id,
       &mut context.pool(),
     )
     .await
