@@ -747,10 +747,7 @@ test("Block post that contains banned URL", async () => {
 });
 
 test("Fetch post with redirect", async () => {
-  let alphaPost = await createPost(
-    alpha,
-    betaCommunity!.community.id,
-  );
+  let alphaPost = await createPost(alpha, betaCommunity!.community.id);
   expect(alphaPost.post_view.post).toBeDefined();
 
   // beta fetches from alpha as usual
@@ -763,7 +760,7 @@ test("Fetch post with redirect", async () => {
 
   // fetch remote object from local url, which redirects to the original url
   let form: ResolveObject = {
-    q: `http://lemmy-gamma:8561/post/${gammaPost.post!.post.id}`
+    q: `http://lemmy-gamma:8561/post/${gammaPost.post!.post.id}`,
   };
   let gammaPost2 = await gamma.resolveObject(form);
   expect(gammaPost2.post).toBeDefined();
