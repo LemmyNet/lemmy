@@ -45,14 +45,14 @@ impl Default for SuccessResponse {
 
 // TODO: use from_hours once stabilized
 // https://github.com/rust-lang/rust/issues/120301
-const HOUR: Duration = Duration::from_secs(3600);
+const DAY: Duration = Duration::from_secs(3600);
 
 /// Calculate how long to sleep until next federation send based on how many
-/// retries have already happened. Uses exponential backoff with maximum of one hour.
+/// retries have already happened. Uses exponential backoff with maximum of one day.
 pub fn federate_retry_sleep_duration(retry_count: i32) -> Duration {
-  let pow = 2.0_f64.powf(retry_count.into());
-  let pow = Duration::try_from_secs_f64(pow).unwrap_or(HOUR);
-  min(HOUR, pow)
+  let pow = 1.25_f64.powf(retry_count.into());
+  let pow = Duration::try_from_secs_f64(pow).unwrap_or(DAY);
+  min(DAY, pow)
 }
 
 #[cfg(test)]
@@ -61,13 +61,10 @@ pub(crate) mod tests {
 
   #[test]
   fn test_federate_retry_sleep_duration() {
-    let s = Duration::from_secs;
-    assert_eq!(s(1), federate_retry_sleep_duration(0));
-    assert_eq!(s(2), federate_retry_sleep_duration(1));
-    assert_eq!(s(4), federate_retry_sleep_duration(2));
-    assert_eq!(s(8), federate_retry_sleep_duration(3));
-    assert_eq!(s(16), federate_retry_sleep_duration(4));
-    assert_eq!(s(1024), federate_retry_sleep_duration(10));
-    assert_eq!(s(3600), federate_retry_sleep_duration(100));
+    let s = |s,m: u32| Duration::new(s, m * 1000);
+    assert_eq!(s(1, 0), federate_retry_sleep_duration(0));
+    assert_eq!(s(1, 250000), federate_retry_sleep_duration(1));
+    assert_eq!(s(1, 562500), federate_retry_sleep_duration(2));
+    assert_eq!(DAY, federate_retry_sleep_duration(100));
   }
 }
