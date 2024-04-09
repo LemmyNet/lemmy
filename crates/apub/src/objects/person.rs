@@ -149,8 +149,8 @@ impl Object for ApubPerson {
     person: Person,
     context: &Data<Self::DataType>,
   ) -> Result<ApubPerson, LemmyError> {
-    // Dont allow overwriting local object
-    if person.id.inner().domain() == Some(context.domain()) {
+    // Avoid overwriting local object
+    if person.id.is_local(context) {
       return person.id.dereference_local(context).await;
     }
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;

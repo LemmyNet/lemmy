@@ -121,8 +121,8 @@ impl Object for ApubPrivateMessage {
     note: ChatMessage,
     context: &Data<Self::DataType>,
   ) -> Result<ApubPrivateMessage, LemmyError> {
-    // Dont allow overwriting local object
-    if note.id.inner().domain() == Some(context.domain()) {
+    // Avoid overwriting local object
+    if note.id.is_local(context) {
       return note.id.dereference_local(context).await;
     }
 

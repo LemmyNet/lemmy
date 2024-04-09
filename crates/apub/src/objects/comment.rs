@@ -139,7 +139,7 @@ impl Object for ApubComment {
     let community = note.community(context).await?;
 
     check_apub_id_valid_with_strictness(note.id.inner(), community.local, context).await?;
-    verify_is_remote_object(note.id.inner(), context.settings())?;
+    verify_is_remote_object(&note.id, context)?;
     verify_person_in_community(&note.attributed_to, &community, context).await?;
     let (post, _) = note.get_parents(context).await?;
     let creator = note.attributed_to.dereference(context).await?;
@@ -158,8 +158,8 @@ impl Object for ApubComment {
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
   #[tracing::instrument(skip_all)]
   async fn from_json(note: Note, context: &Data<LemmyContext>) -> Result<ApubComment, LemmyError> {
-    // Dont allow overwriting local object
-    if note.id.inner().domain() == Some(context.domain()) {
+    // Avoid overwriting local object
+    if note.id.is_local(context) {
       return note.id.dereference_local(context).await;
     }
 

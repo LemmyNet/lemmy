@@ -164,7 +164,7 @@ impl Object for ApubPost {
     // instance from the post author.
     if !page.is_mod_action(context).await? {
       verify_domains_match(page.id.inner(), expected_domain)?;
-      verify_is_remote_object(page.id.inner(), context.settings())?;
+      verify_is_remote_object(&page.id, context)?;
     };
 
     let community = page.community(context).await?;
@@ -182,8 +182,8 @@ impl Object for ApubPost {
 
   #[tracing::instrument(skip_all)]
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> Result<ApubPost, LemmyError> {
-    // Dont allow overwriting local object
-    if page.id.inner().domain() == Some(context.domain()) {
+    // Avoid overwriting local object
+    if page.id.is_local(context) {
       return page.id.dereference_local(context).await;
     }
 
