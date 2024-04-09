@@ -83,11 +83,12 @@ impl LocalUserLanguage {
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
-          use crate::schema::local_user_language::dsl::{local_user_id, local_user_language};
-          // Clear the current user languages
-          delete(local_user_language.filter(local_user_id.eq(for_local_user_id)))
-            .execute(conn)
-            .await?;
+          use crate::schema::local_user_language::dsl::{local_user_id, local_user_language, language_id};
+          // Delete old languages, not including new languages
+          let delete_old = delete(local_user_language)
+            .filter(local_user_id.eq(for_local_user_id))
+            .filter(language_id.ne_all(&lang_ids)
+            .execute(conn);
 
           let forms = lang_ids
             .into_iter()
@@ -97,10 +98,14 @@ impl LocalUserLanguage {
             })
             .collect::<Vec<_>>();
 
-          insert_into(local_user_language)
+          // Insert new languages
+          let insert_new = insert_into(local_user_language)
             .values(forms)
-            .execute(conn)
-            .await?;
+            .on_conflict((language_id, local_user_id))
+            .do_nothing()
+            .execute(conn);
+
+          tokio::try_join!(delete_old, insert_new)?;
           Ok(())
         }) as _
       })
