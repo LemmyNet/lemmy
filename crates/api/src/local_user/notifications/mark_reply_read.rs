@@ -9,14 +9,14 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommentReplyView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn mark_reply_as_read(
   data: Json<MarkCommentReplyAsRead>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommentReplyResponse>, LemmyError> {
+) -> LemmyResult<Json<CommentReplyResponse>> {
   let comment_reply_id = data.comment_reply_id;
   let read_comment_reply = CommentReply::read(&mut context.pool(), comment_reply_id).await?;
 

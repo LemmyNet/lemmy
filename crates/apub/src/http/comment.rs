@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   source::{comment::Comment, community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -28,7 +28,7 @@ pub(crate) struct CommentQuery {
 pub(crate) async fn get_apub_comment(
   info: Path<CommentQuery>,
   context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> LemmyResult<HttpResponse> {
   let id = CommentId(info.comment_id.parse::<i32>()?);
   // Can't use CommentView here because it excludes deleted/removed/local-only items
   let comment: ApubComment = Comment::read(&mut context.pool(), id).await?.into();

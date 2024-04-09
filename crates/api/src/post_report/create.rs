@@ -19,7 +19,7 @@ use lemmy_db_schema::{
   traits::Reportable,
 };
 use lemmy_db_views::structs::{LocalUserView, PostReportView, PostView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 /// Creates a post report and notifies the moderators of the community
 #[tracing::instrument(skip(context))]
@@ -27,7 +27,7 @@ pub async fn create_post_report(
   data: Json<CreatePostReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PostReportResponse>, LemmyError> {
+) -> LemmyResult<Json<PostReportResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let reason = data.reason.trim().to_string();

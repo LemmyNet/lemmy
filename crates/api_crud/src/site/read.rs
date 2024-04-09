@@ -19,7 +19,7 @@ use lemmy_db_views_actor::structs::{
   PersonView,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   CACHE_DURATION_API,
   VERSION,
 };
@@ -30,7 +30,7 @@ use once_cell::sync::Lazy;
 pub async fn get_site(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
-) -> Result<Json<GetSiteResponse>, LemmyError> {
+) -> LemmyResult<Json<GetSiteResponse>> {
   static CACHE: Lazy<Cache<(), GetSiteResponse>> = Lazy::new(|| {
     Cache::builder()
       .max_capacity(1)

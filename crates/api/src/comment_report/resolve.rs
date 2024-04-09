@@ -6,7 +6,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
 use lemmy_db_views::structs::{CommentReportView, LocalUserView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 /// Resolves or unresolves a comment report and notifies the moderators of the community
 #[tracing::instrument(skip(context))]
@@ -14,7 +14,7 @@ pub async fn resolve_comment_report(
   data: Json<ResolveCommentReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommentReportResponse>, LemmyError> {
+) -> LemmyResult<Json<CommentReportResponse>> {
   let report_id = data.report_id;
   let person_id = local_user_view.person.id;
   let report = CommentReportView::read(&mut context.pool(), report_id, person_id).await?;

@@ -25,7 +25,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use url::Url;
 
 #[async_trait::async_trait]
@@ -48,7 +48,7 @@ impl ActivityHandler for UndoDelete {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     if self.object.summary.is_some() {
       UndoDelete::receive_undo_remove_action(
@@ -72,7 +72,7 @@ impl UndoDelete {
     community: Option<&Community>,
     summary: Option<String>,
     context: &Data<LemmyContext>,
-  ) -> Result<UndoDelete, LemmyError> {
+  ) -> LemmyResult<UndoDelete> {
     let object = Delete::new(actor, object, to.clone(), community, summary, context)?;
 
     let id = generate_activity_id(
@@ -96,7 +96,7 @@ impl UndoDelete {
     actor: &ApubPerson,
     object: &Url,
     context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     match DeletableObjects::read_from_db(object, context).await? {
       DeletableObjects::Community(community) => {
         if community.local {

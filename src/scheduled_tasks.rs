@@ -29,13 +29,13 @@ use lemmy_db_schema::{
   utils::{get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::NodeInfo;
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
 use tracing::{error, info, warn};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
-pub async fn setup(context: LemmyContext) -> Result<(), LemmyError> {
+pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
   // Setup the connections
   let mut scheduler = AsyncScheduler::new();
   startup_jobs(&mut context.pool()).await;

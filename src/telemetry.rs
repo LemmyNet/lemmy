@@ -8,11 +8,7 @@ use opentelemetry_otlp::WithExportConfig;
 use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, registry::LookupSpan, Layer};
 
-pub fn init_tracing<S>(
-  opentelemetry_url: &str,
-  subscriber: S,
-  targets: Targets,
-) -> Result<(), LemmyError>
+pub fn init_tracing<S>(opentelemetry_url: &str, subscriber: S, targets: Targets) -> LemmyResult<()>
 where
   S: Subscriber + for<'a> LookupSpan<'a> + Send + Sync + 'static,
 {
