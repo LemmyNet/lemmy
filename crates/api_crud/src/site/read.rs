@@ -20,7 +20,7 @@ use lemmy_db_views_actor::structs::{
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  CACHE_DURATION_SHORT,
+  CACHE_DURATION_API,
   VERSION,
 };
 use moka::future::Cache;
@@ -34,7 +34,7 @@ pub async fn get_site(
   static CACHE: Lazy<Cache<(), GetSiteResponse>> = Lazy::new(|| {
     Cache::builder()
       .max_capacity(1)
-      .time_to_live(CACHE_DURATION_SHORT)
+      .time_to_live(CACHE_DURATION_API)
       .build()
   });
 
