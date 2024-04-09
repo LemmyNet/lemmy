@@ -138,9 +138,8 @@ pub async fn create_comment(
   let mentions = scrape_text_for_mentions(&content);
   let recipient_ids = send_local_notifs(
     mentions,
-    &updated_comment,
+    inserted_comment_id,
     &local_user_view.person,
-    &post,
     true,
     &context,
   )

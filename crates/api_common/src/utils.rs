@@ -42,7 +42,7 @@ use lemmy_utils::{
     markdown::{markdown_check_for_blocked_urls, markdown_rewrite_image_links},
     slurs::{build_slur_regex, remove_slurs},
   },
-  CACHE_DURATION_SHORT,
+  CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
 use once_cell::sync::Lazy;
@@ -295,12 +295,12 @@ async fn check_instance_block(
 pub async fn check_person_instance_community_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
-  instance_id: InstanceId,
+  community_instance_id: InstanceId,
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
 ) -> Result<(), LemmyError> {
   check_person_block(my_id, potential_blocker_id, pool).await?;
-  check_instance_block(instance_id, potential_blocker_id, pool).await?;
+  check_instance_block(community_instance_id, potential_blocker_id, pool).await?;
   check_community_block(community_id, potential_blocker_id, pool).await?;
   Ok(())
 }
@@ -524,7 +524,7 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
   static URL_BLOCKLIST: Lazy<Cache<(), RegexSet>> = Lazy::new(|| {
     Cache::builder()
       .max_capacity(1)
-      .time_to_live(CACHE_DURATION_SHORT)
+      .time_to_live(CACHE_DURATION_FEDERATION)
       .build()
   });
 

@@ -12,7 +12,6 @@ use lemmy_db_schema::{
     comment::{Comment, CommentUpdateForm},
     comment_report::CommentReport,
     moderator::{ModRemoveComment, ModRemoveCommentForm},
-    post::Post,
   },
   traits::{Crud, Reportable},
 };
@@ -61,13 +60,10 @@ pub async fn remove_comment(
   };
   ModRemoveComment::create(&mut context.pool(), &form).await?;
 
-  let post_id = updated_comment.post_id;
-  let post = Post::read(&mut context.pool(), post_id).await?;
   let recipient_ids = send_local_notifs(
     vec![],
-    &updated_comment,
+    comment_id,
     &local_user_view.person.clone(),
-    &post,
     false,
     &context,
   )
