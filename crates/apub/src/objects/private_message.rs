@@ -121,6 +121,11 @@ impl Object for ApubPrivateMessage {
     note: ChatMessage,
     context: &Data<Self::DataType>,
   ) -> Result<ApubPrivateMessage, LemmyError> {
+    // Dont allow overwriting local object
+    if note.id.inner().domain() == Some(context.domain()) {
+      return note.id.dereference_local(context).await;
+    }
+
     let creator = note.attributed_to.dereference(context).await?;
     let recipient = note.to[0].dereference(context).await?;
     check_person_block(creator.id, recipient.id, &mut context.pool()).await?;

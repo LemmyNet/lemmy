@@ -138,6 +138,10 @@ impl Object for ApubSite {
 
   #[tracing::instrument(skip_all)]
   async fn from_json(apub: Self::Kind, context: &Data<Self::DataType>) -> Result<Self, LemmyError> {
+    // Dont allow overwriting local object
+    if apub.id.inner().domain() == Some(context.domain()) {
+      return apub.id.dereference_local(context).await;
+    }
     let domain = apub.id.inner().domain().expect("group id has domain");
     let instance = DbInstance::read_or_create(&mut context.pool(), domain.to_string()).await?;
 

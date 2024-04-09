@@ -138,6 +138,11 @@ impl Object for ApubCommunity {
     group: Group,
     context: &Data<Self::DataType>,
   ) -> Result<ApubCommunity, LemmyError> {
+    // Dont allow overwriting local object
+    if group.id.inner().domain() == Some(context.domain()) {
+      return group.id.dereference_local(context).await;
+    }
+
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
