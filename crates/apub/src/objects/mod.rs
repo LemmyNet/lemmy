@@ -3,11 +3,13 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   protocol::values::MediaTypeMarkdownOrHtml,
+  traits::Object,
 };
 use anyhow::anyhow;
 use html2md::parse_html;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::LemmyError;
+use serde::Deserialize;
 use std::fmt::Debug;
 
 pub mod comment;
@@ -53,8 +55,8 @@ pub(crate) fn verify_is_remote_object<T>(
   context: &Data<LemmyContext>,
 ) -> Result<(), LemmyError>
 where
-  T: activitypub_federation::traits::Object<DataType = LemmyContext> + Debug + Send + 'static,
-  for<'de2> <T as activitypub_federation::traits::Object>::Kind: serde::Deserialize<'de2>,
+  T: Object<DataType = LemmyContext> + Debug + Send + 'static,
+  for<'de2> <T as Object>::Kind: Deserialize<'de2>,
 {
   if !id.is_local(context) {
     Err(anyhow!("cant accept local object from remote instance").into())
