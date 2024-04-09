@@ -11,7 +11,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
-  CACHE_DURATION_SHORT,
+  CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
 use once_cell::sync::Lazy;
@@ -127,7 +127,7 @@ pub(crate) async fn local_site_data_cached(
   static CACHE: Lazy<Cache<(), Arc<LocalSiteData>>> = Lazy::new(|| {
     Cache::builder()
       .max_capacity(1)
-      .time_to_live(CACHE_DURATION_SHORT)
+      .time_to_live(CACHE_DURATION_FEDERATION)
       .build()
   });
   Ok(
