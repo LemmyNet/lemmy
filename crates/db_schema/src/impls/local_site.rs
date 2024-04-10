@@ -5,7 +5,7 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error};
 use diesel_async::RunQueryDsl;
-use lemmy_utils::{error::LemmyError, CACHE_DURATION_SHORT};
+use lemmy_utils::{error::LemmyError, CACHE_DURATION_API};
 use moka::future::Cache;
 use once_cell::sync::Lazy;
 
@@ -21,7 +21,7 @@ impl LocalSite {
     static CACHE: Lazy<Cache<(), LocalSite>> = Lazy::new(|| {
       Cache::builder()
         .max_capacity(1)
-        .time_to_live(CACHE_DURATION_SHORT)
+        .time_to_live(CACHE_DURATION_API)
         .build()
     });
     Ok(

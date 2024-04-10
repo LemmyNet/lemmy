@@ -159,8 +159,6 @@ impl ActivityHandler for CreateOrUpdateNote {
     CommentAggregates::update_hot_rank(&mut context.pool(), comment.id).await?;
 
     let do_send_email = self.kind == CreateOrUpdateType::Create;
-    let post_id = comment.post_id;
-    let post = Post::read(&mut context.pool(), post_id).await?;
     let actor = self.actor.dereference(context).await?;
 
     // Note:
@@ -169,7 +167,7 @@ impl ActivityHandler for CreateOrUpdateNote {
     // anyway.
     // TODO: for compatibility with other projects, it would be much better to read this from cc or tags
     let mentions = scrape_text_for_mentions(&comment.content);
-    send_local_notifs(mentions, &comment.0, &actor, &post, do_send_email, context).await?;
+    send_local_notifs(mentions, comment.id, &actor, do_send_email, context).await?;
     Ok(())
   }
 }
