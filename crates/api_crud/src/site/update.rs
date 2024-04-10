@@ -32,7 +32,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs_opt,
     validation::{
@@ -51,7 +51,7 @@ pub async fn update_site(
   data: Json<EditSite>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<SiteResponse>, LemmyError> {
+) -> LemmyResult<Json<SiteResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
   let site = site_view.site;

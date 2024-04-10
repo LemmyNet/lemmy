@@ -10,14 +10,14 @@ use lemmy_db_views::structs::{
   PostReportView,
   PrivateMessageReportView,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn report_count(
   data: Query<GetReportCount>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<GetReportCountResponse>, LemmyError> {
+) -> LemmyResult<Json<GetReportCountResponse>> {
   let person_id = local_user_view.person.id;
   let admin = local_user_view.local_user.admin;
   let community_id = data.community_id;

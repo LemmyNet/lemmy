@@ -23,7 +23,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::FETCH_LIMIT_MAX,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -37,10 +37,7 @@ impl Collection for ApubCommunityOutbox {
   type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
-  async fn read_local(
-    owner: &Self::Owner,
-    data: &Data<Self::DataType>,
-  ) -> Result<Self::Kind, LemmyError> {
+  async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     let post_list: Vec<ApubPost> = Post::list_for_community(&mut data.pool(), owner.id)
       .await?
       .into_iter()
@@ -71,7 +68,7 @@ impl Collection for ApubCommunityOutbox {
     group_outbox: &GroupOutbox,
     expected_domain: &Url,
     _data: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     verify_domains_match(expected_domain, &group_outbox.id)?;
     Ok(())
   }
@@ -81,7 +78,7 @@ impl Collection for ApubCommunityOutbox {
     apub: Self::Kind,
     _owner: &Self::Owner,
     data: &Data<Self::DataType>,
-  ) -> Result<Self, LemmyError> {
+  ) -> LemmyResult<Self> {
     let mut outbox_activities = apub.ordered_items;
     if outbox_activities.len() as i64 > FETCH_LIMIT_MAX {
       outbox_activities = outbox_activities

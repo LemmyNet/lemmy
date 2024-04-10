@@ -14,7 +14,7 @@ use activitypub_federation::{
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_db_schema::{source::person::Person, traits::ApubActor};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -27,7 +27,7 @@ pub struct PersonQuery {
 pub(crate) async fn get_apub_person_http(
   info: web::Path<PersonQuery>,
   context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> LemmyResult<HttpResponse> {
   let user_name = info.into_inner().user_name;
   // TODO: this needs to be able to read deleted persons, so that it can send tombstones
   let person: ApubPerson = Person::read_from_name(&mut context.pool(), &user_name, true)
@@ -48,7 +48,7 @@ pub async fn person_inbox(
   request: HttpRequest,
   body: Bytes,
   data: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> LemmyResult<HttpResponse> {
   receive_activity::<WithContext<PersonInboxActivities>, UserOrCommunity, LemmyContext>(
     request, body, &data,
   )
@@ -59,7 +59,7 @@ pub async fn person_inbox(
 pub(crate) async fn get_apub_person_outbox(
   info: web::Path<PersonQuery>,
   context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> LemmyResult<HttpResponse> {
   let person = Person::read_from_name(&mut context.pool(), &info.user_name, false).await?;
   let outbox_id = generate_outbox_url(&person.actor_id)?.into();
   let outbox = EmptyOutbox::new(outbox_id)?;

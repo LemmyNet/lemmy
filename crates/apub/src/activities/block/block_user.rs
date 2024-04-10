@@ -39,7 +39,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl BlockUser {
@@ -51,7 +51,7 @@ impl BlockUser {
     reason: Option<String>,
     expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
-  ) -> Result<BlockUser, LemmyError> {
+  ) -> LemmyResult<BlockUser> {
     let audience = if let SiteOrCommunity::Community(c) = target {
       Some(c.id().into())
     } else {
@@ -85,7 +85,7 @@ impl BlockUser {
     reason: Option<String>,
     expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     let block = BlockUser::new(
       target,
       user,
@@ -125,7 +125,7 @@ impl ActivityHandler for BlockUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     verify_is_public(&self.to, &self.cc)?;
     match self.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
@@ -148,7 +148,7 @@ impl ActivityHandler for BlockUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let expires = self.expires.or(self.end_time).map(Into::into);
     let mod_person = self.actor.dereference(context).await?;

@@ -13,13 +13,13 @@ use lemmy_db_schema::{
   utils::diesel_option_overwrite,
 };
 use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 pub async fn approve_registration_application(
   data: Json<ApproveRegistrationApplication>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<RegistrationApplicationResponse>, LemmyError> {
+) -> LemmyResult<Json<RegistrationApplicationResponse>> {
   let app_id = data.id;
 
   // Only let admins do this
