@@ -31,7 +31,7 @@ use diesel_migrations::EmbeddedMigrations;
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
 };
 use once_cell::sync::Lazy;
@@ -292,9 +292,7 @@ pub fn diesel_option_overwrite(opt: Option<String>) -> Option<Option<String>> {
   }
 }
 
-pub fn diesel_option_overwrite_to_url(
-  opt: &Option<String>,
-) -> Result<Option<Option<DbUrl>>, LemmyError> {
+pub fn diesel_option_overwrite_to_url(opt: &Option<String>) -> LemmyResult<Option<Option<DbUrl>>> {
   match opt.as_ref().map(String::as_str) {
     // An empty string is an erase
     Some("") => Ok(Some(None)),
@@ -305,9 +303,7 @@ pub fn diesel_option_overwrite_to_url(
   }
 }
 
-pub fn diesel_option_overwrite_to_url_create(
-  opt: &Option<String>,
-) -> Result<Option<DbUrl>, LemmyError> {
+pub fn diesel_option_overwrite_to_url_create(opt: &Option<String>) -> LemmyResult<Option<DbUrl>> {
   match opt.as_ref().map(String::as_str) {
     // An empty string is nothing
     Some("") => Ok(None),
@@ -365,7 +361,7 @@ impl ServerCertVerifier for NoCertVerifier {
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
-fn run_migrations(db_url: &str) -> Result<(), LemmyError> {
+fn run_migrations(db_url: &str) -> LemmyResult<()> {
   // Needs to be a sync connection
   let mut conn = PgConnection::establish(db_url).with_context(|| "Error connecting to database")?;
 
@@ -378,7 +374,7 @@ fn run_migrations(db_url: &str) -> Result<(), LemmyError> {
   Ok(())
 }
 
-pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
+pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let db_url = SETTINGS.get_database_url();
   // We only support TLS with sslmode=require currently
   let tls_enabled = db_url.contains("sslmode=require");

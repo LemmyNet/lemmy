@@ -31,7 +31,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Joinable},
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CollectionRemove {
@@ -41,7 +41,7 @@ impl CollectionRemove {
     removed_mod: &ApubPerson,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     let id = generate_activity_id(
       RemoveType::Remove,
       &context.settings().get_protocol_and_hostname(),
@@ -67,7 +67,7 @@ impl CollectionRemove {
     featured_post: &ApubPost,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     let id = generate_activity_id(
       RemoveType::Remove,
       &context.settings().get_protocol_and_hostname(),
@@ -109,7 +109,7 @@ impl ActivityHandler for CollectionRemove {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
@@ -118,7 +118,7 @@ impl ActivityHandler for CollectionRemove {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =
       Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;

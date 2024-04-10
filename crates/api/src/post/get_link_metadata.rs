@@ -4,13 +4,13 @@ use lemmy_api_common::{
   post::{GetSiteMetadata, GetSiteMetadataResponse},
   request::fetch_link_metadata,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_link_metadata(
   data: Query<GetSiteMetadata>,
   context: Data<LemmyContext>,
-) -> Result<Json<GetSiteMetadataResponse>, LemmyError> {
+) -> LemmyResult<Json<GetSiteMetadataResponse>> {
   let metadata = fetch_link_metadata(&data.url, false, &context).await?;
 
   Ok(Json(GetSiteMetadataResponse { metadata }))

@@ -9,14 +9,14 @@ use lemmy_db_schema::{
   traits::Saveable,
 };
 use lemmy_db_views::structs::{LocalUserView, PostView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn save_post(
   data: Json<SavePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PostResponse>, LemmyError> {
+) -> LemmyResult<Json<PostResponse>> {
   let post_saved_form = PostSavedForm {
     post_id: data.post_id,
     person_id: local_user_view.person.id,

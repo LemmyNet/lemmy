@@ -14,14 +14,14 @@ use lemmy_db_views::{
   structs::{LocalUserView, PostView, SiteView},
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn get_post(
   data: Query<GetPost>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> Result<Json<GetPostResponse>, LemmyError> {
+) -> LemmyResult<Json<GetPostResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site.local_site)?;

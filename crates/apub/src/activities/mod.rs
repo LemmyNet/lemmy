@@ -61,7 +61,7 @@ pub mod voting;
 async fn verify_person(
   person_id: &ObjectId<ApubPerson>,
   context: &Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
   if person.banned {
     Err(anyhow!("Person {} is banned", person_id))
@@ -78,7 +78,7 @@ pub(crate) async fn verify_person_in_community(
   person_id: &ObjectId<ApubPerson>,
   community: &ApubCommunity,
   context: &Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
   if person.banned {
     Err(LemmyErrorType::PersonIsBannedFromSite(
@@ -105,7 +105,7 @@ pub(crate) async fn verify_mod_action(
   mod_id: &ObjectId<ApubPerson>,
   community: &Community,
   context: &Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let mod_ = mod_id.dereference(context).await?;
 
   let is_mod_or_admin =
@@ -124,7 +124,7 @@ pub(crate) async fn verify_mod_action(
   Err(LemmyErrorType::NotAModerator)?
 }
 
-pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError> {
+pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
     Err(LemmyErrorType::ObjectIsNotPublic)?
   } else {
@@ -132,10 +132,7 @@ pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> Result<(), LemmyError>
   }
 }
 
-pub(crate) fn verify_community_matches<T>(
-  a: &ObjectId<ApubCommunity>,
-  b: T,
-) -> Result<(), LemmyError>
+pub(crate) fn verify_community_matches<T>(a: &ObjectId<ApubCommunity>, b: T) -> LemmyResult<()>
 where
   T: Into<ObjectId<ApubCommunity>>,
 {
@@ -147,7 +144,7 @@ where
   }
 }
 
-pub(crate) fn check_community_deleted_or_removed(community: &Community) -> Result<(), LemmyError> {
+pub(crate) fn check_community_deleted_or_removed(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
     Err(LemmyErrorType::CannotCreatePostOrCommentInDeletedOrRemovedCommunity)?
   } else {
@@ -196,7 +193,7 @@ async fn send_lemmy_activity<Activity, ActorT>(
   actor: &ActorT,
   send_targets: ActivitySendTargets,
   sensitive: bool,
-) -> Result<(), LemmyError>
+) -> LemmyResult<()>
 where
   Activity: ActivityHandler + Serialize + Send + Sync + Clone,
   ActorT: Actor + GetActorType,

@@ -33,7 +33,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs,
     validation::{is_valid_actor_name, is_valid_body_field},
@@ -45,7 +45,7 @@ pub async fn create_community(
   data: Json<CreateCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommunityResponse>, LemmyError> {
+) -> LemmyResult<Json<CommunityResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
 

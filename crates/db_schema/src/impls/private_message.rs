@@ -9,7 +9,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 use url::Url;
 
 #[async_trait]
@@ -74,7 +74,7 @@ impl PrivateMessage {
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: Url,
-  ) -> Result<Option<Self>, LemmyError> {
+  ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     Ok(

@@ -32,7 +32,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   spawn_try_task,
   utils::{
     slurs::check_slurs,
@@ -55,7 +55,7 @@ pub async fn create_post(
   data: Json<CreatePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PostResponse>, LemmyError> {
+) -> LemmyResult<Json<PostResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   honeypot_check(&data.honeypot)?;

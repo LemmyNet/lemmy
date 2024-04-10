@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorType, LemmyResult},
   settings::structs::{PictrsImageMode, Settings},
   spawn_try_task,
   REQWEST_TIMEOUT,
@@ -46,7 +46,7 @@ pub async fn fetch_link_metadata(
   url: &Url,
   generate_thumbnail: bool,
   context: &LemmyContext,
-) -> Result<LinkMetadata, LemmyError> {
+) -> LemmyResult<LinkMetadata> {
   info!("Fetching site metadata for url: {}", url);
   let response = context.client().get(url.as_str()).send().await?;
 
@@ -132,7 +132,7 @@ pub fn generate_post_link_metadata(
 }
 
 /// Extract site metadata from HTML Opengraph attributes.
-fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> Result<OpenGraphData, LemmyError> {
+fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraphData> {
   let html = String::from_utf8_lossy(html_bytes);
 
   // Make sure the first line is doctype html
@@ -240,10 +240,7 @@ struct PictrsPurgeResponse {
 /// - It might fail due to image being not local
 /// - It might not be an image
 /// - Pictrs might not be set up
-pub async fn purge_image_from_pictrs(
-  image_url: &Url,
-  context: &LemmyContext,
-) -> Result<(), LemmyError> {
+pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) -> LemmyResult<()> {
   is_image_content_type(context.client(), image_url).await?;
 
   let alias = image_url
@@ -278,7 +275,7 @@ pub async fn delete_image_from_pictrs(
   alias: &str,
   delete_token: &str,
   context: &LemmyContext,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let pictrs_config = context.settings().pictrs_config()?;
   let url = format!(
     "{}image/delete/{}/{}",
@@ -296,10 +293,7 @@ pub async fn delete_image_from_pictrs(
 
 /// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
 #[tracing::instrument(skip_all)]
-async fn generate_pictrs_thumbnail(
-  image_url: &Url,
-  context: &LemmyContext,
-) -> Result<Url, LemmyError> {
+async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> LemmyResult<Url> {
   let pictrs_config = context.settings().pictrs_config()?;
 
   match pictrs_config.image_mode() {
@@ -349,7 +343,7 @@ async fn generate_pictrs_thumbnail(
 
 // TODO: get rid of this by reading content type from db
 #[tracing::instrument(skip_all)]
-async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
+async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> LemmyResult<()> {
   let response = client.get(url.as_str()).send().await?;
   if response
     .headers()
@@ -369,7 +363,7 @@ pub async fn replace_image(
   new_image: &Option<String>,
   old_image: &Option<DbUrl>,
   context: &Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   if new_image.is_some() {
     // Ignore errors because image may be stored externally.
     if let Some(avatar) = &old_image {

@@ -18,7 +18,7 @@ use lemmy_db_schema::{
   source::{activity::SentActivity, community::Community},
   CommunityVisibility,
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use url::Url;
@@ -88,7 +88,7 @@ pub struct ActivityQuery {
 pub(crate) async fn get_activity(
   info: web::Path<ActivityQuery>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> LemmyResult<HttpResponse> {
   let settings = context.settings();
   let activity_id = Url::parse(&format!(
     "{}/activities/{}/{}",

@@ -9,14 +9,14 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn block_person(
   data: Json<BlockPerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<BlockPersonResponse>, LemmyError> {
+) -> LemmyResult<Json<BlockPersonResponse>> {
   let target_id = data.person_id;
   let person_id = local_user_view.person.id;
 

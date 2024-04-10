@@ -26,7 +26,7 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
@@ -62,7 +62,7 @@ impl Object for ApubPrivateMessage {
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
-  ) -> Result<Option<Self>, LemmyError> {
+  ) -> LemmyResult<Option<Self>> {
     Ok(
       PrivateMessage::read_from_apub_id(&mut context.pool(), object_id)
         .await?
@@ -70,13 +70,13 @@ impl Object for ApubPrivateMessage {
     )
   }
 
-  async fn delete(self, _context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     // do nothing, because pm can't be fetched over http
     unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_json(self, context: &Data<Self::DataType>) -> Result<ChatMessage, LemmyError> {
+  async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<ChatMessage> {
     let creator_id = self.creator_id;
     let creator = Person::read(&mut context.pool(), creator_id).await?;
 
@@ -102,7 +102,7 @@ impl Object for ApubPrivateMessage {
     note: &ChatMessage,
     expected_domain: &Url,
     context: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
 
@@ -121,7 +121,7 @@ impl Object for ApubPrivateMessage {
   async fn from_json(
     note: ChatMessage,
     context: &Data<Self::DataType>,
-  ) -> Result<ApubPrivateMessage, LemmyError> {
+  ) -> LemmyResult<ApubPrivateMessage> {
     let creator = note.attributed_to.dereference(context).await?;
     let recipient = note.to[0].dereference(context).await?;
     check_person_block(creator.id, recipient.id, &mut context.pool()).await?;
@@ -161,7 +161,6 @@ mod tests {
   };
   use assert_json_diff::assert_json_include;
   use lemmy_db_schema::source::site::Site;
-  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

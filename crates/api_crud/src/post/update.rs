@@ -25,7 +25,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs_opt,
     validation::{
@@ -45,7 +45,7 @@ pub async fn update_post(
   data: Json<EditPost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PostResponse>, LemmyError> {
+) -> LemmyResult<Json<PostResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   // TODO No good way to handle a clear.

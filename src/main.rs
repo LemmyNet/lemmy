@@ -1,9 +1,9 @@
 use clap::Parser;
 use lemmy_server::{init_logging, start_lemmy_server, CmdArgs};
-use lemmy_utils::{error::LemmyError, settings::SETTINGS};
+use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 
 #[tokio::main]
-pub async fn main() -> Result<(), LemmyError> {
+pub async fn main() -> LemmyResult<()> {
   init_logging(&SETTINGS.opentelemetry_url)?;
   let args = CmdArgs::parse();
 

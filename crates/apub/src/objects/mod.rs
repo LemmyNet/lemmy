@@ -2,7 +2,7 @@ use crate::protocol::Source;
 use activitypub_federation::protocol::values::MediaTypeMarkdownOrHtml;
 use anyhow::anyhow;
 use html2md::parse_html;
-use lemmy_utils::{error::LemmyError, settings::structs::Settings};
+use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
 use url::Url;
 
 pub mod comment;
@@ -43,7 +43,7 @@ pub(crate) fn read_from_string_or_source_opt(
 /// wrapped in Announce. If we simply receive this like any other federated object, overwrite the
 /// existing, local Post. In particular, it will set the field local = false, so that the object
 /// can't be fetched from the Activitypub HTTP endpoint anymore (which only serves local objects).
-pub(crate) fn verify_is_remote_object(id: &Url, settings: &Settings) -> Result<(), LemmyError> {
+pub(crate) fn verify_is_remote_object(id: &Url, settings: &Settings) -> LemmyResult<()> {
   let local_domain = settings.get_hostname_without_port()?;
   if id.domain() == Some(&local_domain) {
     Err(anyhow!("cant accept local object from remote instance").into())
