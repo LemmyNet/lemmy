@@ -23,6 +23,7 @@ use lemmy_db_schema::{
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
   traits::Crud,
+  utils::naive_now,
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
@@ -142,7 +143,8 @@ impl Object for ApubPrivateMessage {
       ap_id: Some(note.id.into()),
       local: Some(false),
     };
-    let pm = PrivateMessage::create(&mut context.pool(), &form).await?;
+    let timestamp = note.updated.or(note.published).unwrap_or_else(naive_now);
+    let pm = PrivateMessage::insert_apub(&mut context.pool(), timestamp, &form).await?;
     Ok(pm.into())
   }
 }

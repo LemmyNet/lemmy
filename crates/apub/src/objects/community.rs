@@ -175,7 +175,8 @@ impl Object for ApubCommunity {
     let languages =
       LanguageTag::to_language_id_multiple(group.language, &mut context.pool()).await?;
 
-    let community = Community::create(&mut context.pool(), &form).await?;
+    let timestamp = group.updated.or(group.published).unwrap_or_else(naive_now);
+    let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
     let community: ApubCommunity = community.into();

@@ -29,6 +29,7 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::Crud,
+  utils::naive_now,
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType},
@@ -141,6 +142,7 @@ impl Object for ApubComment {
     check_apub_id_valid_with_strictness(note.id.inner(), community.local, context).await?;
     verify_is_remote_object(note.id.inner(), context.settings())?;
     verify_person_in_community(&note.attributed_to, &community, context).await?;
+
     let (post, _) = note.get_parents(context).await?;
     let creator = note.attributed_to.dereference(context).await?;
     let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &creator, community.id)
@@ -184,7 +186,14 @@ impl Object for ApubComment {
       language_id,
     };
     let parent_comment_path = parent_comment.map(|t| t.0.path);
-    let comment = Comment::create(&mut context.pool(), &form, parent_comment_path.as_ref()).await?;
+    let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(naive_now);
+    let comment = Comment::insert_apub(
+      &mut context.pool(),
+      Some(timestamp),
+      &form,
+      parent_comment_path.as_ref(),
+    )
+    .await?;
     Ok(comment.into())
   }
 }

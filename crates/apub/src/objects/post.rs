@@ -41,6 +41,7 @@ use lemmy_db_schema::{
     post::{Post, PostInsertForm, PostUpdateForm},
   },
   traits::Crud,
+  utils::naive_now,
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
@@ -270,7 +271,8 @@ impl Object for ApubPost {
         .build()
     };
 
-    let post = Post::create(&mut context.pool(), &form).await?;
+    let timestamp = page.updated.or(page.published).unwrap_or_else(naive_now);
+    let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
 
     generate_post_link_metadata(
       post.clone(),

@@ -1,10 +1,12 @@
 use crate::{
+  diesel::DecoratableTarget,
   newtypes::{DbUrl, PersonId, PrivateMessageId},
-  schema::private_message::dsl::{ap_id, private_message, read, recipient_id},
+  schema::private_message,
   source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
   traits::Crud,
-  utils::{get_conn, DbPool},
+  utils::{functions::coalesce, get_conn, DbPool},
 };
+use chrono::{DateTime, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_utils::error::LemmyError;
@@ -18,11 +20,8 @@ impl Crud for PrivateMessage {
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(private_message)
+    insert_into(private_message::table)
       .values(form)
-      .on_conflict(ap_id)
-      .do_update()
-      .set(form)
       .get_result::<Self>(conn)
       .await
   }
@@ -33,7 +32,7 @@ impl Crud for PrivateMessage {
     form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(private_message.find(private_message_id))
+    diesel::update(private_message::table.find(private_message_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -41,17 +40,33 @@ impl Crud for PrivateMessage {
 }
 
 impl PrivateMessage {
+  pub async fn insert_apub(
+    pool: &mut DbPool<'_>,
+    timestamp: DateTime<Utc>,
+    form: &PrivateMessageInsertForm,
+  ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(private_message::table)
+      .values(form)
+      .on_conflict(private_message::ap_id)
+      .filter_target(coalesce(private_message::updated, private_message::published).lt(timestamp))
+      .do_update()
+      .set(form)
+      .get_result::<Self>(conn)
+      .await
+  }
+
   pub async fn mark_all_as_read(
     pool: &mut DbPool<'_>,
     for_recipient_id: PersonId,
   ) -> Result<Vec<PrivateMessage>, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(
-      private_message
-        .filter(recipient_id.eq(for_recipient_id))
-        .filter(read.eq(false)),
+      private_message::table
+        .filter(private_message::recipient_id.eq(for_recipient_id))
+        .filter(private_message::read.eq(false)),
     )
-    .set(read.eq(true))
+    .set(private_message::read.eq(true))
     .get_results::<Self>(conn)
     .await
   }
@@ -63,8 +78,8 @@ impl PrivateMessage {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
     Ok(
-      private_message
-        .filter(ap_id.eq(object_id))
+      private_message::table
+        .filter(private_message::ap_id.eq(object_id))
         .first::<PrivateMessage>(conn)
         .await
         .ok()
