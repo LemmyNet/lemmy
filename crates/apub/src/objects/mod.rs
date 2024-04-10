@@ -58,7 +58,7 @@ where
   T: Object<DataType = LemmyContext> + Debug + Send + 'static,
   for<'de2> <T as Object>::Kind: Deserialize<'de2>,
 {
-  if !id.is_local(context) {
+  if id.is_local(context) {
     Err(anyhow!("cant accept local object from remote instance").into())
   } else {
     Ok(())
