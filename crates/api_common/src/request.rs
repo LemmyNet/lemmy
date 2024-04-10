@@ -113,13 +113,15 @@ pub fn generate_post_link_metadata(
     .await;
 
     // If its an image post, it needs to overwrite the thumbnail, and take precedence
-    let image_url = metadata.content_type.as_ref().and_then(|content_type| {
-      if content_type.starts_with("image") {
-        post.url.map(Into::into)
-      } else {
-        None
-      }
-    });
+    let image_url = if metadata
+      .content_type
+      .as_ref()
+      .is_some_and(|content_type| content_type.starts_with("image"))
+    {
+      post.url.map(Into::into)
+    } else {
+      None
+    };
 
     // Build the thumbnail url based on either the post image url, custom thumbnail, metadata fetch, or existing thumbnail.
     let thumbnail_url = image_url

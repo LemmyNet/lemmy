@@ -35,9 +35,7 @@ const downloadFileSync = require("download-file-sync");
 
 beforeAll(setupLogins);
 
-afterAll(async () => {
-  await unfollows();
-});
+afterAll(unfollows);
 
 test("Upload image and delete it", async () => {
   // Before running this test, you need to delete all previous images in the DB
