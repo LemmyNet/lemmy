@@ -51,9 +51,7 @@ beforeAll(async () => {
   await unfollows();
 });
 
-afterAll(() => {
-  unfollows();
-});
+afterAll(unfollows);
 
 async function assertPostFederation(postOne: PostView, postTwo: PostView) {
   // Link metadata is generated in background task and may not be ready yet at this time,

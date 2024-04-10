@@ -97,29 +97,46 @@ pub fn generate_post_link_metadata(
   context: Data<LemmyContext>,
 ) {
   spawn_try_task(async move {
+    // Decide if the thumbnail should be generated
     let allow_sensitive = local_site_opt_to_sensitive(&local_site);
     let page_is_sensitive = post.nsfw;
     let allow_generate_thumbnail = allow_sensitive || !page_is_sensitive;
-    let mut thumbnail_url = custom_thumbnail.or_else(|| post.thumbnail_url.map(Into::into));
-    let do_generate_thumbnail = thumbnail_url.is_none() && allow_generate_thumbnail;
+    let do_generate_thumbnail =
+      allow_generate_thumbnail && custom_thumbnail.is_none() && post.thumbnail_url.is_none();
 
     // Generate local thumbnail only if no thumbnail was federated and 'sensitive' attributes allow it.
     let metadata = fetch_link_metadata_opt(
-      post.url.map(Into::into).as_ref(),
+      post.url.as_ref().map(DbUrl::inner),
       do_generate_thumbnail,
       &context,
     )
     .await;
-    if let Some(thumbnail_url_) = metadata.thumbnail {
-      thumbnail_url = Some(thumbnail_url_.into());
-    }
-    let thumbnail_url = proxy_image_link_opt_apub(thumbnail_url, &context).await?;
+
+    // If its an image post, it needs to overwrite the thumbnail, and take precedence
+    let image_url = if metadata
+      .content_type
+      .as_ref()
+      .is_some_and(|content_type| content_type.starts_with("image"))
+    {
+      post.url.map(Into::into)
+    } else {
+      None
+    };
+
+    // Build the thumbnail url based on either the post image url, custom thumbnail, metadata fetch, or existing thumbnail.
+    let thumbnail_url = image_url
+      .or(custom_thumbnail)
+      .or(metadata.thumbnail.map(Into::into))
+      .or(post.thumbnail_url.map(Into::into));
+
+    // Proxy the image fetch if necessary
+    let proxied_thumbnail_url = proxy_image_link_opt_apub(thumbnail_url, &context).await?;
 
     let form = PostUpdateForm {
       embed_title: Some(metadata.opengraph_data.title),
       embed_description: Some(metadata.opengraph_data.description),
       embed_video_url: Some(metadata.opengraph_data.embed_video_url),
-      thumbnail_url: Some(thumbnail_url),
+      thumbnail_url: Some(proxied_thumbnail_url),
       url_content_type: Some(metadata.content_type),
       ..Default::default()
     };
