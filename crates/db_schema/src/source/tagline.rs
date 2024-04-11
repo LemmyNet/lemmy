@@ -24,13 +24,13 @@ pub struct Tagline {
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = tagline))]
 pub struct TaglineInsertForm {
-  pub content: String,
+  pub content: Option<String>,
 }
 
 #[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = tagline))]
 pub struct TaglineUpdateForm {
-  pub content: String,
+  pub content: Option<String>,
   pub updated: Option<Option<DateTime<Utc>>>,
 }

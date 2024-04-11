@@ -33,7 +33,7 @@ pub async fn update_tagline(
   is_valid_tagline_content(&content)?;
 
   let tagline_form = TaglineUpdateForm {
-    content,
+    content: Some(content),
     updated: Some(Some(naive_now())),
   };
 

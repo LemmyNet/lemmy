@@ -31,7 +31,9 @@ pub async fn create_tagline(
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_tagline_content(&content)?;
 
-  let tagline_form = TaglineInsertForm { content };
+  let tagline_form = TaglineInsertForm {
+    content: Some(content),
+  };
 
   let tagline = Tagline::create(&mut context.pool(), &tagline_form).await?;
 
