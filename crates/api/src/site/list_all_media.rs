@@ -6,14 +6,14 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::images::LocalImage;
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn list_all_media(
   data: Query<ListMedia>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<ListMediaResponse>, LemmyError> {
+) -> LemmyResult<Json<ListMediaResponse>> {
   // Only let admins view all media
   is_admin(&local_user_view)?;
 

@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   traits::ApubActor,
   CommunityVisibility,
 };
-use lemmy_utils::{cache_header::cache_3days, error::LemmyError};
+use lemmy_utils::{cache_header::cache_3days, error::LemmyResult};
 use serde::Deserialize;
 use std::collections::HashMap;
 use url::Url;
@@ -35,7 +35,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 async fn get_webfinger_response(
   info: Query<Params>,
   context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> LemmyResult<HttpResponse> {
   let name = extract_webfinger_name(&info.resource, &context)?;
 
   let links = if name == context.settings().hostname {

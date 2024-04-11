@@ -20,7 +20,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -160,10 +160,7 @@ impl Page {
   /// it is a mod action and needs to be verified as such.
   ///
   /// Locked needs to be false on a newly created post (verified in [[CreatePost]].
-  pub(crate) async fn is_mod_action(
-    &self,
-    context: &Data<LemmyContext>,
-  ) -> Result<bool, LemmyError> {
+  pub(crate) async fn is_mod_action(&self, context: &Data<LemmyContext>) -> LemmyResult<bool> {
     let old_post = self.id.clone().dereference_local(context).await;
     Ok(Page::is_locked_changed(&old_post, &self.comments_enabled))
   }
@@ -181,7 +178,7 @@ impl Page {
     false
   }
 
-  pub(crate) fn creator(&self) -> Result<ObjectId<ApubPerson>, LemmyError> {
+  pub(crate) fn creator(&self) -> LemmyResult<ObjectId<ApubPerson>> {
     match &self.attributed_to {
       AttributedTo::Lemmy(l) => Ok(l.clone()),
       AttributedTo::Peertube(p) => p
@@ -224,10 +221,10 @@ impl ActivityHandler for Page {
   fn actor(&self) -> &Url {
     unimplemented!()
   }
-  async fn verify(&self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, data: &Data<Self::DataType>) -> LemmyResult<()> {
     ApubPost::verify(self, self.id.inner(), data).await
   }
-  async fn receive(self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, data: &Data<Self::DataType>) -> LemmyResult<()> {
     ApubPost::from_json(self, data).await?;
     Ok(())
   }
@@ -235,7 +232,7 @@ impl ActivityHandler for Page {
 
 #[async_trait::async_trait]
 impl InCommunity for Page {
-  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = match &self.attributed_to {
       AttributedTo::Lemmy(_) => {
         let mut iter = self.to.iter().merge(self.cc.iter());

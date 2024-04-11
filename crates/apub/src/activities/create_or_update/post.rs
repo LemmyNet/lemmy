@@ -33,7 +33,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use url::Url;
 
 impl CreateOrUpdatePage {
@@ -43,7 +43,7 @@ impl CreateOrUpdatePage {
     community: &ApubCommunity,
     kind: CreateOrUpdateType,
     context: &Data<LemmyContext>,
-  ) -> Result<CreateOrUpdatePage, LemmyError> {
+  ) -> LemmyResult<CreateOrUpdatePage> {
     let id = generate_activity_id(
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
@@ -65,7 +65,7 @@ impl CreateOrUpdatePage {
     person_id: PersonId,
     kind: CreateOrUpdateType,
     context: Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     let post = ApubPost(post);
     let community_id = post.community_id;
     let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
@@ -104,7 +104,7 @@ impl ActivityHandler for CreateOrUpdatePage {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
@@ -138,7 +138,7 @@ impl ActivityHandler for CreateOrUpdatePage {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let post = ApubPost::from_json(self.object, context).await?;
 

@@ -29,9 +29,10 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::Crud,
+  utils::naive_now,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
@@ -67,7 +68,7 @@ impl Object for ApubComment {
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
-  ) -> Result<Option<Self>, LemmyError> {
+  ) -> LemmyResult<Option<Self>> {
     Ok(
       Comment::read_from_apub_id(&mut context.pool(), object_id)
         .await?
@@ -76,7 +77,7 @@ impl Object for ApubComment {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     if !self.deleted {
       let form = CommentUpdateForm {
         deleted: Some(true),
@@ -88,7 +89,7 @@ impl Object for ApubComment {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_json(self, context: &Data<Self::DataType>) -> Result<Note, LemmyError> {
+  async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Note> {
     let creator_id = self.creator_id;
     let creator = Person::read(&mut context.pool(), creator_id).await?;
 
@@ -132,7 +133,7 @@ impl Object for ApubComment {
     note: &Note,
     expected_domain: &Url,
     context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
     verify_is_public(&note.to, &note.cc)?;
@@ -141,6 +142,7 @@ impl Object for ApubComment {
     check_apub_id_valid_with_strictness(note.id.inner(), community.local, context).await?;
     verify_is_remote_object(&note.id, context)?;
     verify_person_in_community(&note.attributed_to, &community, context).await?;
+
     let (post, _) = note.get_parents(context).await?;
     let creator = note.attributed_to.dereference(context).await?;
     let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &creator, community.id)
@@ -157,7 +159,7 @@ impl Object for ApubComment {
   ///
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
   #[tracing::instrument(skip_all)]
-  async fn from_json(note: Note, context: &Data<LemmyContext>) -> Result<ApubComment, LemmyError> {
+  async fn from_json(note: Note, context: &Data<LemmyContext>) -> LemmyResult<ApubComment> {
     let creator = note.attributed_to.dereference(context).await?;
     let (post, parent_comment) = note.get_parents(context).await?;
 
@@ -184,7 +186,14 @@ impl Object for ApubComment {
       language_id,
     };
     let parent_comment_path = parent_comment.map(|t| t.0.path);
-    let comment = Comment::create(&mut context.pool(), &form, parent_comment_path.as_ref()).await?;
+    let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(naive_now);
+    let comment = Comment::insert_apub(
+      &mut context.pool(),
+      Some(timestamp),
+      &form,
+      parent_comment_path.as_ref(),
+    )
+    .await?;
     Ok(comment.into())
   }
 }
@@ -204,7 +213,6 @@ pub(crate) mod tests {
   use assert_json_diff::assert_json_include;
   use html2md::parse_html;
   use lemmy_db_schema::source::site::Site;
-  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

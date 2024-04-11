@@ -244,11 +244,11 @@ cfg_if! {
     }
 
     pub trait LemmyErrorExt<T, E: Into<anyhow::Error>> {
-      fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError>;
+      fn with_lemmy_type(self, error_type: LemmyErrorType) -> LemmyResult<T>;
     }
 
     impl<T, E: Into<anyhow::Error>> LemmyErrorExt<T, E> for Result<T, E> {
-      fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError> {
+      fn with_lemmy_type(self, error_type: LemmyErrorType) -> LemmyResult<T> {
         self.map_err(|error| LemmyError {
           error_type,
           inner: error.into(),
@@ -257,12 +257,12 @@ cfg_if! {
       }
     }
     pub trait LemmyErrorExt2<T> {
-      fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError>;
+      fn with_lemmy_type(self, error_type: LemmyErrorType) -> LemmyResult<T>;
       fn into_anyhow(self) -> Result<T, anyhow::Error>;
     }
 
-    impl<T> LemmyErrorExt2<T> for Result<T, LemmyError> {
-      fn with_lemmy_type(self, error_type: LemmyErrorType) -> Result<T, LemmyError> {
+    impl<T> LemmyErrorExt2<T> for LemmyResult<T> {
+      fn with_lemmy_type(self, error_type: LemmyErrorType) -> LemmyResult<T> {
         self.map_err(|mut e| {
           e.error_type = error_type;
           e

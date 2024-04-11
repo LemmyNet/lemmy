@@ -27,8 +27,15 @@ use crate::{
   },
 };
 use ::url::Url;
-use chrono::Utc;
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use chrono::{DateTime, Utc};
+use diesel::{
+  dsl::insert_into,
+  result::Error,
+  DecoratableTarget,
+  ExpressionMethods,
+  QueryDsl,
+  TextExpressionMethods,
+};
 use diesel_async::RunQueryDsl;
 use std::collections::HashSet;
 
@@ -42,9 +49,6 @@ impl Crud for Post {
     let conn = &mut get_conn(pool).await?;
     insert_into(post::table)
       .values(form)
-      .on_conflict(post::ap_id)
-      .do_update()
-      .set(form)
       .get_result::<Self>(conn)
       .await
   }
@@ -63,6 +67,22 @@ impl Crud for Post {
 }
 
 impl Post {
+  pub async fn insert_apub(
+    pool: &mut DbPool<'_>,
+    timestamp: DateTime<Utc>,
+    form: &PostInsertForm,
+  ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(post::table)
+      .values(form)
+      .on_conflict(post::ap_id)
+      .filter_target(coalesce(post::updated, post::published).lt(timestamp))
+      .do_update()
+      .set(form)
+      .get_result::<Self>(conn)
+      .await
+  }
+
   pub async fn list_for_community(
     pool: &mut DbPool<'_>,
     the_community_id: CommunityId,

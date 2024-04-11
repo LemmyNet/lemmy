@@ -14,7 +14,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyErrorType, LemmyResult},
   VERSION,
 };
 
@@ -22,7 +22,7 @@ use lemmy_utils::{
 pub async fn leave_admin(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<GetSiteResponse>, LemmyError> {
+) -> LemmyResult<Json<GetSiteResponse>> {
   is_admin(&local_user_view)?;
 
   // Make sure there isn't just one admin (so if one leaves, there will still be one left)

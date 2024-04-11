@@ -1,4 +1,4 @@
-use crate::{error::LemmyError, location_info};
+use crate::{error::LemmyResult, location_info};
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
 use once_cell::sync::Lazy;
@@ -38,7 +38,7 @@ impl Settings {
   /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
   /// `lemmy_db_schema/src/lib.rs::get_database_url_from_env()`
   /// Warning: Only call this once.
-  pub(crate) fn init() -> Result<Self, LemmyError> {
+  pub(crate) fn init() -> LemmyResult<Self> {
     let config = from_str::<Settings>(&Self::read_config_file()?)?;
     if config.hostname == "unset" {
       Err(anyhow!("Hostname variable is not set!").into())
@@ -108,7 +108,7 @@ impl Settings {
     WEBFINGER_REGEX.clone()
   }
 
-  pub fn pictrs_config(&self) -> Result<PictrsConfig, LemmyError> {
+  pub fn pictrs_config(&self) -> LemmyResult<PictrsConfig> {
     self
       .pictrs
       .clone()

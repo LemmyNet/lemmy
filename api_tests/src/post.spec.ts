@@ -51,9 +51,7 @@ beforeAll(async () => {
   await unfollows();
 });
 
-afterAll(() => {
-  unfollows();
-});
+afterAll(unfollows);
 
 async function assertPostFederation(postOne: PostView, postTwo: PostView) {
   // Link metadata is generated in background task and may not be ready yet at this time,
@@ -744,4 +742,24 @@ test("Block post that contains banned URL", async () => {
   // Later tests need this to be empty
   editSiteForm.blocked_urls = [];
   await epsilon.editSite(editSiteForm);
+});
+
+test("Fetch post with redirect", async () => {
+  let alphaPost = await createPost(alpha, betaCommunity!.community.id);
+  expect(alphaPost.post_view.post).toBeDefined();
+
+  // beta fetches from alpha as usual
+  let betaPost = await resolvePost(beta, alphaPost.post_view.post);
+  expect(betaPost.post).toBeDefined();
+
+  // gamma fetches from beta, and gets redirected to alpha
+  let gammaPost = await resolvePost(gamma, betaPost.post!.post);
+  expect(gammaPost.post).toBeDefined();
+
+  // fetch remote object from local url, which redirects to the original url
+  let form: ResolveObject = {
+    q: `http://lemmy-gamma:8561/post/${gammaPost.post!.post.id}`,
+  };
+  let gammaPost2 = await gamma.resolveObject(form);
+  expect(gammaPost2.post).toBeDefined();
 });

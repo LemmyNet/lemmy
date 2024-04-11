@@ -8,7 +8,7 @@ use activitypub_federation::{
 use anyhow::anyhow;
 use html2md::parse_html;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 use serde::Deserialize;
 use std::fmt::Debug;
 
@@ -53,7 +53,7 @@ pub(crate) fn read_from_string_or_source_opt(
 pub(crate) fn verify_is_remote_object<T>(
   id: &ObjectId<T>,
   context: &Data<LemmyContext>,
-) -> Result<(), LemmyError>
+) -> LemmyResult<()>
 where
   T: Object<DataType = LemmyContext> + Debug + Send + 'static,
   for<'de2> <T as Object>::Kind: Deserialize<'de2>,

@@ -20,7 +20,7 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::ops::Deref;
@@ -57,7 +57,7 @@ impl Note {
   pub(crate) async fn get_parents(
     &self,
     context: &Data<LemmyContext>,
-  ) -> Result<(ApubPost, Option<ApubComment>), LemmyError> {
+  ) -> LemmyResult<(ApubPost, Option<ApubComment>)> {
     // Fetch parent comment chain in a box, otherwise it can cause a stack overflow.
     let parent = Box::pin(self.in_reply_to.dereference(context).await?);
     match parent.deref() {
@@ -73,7 +73,7 @@ impl Note {
 
 #[async_trait::async_trait]
 impl InCommunity for Note {
-  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let (post, _) = self.get_parents(context).await?;
     let community = Community::read(&mut context.pool(), post.community_id).await?;
     if let Some(audience) = &self.audience {

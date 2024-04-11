@@ -31,10 +31,12 @@ import {
   searchPostLocal,
   longDelay,
   editCommunity,
+  unfollows,
 } from "./shared";
 import { EditCommunity, EditSite } from "lemmy-js-client";
 
 beforeAll(setupLogins);
+afterAll(unfollows);
 
 function assertCommunityFederation(
   communityOne?: CommunityView,

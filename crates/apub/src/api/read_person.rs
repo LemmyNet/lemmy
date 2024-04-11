@@ -13,14 +13,14 @@ use lemmy_db_views::{
   structs::{LocalUserView, SiteView},
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn read_person(
   data: Query<GetPersonDetails>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> Result<Json<GetPersonDetailsResponse>, LemmyError> {
+) -> LemmyResult<Json<GetPersonDetailsResponse>> {
   // Check to make sure a person name or an id is given
   if data.username.is_none() && data.person_id.is_none() {
     Err(LemmyErrorType::NoIdGiven)?

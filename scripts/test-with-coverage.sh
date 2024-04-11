@@ -6,7 +6,7 @@ CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 cd $CWD/../
 
 PACKAGE="$1"
-TEST="$2"
+echo "$PACKAGE"
 
 source scripts/start_dev_db.sh
 
@@ -15,15 +15,10 @@ source scripts/start_dev_db.sh
 export LEMMY_CONFIG_LOCATION=../../config/config.hjson
 export RUST_BACKTRACE=1
 
-if [ -n "$PACKAGE" ];
-then
-  cargo test -p $PACKAGE --all-features --no-fail-fast $TEST
-else
-  cargo test --workspace --no-fail-fast
-fi
+cargo install cargo-llvm-cov
 
-# Testing lemmy utils all features in particular (for ts-rs bindings)
-cargo test -p lemmy_utils --all-features --no-fail-fast
+# Create lcov.info file, which is used by things like the Coverage Gutters extension for VS Code
+cargo llvm-cov --workspace --all-features --no-fail-fast --lcov --output-path target/lcov.info
 
 # Add this to do printlns: -- --nocapture
 

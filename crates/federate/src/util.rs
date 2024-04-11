@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use lemmy_api_common::lemmy_utils::CACHE_DURATION_SHORT;
+use lemmy_api_common::lemmy_utils::CACHE_DURATION_FEDERATION;
 use lemmy_apub::{
   activity_lists::SharedInboxActivities,
   fetcher::{site_or_community_or_user::SiteOrCommunityOrUser, user_or_community::UserOrCommunity},
@@ -169,8 +169,11 @@ pub(crate) async fn get_activity_cached(
 
 /// return the most current activity id (with 1 second cache)
 pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<ActivityId> {
-  static CACHE: Lazy<Cache<(), ActivityId>> =
-    Lazy::new(|| Cache::builder().time_to_live(CACHE_DURATION_SHORT).build());
+  static CACHE: Lazy<Cache<(), ActivityId>> = Lazy::new(|| {
+    Cache::builder()
+      .time_to_live(CACHE_DURATION_FEDERATION)
+      .build()
+  });
   CACHE
     .try_get_with((), async {
       use diesel::dsl::max;

@@ -6,7 +6,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::local_user::{LocalUser, LocalUserUpdateForm};
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 /// Enable or disable two-factor-authentication. The current setting is determined from
 /// [LocalUser.totp_2fa_enabled].
@@ -21,7 +21,7 @@ pub async fn update_totp(
   data: Json<UpdateTotp>,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> Result<Json<UpdateTotpResponse>, LemmyError> {
+) -> LemmyResult<Json<UpdateTotpResponse>> {
   check_totp_2fa_valid(
     &local_user_view,
     &Some(data.totp_token.clone()),

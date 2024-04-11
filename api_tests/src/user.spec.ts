@@ -20,11 +20,13 @@ import {
   getComments,
   fetchFunction,
   alphaImage,
+  unfollows,
 } from "./shared";
 import { LemmyHttp, SaveUserSettings, UploadImage } from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 
 beforeAll(setupLogins);
+afterAll(unfollows);
 
 let apShortname: string;
 
