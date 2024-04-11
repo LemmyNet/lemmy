@@ -203,6 +203,7 @@ export async function createPost(
   // use example.com for consistent title and embed description
   name: string = randomString(5),
   alt_text = randomString(10),
+  custom_thumbnail: string | undefined = undefined,
 ): Promise<PostResponse> {
   let form: CreatePost = {
     name,
@@ -210,6 +211,7 @@ export async function createPost(
     body,
     alt_text,
     community_id,
+    custom_thumbnail,
   };
   return api.createPost(form);
 }
@@ -222,18 +224,6 @@ export async function editPost(
   let form: EditPost = {
     name,
     post_id: post.id,
-  };
-  return api.editPost(form);
-}
-
-export async function editPostThumbnail(
-  api: LemmyHttp,
-  post: Post,
-  customThumbnail: string,
-): Promise<PostResponse> {
-  let form: EditPost = {
-    post_id: post.id,
-    custom_thumbnail: customThumbnail,
   };
   return api.editPost(form);
 }

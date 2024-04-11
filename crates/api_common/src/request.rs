@@ -42,11 +42,7 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
 
 /// Fetches metadata for the given link and optionally generates thumbnail.
 #[tracing::instrument(skip_all)]
-pub async fn fetch_link_metadata(
-  url: &Url,
-  generate_thumbnail: bool,
-  context: &LemmyContext,
-) -> LemmyResult<LinkMetadata> {
+pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResult<LinkMetadata> {
   info!("Fetching site metadata for url: {}", url);
   let response = context.client().get(url.as_str()).send().await?;
 
@@ -63,71 +59,61 @@ pub async fn fetch_link_metadata(
   let opengraph_data = extract_opengraph_data(&html_bytes, url)
     .map_err(|e| info!("{e}"))
     .unwrap_or_default();
-  let thumbnail =
-    extract_thumbnail_from_opengraph_data(url, &opengraph_data, generate_thumbnail, context).await;
-
   Ok(LinkMetadata {
     opengraph_data,
     content_type: content_type.map(|c| c.to_string()),
-    thumbnail,
   })
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn fetch_link_metadata_opt(
-  url: Option<&Url>,
-  generate_thumbnail: bool,
-  context: &LemmyContext,
-) -> LinkMetadata {
-  match &url {
-    Some(url) => fetch_link_metadata(url, generate_thumbnail, context)
-      .await
-      .unwrap_or_default(),
-    _ => Default::default(),
-  }
-}
 /// Generate post thumbnail in background task, because some sites can be very slow to respond.
 ///
 /// Takes a callback to generate a send activity task, so that post can be federated with metadata.
+///
+/// TODO: `federated_thumbnail` param can be removed once we federate full metadata and can
+///       write it to db directly, without calling this function.
+///       https://github.com/LemmyNet/lemmy/issues/4598
 pub fn generate_post_link_metadata(
   post: Post,
   custom_thumbnail: Option<Url>,
+  federated_thumbnail: Option<Url>,
   send_activity: impl FnOnce(Post) -> Option<SendActivityData> + Send + 'static,
   local_site: Option<LocalSite>,
   context: Data<LemmyContext>,
 ) {
   spawn_try_task(async move {
-    // Decide if the thumbnail should be generated
-    let allow_sensitive = local_site_opt_to_sensitive(&local_site);
-    let page_is_sensitive = post.nsfw;
-    let allow_generate_thumbnail = allow_sensitive || !page_is_sensitive;
-    let do_generate_thumbnail =
-      allow_generate_thumbnail && custom_thumbnail.is_none() && post.thumbnail_url.is_none();
-
-    // Generate local thumbnail only if no thumbnail was federated and 'sensitive' attributes allow it.
-    let metadata = fetch_link_metadata_opt(
-      post.url.as_ref().map(DbUrl::inner),
-      do_generate_thumbnail,
-      &context,
-    )
-    .await;
-
-    // If its an image post, it needs to overwrite the thumbnail, and take precedence
-    let image_url = if metadata
-      .content_type
-      .as_ref()
-      .is_some_and(|content_type| content_type.starts_with("image"))
-    {
-      post.url.map(Into::into)
-    } else {
-      None
+    let metadata = match &post.url {
+      Some(url) => fetch_link_metadata(url, &context).await.unwrap_or_default(),
+      _ => Default::default(),
     };
 
-    // Build the thumbnail url based on either the post image url, custom thumbnail, metadata fetch, or existing thumbnail.
-    let thumbnail_url = image_url
-      .or(custom_thumbnail)
-      .or(metadata.thumbnail.map(Into::into))
-      .or(post.thumbnail_url.map(Into::into));
+    let is_image_post = metadata
+      .content_type
+      .as_ref()
+      .is_some_and(|content_type| content_type.starts_with("image"));
+
+    // Decide if we are allowed to generate local thumbnail
+    let allow_sensitive = local_site_opt_to_sensitive(&local_site);
+    let allow_generate_thumbnail = allow_sensitive || !post.nsfw;
+
+    // Use custom thumbnail if available and its not an image post
+    let thumbnail_url = if !is_image_post && custom_thumbnail.is_some() {
+      custom_thumbnail
+    }
+    // Use federated thumbnail if available
+    else if federated_thumbnail.is_some() {
+      federated_thumbnail
+    }
+    // Generate local thumbnail if allowed and post.url is Some
+    else if let (true, Some(url)) = (allow_generate_thumbnail, &post.url) {
+      generate_pictrs_thumbnail(url, &context)
+        .await
+        .ok()
+        .map(Into::into)
+    }
+    // Otherwise use opengraph preview image directly
+    else {
+      metadata.opengraph_data.image.map(Into::into)
+    };
 
     // Proxy the image fetch if necessary
     let proxied_thumbnail_url = proxy_image_link_opt_apub(thumbnail_url, &context).await?;
@@ -211,28 +197,6 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
     image: og_image.map(Into::into),
     embed_video_url: og_embed_url.map(Into::into),
   })
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn extract_thumbnail_from_opengraph_data(
-  url: &Url,
-  opengraph_data: &OpenGraphData,
-  generate_thumbnail: bool,
-  context: &LemmyContext,
-) -> Option<DbUrl> {
-  if generate_thumbnail {
-    let image_url = opengraph_data
-      .image
-      .as_ref()
-      .map(DbUrl::inner)
-      .unwrap_or(url);
-    generate_pictrs_thumbnail(image_url, context)
-      .await
-      .ok()
-      .map(Into::into)
-  } else {
-    opengraph_data.image.clone()
-  }
 }
 
 #[derive(Deserialize, Debug)]
@@ -414,9 +378,7 @@ mod tests {
   async fn test_link_metadata() {
     let context = LemmyContext::init_test_context().await;
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
-    let sample_res = fetch_link_metadata(&sample_url, false, &context)
-      .await
-      .unwrap();
+    let sample_res = fetch_link_metadata(&sample_url, &context).await.unwrap();
     assert_eq!(
       Some("FAQ · Wiki · IzzyOnDroid / repo · GitLab".to_string()),
       sample_res.opengraph_data.title
@@ -438,16 +400,7 @@ mod tests {
       Some(mime::TEXT_HTML_UTF_8.to_string()),
       sample_res.content_type
     );
-    assert!(sample_res.thumbnail.is_some());
   }
-
-  // #[test]
-  // fn test_pictshare() {
-  //   let res = fetch_pictshare("https://upload.wikimedia.org/wikipedia/en/2/27/The_Mandalorian_logo.jpg");
-  //   assert!(res.is_ok());
-  //   let res_other = fetch_pictshare("https://upload.wikimedia.org/wikipedia/en/2/27/The_Mandalorian_logo.jpgaoeu");
-  //   assert!(res_other.is_err());
-  // }
 
   #[test]
   fn test_resolve_image_url() {
