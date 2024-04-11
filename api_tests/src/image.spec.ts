@@ -271,7 +271,7 @@ test("Make regular post, and give it a custom thumbnail", async () => {
     randomString(10),
     randomString(5),
     randomString(10),
-    upload1.url!
+    upload1.url!,
   );
 
   // Wait for the metadata to get fetched, since this is backgrounded now
@@ -306,10 +306,12 @@ test("Create an image post, and make sure a custom thumbnail doesnt overwrite it
     "https://example.com/",
     randomString(10),
     randomString(5),
-    upload2.url!
+    upload2.url!,
   );
   expect(post.post_view.post.url).toBe(upload1.url);
   // Make sure the new custom thumbnail is ignored, and doesn't overwrite the image post
   expect(post.post_view.post.url).toBe(upload1.url);
-  expect(post.post_view.post.thumbnail_url).toBe(post.post_view.post.thumbnail_url);
+  expect(post.post_view.post.thumbnail_url).toBe(
+    post.post_view.post.thumbnail_url,
+  );
 });
