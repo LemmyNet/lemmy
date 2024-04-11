@@ -1,3 +1,4 @@
+use super::verify_is_remote_object;
 use crate::{
   activities::GetActorType,
   check_apub_id_valid_with_strictness,
@@ -124,6 +125,7 @@ impl Object for ApubSite {
   ) -> LemmyResult<()> {
     check_apub_id_valid_with_strictness(apub.id.inner(), true, data).await?;
     verify_domains_match(expected_domain, apub.id.inner())?;
+    verify_is_remote_object(&apub.id, data)?;
 
     let local_site_data = local_site_data_cached(&mut data.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);

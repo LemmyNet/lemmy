@@ -140,7 +140,7 @@ impl Object for ApubComment {
     let community = note.community(context).await?;
 
     check_apub_id_valid_with_strictness(note.id.inner(), community.local, context).await?;
-    verify_is_remote_object(note.id.inner(), context.settings())?;
+    verify_is_remote_object(&note.id, context)?;
     verify_person_in_community(&note.attributed_to, &community, context).await?;
 
     let (post, _) = note.get_parents(context).await?;

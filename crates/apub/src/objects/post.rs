@@ -165,7 +165,7 @@ impl Object for ApubPost {
     // instance from the post author.
     if !page.is_mod_action(context).await? {
       verify_domains_match(page.id.inner(), expected_domain)?;
-      verify_is_remote_object(page.id.inner(), context.settings())?;
+      verify_is_remote_object(&page.id, context)?;
     };
 
     let community = page.community(context).await?;
