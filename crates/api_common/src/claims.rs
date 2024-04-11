@@ -99,7 +99,7 @@ mod tests {
   async fn test_should_not_validate_user_token_after_password_change() {
     let pool_ = build_db_pool_for_tests().await;
     let pool = &mut (&pool_).into();
-    let secret = Secret::init(pool).await.unwrap();
+    let secret = Secret::init(pool).await.unwrap().unwrap();
     let context = LemmyContext::create(
       pool_.clone(),
       ClientBuilder::new(Client::default()).build(),

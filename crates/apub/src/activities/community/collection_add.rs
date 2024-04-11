@@ -36,7 +36,10 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Joinable},
 };
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  LemmyErrorType,
+};
 use url::Url;
 
 impl CollectionAdd {
@@ -126,7 +129,9 @@ impl ActivityHandler for CollectionAdd {
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =
-      Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
+      Community::get_by_collection_url(&mut context.pool(), &self.target.into())
+        .await?
+        .ok_or(LemmyErrorType::CouldntFindCommunity)?;
     match collection_type {
       CollectionType::Moderators => {
         let new_mod = ObjectId::<ApubPerson>::from(self.object)
@@ -183,9 +188,11 @@ pub(crate) async fn send_add_mod_to_community(
   let actor: ApubPerson = actor.into();
   let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
     .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?
     .into();
   let updated_mod: ApubPerson = Person::read(&mut context.pool(), updated_mod_id)
     .await?
+    .ok_or(LemmyErrorType::CouldntFindPerson)?
     .into();
   if added {
     CollectionAdd::send_add_mod(&community, &updated_mod, &actor, &context).await
@@ -204,6 +211,7 @@ pub(crate) async fn send_feature_post(
   let post: ApubPost = post.into();
   let community = Community::read(&mut context.pool(), post.community_id)
     .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?
     .into();
   if featured {
     CollectionAdd::send_add_featured_post(&community, &post, &actor, &context).await

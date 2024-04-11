@@ -18,7 +18,7 @@ use activitypub_federation::{
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 use serde::Deserialize;
 
 #[derive(Deserialize, Clone)]
@@ -35,6 +35,7 @@ pub(crate) async fn get_apub_community_http(
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, true)
       .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?
       .into();
 
   if community.deleted || community.removed {
@@ -64,8 +65,9 @@ pub(crate) async fn get_apub_community_followers(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let community =
-    Community::read_from_name(&mut context.pool(), &info.community_name, false).await?;
+  let community = Community::read_from_name(&mut context.pool(), &info.community_name, false)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
   check_community_public(&community)?;
   let followers = ApubCommunityFollower::read_local(&community.into(), &context).await?;
   create_apub_response(&followers)
@@ -80,6 +82,7 @@ pub(crate) async fn get_apub_community_outbox(
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?
       .into();
   check_community_public(&community)?;
   let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
@@ -94,6 +97,7 @@ pub(crate) async fn get_apub_community_moderators(
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?
       .into();
   check_community_public(&community)?;
   let moderators = ApubCommunityModerators::read_local(&community, &context).await?;
@@ -108,6 +112,7 @@ pub(crate) async fn get_apub_community_featured(
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?
       .into();
   check_community_public(&community)?;
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;

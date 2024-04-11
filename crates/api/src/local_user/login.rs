@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn login(
@@ -24,14 +24,16 @@ pub async fn login(
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
 
   // Fetch that username / email
   let username_or_email = data.username_or_email.clone();
   let local_user_view =
     LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email)
-      .await
-      .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
+      .await?
+      .ok_or(LemmyErrorType::IncorrectLogin)?;
 
   // Verify the password
   let valid: bool = verify(
@@ -79,7 +81,9 @@ async fn check_registration_application(
     // Fetch the registration application. If no admin id is present its still pending. Otherwise it
     // was processed (either accepted or denied).
     let local_user_id = local_user_view.local_user.id;
-    let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id).await?;
+    let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindRegistrationApplication)?;
     if registration.admin_id.is_some() {
       Err(LemmyErrorType::RegistrationDenied(registration.deny_reason))?
     } else {

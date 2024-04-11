@@ -42,9 +42,12 @@ where
       .splitn(2, '@')
       .collect_tuple()
       .expect("invalid query");
-    let actor = DbActor::read_from_name_and_domain(&mut context.pool(), name, domain).await;
-    if actor.is_ok() {
-      Ok(actor?.into())
+    let actor = DbActor::read_from_name_and_domain(&mut context.pool(), name, domain)
+      .await
+      .ok()
+      .flatten();
+    if let Some(actor) = actor {
+      Ok(actor.into())
     } else if local_user_view.is_some() {
       // Fetch the actor from its home instance using webfinger
       let actor: ActorType = webfinger_resolve_actor(&identifier.to_lowercase(), context).await?;
@@ -59,6 +62,7 @@ where
     Ok(
       DbActor::read_from_name(&mut context.pool(), &identifier, include_deleted)
         .await?
+        .ok_or(NotFound)?
         .into(),
     )
   }

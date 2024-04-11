@@ -47,10 +47,12 @@ async fn get_webfinger_response(
     let user_id: Option<Url> = Person::read_from_name(&mut context.pool(), name, false)
       .await
       .ok()
+      .flatten()
       .map(|c| c.actor_id.into());
     let community_id: Option<Url> = Community::read_from_name(&mut context.pool(), name, false)
       .await
       .ok()
+      .flatten()
       .and_then(|c| {
         if c.visibility == CommunityVisibility::Public {
           let id: Url = c.actor_id.into();

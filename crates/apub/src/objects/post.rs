@@ -45,7 +45,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
+  error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::{markdown::markdown_to_html, slurs::check_slurs_opt, validation::check_url_scheme},
 };
 use std::ops::Deref;
@@ -108,9 +108,13 @@ impl Object for ApubPost {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Page> {
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut context.pool(), creator_id).await?;
+    let creator = Person::read(&mut context.pool(), creator_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?;
     let community_id = self.community_id;
-    let community = Community::read(&mut context.pool(), community_id).await?;
+    let community = Community::read(&mut context.pool(), community_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
     let language = LanguageTag::new_single(self.language_id, &mut context.pool()).await?;
 
     let attachment = self

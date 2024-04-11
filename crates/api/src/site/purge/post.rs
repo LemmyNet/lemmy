@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn purge_post(
@@ -28,7 +28,9 @@ pub async fn purge_post(
   is_admin(&local_user_view)?;
 
   // Read the post to get the community_id
-  let post = Post::read(&mut context.pool(), data.post_id).await?;
+  let post = Post::read(&mut context.pool(), data.post_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
   // Purge image
   if let Some(url) = &post.url {

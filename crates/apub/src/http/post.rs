@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -31,8 +31,13 @@ pub(crate) async fn get_apub_post(
 ) -> LemmyResult<HttpResponse> {
   let id = PostId(info.post_id.parse::<i32>()?);
   // Can't use PostView here because it excludes deleted/removed/local-only items
-  let post: ApubPost = Post::read(&mut context.pool(), id).await?.into();
-  let community = Community::read(&mut context.pool(), post.community_id).await?;
+  let post: ApubPost = Post::read(&mut context.pool(), id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?
+    .into();
+  let community = Community::read(&mut context.pool(), post.community_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
   check_community_public(&community)?;
 
   if !post.local {

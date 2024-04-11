@@ -1,4 +1,5 @@
 use crate::{
+  diesel::OptionalExtension,
   newtypes::{CommentId, PersonId, PersonMentionId},
   schema::person_mention,
   source::person_mention::{PersonMention, PersonMentionInsertForm, PersonMentionUpdateForm},
@@ -63,13 +64,14 @@ impl PersonMention {
     pool: &mut DbPool<'_>,
     for_comment_id: CommentId,
     for_recipient_id: PersonId,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     person_mention::table
       .filter(person_mention::comment_id.eq(for_comment_id))
       .filter(person_mention::recipient_id.eq(for_recipient_id))
-      .first::<Self>(conn)
+      .first(conn)
       .await
+      .optional()
   }
 }
 
@@ -164,6 +166,7 @@ mod tests {
 
     let read_mention = PersonMention::read(pool, inserted_mention.id)
       .await
+      .unwrap()
       .unwrap();
 
     let person_mention_update_form = PersonMentionUpdateForm { read: Some(false) };
