@@ -1,3 +1,4 @@
+use super::verify_is_remote_object;
 use crate::{
   activities::GetActorType,
   check_apub_id_valid_with_strictness,
@@ -137,6 +138,7 @@ impl Object for ApubPerson {
     check_slurs_opt(&person.name, slur_regex)?;
 
     verify_domains_match(person.id.inner(), expected_domain)?;
+    verify_is_remote_object(&person.id, context)?;
     check_apub_id_valid_with_strictness(person.id.inner(), false, context).await?;
 
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
@@ -149,10 +151,6 @@ impl Object for ApubPerson {
     person: Person,
     context: &Data<Self::DataType>,
   ) -> Result<ApubPerson, LemmyError> {
-    // Avoid overwriting local object
-    if person.id.is_local(context) {
-      return person.id.dereference_local(context).await;
-    }
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
     let local_site = LocalSite::read(&mut context.pool()).await.ok();

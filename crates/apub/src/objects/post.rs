@@ -182,11 +182,6 @@ impl Object for ApubPost {
 
   #[tracing::instrument(skip_all)]
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> Result<ApubPost, LemmyError> {
-    // Avoid overwriting local object
-    if page.id.is_local(context) {
-      return page.id.dereference_local(context).await;
-    }
-
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {

@@ -158,11 +158,6 @@ impl Object for ApubComment {
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
   #[tracing::instrument(skip_all)]
   async fn from_json(note: Note, context: &Data<LemmyContext>) -> Result<ApubComment, LemmyError> {
-    // Avoid overwriting local object
-    if note.id.is_local(context) {
-      return note.id.dereference_local(context).await;
-    }
-
     let creator = note.attributed_to.dereference(context).await?;
     let (post, parent_comment) = note.get_parents(context).await?;
 

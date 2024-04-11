@@ -1,3 +1,4 @@
+use super::verify_is_remote_object;
 use crate::{
   check_apub_id_valid_with_strictness,
   objects::read_from_string_or_source,
@@ -104,6 +105,7 @@ impl Object for ApubPrivateMessage {
   ) -> Result<(), LemmyError> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
+    verify_is_remote_object(&note.id, context)?;
 
     check_apub_id_valid_with_strictness(note.id.inner(), false, context).await?;
     let person = note.attributed_to.dereference(context).await?;
@@ -121,11 +123,6 @@ impl Object for ApubPrivateMessage {
     note: ChatMessage,
     context: &Data<Self::DataType>,
   ) -> Result<ApubPrivateMessage, LemmyError> {
-    // Avoid overwriting local object
-    if note.id.is_local(context) {
-      return note.id.dereference_local(context).await;
-    }
-
     let creator = note.attributed_to.dereference(context).await?;
     let recipient = note.to[0].dereference(context).await?;
     check_person_block(creator.id, recipient.id, &mut context.pool()).await?;
