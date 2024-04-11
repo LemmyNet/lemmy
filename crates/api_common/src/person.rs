@@ -40,7 +40,7 @@ pub struct Register {
   pub username: String,
   pub password: Sensitive<String>,
   pub password_verify: Sensitive<String>,
-  pub show_nsfw: bool,
+  pub show_nsfw: Option<bool>,
   /// email is mandatory if email verification is enabled on the server
   pub email: Option<Sensitive<String>>,
   /// The UUID of the captcha item.
