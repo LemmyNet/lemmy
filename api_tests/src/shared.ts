@@ -228,6 +228,21 @@ export async function editPost(
   return api.editPost(form);
 }
 
+export async function createPostWithThumbnail(
+  api: LemmyHttp,
+  community_id: number,
+  url: string,
+  custom_thumbnail: string,
+): Promise<PostResponse> {
+  let form: CreatePost = {
+    name: randomString(10),
+    url,
+    community_id,
+    custom_thumbnail,
+  };
+  return api.createPost(form);
+}
+
 export async function deletePost(
   api: LemmyHttp,
   deleted: boolean,

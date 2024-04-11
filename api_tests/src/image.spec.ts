@@ -30,6 +30,7 @@ import {
   getPost,
   waitUntil,
   randomString,
+  createPostWithThumbnail,
 } from "./shared";
 const downloadFileSync = require("download-file-sync");
 
@@ -264,13 +265,10 @@ test("Make regular post, and give it a custom thumbnail", async () => {
   // Use wikipedia since it has an opengraph image
   const wikipediaUrl = "https://wikipedia.org/";
 
-  let post = await createPost(
+  let post = await createPostWithThumbnail(
     alphaImage,
     community.community_view.community.id,
     wikipediaUrl,
-    randomString(10),
-    randomString(5),
-    randomString(10),
     upload1.url!,
   );
 
@@ -281,8 +279,7 @@ test("Make regular post, and give it a custom thumbnail", async () => {
   );
   expect(post.post_view.post.url).toBe(wikipediaUrl);
   expect(post.post_view.post.thumbnail_url).toBeDefined();
-
-  // Make sure the thumbnail got edited.
+  // Make sure it uses custom thumbnail
   expect(post.post_view.post.thumbnail_url).toBe(upload1.url);
 });
 
@@ -299,18 +296,19 @@ test("Create an image post, and make sure a custom thumbnail doesnt overwrite it
 
   const community = await createCommunity(alphaImage);
 
-  const post = await createPost(
+  let post = await createPostWithThumbnail(
     alphaImage,
     community.community_view.community.id,
-    upload1.url,
-    "https://example.com/",
-    randomString(10),
-    randomString(5),
+    upload1.url!,
     upload2.url!,
   );
+  post = await waitUntil(
+    () => getPost(alphaImage, post.post_view.post.id),
+    p => p.post_view.post.thumbnail_url != undefined,
+  );
   expect(post.post_view.post.url).toBe(upload1.url);
-  // Make sure the new custom thumbnail is ignored, and doesn't overwrite the image post
   expect(post.post_view.post.url).toBe(upload1.url);
+  // Make sure the custom thumbnail is ignored
   expect(post.post_view.post.thumbnail_url).toBe(
     post.post_view.post.thumbnail_url,
   );
