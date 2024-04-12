@@ -103,12 +103,12 @@ pub fn generate_post_link_metadata(
     else if federated_thumbnail.is_some() {
       federated_thumbnail
     }
-    // Generate local thumbnail if allowed and post.url is Some
-    else if let (true, Some(url)) = (allow_generate_thumbnail, &post.url) {
-      generate_pictrs_thumbnail(url, &context)
-        .await
-        .ok()
-        .map(Into::into)
+    // Generate local thumbnail if allowed
+    else if allow_generate_thumbnail {
+      match post.url.or(metadata.opengraph_data.image) {
+        Some(url) => generate_pictrs_thumbnail(&url, &context).await.ok(),
+        None => None,
+      }
     }
     // Otherwise use opengraph preview image directly
     else {
