@@ -278,7 +278,6 @@ test("Make regular post, and give it a custom thumbnail", async () => {
     p => p.post_view.post.thumbnail_url != undefined,
   );
   expect(post.post_view.post.url).toBe(wikipediaUrl);
-  expect(post.post_view.post.thumbnail_url).toBeDefined();
   // Make sure it uses custom thumbnail
   expect(post.post_view.post.thumbnail_url).toBe(upload1.url);
 });
@@ -307,9 +306,6 @@ test("Create an image post, and make sure a custom thumbnail doesnt overwrite it
     p => p.post_view.post.thumbnail_url != undefined,
   );
   expect(post.post_view.post.url).toBe(upload1.url);
-  expect(post.post_view.post.url).toBe(upload1.url);
   // Make sure the custom thumbnail is ignored
-  expect(post.post_view.post.thumbnail_url).toBe(
-    post.post_view.post.thumbnail_url,
-  );
+  expect(post.post_view.post.thumbnail_url == upload2.url).toBe(false);
 });
