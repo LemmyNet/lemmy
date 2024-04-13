@@ -73,19 +73,16 @@ async fn start_stop_federation_workers(
         // create new worker
         let config = federation_config.clone();
         let stats_sender = stats_sender.clone();
-        let pool = pool.clone();
         workers.insert(
           instance.id,
           CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |stop| {
             let instance = instance.clone();
-            let req_data = config.clone().to_request_data();
+            let config = config.clone();
             let stats_sender = stats_sender.clone();
-            let pool = pool.clone();
             async move {
               InstanceWorker::init_and_loop(
                 instance,
-                req_data,
-                &mut DbPool::Pool(&pool),
+                config,
                 stop,
                 stats_sender,
               )
