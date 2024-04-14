@@ -58,14 +58,20 @@ impl CustomEmojiView {
     category: &Option<String>,
     page: Option<i64>,
     limit: Option<i64>,
+    ignore_page_limits: bool,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let (limit, offset) = limit_and_offset(page, limit)?;
+
     let mut query = custom_emoji::table
       .left_join(
         custom_emoji_keyword::table.on(custom_emoji_keyword::custom_emoji_id.eq(custom_emoji::id)),
       )
       .into_boxed();
+
+    if !ignore_page_limits {
+      let (limit, offset) = limit_and_offset(page, limit)?;
+      query = query.limit(limit).offset(offset);
+    }
 
     if let Some(category) = category {
       query = query.filter(custom_emoji::category.eq(category))
@@ -78,8 +84,6 @@ impl CustomEmojiView {
         custom_emoji::all_columns,
         custom_emoji_keyword::all_columns.nullable(), // (or all the columns if you want)
       ))
-      .limit(limit)
-      .offset(offset)
       .load::<CustomEmojiTuple>(conn)
       .await?;
 

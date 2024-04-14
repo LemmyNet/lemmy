@@ -65,4 +65,5 @@ pub struct ListCustomEmojis {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub category: Option<String>,
+  pub ignore_page_limits: Option<bool>,
 }
