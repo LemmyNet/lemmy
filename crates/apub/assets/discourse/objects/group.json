@@ -1,22 +1,22 @@
 {
-    "id": "https://socialhub.activitypub.rocks/ap/actor/797217cf18c0e819dfafc52425590146",
-    "type": "Group",
-    "updated": "2024-04-05T12:49:51Z",
-    "url": "https://socialhub.activitypub.rocks/c/meeting/threadiverse-wg/88",
-    "name": "Threadiverse Working Group (SocialHub)",
-    "inbox": "https://socialhub.activitypub.rocks/ap/actor/797217cf18c0e819dfafc52425590146/inbox",
-    "outbox": "https://socialhub.activitypub.rocks/ap/actor/797217cf18c0e819dfafc52425590146/outbox",
-    "followers": "https://socialhub.activitypub.rocks/ap/actor/797217cf18c0e819dfafc52425590146/followers",
-    "preferredUsername": "threadiverse-wg",
-    "publicKey": {
+  "id": "https://socialhub.activitypub.rocks/ap/actor/797217cf18c0e819dfafc52425590146",
+  "type": "Group",
+  "updated": "2024-04-05T12:49:51Z",
+  "url": "https://socialhub.activitypub.rocks/c/meeting/threadiverse-wg/88",
+  "name": "Threadiverse Working Group (SocialHub)",
+  "inbox": "https://socialhub.activitypub.rocks/ap/actor/797217cf18c0e819dfafc52425590146/inbox",
+  "outbox": "https://socialhub.activitypub.rocks/ap/actor/797217cf18c0e819dfafc52425590146/outbox",
+  "followers": "https://socialhub.activitypub.rocks/ap/actor/797217cf18c0e819dfafc52425590146/followers",
+  "preferredUsername": "threadiverse-wg",
+  "publicKey": {
     "id": "https://socialhub.activitypub.rocks/ap/actor/797217cf18c0e819dfafc52425590146#main-key",
     "owner": "https://socialhub.activitypub.rocks/ap/actor/797217cf18c0e819dfafc52425590146",
     "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApJi4iAcW6bPiHVCxT9p0\n8DVnrDDO4QtLNy7bpRFdMFifmmmXprsuAi9D2MSwbhH49V54HtIkxBpKd2IR/UD8\nmhMDY4CNI9FHpjqLw0wtkzxcqF9urSqhn0/vWX+9oxyhIgQS5KMiIkYDMJiAc691\niEcZ8LCran23xIGl6Dk54Nr3TqTMLcjDhzQYUJbxMrLq5/knWqOKG3IF5OxK+9ZZ\n1wxDF872eJTxJLkmpag+WYNtHzvB2SGTp8j5IF1/pZ9J1c3cpYfaeolTch/B/GQn\najCB4l27U52rIIObxJqFXSY8wHyd0aAmNmxzPZ7cduRlBDhmI40cAmnCV1YQPvpk\nDwIDAQAB\n-----END PUBLIC KEY-----\n"
-    },
-    "icon": {
+  },
+  "icon": {
     "type": "Image",
     "mediaType": "image/png",
     "url": "https://socialhub.activitypub.rocks/uploads/default/original/1X/8faac84234dc73d074dadaa2bcf24dc746b8647f.png"
-    },
-    "@context": "https://www.w3.org/ns/activitystreams"
-    }
+  },
+  "@context": "https://www.w3.org/ns/activitystreams"
+}
