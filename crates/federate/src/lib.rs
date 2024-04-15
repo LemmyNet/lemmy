@@ -14,6 +14,7 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
+mod inboxes;
 mod util;
 mod worker;
 
