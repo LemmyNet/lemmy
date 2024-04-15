@@ -17,7 +17,7 @@ use chrono::{DateTime, Days, TimeZone, Utc};
 use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
 use lemmy_apub::{activity_lists::SharedInboxActivities, FEDERATION_CONTEXT};
 use lemmy_db_schema::{
-  newtypes::{ActivityId},
+  newtypes::ActivityId,
   source::{
     activity::SentActivity,
     federation_queue_state::FederationQueueState,
@@ -28,7 +28,7 @@ use lemmy_db_schema::{
 use once_cell::sync::Lazy;
 use reqwest::Url;
 use std::{
-  collections::{BinaryHeap},
+  collections::BinaryHeap,
   ops::{Add, Deref},
   time::Duration,
 };
@@ -300,6 +300,8 @@ impl InstanceWorker {
     Ok(())
   }
 
+  /// we collect the relevant inboxes in the main instance worker task, and only spawn the send task if we have inboxes to send to
+  /// this limits CPU usage and reduces overhead for the (many) cases where we don't have any inboxes
   async fn spawn_send_if_needed(
     &mut self,
     activity_id: ActivityId,
@@ -338,7 +340,7 @@ impl InstanceWorker {
     let domain = self.instance.domain.clone();
     tokio::spawn(async move {
       let mut report = report;
-      if let Err(e) = InstanceWorker::send_retry_loop(
+      let res = InstanceWorker::send_retry_loop(
         &ele.0,
         &ele.1,
         inbox_urls,
@@ -348,8 +350,8 @@ impl InstanceWorker {
         data,
         stop,
       )
-      .await
-      {
+      .await;
+      if let Err(e) = res {
         tracing::warn!(
           "sending {} errored internally, skipping activity: {:?}",
           ele.0.ap_id,
