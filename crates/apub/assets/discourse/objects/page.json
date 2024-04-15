@@ -1,0 +1,13 @@
+{
+"id": "https://socialhub.activitypub.rocks/ap/object/1899f65c062200daec50a4c89ed76dc9",
+"type": "Note",
+"audience": "https://socialhub.activitypub.rocks/ap/actor/797217cf18c0e819dfafc52425590146",
+"published": "2024-04-13T14:36:19Z",
+"updated": "2024-04-13T14:36:19Z",
+"url": "https://socialhub.activitypub.rocks/t/our-next-meeting/4079/1",
+"attributedTo": "https://socialhub.activitypub.rocks/ap/actor/495843076e9e469fbd35ccf467ae9fb1",
+"name": "Our next meeting",
+"context": "https://socialhub.activitypub.rocks/ap/collection/8850f6e85b57c490da915a5dfbbd5045",
+"content": "<h3>Last Meeting</h3>\n<h4>Recording</h4>\n<a href=\"https://us06web.zoom.us/rec/share/4hGBTvgXJPlu8UkjkkxVARypNg5DH0eeaKlIBv71D4G3lokYyrCrg7cqBCJmL109.FsHYTZDlVvZXrgcn?startTime=1712254114000\">https://us06web.zoom.us/rec/share/4hGBTvgXJPlu8UkjkkxVARypNg5DH0eeaKlIBv71D4G3lokYyrCrg7cqBCJmL109.FsHYTZDlVvZXrgcn?startTime=1712254114000</a>\nPasscode: z+1*4pUB\n<h4>Minutes</h4>\nTo refresh your memory, you can read the minutes of last week's meeting <a href=\"https://community.nodebb.org/topic/17949/minutes&hellip;",
+"@context": "https://www.w3.org/ns/activitystreams"
+}

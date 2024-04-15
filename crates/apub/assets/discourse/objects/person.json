@@ -1,0 +1,23 @@
+{
+"id": "https://socialhub.activitypub.rocks/ap/actor/495843076e9e469fbd35ccf467ae9fb1",
+"type": "Person",
+"updated": "2024-01-15T12:27:03Z",
+"url": "https://socialhub.activitypub.rocks/u/angus",
+"name": "Angus McLeod",
+"inbox": "https://socialhub.activitypub.rocks/ap/actor/495843076e9e469fbd35ccf467ae9fb1/inbox",
+"outbox": "https://socialhub.activitypub.rocks/ap/actor/495843076e9e469fbd35ccf467ae9fb1/outbox",
+"sharedInbox": "https://socialhub.activitypub.rocks/ap/users/inbox",
+"followers": "https://socialhub.activitypub.rocks/ap/actor/495843076e9e469fbd35ccf467ae9fb1/followers",
+"preferredUsername": "angus",
+"publicKey": {
+"id": "https://socialhub.activitypub.rocks/ap/actor/495843076e9e469fbd35ccf467ae9fb1#main-key",
+"owner": "https://socialhub.activitypub.rocks/ap/actor/495843076e9e469fbd35ccf467ae9fb1",
+"publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3RpuFDuwXZzOeHO5fO2O\nHmP7Flc5JDXJ8OOEJYq5T/dzUKqREOF1ZT0WMww8/E3P6w+gfFsjzThraJb8nHuW\nP6798SUD35CWBclfhw9DapjVn99JyFcAWcH3b9fr6LYshc4y1BoeJagk1kcro2Dc\n+pX0vVXgNjwWnGfyucAgGIUWrNUjcvIvXmyVCBSQfXG3nCALV1JbI4KSgf/5KyBn\nza/QefaetxYiFV8wAisPKLsz3XQAaITsQmbSi+8gmwXt/9U808PK1KphCiClDOWg\noi0HPzJn0rn+mwFCfgNWenvribfeG40AHLG33OkWKvslufjifdWDCOcBYYzyCEV6\n+wIDAQAB\n-----END PUBLIC KEY-----\n"
+},
+"icon": {
+"type": "Image",
+"mediaType": "image/png",
+"url": "https://socialhub.activitypub.rocks/user_avatar/socialhub.activitypub.rocks/angus/96/2295_2.png"
+},
+"@context": "https://www.w3.org/ns/activitystreams"
+}
