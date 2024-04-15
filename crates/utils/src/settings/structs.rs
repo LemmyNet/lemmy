@@ -42,12 +42,8 @@ pub struct Settings {
   #[default(None)]
   #[doku(skip)]
   pub opentelemetry_url: Option<Url>,
-  /// The number of activitypub federation workers that can be in-flight concurrently
-  #[default(0)]
-  pub worker_count: usize,
-  /// The number of activitypub federation retry workers that can be in-flight concurrently
-  #[default(0)]
-  pub retry_count: usize,
+  #[default(Default::default())]
+  pub federation: FederationWorkerConfig,
   // Prometheus configuration.
   #[default(None)]
   #[doku(example = "Some(Default::default())")]
@@ -233,4 +229,14 @@ pub struct PrometheusConfig {
   #[default(10002)]
   #[doku(example = "10002")]
   pub port: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
+#[serde(default)]
+// named federation"worker"config to disambiguate from the activitypub library configuration
+pub struct FederationWorkerConfig {
+  /// Limit to the number of concurrent outgoing federation requests per target instance.
+  /// Set this to a higher value than 1 (e.g. 6) only if you have a huge instance (>10 activities per second) and if a receiving instance is not keeping up.
+  #[default(1)]
+  pub concurrent_sends_per_instance: i64,
 }

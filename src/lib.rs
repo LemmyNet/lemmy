@@ -213,6 +213,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
       },
       pool.clone(),
       federation_config.clone(),
+      SETTINGS.federation.clone(),
     )
   });
   let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;

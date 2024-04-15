@@ -1,4 +1,4 @@
-use crate::util::{get_activity_cached, get_actor_cached};
+use crate::util::get_actor_cached;
 use activitypub_federation::{
   activity_sending::SendActivityTask,
   config::Data,
@@ -10,7 +10,7 @@ use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
 use lemmy_apub::{activity_lists::SharedInboxActivities, FEDERATION_CONTEXT};
 use lemmy_db_schema::{newtypes::ActivityId, source::activity::SentActivity};
 use reqwest::Url;
-use std::{ops::Deref, sync::Arc, time::Duration};
+use std::ops::Deref;
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 use tokio_util::sync::CancellationToken;
 

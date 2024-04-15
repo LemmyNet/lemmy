@@ -1,7 +1,11 @@
 use crate::{util::CancellableTask, worker::InstanceWorker};
 use activitypub_federation::config::FederationConfig;
 use chrono::{Local, Timelike};
-use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
+use lemmy_api_common::{
+  context::LemmyContext,
+  federate_retry_sleep_duration,
+  lemmy_utils::settings::structs::FederationWorkerConfig,
+};
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::{federation_queue_state::FederationQueueState, instance::Instance},
@@ -36,7 +40,8 @@ pub struct Opts {
 async fn start_stop_federation_workers(
   opts: Opts,
   pool: ActualDbPool,
-  federation_config: FederationConfig<LemmyContext>,
+  federation_lib_config: FederationConfig<LemmyContext>,
+  federation_worker_config: FederationWorkerConfig,
   cancel: CancellationToken,
 ) -> anyhow::Result<()> {
   let mut workers = HashMap::<InstanceId, CancellableTask>::new();
@@ -45,7 +50,9 @@ async fn start_stop_federation_workers(
   let exit_print = tokio::spawn(receive_print_stats(pool.clone(), stats_receiver));
   let pool2 = &mut DbPool::Pool(&pool);
   let process_index = opts.process_index - 1;
-  let local_domain = federation_config.settings().get_hostname_without_port()?;
+  let local_domain = federation_lib_config
+    .settings()
+    .get_hostname_without_port()?;
   loop {
     let mut total_count = 0;
     let mut dead_count = 0;
@@ -73,15 +80,19 @@ async fn start_stop_federation_workers(
           continue;
         }
         // create new worker
-        let config = federation_config.clone();
+        let config = federation_lib_config.clone();
         let stats_sender = stats_sender.clone();
+        let federation_worker_config = federation_worker_config.clone();
         workers.insert(
           instance.id,
           CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |stop| {
-            let instance = instance.clone();
-            let config = config.clone();
-            let stats_sender = stats_sender.clone();
-            async move { InstanceWorker::init_and_loop(instance, config, stop, stats_sender).await }
+            InstanceWorker::init_and_loop(
+              instance.clone(),
+              config.clone(),
+              federation_worker_config.clone(),
+              stop,
+              stats_sender.clone(),
+            )
           }),
         );
       } else if !should_federate {
@@ -117,12 +128,16 @@ pub fn start_stop_federation_workers_cancellable(
   opts: Opts,
   pool: ActualDbPool,
   config: FederationConfig<LemmyContext>,
+  federation_worker_config: FederationWorkerConfig,
 ) -> CancellableTask {
   CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |stop| {
-    let opts = opts.clone();
-    let pool = pool.clone();
-    let config = config.clone();
-    async move { start_stop_federation_workers(opts, pool, config, stop).await }
+    start_stop_federation_workers(
+      opts.clone(),
+      pool.clone(),
+      config.clone(),
+      federation_worker_config.clone(),
+      stop,
+    )
   })
 }
 

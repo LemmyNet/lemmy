@@ -1,38 +1,25 @@
 use crate::{
   inboxes::CommunityInboxCollector,
   send::{SendActivityResult, SendRetryTask, SendSuccessInfo},
-  util::{
-    get_activity_cached,
-    get_actor_cached,
-    get_latest_activity_id,
-    WORK_FINISHED_RECHECK_DELAY,
-  },
+  util::{get_activity_cached, get_latest_activity_id, WORK_FINISHED_RECHECK_DELAY},
 };
-use activitypub_federation::{
-  activity_sending::SendActivityTask,
-  config::{Data, FederationConfig},
-  protocol::context::WithContext,
-};
+use activitypub_federation::config::FederationConfig;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Days, TimeZone, Utc};
-use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
-use lemmy_apub::{activity_lists::SharedInboxActivities, FEDERATION_CONTEXT};
+use lemmy_api_common::{
+  context::LemmyContext,
+  federate_retry_sleep_duration,
+  lemmy_utils::settings::structs::FederationWorkerConfig,
+};
 use lemmy_db_schema::{
   newtypes::ActivityId,
   source::{
-    activity::SentActivity,
     federation_queue_state::FederationQueueState,
     instance::{Instance, InstanceForm},
   },
   utils::{naive_now, ActualDbPool, DbPool},
 };
-use once_cell::sync::Lazy;
-use reqwest::Url;
-use std::{
-  collections::BinaryHeap,
-  ops::{Add, Deref},
-  time::Duration,
-};
+use std::{collections::BinaryHeap, ops::Add, time::Duration};
 use tokio::{
   sync::mpsc::{self, UnboundedSender},
   time::sleep,
@@ -42,19 +29,14 @@ use tokio_util::sync::CancellationToken;
 /// Save state to db after this time has passed since the last state (so if the server crashes or is SIGKILLed, less than X seconds of activities are resent)
 static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(60);
 
-static CONCURRENT_SENDS: Lazy<i64> = Lazy::new(|| {
-  std::env::var("LEMMY_FEDERATION_CONCURRENT_SENDS_PER_INSTANCE")
-    .ok()
-    .and_then(|s| s.parse().ok())
-    .unwrap_or(8)
-});
 /// Maximum number of successful sends to allow out of order
 const MAX_SUCCESSFULS: usize = 1000;
 
 pub(crate) struct InstanceWorker {
   instance: Instance,
   stop: CancellationToken,
-  config: FederationConfig<LemmyContext>,
+  federation_lib_config: FederationConfig<LemmyContext>,
+  federation_worker_config: FederationWorkerConfig,
   stats_sender: UnboundedSender<(String, FederationQueueState)>,
   state: FederationQueueState,
   last_state_insert: DateTime<Utc>,
@@ -66,6 +48,7 @@ impl InstanceWorker {
   pub(crate) async fn init_and_loop(
     instance: Instance,
     config: FederationConfig<LemmyContext>,
+    federation_worker_config: FederationWorkerConfig,
     stop: CancellationToken,
     stats_sender: UnboundedSender<(String, FederationQueueState)>,
   ) -> Result<(), anyhow::Error> {
@@ -77,9 +60,10 @@ impl InstanceWorker {
         instance.id,
         instance.domain.clone(),
       ),
+      federation_worker_config,
       instance,
       stop,
-      config,
+      federation_lib_config: config,
       stats_sender,
       state,
       last_state_insert: Utc.timestamp_nanos(0),
@@ -108,7 +92,7 @@ impl InstanceWorker {
       // or (b) if we have too many successfuls in memory or (c) if we have too many in flight
       let need_wait_for_event = (in_flight != 0 && self.state.fail_count > 0)
         || successfuls.len() >= MAX_SUCCESSFULS
-        || in_flight >= *CONCURRENT_SENDS;
+        || in_flight >= self.federation_worker_config.concurrent_sends_per_instance;
       if need_wait_for_event || receive_send_result.len() > 4 {
         // if len() > 0 then this does not block and allows us to write to db more often
         // if len is 0 then this means we wait for something to change our above conditions,
@@ -312,7 +296,7 @@ impl InstanceWorker {
       return Ok(());
     }
     let initial_fail_count = self.state.fail_count;
-    let data = self.config.to_request_data();
+    let data = self.federation_lib_config.to_request_data();
     let stop = self.stop.clone();
     let domain = self.instance.domain.clone();
     tokio::spawn(async move {
