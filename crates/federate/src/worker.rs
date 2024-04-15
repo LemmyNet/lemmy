@@ -290,7 +290,8 @@ impl InstanceWorker {
     }
     Ok(())
   }
-  /// checks whether the highest successful id can be updated and writes to db if so
+  /// Checks that sequential activities `last_successful_id + 1`, `last_successful_id + 2` etc have been sent successfully.
+  /// In that case updates `last_successful_id` and saves the state to the database if the time since the last save is greater than `SAVE_STATE_EVERY_TIME`.
   async fn pop_successfuls_and_write(
     &mut self,
     successfuls: &mut BinaryHeap<SendSuccessInfo>,
@@ -355,7 +356,6 @@ impl InstanceWorker {
       }))?;
       return Ok(());
     }
-    let inbox_urls = inbox_urls.into_iter().collect();
     let initial_fail_count = self.state.fail_count;
     let data = self.config.to_request_data();
     let stop = self.stop.clone();
@@ -451,7 +451,7 @@ impl InstanceWorker {
   /// most often this will return 0 values (if instance doesn't care about the activity)
   /// or 1 value (the shared inbox)
   /// > 1 values only happens for non-lemmy software
-  async fn get_inbox_urls(&mut self, activity: &SentActivity) -> Result<HashSet<Url>> {
+  async fn get_inbox_urls(&mut self, activity: &SentActivity) -> Result<Vec<Url>> {
     let mut inbox_urls: HashSet<Url> = HashSet::new();
 
     if activity.send_all_instances {
@@ -477,7 +477,7 @@ impl InstanceWorker {
         .filter(|&u| (u.domain() == Some(&self.instance.domain)))
         .map(|u| u.inner().clone()),
     );
-    Ok(inbox_urls)
+    Ok(inbox_urls.into_iter().collect())
   }
 
   async fn update_communities(&mut self) -> Result<()> {
