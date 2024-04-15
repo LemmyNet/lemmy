@@ -79,15 +79,7 @@ async fn start_stop_federation_workers(
             let instance = instance.clone();
             let config = config.clone();
             let stats_sender = stats_sender.clone();
-            async move {
-              InstanceWorker::init_and_loop(
-                instance,
-                config,
-                stop,
-                stats_sender,
-              )
-              .await
-            }
+            async move { InstanceWorker::init_and_loop(instance, config, stop, stats_sender).await }
           }),
         );
       } else if !should_federate {

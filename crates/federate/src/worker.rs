@@ -231,7 +231,7 @@ impl InstanceWorker {
   /// get newest activity id and set it as last_successful_id if it's the first time this instance is seen
   async fn get_latest_id(&mut self) -> Result<ActivityId> {
     let latest_id = get_latest_activity_id(&mut self.pool()).await?;
-    if let None = self.state.last_successful_id {
+    if self.state.last_successful_id.is_none() {
       // this is the initial creation (instance first seen) of the federation queue for this instance
       // skip all past activities:
       self.state.last_successful_id = Some(latest_id);
@@ -247,7 +247,7 @@ impl InstanceWorker {
     successfuls: &mut BinaryHeap<SendSuccessInfo>,
     in_flight: &mut i64,
   ) -> Result<(), anyhow::Error> {
-    let force_write = false;
+    let mut force_write = false;
     let mut events = Vec::new();
     // wait for at least one event but if there's multiple handle them all
     receive_inbox_result.recv_many(&mut events, 1000).await;
@@ -266,6 +266,7 @@ impl InstanceWorker {
             // override fail count - if multiple activities are currently sending this value may get conflicting info but that's fine
             self.state.fail_count = fail_count;
             self.state.last_retry = Some(Utc::now());
+            force_write = true;
           }
         }
       }
@@ -378,11 +379,13 @@ impl InstanceWorker {
           ele.0.ap_id,
           e
         );
-        report.send(SendActivityResult::Success(SendSuccessInfo {
-          activity_id,
-          published: None,
-          was_skipped: true,
-        })).ok();
+        report
+          .send(SendActivityResult::Success(SendSuccessInfo {
+            activity_id,
+            published: None,
+            was_skipped: true,
+          }))
+          .ok();
       }
     });
     Ok(())
