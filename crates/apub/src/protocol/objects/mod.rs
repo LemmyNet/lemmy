@@ -190,4 +190,14 @@ mod tests {
     test_json::<Person>("assets/mobilizon/objects/person.json")?;
     Ok(())
   }
+
+  #[test]
+  fn test_parse_object_nodebb() -> LemmyResult<()> {
+    test_json::<Group>("assets/nodebb/objects/group.json")?;
+    dbg!(1);
+    test_json::<Page>("assets/nodebb/objects/page.json")?;
+    dbg!(2);
+    test_json::<Person>("assets/nodebb/objects/person.json")?;
+    Ok(())
+  }
 }
