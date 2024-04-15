@@ -1,5 +1,6 @@
 use crate::{
   inboxes::CommunityInboxCollector,
+  send::{SendActivityResult, SendRetryTask, SendSuccessInfo},
   util::{
     get_activity_cached,
     get_actor_cached,
@@ -59,30 +60,6 @@ pub(crate) struct InstanceWorker {
   last_state_insert: DateTime<Utc>,
   pool: ActualDbPool,
   inbox_collector: CommunityInboxCollector,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-struct SendSuccessInfo {
-  activity_id: ActivityId,
-  published: Option<DateTime<Utc>>,
-  was_skipped: bool,
-}
-impl PartialOrd for SendSuccessInfo {
-  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-    other.activity_id.partial_cmp(&self.activity_id)
-  }
-}
-impl Ord for SendSuccessInfo {
-  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-    other.activity_id.cmp(&self.activity_id)
-  }
-}
-enum SendActivityResult {
-  Success(SendSuccessInfo),
-  Failure {
-    fail_count: i32,
-    // activity_id: ActivityId,
-  },
 }
 
 impl InstanceWorker {
@@ -340,16 +317,17 @@ impl InstanceWorker {
     let domain = self.instance.domain.clone();
     tokio::spawn(async move {
       let mut report = report;
-      let res = InstanceWorker::send_retry_loop(
-        &ele.0,
-        &ele.1,
+      let res = SendRetryTask {
+        activity: &ele.0,
+        object: &ele.1,
         inbox_urls,
-        &mut report,
+        report: &mut report,
         initial_fail_count,
         domain,
-        data,
+        context: data,
         stop,
-      )
+      }
+      .send_retry_loop()
       .await;
       if let Err(e) = res {
         tracing::warn!(
@@ -366,65 +344,6 @@ impl InstanceWorker {
           .ok();
       }
     });
-    Ok(())
-  }
-
-  // this function will return successfully when (a) send succeeded or (b) worker cancelled
-  // and will return an error if an internal error occurred (send errors cause an infinite loop)
-  async fn send_retry_loop(
-    activity: &SentActivity,
-    object: &SharedInboxActivities,
-    inbox_urls: Vec<Url>,
-    report: &mut UnboundedSender<SendActivityResult>,
-    initial_fail_count: i32,
-    domain: String,
-    context: Data<LemmyContext>,
-    stop: CancellationToken,
-  ) -> Result<()> {
-    debug_assert!(!inbox_urls.is_empty());
-
-    let pool = &mut context.pool();
-    let Some(actor_apub_id) = &activity.actor_apub_id else {
-      return Err(anyhow::anyhow!("activity is from before lemmy 0.19"));
-    };
-    let actor = get_actor_cached(pool, activity.actor_type, actor_apub_id)
-      .await
-      .context("failed getting actor instance (was it marked deleted / removed?)")?;
-
-    let object = WithContext::new(object.clone(), FEDERATION_CONTEXT.deref().clone());
-    let requests = SendActivityTask::prepare(&object, actor.as_ref(), inbox_urls, &context).await?;
-    for task in requests {
-      // usually only one due to shared inbox
-      tracing::debug!("sending out {}", task);
-      let mut fail_count = initial_fail_count;
-      while let Err(e) = task.sign_and_send(&context).await {
-        fail_count += 1;
-        report.send(SendActivityResult::Failure {
-          fail_count,
-          // activity_id: activity.id,
-        })?;
-        let retry_delay: Duration = federate_retry_sleep_duration(fail_count);
-        tracing::info!(
-          "{}: retrying {:?} attempt {} with delay {retry_delay:.2?}. ({e})",
-          domain,
-          activity.id,
-          fail_count
-        );
-        tokio::select! {
-          () = sleep(retry_delay) => {},
-          () = stop.cancelled() => {
-            // save state to db and exit
-            // TODO: do we need to report state here to prevent hang on exit?
-            return Ok(());
-          }
-        }
-      }
-    }
-    report.send(SendActivityResult::Success(SendSuccessInfo {
-      activity_id: activity.id,
-      published: Some(activity.published),
-      was_skipped: false,
-    }))?;
     Ok(())
   }
 
