@@ -36,21 +36,7 @@ impl CustomEmojiView {
   }
 
   pub async fn get_all(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let emojis = custom_emoji::table
-      .left_join(
-        custom_emoji_keyword::table.on(custom_emoji_keyword::custom_emoji_id.eq(custom_emoji::id)),
-      )
-      .order(custom_emoji::category)
-      .then_order_by(custom_emoji::id)
-      .select((
-        custom_emoji::all_columns,
-        custom_emoji_keyword::all_columns.nullable(), // (or all the columns if you want)
-      ))
-      .load::<CustomEmojiTuple>(conn)
-      .await?;
-
-    Ok(CustomEmojiView::from_tuple_to_vec(emojis))
+    Self::list(pool, &None, None, None, true).await
   }
 
   pub async fn list(
@@ -74,12 +60,14 @@ impl CustomEmojiView {
     }
 
     if let Some(category) = category {
-      query = query.filter(custom_emoji::category.eq(category))
+      query = query
+        .filter(custom_emoji::category.eq(category))
+        .order(custom_emoji::category)
     }
 
+    query = query.then_order_by(custom_emoji::id);
+
     let emojis = query
-      .order(custom_emoji::category)
-      .then_order_by(custom_emoji::id)
       .select((
         custom_emoji::all_columns,
         custom_emoji_keyword::all_columns.nullable(), // (or all the columns if you want)
