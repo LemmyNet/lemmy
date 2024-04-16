@@ -13,9 +13,14 @@ use diesel::{
   pg::Pg,
   query_builder::{Query, QueryFragment},
   query_dsl::methods::LimitDsl,
-  result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
+  result::{
+    ConnectionError,
+    ConnectionResult,
+    Error::{self as DieselError, QueryBuilderError},
+  },
   sql_types::{self, Timestamptz},
   IntoSql,
+  OptionalExtension,
   PgConnection,
 };
 use diesel_async::{
@@ -510,12 +515,12 @@ impl<RF, LF> Queries<RF, LF> {
     self,
     pool: &'a mut DbPool<'_>,
     args: Args,
-  ) -> Result<T, DieselError>
+  ) -> Result<Option<T>, DieselError>
   where
     RF: ReadFn<'a, T, Args>,
   {
     let conn = get_conn(pool).await?;
-    (self.read_fn)(conn, args).await
+    (self.read_fn)(conn, args).await.optional()
   }
 
   pub async fn list<'a, T, Args>(

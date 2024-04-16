@@ -25,7 +25,9 @@ pub async fn remove_comment(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
   let comment_id = data.comment_id;
-  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
+  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   check_community_mod_action(
     &local_user_view.person,

@@ -23,7 +23,9 @@ pub async fn follow_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
+  let community = Community::read(&mut context.pool(), data.community_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
   let mut community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     person_id: local_user_view.person.id,
@@ -62,7 +64,10 @@ pub async fn follow_community(
   let community_id = data.community_id;
   let person_id = local_user_view.person.id;
   let community_view =
-    CommunityView::read(&mut context.pool(), community_id, Some(person_id), false).await?;
+    CommunityView::read(&mut context.pool(), community_id, Some(person_id), false)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+
   let discussion_languages = CommunityLanguage::read(&mut context.pool(), community_id).await?;
 
   Ok(Json(CommunityResponse {

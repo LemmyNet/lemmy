@@ -20,8 +20,9 @@ pub async fn change_password_after_reset(
   // Fetch the user_id from the token
   let token = data.token.clone();
   let local_user_id = PasswordResetRequest::read_from_token(&mut context.pool(), &token)
-    .await
-    .map(|p| p.local_user_id)?;
+    .await?
+    .ok_or(LemmyErrorType::TokenNotFound)?
+    .local_user_id;
 
   password_length_check(&data.password)?;
 

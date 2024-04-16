@@ -142,8 +142,8 @@ pub fn is_top_mod(
 #[tracing::instrument(skip_all)]
 pub async fn get_post(post_id: PostId, pool: &mut DbPool<'_>) -> LemmyResult<Post> {
   Post::read(pool, post_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntFindPost)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost.into())
 }
 
 #[tracing::instrument(skip_all)]
@@ -191,8 +191,8 @@ async fn check_community_deleted_removed(
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   let community = Community::read(pool, community_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
   if community.deleted || community.removed {
     Err(LemmyErrorType::Deleted)?
   }
@@ -663,7 +663,7 @@ pub async fn purge_image_posts_for_person(
 
 /// Delete a local_user's images
 async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
-  if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), person_id).await {
+  if let Ok(Some(local_user)) = LocalUserView::read_person(&mut context.pool(), person_id).await {
     let pictrs_uploads =
       LocalImageView::get_all_by_local_user_id(&mut context.pool(), local_user.local_user.id)
         .await?;
@@ -708,7 +708,9 @@ pub async fn remove_user_data(
 ) -> LemmyResult<()> {
   let pool = &mut context.pool();
   // Purge user images
-  let person = Person::read(pool, banned_person_id).await?;
+  let person = Person::read(pool, banned_person_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPerson)?;
   if let Some(avatar) = person.avatar {
     purge_image_from_pictrs(&avatar, context).await.ok();
   }
@@ -821,7 +823,9 @@ pub async fn remove_user_data_in_community(
 pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
   let pool = &mut context.pool();
 
-  let person = Person::read(pool, person_id).await?;
+  let person = Person::read(pool, person_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPerson)?;
 
   // Delete their local images, if they're a local user
   delete_local_user_images(person_id, context).await.ok();

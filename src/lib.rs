@@ -124,12 +124,12 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
 
   // Initialize the secrets
   let secret = Secret::init(&mut (&pool).into())
-    .await
+    .await?
     .expect("Couldn't initialize secrets.");
 
   // Make sure the local site is set up.
   let site_view = SiteView::read_local(&mut (&pool).into())
-    .await
+    .await?
     .expect("local site not set up");
   let local_site = site_view.local_site;
   let federation_enabled = local_site.federation_enabled;

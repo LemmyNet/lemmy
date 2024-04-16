@@ -22,7 +22,9 @@ pub async fn get_post(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPostResponse>> {
-  let local_site = SiteView::read_local(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
 
   check_private_instance(&local_user_view, &local_site.local_site)?;
 
@@ -33,15 +35,19 @@ pub async fn get_post(
     id
   } else if let Some(comment_id) = data.comment_id {
     Comment::read(&mut context.pool(), comment_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntFindPost)?
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindComment)?
       .post_id
   } else {
     Err(LemmyErrorType::CouldntFindPost)?
   };
 
   // Check to see if the person is a mod or admin, to show deleted / removed
-  let community_id = Post::read(&mut context.pool(), post_id).await?.community_id;
+  let community_id = Post::read(&mut context.pool(), post_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?
+    .community_id;
+
   let is_mod_or_admin = is_mod_or_admin_opt(
     &mut context.pool(),
     local_user_view.as_ref(),
@@ -51,8 +57,8 @@ pub async fn get_post(
   .is_ok();
 
   let post_view = PostView::read(&mut context.pool(), post_id, person_id, is_mod_or_admin)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntFindPost)?;
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
   // Mark the post as read
   let post_id = post_view.post.id;
@@ -67,8 +73,8 @@ pub async fn get_post(
     person_id,
     is_mod_or_admin,
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindCommunity)?;
 
   // Insert into PersonPostAggregates
   // to update the read_comments count

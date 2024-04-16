@@ -53,20 +53,36 @@ async fn convert_response(
   match object {
     Post(p) => {
       removed_or_deleted = p.deleted || p.removed;
-      res.post = Some(PostView::read(pool, p.id, user_id, false).await?)
+      res.post = Some(
+        PostView::read(pool, p.id, user_id, false)
+          .await?
+          .ok_or(LemmyErrorType::CouldntFindPost)?,
+      )
     }
     Comment(c) => {
       removed_or_deleted = c.deleted || c.removed;
-      res.comment = Some(CommentView::read(pool, c.id, user_id).await?)
+      res.comment = Some(
+        CommentView::read(pool, c.id, user_id)
+          .await?
+          .ok_or(LemmyErrorType::CouldntFindComment)?,
+      )
     }
     PersonOrCommunity(p) => match *p {
       UserOrCommunity::User(u) => {
         removed_or_deleted = u.deleted;
-        res.person = Some(PersonView::read(pool, u.id).await?)
+        res.person = Some(
+          PersonView::read(pool, u.id)
+            .await?
+            .ok_or(LemmyErrorType::CouldntFindPerson)?,
+        )
       }
       UserOrCommunity::Community(c) => {
         removed_or_deleted = c.deleted || c.removed;
-        res.community = Some(CommunityView::read(pool, c.id, user_id, false).await?)
+        res.community = Some(
+          CommunityView::read(pool, c.id, user_id, false)
+            .await?
+            .ok_or(LemmyErrorType::CouldntFindCommunity)?,
+        )
       }
     },
   };

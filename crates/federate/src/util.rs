@@ -151,7 +151,6 @@ pub(crate) async fn get_activity_cached(
     .try_get_with(activity_id, async {
       let row = SentActivity::read(pool, activity_id)
         .await
-        .optional()
         .context("could not read activity")?;
       let Some(mut row) = row else {
         return anyhow::Result::<_, anyhow::Error>::Ok(None);

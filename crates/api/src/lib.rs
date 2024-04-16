@@ -252,7 +252,9 @@ pub async fn local_user_view_from_jwt(
   let local_user_id = Claims::validate(jwt, context)
     .await
     .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
-  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
+  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
   check_user_valid(&local_user_view.person)?;
 
   Ok(local_user_view)

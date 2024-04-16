@@ -23,7 +23,10 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  LemmyErrorType,
+};
 use serde::Deserialize;
 use url::Url;
 
@@ -134,7 +137,13 @@ pub(crate) async fn send_ban_from_site(
   expires: Option<i64>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let site = SiteOrCommunity::Site(SiteView::read_local(&mut context.pool()).await?.site.into());
+  let site = SiteOrCommunity::Site(
+    SiteView::read_local(&mut context.pool())
+      .await?
+      .ok_or(LemmyErrorType::LocalSiteNotSetup)?
+      .site
+      .into(),
+  );
   let expires = check_expire_time(expires)?;
 
   // if the action affects a local user, federate to other instances
@@ -174,6 +183,7 @@ pub(crate) async fn send_ban_from_community(
 ) -> LemmyResult<()> {
   let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
     .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?
     .into();
   let expires = check_expire_time(data.expires)?;
 

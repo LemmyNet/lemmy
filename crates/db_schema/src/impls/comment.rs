@@ -1,5 +1,5 @@
 use crate::{
-  diesel::DecoratableTarget,
+  diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{CommentId, DbUrl, PersonId},
   schema::comment,
   source::comment::{
@@ -155,14 +155,11 @@ where ca.comment_id = c.id"
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
-    Ok(
-      comment::table
-        .filter(comment::ap_id.eq(object_id))
-        .first::<Comment>(conn)
-        .await
-        .ok()
-        .map(Into::into),
-    )
+    comment::table
+      .filter(comment::ap_id.eq(object_id))
+      .first(conn)
+      .await
+      .optional()
   }
 
   pub fn parent_comment_id(&self) -> Option<CommentId> {
@@ -400,7 +397,10 @@ mod tests {
       .await
       .unwrap();
 
-    let read_comment = Comment::read(pool, inserted_comment.id).await.unwrap();
+    let read_comment = Comment::read(pool, inserted_comment.id)
+      .await
+      .unwrap()
+      .unwrap();
     let like_removed = CommentLike::remove(pool, inserted_person.id, inserted_comment.id)
       .await
       .unwrap();

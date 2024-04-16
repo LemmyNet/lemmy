@@ -1,5 +1,6 @@
 use crate::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
+  diesel::OptionalExtension,
   newtypes::{PersonId, PostId},
   schema::person_post_aggregates::dsl::{person_id, person_post_aggregates, post_id},
   utils::{get_conn, DbPool},
@@ -25,11 +26,12 @@ impl PersonPostAggregates {
     pool: &mut DbPool<'_>,
     person_id_: PersonId,
     post_id_: PostId,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     person_post_aggregates
       .find((person_id_, post_id_))
-      .first::<Self>(conn)
+      .first(conn)
       .await
+      .optional()
   }
 }

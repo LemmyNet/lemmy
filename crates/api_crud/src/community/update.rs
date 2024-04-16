@@ -43,7 +43,9 @@ pub async fn update_community(
   let description =
     process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&data.description, false)?;
-  let old_community = Community::read(&mut context.pool(), data.community_id).await?;
+  let old_community = Community::read(&mut context.pool(), data.community_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
   replace_image(&data.icon, &old_community.icon, &context).await?;
   replace_image(&data.banner, &old_community.banner, &context).await?;
 
