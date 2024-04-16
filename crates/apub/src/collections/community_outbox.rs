@@ -23,7 +23,10 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::FETCH_LIMIT_MAX,
 };
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  LemmyErrorType,
+};
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -47,6 +50,7 @@ impl Collection for ApubCommunityOutbox {
     for post in post_list {
       let person = Person::read(&mut data.pool(), post.creator_id)
         .await?
+        .ok_or(LemmyErrorType::CouldntFindPerson)?
         .into();
       let create =
         CreateOrUpdatePage::new(post, &person, owner, CreateOrUpdateType::Create, data).await?;

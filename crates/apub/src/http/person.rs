@@ -14,7 +14,7 @@ use activitypub_federation::{
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_db_schema::{source::person::Person, traits::ApubActor};
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -32,6 +32,7 @@ pub(crate) async fn get_apub_person_http(
   // TODO: this needs to be able to read deleted persons, so that it can send tombstones
   let person: ApubPerson = Person::read_from_name(&mut context.pool(), &user_name, true)
     .await?
+    .ok_or(LemmyErrorType::CouldntFindPerson)?
     .into();
 
   if !person.deleted {
@@ -60,7 +61,9 @@ pub(crate) async fn get_apub_person_outbox(
   info: web::Path<PersonQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let person = Person::read_from_name(&mut context.pool(), &info.user_name, false).await?;
+  let person = Person::read_from_name(&mut context.pool(), &info.user_name, false)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPerson)?;
   let outbox_id = generate_outbox_url(&person.actor_id)?.into();
   let outbox = EmptyOutbox::new(outbox_id)?;
   create_apub_response(&outbox)

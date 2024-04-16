@@ -1,4 +1,5 @@
 use crate::{
+  diesel::OptionalExtension,
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   schema::{comment, community, instance, local_user, person, person_follower, post},
   source::person::{
@@ -19,13 +20,16 @@ impl Crud for Person {
   type InsertForm = PersonInsertForm;
   type UpdateForm = PersonUpdateForm;
   type IdType = PersonId;
-  async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
+
+  // Override this, so that you don't get back deleted
+  async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     person::table
       .filter(person::deleted.eq(false))
       .find(person_id)
-      .first::<Self>(conn)
+      .first(conn)
       .await
+      .optional()
   }
 
   async fn create(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
@@ -126,22 +130,19 @@ impl ApubActor for Person {
     object_id: &DbUrl,
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    Ok(
-      person::table
-        .filter(person::deleted.eq(false))
-        .filter(person::actor_id.eq(object_id))
-        .first::<Person>(conn)
-        .await
-        .ok()
-        .map(Into::into),
-    )
+    person::table
+      .filter(person::deleted.eq(false))
+      .filter(person::actor_id.eq(object_id))
+      .first(conn)
+      .await
+      .optional()
   }
 
   async fn read_from_name(
     pool: &mut DbPool<'_>,
     from_name: &str,
     include_deleted: bool,
-  ) -> Result<Person, Error> {
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let mut q = person::table
       .into_boxed()
@@ -150,14 +151,14 @@ impl ApubActor for Person {
     if !include_deleted {
       q = q.filter(person::deleted.eq(false))
     }
-    q.first::<Self>(conn).await
+    q.first(conn).await.optional()
   }
 
   async fn read_from_name_and_domain(
     pool: &mut DbPool<'_>,
     person_name: &str,
     for_domain: &str,
-  ) -> Result<Person, Error> {
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
 
     person::table
@@ -165,8 +166,9 @@ impl ApubActor for Person {
       .filter(lower(person::name).eq(person_name.to_lowercase()))
       .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
       .select(person::all_columns)
-      .first::<Self>(conn)
+      .first(conn)
       .await
+      .optional()
   }
 }
 
@@ -269,7 +271,10 @@ mod tests {
       instance_id: inserted_instance.id,
     };
 
-    let read_person = Person::read(pool, inserted_person.id).await.unwrap();
+    let read_person = Person::read(pool, inserted_person.id)
+      .await
+      .unwrap()
+      .unwrap();
 
     let update_person_form = PersonUpdateForm {
       actor_id: Some(inserted_person.actor_id.clone()),

@@ -245,7 +245,9 @@ pub async fn match_outgoing_activities(
         CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Update, context).await
       }
       DeletePost(post, person, data) => {
-        let community = Community::read(&mut context.pool(), post.community_id).await?;
+        let community = Community::read(&mut context.pool(), post.community_id)
+          .await?
+          .ok_or(LemmyErrorType::CouldntFindCommunity)?;
         send_apub_delete_in_community(
           person,
           community,
@@ -262,7 +264,9 @@ pub async fn match_outgoing_activities(
         reason,
         removed,
       } => {
-        let community = Community::read(&mut context.pool(), post.community_id).await?;
+        let community = Community::read(&mut context.pool(), post.community_id)
+          .await?
+          .ok_or(LemmyErrorType::CouldntFindCommunity)?;
         send_apub_delete_in_community(
           moderator,
           community,

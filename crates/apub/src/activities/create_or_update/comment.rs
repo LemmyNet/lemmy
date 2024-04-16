@@ -42,6 +42,7 @@ use lemmy_db_schema::{
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
+  LemmyErrorType,
 };
 use url::Url;
 
@@ -55,11 +56,17 @@ impl CreateOrUpdateNote {
   ) -> LemmyResult<()> {
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
-    let post = Post::read(&mut context.pool(), post_id).await?;
+    let post = Post::read(&mut context.pool(), post_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPost)?;
     let community_id = post.community_id;
-    let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
+    let person: ApubPerson = Person::read(&mut context.pool(), person_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?
+      .into();
     let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
       .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?
       .into();
 
     let id = generate_activity_id(

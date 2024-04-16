@@ -56,8 +56,8 @@ pub async fn get_community(
     person_id,
     is_mod_or_admin,
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindCommunity)?;
 
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id)
     .await

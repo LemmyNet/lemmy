@@ -17,7 +17,9 @@ pub async fn generate_totp_secret(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<GenerateTotpSecretResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
 
   if local_user_view.local_user.totp_2fa_enabled {
     return Err(LemmyErrorType::TotpAlreadyEnabled)?;

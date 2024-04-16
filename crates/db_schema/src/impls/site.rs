@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{DbUrl, InstanceId, SiteId},
-  schema::site::dsl::{actor_id, id, instance_id, site},
+  schema::site,
   source::{
     actor_language::SiteLanguage,
     site::{Site, SiteInsertForm, SiteUpdateForm},
@@ -19,7 +19,7 @@ impl Crud for Site {
   type IdType = SiteId;
 
   /// Use SiteView::read_local, or Site::read_from_apub_id instead
-  async fn read(_pool: &mut DbPool<'_>, _site_id: SiteId) -> Result<Self, Error> {
+  async fn read(_pool: &mut DbPool<'_>, _site_id: SiteId) -> Result<Option<Self>, Error> {
     unimplemented!()
   }
 
@@ -31,9 +31,9 @@ impl Crud for Site {
     let conn = &mut get_conn(pool).await?;
 
     // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
-    let site_ = insert_into(site)
+    let site_ = insert_into(site::table)
       .values(form)
-      .on_conflict(actor_id)
+      .on_conflict(site::actor_id)
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
@@ -53,7 +53,7 @@ impl Crud for Site {
     new_site: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(site.find(site_id))
+    diesel::update(site::table.find(site_id))
       .set(new_site)
       .get_result::<Self>(conn)
       .await
@@ -66,9 +66,9 @@ impl Site {
     _instance_id: InstanceId,
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    site
-      .filter(instance_id.eq(_instance_id))
-      .get_result(conn)
+    site::table
+      .filter(site::instance_id.eq(_instance_id))
+      .first(conn)
       .await
       .optional()
   }
@@ -78,17 +78,20 @@ impl Site {
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    site
-      .filter(actor_id.eq(object_id))
-      .first::<Site>(conn)
+    site::table
+      .filter(site::actor_id.eq(object_id))
+      .first(conn)
       .await
       .optional()
-      .map(Into::into)
   }
 
   pub async fn read_remote_sites(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    site.order_by(id).offset(1).get_results::<Self>(conn).await
+    site::table
+      .order_by(site::id)
+      .offset(1)
+      .get_results::<Self>(conn)
+      .await
   }
 
   /// Instance actor is at the root path, so we simply need to clear the path and other unnecessary

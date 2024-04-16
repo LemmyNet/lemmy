@@ -33,7 +33,9 @@ pub async fn add_mod_to_community(
     &mut context.pool(),
   )
   .await?;
-  let community = Community::read(&mut context.pool(), community_id).await?;
+  let community = Community::read(&mut context.pool(), community_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
   if local_user_view.local_user.admin && !community.local {
     Err(LemmyErrorType::NotAModerator)?
   }

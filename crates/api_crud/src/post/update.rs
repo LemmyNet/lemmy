@@ -70,7 +70,9 @@ pub async fn update_post(
   check_url_scheme(&custom_thumbnail)?;
 
   let post_id = data.post_id;
-  let orig_post = Post::read(&mut context.pool(), post_id).await?;
+  let orig_post = Post::read(&mut context.pool(), post_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
   check_community_user_action(
     &local_user_view.person,

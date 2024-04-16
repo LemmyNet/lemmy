@@ -31,7 +31,10 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Joinable},
 };
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  LemmyErrorType,
+};
 use url::Url;
 
 impl CollectionRemove {
@@ -121,7 +124,9 @@ impl ActivityHandler for CollectionRemove {
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =
-      Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
+      Community::get_by_collection_url(&mut context.pool(), &self.target.into())
+        .await?
+        .ok_or(LemmyErrorType::CouldntFindCommunity)?;
     match collection_type {
       CollectionType::Moderators => {
         let remove_mod = ObjectId::<ApubPerson>::from(self.object)

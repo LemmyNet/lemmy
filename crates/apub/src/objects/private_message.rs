@@ -79,10 +79,14 @@ impl Object for ApubPrivateMessage {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<ChatMessage> {
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut context.pool(), creator_id).await?;
+    let creator = Person::read(&mut context.pool(), creator_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?;
 
     let recipient_id = self.recipient_id;
-    let recipient = Person::read(&mut context.pool(), recipient_id).await?;
+    let recipient = Person::read(&mut context.pool(), recipient_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?;
 
     let note = ChatMessage {
       r#type: ChatMessageType::ChatMessage,

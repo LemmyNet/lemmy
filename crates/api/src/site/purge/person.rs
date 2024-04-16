@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn purge_person(
@@ -27,7 +27,9 @@ pub async fn purge_person(
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 
-  let person = Person::read(&mut context.pool(), data.person_id).await?;
+  let person = Person::read(&mut context.pool(), data.person_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPerson)?;
   ban_nonlocal_user_from_local_communities(
     &local_user_view,
     &person,
