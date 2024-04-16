@@ -8,6 +8,7 @@ use lemmy_db_schema::{
     community::Community,
     custom_emoji::CustomEmoji,
     custom_emoji_keyword::CustomEmojiKeyword,
+    images::LocalImage,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_user::LocalUser,
@@ -213,4 +214,15 @@ pub struct VoteView {
   pub creator: Person,
   pub creator_banned_from_community: bool,
   pub score: i16,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A local image view.
+pub struct LocalImageView {
+  pub local_image: LocalImage,
+  pub local_user: LocalUser,
+  pub person: Person,
 }

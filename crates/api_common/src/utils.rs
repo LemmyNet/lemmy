@@ -12,7 +12,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityModerator, CommunityUpdateForm},
     community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
-    images::{LocalImage, RemoteImage},
+    images::RemoteImage,
     instance::Instance,
     instance_block::InstanceBlock,
     local_site::LocalSite,
@@ -27,7 +27,10 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
+use lemmy_db_views::{
+  comment_view::CommentQuery,
+  structs::{LocalImageView, LocalUserView},
+};
 use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
   CommunityPersonBanView,
@@ -662,13 +665,18 @@ pub async fn purge_image_posts_for_person(
 async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
   if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), person_id).await {
     let pictrs_uploads =
-      LocalImage::get_all_by_local_user_id(&mut context.pool(), local_user.local_user.id).await?;
+      LocalImageView::get_all_by_local_user_id(&mut context.pool(), local_user.local_user.id)
+        .await?;
 
     // Delete their images
     for upload in pictrs_uploads {
-      delete_image_from_pictrs(&upload.pictrs_alias, &upload.pictrs_delete_token, context)
-        .await
-        .ok();
+      delete_image_from_pictrs(
+        &upload.local_image.pictrs_alias,
+        &upload.local_image.pictrs_delete_token,
+        context,
+      )
+      .await
+      .ok();
     }
   }
   Ok(())

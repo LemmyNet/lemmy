@@ -887,8 +887,8 @@ export async function deleteAllImages(api: LemmyHttp) {
 
   for (const image of imagesRes.images) {
     const form: DeleteImage = {
-      token: image.pictrs_delete_token,
-      filename: image.pictrs_alias,
+      token: image.local_image.pictrs_delete_token,
+      filename: image.local_image.pictrs_alias,
     };
     await api.deleteImage(form);
   }
