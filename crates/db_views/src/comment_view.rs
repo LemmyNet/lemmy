@@ -418,10 +418,8 @@ impl<'a> CommentQuery<'a> {
         .list(pool, self)
         .await?
         .into_iter()
-        //filtering out removed comments from search results
-        .filter(|c| !c.comment.removed)
         .map(|mut c| {
-          if c.comment.deleted {
+          if c.comment.deleted || c.comment.removed {
             c.comment.content = String::new();
           }
           c
