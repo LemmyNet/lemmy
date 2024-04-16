@@ -201,6 +201,12 @@ pub async fn search(
     }
   };
 
+  //filtering out removed comments from search results
+  let comments = comments
+    .into_iter()
+    .filter(|c| !c.comment.removed)
+    .collect();
+
   // Return the jwt
   Ok(Json(SearchResponse {
     type_: search_type,
