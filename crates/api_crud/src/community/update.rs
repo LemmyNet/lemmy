@@ -25,7 +25,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
 };
 
@@ -34,7 +34,7 @@ pub async fn update_community(
   data: Json<EditCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommunityResponse>, LemmyError> {
+) -> LemmyResult<Json<CommunityResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
@@ -43,7 +43,9 @@ pub async fn update_community(
   let description =
     process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&data.description, false)?;
-  let old_community = Community::read(&mut context.pool(), data.community_id).await?;
+  let old_community = Community::read(&mut context.pool(), data.community_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
   replace_image(&data.icon, &old_community.icon, &context).await?;
   replace_image(&data.banner, &old_community.banner, &context).await?;
 

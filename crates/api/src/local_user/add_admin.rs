@@ -13,21 +13,21 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn add_admin(
   data: Json<AddAdmin>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<AddAdminResponse>, LemmyError> {
+) -> LemmyResult<Json<AddAdminResponse>> {
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
   // Make sure that the person_id added is local
   let added_local_user = LocalUserView::read_person(&mut context.pool(), data.person_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::ObjectNotLocal)?;
+    .await?
+    .ok_or(LemmyErrorType::ObjectNotLocal)?;
 
   let added_admin = LocalUser::update(
     &mut context.pool(),

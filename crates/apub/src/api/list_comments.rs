@@ -15,14 +15,14 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn list_comments(
   data: Query<GetComments>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> Result<Json<GetCommentsResponse>, LemmyError> {
+) -> LemmyResult<Json<GetCommentsResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
   check_private_instance(&local_user_view, &local_site)?;
 
@@ -58,7 +58,12 @@ pub async fn list_comments(
 
   // If a parent_id is given, fetch the comment to get the path
   let parent_path = if let Some(parent_id) = parent_id {
-    Some(Comment::read(&mut context.pool(), parent_id).await?.path)
+    Some(
+      Comment::read(&mut context.pool(), parent_id)
+        .await?
+        .ok_or(LemmyErrorType::CouldntFindComment)?
+        .path,
+    )
   } else {
     None
   };

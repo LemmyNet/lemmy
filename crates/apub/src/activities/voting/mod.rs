@@ -21,7 +21,7 @@ use lemmy_db_schema::{
   },
   traits::Likeable,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 pub mod undo_vote;
 pub mod vote;
@@ -32,7 +32,7 @@ pub(crate) async fn send_like_activity(
   community: Community,
   score: i16,
   context: Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let object_id: ObjectId<PostOrComment> = object_id.into();
   let actor: ApubPerson = actor.into();
   let community: ApubCommunity = community.into();
@@ -58,7 +58,7 @@ async fn vote_comment(
   actor: ApubPerson,
   comment: &ApubComment,
   context: &Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let comment_id = comment.id;
   let like_form = CommentLikeForm {
     comment_id,
@@ -78,7 +78,7 @@ async fn vote_post(
   actor: ApubPerson,
   post: &ApubPost,
   context: &Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let post_id = post.id;
   let like_form = PostLikeForm {
     post_id: post.id,
@@ -96,7 +96,7 @@ async fn undo_vote_comment(
   actor: ApubPerson,
   comment: &ApubComment,
   context: &Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let comment_id = comment.id;
   let person_id = actor.id;
   CommentLike::remove(&mut context.pool(), person_id, comment_id).await?;
@@ -108,7 +108,7 @@ async fn undo_vote_post(
   actor: ApubPerson,
   post: &ApubPost,
   context: &Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let post_id = post.id;
   let person_id = actor.id;
   PostLike::remove(&mut context.pool(), person_id, post_id).await?;

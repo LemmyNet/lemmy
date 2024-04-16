@@ -30,7 +30,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
 };
 
@@ -41,7 +41,7 @@ pub async fn create_comment(
   data: Json<CreateComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommentResponse>, LemmyError> {
+) -> LemmyResult<Json<CommentResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
@@ -70,7 +70,8 @@ pub async fn create_comment(
     Comment::read(&mut context.pool(), parent_id).await.ok()
   } else {
     None
-  };
+  }
+  .flatten();
 
   // If there's a parent_id, check to make sure that comment is in that post
   // Strange issue where sometimes the post ID of the parent comment is incorrect
@@ -172,7 +173,7 @@ pub async fn create_comment(
     let parent_id = parent.id;
     let comment_reply =
       CommentReply::read_by_comment_and_person(&mut context.pool(), parent_id, person_id).await;
-    if let Ok(reply) = comment_reply {
+    if let Ok(Some(reply)) = comment_reply {
       CommentReply::update(
         &mut context.pool(),
         reply.id,
@@ -185,7 +186,7 @@ pub async fn create_comment(
     // If the parent has PersonMentions mark them as read too
     let person_mention =
       PersonMention::read_by_comment_and_person(&mut context.pool(), parent_id, person_id).await;
-    if let Ok(mention) = person_mention {
+    if let Ok(Some(mention)) = person_mention {
       PersonMention::update(
         &mut context.pool(),
         mention.id,
@@ -207,7 +208,7 @@ pub async fn create_comment(
   ))
 }
 
-pub fn check_comment_depth(comment: &Comment) -> Result<(), LemmyError> {
+pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
   let path = &comment.path.0;
   let length = path.split('.').count();
   if length > MAX_COMMENT_DEPTH_LIMIT {

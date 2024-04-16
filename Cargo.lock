@@ -16,9 +16,9 @@ checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 
 [[package]]
 name = "activitypub_federation"
-version = "0.5.2"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a028034c642d3ed16b535f98f48b3df30397833c183d68852d79de16650d5ed5"
+checksum = "6e16130d5914e6483f99bde5a9bb97ca62e1f359e0b9791c8ebd5c7abd50fe8e"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
@@ -2612,7 +2612,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lemmy_api"
-version = "0.19.4-beta.2"
+version = "0.19.4-beta.3"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2641,7 +2641,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.19.4-beta.2"
+version = "0.19.4-beta.3"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2679,7 +2679,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "0.19.4-beta.2"
+version = "0.19.4-beta.3"
 dependencies = [
  "accept-language",
  "activitypub_federation",
@@ -2702,7 +2702,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "0.19.4-beta.2"
+version = "0.19.4-beta.3"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2740,7 +2740,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_perf"
-version = "0.19.4-beta.2"
+version = "0.19.4-beta.3"
 dependencies = [
  "anyhow",
  "clap",
@@ -2755,7 +2755,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.19.4-beta.2"
+version = "0.19.4-beta.3"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -2795,7 +2795,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.19.4-beta.2"
+version = "0.19.4-beta.3"
 dependencies = [
  "actix-web",
  "chrono",
@@ -2817,7 +2817,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_actor"
-version = "0.19.4-beta.2"
+version = "0.19.4-beta.3"
 dependencies = [
  "chrono",
  "diesel",
@@ -2837,7 +2837,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_moderator"
-version = "0.19.4-beta.2"
+version = "0.19.4-beta.3"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2849,7 +2849,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_federate"
-version = "0.19.4-beta.2"
+version = "0.19.4-beta.3"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -2872,7 +2872,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "0.19.4-beta.2"
+version = "0.19.4-beta.3"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2897,7 +2897,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "0.19.4-beta.2"
+version = "0.19.4-beta.3"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -2940,7 +2940,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.19.4-beta.2"
+version = "0.19.4-beta.3"
 dependencies = [
  "actix-web",
  "anyhow",

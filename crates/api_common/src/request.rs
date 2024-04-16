@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorType, LemmyResult},
   settings::structs::{PictrsImageMode, Settings},
   spawn_try_task,
   REQWEST_TIMEOUT,
@@ -46,7 +46,7 @@ pub async fn fetch_link_metadata(
   url: &Url,
   generate_thumbnail: bool,
   context: &LemmyContext,
-) -> Result<LinkMetadata, LemmyError> {
+) -> LemmyResult<LinkMetadata> {
   info!("Fetching site metadata for url: {}", url);
   let response = context.client().get(url.as_str()).send().await?;
 
@@ -97,29 +97,46 @@ pub fn generate_post_link_metadata(
   context: Data<LemmyContext>,
 ) {
   spawn_try_task(async move {
+    // Decide if the thumbnail should be generated
     let allow_sensitive = local_site_opt_to_sensitive(&local_site);
     let page_is_sensitive = post.nsfw;
     let allow_generate_thumbnail = allow_sensitive || !page_is_sensitive;
-    let mut thumbnail_url = custom_thumbnail.or_else(|| post.thumbnail_url.map(Into::into));
-    let do_generate_thumbnail = thumbnail_url.is_none() && allow_generate_thumbnail;
+    let do_generate_thumbnail =
+      allow_generate_thumbnail && custom_thumbnail.is_none() && post.thumbnail_url.is_none();
 
     // Generate local thumbnail only if no thumbnail was federated and 'sensitive' attributes allow it.
     let metadata = fetch_link_metadata_opt(
-      post.url.map(Into::into).as_ref(),
+      post.url.as_ref().map(DbUrl::inner),
       do_generate_thumbnail,
       &context,
     )
     .await;
-    if let Some(thumbnail_url_) = metadata.thumbnail {
-      thumbnail_url = Some(thumbnail_url_.into());
-    }
-    let thumbnail_url = proxy_image_link_opt_apub(thumbnail_url, &context).await?;
+
+    // If its an image post, it needs to overwrite the thumbnail, and take precedence
+    let image_url = if metadata
+      .content_type
+      .as_ref()
+      .is_some_and(|content_type| content_type.starts_with("image"))
+    {
+      post.url.map(Into::into)
+    } else {
+      None
+    };
+
+    // Build the thumbnail url based on either the post image url, custom thumbnail, metadata fetch, or existing thumbnail.
+    let thumbnail_url = image_url
+      .or(custom_thumbnail)
+      .or(metadata.thumbnail.map(Into::into))
+      .or(post.thumbnail_url.map(Into::into));
+
+    // Proxy the image fetch if necessary
+    let proxied_thumbnail_url = proxy_image_link_opt_apub(thumbnail_url, &context).await?;
 
     let form = PostUpdateForm {
       embed_title: Some(metadata.opengraph_data.title),
       embed_description: Some(metadata.opengraph_data.description),
       embed_video_url: Some(metadata.opengraph_data.embed_video_url),
-      thumbnail_url: Some(thumbnail_url),
+      thumbnail_url: Some(proxied_thumbnail_url),
       url_content_type: Some(metadata.content_type),
       ..Default::default()
     };
@@ -132,7 +149,7 @@ pub fn generate_post_link_metadata(
 }
 
 /// Extract site metadata from HTML Opengraph attributes.
-fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> Result<OpenGraphData, LemmyError> {
+fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraphData> {
   let html = String::from_utf8_lossy(html_bytes);
 
   // Make sure the first line is doctype html
@@ -240,10 +257,7 @@ struct PictrsPurgeResponse {
 /// - It might fail due to image being not local
 /// - It might not be an image
 /// - Pictrs might not be set up
-pub async fn purge_image_from_pictrs(
-  image_url: &Url,
-  context: &LemmyContext,
-) -> Result<(), LemmyError> {
+pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) -> LemmyResult<()> {
   is_image_content_type(context.client(), image_url).await?;
 
   let alias = image_url
@@ -278,7 +292,7 @@ pub async fn delete_image_from_pictrs(
   alias: &str,
   delete_token: &str,
   context: &LemmyContext,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let pictrs_config = context.settings().pictrs_config()?;
   let url = format!(
     "{}image/delete/{}/{}",
@@ -296,15 +310,16 @@ pub async fn delete_image_from_pictrs(
 
 /// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
 #[tracing::instrument(skip_all)]
-async fn generate_pictrs_thumbnail(
-  image_url: &Url,
-  context: &LemmyContext,
-) -> Result<Url, LemmyError> {
+async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> LemmyResult<Url> {
   let pictrs_config = context.settings().pictrs_config()?;
 
-  if pictrs_config.image_mode() == PictrsImageMode::ProxyAllImages {
-    return Ok(proxy_image_link(image_url.clone(), context).await?.into());
-  }
+  match pictrs_config.image_mode() {
+    PictrsImageMode::None => return Ok(image_url.clone()),
+    PictrsImageMode::ProxyAllImages => {
+      return Ok(proxy_image_link(image_url.clone(), context).await?.into())
+    }
+    _ => {}
+  };
 
   // fetch remote non-pictrs images for persistent thumbnail link
   // TODO: should limit size once supported by pictrs
@@ -345,7 +360,7 @@ async fn generate_pictrs_thumbnail(
 
 // TODO: get rid of this by reading content type from db
 #[tracing::instrument(skip_all)]
-async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Result<(), LemmyError> {
+async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> LemmyResult<()> {
   let response = client.get(url.as_str()).send().await?;
   if response
     .headers()
@@ -365,7 +380,7 @@ pub async fn replace_image(
   new_image: &Option<String>,
   old_image: &Option<DbUrl>,
   context: &Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   if new_image.is_some() {
     // Ignore errors because image may be stored externally.
     if let Some(avatar) = &old_image {

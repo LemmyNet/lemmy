@@ -26,6 +26,7 @@ use diesel::{
   result::Error,
   ExpressionMethods,
   NullableExpressionMethods,
+  OptionalExtension,
   QueryDsl,
   SelectableHelper,
 };
@@ -41,11 +42,14 @@ impl Instance {
     // First try to read the instance row and return directly if found
     let instance = instance::table
       .filter(lower(domain).eq(&domain_.to_lowercase()))
-      .first::<Self>(conn)
-      .await;
+      .first(conn)
+      .await
+      .optional()?;
+
+    // TODO could convert this to unwrap_or_else once async closures are stable
     match instance {
-      Ok(i) => Ok(i),
-      Err(diesel::NotFound) => {
+      Some(i) => Ok(i),
+      None => {
         // Instance not in database yet, insert it
         let form = InstanceForm::builder()
           .domain(domain_)
@@ -61,7 +65,6 @@ impl Instance {
           .get_result::<Self>(conn)
           .await
       }
-      e => e,
     }
   }
   pub async fn update(
