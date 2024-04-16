@@ -223,6 +223,5 @@ pub struct VoteView {
 /// A local image view.
 pub struct LocalImageView {
   pub local_image: LocalImage,
-  pub local_user: LocalUser,
   pub person: Person,
 }

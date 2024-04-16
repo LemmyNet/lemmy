@@ -19,11 +19,7 @@ impl LocalImageView {
     let mut query = local_image::table
       .inner_join(local_user::table)
       .inner_join(person::table.on(local_user::person_id.eq(person::id)))
-      .select((
-        local_image::all_columns,
-        local_user::all_columns,
-        person::all_columns,
-      ))
+      .select((local_image::all_columns, person::all_columns))
       .order_by(local_image::published.desc())
       .into_boxed();
 
