@@ -71,8 +71,13 @@ test("Upload image and delete it", async () => {
 
   // The deleteUrl is a combination of the endpoint, delete token, and alias
   let firstImage = listMediaRes.images[0];
-  let deleteUrl = `${alphaUrl}/pictrs/image/delete/${firstImage.pictrs_delete_token}/${firstImage.pictrs_alias}`;
+  let deleteUrl = `${alphaUrl}/pictrs/image/delete/${firstImage.local_image.pictrs_delete_token}/${firstImage.local_image.pictrs_alias}`;
   expect(deleteUrl).toBe(upload.delete_url);
+
+  // Make sure the uploader is correct
+  expect(firstImage.person.actor_id).toBe(
+    `http://lemmy-alpha:8541/u/lemmy_alpha`,
+  );
 
   // delete image
   const delete_form: DeleteImage = {
