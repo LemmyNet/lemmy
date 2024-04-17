@@ -280,6 +280,7 @@ impl Object for ApubPost {
 
     generate_post_link_metadata(
       post.clone(),
+      None,
       page.image.map(|i| i.url),
       |_| None,
       local_site,

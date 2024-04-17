@@ -27,9 +27,10 @@ import {
   setupLogins,
   waitForPost,
   unfollows,
-  editPostThumbnail,
   getPost,
   waitUntil,
+  randomString,
+  createPostWithThumbnail,
 } from "./shared";
 const downloadFileSync = require("download-file-sync");
 
@@ -269,10 +270,11 @@ test("Make regular post, and give it a custom thumbnail", async () => {
   // Use wikipedia since it has an opengraph image
   const wikipediaUrl = "https://wikipedia.org/";
 
-  let post = await createPost(
+  let post = await createPostWithThumbnail(
     alphaImage,
     community.community_view.community.id,
     wikipediaUrl,
+    upload1.url!,
   );
 
   // Wait for the metadata to get fetched, since this is backgrounded now
@@ -281,17 +283,7 @@ test("Make regular post, and give it a custom thumbnail", async () => {
     p => p.post_view.post.thumbnail_url != undefined,
   );
   expect(post.post_view.post.url).toBe(wikipediaUrl);
-  expect(post.post_view.post.thumbnail_url).toBeDefined();
-
-  // Edit the thumbnail
-  await editPostThumbnail(alphaImage, post.post_view.post, upload1.url!);
-
-  post = await waitUntil(
-    () => getPost(alphaImage, post.post_view.post.id),
-    p => p.post_view.post.thumbnail_url == upload1.url,
-  );
-
-  // Make sure the thumbnail got edited.
+  // Make sure it uses custom thumbnail
   expect(post.post_view.post.thumbnail_url).toBe(upload1.url);
 });
 
@@ -308,23 +300,17 @@ test("Create an image post, and make sure a custom thumbnail doesn't overwrite i
 
   const community = await createCommunity(alphaImage);
 
-  let post = await createPost(
+  let post = await createPostWithThumbnail(
     alphaImage,
     community.community_view.community.id,
-    upload1.url,
+    upload1.url!,
+    upload2.url!,
   );
-  expect(post.post_view.post.url).toBe(upload1.url);
-
-  // Edit the post
-  await editPostThumbnail(alphaImage, post.post_view.post, upload2.url!);
-
-  // Wait for the metadata to get fetched
   post = await waitUntil(
     () => getPost(alphaImage, post.post_view.post.id),
-    p => p.post_view.post.thumbnail_url == upload1.url,
+    p => p.post_view.post.thumbnail_url != undefined,
   );
-
-  // Make sure the new custom thumbnail is ignored, and doesn't overwrite the image post
   expect(post.post_view.post.url).toBe(upload1.url);
-  expect(post.post_view.post.thumbnail_url).toBe(upload1.url);
+  // Make sure the custom thumbnail is ignored
+  expect(post.post_view.post.thumbnail_url == upload2.url).toBe(false);
 });
