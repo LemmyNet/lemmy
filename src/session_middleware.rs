@@ -1,7 +1,7 @@
 use actix_web::{
   body::MessageBody,
   dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-  http::header::CACHE_CONTROL,
+  http::header::CACHE_CONTROL,http::Method,
   Error,
   HttpMessage,
 };
@@ -77,16 +77,17 @@ where
         }
       }
 
+      let req_method = req.method().clone();
       let mut res = svc.call(req).await?;
 
       // Add cache-control header if none is present
       if !res.headers().contains_key(CACHE_CONTROL) {
         // If user is authenticated, mark as private. Otherwise cache
         // up to one minute.
-        let cache_value = if jwt.is_some() {
-          "private"
-        } else {
+        let cache_value = if jwt.is_none() || req_method == Method::GET {
           "public, max-age=60"
+        } else {
+          "private"
         };
         res
           .headers_mut()
