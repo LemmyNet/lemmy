@@ -63,7 +63,7 @@ async fn get_webfinger_response(
       });
 
     // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
-    // community last so that it gets prioritized. For Lemmy the order doesnt matter.
+    // community last so that it gets prioritized. For Lemmy the order doesn't matter.
     vec![
       webfinger_link_for_actor(user_id, "Person", &context),
       webfinger_link_for_actor(community_id, "Group", &context),

@@ -646,7 +646,7 @@ impl<'a> PostQuery<'a> {
     site: &Site,
     pool: &mut DbPool<'_>,
   ) -> Result<Option<PostQuery<'a>>, Error> {
-    // first get one page for the most popular community to get an upper bound for the the page end for the real query
+    // first get one page for the most popular community to get an upper bound for the page end for the real query
     // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
     // the query to use an index on e.g. (=, >=, >=, >=) and fetch only LIMIT rows
     // but for the followed-communities query it has to query the index on (IN, >=, >=, >=)

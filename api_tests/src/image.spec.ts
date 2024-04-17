@@ -41,7 +41,7 @@ test("Upload image and delete it", async () => {
   // Before running this test, you need to delete all previous images in the DB
   await deleteAllImages(alpha);
 
-  // Upload test image. We use a simple string buffer as pictrs doesnt require an actual image
+  // Upload test image. We use a simple string buffer as pictrs doesn't require an actual image
   // in testing mode.
   const upload_form: UploadImage = {
     image: Buffer.from("test"),
@@ -235,7 +235,7 @@ test("No image proxying if setting is disabled", async () => {
   );
   expect(post.post_view.post).toBeDefined();
 
-  // remote image doesnt get proxied after upload
+  // remote image doesn't get proxied after upload
   expect(
     post.post_view.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
   ).toBeTruthy();
@@ -248,7 +248,7 @@ test("No image proxying if setting is disabled", async () => {
   );
   expect(betaPost.post).toBeDefined();
 
-  // remote image doesnt get proxied after federation
+  // remote image doesn't get proxied after federation
   expect(
     betaPost.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
   ).toBeTruthy();
@@ -295,7 +295,7 @@ test("Make regular post, and give it a custom thumbnail", async () => {
   expect(post.post_view.post.thumbnail_url).toBe(upload1.url);
 });
 
-test("Create an image post, and make sure a custom thumbnail doesnt overwrite it", async () => {
+test("Create an image post, and make sure a custom thumbnail doesn't overwrite it", async () => {
   const uploadForm1: UploadImage = {
     image: Buffer.from("test1"),
   };

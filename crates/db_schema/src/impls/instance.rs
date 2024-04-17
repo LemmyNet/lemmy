@@ -33,7 +33,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 
 impl Instance {
-  /// Attempt to read Instance column for the given domain. If it doesnt exist, insert a new one.
+  /// Attempt to read Instance column for the given domain. If it doesn't exist, insert a new one.
   /// There is no need for update as the domain of an existing instance cant change.
   pub async fn read_or_create(pool: &mut DbPool<'_>, domain_: String) -> Result<Self, Error> {
     use crate::schema::instance::domain;

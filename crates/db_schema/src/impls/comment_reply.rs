@@ -22,7 +22,7 @@ impl Crud for CommentReply {
     let conn = &mut get_conn(pool).await?;
 
     // since the return here isnt utilized, we dont need to do an update
-    // but get_result doesnt return the existing row here
+    // but get_result doesn't return the existing row here
     insert_into(comment_reply::table)
       .values(comment_reply_form)
       .on_conflict((comment_reply::recipient_id, comment_reply::comment_id))
