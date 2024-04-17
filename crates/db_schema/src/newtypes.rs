@@ -176,7 +176,7 @@ impl Display for DbUrl {
   }
 }
 
-// the project doesnt compile with From
+// the project doesn't compile with From
 #[allow(clippy::from_over_into)]
 impl Into<DbUrl> for Url {
   fn into(self) -> DbUrl {

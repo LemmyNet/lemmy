@@ -195,7 +195,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
 
 /// Store received activities in the database.
 ///
-/// This ensures that the same activity doesnt get received and processed more than once, which
+/// This ensures that the same activity doesn't get received and processed more than once, which
 /// would be a waste of resources.
 #[tracing::instrument(skip(data))]
 async fn insert_received_activity(ap_id: &Url, data: &Data<LemmyContext>) -> LemmyResult<()> {

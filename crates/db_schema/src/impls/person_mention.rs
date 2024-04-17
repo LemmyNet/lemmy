@@ -21,7 +21,7 @@ impl Crud for PersonMention {
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     // since the return here isnt utilized, we dont need to do an update
-    // but get_result doesnt return the existing row here
+    // but get_result doesn't return the existing row here
     insert_into(person_mention::table)
       .values(person_mention_form)
       .on_conflict((person_mention::recipient_id, person_mention::comment_id))

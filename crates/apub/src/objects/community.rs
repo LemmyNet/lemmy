@@ -269,7 +269,7 @@ pub(crate) mod tests {
   pub(crate) async fn parse_lemmy_community(
     context: &Data<LemmyContext>,
   ) -> LemmyResult<ApubCommunity> {
-    // use separate counter so this doesnt affect tests
+    // use separate counter so this doesn't affect tests
     let context2 = context.reset_request_count();
     let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json")?;
     // change these links so they dont fetch over the network

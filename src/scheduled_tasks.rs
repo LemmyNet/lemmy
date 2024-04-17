@@ -477,7 +477,7 @@ async fn update_instance_software(
           .build();
         let form = match client.get(&node_info_url).send().await {
           Ok(res) if res.status().is_client_error() => {
-            // Instance doesnt have nodeinfo but sent a response, consider it alive
+            // Instance doesn't have nodeinfo but sent a response, consider it alive
             Some(default_form)
           }
           Ok(res) => match res.json::<NodeInfo>().await {
