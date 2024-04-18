@@ -187,7 +187,7 @@ fn queries<'a>() -> Queries<
         person_mention::table.find(person_mention_id).into_boxed(),
         my_person_id,
       )
-      .first::<PersonMentionView>(&mut conn)
+      .first(&mut conn)
       .await
     };
 
@@ -233,7 +233,7 @@ impl PersonMentionView {
     pool: &mut DbPool<'_>,
     person_mention_id: PersonMentionId,
     my_person_id: Option<PersonId>,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     queries()
       .read(pool, (person_mention_id, my_person_id))
       .await

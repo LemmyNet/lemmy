@@ -26,7 +26,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS},
+  error::{LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS},
   spawn_try_task,
 };
 use serde::{Deserialize, Serialize};
@@ -70,7 +70,7 @@ pub struct UserSettingsBackup {
 pub async fn export_settings(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> Result<Json<UserSettingsBackup>, LemmyError> {
+) -> LemmyResult<Json<UserSettingsBackup>> {
   let lists = LocalUser::export_backup(&mut context.pool(), local_user_view.person.id).await?;
 
   let vec_into = |vec: Vec<_>| vec.into_iter().map(Into::into).collect();
@@ -97,7 +97,7 @@ pub async fn import_settings(
   data: Json<UserSettingsBackup>,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> Result<Json<SuccessResponse>, LemmyError> {
+) -> LemmyResult<Json<SuccessResponse>> {
   let person_form = PersonUpdateForm {
     display_name: Some(data.display_name.clone()),
     bio: Some(data.bio.clone()),
@@ -363,7 +363,11 @@ mod tests {
       .build();
     let local_user = LocalUser::create(&mut context.pool(), &user_form, vec![]).await?;
 
-    Ok(LocalUserView::read(&mut context.pool(), local_user.id).await?)
+    Ok(
+      LocalUserView::read(&mut context.pool(), local_user.id)
+        .await?
+        .ok_or(LemmyErrorType::CouldntFindLocalUser)?,
+    )
   }
 
   #[tokio::test]
@@ -396,8 +400,9 @@ mod tests {
     // wait for background task to finish
     sleep(Duration::from_millis(1000)).await;
 
-    let import_user_updated =
-      LocalUserView::read(&mut context.pool(), import_user.local_user.id).await?;
+    let import_user_updated = LocalUserView::read(&mut context.pool(), import_user.local_user.id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
 
     assert_eq!(
       export_user.person.display_name,

@@ -27,7 +27,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{
@@ -46,7 +46,7 @@ pub async fn create_site(
   data: Json<CreateSite>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<SiteResponse>, LemmyError> {
+) -> LemmyResult<Json<SiteResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   // Make sure user is an admin; other types of users should not create site data...
@@ -129,7 +129,9 @@ pub async fn create_site(
 
   LocalSiteRateLimit::update(&mut context.pool(), &local_site_rate_limit_form).await?;
 
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
 
   let new_taglines = data.taglines.clone();
   let taglines = Tagline::replace(&mut context.pool(), local_site.id, new_taglines).await?;

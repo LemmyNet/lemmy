@@ -1,5 +1,3 @@
-version: "3.7"
-
 x-logging: &default-logging
   driver: "json-file"
   options:
@@ -119,7 +117,7 @@ services:
         "track_activity_query_size=1048576",
       ]
     ports:
-      # use a different port so it doesnt conflict with potential postgres db running on the host
+      # use a different port so it doesn't conflict with potential postgres db running on the host
       - "5433:5432"
     environment:
       - POSTGRES_USER=lemmy

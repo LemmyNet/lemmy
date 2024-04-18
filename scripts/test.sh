@@ -6,7 +6,7 @@ CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 cd $CWD/../
 
 PACKAGE="$1"
-echo "$PACKAGE"
+TEST="$2"
 
 source scripts/start_dev_db.sh
 
@@ -17,7 +17,7 @@ export RUST_BACKTRACE=1
 
 if [ -n "$PACKAGE" ];
 then
-  cargo test -p $PACKAGE --all-features --no-fail-fast
+  cargo test -p $PACKAGE --all-features --no-fail-fast $TEST
 else
   cargo test --workspace --no-fail-fast
 fi

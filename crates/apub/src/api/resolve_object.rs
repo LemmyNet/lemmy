@@ -13,14 +13,14 @@ use lemmy_api_common::{
 use lemmy_db_schema::{newtypes::PersonId, source::local_site::LocalSite, utils::DbPool};
 use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};
 use lemmy_db_views_actor::structs::{CommunityView, PersonView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt2, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn resolve_object(
   data: Query<ResolveObject>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> Result<Json<ResolveObjectResponse>, LemmyError> {
+) -> LemmyResult<Json<ResolveObjectResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
   check_private_instance(&local_user_view, &local_site)?;
   let person_id = local_user_view.map(|v| v.person.id);
@@ -46,27 +46,43 @@ async fn convert_response(
   object: SearchableObjects,
   user_id: Option<PersonId>,
   pool: &mut DbPool<'_>,
-) -> Result<Json<ResolveObjectResponse>, LemmyError> {
+) -> LemmyResult<Json<ResolveObjectResponse>> {
   use SearchableObjects::*;
   let removed_or_deleted;
   let mut res = ResolveObjectResponse::default();
   match object {
     Post(p) => {
       removed_or_deleted = p.deleted || p.removed;
-      res.post = Some(PostView::read(pool, p.id, user_id, false).await?)
+      res.post = Some(
+        PostView::read(pool, p.id, user_id, false)
+          .await?
+          .ok_or(LemmyErrorType::CouldntFindPost)?,
+      )
     }
     Comment(c) => {
       removed_or_deleted = c.deleted || c.removed;
-      res.comment = Some(CommentView::read(pool, c.id, user_id).await?)
+      res.comment = Some(
+        CommentView::read(pool, c.id, user_id)
+          .await?
+          .ok_or(LemmyErrorType::CouldntFindComment)?,
+      )
     }
     PersonOrCommunity(p) => match *p {
       UserOrCommunity::User(u) => {
         removed_or_deleted = u.deleted;
-        res.person = Some(PersonView::read(pool, u.id).await?)
+        res.person = Some(
+          PersonView::read(pool, u.id)
+            .await?
+            .ok_or(LemmyErrorType::CouldntFindPerson)?,
+        )
       }
       UserOrCommunity::Community(c) => {
         removed_or_deleted = c.deleted || c.removed;
-        res.community = Some(CommunityView::read(pool, c.id, user_id, false).await?)
+        res.community = Some(
+          CommunityView::read(pool, c.id, user_id, false)
+            .await?
+            .ok_or(LemmyErrorType::CouldntFindCommunity)?,
+        )
       }
     },
   };

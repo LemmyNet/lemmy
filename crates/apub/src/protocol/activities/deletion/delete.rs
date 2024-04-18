@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -47,11 +47,13 @@ pub struct Delete {
 
 #[async_trait::async_trait]
 impl InCommunity for Delete {
-  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community_id = match DeletableObjects::read_from_db(self.object.id(), context).await? {
       DeletableObjects::Community(c) => c.id,
       DeletableObjects::Comment(c) => {
-        let post = Post::read(&mut context.pool(), c.post_id).await?;
+        let post = Post::read(&mut context.pool(), c.post_id)
+          .await?
+          .ok_or(LemmyErrorType::CouldntFindPost)?;
         post.community_id
       }
       DeletableObjects::Post(p) => p.community_id,
@@ -60,7 +62,9 @@ impl InCommunity for Delete {
         return Err(anyhow!("Private message is not part of community").into())
       }
     };
-    let community = Community::read(&mut context.pool(), community_id).await?;
+    let community = Community::read(&mut context.pool(), community_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

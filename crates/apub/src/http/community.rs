@@ -18,7 +18,7 @@ use activitypub_federation::{
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 use serde::Deserialize;
 
 #[derive(Deserialize, Clone)]
@@ -31,10 +31,11 @@ pub(crate) struct CommunityQuery {
 pub(crate) async fn get_apub_community_http(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, true)
       .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?
       .into();
 
   if community.deleted || community.removed {
@@ -52,7 +53,7 @@ pub async fn community_inbox(
   request: HttpRequest,
   body: Bytes,
   data: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> LemmyResult<HttpResponse> {
   receive_activity::<WithContext<GroupInboxActivities>, ApubPerson, LemmyContext>(
     request, body, &data,
   )
@@ -63,9 +64,10 @@ pub async fn community_inbox(
 pub(crate) async fn get_apub_community_followers(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
-  let community =
-    Community::read_from_name(&mut context.pool(), &info.community_name, false).await?;
+) -> LemmyResult<HttpResponse> {
+  let community = Community::read_from_name(&mut context.pool(), &info.community_name, false)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
   check_community_public(&community)?;
   let followers = ApubCommunityFollower::read_local(&community.into(), &context).await?;
   create_apub_response(&followers)
@@ -76,10 +78,11 @@ pub(crate) async fn get_apub_community_followers(
 pub(crate) async fn get_apub_community_outbox(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?
       .into();
   check_community_public(&community)?;
   let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
@@ -90,10 +93,11 @@ pub(crate) async fn get_apub_community_outbox(
 pub(crate) async fn get_apub_community_moderators(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?
       .into();
   check_community_public(&community)?;
   let moderators = ApubCommunityModerators::read_local(&community, &context).await?;
@@ -104,10 +108,11 @@ pub(crate) async fn get_apub_community_moderators(
 pub(crate) async fn get_apub_community_featured(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?
       .into();
   check_community_public(&community)?;
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;
@@ -127,7 +132,6 @@ pub(crate) mod tests {
     traits::Crud,
     CommunityVisibility,
   };
-  use lemmy_utils::error::LemmyResult;
   use serde::de::DeserializeOwned;
   use serial_test::serial;
 
@@ -135,7 +139,7 @@ pub(crate) mod tests {
     deleted: bool,
     visibility: CommunityVisibility,
     context: &Data<LemmyContext>,
-  ) -> Result<(Instance, Community), LemmyError> {
+  ) -> LemmyResult<(Instance, Community)> {
     let instance =
       Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;
     let community_form = CommunityInsertForm::builder()
@@ -150,7 +154,7 @@ pub(crate) mod tests {
     Ok((instance, community))
   }
 
-  async fn decode_response<T: DeserializeOwned>(res: HttpResponse) -> Result<T, LemmyError> {
+  async fn decode_response<T: DeserializeOwned>(res: HttpResponse) -> LemmyResult<T> {
     let body = to_bytes(res.into_body()).await.unwrap();
     let body = std::str::from_utf8(&body)?;
     Ok(serde_json::from_str(body)?)

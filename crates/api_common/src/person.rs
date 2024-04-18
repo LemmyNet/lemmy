@@ -1,13 +1,13 @@
 use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
-  source::{images::LocalImage, site::Site},
+  source::site::Site,
   CommentSortType,
   ListingType,
   PostListingMode,
   SortType,
 };
-use lemmy_db_views::structs::{CommentView, PostView};
+use lemmy_db_views::structs::{CommentView, LocalImageView, PostView};
 use lemmy_db_views_actor::structs::{
   CommentReplyView,
   CommunityModeratorView,
@@ -437,5 +437,5 @@ pub struct ListMedia {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ListMediaResponse {
-  pub images: Vec<LocalImage>,
+  pub images: Vec<LocalImageView>,
 }

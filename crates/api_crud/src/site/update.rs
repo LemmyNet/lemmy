@@ -32,7 +32,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs_opt,
     validation::{
@@ -51,8 +51,10 @@ pub async fn update_site(
   data: Json<EditSite>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<SiteResponse>, LemmyError> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+) -> LemmyResult<Json<SiteResponse>> {
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
   let local_site = site_view.local_site;
   let site = site_view.site;
 
@@ -181,7 +183,9 @@ pub async fn update_site(
   let new_taglines = data.taglines.clone();
   let taglines = Tagline::replace(&mut context.pool(), local_site.id, new_taglines).await?;
 
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
 
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);

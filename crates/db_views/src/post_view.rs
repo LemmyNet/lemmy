@@ -305,7 +305,7 @@ fn queries<'a>() -> Queries<
 
       Commented::new(query)
         .text("PostView::read")
-        .first::<PostView>(&mut conn)
+        .first(&mut conn)
         .await
     };
 
@@ -581,12 +581,10 @@ impl PostView {
     post_id: PostId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: bool,
-  ) -> Result<Self, Error> {
-    let res = queries()
+  ) -> Result<Option<Self>, Error> {
+    queries()
       .read(pool, (post_id, my_person_id, is_mod_or_admin))
-      .await?;
-
-    Ok(res)
+      .await
   }
 }
 
@@ -597,19 +595,21 @@ impl PaginationCursor {
     PaginationCursor(format!("P{:x}", view.counts.post_id.0))
   }
   pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
-    Ok(PaginationCursorData(
-      PostAggregates::read(
-        pool,
-        PostId(
-          self
-            .0
-            .get(1..)
-            .and_then(|e| i32::from_str_radix(e, 16).ok())
-            .ok_or_else(|| Error::QueryBuilderError("Could not parse pagination token".into()))?,
-        ),
-      )
-      .await?,
-    ))
+    let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
+    let token = PostAggregates::read(
+      pool,
+      PostId(
+        self
+          .0
+          .get(1..)
+          .and_then(|e| i32::from_str_radix(e, 16).ok())
+          .ok_or_else(err_msg)?,
+      ),
+    )
+    .await?
+    .ok_or_else(err_msg)?;
+
+    Ok(PaginationCursorData(token))
   }
 }
 
@@ -646,7 +646,7 @@ impl<'a> PostQuery<'a> {
     site: &Site,
     pool: &mut DbPool<'_>,
   ) -> Result<Option<PostQuery<'a>>, Error> {
-    // first get one page for the most popular community to get an upper bound for the the page end for the real query
+    // first get one page for the most popular community to get an upper bound for the page end for the real query
     // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
     // the query to use an index on e.g. (=, >=, >=, >=) and fetch only LIMIT rows
     // but for the followed-communities query it has to query the index on (IN, >=, >=, >=)
@@ -783,7 +783,7 @@ mod tests {
     SortType,
     SubscribedType,
   };
-  use lemmy_utils::error::LemmyResult;
+  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::{collections::HashSet, time::Duration};
@@ -964,7 +964,8 @@ mod tests {
       Some(data.local_user_view.person.id),
       false,
     )
-    .await?;
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
     let expected_post_listing_with_user = expected_post_view(&data, pool).await?;
 
@@ -1014,7 +1015,9 @@ mod tests {
     .await?;
 
     let read_post_listing_single_no_person =
-      PostView::read(pool, data.inserted_post.id, None, false).await?;
+      PostView::read(pool, data.inserted_post.id, None, false)
+        .await?
+        .ok_or(LemmyErrorType::CouldntFindPost)?;
 
     let expected_post_listing_no_person = expected_post_view(&data, pool).await?;
 
@@ -1091,7 +1094,8 @@ mod tests {
       Some(data.local_user_view.person.id),
       false,
     )
-    .await?;
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
     let mut expected_post_with_upvote = expected_post_view(&data, pool).await?;
     expected_post_with_upvote.my_vote = Some(1);
@@ -1573,7 +1577,9 @@ mod tests {
       &data.inserted_community,
       &data.inserted_post,
     );
-    let agg = PostAggregates::read(pool, inserted_post.id).await?;
+    let agg = PostAggregates::read(pool, inserted_post.id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPost)?;
 
     Ok(PostView {
       post: Post {
@@ -1716,8 +1722,8 @@ mod tests {
     .await?;
     assert_eq!(2, authenticated_query.len());
 
-    let unauthenticated_post = PostView::read(pool, data.inserted_post.id, None, false).await;
-    assert!(unauthenticated_post.is_err());
+    let unauthenticated_post = PostView::read(pool, data.inserted_post.id, None, false).await?;
+    assert!(unauthenticated_post.is_none());
 
     let authenticated_post = PostView::read(
       pool,
@@ -1767,7 +1773,8 @@ mod tests {
       Some(inserted_banned_from_comm_local_user.person_id),
       false,
     )
-    .await?;
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
     assert!(post_view.banned_from_community);
 
@@ -1788,7 +1795,8 @@ mod tests {
       Some(data.local_user_view.person.id),
       false,
     )
-    .await?;
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
     assert!(!post_view.banned_from_community);
 

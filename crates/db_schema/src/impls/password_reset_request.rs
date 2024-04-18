@@ -1,4 +1,5 @@
 use crate::{
+  diesel::OptionalExtension,
   newtypes::LocalUserId,
   schema::password_reset_request::dsl::{local_user_id, password_reset_request, published, token},
   source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
@@ -54,16 +55,14 @@ impl PasswordResetRequest {
 
     Self::create(pool, &form).await
   }
-  pub async fn read_from_token(
-    pool: &mut DbPool<'_>,
-    token_: &str,
-  ) -> Result<PasswordResetRequest, Error> {
+  pub async fn read_from_token(pool: &mut DbPool<'_>, token_: &str) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     password_reset_request
       .filter(token.eq(token_))
       .filter(published.gt(now.into_sql::<Timestamptz>() - 1.days()))
-      .first::<Self>(conn)
+      .first(conn)
       .await
+      .optional()
   }
 
   pub async fn get_recent_password_resets_count(
@@ -141,6 +140,7 @@ mod tests {
 
     let read_password_reset_request = PasswordResetRequest::read_from_token(pool, token)
       .await
+      .unwrap()
       .unwrap();
     let num_deleted = Person::delete(pool, inserted_person.id).await.unwrap();
     Instance::delete(pool, inserted_instance.id).await.unwrap();

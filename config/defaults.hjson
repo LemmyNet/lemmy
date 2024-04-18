@@ -49,7 +49,7 @@
     cache_external_link_previews: true
     # Specifies how to handle remote images, so that users don't have to connect directly to remote servers.
     image_mode: 
-      # Leave images unchanged, don't generate any local thumbnails for post urls. Instead the the
+      # Leave images unchanged, don't generate any local thumbnails for post urls. Instead the
       # Opengraph image is directly returned as thumbnail
       "None"
 

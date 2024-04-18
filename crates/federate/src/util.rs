@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
+use lemmy_api_common::lemmy_utils::CACHE_DURATION_FEDERATION;
 use lemmy_apub::{
   activity_lists::SharedInboxActivities,
   fetcher::{site_or_community_or_user::SiteOrCommunityOrUser, user_or_community::UserOrCommunity},
@@ -31,6 +32,7 @@ pub(crate) static LEMMY_TEST_FAST_FEDERATION: Lazy<bool> = Lazy::new(|| {
     .map(|s| !s.is_empty())
     .unwrap_or(false)
 });
+
 /// Recheck for new federation work every n seconds.
 ///
 /// When the queue is processed faster than new activities are added and it reaches the current time with an empty batch,
@@ -149,7 +151,6 @@ pub(crate) async fn get_activity_cached(
     .try_get_with(activity_id, async {
       let row = SentActivity::read(pool, activity_id)
         .await
-        .optional()
         .context("could not read activity")?;
       let Some(mut row) = row else {
         return anyhow::Result::<_, anyhow::Error>::Ok(None);
@@ -169,11 +170,7 @@ pub(crate) async fn get_activity_cached(
 pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<ActivityId> {
   static CACHE: Lazy<Cache<(), ActivityId>> = Lazy::new(|| {
     Cache::builder()
-      .time_to_live(if *LEMMY_TEST_FAST_FEDERATION {
-        *WORK_FINISHED_RECHECK_DELAY
-      } else {
-        Duration::from_secs(1)
-      })
+      .time_to_live(CACHE_DURATION_FEDERATION)
       .build()
   });
   CACHE

@@ -270,8 +270,6 @@ pub struct LinkMetadata {
   #[serde(flatten)]
   pub opengraph_data: OpenGraphData,
   pub content_type: Option<String>,
-  #[serde(skip)]
-  pub thumbnail: Option<DbUrl>,
 }
 
 #[skip_serializing_none]

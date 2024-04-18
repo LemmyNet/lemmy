@@ -1,4 +1,5 @@
 use crate::{
+  diesel::OptionalExtension,
   newtypes::LocalUserId,
   schema::local_user_vote_display_mode,
   source::local_user_vote_display_mode::{
@@ -12,11 +13,12 @@ use diesel::{dsl::insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl LocalUserVoteDisplayMode {
-  pub async fn read(pool: &mut DbPool<'_>) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     local_user_vote_display_mode::table
-      .first::<Self>(conn)
+      .first(conn)
       .await
+      .optional()
   }
 
   pub async fn create(

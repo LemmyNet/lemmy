@@ -97,7 +97,7 @@ pub struct PictrsConfig {
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub enum PictrsImageMode {
-  /// Leave images unchanged, don't generate any local thumbnails for post urls. Instead the the
+  /// Leave images unchanged, don't generate any local thumbnails for post urls. Instead the
   /// Opengraph image is directly returned as thumbnail
   None,
   /// Generate thumbnails for external post urls and store them persistently in pict-rs. This

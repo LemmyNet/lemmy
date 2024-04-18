@@ -38,7 +38,11 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
-use lemmy_utils::{error::LemmyError, spawn_try_task, utils::markdown::markdown_to_html};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  spawn_try_task,
+  utils::markdown::markdown_to_html,
+};
 use std::ops::Deref;
 use url::Url;
 
@@ -72,7 +76,7 @@ impl Object for ApubCommunity {
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
-  ) -> Result<Option<Self>, LemmyError> {
+  ) -> LemmyResult<Option<Self>> {
     Ok(
       Community::read_from_apub_id(&mut context.pool(), &object_id.into())
         .await?
@@ -81,7 +85,7 @@ impl Object for ApubCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let form = CommunityUpdateForm {
       deleted: Some(true),
       ..Default::default()
@@ -91,7 +95,7 @@ impl Object for ApubCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_json(self, data: &Data<Self::DataType>) -> Result<Group, LemmyError> {
+  async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Group> {
     let community_id = self.id;
     let langs = CommunityLanguage::read(&mut data.pool(), community_id).await?;
     let language = LanguageTag::new_multiple(langs, &mut data.pool()).await?;
@@ -128,16 +132,13 @@ impl Object for ApubCommunity {
     group: &Group,
     expected_domain: &Url,
     context: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     group.verify(expected_domain, context).await
   }
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
   #[tracing::instrument(skip_all)]
-  async fn from_json(
-    group: Group,
-    context: &Data<Self::DataType>,
-  ) -> Result<ApubCommunity, LemmyError> {
+  async fn from_json(group: Group, context: &Data<Self::DataType>) -> LemmyResult<ApubCommunity> {
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
@@ -175,7 +176,8 @@ impl Object for ApubCommunity {
     let languages =
       LanguageTag::to_language_id_multiple(group.language, &mut context.pool()).await?;
 
-    let community = Community::create(&mut context.pool(), &form).await?;
+    let timestamp = group.updated.or(group.published).unwrap_or_else(naive_now);
+    let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
     let community: ApubCommunity = community.into();
@@ -234,10 +236,7 @@ impl GetActorType for ApubCommunity {
 impl ApubCommunity {
   /// For a given community, returns the inboxes of all followers.
   #[tracing::instrument(skip_all)]
-  pub(crate) async fn get_follower_inboxes(
-    &self,
-    context: &LemmyContext,
-  ) -> Result<Vec<Url>, LemmyError> {
+  pub(crate) async fn get_follower_inboxes(&self, context: &LemmyContext) -> LemmyResult<Vec<Url>> {
     let id = self.id;
 
     let local_site_data = local_site_data_cached(&mut context.pool()).await?;
@@ -264,14 +263,13 @@ pub(crate) mod tests {
   };
   use activitypub_federation::fetch::collection_id::CollectionId;
   use lemmy_db_schema::source::site::Site;
-  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   pub(crate) async fn parse_lemmy_community(
     context: &Data<LemmyContext>,
   ) -> LemmyResult<ApubCommunity> {
-    // use separate counter so this doesnt affect tests
+    // use separate counter so this doesn't affect tests
     let context2 = context.reset_request_count();
     let mut json: Group = file_to_json_object("assets/lemmy/objects/group.json")?;
     // change these links so they dont fetch over the network

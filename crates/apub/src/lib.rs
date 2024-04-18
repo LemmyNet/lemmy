@@ -9,11 +9,14 @@ use lemmy_db_schema::{
   source::{activity::ReceivedActivity, instance::Instance, local_site::LocalSite},
   utils::{ActualDbPool, DbPool},
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorType, LemmyResult},
+  CACHE_DURATION_FEDERATION,
+};
 use moka::future::Cache;
 use once_cell::sync::Lazy;
 use serde_json::Value;
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 use url::Url;
 
 pub mod activities;
@@ -27,11 +30,6 @@ pub mod objects;
 pub mod protocol;
 
 pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 50;
-/// All incoming and outgoing federation actions read the blocklist/allowlist and slur filters
-/// multiple times. This causes a huge number of database reads if we hit the db directly. So we
-/// cache these values for a short time, which will already make a huge difference and ensures that
-/// changes take effect quickly.
-const BLOCKLIST_CACHE_DURATION: Duration = Duration::from_secs(60);
 
 /// Only include a basic context to save space and bandwidth. The main context is hosted statically
 /// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could
@@ -79,7 +77,7 @@ impl UrlVerifier for VerifyUrlData {
 /// - URL being in the allowlist (if it is active)
 /// - URL not being in the blocklist (if it is active)
 #[tracing::instrument(skip(local_site_data))]
-fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Result<(), LemmyError> {
+fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> LemmyResult<()> {
   let domain = apub_id.domain().expect("apud id has domain").to_string();
 
   if !local_site_data
@@ -122,10 +120,14 @@ pub(crate) struct LocalSiteData {
 pub(crate) async fn local_site_data_cached(
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<Arc<LocalSiteData>> {
+  // All incoming and outgoing federation actions read the blocklist/allowlist and slur filters
+  // multiple times. This causes a huge number of database reads if we hit the db directly. So we
+  // cache these values for a short time, which will already make a huge difference and ensures that
+  // changes take effect quickly.
   static CACHE: Lazy<Cache<(), Arc<LocalSiteData>>> = Lazy::new(|| {
     Cache::builder()
       .max_capacity(1)
-      .time_to_live(BLOCKLIST_CACHE_DURATION)
+      .time_to_live(CACHE_DURATION_FEDERATION)
       .build()
   });
   Ok(
@@ -155,7 +157,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
   apub_id: &Url,
   is_strict: bool,
   context: &LemmyContext,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let domain = apub_id.domain().expect("apud id has domain").to_string();
   let local_instance = context
     .settings()
@@ -193,13 +195,10 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
 
 /// Store received activities in the database.
 ///
-/// This ensures that the same activity doesnt get received and processed more than once, which
+/// This ensures that the same activity doesn't get received and processed more than once, which
 /// would be a waste of resources.
 #[tracing::instrument(skip(data))]
-async fn insert_received_activity(
-  ap_id: &Url,
-  data: &Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+async fn insert_received_activity(ap_id: &Url, data: &Data<LemmyContext>) -> LemmyResult<()> {
   ReceivedActivity::create(&mut data.pool(), &ap_id.clone().into()).await?;
   Ok(())
 }

@@ -4,7 +4,7 @@ use actix_web::{
   HttpRequest,
 };
 use lemmy_api_common::{context::LemmyContext, SuccessResponse};
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 /// Returns an error message if the auth token is invalid for any reason. Necessary because other
 /// endpoints silently treat any call with invalid auth as unauthenticated.
@@ -12,7 +12,7 @@ use lemmy_utils::error::{LemmyError, LemmyErrorType};
 pub async fn validate_auth(
   req: HttpRequest,
   context: Data<LemmyContext>,
-) -> Result<Json<SuccessResponse>, LemmyError> {
+) -> LemmyResult<Json<SuccessResponse>> {
   let jwt = read_auth_token(&req)?;
   if let Some(jwt) = jwt {
     local_user_view_from_jwt(&jwt, &context).await?;

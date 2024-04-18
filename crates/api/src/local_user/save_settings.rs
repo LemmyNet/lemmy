@@ -25,7 +25,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyErrorType, LemmyResult},
   utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},
 };
 
@@ -34,8 +34,10 @@ pub async fn save_user_settings(
   data: Json<SaveUserSettings>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<SuccessResponse>, LemmyError> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+) -> LemmyResult<Json<SuccessResponse>> {
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
 
   let slur_regex = local_site_to_slur_regex(&site_view.local_site);
   let url_blocklist = get_url_blocklist(&context).await?;
