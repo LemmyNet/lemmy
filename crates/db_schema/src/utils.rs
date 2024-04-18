@@ -1,11 +1,4 @@
-use crate::{
-  diesel::Connection,
-  diesel_migrations::MigrationHarness,
-  newtypes::DbUrl,
-  CommentSortType,
-  SortType,
-};
-use anyhow::Context;
+use crate::{newtypes::DbUrl, CommentSortType, SortType};
 use chrono::{DateTime, TimeDelta, Utc};
 use deadpool::Runtime;
 use diesel::{
@@ -21,7 +14,6 @@ use diesel::{
   sql_types::{self, Timestamptz},
   IntoSql,
   OptionalExtension,
-  PgConnection,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -32,7 +24,6 @@ use diesel_async::{
   },
   SimpleAsyncConnection,
 };
-use diesel_migrations::EmbeddedMigrations;
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
 use lemmy_utils::{
@@ -50,7 +41,7 @@ use std::{
   sync::Arc,
   time::{Duration, SystemTime},
 };
-use tracing::{error, info};
+use tracing::error;
 use url::Url;
 
 const FETCH_LIMIT_DEFAULT: i64 = 10;
@@ -364,21 +355,6 @@ impl ServerCertVerifier for NoCertVerifier {
   }
 }
 
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
-
-fn run_migrations(db_url: &str) -> LemmyResult<()> {
-  // Needs to be a sync connection
-  let mut conn = PgConnection::establish(db_url).with_context(|| "Error connecting to database")?;
-
-  info!("Running Database migrations (This may take a long time)...");
-  conn
-    .run_pending_migrations(MIGRATIONS)
-    .map_err(|e| anyhow::anyhow!("Couldn't run DB Migrations: {e}"))?;
-  info!("Database migrations complete.");
-
-  Ok(())
-}
-
 pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let db_url = SETTINGS.get_database_url();
   // We only support TLS with sslmode=require currently
@@ -407,7 +383,7 @@ pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  run_migrations(&db_url)?;
+  crate::schema_setup::run(&db_url)?;
 
   Ok(pool)
 }
@@ -449,14 +425,17 @@ pub mod functions {
   use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
+    #[sql_name = "r.hot_rank"]
     fn hot_rank(score: BigInt, time: Timestamptz) -> Double;
   }
 
   sql_function! {
+    #[sql_name = "r.scaled_rank"]
     fn scaled_rank(score: BigInt, time: Timestamptz, users_active_month: BigInt) -> Double;
   }
 
   sql_function! {
+    #[sql_name = "r.controversy_rank"]
     fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Double;
   }
 
