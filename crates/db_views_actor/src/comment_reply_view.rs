@@ -188,7 +188,7 @@ fn queries<'a>() -> Queries<
         comment_reply::table.find(comment_reply_id).into_boxed(),
         my_person_id,
       )
-      .first::<CommentReplyView>(&mut conn)
+      .first(&mut conn)
       .await
     };
 
@@ -234,7 +234,7 @@ impl CommentReplyView {
     pool: &mut DbPool<'_>,
     comment_reply_id: CommentReplyId,
     my_person_id: Option<PersonId>,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     queries().read(pool, (comment_reply_id, my_person_id)).await
   }
 

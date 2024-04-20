@@ -12,21 +12,22 @@ use lemmy_db_schema::{
     comment::{Comment, CommentUpdateForm},
     comment_report::CommentReport,
     moderator::{ModRemoveComment, ModRemoveCommentForm},
-    post::Post,
   },
   traits::{Crud, Reportable},
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn remove_comment(
   data: Json<RemoveComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommentResponse>, LemmyError> {
+) -> LemmyResult<Json<CommentResponse>> {
   let comment_id = data.comment_id;
-  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
+  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   check_community_mod_action(
     &local_user_view.person,
@@ -61,13 +62,10 @@ pub async fn remove_comment(
   };
   ModRemoveComment::create(&mut context.pool(), &form).await?;
 
-  let post_id = updated_comment.post_id;
-  let post = Post::read(&mut context.pool(), post_id).await?;
   let recipient_ids = send_local_notifs(
     vec![],
-    &updated_comment,
+    comment_id,
     &local_user_view.person.clone(),
-    &post,
     false,
     &context,
   )

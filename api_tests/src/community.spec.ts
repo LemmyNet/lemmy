@@ -31,10 +31,12 @@ import {
   searchPostLocal,
   longDelay,
   editCommunity,
+  unfollows,
 } from "./shared";
 import { EditCommunity, EditSite } from "lemmy-js-client";
 
 beforeAll(setupLogins);
+afterAll(unfollows);
 
 function assertCommunityFederation(
   communityOne?: CommunityView,
@@ -240,7 +242,7 @@ test("Admin actions in remote community are not federated to origin", async () =
   );
   expect(banRes.banned).toBe(true);
 
-  // ban doesnt federate to community's origin instance alpha
+  // ban doesn't federate to community's origin instance alpha
   let alphaPost = (await resolvePost(alpha, gammaPost.post)).post;
   expect(alphaPost?.creator_banned_from_community).toBe(false);
 
@@ -450,7 +452,7 @@ test("Dont receive community activities after unsubscribe", async () => {
   );
   expect(communityRes1.community_view.counts.subscribers).toBe(2);
 
-  // temporarily block alpha, so that it doesnt know about unfollow
+  // temporarily block alpha, so that it doesn't know about unfollow
   let editSiteForm: EditSite = {};
   editSiteForm.allowed_instances = ["lemmy-epsilon"];
   await beta.editSite(editSiteForm);
@@ -511,7 +513,7 @@ test("Fetch community, includes posts", async () => {
   expect(post_listing.posts[0].post.ap_id).toBe(postRes.post_view.post.ap_id);
 });
 
-test("Content in local-only community doesnt federate", async () => {
+test("Content in local-only community doesn't federate", async () => {
   // create a community and set it local-only
   let communityRes = (await createCommunity(alpha)).community_view.community;
   let form: EditCommunity = {

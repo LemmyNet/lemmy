@@ -1,11 +1,4 @@
-use crate::{
-  diesel::Connection,
-  diesel_migrations::MigrationHarness,
-  newtypes::DbUrl,
-  CommentSortType,
-  SortType,
-};
-use anyhow::Context;
+use crate::{newtypes::DbUrl, CommentSortType, SortType};
 use chrono::{DateTime, TimeDelta, Utc};
 use deadpool::Runtime;
 use diesel::{
@@ -13,10 +6,14 @@ use diesel::{
   pg::Pg,
   query_builder::{Query, QueryFragment},
   query_dsl::methods::LimitDsl,
-  result::{ConnectionError, ConnectionResult, Error as DieselError, Error::QueryBuilderError},
+  result::{
+    ConnectionError,
+    ConnectionResult,
+    Error::{self as DieselError, QueryBuilderError},
+  },
   sql_types::{self, Timestamptz},
   IntoSql,
-  PgConnection,
+  OptionalExtension,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -27,11 +24,10 @@ use diesel_async::{
   },
   SimpleAsyncConnection,
 };
-use diesel_migrations::EmbeddedMigrations;
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
 };
 use once_cell::sync::Lazy;
@@ -45,7 +41,7 @@ use std::{
   sync::Arc,
   time::{Duration, SystemTime},
 };
-use tracing::{error, info};
+use tracing::error;
 use url::Url;
 
 const FETCH_LIMIT_DEFAULT: i64 = 10;
@@ -292,9 +288,7 @@ pub fn diesel_option_overwrite(opt: Option<String>) -> Option<Option<String>> {
   }
 }
 
-pub fn diesel_option_overwrite_to_url(
-  opt: &Option<String>,
-) -> Result<Option<Option<DbUrl>>, LemmyError> {
+pub fn diesel_option_overwrite_to_url(opt: &Option<String>) -> LemmyResult<Option<Option<DbUrl>>> {
   match opt.as_ref().map(String::as_str) {
     // An empty string is an erase
     Some("") => Ok(Some(None)),
@@ -305,9 +299,7 @@ pub fn diesel_option_overwrite_to_url(
   }
 }
 
-pub fn diesel_option_overwrite_to_url_create(
-  opt: &Option<String>,
-) -> Result<Option<DbUrl>, LemmyError> {
+pub fn diesel_option_overwrite_to_url_create(opt: &Option<String>) -> LemmyResult<Option<DbUrl>> {
   match opt.as_ref().map(String::as_str) {
     // An empty string is nothing
     Some("") => Ok(None),
@@ -363,22 +355,7 @@ impl ServerCertVerifier for NoCertVerifier {
   }
 }
 
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
-
-fn run_migrations(db_url: &str) -> Result<(), LemmyError> {
-  // Needs to be a sync connection
-  let mut conn = PgConnection::establish(db_url).with_context(|| "Error connecting to database")?;
-
-  info!("Running Database migrations (This may take a long time)...");
-  conn
-    .run_pending_migrations(MIGRATIONS)
-    .map_err(|e| anyhow::anyhow!("Couldn't run DB Migrations: {e}"))?;
-  info!("Database migrations complete.");
-
-  Ok(())
-}
-
-pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
+pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let db_url = SETTINGS.get_database_url();
   // We only support TLS with sslmode=require currently
   let tls_enabled = db_url.contains("sslmode=require");
@@ -406,7 +383,7 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
     }))
     .build()?;
 
-  run_migrations(&db_url)?;
+  crate::schema_setup::run(&db_url)?;
 
   Ok(pool)
 }
@@ -448,14 +425,17 @@ pub mod functions {
   use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
+    #[sql_name = "r.hot_rank"]
     fn hot_rank(score: BigInt, time: Timestamptz) -> Double;
   }
 
   sql_function! {
+    #[sql_name = "r.scaled_rank"]
     fn scaled_rank(score: BigInt, time: Timestamptz, users_active_month: BigInt) -> Double;
   }
 
   sql_function! {
+    #[sql_name = "r.controversy_rank"]
     fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Double;
   }
 
@@ -514,12 +494,12 @@ impl<RF, LF> Queries<RF, LF> {
     self,
     pool: &'a mut DbPool<'_>,
     args: Args,
-  ) -> Result<T, DieselError>
+  ) -> Result<Option<T>, DieselError>
   where
     RF: ReadFn<'a, T, Args>,
   {
     let conn = get_conn(pool).await?;
-    (self.read_fn)(conn, args).await
+    (self.read_fn)(conn, args).await.optional()
   }
 
   pub async fn list<'a, T, Args>(

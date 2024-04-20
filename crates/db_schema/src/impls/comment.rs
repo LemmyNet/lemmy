@@ -1,4 +1,5 @@
 use crate::{
+  diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{CommentId, DbUrl, PersonId},
   schema::comment,
   source::comment::{
@@ -11,8 +12,9 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{functions::coalesce, get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
+use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{insert_into, sql_query},
   result::Error,
@@ -60,6 +62,15 @@ impl Comment {
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> Result<Comment, Error> {
+    Self::insert_apub(pool, None, comment_form, parent_path).await
+  }
+
+  pub async fn insert_apub(
+    pool: &mut DbPool<'_>,
+    timestamp: Option<DateTime<Utc>>,
+    comment_form: &CommentInsertForm,
+    parent_path: Option<&Ltree>,
+  ) -> Result<Comment, Error> {
     let conn = &mut get_conn(pool).await?;
 
     conn
@@ -67,13 +78,21 @@ impl Comment {
       .run(|conn| {
         Box::pin(async move {
           // Insert, to get the id
-          let inserted_comment = insert_into(comment::table)
-            .values(comment_form)
-            .on_conflict(comment::ap_id)
-            .do_update()
-            .set(comment_form)
-            .get_result::<Self>(conn)
-            .await?;
+          let inserted_comment = if let Some(timestamp) = timestamp {
+            insert_into(comment::table)
+              .values(comment_form)
+              .on_conflict(comment::ap_id)
+              .filter_target(coalesce(comment::updated, comment::published).lt(timestamp))
+              .do_update()
+              .set(comment_form)
+              .get_result::<Self>(conn)
+              .await?
+          } else {
+            insert_into(comment::table)
+              .values(comment_form)
+              .get_result::<Self>(conn)
+              .await?
+          };
 
           let comment_id = inserted_comment.id;
 
@@ -129,20 +148,18 @@ where ca.comment_id = c.id"
       })
       .await
   }
+
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: Url,
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
-    Ok(
-      comment::table
-        .filter(comment::ap_id.eq(object_id))
-        .first::<Comment>(conn)
-        .await
-        .ok()
-        .map(Into::into),
-    )
+    comment::table
+      .filter(comment::ap_id.eq(object_id))
+      .first(conn)
+      .await
+      .optional()
   }
 
   pub fn parent_comment_id(&self) -> Option<CommentId> {
@@ -380,7 +397,10 @@ mod tests {
       .await
       .unwrap();
 
-    let read_comment = Comment::read(pool, inserted_comment.id).await.unwrap();
+    let read_comment = Comment::read(pool, inserted_comment.id)
+      .await
+      .unwrap()
+      .unwrap();
     let like_removed = CommentLike::remove(pool, inserted_person.id, inserted_comment.id)
       .await
       .unwrap();

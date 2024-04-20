@@ -26,7 +26,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use tokio::sync::OnceCell;
 
 pub const UNDETERMINED_ID: LanguageId = LanguageId(0);
@@ -192,7 +192,7 @@ impl CommunityLanguage {
     pool: &mut DbPool<'_>,
     for_language_id: Option<LanguageId>,
     for_community_id: CommunityId,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     use crate::schema::community_language::dsl::community_language;
     let conn = &mut get_conn(pool).await?;
 

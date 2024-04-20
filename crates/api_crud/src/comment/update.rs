@@ -23,7 +23,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
 };
 
@@ -32,11 +32,13 @@ pub async fn update_comment(
   data: Json<EditComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommentResponse>, LemmyError> {
+) -> LemmyResult<Json<CommentResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let comment_id = data.comment_id;
-  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
+  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -79,9 +81,8 @@ pub async fn update_comment(
   let mentions = scrape_text_for_mentions(&updated_comment_content);
   let recipient_ids = send_local_notifs(
     mentions,
-    &updated_comment,
+    comment_id,
     &local_user_view.person,
-    &orig_comment.post,
     false,
     &context,
   )

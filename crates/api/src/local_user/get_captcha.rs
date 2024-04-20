@@ -17,10 +17,10 @@ use lemmy_db_schema::source::{
   captcha_answer::{CaptchaAnswer, CaptchaAnswerForm},
   local_site::LocalSite,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
-pub async fn get_captcha(context: Data<LemmyContext>) -> Result<HttpResponse, LemmyError> {
+pub async fn get_captcha(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
   let mut res = HttpResponseBuilder::new(StatusCode::OK);
   res.insert_header(CacheControl(vec![CacheDirective::NoStore]));

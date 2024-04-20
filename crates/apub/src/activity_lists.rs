@@ -26,7 +26,7 @@ use crate::{
 };
 use activitypub_federation::{config::Data, traits::ActivityHandler};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -101,7 +101,7 @@ pub enum AnnouncableActivities {
 #[async_trait::async_trait]
 impl InCommunity for AnnouncableActivities {
   #[tracing::instrument(skip(self, context))]
-  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     use AnnouncableActivities::*;
     match self {
       CreateOrUpdateComment(a) => a.community(context).await,

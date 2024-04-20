@@ -41,10 +41,11 @@ use lemmy_db_schema::{
     post::{Post, PostInsertForm, PostUpdateForm},
   },
   traits::Crud,
+  utils::naive_now,
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::{markdown::markdown_to_html, slurs::check_slurs_opt, validation::check_url_scheme},
 };
 use std::ops::Deref;
@@ -83,7 +84,7 @@ impl Object for ApubPost {
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
-  ) -> Result<Option<Self>, LemmyError> {
+  ) -> LemmyResult<Option<Self>> {
     Ok(
       Post::read_from_apub_id(&mut context.pool(), object_id)
         .await?
@@ -92,7 +93,7 @@ impl Object for ApubPost {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     if !self.deleted {
       let form = PostUpdateForm {
         deleted: Some(true),
@@ -105,11 +106,15 @@ impl Object for ApubPost {
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
   #[tracing::instrument(skip_all)]
-  async fn into_json(self, context: &Data<Self::DataType>) -> Result<Page, LemmyError> {
+  async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Page> {
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut context.pool(), creator_id).await?;
+    let creator = Person::read(&mut context.pool(), creator_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?;
     let community_id = self.community_id;
-    let community = Community::read(&mut context.pool(), community_id).await?;
+    let community = Community::read(&mut context.pool(), community_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
     let language = LanguageTag::new_single(self.language_id, &mut context.pool()).await?;
 
     let attachment = self
@@ -159,12 +164,12 @@ impl Object for ApubPost {
     page: &Page,
     expected_domain: &Url,
     context: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     // We can't verify the domain in case of mod action, because the mod may be on a different
     // instance from the post author.
     if !page.is_mod_action(context).await? {
       verify_domains_match(page.id.inner(), expected_domain)?;
-      verify_is_remote_object(page.id.inner(), context.settings())?;
+      verify_is_remote_object(&page.id, context)?;
     };
 
     let community = page.community(context).await?;
@@ -181,7 +186,7 @@ impl Object for ApubPost {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_json(page: Page, context: &Data<Self::DataType>) -> Result<ApubPost, LemmyError> {
+  async fn from_json(page: Page, context: &Data<Self::DataType>) -> LemmyResult<ApubPost> {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
@@ -270,10 +275,12 @@ impl Object for ApubPost {
         .build()
     };
 
-    let post = Post::create(&mut context.pool(), &form).await?;
+    let timestamp = page.updated.or(page.published).unwrap_or_else(naive_now);
+    let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
 
     generate_post_link_metadata(
       post.clone(),
+      None,
       page.image.map(|i| i.url),
       |_| None,
       local_site,
@@ -305,7 +312,6 @@ mod tests {
     protocol::tests::file_to_json_object,
   };
   use lemmy_db_schema::source::site::Site;
-  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

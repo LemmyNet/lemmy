@@ -23,7 +23,10 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  LemmyErrorType,
+};
 use serde::Deserialize;
 use url::Url;
 
@@ -58,10 +61,7 @@ impl Object for SiteOrCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_id(
-    object_id: Url,
-    data: &Data<Self::DataType>,
-  ) -> Result<Option<Self>, LemmyError>
+  async fn read_from_id(object_id: Url, data: &Data<Self::DataType>) -> LemmyResult<Option<Self>>
   where
     Self: Sized,
   {
@@ -74,11 +74,11 @@ impl Object for SiteOrCommunity {
     })
   }
 
-  async fn delete(self, _data: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, _data: &Data<Self::DataType>) -> LemmyResult<()> {
     unimplemented!()
   }
 
-  async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
+  async fn into_json(self, _data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     unimplemented!()
   }
 
@@ -87,7 +87,7 @@ impl Object for SiteOrCommunity {
     apub: &Self::Kind,
     expected_domain: &Url,
     data: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     match apub {
       InstanceOrGroup::Instance(i) => ApubSite::verify(i, expected_domain, data).await,
       InstanceOrGroup::Group(g) => ApubCommunity::verify(g, expected_domain, data).await,
@@ -95,7 +95,7 @@ impl Object for SiteOrCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> Result<Self, LemmyError>
+  async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> LemmyResult<Self>
   where
     Self: Sized,
   {
@@ -117,10 +117,7 @@ impl SiteOrCommunity {
   }
 }
 
-async fn generate_cc(
-  target: &SiteOrCommunity,
-  pool: &mut DbPool<'_>,
-) -> Result<Vec<Url>, LemmyError> {
+async fn generate_cc(target: &SiteOrCommunity, pool: &mut DbPool<'_>) -> LemmyResult<Vec<Url>> {
   Ok(match target {
     SiteOrCommunity::Site(_) => Site::read_remote_sites(pool)
       .await?
@@ -139,8 +136,14 @@ pub(crate) async fn send_ban_from_site(
   ban: bool,
   expires: Option<i64>,
   context: Data<LemmyContext>,
-) -> Result<(), LemmyError> {
-  let site = SiteOrCommunity::Site(SiteView::read_local(&mut context.pool()).await?.site.into());
+) -> LemmyResult<()> {
+  let site = SiteOrCommunity::Site(
+    SiteView::read_local(&mut context.pool())
+      .await?
+      .ok_or(LemmyErrorType::LocalSiteNotSetup)?
+      .site
+      .into(),
+  );
   let expires = check_expire_time(expires)?;
 
   // if the action affects a local user, federate to other instances
@@ -180,6 +183,7 @@ pub(crate) async fn send_ban_from_community(
 ) -> LemmyResult<()> {
   let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
     .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?
     .into();
   let expires = check_expire_time(data.expires)?;
 

@@ -10,7 +10,7 @@ use activitypub_federation::{
   protocol::helpers::deserialize_one_or_many,
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -34,7 +34,7 @@ pub struct UpdateCommunity {
 
 #[async_trait::async_trait]
 impl InCommunity for UpdateCommunity {
-  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community: ApubCommunity = self.object.id.clone().dereference(context).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;

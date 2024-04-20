@@ -21,7 +21,6 @@ use actix_web::{
   App,
   HttpResponse,
   HttpServer,
-  Result,
 };
 use actix_web_prom::PrometheusMetricsBuilder;
 use clap::Parser;
@@ -45,7 +44,7 @@ use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_federate::{start_stop_federation_workers_cancellable, Opts};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{
-  error::LemmyError,
+  error::LemmyResult,
   rate_limit::RateLimitCell,
   response::jsonify_plain_text_errors,
   settings::{structs::Settings, SETTINGS},
@@ -107,7 +106,7 @@ pub struct CmdArgs {
 }
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
-pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
+pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   // Print version number to log
   println!("Lemmy v{VERSION}");
 
@@ -125,12 +124,12 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
 
   // Initialize the secrets
   let secret = Secret::init(&mut (&pool).into())
-    .await
+    .await?
     .expect("Couldn't initialize secrets.");
 
   // Make sure the local site is set up.
   let site_view = SiteView::read_local(&mut (&pool).into())
-    .await
+    .await?
     .expect("local site not set up");
   let local_site = site_view.local_site;
   let federation_enabled = local_site.federation_enabled;
@@ -219,15 +218,17 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
   let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;
   let mut terminate = tokio::signal::unix::signal(SignalKind::terminate())?;
 
-  tokio::select! {
-    _ = tokio::signal::ctrl_c() => {
-      tracing::warn!("Received ctrl-c, shutting down gracefully...");
-    }
-    _ = interrupt.recv() => {
-      tracing::warn!("Received interrupt, shutting down gracefully...");
-    }
-    _ = terminate.recv() => {
-      tracing::warn!("Received terminate, shutting down gracefully...");
+  if server.is_some() || federate.is_some() {
+    tokio::select! {
+      _ = tokio::signal::ctrl_c() => {
+        tracing::warn!("Received ctrl-c, shutting down gracefully...");
+      }
+      _ = interrupt.recv() => {
+        tracing::warn!("Received interrupt, shutting down gracefully...");
+      }
+      _ = terminate.recv() => {
+        tracing::warn!("Received terminate, shutting down gracefully...");
+      }
     }
   }
   if let Some(server) = server {
@@ -244,7 +245,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> Result<(), LemmyError> {
 }
 
 /// Creates temporary HTTP server which returns status 503 for all requests.
-fn create_startup_server() -> Result<ServerHandle, LemmyError> {
+fn create_startup_server() -> LemmyResult<ServerHandle> {
   let startup_server = HttpServer::new(move || {
     App::new().wrap(ErrorHandlers::new().default_handler(move |req| {
       let (req, _) = req.into_parts();
@@ -267,7 +268,7 @@ fn create_http_server(
   federation_config: FederationConfig<LemmyContext>,
   settings: Settings,
   federation_enabled: bool,
-) -> Result<ServerHandle, LemmyError> {
+) -> LemmyResult<ServerHandle> {
   // this must come before the HttpServer creation
   // creates a middleware that populates http metrics for each path, method, and status code
   let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
@@ -349,7 +350,7 @@ fn cors_config(settings: &Settings) -> Cors {
   }
 }
 
-pub fn init_logging(opentelemetry_url: &Option<Url>) -> Result<(), LemmyError> {
+pub fn init_logging(opentelemetry_url: &Option<Url>) -> LemmyResult<()> {
   LogTracer::init()?;
 
   let log_description = env::var("RUST_LOG").unwrap_or_else(|_| "info".into());

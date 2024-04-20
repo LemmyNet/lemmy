@@ -1,4 +1,5 @@
 use crate::{
+  diesel::OptionalExtension,
   newtypes::{CommunityId, DbUrl, PersonId},
   utils::{get_conn, DbPool},
 };
@@ -42,10 +43,10 @@ where
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>;
 
-  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error> {
+  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Option<Self>, Error> {
     let query: Find<Self> = Self::table().find(id);
     let conn = &mut *get_conn(pool).await?;
-    query.first::<Self>(conn).await
+    query.first(conn).await.optional()
   }
 
   /// when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
@@ -185,14 +186,14 @@ pub trait ApubActor {
     pool: &mut DbPool<'_>,
     actor_name: &str,
     include_deleted: bool,
-  ) -> Result<Self, Error>
+  ) -> Result<Option<Self>, Error>
   where
     Self: Sized;
   async fn read_from_name_and_domain(
     pool: &mut DbPool<'_>,
     actor_name: &str,
     protocol_domain: &str,
-  ) -> Result<Self, Error>
+  ) -> Result<Option<Self>, Error>
   where
     Self: Sized;
 }

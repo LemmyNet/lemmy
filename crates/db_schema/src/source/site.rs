@@ -36,7 +36,7 @@ pub struct Site {
   pub inbox_url: DbUrl,
   #[serde(skip)]
   pub private_key: Option<String>,
-  #[serde(skip)]
+  // TODO: mark as `serde(skip)` in next major release as its not needed for api
   pub public_key: String,
   pub instance_id: InstanceId,
   /// If present, nsfw content is visible by default. Should be displayed by frontends/clients

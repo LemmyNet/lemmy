@@ -203,6 +203,7 @@ export async function createPost(
   // use example.com for consistent title and embed description
   name: string = randomString(5),
   alt_text = randomString(10),
+  custom_thumbnail: string | undefined = undefined,
 ): Promise<PostResponse> {
   let form: CreatePost = {
     name,
@@ -210,6 +211,7 @@ export async function createPost(
     body,
     alt_text,
     community_id,
+    custom_thumbnail,
   };
   return api.createPost(form);
 }
@@ -224,6 +226,21 @@ export async function editPost(
     post_id: post.id,
   };
   return api.editPost(form);
+}
+
+export async function createPostWithThumbnail(
+  api: LemmyHttp,
+  community_id: number,
+  url: string,
+  custom_thumbnail: string,
+): Promise<PostResponse> {
+  let form: CreatePost = {
+    name: randomString(10),
+    url,
+    community_id,
+    custom_thumbnail,
+  };
+  return api.createPost(form);
 }
 
 export async function deletePost(
@@ -875,8 +892,8 @@ export async function deleteAllImages(api: LemmyHttp) {
 
   for (const image of imagesRes.images) {
     const form: DeleteImage = {
-      token: image.pictrs_delete_token,
-      filename: image.pictrs_alias,
+      token: image.local_image.pictrs_delete_token,
+      filename: image.local_image.pictrs_alias,
     };
     await api.deleteImage(form);
   }

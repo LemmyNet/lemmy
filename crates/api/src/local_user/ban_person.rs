@@ -18,7 +18,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::validation::is_valid_body_field,
 };
 
@@ -27,7 +27,7 @@ pub async fn ban_from_site(
   data: Json<BanPerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<BanPersonResponse>, LemmyError> {
+) -> LemmyResult<Json<BanPersonResponse>> {
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
@@ -49,7 +49,7 @@ pub async fn ban_from_site(
 
   // if its a local user, invalidate logins
   let local_user = LocalUserView::read_person(&mut context.pool(), person.id).await;
-  if let Ok(local_user) = local_user {
+  if let Ok(Some(local_user)) = local_user {
     LoginToken::invalidate_all(&mut context.pool(), local_user.local_user.id).await?;
   }
 
@@ -70,7 +70,9 @@ pub async fn ban_from_site(
 
   ModBan::create(&mut context.pool(), &form).await?;
 
-  let person_view = PersonView::read(&mut context.pool(), person.id).await?;
+  let person_view = PersonView::read(&mut context.pool(), person.id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPerson)?;
 
   ban_nonlocal_user_from_local_communities(
     &local_user_view,
