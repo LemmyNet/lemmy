@@ -157,12 +157,13 @@ impl SiteLanguage {
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
-          use crate::schema::site_language::dsl::{site_id, site_language};
+          use crate::schema::site_language::dsl::{language_id, site_id, site_language};
 
-          // Clear the current languages
-          delete(site_language.filter(site_id.eq(for_site_id)))
-            .execute(conn)
-            .await?;
+          // Delete old languages, not including new languages
+          let delete_old = delete(site_language)
+            .filter(site_id.eq(for_site_id))
+            .filter(language_id.ne_all(&lang_ids))
+            .execute(conn);
 
           let forms = lang_ids
             .into_iter()
@@ -172,10 +173,14 @@ impl SiteLanguage {
             })
             .collect::<Vec<_>>();
 
-          insert_into(site_language)
+          // Insert new languages
+          let insert_new = insert_into(site_language)
             .values(forms)
-            .get_result::<Self>(conn)
-            .await?;
+            .on_conflict((site_id, language_id))
+            .do_nothing()
+            .execute(conn);
+
+          tokio::try_join!(delete_old, insert_new)?;
 
           CommunityLanguage::limit_languages(conn, instance_id).await?;
 
