@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.6
+# syntax=docker/dockerfile:1.7
 ARG RUST_VERSION=1.77
 ARG CARGO_BUILD_FEATURES=default
 ARG RUST_RELEASE_MODE=debug
