@@ -281,8 +281,8 @@ impl CommunityLanguage {
     }
 
     let form = lang_ids
-      .into_iter()
-      .map(|language_id| CommunityLanguageForm {
+      .iter()
+      .map(|&language_id| CommunityLanguageForm {
         community_id: for_community_id,
         language_id,
       })
@@ -292,25 +292,22 @@ impl CommunityLanguage {
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
-          use crate::schema::community_language::dsl::{community_id, community_language};
+          use crate::schema::community_language::dsl::{community_id, community_language, language_id};
           use diesel::result::DatabaseErrorKind::UniqueViolation;
-          // Clear the current languages
-          delete(community_language.filter(community_id.eq(for_community_id)))
-            .execute(conn)
-            .await?;
+          // Delete old languages, not including new languages
+          let delete_old = delete(community_language)
+            .filter(community_id.eq(for_community_id))
+            .filter(language_id.ne_all(lang_ids))
+            .execute(conn);
 
-          let insert_res = insert_into(community_language)
+          // Insert new languages
+          let insert_new = insert_into(community_language)
             .values(form)
-            .get_result::<Self>(conn)
-            .await;
+            .on_conflict((community_id, language_id))
+            .do_nothing()
+            .execute(conn);
 
-          if let Err(Error::DatabaseError(UniqueViolation, _info)) = insert_res {
-            // race condition: this function was probably called simultaneously from another caller. ignore error
-            // tracing::warn!("unique error: {_info:#?}");
-            // _info.constraint_name() should be = "community_language_community_id_language_id_key"
-            return Ok(());
-          }
-          insert_res?;
+          tokio::try_join!(delete_old, insert_new)?;
 
           Ok(())
         }) as _
