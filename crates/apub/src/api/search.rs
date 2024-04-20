@@ -201,10 +201,10 @@ pub async fn search(
     }
   };
 
-  //filtering out removed and deleted comments from search results
+  //filtering out removed comments from search results
   let comments = comments
     .into_iter()
-    .filter(|c| !c.comment.removed && !c.comment.deleted)
+    .filter(|c| !c.comment.removed)
     .collect();
 
   // Return the jwt
