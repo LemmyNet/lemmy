@@ -84,9 +84,9 @@ impl LocalUserLanguage {
       .run(|conn| {
         Box::pin(async move {
           use crate::schema::local_user_language::dsl::{
+            language_id,
             local_user_id,
             local_user_language,
-            language_id,
           };
           // Delete old languages, not including new languages
           let delete_old = delete(local_user_language)
