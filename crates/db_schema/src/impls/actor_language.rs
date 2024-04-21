@@ -95,7 +95,7 @@ impl LocalUserLanguage {
             .execute(conn);
 
           let forms = lang_ids
-            .into_iter()
+            .iter()
             .map(|l| LocalUserLanguageForm {
               local_user_id: for_local_user_id,
               language_id: l,
@@ -170,7 +170,7 @@ impl SiteLanguage {
             .execute(conn);
 
           let forms = lang_ids
-            .into_iter()
+            .iter()
             .map(|l| SiteLanguageForm {
               site_id: for_site_id,
               language_id: l,
@@ -304,7 +304,7 @@ impl CommunityLanguage {
           // Delete old languages, not including new languages
           let delete_old = delete(community_language)
             .filter(community_id.eq(for_community_id))
-            .filter(language_id.ne_all(lang_ids))
+            .filter(language_id.ne_all(&lang_ids))
             .execute(conn);
 
           // Insert new languages
