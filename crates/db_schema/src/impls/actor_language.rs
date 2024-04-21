@@ -87,7 +87,7 @@ impl LocalUserLanguage {
           // Delete old languages, not including new languages
           let delete_old = delete(local_user_language)
             .filter(local_user_id.eq(for_local_user_id))
-            .filter(language_id.ne_all(&lang_ids)
+            .filter(language_id.ne_all(&lang_ids))
             .execute(conn);
 
           let forms = lang_ids
