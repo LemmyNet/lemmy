@@ -83,7 +83,11 @@ impl LocalUserLanguage {
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
-          use crate::schema::local_user_language::dsl::{local_user_id, local_user_language, language_id};
+          use crate::schema::local_user_language::dsl::{
+            local_user_id,
+            local_user_language,
+            language_id,
+          };
           // Delete old languages, not including new languages
           let delete_old = delete(local_user_language)
             .filter(local_user_id.eq(for_local_user_id))
@@ -292,8 +296,11 @@ impl CommunityLanguage {
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
-          use crate::schema::community_language::dsl::{community_id, community_language, language_id};
-          use diesel::result::DatabaseErrorKind::UniqueViolation;
+          use crate::schema::community_language::dsl::{
+            community_id,
+            community_language,
+            language_id,
+          };
           // Delete old languages, not including new languages
           let delete_old = delete(community_language)
             .filter(community_id.eq(for_community_id))
