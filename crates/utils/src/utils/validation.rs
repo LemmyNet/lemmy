@@ -335,13 +335,18 @@ pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
     .set_scheme("http")
     .map_err(|_| LemmyErrorType::InvalidUrl)?;
 
-  Ok(
-    url
-      .to_string()
-      .get(7..)
-      .ok_or(LemmyErrorType::InvalidUrl)?
-      .to_string(),
-  )
+  let mut out = url
+    .to_string()
+    .get(7..)
+    .ok_or(LemmyErrorType::InvalidUrl)?
+    .to_string();
+
+  // Remove trailing / if necessary
+  if out.ends_with('/') {
+    out.pop();
+  }
+
+  Ok(out)
 }
 
 #[cfg(test)]
@@ -628,7 +633,7 @@ mod tests {
       ])
       .unwrap(),
       &vec![
-        "example.com/".to_string(),
+        "example.com".to_string(),
         "example.com/test?q=test2&q2=test3#test4".to_string()
       ],
     );
