@@ -309,21 +309,39 @@ pub fn is_url_blocked(url: &Option<Url>, blocklist: &RegexSet) -> LemmyResult<()
   Ok(())
 }
 
+/// Check that urls are valid, and also remove the scheme, and uniques
 pub fn check_urls_are_valid(urls: &Vec<String>) -> LemmyResult<Vec<String>> {
   let mut parsed_urls = vec![];
   for url in urls {
-    let url = Url::parse(url).or_else(|e| {
-      if e == ParseError::RelativeUrlWithoutBase {
-        Url::parse(&format!("https://{url}"))
-      } else {
-        Err(e)
-      }
-    })?;
-
-    parsed_urls.push(url.to_string());
+    parsed_urls.push(build_url_str_without_scheme(url)?);
   }
 
-  Ok(parsed_urls)
+  let unique_urls = parsed_urls.into_iter().unique().collect();
+  Ok(unique_urls)
+}
+
+pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
+  // Parse and check for errors
+  let mut url = Url::parse(url_str).or_else(|e| {
+    if e == ParseError::RelativeUrlWithoutBase {
+      Url::parse(&format!("http://{url_str}"))
+    } else {
+      Err(e)
+    }
+  })?;
+
+  // Set the scheme to https, then remove the http:// part
+  url
+    .set_scheme("http")
+    .map_err(|_| LemmyErrorType::InvalidUrl)?;
+
+  Ok(
+    url
+      .to_string()
+      .get(7..)
+      .ok_or(LemmyErrorType::InvalidUrl)?
+      .to_string(),
+  )
 }
 
 #[cfg(test)]
@@ -600,17 +618,21 @@ mod tests {
 
   #[test]
   fn test_url_parsed() {
+    // Make sure the scheme is removed, and uniques also
     assert_eq!(
-      vec![String::from("https://example.com/")],
-      check_urls_are_valid(&vec![String::from("example.com")]).unwrap()
+      &check_urls_are_valid(&vec![
+        "example.com".to_string(),
+        "http://example.com".to_string(),
+        "https://example.com".to_string(),
+        "https://example.blog/test?q=test2&q2=test3#test4".to_string(),
+      ])
+      .unwrap(),
+      &vec![
+        "example.com/".to_string(),
+        "example.blog/test?q=test2&q2=test3#test4".to_string()
+      ],
     );
 
-    assert!(check_urls_are_valid(&vec![
-      String::from("example.com"),
-      String::from("https://example.blog")
-    ])
-    .is_ok());
-
-    assert!(check_urls_are_valid(&vec![String::from("https://example .com"),]).is_err());
+    assert!(check_urls_are_valid(&vec!["https://example .com".to_string()]).is_err());
   }
 }
