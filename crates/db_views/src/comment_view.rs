@@ -215,9 +215,14 @@ fn queries<'a>() -> Queries<
     if let Some(parent_path) = options.parent_path.as_ref() {
       query = query.filter(comment::path.contained_by(parent_path));
     };
-
+    //filtering out removed and deleted comments from search
     if let Some(search_term) = options.search_term {
-      query = query.filter(comment::content.ilike(fuzzy_search(&search_term)));
+      query = query.filter(
+        comment::content
+          .ilike(fuzzy_search(&search_term))
+          .and(comment::removed.eq(false))
+          .and(comment::deleted.eq(false)),
+      );
     };
 
     if let Some(community_id) = options.community_id {
