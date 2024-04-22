@@ -624,12 +624,12 @@ mod tests {
         "example.com".to_string(),
         "http://example.com".to_string(),
         "https://example.com".to_string(),
-        "https://example.blog/test?q=test2&q2=test3#test4".to_string(),
+        "https://example.com/test?q=test2&q2=test3#test4".to_string(),
       ])
       .unwrap(),
       &vec![
         "example.com/".to_string(),
-        "example.blog/test?q=test2&q2=test3#test4".to_string()
+        "example.com/test?q=test2&q2=test3#test4".to_string()
       ],
     );
 

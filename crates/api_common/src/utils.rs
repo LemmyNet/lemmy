@@ -537,23 +537,15 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
         let urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
 
         let regexes = urls.iter().map(|url| {
-          let url = &url.url;
-          let parsed = Url::parse(url).expect("Coundln't parse URL.");
-          if url.ends_with('/') {
-            format!(
-              "({}://)?{}{}?",
-              parsed.scheme(),
-              escape(parsed.domain().expect("No domain.")),
-              escape(parsed.path())
-            )
-          } else {
-            format!(
-              "({}://)?{}{}",
-              parsed.scheme(),
-              escape(parsed.domain().expect("No domain.")),
-              escape(parsed.path())
-            )
-          }
+          // The scheme is removed in the saving,
+          // so fake it here to build the url.
+          let url = &format!("https://{}", url.url);
+          let parsed = Url::parse(url).expect("Couldn't parse URL.");
+          format!(
+            "{}{}",
+            escape(parsed.host_str().expect("No domain.")),
+            escape(parsed.path())
+          )
         });
 
         let set = RegexSet::new(regexes)?;
