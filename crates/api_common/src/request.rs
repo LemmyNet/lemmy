@@ -104,8 +104,14 @@ pub fn generate_post_link_metadata(
       federated_thumbnail
     }
     // Generate local thumbnail if allowed
-    else if allow_generate_thumbnail {
-      match post.url.or(metadata.opengraph_data.image) {
+    else if allow_generate_thumbnail && !is_image_post {
+      match metadata.opengraph_data.image {
+        Some(url) => generate_pictrs_thumbnail(&url, &context).await.ok(),
+        None => None,
+      }
+    }
+    else if allow_generate_thumbnail && is_image_post {
+      match post.url {
         Some(url) => generate_pictrs_thumbnail(&url, &context).await.ok(),
         None => None,
       }
