@@ -330,7 +330,7 @@ pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
     }
   })?;
 
-  // Set the scheme to https, then remove the http:// part
+  // Set the scheme to http, then remove the http:// part
   url
     .set_scheme("http")
     .map_err(|_| LemmyErrorType::InvalidUrl)?;
