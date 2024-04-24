@@ -58,6 +58,11 @@ impl ModRemoveCommentView {
       query = query.filter(comment::id.eq(comment_id));
     }
 
+    // If a post ID is given, then don't find any results
+    if params.post_id.is_some() {
+      return Ok(vec![]);
+    }
+
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
     query
