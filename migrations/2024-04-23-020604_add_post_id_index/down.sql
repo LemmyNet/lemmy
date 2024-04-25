@@ -58,12 +58,6 @@ DROP INDEX idx_post_aggregates_featured_local_scaled;
 
 DROP INDEX idx_post_aggregates_featured_local_score;
 
-DROP INDEX idx_post_aggregates_nonzero_hotrank;
-
-DROP INDEX idx_post_aggregates_published;
-
-DROP INDEX idx_post_aggregates_published_asc;
-
 CREATE INDEX idx_post_aggregates_community_active ON public.post_aggregates USING btree (community_id, featured_local DESC, hot_rank_active DESC, published DESC);
 
 CREATE INDEX idx_post_aggregates_community_controversy ON public.post_aggregates USING btree (community_id, featured_local DESC, controversy_rank DESC);
@@ -123,11 +117,4 @@ CREATE INDEX idx_post_aggregates_featured_local_published_asc ON public.post_agg
 CREATE INDEX idx_post_aggregates_featured_local_scaled ON public.post_aggregates USING btree (featured_local DESC, scaled_rank DESC, published DESC);
 
 CREATE INDEX idx_post_aggregates_featured_local_score ON public.post_aggregates USING btree (featured_local DESC, score DESC, published DESC);
-
-CREATE INDEX idx_post_aggregates_nonzero_hotrank ON public.post_aggregates USING btree (published DESC)
-WHERE ((hot_rank <> (0)::double precision) OR (hot_rank_active <> (0)::double precision));
-
-CREATE INDEX idx_post_aggregates_published ON public.post_aggregates USING btree (published DESC);
-
-CREATE INDEX idx_post_aggregates_published_asc ON public.post_aggregates USING btree (public.reverse_timestamp_sort (published) DESC);
 
