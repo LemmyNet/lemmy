@@ -1,6 +1,6 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  objects::{community::ApubCommunity, post::ApubPost},
+  objects::community::ApubCommunity,
   protocol::{
     activities::{
       community::announce::AnnounceActivity,
@@ -18,11 +18,8 @@ use activitypub_federation::{
 };
 use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
-use lemmy_db_schema::{
-  source::{person::Person, post::Post},
-  traits::Crud,
-  utils::FETCH_LIMIT_MAX,
-};
+use lemmy_db_schema::{utils::FETCH_LIMIT_MAX, SortType};
+use lemmy_db_views::{post_view::PostQuery, structs::SiteView};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   LemmyErrorType,
@@ -41,19 +38,30 @@ impl Collection for ApubCommunityOutbox {
 
   #[tracing::instrument(skip_all)]
   async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    let post_list: Vec<ApubPost> = Post::list_for_community(&mut data.pool(), owner.id)
+    let site = SiteView::read_local(&mut data.pool())
       .await?
-      .into_iter()
-      .map(Into::into)
-      .collect();
+      .ok_or(LemmyErrorType::LocalSiteNotSetup)?
+      .site;
+
+    let post_views = PostQuery {
+      community_id: Some(owner.id),
+      sort: Some(SortType::New),
+      limit: Some(FETCH_LIMIT_MAX),
+      ..Default::default()
+    }
+    .list(&site, &mut data.pool())
+    .await?;
+
     let mut ordered_items = vec![];
-    for post in post_list {
-      let person = Person::read(&mut data.pool(), post.creator_id)
-        .await?
-        .ok_or(LemmyErrorType::CouldntFindPerson)?
-        .into();
-      let create =
-        CreateOrUpdatePage::new(post, &person, owner, CreateOrUpdateType::Create, data).await?;
+    for post_view in post_views {
+      let create = CreateOrUpdatePage::new(
+        &post_view.post.into(),
+        &post_view.creator.into(),
+        owner,
+        CreateOrUpdateType::Create,
+        data,
+      )
+      .await?;
       let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
       let announce = AnnounceActivity::new(announcable.try_into()?, owner, data)?;
       ordered_items.push(announce);

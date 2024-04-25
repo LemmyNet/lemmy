@@ -38,7 +38,7 @@ use url::Url;
 
 impl CreateOrUpdatePage {
   pub(crate) async fn new(
-    post: ApubPost,
+    post: &ApubPost,
     actor: &ApubPerson,
     community: &ApubCommunity,
     kind: CreateOrUpdateType,
@@ -51,7 +51,7 @@ impl CreateOrUpdatePage {
     Ok(CreateOrUpdatePage {
       actor: actor.id().into(),
       to: vec![public()],
-      object: post.into_json(context).await?,
+      object: post.clone().into_json(context).await?,
       cc: vec![community.id()],
       kind,
       id: id.clone(),
@@ -66,7 +66,6 @@ impl CreateOrUpdatePage {
     kind: CreateOrUpdateType,
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let post = ApubPost(post);
     let community_id = post.community_id;
     let person: ApubPerson = Person::read(&mut context.pool(), person_id)
       .await?
@@ -78,7 +77,7 @@ impl CreateOrUpdatePage {
       .into();
 
     let create_or_update =
-      CreateOrUpdatePage::new(post, &person, &community, kind, &context).await?;
+      CreateOrUpdatePage::new(&post.into(), &person, &community, kind, &context).await?;
     let is_mod_action = create_or_update.object.is_mod_action(&context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
     send_activity_in_community(
