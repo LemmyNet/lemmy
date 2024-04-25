@@ -2588,7 +2588,7 @@ dependencies = [
  "actix-web",
  "actix-web-httpauth",
  "anyhow",
- "base64 0.21.7",
+ "base64 0.22.0",
  "bcrypt",
  "captcha",
  "chrono",
