@@ -55,7 +55,7 @@ impl Collection for ApubCommunityOutbox {
     let mut ordered_items = vec![];
     for post_view in post_views {
       let create = CreateOrUpdatePage::new(
-        &post_view.post.into(),
+        post_view.post.into(),
         &post_view.creator.into(),
         owner,
         CreateOrUpdateType::Create,
