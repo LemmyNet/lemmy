@@ -96,7 +96,7 @@ impl LocalUserLanguage {
 
           let forms = lang_ids
             .iter()
-            .map(|l| LocalUserLanguageForm {
+            .map(|&l| LocalUserLanguageForm {
               local_user_id: for_local_user_id,
               language_id: l,
             })
@@ -171,7 +171,7 @@ impl SiteLanguage {
 
           let forms = lang_ids
             .iter()
-            .map(|l| SiteLanguageForm {
+            .map(|&l| SiteLanguageForm {
               site_id: for_site_id,
               language_id: l,
             })
