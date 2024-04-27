@@ -43,20 +43,13 @@ impl LocalUserLanguage {
     };
     let conn = &mut get_conn(pool).await?;
 
-    conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          let langs = local_user_language
-            .filter(local_user_id.eq(for_local_user_id))
-            .order(language_id)
-            .select(language_id)
-            .get_results(conn)
-            .await?;
-          convert_read_languages(conn, langs).await
-        }) as _
-      })
-      .await
+    let langs = local_user_language
+      .filter(local_user_id.eq(for_local_user_id))
+      .order(language_id)
+      .select(language_id)
+      .get_results(conn)
+      .await?;
+    convert_read_languages(conn, langs).await
   }
 
   /// Update the user's languages.
@@ -90,24 +83,33 @@ impl LocalUserLanguage {
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
-          use crate::schema::local_user_language::dsl::{local_user_id, local_user_language};
-          // Clear the current user languages
-          delete(local_user_language.filter(local_user_id.eq(for_local_user_id)))
-            .execute(conn)
-            .await?;
+          use crate::schema::local_user_language::dsl::{
+            language_id,
+            local_user_id,
+            local_user_language,
+          };
+          // Delete old languages, not including new languages
+          let delete_old = delete(local_user_language)
+            .filter(local_user_id.eq(for_local_user_id))
+            .filter(language_id.ne_all(&lang_ids))
+            .execute(conn);
 
           let forms = lang_ids
-            .into_iter()
-            .map(|l| LocalUserLanguageForm {
+            .iter()
+            .map(|&l| LocalUserLanguageForm {
               local_user_id: for_local_user_id,
               language_id: l,
             })
             .collect::<Vec<_>>();
 
-          insert_into(local_user_language)
+          // Insert new languages
+          let insert_new = insert_into(local_user_language)
             .values(forms)
-            .execute(conn)
-            .await?;
+            .on_conflict((language_id, local_user_id))
+            .do_nothing()
+            .execute(conn);
+
+          tokio::try_join!(delete_old, insert_new)?;
           Ok(())
         }) as _
       })
@@ -159,25 +161,30 @@ impl SiteLanguage {
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
-          use crate::schema::site_language::dsl::{site_id, site_language};
+          use crate::schema::site_language::dsl::{language_id, site_id, site_language};
 
-          // Clear the current languages
-          delete(site_language.filter(site_id.eq(for_site_id)))
-            .execute(conn)
-            .await?;
+          // Delete old languages, not including new languages
+          let delete_old = delete(site_language)
+            .filter(site_id.eq(for_site_id))
+            .filter(language_id.ne_all(&lang_ids))
+            .execute(conn);
 
           let forms = lang_ids
-            .into_iter()
-            .map(|l| SiteLanguageForm {
+            .iter()
+            .map(|&l| SiteLanguageForm {
               site_id: for_site_id,
               language_id: l,
             })
             .collect::<Vec<_>>();
 
-          insert_into(site_language)
+          // Insert new languages
+          let insert_new = insert_into(site_language)
             .values(forms)
-            .get_result::<Self>(conn)
-            .await?;
+            .on_conflict((site_id, language_id))
+            .do_nothing()
+            .execute(conn);
+
+          tokio::try_join!(delete_old, insert_new)?;
 
           CommunityLanguage::limit_languages(conn, instance_id).await?;
 
@@ -278,8 +285,8 @@ impl CommunityLanguage {
     }
 
     let form = lang_ids
-      .into_iter()
-      .map(|language_id| CommunityLanguageForm {
+      .iter()
+      .map(|&language_id| CommunityLanguageForm {
         community_id: for_community_id,
         language_id,
       })
@@ -289,25 +296,25 @@ impl CommunityLanguage {
       .build_transaction()
       .run(|conn| {
         Box::pin(async move {
-          use crate::schema::community_language::dsl::{community_id, community_language};
-          use diesel::result::DatabaseErrorKind::UniqueViolation;
-          // Clear the current languages
-          delete(community_language.filter(community_id.eq(for_community_id)))
-            .execute(conn)
-            .await?;
+          use crate::schema::community_language::dsl::{
+            community_id,
+            community_language,
+            language_id,
+          };
+          // Delete old languages, not including new languages
+          let delete_old = delete(community_language)
+            .filter(community_id.eq(for_community_id))
+            .filter(language_id.ne_all(&lang_ids))
+            .execute(conn);
 
-          let insert_res = insert_into(community_language)
+          // Insert new languages
+          let insert_new = insert_into(community_language)
             .values(form)
-            .get_result::<Self>(conn)
-            .await;
+            .on_conflict((community_id, language_id))
+            .do_nothing()
+            .execute(conn);
 
-          if let Err(Error::DatabaseError(UniqueViolation, _info)) = insert_res {
-            // race condition: this function was probably called simultaneously from another caller. ignore error
-            // tracing::warn!("unique error: {_info:#?}");
-            // _info.constraint_name() should be = "community_language_community_id_language_id_key"
-            return Ok(());
-          }
-          insert_res?;
+          tokio::try_join!(delete_old, insert_new)?;
 
           Ok(())
         }) as _
