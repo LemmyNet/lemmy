@@ -397,9 +397,11 @@ fn queries<'a>() -> Queries<
     if let Some(search_term) = &options.search_term {
       let searcher = fuzzy_search(search_term);
       query = query.filter(
-        post::name
+        (post::name
           .ilike(searcher.clone())
-          .or(post::body.ilike(searcher)),
+          .or(post::body.ilike(searcher)))
+        .and(post::removed.eq(false))
+        .and(post::deleted.eq(false)),
       );
     }
 
