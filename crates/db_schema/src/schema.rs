@@ -801,8 +801,8 @@ diesel::table! {
 }
 
 diesel::table! {
-    replaceable_schema_state (previously_run_sql) {
-        previously_run_sql -> Text,
+    previously_run_sql (content) {
+        content -> Text,
     }
 }
 
