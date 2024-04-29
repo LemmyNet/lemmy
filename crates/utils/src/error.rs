@@ -176,6 +176,7 @@ pub enum LemmyErrorType {
   InvalidUnixTime,
   InvalidBotAction,
   CantBlockLocalInstance,
+  UrlWithoutDomain,
   Unknown(String),
 }
 
