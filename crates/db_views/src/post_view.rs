@@ -396,13 +396,13 @@ fn queries<'a>() -> Queries<
 
     if let Some(search_term) = &options.search_term {
       let searcher = fuzzy_search(search_term);
-      query = query.filter(
-        (post::name
-          .ilike(searcher.clone())
-          .or(post::body.ilike(searcher)))
-        .and(post::removed.eq(false))
-        .and(post::deleted.eq(false)),
-      );
+      query = query
+        .filter(
+          post::name
+            .ilike(searcher.clone())
+            .or(post::body.ilike(searcher)),
+        )
+        .filter(not(post::removed.or(post::deleted)));
     }
 
     // If there is a content warning, show nsfw content by default.
