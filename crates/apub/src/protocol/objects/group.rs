@@ -45,7 +45,7 @@ pub struct Group {
   /// username, set at account creation and usually fixed after that
   pub(crate) preferred_username: String,
   pub(crate) inbox: Url,
-  pub(crate) followers: CollectionId<ApubCommunityFollower>,
+  pub(crate) followers: Option<CollectionId<ApubCommunityFollower>>,
   pub(crate) public_key: PublicKey,
 
   /// title
