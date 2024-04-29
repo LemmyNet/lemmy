@@ -84,22 +84,6 @@ impl Post {
       .await
   }
 
-  pub async fn list_for_community(
-    pool: &mut DbPool<'_>,
-    the_community_id: CommunityId,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    post::table
-      .filter(post::community_id.eq(the_community_id))
-      .filter(post::deleted.eq(false))
-      .filter(post::removed.eq(false))
-      .then_order_by(post::featured_community.desc())
-      .then_order_by(post::published.desc())
-      .limit(FETCH_LIMIT_MAX)
-      .load::<Self>(conn)
-      .await
-  }
-
   pub async fn list_featured_for_community(
     pool: &mut DbPool<'_>,
     the_community_id: CommunityId,
