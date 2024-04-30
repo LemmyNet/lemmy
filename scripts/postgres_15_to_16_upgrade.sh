@@ -12,7 +12,7 @@ echo "Waiting..."
 sleep 20s
 
 echo "Exporting the Database to 15_16.dump.sql ..."
-sudo docker compose exec -T postgres pg_dumpall -c -U lemmy > 15_16_dump.sql
+sudo docker compose exec -T postgres pg_dumpall -c -U lemmy | sudo tee 15_16_dump.sql > /dev/null
 echo "Done."
 
 echo "Stopping postgres..."
@@ -24,7 +24,7 @@ echo "Removing the old postgres folder"
 sudo rm -rf volumes/postgres
 
 echo "Updating docker compose to use postgres version 16."
-sed -i "s/image: postgres:.*/image: postgres:16-alpine/" ./docker-compose.yml
+sudo sed -i "s/image: postgres:.*/image: postgres:16-alpine/" ./docker-compose.yml
 
 echo "Starting up new postgres..."
 sudo docker compose up -d postgres
@@ -32,7 +32,7 @@ echo "Waiting..."
 sleep 20s
 
 echo "Importing the database...."
-cat 15_16_dump.sql | sudo docker compose exec -T postgres psql -U lemmy
+sudo cat 15_16_dump.sql | sudo docker compose exec -T postgres psql -U lemmy
 echo "Done."
 
 echo "Starting up lemmy..."
