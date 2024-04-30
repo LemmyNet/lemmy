@@ -264,10 +264,13 @@ fn queries<'a>() -> Queries<
         .then_order_by(is_saved(person_id_join).desc());
     }
 
-    if options.liked_only {
-      query = query.filter(score(person_id_join).eq(1));
-    } else if options.disliked_only {
-      query = query.filter(score(person_id_join).eq(-1));
+    if let Some(my_id) = my_person_id {
+      let not_creator_filter = comment::creator_id.ne(my_id);
+      if options.liked_only {
+        query = query.filter(not_creator_filter).filter(score(my_id).eq(1));
+      } else if options.disliked_only {
+        query = query.filter(not_creator_filter).filter(score(my_id).eq(-1));
+      }
     }
 
     if !options
@@ -682,8 +685,10 @@ mod tests {
     .await?;
 
     assert_eq!(
-      expected_comment_view_no_person,
-      read_comment_views_no_person[0]
+      &expected_comment_view_no_person,
+      read_comment_views_no_person
+        .first()
+        .ok_or(LemmyErrorType::CouldntFindComment)?
     );
 
     let read_comment_views_with_person = CommentQuery {
@@ -714,18 +719,45 @@ mod tests {
     // Make sure block set the creator blocked
     assert!(read_comment_from_blocked_person.creator_blocked);
 
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_liked_only() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    // Unblock sara first
+    let timmy_unblocks_sara_form = PersonBlockForm {
+      person_id: data.timmy_local_user_view.person.id,
+      target_id: data.inserted_sara_person.id,
+    };
+    PersonBlock::unblock(pool, &timmy_unblocks_sara_form).await?;
+
+    // Like a new comment
+    let comment_like_form = CommentLikeForm {
+      comment_id: data.inserted_comment_1.id,
+      post_id: data.inserted_post.id,
+      person_id: data.timmy_local_user_view.person.id,
+      score: 1,
+    };
+    CommentLike::like(pool, &comment_like_form).await.unwrap();
+
     let read_liked_comment_views = CommentQuery {
       local_user: (Some(&data.timmy_local_user_view)),
       liked_only: (true),
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .into_iter()
+    .map(|c| c.comment.content)
+    .collect::<Vec<String>>();
 
-    assert_eq!(
-      expected_comment_view_with_person,
-      read_liked_comment_views[0]
-    );
+    // Shouldn't include your own post, only other peoples
+    assert_eq!(data.inserted_comment_1.content, read_liked_comment_views[0]);
 
     assert_length!(1, read_liked_comment_views);
 
@@ -835,7 +867,7 @@ mod tests {
     // change user lang to finnish, should only show one post in finnish and one undetermined
     let finnish_id = Language::read_id_from_code(pool, Some("fi"))
       .await?
-      .unwrap();
+      .ok_or(LemmyErrorType::LanguageNotAllowed)?;
     LocalUserLanguage::update(
       pool,
       vec![finnish_id],
@@ -855,7 +887,10 @@ mod tests {
     assert!(finnish_comment.is_some());
     assert_eq!(
       data.inserted_comment_2.content,
-      finnish_comment.unwrap().comment.content
+      finnish_comment
+        .ok_or(LemmyErrorType::CouldntFindComment)?
+        .comment
+        .content
     );
 
     // now show all comments with undetermined language (which is the default value)
