@@ -9,7 +9,7 @@ use lemmy_db_schema::source::{
   local_site_url_blocklist::LocalSiteUrlBlocklist,
   tagline::Tagline,
 };
-use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::{
   CommunityBlockView,
   CommunityFollowerView,
@@ -47,10 +47,8 @@ pub async fn get_site(
       let admins = PersonView::admins(&mut context.pool()).await?;
       let all_languages = Language::read_all(&mut context.pool()).await?;
       let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
-      let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
-      let custom_emojis =
-        CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
       let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
+      let tagline = Tagline::get_random(&mut context.pool()).await?;
       Ok(GetSiteResponse {
         site_view,
         admins,
@@ -58,9 +56,8 @@ pub async fn get_site(
         my_user: None,
         all_languages,
         discussion_languages,
-        taglines,
-        custom_emojis,
         blocked_urls,
+        tagline,
       })
     })
     .await
