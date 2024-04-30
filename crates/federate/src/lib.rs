@@ -200,5 +200,5 @@ async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQu
       ok_count += 1;
     }
   }
-  tracing::info!("{ok_count} others up to date. {behind_count} instances behind.");
+  tracing::info!("{ok_count} instances up to date. {behind_count} instances behind.");
 }
