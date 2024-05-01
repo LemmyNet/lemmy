@@ -106,7 +106,7 @@ diesel = "2.1.6"
 diesel_migrations = "2.1.0"
 diesel-async = "0.4.1"
 serde = { version = "1.0.199", features = ["derive"] }
-serde_with = "3.7.0"
+serde_with = "3.8.1"
 actix-web = { version = "4.5.1", default-features = false, features = [
   "macros",
   "rustls",
