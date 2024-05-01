@@ -452,11 +452,12 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if let Some(person_id) = my_person_id {
+    if let Some(my_id) = my_person_id {
+      let not_creator_filter = post_aggregates::creator_id.ne(my_id);
       if options.liked_only {
-        query = query.filter(score(person_id).eq(1));
+        query = query.filter(not_creator_filter).filter(score(my_id).eq(1));
       } else if options.disliked_only {
-        query = query.filter(score(person_id).eq(-1));
+        query = query.filter(not_creator_filter).filter(score(my_id).eq(-1));
       }
     };
 
@@ -1121,6 +1122,36 @@ mod tests {
     .await?;
     assert_eq!(vec![expected_post_with_upvote], read_post_listing);
 
+    let like_removed =
+      PostLike::remove(pool, data.local_user_view.person.id, data.inserted_post.id).await?;
+    assert_eq!(1, like_removed);
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_liked_only() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Like both the bot post, and your own
+    // The liked_only should not show your own post
+    let post_like_form = PostLikeForm {
+      post_id: data.inserted_post.id,
+      person_id: data.local_user_view.person.id,
+      score: 1,
+    };
+    PostLike::like(pool, &post_like_form).await?;
+
+    let bot_post_like_form = PostLikeForm {
+      post_id: data.inserted_bot_post.id,
+      person_id: data.local_user_view.person.id,
+      score: 1,
+    };
+    PostLike::like(pool, &bot_post_like_form).await?;
+
+    // Read the liked only
     let read_liked_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       liked_only: true,
@@ -1128,7 +1159,9 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(read_post_listing, read_liked_post_listing);
+
+    // This should only include the bot post, not the one you created
+    assert_eq!(vec![POST_BY_BOT], names(&read_liked_post_listing));
 
     let read_disliked_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
@@ -1137,11 +1170,10 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
+
+    // Should be no posts
     assert_eq!(read_disliked_post_listing, vec![]);
 
-    let like_removed =
-      PostLike::remove(pool, data.local_user_view.person.id, data.inserted_post.id).await?;
-    assert_eq!(1, like_removed);
     cleanup(data, pool).await
   }
 
@@ -1554,7 +1586,7 @@ mod tests {
     assert!(
       &post_listings_show_hidden
         .first()
-        .expect("first post should exist")
+        .ok_or(LemmyErrorType::CouldntFindPost)?
         .hidden
     );
 
