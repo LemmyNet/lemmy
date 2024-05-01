@@ -114,6 +114,8 @@ services:
         "-c",
         "auto_explain.log_analyze=true",
         "-c",
+        "auto_explain.log_triggers=true",
+        "-c",
         "track_activity_query_size=1048576",
       ]
     ports:
