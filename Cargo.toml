@@ -129,7 +129,7 @@ doku = { version = "0.21.1", features = ["url-2"] }
 bcrypt = "0.15.1"
 chrono = { version = "0.4.38", features = ["serde"], default-features = false }
 serde_json = { version = "1.0.116", features = ["preserve_order"] }
-base64 = "0.22.0"
+base64 = "0.22.1"
 uuid = { version = "1.8.0", features = ["serde", "v4"] }
 async-trait = "0.1.80"
 captcha = "0.0.9"
