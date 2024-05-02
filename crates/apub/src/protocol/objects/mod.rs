@@ -199,6 +199,7 @@ mod tests {
     Ok(())
   }
 
+  #[test]
   fn test_parse_object_nodebb() -> LemmyResult<()> {
     test_json::<Group>("assets/nodebb/objects/group.json")?;
     test_json::<Page>("assets/nodebb/objects/page.json")?;
