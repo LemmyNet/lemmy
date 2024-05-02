@@ -161,8 +161,8 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
   // version.
   if let Some(charset) = page.meta.get("charset") {
     if charset != UTF_8.name() {
-      if let Some(enc) = Encoding::for_label(charset.as_bytes()) {
-        page = HTML::from_string(enc.decode(html_bytes).0.into_owned(), None)?;
+      if let Some(encoding) = Encoding::for_label(charset.as_bytes()) {
+        page = HTML::from_string(encoding.decode(html_bytes).0.into_owned(), None)?;
       }
     }
   }
