@@ -85,7 +85,9 @@ pub async fn create_post(
   .await?;
 
   let community_id = data.community_id;
-  let community = Community::read(&mut context.pool(), community_id).await?;
+  let community = Community::read(&mut context.pool(), community_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;
     let is_mod = CommunityModeratorView::is_community_moderator(
@@ -157,6 +159,7 @@ pub async fn create_post(
   generate_post_link_metadata(
     updated_post.clone(),
     custom_thumbnail,
+    None,
     |post| Some(SendActivityData::CreatePost(post)),
     Some(local_site),
     context.reset_request_count(),

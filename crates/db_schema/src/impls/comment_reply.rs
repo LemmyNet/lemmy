@@ -1,4 +1,5 @@
 use crate::{
+  diesel::OptionalExtension,
   newtypes::{CommentId, CommentReplyId, PersonId},
   schema::comment_reply,
   source::comment_reply::{CommentReply, CommentReplyInsertForm, CommentReplyUpdateForm},
@@ -21,7 +22,7 @@ impl Crud for CommentReply {
     let conn = &mut get_conn(pool).await?;
 
     // since the return here isnt utilized, we dont need to do an update
-    // but get_result doesnt return the existing row here
+    // but get_result doesn't return the existing row here
     insert_into(comment_reply::table)
       .values(comment_reply_form)
       .on_conflict((comment_reply::recipient_id, comment_reply::comment_id))
@@ -63,25 +64,27 @@ impl CommentReply {
   pub async fn read_by_comment(
     pool: &mut DbPool<'_>,
     for_comment_id: CommentId,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     comment_reply::table
       .filter(comment_reply::comment_id.eq(for_comment_id))
-      .first::<Self>(conn)
+      .first(conn)
       .await
+      .optional()
   }
 
   pub async fn read_by_comment_and_person(
     pool: &mut DbPool<'_>,
     for_comment_id: CommentId,
     for_recipient_id: PersonId,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     comment_reply::table
       .filter(comment_reply::comment_id.eq(for_comment_id))
       .filter(comment_reply::recipient_id.eq(for_recipient_id))
-      .first::<Self>(conn)
+      .first(conn)
       .await
+      .optional()
   }
 }
 
@@ -174,7 +177,10 @@ mod tests {
       published: inserted_reply.published,
     };
 
-    let read_reply = CommentReply::read(pool, inserted_reply.id).await.unwrap();
+    let read_reply = CommentReply::read(pool, inserted_reply.id)
+      .await
+      .unwrap()
+      .unwrap();
 
     let comment_reply_update_form = CommentReplyUpdateForm { read: Some(false) };
     let updated_reply = CommentReply::update(pool, inserted_reply.id, &comment_reply_update_form)

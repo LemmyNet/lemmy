@@ -66,15 +66,18 @@ impl CreateOrUpdatePage {
     kind: CreateOrUpdateType,
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let post = ApubPost(post);
     let community_id = post.community_id;
-    let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
+    let person: ApubPerson = Person::read(&mut context.pool(), person_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?
+      .into();
     let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
       .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?
       .into();
 
     let create_or_update =
-      CreateOrUpdatePage::new(post, &person, &community, kind, &context).await?;
+      CreateOrUpdatePage::new(post.into(), &person, &community, kind, &context).await?;
     let is_mod_action = create_or_update.object.is_mod_action(&context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
     send_activity_in_community(

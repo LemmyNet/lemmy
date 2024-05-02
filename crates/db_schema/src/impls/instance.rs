@@ -26,13 +26,14 @@ use diesel::{
   result::Error,
   ExpressionMethods,
   NullableExpressionMethods,
+  OptionalExtension,
   QueryDsl,
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 
 impl Instance {
-  /// Attempt to read Instance column for the given domain. If it doesnt exist, insert a new one.
+  /// Attempt to read Instance column for the given domain. If it doesn't exist, insert a new one.
   /// There is no need for update as the domain of an existing instance cant change.
   pub async fn read_or_create(pool: &mut DbPool<'_>, domain_: String) -> Result<Self, Error> {
     use crate::schema::instance::domain;
@@ -41,11 +42,14 @@ impl Instance {
     // First try to read the instance row and return directly if found
     let instance = instance::table
       .filter(lower(domain).eq(&domain_.to_lowercase()))
-      .first::<Self>(conn)
-      .await;
+      .first(conn)
+      .await
+      .optional()?;
+
+    // TODO could convert this to unwrap_or_else once async closures are stable
     match instance {
-      Ok(i) => Ok(i),
-      Err(diesel::NotFound) => {
+      Some(i) => Ok(i),
+      None => {
         // Instance not in database yet, insert it
         let form = InstanceForm::builder()
           .domain(domain_)
@@ -61,7 +65,6 @@ impl Instance {
           .get_result::<Self>(conn)
           .await
       }
-      e => e,
     }
   }
   pub async fn update(

@@ -17,7 +17,9 @@ pub async fn distinguish_comment(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
-  let orig_comment = CommentView::read(&mut context.pool(), data.comment_id, None).await?;
+  let orig_comment = CommentView::read(&mut context.pool(), data.comment_id, None)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -54,7 +56,8 @@ pub async fn distinguish_comment(
     data.comment_id,
     Some(local_user_view.person.id),
   )
-  .await?;
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   Ok(Json(CommentResponse {
     comment_view,

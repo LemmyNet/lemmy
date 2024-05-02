@@ -124,12 +124,12 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
 
   // Initialize the secrets
   let secret = Secret::init(&mut (&pool).into())
-    .await
+    .await?
     .expect("Couldn't initialize secrets.");
 
   // Make sure the local site is set up.
   let site_view = SiteView::read_local(&mut (&pool).into())
-    .await
+    .await?
     .expect("local site not set up");
   let local_site = site_view.local_site;
   let federation_enabled = local_site.federation_enabled;
@@ -218,15 +218,17 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;
   let mut terminate = tokio::signal::unix::signal(SignalKind::terminate())?;
 
-  tokio::select! {
-    _ = tokio::signal::ctrl_c() => {
-      tracing::warn!("Received ctrl-c, shutting down gracefully...");
-    }
-    _ = interrupt.recv() => {
-      tracing::warn!("Received interrupt, shutting down gracefully...");
-    }
-    _ = terminate.recv() => {
-      tracing::warn!("Received terminate, shutting down gracefully...");
+  if server.is_some() || federate.is_some() {
+    tokio::select! {
+      _ = tokio::signal::ctrl_c() => {
+        tracing::warn!("Received ctrl-c, shutting down gracefully...");
+      }
+      _ = interrupt.recv() => {
+        tracing::warn!("Received interrupt, shutting down gracefully...");
+      }
+      _ = terminate.recv() => {
+        tracing::warn!("Received terminate, shutting down gracefully...");
+      }
     }
   }
   if let Some(server) = server {

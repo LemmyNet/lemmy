@@ -30,8 +30,12 @@ pub async fn block_person(
     target_id,
   };
 
-  let target_user = LocalUserView::read_person(&mut context.pool(), target_id).await;
-  if target_user.map(|t| t.local_user.admin) == Ok(true) {
+  let target_user = LocalUserView::read_person(&mut context.pool(), target_id)
+    .await
+    .ok()
+    .flatten();
+
+  if target_user.is_some_and(|t| t.local_user.admin) {
     Err(LemmyErrorType::CantBlockAdmin)?
   }
 
@@ -45,7 +49,9 @@ pub async fn block_person(
       .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
   }
 
-  let person_view = PersonView::read(&mut context.pool(), target_id).await?;
+  let person_view = PersonView::read(&mut context.pool(), target_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPerson)?;
   Ok(Json(BlockPersonResponse {
     person_view,
     blocked: data.block,

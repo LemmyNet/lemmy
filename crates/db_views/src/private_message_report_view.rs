@@ -42,7 +42,7 @@ fn queries<'a>() -> Queries<
 
   let read = move |mut conn: DbConn<'a>, report_id: PrivateMessageReportId| async move {
     all_joins(private_message_report::table.find(report_id).into_boxed())
-      .first::<PrivateMessageReportView>(&mut conn)
+      .first(&mut conn)
       .await
   };
 
@@ -77,7 +77,7 @@ impl PrivateMessageReportView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     report_id: PrivateMessageReportId,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     queries().read(pool, report_id).await
   }
 

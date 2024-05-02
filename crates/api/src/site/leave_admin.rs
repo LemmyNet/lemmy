@@ -55,7 +55,9 @@ pub async fn leave_admin(
   ModAdd::create(&mut context.pool(), &form).await?;
 
   // Reread site and admins
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
   let admins = PersonView::admins(&mut context.pool()).await?;
 
   let all_languages = Language::read_all(&mut context.pool()).await?;

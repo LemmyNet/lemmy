@@ -11,7 +11,7 @@ pub async fn get_link_metadata(
   data: Query<GetSiteMetadata>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<GetSiteMetadataResponse>> {
-  let metadata = fetch_link_metadata(&data.url, false, &context).await?;
+  let metadata = fetch_link_metadata(&data.url, &context).await?;
 
   Ok(Json(GetSiteMetadataResponse { metadata }))
 }

@@ -18,7 +18,9 @@ pub async fn mark_reply_as_read(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentReplyResponse>> {
   let comment_reply_id = data.comment_reply_id;
-  let read_comment_reply = CommentReply::read(&mut context.pool(), comment_reply_id).await?;
+  let read_comment_reply = CommentReply::read(&mut context.pool(), comment_reply_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommentReply)?;
 
   if local_user_view.person.id != read_comment_reply.recipient_id {
     Err(LemmyErrorType::CouldntUpdateComment)?
@@ -38,7 +40,9 @@ pub async fn mark_reply_as_read(
   let comment_reply_id = read_comment_reply.id;
   let person_id = local_user_view.person.id;
   let comment_reply_view =
-    CommentReplyView::read(&mut context.pool(), comment_reply_id, Some(person_id)).await?;
+    CommentReplyView::read(&mut context.pool(), comment_reply_id, Some(person_id))
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindCommentReply)?;
 
   Ok(Json(CommentReplyResponse { comment_reply_view }))
 }

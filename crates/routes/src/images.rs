@@ -66,7 +66,7 @@ fn adapt_request(
   client: &ClientWithMiddleware,
   url: String,
 ) -> RequestBuilder {
-  // remove accept-encoding header so that pictrs doesnt compress the response
+  // remove accept-encoding header so that pictrs doesn't compress the response
   const INVALID_HEADERS: &[HeaderName] = &[ACCEPT_ENCODING, HOST];
 
   let client_request = client

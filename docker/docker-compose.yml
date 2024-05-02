@@ -114,10 +114,12 @@ services:
         "-c",
         "auto_explain.log_analyze=true",
         "-c",
+        "auto_explain.log_triggers=true",
+        "-c",
         "track_activity_query_size=1048576",
       ]
     ports:
-      # use a different port so it doesnt conflict with potential postgres db running on the host
+      # use a different port so it doesn't conflict with potential postgres db running on the host
       - "5433:5432"
     environment:
       - POSTGRES_USER=lemmy

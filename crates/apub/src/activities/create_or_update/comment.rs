@@ -19,7 +19,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::public,
-  protocol::verification::verify_domains_match,
+  protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::{
@@ -42,6 +42,7 @@ use lemmy_db_schema::{
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
+  LemmyErrorType,
 };
 use url::Url;
 
@@ -55,11 +56,17 @@ impl CreateOrUpdateNote {
   ) -> LemmyResult<()> {
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
-    let post = Post::read(&mut context.pool(), post_id).await?;
+    let post = Post::read(&mut context.pool(), post_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPost)?;
     let community_id = post.community_id;
-    let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
+    let person: ApubPerson = Person::read(&mut context.pool(), person_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?
+      .into();
     let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
       .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?
       .into();
 
     let id = generate_activity_id(
@@ -126,6 +133,7 @@ impl ActivityHandler for CreateOrUpdateNote {
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     check_community_deleted_or_removed(&community)?;
     check_post_deleted_or_removed(&post)?;
+    verify_urls_match(self.actor.inner(), self.object.attributed_to.inner())?;
 
     ApubComment::verify(&self.object, self.actor.inner(), context).await?;
     Ok(())

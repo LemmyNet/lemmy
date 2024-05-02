@@ -72,7 +72,7 @@ fn queries<'a>(
 
   let read = move |mut conn: DbConn<'a>, person_id: PersonId| async move {
     all_joins(person::table.find(person_id).into_boxed())
-      .first::<PersonView>(&mut conn)
+      .first(&mut conn)
       .await
   };
 
@@ -134,7 +134,7 @@ fn queries<'a>(
 }
 
 impl PersonView {
-  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Option<Self>, Error> {
     queries().read(pool, person_id).await
   }
 
@@ -163,12 +163,10 @@ impl PersonQuery {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 #[allow(clippy::indexing_slicing)]
 mod tests {
 
   use super::*;
-  use diesel::NotFound;
   use lemmy_db_schema::{
     assert_length,
     source::{
@@ -179,7 +177,7 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
-  use lemmy_utils::error::LemmyResult;
+  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -254,8 +252,8 @@ mod tests {
     )
     .await?;
 
-    let read = PersonView::read(pool, data.alice.id).await;
-    assert_eq!(read.err(), Some(NotFound));
+    let read = PersonView::read(pool, data.alice.id).await?;
+    assert!(read.is_none());
 
     let list = PersonQuery {
       sort: Some(SortType::New),
@@ -314,10 +312,16 @@ mod tests {
     assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
 
-    let is_admin = PersonView::read(pool, data.alice.id).await?.is_admin;
+    let is_admin = PersonView::read(pool, data.alice.id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?
+      .is_admin;
     assert!(is_admin);
 
-    let is_admin = PersonView::read(pool, data.bob.id).await?.is_admin;
+    let is_admin = PersonView::read(pool, data.bob.id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?
+      .is_admin;
     assert!(!is_admin);
 
     cleanup(data, pool).await
