@@ -243,7 +243,11 @@ impl InCommunity for Page {
               break c;
             }
           } else {
-            Err(LemmyErrorType::NoCommunityFoundInCc)?
+            let audience = self
+              .audience
+              .clone()
+              .ok_or(LemmyErrorType::NoCommunityFoundInCc)?;
+            break audience.dereference(context).await?;
           }
         }
       }
@@ -256,6 +260,8 @@ impl InCommunity for Page {
           .await?
       }
     };
+
+    // TODO: doesnt make sense to do this here as were checking audience against itself
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }
