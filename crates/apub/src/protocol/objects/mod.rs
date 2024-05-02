@@ -192,6 +192,14 @@ mod tests {
   }
 
   #[test]
+  fn test_parse_object_discourse() -> LemmyResult<()> {
+    test_json::<Group>("assets/discourse/objects/group.json")?;
+    test_json::<Page>("assets/discourse/objects/page.json")?;
+    test_json::<Person>("assets/discourse/objects/person.json")?;
+    Ok(())
+  }
+
+  #[test]
   fn test_parse_object_nodebb() -> LemmyResult<()> {
     test_json::<Group>("assets/nodebb/objects/group.json")?;
     test_json::<Page>("assets/nodebb/objects/page.json")?;

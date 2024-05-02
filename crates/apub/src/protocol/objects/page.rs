@@ -42,7 +42,7 @@ pub struct Page {
   pub(crate) kind: PageType,
   pub(crate) id: ObjectId<ApubPost>,
   pub(crate) attributed_to: AttributedTo,
-  #[serde(deserialize_with = "deserialize_one_or_many")]
+  #[serde(deserialize_with = "deserialize_one_or_many", default)]
   pub(crate) to: Vec<Url>,
   // If there is inReplyTo field this is actually a comment and must not be parsed
   #[serde(deserialize_with = "deserialize_not_present", default)]
