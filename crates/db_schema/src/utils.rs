@@ -7,17 +7,20 @@ use diesel::{
   query_builder::{Query, QueryFragment},
   query_dsl::methods::LimitDsl,
   result::{
-    ConnectionError, ConnectionResult,
+    ConnectionError,
+    ConnectionResult,
     Error::{self as DieselError, QueryBuilderError},
   },
   sql_types::{self, Timestamptz},
-  IntoSql, OptionalExtension,
+  IntoSql,
+  OptionalExtension,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
   pooled_connection::{
     deadpool::{Hook, HookError, Object as PooledConnection, Pool},
-    AsyncDieselConnectionManager, ManagerConfig,
+    AsyncDieselConnectionManager,
+    ManagerConfig,
   },
   SimpleAsyncConnection,
 };
@@ -31,11 +34,16 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rustls::{
   client::danger::{
-    DangerousClientConfigBuilder, HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier,
+    DangerousClientConfigBuilder,
+    HandshakeSignatureValid,
+    ServerCertVerified,
+    ServerCertVerifier,
   },
   crypto::{self, verify_tls12_signature, verify_tls13_signature},
   pki_types::{CertificateDer, ServerName, UnixTime},
-  ClientConfig, DigitallySignedStruct, SignatureScheme,
+  ClientConfig,
+  DigitallySignedStruct,
+  SignatureScheme,
 };
 use std::{
   ops::{Deref, DerefMut},
