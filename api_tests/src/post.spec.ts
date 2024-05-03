@@ -764,13 +764,14 @@ test("Fetch post with redirect", async () => {
   expect(gammaPost2.post).toBeDefined();
 });
 
-test("Create a post", async () => {
+test.only("Plugin test", async () => {
   let community = await createCommunity(epsilon);
   let postRes = createPost(
     epsilon,
     community.community_view.community.id,
     "https://example.com/",
-    "plugin should block this",
+    "body",
+    "foobar",
   );
-  await expect(postRes).rejects.toStrictEqual(Error("plugin_error"));
+  expect((await postRes).post_view.post.name).toBe("Hello plugin!");
 });

@@ -55,10 +55,12 @@ use webmention::{Webmention, WebmentionError};
 
 #[tracing::instrument(skip(context))]
 pub async fn create_post(
-  data: Json<CreatePost>,
+  mut data: Json<CreatePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
+  plugin_hook("api_before_create_post", &mut (*data))?;
+
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   honeypot_check(&data.honeypot)?;
@@ -126,8 +128,6 @@ pub async fn create_post(
     }
   };
 
-  plugin_hook("api_before_create_post", data.clone())?;
-
   let post_form = PostInsertForm::builder()
     .name(data.name.trim().to_string())
     .url(url)
@@ -160,8 +160,6 @@ pub async fn create_post(
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
-
-  plugin_hook("api_after_create_post", updated_post.clone())?;
 
   generate_post_link_metadata(
     updated_post.clone(),
@@ -207,11 +205,17 @@ pub async fn create_post(
     }
   };
 
-  build_post_response(&context, community_id, &local_user_view.person, post_id).await
+  let mut res = build_post_response(&context, community_id, &local_user_view.person, post_id)
+    .await?
+    .0;
+
+  plugin_hook("api_after_create_post", &mut res)?;
+  Ok(Json(res))
 }
 
 fn load_plugins() -> LemmyResult<Plugin> {
   // TODO: make dir configurable via env var
+  // TODO: should only read fs once at startup for performance
   let plugin_paths = read_dir("example_plugin")?;
 
   let mut wasm_files = vec![];
@@ -226,13 +230,20 @@ fn load_plugins() -> LemmyResult<Plugin> {
   Ok(plugin)
 }
 
-fn plugin_hook<T: Serialize>(name: &'static str, data: T) -> LemmyResult<()> {
+fn plugin_hook<T: Serialize + for<'de> serde::Deserialize<'de> + Clone>(
+  name: &'static str,
+  data: &mut T,
+) -> LemmyResult<()> {
   let mut plugin = load_plugins()?;
   if plugin.function_exists(name) {
-    let res = plugin
-      .call::<extism_convert::Json<T>, &str>(name, data.into())
-      .map_err(|e| LemmyErrorType::PluginError(e.to_string()));
-    println!("{}", res?);
+    *data = plugin
+      .call::<extism_convert::Json<T>, extism_convert::Json<T>>(name, (*data).clone().into())
+      .map_err(|e| {
+        dbg!(&e);
+        LemmyErrorType::PluginError(e.to_string())
+      })?
+      .0
+      .into();
   }
   Ok(())
 }
