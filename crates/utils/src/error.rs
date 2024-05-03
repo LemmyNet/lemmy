@@ -177,6 +177,7 @@ pub enum LemmyErrorType {
   InvalidBotAction,
   CantBlockLocalInstance,
   UrlWithoutDomain,
+  PluginError(String),
   Unknown(String),
 }
 

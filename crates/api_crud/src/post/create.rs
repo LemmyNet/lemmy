@@ -1,5 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use extism::*;
 use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
@@ -46,6 +47,8 @@ use lemmy_utils::{
     },
   },
 };
+use serde::Serialize;
+use std::{ffi::OsStr, fs::read_dir};
 use tracing::Instrument;
 use url::Url;
 use webmention::{Webmention, WebmentionError};
@@ -122,6 +125,8 @@ pub async fn create_post(
       .await?
     }
   };
+
+  plugin_hook("api_create_post", data.clone())?;
 
   let post_form = PostInsertForm::builder()
     .name(data.name.trim().to_string())
@@ -201,4 +206,32 @@ pub async fn create_post(
   };
 
   build_post_response(&context, community_id, &local_user_view.person, post_id).await
+}
+
+fn load_plugins() -> LemmyResult<Plugin> {
+  // TODO: make dir configurable via env var
+  let plugin_paths = read_dir("example_plugin")?;
+
+  let mut wasm_files = vec![];
+  for path in plugin_paths {
+    let path = path?.path();
+    if path.extension() == Some(OsStr::new("wasm")) {
+      wasm_files.push(path);
+    }
+  }
+  let manifest = Manifest::new(wasm_files);
+  let plugin = Plugin::new(&manifest, [], true)?;
+  Ok(plugin)
+}
+
+fn plugin_hook<T: Serialize>(name: &'static str, data: T) -> LemmyResult<()> {
+  let mut plugin = load_plugins()?;
+  if plugin.function_exists(name) {
+    let res = plugin
+      .call::<extism_convert::Json<T>, &str>(name, data.into())
+      .map_err(|e| LemmyErrorType::PluginError(e.to_string()));
+    dbg!(&res);
+    println!("{}", res?);
+  }
+  Ok(())
 }
