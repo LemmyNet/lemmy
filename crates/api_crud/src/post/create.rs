@@ -126,7 +126,7 @@ pub async fn create_post(
     }
   };
 
-  plugin_hook("api_create_post", data.clone())?;
+  plugin_hook("api_before_create_post", data.clone())?;
 
   let post_form = PostInsertForm::builder()
     .name(data.name.trim().to_string())
@@ -160,6 +160,8 @@ pub async fn create_post(
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+
+  plugin_hook("api_after_create_post", updated_post.clone())?;
 
   generate_post_link_metadata(
     updated_post.clone(),
@@ -230,7 +232,6 @@ fn plugin_hook<T: Serialize>(name: &'static str, data: T) -> LemmyResult<()> {
     let res = plugin
       .call::<extism_convert::Json<T>, &str>(name, data.into())
       .map_err(|e| LemmyErrorType::PluginError(e.to_string()));
-    dbg!(&res);
     println!("{}", res?);
   }
   Ok(())

@@ -11,8 +11,8 @@ type CreatePost struct {
 	// skipping other fields for now
   }
 
-//export api_create_post
-func api_create_post() int32 {
+//export api_before_create_post
+func api_before_create_post() int32 {
 	params := CreatePost{}
 	// use json input helper, which automatically unmarshals the plugin input into your struct
 	err := pdk.InputJSON(&params)
