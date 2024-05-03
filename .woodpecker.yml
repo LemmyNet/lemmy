@@ -229,7 +229,7 @@ steps:
       DO_WRITE_HOSTS_FILE: "1"
     commands:
       - *install_pnpm
-      - apt update && apt install -y bash curl postgresql-client go tinygo
+      - apt update && apt install -y bash curl postgresql-client golang tinygo
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - pnpm i

@@ -75,6 +75,8 @@ LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_delta.hjson \
 
 # plugin setup
 pushd example_plugin
+# TODO: not in ubuntu repos, better to use only `go`
+# TODO: prevent it from creating useless `go` folder in home dir
 tinygo build -o plugin.wasm -target wasi main.go
 popd
 
