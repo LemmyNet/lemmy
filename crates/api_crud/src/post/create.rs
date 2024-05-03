@@ -222,7 +222,7 @@ fn load_plugins() -> LemmyResult<Plugin> {
     }
   }
   let manifest = Manifest::new(wasm_files);
-  let plugin = Plugin::new(&manifest, [], true)?;
+  let plugin = Plugin::new(manifest, [], true)?;
   Ok(plugin)
 }
 
