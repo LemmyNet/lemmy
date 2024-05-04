@@ -27,7 +27,7 @@ AS $a$
 BEGIN
     EXECUTE replace($b$
         -- When a thing gets a vote, update its aggregates and its creator's aggregates
-        CALL r.create_triggers ('thing_like', $$
+        CALL r.create_triggers ('thing_like', 'thing_aggregates_and_person_aggregates', $$
             BEGIN
                 WITH thing_diff AS ( UPDATE
                         thing_aggregates AS a
@@ -62,7 +62,7 @@ CALL r.post_or_comment ('post');
 CALL r.post_or_comment ('comment');
 
 -- Create triggers that update counts in parent aggregates
-CALL r.create_triggers ('comment', $$
+CALL r.create_triggers ('comment', 'person_aggregates', $$
 BEGIN
     UPDATE
         person_aggregates AS a
@@ -78,66 +78,74 @@ BEGIN
 WHERE
     a.person_id = diff.creator_id;
 
-UPDATE
-    site_aggregates AS a
-SET
-    comments = a.comments + diff.comments
-FROM (
-    SELECT
-        coalesce(sum(count_diff), 0) AS comments
-    FROM
-        select_old_and_new_rows AS old_and_new_rows
-    WHERE
-        r.is_counted (comment)
-        AND (comment).local) AS diff;
+RETURN NULL;
 
-WITH post_diff AS (
+END;
+
+$$);
+
+CALL r.create_triggers ('comment', 'site_aggregates', $$
+BEGIN
     UPDATE
-        post_aggregates AS a
+        site_aggregates AS a
     SET
-        comments = a.comments + diff.comments,
-        newest_comment_time = GREATEST (a.newest_comment_time, (
-                SELECT
-                    published
-                FROM select_new_rows AS new_comment
-                WHERE
-                    a.post_id = new_comment.post_id ORDER BY published DESC LIMIT 1)),
-        newest_comment_time_necro = GREATEST (a.newest_comment_time_necro, (
-                SELECT
-                    published
-                FROM select_new_rows AS new_comment
-                WHERE
-                    a.post_id = new_comment.post_id
-                    -- Ignore comments from the post's creator
-                    AND a.creator_id != new_comment.creator_id
-                    -- Ignore comments on old posts
-                    AND a.published > (new_comment.published - '2 days'::interval)
-                ORDER BY published DESC LIMIT 1))
+        comments = a.comments + diff.comments
     FROM (
         SELECT
-            (comment).post_id,
             coalesce(sum(count_diff), 0) AS comments
-    FROM
-        select_old_and_new_rows AS old_and_new_rows
-    WHERE
-        r.is_counted (comment)
-    GROUP BY
-        (comment).post_id) AS diff
-    LEFT JOIN post ON post.id = diff.post_id
-    WHERE
-        a.post_id = diff.post_id
-    RETURNING
-        a.community_id,
-        diff.comments,
-        r.is_counted (post.*) AS include_in_community_aggregates)
+        FROM select_old_and_new_rows AS old_and_new_rows
+        WHERE
+            r.is_counted (comment)
+            AND (comment).local) AS diff;
+
+RETURN NULL;
+
+END;
+
+$$);
+
+CALL r.create_triggers ('comment', 'post_aggregates_and_community_aggregates', $$
+BEGIN
+    WITH post_diff AS (
+        UPDATE
+            post_aggregates AS a
+        SET
+            comments = a.comments + diff.comments,
+            newest_comment_time = GREATEST (a.newest_comment_time, (
+                    SELECT
+                        published
+                    FROM select_new_rows AS new_comment
+                    WHERE
+                        a.post_id = new_comment.post_id ORDER BY published DESC LIMIT 1)), newest_comment_time_necro = GREATEST (a.newest_comment_time_necro, (
+                    SELECT
+                        published
+                    FROM select_new_rows AS new_comment
+                    WHERE
+                        a.post_id = new_comment.post_id
+                        -- Ignore comments from the post's creator
+                        AND a.creator_id != new_comment.creator_id
+                        -- Ignore comments on old posts
+                        AND a.published > (new_comment.published - '2 days'::interval)
+                    ORDER BY published DESC LIMIT 1))
+        FROM (
+            SELECT
+                (comment).post_id, coalesce(sum(count_diff), 0) AS comments
+        FROM select_old_and_new_rows AS old_and_new_rows
+        WHERE
+            r.is_counted (comment)
+        GROUP BY (comment).post_id) AS diff
+        LEFT JOIN post ON post.id = diff.post_id
+        WHERE
+            a.post_id = diff.post_id
+        RETURNING
+            a.community_id, diff.comments, r.is_counted (post.*) AS include_in_community_aggregates)
 UPDATE
     community_aggregates AS a
 SET
     comments = a.comments + diff.comments
 FROM (
     SELECT
-        community_id,
-        sum(comments) AS comments
+        community_id, sum(comments) AS comments
     FROM
         post_diff
     WHERE
@@ -153,7 +161,7 @@ END;
 
 $$);
 
-CALL r.create_triggers ('post', $$
+CALL r.create_triggers ('post', 'person_aggregates', $$
 BEGIN
     UPDATE
         person_aggregates AS a
@@ -169,33 +177,45 @@ BEGIN
 WHERE
     a.person_id = diff.creator_id;
 
-UPDATE
-    site_aggregates AS a
-SET
-    posts = a.posts + diff.posts
-FROM (
-    SELECT
-        coalesce(sum(count_diff), 0) AS posts
-    FROM
-        select_old_and_new_rows AS old_and_new_rows
-    WHERE
-        r.is_counted (post)
-        AND (post).local) AS diff;
+RETURN NULL;
 
-UPDATE
-    community_aggregates AS a
-SET
-    posts = a.posts + diff.posts
-FROM (
-    SELECT
-        (post).community_id,
-        coalesce(sum(count_diff), 0) AS posts
-    FROM
-        select_old_and_new_rows AS old_and_new_rows
-    WHERE
-        r.is_counted (post)
-    GROUP BY
-        (post).community_id) AS diff
+END;
+
+$$);
+
+CALL r.create_triggers ('post', 'site_aggregates', $$
+BEGIN
+    UPDATE
+        site_aggregates AS a
+    SET
+        posts = a.posts + diff.posts
+    FROM (
+        SELECT
+            coalesce(sum(count_diff), 0) AS posts
+        FROM select_old_and_new_rows AS old_and_new_rows
+        WHERE
+            r.is_counted (post)
+            AND (post).local) AS diff;
+
+RETURN NULL;
+
+END;
+
+$$);
+
+CALL r.create_triggers ('post', 'community_aggregates', $$
+BEGIN
+    UPDATE
+        community_aggregates AS a
+    SET
+        posts = a.posts + diff.posts
+    FROM (
+        SELECT
+            (post).community_id, coalesce(sum(count_diff), 0) AS posts
+        FROM select_old_and_new_rows AS old_and_new_rows
+        WHERE
+            r.is_counted (post)
+        GROUP BY (post).community_id) AS diff
 WHERE
     a.community_id = diff.community_id;
 
@@ -205,7 +225,7 @@ END;
 
 $$);
 
-CALL r.create_triggers ('community', $$
+CALL r.create_triggers ('community', 'site_aggregates', $$
 BEGIN
     UPDATE
         site_aggregates AS a
@@ -225,7 +245,7 @@ END;
 
 $$);
 
-CALL r.create_triggers ('person', $$
+CALL r.create_triggers ('person', 'site_aggregates', $$
 BEGIN
     UPDATE
         site_aggregates AS a
@@ -283,7 +303,7 @@ CREATE TRIGGER comment_count
 -- Count subscribers for communities.
 -- subscribers should be updated only when a local community is followed by a local or remote person.
 -- subscribers_local should be updated only when a local person follows a local or remote community.
-CALL r.create_triggers ('community_follower', $$
+CALL r.create_triggers ('community_follower', 'community_aggregates', $$
 BEGIN
     UPDATE
         community_aggregates AS a

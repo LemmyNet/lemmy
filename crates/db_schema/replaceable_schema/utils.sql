@@ -64,46 +64,46 @@ $$;
 --     not allowed for a `DELETE` trigger)
 --   * Transition tables are only provided to the trigger function, not to functions that it calls.
 --
--- This function can only be called once per table. The trigger function body given as the 2nd argument
--- and can contain these names, which are replaced with a `SELECT` statement in parenthesis if needed:
+-- The trigger function body is given as the 2nd argument and can contain these names, which are
+-- replaced with a `SELECT` statement in parenthesis if needed:
 --   * `select_old_rows`
 --   * `select_new_rows`
 --   * `select_old_and_new_rows` with 2 columns:
 --       1. `count_diff`: `-1` for old rows and `1` for new rows, which can be used with `sum` to get the number
 --          to add to a count
 --       2. (same name as the trigger's table): the old or new row as a composite value
-CREATE PROCEDURE r.create_triggers (table_name text, function_body text)
+CREATE PROCEDURE r.create_triggers (table_name text, trigger_name text, function_body text)
 LANGUAGE plpgsql
 AS $a$
 DECLARE
     defs text := $$
     -- Delete
-    CREATE FUNCTION r.thing_delete_statement ()
+    CREATE FUNCTION r.thing_trigger_name_for_delete_statement ()
         RETURNS TRIGGER
         LANGUAGE plpgsql
         AS function_body_delete;
-    CREATE TRIGGER delete_statement
+    CREATE TRIGGER trigger_name_for_delete_statement
         AFTER DELETE ON thing REFERENCING OLD TABLE AS select_old_rows
         FOR EACH STATEMENT
-        EXECUTE FUNCTION r.thing_delete_statement ( );
+        EXECUTE FUNCTION r.thing_trigger_name_for_delete_statement ( );
     -- Insert
-    CREATE FUNCTION r.thing_insert_statement ( )
+    CREATE FUNCTION r.thing_trigger_name_for_insert_statement ( )
         RETURNS TRIGGER
         LANGUAGE plpgsql
         AS function_body_insert;
-    CREATE TRIGGER insert_statement
+    CREATE TRIGGER trigger_name_for_insert_statement
         AFTER INSERT ON thing REFERENCING NEW TABLE AS select_new_rows
         FOR EACH STATEMENT
-        EXECUTE FUNCTION r.thing_insert_statement ( );
+        EXECUTE FUNCTION r.thing_trigger_name_for_insert_statement ( );
     -- Update
-    CREATE FUNCTION r.thing_update_statement ( )
+    CREATE FUNCTION r.thing_trigger_name_for_update_statement ( )
         RETURNS TRIGGER
         LANGUAGE plpgsql
         AS function_body_update;
-    CREATE TRIGGER update_statement
+    CREATE TRIGGER trigger_name_for_update_statement
         AFTER UPDATE ON thing REFERENCING OLD TABLE AS select_old_rows NEW TABLE AS select_new_rows
         FOR EACH STATEMENT
-        EXECUTE FUNCTION r.thing_update_statement ( );
+        EXECUTE FUNCTION r.thing_trigger_name_for_update_statement ( );
     $$;
     select_old_and_new_rows text := $$ (
         SELECT
@@ -135,6 +135,7 @@ DECLARE
             FALSE) $$;
     BEGIN
         function_body := replace(function_body, 'select_old_and_new_rows', select_old_and_new_rows);
+        defs := replace(defs, 'trigger_name', trigger_name);
         -- `select_old_rows` and `select_new_rows` are made available as empty tables if they don't already exist
         defs := replace(defs, 'function_body_delete', quote_literal(replace(function_body, 'select_new_rows', empty_select_new_rows)));
         defs := replace(defs, 'function_body_insert', quote_literal(replace(function_body, 'select_old_rows', empty_select_old_rows)));
