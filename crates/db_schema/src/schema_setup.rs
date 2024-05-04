@@ -9,15 +9,6 @@ const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 /// This SQL code sets up the `r` schema, which contains things that can be safely dropped and replaced
 /// instead of being changed using migrations. It may not create or modify things outside of the `r` schema
 /// (indicated by `r.` before the name), unless a comment says otherwise.
-///
-/// Currently, this code is only run after the server starts and there's at least 1 pending migration
-/// to run. This means every time you change something here, you must also create a migration (a blank
-/// up.sql file works fine). This behavior will be removed when we implement a better way to avoid
-/// useless schema updates and locks.
-///
-/// If you add something that depends on something (such as a table) created in a new migration, then down.sql
-/// must use `CASCADE` when dropping it. This doesn't need to be fixed in old migrations because the
-/// "replaceable-schema" migration runs `DROP SCHEMA IF EXISTS r CASCADE` in down.sql.
 const REPLACEABLE_SCHEMA: &[&str] = &[
   "DROP SCHEMA IF EXISTS r CASCADE;",
   "CREATE SCHEMA r;",
@@ -26,17 +17,25 @@ const REPLACEABLE_SCHEMA: &[&str] = &[
 ];
 
 pub fn run(db_url: &str) -> Result<(), LemmyError> {
+  let test_enabled = std::env::var("LEMMY_TEST_MIGRATIONS")
+    .map(|s| !s.is_empty())
+    .unwrap_or(false);
+
   // Migrations don't support async connection
   let mut conn = PgConnection::establish(db_url).with_context(|| "Error connecting to database")?;
 
-  // Run all pending migrations except for the newest one, then run the newest one in the same transaction
-  // as `REPLACEABLE_SCHEMA`. This code will be becone less hacky when the conditional setup of things in
-  // `REPLACEABLE_SCHEMA` is done without using the number of pending migrations.
   info!("Running Database migrations (This may take a long time)...");
-  let migrations = conn
+
+  let unfiltered_migrations = conn
     .pending_migrations(MIGRATIONS)
     .map_err(|e| anyhow::anyhow!("Couldn't determine pending migrations: {e}"))?;
-  for migration in migrations.iter().rev().skip(1).rev() {
+
+  // Does not include the "forbid_diesel_cli" migration
+  let migrations = unfiltered_migrations.iter().filter(|m| m.name().version() != "000000000000000".into());
+
+  conn.transaction::<_, LemmyError, _>(|conn|) // left off here
+
+  for migration in migrations.clone() {
     conn
       .run_migration(migration)
       .map_err(|e| anyhow::anyhow!("Couldn't run DB Migrations: {e}"))?;
