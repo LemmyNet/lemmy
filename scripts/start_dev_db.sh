@@ -35,9 +35,6 @@ config_args=(
   # Include actual row amounts and run times for query plan nodes
   -c auto_explain.log_analyze=on
 
-  # Include execution time of each trigger
-  -c auto_explain.log_triggers=on
-
   # Don't log parameter values
   -c auto_explain.log_parameter_max_length=0
 )
