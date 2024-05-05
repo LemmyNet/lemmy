@@ -5,6 +5,12 @@
 -- (even if only other columns are updated) because triggers can run after the deletion of referenced rows and
 -- before the automatic deletion of the row that references it. This is not a problem for insert or delete.
 --
+-- After a row update begins, a concurrent update on the same row can't begin until the whole
+-- transaction that contains the first update is finished. To reduce this locking, statements in
+-- triggers should be ordered based on the likelihood of concurrent writers. For example, updating
+-- site_aggregates should be done last because the same row is updated for all local stuff. If
+-- it were not last, then the locking period for concurrent writers would extend to include the
+-- time consumed by statements that come after.
 --
 --
 -- Create triggers for both post and comments
