@@ -78,19 +78,6 @@ BEGIN
 WHERE
     a.person_id = diff.creator_id;
 
-UPDATE
-    site_aggregates AS a
-SET
-    comments = a.comments + diff.comments
-FROM (
-    SELECT
-        coalesce(sum(count_diff), 0) AS comments
-    FROM
-        select_old_and_new_rows AS old_and_new_rows
-    WHERE
-        r.is_counted (comment)
-        AND (comment).local) AS diff;
-
 WITH post_diff AS (
     UPDATE
         post_aggregates AS a
@@ -147,6 +134,19 @@ FROM (
 WHERE
     a.community_id = diff.community_id;
 
+UPDATE
+    site_aggregates AS a
+SET
+    comments = a.comments + diff.comments
+FROM (
+    SELECT
+        coalesce(sum(count_diff), 0) AS comments
+    FROM
+        select_old_and_new_rows AS old_and_new_rows
+    WHERE
+        r.is_counted (comment)
+        AND (comment).local) AS diff;
+
 RETURN NULL;
 
 END;
@@ -170,19 +170,6 @@ WHERE
     a.person_id = diff.creator_id;
 
 UPDATE
-    site_aggregates AS a
-SET
-    posts = a.posts + diff.posts
-FROM (
-    SELECT
-        coalesce(sum(count_diff), 0) AS posts
-    FROM
-        select_old_and_new_rows AS old_and_new_rows
-    WHERE
-        r.is_counted (post)
-        AND (post).local) AS diff;
-
-UPDATE
     community_aggregates AS a
 SET
     posts = a.posts + diff.posts
@@ -198,6 +185,19 @@ FROM (
         (post).community_id) AS diff
 WHERE
     a.community_id = diff.community_id;
+
+UPDATE
+    site_aggregates AS a
+SET
+    posts = a.posts + diff.posts
+FROM (
+    SELECT
+        coalesce(sum(count_diff), 0) AS posts
+    FROM
+        select_old_and_new_rows AS old_and_new_rows
+    WHERE
+        r.is_counted (post)
+        AND (post).local) AS diff;
 
 RETURN NULL;
 
