@@ -44,16 +44,18 @@ BEGIN
                             (thing_like).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (thing_like).thing_id) AS diff
             WHERE
                 a.thing_id = diff.thing_id
-            RETURNING
-                r.creator_id_from_thing_aggregates (a.*) AS creator_id, diff.upvotes - diff.downvotes AS score)
-        UPDATE
-            person_aggregates AS a
-        SET
-            thing_score = a.thing_score + diff.score FROM (
-                SELECT
-                    creator_id, sum(score) AS score FROM thing_diff GROUP BY creator_id) AS diff
-            WHERE
-                a.person_id = diff.creator_id;
+                    AND (diff.upvotes, diff.downvotes) != (0, 0)
+                RETURNING
+                    r.creator_id_from_thing_aggregates (a.*) AS creator_id, diff.upvotes - diff.downvotes AS score)
+            UPDATE
+                person_aggregates AS a
+            SET
+                thing_score = a.thing_score + diff.score FROM (
+                    SELECT
+                        creator_id, sum(score) AS score FROM thing_diff GROUP BY creator_id) AS diff
+                WHERE
+                    a.person_id = diff.creator_id
+                    AND diff.score != 0;
                 RETURN NULL;
             END;
     $$);
@@ -82,7 +84,8 @@ BEGIN
             r.is_counted (comment)
         GROUP BY (comment).creator_id) AS diff
 WHERE
-    a.person_id = diff.creator_id;
+    a.person_id = diff.creator_id
+        AND diff.comment_count != 0;
 
 WITH post_diff AS (
     UPDATE
@@ -138,7 +141,8 @@ FROM (
     GROUP BY
         community_id) AS diff
 WHERE
-    a.community_id = diff.community_id;
+    a.community_id = diff.community_id
+    AND diff.comments != 0;
 
 UPDATE
     site_aggregates AS a
@@ -151,7 +155,9 @@ FROM (
         select_old_and_new_rows AS old_and_new_rows
     WHERE
         r.is_counted (comment)
-        AND (comment).local) AS diff;
+        AND (comment).local) AS diff
+WHERE
+    diff.comments != 0;
 
 RETURN NULL;
 
@@ -173,7 +179,8 @@ BEGIN
             r.is_counted (post)
         GROUP BY (post).creator_id) AS diff
 WHERE
-    a.person_id = diff.creator_id;
+    a.person_id = diff.creator_id
+        AND diff.post_count != 0;
 
 UPDATE
     community_aggregates AS a
@@ -190,7 +197,8 @@ FROM (
     GROUP BY
         (post).community_id) AS diff
 WHERE
-    a.community_id = diff.community_id;
+    a.community_id = diff.community_id
+    AND diff.posts != 0;
 
 UPDATE
     site_aggregates AS a
@@ -203,7 +211,9 @@ FROM (
         select_old_and_new_rows AS old_and_new_rows
     WHERE
         r.is_counted (post)
-        AND (post).local) AS diff;
+        AND (post).local) AS diff
+WHERE
+    diff.posts != 0;
 
 RETURN NULL;
 
@@ -223,7 +233,9 @@ BEGIN
         FROM select_old_and_new_rows AS old_and_new_rows
         WHERE
             r.is_counted (community)
-            AND (community).local) AS diff;
+            AND (community).local) AS diff
+WHERE
+    diff.communities != 0;
 
 RETURN NULL;
 
@@ -241,7 +253,9 @@ BEGIN
         SELECT
             coalesce(sum(count_diff), 0) AS users
         FROM select_old_and_new_rows AS old_and_new_rows
-        WHERE (person).local) AS diff;
+        WHERE (person).local) AS diff
+WHERE
+    diff.users != 0;
 
 RETURN NULL;
 
@@ -276,7 +290,8 @@ BEGIN
             GROUP BY
                 old_post.community_id) AS diff
 WHERE
-    a.community_id = diff.community_id;
+    a.community_id = diff.community_id
+        AND diff.comments != 0;
     RETURN NULL;
 END;
 $$;
@@ -302,7 +317,8 @@ BEGIN
     LEFT JOIN community ON community.id = (community_follower).community_id
     LEFT JOIN person ON person.id = (community_follower).person_id GROUP BY (community_follower).community_id) AS diff
 WHERE
-    a.community_id = diff.community_id;
+    a.community_id = diff.community_id
+        AND (diff.subscribers, diff.subscribers_local) != (0, 0);
 
 RETURN NULL;
 
