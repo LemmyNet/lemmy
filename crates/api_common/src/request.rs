@@ -6,7 +6,7 @@ use crate::{
   utils::{local_site_opt_to_sensitive, proxy_image_link, proxy_image_link_opt_apub},
 };
 use activitypub_federation::config::Data;
-use encoding::{all::encodings, DecoderTrap};
+use encoding_rs::{Encoding, UTF_8};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
@@ -160,11 +160,9 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
   // proper encoding. If the specified encoding cannot be found, fall back to the original UTF-8
   // version.
   if let Some(charset) = page.meta.get("charset") {
-    if charset.to_lowercase() != "utf-8" {
-      if let Some(encoding_ref) = encodings().iter().find(|e| e.name() == charset) {
-        if let Ok(html_with_encoding) = encoding_ref.decode(html_bytes, DecoderTrap::Replace) {
-          page = HTML::from_string(html_with_encoding, None)?;
-        }
+    if charset != UTF_8.name() {
+      if let Some(encoding) = Encoding::for_label(charset.as_bytes()) {
+        page = HTML::from_string(encoding.decode(html_bytes).0.into(), None)?;
       }
     }
   }
