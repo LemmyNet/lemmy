@@ -112,7 +112,6 @@ pub async fn update_post(
   generate_post_link_metadata(
     updated_post.clone(),
     custom_thumbnail,
-    None,
     |post| Some(SendActivityData::UpdatePost(post)),
     Some(local_site),
     context.reset_request_count(),

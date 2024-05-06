@@ -25,12 +25,7 @@ use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorato
 use lemmy_api_common::{
   context::LemmyContext,
   request::generate_post_link_metadata_background,
-  utils::{
-    get_url_blocklist,
-    local_site_opt_to_slur_regex,
-    process_markdown_opt,
-    proxy_image_link_opt_apub,
-  },
+  utils::{get_url_blocklist, local_site_opt_to_slur_regex, process_markdown_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -279,7 +274,6 @@ impl Object for ApubPost {
     generate_post_link_metadata_background(
       post.clone(),
       None,
-      page.image.map(|i| i.url),
       |_| None,
       local_site,
       context.reset_request_count(),

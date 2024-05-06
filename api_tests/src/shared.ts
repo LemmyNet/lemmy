@@ -81,6 +81,8 @@ import { ListingType } from "lemmy-js-client/dist/types/ListingType";
 
 export const fetchFunction = fetch;
 export const imageFetchLimit = 50;
+export const sampleImage =
+  "https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg";
 
 export let alphaUrl = "http://127.0.0.1:8541";
 export let betaUrl = "http://127.0.0.1:8551";
@@ -693,8 +695,8 @@ export async function saveUserSettingsBio(
 export async function saveUserSettingsFederated(
   api: LemmyHttp,
 ): Promise<SuccessResponse> {
-  let avatar = "https://image.flaticon.com/icons/png/512/35/35896.png";
-  let banner = "https://image.flaticon.com/icons/png/512/36/35896.png";
+  let avatar = sampleImage;
+  let banner = sampleImage;
   let bio = "a changed bio";
   let form: SaveUserSettings = {
     show_nsfw: false,

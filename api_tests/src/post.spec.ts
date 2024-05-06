@@ -729,7 +729,7 @@ test("Block post that contains banned URL", async () => {
 
   await epsilon.editSite(editSiteForm);
 
-  await delay(500);
+  await delay();
 
   if (!betaCommunity) {
     throw "Missing beta community";

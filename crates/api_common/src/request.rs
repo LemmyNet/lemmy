@@ -76,7 +76,6 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
 pub async fn generate_post_link_metadata(
   post: Post,
   custom_thumbnail: Option<Url>,
-  federated_thumbnail: Option<Url>,
   send_activity: impl FnOnce(Post) -> Option<SendActivityData> + Send + 'static,
   local_site: Option<LocalSite>,
   context: Data<LemmyContext>,
@@ -111,13 +110,7 @@ pub async fn generate_post_link_metadata(
     // Use custom thumbnail if available and its not an image post
     if let Some(custom_thumbnail) = custom_thumbnail {
       proxy_image_link(custom_thumbnail, &context).await.ok()
-    }
-    // Use federated thumbnail if available
-    else if let Some(federated_thumbnail) = federated_thumbnail {
-      proxy_image_link(federated_thumbnail, &context).await.ok()
-    }
-    // Generate local thumbnail if allowed
-    else if allow_generate_thumbnail {
+    } else if allow_generate_thumbnail {
       match metadata.opengraph_data.image {
         Some(url) => generate_pictrs_thumbnail(&url, &context)
           .await
@@ -151,21 +144,12 @@ pub async fn generate_post_link_metadata(
 pub fn generate_post_link_metadata_background(
   post: Post,
   custom_thumbnail: Option<Url>,
-  federated_thumbnail: Option<Url>,
   send_activity: impl FnOnce(Post) -> Option<SendActivityData> + Send + 'static,
   local_site: Option<LocalSite>,
   context: Data<LemmyContext>,
 ) {
   spawn_try_task(async move {
-    generate_post_link_metadata(
-      post,
-      custom_thumbnail,
-      federated_thumbnail,
-      send_activity,
-      local_site,
-      context,
-    )
-    .await
+    generate_post_link_metadata(post, custom_thumbnail, send_activity, local_site, context).await
   })
 }
 
