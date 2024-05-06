@@ -65,6 +65,7 @@ where
       let path = service_req.path().replace("/api/v3/", "").replace("/", "_");
       // TODO: naming can be a bit silly, `POST /api/v3/post` becomes `api_before_post_post`
       let plugin_hook = format!("api_before_{method}_{path}").to_lowercase();
+
       info!("Calling plugin hook {}", &plugin_hook);
       if let Some(mut plugins) = load_plugins()? {
         if plugins.function_exists(&plugin_hook) {
@@ -79,6 +80,9 @@ where
         }
       }
       let res = svc.call(service_req).await?;
+
+      // TODO: add after hook
+
       Ok(res)
     })
   }
