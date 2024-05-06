@@ -1,5 +1,6 @@
 pub mod api_routes_http;
 pub mod code_migrations;
+pub mod plugin_middleware;
 pub mod prometheus_metrics;
 pub mod root_span_builder;
 pub mod scheduled_tasks;

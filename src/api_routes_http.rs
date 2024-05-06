@@ -1,3 +1,4 @@
+use crate::plugin_middleware::PluginMiddleware;
 use actix_web::{guard, web};
 use lemmy_api::{
   comment::{
@@ -139,6 +140,7 @@ use lemmy_utils::rate_limit::RateLimitCell;
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
     web::scope("/api/v3")
+      .wrap(PluginMiddleware::new())
       .route("/image_proxy", web::get().to(image_proxy))
       // Site
       .service(

@@ -31,8 +31,6 @@ anyhow.workspace = true
 serde.workspace = true
 webmention = "0.5.0"
 accept-language = "3.1.0"
-extism = "1.2.0"
-extism-convert = "1.2.0"
 
 [package.metadata.cargo-machete]
 ignored = ["futures"]

@@ -204,7 +204,11 @@ chrono = { workspace = true }
 prometheus = { version = "0.13.3", features = ["process"] }
 serial_test = { workspace = true }
 clap = { workspace = true }
+serde.workspace = true
 actix-web-prom = "0.7.0"
+actix-http = "3.6.0"
+extism = "1.2.0"
+extism-convert = "1.2.0"
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

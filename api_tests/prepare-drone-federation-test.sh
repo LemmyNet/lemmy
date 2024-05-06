@@ -74,10 +74,9 @@ LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_delta.hjson \
   target/lemmy_server >$LOG_DIR/lemmy_delta.out 2>&1 &
 
 # plugin setup
-pushd example_plugin
-# TODO: not in ubuntu repos, better to use only `go`
-# TODO: prevent it from creating useless `go` folder in home dir
-tinygo build -o plugin.wasm -target wasi main.go
+pushd plugins
+# need to use tinygo because apparently go has only experimental support for wasm target
+GOPATH=$HOME/.local/share/go tinygo build -o plugin.wasm -target wasi main.go
 popd
 
 echo "start epsilon"

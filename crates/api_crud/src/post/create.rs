@@ -1,6 +1,5 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use extism::*;
 use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
@@ -47,20 +46,16 @@ use lemmy_utils::{
     },
   },
 };
-use serde::Serialize;
-use std::{ffi::OsStr, fs::read_dir};
 use tracing::Instrument;
 use url::Url;
 use webmention::{Webmention, WebmentionError};
 
 #[tracing::instrument(skip(context))]
 pub async fn create_post(
-  mut data: Json<CreatePost>,
+  data: Json<CreatePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  plugin_hook("api_before_create_post", &mut (*data))?;
-
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   honeypot_check(&data.honeypot)?;
@@ -205,45 +200,5 @@ pub async fn create_post(
     }
   };
 
-  let mut res = build_post_response(&context, community_id, &local_user_view.person, post_id)
-    .await?
-    .0;
-
-  plugin_hook("api_after_create_post", &mut res)?;
-  Ok(Json(res))
-}
-
-fn load_plugins() -> LemmyResult<Plugin> {
-  // TODO: make dir configurable via env var
-  // TODO: should only read fs once at startup for performance
-  let plugin_paths = read_dir("example_plugin")?;
-
-  let mut wasm_files = vec![];
-  for path in plugin_paths {
-    let path = path?.path();
-    if path.extension() == Some(OsStr::new("wasm")) {
-      wasm_files.push(path);
-    }
-  }
-  let manifest = Manifest::new(wasm_files);
-  let plugin = Plugin::new(manifest, [], true)?;
-  Ok(plugin)
-}
-
-fn plugin_hook<T: Serialize + for<'de> serde::Deserialize<'de> + Clone>(
-  name: &'static str,
-  data: &mut T,
-) -> LemmyResult<()> {
-  let mut plugin = load_plugins()?;
-  if plugin.function_exists(name) {
-    *data = plugin
-      .call::<extism_convert::Json<T>, extism_convert::Json<T>>(name, (*data).clone().into())
-      .map_err(|e| {
-        dbg!(&e);
-        LemmyErrorType::PluginError(e.to_string())
-      })?
-      .0
-      .into();
-  }
-  Ok(())
+  build_post_response(&context, community_id, &local_user_view.person, post_id).await
 }
