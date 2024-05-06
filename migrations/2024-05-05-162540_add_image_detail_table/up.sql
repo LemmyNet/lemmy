@@ -13,3 +13,4 @@ CREATE TABLE image_details (
     content_type text NOT NULL,
     published timestamptz DEFAULT now() NOT NULL
 );
+
