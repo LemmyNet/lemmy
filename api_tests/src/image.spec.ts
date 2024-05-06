@@ -29,7 +29,6 @@ import {
   unfollows,
   getPost,
   waitUntil,
-  randomString,
   createPostWithThumbnail,
 } from "./shared";
 const downloadFileSync = require("download-file-sync");

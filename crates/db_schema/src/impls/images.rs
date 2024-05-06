@@ -1,7 +1,14 @@
 use crate::{
   newtypes::DbUrl,
-  schema::{local_image, remote_image},
-  source::images::{LocalImage, LocalImageForm, RemoteImage, RemoteImageForm},
+  schema::{image_details, local_image, remote_image},
+  source::images::{
+    ImageDetails,
+    ImageDetailsForm,
+    LocalImage,
+    LocalImageForm,
+    RemoteImage,
+    RemoteImageForm,
+  },
   utils::{get_conn, DbPool},
 };
 use diesel::{
@@ -39,14 +46,13 @@ impl LocalImage {
 }
 
 impl RemoteImage {
-  pub async fn create(pool: &mut DbPool<'_>, links: Vec<Url>) -> Result<usize, Error> {
+  pub async fn create(pool: &mut DbPool<'_>, link_: &Url) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    let forms = links
-      .into_iter()
-      .map(|url| RemoteImageForm { link: url.into() })
-      .collect::<Vec<_>>();
+    let form = RemoteImageForm {
+      link: link_.clone().into(),
+    };
     insert_into(remote_image::table)
-      .values(forms)
+      .values(form)
       .on_conflict_do_nothing()
       .execute(conn)
       .await
@@ -65,5 +71,15 @@ impl RemoteImage {
     } else {
       Err(NotFound)
     }
+  }
+}
+
+impl ImageDetails {
+  pub async fn create(pool: &mut DbPool<'_>, form: &ImageDetailsForm) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(image_details::table)
+      .values(form)
+      .get_result::<Self>(conn)
+      .await
   }
 }

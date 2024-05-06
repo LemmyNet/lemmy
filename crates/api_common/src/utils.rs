@@ -1,6 +1,10 @@
 use crate::{
   context::LemmyContext,
-  request::{delete_image_from_pictrs, purge_image_from_pictrs},
+  request::{
+    delete_image_from_pictrs,
+    fetch_pictrs_proxied_image_details,
+    purge_image_from_pictrs,
+  },
   site::{FederatedInstances, InstanceWithFederationState},
 };
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
@@ -12,7 +16,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityModerator, CommunityUpdateForm},
     community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
-    images::RemoteImage,
+    images::{ImageDetails, RemoteImage},
     instance::Instance,
     instance_block::InstanceBlock,
     local_site::LocalSite,
@@ -931,7 +935,20 @@ pub async fn process_markdown(
 
   if context.settings().pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
-    RemoteImage::create(&mut context.pool(), links).await?;
+
+    // Create images and image detail rows
+    for link in links {
+      RemoteImage::create(&mut context.pool(), &link).await?;
+
+      // Insert image details for the remote image
+      let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
+      if let Ok(details) = details_res {
+        let proxied =
+          build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
+        let details_form = details.build_image_details_form(&proxied);
+        ImageDetails::create(&mut context.pool(), &details_form).await?;
+      }
+    }
     Ok(text)
   } else {
     Ok(text)
@@ -965,13 +982,19 @@ async fn proxy_image_link_internal(
   if link.domain() == Some(&context.settings().hostname) {
     Ok(link.into())
   } else if image_mode == PictrsImageMode::ProxyAllImages {
-    let proxied = format!(
-      "{}/api/v3/image_proxy?url={}",
-      context.settings().get_protocol_and_hostname(),
-      encode(link.as_str())
-    );
-    RemoteImage::create(&mut context.pool(), vec![link]).await?;
-    Ok(Url::parse(&proxied)?.into())
+    let proxied = build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
+
+    RemoteImage::create(&mut context.pool(), &link).await?;
+
+    // This should fail softly, since pictrs might not even be running
+    let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
+
+    if let Ok(details) = details_res {
+      let details_form = details.build_image_details_form(&proxied);
+      ImageDetails::create(&mut context.pool(), &details_form).await?;
+    }
+
+    Ok(proxied.into())
   } else {
     Ok(link.into())
   }
@@ -1023,6 +1046,17 @@ pub async fn proxy_image_link_opt_apub(
   } else {
     Ok(None)
   }
+}
+
+fn build_proxied_image_url(
+  link: &Url,
+  protocol_and_hostname: &str,
+) -> Result<Url, url::ParseError> {
+  Url::parse(&format!(
+    "{}/api/v3/image_proxy?url={}",
+    protocol_and_hostname,
+    encode(link.as_str())
+  ))
 }
 
 #[cfg(test)]

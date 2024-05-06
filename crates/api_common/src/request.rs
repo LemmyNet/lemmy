@@ -3,14 +3,15 @@ use crate::{
   lemmy_db_schema::traits::Crud,
   post::{LinkMetadata, OpenGraphData},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{local_site_opt_to_sensitive, proxy_image_link, proxy_image_link_opt_apub},
+  utils::{local_site_opt_to_sensitive, proxy_image_link},
 };
 use activitypub_federation::config::Data;
+use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
-    images::{LocalImage, LocalImageForm},
+    images::{ImageDetails, ImageDetailsForm, LocalImage, LocalImageForm},
     local_site::LocalSite,
     post::{Post, PostUpdateForm},
   },
@@ -25,7 +26,7 @@ use lemmy_utils::{
 use mime::Mime;
 use reqwest::{header::CONTENT_TYPE, Client, ClientBuilder};
 use reqwest_middleware::ClientWithMiddleware;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tracing::info;
 use url::Url;
 use urlencoding::encode;
@@ -95,38 +96,48 @@ pub fn generate_post_link_metadata(
     let allow_sensitive = local_site_opt_to_sensitive(&local_site);
     let allow_generate_thumbnail = allow_sensitive || !post.nsfw;
 
-    // Use custom thumbnail if available and its not an image post
-    let thumbnail_url = if !is_image_post && custom_thumbnail.is_some() {
-      custom_thumbnail
-    }
-    // Use federated thumbnail if available
-    else if federated_thumbnail.is_some() {
-      federated_thumbnail
-    }
-    // Generate local thumbnail if allowed
-    else if allow_generate_thumbnail {
-      match post
-        .url
-        .filter(|_| is_image_post)
-        .or(metadata.opengraph_data.image)
-      {
-        Some(url) => generate_pictrs_thumbnail(&url, &context).await.ok(),
-        None => None,
+    let thumbnail_url = if is_image_post {
+      if allow_generate_thumbnail {
+        match post.url {
+          Some(url) => generate_pictrs_thumbnail(&url, &context)
+            .await
+            .ok()
+            .map(Into::into),
+          None => None,
+        }
+      } else {
+        None
       }
-    }
-    // Otherwise use opengraph preview image directly
-    else {
-      metadata.opengraph_data.image.map(Into::into)
+    } else {
+      // Use custom thumbnail if available and its not an image post
+      if let Some(custom_thumbnail) = custom_thumbnail {
+        proxy_image_link(custom_thumbnail, &context).await.ok()
+      }
+      // Use federated thumbnail if available
+      else if let Some(federated_thumbnail) = federated_thumbnail {
+        proxy_image_link(federated_thumbnail, &context).await.ok()
+      }
+      // Generate local thumbnail if allowed
+      else if allow_generate_thumbnail {
+        match metadata.opengraph_data.image {
+          Some(url) => generate_pictrs_thumbnail(&url, &context)
+            .await
+            .ok()
+            .map(Into::into),
+          None => None,
+        }
+      }
+      // Otherwise use opengraph preview image directly
+      else {
+        metadata.opengraph_data.image
+      }
     };
-
-    // Proxy the image fetch if necessary
-    let proxied_thumbnail_url = proxy_image_link_opt_apub(thumbnail_url, &context).await?;
 
     let form = PostUpdateForm {
       embed_title: Some(metadata.opengraph_data.title),
       embed_description: Some(metadata.opengraph_data.description),
       embed_video_url: Some(metadata.opengraph_data.embed_video_url),
-      thumbnail_url: Some(proxied_thumbnail_url),
+      thumbnail_url: Some(thumbnail_url),
       url_content_type: Some(metadata.content_type),
       ..Default::default()
     };
@@ -142,17 +153,6 @@ pub fn generate_post_link_metadata(
 fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraphData> {
   let html = String::from_utf8_lossy(html_bytes);
 
-  // Make sure the first line is doctype html
-  let first_line = html
-    .trim_start()
-    .lines()
-    .next()
-    .ok_or(LemmyErrorType::NoLinesInHtml)?
-    .to_lowercase();
-
-  if !first_line.starts_with("<!doctype html") {
-    Err(LemmyErrorType::SiteMetadataPageIsNotDoctypeHtml)?
-  }
 
   let mut page = HTML::from_string(html.to_string(), None)?;
 
@@ -201,19 +201,50 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
   })
 }
 
-#[derive(Deserialize, Debug)]
-struct PictrsResponse {
-  files: Vec<PictrsFile>,
-  msg: String,
+#[derive(Deserialize, Serialize, Debug)]
+pub struct PictrsResponse {
+  pub files: Option<Vec<PictrsFile>>,
+  pub msg: String,
 }
 
-#[derive(Deserialize, Debug)]
-struct PictrsFile {
-  file: String,
-  delete_token: String,
+#[derive(Deserialize, Serialize, Debug)]
+pub struct PictrsFile {
+  pub file: String,
+  pub delete_token: String,
+  pub details: PictrsFileDetails,
 }
 
-#[derive(Deserialize, Debug)]
+impl PictrsFile {
+  pub fn thumbnail_url(&self, protocol_and_hostname: &str) -> Result<Url, url::ParseError> {
+    Url::parse(&format!(
+      "{protocol_and_hostname}/pictrs/image/{}",
+      self.file
+    ))
+  }
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct PictrsFileDetails {
+  pub width: u16,
+  pub height: u16,
+  pub content_type: String,
+  pub created_at: DateTime<Utc>,
+}
+
+impl PictrsFileDetails {
+  /// Builds the image form. This should always use the thumbnail_url,
+  /// Because the post_view joins to it
+  pub fn build_image_details_form(&self, thumbnail_url: &Url) -> ImageDetailsForm {
+    ImageDetailsForm {
+      link: thumbnail_url.clone().into(),
+      width: self.width.into(),
+      height: self.height.into(),
+      content_type: self.content_type.clone(),
+    }
+  }
+}
+
+#[derive(Deserialize, Serialize, Debug)]
 struct PictrsPurgeResponse {
   msg: String,
 }
@@ -295,33 +326,76 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     encode(image_url.as_str())
   );
 
-  let response = context
+  let res: PictrsResponse = context
     .client()
     .get(&fetch_url)
     .timeout(REQWEST_TIMEOUT)
     .send()
+    .await?
+    .json()
     .await?;
 
-  let response: PictrsResponse = response.json().await?;
+  if let Some(image) = res.files.unwrap_or_default().first() {
+    let form = LocalImageForm {
+      // This is none because its an internal request.
+      // IE, a local user shouldn't get to delete the thumbnails for their link posts
+      local_user_id: None,
+      pictrs_alias: image.file.clone(),
+      pictrs_delete_token: image.delete_token.clone(),
+    };
+    LocalImage::create(&mut context.pool(), &form).await?;
 
-  if response.msg == "ok" {
-    let thumbnail_url = Url::parse(&format!(
-      "{}/pictrs/image/{}",
-      context.settings().get_protocol_and_hostname(),
-      response.files.first().expect("missing pictrs file").file
-    ))?;
-    for uploaded_image in response.files {
-      let form = LocalImageForm {
-        local_user_id: None,
-        pictrs_alias: uploaded_image.file.to_string(),
-        pictrs_delete_token: uploaded_image.delete_token.to_string(),
-      };
-      LocalImage::create(&mut context.pool(), &form).await?;
-    }
+    let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+    let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
+
+    // Also store the details for the image
+    let details_form = image.details.build_image_details_form(&thumbnail_url);
+    ImageDetails::create(&mut context.pool(), &details_form).await?;
+
     Ok(thumbnail_url)
   } else {
-    Err(LemmyErrorType::PictrsResponseError(response.msg))?
+    Err(LemmyErrorType::PictrsResponseError(res.msg))?
   }
+}
+
+/// Fetches the image details for pictrs proxied images
+///
+/// We don't need to check for image mode, as that's already been done
+#[tracing::instrument(skip_all)]
+pub async fn fetch_pictrs_proxied_image_details(
+  image_url: &Url,
+  context: &LemmyContext,
+) -> LemmyResult<PictrsFileDetails> {
+  let pictrs_config = context.settings().pictrs_config()?;
+
+  // Pictrs needs you to fetch the proxied image before you can fetch the details
+  let proxy_url = format!(
+    "{}image/original?proxy={}",
+    context.settings().pictrs_config()?.url,
+    encode(image_url.as_str())
+  );
+
+  let res = context.client().get(&proxy_url).send().await?.status();
+  if !res.is_success() {
+    Err(LemmyErrorType::NotAnImageType)?
+  }
+
+  let details_url = format!(
+    "{}image/details/original?proxy={}",
+    pictrs_config.url,
+    encode(image_url.as_str())
+  );
+
+  let res = context
+    .client()
+    .get(&details_url)
+    .timeout(REQWEST_TIMEOUT)
+    .send()
+    .await?
+    .json()
+    .await?;
+
+  Ok(res)
 }
 
 // TODO: get rid of this by reading content type from db
