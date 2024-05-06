@@ -85,7 +85,6 @@ pub async fn update_post(
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
-
   let language_id = data.language_id;
   CommunityLanguage::is_allowed_community_language(
     &mut context.pool(),

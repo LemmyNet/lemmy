@@ -153,7 +153,6 @@ pub fn generate_post_link_metadata(
 fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraphData> {
   let html = String::from_utf8_lossy(html_bytes);
 
-
   let mut page = HTML::from_string(html.to_string(), None)?;
 
   // If the web page specifies that it isn't actually UTF-8, re-decode the received bytes with the
