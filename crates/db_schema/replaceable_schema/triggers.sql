@@ -507,3 +507,24 @@ CREATE TRIGGER delete_follow
     FOR EACH ROW
     EXECUTE FUNCTION r.delete_follow_before_person ();
 
+-- Triggers that change values before insert or update
+CREATE FUNCTION r.comment_change_values ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    id text = NEW.id::text;
+BEGIN
+    -- Make `path` end with `id` if it doesn't already
+    IF NOT (NEW.path ~ ('*.' || id)::lquery) THEN
+        NEW.path = NEW.path || id;
+    END IF;
+    RETURN NEW;
+END
+$$;
+
+CREATE TRIGGER change_values
+    BEFORE INSERT OR UPDATE ON comment
+    FOR EACH ROW
+    EXECUTE FUNCTION r.comment_change_values ();
+

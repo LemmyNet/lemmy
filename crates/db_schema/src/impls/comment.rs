@@ -72,6 +72,7 @@ impl Comment {
     parent_path: Option<&Ltree>,
   ) -> Result<Comment, Error> {
     let conn = &mut get_conn(pool).await?;
+    let comment_form = (comment_form, parent_path.map(|p| comment::path.eq(p)));
 
     conn
       .build_transaction()
@@ -93,23 +94,6 @@ impl Comment {
               .get_result::<Self>(conn)
               .await?
           };
-
-          let comment_id = inserted_comment.id;
-
-          // You need to update the ltree column
-          let ltree = Ltree(if let Some(parent_path) = parent_path {
-            // The previous parent will already have 0 in it
-            // Append this comment id
-            format!("{}.{}", parent_path.0, comment_id)
-          } else {
-            // '0' is always the first path, append to that
-            format!("{}.{}", 0, comment_id)
-          });
-
-          let updated_comment = diesel::update(comment::table.find(comment_id))
-            .set(comment::path.eq(ltree))
-            .get_result::<Self>(conn)
-            .await?;
 
           // Update the child count for the parent comment_aggregates
           // You could do this with a trigger, but since you have to do this manually anyway,
@@ -143,7 +127,7 @@ where ca.comment_id = c.id"
               sql_query(update_child_count_stmt).execute(conn).await?;
             }
           }
-          Ok(updated_comment)
+          Ok(inserted_comment)
         }) as _
       })
       .await
