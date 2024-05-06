@@ -3148,7 +3148,6 @@ dependencies = [
  "lemmy_utils",
  "moka",
  "once_cell",
- "serde",
  "tracing",
  "url",
  "uuid",
