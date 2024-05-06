@@ -43,8 +43,7 @@ pub struct LocalImageForm {
 /// is checked against this table to avoid Lemmy being used as a general purpose proxy.
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = remote_image))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", diesel(primary_key(link)))]
