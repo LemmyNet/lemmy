@@ -12,12 +12,11 @@ use crate::{
   utils::{get_conn, DbPool},
 };
 use diesel::{
-  dsl::exists,
   insert_into,
   result::Error,
-  select,
   ExpressionMethods,
   NotFound,
+  OptionalExtension,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -60,13 +59,12 @@ impl RemoteImage {
 
   pub async fn validate(pool: &mut DbPool<'_>, link_: DbUrl) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
-
-    let exists = select(exists(
-      remote_image::table.filter(remote_image::link.eq(link_)),
-    ))
-    .get_result::<bool>(conn)
-    .await?;
-    if exists {
+    let res = remote_image::table
+      .find(link_)
+      .first::<RemoteImage>(conn)
+      .await
+      .optional()?;
+    if res.is_some() {
       Ok(())
     } else {
       Err(NotFound)
@@ -79,6 +77,7 @@ impl ImageDetails {
     let conn = &mut get_conn(pool).await?;
     insert_into(image_details::table)
       .values(form)
+      .on_conflict_do_nothing()
       .get_result::<Self>(conn)
       .await
   }
