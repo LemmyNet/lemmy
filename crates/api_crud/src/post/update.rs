@@ -116,7 +116,8 @@ pub async fn update_post(
     |post| Some(SendActivityData::UpdatePost(post)),
     Some(local_site),
     context.reset_request_count(),
-  );
+  )
+  .await?;
 
   build_post_response(
     context.deref(),

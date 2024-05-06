@@ -161,7 +161,8 @@ pub async fn create_post(
     |post| Some(SendActivityData::CreatePost(post)),
     Some(local_site),
     context.reset_request_count(),
-  );
+  )
+  .await?;
 
   // They like their own post by default
   let person_id = local_user_view.person.id;

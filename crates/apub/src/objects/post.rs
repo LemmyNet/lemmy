@@ -24,7 +24,7 @@ use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
-  request::generate_post_link_metadata,
+  request::generate_post_link_metadata_background,
   utils::{
     get_url_blocklist,
     local_site_opt_to_slur_regex,
@@ -278,7 +278,7 @@ impl Object for ApubPost {
     let timestamp = page.updated.or(page.published).unwrap_or_else(naive_now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
 
-    generate_post_link_metadata(
+    generate_post_link_metadata_background(
       post.clone(),
       None,
       page.image.map(|i| i.url),

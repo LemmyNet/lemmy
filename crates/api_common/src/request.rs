@@ -66,14 +66,89 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
   })
 }
 
-/// Generate post thumbnail in background task, because some sites can be very slow to respond.
+/// Generates and saves a post thumbnail and metadata.
 ///
 /// Takes a callback to generate a send activity task, so that post can be federated with metadata.
 ///
 /// TODO: `federated_thumbnail` param can be removed once we federate full metadata and can
 ///       write it to db directly, without calling this function.
 ///       https://github.com/LemmyNet/lemmy/issues/4598
-pub fn generate_post_link_metadata(
+pub async fn generate_post_link_metadata(
+  post: Post,
+  custom_thumbnail: Option<Url>,
+  federated_thumbnail: Option<Url>,
+  send_activity: impl FnOnce(Post) -> Option<SendActivityData> + Send + 'static,
+  local_site: Option<LocalSite>,
+  context: Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let metadata = match &post.url {
+    Some(url) => fetch_link_metadata(url, &context).await.unwrap_or_default(),
+    _ => Default::default(),
+  };
+
+  let is_image_post = metadata
+    .content_type
+    .as_ref()
+    .is_some_and(|content_type| content_type.starts_with("image"));
+
+  // Decide if we are allowed to generate local thumbnail
+  let allow_sensitive = local_site_opt_to_sensitive(&local_site);
+  let allow_generate_thumbnail = allow_sensitive || !post.nsfw;
+
+  let thumbnail_url = if is_image_post {
+    if allow_generate_thumbnail {
+      match post.url {
+        Some(url) => generate_pictrs_thumbnail(&url, &context)
+          .await
+          .ok()
+          .map(Into::into),
+        None => None,
+      }
+    } else {
+      None
+    }
+  } else {
+    // Use custom thumbnail if available and its not an image post
+    if let Some(custom_thumbnail) = custom_thumbnail {
+      proxy_image_link(custom_thumbnail, &context).await.ok()
+    }
+    // Use federated thumbnail if available
+    else if let Some(federated_thumbnail) = federated_thumbnail {
+      proxy_image_link(federated_thumbnail, &context).await.ok()
+    }
+    // Generate local thumbnail if allowed
+    else if allow_generate_thumbnail {
+      match metadata.opengraph_data.image {
+        Some(url) => generate_pictrs_thumbnail(&url, &context)
+          .await
+          .ok()
+          .map(Into::into),
+        None => None,
+      }
+    }
+    // Otherwise use opengraph preview image directly
+    else {
+      metadata.opengraph_data.image
+    }
+  };
+
+  let form = PostUpdateForm {
+    embed_title: Some(metadata.opengraph_data.title),
+    embed_description: Some(metadata.opengraph_data.description),
+    embed_video_url: Some(metadata.opengraph_data.embed_video_url),
+    thumbnail_url: Some(thumbnail_url),
+    url_content_type: Some(metadata.content_type),
+    ..Default::default()
+  };
+  let updated_post = Post::update(&mut context.pool(), post.id, &form).await?;
+  if let Some(send_activity) = send_activity(updated_post) {
+    ActivityChannel::submit_activity(send_activity, &context).await?;
+  }
+  Ok(())
+}
+
+/// Generates a post thumbnail in background task, because some sites can be very slow to respond.
+pub fn generate_post_link_metadata_background(
   post: Post,
   custom_thumbnail: Option<Url>,
   federated_thumbnail: Option<Url>,
@@ -82,71 +157,16 @@ pub fn generate_post_link_metadata(
   context: Data<LemmyContext>,
 ) {
   spawn_try_task(async move {
-    let metadata = match &post.url {
-      Some(url) => fetch_link_metadata(url, &context).await.unwrap_or_default(),
-      _ => Default::default(),
-    };
-
-    let is_image_post = metadata
-      .content_type
-      .as_ref()
-      .is_some_and(|content_type| content_type.starts_with("image"));
-
-    // Decide if we are allowed to generate local thumbnail
-    let allow_sensitive = local_site_opt_to_sensitive(&local_site);
-    let allow_generate_thumbnail = allow_sensitive || !post.nsfw;
-
-    let thumbnail_url = if is_image_post {
-      if allow_generate_thumbnail {
-        match post.url {
-          Some(url) => generate_pictrs_thumbnail(&url, &context)
-            .await
-            .ok()
-            .map(Into::into),
-          None => None,
-        }
-      } else {
-        None
-      }
-    } else {
-      // Use custom thumbnail if available and its not an image post
-      if let Some(custom_thumbnail) = custom_thumbnail {
-        proxy_image_link(custom_thumbnail, &context).await.ok()
-      }
-      // Use federated thumbnail if available
-      else if let Some(federated_thumbnail) = federated_thumbnail {
-        proxy_image_link(federated_thumbnail, &context).await.ok()
-      }
-      // Generate local thumbnail if allowed
-      else if allow_generate_thumbnail {
-        match metadata.opengraph_data.image {
-          Some(url) => generate_pictrs_thumbnail(&url, &context)
-            .await
-            .ok()
-            .map(Into::into),
-          None => None,
-        }
-      }
-      // Otherwise use opengraph preview image directly
-      else {
-        metadata.opengraph_data.image
-      }
-    };
-
-    let form = PostUpdateForm {
-      embed_title: Some(metadata.opengraph_data.title),
-      embed_description: Some(metadata.opengraph_data.description),
-      embed_video_url: Some(metadata.opengraph_data.embed_video_url),
-      thumbnail_url: Some(thumbnail_url),
-      url_content_type: Some(metadata.content_type),
-      ..Default::default()
-    };
-    let updated_post = Post::update(&mut context.pool(), post.id, &form).await?;
-    if let Some(send_activity) = send_activity(updated_post) {
-      ActivityChannel::submit_activity(send_activity, &context).await?;
-    }
-    Ok(())
-  });
+    generate_post_link_metadata(
+      post,
+      custom_thumbnail,
+      federated_thumbnail,
+      send_activity,
+      local_site,
+      context,
+    )
+    .await
+  })
 }
 
 /// Extract site metadata from HTML Opengraph attributes.
