@@ -27,6 +27,7 @@ pub mod fetcher;
 pub mod http;
 pub(crate) mod mentions;
 pub mod objects;
+pub mod plugins;
 pub mod protocol;
 
 pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 50;

@@ -763,3 +763,15 @@ test("Fetch post with redirect", async () => {
   let gammaPost2 = await gamma.resolveObject(form);
   expect(gammaPost2.post).toBeDefined();
 });
+
+test.only("Plugin test", async () => {
+  let community = await createCommunity(epsilon);
+  let postRes = createPost(
+    epsilon,
+    community.community_view.community.id,
+    "https://example.com/",
+    "body",
+    "foobar",
+  );
+  expect((await postRes).post_view.post.name).toBe("Hello plugin!");
+});

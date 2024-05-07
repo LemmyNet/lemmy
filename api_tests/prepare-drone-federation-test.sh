@@ -49,8 +49,6 @@ else
   done
 fi
 
-echo "$PWD"
-
 LOG_DIR=target/log
 mkdir -p $LOG_DIR
 
@@ -74,6 +72,12 @@ echo "start delta"
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_delta.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_delta" \
   target/lemmy_server >$LOG_DIR/lemmy_delta.out 2>&1 &
+
+# plugin setup
+pushd plugins
+# need to use tinygo because apparently go has only experimental support for wasm target
+GOPATH=$HOME/.local/share/go tinygo build -o plugin.wasm -target wasi main.go
+popd
 
 echo "start epsilon"
 # An instance who has a blocklist, with lemmy-alpha blocked
