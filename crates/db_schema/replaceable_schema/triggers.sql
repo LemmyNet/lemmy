@@ -146,26 +146,21 @@ WITH post_diff AS (
     SET
         comments = a.comments + diff.comments,
         newest_comment_time = GREATEST (a.newest_comment_time, diff.newest_comment_time),
-        newest_comment_time_necro = GREATEST (a.newest_comment_time_necro, (
-                SELECT
-                    published
-                FROM unnest(diff.comments_array) AS new_comment (creator_id int, published timestamptz)
-                WHERE
-                    -- Ignore comments from the post's creator
-                    a.creator_id != new_comment.creator_id
-                    -- Ignore comments on old posts
-                    AND a.published > (new_comment.published - '2 days'::interval)
-                ORDER BY published DESC LIMIT 1))
+        newest_comment_time_necro = GREATEST (a.newest_comment_time_necro, diff.newest_comment_time_necro)
     FROM (
         SELECT
             post.id AS post_id,
             coalesce(sum(count_diff), 0) AS comments,
             -- Old rows are excluded using `count_diff = 1`
             max((comment).published) FILTER (WHERE count_diff = 1) AS newest_comment_time,
-            array_agg(((comment).creator_id, (comment).published)) FILTER (WHERE count_diff = 1) AS comments_array,
-            r.is_counted (post.*) AS include_in_community_aggregates
-        FROM
-            select_old_and_new_rows AS old_and_new_rows
+            max((comment).published) FILTER (WHERE count_diff = 1
+                -- Ignore comments from the post's creator
+                AND post.creator_id != (comment).creator_id
+            -- Ignore comments on old posts
+            AND post.published > ((comment).published - '2 days'::interval)) AS newest_comment_time_necro,
+        r.is_counted (post.*) AS include_in_community_aggregates
+    FROM
+        select_old_and_new_rows AS old_and_new_rows
         LEFT JOIN post ON post.id = (comment).post_id
     WHERE
         r.is_counted (comment)
@@ -175,16 +170,7 @@ WITH post_diff AS (
         a.post_id = diff.post_id
         AND (diff.comments,
             GREATEST (a.newest_comment_time, diff.newest_comment_time),
-            GREATEST (a.newest_comment_time_necro, (
-                    SELECT
-                        published
-                    FROM unnest(diff.comments_array) AS new_comment (creator_id int, published timestamptz)
-                    WHERE
-                        -- Ignore comments from the post's creator
-                        a.creator_id != new_comment.creator_id
-                        -- Ignore comments on old posts
-                        AND a.published > (new_comment.published - '2 days'::interval)
-                    ORDER BY published DESC LIMIT 1))) != (0,
+            GREATEST (a.newest_comment_time_necro, diff.newest_comment_time_necro)) != (0,
             a.newest_comment_time,
             a.newest_comment_time_necro)
     RETURNING
