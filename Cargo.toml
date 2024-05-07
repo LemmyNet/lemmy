@@ -207,10 +207,6 @@ clap = { workspace = true }
 serde.workspace = true
 actix-web-prom = "0.7.0"
 actix-http = "3.6.0"
-extism = { version = "1.2.0", features = [
-  "register-filesystem",
-], default-features = false }
-extism-convert = { version = "1.2.0", default-features = false }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

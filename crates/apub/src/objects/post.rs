@@ -3,6 +3,7 @@ use crate::{
   check_apub_id_valid_with_strictness,
   local_site_data_cached,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
+  plugins::{call_plugin, load_plugins},
   protocol::{
     objects::{
       page::{Attachment, AttributedTo, Hashtag, HashtagType, Page, PageType},
@@ -50,6 +51,7 @@ use lemmy_utils::{
 };
 use std::ops::Deref;
 use stringreader::StringReader;
+use tracing::info;
 use url::Url;
 
 const MAX_TITLE_LENGTH: usize = 200;
@@ -224,7 +226,7 @@ impl Object for ApubPost {
     let first_attachment = page.attachment.first();
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
 
-    let form = if !page.is_mod_action(context).await? {
+    let mut form = if !page.is_mod_action(context).await? {
       let url = if let Some(attachment) = first_attachment.cloned() {
         Some(attachment.url())
       } else if page.kind == PageType::Video {
@@ -275,8 +277,25 @@ impl Object for ApubPost {
         .build()
     };
 
+    // TODO: move this all into helper function
+    let before_plugin_hook = "federation_before_receive_post";
+    info!("Calling plugin hook {}", &before_plugin_hook);
+    if let Some(mut plugins) = load_plugins()? {
+      if plugins.function_exists(&before_plugin_hook) {
+        call_plugin(plugins, &before_plugin_hook, &mut form)?;
+      }
+    }
+
     let timestamp = page.updated.or(page.published).unwrap_or_else(naive_now);
-    let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
+    let mut post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
+
+    let after_plugin_hook = "federation_after_receive_post";
+    info!("Calling plugin hook {}", &after_plugin_hook);
+    if let Some(mut plugins) = load_plugins()? {
+      if plugins.function_exists(&after_plugin_hook) {
+        call_plugin(plugins, &after_plugin_hook, &mut post)?;
+      }
+    }
 
     generate_post_link_metadata(
       post.clone(),
