@@ -15,12 +15,7 @@ use crate::{
   utils::{functions::coalesce, get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use chrono::{DateTime, Utc};
-use diesel::{
-  dsl::{insert_into, sql_query},
-  result::Error,
-  ExpressionMethods,
-  QueryDsl,
-};
+use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
 use url::Url;
@@ -74,63 +69,21 @@ impl Comment {
     let conn = &mut get_conn(pool).await?;
     let comment_form = (comment_form, parent_path.map(|p| comment::path.eq(p)));
 
-    conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          // Insert, to get the id
-          let inserted_comment = if let Some(timestamp) = timestamp {
-            insert_into(comment::table)
-              .values(comment_form)
-              .on_conflict(comment::ap_id)
-              .filter_target(coalesce(comment::updated, comment::published).lt(timestamp))
-              .do_update()
-              .set(comment_form)
-              .get_result::<Self>(conn)
-              .await?
-          } else {
-            insert_into(comment::table)
-              .values(comment_form)
-              .get_result::<Self>(conn)
-              .await?
-          };
-
-          // Update the child count for the parent comment_aggregates
-          // You could do this with a trigger, but since you have to do this manually anyway,
-          // you can just have it here
-          if let Some(parent_path) = parent_path {
-            // You have to update counts for all parents, not just the immediate one
-            // TODO if the performance of this is terrible, it might be better to do this as part of a
-            // scheduled query... although the counts would often be wrong.
-            //
-            // The child_count query for reference:
-            // select c.id, c.path, count(c2.id) as child_count from comment c
-            // left join comment c2 on c2.path <@ c.path and c2.path != c.path
-            // group by c.id
-
-            let parent_id = parent_path.0.split('.').nth(1);
-
-            if let Some(parent_id) = parent_id {
-              let top_parent = format!("0.{}", parent_id);
-              let update_child_count_stmt = format!(
-                "
-update comment_aggregates ca set child_count = c.child_count
-from (
-  select c.id, c.path, count(c2.id) as child_count from comment c
-  join comment c2 on c2.path <@ c.path and c2.path != c.path
-  and c.path <@ '{top_parent}'
-  group by c.id
-) as c
-where ca.comment_id = c.id"
-              );
-
-              sql_query(update_child_count_stmt).execute(conn).await?;
-            }
-          }
-          Ok(inserted_comment)
-        }) as _
-      })
-      .await
+    if let Some(timestamp) = timestamp {
+      insert_into(comment::table)
+        .values(comment_form)
+        .on_conflict(comment::ap_id)
+        .filter_target(coalesce(comment::updated, comment::published).lt(timestamp))
+        .do_update()
+        .set(comment_form)
+        .get_result::<Self>(conn)
+        .await
+    } else {
+      insert_into(comment::table)
+        .values(comment_form)
+        .get_result::<Self>(conn)
+        .await
+    }
   }
 
   pub async fn read_from_apub_id(
