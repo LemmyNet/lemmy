@@ -158,18 +158,19 @@ WITH post_diff AS (
                 ORDER BY published DESC LIMIT 1))
     FROM (
         SELECT
-            (comment).post_id,
+            post.id AS post_id,
             coalesce(sum(count_diff), 0) AS comments,
             -- Old rows are excluded using `count_diff = 1`
             max((comment).published) FILTER (WHERE count_diff = 1) AS newest_comment_time,
-            array_agg(((comment).creator_id, (comment).published)) FILTER (WHERE count_diff = 1) AS comments_array
+            array_agg(((comment).creator_id, (comment).published)) FILTER (WHERE count_diff = 1) AS comments_array,
+            r.is_counted (post.*) AS include_in_community_aggregates
         FROM
             select_old_and_new_rows AS old_and_new_rows
-        WHERE
-            r.is_counted (comment)
-        GROUP BY
-            (comment).post_id) AS diff
-        LEFT JOIN post ON post.id = diff.post_id
+        LEFT JOIN post ON post.id = (comment).post_id
+    WHERE
+        r.is_counted (comment)
+    GROUP BY
+        post.id) AS diff
     WHERE
         a.post_id = diff.post_id
         AND (diff.comments,
@@ -189,7 +190,7 @@ WITH post_diff AS (
     RETURNING
         a.community_id,
         diff.comments,
-        r.is_counted (post.*) AS include_in_community_aggregates)
+        diff.include_in_community_aggregates)
 UPDATE
     community_aggregates AS a
 SET
