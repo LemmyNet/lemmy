@@ -20,7 +20,8 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
-use std::ops::Deref;
+use std::{ops::Deref, time::Duration};
+use tokio::time::timeout;
 use url::Url;
 
 mod comment;
@@ -35,8 +36,15 @@ pub async fn shared_inbox(
   body: Bytes,
   data: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext>(request, body, &data)
+  let receive_fut =
+    receive_activity::<SharedInboxActivities, UserOrCommunity, LemmyContext>(request, body, &data);
+  // Set a timeout shorter than `REQWEST_TIMEOUT` for processing incoming activities. This is to
+  // avoid taking a long time to process an incoming activity when a required data fetch times out.
+  // In this case our own instance would timeout and be marked as dead by the sender. Better to
+  // consider the activity broken and move on.
+  timeout(Duration::from_secs(9), receive_fut)
     .await
+    .map_err(|_| LemmyErrorType::InboxTimeout)?
 }
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
