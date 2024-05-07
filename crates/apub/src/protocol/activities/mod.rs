@@ -96,4 +96,10 @@ mod tests {
     test_json::<Report>("assets/mbin/activities/flag.json")?;
     Ok(())
   }
+
+  #[test]
+  fn test_parse_wordpress_activities() -> LemmyResult<()> {
+    test_json::<AnnounceActivity>("assets/wordpress/activities/announce.json")?;
+    Ok(())
+  }
 }
