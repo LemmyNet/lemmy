@@ -3,10 +3,11 @@ use crate::objects::{
   community::ApubCommunity,
   person::ApubPerson,
   post::ApubPost,
-};use itertools::Itertools;
+};
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Object};
 use actix_web::web::Json;
 use futures::{future::try_join_all, StreamExt};
+use itertools::Itertools;
 use lemmy_api_common::{context::LemmyContext, SuccessResponse};
 use lemmy_db_schema::{
   newtypes::DbUrl,
@@ -245,11 +246,11 @@ pub async fn import_settings(
       |(blocked, context)| async move {
         let context = context.reset_request_count();
         let target = blocked.dereference(&context).await?;
-          let form = PersonBlockForm {
-            person_id,
-            target_id: target.id,
-          };
-          PersonBlock::block(&mut context.pool(), &form).await?;
+        let form = PersonBlockForm {
+          person_id,
+          target_id: target.id,
+        };
+        PersonBlock::block(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
     )
@@ -325,7 +326,7 @@ mod tests {
     traits::{Crud, Followable},
   };
   use lemmy_db_views::structs::LocalUserView;
-  use lemmy_db_views_actor::structs::{CommunityFollowerView};
+  use lemmy_db_views_actor::structs::CommunityFollowerView;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
