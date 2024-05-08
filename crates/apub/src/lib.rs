@@ -29,7 +29,7 @@ pub(crate) mod mentions;
 pub mod objects;
 pub mod protocol;
 
-pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 50;
+pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 100;
 
 /// Only include a basic context to save space and bandwidth. The main context is hosted statically
 /// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could

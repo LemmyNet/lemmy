@@ -277,9 +277,38 @@ pub async fn import_settings(
     // These tasks don't connect to any remote instances but only insert directly in the database.
     // That means the only error condition are db connection failures, so no extra error handling is
     // needed.
+    futures::stream::iter(
+      data
+        .blocked_communities
+        .clone()
+        .into_iter()
+        .map(|s| (s, context.reset_request_count()))
+        .map(|(blocked, context)| async move {
+          let community = blocked.dereference(&context).await?;
+          let form = CommunityBlockForm {
+            person_id,
+            community_id: community.id,
+          };
+          CommunityBlock::block(&mut context.pool(), &form).await?;
+          LemmyResult::Ok(())
+        }),
+    )
+    .buffer_unordered(PARALLELISM)
+    .collect::<Vec<_>>()
+    .await
+    .into_iter()
+    .enumerate()
+    .for_each(|(i, r)| {
+      if let Err(e) = r {
+        //failed_items.push(data.followed_communities.get(i).map(|u| u.inner().clone()));
+        //info!("Failed to import saved post community: {e}");
+      }
+    });
+    /*
     try_join_all(data.blocked_communities.iter().map(|blocked| async {
-      // dont fetch unknown blocked objects from home server
-      let community = blocked.dereference_local(&context).await?;
+      let context = context.reset_request_count();
+      // Ignore fetch errors
+      let community = blocked.dereference(&context).await?;
       let form = CommunityBlockForm {
         person_id,
         community_id: community.id,
@@ -288,21 +317,24 @@ pub async fn import_settings(
       LemmyResult::Ok(())
     }))
     .await?;
+   */
 
     try_join_all(data.blocked_users.iter().map(|blocked| async {
-      // dont fetch unknown blocked objects from home server
-      let target = blocked.dereference_local(&context).await?;
-      let form = PersonBlockForm {
-        person_id,
-        target_id: target.id,
-      };
-      PersonBlock::block(&mut context.pool(), &form).await?;
+      let context = context.reset_request_count();
+      // Ignore fetch errors
+      let target = blocked.dereference(&context).await.ok();
+      if let Some(target) = target {
+        let form = PersonBlockForm {
+          person_id,
+          target_id: target.id,
+        };
+        PersonBlock::block(&mut context.pool(), &form).await?;
+      }
       LemmyResult::Ok(())
     }))
     .await?;
 
     try_join_all(data.blocked_instances.iter().map(|domain| async {
-      // dont fetch unknown blocked objects from home server
       let instance = Instance::read_or_create(&mut context.pool(), domain.clone()).await?;
       let form = InstanceBlockForm {
         person_id,
@@ -324,7 +356,7 @@ pub async fn import_settings(
 mod tests {
 
   use crate::api::user_settings_backup::{export_settings, import_settings, UserSettingsBackup};
-  use activitypub_federation::config::Data;
+  use activitypub_federation::config::Data;use lemmy_db_views_actor::structs::CommunityBlockView;
   use lemmy_api_common::context::LemmyContext;
   use lemmy_db_schema::{
     source::{
@@ -491,6 +523,43 @@ mod tests {
     );
 
     LocalUser::delete(&mut context.pool(), export_user.local_user.id).await?;
+    LocalUser::delete(&mut context.pool(), import_user.local_user.id).await?;
+    Ok(())
+  }
+
+
+  #[tokio::test]
+  #[serial]
+  async fn test_settings_fetch_and_import() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+
+    let backup: UserSettingsBackup = serde_json::from_str(
+      r#"{"blocked_communities": [
+        "https://slrpnk.net/c/memes",
+        "https://lemmy.world/c/atheism",
+        "https://midwest.social/c/religiouscringe"
+        ]
+      }"#,
+    )
+    .unwrap();
+    let import_user = create_user("charles".to_string(), None, &context).await?;
+
+    import_settings(
+      actix_web::web::Json(backup),
+      import_user.clone(),
+      context.reset_request_count(),
+    )
+    .await?;
+
+    // wait for background task to finish
+    sleep(Duration::from_millis(1000)).await;
+
+    let blocks = CommunityBlockView::for_person(
+      &mut context.pool(),
+      import_user.person.id,
+    )
+    .await?;
+    assert_eq!(blocks.len(), 3);
     LocalUser::delete(&mut context.pool(), import_user.local_user.id).await?;
     Ok(())
   }
