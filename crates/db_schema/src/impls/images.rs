@@ -84,12 +84,13 @@ impl RemoteImage {
 
   pub async fn validate(pool: &mut DbPool<'_>, link_: DbUrl) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
-    let res = remote_image::table
-      .find(link_)
-      .first::<RemoteImage>(conn)
-      .await
-      .optional()?;
-    if res.is_some() {
+
+    let exists = select(exists(
+      remote_image::table.filter(remote_image::link.eq(link_)),
+    ))
+    .get_result::<bool>(conn)
+    .await?;
+    if exists {
       Ok(())
     } else {
       Err(NotFound)
