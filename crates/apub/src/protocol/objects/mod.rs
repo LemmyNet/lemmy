@@ -206,4 +206,13 @@ mod tests {
     test_json::<Person>("assets/nodebb/objects/person.json")?;
     Ok(())
   }
+
+  #[test]
+  fn test_parse_object_wordpress() -> LemmyResult<()> {
+    test_json::<Group>("assets/wordpress/objects/group.json")?;
+    test_json::<Page>("assets/wordpress/objects/page.json")?;
+    test_json::<Person>("assets/wordpress/objects/person.json")?;
+    test_json::<Note>("assets/wordpress/objects/note.json")?;
+    Ok(())
+  }
 }
