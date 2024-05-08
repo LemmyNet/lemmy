@@ -71,7 +71,6 @@ pub struct ImageDetails {
   pub width: i32,
   pub height: i32,
   pub content_type: String,
-  pub published: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]

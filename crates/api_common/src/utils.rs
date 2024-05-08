@@ -16,7 +16,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityModerator, CommunityUpdateForm},
     community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
-    images::{ImageDetails, RemoteImage},
+    images::RemoteImage,
     instance::Instance,
     instance_block::InstanceBlock,
     local_site::LocalSite,
@@ -938,15 +938,13 @@ pub async fn process_markdown(
 
     // Create images and image detail rows
     for link in links {
-      RemoteImage::create(&mut context.pool(), &link).await?;
-
       // Insert image details for the remote image
       let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
       if let Ok(details) = details_res {
         let proxied =
           build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
         let details_form = details.build_image_details_form(&proxied);
-        ImageDetails::create(&mut context.pool(), &details_form).await?;
+        RemoteImage::create(&mut context.pool(), &details_form).await?;
       }
     }
     Ok(text)
@@ -984,14 +982,12 @@ async fn proxy_image_link_internal(
   } else if image_mode == PictrsImageMode::ProxyAllImages {
     let proxied = build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
 
-    RemoteImage::create(&mut context.pool(), &link).await?;
-
     // This should fail softly, since pictrs might not even be running
     let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
 
     if let Ok(details) = details_res {
       let details_form = details.build_image_details_form(&proxied);
-      ImageDetails::create(&mut context.pool(), &details_form).await?;
+      RemoteImage::create(&mut context.pool(), &details_form).await?;
     }
 
     Ok(proxied.into())

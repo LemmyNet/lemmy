@@ -10,7 +10,6 @@ CREATE TABLE image_details (
     link text PRIMARY KEY,
     width integer NOT NULL,
     height integer NOT NULL,
-    content_type text NOT NULL,
-    published timestamptz DEFAULT now() NOT NULL
+    content_type text NOT NULL
 );
 

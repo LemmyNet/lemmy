@@ -11,7 +11,7 @@ use encoding_rs::{Encoding, UTF_8};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
-    images::{ImageDetails, ImageDetailsForm, LocalImage, LocalImageForm},
+    images::{ImageDetailsForm, LocalImage, LocalImageForm},
     local_site::LocalSite,
     post::{Post, PostUpdateForm},
   },
@@ -346,14 +346,12 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
       pictrs_alias: image.file.clone(),
       pictrs_delete_token: image.delete_token.clone(),
     };
-    LocalImage::create(&mut context.pool(), &form).await?;
-
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
     let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
 
     // Also store the details for the image
     let details_form = image.details.build_image_details_form(&thumbnail_url);
-    ImageDetails::create(&mut context.pool(), &details_form).await?;
+    LocalImage::create(&mut context.pool(), &form, &details_form).await?;
 
     Ok(thumbnail_url)
   } else {

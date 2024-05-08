@@ -10,7 +10,10 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
-use lemmy_api_common::{context::LemmyContext, request::PictrsFileDetails};
+use lemmy_api_common::{
+  context::LemmyContext,
+  request::{PictrsFileDetails, PictrsResponse},
+};
 use lemmy_db_schema::source::{
   images::{LocalImage, LocalImageForm, RemoteImage},
   local_site::LocalSite,
@@ -19,7 +22,7 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{error::LemmyResult, rate_limit::RateLimitCell, REQWEST_TIMEOUT};
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::time::Duration;
 use url::Url;
 use urlencoding::decode;
@@ -40,18 +43,6 @@ pub fn config(
     .service(web::resource("/pictrs/image/{filename}").route(web::get().to(full_res)))
     .service(web::resource("/pictrs/image/details/original").route(web::get().to(details)))
     .service(web::resource("/pictrs/image/delete/{token}/{filename}").route(web::get().to(delete)));
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Image {
-  file: String,
-  delete_token: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Images {
-  msg: String,
-  files: Option<Vec<Image>>,
 }
 
 #[derive(Deserialize)]
@@ -114,15 +105,21 @@ async fn upload(
     .await?;
 
   let status = res.status();
-  let images = res.json::<Images>().await?;
+  let images = res.json::<PictrsResponse>().await?;
   if let Some(images) = &images.files {
-    for uploaded_image in images {
+    for image in images {
       let form = LocalImageForm {
         local_user_id: Some(local_user_view.local_user.id),
-        pictrs_alias: uploaded_image.file.to_string(),
-        pictrs_delete_token: uploaded_image.delete_token.to_string(),
+        pictrs_alias: image.file.to_string(),
+        pictrs_delete_token: image.delete_token.to_string(),
       };
-      LocalImage::create(&mut context.pool(), &form).await?;
+
+      let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+      let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
+
+      // Also store the details for the image
+      let details_form = image.details.build_image_details_form(&thumbnail_url);
+      LocalImage::create(&mut context.pool(), &form, &details_form).await?;
     }
   }
 

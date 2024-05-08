@@ -315,7 +315,6 @@ diesel::table! {
         width -> Int4,
         height -> Int4,
         content_type -> Text,
-        published -> Timestamptz,
     }
 }
 
