@@ -175,6 +175,7 @@ pub enum LemmyErrorType {
   InvalidBotAction,
   CantBlockLocalInstance,
   UrlWithoutDomain,
+  InboxTimeout,
   Unknown(String),
 }
 
