@@ -48,7 +48,6 @@ beforeAll(async () => {
   await setupLogins();
   betaCommunity = (await resolveBetaCommunity(alpha)).community;
   expect(betaCommunity).toBeDefined();
-  await unfollows();
 });
 
 afterAll(unfollows);
@@ -83,10 +82,7 @@ async function assertPostFederation(postOne: PostView, postTwo: PostView) {
 
 test("Create a post", async () => {
   // Setup some allowlists and blocklists
-  let editSiteForm: EditSite = {
-    allowed_instances: ["lemmy-beta"],
-  };
-  await delta.editSite(editSiteForm);
+  let editSiteForm: EditSite = {};
 
   editSiteForm.allowed_instances = [];
   editSiteForm.blocked_instances = ["lemmy-alpha"];

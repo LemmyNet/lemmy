@@ -36,7 +36,10 @@ const downloadFileSync = require("download-file-sync");
 
 beforeAll(setupLogins);
 
-afterAll(unfollows);
+afterAll(async () => {
+  await unfollows();
+  await deleteAllImages(alpha);
+});
 
 test("Upload image and delete it", async () => {
   // Before running this test, you need to delete all previous images in the DB
@@ -159,7 +162,6 @@ test("Purge post, linked image removed", async () => {
   expect(post.post_view.post.url).toBe(upload.url);
 
   // purge post
-
   const purgeForm: PurgePost = {
     post_id: post.post_view.post.id,
   };

@@ -182,6 +182,10 @@ export async function setupLogins() {
   ];
   await gamma.editSite(editSiteForm);
 
+  // Setup delta allowed instance
+  editSiteForm.allowed_instances = ["lemmy-beta"];
+  await delta.editSite(editSiteForm);
+
   // Create the main alpha/beta communities
   // Ignore thrown errors of duplicates
   try {
@@ -762,6 +766,7 @@ export async function unfollowRemotes(
   await Promise.all(
     remoteFollowed.map(cu => followCommunity(api, false, cu.community.id)),
   );
+
   let siteRes = await getSite(api);
   return siteRes;
 }
@@ -909,6 +914,25 @@ export async function unfollows() {
     unfollowRemotes(delta),
     unfollowRemotes(epsilon),
   ]);
+  await purgeAllPosts(alpha);
+  await purgeAllPosts(beta);
+  await purgeAllPosts(gamma);
+  await purgeAllPosts(delta);
+  await purgeAllPosts(epsilon);
+}
+
+export async function purgeAllPosts(api: LemmyHttp) {
+  // The best way to get all federated items, is to find the posts
+  let res = await api.getPosts({ type_: "All", limit: 50 });
+  await Promise.all(
+    res.posts
+      .map(p => p.post.id)
+      // Unique
+      .filter((v, i, a) => a.indexOf(v) == i)
+      .map(post_id => api.purgePost({ post_id }))
+      // Ignore errors
+      .map(p => p.catch(e => e)),
+  );
 }
 
 export function getCommentParentId(comment: Comment): number | undefined {

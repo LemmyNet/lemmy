@@ -21,6 +21,7 @@ import {
   fetchFunction,
   alphaImage,
   unfollows,
+  deleteAllImages,
 } from "./shared";
 import { LemmyHttp, SaveUserSettings, UploadImage } from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
