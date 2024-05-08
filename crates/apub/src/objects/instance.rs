@@ -100,7 +100,7 @@ impl Object for ApubSite {
       kind: ApplicationType::Application,
       id: self.id().into(),
       name: self.name.clone(),
-      preferred_username: data.domain().to_string(),
+      preferred_username: Some(data.domain().to_string()),
       content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
       source: self.sidebar.clone().map(Source::new),
       summary: self.description.clone(),
