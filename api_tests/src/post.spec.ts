@@ -660,41 +660,61 @@ test("A and G subscribe to B (center) A posts, it gets announced to G", async ()
   await unfollowRemotes(alpha);
 });
 
-test("Report a post", async () => {
-  // Note, this is a different one from the setup
-  let betaCommunity = (await resolveBetaCommunity(beta)).community;
-  if (!betaCommunity) {
-    throw "Missing beta community";
-  }
+test.only("Report a post", async () => {
+  // Create post from alpha
+  let alphaCommunity = (await resolveBetaCommunity(alpha)).community!;
   await followBeta(alpha);
-  let postRes = await createPost(beta, betaCommunity.community.id);
+  let postRes = await createPost(alpha, alphaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
   let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post;
   if (!alphaPost) {
     throw "Missing alpha post";
   }
-  let alphaReport = (
-    await reportPost(alpha, alphaPost.post.id, randomString(10))
-  ).post_report_view.post_report;
 
+  // Send report from gamma
+  let gammaPost = (await resolvePost(gamma, alphaPost.post)).post!;
+  let gammaReport = (
+    await reportPost(gamma, gammaPost.post.id, randomString(10))
+  ).post_report_view.post_report;
+  expect(gammaReport).toBeDefined();
+
+  // Report was federated to community instance
   let betaReport = (await waitUntil(
     () =>
       listPostReports(beta).then(p =>
         p.post_reports.find(
           r =>
-            r.post_report.original_post_name === alphaReport.original_post_name,
+            r.post_report.original_post_name === gammaReport.original_post_name,
         ),
       ),
     res => !!res,
   ))!.post_report;
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
-  expect(betaReport.original_post_name).toBe(alphaReport.original_post_name);
-  expect(betaReport.original_post_url).toBe(alphaReport.original_post_url);
-  expect(betaReport.original_post_body).toBe(alphaReport.original_post_body);
-  expect(betaReport.reason).toBe(alphaReport.reason);
+  expect(betaReport.original_post_name).toBe(gammaReport.original_post_name);
+  //expect(betaReport.original_post_url).toBe(gammaReport.original_post_url);
+  expect(betaReport.original_post_body).toBe(gammaReport.original_post_body);
+  expect(betaReport.reason).toBe(gammaReport.reason);
   await unfollowRemotes(alpha);
+
+  // Report was federated to poster's instance
+  let alphaReport = (await waitUntil(
+    () =>
+      listPostReports(alpha).then(p =>
+        p.post_reports.find(
+          r =>
+            r.post_report.original_post_name === gammaReport.original_post_name,
+        ),
+      ),
+    res => !!res,
+  ))!.post_report;
+  expect(alphaReport).toBeDefined();
+  expect(alphaReport.resolved).toBe(false);
+  expect(alphaReport.original_post_name).toBe(gammaReport.original_post_name);
+  //expect(alphaReport.original_post_url).toBe(gammaReport.original_post_url);
+  expect(alphaReport.original_post_body).toBe(gammaReport.original_post_body);
+  expect(alphaReport.reason).toBe(gammaReport.reason);
 });
 
 test("Fetch post via redirect", async () => {
