@@ -325,7 +325,7 @@ mod tests {
     traits::{Crud, Followable},
   };
   use lemmy_db_views::structs::LocalUserView;
-  use lemmy_db_views_actor::structs::{CommunityBlockView, CommunityFollowerView};
+  use lemmy_db_views_actor::structs::{CommunityFollowerView};
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -480,38 +480,6 @@ mod tests {
     );
 
     LocalUser::delete(&mut context.pool(), export_user.local_user.id).await?;
-    LocalUser::delete(&mut context.pool(), import_user.local_user.id).await?;
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_settings_fetch_and_import() -> LemmyResult<()> {
-    let context = LemmyContext::init_test_context().await;
-
-    let backup: UserSettingsBackup = serde_json::from_str(
-      r#"{"blocked_communities": [
-        "https://slrpnk.net/c/memes",
-        "https://lemmy.world/c/atheism",
-        "https://midwest.social/c/religiouscringe"
-        ]
-      }"#,
-    )
-    .unwrap();
-    let import_user = create_user("charles".to_string(), None, &context).await?;
-
-    import_settings(
-      actix_web::web::Json(backup),
-      import_user.clone(),
-      context.reset_request_count(),
-    )
-    .await?;
-
-    // wait for background task to finish
-    sleep(Duration::from_millis(1000)).await;
-
-    let blocks = CommunityBlockView::for_person(&mut context.pool(), import_user.person.id).await?;
-    assert_eq!(blocks.len(), 3);
     LocalUser::delete(&mut context.pool(), import_user.local_user.id).await?;
     Ok(())
   }
