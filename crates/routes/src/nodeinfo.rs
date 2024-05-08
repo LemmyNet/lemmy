@@ -43,11 +43,6 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
     .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
     .ok_or(ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?;
 
-  let protocols = if site_view.local_site.federation_enabled {
-    Some(vec!["activitypub".to_string()])
-  } else {
-    None
-  };
   // Since there are 3 registration options,
   // we need to set open_registrations as true if RegistrationMode is not Closed.
   let open_registrations = Some(site_view.local_site.registration_mode != RegistrationMode::Closed);
@@ -57,7 +52,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
       name: Some("lemmy".to_string()),
       version: Some(VERSION.to_string()),
     }),
-    protocols,
+    protocols: Some(vec!["activitypub".to_string()]),
     usage: Some(NodeInfoUsage {
       users: Some(NodeInfoUsers {
         total: Some(site_view.counts.users),
