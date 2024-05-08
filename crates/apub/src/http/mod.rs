@@ -31,6 +31,8 @@ mod post;
 pub mod routes;
 pub mod site;
 
+const INCOMING_ACTIVITY_TIMEOUT: Duration = Duration::from_secs(9);
+
 pub async fn shared_inbox(
   request: HttpRequest,
   body: Bytes,
@@ -42,7 +44,7 @@ pub async fn shared_inbox(
   // avoid taking a long time to process an incoming activity when a required data fetch times out.
   // In this case our own instance would timeout and be marked as dead by the sender. Better to
   // consider the activity broken and move on.
-  timeout(Duration::from_secs(9), receive_fut)
+  timeout(INCOMING_ACTIVITY_TIMEOUT, receive_fut)
     .await
     .map_err(|_| LemmyErrorType::InboxTimeout)?
 }
