@@ -178,7 +178,7 @@ diesel::table! {
         icon -> Nullable<Text>,
         banner -> Nullable<Text>,
         #[max_length = 255]
-        followers_url -> Varchar,
+        followers_url -> Nullable<Varchar>,
         #[max_length = 255]
         inbox_url -> Varchar,
         #[max_length = 255]

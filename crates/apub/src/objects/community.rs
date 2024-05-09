@@ -113,7 +113,7 @@ impl Object for ApubCommunity {
       featured: Some(generate_featured_url(&self.actor_id)?.into()),
       inbox: self.inbox_url.clone().into(),
       outbox: generate_outbox_url(&self.actor_id)?.into(),
-      followers: self.followers_url.clone().into(),
+      followers: self.followers_url.clone().map(Into::into),
       endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
         shared_inbox: s.into(),
       }),
@@ -164,7 +164,7 @@ impl Object for ApubCommunity {
       last_refreshed_at: Some(naive_now()),
       icon,
       banner,
-      followers_url: Some(group.followers.clone().into()),
+      followers_url: group.followers.clone().map(Into::into),
       inbox_url: Some(group.inbox.into()),
       shared_inbox_url: group.endpoints.map(|e| e.shared_inbox.into()),
       moderators_url: group.attributed_to.clone().map(Into::into),
@@ -187,11 +187,9 @@ impl Object for ApubCommunity {
     let context_ = context.reset_request_count();
     spawn_try_task(async move {
       group.outbox.dereference(&community_, &context_).await.ok();
-      group
-        .followers
-        .dereference(&community_, &context_)
-        .await
-        .ok();
+      if let Some(followers) = group.followers {
+        followers.dereference(&community_, &context_).await.ok();
+      }
       if let Some(featured) = group.featured {
         featured.dereference(&community_, &context_).await.ok();
       }
@@ -275,7 +273,9 @@ pub(crate) mod tests {
     // change these links so they dont fetch over the network
     json.attributed_to = None;
     json.outbox = CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_outbox")?;
-    json.followers = CollectionId::parse("https://enterprise.lemmy.ml/c/tenforward/not_followers")?;
+    json.followers = Some(CollectionId::parse(
+      "https://enterprise.lemmy.ml/c/tenforward/not_followers",
+    )?);
 
     let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward")?;
     ApubCommunity::verify(&json, &url, &context2).await?;

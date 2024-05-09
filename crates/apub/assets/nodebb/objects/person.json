@@ -1,0 +1,29 @@
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://community.nodebb.org/uid/2",
+  "url": "https://community.nodebb.org/user/julian",
+  "followers": "https://community.nodebb.org/uid/2/followers",
+  "following": "https://community.nodebb.org/uid/2/following",
+  "inbox": "https://community.nodebb.org/uid/2/inbox",
+  "outbox": "https://community.nodebb.org/uid/2/outbox",
+  "sharedInbox": "https://community.nodebb.org/inbox",
+  "type": "Person",
+  "name": "julian",
+  "preferredUsername": "julian",
+  "summary": "Hi! I'm Julian, one of the co-founders of NodeBB, the forum software you are using right now.\r\n\r\nI started this company with two colleagues, Baris and Andrew, in 2013, and have been doing the startup thing since (although I think at some point along the way we stopped being a startup and just became a boring ol' small business).\r\n\r\nIn my free time I rock climb, cycle, and lift weights. I live just outside Toronto, Canada, with my wife and three children.",
+  "icon": {
+    "type": "Image",
+    "mediaType": "image/jpeg",
+    "url": "https://community.nodebb.org/assets/uploads/profile/uid-2/2-profileavatar-1701457270279.jpeg"
+  },
+  "image": {
+    "type": "Image",
+    "mediaType": "image/jpeg",
+    "url": "https://community.nodebb.org/assets/uploads/profile/uid-2/2-profilecover-1649468285913.jpeg"
+  },
+  "publicKey": {
+    "id": "https://community.nodebb.org/uid/2#key",
+    "owner": "https://community.nodebb.org/uid/2",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzEr0sFdATahQzprS4EOT\nZq+KMc6UTbt2GDP20OrQi/P5AXAbMaQiRCRdGWhYGjnH0jicn5NnozNxRo+HchJT\nV6NOHxpsxqPCoaLeoBkhfhbSCLr2Gzil6mmfqf9TjnI7A7ZTtCc0G+n0ztyL9HwL\nkEAI178l2gckk4XKKYnEd+dyiIevExrq/ROLgwW1o428FZvlF5amKxhpVUEygRU8\nCd1hqWYs+xYDOJURCP5qEx/MmRPpV/yGMTMyF+/gcQc0TUZnhWAM2E4M+aq3aKh6\nJP/vsry+5YZPUaPWfopbT5Ijyt6ZSElp6Avkg56eTz0a5SRcjCVS6IFVPwiLlzOe\nYwIDAQAB\n-----END PUBLIC KEY-----\n"
+  }
+}

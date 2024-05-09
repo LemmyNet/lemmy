@@ -42,7 +42,7 @@ pub struct Page {
   pub(crate) kind: PageType,
   pub(crate) id: ObjectId<ApubPost>,
   pub(crate) attributed_to: AttributedTo,
-  #[serde(deserialize_with = "deserialize_one_or_many")]
+  #[serde(deserialize_with = "deserialize_one_or_many", default)]
   pub(crate) to: Vec<Url>,
   // If there is inReplyTo field this is actually a comment and must not be parsed
   #[serde(deserialize_with = "deserialize_not_present", default)]
@@ -233,6 +233,10 @@ impl ActivityHandler for Page {
 #[async_trait::async_trait]
 impl InCommunity for Page {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    if let Some(audience) = &self.audience {
+      return audience.dereference(context).await;
+    }
+
     let community = match &self.attributed_to {
       AttributedTo::Lemmy(_) => {
         let mut iter = self.to.iter().merge(self.cc.iter());
@@ -243,7 +247,7 @@ impl InCommunity for Page {
               break c;
             }
           } else {
-            Err(LemmyErrorType::NoCommunityFoundInCc)?
+            Err(LemmyErrorType::CouldntFindCommunity)?;
           }
         }
       }
@@ -251,11 +255,12 @@ impl InCommunity for Page {
         p.iter()
           .find(|a| a.kind == PersonOrGroupType::Group)
           .map(|a| ObjectId::<ApubCommunity>::from(a.id.clone().into_inner()))
-          .ok_or(LemmyErrorType::PageDoesNotSpecifyGroup)?
+          .ok_or(LemmyErrorType::CouldntFindCommunity)?
           .dereference(context)
           .await?
       }
     };
+
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

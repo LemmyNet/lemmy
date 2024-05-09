@@ -19,7 +19,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::public,
-  protocol::verification::verify_domains_match,
+  protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::{
@@ -133,6 +133,7 @@ impl ActivityHandler for CreateOrUpdateNote {
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     check_community_deleted_or_removed(&community)?;
     check_post_deleted_or_removed(&post)?;
+    verify_urls_match(self.actor.inner(), self.object.attributed_to.inner())?;
 
     ApubComment::verify(&self.object, self.actor.inner(), context).await?;
     Ok(())

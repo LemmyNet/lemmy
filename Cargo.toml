@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.19.4-beta.5"
+version = "0.19.4-beta.6"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -88,25 +88,25 @@ unused_self = "deny"
 unwrap_used = "deny"
 
 [workspace.dependencies]
-lemmy_api = { version = "=0.19.4-beta.5", path = "./crates/api" }
-lemmy_api_crud = { version = "=0.19.4-beta.5", path = "./crates/api_crud" }
-lemmy_apub = { version = "=0.19.4-beta.5", path = "./crates/apub" }
-lemmy_utils = { version = "=0.19.4-beta.5", path = "./crates/utils", default-features = false }
-lemmy_db_schema = { version = "=0.19.4-beta.5", path = "./crates/db_schema" }
-lemmy_api_common = { version = "=0.19.4-beta.5", path = "./crates/api_common" }
-lemmy_routes = { version = "=0.19.4-beta.5", path = "./crates/routes" }
-lemmy_db_views = { version = "=0.19.4-beta.5", path = "./crates/db_views" }
-lemmy_db_views_actor = { version = "=0.19.4-beta.5", path = "./crates/db_views_actor" }
-lemmy_db_views_moderator = { version = "=0.19.4-beta.5", path = "./crates/db_views_moderator" }
-lemmy_federate = { version = "=0.19.4-beta.5", path = "./crates/federate" }
-activitypub_federation = { version = "0.5.4", default-features = false, features = [
+lemmy_api = { version = "=0.19.4-beta.6", path = "./crates/api" }
+lemmy_api_crud = { version = "=0.19.4-beta.6", path = "./crates/api_crud" }
+lemmy_apub = { version = "=0.19.4-beta.6", path = "./crates/apub" }
+lemmy_utils = { version = "=0.19.4-beta.6", path = "./crates/utils", default-features = false }
+lemmy_db_schema = { version = "=0.19.4-beta.6", path = "./crates/db_schema" }
+lemmy_api_common = { version = "=0.19.4-beta.6", path = "./crates/api_common" }
+lemmy_routes = { version = "=0.19.4-beta.6", path = "./crates/routes" }
+lemmy_db_views = { version = "=0.19.4-beta.6", path = "./crates/db_views" }
+lemmy_db_views_actor = { version = "=0.19.4-beta.6", path = "./crates/db_views_actor" }
+lemmy_db_views_moderator = { version = "=0.19.4-beta.6", path = "./crates/db_views_moderator" }
+lemmy_federate = { version = "=0.19.4-beta.6", path = "./crates/federate" }
+activitypub_federation = { version = "0.5.6", default-features = false, features = [
   "actix-web",
 ] }
 diesel = "2.1.6"
 diesel_migrations = "2.1.0"
 diesel-async = "0.4.1"
-serde = { version = "1.0.198", features = ["derive"] }
-serde_with = "3.7.0"
+serde = { version = "1.0.199", features = ["derive"] }
+serde_with = "3.8.1"
 actix-web = { version = "4.5.1", default-features = false, features = [
   "macros",
   "rustls",
@@ -129,7 +129,7 @@ doku = { version = "0.21.1", features = ["url-2"] }
 bcrypt = "0.15.1"
 chrono = { version = "0.4.38", features = ["serde"], default-features = false }
 serde_json = { version = "1.0.116", features = ["preserve_order"] }
-base64 = "0.22.0"
+base64 = "0.22.1"
 uuid = { version = "1.8.0", features = ["serde", "v4"] }
 async-trait = "0.1.80"
 captcha = "0.0.9"
@@ -157,10 +157,10 @@ ts-rs = { version = "7.1.1", features = [
   "chrono-impl",
   "no-serde-warnings",
 ] }
-rustls = { version = "0.21.11", features = ["dangerous_configuration"] }
+rustls = { version = "0.23.5", features = ["ring"] }
 futures-util = "0.3.30"
 tokio-postgres = "0.7.10"
-tokio-postgres-rustls = "0.10.0"
+tokio-postgres-rustls = "0.12.0"
 urlencoding = "2.1.3"
 enum-map = "2.7"
 moka = { version = "0.12.7", features = ["future"] }
