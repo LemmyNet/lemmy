@@ -12,11 +12,12 @@ use crate::{
   utils::{get_conn, DbPool},
 };
 use diesel::{
+  dsl::exists,
   insert_into,
   result::Error,
+  select,
   ExpressionMethods,
   NotFound,
-  OptionalExtension,
   QueryDsl,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
