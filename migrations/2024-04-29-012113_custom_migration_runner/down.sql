@@ -1,1 +1,2 @@
-drop table previously_run_sql;
+DROP TABLE previously_run_sql;
+
