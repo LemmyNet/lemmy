@@ -1,4 +1,4 @@
-use crate::{schema::previously_run_sql};
+use crate::schema::previously_run_sql;
 use anyhow::Context;
 use diesel::{
   connection::SimpleConnection,
@@ -6,9 +6,10 @@ use diesel::{
   update,
   Connection,
   ExpressionMethods,
+  NullableExpressionMethods,
   PgConnection,
   QueryDsl,
-  RunQueryDsl,NullableExpressionMethods
+  RunQueryDsl,
 };
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness};
 use lemmy_utils::error::LemmyError;
@@ -64,8 +65,8 @@ pub fn run(db_url: &str) -> Result<(), LemmyError> {
     if sql_unchanged {
       debug_assert_eq!(
         unfiltered_pending_migrations
-        .get(0)
-        .map(|m| m.name().version()),
+          .get(0)
+          .map(|m| m.name().version()),
         Some(FORBID_DIESEL_CLI_MIGRATION_VERSION.into())
       );
       return Ok(());
@@ -116,24 +117,22 @@ pub fn run(db_url: &str) -> Result<(), LemmyError> {
       let name = migration.name();
       // TODO measure time on database
       let start_time = Instant::now();
-      conn.run_migration(migration)
-      .map_err(|e| anyhow::anyhow!("Couldn't run migration {name}: {e}"))?;
-    let duration = start_time.elapsed().as_millis();
+      conn.run_migration(migration).map_err(|e| anyhow::anyhow!("Couldn't run migration {name}: {e}"))?;
+      let duration = start_time.elapsed().as_millis();
       info!("{duration}ms {name}");
     }
 
     // Run replaceable_schema
-    conn.batch_execute(&new_sql)
-    .context("Couldn't run SQL files in crates/db_schema/replaceable_schema")?;
+    conn.batch_execute(&new_sql).context("Couldn't run SQL files in crates/db_schema/replaceable_schema")?;
 
-  let num_rows_updated = update(previously_run_sql::table)
-    .set(previously_run_sql::content.eq(new_sql))
-    .execute(conn)?;
+    let num_rows_updated = update(previously_run_sql::table)
+      .set(previously_run_sql::content.eq(new_sql))
+      .execute(conn)?;
 
-  debug_assert_eq!(num_rows_updated, 1);
+    debug_assert_eq!(num_rows_updated, 1);
 
-  Ok(())
-})?;
+    Ok(())
+  })?;
   info!("Database migrations complete.");
 
   Ok(())
