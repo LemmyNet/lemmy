@@ -23,7 +23,7 @@ use actix_web::{
   HttpServer,
 };
 use actix_web_prom::PrometheusMetricsBuilder;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
@@ -70,6 +70,7 @@ use url::Url;
   about = "A link aggregator for the fediverse",
   long_about = "A link aggregator for the fediverse.\n\nThis is the Lemmy backend API server. This will connect to a PostgreSQL database, run any pending migrations and start accepting API requests."
 )]
+#[command(args_conflicts_with_subcommands = true)]
 pub struct CmdArgs {
   /// Don't run scheduled tasks.
   ///
@@ -103,12 +104,39 @@ pub struct CmdArgs {
   /// If set, make sure to set --federate-process-index differently for each.
   #[arg(long, default_value_t = 1)]
   federate_process_count: i32,
+  #[command(subcommand)]
+  subcommand: Option<CmdSubcommand>,
+}
+
+#[derive(Subcommand, Debug)]
+enum CmdSubcommand {
+  /// Do something with migrations, then exit.
+  Migration {
+    #[command(subcommand)]
+    subcommand: MigrationSubcommand,
+  },
+}
+
+#[derive(Subcommand, Debug)]
+enum MigrationSubcommand {
+  /// Run all pending migrations.
+  Run,
 }
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   // Print version number to log
   println!("Lemmy v{VERSION}");
+
+  if let Some(CmdSubcommand::Migration { subcommand }) = args.subcommand {
+    match subcommand {
+      MigrationSubcommand::Run => {}
+    }
+
+    lemmy_db_schema::schema_setup::run(&SETTINGS.get_database_url())?;
+
+    return Ok(());
+  }
 
   // return error 503 while running db migrations and startup tasks
   let mut startup_server_handle = None;
