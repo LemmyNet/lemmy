@@ -801,7 +801,8 @@ diesel::table! {
 }
 
 diesel::table! {
-    previously_run_sql (content) {
+    previously_run_sql (id) {
+        id -> Bool,
         content -> Text,
     }
 }
