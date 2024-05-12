@@ -19,7 +19,7 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use std::time::Instant;
 use tracing::info;
 
-const EMBEDDED_MIGRATIONS: EmbeddedMigrations = embed_migrations!();
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 /// This SQL code sets up the `r` schema, which contains things that can be safely dropped and replaced
 /// instead of being changed using migrations. It may not create or modify things outside of the `r` schema
@@ -30,34 +30,10 @@ const REPLACEABLE_SCHEMA: &[&str] = &[
   include_str!("../replaceable_schema/triggers.sql"),
 ];
 
-const REVERT_REPLACEABLE_SCHEMA: &str = "DROP SCHEMA IF EXISTS r CASCADE;";
-
-const LOCK_STATEMENT: &str = "LOCK __diesel_schema_migrations IN SHARE UPDATE EXCLUSIVE MODE;";
-
-struct Migrations;
-
-impl<DB: Backend> MigrationSource<DB> for Migrations {
-  fn migrations(&self) -> diesel::migration::Result<Vec<Box<dyn Migration<DB>>>> {
-    let mut migrations = EMBEDDED_MIGRATIONS.migrations()?;
-    let skipped_migration = if migrations.is_empty() {
-      None
-    } else {
-      Some(migrations.remove(0))
-    };
-
-    debug_assert_eq!(
-      skipped_migration.map(|m| m.name().to_string()),
-      Some("000000000000000_forbid_diesel_cli".to_string())
-    );
-
-    Ok(migrations)
-  }
-}
-
 fn get_pending_migrations(conn: &mut PgConnection) -> LemmyResult<Vec<Box<dyn Migration<Pg>>>> {
   Ok(
     conn
-      .pending_migrations(Migrations)
+      .pending_migrations(MIGRATIONS)
       .map_err(|e| anyhow::anyhow!("Couldn't determine pending migrations: {e}"))?,
   )
 }
@@ -97,14 +73,16 @@ pub fn run(db_url: &str) -> LemmyResult<()> {
     // lemmy_server processes from running this transaction concurrently. This lock does not block
     // `MigrationHarness::pending_migrations` (`SELECT`) or `MigrationHarness::run_migration` (`INSERT`).
     info!("Waiting for lock...");
-    conn.batch_execute(LOCK_STATEMENT)?;
+    conn.batch_execute("LOCK __diesel_schema_migrations IN SHARE UPDATE EXCLUSIVE MODE;")?;
     info!("Running Database migrations (This may take a long time)...");
 
     // Check pending migrations again after locking
     let pending_migrations = get_pending_migrations(conn)?;
 
-    // Run migrations, without stuff from replaceable_schema
-    conn.batch_execute(REVERT_REPLACEABLE_SCHEMA)?;
+    // Drop `r` schema and disable the trigger that prevents the Diesel CLI from running migrations
+    conn.batch_execute(
+      "DROP SCHEMA IF EXISTS r CASCADE; SET LOCAL lemmy.enable_migrations TO 'on';",
+    )?;
 
     for migration in &pending_migrations {
       let name = migration.name();

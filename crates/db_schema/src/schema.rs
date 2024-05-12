@@ -1099,6 +1099,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     post_read,
     post_report,
     post_saved,
+    previously_run_sql,
     private_message,
     private_message_report,
     received_activity,
