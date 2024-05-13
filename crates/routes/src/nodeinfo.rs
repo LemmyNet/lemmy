@@ -47,10 +47,12 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
   // we need to set open_registrations as true if RegistrationMode is not Closed.
   let open_registrations = Some(site_view.local_site.registration_mode != RegistrationMode::Closed);
   let json = NodeInfo {
-    version: Some("2.0".to_string()),
+    version: Some("2.1".to_string()),
     software: Some(NodeInfoSoftware {
       name: Some("lemmy".to_string()),
       version: Some(VERSION.to_string()),
+      repository: Some("https://github.com/LemmyNet/lemmy".to_string()),
+      homepage: Some("https://join-lemmy.org/".to_string()),
     }),
     protocols: Some(vec!["activitypub".to_string()]),
     usage: Some(NodeInfoUsage {
@@ -63,6 +65,11 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
       local_comments: Some(site_view.counts.comments),
     }),
     open_registrations,
+    services: Some(NodeInfoServices {
+      inbound: Some(vec![]),
+      outbound: Some(vec![]),
+    }),
+    metadata: Some(vec![]),
   };
 
   Ok(HttpResponse::Ok().json(json))
@@ -79,6 +86,7 @@ struct NodeInfoWellKnownLinks {
   pub href: Url,
 }
 
+/// Nodeinfo spec: http://nodeinfo.diaspora.software/docson/index.html#/ns/schema/2.1
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase", default)]
 pub struct NodeInfo {
@@ -87,6 +95,9 @@ pub struct NodeInfo {
   pub protocols: Option<Vec<String>>,
   pub usage: Option<NodeInfoUsage>,
   pub open_registrations: Option<bool>,
+  /// These fields are required by the spec for no reason
+  pub services: Option<NodeInfoServices>,
+  pub metadata: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -94,6 +105,8 @@ pub struct NodeInfo {
 pub struct NodeInfoSoftware {
   pub name: Option<String>,
   pub version: Option<String>,
+  pub repository: Option<String>,
+  pub homepage: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -110,4 +123,11 @@ pub struct NodeInfoUsers {
   pub total: Option<i64>,
   pub active_halfyear: Option<i64>,
   pub active_month: Option<i64>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct NodeInfoServices {
+  pub inbound: Option<Vec<String>>,
+  pub outbound: Option<Vec<String>>,
 }
