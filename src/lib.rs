@@ -40,7 +40,7 @@ use lemmy_apub::{
   VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
 };
-use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
+use lemmy_db_schema::{schema_setup, source::secret::Secret, utils::build_db_pool};
 use lemmy_federate::{start_stop_federation_workers_cancellable, Opts};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{
@@ -129,11 +129,13 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   println!("Lemmy v{VERSION}");
 
   if let Some(CmdSubcommand::Migration { subcommand }) = args.subcommand {
+    let mut options = schema_setup::Options::default();
+
     match subcommand {
       MigrationSubcommand::Run => {}
     }
 
-    lemmy_db_schema::schema_setup::run(&SETTINGS.get_database_url())?;
+    schema_setup::run(&SETTINGS.get_database_url(), &options)?;
 
     return Ok(());
   }

@@ -38,8 +38,14 @@ fn get_pending_migrations(conn: &mut PgConnection) -> LemmyResult<Vec<Box<dyn Mi
   )
 }
 
-pub fn run(db_url: &str) -> LemmyResult<()> {
-  // Migrations don't support async connection
+#[derive(Default)]
+pub struct Options {
+  /// Only for testing
+  disable_migrations: bool,
+}
+
+pub fn run(db_url: &str, options: &Options) -> LemmyResult<()> {
+  // Migrations don't support async connection, and this function doesn't need to be async
   let mut conn = PgConnection::establish(db_url).with_context(|| "Error connecting to database")?;
 
   let test_enabled = std::env::var("LEMMY_TEST_MIGRATIONS")
@@ -80,9 +86,14 @@ pub fn run(db_url: &str) -> LemmyResult<()> {
     let pending_migrations = get_pending_migrations(conn)?;
 
     // Drop `r` schema and disable the trigger that prevents the Diesel CLI from running migrations
-    conn.batch_execute(
-      "DROP SCHEMA IF EXISTS r CASCADE; SET LOCAL lemmy.enable_migrations TO 'on';",
-    )?;
+    let enable_migrations = if options.disable_migrations {
+      ""
+    } else {
+      "SET LOCAL lemmy.enable_migrations TO 'on';"
+    };
+    conn.batch_execute(&format!(
+      "DROP SCHEMA IF EXISTS r CASCADE;{enable_migrations}"
+    ))?;
 
     for migration in &pending_migrations {
       let name = migration.name();
@@ -111,4 +122,21 @@ pub fn run(db_url: &str) -> LemmyResult<()> {
   info!("Database migrations complete.");
 
   Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+  use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
+
+  #[test]
+  fn test_schema_setup() -> LemmyResult<()> {
+    let mut options = super::Options::default();
+    let db_url = SETTINGS.get_database_url();
+
+    // Test the forbid_diesel_cli trigger
+    options.disable_migrations = true;
+    super::run(&db_url, &options).expect_err("forbid_diesel_cli trigger should throw error");
+
+    Ok(())
+  }
 }

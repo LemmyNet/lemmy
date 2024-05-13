@@ -427,7 +427,7 @@ pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  crate::schema_setup::run(&db_url)?;
+  crate::schema_setup::run(&db_url, &Default::default())?;
 
   Ok(pool)
 }
