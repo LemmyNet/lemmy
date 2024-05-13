@@ -19,7 +19,6 @@ use lemmy_db_schema::{
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
   settings::structs::{PictrsImageMode, Settings},
-  spawn_try_task,
   REQWEST_TIMEOUT,
   VERSION,
 };
@@ -138,19 +137,6 @@ pub async fn generate_post_link_metadata(
     ActivityChannel::submit_activity(send_activity, &context).await?;
   }
   Ok(())
-}
-
-/// Generates a post thumbnail in background task, because some sites can be very slow to respond.
-pub fn generate_post_link_metadata_background(
-  post: Post,
-  custom_thumbnail: Option<Url>,
-  send_activity: impl FnOnce(Post) -> Option<SendActivityData> + Send + 'static,
-  local_site: Option<LocalSite>,
-  context: Data<LemmyContext>,
-) {
-  spawn_try_task(async move {
-    generate_post_link_metadata(post, custom_thumbnail, send_activity, local_site, context).await
-  })
 }
 
 /// Extract site metadata from HTML Opengraph attributes.

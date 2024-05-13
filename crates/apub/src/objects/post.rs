@@ -24,7 +24,7 @@ use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
-  request::generate_post_link_metadata_background,
+  request::generate_post_link_metadata,
   utils::{get_url_blocklist, local_site_opt_to_slur_regex, process_markdown_opt},
 };
 use lemmy_db_schema::{
@@ -41,6 +41,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
+  spawn_try_task,
   utils::{markdown::markdown_to_html, slurs::check_slurs_opt, validation::check_url_scheme},
 };
 use std::ops::Deref;
@@ -270,14 +271,13 @@ impl Object for ApubPost {
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(naive_now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
+    let post_ = post.clone();
+    let context_ = context.reset_request_count();
 
-    generate_post_link_metadata_background(
-      post.clone(),
-      None,
-      |_| None,
-      local_site,
-      context.reset_request_count(),
-    );
+    // Generates a post thumbnail in background task, because some sites can be very slow to respond.
+    spawn_try_task(async move {
+      generate_post_link_metadata(post_, None, |_| None, local_site, context_).await
+    });
 
     // write mod log entry for lock
     if Page::is_locked_changed(&old_post, &page.comments_enabled) {
