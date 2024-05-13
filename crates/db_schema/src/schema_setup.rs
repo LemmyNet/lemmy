@@ -41,7 +41,7 @@ fn get_pending_migrations(conn: &mut PgConnection) -> LemmyResult<Vec<Box<dyn Mi
 #[derive(Default)]
 pub struct Options {
   /// Only for testing
-  disable_migrations: bool,
+  enable_forbid_diesel_cli_trigger: bool,
 }
 
 pub fn run(db_url: &str, options: &Options) -> LemmyResult<()> {
@@ -86,7 +86,7 @@ pub fn run(db_url: &str, options: &Options) -> LemmyResult<()> {
     let pending_migrations = get_pending_migrations(conn)?;
 
     // Drop `r` schema and disable the trigger that prevents the Diesel CLI from running migrations
-    let enable_migrations = if options.disable_migrations {
+    let enable_migrations = if options.enable_forbid_diesel_cli_trigger {
       ""
     } else {
       "SET LOCAL lemmy.enable_migrations TO 'on';"
@@ -134,7 +134,7 @@ mod tests {
     let db_url = SETTINGS.get_database_url();
 
     // Test the forbid_diesel_cli trigger
-    options.disable_migrations = true;
+    options.enable_forbid_diesel_cli_trigger = true;
     super::run(&db_url, &options).expect_err("forbid_diesel_cli trigger should throw error");
 
     Ok(())
