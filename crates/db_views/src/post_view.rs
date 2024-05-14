@@ -950,9 +950,8 @@ mod tests {
       show_bot_accounts: Some(false),
       ..Default::default()
     };
-    let inserted_local_user =
-      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
-    data.local_user_view.local_user = inserted_local_user;
+    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
+    data.local_user_view.local_user.show_bot_accounts = false;
 
     let read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
@@ -986,9 +985,8 @@ mod tests {
       show_bot_accounts: Some(true),
       ..Default::default()
     };
-    let inserted_local_user =
-      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
-    data.local_user_view.local_user = inserted_local_user;
+    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
+    data.local_user_view.local_user.show_bot_accounts = true;
 
     let post_listings_with_bots = PostQuery {
       community_id: Some(data.inserted_community.id),
@@ -1110,9 +1108,8 @@ mod tests {
       show_bot_accounts: Some(false),
       ..Default::default()
     };
-    let inserted_local_user =
-      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
-    data.local_user_view.local_user = inserted_local_user;
+    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
+    data.local_user_view.local_user.show_bot_accounts = false;
 
     let read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
@@ -1533,9 +1530,8 @@ mod tests {
       show_read_posts: Some(false),
       ..Default::default()
     };
-    let inserted_local_user =
-      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
-    data.local_user_view.local_user = inserted_local_user;
+    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
+    data.local_user_view.local_user.show_read_posts = false;
 
     // Mark a post as read
     PostRead::mark_as_read(
