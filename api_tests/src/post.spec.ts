@@ -660,7 +660,7 @@ test("A and G subscribe to B (center) A posts, it gets announced to G", async ()
   await unfollowRemotes(alpha);
 });
 
-test.only("Report a post", async () => {
+test("Report a post", async () => {
   // Create post from alpha
   let alphaCommunity = (await resolveBetaCommunity(alpha)).community!;
   await followBeta(alpha);
