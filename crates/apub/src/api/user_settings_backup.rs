@@ -137,8 +137,7 @@ pub async fn import_settings(
     local_user_view.local_user.id,
     &local_user_form,
   )
-  .await
-  .ok();
+  .await?;
 
   // Update the vote display mode settings
   let vote_display_mode_form = LocalUserVoteDisplayModeUpdateForm {
