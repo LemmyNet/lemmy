@@ -36,7 +36,6 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     local_site::LocalSite,
-    moderator::{ModLockPost, ModLockPostForm},
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
   },
@@ -147,7 +146,6 @@ impl Object for ApubPost {
       source: self.body.clone().map(Source::new),
       attachment,
       image: self.thumbnail_url.clone().map(ImageObject::new),
-      comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
       language,
       published: Some(self.published),
@@ -165,12 +163,8 @@ impl Object for ApubPost {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
-    // We can't verify the domain in case of mod action, because the mod may be on a different
-    // instance from the post author.
-    if !page.is_mod_action(context).await? {
-      verify_domains_match(page.id.inner(), expected_domain)?;
-      verify_is_remote_object(&page.id, context)?;
-    };
+    verify_domains_match(page.id.inner(), expected_domain)?;
+    verify_is_remote_object(&page.id, context)?;
 
     let community = page.community(context).await?;
     check_apub_id_valid_with_strictness(page.id.inner(), community.local, context).await?;
@@ -218,62 +212,47 @@ impl Object for ApubPost {
       name = name.chars().take(MAX_TITLE_LENGTH).collect();
     }
 
-    // read existing, local post if any (for generating mod log)
-    let old_post = page.id.dereference_local(context).await;
-
     let first_attachment = page.attachment.first();
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
 
-    let form = if !page.is_mod_action(context).await? {
-      let url = if let Some(attachment) = first_attachment.cloned() {
-        Some(attachment.url())
-      } else if page.kind == PageType::Video {
-        // we cant display videos directly, so insert a link to external video page
-        Some(page.id.inner().clone())
-      } else {
-        None
-      };
-      check_url_scheme(&url)?;
-
-      let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
-
-      let url = proxy_image_link_opt_apub(url, context).await?;
-
-      let slur_regex = &local_site_opt_to_slur_regex(&local_site);
-      let url_blocklist = get_url_blocklist(context).await?;
-
-      let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
-      let body = process_markdown_opt(&body, slur_regex, &url_blocklist, context).await?;
-      let language_id =
-        LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
-
-      PostInsertForm::builder()
-        .name(name)
-        .url(url.map(Into::into))
-        .body(body)
-        .alt_text(alt_text)
-        .creator_id(creator.id)
-        .community_id(community.id)
-        .locked(page.comments_enabled.map(|e| !e))
-        .published(page.published.map(Into::into))
-        .updated(page.updated.map(Into::into))
-        .deleted(Some(false))
-        .nsfw(page.sensitive)
-        .ap_id(Some(page.id.clone().into()))
-        .local(Some(false))
-        .language_id(language_id)
-        .build()
+    let url = if let Some(attachment) = first_attachment.cloned() {
+      Some(attachment.url())
+    } else if page.kind == PageType::Video {
+      // we cant display videos directly, so insert a link to external video page
+      Some(page.id.inner().clone())
     } else {
-      // if is mod action, only update locked/stickied fields, nothing else
-      PostInsertForm::builder()
-        .name(name)
-        .creator_id(creator.id)
-        .community_id(community.id)
-        .ap_id(Some(page.id.clone().into()))
-        .locked(page.comments_enabled.map(|e| !e))
-        .updated(page.updated.map(Into::into))
-        .build()
+      None
     };
+    check_url_scheme(&url)?;
+
+    let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
+
+    let url = proxy_image_link_opt_apub(url, context).await?;
+
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+    let url_blocklist = get_url_blocklist(context).await?;
+
+    let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
+    let body = process_markdown_opt(&body, slur_regex, &url_blocklist, context).await?;
+    let language_id =
+      LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
+
+    let form = PostInsertForm::builder()
+      .name(name)
+      .url(url.map(Into::into))
+      .body(body)
+      .alt_text(alt_text)
+      .creator_id(creator.id)
+      .community_id(community.id)
+      //.locked(page.comments_enabled.map(|e| !e))
+      .published(page.published.map(Into::into))
+      .updated(page.updated.map(Into::into))
+      .deleted(Some(false))
+      .nsfw(page.sensitive)
+      .ap_id(Some(page.id.clone().into()))
+      .local(Some(false))
+      .language_id(language_id)
+      .build();
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(naive_now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
@@ -286,16 +265,6 @@ impl Object for ApubPost {
       local_site,
       context.reset_request_count(),
     );
-
-    // write mod log entry for lock
-    if Page::is_locked_changed(&old_post, &page.comments_enabled) {
-      let form = ModLockPostForm {
-        mod_person_id: creator.id,
-        post_id: post.id,
-        locked: Some(post.locked),
-      };
-      ModLockPost::create(&mut context.pool(), &form).await?;
-    }
 
     Ok(post.into())
   }
