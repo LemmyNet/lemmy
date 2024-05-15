@@ -99,8 +99,6 @@ pub enum LemmyErrorType {
   PersonIsBannedFromSite(String),
   InvalidVoteValue,
   PageDoesNotSpecifyCreator,
-  PageDoesNotSpecifyGroup,
-  NoCommunityFoundInCc,
   NoEmailSetup,
   LocalSiteNotSetup,
   EmailSmtpServerNeedsAPort,
@@ -178,6 +176,7 @@ pub enum LemmyErrorType {
   CantBlockLocalInstance,
   UrlWithoutDomain,
   PluginError(String),
+  InboxTimeout,
   Unknown(String),
 }
 

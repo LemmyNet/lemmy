@@ -77,7 +77,6 @@ where
       }
       let mut res = svc.call(service_req).await?;
 
-      // TODO: add after hook
       let after_plugin_hook = format!("api_after_{method}_{path}").to_lowercase();
       info!("Calling plugin hook {}", &after_plugin_hook);
       if let Some(mut plugins) = load_plugins()? {

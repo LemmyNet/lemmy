@@ -1,0 +1,24 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "Hashtag": "as:Hashtag"
+    }
+  ],
+  "id": "https://pfefferle.org?c=148",
+  "type": "Note",
+  "attributedTo": "https://pfefferle.org/author/pfefferle/",
+  "content": "<p>Nice! Hello from WordPress!</p>",
+  "contentMap": {
+    "en": "<p>Nice! Hello from WordPress!</p>"
+  },
+  "inReplyTo": "https://socialhub.activitypub.rocks/ap/object/ce040f1ead95964f6dbbf1084b81432d",
+  "published": "2024-04-30T15:21:13Z",
+  "tag": [],
+  "url": "https://pfefferle.org?c=148",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public",
+    "https://pfefferle.org/wp-json/activitypub/1.0/users/0/followers"
+  ],
+  "cc": []
+}
