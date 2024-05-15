@@ -60,7 +60,6 @@ pub struct Page {
   #[serde(default)]
   pub(crate) attachment: Vec<Attachment>,
   pub(crate) image: Option<ImageObject>,
-  pub(crate) comments_enabled: Option<bool>,
   pub(crate) sensitive: Option<bool>,
   pub(crate) published: Option<DateTime<Utc>>,
   pub(crate) updated: Option<DateTime<Utc>>,
@@ -156,28 +155,6 @@ pub enum HashtagType {
 }
 
 impl Page {
-  /// Only mods can change the post's locked status. So if it is changed from the default value,
-  /// it is a mod action and needs to be verified as such.
-  ///
-  /// Locked needs to be false on a newly created post (verified in [[CreatePost]].
-  pub(crate) async fn is_mod_action(&self, context: &Data<LemmyContext>) -> LemmyResult<bool> {
-    let old_post = self.id.clone().dereference_local(context).await;
-    Ok(Page::is_locked_changed(&old_post, &self.comments_enabled))
-  }
-
-  pub(crate) fn is_locked_changed<E>(
-    old_post: &Result<ApubPost, E>,
-    new_comments_enabled: &Option<bool>,
-  ) -> bool {
-    if let Some(new_comments_enabled) = new_comments_enabled {
-      if let Ok(old_post) = old_post {
-        return new_comments_enabled != &!old_post.locked;
-      }
-    }
-
-    false
-  }
-
   pub(crate) fn creator(&self) -> LemmyResult<ObjectId<ApubPerson>> {
     match &self.attributed_to {
       AttributedTo::Lemmy(l) => Ok(l.clone()),
