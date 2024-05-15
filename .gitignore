@@ -36,4 +36,4 @@ dev_pgdata/
 *.sqldump
 
 # compiled example plugin
-plugins/plugin.wasm
+plugins/*.wasm
