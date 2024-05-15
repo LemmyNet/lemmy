@@ -160,10 +160,10 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     rate_limit_cell.clone(),
   );
 
-  if !args.disable_scheduled_tasks {
+  let scheduled_tasks = (!args.disable_scheduled_tasks).then(|| {
     // Schedules various cleanup tasks for the DB
-    let _scheduled_tasks = tokio::task::spawn(scheduled_tasks::setup(context.clone()));
-  }
+    tokio::task::spawn(scheduled_tasks::setup(context.clone()))
+  });
 
   if let Some(prometheus) = SETTINGS.prometheus.clone() {
     serve_prometheus(prometheus, context.clone())?;
@@ -218,7 +218,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;
   let mut terminate = tokio::signal::unix::signal(SignalKind::terminate())?;
 
-  if server.is_some() || federate.is_some() {
+  if server.is_some() || federate.is_some() || scheduled_tasks.is_some() {
     tokio::select! {
       _ = tokio::signal::ctrl_c() => {
         tracing::warn!("Received ctrl-c, shutting down gracefully...");
