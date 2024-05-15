@@ -11,7 +11,7 @@ use encoding_rs::{Encoding, UTF_8};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
-    images::{ImageDetailsForm, LocalImage, LocalImageForm},
+    images::{LocalImage, LocalImageForm},
     local_site::LocalSite,
     post::{Post, PostUpdateForm},
   },
@@ -220,19 +220,6 @@ pub struct PictrsFileDetails {
   pub created_at: DateTime<Utc>,
 }
 
-impl PictrsFileDetails {
-  /// Builds the image form. This should always use the thumbnail_url,
-  /// Because the post_view joins to it
-  pub fn build_image_details_form(&self, thumbnail_url: &Url) -> ImageDetailsForm {
-    ImageDetailsForm {
-      link: thumbnail_url.clone().into(),
-      width: self.width.into(),
-      height: self.height.into(),
-      content_type: self.content_type.clone(),
-    }
-  }
-}
-
 #[derive(Deserialize, Serialize, Debug)]
 struct PictrsPurgeResponse {
   msg: String,
@@ -335,54 +322,12 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
     let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
 
-    // Also store the details for the image
-    let details_form = image.details.build_image_details_form(&thumbnail_url);
-    LocalImage::create(&mut context.pool(), &form, &details_form).await?;
+    LocalImage::create(&mut context.pool(), &form).await?;
 
     Ok(thumbnail_url)
   } else {
     Err(LemmyErrorType::PictrsResponseError(res.msg))?
   }
-}
-
-/// Fetches the image details for pictrs proxied images
-///
-/// We don't need to check for image mode, as that's already been done
-#[tracing::instrument(skip_all)]
-pub async fn fetch_pictrs_proxied_image_details(
-  image_url: &Url,
-  context: &LemmyContext,
-) -> LemmyResult<PictrsFileDetails> {
-  let pictrs_config = context.settings().pictrs_config()?;
-
-  // Pictrs needs you to fetch the proxied image before you can fetch the details
-  let proxy_url = format!(
-    "{}image/original?proxy={}",
-    context.settings().pictrs_config()?.url,
-    encode(image_url.as_str())
-  );
-
-  let res = context.client().get(&proxy_url).send().await?.status();
-  if !res.is_success() {
-    Err(LemmyErrorType::NotAnImageType)?
-  }
-
-  let details_url = format!(
-    "{}image/details/original?proxy={}",
-    pictrs_config.url,
-    encode(image_url.as_str())
-  );
-
-  let res = context
-    .client()
-    .get(&details_url)
-    .timeout(REQWEST_TIMEOUT)
-    .send()
-    .await?
-    .json()
-    .await?;
-
-  Ok(res)
 }
 
 // TODO: get rid of this by reading content type from db

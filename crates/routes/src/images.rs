@@ -103,13 +103,7 @@ async fn upload(
         pictrs_alias: image.file.to_string(),
         pictrs_delete_token: image.delete_token.to_string(),
       };
-
-      let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-      let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
-
-      // Also store the details for the image
-      let details_form = image.details.build_image_details_form(&thumbnail_url);
-      LocalImage::create(&mut context.pool(), &form, &details_form).await?;
+      LocalImage::create(&mut context.pool(), &form).await?;
     }
   }
 

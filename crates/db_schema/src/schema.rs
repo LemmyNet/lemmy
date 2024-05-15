@@ -310,15 +310,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    image_details (link) {
-        link -> Text,
-        width -> Int4,
-        height -> Int4,
-        content_type -> Text,
-    }
-}
-
-diesel::table! {
     instance (id) {
         id -> Int4,
         #[max_length = 255]
@@ -858,7 +849,8 @@ diesel::table! {
 }
 
 diesel::table! {
-    remote_image (link) {
+    remote_image (id) {
+        id -> Int4,
         link -> Text,
         published -> Timestamptz,
     }
@@ -1063,7 +1055,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     federation_allowlist,
     federation_blocklist,
     federation_queue_state,
-    image_details,
     instance,
     instance_block,
     language,

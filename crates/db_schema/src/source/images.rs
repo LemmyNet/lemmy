@@ -1,6 +1,6 @@
 use crate::newtypes::{DbUrl, LocalUserId};
 #[cfg(feature = "full")]
-use crate::schema::{image_details, local_image, remote_image};
+use crate::schema::{local_image, remote_image};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -57,28 +57,4 @@ pub struct RemoteImage {
 #[cfg_attr(feature = "full", diesel(table_name = remote_image))]
 pub struct RemoteImageForm {
   pub link: DbUrl,
-}
-
-#[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-#[cfg_attr(feature = "full", diesel(table_name = image_details))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", diesel(primary_key(link)))]
-pub struct ImageDetails {
-  pub link: DbUrl,
-  pub width: i32,
-  pub height: i32,
-  pub content_type: String,
-}
-
-#[derive(Debug, Clone, TypedBuilder)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = image_details))]
-pub struct ImageDetailsForm {
-  pub link: DbUrl,
-  pub width: i32,
-  pub height: i32,
-  pub content_type: String,
 }
