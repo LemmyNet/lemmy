@@ -10,10 +10,7 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
-use lemmy_api_common::{
-  context::LemmyContext,
-  request::{PictrsFileDetails, PictrsResponse},
-};
+use lemmy_api_common::{context::LemmyContext, request::PictrsResponse};
 use lemmy_db_schema::source::{
   images::{LocalImage, LocalImageForm, RemoteImage},
   local_site::LocalSite,
@@ -41,7 +38,6 @@ pub fn config(
     )
     // This has optional query params: /image/{filename}?format=jpg&thumbnail=256
     .service(web::resource("/pictrs/image/{filename}").route(web::get().to(full_res)))
-    .service(web::resource("/pictrs/image/details/original").route(web::get().to(details)))
     .service(web::resource("/pictrs/image/delete/{token}/{filename}").route(web::get().to(delete)));
 }
 
@@ -49,12 +45,6 @@ pub fn config(
 struct PictrsGetParams {
   format: Option<String>,
   thumbnail: Option<i32>,
-}
-
-#[derive(Deserialize)]
-struct PictrsDetailsParams {
-  alias: Option<String>,
-  proxy: Option<String>,
 }
 
 fn adapt_request(
@@ -221,29 +211,6 @@ async fn delete(
 #[derive(Deserialize)]
 pub struct ImageProxyParams {
   url: String,
-}
-
-async fn details(
-  web::Query(params): web::Query<PictrsDetailsParams>,
-  client: web::Data<ClientWithMiddleware>,
-  context: web::Data<LemmyContext>,
-) -> LemmyResult<HttpResponse> {
-  let pictrs_config = context.settings().pictrs_config()?;
-
-  let mut url = format!("{}image/details/original", pictrs_config.url);
-  if let Some(alias) = params.alias {
-    url = format!("{url}?alias={alias}");
-  };
-
-  if let Some(proxy) = params.proxy {
-    url = format!("{url}?proxy={proxy}");
-  };
-
-  let res = client.get(url).send().await?;
-  let status = res.status();
-  let json = res.json::<PictrsFileDetails>().await?;
-
-  Ok(HttpResponse::build(status).json(json))
 }
 
 pub async fn image_proxy(
