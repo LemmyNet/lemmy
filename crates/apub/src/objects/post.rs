@@ -244,7 +244,6 @@ impl Object for ApubPost {
       .alt_text(alt_text)
       .creator_id(creator.id)
       .community_id(community.id)
-      //.locked(page.comments_enabled.map(|e| !e))
       .published(page.published.map(Into::into))
       .updated(page.updated.map(Into::into))
       .deleted(Some(false))
