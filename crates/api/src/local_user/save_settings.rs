@@ -142,11 +142,7 @@ pub async fn save_user_settings(
     ..Default::default()
   };
 
-  // Ignore errors, because 'no fields updated' will return an error.
-  // https://github.com/LemmyNet/lemmy/issues/4076
-  LocalUser::update(&mut context.pool(), local_user_id, &local_user_form)
-    .await
-    .ok();
+  LocalUser::update(&mut context.pool(), local_user_id, &local_user_form).await?;
 
   // Update the vote display modes
   let vote_display_modes_form = LocalUserVoteDisplayModeUpdateForm {
