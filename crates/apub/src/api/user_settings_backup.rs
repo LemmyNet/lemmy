@@ -40,7 +40,7 @@ use tracing::info;
 ///
 /// Be careful with any changes to this struct, to avoid breaking changes which could prevent
 /// importing older backups.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct UserSettingsBackup {
   pub display_name: Option<String>,
   pub bio: Option<String>,
@@ -322,7 +322,7 @@ pub async fn import_settings(
 #[allow(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::api::user_settings_backup::{export_settings, import_settings};
+  use crate::api::user_settings_backup::{export_settings, import_settings, UserSettingsBackup};
   use activitypub_federation::config::Data;
   use lemmy_api_common::context::LemmyContext;
   use lemmy_db_schema::{
@@ -417,6 +417,44 @@ mod tests {
 
     LocalUser::delete(&mut context.pool(), export_user.local_user.id).await?;
     LocalUser::delete(&mut context.pool(), import_user.local_user.id).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_settings_partial_import() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+
+    let export_user =
+      create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
+
+    let community_form = CommunityInsertForm::builder()
+      .name("testcom".to_string())
+      .title("testcom".to_string())
+      .instance_id(export_user.person.instance_id)
+      .build();
+    let community = Community::create(&mut context.pool(), &community_form).await?;
+    let follower_form = CommunityFollowerForm {
+      community_id: community.id,
+      person_id: export_user.person.id,
+      pending: false,
+    };
+    CommunityFollower::follow(&mut context.pool(), &follower_form).await?;
+
+    let backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
+
+    let import_user = create_user("charles".to_string(), None, &context).await?;
+
+    let backup2 = UserSettingsBackup {
+      followed_communities: backup.followed_communities.clone(),
+      ..Default::default()
+    };
+    import_settings(
+      actix_web::web::Json(backup2),
+      import_user.clone(),
+      context.reset_request_count(),
+    )
+    .await?;
     Ok(())
   }
 
