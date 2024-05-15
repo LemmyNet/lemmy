@@ -1106,13 +1106,10 @@ mod tests {
       "https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
       proxied.as_str()
     );
-
-    // This fails, because the details can't be fetched without pictrs running,
-    // And a remote image won't be inserted.
     assert!(
       RemoteImage::validate(&mut context.pool(), remote_image.into())
         .await
-        .is_err()
+        .is_ok()
     );
   }
 
