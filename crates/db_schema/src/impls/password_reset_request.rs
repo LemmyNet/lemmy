@@ -134,7 +134,7 @@ mod tests {
     let expected_password_reset_request = PasswordResetRequest {
       id: inserted_password_reset_request.id,
       local_user_id: inserted_local_user.id,
-      token: token.to_string(),
+      token: token.to_string().into(),
       published: inserted_password_reset_request.published,
     };
 
