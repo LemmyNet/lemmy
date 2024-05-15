@@ -29,7 +29,7 @@ pub async fn add_admin(
     .await?
     .ok_or(LemmyErrorType::ObjectNotLocal)?;
 
-  let added_admin = LocalUser::update(
+  LocalUser::update(
     &mut context.pool(),
     added_local_user.local_user.id,
     &LocalUserUpdateForm {
@@ -43,7 +43,7 @@ pub async fn add_admin(
   // Mod tables
   let form = ModAddForm {
     mod_person_id: local_user_view.person.id,
-    other_person_id: added_admin.person_id,
+    other_person_id: added_local_user.person.id,
     removed: Some(!data.added),
   };
 
