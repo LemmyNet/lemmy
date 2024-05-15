@@ -25,7 +25,12 @@ use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorato
 use lemmy_api_common::{
   context::LemmyContext,
   request::generate_post_link_metadata,
-  utils::{get_url_blocklist, local_site_opt_to_slur_regex, process_markdown_opt},
+  utils::{
+    get_url_blocklist,
+    local_site_opt_to_slur_regex,
+    process_markdown_opt,
+    proxy_image_link_opt_apub,
+  },
 };
 use lemmy_db_schema::{
   source::{
