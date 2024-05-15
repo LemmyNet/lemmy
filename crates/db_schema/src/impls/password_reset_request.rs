@@ -50,7 +50,7 @@ impl PasswordResetRequest {
   ) -> Result<PasswordResetRequest, Error> {
     let form = PasswordResetRequestForm {
       local_user_id: from_local_user_id,
-      token: token_,
+      token: token_.into(),
     };
 
     Self::create(pool, &form).await

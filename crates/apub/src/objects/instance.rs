@@ -187,7 +187,7 @@ impl Actor for ApubSite {
   }
 
   fn private_key_pem(&self) -> Option<String> {
-    self.private_key.clone()
+    self.private_key.clone().map(|p| p.into_inner())
   }
 
   fn inbox(&self) -> Url {

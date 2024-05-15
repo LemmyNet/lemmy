@@ -1,6 +1,9 @@
-use crate::newtypes::{DbUrl, InstanceId, SiteId};
 #[cfg(feature = "full")]
 use crate::schema::site;
+use crate::{
+  newtypes::{DbUrl, InstanceId, SiteId},
+  sensitive::SensitiveString,
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -35,7 +38,7 @@ pub struct Site {
   /// The site inbox
   pub inbox_url: DbUrl,
   #[serde(skip)]
-  pub private_key: Option<String>,
+  pub private_key: Option<SensitiveString>,
   // TODO: mark as `serde(skip)` in next major release as its not needed for api
   pub public_key: String,
   pub instance_id: InstanceId,
