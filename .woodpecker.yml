@@ -55,7 +55,7 @@ steps:
       - event: pull_request
 
   toml_fmt:
-    image: tamasfe/taplo:0.8.1-alpine
+    image: tamasfe/taplo:0.8.1
     commands:
       - taplo format --check
     when:
