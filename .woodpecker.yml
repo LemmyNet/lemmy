@@ -56,7 +56,7 @@ steps:
     commands:
       - <<: *install_binstall
       # Install diesel_cli
-      - cargo binstall -y diesel_cli -- --no-default-features --features postgres
+      - cargo binstall -y diesel_cli
       - diesel migration run
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
