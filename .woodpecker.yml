@@ -28,16 +28,9 @@ variables:
       - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
       - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
       - cp cargo-binstall /usr/local/cargo/bin
+  - install_diesel_cli: &install_diesel_cli
+      - cargo binstall -y diesel_cli
       - export PATH="$CARGO_HOME/bin:$PATH"
-
-# Broken for cron jobs currently, see
-# https://github.com/woodpecker-ci/woodpecker/issues/1716
-# clone:
-#   git:
-#     image: woodpeckerci/plugin-git
-#     settings:
-#       recursive: true
-#       submodule_update_remote: true
 
 steps:
   prepare_repo:
@@ -56,8 +49,7 @@ steps:
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
       - <<: *install_binstall
-      # Install diesel_cli
-      - cargo binstall -y diesel_cli
+      - <<: *install_diesel_cli
       - diesel migration run
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
