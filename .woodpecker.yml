@@ -32,7 +32,7 @@ variables:
       - apt update && apt install -y lsb-release build-essential
       - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
       - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-      - apt update && apt install -y postgresql-client-16 libsqlite3-dev libpq-dev libmariaclient-dev-compat
+      - apt update && apt install -y postgresql-client-16 libsqlite3-dev libpq-dev libmariadbclient-dev-compat
       - ls -al /usr/local/lib/
       - ls -al /usr/local/mysql/lib/
       - export LD_LIBRARY_PATH=/usr/local/mysql/lib
