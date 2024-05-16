@@ -55,10 +55,8 @@ steps:
       - event: pull_request
 
   toml_fmt:
-    image: *rust_image
+    image: tamasfe/taplo:0.8.1-alpine
     commands:
-      - <<: *install_binstall
-      - cargo binstall -y taplo-cli
       - taplo format --check
     when:
       - event: pull_request
