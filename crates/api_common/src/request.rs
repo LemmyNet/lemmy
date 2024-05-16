@@ -93,35 +93,21 @@ pub async fn generate_post_link_metadata(
   let allow_sensitive = local_site_opt_to_sensitive(&local_site);
   let allow_generate_thumbnail = allow_sensitive || !post.nsfw;
 
-  let thumbnail_url = if is_image_post {
-    if allow_generate_thumbnail {
-      match post.url {
-        Some(url) => generate_pictrs_thumbnail(&url, &context)
-          .await
-          .ok()
-          .map(Into::into),
-        None => None,
-      }
-    } else {
-      None
-    }
+  let image_url = if is_image_post {
+    post.url
   } else {
-    // Use custom thumbnail if available and its not an image post
-    if let Some(custom_thumbnail) = custom_thumbnail {
-      proxy_image_link(custom_thumbnail, &context).await.ok()
-    } else if allow_generate_thumbnail {
-      match metadata.opengraph_data.image {
-        Some(url) => generate_pictrs_thumbnail(&url, &context)
-          .await
-          .ok()
-          .map(Into::into),
-        None => None,
-      }
-    }
-    // Otherwise use opengraph preview image directly
-    else {
-      metadata.opengraph_data.image
-    }
+    metadata.opengraph_data.image.clone()
+  };
+
+  let thumbnail_url = if let (false, Some(url)) = (is_image_post, custom_thumbnail) {
+    proxy_image_link(url, &context).await.ok()
+  } else if let (true, Some(url)) = (allow_generate_thumbnail, image_url) {
+    generate_pictrs_thumbnail(&url, &context)
+      .await
+      .ok()
+      .map(Into::into)
+  } else {
+    metadata.opengraph_data.image.clone()
   };
 
   let form = PostUpdateForm {
@@ -314,23 +300,25 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     .json::<PictrsResponse>()
     .await?;
 
-  if let Some(image) = res.files.unwrap_or_default().first() {
-    let form = LocalImageForm {
-      // This is none because its an internal request.
-      // IE, a local user shouldn't get to delete the thumbnails for their link posts
-      local_user_id: None,
-      pictrs_alias: image.file.clone(),
-      pictrs_delete_token: image.delete_token.clone(),
-    };
-    let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-    let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
+  let files = res.files.unwrap_or_default();
 
-    LocalImage::create(&mut context.pool(), &form).await?;
+  let image = files
+    .first()
+    .ok_or(LemmyErrorType::PictrsResponseError(res.msg))?;
 
-    Ok(thumbnail_url)
-  } else {
-    Err(LemmyErrorType::PictrsResponseError(res.msg))?
-  }
+  let form = LocalImageForm {
+    // This is none because its an internal request.
+    // IE, a local user shouldn't get to delete the thumbnails for their link posts
+    local_user_id: None,
+    pictrs_alias: image.file.clone(),
+    pictrs_delete_token: image.delete_token.clone(),
+  };
+  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+  let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
+
+  LocalImage::create(&mut context.pool(), &form).await?;
+
+  Ok(thumbnail_url)
 }
 
 // TODO: get rid of this by reading content type from db
