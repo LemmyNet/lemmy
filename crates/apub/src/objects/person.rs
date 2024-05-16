@@ -200,7 +200,7 @@ impl Actor for ApubPerson {
   }
 
   fn private_key_pem(&self) -> Option<String> {
-    self.private_key.clone().map(|p| p.into_inner())
+    self.private_key.clone().map(SensitiveString::into_inner)
   }
 
   fn inbox(&self) -> Url {
