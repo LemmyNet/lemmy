@@ -31,6 +31,10 @@ variables:
   - install_diesel_cli: &install_diesel_cli
       - cargo binstall -y diesel_cli
       - export PATH="$CARGO_HOME/bin:$PATH"
+      - apt update && apt install -y lsb-release
+      - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+      - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+      - apt update && apt install -y postgresql-client-16 default-mysql-client
 
 steps:
   prepare_repo:
