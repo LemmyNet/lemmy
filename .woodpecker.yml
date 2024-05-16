@@ -29,10 +29,10 @@ variables:
       - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
       - cp cargo-binstall /usr/local/cargo/bin
   - install_diesel_cli: &install_diesel_cli
-      - apt update && apt install -y lsb-release
+      - apt update && apt install -y lsb-release build-essential
       - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
       - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-      - apt update && apt install -y postgresql-client-16 libsqlite3-dev libmysqlclient20 libpq-dev
+      - apt update && apt install -y postgresql-client-16 libsqlite3-dev libpq-dev default-libmysqlclient-dev
       - cargo binstall -y diesel_cli
       - export PATH="$CARGO_HOME/bin:$PATH"
 
