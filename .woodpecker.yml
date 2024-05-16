@@ -3,6 +3,7 @@
 
 variables:
   - &rust_image "rust:1.77"
+  - &rust_nightly_image "rustlang/rust:nightly"
   - &install_pnpm "corepack enable pnpm"
   - &slow_check_paths
     - event: pull_request
@@ -46,18 +47,6 @@ steps:
     when:
       - event: [pull_request, tag]
 
-  check_diesel_schema:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-    commands:
-      - <<: *install_diesel_cli
-      - diesel migration run
-      - diesel print-schema --config-file=diesel.toml > tmp.schema
-      - diff tmp.schema crates/db_schema/src/schema.rs
-    when: *slow_check_paths
-
   prettier_check:
     image: tmknom/prettier:3.0.0
     commands:
@@ -66,8 +55,10 @@ steps:
       - event: pull_request
 
   toml_fmt:
-    image: tamasfe/taplo:0.8.1
+    image: *rust_image
     commands:
+      - <<: *install_binstall
+      - cargo binstall -y taplo-cli
       - taplo format --check
     when:
       - event: pull_request
@@ -80,7 +71,7 @@ steps:
       - event: pull_request
 
   cargo_fmt:
-    image: rustlang/rust:nightly
+    image: *rust_nightly_image
     environment:
       # store cargo data in repo folder so that it gets cached between steps
       CARGO_HOME: .cargo_home
@@ -91,7 +82,7 @@ steps:
       - event: pull_request
 
   cargo_machete:
-    image: rustlang/rust:nightly
+    image: *rust_nightly_image
     commands:
       - <<: *install_binstall
       - cargo binstall -y cargo-machete
@@ -142,6 +133,18 @@ steps:
       - export LEMMY_CONFIG_LOCATION=./config/config.hjson
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
+    when: *slow_check_paths
+
+  check_diesel_schema:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+    commands:
+      - <<: *install_diesel_cli
+      - diesel migration run
+      - diesel print-schema --config-file=diesel.toml > tmp.schema
+      - diff tmp.schema crates/db_schema/src/schema.rs
     when: *slow_check_paths
 
   check_db_perf_tool:
