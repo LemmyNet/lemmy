@@ -82,7 +82,7 @@ async function assertPostFederation(postOne: PostView, postTwo: PostView) {
 
 test("Create a post", async () => {
   // Setup some allowlists and blocklists
-  let editSiteForm: EditSite = {};
+  const editSiteForm: EditSite = {};
 
   editSiteForm.allowed_instances = [];
   editSiteForm.blocked_instances = ["lemmy-alpha"];

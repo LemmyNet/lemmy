@@ -212,9 +212,12 @@ impl PictrsFile {
   }
 }
 
+/// Stores extra details about a Pictrs image.
 #[derive(Deserialize, Serialize, Debug)]
 pub struct PictrsFileDetails {
+  /// In pixels
   pub width: u16,
+  /// In pixels
   pub height: u16,
   pub content_type: String,
   pub created_at: DateTime<Utc>,
@@ -302,13 +305,13 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     encode(image_url.as_str())
   );
 
-  let res: PictrsResponse = context
+  let res = context
     .client()
     .get(&fetch_url)
     .timeout(REQWEST_TIMEOUT)
     .send()
     .await?
-    .json()
+    .json::<PictrsResponse>()
     .await?;
 
   if let Some(image) = res.files.unwrap_or_default().first() {

@@ -896,14 +896,17 @@ export async function deleteAllImages(api: LemmyHttp) {
     limit: imageFetchLimit,
   });
   imagesRes.images;
-
-  for (const image of imagesRes.images) {
-    const form: DeleteImage = {
-      token: image.local_image.pictrs_delete_token,
-      filename: image.local_image.pictrs_alias,
-    };
-    await api.deleteImage(form);
-  }
+  Promise.all(
+    imagesRes.images
+      .map(image => {
+        const form: DeleteImage = {
+          token: image.local_image.pictrs_delete_token,
+          filename: image.local_image.pictrs_alias,
+        };
+        return form;
+      })
+      .map(form => api.deleteImage(form)),
+  );
 }
 
 export async function unfollows() {
@@ -914,21 +917,20 @@ export async function unfollows() {
     unfollowRemotes(delta),
     unfollowRemotes(epsilon),
   ]);
-  await purgeAllPosts(alpha);
-  await purgeAllPosts(beta);
-  await purgeAllPosts(gamma);
-  await purgeAllPosts(delta);
-  await purgeAllPosts(epsilon);
+  await Promise.all([
+    purgeAllPosts(alpha),
+    purgeAllPosts(beta),
+    purgeAllPosts(gamma),
+    purgeAllPosts(delta),
+    purgeAllPosts(epsilon),
+  ]);
 }
 
 export async function purgeAllPosts(api: LemmyHttp) {
   // The best way to get all federated items, is to find the posts
   let res = await api.getPosts({ type_: "All", limit: 50 });
   await Promise.all(
-    res.posts
-      .map(p => p.post.id)
-      // Unique
-      .filter((v, i, a) => a.indexOf(v) == i)
+    Array.from(new Set(res.posts.map(p => p.post.id)))
       .map(post_id => api.purgePost({ post_id }))
       // Ignore errors
       .map(p => p.catch(e => e)),

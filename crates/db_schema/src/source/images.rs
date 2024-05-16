@@ -46,8 +46,8 @@ pub struct LocalImageForm {
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = remote_image))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", diesel(primary_key(link)))]
 pub struct RemoteImage {
+  pub id: i32,
   pub link: DbUrl,
   pub published: DateTime<Utc>,
 }

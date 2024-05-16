@@ -37,8 +37,7 @@ const downloadFileSync = require("download-file-sync");
 beforeAll(setupLogins);
 
 afterAll(async () => {
-  await unfollows();
-  await deleteAllImages(alpha);
+  await Promise.all([unfollows(), deleteAllImages(alpha)]);
 });
 
 test("Upload image and delete it", async () => {
