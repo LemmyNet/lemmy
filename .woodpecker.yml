@@ -34,6 +34,7 @@ variables:
       - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
       - apt update && apt install -y postgresql-client-16 libsqlite3-dev libpq-dev default-libmysqlclient-dev
       - export LD_LIBRARY_PATH=/usr/local/mysql/lib
+      - ls -al /usr/local/lib/
       - cargo binstall -y diesel_cli
       - export PATH="$CARGO_HOME/bin:$PATH"
 
