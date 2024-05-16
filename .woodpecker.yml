@@ -32,7 +32,7 @@ variables:
       - apt update && apt install -y lsb-release
       - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
       - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-      - apt update && apt install -y postgresql-client-16 default-libmysqlclient-dev libmariadbclient-dev-compat libsqlite3-dev libpq-dev
+      - apt update && apt install -y postgresql-client-16 libmariadbclient-dev-compat libsqlite3-dev libpq-dev
       - cargo binstall -y diesel_cli
       - export PATH="$CARGO_HOME/bin:$PATH"
 
