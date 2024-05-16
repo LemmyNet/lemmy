@@ -32,11 +32,8 @@ variables:
       - apt update && apt install -y lsb-release build-essential
       - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
       - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-      - apt update && apt install -y postgresql-client-16 libsqlite3-dev default-libmysqlclient-dev libpq-dev
-      - ls -al /usr/lib/
-      # - ls -al /usr/local/mysql/lib/
-      - export LD_LIBRARY_PATH=/usr/lib
-      - cargo binstall -y diesel_cli
+      - apt update && apt install -y postgresql-client-16
+      - cargo install diesel_cli --no-default-features --features postgres
       - export PATH="$CARGO_HOME/bin:$PATH"
 
 steps:
@@ -55,7 +52,6 @@ steps:
       CARGO_HOME: .cargo_home
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
-      - <<: *install_binstall
       - <<: *install_diesel_cli
       - diesel migration run
       - diesel print-schema --config-file=diesel.toml > tmp.schema
@@ -202,9 +198,8 @@ steps:
       PGHOST: database
       PGDATABASE: lemmy
     commands:
-      - <<: *install_binstall
       # Install diesel_cli
-      - cargo binstall -y diesel_cli -- --no-default-features --features postgres
+      - <<: *install_diesel_cli
       # Run all migrations
       - diesel migration run
       # Dump schema to before.sqldump (PostgreSQL apt repo is used to prevent pg_dump version mismatch error)
