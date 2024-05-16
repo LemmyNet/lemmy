@@ -24,6 +24,10 @@ variables:
             "diesel.toml",
             ".gitmodules",
           ]
+  - &install_binstall |
+    - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
+    - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
+    - cp cargo-binstall /usr/local/cargo/bin
 
 # Broken for cron jobs currently, see
 # https://github.com/woodpecker-ci/woodpecker/issues/1716
@@ -79,11 +83,7 @@ steps:
   cargo_machete:
     image: rustlang/rust:nightly
     commands:
-      # Install cargo binstall
-      - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - cp cargo-binstall /usr/local/cargo/bin
-      # Install cargo-machete
+      - *install_binstall
       - cargo binstall -y cargo-machete
       - cargo machete
     when:
@@ -140,12 +140,9 @@ steps:
       CARGO_HOME: .cargo_home
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
-      # Install cargo binstall
-      - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - cp cargo-binstall /usr/local/cargo/bin
+      - *install_binstall
       # Install diesel_cli
-      - cargo binstall -y diesel_cli --no-default-features --features postgres
+      - cargo binstall -y diesel_cli -- --no-default-features --features postgres
       - diesel migration run
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
@@ -205,12 +202,9 @@ steps:
       PGHOST: database
       PGDATABASE: lemmy
     commands:
-      # Install cargo binstall
-      - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - cp cargo-binstall /usr/local/cargo/bin
+      - *install_binstall
       # Install diesel_cli
-      - cargo binstall -y diesel_cli --no-default-features --features postgres
+      - cargo binstall -y diesel_cli -- --no-default-features --features postgres
       - export PATH="$CARGO_HOME/bin:$PATH"
       # Run all migrations
       - diesel migration run
@@ -289,10 +283,7 @@ steps:
   publish_to_crates_io:
     image: *rust_image
     commands:
-      # Install cargo binstall
-      - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - cp cargo-binstall /usr/local/cargo/bin
+      - *install_binstall
       # Install cargo-workspaces
       - cargo binstall -y cargo-workspaces
       - cp -r migrations crates/db_schema/
