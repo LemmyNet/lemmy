@@ -28,6 +28,7 @@ variables:
       - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
       - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
       - cp cargo-binstall /usr/local/cargo/bin
+      - export PATH="$CARGO_HOME/bin:$PATH"
 
 # Broken for cron jobs currently, see
 # https://github.com/woodpecker-ci/woodpecker/issues/1716
@@ -205,7 +206,6 @@ steps:
       - <<: *install_binstall
       # Install diesel_cli
       - cargo binstall -y diesel_cli -- --no-default-features --features postgres
-      - export PATH="$CARGO_HOME/bin:$PATH"
       # Run all migrations
       - diesel migration run
       # Dump schema to before.sqldump (PostgreSQL apt repo is used to prevent pg_dump version mismatch error)
