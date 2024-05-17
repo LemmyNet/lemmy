@@ -185,44 +185,6 @@ steps:
       - cargo test --workspace --no-fail-fast
     when: *slow_check_paths
 
-  check_diesel_migration:
-    # TODO: use willsquire/diesel-cli image when shared libraries become optional in lemmy_server
-    image: *rust_image
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      RUST_BACKTRACE: "1"
-      CARGO_HOME: .cargo_home
-      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      PGUSER: lemmy
-      PGPASSWORD: password
-      PGHOST: database
-      PGDATABASE: lemmy
-    commands:
-      - cargo install diesel_cli
-      - export PATH="$CARGO_HOME/bin:$PATH"
-      # Run all migrations
-      - diesel migration run
-      # Dump schema to before.sqldump (PostgreSQL apt repo is used to prevent pg_dump version mismatch error)
-      - apt update && apt install -y lsb-release
-      - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-      - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-      - apt update && apt install -y postgresql-client-16
-      - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
-      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f before.sqldump
-      # Make sure that the newest migration is revertable without the `r` schema
-      - diesel migration redo
-      # Run schema setup twice, which fails on the 2nd time if `DROP SCHEMA IF EXISTS r CASCADE` drops the wrong things
-      - alias lemmy_schema_setup="target/lemmy_server --disable-scheduled-tasks --disable-http-server --disable-activity-sending"
-      - lemmy_schema_setup
-      - lemmy_schema_setup
-      # Make sure that the newest migration is revertable with the `r` schema
-      - diesel migration redo
-      # Check for changes in the schema, which would be caused by an incorrect migration
-      - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
-      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f after.sqldump
-      - diff before.sqldump after.sqldump
-    when: *slow_check_paths
-
   run_federation_tests:
     image: node:20-bookworm-slim
     environment:

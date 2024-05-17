@@ -34,3 +34,5 @@ INSERT INTO category (name)
 ALTER TABLE community
     ADD category_id int REFERENCES category ON UPDATE CASCADE ON DELETE CASCADE NOT NULL DEFAULT 1;
 
+CREATE INDEX idx_community_category ON community (category_id);
+

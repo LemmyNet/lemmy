@@ -260,6 +260,8 @@ FROM
 WHERE
     lu.person_id = u.id;
 
+CREATE UNIQUE INDEX idx_user_email_lower ON user_ (lower(email));
+
 CREATE VIEW user_alias_1 AS
 SELECT
     *

@@ -65,3 +65,15 @@ CREATE TRIGGER post_aggregates_stickied
     WHEN (OLD.stickied IS DISTINCT FROM NEW.stickied)
     EXECUTE PROCEDURE post_aggregates_stickied ();
 
+CREATE INDEX idx_post_aggregates_stickied_newest_comment_time ON post_aggregates (stickied DESC, newest_comment_time DESC);
+
+CREATE INDEX idx_post_aggregates_stickied_comments ON post_aggregates (stickied DESC, comments DESC);
+
+CREATE INDEX idx_post_aggregates_stickied_hot ON post_aggregates (stickied DESC, hot_rank (score, published) DESC, published DESC);
+
+CREATE INDEX idx_post_aggregates_stickied_active ON post_aggregates (stickied DESC, hot_rank (score, newest_comment_time_necro) DESC, newest_comment_time_necro DESC);
+
+CREATE INDEX idx_post_aggregates_stickied_score ON post_aggregates (stickied DESC, score DESC);
+
+CREATE INDEX idx_post_aggregates_stickied_published ON post_aggregates (stickied DESC, published DESC);
+

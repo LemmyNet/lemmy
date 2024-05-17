@@ -129,13 +129,11 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   println!("Lemmy v{VERSION}");
 
   if let Some(CmdSubcommand::Migration { subcommand }) = args.subcommand {
-    let mut options = schema_setup::Options::default();
+    let options = match subcommand {
+      MigrationSubcommand::Run => schema_setup::Options::default(),
+    };
 
-    match subcommand {
-      MigrationSubcommand::Run => {}
-    }
-
-    schema_setup::run(&SETTINGS.get_database_url(), &options)?;
+    schema_setup::run(&SETTINGS.get_database_url(), options)?;
 
     return Ok(());
   }

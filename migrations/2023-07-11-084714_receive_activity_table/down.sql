@@ -26,3 +26,5 @@ DROP TABLE sent_activity;
 
 DROP TABLE received_activity;
 
+CREATE UNIQUE INDEX idx_activity_ap_id ON activity (ap_id);
+
