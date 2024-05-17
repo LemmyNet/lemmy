@@ -28,6 +28,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
+  sensitive::SensitiveString,
   source::{
     activity::ActorType,
     actor_language::CommunityLanguage,

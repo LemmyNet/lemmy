@@ -29,6 +29,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   newtypes::InstanceId,
+  sensitive::SensitiveString,
   source::{
     activity::ActorType,
     actor_language::SiteLanguage,
