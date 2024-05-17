@@ -64,7 +64,7 @@ impl LemmyContext {
     let client = ClientBuilder::new(client).build();
     let secret = Secret {
       id: 0,
-      jwt_secret: String::new(),
+      jwt_secret: String::new().into(),
     };
 
     let rate_limit_cell = RateLimitCell::with_test_config();

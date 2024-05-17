@@ -3,6 +3,7 @@
 
 variables:
   - &rust_image "rust:1.77"
+  - &rust_nightly_image "rustlang/rust:nightly"
   - &install_pnpm "corepack enable pnpm"
   - &slow_check_paths
     - event: pull_request
@@ -24,15 +25,17 @@ variables:
             "diesel.toml",
             ".gitmodules",
           ]
-
-# Broken for cron jobs currently, see
-# https://github.com/woodpecker-ci/woodpecker/issues/1716
-# clone:
-#   git:
-#     image: woodpeckerci/plugin-git
-#     settings:
-#       recursive: true
-#       submodule_update_remote: true
+  - install_binstall: &install_binstall
+      - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
+      - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
+      - cp cargo-binstall /usr/local/cargo/bin
+  - install_diesel_cli: &install_diesel_cli
+      - apt update && apt install -y lsb-release build-essential
+      - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+      - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+      - apt update && apt install -y postgresql-client-16
+      - cargo install diesel_cli --no-default-features --features postgres
+      - export PATH="$CARGO_HOME/bin:$PATH"
 
 steps:
   prepare_repo:
@@ -66,7 +69,7 @@ steps:
       - event: pull_request
 
   cargo_fmt:
-    image: rustlang/rust:nightly
+    image: *rust_nightly_image
     environment:
       # store cargo data in repo folder so that it gets cached between steps
       CARGO_HOME: .cargo_home
@@ -77,11 +80,9 @@ steps:
       - event: pull_request
 
   cargo_machete:
-    image: rustlang/rust:nightly
+    image: *rust_nightly_image
     commands:
-      - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - cp cargo-binstall /usr/local/cargo/bin
+      - <<: *install_binstall
       - cargo binstall -y cargo-machete
       - cargo machete
     when:
@@ -132,6 +133,17 @@ steps:
       - diff config/defaults.hjson config/defaults_current.hjson
     when: *slow_check_paths
 
+  check_diesel_schema:
+    image: willsquire/diesel-cli
+    environment:
+      CARGO_HOME: .cargo_home
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+    commands:
+      - diesel migration run
+      - diesel print-schema --config-file=diesel.toml > tmp.schema
+      - diff tmp.schema crates/db_schema/src/schema.rs
+    when: *slow_check_paths
+
   check_db_perf_tool:
     image: *rust_image
     environment:
@@ -170,6 +182,7 @@ steps:
       CARGO_HOME: .cargo_home
     commands:
       - target/lemmy_server migration run
+      - <<: *install_diesel_cli
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
     when: *slow_check_paths
@@ -239,7 +252,9 @@ steps:
   publish_to_crates_io:
     image: *rust_image
     commands:
-      - cargo install cargo-workspaces
+      - <<: *install_binstall
+      # Install cargo-workspaces
+      - cargo binstall -y cargo-workspaces
       - cp -r migrations crates/db_schema/
       - cargo workspaces publish --token "$CARGO_API_TOKEN" --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
     secrets: [cargo_api_token]
