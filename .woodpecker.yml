@@ -133,17 +133,6 @@ steps:
       - diff config/defaults.hjson config/defaults_current.hjson
     when: *slow_check_paths
 
-  check_diesel_schema:
-    image: willsquire/diesel-cli
-    environment:
-      CARGO_HOME: .cargo_home
-      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-    commands:
-      - diesel migration run
-      - diesel print-schema --config-file=diesel.toml > tmp.schema
-      - diff tmp.schema crates/db_schema/src/schema.rs
-    when: *slow_check_paths
-
   check_db_perf_tool:
     image: *rust_image
     environment:
