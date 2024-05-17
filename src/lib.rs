@@ -133,7 +133,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
       MigrationSubcommand::Run => schema_setup::Options::default(),
     };
 
-    schema_setup::run(&SETTINGS.get_database_url(), options)?;
+    schema_setup::run(options)?;
 
     return Ok(());
   }
