@@ -1,5 +1,6 @@
 use lemmy_utils::settings::SETTINGS;
 use std::{
+  borrow::Cow,
   collections::BTreeSet,
   fmt::Write,
   process::{Command, Stdio},
@@ -7,6 +8,7 @@ use std::{
 
 pub fn get_dump() -> String {
   let output = Command::new("pg_dump")
+    .args(["--schema-only"])
     .env("DATABASE_URL", SETTINGS.get_database_url())
     .stderr(Stdio::inherit())
     .output()
@@ -70,9 +72,9 @@ pub fn check_dump_diff(mut before: String, name: &str) {
   ]
   .map(|chunks| {
     chunks
-      .map(|&chunk| {
+      .map(|chunk| {
         (
-          chunk,
+          &**chunk,
           // Used for ignoring formatting differences, especially indentation level, when
           // determining which item in `only_in_before` corresponds to which item in `only_in_after`
           chunk.replace([' ', '\t', '\r', '\n'], ""),
@@ -104,7 +106,7 @@ pub fn check_dump_diff(mut before: String, name: &str) {
       .expect("resize should have prevented this from failing");
 
     output.push('\n');
-    for line in diff::lines(most_similar_chunk, before_chunk) {
+    for line in diff::lines(most_similar_chunk, &before_chunk) {
       match line {
         diff::Result::Left(s) => write!(&mut output, "\n- {s}"),
         diff::Result::Right(s) => write!(&mut output, "\n+ {s}"),
@@ -120,7 +122,7 @@ pub fn check_dump_diff(mut before: String, name: &str) {
 }
 
 // todo inline?
-fn chunks(dump: &str) -> impl Iterator<Item = &str> {
+fn chunks<'a>(dump: &'a str) -> impl Iterator<Item = Cow<'a, str>> {
   let mut remaining = dump;
   std::iter::from_fn(move || {
     remaining = remaining.trim_start();
@@ -128,9 +130,24 @@ fn chunks(dump: &str) -> impl Iterator<Item = &str> {
       remaining = remaining.split_once('\n')?.1;
       remaining = remaining.trim_start();
     }
-    let (a, b) = remaining.split_once("\n\n")?;
-    remaining = b;
     // `a` can't be empty because of trim_start
-    Some(a)
+    let (result, after_result) = remaining.split_once("\n\n")?;
+    remaining = after_result;
+    Some(if result.starts_with("CREATE TABLE ") {
+      // Allow column order to change
+      let mut lines = result.lines().map(|line| line.strip_suffix(',').unwrap_or(line)).collect::<Vec<_>>();
+      lines.sort_unstable_by_key(|line| -> (u8, &str) {
+        let placement = match line.chars().next() {
+          Some('C') => 0,
+          Some(' ') => 1,
+          Some(')') => 2,
+          _ => panic!("unrecognized part of `CREATE TABLE` statement: {line}"),
+        };
+        (placement, line)
+      });
+      Cow::Owned(lines.join("\n"))
+    } else {
+      Cow::Borrowed(result)
+    })
   })
 }
