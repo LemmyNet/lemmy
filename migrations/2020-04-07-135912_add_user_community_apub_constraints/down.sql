@@ -2,7 +2,7 @@
 DROP VIEW user_view CASCADE;
 
 ALTER TABLE user_
-    ADD COLUMN fedi_name varchar(40) NOT NULL DEFAULT 'http://fake.com';
+    ADD COLUMN fedi_name varchar(40) NOT NULL;
 
 ALTER TABLE user_
     ADD CONSTRAINT user__name_fedi_name_key UNIQUE (name, fedi_name);
