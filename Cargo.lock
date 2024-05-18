@@ -2821,6 +2821,7 @@ dependencies = [
  "diesel-derive-newtype",
  "diesel_ltree",
  "diesel_migrations",
+ "diff",
  "futures-util",
  "i-love-jesus",
  "lemmy_utils",
@@ -2833,7 +2834,6 @@ dependencies = [
  "serde_json",
  "serde_with",
  "serial_test",
- "string-interner",
  "strum",
  "strum_macros",
  "tokio",
@@ -5227,17 +5227,6 @@ checksum = "6c8b0c8184b0fe05b37dd75d66205195cd57563c6c87cb92134a025a34a6ab34"
 dependencies = [
  "futures-core",
  "pin-project-lite",
-]
-
-[[package]]
-name = "string-interner"
-version = "0.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c6a0d765f5807e98a091107bae0a56ea3799f66a5de47b2c84c94a39c09974e"
-dependencies = [
- "cfg-if",
- "hashbrown 0.14.3",
- "serde",
 ]
 
 [[package]]

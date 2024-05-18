@@ -85,7 +85,7 @@ moka.workspace = true
 [dev-dependencies]
 serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
-string-interner = { version = "0.17.0", features = ["inline-more", "backends"] }
+diff = "0.1.13"
 
 [package.metadata.cargo-machete]
 ignored = ["strum"]

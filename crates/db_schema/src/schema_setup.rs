@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod diff_checker;
+mod diff_check;
 
 use crate::schema::previously_run_sql;
 use anyhow::{anyhow, Context};
@@ -17,11 +17,9 @@ use diesel::{
   RunQueryDsl,
 };
 use diesel_migrations::MigrationHarness;
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 use std::time::Instant;
 use tracing::info;
-use lemmy_utils::settings::SETTINGS;
-use std::collections::BTreeMap;
 
 // In production, include migrations in the binary
 #[cfg(not(debug_assertions))]
@@ -47,21 +45,31 @@ const REPLACEABLE_SCHEMA: &[&str] = &[
   include_str!("../replaceable_schema/triggers.sql"),
 ];
 
-struct MigrationHarnessWrapper<'a> {
+struct MigrationHarnessWrapper<'a, 'b> {
   conn: &'a mut PgConnection,
+  options: &'b Options,
 }
 
-impl<'a> MigrationHarness<Pg> for MigrationHarnessWrapper<'a> {
+impl<'a, 'b> MigrationHarness<Pg> for MigrationHarnessWrapper<'a, 'b> {
   fn run_migration(
     &mut self,
     migration: &dyn Migration<Pg>,
   ) -> diesel::migration::Result<MigrationVersion<'static>> {
+    let name = migration.name();
+
+    #[cfg(test)]
+    if self.options.enable_diff_check {
+      let before = diff_check::get_dump();
+      self.conn.run_migration(migration)?;
+      self.conn.revert_migration(migration)?;
+      diff_check::check_dump_diff(before, &format!("migrations/{name}/down.sql"));
+    }
+
     let start_time = Instant::now();
 
     let result = self.conn.run_migration(migration);
 
     let duration = start_time.elapsed().as_millis();
-    let name = migration.name();
     info!("{duration}ms run {name}");
 
     result
@@ -71,6 +79,10 @@ impl<'a> MigrationHarness<Pg> for MigrationHarnessWrapper<'a> {
     &mut self,
     migration: &dyn Migration<Pg>,
   ) -> diesel::migration::Result<MigrationVersion<'static>> {
+    if self.options.enable_diff_check {
+      unimplemented!("diff check when reverting migrations");
+    }
+
     let start_time = Instant::now();
 
     let result = self.conn.revert_migration(migration);
@@ -101,28 +113,15 @@ impl<'a, T: MigrationSource<Pg>> MigrationSource<Pg> for MigrationSourceRef<&'a 
 }
 
 #[derive(Default)]
-struct DiffChecker {
-  /// Maps a migration name to the schema that exists before the migration is applied
-  schema_before: BTreeMap<String, Schema>,
-  /// Stores strings 
-}
-
-#[derive(Default)]
-struct Schema {
-  indexes: BTreeMap<String, >
-}
-
-#[derive(Default)]
-pub struct Options<'a> {
+pub struct Options {
   enable_forbid_diesel_cli_trigger: bool,
+  enable_diff_check: bool,
   revert: bool,
   revert_amount: Option<u64>,
   redo_after_revert: bool,
-  #[cfg(test)]
-  diff_checker: Option<&'a mut diff_checker::DiffChecker>,
 }
 
-impl<'a> Options<'a> {
+impl Options {
   #[cfg(test)]
   fn enable_forbid_diesel_cli_trigger(mut self) -> Self {
     self.enable_forbid_diesel_cli_trigger = true;
@@ -130,8 +129,8 @@ impl<'a> Options<'a> {
   }
 
   #[cfg(test)]
-  fn diff_checker(mut self, diff_checker: &'a mut diff_checker::DiffChecker) -> Self {
-    self.diff_checker = Some(diff_checker);
+  fn enable_diff_check(mut self) -> Self {
+    self.enable_diff_check = true;
     self
   }
 
@@ -147,11 +146,13 @@ impl<'a> Options<'a> {
   }
 }
 
+// TODO return struct with field `ran_replaceable_schema`
 pub fn run(options: Options) -> LemmyResult<()> {
   let db_url = SETTINGS.get_database_url();
 
   // Migrations don't support async connection, and this function doesn't need to be async
-  let mut conn = PgConnection::establish(db_url).with_context(|| "Error connecting to database")?;
+  let mut conn =
+    PgConnection::establish(&db_url).with_context(|| "Error connecting to database")?;
 
   let new_sql = REPLACEABLE_SCHEMA.join("\n");
 
@@ -180,24 +181,36 @@ pub fn run(options: Options) -> LemmyResult<()> {
     }
   }
 
-  conn.transaction::<_, LemmyError, _>(|conn| {
-    let mut wrapper = MigrationHarnessWrapper { conn };
+  // Disable the trigger that prevents the Diesel CLI from running migrations
+  if !options.enable_forbid_diesel_cli_trigger {
+    conn.batch_execute("SET lemmy.enable_migrations TO 'on';")?;
+  }
+
+  // Running without transaction allows pg_dump to see results of migrations
+  let run_in_transaction = !options.enable_diff_check;
+
+  let transaction = |conn: &mut PgConnection| -> LemmyResult<()> {
+    let mut wrapper = MigrationHarnessWrapper {
+      conn,
+      options: &options,
+    };
 
     // * Prevent other lemmy_server processes from running this transaction simultaneously by repurposing
     // the table created by `MigrationHarness::pending_migrations` as a lock target (this doesn't block
     // normal use of the table)
     // * Drop `r` schema, so migrations don't need to be made to work both with and without things in
     // it existing
-    // * Disable the trigger that prevents the Diesel CLI from running migrations
     info!("Waiting for lock...");
 
-    let enable_migrations = if options.enable_forbid_diesel_cli_trigger {
-      ""
+    let lock = if run_in_transaction {
+      "LOCK __diesel_schema_migrations IN SHARE UPDATE EXCLUSIVE MODE;"
     } else {
-      "SET LOCAL lemmy.enable_migrations TO 'on';"
+      ""
     };
 
-    wrapper.conn.batch_execute(&format!("LOCK __diesel_schema_migrations IN SHARE UPDATE EXCLUSIVE MODE;DROP SCHEMA IF EXISTS r CASCADE;{enable_migrations}"))?;
+    wrapper
+      .conn
+      .batch_execute(&format!("{lock}DROP SCHEMA IF EXISTS r CASCADE;"))?;
 
     info!("Running Database migrations (This may take a long time)...");
 
@@ -222,11 +235,28 @@ pub fn run(options: Options) -> LemmyResult<()> {
         wrapper.run_pending_migrations(migration_source_ref)?;
       }
       diesel::migration::Result::Ok(())
-    })().map_err(|e| anyhow!("Couldn't run DB Migrations: {e}"))?;
+    })()
+    .map_err(|e| anyhow!("Couldn't run DB Migrations: {e}"))?;
 
     // Run replaceable_schema if newest migration was applied
     if !(options.revert && !options.redo_after_revert) {
-      wrapper.conn
+      #[cfg(test)]
+      if options.enable_diff_check {
+        let before = diff_check::get_dump();
+        // todo move replaceable_schema dir path to let/const?
+        wrapper
+          .conn
+          .batch_execute(&new_sql)
+          .context("Couldn't run SQL files in crates/db_schema/replaceable_schema")?;
+        // todo move statement to const
+        wrapper
+          .conn
+          .batch_execute("DROP SCHEMA IF EXISTS r CASCADE;")?;
+        diff_check::check_dump_diff(before, "replaceable_schema");
+      }
+
+      wrapper
+        .conn
         .batch_execute(&new_sql)
         .context("Couldn't run SQL files in crates/db_schema/replaceable_schema")?;
 
@@ -238,7 +268,13 @@ pub fn run(options: Options) -> LemmyResult<()> {
     }
 
     Ok(())
-  })?;
+  };
+
+  if run_in_transaction {
+    conn.transaction(transaction)?;
+  } else {
+    transaction(&mut conn)?;
+  }
 
   info!("Database migrations complete.");
 
@@ -256,24 +292,22 @@ mod tests {
   fn test_schema_setup() -> LemmyResult<()> {
     let db_url = SETTINGS.get_database_url();
     let mut conn = PgConnection::establish(&db_url)?;
-    let diff_checker = DiffChecker::default();
-    let options = || Options::default().diff_checker(&mut diff_checker);
 
     // Start with consistent state by dropping everything
     conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
 
-    // Run and revert all migrations, ensuring there's no mistakes in any down.sql file
-    run(options())?;
-    run(options().revert(None))?;
+    // Check for mistakes in down.sql files
+    run(Options::default().enable_diff_check())?;
 
     // TODO also don't drop r, and maybe just directly call the migrationharness method here
+    run(Options::default().revert(None))?;
     assert!(matches!(
-      run(options().enable_forbid_diesel_cli_trigger()),
+      run(Options::default().enable_forbid_diesel_cli_trigger()),
       Err(e) if e.to_string().contains("lemmy_server")
     ));
 
     // Previous run shouldn't stop this one from working
-    run(options())?;
+    run(Options::default())?;
 
     Ok(())
   }
