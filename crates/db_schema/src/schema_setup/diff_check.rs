@@ -7,7 +7,6 @@ use std::{
 
 pub fn get_dump() -> String {
   let output = Command::new("pg_dump")
-    .args(["--schema-only"])
     .env("DATABASE_URL", SETTINGS.get_database_url())
     .stderr(Stdio::inherit())
     .output()
@@ -19,9 +18,45 @@ pub fn get_dump() -> String {
   String::from_utf8(output.stdout).expect("pg_dump output is not valid UTF-8 text")
 }
 
+const PATTERN_LEN: usize = 19;
+
 // TODO add unit test for output
-pub fn check_dump_diff(before: String, name: &str) {
-  let after = get_dump();
+pub fn check_dump_diff(mut before: String, name: &str) {
+  let mut after = get_dump();
+  // Ignore timestamp differences by removing timestamps
+  for dump in [&mut before, &mut after] {
+    for index in 0.. {
+      // Check for this pattern: 0000-00-00 00:00:00
+      let Some((
+        &[a0, a1, a2, a3, b0, a4, a5, b1, a6, a7, b2, a8, a9, b3, a10, a11, b4, a12, a13],
+        remaining,
+      )) = dump
+        .get(index..)
+        .and_then(|s| s.as_bytes().split_first_chunk::<PATTERN_LEN>())
+      else {
+        break;
+      };
+      if [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13]
+        .into_iter()
+        .all(|byte| byte.is_ascii_digit())
+        && [b0, b1, b2, b3, b4] == *b"-- ::"
+      {
+        // Replace the part of the string that has the checked pattern and an optional fractional part
+        let len_after = if let Some((b'.', s)) = remaining.split_first() {
+          1 + s.iter().position(|c| !c.is_ascii_digit()).unwrap_or(0)
+        } else {
+          0
+        };
+        // Length of replacement string is likely to match previous string
+        // (usually there's up to 6 digits after the decimal point)
+        dump.replace_range(
+          index..(index + PATTERN_LEN + len_after),
+          "AAAAAAAAAAAAAAAAAAAAAAAAAA",
+        );
+      }
+    }
+  }
+
   if after == before {
     return;
   }
@@ -68,7 +103,7 @@ pub fn check_dump_diff(before: String, name: &str) {
       })
       .expect("resize should have prevented this from failing");
 
-    output.push_str('\n');
+    output.push('\n');
     for line in diff::lines(most_similar_chunk, before_chunk) {
       match line {
         diff::Result::Left(s) => write!(&mut output, "\n- {s}"),
