@@ -59,10 +59,14 @@ impl<'a, 'b> MigrationHarness<Pg> for MigrationHarnessWrapper<'a, 'b> {
 
     #[cfg(test)]
     if self.options.enable_diff_check {
-      let before = diff_check::get_dump();
+      let before = diff_check::get_dump(&mut self.conn);
       self.conn.run_migration(migration)?;
       self.conn.revert_migration(migration)?;
-      diff_check::check_dump_diff(before, &format!("migrations/{name}/down.sql"));
+      diff_check::check_dump_diff(
+        &mut self.conn,
+        before,
+        &format!("migrations/{name}/down.sql"),
+      );
     }
 
     let start_time = Instant::now();
@@ -187,6 +191,7 @@ pub fn run(options: Options) -> LemmyResult<()> {
   }
 
   // Running without transaction allows pg_dump to see results of migrations
+  // TODO never use 1 transaction
   let run_in_transaction = !options.enable_diff_check;
 
   let transaction = |conn: &mut PgConnection| -> LemmyResult<()> {
@@ -242,7 +247,7 @@ pub fn run(options: Options) -> LemmyResult<()> {
     if !(options.revert && !options.redo_after_revert) {
       #[cfg(test)]
       if options.enable_diff_check {
-        let before = diff_check::get_dump();
+        let before = diff_check::get_dump(&mut wrapper.conn);
         // todo move replaceable_schema dir path to let/const?
         wrapper
           .conn
@@ -252,7 +257,8 @@ pub fn run(options: Options) -> LemmyResult<()> {
         wrapper
           .conn
           .batch_execute("DROP SCHEMA IF EXISTS r CASCADE;")?;
-        diff_check::check_dump_diff(before, "replaceable_schema");
+        // todo use different first output line in this case
+        diff_check::check_dump_diff(&mut wrapper.conn, before, "replaceable_schema");
       }
 
       wrapper

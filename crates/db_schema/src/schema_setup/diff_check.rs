@@ -1,3 +1,4 @@
+use diesel::{PgConnection, RunQueryDsl};
 use lemmy_utils::settings::SETTINGS;
 use std::{
   borrow::Cow,
@@ -6,7 +7,21 @@ use std::{
   process::{Command, Stdio},
 };
 
-pub fn get_dump() -> String {
+diesel::sql_function! {
+  fn pg_export_snapshot() -> diesel::sql_types::Text;
+}
+
+pub fn get_dump(conn: &mut PgConnection) -> String {
+  /*// Required for pg_dump to see uncommitted changes from a different database connection
+
+  // The pg_dump command runs independently from `conn`, which means it can't see changes from
+  // an uncommitted transaction. NASA made each migration run in a separate transaction. When
+  // it was discovered that 
+  let snapshot = diesel::select(pg_export_snapshot())
+    .get_result::<String>(conn)
+    .expect("pg_export_snapshot failed");
+  let snapshot_arg = format!("--snapshot={snapshot}");*/
+
   let output = Command::new("pg_dump")
     .args(["--schema-only"])
     .env("DATABASE_URL", SETTINGS.get_database_url())
@@ -23,8 +38,8 @@ pub fn get_dump() -> String {
 const PATTERN_LEN: usize = 19;
 
 // TODO add unit test for output
-pub fn check_dump_diff(mut before: String, name: &str) {
-  let mut after = get_dump();
+pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) {
+  let mut after = get_dump(conn);
   // Ignore timestamp differences by removing timestamps
   for dump in [&mut before, &mut after] {
     for index in 0.. {
@@ -97,10 +112,12 @@ pub fn check_dump_diff(mut before: String, name: &str) {
     let (most_similar_chunk_index, (most_similar_chunk, _)) = only_in_after
       .iter()
       .enumerate()
-      .max_by_key(|(_, (_, after_chunk_filtered))| {
+      .max_by_key(|(_, (after_chunk, after_chunk_filtered))| {
         diff::chars(after_chunk_filtered, &before_chunk_filtered)
           .into_iter()
-          .filter(|i| matches!(i, diff::Result::Both(_, _)))
+          .filter(|i| matches!(i, diff::Result::Both(c, _)
+          // This increases accuracy for some trigger function diffs
+          if c.is_lowercase()))
           .count()
       })
       .expect("resize should have prevented this from failing");
@@ -126,16 +143,18 @@ fn chunks<'a>(dump: &'a str) -> impl Iterator<Item = Cow<'a, str>> {
   let mut remaining = dump;
   std::iter::from_fn(move || {
     remaining = remaining.trim_start();
-    while remaining.starts_with("--") {
-      remaining = remaining.split_once('\n')?.1;
-      remaining = remaining.trim_start();
+    while let Some(s) = remove_skipped_item_from_beginning(remaining) {
+      remaining = s.trim_start();
     }
     // `a` can't be empty because of trim_start
     let (result, after_result) = remaining.split_once("\n\n")?;
     remaining = after_result;
     Some(if result.starts_with("CREATE TABLE ") {
       // Allow column order to change
-      let mut lines = result.lines().map(|line| line.strip_suffix(',').unwrap_or(line)).collect::<Vec<_>>();
+      let mut lines = result
+        .lines()
+        .map(|line| line.strip_suffix(',').unwrap_or(line))
+        .collect::<Vec<_>>();
       lines.sort_unstable_by_key(|line| -> (u8, &str) {
         let placement = match line.chars().next() {
           Some('C') => 0,
@@ -150,4 +169,19 @@ fn chunks<'a>(dump: &'a str) -> impl Iterator<Item = Cow<'a, str>> {
       Cow::Borrowed(result)
     })
   })
+}
+
+fn remove_skipped_item_from_beginning(s: &str) -> Option<&str> {
+  // Skip commented line
+  if let Some(after) = s.strip_prefix("--") {
+    Some(after.split_once('\n').unwrap_or_default().1)
+  }
+  // Skip view definition that's replaced later (the first definition selects all nulls)
+  else if let Some(after) = s.strip_prefix("CREATE VIEW ") {
+    let (name, after_name) = after.split_once(' ').unwrap_or_default();
+    Some(after_name.split_once("\n\n").unwrap_or_default().1)
+      .filter(|after_view| after_view.contains(&format!("\nCREATE OR REPLACE VIEW {name} ")))
+  } else {
+    None
+  }
 }
