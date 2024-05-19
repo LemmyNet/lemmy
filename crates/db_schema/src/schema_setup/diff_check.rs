@@ -100,16 +100,25 @@ pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) 
   if only_in_before.is_empty() && only_in_after.is_empty() {
     return;
   }
-  // add empty strings to the shorter vec so the lengths match
-  if only_in_before.len() < only_in_after.len() {
-    only_in_before.resize_with(only_in_after.len(), Default::default);
+  let after_has_more =
+  only_in_before.len() < only_in_after.len();
+  // outer iterator in the loop below should be the one with empty strings, otherwise the empty strings
+  // would appear to have the most similarity
+  let (chunks_gt, chunks_lt) = if after_has_more
+  {
+    only_in_before.resize_with(only_in_after.len(),Default::default);
+    (&mut only_in_after, &only_in_before)
   } else {
-    only_in_after.resize_with(only_in_before.len(), Default::default);
-  }
+    only_in_after.resize_with(only_in_before.len(),Default::default);
+    (&mut only_in_before, &only_in_after)
+  };
 
   let mut output = format!("These changes need to be applied in {name}:");
-  for (before_chunk, before_chunk_filtered) in only_in_before {
-    let (most_similar_chunk_index, (most_similar_chunk, _)) = only_in_after
+  // todo rename variables
+  for (before_chunk, before_chunk_filtered) in chunks_lt {
+    let default = Default::default();
+    //panic!("{:?}",(before_chunk.clone(),chunks_lt.clone()));
+    let (most_similar_chunk_index, (most_similar_chunk, _)) = chunks_gt
       .iter()
       .enumerate()
       .max_by_key(|(_, (after_chunk, after_chunk_filtered))| {
@@ -120,10 +129,13 @@ pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) 
           if c.is_lowercase()))
           .count()
       })
-      .expect("resize should have prevented this from failing");
+      .unwrap_or((0,&default));
 
     output.push('\n');
-    for line in diff::lines(most_similar_chunk, &before_chunk) {
+    let lines = if !after_has_more{diff::lines(&before_chunk,most_similar_chunk)}else{
+    diff::lines(most_similar_chunk, &before_chunk)};
+    for line in lines
+    {
       match line {
         diff::Result::Left(s) => write!(&mut output, "\n- {s}"),
         diff::Result::Right(s) => write!(&mut output, "\n+ {s}"),
@@ -131,10 +143,11 @@ pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) 
       }
       .expect("failed to build string");
     }
-    only_in_after.swap_remove(most_similar_chunk_index);
+    if !chunks_gt.is_empty() {
+    chunks_gt.swap_remove(most_similar_chunk_index);}
   }
   // should have all been removed
-  assert_eq!(only_in_after.len(), 0);
+  assert_eq!(chunks_gt.len(), 0);
   panic!("{output}");
 }
 
