@@ -1,6 +1,6 @@
 use crate::structs::CommentReplyView;
 use diesel::{
-  dsl::exists,
+  dsl::{exists, not},
   pg::Pg,
   result::Error,
   sql_types,
@@ -216,6 +216,11 @@ fn queries<'a>() -> Queries<
       CommentSortType::Old => query.then_order_by(comment_reply::published.asc()),
       CommentSortType::Top => query.order_by(comment_aggregates::score.desc()),
     };
+
+    // Don't show replies from blocked persons
+    if let Some(my_person_id) = options.my_person_id {
+      query = query.filter(not(is_creator_blocked(my_person_id)));
+    }
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
