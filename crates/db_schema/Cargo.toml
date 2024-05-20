@@ -86,7 +86,6 @@ moka.workspace = true
 serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
 diff = "0.1.13"
-crossbeam-channel = "0.5.13"
 
 [package.metadata.cargo-machete]
 ignored = ["strum"]

@@ -1255,9 +1255,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.5.13"
+version = "0.5.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33480d6946193aa8033910124896ca395333cae7e2d1113d1fef6c3272217df2"
+checksum = "ab3db02a9c5b5121e1e42fbdb1aeb65f5e02624cc58c43f2884c6ccac0b82f95"
 dependencies = [
  "crossbeam-utils",
 ]
@@ -2814,7 +2814,6 @@ dependencies = [
  "async-trait",
  "bcrypt",
  "chrono",
- "crossbeam-channel",
  "deadpool 0.10.0",
  "diesel",
  "diesel-async",
