@@ -279,6 +279,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route(web::post().to(login)),
       )
       .service(
+        web::resource("/user/password_reset")
+          .wrap(rate_limit.register())
+          .route(web::post().to(reset_password)),
+      )
+      .service(
         // Handle captcha separately
         web::resource("/user/get_captcha")
           .wrap(rate_limit.post())
@@ -293,11 +298,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         web::resource("/user/import_settings")
           .wrap(rate_limit.import_user_settings())
           .route(web::post().to(import_settings)),
-      )
-      .service(
-        web::resource("/user/password_reset")
-          .wrap(rate_limit.import_user_settings())
-          .route(web::post().to(reset_password)),
       )
       // TODO, all the current account related actions under /user need to get moved here eventually
       .service(
