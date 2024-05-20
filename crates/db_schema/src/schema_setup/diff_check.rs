@@ -16,7 +16,7 @@ enum DumpAction {
 pub struct DiffChecker {
   snapshot_conn: PgConnection,
   handles: Vec<thread::JoinHandle<()>>,
-  snapshot_sender: Option<Sender<(String, DumpAction)>>,
+  snapshot_sender: Option<Sender<((String,PgConnection), DumpAction)>>,
   error: Receiver<Box<dyn Any + Send + 'static>>,
   // todo rename to channels
   //dump_receivers: Arc<Mutex<HashMap<String, Receiver<String>>>>,
@@ -43,13 +43,14 @@ impl DiffChecker {
       let rx2 = rx.clone();
       let error_t = error_t.clone();
       handles.push(thread::spawn(move || if let Err(e) = std::panic::catch_unwind(move || {
-        while let Ok((snapshot, action)) = rx2.recv() {
+        while let Ok(((snapshot,conn), action)) = rx2.recv() {
           let snapshot_arg = format!("--snapshot={snapshot}");
           let output = Command::new("pg_dump")
             .args(["--schema-only", &snapshot_arg])
             .env("DATABASE_URL", SETTINGS.get_database_url())
             .output()
             .expect("failed to start pg_dump process");
+          std::mem::drop(conn);
           
           if !output.status.success() {
             panic!("{}", String::from_utf8(output.stderr).expect(""));
@@ -77,7 +78,8 @@ impl DiffChecker {
 
   fn check_err(&mut self) {
     if let Ok(e) = self.error.try_recv() {
-      std::panic::resume_unwind(e);
+      //std::panic::resume_unwind(e);
+      panic!();
     }
   }
 
@@ -89,10 +91,15 @@ impl DiffChecker {
     self.check_err();
   }
 
-  fn get_snapshot(&mut self) -> String {
-    diesel::select(pg_export_snapshot())
-      .get_result::<String>(&mut self.snapshot_conn)
-      .expect("pg_export_snapshot failed")
+  fn get_snapshot(&mut self) -> (String, PgConnection) {
+    let db_url = SETTINGS.get_database_url();
+    let mut conn = PgConnection::establish(&db_url).expect("conn2");
+    conn.batch_execute("BEGIN;").expect("begin");
+    //conn.batch_execute("SELECT * FROM __diesel_schema_migrations;").expect("b");
+    let snapshot = diesel::select(pg_export_snapshot())
+      .get_result::<String>(&mut conn)
+      .expect("pg_export_snapshot failed");
+    (snapshot,conn)
   }
 
   pub fn get_dump(&mut self) -> Receiver<String> {
