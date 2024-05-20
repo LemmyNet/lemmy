@@ -149,7 +149,7 @@ pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) 
       }
       .expect("failed to build string");
     }
-    write!(&mut output, "\n{most_similar_chunk_filtered}");
+    //write!(&mut output, "\n{most_similar_chunk_filtered}");
     if !chunks_gt.is_empty() {
     chunks_gt.swap_remove(most_similar_chunk_index);}
   }
