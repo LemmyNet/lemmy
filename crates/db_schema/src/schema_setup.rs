@@ -48,6 +48,8 @@ const REPLACEABLE_SCHEMA: &[&str] = &[
 struct MigrationHarnessWrapper<'a, 'b> {
   conn: &'a mut PgConnection,
   options: &'b Options,
+  #[cfg(test)]
+  diff_checker:diff_check::DiffChecker,
 }
 
 impl<'a, 'b> MigrationHarness<Pg> for MigrationHarnessWrapper<'a, 'b> {
@@ -59,13 +61,12 @@ impl<'a, 'b> MigrationHarness<Pg> for MigrationHarnessWrapper<'a, 'b> {
 
     #[cfg(test)]
     if self.options.enable_diff_check {
-      let before = diff_check::get_dump(&mut self.conn);
+      let before = self.diff_checker.get_dump();
       self.conn.run_migration(migration)?;
       self.conn.revert_migration(migration)?;
-      diff_check::check_dump_diff(
-        &mut self.conn,
+      self.diff_checker.check_dump_diff(
         before,
-        &format!("migrations/{name}/down.sql"),
+        format!("migrations/{name}/down.sql"),
       );
     }
 
@@ -75,6 +76,10 @@ impl<'a, 'b> MigrationHarness<Pg> for MigrationHarnessWrapper<'a, 'b> {
 
     let duration = start_time.elapsed().as_millis();
     info!("{duration}ms run {name}");
+    #[cfg(test)]
+    if result.is_err() {
+      self.diff_checker.finish();
+    }
 
     result
   }
@@ -153,6 +158,8 @@ impl Options {
 // TODO return struct with field `ran_replaceable_schema`
 pub fn run(options: Options) -> LemmyResult<()> {
   let db_url = SETTINGS.get_database_url();
+  #[cfg(test)]
+  let mut diff_checker = diff_check::DiffChecker::new(&db_url)?;
 
   // Migrations don't support async connection, and this function doesn't need to be async
   let mut conn =
@@ -198,6 +205,8 @@ pub fn run(options: Options) -> LemmyResult<()> {
     let mut wrapper = MigrationHarnessWrapper {
       conn,
       options: &options,
+      #[cfg(test)]
+      diff_checker,
     };
 
     // * Prevent other lemmy_server processes from running this transaction simultaneously by repurposing
@@ -247,7 +256,7 @@ pub fn run(options: Options) -> LemmyResult<()> {
     if !(options.revert && !options.redo_after_revert) {
       #[cfg(test)]
       if options.enable_diff_check {
-        let before = diff_check::get_dump(&mut wrapper.conn);
+        let before = wrapper.diff_checker.get_dump();
         // todo move replaceable_schema dir path to let/const?
         wrapper
           .conn
@@ -258,7 +267,7 @@ pub fn run(options: Options) -> LemmyResult<()> {
           .conn
           .batch_execute("DROP SCHEMA IF EXISTS r CASCADE;")?;
         // todo use different first output line in this case
-        diff_check::check_dump_diff(&mut wrapper.conn, before, "replaceable_schema");
+        wrapper.diff_checker.check_dump_diff(before, "replaceable_schema".to_owned());
       }
 
       wrapper
@@ -272,6 +281,8 @@ pub fn run(options: Options) -> LemmyResult<()> {
 
       debug_assert_eq!(num_rows_updated, 1);
     }
+    #[cfg(test)]
+    wrapper.diff_checker.finish();
 
     Ok(())
   };

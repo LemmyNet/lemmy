@@ -1,46 +1,122 @@
-use diesel::{PgConnection, RunQueryDsl};
+use diesel::{PgConnection, RunQueryDsl,connection::SimpleConnection,Connection};
 use lemmy_utils::settings::SETTINGS;
 use std::{
   borrow::Cow,
   collections::BTreeSet,
   fmt::Write,
-  process::{Command, Stdio},
+  process::{Command, Stdio},thread,cell::OnceCell,sync::{Arc,Mutex},collections::HashMap,any::Any
 };
+use crossbeam_channel::{Sender, Receiver};
+
+enum DumpAction {
+  Send(Sender<String>),
+  Compare(Receiver<String>, String),
+}
+
+pub struct DiffChecker {
+  snapshot_conn: PgConnection,
+  handles: Vec<thread::JoinHandle<()>>,
+  snapshot_sender: Option<Sender<(String, DumpAction)>>,
+  error: Receiver<Box<dyn Any + Send + 'static>>,
+  // todo rename to channels
+  //dump_receivers: Arc<Mutex<HashMap<String, Receiver<String>>>>,
+}
 
 diesel::sql_function! {
   fn pg_export_snapshot() -> diesel::sql_types::Text;
 }
 
-pub fn get_dump(conn: &mut PgConnection) -> String {
-  /*// Required for pg_dump to see uncommitted changes from a different database connection
+impl DiffChecker {
+  pub fn new(db_url: &str) -> diesel::result::QueryResult<Self> {
+    // todo use settings
+    let mut snapshot_conn = PgConnection::establish(db_url).expect("conn");
+    snapshot_conn.batch_execute("BEGIN;")?;
+    let (tx, rx) = crossbeam_channel::unbounded();
+    let (error_t, error_r) = crossbeam_channel::unbounded();
+    //let dump_receivers = Arc::new(Mutex::new(HashMap::new()));
 
-  // The pg_dump command runs independently from `conn`, which means it can't see changes from
-  // an uncommitted transaction. NASA made each migration run in a separate transaction. When
-  // it was discovered that 
-  let snapshot = diesel::select(pg_export_snapshot())
-    .get_result::<String>(conn)
-    .expect("pg_export_snapshot failed");
-  let snapshot_arg = format!("--snapshot={snapshot}");*/
-  let output = Command::new("pg_dump")
-    .args(["--schema-only"])
-    .env("DATABASE_URL", SETTINGS.get_database_url())
-    .stderr(Stdio::inherit())
-    .output()
-    .expect("failed to start pg_dump process");
+    let mut handles = Vec::new();
+    let n = usize::from(thread::available_parallelism().expect("parallelism"));
+    // todo remove
+    assert_eq!(16,n);
+    for _ in 0..(n){
+      let rx2 = rx.clone();
+      let error_t = error_t.clone();
+      handles.push(thread::spawn(move || if let Err(e) = std::panic::catch_unwind(move || {
+        while let Ok((snapshot, action)) = rx2.recv() {
+          let snapshot_arg = format!("--snapshot={snapshot}");
+          let output = Command::new("pg_dump")
+            .args(["--schema-only", &snapshot_arg])
+            .env("DATABASE_URL", SETTINGS.get_database_url())
+            .output()
+            .expect("failed to start pg_dump process");
+          
+          if !output.status.success() {
+            panic!("{}", String::from_utf8(output.stderr).expect(""));
+          }
+          
+          let output_string = String::from_utf8(output.stdout).expect("pg_dump output is not valid UTF-8 text");
+          match action {
+            DumpAction::Send(x) => {x.send(output_string).ok();},
+            DumpAction::Compare(x, name) => {
+              if let Ok(before) = x.recv() {
+                if let Some(e) = check_dump_diff(before, output_string, &name) {
+                  panic!("{e}");
+                }
+              }
+            }
+          }
+        }
+      }){
+        error_t.send(e).ok();
+      }));
+    }
 
-  // TODO: use exit_ok method when it's stable
-  assert!(output.status.success());
+    Ok(DiffChecker {snapshot_conn,handles,snapshot_sender:Some(tx),error:error_r})
+  }
 
-  String::from_utf8(output.stdout).expect("pg_dump output is not valid UTF-8 text")
+  fn check_err(&mut self) {
+    if let Ok(e) = self.error.try_recv() {
+      std::panic::resume_unwind(e);
+    }
+  }
+
+  pub fn finish(&mut self) {
+    self.snapshot_sender.take(); // stop threads from waiting
+    for handle in self.handles.drain(..) {
+      handle.join().expect("");
+    }
+    self.check_err();
+  }
+
+  fn get_snapshot(&mut self) -> String {
+    diesel::select(pg_export_snapshot())
+      .get_result::<String>(&mut self.snapshot_conn)
+      .expect("pg_export_snapshot failed")
+  }
+
+  pub fn get_dump(&mut self) -> Receiver<String> {
+    self.check_err();
+    let snapshot = self.get_snapshot();
+    let (tx, rx) = crossbeam_channel::unbounded(); // ::bounded(1);
+    self.snapshot_sender.as_mut().expect("").send((snapshot, DumpAction::Send(tx))).expect("send msg");
+    rx
+  }
+
+  pub fn check_dump_diff(&mut self, before: Receiver<String>, name: String) {
+    self.check_err();
+    let snapshot = self.get_snapshot();
+    self.snapshot_sender.as_mut().expect("").send((snapshot, DumpAction::Compare(before, name))).expect("compare msg");
+  }
 }
+
 
 const PATTERN_LEN: usize = 19;
 
 // TODO add unit test for output
-pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) {
-  let mut after = get_dump(conn);
+pub fn check_dump_diff(mut before: String, mut after: String, name: &str) -> Option<String> {
   if after == before {
-    return;
+    return None;
   }
   // Ignore timestamp differences by removing timestamps
   for dump in [&mut before, &mut after] {
@@ -97,7 +173,7 @@ pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) 
       .collect::<Vec<_>>()
   });
   if only_in_before.is_empty() && only_in_after.is_empty() {
-    return;
+    return None;
   }
   let after_has_more =
   only_in_before.len() < only_in_after.len();
@@ -142,13 +218,13 @@ pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) 
       }
       .expect("failed to build string");
     }
-    write!(&mut output, "\n{most_similar_chunk_filtered}");
+    write!(&mut output, "\n{most_similar_chunk_filtered}").expect("");
     if !chunks_gt.is_empty() {
     chunks_gt.swap_remove(most_similar_chunk_index);}
   }
   // should have all been removed
   assert_eq!(chunks_gt.len(), 0);
-  panic!("{output}");
+  Some(output)
 }
 
 // todo inline?
