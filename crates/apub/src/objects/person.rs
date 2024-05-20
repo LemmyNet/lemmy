@@ -30,6 +30,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
+  sensitive::SensitiveString,
   source::{
     activity::ActorType,
     local_site::LocalSite,
@@ -200,7 +201,7 @@ impl Actor for ApubPerson {
   }
 
   fn private_key_pem(&self) -> Option<String> {
-    self.private_key.clone()
+    self.private_key.clone().map(SensitiveString::into_inner)
   }
 
   fn inbox(&self) -> Url {

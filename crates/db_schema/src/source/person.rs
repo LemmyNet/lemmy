@@ -2,6 +2,7 @@
 use crate::schema::{person, person_follower};
 use crate::{
   newtypes::{DbUrl, InstanceId, PersonId},
+  sensitive::SensitiveString,
   source::placeholder_apub_url,
 };
 use chrono::{DateTime, Utc};
@@ -36,7 +37,7 @@ pub struct Person {
   /// Whether the person is local to our site.
   pub local: bool,
   #[serde(skip)]
-  pub private_key: Option<String>,
+  pub private_key: Option<SensitiveString>,
   #[serde(skip)]
   pub public_key: String,
   #[serde(skip)]
