@@ -24,6 +24,7 @@ pub mod aggregates;
 #[cfg(feature = "full")]
 pub mod impls;
 pub mod newtypes;
+pub mod sensitive;
 #[cfg(feature = "full")]
 #[rustfmt::skip]
 #[allow(clippy::wildcard_imports)]

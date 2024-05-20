@@ -29,6 +29,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   newtypes::InstanceId,
+  sensitive::SensitiveString,
   source::{
     activity::ActorType,
     actor_language::SiteLanguage,
@@ -187,7 +188,7 @@ impl Actor for ApubSite {
   }
 
   fn private_key_pem(&self) -> Option<String> {
-    self.private_key.clone()
+    self.private_key.clone().map(SensitiveString::into_inner)
   }
 
   fn inbox(&self) -> Url {

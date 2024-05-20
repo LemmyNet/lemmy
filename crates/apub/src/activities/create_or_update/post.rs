@@ -4,7 +4,6 @@ use crate::{
     community::send_activity_in_community,
     generate_activity_id,
     verify_is_public,
-    verify_mod_action,
     verify_person_in_community,
   },
   activity_lists::AnnouncableActivities,
@@ -78,14 +77,13 @@ impl CreateOrUpdatePage {
 
     let create_or_update =
       CreateOrUpdatePage::new(post.into(), &person, &community, kind, &context).await?;
-    let is_mod_action = create_or_update.object.is_mod_action(&context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
     send_activity_in_community(
       activity,
       &person,
       &community,
       ActivitySendTargets::empty(),
-      is_mod_action,
+      false,
       &context,
     )
     .await?;
@@ -112,30 +110,8 @@ impl ActivityHandler for CreateOrUpdatePage {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
-
-    match self.kind {
-      CreateOrUpdateType::Create => {
-        verify_domains_match(self.actor.inner(), self.object.id.inner())?;
-        verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
-        // Check that the post isnt locked, as that isnt possible for newly created posts.
-        // However, when fetching a remote post we generate a new create activity with the current
-        // locked value, so this check may fail. So only check if its a local community,
-        // because then we will definitely receive all create and update activities separately.
-        let is_locked = self.object.comments_enabled == Some(false);
-        if community.local && is_locked {
-          Err(LemmyErrorType::NewPostCannotBeLocked)?
-        }
-      }
-      CreateOrUpdateType::Update => {
-        let is_mod_action = self.object.is_mod_action(context).await?;
-        if is_mod_action {
-          verify_mod_action(&self.actor, &community, context).await?;
-        } else {
-          verify_domains_match(self.actor.inner(), self.object.id.inner())?;
-          verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
-        }
-      }
-    }
+    verify_domains_match(self.actor.inner(), self.object.id.inner())?;
+    verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
     ApubPost::verify(&self.object, self.actor.inner(), context).await?;
     Ok(())
   }
