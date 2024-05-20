@@ -34,7 +34,7 @@ use std::{
 };
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, info, warn, trace};
+use tracing::{debug, info, trace, warn};
 
 /// Check whether to save state to db every n sends if there's no failures (during failures state is saved after every attempt)
 /// This determines the batch size for loop_batch. After a batch ends and SAVE_STATE_EVERY_TIME has passed, the federation_queue_state is updated in the DB.
@@ -185,8 +185,7 @@ impl InstanceWorker {
       if let Err(e) = self.send_retry_loop(pool, &ele.0, &ele.1).await {
         warn!(
           "sending {} errored internally, skipping activity: {:?}",
-          ele.0.ap_id,
-          e
+          ele.0.ap_id, e
         );
       }
       if self.stop.is_cancelled() {
@@ -238,9 +237,7 @@ impl InstanceWorker {
         let retry_delay: Duration = federate_retry_sleep_duration(self.state.fail_count);
         info!(
           "{}: retrying {:?} attempt {} with delay {retry_delay:.2?}. ({e})",
-          self.instance.domain,
-          activity.id,
-          self.state.fail_count
+          self.instance.domain, activity.id, self.state.fail_count
         );
         self.save_and_send_state(pool).await?;
         tokio::select! {
