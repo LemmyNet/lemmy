@@ -284,6 +284,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.import_user_settings())
           .route(web::post().to(import_settings)),
       )
+      .service(
+        web::resource("/user/password_reset")
+          .wrap(rate_limit.import_user_settings())
+          .route(web::post().to(reset_password)),
+      )
       // TODO, all the current account related actions under /user need to get moved here eventually
       .service(
         web::scope("/account")
@@ -309,7 +314,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/login", web::post().to(login))
           .route("/logout", web::post().to(logout))
           .route("/delete_account", web::post().to(delete_account))
-          .route("/password_reset", web::post().to(reset_password))
           .route(
             "/password_change",
             web::post().to(change_password_after_reset),
