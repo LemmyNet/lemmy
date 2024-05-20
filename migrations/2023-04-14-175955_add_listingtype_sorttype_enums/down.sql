@@ -117,7 +117,7 @@ ALTER TABLE local_site
     ALTER COLUMN default_post_listing_type TYPE text;
 
 ALTER TABLE local_site
-    ALTER COLUMN default_post_listing_type SET DEFAULT 1;
+    ALTER COLUMN default_post_listing_type SET DEFAULT 'Local';
 
 -- Drop the types
 DROP TYPE listing_type_enum;

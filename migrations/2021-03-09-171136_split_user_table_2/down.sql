@@ -229,7 +229,7 @@ ALTER SEQUENCE person_id_seq
 -- Add the columns back in
 ALTER TABLE user_
     ADD COLUMN password_encrypted text NOT NULL DEFAULT 'changeme',
-    ADD COLUMN email text,
+    ADD COLUMN email text UNIQUE,
     ADD COLUMN admin boolean DEFAULT FALSE NOT NULL,
     ADD COLUMN show_nsfw boolean DEFAULT FALSE NOT NULL,
     ADD COLUMN theme character varying(20) DEFAULT 'darkly'::character varying NOT NULL,
@@ -238,7 +238,10 @@ ALTER TABLE user_
     ADD COLUMN lang character varying(20) DEFAULT 'browser'::character varying NOT NULL,
     ADD COLUMN show_avatars boolean DEFAULT TRUE NOT NULL,
     ADD COLUMN send_notifications_to_email boolean DEFAULT FALSE NOT NULL,
-    ADD COLUMN matrix_user_id text;
+    ADD COLUMN matrix_user_id text UNIQUE;
+
+-- Default is only for existing rows
+alter table user_ alter column password_encrypted drop default;
 
 -- Update the user_ table with the local_user data
 UPDATE
@@ -264,13 +267,63 @@ CREATE UNIQUE INDEX idx_user_email_lower ON user_ (lower(email));
 
 CREATE VIEW user_alias_1 AS
 SELECT
-    *
+    id,
+    actor_id,
+      admin,
+      avatar,
+      banned,
+      banner,
+      bio,
+      default_listing_type,
+      default_sort_type,
+      deleted,
+      email,
+      lang,
+      last_refreshed_at,
+      local,
+      matrix_user_id,
+      name,
+      password_encrypted,
+      preferred_username,
+      private_key,
+      public_key,
+      published,
+      send_notifications_to_email,
+      show_avatars,
+      show_nsfw,
+      theme,
+      updated
 FROM
     user_;
 
 CREATE VIEW user_alias_2 AS
 SELECT
-    *
+    id,
+    actor_id,
+      admin,
+      avatar,
+      banned,
+      banner,
+      bio,
+      default_listing_type,
+      default_sort_type,
+      deleted,
+      email,
+      lang,
+      last_refreshed_at,
+      local,
+      matrix_user_id,
+      name,
+      password_encrypted,
+      preferred_username,
+      private_key,
+      public_key,
+      published,
+      send_notifications_to_email,
+      show_avatars,
+      show_nsfw,
+      theme,
+      updated
 FROM
     user_;
 

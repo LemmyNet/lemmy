@@ -85,3 +85,21 @@ ALTER TABLE local_user
 -- drop the old enum
 DROP TYPE sort_type_enum__;
 
+-- Remove int to float conversions that were automatically added to index filters
+DROP INDEX
+idx_comment_aggregates_nonzero_hotrank,
+idx_community_aggregates_nonzero_hotrank,
+idx_post_aggregates_nonzero_hotrank;
+
+CREATE INDEX idx_community_aggregates_nonzero_hotrank ON community_aggregates (published)
+WHERE
+    hot_rank != 0;
+
+CREATE INDEX idx_comment_aggregates_nonzero_hotrank ON comment_aggregates (published)
+WHERE
+    hot_rank != 0;
+
+CREATE INDEX idx_post_aggregates_nonzero_hotrank ON post_aggregates (published DESC)
+WHERE
+    hot_rank != 0 OR hot_rank_active != 0;
+

@@ -21,7 +21,6 @@ pub fn get_dump(conn: &mut PgConnection) -> String {
     .get_result::<String>(conn)
     .expect("pg_export_snapshot failed");
   let snapshot_arg = format!("--snapshot={snapshot}");*/
-
   let output = Command::new("pg_dump")
     .args(["--schema-only"])
     .env("DATABASE_URL", SETTINGS.get_database_url())
@@ -40,6 +39,9 @@ const PATTERN_LEN: usize = 19;
 // TODO add unit test for output
 pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) {
   let mut after = get_dump(conn);
+  if after == before {
+    return;
+  }
   // Ignore timestamp differences by removing timestamps
   for dump in [&mut before, &mut after] {
     for index in 0.. {
@@ -74,9 +76,6 @@ pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) 
     }
   }
 
-  if after == before {
-    return;
-  }
   let [before_chunks, after_chunks] =
     [&before, &after].map(|dump| chunks(dump).collect::<BTreeSet<_>>());
 
@@ -102,8 +101,8 @@ pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) 
   }
   let after_has_more =
   only_in_before.len() < only_in_after.len();
-  // outer iterator in the loop below should be the one with empty strings, otherwise the empty strings
-  // would appear to have the most similarity
+  // outer iterator in the loop below should not be the one with empty strings, otherwise the empty strings
+  // would be equally similar to any other chunk
   let (chunks_gt, chunks_lt) = if after_has_more
   {
     only_in_before.resize_with(only_in_after.len(),Default::default);
@@ -118,15 +117,15 @@ pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) 
   for (before_chunk, before_chunk_filtered) in chunks_lt {
     let default = Default::default();
     //panic!("{:?}",(before_chunk.clone(),chunks_lt.clone()));
-    let (most_similar_chunk_index, (most_similar_chunk, _)) = chunks_gt
+    let (most_similar_chunk_index, (most_similar_chunk, most_similar_chunk_filtered)) = chunks_gt
       .iter()
       .enumerate()
       .max_by_key(|(_, (after_chunk, after_chunk_filtered))| {
         diff::chars(after_chunk_filtered, &before_chunk_filtered)
           .into_iter()
           .filter(|i| matches!(i, diff::Result::Both(c, _)
-          // This increases accuracy for some trigger function diffs
-          if c.is_lowercase()))
+          // `is_lowercase` increases accuracy for some trigger function diffs
+          if c.is_lowercase() || c.is_numeric()))
           .count()
       })
       .unwrap_or((0,&default));
@@ -143,6 +142,7 @@ pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) 
       }
       .expect("failed to build string");
     }
+    write!(&mut output, "\n{most_similar_chunk_filtered}");
     if !chunks_gt.is_empty() {
     chunks_gt.swap_remove(most_similar_chunk_index);}
   }
@@ -178,6 +178,37 @@ fn chunks<'a>(dump: &'a str) -> impl Iterator<Item = Cow<'a, str>> {
         (placement, line)
       });
       Cow::Owned(lines.join("\n"))
+    } else if result.starts_with("CREATE VIEW") || result.starts_with("CREATE OR REPLACE VIEW") {
+      // Allow column order to change
+      let is_simple_select_statement = result
+        .lines()
+        .enumerate()
+        .all(|(i, mut line)| {
+          line = line.trim_start();
+          match (i, line.chars().next()) {
+            (0, Some('C')) => true, // create
+            (1, Some('S')) => true, // select
+            (_, Some('F')) if line.ends_with(';') => true, // from
+            (_, Some(c)) if c.is_lowercase() => true, // column name
+            _ => false
+          }
+        });
+      if is_simple_select_statement {
+        let mut lines = result
+          .lines()
+          .map(|line| line.strip_suffix(',').unwrap_or(line))
+          .collect::<Vec<_>>();
+        lines.sort_unstable_by_key(|line| -> (u8, &str) {
+          let placement = match line.trim_start().chars().next() {
+            Some('C') => 0,
+            Some('S') => 1,
+            Some('F') => 3,
+            _ => 2,
+          };
+          (placement, line)
+        });
+        Cow::Owned(lines.join("\n"))
+      }else{Cow::Borrowed(result)}
     } else {
       Cow::Borrowed(result)
     })

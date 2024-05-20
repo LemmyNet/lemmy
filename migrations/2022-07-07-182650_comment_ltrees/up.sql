@@ -182,7 +182,7 @@ CREATE INDEX idx_path_gist ON comment USING gist (path);
 
 -- Drop the parent_id column
 ALTER TABLE comment
-    DROP COLUMN parent_id CASCADE,add column if not exists poop int;alter table post add column if not exists poop int;
+    DROP COLUMN parent_id CASCADE;
 
 ALTER TABLE comment ENABLE TRIGGER USER;
 
