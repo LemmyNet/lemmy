@@ -165,7 +165,7 @@ urlencoding = "2.1.3"
 enum-map = "2.7"
 moka = { version = "0.12.7", features = ["future"] }
 i-love-jesus = { version = "0.1.0" }
-clap = { version = "4.5.4", features = ["derive"] }
+clap = { version = "4.5.4", features = ["derive", "env"] }
 pretty_assertions = "1.4.0"
 
 [dependencies]

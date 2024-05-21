@@ -75,18 +75,18 @@ pub struct CmdArgs {
   ///
   /// If you are running multiple Lemmy server processes, you probably want to disable scheduled tasks on
   /// all but one of the processes, to avoid running the tasks more often than intended.
-  #[arg(long, default_value_t = false)]
+  #[arg(long, env, default_value_t = false)]
   disable_scheduled_tasks: bool,
   /// Disables the HTTP server.
   ///
   /// This can be used to run a Lemmy server process that only performs scheduled tasks or activity sending.
-  #[arg(long, default_value_t = false)]
+  #[arg(long, env, default_value_t = false)]
   disable_http_server: bool,
   /// Disable sending outgoing ActivityPub messages.
   ///
   /// Only pass this for horizontally scaled setups.
   /// See https://join-lemmy.org/docs/administration/horizontal_scaling.html for details.
-  #[arg(long, default_value_t = false)]
+  #[arg(long, env, default_value_t = false)]
   disable_activity_sending: bool,
   /// The index of this outgoing federation process.
   ///
@@ -96,12 +96,12 @@ pub struct CmdArgs {
   /// Make you have exactly one server with each `i` running, otherwise federation will randomly send duplicates or nothing.
   ///
   /// See https://join-lemmy.org/docs/administration/horizontal_scaling.html for more detail.
-  #[arg(long, default_value_t = 1)]
+  #[arg(long, env, default_value_t = 1)]
   federate_process_index: i32,
   /// How many outgoing federation processes you are starting in total.
   ///
   /// If set, make sure to set --federate-process-index differently for each.
-  #[arg(long, default_value_t = 1)]
+  #[arg(long, env, default_value_t = 1)]
   federate_process_count: i32,
 }
 
