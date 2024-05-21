@@ -440,7 +440,7 @@ pub async fn send_password_reset_email(
   // Insert the row after successful send, to avoid using daily reset limit while
   // email sending is broken.
   let local_user_id = user.local_user.id;
-  PasswordResetRequest::create_token(pool, local_user_id, token.clone()).await?;
+  PasswordResetRequest::create(pool, local_user_id, token.clone()).await?;
   Ok(())
 }
 

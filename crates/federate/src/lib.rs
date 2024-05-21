@@ -13,6 +13,7 @@ use tokio::{
   time::sleep,
 };
 use tokio_util::sync::CancellationToken;
+use tracing::info;
 
 mod util;
 mod worker;
@@ -44,6 +45,10 @@ async fn start_stop_federation_workers(
   let pool2 = &mut DbPool::Pool(&pool);
   let process_index = opts.process_index - 1;
   let local_domain = federation_config.settings().get_hostname_without_port()?;
+  info!(
+    "Starting federation workers for process count {} and index {}",
+    opts.process_count, process_index
+  );
   loop {
     let mut total_count = 0;
     let mut dead_count = 0;
