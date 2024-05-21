@@ -1,4 +1,3 @@
-use diesel::{PgConnection, RunQueryDsl};
 use lemmy_utils::settings::SETTINGS;
 use std::{
   borrow::Cow,
@@ -7,22 +6,22 @@ use std::{
   process::{Command, Stdio},
 };
 
-diesel::sql_function! {
-  fn pg_export_snapshot() -> diesel::sql_types::Text;
-}
+// It's not possible to call `export_snapshot()` for each dump and run the dumps in parallel with the
+// `--snapshot` flag. Don't waste your time!!!
 
-pub fn get_dump(conn: &mut PgConnection) -> String {
-  /*// Required for pg_dump to see uncommitted changes from a different database connection
-
-  // The pg_dump command runs independently from `conn`, which means it can't see changes from
-  // an uncommitted transaction. NASA made each migration run in a separate transaction. When
-  // it was discovered that 
-  let snapshot = diesel::select(pg_export_snapshot())
-    .get_result::<String>(conn)
-    .expect("pg_export_snapshot failed");
-  let snapshot_arg = format!("--snapshot={snapshot}");*/
+pub fn get_dump() -> String {
   let output = Command::new("pg_dump")
-    .args(["--schema-only", "--no-owner", "--no-privileges", "--no-comments", "--no-publications", "--no-security-labels", "--no-subscriptions", "--no-table-access-method", "--no-tablespaces"])
+    .args([
+      "--schema-only",
+      "--no-owner",
+      "--no-privileges",
+      "--no-comments",
+      "--no-publications",
+      "--no-security-labels",
+      "--no-subscriptions",
+      "--no-table-access-method",
+      "--no-tablespaces",
+    ])
     .env("DATABASE_URL", SETTINGS.get_database_url())
     .stderr(Stdio::inherit())
     .output()
@@ -36,17 +35,19 @@ pub fn get_dump(conn: &mut PgConnection) -> String {
 
 const PATTERN_LEN: usize = 19;
 
-// TODO add unit test for output
-pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) {
-  let mut after = get_dump(conn);
+pub fn check_dump_diff(mut after: String, mut before: String, label: &str) {
   if after == before {
     return;
   }
   // Ignore timestamp differences by removing timestamps
   for dump in [&mut before, &mut after] {
     for index in 0.. {
-      let Some(byte)=dump.as_bytes().get(index) else{break};
-      if !byte.is_ascii_digit() {continue;}
+      let Some(byte) = dump.as_bytes().get(index) else {
+        break;
+      };
+      if !byte.is_ascii_digit() {
+        continue;
+      }
       // Check for this pattern: 0000-00-00 00:00:00
       let Some((
         &[a0, a1, a2, a3, b0, a4, a5, b1, a6, a7, b2, a8, a9, b3, a10, a11, b4, a12, a13],
@@ -54,16 +55,16 @@ pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) 
       )) = dump
         .get(index..)
         .and_then(|s| s.as_bytes().split_first_chunk::<PATTERN_LEN>())
-        else {
-          break;
+      else {
+        break;
       };
       if [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13]
-      .into_iter()
-      .all(|byte| byte.is_ascii_digit())
+        .into_iter()
+        .all(|byte| byte.is_ascii_digit())
         && [b0, b1, b2, b3, b4] == *b"-- ::"
-        {
-          // Replace the part of the string that has the checked pattern and an optional fractional part
-          let len_after = if let Some((b'.', s)) = remaining.split_first() {
+      {
+        // Replace the part of the string that has the checked pattern and an optional fractional part
+        let len_after = if let Some((b'.', s)) = remaining.split_first() {
           1 + s.iter().position(|c| !c.is_ascii_digit()).unwrap_or(0)
         } else {
           0
@@ -79,69 +80,85 @@ pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) 
   }
 
   let [before_chunks, after_chunks] =
-  [&before, &after].map(|dump| chunks(dump).collect::<BTreeSet<_>>());
-  let only_b = before_chunks.difference(&after_chunks).copied().map(process_chunk).collect::<BTreeSet<_>>();
-  let only_a = after_chunks.difference(&before_chunks).copied().map(process_chunk).collect::<BTreeSet<_>>();
-  
+    [&before, &after].map(|dump| chunks(dump).collect::<BTreeSet<_>>());
+  let only_b = before_chunks
+    .difference(&after_chunks)
+    .copied()
+    .map(process_chunk)
+    .collect::<BTreeSet<_>>();
+  let only_a = after_chunks
+    .difference(&before_chunks)
+    .copied()
+    .map(process_chunk)
+    .collect::<BTreeSet<_>>();
+
   // todo dont collect only_in_before?
-  let [mut only_in_before, mut only_in_after] = [
-    only_b.difference(&only_a),
-    only_a.difference(&only_b),
-  ]
-  .map(|chunks| {
-    chunks
-      .map(|chunk| {
-        (
-          &**chunk,
-          // Used for ignoring formatting differences, especially indentation level, when
-          // determining which item in `only_in_before` corresponds to which item in `only_in_after`
-          chunk.replace([' ', '\t', '\r', '\n'], ""),
-        )
-      })
-      .collect::<Vec<_>>()
-  });
+  let [mut only_in_before, mut only_in_after] =
+    [only_b.difference(&only_a), only_a.difference(&only_b)].map(|chunks| {
+      chunks
+        .map(|chunk| {
+          (
+            &**chunk,
+            // Used for ignoring formatting differences, especially indentation level, when
+            // determining which item in `only_in_before` corresponds to which item in `only_in_after`
+            chunk.replace([' ', '\t', '\r', '\n'], ""),
+          )
+        })
+        .collect::<Vec<_>>()
+    });
   if only_in_before.is_empty() && only_in_after.is_empty() {
     return;
   }
-  let after_has_more =
-  only_in_before.len() < only_in_after.len();
+  let after_has_more = only_in_before.len() < only_in_after.len();
   // outer iterator in the loop below should not be the one with empty strings, otherwise the empty strings
   // would be equally similar to any other chunk
-  let (chunks_gt, chunks_lt) = if after_has_more
-  {
-    only_in_before.resize_with(only_in_after.len(),Default::default);
+  let (chunks_gt, chunks_lt) = if after_has_more {
+    only_in_before.resize_with(only_in_after.len(), Default::default);
     (&mut only_in_after, &only_in_before)
   } else {
-    only_in_after.resize_with(only_in_before.len(),Default::default);
+    only_in_after.resize_with(only_in_before.len(), Default::default);
     (&mut only_in_before, &only_in_after)
   };
 
-  let mut output = format!("These changes need to be applied in {name}:");
+  let mut output = label.to_owned();
   // todo rename variables
   for (before_chunk, before_chunk_filtered) in chunks_lt {
     let default = Default::default();
     //panic!("{:?}",(before_chunk.clone(),chunks_lt.clone()));
-    let (most_similar_chunk_index, (most_similar_chunk, most_similar_chunk_filtered)) = chunks_gt
+    let (most_similar_chunk_index, (most_similar_chunk, _)) = chunks_gt
       .iter()
       .enumerate()
       .max_by_key(|(_, (after_chunk, after_chunk_filtered))| {
-        if
-        after_chunk.split_once(|c:char|c.is_lowercase()).unwrap_or_default().0 !=
-        before_chunk.split_once(|c:char|c.is_lowercase()).unwrap_or_default().0 {0}else{
-        diff::chars(after_chunk_filtered, &before_chunk_filtered)
-          .into_iter()
-          .filter(|i| matches!(i, diff::Result::Both(c, _)
+        if after_chunk
+          .split_once(|c: char| c.is_lowercase())
+          .unwrap_or_default()
+          .0
+          != before_chunk
+            .split_once(|c: char| c.is_lowercase())
+            .unwrap_or_default()
+            .0
+        {
+          0
+        } else {
+          diff::chars(after_chunk_filtered, &before_chunk_filtered)
+            .into_iter()
+            .filter(|i| {
+              matches!(i, diff::Result::Both(c, _)
           // `is_lowercase` increases accuracy for some trigger function diffs
-          if c.is_lowercase() || c.is_numeric()))
-          .count()}
+          if c.is_lowercase() || c.is_numeric())
+            })
+            .count()
+        }
       })
-      .unwrap_or((0,&default));
+      .unwrap_or((0, &default));
 
     output.push('\n');
-    let lines = if !after_has_more{diff::lines(&before_chunk,most_similar_chunk)}else{
-    diff::lines(most_similar_chunk, &before_chunk)};
-    for line in lines
-    {
+    let lines = if !after_has_more {
+      diff::lines(&before_chunk, most_similar_chunk)
+    } else {
+      diff::lines(most_similar_chunk, &before_chunk)
+    };
+    for line in lines {
       match line {
         diff::Result::Left(s) => write!(&mut output, "\n- {s}"),
         diff::Result::Right(s) => write!(&mut output, "\n+ {s}"),
@@ -151,7 +168,8 @@ pub fn check_dump_diff(conn: &mut PgConnection, mut before: String, name: &str) 
     }
     //write!(&mut output, "\n{most_similar_chunk_filtered}");
     if !chunks_gt.is_empty() {
-    chunks_gt.swap_remove(most_similar_chunk_index);}
+      chunks_gt.swap_remove(most_similar_chunk_index);
+    }
   }
   // should have all been removed
   assert_eq!(chunks_gt.len(), 0);
@@ -177,19 +195,16 @@ fn process_chunk<'a>(result: &'a str) -> Cow<'a, str> {
     Cow::Owned(lines.join("\n"))
   } else if result.starts_with("CREATE VIEW") || result.starts_with("CREATE OR REPLACE VIEW") {
     // Allow column order to change
-    let is_simple_select_statement = result
-      .lines()
-      .enumerate()
-      .all(|(i, mut line)| {
-        line = line.trim_start();
-        match (i, line.chars().next()) {
-          (0, Some('C')) => true, // create
-          (1, Some('S')) => true, // select
-          (_, Some('F')) if line.ends_with(';') => true, // from
-          (_, Some(c)) if c.is_lowercase() => true, // column name
-          _ => false
-        }
-      });
+    let is_simple_select_statement = result.lines().enumerate().all(|(i, mut line)| {
+      line = line.trim_start();
+      match (i, line.chars().next()) {
+        (0, Some('C')) => true,                        // create
+        (1, Some('S')) => true,                        // select
+        (_, Some('F')) if line.ends_with(';') => true, // from
+        (_, Some(c)) if c.is_lowercase() => true,      // column name
+        _ => false,
+      }
+    });
     if is_simple_select_statement {
       let mut lines = result
         .lines()
@@ -205,7 +220,9 @@ fn process_chunk<'a>(result: &'a str) -> Cow<'a, str> {
         (placement, line)
       });
       Cow::Owned(lines.join("\n"))
-    }else{Cow::Borrowed(result)}
+    } else {
+      Cow::Borrowed(result)
+    }
   } else {
     Cow::Borrowed(result)
   }
