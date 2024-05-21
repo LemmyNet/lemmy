@@ -273,7 +273,7 @@ impl PersonMentionView {
   }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct PersonMentionQuery {
   pub my_person_id: Option<PersonId>,
   pub recipient_id: Option<PersonId>,
@@ -287,5 +287,145 @@ pub struct PersonMentionQuery {
 impl PersonMentionQuery {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PersonMentionView>, Error> {
     queries().list(pool, self).await
+  }
+}
+
+#[cfg(test)]
+#[allow(clippy::indexing_slicing)]
+mod tests {
+
+  use crate::{person_mention_view::PersonMentionQuery, structs::PersonMentionView};
+  use lemmy_db_schema::{
+    source::{
+      comment::{Comment, CommentInsertForm},
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      person::{Person, PersonInsertForm},
+      person_block::{PersonBlock, PersonBlockForm},
+      person_mention::{PersonMention, PersonMentionInsertForm, PersonMentionUpdateForm},
+      post::{Post, PostInsertForm},
+    },
+    traits::{Blockable, Crud},
+    utils::build_db_pool_for_tests,
+  };
+  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use pretty_assertions::assert_eq;
+  use serial_test::serial;
+
+  #[tokio::test]
+  #[serial]
+  async fn test_crud() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let new_person = PersonInsertForm::builder()
+      .name("terrylake".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_person = Person::create(pool, &new_person).await?;
+
+    let recipient_form = PersonInsertForm::builder()
+      .name("terrylakes recipient".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_recipient = Person::create(pool, &recipient_form).await?;
+    let recipient_id = inserted_recipient.id;
+
+    let new_community = CommunityInsertForm::builder()
+      .name("test community lake".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_community = Community::create(pool, &new_community).await?;
+
+    let new_post = PostInsertForm::builder()
+      .name("A test post".into())
+      .creator_id(inserted_person.id)
+      .community_id(inserted_community.id)
+      .build();
+
+    let inserted_post = Post::create(pool, &new_post).await?;
+
+    let comment_form = CommentInsertForm::builder()
+      .content("A test comment".into())
+      .creator_id(inserted_person.id)
+      .post_id(inserted_post.id)
+      .build();
+
+    let inserted_comment = Comment::create(pool, &comment_form, None).await?;
+
+    let person_mention_form = PersonMentionInsertForm {
+      recipient_id: inserted_recipient.id,
+      comment_id: inserted_comment.id,
+      read: None,
+    };
+
+    let inserted_mention = PersonMention::create(pool, &person_mention_form).await?;
+
+    let expected_mention = PersonMention {
+      id: inserted_mention.id,
+      recipient_id: inserted_mention.recipient_id,
+      comment_id: inserted_mention.comment_id,
+      read: false,
+      published: inserted_mention.published,
+    };
+
+    let read_mention = PersonMention::read(pool, inserted_mention.id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindComment)?;
+
+    let person_mention_update_form = PersonMentionUpdateForm { read: Some(false) };
+    let updated_mention =
+      PersonMention::update(pool, inserted_mention.id, &person_mention_update_form).await?;
+
+    // Test to make sure counts and blocks work correctly
+    let unread_mentions = PersonMentionView::get_unread_mentions(pool, recipient_id).await?;
+
+    let query = PersonMentionQuery {
+      recipient_id: Some(recipient_id),
+      my_person_id: Some(recipient_id),
+      sort: None,
+      unread_only: false,
+      show_bot_accounts: true,
+      page: None,
+      limit: None,
+    };
+    let mentions = query.clone().list(pool).await?;
+    assert_eq!(1, unread_mentions);
+    assert_eq!(1, mentions.len());
+
+    // Block the person, and make sure these counts are now empty
+    let block_form = PersonBlockForm {
+      person_id: recipient_id,
+      target_id: inserted_person.id,
+    };
+    PersonBlock::block(pool, &block_form).await?;
+
+    let unread_mentions_after_block =
+      PersonMentionView::get_unread_mentions(pool, recipient_id).await?;
+    let mentions_after_block = query.list(pool).await?;
+    assert_eq!(0, unread_mentions_after_block);
+    assert_eq!(0, mentions_after_block.len());
+
+    Comment::delete(pool, inserted_comment.id).await?;
+    Post::delete(pool, inserted_post.id).await?;
+    Community::delete(pool, inserted_community.id).await?;
+    Person::delete(pool, inserted_person.id).await?;
+    Person::delete(pool, inserted_recipient.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    assert_eq!(expected_mention, read_mention);
+    assert_eq!(expected_mention, inserted_mention);
+    assert_eq!(expected_mention, updated_mention);
+
+    Ok(())
   }
 }
