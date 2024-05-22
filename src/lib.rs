@@ -113,6 +113,7 @@ pub struct CmdArgs {
 #[derive(Subcommand, Debug)]
 enum CmdSubcommand {
   /// Do something with migrations, then exit.
+  #[command(args_conflicts_with_subcommands = false)]
   Migration {
     #[command(subcommand)]
     subcommand: MigrationSubcommand,
