@@ -2,7 +2,6 @@ use lemmy_utils::settings::SETTINGS;
 use std::{
   borrow::Cow,
   collections::btree_set::{self, BTreeSet},
-  fmt::Write,
   process::{Command, Stdio},
 };
 
@@ -35,7 +34,7 @@ pub fn get_dump() -> String {
 
 const PATTERN_LEN: usize = 19;
 
-pub fn check_dump_diff(mut after: String, mut before: String, label: &str) {
+pub fn check_dump_diff(before: String, after: String, label: &str) {
   // Performance optimization
   if after == before {
     return;
@@ -48,7 +47,7 @@ pub fn check_dump_diff(mut after: String, mut before: String, label: &str) {
     // Remove items without unwanted types of differences (if migrations are correct, then this removes everything)
     .map(|chunks| chunks.map(|&i| normalize_chunk(i)).collect::<BTreeSet<_>>());
 
-  let [mut only_in_before, mut only_in_after] = normalized_chunk_vecs
+  let [only_in_before, only_in_after] = normalized_chunk_vecs
     .differences()
     .map(|chunks| chunks.map(|i| &**i).collect::<Vec<_>>());
 
@@ -59,7 +58,7 @@ pub fn check_dump_diff(mut after: String, mut before: String, label: &str) {
   // Build the panic message
 
   let after_has_more = only_in_before.len() < only_in_after.len();
-  let [mut chunks, mut other_chunks] = if after_has_more {
+  let [chunks, mut other_chunks] = if after_has_more {
     [only_in_before, only_in_after]
   } else {
     [only_in_after, only_in_before]
@@ -73,17 +72,17 @@ pub fn check_dump_diff(mut after: String, mut before: String, label: &str) {
         .iter()
         .enumerate()
         .max_by_key(|(_, other_chunk)| {
-          if sql_command_name(&chunk) != sql_command_name(&other_chunk) {
+          if sql_command_name(chunk) != sql_command_name(other_chunk) {
             0
           } else {
-            similarity(&chunk, &other_chunk)
+            similarity(chunk, other_chunk)
           }
         })?;
 
       let lines = if after_has_more {
-        diff::lines(most_similar_chunk, &chunk)
+        diff::lines(most_similar_chunk, chunk)
       } else {
-        diff::lines(&chunk, most_similar_chunk)
+        diff::lines(chunk, most_similar_chunk)
       };
 
       other_chunks.swap_remove(most_similar_chunk_index);
@@ -119,7 +118,7 @@ impl<T: Ord> Differences<T> for [BTreeSet<T>; 2] {
   /// Items only in `a`, and items only in `b`
   fn differences(&self) -> [btree_set::Difference<'_, T>; 2] {
     let [a, b] = self;
-    [a.difference(&b), b.difference(&a)]
+    [a.difference(b), b.difference(a)]
   }
 }
 
@@ -151,7 +150,7 @@ fn similarity(chunk: &str, other_chunk: &str) -> usize {
     .count()
 }
 
-fn normalize_chunk<'a>(chunk: &'a str) -> Cow<'a, str> {
+fn normalize_chunk(chunk: &str) -> Cow<'_, str> {
   let mut chunk = Cow::Borrowed(chunk);
 
   let stripped_lines = chunk
@@ -254,7 +253,7 @@ fn normalize_chunk<'a>(chunk: &'a str) -> Cow<'a, str> {
   chunk
 }
 
-fn sort_within_sections<T: Ord + ?Sized>(vec: &mut Vec<&T>, mut section: impl FnMut(&T) -> u8) {
+fn sort_within_sections<T: Ord + ?Sized>(vec: &mut [&T], mut section: impl FnMut(&T) -> u8) {
   vec.sort_unstable_by_key(|&i| (section(i), i));
 }
 
