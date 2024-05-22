@@ -56,23 +56,16 @@ impl CancellableTask {
   /// spawn a task but with graceful shutdown
   pub fn spawn<F, R: Debug>(
     timeout: Duration,
-    task: impl Fn(CancellationToken) -> F + Send + 'static,
+    task: impl FnOnce(CancellationToken) -> F + Send + 'static,
   ) -> CancellableTask
   where
     F: Future<Output = R> + Send + 'static,
+    R: Send + 'static,
   {
     let stop = CancellationToken::new();
     let stop2 = stop.clone();
-    let task: JoinHandle<()> = tokio::spawn(async move {
-      loop {
-        let res = task(stop2.clone()).await;
-        if stop2.is_cancelled() {
-          return;
-        } else {
-          tracing::warn!("task exited, restarting: {res:?}");
-        }
-      }
-    });
+    // TODO: need to print error
+    let task: JoinHandle<R> = tokio::spawn(task(stop2.clone()));
     let abort = task.abort_handle();
     CancellableTask {
       f: Box::pin(async move {
