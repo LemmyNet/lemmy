@@ -114,13 +114,19 @@ enum CmdSubcommand {
   Migration {
     #[command(subcommand)]
     subcommand: MigrationSubcommand,
+    #[arg(short, long, conflicts_with("number"))]
+    all: bool,
+    #[arg(short, long, default_value_t = 1)]
+    number: u64,
   },
 }
 
 #[derive(Subcommand, Debug)]
 enum MigrationSubcommand {
-  /// Run all pending migrations.
+  /// Run up.sql for the specified migrations.
   Run,
+  /// Run down.sql for the specified migrations.
+  Revert,
 }
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
@@ -128,10 +134,21 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   // Print version number to log
   println!("Lemmy v{VERSION}");
 
-  if let Some(CmdSubcommand::Migration { subcommand }) = args.subcommand {
-    let options = match subcommand {
-      MigrationSubcommand::Run => schema_setup::Options::default(),
+  // todo test
+  if let Some(CmdSubcommand::Migration {
+    subcommand,
+    all,
+    number,
+  }) = args.subcommand
+  {
+    let mut options = match subcommand {
+      MigrationSubcommand::Run => schema_setup::Options::default().run(),
+      MigrationSubcommand::Revert => schema_setup::Options::default().revert(),
     };
+
+    if !all {
+      options = options.limit(number);
+    }
 
     schema_setup::run(options)?;
 

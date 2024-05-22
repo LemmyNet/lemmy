@@ -1014,7 +1014,7 @@ BEGIN
 END
 $$;
 
-CREATE or replace TRIGGER refresh_community_follower
+CREATE OR REPLACE TRIGGER refresh_community_follower
     AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON community_follower
     FOR EACH statement
     EXECUTE PROCEDURE refresh_community_follower ();
@@ -1031,7 +1031,7 @@ BEGIN
 END
 $$;
 
-CREATE or replace TRIGGER refresh_community_user_ban
+CREATE OR REPLACE TRIGGER refresh_community_user_ban
     AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON community_user_ban
     FOR EACH statement
     EXECUTE PROCEDURE refresh_community_user_ban ();
@@ -1048,12 +1048,12 @@ BEGIN
 END
 $$;
 
-CREATE or replace TRIGGER refresh_post_like
+CREATE OR REPLACE TRIGGER refresh_post_like
     AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON post_like
     FOR EACH statement
     EXECUTE PROCEDURE refresh_post_like ();
 
-CREATE or replace VIEW community_moderator_view AS
+CREATE OR REPLACE VIEW community_moderator_view AS
 SELECT
     *,
     (
@@ -1107,7 +1107,7 @@ SELECT
 FROM
     community_moderator cm;
 
-CREATE or replace VIEW community_follower_view AS
+CREATE OR REPLACE VIEW community_follower_view AS
 SELECT
     *,
     (
@@ -1161,7 +1161,7 @@ SELECT
 FROM
     community_follower cf;
 
-CREATE or replace VIEW community_user_ban_view AS
+CREATE OR REPLACE VIEW community_user_ban_view AS
 SELECT
     *,
     (

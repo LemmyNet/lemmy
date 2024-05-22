@@ -1,4 +1,4 @@
-use crate::{newtypes::DbUrl, CommentSortType, SortType};
+use crate::{newtypes::DbUrl, CommentSortType, SortType,schema_setup};
 use chrono::{DateTime, TimeDelta, Utc};
 use deadpool::Runtime;
 use diesel::{
@@ -427,7 +427,7 @@ pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  crate::schema_setup::run(Default::default())?;
+  schema_setup::run(schema_setup::Options::default().run())?;
 
   Ok(pool)
 }

@@ -86,10 +86,7 @@ ALTER TABLE local_user
 DROP TYPE sort_type_enum__;
 
 -- Remove int to float conversions that were automatically added to index filters
-DROP INDEX
-idx_comment_aggregates_nonzero_hotrank,
-idx_community_aggregates_nonzero_hotrank,
-idx_post_aggregates_nonzero_hotrank;
+DROP INDEX idx_comment_aggregates_nonzero_hotrank, idx_community_aggregates_nonzero_hotrank, idx_post_aggregates_nonzero_hotrank;
 
 CREATE INDEX idx_community_aggregates_nonzero_hotrank ON community_aggregates (published)
 WHERE

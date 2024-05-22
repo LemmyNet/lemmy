@@ -241,7 +241,8 @@ ALTER TABLE user_
     ADD COLUMN matrix_user_id text UNIQUE;
 
 -- Default is only for existing rows
-alter table user_ alter column password_encrypted drop default;
+ALTER TABLE user_
+    ALTER COLUMN password_encrypted DROP DEFAULT;
 
 -- Update the user_ table with the local_user data
 UPDATE
@@ -269,30 +270,30 @@ CREATE VIEW user_alias_1 AS
 SELECT
     id,
     actor_id,
-      admin,
-      avatar,
-      banned,
-      banner,
-      bio,
-      default_listing_type,
-      default_sort_type,
-      deleted,
-      email,
-      lang,
-      last_refreshed_at,
-      local,
-      matrix_user_id,
-      name,
-      password_encrypted,
-      preferred_username,
-      private_key,
-      public_key,
-      published,
-      send_notifications_to_email,
-      show_avatars,
-      show_nsfw,
-      theme,
-      updated
+    admin,
+    avatar,
+    banned,
+    banner,
+    bio,
+    default_listing_type,
+    default_sort_type,
+    deleted,
+    email,
+    lang,
+    last_refreshed_at,
+    local,
+    matrix_user_id,
+    name,
+    password_encrypted,
+    preferred_username,
+    private_key,
+    public_key,
+    published,
+    send_notifications_to_email,
+    show_avatars,
+    show_nsfw,
+    theme,
+    updated
 FROM
     user_;
 
@@ -300,30 +301,30 @@ CREATE VIEW user_alias_2 AS
 SELECT
     id,
     actor_id,
-      admin,
-      avatar,
-      banned,
-      banner,
-      bio,
-      default_listing_type,
-      default_sort_type,
-      deleted,
-      email,
-      lang,
-      last_refreshed_at,
-      local,
-      matrix_user_id,
-      name,
-      password_encrypted,
-      preferred_username,
-      private_key,
-      public_key,
-      published,
-      send_notifications_to_email,
-      show_avatars,
-      show_nsfw,
-      theme,
-      updated
+    admin,
+    avatar,
+    banned,
+    banner,
+    bio,
+    default_listing_type,
+    default_sort_type,
+    deleted,
+    email,
+    lang,
+    last_refreshed_at,
+    local,
+    matrix_user_id,
+    name,
+    password_encrypted,
+    preferred_username,
+    private_key,
+    public_key,
+    published,
+    send_notifications_to_email,
+    show_avatars,
+    show_nsfw,
+    theme,
+    updated
 FROM
     user_;
 
