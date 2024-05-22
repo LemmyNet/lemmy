@@ -44,6 +44,7 @@ pub mod site;
 pub mod sitemap;
 
 /// Converts the captcha to a base64 encoded wav audio file
+#[allow(deprecated)]
 pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> LemmyResult<String> {
   let letters = captcha.as_wav();
 
