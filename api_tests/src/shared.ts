@@ -81,6 +81,8 @@ import { ListingType } from "lemmy-js-client/dist/types/ListingType";
 
 export const fetchFunction = fetch;
 export const imageFetchLimit = 50;
+export const sampleImage =
+  "https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg";
 
 export let alphaUrl = "http://127.0.0.1:8541";
 export let betaUrl = "http://127.0.0.1:8551";
@@ -179,6 +181,10 @@ export async function setupLogins() {
     "lemmy-epsilon",
   ];
   await gamma.editSite(editSiteForm);
+
+  // Setup delta allowed instance
+  editSiteForm.allowed_instances = ["lemmy-beta"];
+  await delta.editSite(editSiteForm);
 
   // Create the main alpha/beta communities
   // Ignore thrown errors of duplicates
@@ -693,8 +699,8 @@ export async function saveUserSettingsBio(
 export async function saveUserSettingsFederated(
   api: LemmyHttp,
 ): Promise<SuccessResponse> {
-  let avatar = "https://image.flaticon.com/icons/png/512/35/35896.png";
-  let banner = "https://image.flaticon.com/icons/png/512/36/35896.png";
+  let avatar = sampleImage;
+  let banner = sampleImage;
   let bio = "a changed bio";
   let form: SaveUserSettings = {
     show_nsfw: false,
@@ -760,6 +766,7 @@ export async function unfollowRemotes(
   await Promise.all(
     remoteFollowed.map(cu => followCommunity(api, false, cu.community.id)),
   );
+
   let siteRes = await getSite(api);
   return siteRes;
 }
@@ -889,14 +896,17 @@ export async function deleteAllImages(api: LemmyHttp) {
     limit: imageFetchLimit,
   });
   imagesRes.images;
-
-  for (const image of imagesRes.images) {
-    const form: DeleteImage = {
-      token: image.local_image.pictrs_delete_token,
-      filename: image.local_image.pictrs_alias,
-    };
-    await api.deleteImage(form);
-  }
+  Promise.all(
+    imagesRes.images
+      .map(image => {
+        const form: DeleteImage = {
+          token: image.local_image.pictrs_delete_token,
+          filename: image.local_image.pictrs_alias,
+        };
+        return form;
+      })
+      .map(form => api.deleteImage(form)),
+  );
 }
 
 export async function unfollows() {
@@ -907,6 +917,24 @@ export async function unfollows() {
     unfollowRemotes(delta),
     unfollowRemotes(epsilon),
   ]);
+  await Promise.all([
+    purgeAllPosts(alpha),
+    purgeAllPosts(beta),
+    purgeAllPosts(gamma),
+    purgeAllPosts(delta),
+    purgeAllPosts(epsilon),
+  ]);
+}
+
+export async function purgeAllPosts(api: LemmyHttp) {
+  // The best way to get all federated items, is to find the posts
+  let res = await api.getPosts({ type_: "All", limit: 50 });
+  await Promise.all(
+    Array.from(new Set(res.posts.map(p => p.post.id)))
+      .map(post_id => api.purgePost({ post_id }))
+      // Ignore errors
+      .map(p => p.catch(e => e)),
+  );
 }
 
 export function getCommentParentId(comment: Comment): number | undefined {
