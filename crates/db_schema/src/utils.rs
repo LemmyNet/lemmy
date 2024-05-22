@@ -1,4 +1,4 @@
-use crate::{newtypes::DbUrl, CommentSortType, SortType,schema_setup};
+use crate::{newtypes::DbUrl, schema_setup, CommentSortType, SortType};
 use chrono::{DateTime, TimeDelta, Utc};
 use deadpool::Runtime;
 use diesel::{
