@@ -46,9 +46,7 @@ pub fn check_dump_diff(mut after: String, mut before: String, label: &str) {
     .map(|dump| chunks(dump).collect::<BTreeSet<_>>())
     .differences()
     // Remove items without unwanted types of differences (if migrations are correct, then this removes everything)
-    .map(|chunks| {
-      chunks.map(|&i| normalize_chunk(i)).collect::<BTreeSet<_>>()
-    });
+    .map(|chunks| chunks.map(|&i| normalize_chunk(i)).collect::<BTreeSet<_>>());
 
   let [mut only_in_before, mut only_in_after] = normalized_chunk_vecs
     .differences()
@@ -257,7 +255,7 @@ fn normalize_chunk<'a>(chunk: &'a str) -> Cow<'a, str> {
 }
 
 fn sort_within_sections<T: Ord + ?Sized>(vec: &mut Vec<&T>, mut section: impl FnMut(&T) -> u8) {
-  vec.sort_unstable_by_key(|&i|(section(i),i));
+  vec.sort_unstable_by_key(|&i| (section(i), i));
 }
 
 fn chunks(dump: &str) -> impl Iterator<Item = &str> {
