@@ -1,6 +1,6 @@
 use crate::structs::CommentReplyView;
 use diesel::{
-  dsl::exists,
+  dsl::{exists, not},
   pg::Pg,
   result::Error,
   sql_types,
@@ -217,6 +217,11 @@ fn queries<'a>() -> Queries<
       CommentSortType::Top => query.order_by(comment_aggregates::score.desc()),
     };
 
+    // Don't show replies from blocked persons
+    if let Some(my_person_id) = options.my_person_id {
+      query = query.filter(not(is_creator_blocked(my_person_id)));
+    }
+
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
     query
@@ -268,7 +273,7 @@ impl CommentReplyView {
   }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct CommentReplyQuery {
   pub my_person_id: Option<PersonId>,
   pub recipient_id: Option<PersonId>,
@@ -282,5 +287,143 @@ pub struct CommentReplyQuery {
 impl CommentReplyQuery {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommentReplyView>, Error> {
     queries().list(pool, self).await
+  }
+}
+
+#[cfg(test)]
+#[allow(clippy::indexing_slicing)]
+mod tests {
+
+  use crate::{comment_reply_view::CommentReplyQuery, structs::CommentReplyView};
+  use lemmy_db_schema::{
+    source::{
+      comment::{Comment, CommentInsertForm},
+      comment_reply::{CommentReply, CommentReplyInsertForm, CommentReplyUpdateForm},
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      person::{Person, PersonInsertForm},
+      person_block::{PersonBlock, PersonBlockForm},
+      post::{Post, PostInsertForm},
+    },
+    traits::{Blockable, Crud},
+    utils::build_db_pool_for_tests,
+  };
+  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use pretty_assertions::assert_eq;
+  use serial_test::serial;
+
+  #[tokio::test]
+  #[serial]
+  async fn test_crud() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let terry_form = PersonInsertForm::builder()
+      .name("terrylake".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+    let inserted_terry = Person::create(pool, &terry_form).await?;
+
+    let recipient_form = PersonInsertForm::builder()
+      .name("terrylakes recipient".into())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_recipient = Person::create(pool, &recipient_form).await?;
+    let recipient_id = inserted_recipient.id;
+
+    let new_community = CommunityInsertForm::builder()
+      .name("test community lake".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_community = Community::create(pool, &new_community).await?;
+
+    let new_post = PostInsertForm::builder()
+      .name("A test post".into())
+      .creator_id(inserted_terry.id)
+      .community_id(inserted_community.id)
+      .build();
+
+    let inserted_post = Post::create(pool, &new_post).await?;
+
+    let comment_form = CommentInsertForm::builder()
+      .content("A test comment".into())
+      .creator_id(inserted_terry.id)
+      .post_id(inserted_post.id)
+      .build();
+
+    let inserted_comment = Comment::create(pool, &comment_form, None).await?;
+
+    let comment_reply_form = CommentReplyInsertForm {
+      recipient_id: inserted_recipient.id,
+      comment_id: inserted_comment.id,
+      read: None,
+    };
+
+    let inserted_reply = CommentReply::create(pool, &comment_reply_form).await?;
+
+    let expected_reply = CommentReply {
+      id: inserted_reply.id,
+      recipient_id: inserted_reply.recipient_id,
+      comment_id: inserted_reply.comment_id,
+      read: false,
+      published: inserted_reply.published,
+    };
+
+    let read_reply = CommentReply::read(pool, inserted_reply.id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindComment)?;
+
+    let comment_reply_update_form = CommentReplyUpdateForm { read: Some(false) };
+    let updated_reply =
+      CommentReply::update(pool, inserted_reply.id, &comment_reply_update_form).await?;
+
+    // Test to make sure counts and blocks work correctly
+    let unread_replies = CommentReplyView::get_unread_replies(pool, recipient_id).await?;
+
+    let query = CommentReplyQuery {
+      recipient_id: Some(recipient_id),
+      my_person_id: Some(recipient_id),
+      sort: None,
+      unread_only: false,
+      show_bot_accounts: true,
+      page: None,
+      limit: None,
+    };
+    let replies = query.clone().list(pool).await?;
+    assert_eq!(1, unread_replies);
+    assert_eq!(1, replies.len());
+
+    // Block the person, and make sure these counts are now empty
+    let block_form = PersonBlockForm {
+      person_id: recipient_id,
+      target_id: inserted_terry.id,
+    };
+    PersonBlock::block(pool, &block_form).await?;
+
+    let unread_replies_after_block =
+      CommentReplyView::get_unread_replies(pool, recipient_id).await?;
+    let replies_after_block = query.list(pool).await?;
+    assert_eq!(0, unread_replies_after_block);
+    assert_eq!(0, replies_after_block.len());
+
+    Comment::delete(pool, inserted_comment.id).await?;
+    Post::delete(pool, inserted_post.id).await?;
+    Community::delete(pool, inserted_community.id).await?;
+    Person::delete(pool, inserted_terry.id).await?;
+    Person::delete(pool, inserted_recipient.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    assert_eq!(expected_reply, read_reply);
+    assert_eq!(expected_reply, inserted_reply);
+    assert_eq!(expected_reply, updated_reply);
+    Ok(())
   }
 }
