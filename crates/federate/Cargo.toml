@@ -33,3 +33,6 @@ tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
 moka.workspace = true
 tokio-util = "0.7.10"
+
+[dev-dependencies]
+lemmy_utils.workspace = true

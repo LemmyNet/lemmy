@@ -201,3 +201,45 @@ async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQu
   }
   tracing::info!("{ok_count} others up to date. {behind_count} instances behind.");
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
+mod test {
+
+  use super::*;
+  use lemmy_db_schema::utils::build_db_pool_for_tests;
+  use lemmy_utils::error::LemmyResult;
+
+  #[tokio::test]
+  async fn test_start_stop_federation_workers() -> LemmyResult<()> {
+    // initialization
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+    let actual_pool = build_db_pool_for_tests().await;
+    let opts = Opts {
+      process_count: 1,
+      process_index: 1,
+    };
+    let federation_config = FederationConfig::builder()
+      .domain("local.com")
+      .app_data(context.clone())
+      .build()
+      .await?;
+
+    let instances = vec![
+      Instance::read_or_create(pool, "alpha.com".to_string()).await?,
+      Instance::read_or_create(pool, "beta.com".to_string()).await?,
+      Instance::read_or_create(pool, "gamma.com".to_string()).await?,
+    ];
+
+    let task = start_stop_federation_workers_cancellable(opts, actual_pool, federation_config);
+
+    // cleanup
+    for i in instances {
+      Instance::delete(pool, i.id).await?;
+    }
+    task.cancel().await?;
+    Ok(())
+  }
+}
