@@ -380,8 +380,8 @@ test("User blocks instance, communities are hidden", async () => {
 test("Community follower count is federated", async () => {
   // Follow the beta community from alpha
   let community = await createCommunity(beta);
-  let community_id = community.community_view.community.actor_id;
-  let resolved = await resolveCommunity(alpha, community_id);
+  let communityActorId = community.community_view.community.actor_id;
+  let resolved = await resolveCommunity(alpha, communityActorId);
   if (!resolved.community) {
     throw "Missing beta community";
   }
@@ -389,7 +389,7 @@ test("Community follower count is federated", async () => {
   await followCommunity(alpha, true, resolved.community.community.id);
   let followed = (
     await waitUntil(
-      () => resolveCommunity(alpha, community_id),
+      () => resolveCommunity(alpha, communityActorId),
       c => c.community?.subscribed === "Subscribed",
     )
   ).community;
@@ -398,7 +398,7 @@ test("Community follower count is federated", async () => {
   expect(followed?.counts.subscribers).toBe(1);
 
   // Follow the community from gamma
-  resolved = await resolveCommunity(gamma, community_id);
+  resolved = await resolveCommunity(gamma, communityActorId);
   if (!resolved.community) {
     throw "Missing beta community";
   }
@@ -406,7 +406,7 @@ test("Community follower count is federated", async () => {
   await followCommunity(gamma, true, resolved.community.community.id);
   followed = (
     await waitUntil(
-      () => resolveCommunity(gamma, community_id),
+      () => resolveCommunity(gamma, communityActorId),
       c => c.community?.subscribed === "Subscribed",
     )
   ).community;
@@ -415,7 +415,7 @@ test("Community follower count is federated", async () => {
   expect(followed?.counts?.subscribers).toBe(2);
 
   // Follow the community from delta
-  resolved = await resolveCommunity(delta, community_id);
+  resolved = await resolveCommunity(delta, communityActorId);
   if (!resolved.community) {
     throw "Missing beta community";
   }
@@ -423,7 +423,7 @@ test("Community follower count is federated", async () => {
   await followCommunity(delta, true, resolved.community.community.id);
   followed = (
     await waitUntil(
-      () => resolveCommunity(delta, community_id),
+      () => resolveCommunity(delta, communityActorId),
       c => c.community?.subscribed === "Subscribed",
     )
   ).community;

@@ -29,14 +29,16 @@ import {
   unfollows,
   getPost,
   waitUntil,
-  randomString,
   createPostWithThumbnail,
+  sampleImage,
 } from "./shared";
 const downloadFileSync = require("download-file-sync");
 
 beforeAll(setupLogins);
 
-afterAll(unfollows);
+afterAll(async () => {
+  await Promise.all([unfollows(), deleteAllImages(alpha)]);
+});
 
 test("Upload image and delete it", async () => {
   // Before running this test, you need to delete all previous images in the DB
@@ -159,7 +161,6 @@ test("Purge post, linked image removed", async () => {
   expect(post.post_view.post.url).toBe(upload.url);
 
   // purge post
-
   const purgeForm: PurgePost = {
     post_id: post.post_view.post.id,
   };
@@ -183,13 +184,13 @@ test("Images in remote post are proxied if setting enabled", async () => {
     gamma,
     community.community_view.community.id,
     upload.url,
-    "![](http://example.com/image2.png)",
+    `![](${sampleImage})`,
   );
   expect(post.post_view.post).toBeDefined();
 
   // remote image gets proxied after upload
   expect(
-    post.post_view.post.url?.startsWith(
+    post.post_view.post.thumbnail_url?.startsWith(
       "http://lemmy-gamma:8561/api/v3/image_proxy?url",
     ),
   ).toBeTruthy();
@@ -202,14 +203,20 @@ test("Images in remote post are proxied if setting enabled", async () => {
   let epsilonPost = await resolvePost(epsilon, post.post_view.post);
   expect(epsilonPost.post).toBeDefined();
 
-  // remote image gets proxied after federation
+  // Fetch the post again, the metadata should be backgrounded now
+  // Wait for the metadata to get fetched, since this is backgrounded now
+  let epsilonPost2 = await waitUntil(
+    () => getPost(epsilon, epsilonPost.post!.post.id),
+    p => p.post_view.post.thumbnail_url != undefined,
+  );
+
   expect(
-    epsilonPost.post!.post.url?.startsWith(
+    epsilonPost2.post_view.post.thumbnail_url?.startsWith(
       "http://lemmy-epsilon:8581/api/v3/image_proxy?url",
     ),
   ).toBeTruthy();
   expect(
-    epsilonPost.post!.post.body?.startsWith(
+    epsilonPost2.post_view.post.body?.startsWith(
       "![](http://lemmy-epsilon:8581/api/v3/image_proxy?url",
     ),
   ).toBeTruthy();
@@ -232,7 +239,7 @@ test("No image proxying if setting is disabled", async () => {
     alpha,
     community.community_view.community.id,
     upload.url,
-    "![](http://example.com/image2.png)",
+    `![](${sampleImage})`,
   );
   expect(post.post_view.post).toBeDefined();
 
@@ -240,7 +247,7 @@ test("No image proxying if setting is disabled", async () => {
   expect(
     post.post_view.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
   ).toBeTruthy();
-  expect(post.post_view.post.body).toBe("![](http://example.com/image2.png)");
+  expect(post.post_view.post.body).toBe(`![](${sampleImage})`);
 
   let betaPost = await waitForPost(
     beta,
@@ -253,8 +260,7 @@ test("No image proxying if setting is disabled", async () => {
   expect(
     betaPost.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
   ).toBeTruthy();
-  expect(betaPost.post.body).toBe("![](http://example.com/image2.png)");
-
+  expect(betaPost.post.body).toBe(`![](${sampleImage})`);
   // Make sure the alt text got federated
   expect(post.post_view.post.alt_text).toBe(betaPost.post.alt_text);
 });
