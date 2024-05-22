@@ -216,6 +216,7 @@ pub struct VoteView {
   pub score: i16,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
