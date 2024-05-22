@@ -70,7 +70,6 @@ use url::Url;
   about = "A link aggregator for the fediverse",
   long_about = "A link aggregator for the fediverse.\n\nThis is the Lemmy backend API server. This will connect to a PostgreSQL database, run any pending migrations and start accepting API requests."
 )]
-#[command(args_conflicts_with_subcommands = true)]
 // TODO: Instead of defining individual env vars, only specify prefix once supported by clap.
 //       https://github.com/clap-rs/clap/issues/3221
 pub struct CmdArgs {
@@ -113,7 +112,6 @@ pub struct CmdArgs {
 #[derive(Subcommand, Debug)]
 enum CmdSubcommand {
   /// Do something with migrations, then exit.
-  #[command(args_conflicts_with_subcommands = false)]
   Migration {
     #[command(subcommand)]
     subcommand: MigrationSubcommand,
