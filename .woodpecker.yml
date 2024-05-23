@@ -196,6 +196,8 @@ steps:
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
     commands:
+      # Install pg_dump, which is used by schema setup test
+      - apt update && apt install -y postgresql-client-16
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
     when: *slow_check_paths
