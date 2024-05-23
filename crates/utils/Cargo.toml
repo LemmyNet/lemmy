@@ -32,7 +32,6 @@ full = [
   "dep:actix-web",
   "dep:serde_json",
   "dep:anyhow",
-  "dep:tracing-error",
   "dep:http",
   "dep:deser-hjson",
   "dep:regex",
@@ -55,7 +54,6 @@ full = [
 [dependencies]
 regex = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
-tracing-error = { workspace = true, optional = true }
 itertools = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true, optional = true }

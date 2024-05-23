@@ -2,7 +2,6 @@ use anyhow::Context;
 use diesel::{connection::SimpleConnection, Connection, PgConnection};
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness};
 use lemmy_utils::error::LemmyError;
-use tracing::info;
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
@@ -34,7 +33,7 @@ pub fn run(db_url: &str) -> Result<(), LemmyError> {
   // transaction as `REPLACEABLE_SCHEMA`. This code will be becone less hacky when the conditional
   // setup of things in `REPLACEABLE_SCHEMA` is done without using the number of pending
   // migrations.
-  info!("Running Database migrations (This may take a long time)...");
+  println!("Running Database migrations (This may take a long time)...");
   let migrations = conn
     .pending_migrations(MIGRATIONS)
     .map_err(|e| anyhow::anyhow!("Couldn't determine pending migrations: {e}"))?;
@@ -60,7 +59,7 @@ pub fn run(db_url: &str) -> Result<(), LemmyError> {
 
     Ok(())
   })?;
-  info!("Database migrations complete.");
+  println!("Database migrations complete.");
 
   Ok(())
 }

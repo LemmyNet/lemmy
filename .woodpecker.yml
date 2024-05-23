@@ -163,7 +163,7 @@ steps:
       CARGO_HOME: .cargo_home
     commands:
       - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets --features console -- -D warnings
+      - cargo clippy --workspace --tests --all-targets -- -D warnings
     when: *slow_check_paths
 
   cargo_build:
