@@ -135,7 +135,6 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   // Print version number to log
   println!("Lemmy v{VERSION}");
 
-  // todo test
   if let Some(CmdSubcommand::Migration {
     subcommand,
     all,
