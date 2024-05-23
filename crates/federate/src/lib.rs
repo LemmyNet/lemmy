@@ -164,8 +164,11 @@ mod test {
   };
   use lemmy_utils::error::LemmyError;
   use serial_test::serial;
-  use std::sync::{Arc, Mutex};
-  use tokio::{spawn, time::sleep};use std::collections::HashSet;
+  use std::{
+    collections::HashSet,
+    sync::{Arc, Mutex},
+  };
+  use tokio::{spawn, time::sleep};
 
   struct TestData {
     send_manager: SendManager,
@@ -228,7 +231,7 @@ mod test {
     data.run().await?;
     assert_eq!(3, data.send_manager.workers.len());
     let workers: HashSet<_> = data.send_manager.workers.keys().cloned().collect();
-    let instances: HashSet<_> = data.instances.iter().map(|i|i.id).collect();
+    let instances: HashSet<_> = data.instances.iter().map(|i| i.id).collect();
     assert_eq!(instances, workers);
 
     data.cleanup().await?;
