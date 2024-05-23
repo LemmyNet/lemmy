@@ -105,7 +105,7 @@ pub struct CmdArgs {
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   // Print version number to log
-  println!("Lemmy v{VERSION}");
+  println!("Starting Lemmy v{VERSION}");
 
   // return error 503 while running db migrations and startup tasks
   let mut startup_server_handle = None;
