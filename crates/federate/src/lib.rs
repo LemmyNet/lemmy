@@ -152,13 +152,17 @@ impl SendManager {
 mod test {
 
   use super::*;
-  use tokio::{spawn, time::sleep};
+  use activitypub_federation::config::Data;
+use tokio::{spawn, time::sleep};
 
-  #[tokio::test]
-  async fn test_start_stop_federation_workers() -> LemmyResult<()> {
-    // initialization
+  struct TestData {
+    send_manager: SendManager,
+    context: Data<LemmyContext>,
+    instances: Vec<Instance>
+  }
+
+  async fn init() -> LemmyResult<TestData> {
     let context = LemmyContext::init_test_context().await;
-    let pool = &mut context.pool();
     let opts = Opts {
       process_count: 1,
       process_index: 1,
@@ -169,30 +173,39 @@ mod test {
       .build()
       .await?;
 
+      let pool = &mut context.pool();
     let instances = vec![
       Instance::read_or_create(pool, "alpha.com".to_string()).await?,
       Instance::read_or_create(pool, "beta.com".to_string()).await?,
       Instance::read_or_create(pool, "gamma.com".to_string()).await?,
     ];
 
+    let send_manager = SendManager::new(opts, federation_config);
+    Ok(TestData {send_manager,
+      context,instances
+    })
+  }
+
+  #[tokio::test]
+  async fn test_start_stop_federation_workers() -> LemmyResult<()> {
+    let mut data = init().await?;
+
     // start it and wait a moment
-    let mut task = SendManager::new(opts, federation_config);
     let cancel = CancellationToken::new();
     let cancel_ = cancel.clone();
     spawn(async move {
       sleep(Duration::from_millis(100)).await;
       cancel_.cancel();
     });
-    task.do_loop(cancel.clone()).await.unwrap();
-    assert_eq!(3, task.workers.len());
+    data.send_manager.do_loop(cancel.clone()).await.unwrap();
+    assert_eq!(3, data.send_manager.workers.len());
 
     // check that correct number of instance workers was started
     // TODO: need to wrap in Arc or something similar
     // TODO: test with different `opts`, dead/blocked instances etc
-    //assert_eq!(3, task.workers.len());
 
     // cleanup
-    Instance::delete_all(pool).await?;
+    Instance::delete_all(&mut data.context.pool()).await?;
     Ok(())
   }
 }
