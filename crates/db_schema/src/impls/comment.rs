@@ -1,4 +1,5 @@
 use crate::{
+  diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{CommentId, DbUrl, PersonId},
   schema::{comment, comment_actions},
   source::comment::{
@@ -11,7 +12,7 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{functions::coalesce, get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -62,89 +63,46 @@ impl Comment {
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> Result<Comment, Error> {
-    let conn = &mut get_conn(pool).await?;
-
-    conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          // Insert, to get the id
-          let inserted_comment = insert_into(comment::table)
-            .values(comment_form)
-            .on_conflict(comment::ap_id)
-            .do_update()
-            .set(comment_form)
-            .get_result::<Self>(conn)
-            .await?;
-
-          let comment_id = inserted_comment.id;
-
-          // You need to update the ltree column
-          let ltree = Ltree(if let Some(parent_path) = parent_path {
-            // The previous parent will already have 0 in it
-            // Append this comment id
-            format!("{}.{}", parent_path.0, comment_id)
-          } else {
-            // '0' is always the first path, append to that
-            format!("{}.{}", 0, comment_id)
-          });
-
-          let updated_comment = diesel::update(comment::table.find(comment_id))
-            .set(comment::path.eq(ltree))
-            .get_result::<Self>(conn)
-            .await?;
-
-          // Update the child count for the parent comment_aggregates
-          // You could do this with a trigger, but since you have to do this manually anyway,
-          // you can just have it here
-          if let Some(parent_path) = parent_path {
-            // You have to update counts for all parents, not just the immediate one
-            // TODO if the performance of this is terrible, it might be better to do this as part of a
-            // scheduled query... although the counts would often be wrong.
-            //
-            // The child_count query for reference:
-            // select c.id, c.path, count(c2.id) as child_count from comment c
-            // left join comment c2 on c2.path <@ c.path and c2.path != c.path
-            // group by c.id
-
-            let parent_id = parent_path.0.split('.').nth(1);
-
-            if let Some(parent_id) = parent_id {
-              let top_parent = format!("0.{}", parent_id);
-              let update_child_count_stmt = format!(
-                "
-update comment_aggregates ca set child_count = c.child_count
-from (
-  select c.id, c.path, count(c2.id) as child_count from comment c
-  join comment c2 on c2.path <@ c.path and c2.path != c.path
-  and c.path <@ '{top_parent}'
-  group by c.id
-) as c
-where ca.comment_id = c.id"
-              );
-
-              sql_query(update_child_count_stmt).execute(conn).await?;
-            }
-          }
-          Ok(updated_comment)
-        }) as _
-      })
-      .await
+    Self::insert_apub(pool, None, comment_form, parent_path).await
   }
+
+  pub async fn insert_apub(
+    pool: &mut DbPool<'_>,
+    timestamp: Option<DateTime<Utc>>,
+    comment_form: &CommentInsertForm,
+    parent_path: Option<&Ltree>,
+  ) -> Result<Comment, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let comment_form = (comment_form, parent_path.map(|p| comment::path.eq(p)));
+
+    if let Some(timestamp) = timestamp {
+      insert_into(comment::table)
+        .values(comment_form)
+        .on_conflict(comment::ap_id)
+        .filter_target(coalesce(comment::updated, comment::published).lt(timestamp))
+        .do_update()
+        .set(comment_form)
+        .get_result::<Self>(conn)
+        .await
+    } else {
+      insert_into(comment::table)
+        .values(comment_form)
+        .get_result::<Self>(conn)
+        .await
+    }
+  }
+
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: Url,
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
-    Ok(
-      comment::table
-        .filter(comment::ap_id.eq(object_id))
-        .first::<Comment>(conn)
-        .await
-        .ok()
-        .map(Into::into),
-    )
+    comment::table
+      .filter(comment::ap_id.eq(object_id))
+      .first(conn)
+      .await
+      .optional()
   }
 
   pub fn parent_comment_id(&self) -> Option<CommentId> {
@@ -425,7 +383,10 @@ mod tests {
       .await
       .unwrap();
 
-    let read_comment = Comment::read(pool, inserted_comment.id).await.unwrap();
+    let read_comment = Comment::read(pool, inserted_comment.id)
+      .await
+      .unwrap()
+      .unwrap();
     let like_removed = CommentLike::remove(pool, inserted_person.id, inserted_comment.id)
       .await
       .unwrap();

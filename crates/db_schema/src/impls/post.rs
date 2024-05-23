@@ -1,4 +1,5 @@
 use crate::{
+  diesel::OptionalExtension,
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::{post, post_actions},
   source::post::{
@@ -32,6 +33,7 @@ use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{self, insert_into},
   result::Error,
+  DecoratableTarget,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
@@ -50,9 +52,6 @@ impl Crud for Post {
     let conn = &mut get_conn(pool).await?;
     insert_into(post::table)
       .values(form)
-      .on_conflict(post::ap_id)
-      .do_update()
-      .set(form)
       .get_result::<Self>(conn)
       .await
   }
@@ -71,19 +70,19 @@ impl Crud for Post {
 }
 
 impl Post {
-  pub async fn list_for_community(
+  pub async fn insert_apub(
     pool: &mut DbPool<'_>,
-    the_community_id: CommunityId,
-  ) -> Result<Vec<Self>, Error> {
+    timestamp: DateTime<Utc>,
+    form: &PostInsertForm,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    post::table
-      .filter(post::community_id.eq(the_community_id))
-      .filter(post::deleted.eq(false))
-      .filter(post::removed.eq(false))
-      .then_order_by(post::featured_community.desc())
-      .then_order_by(post::published.desc())
-      .limit(FETCH_LIMIT_MAX)
-      .load::<Self>(conn)
+    insert_into(post::table)
+      .values(form)
+      .on_conflict(post::ap_id)
+      .filter_target(coalesce(post::updated, post::published).lt(timestamp))
+      .do_update()
+      .set(form)
+      .get_result::<Self>(conn)
       .await
   }
 
@@ -170,14 +169,11 @@ impl Post {
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
-    Ok(
-      post::table
-        .filter(post::ap_id.eq(object_id))
-        .first::<Post>(conn)
-        .await
-        .ok()
-        .map(Into::into),
-    )
+    post::table
+      .filter(post::ap_id.eq(object_id))
+      .first(conn)
+      .await
+      .optional()
   }
 
   pub async fn fetch_pictrs_posts_for_creator(
@@ -562,7 +558,7 @@ mod tests {
     .unwrap();
     assert_eq!(2, marked_as_read);
 
-    let read_post = Post::read(pool, inserted_post.id).await.unwrap();
+    let read_post = Post::read(pool, inserted_post.id).await.unwrap().unwrap();
 
     let new_post_update = PostUpdateForm {
       name: Some("A test post".into()),

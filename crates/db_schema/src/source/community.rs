@@ -2,6 +2,7 @@
 use crate::schema::{community, community_actions};
 use crate::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
+  sensitive::SensitiveString,
   source::placeholder_apub_url,
   CommunityVisibility,
 };
@@ -39,7 +40,7 @@ pub struct Community {
   /// Whether the community is local.
   pub local: bool,
   #[serde(skip)]
-  pub private_key: Option<String>,
+  pub private_key: Option<SensitiveString>,
   #[serde(skip)]
   pub public_key: String,
   #[serde(skip)]
@@ -49,8 +50,8 @@ pub struct Community {
   /// A URL for a banner.
   pub banner: Option<DbUrl>,
   #[cfg_attr(feature = "full", ts(skip))]
-  #[serde(skip, default = "placeholder_apub_url")]
-  pub followers_url: DbUrl,
+  #[serde(skip)]
+  pub followers_url: Option<DbUrl>,
   #[cfg_attr(feature = "full", ts(skip))]
   #[serde(skip, default = "placeholder_apub_url")]
   pub inbox_url: DbUrl,

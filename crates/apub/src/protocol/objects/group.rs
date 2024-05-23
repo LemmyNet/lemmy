@@ -7,7 +7,7 @@ use crate::{
     community_outbox::ApubCommunityOutbox,
   },
   local_site_data_cached,
-  objects::{community::ApubCommunity, read_from_string_or_source_opt},
+  objects::{community::ApubCommunity, read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{Endpoints, LanguageTag},
     ImageObject,
@@ -15,6 +15,7 @@ use crate::{
   },
 };
 use activitypub_federation::{
+  config::Data,
   fetch::{collection_id::CollectionId, object_id::ObjectId},
   kinds::actor::GroupType,
   protocol::{
@@ -26,7 +27,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{context::LemmyContext, utils::local_site_opt_to_slur_regex};
 use lemmy_utils::{
-  error::LemmyError,
+  error::LemmyResult,
   utils::slurs::{check_slurs, check_slurs_opt},
 };
 use serde::{Deserialize, Serialize};
@@ -44,7 +45,7 @@ pub struct Group {
   /// username, set at account creation and usually fixed after that
   pub(crate) preferred_username: String,
   pub(crate) inbox: Url,
-  pub(crate) followers: CollectionId<ApubCommunityFollower>,
+  pub(crate) followers: Option<CollectionId<ApubCommunityFollower>>,
   pub(crate) public_key: PublicKey,
 
   /// title
@@ -75,10 +76,11 @@ impl Group {
   pub(crate) async fn verify(
     &self,
     expected_domain: &Url,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<()> {
     check_apub_id_valid_with_strictness(self.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, self.id.inner())?;
+    verify_is_remote_object(&self.id, context)?;
 
     let local_site_data = local_site_data_cached(&mut context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);

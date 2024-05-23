@@ -161,7 +161,7 @@ fn queries<'a>() -> Queries<
 
       Commented::new(query)
         .text("PostView::read")
-        .first::<PostView>(&mut conn)
+        .first(&mut conn)
         .await
     };
 
@@ -226,11 +226,13 @@ fn queries<'a>() -> Queries<
 
     if let Some(search_term) = &options.search_term {
       let searcher = fuzzy_search(search_term);
-      query = query.filter(
-        post::name
-          .ilike(searcher.clone())
-          .or(post::body.ilike(searcher)),
-      );
+      query = query
+        .filter(
+          post::name
+            .ilike(searcher.clone())
+            .or(post::body.ilike(searcher)),
+        )
+        .filter(not(post::removed.or(post::deleted)));
     }
 
     // If there is a content warning, show nsfw content by default.
@@ -278,11 +280,14 @@ fn queries<'a>() -> Queries<
       query = query.filter(post_actions::hidden.is_null());
     }
 
-    if options.liked_only {
-      query = query.filter(post_actions::like_score.eq(1));
-    } else if options.disliked_only {
-      query = query.filter(post_actions::like_score.eq(-1));
-    }
+    if let Some(my_id) = my_person_id {
+      let not_creator_filter = post_aggregates::creator_id.ne(my_id);
+      if options.liked_only {
+        query = query.filter(not_creator_filter).filter(post_actions::like_score.eq(1));
+      } else if options.disliked_only {
+        query = query.filter(not_creator_filter).filter(post_actions::like_score.eq(-1));
+      }
+    };
 
     // Hide posts in local only communities from unauthenticated users
     if options.local_user.is_none() {
@@ -394,12 +399,10 @@ impl PostView {
     post_id: PostId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: bool,
-  ) -> Result<Self, Error> {
-    let res = queries()
+  ) -> Result<Option<Self>, Error> {
+    queries()
       .read(pool, (post_id, my_person_id, is_mod_or_admin))
-      .await?;
-
-    Ok(res)
+      .await
   }
 }
 
@@ -410,24 +413,27 @@ impl PaginationCursor {
     PaginationCursor(format!("P{:x}", view.counts.post_id.0))
   }
   pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
-    Ok(PaginationCursorData(
-      PostAggregates::read(
-        pool,
-        PostId(
-          self
-            .0
-            .get(1..)
-            .and_then(|e| i32::from_str_radix(e, 16).ok())
-            .ok_or_else(|| Error::QueryBuilderError("Could not parse pagination token".into()))?,
-        ),
-      )
-      .await?,
-    ))
+    let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
+    let token = PostAggregates::read(
+      pool,
+      PostId(
+        self
+          .0
+          .get(1..)
+          .and_then(|e| i32::from_str_radix(e, 16).ok())
+          .ok_or_else(err_msg)?,
+      ),
+    )
+    .await?
+    .ok_or_else(err_msg)?;
+
+    Ok(PaginationCursorData(token))
   }
 }
 
 // currently we use a postaggregates struct as the pagination token.
-// we only use some of the properties of the post aggregates, depending on which sort type we page by
+// we only use some of the properties of the post aggregates, depending on which sort type we page
+// by
 #[derive(Clone)]
 pub struct PaginationCursorData(PostAggregates);
 
@@ -437,7 +443,8 @@ pub struct PostQuery<'a> {
   pub sort: Option<SortType>,
   pub creator_id: Option<PersonId>,
   pub community_id: Option<CommunityId>,
-  // if true, the query should be handled as if community_id was not given except adding the literal filter
+  // if true, the query should be handled as if community_id was not given except adding the
+  // literal filter
   pub community_id_just_for_prefetch: bool,
   pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
@@ -459,15 +466,17 @@ impl<'a> PostQuery<'a> {
     site: &Site,
     pool: &mut DbPool<'_>,
   ) -> Result<Option<PostQuery<'a>>, Error> {
-    // first get one page for the most popular community to get an upper bound for the the page end for the real query
-    // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
-    // the query to use an index on e.g. (=, >=, >=, >=) and fetch only LIMIT rows
-    // but for the followed-communities query it has to query the index on (IN, >=, >=, >=)
-    // which it currently can't do at all (as of PG 16). see the discussion here:
-    // https://github.com/LemmyNet/lemmy/issues/2877#issuecomment-1673597190
+    // first get one page for the most popular community to get an upper bound for the page end for
+    // the real query the reason this is needed is that when fetching posts for a single
+    // community PostgreSQL can optimize the query to use an index on e.g. (=, >=, >=, >=) and
+    // fetch only LIMIT rows but for the followed-communities query it has to query the index on
+    // (IN, >=, >=, >=) which it currently can't do at all (as of PG 16). see the discussion
+    // here: https://github.com/LemmyNet/lemmy/issues/2877#issuecomment-1673597190
     //
-    // the results are correct no matter which community we fetch these for, since it basically covers the "worst case" of the whole page consisting of posts from one community
-    // but using the largest community decreases the pagination-frame so make the real query more efficient.
+    // the results are correct no matter which community we fetch these for, since it basically
+    // covers the "worst case" of the whole page consisting of posts from one community
+    // but using the largest community decreases the pagination-frame so make the real query more
+    // efficient.
     use lemmy_db_schema::schema::community_aggregates::dsl::{
       community_aggregates,
       community_id,
@@ -515,7 +524,8 @@ impl<'a> PostQuery<'a> {
       )
       .await?;
     // take last element of array. if this query returned less than LIMIT elements,
-    // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
+    // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results
+    // (return original query)
     if (v.len() as i64) < limit {
       Ok(Some(self.clone()))
     } else {
@@ -593,7 +603,7 @@ mod tests {
     SortType,
     SubscribedType,
   };
-  use lemmy_utils::error::LemmyResult;
+  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::{collections::HashSet, time::Duration};
@@ -757,9 +767,8 @@ mod tests {
       show_bot_accounts: Some(false),
       ..Default::default()
     };
-    let inserted_local_user =
-      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
-    data.local_user_view.local_user = inserted_local_user;
+    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
+    data.local_user_view.local_user.show_bot_accounts = false;
 
     let read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
@@ -774,7 +783,8 @@ mod tests {
       Some(data.local_user_view.person.id),
       false,
     )
-    .await?;
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
     let expected_post_listing_with_user = expected_post_view(&data, pool).await?;
 
@@ -792,9 +802,8 @@ mod tests {
       show_bot_accounts: Some(true),
       ..Default::default()
     };
-    let inserted_local_user =
-      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
-    data.local_user_view.local_user = inserted_local_user;
+    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
+    data.local_user_view.local_user.show_bot_accounts = true;
 
     let post_listings_with_bots = PostQuery {
       community_id: Some(data.inserted_community.id),
@@ -824,7 +833,9 @@ mod tests {
     .await?;
 
     let read_post_listing_single_no_person =
-      PostView::read(pool, data.inserted_post.id, None, false).await?;
+      PostView::read(pool, data.inserted_post.id, None, false)
+        .await?
+        .ok_or(LemmyErrorType::CouldntFindPost)?;
 
     let expected_post_listing_no_person = expected_post_view(&data, pool).await?;
 
@@ -901,7 +912,8 @@ mod tests {
       Some(data.local_user_view.person.id),
       false,
     )
-    .await?;
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
     let mut expected_post_with_upvote = expected_post_view(&data, pool).await?;
     expected_post_with_upvote.my_vote = Some(1);
@@ -913,9 +925,8 @@ mod tests {
       show_bot_accounts: Some(false),
       ..Default::default()
     };
-    let inserted_local_user =
-      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
-    data.local_user_view.local_user = inserted_local_user;
+    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
+    data.local_user_view.local_user.show_bot_accounts = false;
 
     let read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
@@ -925,6 +936,36 @@ mod tests {
     .await?;
     assert_eq!(vec![expected_post_with_upvote], read_post_listing);
 
+    let like_removed =
+      PostLike::remove(pool, data.local_user_view.person.id, data.inserted_post.id).await?;
+    assert_eq!(1, like_removed);
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_liked_only() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Like both the bot post, and your own
+    // The liked_only should not show your own post
+    let post_like_form = PostLikeForm {
+      post_id: data.inserted_post.id,
+      person_id: data.local_user_view.person.id,
+      score: 1,
+    };
+    PostLike::like(pool, &post_like_form).await?;
+
+    let bot_post_like_form = PostLikeForm {
+      post_id: data.inserted_bot_post.id,
+      person_id: data.local_user_view.person.id,
+      score: 1,
+    };
+    PostLike::like(pool, &bot_post_like_form).await?;
+
+    // Read the liked only
     let read_liked_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       liked_only: true,
@@ -932,7 +973,9 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(read_post_listing, read_liked_post_listing);
+
+    // This should only include the bot post, not the one you created
+    assert_eq!(vec![POST_BY_BOT], names(&read_liked_post_listing));
 
     let read_disliked_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
@@ -941,11 +984,10 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
+
+    // Should be no posts
     assert_eq!(read_disliked_post_listing, vec![]);
 
-    let like_removed =
-      PostLike::remove(pool, data.local_user_view.person.id, data.inserted_post.id).await?;
-    assert_eq!(1, like_removed);
     cleanup(data, pool).await
   }
 
@@ -1204,7 +1246,8 @@ mod tests {
     let mut inserted_post_ids = vec![];
     let mut inserted_comment_ids = vec![];
 
-    // Create 150 posts with varying non-correlating values for publish date, number of comments, and featured
+    // Create 150 posts with varying non-correlating values for publish date, number of comments,
+    // and featured
     for comments in 0..10 {
       for _ in 0..15 {
         let post_form = PostInsertForm::builder()
@@ -1305,9 +1348,8 @@ mod tests {
       show_read_posts: Some(false),
       ..Default::default()
     };
-    let inserted_local_user =
-      LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
-    data.local_user_view.local_user = inserted_local_user;
+    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
+    data.local_user_view.local_user.show_read_posts = false;
 
     // Mark a post as read
     PostRead::mark_as_read(
@@ -1358,7 +1400,7 @@ mod tests {
     assert!(
       &post_listings_show_hidden
         .first()
-        .expect("first post should exist")
+        .ok_or(LemmyErrorType::CouldntFindPost)?
         .hidden
     );
 
@@ -1383,7 +1425,9 @@ mod tests {
       &data.inserted_community,
       &data.inserted_post,
     );
-    let agg = PostAggregates::read(pool, inserted_post.id).await?;
+    let agg = PostAggregates::read(pool, inserted_post.id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPost)?;
 
     Ok(PostView {
       post: Post {
@@ -1526,8 +1570,8 @@ mod tests {
     .await?;
     assert_eq!(2, authenticated_query.len());
 
-    let unauthenticated_post = PostView::read(pool, data.inserted_post.id, None, false).await;
-    assert!(unauthenticated_post.is_err());
+    let unauthenticated_post = PostView::read(pool, data.inserted_post.id, None, false).await?;
+    assert!(unauthenticated_post.is_none());
 
     let authenticated_post = PostView::read(
       pool,
@@ -1577,7 +1621,8 @@ mod tests {
       Some(inserted_banned_from_comm_local_user.person_id),
       false,
     )
-    .await?;
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
     assert!(post_view.banned_from_community);
 
@@ -1598,7 +1643,8 @@ mod tests {
       Some(data.local_user_view.person.id),
       false,
     )
-    .await?;
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
     assert!(!post_view.banned_from_community);
 

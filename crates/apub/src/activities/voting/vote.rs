@@ -19,7 +19,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{context::LemmyContext, utils::check_bot_account};
 use lemmy_db_schema::source::local_site::LocalSite;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl Vote {
@@ -29,7 +29,7 @@ impl Vote {
     community: &ApubCommunity,
     kind: VoteType,
     context: &Data<LemmyContext>,
-  ) -> Result<Vote, LemmyError> {
+  ) -> LemmyResult<Vote> {
     Ok(Vote {
       actor: actor.id().into(),
       object: object_id,
@@ -54,14 +54,14 @@ impl ActivityHandler for Vote {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;

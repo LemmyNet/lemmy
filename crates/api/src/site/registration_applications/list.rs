@@ -9,14 +9,14 @@ use lemmy_db_views::{
   registration_application_view::RegistrationApplicationQuery,
   structs::LocalUserView,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 /// Lists registration applications, filterable by undenied only.
 pub async fn list_registration_applications(
   data: Query<ListRegistrationApplications>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<ListRegistrationApplicationsResponse>, LemmyError> {
+) -> LemmyResult<Json<ListRegistrationApplicationsResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   // Make sure user is an admin

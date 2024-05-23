@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   source::{activity::ActivitySendTargets, person::PersonFollower},
   CommunityVisibility,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 pub mod announce;
 pub mod collection_add;
@@ -24,13 +24,14 @@ pub mod update;
 ///
 /// Activities are sent to the community itself if it lives on another instance. If the community
 /// is local, the activity is directly wrapped into Announce and sent to community followers.
-/// Activities are also sent to those who follow the actor (with exception of moderation activities).
+/// Activities are also sent to those who follow the actor (with exception of moderation
+/// activities).
 ///
 /// * `activity` - The activity which is being sent
 /// * `actor` - The user who is sending the activity
 /// * `community` - Community inside which the activity is sent
-/// * `inboxes` - Any additional inboxes the activity should be sent to (for example,
-///               to the user who is being promoted to moderator)
+/// * `inboxes` - Any additional inboxes the activity should be sent to (for example, to the user
+///   who is being promoted to moderator)
 /// * `is_mod_activity` - True for things like Add/Mod, these are not sent to user followers
 pub(crate) async fn send_activity_in_community(
   activity: AnnouncableActivities,
@@ -39,7 +40,7 @@ pub(crate) async fn send_activity_in_community(
   extra_inboxes: ActivitySendTargets,
   is_mod_action: bool,
   context: &Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   // If community is local only, don't send anything out
   if community.visibility != CommunityVisibility::Public {
     return Ok(());

@@ -1,5 +1,6 @@
 use crate::{
   aggregates::structs::CommunityAggregates,
+  diesel::OptionalExtension,
   newtypes::CommunityId,
   schema::{community_aggregates, community_aggregates::subscribers},
   utils::{get_conn, DbPool},
@@ -8,12 +9,16 @@ use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl CommunityAggregates {
-  pub async fn read(pool: &mut DbPool<'_>, for_community_id: CommunityId) -> Result<Self, Error> {
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    for_community_id: CommunityId,
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     community_aggregates::table
       .find(for_community_id)
-      .first::<Self>(conn)
+      .first(conn)
       .await
+      .optional()
   }
 
   pub async fn update_federated_followers(
@@ -25,7 +30,7 @@ impl CommunityAggregates {
     let new_subscribers: i64 = new_subscribers.into();
     diesel::update(community_aggregates::table.find(for_community_id))
       .set(subscribers.eq(new_subscribers))
-      .get_result::<Self>(conn)
+      .get_result(conn)
       .await
   }
 }
@@ -153,6 +158,7 @@ mod tests {
 
     let community_aggregates_before_delete = CommunityAggregates::read(pool, inserted_community.id)
       .await
+      .unwrap()
       .unwrap();
 
     assert_eq!(2, community_aggregates_before_delete.subscribers);
@@ -163,6 +169,7 @@ mod tests {
     // Test the other community
     let another_community_aggs = CommunityAggregates::read(pool, another_inserted_community.id)
       .await
+      .unwrap()
       .unwrap();
     assert_eq!(1, another_community_aggs.subscribers);
     assert_eq!(1, another_community_aggs.subscribers_local);
@@ -175,6 +182,7 @@ mod tests {
       .unwrap();
     let after_unfollow = CommunityAggregates::read(pool, inserted_community.id)
       .await
+      .unwrap()
       .unwrap();
     assert_eq!(1, after_unfollow.subscribers);
     assert_eq!(1, after_unfollow.subscribers_local);
@@ -185,6 +193,7 @@ mod tests {
       .unwrap();
     let after_follow_again = CommunityAggregates::read(pool, inserted_community.id)
       .await
+      .unwrap()
       .unwrap();
     assert_eq!(2, after_follow_again.subscribers);
     assert_eq!(2, after_follow_again.subscribers_local);
@@ -193,6 +202,7 @@ mod tests {
     Post::delete(pool, inserted_post.id).await.unwrap();
     let after_parent_post_delete = CommunityAggregates::read(pool, inserted_community.id)
       .await
+      .unwrap()
       .unwrap();
     assert_eq!(0, after_parent_post_delete.comments);
     assert_eq!(0, after_parent_post_delete.posts);
@@ -203,6 +213,7 @@ mod tests {
       .unwrap();
     let after_person_delete = CommunityAggregates::read(pool, inserted_community.id)
       .await
+      .unwrap()
       .unwrap();
     assert_eq!(1, after_person_delete.subscribers);
     assert_eq!(1, after_person_delete.subscribers_local);
@@ -223,7 +234,9 @@ mod tests {
     assert_eq!(1, another_community_num_deleted);
 
     // Should be none found, since the creator was deleted
-    let after_delete = CommunityAggregates::read(pool, inserted_community.id).await;
-    assert!(after_delete.is_err());
+    let after_delete = CommunityAggregates::read(pool, inserted_community.id)
+      .await
+      .unwrap();
+    assert!(after_delete.is_none());
   }
 }

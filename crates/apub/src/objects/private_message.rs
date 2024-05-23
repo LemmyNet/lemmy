@@ -1,3 +1,4 @@
+use super::verify_is_remote_object;
 use crate::{
   check_apub_id_valid_with_strictness,
   objects::read_from_string_or_source,
@@ -23,9 +24,10 @@ use lemmy_db_schema::{
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
   traits::Crud,
+  utils::naive_now,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
@@ -61,7 +63,7 @@ impl Object for ApubPrivateMessage {
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
-  ) -> Result<Option<Self>, LemmyError> {
+  ) -> LemmyResult<Option<Self>> {
     Ok(
       PrivateMessage::read_from_apub_id(&mut context.pool(), object_id)
         .await?
@@ -69,18 +71,22 @@ impl Object for ApubPrivateMessage {
     )
   }
 
-  async fn delete(self, _context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     // do nothing, because pm can't be fetched over http
     unimplemented!()
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_json(self, context: &Data<Self::DataType>) -> Result<ChatMessage, LemmyError> {
+  async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<ChatMessage> {
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut context.pool(), creator_id).await?;
+    let creator = Person::read(&mut context.pool(), creator_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?;
 
     let recipient_id = self.recipient_id;
-    let recipient = Person::read(&mut context.pool(), recipient_id).await?;
+    let recipient = Person::read(&mut context.pool(), recipient_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?;
 
     let note = ChatMessage {
       r#type: ChatMessageType::ChatMessage,
@@ -101,9 +107,10 @@ impl Object for ApubPrivateMessage {
     note: &ChatMessage,
     expected_domain: &Url,
     context: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
+    verify_is_remote_object(&note.id, context)?;
 
     check_apub_id_valid_with_strictness(note.id.inner(), false, context).await?;
     let person = note.attributed_to.dereference(context).await?;
@@ -120,7 +127,7 @@ impl Object for ApubPrivateMessage {
   async fn from_json(
     note: ChatMessage,
     context: &Data<Self::DataType>,
-  ) -> Result<ApubPrivateMessage, LemmyError> {
+  ) -> LemmyResult<ApubPrivateMessage> {
     let creator = note.attributed_to.dereference(context).await?;
     let recipient = note.to[0].dereference(context).await?;
     check_person_block(creator.id, recipient.id, &mut context.pool()).await?;
@@ -142,7 +149,8 @@ impl Object for ApubPrivateMessage {
       ap_id: Some(note.id.into()),
       local: Some(false),
     };
-    let pm = PrivateMessage::create(&mut context.pool(), &form).await?;
+    let timestamp = note.updated.or(note.published).unwrap_or_else(naive_now);
+    let pm = PrivateMessage::insert_apub(&mut context.pool(), timestamp, &form).await?;
     Ok(pm.into())
   }
 }
@@ -159,7 +167,6 @@ mod tests {
   };
   use assert_json_diff::assert_json_include;
   use lemmy_db_schema::source::site::Site;
-  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

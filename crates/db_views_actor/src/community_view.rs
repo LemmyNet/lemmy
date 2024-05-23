@@ -73,7 +73,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(community::visibility.eq(CommunityVisibility::Public));
     }
 
-    query.first::<CommunityView>(&mut conn).await
+    query.first(&mut conn).await
   };
 
   let list = move |mut conn: DbConn<'a>, (options, site): (CommunityQuery<'a>, &'a Site)| async move {
@@ -165,7 +165,7 @@ impl CommunityView {
     community_id: CommunityId,
     my_person_id: Option<PersonId>,
     is_mod_or_admin: bool,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     queries()
       .read(pool, (community_id, my_person_id, is_mod_or_admin))
       .await
@@ -180,9 +180,10 @@ impl CommunityView {
       CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await?;
     if is_mod {
       Ok(true)
+    } else if let Ok(Some(person_view)) = PersonView::read(pool, person_id).await {
+      Ok(person_view.is_admin)
     } else {
-      let is_admin = PersonView::read(pool, person_id).await?.is_admin;
-      Ok(is_admin)
+      Ok(false)
     }
   }
 
@@ -194,11 +195,12 @@ impl CommunityView {
     let is_mod_of_any =
       CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await?;
     if is_mod_of_any {
-      return Ok(true);
+      Ok(true)
+    } else if let Ok(Some(person_view)) = PersonView::read(pool, person_id).await {
+      Ok(person_view.is_admin)
+    } else {
+      Ok(false)
     }
-
-    let is_admin = PersonView::read(pool, person_id).await?.is_admin;
-    Ok(is_admin)
   }
 }
 
@@ -355,8 +357,10 @@ mod tests {
     assert_eq!(1, authenticated_query.len());
 
     let unauthenticated_community =
-      CommunityView::read(pool, data.inserted_community.id, None, false).await;
-    assert!(unauthenticated_community.is_err());
+      CommunityView::read(pool, data.inserted_community.id, None, false)
+        .await
+        .unwrap();
+    assert!(unauthenticated_community.is_none());
 
     let authenticated_community = CommunityView::read(
       pool,

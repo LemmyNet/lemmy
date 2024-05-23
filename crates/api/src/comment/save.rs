@@ -8,14 +8,14 @@ use lemmy_db_schema::{
   traits::Saveable,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn save_comment(
   data: Json<SaveComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommentResponse>, LemmyError> {
+) -> LemmyResult<Json<CommentResponse>> {
   let comment_saved_form = CommentSavedForm {
     comment_id: data.comment_id,
     person_id: local_user_view.person.id,
@@ -33,7 +33,9 @@ pub async fn save_comment(
 
   let comment_id = data.comment_id;
   let person_id = local_user_view.person.id;
-  let comment_view = CommentView::read(&mut context.pool(), comment_id, Some(person_id)).await?;
+  let comment_view = CommentView::read(&mut context.pool(), comment_id, Some(person_id))
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   Ok(Json(CommentResponse {
     comment_view,

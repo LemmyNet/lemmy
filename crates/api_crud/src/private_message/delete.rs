@@ -10,17 +10,19 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn delete_private_message(
   data: Json<DeletePrivateMessage>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PrivateMessageResponse>, LemmyError> {
+) -> LemmyResult<Json<PrivateMessageResponse>> {
   // Checking permissions
   let private_message_id = data.private_message_id;
-  let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
+  let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPrivateMessage)?;
   if local_user_view.person.id != orig_private_message.creator_id {
     Err(LemmyErrorType::EditPrivateMessageNotAllowed)?
   }
@@ -45,7 +47,9 @@ pub async fn delete_private_message(
   )
   .await?;
 
-  let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
+  let view = PrivateMessageView::read(&mut context.pool(), private_message_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPrivateMessage)?;
   Ok(Json(PrivateMessageResponse {
     private_message_view: view,
   }))

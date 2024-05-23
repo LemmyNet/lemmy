@@ -1,6 +1,6 @@
-use crate::newtypes::LocalUserId;
 #[cfg(feature = "full")]
 use crate::schema::login_token;
+use crate::{newtypes::LocalUserId, sensitive::SensitiveString};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -18,7 +18,7 @@ use ts_rs::TS;
 pub struct LoginToken {
   /// Jwt token for this login
   #[serde(skip)]
-  pub token: String,
+  pub token: SensitiveString,
   pub user_id: LocalUserId,
   /// Time of login
   pub published: DateTime<Utc>,
@@ -31,7 +31,7 @@ pub struct LoginToken {
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = login_token))]
 pub struct LoginTokenCreateForm {
-  pub token: String,
+  pub token: SensitiveString,
   pub user_id: LocalUserId,
   pub ip: Option<String>,
   pub user_agent: Option<String>,

@@ -1,3 +1,4 @@
+use super::verify_is_remote_object;
 use crate::{
   activities::GetActorType,
   check_apub_id_valid_with_strictness,
@@ -29,6 +30,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
+  sensitive::SensitiveString,
   source::{
     activity::ActorType,
     local_site::LocalSite,
@@ -38,7 +40,7 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyResult},
   utils::{
     markdown::markdown_to_html,
     slurs::{check_slurs, check_slurs_opt},
@@ -77,7 +79,7 @@ impl Object for ApubPerson {
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
-  ) -> Result<Option<Self>, LemmyError> {
+  ) -> LemmyResult<Option<Self>> {
     Ok(
       DbPerson::read_from_apub_id(&mut context.pool(), &object_id.into())
         .await?
@@ -86,7 +88,7 @@ impl Object for ApubPerson {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let form = PersonUpdateForm {
       deleted: Some(true),
       ..Default::default()
@@ -96,7 +98,7 @@ impl Object for ApubPerson {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_json(self, _context: &Data<Self::DataType>) -> Result<Person, LemmyError> {
+  async fn into_json(self, _context: &Data<Self::DataType>) -> LemmyResult<Person> {
     let kind = if self.bot_account {
       UserTypes::Service
     } else {
@@ -130,13 +132,14 @@ impl Object for ApubPerson {
     person: &Person,
     expected_domain: &Url,
     context: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     let local_site_data = local_site_data_cached(&mut context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
     check_slurs(&person.preferred_username, slur_regex)?;
     check_slurs_opt(&person.name, slur_regex)?;
 
     verify_domains_match(person.id.inner(), expected_domain)?;
+    verify_is_remote_object(&person.id, context)?;
     check_apub_id_valid_with_strictness(person.id.inner(), false, context).await?;
 
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
@@ -145,10 +148,7 @@ impl Object for ApubPerson {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_json(
-    person: Person,
-    context: &Data<Self::DataType>,
-  ) -> Result<ApubPerson, LemmyError> {
+  async fn from_json(person: Person, context: &Data<Self::DataType>) -> LemmyResult<ApubPerson> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
@@ -201,7 +201,7 @@ impl Actor for ApubPerson {
   }
 
   fn private_key_pem(&self) -> Option<String> {
-    self.private_key.clone()
+    self.private_key.clone().map(SensitiveString::into_inner)
   }
 
   fn inbox(&self) -> Url {
@@ -228,7 +228,6 @@ pub(crate) mod tests {
   };
   use activitypub_federation::fetch::object_id::ObjectId;
   use lemmy_db_schema::source::site::Site;
-  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

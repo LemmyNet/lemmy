@@ -1,11 +1,4 @@
-use crate::{
-  diesel::Connection,
-  diesel_migrations::MigrationHarness,
-  newtypes::DbUrl,
-  CommentSortType,
-  SortType,
-};
-use anyhow::Context;
+use crate::{newtypes::DbUrl, CommentSortType, SortType};
 use chrono::{DateTime, TimeDelta, Utc};
 use deadpool::Runtime;
 use diesel::{
@@ -28,6 +21,7 @@ use diesel::{
   IntoSql,
   JoinOnDsl,
   NullableExpressionMethods,
+  OptionalExtension,
   PgConnection,
   QuerySource,
   Table,
@@ -42,25 +36,33 @@ use diesel_async::{
   SimpleAsyncConnection,
 };
 use diesel_bind_if_some::BindIfSome;
-use diesel_migrations::EmbeddedMigrations;
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
 };
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rustls::{
-  client::{ServerCertVerified, ServerCertVerifier},
-  ServerName,
+  client::danger::{
+    DangerousClientConfigBuilder,
+    HandshakeSignatureValid,
+    ServerCertVerified,
+    ServerCertVerifier,
+  },
+  crypto::{self, verify_tls12_signature, verify_tls13_signature},
+  pki_types::{CertificateDer, ServerName, UnixTime},
+  ClientConfig,
+  DigitallySignedStruct,
+  SignatureScheme,
 };
 use std::{
   ops::{Deref, DerefMut},
   sync::Arc,
-  time::{Duration, SystemTime},
+  time::Duration,
 };
-use tracing::{error, info};
+use tracing::error;
 use url::Url;
 
 const FETCH_LIMIT_DEFAULT: i64 = 10;
@@ -71,7 +73,8 @@ pub const RANK_DEFAULT: f64 = 0.0001;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
-/// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit reborrowing.
+/// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
+/// reborrowing.
 ///
 /// https://github.com/rust-lang/rfcs/issues/1403
 pub enum DbPool<'a> {
@@ -111,7 +114,8 @@ impl<'a> DerefMut for DbConn<'a> {
   }
 }
 
-// Allows functions that take `DbPool<'_>` to be called in a transaction by passing `&mut conn.into()`
+// Allows functions that take `DbPool<'_>` to be called in a transaction by passing `&mut
+// conn.into()`
 impl<'a> From<&'a mut AsyncPgConnection> for DbPool<'a> {
   fn from(value: &'a mut AsyncPgConnection) -> Self {
     DbPool::Conn(value)
@@ -130,11 +134,13 @@ impl<'a> From<&'a ActualDbPool> for DbPool<'a> {
   }
 }
 
-/// Runs multiple async functions that take `&mut DbPool<'_>` as input and return `Result`. Only works when the  `futures` crate is listed in `Cargo.toml`.
+/// Runs multiple async functions that take `&mut DbPool<'_>` as input and return `Result`. Only
+/// works when the  `futures` crate is listed in `Cargo.toml`.
 ///
 /// `$pool` is the value given to each function.
 ///
-/// A `Result` is returned (not in a `Future`, so don't use `.await`). The `Ok` variant contains a tuple with the values returned by the given functions.
+/// A `Result` is returned (not in a `Future`, so don't use `.await`). The `Ok` variant contains a
+/// tuple with the values returned by the given functions.
 ///
 /// The functions run concurrently if `$pool` has the `DbPool::Pool` variant.
 #[macro_export]
@@ -307,9 +313,7 @@ pub fn diesel_option_overwrite(opt: Option<String>) -> Option<Option<String>> {
   }
 }
 
-pub fn diesel_option_overwrite_to_url(
-  opt: &Option<String>,
-) -> Result<Option<Option<DbUrl>>, LemmyError> {
+pub fn diesel_option_overwrite_to_url(opt: &Option<String>) -> LemmyResult<Option<Option<DbUrl>>> {
   match opt.as_ref().map(String::as_str) {
     // An empty string is an erase
     Some("") => Ok(Some(None)),
@@ -320,9 +324,7 @@ pub fn diesel_option_overwrite_to_url(
   }
 }
 
-pub fn diesel_option_overwrite_to_url_create(
-  opt: &Option<String>,
-) -> Result<Option<DbUrl>, LemmyError> {
+pub fn diesel_option_overwrite_to_url_create(opt: &Option<String>) -> LemmyResult<Option<DbUrl>> {
   match opt.as_ref().map(String::as_str) {
     // An empty string is nothing
     Some("") => Ok(None),
@@ -335,10 +337,11 @@ pub fn diesel_option_overwrite_to_url_create(
 
 fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
   let fut = async {
-    let rustls_config = rustls::ClientConfig::builder()
-      .with_safe_defaults()
-      .with_custom_certificate_verifier(Arc::new(NoCertVerifier {}))
-      .with_no_client_auth();
+    let rustls_config = DangerousClientConfigBuilder {
+      cfg: ClientConfig::builder(),
+    }
+    .with_custom_certificate_verifier(Arc::new(NoCertVerifier {}))
+    .with_no_client_auth();
 
     let tls = tokio_postgres_rustls::MakeRustlsConnect::new(rustls_config);
     let (client, conn) = tokio_postgres::connect(config, tls)
@@ -350,8 +353,10 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
       }
     });
     let mut conn = AsyncPgConnection::try_from(client).await?;
-    // * Change geqo_threshold back to default value if it was changed, so it's higher than the collapse limits
-    // * Change collapse limits from 8 to 11 so the query planner can find a better table join order for more complicated queries
+    // * Change geqo_threshold back to default value if it was changed, so it's higher than the
+    //   collapse limits
+    // * Change collapse limits from 8 to 11 so the query planner can find a better table join order
+    //   for more complicated queries
     conn
       .batch_execute("SET geqo_threshold=12;SET from_collapse_limit=11;SET join_collapse_limit=11;")
       .await
@@ -361,39 +366,58 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
   fut.boxed()
 }
 
+#[derive(Debug)]
 struct NoCertVerifier {}
 
 impl ServerCertVerifier for NoCertVerifier {
   fn verify_server_cert(
     &self,
-    _end_entity: &rustls::Certificate,
-    _intermediates: &[rustls::Certificate],
+    _end_entity: &CertificateDer,
+    _intermediates: &[CertificateDer],
     _server_name: &ServerName,
-    _scts: &mut dyn Iterator<Item = &[u8]>,
-    _ocsp_response: &[u8],
-    _now: SystemTime,
+    _ocsp: &[u8],
+    _now: UnixTime,
   ) -> Result<ServerCertVerified, rustls::Error> {
     // Will verify all (even invalid) certs without any checks (sslmode=require)
     Ok(ServerCertVerified::assertion())
   }
+
+  fn verify_tls12_signature(
+    &self,
+    message: &[u8],
+    cert: &CertificateDer,
+    dss: &DigitallySignedStruct,
+  ) -> Result<HandshakeSignatureValid, rustls::Error> {
+    verify_tls12_signature(
+      message,
+      cert,
+      dss,
+      &crypto::ring::default_provider().signature_verification_algorithms,
+    )
+  }
+
+  fn verify_tls13_signature(
+    &self,
+    message: &[u8],
+    cert: &CertificateDer,
+    dss: &DigitallySignedStruct,
+  ) -> Result<HandshakeSignatureValid, rustls::Error> {
+    verify_tls13_signature(
+      message,
+      cert,
+      dss,
+      &crypto::ring::default_provider().signature_verification_algorithms,
+    )
+  }
+
+  fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
+    crypto::ring::default_provider()
+      .signature_verification_algorithms
+      .supported_schemes()
+  }
 }
 
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
-
-fn run_migrations(db_url: &str) -> Result<(), LemmyError> {
-  // Needs to be a sync connection
-  let mut conn = PgConnection::establish(db_url).with_context(|| "Error connecting to database")?;
-
-  info!("Running Database migrations (This may take a long time)...");
-  conn
-    .run_pending_migrations(MIGRATIONS)
-    .map_err(|e| anyhow::anyhow!("Couldn't run DB Migrations: {e}"))?;
-  info!("Database migrations complete.");
-
-  Ok(())
-}
-
-pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
+pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let db_url = SETTINGS.get_database_url();
   // We only support TLS with sslmode=require currently
   let tls_enabled = db_url.contains("sslmode=require");
@@ -409,9 +433,11 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
   let pool = Pool::builder(manager)
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
-    // Limit connection age to prevent use of prepared statements that have query plans based on very old statistics
+    // Limit connection age to prevent use of prepared statements that have query plans based on
+    // very old statistics
     .pre_recycle(Hook::sync_fn(|_conn, metrics| {
-      // Preventing the first recycle can cause an infinite loop when trying to get a new connection from the pool
+      // Preventing the first recycle can cause an infinite loop when trying to get a new connection
+      // from the pool
       let conn_was_used = metrics.recycled.is_some();
       if metrics.age() > Duration::from_secs(3 * 24 * 60 * 60) && conn_was_used {
         Err(HookError::Continue(None))
@@ -421,7 +447,7 @@ pub async fn build_db_pool() -> Result<ActualDbPool, LemmyError> {
     }))
     .build()?;
 
-  run_migrations(&db_url)?;
+  crate::schema_setup::run(&db_url)?;
 
   Ok(pool)
 }
@@ -463,14 +489,17 @@ pub mod functions {
   use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
+    #[sql_name = "r.hot_rank"]
     fn hot_rank(score: BigInt, time: Timestamptz) -> Double;
   }
 
   sql_function! {
+    #[sql_name = "r.scaled_rank"]
     fn scaled_rank(score: BigInt, time: Timestamptz, users_active_month: BigInt) -> Double;
   }
 
   sql_function! {
+    #[sql_name = "r.controversy_rank"]
     fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Double;
   }
 
@@ -597,7 +626,8 @@ pub trait ListFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>> 
 
 impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>> ListFn<'a, T, Args> for F {}
 
-/// Allows read and list functions to capture a shared closure that has an inferred return type, which is useful for join logic
+/// Allows read and list functions to capture a shared closure that has an inferred return type,
+/// which is useful for join logic
 pub struct Queries<RF, LF> {
   pub read_fn: RF,
   pub list_fn: LF,
@@ -627,12 +657,12 @@ impl<RF, LF> Queries<RF, LF> {
     self,
     pool: &'a mut DbPool<'_>,
     args: Args,
-  ) -> Result<T, DieselError>
+  ) -> Result<Option<T>, DieselError>
   where
     RF: ReadFn<'a, T, Args>,
   {
     let conn = get_conn(pool).await?;
-    (self.read_fn)(conn, args).await
+    (self.read_fn)(conn, args).await.optional()
   }
 
   pub async fn list<'a, T, Args>(

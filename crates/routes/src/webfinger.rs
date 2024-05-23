@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   traits::ApubActor,
   CommunityVisibility,
 };
-use lemmy_utils::{cache_header::cache_3days, error::LemmyError};
+use lemmy_utils::{cache_header::cache_3days, error::LemmyResult};
 use serde::Deserialize;
 use std::collections::HashMap;
 use url::Url;
@@ -35,7 +35,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 async fn get_webfinger_response(
   info: Query<Params>,
   context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> LemmyResult<HttpResponse> {
   let name = extract_webfinger_name(&info.resource, &context)?;
 
   let links = if name == context.settings().hostname {
@@ -47,10 +47,12 @@ async fn get_webfinger_response(
     let user_id: Option<Url> = Person::read_from_name(&mut context.pool(), name, false)
       .await
       .ok()
+      .flatten()
       .map(|c| c.actor_id.into());
     let community_id: Option<Url> = Community::read_from_name(&mut context.pool(), name, false)
       .await
       .ok()
+      .flatten()
       .and_then(|c| {
         if c.visibility == CommunityVisibility::Public {
           let id: Url = c.actor_id.into();
@@ -61,7 +63,7 @@ async fn get_webfinger_response(
       });
 
     // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
-    // community last so that it gets prioritized. For Lemmy the order doesnt matter.
+    // community last so that it gets prioritized. For Lemmy the order doesn't matter.
     vec![
       webfinger_link_for_actor(user_id, "Person", &context),
       webfinger_link_for_actor(community_id, "Group", &context),

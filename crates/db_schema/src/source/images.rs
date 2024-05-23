@@ -22,7 +22,7 @@ use typed_builder::TypedBuilder;
   diesel(belongs_to(crate::source::local_user::LocalUser))
 )]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", diesel(primary_key(local_user_id)))]
+#[cfg_attr(feature = "full", diesel(primary_key(pictrs_alias)))]
 pub struct LocalImage {
   pub local_user_id: Option<LocalUserId>,
   pub pictrs_alias: String,
@@ -41,9 +41,11 @@ pub struct LocalImageForm {
 
 /// Stores all images which are hosted on remote domains. When attempting to proxy an image, it
 /// is checked against this table to avoid Lemmy being used as a general purpose proxy.
-#[derive(PartialEq, Eq, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable))]
+#[skip_serializing_none]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = remote_image))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct RemoteImage {
   pub id: i32,
   pub link: DbUrl,

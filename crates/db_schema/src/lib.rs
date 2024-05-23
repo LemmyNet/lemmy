@@ -24,6 +24,7 @@ pub mod aggregates;
 #[cfg(feature = "full")]
 pub mod impls;
 pub mod newtypes;
+pub mod sensitive;
 #[cfg(feature = "full")]
 #[rustfmt::skip]
 #[allow(clippy::wildcard_imports)]
@@ -42,6 +43,9 @@ pub mod source;
 pub mod traits;
 #[cfg(feature = "full")]
 pub mod utils;
+
+#[cfg(feature = "full")]
+mod schema_setup;
 
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};

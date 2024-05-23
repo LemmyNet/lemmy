@@ -5,7 +5,7 @@ use lemmy_api_common::{
   utils::check_community_mod_of_any_or_admin_action,
 };
 use lemmy_db_views::{comment_report_view::CommentReportQuery, structs::LocalUserView};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 /// Lists comment reports for a community if an id is supplied
 /// or returns all comment reports for communities a user moderates
@@ -14,7 +14,7 @@ pub async fn list_comment_reports(
   data: Query<ListCommentReports>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<ListCommentReportsResponse>, LemmyError> {
+) -> LemmyResult<Json<ListCommentReportsResponse>> {
   let community_id = data.community_id;
   let comment_id = data.comment_id;
   let unresolved_only = data.unresolved_only.unwrap_or_default();

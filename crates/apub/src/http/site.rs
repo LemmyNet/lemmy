@@ -7,22 +7,22 @@ use activitypub_federation::{config::Data, traits::Object};
 use actix_web::HttpResponse;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_views::structs::SiteView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 use url::Url;
 
-pub(crate) async fn get_apub_site_http(
-  context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
-  let site: ApubSite = SiteView::read_local(&mut context.pool()).await?.site.into();
+pub(crate) async fn get_apub_site_http(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
+  let site: ApubSite = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?
+    .site
+    .into();
 
   let apub = site.into_json(&context).await?;
   create_apub_response(&apub)
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) async fn get_apub_site_outbox(
-  context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+pub(crate) async fn get_apub_site_outbox(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
   let outbox_id = format!(
     "{}/site_outbox",
     context.settings().get_protocol_and_hostname()

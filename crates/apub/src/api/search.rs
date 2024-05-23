@@ -13,15 +13,17 @@ use lemmy_db_views::{
   structs::{LocalUserView, SiteView},
 };
 use lemmy_db_views_actor::{community_view::CommunityQuery, person_view::PersonQuery};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn search(
   data: Query<Search>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> Result<Json<SearchResponse>, LemmyError> {
-  let local_site = SiteView::read_local(&mut context.pool()).await?;
+) -> LemmyResult<Json<SearchResponse>> {
+  let local_site = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
 
   check_private_instance(&local_user_view, &local_site.local_site)?;
 

@@ -1,4 +1,5 @@
 use crate::{
+  diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{CommunityId, DbUrl, PersonId},
   schema::{community, community_actions, instance},
   source::{
@@ -17,7 +18,14 @@ use crate::{
     post::Post,
   },
   traits::{ApubActor, Bannable, Crud, Followable, Joinable},
-  utils::{action_query, find_action, functions::lower, get_conn, now, DbPool},
+  utils::{
+    action_query,
+    find_action,
+    functions::{coalesce, lower},
+    get_conn,
+    now,
+    DbPool,
+  },
   SubscribedType,
 };
 use chrono::{DateTime, Utc};
@@ -45,25 +53,15 @@ impl Crud for Community {
   type IdType = CommunityId;
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
-    let is_new_community = match &form.actor_id {
-      Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
-      None => true,
-    };
     let conn = &mut get_conn(pool).await?;
 
-    // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
     let community_ = insert_into(community::table)
       .values(form)
-      .on_conflict(community::actor_id)
-      .do_update()
-      .set(form)
       .get_result::<Self>(conn)
       .await?;
 
     // Initialize languages for new community
-    if is_new_community {
-      CommunityLanguage::update(pool, vec![], community_.id).await?;
-    }
+    CommunityLanguage::update(pool, vec![], community_.id).await?;
 
     Ok(community_)
   }
@@ -135,29 +133,64 @@ pub enum CollectionType {
 }
 
 impl Community {
-  /// Get the community which has a given moderators or featured url, also return the collection type
+  pub async fn insert_apub(
+    pool: &mut DbPool<'_>,
+    timestamp: DateTime<Utc>,
+    form: &CommunityInsertForm,
+  ) -> Result<Self, Error> {
+    let is_new_community = match &form.actor_id {
+      Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
+      None => true,
+    };
+    let conn = &mut get_conn(pool).await?;
+
+    // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
+    let community_ = insert_into(community::table)
+      .values(form)
+      .on_conflict(community::actor_id)
+      .filter_target(coalesce(community::updated, community::published).lt(timestamp))
+      .do_update()
+      .set(form)
+      .get_result::<Self>(conn)
+      .await?;
+
+    // Initialize languages for new community
+    if is_new_community {
+      CommunityLanguage::update(pool, vec![], community_.id).await?;
+    }
+
+    Ok(community_)
+  }
+
+  /// Get the community which has a given moderators or featured url, also return the collection
+  /// type
   pub async fn get_by_collection_url(
     pool: &mut DbPool<'_>,
     url: &DbUrl,
-  ) -> Result<(Community, CollectionType), Error> {
+  ) -> Result<Option<(Community, CollectionType)>, Error> {
     use crate::schema::community::dsl::{featured_url, moderators_url};
     use CollectionType::*;
     let conn = &mut get_conn(pool).await?;
     let res = community::table
       .filter(moderators_url.eq(url))
-      .first::<Self>(conn)
-      .await;
-    if let Ok(c) = res {
-      return Ok((c, Moderators));
+      .first(conn)
+      .await
+      .optional()?;
+
+    if let Some(c) = res {
+      Ok(Some((c, Moderators)))
+    } else {
+      let res = community::table
+        .filter(featured_url.eq(url))
+        .first(conn)
+        .await
+        .optional()?;
+      if let Some(c) = res {
+        Ok(Some((c, Featured)))
+      } else {
+        Ok(None)
+      }
     }
-    let res = community::table
-      .filter(featured_url.eq(url))
-      .first::<Self>(conn)
-      .await;
-    if let Ok(c) = res {
-      return Ok((c, Featured));
-    }
-    Err(diesel::NotFound)
   }
 
   pub async fn set_featured_posts(
@@ -393,21 +426,18 @@ impl ApubActor for Community {
     object_id: &DbUrl,
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    Ok(
-      community::table
-        .filter(community::actor_id.eq(object_id))
-        .first::<Community>(conn)
-        .await
-        .ok()
-        .map(Into::into),
-    )
+    community::table
+      .filter(community::actor_id.eq(object_id))
+      .first(conn)
+      .await
+      .optional()
   }
 
   async fn read_from_name(
     pool: &mut DbPool<'_>,
     community_name: &str,
     include_deleted: bool,
-  ) -> Result<Community, Error> {
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let mut q = community::table
       .into_boxed()
@@ -418,22 +448,23 @@ impl ApubActor for Community {
         .filter(community::deleted.eq(false))
         .filter(community::removed.eq(false));
     }
-    q.first::<Self>(conn).await
+    q.first(conn).await.optional()
   }
 
   async fn read_from_name_and_domain(
     pool: &mut DbPool<'_>,
     community_name: &str,
     for_domain: &str,
-  ) -> Result<Community, Error> {
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     community::table
       .inner_join(instance::table)
       .filter(lower(community::name).eq(community_name.to_lowercase()))
       .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
       .select(community::all_columns)
-      .first::<Self>(conn)
+      .first(conn)
       .await
+      .optional()
   }
 }
 
@@ -569,7 +600,10 @@ mod tests {
       expires: None,
     };
 
-    let read_community = Community::read(pool, inserted_community.id).await.unwrap();
+    let read_community = Community::read(pool, inserted_community.id)
+      .await
+      .unwrap()
+      .unwrap();
 
     let update_community_form = CommunityUpdateForm {
       title: Some("nada".to_owned()),

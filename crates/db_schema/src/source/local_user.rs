@@ -2,6 +2,7 @@
 use crate::schema::local_user;
 use crate::{
   newtypes::{LocalUserId, PersonId},
+  sensitive::SensitiveString,
   ListingType,
   PostListingMode,
   SortType,
@@ -24,8 +25,8 @@ pub struct LocalUser {
   /// The person_id for the local user.
   pub person_id: PersonId,
   #[serde(skip)]
-  pub password_encrypted: String,
-  pub email: Option<String>,
+  pub password_encrypted: SensitiveString,
+  pub email: Option<SensitiveString>,
   /// Whether to show NSFW content.
   pub show_nsfw: bool,
   pub theme: String,
@@ -47,7 +48,7 @@ pub struct LocalUser {
   /// Whether their registration application has been accepted.
   pub accepted_application: bool,
   #[serde(skip)]
-  pub totp_2fa_secret: Option<String>,
+  pub totp_2fa_secret: Option<SensitiveString>,
   /// Open links in a new tab.
   pub open_links_in_new_tab: bool,
   pub blur_nsfw: bool,
@@ -61,7 +62,8 @@ pub struct LocalUser {
   pub totp_2fa_enabled: bool,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
   pub enable_keyboard_navigation: bool,
-  /// Whether user avatars and inline images in the UI that are gifs should be allowed to play or should be paused
+  /// Whether user avatars and inline images in the UI that are gifs should be allowed to play or
+  /// should be paused
   pub enable_animated_images: bool,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: bool,

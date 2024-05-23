@@ -15,14 +15,14 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn add_mod_to_community(
   data: Json<AddModToCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<AddModToCommunityResponse>, LemmyError> {
+) -> LemmyResult<Json<AddModToCommunityResponse>> {
   let community_id = data.community_id;
 
   // Verify that only mods or admins can add mod
@@ -33,9 +33,23 @@ pub async fn add_mod_to_community(
     &mut context.pool(),
   )
   .await?;
-  let community = Community::read(&mut context.pool(), community_id).await?;
+  let community = Community::read(&mut context.pool(), community_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+
+  // If user is admin and community is remote, explicitly check that he is a
+  // moderator. This is necessary because otherwise the action would be rejected
+  // by the community's home instance.
   if local_user_view.local_user.admin && !community.local {
-    Err(LemmyErrorType::NotAModerator)?
+    let is_mod = CommunityModeratorView::is_community_moderator(
+      &mut context.pool(),
+      community.id,
+      local_user_view.person.id,
+    )
+    .await?;
+    if !is_mod {
+      Err(LemmyErrorType::NotAModerator)?
+    }
   }
 
   // Update in local database

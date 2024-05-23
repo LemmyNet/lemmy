@@ -10,7 +10,7 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Deserialize;
 use url::Url;
 
@@ -21,7 +21,7 @@ use url::Url;
 pub(crate) async fn search_query_to_object_id(
   mut query: String,
   context: &Data<LemmyContext>,
-) -> Result<SearchableObjects, LemmyError> {
+) -> LemmyResult<SearchableObjects> {
   Ok(match Url::parse(&query) {
     Ok(url) => {
       // its already an url, just go with it
@@ -46,7 +46,7 @@ pub(crate) async fn search_query_to_object_id(
 pub(crate) async fn search_query_to_object_id_local(
   query: &str,
   context: &Data<LemmyContext>,
-) -> Result<SearchableObjects, LemmyError> {
+) -> LemmyResult<SearchableObjects> {
   let url = Url::parse(query)?;
   ObjectId::from(url).dereference_local(context).await
 }
@@ -90,7 +90,7 @@ impl Object for SearchableObjects {
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
-  ) -> Result<Option<Self>, LemmyError> {
+  ) -> LemmyResult<Option<Self>> {
     let uc = UserOrCommunity::read_from_id(object_id.clone(), context).await?;
     if let Some(uc) = uc {
       return Ok(Some(SearchableObjects::PersonOrCommunity(Box::new(uc))));
@@ -107,7 +107,7 @@ impl Object for SearchableObjects {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, data: &Data<Self::DataType>) -> LemmyResult<()> {
     match self {
       SearchableObjects::Post(p) => p.delete(data).await,
       SearchableObjects::Comment(c) => c.delete(data).await,
@@ -118,7 +118,7 @@ impl Object for SearchableObjects {
     }
   }
 
-  async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
+  async fn into_json(self, _data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     unimplemented!()
   }
 
@@ -127,7 +127,7 @@ impl Object for SearchableObjects {
     apub: &Self::Kind,
     expected_domain: &Url,
     data: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     match apub {
       SearchableKinds::Page(a) => ApubPost::verify(a, expected_domain, data).await,
       SearchableKinds::Note(a) => ApubComment::verify(a, expected_domain, data).await,
@@ -139,7 +139,7 @@ impl Object for SearchableObjects {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_json(apub: Self::Kind, context: &Data<LemmyContext>) -> Result<Self, LemmyError> {
+  async fn from_json(apub: Self::Kind, context: &Data<LemmyContext>) -> LemmyResult<Self> {
     use SearchableKinds as SAT;
     use SearchableObjects as SO;
     Ok(match apub {

@@ -26,7 +26,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   utils::slurs::check_slurs,
 };
 use std::io::Cursor;
@@ -44,7 +44,8 @@ pub mod site;
 pub mod sitemap;
 
 /// Converts the captcha to a base64 encoded wav audio file
-pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyError> {
+#[allow(deprecated)]
+pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> LemmyResult<String> {
   let letters = captcha.as_wav();
 
   // Decode each wav file, concatenate the samples
@@ -78,7 +79,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
 }
 
 /// Check size of report
-pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Result<(), LemmyError> {
+pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> LemmyResult<()> {
   let slur_regex = &local_site_to_slur_regex(local_site);
 
   check_slurs(reason, slur_regex)?;
@@ -91,7 +92,7 @@ pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Resul
   }
 }
 
-pub fn read_auth_token(req: &HttpRequest) -> Result<Option<String>, LemmyError> {
+pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
   // Try reading jwt from auth header
   if let Ok(header) = Authorization::<Bearer>::parse(req) {
     Ok(Some(header.as_ref().token().to_string()))
@@ -135,7 +136,7 @@ pub(crate) fn generate_totp_2fa_secret() -> String {
   Secret::generate_secret().to_string()
 }
 
-fn build_totp_2fa(hostname: &str, username: &str, secret: &str) -> Result<TOTP, LemmyError> {
+fn build_totp_2fa(hostname: &str, username: &str, secret: &str) -> LemmyResult<TOTP> {
   let sec = Secret::Raw(secret.as_bytes().to_vec());
   let sec_bytes = sec
     .to_bytes()
@@ -248,11 +249,13 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
 pub async fn local_user_view_from_jwt(
   jwt: &str,
   context: &LemmyContext,
-) -> Result<LocalUserView, LemmyError> {
+) -> LemmyResult<LocalUserView> {
   let local_user_id = Claims::validate(jwt, context)
     .await
     .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
-  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
+  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
   check_user_valid(&local_user_view.person)?;
 
   Ok(local_user_view)
