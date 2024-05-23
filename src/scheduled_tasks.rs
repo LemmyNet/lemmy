@@ -467,10 +467,11 @@ async fn update_instance_software(
       for instance in instances {
         let node_info_url = format!("https://{}/nodeinfo/2.0.json", instance.domain);
 
-        // The `updated` column is used to check if instances are alive. If it is more than three days
-        // in the past, no outgoing activities will be sent to that instance. However not every
-        // Fediverse instance has a valid Nodeinfo endpoint (its not required for Activitypub). That's
-        // why we always need to mark instances as updated if they are alive.
+        // The `updated` column is used to check if instances are alive. If it is more than three
+        // days in the past, no outgoing activities will be sent to that instance. However
+        // not every Fediverse instance has a valid Nodeinfo endpoint (its not required for
+        // Activitypub). That's why we always need to mark instances as updated if they are
+        // alive.
         let default_form = InstanceForm::builder()
           .domain(instance.domain.clone())
           .updated(Some(naive_now()))

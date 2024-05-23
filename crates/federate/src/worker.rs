@@ -36,17 +36,22 @@ use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, trace, warn};
 
-/// Check whether to save state to db every n sends if there's no failures (during failures state is saved after every attempt)
-/// This determines the batch size for loop_batch. After a batch ends and SAVE_STATE_EVERY_TIME has passed, the federation_queue_state is updated in the DB.
+/// Check whether to save state to db every n sends if there's no failures (during failures state is
+/// saved after every attempt) This determines the batch size for loop_batch. After a batch ends and
+/// SAVE_STATE_EVERY_TIME has passed, the federation_queue_state is updated in the DB.
 static CHECK_SAVE_STATE_EVERY_IT: i64 = 100;
-/// Save state to db after this time has passed since the last state (so if the server crashes or is SIGKILLed, less than X seconds of activities are resent)
+/// Save state to db after this time has passed since the last state (so if the server crashes or is
+/// SIGKILLed, less than X seconds of activities are resent)
 static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(60);
 /// interval with which new additions to community_followers are queried.
 ///
-/// The first time some user on an instance follows a specific remote community (or, more precisely: the first time a (followed_community_id, follower_inbox_url) tuple appears),
-/// this delay limits the maximum time until the follow actually results in activities from that community id being sent to that inbox url.
-/// This delay currently needs to not be too small because the DB load is currently fairly high because of the current structure of storing inboxes for every person, not having a separate list of shared_inboxes, and the architecture of having every instance queue be fully separate.
-/// (see https://github.com/LemmyNet/lemmy/issues/3958)
+/// The first time some user on an instance follows a specific remote community (or, more precisely:
+/// the first time a (followed_community_id, follower_inbox_url) tuple appears), this delay limits
+/// the maximum time until the follow actually results in activities from that community id being
+/// sent to that inbox url. This delay currently needs to not be too small because the DB load is
+/// currently fairly high because of the current structure of storing inboxes for every person, not
+/// having a separate list of shared_inboxes, and the architecture of having every instance queue be
+/// fully separate. (see https://github.com/LemmyNet/lemmy/issues/3958)
 static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::TimeDelta> = Lazy::new(|| {
   if *LEMMY_TEST_FAST_FEDERATION {
     chrono::TimeDelta::try_seconds(1).expect("TimeDelta out of bounds")
@@ -54,8 +59,9 @@ static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::TimeDelta> = Lazy::new(|| {
     chrono::TimeDelta::try_minutes(2).expect("TimeDelta out of bounds")
   }
 });
-/// The same as FOLLOW_ADDITIONS_RECHECK_DELAY, but triggering when the last person on an instance unfollows a specific remote community.
-/// This is expected to happen pretty rarely and updating it in a timely manner is not too important.
+/// The same as FOLLOW_ADDITIONS_RECHECK_DELAY, but triggering when the last person on an instance
+/// unfollows a specific remote community. This is expected to happen pretty rarely and updating it
+/// in a timely manner is not too important.
 static FOLLOW_REMOVALS_RECHECK_DELAY: Lazy<chrono::TimeDelta> =
   Lazy::new(|| chrono::TimeDelta::try_hours(1).expect("TimeDelta out of bounds"));
 pub(crate) struct InstanceWorker {
@@ -149,8 +155,8 @@ impl InstanceWorker {
     let mut id = if let Some(id) = self.state.last_successful_id {
       id
     } else {
-      // this is the initial creation (instance first seen) of the federation queue for this instance
-      // skip all past activities:
+      // this is the initial creation (instance first seen) of the federation queue for this
+      // instance skip all past activities:
       self.state.last_successful_id = Some(latest_id);
       // save here to ensure it's not read as 0 again later if no activities have happened
       self.save_and_send_state().await?;
@@ -273,7 +279,8 @@ impl InstanceWorker {
         self.site_loaded = true;
       }
       if let Some(site) = &self.site {
-        // Nutomic: Most non-lemmy software wont have a site row. That means it cant handle these activities. So handling it like this is fine.
+        // Nutomic: Most non-lemmy software wont have a site row. That means it cant handle these
+        // activities. So handling it like this is fine.
         inbox_urls.insert(site.inbox_url.inner().clone());
       }
     }
@@ -312,14 +319,16 @@ impl InstanceWorker {
     Ok(())
   }
 
-  /// get a list of local communities with the remote inboxes on the given instance that cares about them
+  /// get a list of local communities with the remote inboxes on the given instance that cares about
+  /// them
   async fn get_communities(
     &mut self,
     instance_id: InstanceId,
     last_fetch: DateTime<Utc>,
   ) -> Result<(HashMap<CommunityId, HashSet<Url>>, DateTime<Utc>)> {
     let new_last_fetch =
-      Utc::now() - chrono::TimeDelta::try_seconds(10).expect("TimeDelta out of bounds"); // update to time before fetch to ensure overlap. subtract 10s to ensure overlap even if published date is not exact
+      Utc::now() - chrono::TimeDelta::try_seconds(10).expect("TimeDelta out of bounds"); // update to time before fetch to ensure overlap. subtract 10s to ensure overlap even if
+                                                                                         // published date is not exact
     Ok((
       CommunityFollowerView::get_instance_followed_community_inboxes(
         &mut self.context.pool(),

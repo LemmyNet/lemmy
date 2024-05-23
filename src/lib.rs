@@ -70,38 +70,42 @@ use url::Url;
   about = "A link aggregator for the fediverse",
   long_about = "A link aggregator for the fediverse.\n\nThis is the Lemmy backend API server. This will connect to a PostgreSQL database, run any pending migrations and start accepting API requests."
 )]
+// TODO: Instead of defining individual env vars, only specify prefix once supported by clap.
+//       https://github.com/clap-rs/clap/issues/3221
 pub struct CmdArgs {
   /// Don't run scheduled tasks.
   ///
-  /// If you are running multiple Lemmy server processes, you probably want to disable scheduled tasks on
-  /// all but one of the processes, to avoid running the tasks more often than intended.
-  #[arg(long, default_value_t = false)]
+  /// If you are running multiple Lemmy server processes, you probably want to disable scheduled
+  /// tasks on all but one of the processes, to avoid running the tasks more often than intended.
+  #[arg(long, default_value_t = false, env = "LEMMY_DISABLE_SCHEDULED_TASKS")]
   disable_scheduled_tasks: bool,
   /// Disables the HTTP server.
   ///
-  /// This can be used to run a Lemmy server process that only performs scheduled tasks or activity sending.
-  #[arg(long, default_value_t = false)]
+  /// This can be used to run a Lemmy server process that only performs scheduled tasks or activity
+  /// sending.
+  #[arg(long, default_value_t = false, env = "LEMMY_DISABLE_HTTP_SERVER")]
   disable_http_server: bool,
   /// Disable sending outgoing ActivityPub messages.
   ///
   /// Only pass this for horizontally scaled setups.
   /// See https://join-lemmy.org/docs/administration/horizontal_scaling.html for details.
-  #[arg(long, default_value_t = false)]
+  #[arg(long, default_value_t = false, env = "LEMMY_DISABLE_ACTIVITY_SENDING")]
   disable_activity_sending: bool,
   /// The index of this outgoing federation process.
   ///
-  /// Defaults to 1/1. If you want to split the federation workload onto n servers, run each server 1≤i≤n with these args:
-  /// --federate-process-index i --federate-process-count n
+  /// Defaults to 1/1. If you want to split the federation workload onto n servers, run each server
+  /// 1≤i≤n with these args: --federate-process-index i --federate-process-count n
   ///
-  /// Make you have exactly one server with each `i` running, otherwise federation will randomly send duplicates or nothing.
+  /// Make you have exactly one server with each `i` running, otherwise federation will randomly
+  /// send duplicates or nothing.
   ///
   /// See https://join-lemmy.org/docs/administration/horizontal_scaling.html for more detail.
-  #[arg(long, default_value_t = 1)]
+  #[arg(long, default_value_t = 1, env = "LEMMY_FEDERATE_PROCESS_INDEX")]
   federate_process_index: i32,
   /// How many outgoing federation processes you are starting in total.
   ///
   /// If set, make sure to set --federate-process-index differently for each.
-  #[arg(long, default_value_t = 1)]
+  #[arg(long, default_value_t = 1, env = "LEMMY_FEDERATE_PROCESS_COUNT")]
   federate_process_count: i32,
 }
 
@@ -290,7 +294,9 @@ fn create_http_server(
     let cors_config = cors_config(&settings);
     let app = App::new()
       .wrap(middleware::Logger::new(
-        // This is the default log format save for the usage of %{r}a over %a to guarantee to record the client's (forwarded) IP and not the last peer address, since the latter is frequently just a reverse proxy
+        // This is the default log format save for the usage of %{r}a over %a to guarantee to
+        // record the client's (forwarded) IP and not the last peer address, since the latter is
+        // frequently just a reverse proxy
         "%{r}a '%r' %s %b '%{Referer}i' '%{User-Agent}i' %T",
       ))
       .wrap(middleware::Compress::default())
@@ -332,7 +338,8 @@ fn cors_config(settings: &Settings) -> Cors {
   let cors_origin_setting = settings.cors_origin();
   match (cors_origin_setting.clone(), cfg!(debug_assertions)) {
     (Some(origin), false) => {
-      // Need to call send_wildcard() explicitly, passing this into allowed_origin() results in error
+      // Need to call send_wildcard() explicitly, passing this into allowed_origin() results in
+      // error
       if cors_origin_setting.as_deref() == Some("*") {
         Cors::default().allow_any_origin().send_wildcard()
       } else {

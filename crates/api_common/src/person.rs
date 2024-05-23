@@ -124,7 +124,8 @@ pub struct SaveUserSettings {
   pub post_listing_mode: Option<PostListingMode>,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
   pub enable_keyboard_navigation: Option<bool>,
-  /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or should be paused
+  /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or
+  /// should be paused
   pub enable_animated_images: Option<bool>,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: Option<bool>,
@@ -151,7 +152,8 @@ pub struct ChangePassword {
 #[cfg_attr(feature = "full", ts(export))]
 /// A response for your login.
 pub struct LoginResponse {
-  /// This is None in response to `Register` if email verification is enabled, or the server requires registration applications.
+  /// This is None in response to `Register` if email verification is enabled, or the server
+  /// requires registration applications.
   pub jwt: Option<SensitiveString>,
   /// If registration applications are required, this will return true for a signup response.
   pub registration_created: bool,
