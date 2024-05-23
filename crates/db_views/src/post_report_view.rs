@@ -178,7 +178,8 @@ fn queries<'a>() -> Queries<
       query = query.filter(post::id.eq(post_id));
     }
 
-    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
+    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
+    // first (FIFO)
     if options.unresolved_only {
       query = query
         .filter(post_report::resolved.eq(false))

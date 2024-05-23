@@ -150,7 +150,8 @@ fn queries<'a>() -> Queries<
       query = query.filter(comment_report::comment_id.eq(comment_id));
     }
 
-    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
+    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
+    // first (FIFO)
     if options.unresolved_only {
       query = query
         .filter(comment_report::resolved.eq(false))
