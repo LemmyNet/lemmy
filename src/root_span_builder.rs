@@ -79,5 +79,5 @@ fn handle_error(span: Span, status_code: StatusCode, response_error: &dyn Respon
     }
   });
 
-  span.record("exception.message", &tracing::field::display(display_error));
+  span.record("exception.message", tracing::field::display(display_error));
 }

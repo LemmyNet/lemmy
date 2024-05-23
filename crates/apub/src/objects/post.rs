@@ -25,12 +25,7 @@ use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorato
 use lemmy_api_common::{
   context::LemmyContext,
   request::generate_post_link_metadata,
-  utils::{
-    get_url_blocklist,
-    local_site_opt_to_slur_regex,
-    process_markdown_opt,
-    proxy_image_link_opt_apub,
-  },
+  utils::{get_url_blocklist, local_site_opt_to_slur_regex, process_markdown_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -227,8 +222,6 @@ impl Object for ApubPost {
     check_url_scheme(&url)?;
 
     let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
-
-    let url = proxy_image_link_opt_apub(url, context).await?;
 
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let url_blocklist = get_url_blocklist(context).await?;

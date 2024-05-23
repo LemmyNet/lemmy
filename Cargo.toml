@@ -67,8 +67,8 @@ members = [
 
 [workspace.lints.clippy]
 cast_lossless = "deny"
-complexity = "deny"
-correctness = "deny"
+complexity = { level = "deny", priority = -1 }
+correctness = { level = "deny", priority = -1 }
 dbg_macro = "deny"
 explicit_into_iter_loop = "deny"
 explicit_iter_loop = "deny"
@@ -79,10 +79,10 @@ inefficient_to_string = "deny"
 items-after-statements = "deny"
 manual_string_new = "deny"
 needless_collect = "deny"
-perf = "deny"
+perf = { level = "deny", priority = -1 }
 redundant_closure_for_method_calls = "deny"
-style = "deny"
-suspicious = "deny"
+style = { level = "deny", priority = -1 }
+suspicious = { level = "deny", priority = -1 }
 uninlined_format_args = "allow"
 unused_self = "deny"
 unwrap_used = "deny"
