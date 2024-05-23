@@ -617,7 +617,8 @@ impl PaginationCursor {
 }
 
 // currently we use a postaggregates struct as the pagination token.
-// we only use some of the properties of the post aggregates, depending on which sort type we page by
+// we only use some of the properties of the post aggregates, depending on which sort type we page
+// by
 #[derive(Clone)]
 pub struct PaginationCursorData(PostAggregates);
 
@@ -627,7 +628,8 @@ pub struct PostQuery<'a> {
   pub sort: Option<SortType>,
   pub creator_id: Option<PersonId>,
   pub community_id: Option<CommunityId>,
-  // if true, the query should be handled as if community_id was not given except adding the literal filter
+  // if true, the query should be handled as if community_id was not given except adding the
+  // literal filter
   pub community_id_just_for_prefetch: bool,
   pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
@@ -649,15 +651,17 @@ impl<'a> PostQuery<'a> {
     site: &Site,
     pool: &mut DbPool<'_>,
   ) -> Result<Option<PostQuery<'a>>, Error> {
-    // first get one page for the most popular community to get an upper bound for the page end for the real query
-    // the reason this is needed is that when fetching posts for a single community PostgreSQL can optimize
-    // the query to use an index on e.g. (=, >=, >=, >=) and fetch only LIMIT rows
-    // but for the followed-communities query it has to query the index on (IN, >=, >=, >=)
-    // which it currently can't do at all (as of PG 16). see the discussion here:
-    // https://github.com/LemmyNet/lemmy/issues/2877#issuecomment-1673597190
+    // first get one page for the most popular community to get an upper bound for the page end for
+    // the real query the reason this is needed is that when fetching posts for a single
+    // community PostgreSQL can optimize the query to use an index on e.g. (=, >=, >=, >=) and
+    // fetch only LIMIT rows but for the followed-communities query it has to query the index on
+    // (IN, >=, >=, >=) which it currently can't do at all (as of PG 16). see the discussion
+    // here: https://github.com/LemmyNet/lemmy/issues/2877#issuecomment-1673597190
     //
-    // the results are correct no matter which community we fetch these for, since it basically covers the "worst case" of the whole page consisting of posts from one community
-    // but using the largest community decreases the pagination-frame so make the real query more efficient.
+    // the results are correct no matter which community we fetch these for, since it basically
+    // covers the "worst case" of the whole page consisting of posts from one community
+    // but using the largest community decreases the pagination-frame so make the real query more
+    // efficient.
     use lemmy_db_schema::schema::{
       community_aggregates::dsl::{community_aggregates, community_id, users_active_month},
       community_follower::dsl::{
@@ -708,7 +712,8 @@ impl<'a> PostQuery<'a> {
       )
       .await?;
     // take last element of array. if this query returned less than LIMIT elements,
-    // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results (return original query)
+    // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results
+    // (return original query)
     if (v.len() as i64) < limit {
       Ok(Some(self.clone()))
     } else {
@@ -1429,7 +1434,8 @@ mod tests {
     let mut inserted_post_ids = vec![];
     let mut inserted_comment_ids = vec![];
 
-    // Create 150 posts with varying non-correlating values for publish date, number of comments, and featured
+    // Create 150 posts with varying non-correlating values for publish date, number of comments,
+    // and featured
     for comments in 0..10 {
       for _ in 0..15 {
         let post_form = PostInsertForm::builder()

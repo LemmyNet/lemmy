@@ -238,7 +238,7 @@ fn queries<'a>() -> Queries<
       );
 
       match listing_type {
-        ListingType::Subscribed => query = query.filter(is_subscribed), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
+        ListingType::Subscribed => query = query.filter(is_subscribed), /* TODO could be this: and(community_follower::person_id.eq(person_id_join)), */
         ListingType::Local => {
           query = query
             .filter(community::local.eq(true))
@@ -327,7 +327,8 @@ fn queries<'a>() -> Queries<
 
       query = query.filter(nlevel(comment::path).le(depth_limit));
 
-      // only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth + !post_id isn't used anyways (afaik)
+      // only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth
+      // + !post_id isn't used anyways (afaik)
       if options.post_id.is_some() || options.parent_path.is_some() {
         // Always order by the parent path first
         query = query.then_order_by(subpath(comment::path, 0, -1));

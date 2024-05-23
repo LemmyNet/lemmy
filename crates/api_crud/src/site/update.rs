@@ -156,7 +156,8 @@ pub async fn update_site(
   // TODO can't think of a better way to do this.
   // If the server suddenly requires email verification, or required applications, no old users
   // will be able to log in. It really only wants this to be a requirement for NEW signups.
-  // So if it was set from false, to true, you need to update all current users columns to be verified.
+  // So if it was set from false, to true, you need to update all current users columns to be
+  // verified.
 
   let old_require_application =
     local_site.registration_mode == RegistrationMode::RequireApplication;

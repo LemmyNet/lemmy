@@ -197,7 +197,8 @@ pub async fn register(
     verify_email_sent: false,
   };
 
-  // Log the user in directly if the site is not setup, or email verification and application aren't required
+  // Log the user in directly if the site is not setup, or email verification and application aren't
+  // required
   if !local_site.site_setup
     || (!require_registration_application && !local_site.require_email_verification)
   {
