@@ -43,9 +43,9 @@ fn migrations() -> diesel_migrations::FileBasedMigrations {
     .expect("failed to get migration source")
 }
 
-/// This SQL code sets up the `r` schema, which contains things that can be safely dropped and replaced
-/// instead of being changed using migrations. It may not create or modify things outside of the `r` schema
-/// (indicated by `r.` before the name), unless a comment says otherwise.
+/// This SQL code sets up the `r` schema, which contains things that can be safely dropped and
+/// replaced instead of being changed using migrations. It may not create or modify things outside
+/// of the `r` schema (indicated by `r.` before the name), unless a comment says otherwise.
 fn replaceable_schema() -> String {
   [
     "CREATE SCHEMA r;",

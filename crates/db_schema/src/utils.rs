@@ -61,7 +61,8 @@ pub const RANK_DEFAULT: f64 = 0.0001;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
-/// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit reborrowing.
+/// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
+/// reborrowing.
 ///
 /// https://github.com/rust-lang/rfcs/issues/1403
 pub enum DbPool<'a> {
@@ -101,7 +102,8 @@ impl<'a> DerefMut for DbConn<'a> {
   }
 }
 
-// Allows functions that take `DbPool<'_>` to be called in a transaction by passing `&mut conn.into()`
+// Allows functions that take `DbPool<'_>` to be called in a transaction by passing `&mut
+// conn.into()`
 impl<'a> From<&'a mut AsyncPgConnection> for DbPool<'a> {
   fn from(value: &'a mut AsyncPgConnection) -> Self {
     DbPool::Conn(value)
@@ -120,11 +122,13 @@ impl<'a> From<&'a ActualDbPool> for DbPool<'a> {
   }
 }
 
-/// Runs multiple async functions that take `&mut DbPool<'_>` as input and return `Result`. Only works when the  `futures` crate is listed in `Cargo.toml`.
+/// Runs multiple async functions that take `&mut DbPool<'_>` as input and return `Result`. Only
+/// works when the  `futures` crate is listed in `Cargo.toml`.
 ///
 /// `$pool` is the value given to each function.
 ///
-/// A `Result` is returned (not in a `Future`, so don't use `.await`). The `Ok` variant contains a tuple with the values returned by the given functions.
+/// A `Result` is returned (not in a `Future`, so don't use `.await`). The `Ok` variant contains a
+/// tuple with the values returned by the given functions.
 ///
 /// The functions run concurrently if `$pool` has the `DbPool::Pool` variant.
 #[macro_export]
@@ -337,8 +341,10 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
       }
     });
     let mut conn = AsyncPgConnection::try_from(client).await?;
-    // * Change geqo_threshold back to default value if it was changed, so it's higher than the collapse limits
-    // * Change collapse limits from 8 to 11 so the query planner can find a better table join order for more complicated queries
+    // * Change geqo_threshold back to default value if it was changed, so it's higher than the
+    //   collapse limits
+    // * Change collapse limits from 8 to 11 so the query planner can find a better table join order
+    //   for more complicated queries
     conn
       .batch_execute("SET geqo_threshold=12;SET from_collapse_limit=11;SET join_collapse_limit=11;")
       .await
@@ -415,9 +421,11 @@ pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let pool = Pool::builder(manager)
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
-    // Limit connection age to prevent use of prepared statements that have query plans based on very old statistics
+    // Limit connection age to prevent use of prepared statements that have query plans based on
+    // very old statistics
     .pre_recycle(Hook::sync_fn(|_conn, metrics| {
-      // Preventing the first recycle can cause an infinite loop when trying to get a new connection from the pool
+      // Preventing the first recycle can cause an infinite loop when trying to get a new connection
+      // from the pool
       let conn_was_used = metrics.recycled.is_some();
       if metrics.age() > Duration::from_secs(3 * 24 * 60 * 60) && conn_was_used {
         Err(HookError::Continue(None))
@@ -508,7 +516,8 @@ pub trait ListFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>> 
 
 impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>> ListFn<'a, T, Args> for F {}
 
-/// Allows read and list functions to capture a shared closure that has an inferred return type, which is useful for join logic
+/// Allows read and list functions to capture a shared closure that has an inferred return type,
+/// which is useful for join logic
 pub struct Queries<RF, LF> {
   pub read_fn: RF,
   pub list_fn: LF,

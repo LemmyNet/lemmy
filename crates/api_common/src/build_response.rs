@@ -121,7 +121,8 @@ pub async fn send_local_notifs(
     if let Ok(Some(mention_user_view)) = user_view {
       // TODO
       // At some point, make it so you can't tag the parent creator either
-      // Potential duplication of notifications, one for reply and the other for mention, is handled below by checking recipient ids
+      // Potential duplication of notifications, one for reply and the other for mention, is handled
+      // below by checking recipient ids
       recipient_ids.push(mention_user_view.local_user.id);
 
       let user_mention_form = PersonMentionInsertForm {

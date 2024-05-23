@@ -49,7 +49,8 @@ fn queries<'a>() -> Queries<
   let list = move |mut conn: DbConn<'a>, options: PrivateMessageReportQuery| async move {
     let mut query = all_joins(private_message_report::table.into_boxed());
 
-    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
+    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
+    // first (FIFO)
     if options.unresolved_only {
       query = query
         .filter(private_message_report::resolved.eq(false))
