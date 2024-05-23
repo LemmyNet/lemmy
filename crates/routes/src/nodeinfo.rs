@@ -18,6 +18,8 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       web::get().to(node_info).wrap(cache_1hour()),
     )
     .service(web::redirect("/version", "/nodeinfo/2.1.json"))
+    // For backwards compatibility, can be removed after Lemmy 0.20
+    .service(web::redirect("/nodeinfo/2.0.json", "/nodeinfo/2.1.json"))
     .route(
       "/.well-known/nodeinfo",
       web::get().to(node_info_well_known).wrap(cache_3days()),
