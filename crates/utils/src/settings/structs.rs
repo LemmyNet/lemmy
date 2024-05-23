@@ -38,10 +38,6 @@ pub struct Settings {
   /// Whether the site is available over TLS. Needs to be true for federation to work.
   #[default(true)]
   pub tls_enabled: bool,
-  /// Set the URL for opentelemetry exports. If you do not have an opentelemetry collector, do not set this option
-  #[default(None)]
-  #[doku(skip)]
-  pub opentelemetry_url: Option<Url>,
   /// The number of activitypub federation workers that can be in-flight concurrently
   #[default(0)]
   pub worker_count: usize,

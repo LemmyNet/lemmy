@@ -4,8 +4,6 @@ pub mod prometheus_metrics;
 pub mod root_span_builder;
 pub mod scheduled_tasks;
 pub mod session_middleware;
-#[cfg(feature = "console")]
-pub mod telemetry;
 
 use crate::{
   code_migrations::run_advanced_migrations,
@@ -55,14 +53,9 @@ use prometheus_metrics::serve_prometheus;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
 use serde_json::json;
-use std::{env, ops::Deref};
+use std::ops::Deref;
 use tokio::signal::unix::SignalKind;
-use tracing::subscriber::set_global_default;
 use tracing_actix_web::TracingLogger;
-use tracing_error::ErrorLayer;
-use tracing_log::LogTracer;
-use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry};
-use url::Url;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -350,39 +343,4 @@ fn cors_config(settings: &Settings) -> Cors {
       .expose_any_header()
       .max_age(3600),
   }
-}
-
-pub fn init_logging(opentelemetry_url: &Option<Url>) -> LemmyResult<()> {
-  LogTracer::init()?;
-
-  let log_description = env::var("RUST_LOG").unwrap_or_else(|_| "info".into());
-
-  let targets = log_description
-    .trim()
-    .trim_matches('"')
-    .parse::<Targets>()?;
-
-  let format_layer = {
-    #[cfg(feature = "json-log")]
-    let layer = tracing_subscriber::fmt::layer().with_ansi(false).json();
-    #[cfg(not(feature = "json-log"))]
-    let layer = tracing_subscriber::fmt::layer().with_ansi(false);
-
-    layer.with_filter(targets.clone())
-  };
-
-  let subscriber = Registry::default()
-    .with(format_layer)
-    .with(ErrorLayer::default());
-
-  if let Some(_url) = opentelemetry_url {
-    #[cfg(feature = "console")]
-    telemetry::init_tracing(_url.as_ref(), subscriber, targets)?;
-    #[cfg(not(feature = "console"))]
-    tracing::error!("Feature `console` must be enabled for opentelemetry tracing");
-  } else {
-    set_global_default(subscriber)?;
-  }
-
-  Ok(())
 }
