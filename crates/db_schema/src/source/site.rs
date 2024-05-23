@@ -76,7 +76,8 @@ pub struct SiteUpdateForm {
   pub name: Option<String>,
   pub sidebar: Option<Option<String>>,
   pub updated: Option<Option<DateTime<Utc>>>,
-  // when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
+  // when you want to null out a column, you have to send Some(None)), since sending None means you
+  // just don't want to update that column.
   pub icon: Option<Option<DbUrl>>,
   pub banner: Option<Option<DbUrl>>,
   pub description: Option<Option<String>>,

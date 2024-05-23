@@ -26,7 +26,8 @@ use tokio::{task::JoinHandle, time::sleep};
 use tokio_util::sync::CancellationToken;
 
 /// Decrease the delays of the federation queue.
-/// Should only be used for federation tests since it significantly increases CPU and DB load of the federation queue.
+/// Should only be used for federation tests since it significantly increases CPU and DB load of the
+/// federation queue.
 pub(crate) static LEMMY_TEST_FAST_FEDERATION: Lazy<bool> = Lazy::new(|| {
   std::env::var("LEMMY_TEST_FAST_FEDERATION")
     .map(|s| !s.is_empty())
@@ -35,9 +36,10 @@ pub(crate) static LEMMY_TEST_FAST_FEDERATION: Lazy<bool> = Lazy::new(|| {
 
 /// Recheck for new federation work every n seconds.
 ///
-/// When the queue is processed faster than new activities are added and it reaches the current time with an empty batch,
-/// this is the delay the queue waits before it checks if new activities have been added to the sent_activities table.
-/// This delay is only applied if no federated activity happens during sending activities of the last batch.
+/// When the queue is processed faster than new activities are added and it reaches the current time
+/// with an empty batch, this is the delay the queue waits before it checks if new activities have
+/// been added to the sent_activities table. This delay is only applied if no federated activity
+/// happens during sending activities of the last batch.
 pub(crate) static WORK_FINISHED_RECHECK_DELAY: Lazy<Duration> = Lazy::new(|| {
   if *LEMMY_TEST_FAST_FEDERATION {
     Duration::from_millis(100)
@@ -47,7 +49,8 @@ pub(crate) static WORK_FINISHED_RECHECK_DELAY: Lazy<Duration> = Lazy::new(|| {
 });
 
 /// A task that will be run in an infinite loop, unless it is cancelled.
-/// If the task exits without being cancelled, an error will be logged and the task will be restarted.
+/// If the task exits without being cancelled, an error will be logged and the task will be
+/// restarted.
 pub struct CancellableTask {
   f: Pin<Box<dyn Future<Output = Result<(), anyhow::Error>> + Send + 'static>>,
 }

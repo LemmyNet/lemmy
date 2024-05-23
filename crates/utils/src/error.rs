@@ -166,7 +166,8 @@ pub enum LemmyErrorType {
   CouldntSendWebmention,
   ContradictingFilters,
   InstanceBlockAlreadyExists,
-  /// Thrown when an API call is submitted with more than 1000 array elements, see [[MAX_API_PARAM_ELEMENTS]]
+  /// Thrown when an API call is submitted with more than 1000 array elements, see
+  /// [[MAX_API_PARAM_ELEMENTS]]
   TooManyItems,
   CommunityHasNoFollowers,
   BanExpirationInPast,
