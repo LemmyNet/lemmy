@@ -172,7 +172,7 @@ steps:
     commands:
       - target/lemmy_server migration --all run
       - <<: *install_diesel_cli
-      - diesel print-schema --config-file=diesel.toml > tmp.schema
+      - diesel print-schema --config-file=diesel.toml # > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
     when: *slow_check_paths
 
