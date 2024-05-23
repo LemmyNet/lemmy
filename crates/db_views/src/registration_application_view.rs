@@ -49,7 +49,8 @@ fn queries<'a>() -> Queries<
   let list = move |mut conn: DbConn<'a>, options: RegistrationApplicationQuery| async move {
     let mut query = all_joins(registration_application::table.into_boxed());
 
-    // If viewing all applications, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
+    // If viewing all applications, order by newest, but if viewing unresolved only, show the oldest
+    // first (FIFO)
     if options.unread_only {
       query = query
         .filter(registration_application::admin_id.is_null())

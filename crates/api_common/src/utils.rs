@@ -356,7 +356,8 @@ pub async fn build_federated_instances(
         federation_state: federation_state.map(std::convert::Into::into),
       };
       if is_blocked {
-        // blocked instances will only have an entry here if they had been federated with in the past.
+        // blocked instances will only have an entry here if they had been federated with in the
+        // past.
         blocked.push(i);
       } else if is_allowed {
         allowed.push(i.clone());
@@ -954,8 +955,8 @@ pub async fn process_markdown_opt(
 
 /// A wrapper for `proxy_image_link` for use in tests.
 ///
-/// The parameter `force_image_proxy` is the config value of `pictrs.image_proxy`. Its necessary to pass
-/// as separate parameter so it can be changed in tests.
+/// The parameter `force_image_proxy` is the config value of `pictrs.image_proxy`. Its necessary to
+/// pass as separate parameter so it can be changed in tests.
 async fn proxy_image_link_internal(
   link: Url,
   image_mode: PictrsImageMode,

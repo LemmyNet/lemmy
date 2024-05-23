@@ -272,7 +272,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         // Handle /user/login separately to add the register() rate limiter
         // TODO: pretty annoying way to apply rate limits for register and login, we should
-        //       group them under a common path so that rate limit is only applied once (eg under /account).
+        //       group them under a common path so that rate limit is only applied once (eg under
+        // /account).
         web::resource("/user/login")
           .guard(guard::Post())
           .wrap(rate_limit.register())
