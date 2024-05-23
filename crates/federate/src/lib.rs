@@ -58,11 +58,11 @@ impl SendManager {
   }
 
   pub fn run(mut self) -> CancellableTask {
-    let task = CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |cancel| async move {
+    let cancel = CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |cancel| async move {
       self.do_loop(cancel).await.unwrap();
       self.cancel().await.unwrap();
     });
-    task
+    cancel
   }
 
   async fn do_loop(&mut self, cancel: CancellationToken) -> LemmyResult<()> {
@@ -152,7 +152,7 @@ impl SendManager {
 mod test {
 
   use super::*;
-  use tokio::time::sleep;
+  use tokio::{spawn, time::sleep};
 
   #[tokio::test]
   async fn test_start_stop_federation_workers() -> LemmyResult<()> {
@@ -176,20 +176,23 @@ mod test {
     ];
 
     // start it and wait a moment
-    let task = SendManager::new(opts, federation_config);
-    task.run();
-    sleep(Duration::from_secs(1));
+    let mut task = SendManager::new(opts, federation_config);
+    let cancel = CancellationToken::new();
+    let cancel_ = cancel.clone();
+    spawn(async move {
+      sleep(Duration::from_millis(100)).await;
+      cancel_.cancel();
+    });
+    task.do_loop(cancel.clone()).await.unwrap();
+    assert_eq!(3, task.workers.len());
 
     // check that correct number of instance workers was started
     // TODO: need to wrap in Arc or something similar
     // TODO: test with different `opts`, dead/blocked instances etc
-    assert_eq!(3, task.workers.len());
+    //assert_eq!(3, task.workers.len());
 
     // cleanup
-    for i in instances {
-      Instance::delete(pool, i.id).await?;
-    }
-    task.cancel().await?;
+    Instance::delete_all(pool).await?;
     Ok(())
   }
 }
