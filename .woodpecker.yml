@@ -133,17 +133,16 @@ steps:
       - diff config/defaults.hjson config/defaults_current.hjson
     when: *slow_check_paths
 
-  # Create database not owned by default user, so `DROP OWNED` works
-  create_database:
+  # `DROP OWNED` doesn't work for default user
+  create_database_user:
     image: postgres:16-alpine
     environment:
-      PGUSER: lemmy
+      PGUSER: postgres
       PGPASSWORD: password
       PGHOST: database
       PGDATABASE: lemmy
     commands:
       - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
-      - psql -c "CREATE DATABASE lemmy WITH OWNER lemmy;"
     when: *slow_check_paths
 
   check_db_perf_tool:
