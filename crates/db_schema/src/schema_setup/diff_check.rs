@@ -21,7 +21,7 @@ pub fn get_dump() -> String {
       "--no-table-access-method",
       "--no-tablespaces",
     ])
-    .env("DATABASE_URL", SETTINGS.get_database_url())
+    .env("PGDATABASE", SETTINGS.get_database_url())
     .stderr(Stdio::inherit())
     .output()
     .expect("failed to start pg_dump process");
