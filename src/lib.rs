@@ -1,15 +1,10 @@
 pub mod api_routes_http;
 pub mod code_migrations;
 pub mod prometheus_metrics;
-pub mod root_span_builder;
 pub mod scheduled_tasks;
 pub mod session_middleware;
 
-use crate::{
-  code_migrations::run_advanced_migrations,
-  root_span_builder::QuieterRootSpanBuilder,
-  session_middleware::SessionMiddleware,
-};
+use crate::{code_migrations::run_advanced_migrations, session_middleware::SessionMiddleware};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
 use actix_web::{
@@ -55,7 +50,7 @@ use reqwest_tracing::TracingMiddleware;
 use serde_json::json;
 use std::ops::Deref;
 use tokio::signal::unix::SignalKind;
-use tracing_actix_web::TracingLogger;
+use tracing_actix_web::{DefaultRootSpanBuilder, TracingLogger};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -294,7 +289,7 @@ fn create_http_server(
       ))
       .wrap(middleware::Compress::default())
       .wrap(cors_config)
-      .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
+      .wrap(TracingLogger::<DefaultRootSpanBuilder>::new())
       .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
