@@ -6,7 +6,7 @@ use std::{
 };
 
 // It's not possible to call `export_snapshot()` for each dump and run the dumps in parallel with the
-// `--snapshot` flag. Don't waste your time!!!
+// `--snapshot` flag. Don't waste your time!!!!
 
 pub fn get_dump() -> String {
   let output = Command::new("pg_dump")
