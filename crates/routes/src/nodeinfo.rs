@@ -14,10 +14,12 @@ use url::Url;
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
     .route(
-      "/nodeinfo/2.0.json",
+      "/nodeinfo/2.1.json",
       web::get().to(node_info).wrap(cache_1hour()),
     )
-    .service(web::redirect("/version", "/nodeinfo/2.0.json"))
+    .service(web::redirect("/version", "/nodeinfo/2.1.json"))
+    // For backwards compatibility, can be removed after Lemmy 0.20
+    .service(web::redirect("/nodeinfo/2.0.json", "/nodeinfo/2.1.json"))
     .route(
       "/.well-known/nodeinfo",
       web::get().to(node_info_well_known).wrap(cache_3days()),
@@ -27,9 +29,9 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 async fn node_info_well_known(context: web::Data<LemmyContext>) -> LemmyResult<HttpResponse> {
   let node_info = NodeInfoWellKnown {
     links: vec![NodeInfoWellKnownLinks {
-      rel: Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.0")?,
+      rel: Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.1")?,
       href: Url::parse(&format!(
-        "{}/nodeinfo/2.0.json",
+        "{}/nodeinfo/2.1.json",
         &context.settings().get_protocol_and_hostname(),
       ))?,
     }],
