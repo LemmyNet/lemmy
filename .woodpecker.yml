@@ -284,5 +284,6 @@ services:
   database:
     image: postgres:16-alpine
     environment:
+      POSTGRES_DB: lemmy
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
