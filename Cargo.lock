@@ -2983,8 +2983,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-actix-web",
- "tracing-error",
- "tracing-log",
  "tracing-subscriber",
  "url",
 ]
@@ -3021,7 +3019,6 @@ dependencies = [
  "strum_macros",
  "tokio",
  "tracing",
- "tracing-error",
  "ts-rs",
  "url",
  "urlencoding",

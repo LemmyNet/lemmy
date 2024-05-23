@@ -108,8 +108,6 @@ actix-web = { version = "4.5.1", default-features = false, features = [
 ] }
 tracing = "0.1.40"
 tracing-actix-web = { version = "0.7.10", default-features = false }
-tracing-error = "0.2.0"
-tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 url = { version = "2.5.0", features = ["serde"] }
 reqwest = { version = "0.11.27", features = ["json", "blocking", "gzip"] }
@@ -172,8 +170,6 @@ diesel-async = { workspace = true }
 actix-web = { workspace = true }
 tracing = { workspace = true }
 tracing-actix-web = { workspace = true }
-tracing-error = { workspace = true }
-tracing-log = { workspace = true }
 tracing-subscriber = { workspace = true }
 url = { workspace = true }
 reqwest = { workspace = true }
