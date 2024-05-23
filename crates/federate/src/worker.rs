@@ -37,8 +37,8 @@ use tokio_util::sync::CancellationToken;
 use tracing::{debug, info, trace, warn};
 
 /// Check whether to save state to db every n sends if there's no failures (during failures state is
-/// saved after every attempt). This determines the batch size for loop_batch. After a batch ends and
-/// SAVE_STATE_EVERY_TIME has passed, the federation_queue_state is updated in the DB.
+/// saved after every attempt). This determines the batch size for loop_batch. After a batch ends
+/// and SAVE_STATE_EVERY_TIME has passed, the federation_queue_state is updated in the DB.
 static CHECK_SAVE_STATE_EVERY_IT: i64 = 100;
 /// Save state to db after this time has passed since the last state (so if the server crashes or is
 /// SIGKILLed, less than X seconds of activities are resent)
