@@ -9,11 +9,11 @@ use lemmy_api_common::{
     check_community_user_action,
     check_post_deleted_or_removed,
     generate_local_apub_endpoint,
-    get_post,
     get_url_blocklist,
     is_mod_or_admin,
     local_site_to_slur_regex,
     process_markdown,
+    update_read_comments,
     EndpointType,
   },
 };
@@ -28,7 +28,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
@@ -51,8 +51,17 @@ pub async fn create_comment(
 
   // Check for a community ban
   let post_id = data.post_id;
-  let post = get_post(post_id, &mut context.pool()).await?;
-  let community_id = post.community_id;
+  let post_view = PostView::read(
+    &mut context.pool(),
+    post_id,
+    Some(local_user_view.person.id),
+    true,
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindPost)?;
+
+  let post = post_view.post;
+  let community_id = post_view.community.id;
 
   check_community_user_action(&local_user_view.person, community_id, &mut context.pool()).await?;
   check_post_deleted_or_removed(&post)?;
@@ -161,6 +170,15 @@ pub async fn create_comment(
   ActivityChannel::submit_activity(
     SendActivityData::CreateComment(updated_comment.clone()),
     &context,
+  )
+  .await?;
+
+  // Update the read comments, so your own new comment doesn't appear as a +1 unread
+  update_read_comments(
+    local_user_view.person.id,
+    post_id,
+    post_view.counts.comments + 1,
+    &mut context.pool(),
   )
   .await?;
 

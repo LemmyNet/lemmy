@@ -6,6 +6,7 @@ use crate::{
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
+  aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
@@ -140,13 +141,6 @@ pub fn is_top_mod(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn get_post(post_id: PostId, pool: &mut DbPool<'_>) -> LemmyResult<Post> {
-  Post::read(pool, post_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost.into())
-}
-
-#[tracing::instrument(skip_all)]
 pub async fn mark_post_as_read(
   person_id: PersonId,
   post_id: PostId,
@@ -155,6 +149,26 @@ pub async fn mark_post_as_read(
   PostRead::mark_as_read(pool, HashSet::from([post_id]), person_id)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)?;
+  Ok(())
+}
+
+/// Updates the read comment count for a post. Usually done when reading or creating a new comment.
+#[tracing::instrument(skip_all)]
+pub async fn update_read_comments(
+  person_id: PersonId,
+  post_id: PostId,
+  read_comments: i64,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
+  let person_post_agg_form = PersonPostAggregatesForm {
+    person_id,
+    post_id,
+    read_comments,
+    ..PersonPostAggregatesForm::default()
+  };
+  PersonPostAggregates::upsert(pool, &person_post_agg_form)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntFindPost)?;
   Ok(())
 }
 
