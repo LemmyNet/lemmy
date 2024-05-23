@@ -1,4 +1,7 @@
-use crate::{util::CancellableTask, worker::InstanceWorker};
+use crate::{
+  util::{get_latest_activity_id, CancellableTask},
+  worker::InstanceWorker,
+};
 use activitypub_federation::config::FederationConfig;
 use chrono::{Local, Timelike};
 use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
@@ -12,10 +15,10 @@ use std::{collections::HashMap, time::Duration};
 use tokio::{
   sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
   task::JoinHandle,
-  time::sleep,
+  time::{interval, sleep},
 };
 use tokio_util::sync::CancellationToken;
-use tracing::info;
+use tracing::{debug, error, info};
 
 mod util;
 mod worker;
@@ -152,8 +155,7 @@ async fn receive_print_stats(
   mut receiver: UnboundedReceiver<(String, FederationQueueState)>,
 ) {
   let pool = &mut DbPool::Pool(&pool);
-  let mut printerval = tokio::time::interval(Duration::from_secs(60));
-  printerval.tick().await; // skip first
+  let mut printerval = interval(Duration::from_secs(60));
   let mut stats = HashMap::new();
   loop {
     tokio::select! {
@@ -172,40 +174,32 @@ async fn receive_print_stats(
 }
 
 async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQueueState>) {
-  let last_id = crate::util::get_latest_activity_id(pool).await;
+  let last_id = get_latest_activity_id(pool).await;
   let Ok(last_id) = last_id else {
-    tracing::error!("could not get last id");
+    error!("could not get last id");
     return;
   };
   // it's expected that the values are a bit out of date, everything < SAVE_STATE_EVERY should be considered up to date
-  tracing::info!(
-    "Federation state as of {}:",
-    Local::now()
-      .with_nanosecond(0)
-      .expect("0 is valid nanos")
-      .to_rfc3339()
-  );
+  info!("Federation state as of {}:", Local::now().to_rfc3339());
   // todo: more stats (act/sec, avg http req duration)
   let mut ok_count = 0;
   let mut behind_count = 0;
   for (domain, stat) in stats {
     let behind = last_id.0 - stat.last_successful_id.map(|e| e.0).unwrap_or(0);
     if stat.fail_count > 0 {
-      tracing::info!(
-        "{}: Warning. {} behind, {} consecutive fails, current retry delay {:.2?}",
-        domain,
-        behind,
+      info!(
+        "{domain}: Warning. {behind} behind, {} consecutive fails, current retry delay {:.2?}",
         stat.fail_count,
         federate_retry_sleep_duration(stat.fail_count)
       );
     } else if behind > 0 {
-      tracing::debug!("{}: Ok. {} activities behind", domain, behind);
+      debug!("{}: Ok. {} activities behind", domain, behind);
       behind_count += 1;
     } else {
       ok_count += 1;
     }
   }
-  tracing::info!("{ok_count} others up to date. {behind_count} instances behind.");
+  info!("{ok_count} others up to date. {behind_count} instances behind.");
 }
 
 #[cfg(test)]
