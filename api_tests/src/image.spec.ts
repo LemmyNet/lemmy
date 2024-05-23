@@ -223,7 +223,7 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   expect(epsilonPost.thumbnail_url?.endsWith(".jpg")).toBeTruthy();
 });
 
-test("Images in remote link post are proxied if setting enabled", async () => {
+test("Thumbnail of remote image link is proxied if setting enabled", async () => {
   let community = await createCommunity(gamma);
   let postRes = await createPost(
     gamma,
@@ -247,8 +247,6 @@ test("Images in remote link post are proxied if setting enabled", async () => {
   let epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
   expect(epsilonPostRes.post).toBeDefined();
 
-  // Fetch the post again, the metadata should be backgrounded now
-  // Wait for the metadata to get fetched, since this is backgrounded now
   let epsilonPostRes2 = await waitUntil(
     () => getPost(epsilon, epsilonPostRes.post!.post.id),
     p => p.post_view.post.thumbnail_url != undefined,
