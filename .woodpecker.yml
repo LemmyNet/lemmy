@@ -170,7 +170,7 @@ steps:
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
     commands:
-      - target/lemmy_server migration run --all
+      - target/lemmy_server migration --help
       - <<: *install_diesel_cli
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
