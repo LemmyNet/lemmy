@@ -167,12 +167,13 @@ steps:
     image: *rust_image
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
     commands:
       - target/lemmy_server migration --all run
       - <<: *install_diesel_cli
-      - diesel print-schema --config-file=diesel.toml # > tmp.schema
+      - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
     when: *slow_check_paths
 
