@@ -156,10 +156,16 @@ mod test {
 
   use super::*;
   use activitypub_federation::config::Data;
+  use chrono::DateTime;
+  use lemmy_db_schema::source::{
+    federation_allowlist::FederationAllowList,
+    federation_blocklist::FederationBlockList,
+    instance::InstanceForm,
+  };
   use lemmy_utils::error::LemmyError;
   use serial_test::serial;
   use std::sync::{Arc, Mutex};
-  use tokio::{spawn, time::sleep};
+  use tokio::{spawn, time::sleep};use std::collections::HashSet;
 
   struct TestData {
     send_manager: SendManager,
@@ -213,10 +219,7 @@ mod test {
     }
   }
 
-  // check that correct number of instance workers was started
-  // TODO: need to wrap in Arc or something similar
-  // TODO: test with different `opts`, dead/blocked instances etc
-
+  /// Basic test with default params and only active/allowed instances
   #[tokio::test]
   #[serial]
   async fn test_send_manager() -> LemmyResult<()> {
@@ -224,11 +227,15 @@ mod test {
 
     data.run().await?;
     assert_eq!(3, data.send_manager.workers.len());
+    let workers: HashSet<_> = data.send_manager.workers.keys().cloned().collect();
+    let instances: HashSet<_> = data.instances.iter().map(|i|i.id).collect();
+    assert_eq!(instances, workers);
 
     data.cleanup().await?;
     Ok(())
   }
 
+  /// Running with multiple processes should start correct workers
   #[tokio::test]
   #[serial]
   async fn test_send_manager_processes() -> LemmyResult<()> {
@@ -252,6 +259,64 @@ mod test {
     // Should run exactly three workers
     assert_eq!(3, active.lock().unwrap().len());
 
+    Ok(())
+  }
+
+  /// Use blocklist, should not send to blocked instances
+  #[tokio::test]
+  #[serial]
+  async fn test_send_manager_blocked() -> LemmyResult<()> {
+    let mut data = TestData::init(1, 1).await?;
+
+    let domain = data.instances[0].domain.clone();
+    FederationBlockList::replace(&mut data.context.pool(), Some(vec![domain])).await?;
+    data.run().await?;
+    let workers = &data.send_manager.workers;
+    assert_eq!(2, workers.len());
+    assert!(workers.contains_key(&data.instances[1].id));
+    assert!(workers.contains_key(&data.instances[2].id));
+
+    data.cleanup().await?;
+    Ok(())
+  }
+
+  /// Use allowlist, should only send to allowed instance
+  #[tokio::test]
+  #[serial]
+  async fn test_send_manager_allowed() -> LemmyResult<()> {
+    let mut data = TestData::init(1, 1).await?;
+
+    let domain = data.instances[0].domain.clone();
+    FederationAllowList::replace(&mut data.context.pool(), Some(vec![domain])).await?;
+    data.run().await?;
+    let workers = &data.send_manager.workers;
+    assert_eq!(1, workers.len());
+    assert!(workers.contains_key(&data.instances[0].id));
+
+    data.cleanup().await?;
+    Ok(())
+  }
+
+  /// Mark instance as dead, there should be no worker created for it
+  #[tokio::test]
+  #[serial]
+  async fn test_send_manager_dead() -> LemmyResult<()> {
+    let mut data = TestData::init(1, 1).await?;
+
+    let instance = &data.instances[0];
+    let form = InstanceForm::builder()
+      .domain(instance.domain.clone())
+      .updated(DateTime::from_timestamp(0, 0))
+      .build();
+    Instance::update(&mut data.context.pool(), instance.id, form).await?;
+
+    data.run().await?;
+    let workers = &data.send_manager.workers;
+    assert_eq!(2, workers.len());
+    assert!(workers.contains_key(&data.instances[1].id));
+    assert!(workers.contains_key(&data.instances[2].id));
+
+    data.cleanup().await?;
     Ok(())
   }
 }
