@@ -115,9 +115,9 @@ enum CmdSubcommand {
   Migration {
     #[command(subcommand)]
     subcommand: MigrationSubcommand,
-    #[arg(short, long, default_value_t = false)]
+    #[arg(long, default_value_t = false)]
     all: bool,
-    #[arg(short, long, default_value_t = 1)]
+    #[arg(long, default_value_t = 1)]
     number: u64,
   },
 }
