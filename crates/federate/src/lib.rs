@@ -138,7 +138,8 @@ impl SendManager {
       self.workers.len(),
       WORKER_EXIT_TIMEOUT
     );
-    // the cancel futures need to be awaited concurrently for the shutdown processes to be triggered concurrently
+    // the cancel futures need to be awaited concurrently for the shutdown processes to be triggered
+    // concurrently
     futures::future::join_all(
       self
         .workers

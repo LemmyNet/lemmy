@@ -107,7 +107,8 @@ impl InstanceWorker {
     worker.loop_until_stopped().await
   }
   /// loop fetch new activities from db and send them to the inboxes of the given instances
-  /// this worker only returns if (a) there is an internal error or (b) the cancellation token is cancelled (graceful exit)
+  /// this worker only returns if (a) there is an internal error or (b) the cancellation token is
+  /// cancelled (graceful exit)
   pub(crate) async fn loop_until_stopped(&mut self) -> Result<(), anyhow::Error> {
     debug!("Starting federation worker for {}", self.instance.domain);
     let save_state_every = chrono::Duration::from_std(SAVE_STATE_EVERY_TIME).expect("not negative");

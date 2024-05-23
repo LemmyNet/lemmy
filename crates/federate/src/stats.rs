@@ -9,7 +9,8 @@ use std::{collections::HashMap, time::Duration};
 use tokio::{sync::mpsc::UnboundedReceiver, time::interval};
 use tracing::{debug, error, info};
 
-/// every 60s, print the state for every instance. exits if the receiver is done (all senders dropped)
+/// every 60s, print the state for every instance. exits if the receiver is done (all senders
+/// dropped)
 pub(crate) async fn receive_print_stats(
   pool: ActualDbPool,
   mut receiver: UnboundedReceiver<(String, FederationQueueState)>,
@@ -39,7 +40,8 @@ async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQu
     error!("could not get last id");
     return;
   };
-  // it's expected that the values are a bit out of date, everything < SAVE_STATE_EVERY should be considered up to date
+  // it's expected that the values are a bit out of date, everything < SAVE_STATE_EVERY should be
+  // considered up to date
   info!("Federation state as of {}:", Local::now().to_rfc3339());
   // todo: more stats (act/sec, avg http req duration)
   let mut ok_count = 0;
