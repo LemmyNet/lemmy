@@ -62,7 +62,8 @@ pub struct LocalUser {
   pub totp_2fa_enabled: bool,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
   pub enable_keyboard_navigation: bool,
-  /// Whether user avatars and inline images in the UI that are gifs should be allowed to play or should be paused
+  /// Whether user avatars and inline images in the UI that are gifs should be allowed to play or
+  /// should be paused
   pub enable_animated_images: bool,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: bool,

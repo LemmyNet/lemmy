@@ -119,7 +119,8 @@ async fn start_stop_federation_workers(
     workers.len(),
     WORKER_EXIT_TIMEOUT
   );
-  // the cancel futures need to be awaited concurrently for the shutdown processes to be triggered concurrently
+  // the cancel futures need to be awaited concurrently for the shutdown processes to be triggered
+  // concurrently
   futures::future::join_all(workers.into_values().map(util::CancellableTask::cancel)).await;
   exit_print.await?;
   Ok(())
@@ -140,7 +141,8 @@ pub fn start_stop_federation_workers_cancellable(
   })
 }
 
-/// every 60s, print the state for every instance. exits if the receiver is done (all senders dropped)
+/// every 60s, print the state for every instance. exits if the receiver is done (all senders
+/// dropped)
 async fn receive_print_stats(
   pool: ActualDbPool,
   mut receiver: UnboundedReceiver<(String, FederationQueueState)>,
@@ -171,7 +173,8 @@ async fn print_stats(pool: &mut DbPool<'_>, stats: &HashMap<String, FederationQu
     tracing::error!("could not get last id");
     return;
   };
-  // it's expected that the values are a bit out of date, everything < SAVE_STATE_EVERY should be considered up to date
+  // it's expected that the values are a bit out of date, everything < SAVE_STATE_EVERY should be
+  // considered up to date
   tracing::info!(
     "Federation state as of {}:",
     Local::now()

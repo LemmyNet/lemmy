@@ -81,7 +81,8 @@ pub struct PictrsConfig {
   /// To be removed in 0.20
   pub(super) cache_external_link_previews: Option<bool>,
 
-  /// Specifies how to handle remote images, so that users don't have to connect directly to remote servers.
+  /// Specifies how to handle remote images, so that users don't have to connect directly to remote
+  /// servers.
   #[default(PictrsImageMode::StoreLinkPreviews)]
   pub(super) image_mode: PictrsImageMode,
 
@@ -103,10 +104,11 @@ pub enum PictrsImageMode {
   /// This is the default behaviour, and also matches Lemmy 0.18.
   #[default]
   StoreLinkPreviews,
-  /// If enabled, all images from remote domains are rewritten to pass through `/api/v3/image_proxy`,
-  /// including embedded images in markdown. Images are stored temporarily in pict-rs for caching.
-  /// This improves privacy as users don't expose their IP to untrusted servers, and decreases load
-  /// on other servers. However it increases bandwidth use for the local server.
+  /// If enabled, all images from remote domains are rewritten to pass through
+  /// `/api/v3/image_proxy`, including embedded images in markdown. Images are stored temporarily
+  /// in pict-rs for caching. This improves privacy as users don't expose their IP to untrusted
+  /// servers, and decreases load on other servers. However it increases bandwidth use for the
+  /// local server.
   ///
   /// Requires pict-rs 0.5
   ProxyAllImages,

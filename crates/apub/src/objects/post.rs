@@ -259,7 +259,8 @@ impl Object for ApubPost {
     let post_ = post.clone();
     let context_ = context.reset_request_count();
 
-    // Generates a post thumbnail in background task, because some sites can be very slow to respond.
+    // Generates a post thumbnail in background task, because some sites can be very slow to
+    // respond.
     spawn_try_task(async move {
       generate_post_link_metadata(post_, None, |_| None, local_site, context_).await
     });

@@ -23,6 +23,7 @@ pub struct DeleteUser {
   #[serde(deserialize_with = "deserialize_one_or_many", default)]
   #[serde(skip_serializing_if = "Vec::is_empty")]
   pub(crate) cc: Vec<Url>,
-  /// Nonstandard field. If present, all content from the user should be deleted along with the account
+  /// Nonstandard field. If present, all content from the user should be deleted along with the
+  /// account
   pub(crate) remove_data: Option<bool>,
 }

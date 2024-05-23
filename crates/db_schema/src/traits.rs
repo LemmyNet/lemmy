@@ -25,8 +25,8 @@ pub type Find<T> = dsl::Find<<T as HasTable>::Table, <T as Crud>::IdType>;
 
 pub type PrimaryKey<T> = <<T as HasTable>::Table as Table>::PrimaryKey;
 
-// Trying to create default implementations for `create` and `update` results in a lifetime mess and weird compile errors.
-// https://github.com/rust-lang/rust/issues/102211
+// Trying to create default implementations for `create` and `update` results in a lifetime mess and
+// weird compile errors. https://github.com/rust-lang/rust/issues/102211
 #[async_trait]
 pub trait Crud: HasTable + Sized
 where
@@ -49,7 +49,8 @@ where
     query.first(conn).await.optional()
   }
 
-  /// when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
+  /// when you want to null out a column, you have to send Some(None)), since sending None means you
+  /// just don't want to update that column.
   async fn update(
     pool: &mut DbPool<'_>,
     id: Self::IdType,
