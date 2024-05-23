@@ -2918,6 +2918,7 @@ dependencies = [
  "once_cell",
  "reqwest",
  "serde_json",
+ "serial_test",
  "tokio",
  "tokio-util",
  "tracing",
