@@ -182,7 +182,8 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
       .has_pending_migration(migrations())
       .map_err(convert_err)?
   {
-    // The condition above implies that the migration that creates the previously_run_sql table was already run
+    // The condition above implies that the migration that creates the previously_run_sql table was
+    // already run
     let sql_unchanged = exists(
       previously_run_sql::table.filter(previously_run_sql::content.eq(replaceable_schema())),
     );
