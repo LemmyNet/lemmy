@@ -9,8 +9,11 @@ use std::{
 // the `--snapshot` flag. Don't waste your time!!!!
 
 pub fn get_dump() -> String {
+  let db_url = SETTINGS.get_database_url();
   let output = Command::new("pg_dump")
     .args([
+      "--dbname",
+      &db_url,
       "--schema-only",
       "--no-owner",
       "--no-privileges",
@@ -21,7 +24,6 @@ pub fn get_dump() -> String {
       "--no-table-access-method",
       "--no-tablespaces",
     ])
-    .env("PGDATABASE", SETTINGS.get_database_url())
     .stderr(Stdio::inherit())
     .output()
     .expect("failed to start pg_dump process");
