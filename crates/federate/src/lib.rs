@@ -63,8 +63,9 @@ impl SendManager {
 
   pub fn run(mut self) -> CancellableTask {
     CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |cancel| async move {
-      self.do_loop(cancel).await.unwrap();
-      self.cancel().await.unwrap();
+      self.do_loop(cancel).await?;
+      self.cancel().await?;
+      Ok(())
     })
   }
 
@@ -109,7 +110,8 @@ impl SendManager {
           self.workers.insert(
             instance.id,
             CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |stop| async move {
-              InstanceWorker::init_and_loop(instance, req_data, stop, stats_sender).await
+              InstanceWorker::init_and_loop(instance, req_data, stop, stats_sender).await?;
+              Ok(())
             }),
           );
         } else if !should_federate {
