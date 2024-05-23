@@ -5,8 +5,8 @@ use std::{
   process::{Command, Stdio},
 };
 
-// It's not possible to call `export_snapshot()` for each dump and run the dumps in parallel with the
-// `--snapshot` flag. Don't waste your time!!!!
+// It's not possible to call `export_snapshot()` for each dump and run the dumps in parallel with
+// the `--snapshot` flag. Don't waste your time!!!!
 
 pub fn get_dump() -> String {
   let output = Command::new("pg_dump")
@@ -44,7 +44,8 @@ pub fn check_dump_diff(before: String, after: String, label: &str) {
     // Remove identical items
     .map(|dump| chunks(dump).collect::<BTreeSet<_>>())
     .differences()
-    // Remove items without unwanted types of differences (if migrations are correct, then this removes everything)
+    // Remove items without unwanted types of differences (if migrations are correct, then this
+    // removes everything)
     .map(|chunks| chunks.map(|&i| normalize_chunk(i)).collect::<BTreeSet<_>>());
 
   let [only_in_before, only_in_after] = normalized_chunk_vecs
