@@ -35,7 +35,7 @@ where
   fn or_delete(self) -> Self::Output {
     SetOrDeleteQuery {
       table: T::default(),
-      primary_key: T::primary_key(),
+      primary_key: T::default().primary_key(),
       all_columns: T::all_columns(),
       update_statement: self,
       empty_row: T::EmptyRow::default().as_expression(),
@@ -64,27 +64,27 @@ impl<
     // `update_result` CTE with new rows
     out.push_sql("WITH update_result AS (");
     self.update_statement.walk_ast(out.reborrow())?;
-    self.push_sql(" RETURNING ");
+    out.push_sql(" RETURNING ");
     self.all_columns.walk_ast(out.reborrow())?;
 
     // Delete
-    self.push_sql(") DELETE FROM ");
+    out.push_sql(") DELETE FROM ");
     self.table.walk_ast(out.reborrow())?;
-    self.push_sql(" WHERE (");
+    out.push_sql(" WHERE (");
     self.primary_key.walk_ast(out.reborrow())?;
 
     // Select from `update_result` with an alias that matches the original table's name
-    self.push_sql(") = ANY (SELECT (");
+    out.push_sql(") = ANY (SELECT (");
     self.primary_key.walk_ast(out.reborrow())?;
-    self.push_sql(") FROM update_result AS ");
+    out.push_sql(") FROM update_result AS ");
     self.table.walk_ast(out.reborrow())?;
 
     // Filter the select statement
-    self.push_sql(" WHERE (");
+    out.push_sql(" WHERE (");
     self.all_columns.walk_ast(out.reborrow())?;
-    self.push_sql(") IS NOT DISTINCT FROM ");
+    out.push_sql(") IS NOT DISTINCT FROM ");
     self.empty_row.walk_ast(out.reborrow())?;
-    self.push_sql(")");
+    out.push_sql(")");
 
     Ok(())
   }
