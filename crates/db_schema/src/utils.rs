@@ -24,7 +24,6 @@ use diesel::{
   JoinOnDsl,
   NullableExpressionMethods,
   OptionalExtension,
-  PgConnection,
   QuerySource,
   Table,
 };
