@@ -12,7 +12,15 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{functions::coalesce, get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{
+    functions::coalesce,
+    get_conn,
+    naive_now,
+    now,
+    uplete::{OrDelete, UpleteTable},
+    DbPool,
+    DELETED_REPLACEMENT_TEXT,
+  },
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -25,6 +33,17 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
 use url::Url;
+
+impl UpleteTable for comment_actions::table {
+  type EmptyRow = (
+    comment_actions::person_id,
+    comment_actions::comment_id,
+    comment_actions::post_id,
+    None::<i16>,
+    None::<DateTime>,
+    None::<DateTime>,
+  );
+}
 
 impl Comment {
   pub async fn permadelete_for_creator(
@@ -189,6 +208,7 @@ impl Likeable for CommentLike {
         comment_actions::like_score.eq(None::<i16>),
         comment_actions::liked.eq(None::<DateTime<Utc>>),
       ))
+      .or_delete()
       .execute(conn)
       .await
   }
@@ -238,6 +258,7 @@ impl Saveable for CommentSaved {
       comment_actions::table.find((comment_saved_form.person_id, comment_saved_form.comment_id)),
     )
     .set(comment_actions::saved.eq(None::<DateTime<Utc>>))
+    .or_delete()
     .execute(conn)
     .await
   }
