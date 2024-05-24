@@ -38,6 +38,7 @@ full = [
   "tokio-postgres-rustls",
   "rustls",
   "i-love-jesus",
+  "diesel-bind-if-some",
 ]
 
 [dependencies]
@@ -80,7 +81,7 @@ rustls = { workspace = true, optional = true }
 uuid = { workspace = true, features = ["v4"] }
 i-love-jesus = { workspace = true, optional = true }
 anyhow = { workspace = true }
-diesel-bind-if-some = { workspace = true }
+diesel-bind-if-some = { workspace = true, optional = true }
 moka.workspace = true
 
 [dev-dependencies]
