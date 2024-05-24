@@ -1,15 +1,11 @@
 use diesel::{
   dsl,
-  expression::{is_aggregate, NonAggregate, ValidGrouping},
+  expression::AsExpression,
   pg::Pg,
   query_builder::{AsQuery, AstPass, QueryFragment, UpdateStatement},
   result::Error,
   sql_types,
-  AppearsOnTable,
-  Expression,
-  Insertable,
   QueryId,
-  SelectableExpression,
   Table,
 };
 
@@ -53,7 +49,7 @@ impl<
     C: QueryFragment<Pg>,
     U: QueryFragment<Pg>,
     E: QueryFragment<Pg>,
-  > QueryFragment<Pg> for SetOrDeleteQuery<T, U, E>
+  > QueryFragment<Pg> for SetOrDeleteQuery<T, PK, C, U, E>
 {
   fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, Pg>) -> Result<(), Error> {
     // `update_result` CTE with new rows
