@@ -246,8 +246,8 @@ impl Post {
   }
 }
 
-// TODO: replace `as_select_unwrap` definitions with `Default::default()` after next Diesel release which should
-// implement `Default` for `AssumeNotNull`
+// TODO: replace `as_select_unwrap` definitions with `Default::default()` after next Diesel release
+// which should implement `Default` for `AssumeNotNull`
 impl PostLike {
   fn as_select_unwrap() -> (
     post_actions::post_id,
