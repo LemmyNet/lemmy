@@ -1,6 +1,6 @@
 use crate::structs::{CommentView, LocalUserView};
 use diesel::{
-  dsl::exists,
+  dsl::{exists, not},
   pg::Pg,
   result::Error,
   BoolExpressionMethods,
