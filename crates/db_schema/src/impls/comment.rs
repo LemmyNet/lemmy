@@ -40,8 +40,8 @@ impl UpleteTable for comment_actions::table {
     comment_actions::comment_id,
     comment_actions::post_id,
     Option<i16>,
-    Option<DateTime>,
-    Option<DateTime>,
+    Option<DateTime<Utc>>,
+    Option<DateTime<Utc>>,
   );
 }
 
