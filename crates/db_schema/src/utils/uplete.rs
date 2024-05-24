@@ -24,7 +24,8 @@ pub trait OrDelete {
 }
 
 impl<T: UpleteTable, U, V> OrDelete for UpdateStatement<T, U, V> {
-  type Output = SetOrDeleteQuery<T, T::PrimaryKey, T::AllColumns, Self, dsl::AsExprOf<T::EmptyRow, T::SqlType>>;
+  type Output =
+    SetOrDeleteQuery<T, T::PrimaryKey, T::AllColumns, Self, dsl::AsExprOf<T::EmptyRow, T::SqlType>>;
 
   fn or_delete(self) -> Self::Output {
     SetOrDeleteQuery {
@@ -47,12 +48,13 @@ pub struct SetOrDeleteQuery<T, PK, C, U, E> {
 }
 
 impl<
-  T: QueryFragment<Pg>,
-  PK: QueryFragment<Pg>,
-  C: QueryFragment<Pg>,
-  U: QueryFragment<Pg>,
-  E: QueryFragment<Pg>,
-> QueryFragment<Pg> for SetOrDeleteQuery<T, U, E> {
+    T: QueryFragment<Pg>,
+    PK: QueryFragment<Pg>,
+    C: QueryFragment<Pg>,
+    U: QueryFragment<Pg>,
+    E: QueryFragment<Pg>,
+  > QueryFragment<Pg> for SetOrDeleteQuery<T, U, E>
+{
   fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, Pg>) -> Result<(), Error> {
     // `update_result` CTE with new rows
     out.push_sql("WITH update_result AS (");
