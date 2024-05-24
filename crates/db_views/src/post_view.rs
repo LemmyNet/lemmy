@@ -283,9 +283,13 @@ fn queries<'a>() -> Queries<
     if let Some(my_id) = my_person_id {
       let not_creator_filter = post_aggregates::creator_id.ne(my_id);
       if options.liked_only {
-        query = query.filter(not_creator_filter).filter(post_actions::like_score.eq(1));
+        query = query
+          .filter(not_creator_filter)
+          .filter(post_actions::like_score.eq(1));
       } else if options.disliked_only {
-        query = query.filter(not_creator_filter).filter(post_actions::like_score.eq(-1));
+        query = query
+          .filter(not_creator_filter)
+          .filter(post_actions::like_score.eq(-1));
       }
     };
 
