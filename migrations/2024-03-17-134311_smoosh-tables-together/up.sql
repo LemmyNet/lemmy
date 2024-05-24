@@ -386,39 +386,3 @@ FROM post_actions;
 CREATE statistics post_actions_liked_stat ON (liked IS NULL), (like_score IS NULL)
 FROM post_actions;
 
--- TODO: move to replaceable_schema
-/*CREATE SCHEMA IF NOT EXISTS r;
-
-CREATE FUNCTION r.delete_empty_comment_actions ()
- RETURNS TRIGGER
- LANGUAGE plpgsql
- AS $$
-BEGIN
- DELETE FROM comment_actions USING (
- SELECT
- (person_id,
- comment_id,
- post_id,
- NULL,
- NULL,
- NULL) AS row_with_nulls
- FROM
- new_row
- WHERE (new_row.*) = row_with_nulls) AS rows_to_check
-WHERE (comment_actions.*) = row_with_nulls
-END;
-$$;
-uplete::delete_empty(comment_actions::table, (comment_actions::person_id, comment_actions::comment_id, comment_actions::post_id, ))*/
-
-/*WITH
-    update_result AS (UPDATE post_actions SET like_score = NULL, liked = NULL RETURNING *)
-DELETE FROM post_actions
-USING (
-    -- I tried to put these selected values in a tuple with a name that can be referenced in the `WHERE` clause, but the name throws a parse error in the `WHERE` clause
-    SELECT post_actions.post_id, post_actions.person_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-    FROM update_result AS post_actions
-    -- This check only affects performance, and it can't replace the `(post_actions.*) = (rows_with_nulls.*)` check below because this one is done before locking the rows
-    WHERE (post_actions.*) = (post_actions.post_id, post_actions.person_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
-) AS rows_with_nulls
-WHERE (post_actions.*) = (rows_with_nulls.*);*/
-
