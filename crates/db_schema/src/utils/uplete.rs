@@ -24,8 +24,13 @@ where
   T::SqlType: sql_types::SqlType + TypedExpressionType,
   T::EmptyRow: Default + AsExpression<sql_types::Record<T::SqlType>>,
 {
-  type Output =
-    SetOrDeleteQuery<T, T::PrimaryKey, T::AllColumns, Self, dsl::AsExprOf<T::EmptyRow, sql_types::Record<T::SqlType>>>;
+  type Output = SetOrDeleteQuery<
+    T,
+    T::PrimaryKey,
+    T::AllColumns,
+    Self,
+    dsl::AsExprOf<T::EmptyRow, sql_types::Record<T::SqlType>>,
+  >;
 
   fn or_delete(self) -> Self::Output {
     SetOrDeleteQuery {
