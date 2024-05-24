@@ -1,7 +1,7 @@
 use crate::structs::{LocalUserView, PaginationCursor, PostView};
 use diesel::{
   debug_query,
-  dsl::{exists, IntervalDsl},
+  dsl::{exists, not, IntervalDsl},
   pg::Pg,
   query_builder::AsQuery,
   result::Error,
