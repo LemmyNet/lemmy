@@ -2,7 +2,7 @@ use diesel::{
   dsl,
   expression::AsExpression,
   pg::Pg,
-  query_builder::{AsQuery, AstPass, QueryFragment, UpdateStatement},
+  query_builder::{AstPass, QueryFragment, UpdateStatement},
   result::Error,
   sql_types,
   QueryId,
@@ -10,7 +10,7 @@ use diesel::{
 };
 
 pub trait UpleteTable: Table + Default {
-  type EmptyRow: Default + AsExpression<sql_types::Record<Table::SqlType>>;
+  type EmptyRow;
 }
 
 pub trait OrDelete {
@@ -19,7 +19,10 @@ pub trait OrDelete {
   fn or_delete(self) -> Self::Output;
 }
 
-impl<T: UpleteTable, U, V> OrDelete for UpdateStatement<T, U, V> {
+impl<T: UpleteTable, U, V> OrDelete for UpdateStatement<T, U, V>
+where
+  T::EmptyRow: Default + AsExpression<sql_types::Record<T::SqlType>>,
+{
   type Output =
     SetOrDeleteQuery<T, T::PrimaryKey, T::AllColumns, Self, dsl::AsExprOf<T::EmptyRow, T::SqlType>>;
 
