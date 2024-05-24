@@ -1,6 +1,6 @@
 use diesel::{
   dsl,
-  expression::AsExpression,
+  expression::{AsExpression, SqlType, TypedExpressionType},
   pg::Pg,
   query_builder::{AstPass, QueryFragment, UpdateStatement},
   result::Error,
@@ -21,6 +21,7 @@ pub trait OrDelete {
 
 impl<T: UpleteTable, U, V> OrDelete for UpdateStatement<T, U, V>
 where
+  T::SqlType: SqlType + TypedExpressionType,
   T::EmptyRow: Default + AsExpression<sql_types::Record<T::SqlType>>,
 {
   type Output =
