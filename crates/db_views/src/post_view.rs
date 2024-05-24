@@ -56,6 +56,7 @@ use lemmy_db_schema::{
     ReadFn,
     ReverseTimestampKey,
   },
+  viewer::Viewer,
   CommunityVisibility,
   ListingType,
   SortType,
@@ -64,7 +65,7 @@ use tracing::debug;
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
-  impl ListFn<'a, PostView, (PostQuery<'a>, &'a Site)>,
+  impl ListFn<'a, PostView, (PostQuery, &'a Viewer)>,
 > {
   let is_creator_banned_from_community = exists(
     community_person_ban::table.filter(
@@ -309,32 +310,25 @@ fn queries<'a>() -> Queries<
         .await
     };
 
-  let list = move |mut conn: DbConn<'a>, (options, site): (PostQuery<'a>, &'a Site)| async move {
-    let my_person_id = options.local_user.map(|l| l.person.id);
-    let my_local_user_id = options.local_user.map(|l| l.local_user.id);
-
+  let list = move |mut conn: DbConn<'a>, (options, viewer): (PostQuery, &'a Viewer)| async move {
     // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
-    let local_user_id_join = my_local_user_id.unwrap_or(LocalUserId(-1));
+    let person_id_join = viewer.person_id().unwrap_or(PersonId(-1));
+    let local_user_id_join = viewer.local_user_id().unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(post_aggregates::table.into_boxed(), my_person_id);
+    let mut query = all_joins(post_aggregates::table.into_boxed(), viewer.person_id());
 
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
 
     // only show deleted posts to creator
-    if let Some(person_id) = my_person_id {
+    if let Some(person_id) = viewer.person_id() {
       query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
     } else {
       query = query.filter(post::deleted.eq(false));
     }
 
-    let is_admin = options
-      .local_user
-      .map(|l| l.local_user.admin)
-      .unwrap_or(false);
     // only show removed posts to admin when viewing user profile
-    if !(options.creator_id.is_some() && is_admin) {
+    if !(options.creator_id.is_some() && viewer.is_admin()) {
       query = query
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
@@ -348,7 +342,7 @@ fn queries<'a>() -> Queries<
     }
 
     if let Some(listing_type) = options.listing_type {
-      if let Some(person_id) = my_person_id {
+      if let Some(person_id) = viewer.person_id() {
         let is_subscribed = exists(
           community_follower::table.filter(
             post_aggregates::community_id
@@ -405,54 +399,40 @@ fn queries<'a>() -> Queries<
         .filter(not(post::removed.or(post::deleted)));
     }
 
-    // If there is a content warning, show nsfw content by default.
-    let has_content_warning = site.content_warning.is_some();
-    if !options
-      .local_user
-      .map(|l| l.local_user.show_nsfw)
-      .unwrap_or(has_content_warning)
-    {
+    if !viewer.show_nsfw() {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
     };
 
-    if !options
-      .local_user
-      .map(|l| l.local_user.show_bot_accounts)
-      .unwrap_or(true)
-    {
+    if !viewer.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
 
     // If its saved only, then filter, and order by the saved time, not the comment creation time.
-    if let (true, Some(person_id)) = (options.saved_only, my_person_id) {
+    if let (true, Some(person_id)) = (options.saved_only, viewer.person_id()) {
       query = query
         .filter(is_saved(person_id).is_not_null())
         .then_order_by(is_saved(person_id).desc());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
-    else if !options
-      .local_user
-      .map(|l| l.local_user.show_read_posts)
-      .unwrap_or(true)
-    {
+    else if !viewer.show_read_posts() {
       // Do not hide read posts when it is a user profile view
       // Or, only hide read posts on non-profile views
-      if let (None, Some(person_id)) = (options.creator_id, my_person_id) {
+      if let (None, Some(person_id)) = (options.creator_id, viewer.person_id()) {
         query = query.filter(not(is_read(person_id)));
       }
     }
 
     if !options.show_hidden {
       // If a creator id isn't given (IE its on home or community pages), hide the hidden posts
-      if let (None, Some(person_id)) = (options.creator_id, my_person_id) {
+      if let (None, Some(person_id)) = (options.creator_id, viewer.person_id()) {
         query = query.filter(not(is_hidden(person_id)));
       }
     }
 
-    if let Some(my_id) = my_person_id {
+    if let Some(my_id) = viewer.person_id {
       let not_creator_filter = post_aggregates::creator_id.ne(my_id);
       if options.liked_only {
         query = query.filter(not_creator_filter).filter(score(my_id).eq(1));
@@ -462,13 +442,13 @@ fn queries<'a>() -> Queries<
     };
 
     // Hide posts in local only communities from unauthenticated users
-    if options.local_user.is_none() {
+    if !viewer.is_logged_in() {
       query = query.filter(community::visibility.eq(CommunityVisibility::Public));
     }
 
     // Dont filter blocks or missing languages for moderator view type
     if let (Some(person_id), false) = (
-      my_person_id,
+      viewer.person_id(),
       options.listing_type.unwrap_or_default() == ListingType::ModeratorView,
     ) {
       // Filter out the rows with missing languages
@@ -623,7 +603,7 @@ impl PaginationCursor {
 pub struct PaginationCursorData(PostAggregates);
 
 #[derive(Clone, Default)]
-pub struct PostQuery<'a> {
+pub struct PostQuery {
   pub listing_type: Option<ListingType>,
   pub sort: Option<SortType>,
   pub creator_id: Option<PersonId>,
@@ -631,7 +611,6 @@ pub struct PostQuery<'a> {
   // if true, the query should be handled as if community_id was not given except adding the
   // literal filter
   pub community_id_just_for_prefetch: bool,
-  pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
   pub url_search: Option<String>,
   pub saved_only: bool,
@@ -645,10 +624,10 @@ pub struct PostQuery<'a> {
   pub show_hidden: bool,
 }
 
-impl<'a> PostQuery<'a> {
+impl PostQuery {
   async fn prefetch_upper_bound_for_page_before(
     &self,
-    site: &Site,
+    viewer: &Viewer,
     pool: &mut DbPool<'_>,
   ) -> Result<Option<PostQuery<'a>>, Error> {
     // first get one page for the most popular community to get an upper bound for the page end for
@@ -676,11 +655,9 @@ impl<'a> PostQuery<'a> {
         "legacy pagination cannot be combined with v2 pagination".into(),
       ));
     }
-    let self_person_id = self
-      .local_user
-      .expect("part of the above if")
-      .local_user
-      .person_id;
+    let self_person_id = viewer
+      .person_id()
+      .expect("part of the above if");
     let largest_subscribed = {
       let conn = &mut get_conn(pool).await?;
       community_follower
@@ -707,7 +684,7 @@ impl<'a> PostQuery<'a> {
             community_id_just_for_prefetch: true,
             ..self.clone()
           },
-          site,
+          viewer,
         ),
       )
       .await?;
@@ -731,7 +708,7 @@ impl<'a> PostQuery<'a> {
     }
   }
 
-  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
+  pub async fn list(self, viewer: &Viewer, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     if self.listing_type == Some(ListingType::Subscribed)
       && self.community_id.is_none()
       && self.local_user.is_some()
