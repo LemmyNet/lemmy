@@ -61,11 +61,8 @@ pub async fn get_post(
 
   let post_id = post_view.post.id;
   if let Some(person_id) = person_id {
-    // Mark the post as read
     mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
-    // Insert into PersonPostAggregates
-    // to update the read_comments count
     update_read_comments(
       person_id,
       post_id,

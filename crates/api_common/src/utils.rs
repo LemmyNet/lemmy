@@ -140,6 +140,7 @@ pub fn is_top_mod(
   }
 }
 
+/// Marks a post as read for a given person.
 #[tracing::instrument(skip_all)]
 pub async fn mark_post_as_read(
   person_id: PersonId,
@@ -166,9 +167,11 @@ pub async fn update_read_comments(
     read_comments,
     ..PersonPostAggregatesForm::default()
   };
+
   PersonPostAggregates::upsert(pool, &person_post_agg_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntFindPost)?;
+
   Ok(())
 }
 

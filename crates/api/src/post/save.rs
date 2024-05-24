@@ -38,7 +38,6 @@ pub async fn save_post(
     .await?
     .ok_or(LemmyErrorType::CouldntFindPost)?;
 
-  // Mark the post as read
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
   Ok(Json(PostResponse { post_view }))
