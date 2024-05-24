@@ -51,6 +51,8 @@ pub async fn create_comment(
 
   // Check for a community ban
   let post_id = data.post_id;
+
+  // Read the full post view in order to get the comments count.
   let post_view = PostView::read(
     &mut context.pool(),
     post_id,
