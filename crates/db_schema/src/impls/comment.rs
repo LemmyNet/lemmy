@@ -39,9 +39,9 @@ impl UpleteTable for comment_actions::table {
     comment_actions::person_id,
     comment_actions::comment_id,
     comment_actions::post_id,
-    None::<i16>,
-    None::<DateTime>,
-    None::<DateTime>,
+    None<i16>,
+    None<DateTime>,
+    None<DateTime>,
   );
 }
 
