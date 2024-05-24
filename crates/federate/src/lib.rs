@@ -38,7 +38,7 @@ pub struct SendManager {
   opts: Opts,
   workers: HashMap<InstanceId, CancellableTask>,
   context: FederationConfig<LemmyContext>,
-  stats_sender: UnboundedSender<(String, FederationQueueState)>,
+  stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
   exit_print: JoinHandle<()>,
 }
 

@@ -75,7 +75,7 @@ pub(crate) struct InstanceWorker {
   followed_communities: HashMap<CommunityId, HashSet<Url>>,
   stop: CancellationToken,
   context: Data<LemmyContext>,
-  stats_sender: UnboundedSender<(String, FederationQueueState)>,
+  stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
   last_full_communities_fetch: DateTime<Utc>,
   last_incremental_communities_fetch: DateTime<Utc>,
   state: FederationQueueState,
@@ -87,7 +87,7 @@ impl InstanceWorker {
     instance: Instance,
     context: Data<LemmyContext>,
     stop: CancellationToken,
-    stats_sender: UnboundedSender<(String, FederationQueueState)>,
+    stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
   ) -> Result<(), anyhow::Error> {
     let mut pool = context.pool();
     let state = FederationQueueState::load(&mut pool, instance.id).await?;
@@ -350,7 +350,7 @@ impl InstanceWorker {
     FederationQueueState::upsert(&mut self.context.pool(), &self.state).await?;
     self
       .stats_sender
-      .send((self.instance.domain.clone(), self.state.clone()))?;
+      .send((self.instance.id, self.state.clone()))?;
     Ok(())
   }
 }
