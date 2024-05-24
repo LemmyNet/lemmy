@@ -1,5 +1,12 @@
 use crate::structs::PersonMentionView;
-use diesel::{dsl::not, pg::Pg, result::Error, ExpressionMethods, NullableExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::not,
+  pg::Pg,
+  result::Error,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
