@@ -25,7 +25,7 @@ where
   T::EmptyRow: Default + AsExpression<sql_types::Record<T::SqlType>>,
 {
   type Output =
-    SetOrDeleteQuery<T, T::PrimaryKey, T::AllColumns, Self, dsl::AsExprOf<T::EmptyRow, T::SqlType>>;
+    SetOrDeleteQuery<T, T::PrimaryKey, T::AllColumns, Self, dsl::AsExprOf<T::EmptyRow, sql_types::Record<T::SqlType>>>;
 
   fn or_delete(self) -> Self::Output {
     SetOrDeleteQuery {
@@ -77,9 +77,9 @@ impl<
     // Filter the select statement
     self.push_sql(" WHERE (");
     self.all_columns.walk_ast(out.reborrow())?;
-    self.push_sql(") IS NOT DISTINCT FROM (");
+    self.push_sql(") IS NOT DISTINCT FROM ");
     self.empty_row.walk_ast(out.reborrow())?;
-    self.push_sql("))");
+    self.push_sql(")");
 
     Ok(())
   }
