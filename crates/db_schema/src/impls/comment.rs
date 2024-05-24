@@ -24,7 +24,7 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{self, insert_into, sql_query},
+  dsl::{self, insert_into},
   result::Error,
   ExpressionMethods,
   NullableExpressionMethods,
@@ -39,9 +39,9 @@ impl UpleteTable for comment_actions::table {
     comment_actions::person_id,
     comment_actions::comment_id,
     comment_actions::post_id,
-    None<i16>,
-    None<DateTime>,
-    None<DateTime>,
+    Option<i16>,
+    Option<DateTime>,
+    Option<DateTime>,
   );
 }
 
