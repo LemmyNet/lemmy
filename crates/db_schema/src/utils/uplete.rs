@@ -32,7 +32,7 @@ impl<T: UpleteTable, U, V> OrDelete for UpdateStatement<T, U, V> {
       primary_key: T::primary_key(),
       all_columns: T::all_columns(),
       update_statement: self,
-      empty_row: T::EmptyRow::default().as_expression();
+      empty_row: T::EmptyRow::default().as_expression(),
     }
   }
 }
@@ -46,7 +46,13 @@ pub struct SetOrDeleteQuery<T, PK, C, U, E> {
   empty_row: E,
 }
 
-impl<T: QueryFragment<Pg>, PK: QueryFragment<Pg>, C: QueryFragment<Pg>, U: QueryFragment<Pg>, E: QueryFragment<Pg>> QueryFragment<Pg> for SetOrDeleteQuery<T, U, E> {
+impl<
+  T: QueryFragment<Pg>,
+  PK: QueryFragment<Pg>,
+  C: QueryFragment<Pg>,
+  U: QueryFragment<Pg>,
+  E: QueryFragment<Pg>,
+> QueryFragment<Pg> for SetOrDeleteQuery<T, U, E> {
   fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, Pg>) -> Result<(), Error> {
     // `update_result` CTE with new rows
     out.push_sql("WITH update_result AS (");
