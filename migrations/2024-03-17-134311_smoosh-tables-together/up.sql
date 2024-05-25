@@ -386,3 +386,7 @@ FROM post_actions;
 CREATE statistics post_actions_liked_stat ON (liked IS NULL), (like_score IS NULL)
 FROM post_actions;
 
+-- TODO: drop the column
+ALTER TABLE comment_actions
+    ALTER COLUMN post_id DROP NOT NULL;
+
