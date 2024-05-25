@@ -320,6 +320,8 @@ CREATE INDEX idx_comment_saved_comment ON comment_saved (comment_id);
 
 CREATE INDEX idx_comment_saved_person ON comment_saved (person_id);
 
+CREATE INDEX idx_comment_like_post ON comment_like (post_id);
+
 CREATE INDEX idx_community_block_community ON community_block (community_id);
 
 CREATE INDEX idx_community_moderator_community ON community_moderator (community_id);
