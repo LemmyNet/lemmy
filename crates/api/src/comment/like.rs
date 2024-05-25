@@ -15,6 +15,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
   },
   traits::Likeable,
+  viewer::Viewer,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -24,23 +25,23 @@ use std::ops::Deref;
 pub async fn like_comment(
   data: Json<CreateCommentLike>,
   context: Data<LemmyContext>,
-  local_user_view: LocalUserView,
+  viewer: Viewer,
 ) -> LemmyResult<Json<CommentResponse>> {
+  let person = viewer.require_logged_in()?.person;
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let mut recipient_ids = Vec::<LocalUserId>::new();
 
   // Don't do a downvote if site has downvotes disabled
   check_downvotes_enabled(data.score, &local_site)?;
-  check_bot_account(&local_user_view.person)?;
+  viewer.check_bot_account()?;
 
   let comment_id = data.comment_id;
   let orig_comment = CommentView::read(&mut context.pool(), comment_id, None)
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
 
-  check_community_user_action(
-    &local_user_view.person,
+  viewer.check_community_user_action(
     orig_comment.community.id,
     &mut context.pool(),
   )
@@ -67,7 +68,7 @@ pub async fn like_comment(
   // Remove any likes first
   let person_id = local_user_view.person.id;
 
-  CommentLike::remove(&mut context.pool(), person_id, comment_id).await?;
+  CommentLike::remove(&mut context.pool(), person.id, comment_id).await?;
 
   // Only add the like if the score isnt 0
   let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
@@ -80,7 +81,7 @@ pub async fn like_comment(
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {
       object_id: orig_comment.comment.ap_id,
-      actor: local_user_view.person.clone(),
+      actor: person.clone(),
       community: orig_comment.community,
       score: data.score,
     },
@@ -92,7 +93,7 @@ pub async fn like_comment(
     build_comment_response(
       context.deref(),
       comment_id,
-      Some(local_user_view),
+      &viewer,
       recipient_ids,
     )
     .await?,
