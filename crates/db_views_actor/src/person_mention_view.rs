@@ -1,6 +1,5 @@
 use crate::structs::PersonMentionView;
 use diesel::{
-  dsl::not,
   pg::Pg,
   result::Error,
   ExpressionMethods,
@@ -131,9 +130,7 @@ fn queries<'a>() -> Queries<
     };
 
     // Don't show mentions from blocked persons
-    if let Some(my_person_id) = options.my_person_id {
-      query = query.filter(not(is_creator_blocked(my_person_id)));
-    }
+    query = query.filter(person_actions::blocked.is_null());
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
@@ -168,15 +165,13 @@ impl PersonMentionView {
 
     person_mention::table
       .inner_join(comment::table)
-      .left_join(
-        person_block::table.on(
-          comment::creator_id
-            .eq(person_block::target_id)
-            .and(person_block::person_id.eq(my_person_id)),
-        ),
-      )
+      .left_join(actions(
+        person_actions::table,
+        Some(my_person_id),
+        comment::creator_id,
+      ))
       // Dont count replies from blocked users
-      .filter(person_block::person_id.is_null())
+      .filter(person_actions::blocked.is_null())
       .filter(person_mention::recipient_id.eq(my_person_id))
       .filter(person_mention::read.eq(false))
       .filter(comment::deleted.eq(false))
