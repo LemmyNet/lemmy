@@ -17,7 +17,7 @@ use crate::{
     get_conn,
     naive_now,
     now,
-    uplete::{OrDelete, UpleteTable},
+    uplete::{OrDelete, UpleteCount, UpleteTable},
     DbPool,
     DELETED_REPLACEMENT_TEXT,
   },
@@ -198,7 +198,7 @@ impl Likeable for CommentLike {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     comment_id: CommentId,
-  ) -> Result<usize, Error> {
+  ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(comment_actions::table.find((person_id, comment_id)))
       .set((
@@ -249,7 +249,7 @@ impl Saveable for CommentSaved {
   async fn unsave(
     pool: &mut DbPool<'_>,
     comment_saved_form: &CommentSavedForm,
-  ) -> Result<usize, Error> {
+  ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(
       comment_actions::table.find((comment_saved_form.person_id, comment_saved_form.comment_id)),
@@ -429,8 +429,8 @@ mod tests {
       format!("0.{}.{}", expected_comment.id, inserted_child_comment.id),
       inserted_child_comment.path.0,
     );
-    assert_eq!(1, like_removed);
-    assert_eq!(1, saved_removed);
+    assert_eq!(UpleteCount::only_updated(1), like_removed);
+    assert_eq!(UpleteCount::only_deleted(1), saved_removed);
     assert_eq!(1, num_deleted);
   }
 }
