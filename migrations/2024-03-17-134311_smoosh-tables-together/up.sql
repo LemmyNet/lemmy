@@ -22,15 +22,13 @@ WITH old_comment_saved AS (
     DELETE FROM comment_saved
 RETURNING
     *)
-    INSERT INTO comment_actions (person_id, comment_id, saved, post_id)
+    INSERT INTO comment_actions (person_id, comment_id, saved)
     SELECT
-        old_comment_saved.person_id,
-        old_comment_saved.comment_id,
-        old_comment_saved.published,
-        comment.post_id
+        person_id,
+        comment_id,
+        published
     FROM
         old_comment_saved
-        INNER JOIN COMMENT ON comment.id = old_comment_saved.comment_id
     ON CONFLICT (person_id,
         comment_id)
         DO UPDATE SET
