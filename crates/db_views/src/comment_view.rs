@@ -525,7 +525,6 @@ mod tests {
 
     let comment_like_form = CommentLikeForm {
       comment_id: inserted_comment_0.id,
-      post_id: inserted_post.id,
       person_id: inserted_timmy_person.id,
       score: 1,
     };
@@ -625,7 +624,6 @@ mod tests {
     // Like a new comment
     let comment_like_form = CommentLikeForm {
       comment_id: data.inserted_comment_1.id,
-      post_id: data.inserted_post.id,
       person_id: data.timmy_local_user_view.person.id,
       score: 1,
     };
