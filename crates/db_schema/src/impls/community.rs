@@ -107,6 +107,12 @@ impl Joinable for CommunityModerator {
     );
     insert_into(community_actions::table)
       .values(community_moderator_form)
+      .on_conflict((
+        community_actions::person_id,
+        community_actions::community_id,
+      ))
+      .do_update()
+      .set(community_moderator_form),
       .returning(Self::as_select_unwrap())
       .get_result::<Self>(conn)
       .await
