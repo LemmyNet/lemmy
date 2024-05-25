@@ -41,7 +41,8 @@ BEGIN
                         score = a.score + diff.upvotes - diff.downvotes, upvotes = a.upvotes + diff.upvotes, downvotes = a.downvotes + diff.downvotes, controversy_rank = r.controversy_rank ((a.upvotes + diff.upvotes)::numeric, (a.downvotes + diff.downvotes)::numeric)
                     FROM (
                         SELECT
-                            (thing_actions).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows WHERE (thing_actions).like_score IS NOT NULL GROUP BY (thing_actions).thing_id) AS diff
+                            (thing_actions).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows
+                WHERE (thing_actions).like_score IS NOT NULL GROUP BY (thing_actions).thing_id) AS diff
             WHERE
                 a.thing_id = diff.thing_id
                     AND (diff.upvotes, diff.downvotes) != (0, 0)
@@ -366,7 +367,8 @@ BEGIN
             (community_actions).community_id, coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers, coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local
         FROM select_old_and_new_rows AS old_and_new_rows
     LEFT JOIN community ON community.id = (community_actions).community_id
-    LEFT JOIN person ON person.id = (community_actions).person_id WHERE (community_actions).followed IS NOT NULL GROUP BY (community_actions).community_id) AS diff
+    LEFT JOIN person ON person.id = (community_actions).person_id
+    WHERE (community_actions).followed IS NOT NULL GROUP BY (community_actions).community_id) AS diff
 WHERE
     a.community_id = diff.community_id
         AND (diff.subscribers, diff.subscribers_local) != (0, 0);
