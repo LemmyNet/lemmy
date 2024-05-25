@@ -164,14 +164,12 @@ impl CommentLike {
   fn as_select_unwrap() -> (
     comment_actions::person_id,
     comment_actions::comment_id,
-    comment_actions::post_id,
     dsl::AssumeNotNull<comment_actions::like_score>,
     dsl::AssumeNotNull<comment_actions::liked>,
   ) {
     (
       comment_actions::person_id,
       comment_actions::comment_id,
-      comment_actions::post_id,
       comment_actions::like_score.assume_not_null(),
       comment_actions::liked.assume_not_null(),
     )
