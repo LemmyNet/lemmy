@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
   newtypes::{CommentId, PostId},
-  schema::{comment_actions, community_actions, person, post, post_actions},
+  schema::{comment, comment_actions, community_actions, person, post, post_actions},
   utils::{action_query, actions_alias, get_conn, limit_and_offset, DbPool},
 };
 
