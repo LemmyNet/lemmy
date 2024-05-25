@@ -1,6 +1,5 @@
 use crate::structs::CommentReplyView;
 use diesel::{
-  dsl::not,
   pg::Pg,
   result::Error,
   ExpressionMethods,
@@ -131,9 +130,7 @@ fn queries<'a>() -> Queries<
     };
 
     // Don't show replies from blocked persons
-    if let Some(my_person_id) = options.my_person_id {
-      query = query.filter(not(is_creator_blocked(my_person_id)));
-    }
+    query = query.filter(person_actions::blocked.is_null());
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
