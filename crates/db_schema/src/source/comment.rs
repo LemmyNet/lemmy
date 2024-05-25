@@ -96,7 +96,6 @@ pub struct CommentUpdateForm {
 pub struct CommentLike {
   pub person_id: PersonId,
   pub comment_id: CommentId,
-  pub post_id: PostId, // TODO this is redundant
   pub score: i16,
   pub published: DateTime<Utc>,
 }
