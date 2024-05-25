@@ -11,6 +11,7 @@ ALTER TABLE comment_actions RENAME COLUMN published TO liked;
 ALTER TABLE comment_actions RENAME COLUMN score TO like_score;
 
 ALTER TABLE comment_actions
+    DROP COLUMN post_id,
     ALTER COLUMN liked DROP NOT NULL,
     ALTER COLUMN liked DROP DEFAULT,
     ALTER COLUMN like_score DROP NOT NULL,
@@ -385,8 +386,4 @@ FROM post_actions;
 
 CREATE statistics post_actions_liked_stat ON (liked IS NULL), (like_score IS NULL)
 FROM post_actions;
-
--- TODO: drop the column
-ALTER TABLE comment_actions
-    ALTER COLUMN post_id DROP NOT NULL;
 
