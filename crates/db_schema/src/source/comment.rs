@@ -106,7 +106,6 @@ pub struct CommentLike {
 pub struct CommentLikeForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,
-  pub post_id: PostId, // TODO this is redundant
   #[cfg_attr(feature = "full", diesel(column_name = like_score))]
   pub score: i16,
 }
