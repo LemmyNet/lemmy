@@ -354,10 +354,7 @@ WHERE
     hidden IS NOT NULL;
 
 -- This index is currently redundant because instance_actions only has 1 action type, but inconsistency
--- with other tables would make it harder to do everything correctly when adding another action type. If
--- omitting this index is significantly beneficial, then it should be done when indexes are declared outside
--- of migrations in `lemmy_db_schema::schema_setup` and adding this index doesn't require changing code that
--- isn't right next to the code that needs to be changed to add another action type to instance_actions.
+-- with other tables would make it harder to do everything correctly when adding another action type
 CREATE INDEX idx_instance_actions_blocked_not_null ON instance_actions (person_id, instance_id)
 WHERE
     blocked IS NOT NULL;
