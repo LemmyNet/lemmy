@@ -53,7 +53,7 @@ impl VoteView {
 
     action_query(comment_actions::like_score)
       .inner_join(person::table)
-      .inner_join(post::table)
+      .inner_join(comment::table.inner_join(post::table))
       .left_join(actions_alias(
         creator_community_actions,
         comment_actions::person_id,
