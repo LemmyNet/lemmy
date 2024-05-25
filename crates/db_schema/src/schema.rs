@@ -102,7 +102,7 @@ diesel::table! {
     comment_actions (person_id, comment_id) {
         person_id -> Int4,
         comment_id -> Int4,
-        post_id -> Int4,
+        post_id -> Nullable<Int4>,
         like_score -> Nullable<Int2>,
         liked -> Nullable<Timestamptz>,
         saved -> Nullable<Timestamptz>,
