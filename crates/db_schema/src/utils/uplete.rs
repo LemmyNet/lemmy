@@ -74,9 +74,9 @@ impl<
     self.primary_key.walk_ast(out.reborrow())?;
 
     // Select from `update_result` with an alias that matches the original table's name
-    out.push_sql(") = ANY (SELECT (");
+    out.push_sql(") = ANY (SELECT ");
     self.primary_key.walk_ast(out.reborrow())?;
-    out.push_sql(") FROM update_result AS ");
+    out.push_sql(" FROM update_result AS ");
     self.table.walk_ast(out.reborrow())?;
 
     // Filter the select statement
