@@ -112,7 +112,7 @@ impl Joinable for CommunityModerator {
         community_actions::community_id,
       ))
       .do_update()
-      .set(community_moderator_form),
+      .set(community_moderator_form)
       .returning(Self::as_select_unwrap())
       .get_result::<Self>(conn)
       .await
