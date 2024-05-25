@@ -38,7 +38,6 @@ impl UpleteTable for comment_actions::table {
   type EmptyRow = (
     comment_actions::person_id,
     comment_actions::comment_id,
-    comment_actions::post_id,
     Option<i16>,
     Option<DateTime<Utc>>,
     Option<DateTime<Utc>>,
