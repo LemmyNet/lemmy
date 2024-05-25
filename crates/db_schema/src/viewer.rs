@@ -1,5 +1,6 @@
 use crate::{
   schema::{local_site, local_user, site},
+  source::person::Person,
   ListingType,
   PostListingMode,
   SortType,
@@ -13,6 +14,7 @@ pub struct Viewer {
 
 struct LoggedInViewer {
   local_user_fields: LocalUserFields,
+  person: Person,
 }
 
 #[derive(Queryable)]
