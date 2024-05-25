@@ -1,11 +1,5 @@
 use crate::structs::CommentReplyView;
-use diesel::{
-  pg::Pg,
-  result::Error,
-  ExpressionMethods,
-  NullableExpressionMethods,
-  QueryDsl,
-};
+use diesel::{pg::Pg, result::Error, ExpressionMethods, NullableExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
