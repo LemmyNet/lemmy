@@ -329,3 +329,6 @@ DROP INDEX idx_comment_actions_liked_not_null, idx_community_actions_followed_no
 -- Drop statistics of columns that still exist
 DROP statistics comment_actions_liked_stat, community_actions_followed_stat, person_actions_followed_stat;
 
+ALTER TABLE comment_actions
+    ALTER COLUMN post_id SET NOT NULL;
+
