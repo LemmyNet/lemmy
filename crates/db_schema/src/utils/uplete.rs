@@ -1,4 +1,5 @@
 use diesel::{
+  deserialize::Queryable,
   dsl,
   expression::{AsExpression, TypedExpressionType},
   pg::Pg,
@@ -53,8 +54,11 @@ pub struct SetOrDeleteQuery<T, PK, C, U, E> {
   empty_row: E,
 }
 
-impl<T, PK, C, U, E> Query for SetOrDeleteQuery<T, PK, C, U, E> {
-  type SqlType = (sql_types::BigInt, sql_types::BigInt);
+impl<T: Table, PK, C, U, E> Query for SetOrDeleteQuery<T, PK, C, U, E>
+where
+  T::SqlType: 'static,
+{
+  type SqlType = (sql_types::Array<sql_types::Record<T::SqlType>>, sql_types::BigInt);
 }
 
 impl<
@@ -66,7 +70,8 @@ impl<
   > QueryFragment<Pg> for SetOrDeleteQuery<T, PK, C, U, E>
 {
   fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, Pg>) -> Result<(), Error> {
-    // `update_result` CTE with new rows (concurrent writers to these rows are blocked until this query ends)
+    // `update_result` CTE with new rows (concurrent writers to these rows are blocked until this
+    // query ends)
     out.push_sql("WITH update_result AS (");
     self.update_statement.walk_ast(out.reborrow())?;
     out.push_sql(" RETURNING ");
@@ -90,31 +95,41 @@ impl<
     out.push_sql(") IS NOT DISTINCT FROM ");
     self.empty_row.walk_ast(out.reborrow())?;
 
-    // Select count from each CTE
-    out.push_sql(") RETURNING 1) SELECT (SELECT count(*) from update_result), (SELECT count(*) FROM delete_result)");
+    out.push_sql(") RETURNING ");
+    self.all_columns.walk_ast(out.reborrow())?;
+
+    // Select values to be received
+    out.push_sql(
+      ") SELECT (SELECT array_agg(update_result.*) from update_result WHERE (update_result.*) != ALL (SELECT * FROM delete_result)), (SELECT count(*) FROM delete_result)"
+    );
 
     Ok(())
   }
 }
 
-#[derive(Queryable, PartialEq, Eq, Debug)]
-pub struct UpleteCount {
-  pub all: i64,
-  pub deleted: i64,
+#[derive(PartialEq, Eq, Debug)]
+pub struct UpletedRows<T> {
+  pub updated_rows: Vec<T>,
+  pub deleted_rows_count: i64,
 }
 
-impl UpleteCount {
-  pub fn only_updated(n: i64) -> Self {
-    UpleteCount {
-      all: n,
-      deleted: 0,
-    }
+impl<T> UpletedRows<T> {
+  pub fn only_updated(updated_rows: Vec<T>) -> Self {
+    UpleteCount { updated_rows, deleted_rows_count: 0 }
   }
 
-  pub fn only_deleted(n: i64) -> Self {
-    UpleteCount {
-      all: n,
-      deleted: n,
-    }
+  pub fn only_deleted(deleted_rows_count: i64) -> Self {
+    UpleteCount { updated_rows: Vec::new(), deleted_rows_count }
+  }
+}
+
+impl<ST, T: Queryable<ST, Pg>> Queryable<(sql_types::Array<sql_types::Record<ST>>, sql_types::BigInt), Pg> for UpletedRows<T> {
+  type Row = (Vec<T::Row>, i64);
+
+  fn build((updated_rows, deleted_rows_count): Self::Row) -> diesel::deserialize::Result<Self> {
+    Ok(UpletedRows {
+      updated_rows: updated_rows.into_iter().map(T::build).collect::<Result<Vec<_>, _>>()?,
+      deleted_rows_count,
+    })
   }
 }
