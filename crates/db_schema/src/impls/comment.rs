@@ -284,7 +284,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Likeable, Saveable},
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, uplete::UpleteCount},
   };
   use diesel_ltree::Ltree;
   use pretty_assertions::assert_eq;
