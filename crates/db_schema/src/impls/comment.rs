@@ -206,7 +206,7 @@ impl Likeable for CommentLike {
         comment_actions::liked.eq(None::<DateTime<Utc>>),
       ))
       .or_delete()
-      .execute(conn)
+      .get_result(conn)
       .await
   }
 }
@@ -256,7 +256,7 @@ impl Saveable for CommentSaved {
     )
     .set(comment_actions::saved.eq(None::<DateTime<Utc>>))
     .or_delete()
-    .execute(conn)
+    .get_result(conn)
     .await
   }
 }
