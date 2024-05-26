@@ -16,7 +16,7 @@ use crate::{
     get_conn,
     naive_now,
     now,
-    upsert::{OrTable, UpleteCount, UpleteTable},
+    uplete::{OrTable, UpleteCount, UpleteTable},
     DbPool,
   },
 };
