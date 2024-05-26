@@ -78,7 +78,8 @@ impl Blockable for InstanceBlock {
       instance_block_form.instance_id,
     )))
     .set(instance_actions::blocked.eq(None::<DateTime<Utc>>))
-    .execute(conn)
+    .or_delete()
+    .get_result(conn)
     .await
   }
 }
