@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use crate::{
   diesel::dsl::IntervalDsl,
   newtypes::InstanceId,
@@ -24,6 +23,7 @@ use crate::{
     DbPool,
   },
 };
+use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{count_star, insert_into},
   result::Error,
