@@ -234,7 +234,10 @@ impl Followable for PersonFollower {
   async fn follow_accepted(_: &mut DbPool<'_>, _: CommunityId, _: PersonId) -> Result<Self, Error> {
     unimplemented!()
   }
-  async fn unfollow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<UpleteCount, Error> {
+  async fn unfollow(
+    pool: &mut DbPool<'_>,
+    form: &PersonFollowerForm,
+  ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(person_actions::table.find((form.follower_id, form.person_id)))
       .set((
