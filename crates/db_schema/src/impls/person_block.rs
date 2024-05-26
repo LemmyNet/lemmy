@@ -72,7 +72,10 @@ impl Blockable for PersonBlock {
       .get_result::<Self>(conn)
       .await
   }
-  async fn unblock(pool: &mut DbPool<'_>, person_block_form: &Self::Form) -> Result<UpleteCount, Error> {
+  async fn unblock(
+    pool: &mut DbPool<'_>,
+    person_block_form: &Self::Form,
+  ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(
       person_actions::table.find((person_block_form.person_id, person_block_form.target_id)),
