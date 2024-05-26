@@ -10,7 +10,15 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Crud, Followable},
-  utils::{action_query, functions::lower, get_conn, naive_now, now, DbPool},
+  utils::{
+    action_query,
+    functions::lower,
+    get_conn,
+    naive_now,
+    now,
+    upsert::{OrTable, UpleteCount, UpleteTable},
+    DbPool,
+  },
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -23,6 +31,16 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+
+impl UpleteTable for person_actions::table {
+  type EmptyRow = (
+    person_actions::target_id,
+    person_actions::person_id,
+    Option<DateTime<Utc>>,
+    Option<bool>,
+    Option<DateTime<Utc>>,
+  );
+}
 
 #[async_trait]
 impl Crud for Person {
@@ -216,14 +234,15 @@ impl Followable for PersonFollower {
   async fn follow_accepted(_: &mut DbPool<'_>, _: CommunityId, _: PersonId) -> Result<Self, Error> {
     unimplemented!()
   }
-  async fn unfollow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<usize, Error> {
+  async fn unfollow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(person_actions::table.find((form.follower_id, form.person_id)))
       .set((
         person_actions::followed.eq(None::<DateTime<Utc>>),
         person_actions::follow_pending.eq(None::<bool>),
       ))
-      .execute(conn)
+      .or_delete()
+      .get_result(conn)
       .await
   }
 }
@@ -361,6 +380,6 @@ mod tests {
     assert_eq!(vec![person_2], followers);
 
     let unfollow = PersonFollower::unfollow(pool, &follow_form).await.unwrap();
-    assert_eq!(1, unfollow);
+    assert_eq!(UpleteCount::only_deleted(1), unfollow);
   }
 }
