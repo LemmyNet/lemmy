@@ -3,7 +3,13 @@ use crate::{
   schema::instance_actions,
   source::instance_block::{InstanceBlock, InstanceBlockForm},
   traits::Blockable,
-  utils::{find_action, get_conn, now, DbPool},
+  utils::{
+    find_action,
+    get_conn,
+    now,
+    uplete::{OrDelete, UpleteCount},
+    DbPool,
+  },
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -65,7 +71,7 @@ impl Blockable for InstanceBlock {
   async fn unblock(
     pool: &mut DbPool<'_>,
     instance_block_form: &Self::Form,
-  ) -> Result<usize, Error> {
+  ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(instance_actions::table.find((
       instance_block_form.person_id,
