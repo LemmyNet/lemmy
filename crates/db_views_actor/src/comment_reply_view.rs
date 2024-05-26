@@ -193,6 +193,8 @@ fn queries<'a>() -> Queries<
     };
 
   let list = move |mut conn: DbConn<'a>, options: CommentReplyQuery| async move {
+    // These filters need to be kept in sync with the filters in
+    // CommentReplyView::get_unread_replies()
     let mut query = all_joins(comment_reply::table.into_boxed(), options.my_person_id);
 
     if let Some(recipient_id) = options.recipient_id {
@@ -247,12 +249,13 @@ impl CommentReplyView {
   pub async fn get_unread_replies(
     pool: &mut DbPool<'_>,
     my_person_id: PersonId,
+    show_bot_accounts: bool,
   ) -> Result<i64, Error> {
     use diesel::dsl::count;
 
     let conn = &mut get_conn(pool).await?;
 
-    comment_reply::table
+    let mut query = comment_reply::table
       .inner_join(comment::table)
       .left_join(
         person_block::table.on(
@@ -261,7 +264,16 @@ impl CommentReplyView {
             .and(person_block::person_id.eq(my_person_id)),
         ),
       )
-      // Dont count replies from blocked users
+      .inner_join(person::table.on(comment::creator_id.eq(person::id)))
+      .into_boxed();
+
+    // These filters need to be kept in sync with the filters in queries().list()
+    if !show_bot_accounts {
+      query = query.filter(person::bot_account.eq(false));
+    }
+
+    query
+      // Don't count replies from blocked users
       .filter(person_block::person_id.is_null())
       .filter(comment_reply::recipient_id.eq(my_person_id))
       .filter(comment_reply::read.eq(false))
@@ -301,7 +313,7 @@ mod tests {
       comment_reply::{CommentReply, CommentReplyInsertForm, CommentReplyUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
-      person::{Person, PersonInsertForm},
+      person::{Person, PersonInsertForm, PersonUpdateForm},
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostInsertForm},
     },
@@ -386,7 +398,7 @@ mod tests {
       CommentReply::update(pool, inserted_reply.id, &comment_reply_update_form).await?;
 
     // Test to make sure counts and blocks work correctly
-    let unread_replies = CommentReplyView::get_unread_replies(pool, recipient_id).await?;
+    let unread_replies = CommentReplyView::get_unread_replies(pool, recipient_id, true).await?;
 
     let query = CommentReplyQuery {
       recipient_id: Some(recipient_id),
@@ -409,10 +421,29 @@ mod tests {
     PersonBlock::block(pool, &block_form).await?;
 
     let unread_replies_after_block =
-      CommentReplyView::get_unread_replies(pool, recipient_id).await?;
-    let replies_after_block = query.list(pool).await?;
+      CommentReplyView::get_unread_replies(pool, recipient_id, true).await?;
+    let replies_after_block = query.clone().list(pool).await?;
     assert_eq!(0, unread_replies_after_block);
     assert_eq!(0, replies_after_block.len());
+
+    // Unblock user so we can reuse the same person
+    PersonBlock::unblock(pool, &block_form).await?;
+
+    // Turn Terry into a bot account
+    let person_update_form = PersonUpdateForm {
+      bot_account: Some(true),
+      ..Default::default()
+    };
+    Person::update(pool, inserted_terry.id, &person_update_form).await?;
+
+    let unread_replies_after_hide_bots =
+      CommentReplyView::get_unread_replies(pool, recipient_id, false).await?;
+
+    let mut query_without_bots = query.clone();
+    query_without_bots.show_bot_accounts = false;
+    let replies_after_hide_bots = query_without_bots.list(pool).await?;
+    assert_eq!(0, unread_replies_after_hide_bots);
+    assert_eq!(0, replies_after_hide_bots.len());
 
     Comment::delete(pool, inserted_comment.id).await?;
     Post::delete(pool, inserted_post.id).await?;
