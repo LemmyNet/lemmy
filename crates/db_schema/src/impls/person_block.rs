@@ -3,7 +3,13 @@ use crate::{
   schema::person_actions,
   source::person_block::{PersonBlock, PersonBlockForm},
   traits::Blockable,
-  utils::{find_action, get_conn, now, DbPool},
+  utils::{
+    find_action,
+    get_conn,
+    now,
+    uplete::{OrDelete, UpleteCount},
+    DbPool,
+  },
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -66,13 +72,14 @@ impl Blockable for PersonBlock {
       .get_result::<Self>(conn)
       .await
   }
-  async fn unblock(pool: &mut DbPool<'_>, person_block_form: &Self::Form) -> Result<usize, Error> {
+  async fn unblock(pool: &mut DbPool<'_>, person_block_form: &Self::Form) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(
       person_actions::table.find((person_block_form.person_id, person_block_form.target_id)),
     )
     .set(person_actions::blocked.eq(None::<DateTime<Utc>>))
-    .execute(conn)
+    .or_delete()
+    .get_result(conn)
     .await
   }
 }
