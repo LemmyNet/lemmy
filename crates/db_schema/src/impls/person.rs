@@ -16,7 +16,7 @@ use crate::{
     get_conn,
     naive_now,
     now,
-    uplete::{OrTable, UpleteCount, UpleteTable},
+    uplete::{OrDelete, UpleteCount, UpleteTable},
     DbPool,
   },
 };
