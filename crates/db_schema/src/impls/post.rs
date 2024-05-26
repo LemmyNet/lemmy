@@ -21,6 +21,7 @@ use crate::{
     get_conn,
     naive_now,
     now,
+    uplete::{OrDelete, UpleteCount, UpleteTable},
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
@@ -41,6 +42,20 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use std::collections::HashSet;
+
+impl UpleteTable for post_actions::table {
+  type EmptyRow = (
+    post_actions::post_id,
+    post_actions::person_id,
+    Option<DateTime<Utc>>,
+    Option<DateTime<Utc>>,
+    Option<i64>,
+    Option<DateTime<Utc>>,
+    Option<DateTime<Utc>>,
+    Option<i16>,
+    Option<DateTime<Utc>>,
+  );
+}
 
 #[async_trait]
 impl Crud for Post {
@@ -284,14 +299,15 @@ impl Likeable for PostLike {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     post_id: PostId,
-  ) -> Result<usize, Error> {
+  ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(post_actions::table.find((person_id, post_id)))
       .set((
         post_actions::like_score.eq(None::<i16>),
         post_actions::liked.eq(None::<DateTime<Utc>>),
       ))
-      .execute(conn)
+      .or_delete()
+      .get_result(conn)
       .await
   }
 }
@@ -325,11 +341,15 @@ impl Saveable for PostSaved {
       .get_result::<Self>(conn)
       .await
   }
-  async fn unsave(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
+  async fn unsave(
+    pool: &mut DbPool<'_>,
+    post_saved_form: &PostSavedForm,
+  ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(post_actions::table.find((post_saved_form.person_id, post_saved_form.post_id)))
       .set(post_actions::saved.eq(None::<DateTime<Utc>>))
-      .execute(conn)
+      .or_delete()
+      .get_result(conn)
       .await
   }
 }
@@ -364,7 +384,7 @@ impl PostRead {
     pool: &mut DbPool<'_>,
     post_id_: HashSet<PostId>,
     person_id_: PersonId,
-  ) -> Result<usize, Error> {
+  ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
 
     diesel::update(
@@ -373,7 +393,8 @@ impl PostRead {
         .filter(post_actions::person_id.eq(person_id_)),
     )
     .set(post_actions::read.eq(None::<DateTime<Utc>>))
-    .execute(conn)
+    .or_delete()
+    .get_result(conn)
     .await
   }
 }
@@ -408,7 +429,7 @@ impl PostHide {
     pool: &mut DbPool<'_>,
     post_id_: HashSet<PostId>,
     person_id_: PersonId,
-  ) -> Result<usize, Error> {
+  ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
 
     diesel::update(
@@ -417,7 +438,8 @@ impl PostHide {
         .filter(post_actions::person_id.eq(person_id_)),
     )
     .set(post_actions::hidden.eq(None::<DateTime<Utc>>))
-    .execute(conn)
+    .or_delete()
+    .get_result(conn)
     .await
   }
 }
@@ -444,7 +466,7 @@ mod tests {
       },
     },
     traits::{Crud, Likeable, Saveable},
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, uplete::UpleteCount},
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -571,9 +593,9 @@ mod tests {
     let like_removed = PostLike::remove(pool, inserted_person.id, inserted_post.id)
       .await
       .unwrap();
-    assert_eq!(1, like_removed);
+    assert_eq!(UpleteCount::only_updated(1), like_removed);
     let saved_removed = PostSaved::unsave(pool, &post_saved_form).await.unwrap();
-    assert_eq!(1, saved_removed);
+    assert_eq!(UpleteCount::only_updated(1), saved_removed);
     let read_removed = PostRead::mark_as_unread(
       pool,
       HashSet::from([inserted_post.id, inserted_post2.id]),
@@ -581,7 +603,7 @@ mod tests {
     )
     .await
     .unwrap();
-    assert_eq!(2, read_removed);
+    assert_eq!(UpleteCount::only_deleted(2), read_removed);
 
     let num_deleted = Post::delete(pool, inserted_post.id).await.unwrap()
       + Post::delete(pool, inserted_post2.id).await.unwrap();
