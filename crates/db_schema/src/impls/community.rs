@@ -24,6 +24,7 @@ use crate::{
     functions::{coalesce, lower},
     get_conn,
     now,
+    uplete::{OrDelete, UpleteCount, UpleteTable},
     DbPool,
   },
   SubscribedType,
@@ -45,6 +46,19 @@ use diesel::{
   Queryable,
 };
 use diesel_async::RunQueryDsl;
+
+impl UpleteTable for community_actions::table {
+  type EmptyRow = (
+    community_actions::community_id,
+    community_actions::person_id,
+    Option<DateTime<Utc>>,
+    Option<bool>,
+    Option<DateTime<Utc>>,
+    Option<DateTime<Utc>>,
+    Option<DateTime<Utc>>,
+    Option<DateTime<Utc>>,
+  );
+}
 
 #[async_trait]
 impl Crud for Community {
@@ -121,14 +135,15 @@ impl Joinable for CommunityModerator {
   async fn leave(
     pool: &mut DbPool<'_>,
     community_moderator_form: &CommunityModeratorForm,
-  ) -> Result<usize, Error> {
+  ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(community_actions::table.find((
       community_moderator_form.person_id,
       community_moderator_form.community_id,
     )))
     .set(community_actions::became_moderator.eq(None::<DateTime<Utc>>))
-    .execute(conn)
+    .or_delete()
+    .get_result(conn)
     .await
   }
 }
@@ -226,25 +241,27 @@ impl CommunityModerator {
   pub async fn delete_for_community(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
-  ) -> Result<usize, Error> {
+  ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
 
     diesel::update(
       community_actions::table.filter(community_actions::community_id.eq(for_community_id)),
     )
     .set(community_actions::became_moderator.eq(None::<DateTime<Utc>>))
-    .execute(conn)
+    .or_delete()
+    .get_result(conn)
     .await
   }
 
   pub async fn leave_all_communities(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
-  ) -> Result<usize, Error> {
+  ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(community_actions::table.filter(community_actions::person_id.eq(for_person_id)))
       .set(community_actions::became_moderator.eq(None::<DateTime<Utc>>))
-      .execute(conn)
+      .or_delete()
+      .get_result(conn)
       .await
   }
 
@@ -305,7 +322,7 @@ impl Bannable for CommunityPersonBan {
   async fn unban(
     pool: &mut DbPool<'_>,
     community_person_ban_form: &CommunityPersonBanForm,
-  ) -> Result<usize, Error> {
+  ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(community_actions::table.find((
       community_person_ban_form.person_id,
@@ -315,7 +332,8 @@ impl Bannable for CommunityPersonBan {
       community_actions::received_ban.eq(None::<DateTime<Utc>>),
       community_actions::ban_expires.eq(None::<DateTime<Utc>>),
     ))
-    .execute(conn)
+    .or_delete()
+    .get_result(conn)
     .await
   }
 }
@@ -413,14 +431,15 @@ impl Followable for CommunityFollower {
     .get_result::<Self>(conn)
     .await
   }
-  async fn unfollow(pool: &mut DbPool<'_>, form: &CommunityFollowerForm) -> Result<usize, Error> {
+  async fn unfollow(pool: &mut DbPool<'_>, form: &CommunityFollowerForm) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(community_actions::table.find((form.person_id, form.community_id)))
       .set((
         community_actions::followed.eq(None::<DateTime<Utc>>),
         community_actions::follow_pending.eq(None::<bool>),
       ))
-      .execute(conn)
+      .or_delete()
+      .get_result(conn)
       .await
   }
 }
@@ -640,9 +659,9 @@ mod tests {
     assert_eq!(expected_community_follower, inserted_community_follower);
     assert_eq!(expected_community_moderator, inserted_community_moderator);
     assert_eq!(expected_community_person_ban, inserted_community_person_ban);
-    assert_eq!(1, ignored_community);
-    assert_eq!(1, left_community);
-    assert_eq!(1, unban);
+    assert_eq!(UpleteCount::only_updated(1), ignored_community);
+    assert_eq!(UpleteCount::only_updated(1), left_community);
+    assert_eq!(UpleteCount::only_deleted(1), unban);
     // assert_eq!(2, loaded_count);
     assert_eq!(1, num_deleted);
   }
