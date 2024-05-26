@@ -3,7 +3,13 @@ use crate::{
   schema::community_actions,
   source::community_block::{CommunityBlock, CommunityBlockForm},
   traits::Blockable,
-  utils::{find_action, get_conn, now, DbPool},
+  utils::{
+    find_action,
+    get_conn,
+    now,
+    uplete::{OrDelete, UpleteCount, UpleteTable},
+    DbPool,
+  },
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -68,14 +74,15 @@ impl Blockable for CommunityBlock {
   async fn unblock(
     pool: &mut DbPool<'_>,
     community_block_form: &Self::Form,
-  ) -> Result<usize, Error> {
+  ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(community_actions::table.find((
       community_block_form.person_id,
       community_block_form.community_id,
     )))
     .set(community_actions::blocked.eq(None::<DateTime<Utc>>))
-    .execute(conn)
+    .or_delete()
+    .get_result(conn)
     .await
   }
 }
