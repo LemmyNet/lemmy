@@ -23,6 +23,10 @@ pub fn get_dump() -> String {
       "--no-subscriptions",
       "--no-table-access-method",
       "--no-tablespaces",
+      "--exclude=table=comment_aggregates_fast",
+      "--exclude=table=community_aggregates_fast",
+      "--exclude=table=post_aggregates_fast",
+      "--exclude=table=user_fast",
     ])
     .stderr(Stdio::inherit())
     .output()
@@ -177,39 +181,6 @@ fn normalize_chunk(chunk: &str) -> Cow<'_, str> {
     });
 
     chunk = Cow::Owned(lines.join("\n"));
-  } else if chunk.starts_with("CREATE VIEW ") || chunk.starts_with("CREATE OR REPLACE VIEW ") {
-    let is_simple_select_statement = chunk.lines().enumerate().all(|(i, line)| {
-      match (i, line.trim_start().chars().next()) {
-        // CREATE
-        (0, Some('C')) => true,
-        // SELECT
-        (1, Some('S')) => true,
-        // FROM
-        (_, Some('F')) if line.ends_with(';') => true,
-        // Column name
-        (_, Some(c)) if c.is_lowercase() => true,
-        _ => false,
-      }
-    });
-
-    if is_simple_select_statement {
-      let mut lines = stripped_lines.collect::<Vec<_>>();
-
-      sort_within_sections(&mut lines, |line| {
-        match line.trim_start().chars().next() {
-          // CREATE
-          Some('C') => 0,
-          // SELECT
-          Some('S') => 1,
-          // FROM
-          Some('F') => 3,
-          // Column name
-          _ => 2,
-        }
-      });
-
-      chunk = Cow::Owned(lines.join("\n"));
-    }
   }
 
   // Replace timestamps with a constant string, so differences in timestamps are ignored
@@ -280,11 +251,14 @@ fn remove_skipped_item_from_beginning(s: &str) -> Option<&str> {
   if let Some(after) = s.strip_prefix("--") {
     Some(after_first_occurence(after, "\n"))
   }
-  // Skip view definition that's replaced later (the first definition selects all nulls)
-  else if let Some(after) = s.strip_prefix("CREATE VIEW ") {
-    let (name, after_name) = after.split_once(' ').unwrap_or_default();
-    Some(after_first_occurence(after_name, "\n\n"))
-      .filter(|after_view| after_view.contains(&format!("\nCREATE OR REPLACE VIEW {name} ")))
+  // Skip old views and fast table triggers
+  else if let Some(after) = s.strip_prefix("CREATE VIEW ")
+    .or_else(|| s.strip_prefix("CREATE OR REPLACE VIEW")
+    .or_else(|| s.strip_prefix("CREATE MATERIALIZED VIEW"))
+    .or_else(|| s.strip_prefix("CREATE FUNCTION ").and_then(after_skipped_trigger_name))
+    .or_else(|| s.strip_prefix("CREATE TRIGGER ").and_then(after_skipped_trigger_name))
+  {
+    Some(after_first_occurence(after, "\n\n"))
   } else {
     None
   }
@@ -292,4 +266,15 @@ fn remove_skipped_item_from_beginning(s: &str) -> Option<&str> {
 
 fn after_first_occurence<'a>(s: &'a str, pat: &str) -> &'a str {
   s.split_once(pat).unwrap_or_default().1
+}
+
+fn after_skipped_trigger_name(s: &str) -> Option<&str> {
+  s.strip_prefix("refresh_comment ")
+    .or_else(|| s.strip_prefix("refresh_comment_like ")
+    .or_else(|| s.strip_prefix("refresh_community ")
+    .or_else(|| s.strip_prefix("refresh_community_follower ")
+    .or_else(|| s.strip_prefix("refresh_community_user_ban ")
+    .or_else(|| s.strip_prefix("refresh_post ")
+    .or_else(|| s.strip_prefix("refresh_post_like ")
+    .or_else(|| s.strip_prefix("refresh_user ")
 }
