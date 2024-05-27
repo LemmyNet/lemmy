@@ -268,63 +268,13 @@ CREATE UNIQUE INDEX idx_user_email_lower ON user_ (lower(email));
 
 CREATE VIEW user_alias_1 AS
 SELECT
-    id,
-    actor_id,
-    admin,
-    avatar,
-    banned,
-    banner,
-    bio,
-    default_listing_type,
-    default_sort_type,
-    deleted,
-    email,
-    lang,
-    last_refreshed_at,
-    local,
-    matrix_user_id,
-    name,
-    password_encrypted,
-    preferred_username,
-    private_key,
-    public_key,
-    published,
-    send_notifications_to_email,
-    show_avatars,
-    show_nsfw,
-    theme,
-    updated
+    *
 FROM
     user_;
 
 CREATE VIEW user_alias_2 AS
 SELECT
-    id,
-    actor_id,
-    admin,
-    avatar,
-    banned,
-    banner,
-    bio,
-    default_listing_type,
-    default_sort_type,
-    deleted,
-    email,
-    lang,
-    last_refreshed_at,
-    local,
-    matrix_user_id,
-    name,
-    password_encrypted,
-    preferred_username,
-    private_key,
-    public_key,
-    published,
-    send_notifications_to_email,
-    show_avatars,
-    show_nsfw,
-    theme,
-    updated
+    *
 FROM
     user_;
 

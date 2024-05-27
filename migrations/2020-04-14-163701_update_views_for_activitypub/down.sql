@@ -61,17 +61,7 @@ DROP VIEW community_aggregates_view CASCADE;
 
 CREATE VIEW community_aggregates_view AS
 SELECT
-    c.id,
-    c.name,
-    c.title,
-    c.description,
-    c.category_id,
-    c.creator_id,
-    c.removed,
-    c.published,
-    c.updated,
-    c.deleted,
-    c.nsfw,
+    c.*,
     (
         SELECT
             name
@@ -288,23 +278,7 @@ DROP VIEW post_aggregates_view;
 -- regen post view
 CREATE VIEW post_aggregates_view AS
 SELECT
-    p.id,
-    p.name,
-    p.url,
-    p.body,
-    p.creator_id,
-    p.community_id,
-    p.removed,
-    p.locked,
-    p.published,
-    p.updated,
-    p.deleted,
-    p.nsfw,
-    p.stickied,
-    p.embed_title,
-    p.embed_description,
-    p.embed_html,
-    p.thumbnail_url,
+    p.*,
     (
         SELECT
             u.banned
@@ -537,16 +511,7 @@ DROP VIEW comment_aggregates_view;
 -- reply and comment view
 CREATE VIEW comment_aggregates_view AS
 SELECT
-    c.id,
-    c.creator_id,
-    c.post_id,
-    c.parent_id,
-    c.content,
-    c.removed,
-    c.read,
-    c.published,
-    c.updated,
-    c.deleted,
+    c.*,
     (
         SELECT
             community_id
