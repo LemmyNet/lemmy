@@ -33,6 +33,7 @@ use ::url::Url;
 use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{self, insert_into},
+  expression::SelectableHelper,
   result::Error,
   DecoratableTarget,
   ExpressionMethods,
@@ -261,24 +262,6 @@ impl Post {
   }
 }
 
-// TODO: replace `as_select_unwrap` definitions with `Default::default()` after next Diesel release
-// which should implement `Default` for `AssumeNotNull`
-impl PostLike {
-  fn as_select_unwrap() -> (
-    post_actions::post_id,
-    post_actions::person_id,
-    dsl::AssumeNotNull<post_actions::like_score>,
-    dsl::AssumeNotNull<post_actions::liked>,
-  ) {
-    (
-      post_actions::post_id,
-      post_actions::person_id,
-      post_actions::like_score.assume_not_null(),
-      post_actions::liked.assume_not_null(),
-    )
-  }
-}
-
 #[async_trait]
 impl Likeable for PostLike {
   type Form = PostLikeForm;
@@ -291,7 +274,7 @@ impl Likeable for PostLike {
       .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(post_like_form)
-      .returning(Self::as_select_unwrap())
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
@@ -312,20 +295,6 @@ impl Likeable for PostLike {
   }
 }
 
-impl PostSaved {
-  fn as_select_unwrap() -> (
-    post_actions::post_id,
-    post_actions::person_id,
-    dsl::AssumeNotNull<post_actions::saved>,
-  ) {
-    (
-      post_actions::post_id,
-      post_actions::person_id,
-      post_actions::saved.assume_not_null(),
-    )
-  }
-}
-
 #[async_trait]
 impl Saveable for PostSaved {
   type Form = PostSavedForm;
@@ -337,7 +306,7 @@ impl Saveable for PostSaved {
       .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(post_saved_form)
-      .returning(Self::as_select_unwrap())
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }

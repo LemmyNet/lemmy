@@ -14,6 +14,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{self, exists, insert_into},
+  expression::SelectableHelper,
   result::Error,
   select,
   ExpressionMethods,
@@ -23,18 +24,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 
 impl InstanceBlock {
-  fn as_select_unwrap() -> (
-    instance_actions::person_id,
-    instance_actions::instance_id,
-    dsl::AssumeNotNull<instance_actions::blocked>,
-  ) {
-    (
-      instance_actions::person_id,
-      instance_actions::instance_id,
-      instance_actions::blocked.assume_not_null(),
-    )
-  }
-
   pub async fn read(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
@@ -64,7 +53,7 @@ impl Blockable for InstanceBlock {
       .on_conflict((instance_actions::person_id, instance_actions::instance_id))
       .do_update()
       .set(instance_block_form)
-      .returning(Self::as_select_unwrap())
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }

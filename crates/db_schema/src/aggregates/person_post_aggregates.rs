@@ -7,6 +7,7 @@ use crate::{
 };
 use diesel::{
   dsl,
+  expression::SelectableHelper,
   insert_into,
   result::Error,
   ExpressionMethods,
@@ -16,20 +17,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 
 impl PersonPostAggregates {
-  fn as_select_unwrap() -> (
-    post_actions::person_id,
-    post_actions::post_id,
-    dsl::AssumeNotNull<post_actions::read_comments_amount>,
-    dsl::AssumeNotNull<post_actions::read_comments>,
-  ) {
-    (
-      post_actions::person_id,
-      post_actions::post_id,
-      post_actions::read_comments_amount.assume_not_null(),
-      post_actions::read_comments.assume_not_null(),
-    )
-  }
-
   pub async fn upsert(
     pool: &mut DbPool<'_>,
     form: &PersonPostAggregatesForm,
@@ -41,7 +28,7 @@ impl PersonPostAggregates {
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
       .set(form)
-      .returning(Self::as_select_unwrap())
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
@@ -52,7 +39,7 @@ impl PersonPostAggregates {
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     find_action(post_actions::read_comments, (person_id_, post_id_))
-      .select(Self::as_select_unwrap())
+      .select(Self::as_select())
       .first(conn)
       .await
       .optional()

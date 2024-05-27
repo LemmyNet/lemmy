@@ -6,6 +6,8 @@ use crate::{
   source::placeholder_apub_url,
 };
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use diesel::{dsl, expression_methods::ExpressionMethods};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -114,7 +116,10 @@ pub struct PersonUpdateForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
 #[cfg_attr(feature = "full", diesel(table_name = person_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(follower_id, person_id)))]
@@ -122,7 +127,11 @@ pub struct PersonUpdateForm {
 pub struct PersonFollower {
   pub person_id: PersonId,
   pub follower_id: PersonId,
+  #[diesel(select_expression = person_actions::followed.assume_not_null())]
+  #[diesel(select_expression_type = dsl::AssumeNotNull<person_actions::followed>)]
   pub published: DateTime<Utc>,
+  #[diesel(select_expression = person_actions::follow_pending.assume_not_null())]
+  #[diesel(select_expression_type = dsl::AssumeNotNull<person_actions::follow_pending>)]
   pub pending: bool,
 }
 

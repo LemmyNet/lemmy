@@ -7,6 +7,8 @@ use crate::{
   CommunityVisibility,
 };
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use diesel::{dsl, expression_methods::NullableExplessionMethods};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -134,7 +136,10 @@ pub struct CommunityUpdateForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::community::Community))
@@ -145,6 +150,8 @@ pub struct CommunityUpdateForm {
 pub struct CommunityModerator {
   pub community_id: CommunityId,
   pub person_id: PersonId,
+  #[diesel(select_expression = community_actions::became_moderator.assume_not_null())]
+  #[diesel(select_expression_type = dsl::AssumeNotNull<community_actions::became_moderator>)]
   pub published: DateTime<Utc>,
 }
 
@@ -157,7 +164,10 @@ pub struct CommunityModeratorForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::community::Community))
@@ -168,7 +178,11 @@ pub struct CommunityModeratorForm {
 pub struct CommunityPersonBan {
   pub community_id: CommunityId,
   pub person_id: PersonId,
+  #[diesel(select_expression = community_actions::received_ban.assume_not_null())]
+  #[diesel(select_expression_type = dsl::AssumeNotNull<community_actions::received_ban>)]
   pub published: DateTime<Utc>,
+  #[diesel(select_expression = community_actions::ban_expires.assume_not_null())]
+  #[diesel(select_expression_type = dsl::AssumeNotNull<community_actions::ban_expires>)]
   pub expires: Option<DateTime<Utc>>,
 }
 
@@ -183,7 +197,10 @@ pub struct CommunityPersonBanForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(
   feature = "full",
   diesel(belongs_to(crate::source::community::Community))
@@ -194,7 +211,11 @@ pub struct CommunityPersonBanForm {
 pub struct CommunityFollower {
   pub community_id: CommunityId,
   pub person_id: PersonId,
+  #[diesel(select_expression = community_actions::followed.assume_not_null())]
+  #[diesel(select_expression_type = dsl::AssumeNotNull<community_actions::followed>)]
   pub published: DateTime<Utc>,
+  #[diesel(select_expression = community_actions::follow_pending.assume_not_null())]
+  #[diesel(select_expression_type = dsl::AssumeNotNull<community_actions::follow_pending>)]
   pub pending: bool,
 }
 

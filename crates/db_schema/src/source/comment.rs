@@ -5,6 +5,8 @@ use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
 use crate::schema::{comment, comment_actions};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
+use diesel::{dsl, expression_methods::NullableExpressionMethods}
+#[cfg(feature = "full")]
 use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -88,7 +90,10 @@ pub struct CommentUpdateForm {
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
@@ -96,7 +101,11 @@ pub struct CommentUpdateForm {
 pub struct CommentLike {
   pub person_id: PersonId,
   pub comment_id: CommentId,
+  #[diesel(select_expression = comment_actions::like_score.assume_not_null())]
+  #[diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::like_score>)]
   pub score: i16,
+  #[diesel(select_expression = comment_actions::liked.assume_not_null())]
+  #[diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::liked>)]
   pub published: DateTime<Utc>,
 }
 
@@ -111,7 +120,10 @@ pub struct CommentLikeForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
@@ -119,6 +131,8 @@ pub struct CommentLikeForm {
 pub struct CommentSaved {
   pub comment_id: CommentId,
   pub person_id: PersonId,
+  #[diesel(select_expression = comment_actions::saved.assume_not_null())]
+  #[diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::saved>)]
   pub published: DateTime<Utc>,
 }
 

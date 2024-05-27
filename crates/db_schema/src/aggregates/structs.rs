@@ -10,6 +10,8 @@ use crate::schema::{
 };
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
+use diesel::{dsl, expression_methods::NullableExpressionMethods};
+#[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
@@ -147,7 +149,10 @@ pub struct PostAggregates {
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Associations, Identifiable)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
@@ -159,7 +164,11 @@ pub struct PersonPostAggregates {
   /// The number of comments they've read on that post.
   ///
   /// This is updated to the current post comment count every time they view a post.
+  #[diesel(select_expression = post_actions::read_comments_amount.assume_not_null())]
+  #[diesel(select_expression_type = dsl::AssumeNotNull<post_actions::read_comments_amount>)]
   pub read_comments: i64,
+  #[diesel(select_expression = post_actions::read_comments.assume_not_null())]
+  #[diesel(select_expression_type = dsl::AssumeNotNull<post_actions::read_comments>)]
   pub published: DateTime<Utc>,
 }
 

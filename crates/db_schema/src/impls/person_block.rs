@@ -15,6 +15,7 @@ use chrono::{DateTime, Utc};
 use diesel::{
   dsl,
   dsl::{exists, insert_into},
+  expression::SelectableHelper,
   result::Error,
   select,
   ExpressionMethods,
@@ -24,18 +25,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 
 impl PersonBlock {
-  fn as_select_unwrap() -> (
-    person_actions::person_id,
-    person_actions::target_id,
-    dsl::AssumeNotNull<person_actions::blocked>,
-  ) {
-    (
-      person_actions::person_id,
-      person_actions::target_id,
-      person_actions::blocked.assume_not_null(),
-    )
-  }
-
   pub async fn read(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
@@ -68,7 +57,7 @@ impl Blockable for PersonBlock {
       .on_conflict((person_actions::person_id, person_actions::target_id))
       .do_update()
       .set(person_block_form)
-      .returning(Self::as_select_unwrap())
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }

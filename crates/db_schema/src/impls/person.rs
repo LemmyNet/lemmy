@@ -23,6 +23,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{self, insert_into},
+  expression::SelectableHelper,
   result::Error,
   CombineDsl,
   ExpressionMethods,
@@ -200,22 +201,6 @@ impl ApubActor for Person {
   }
 }
 
-impl PersonFollower {
-  fn as_select_unwrap() -> (
-    person_actions::target_id,
-    person_actions::person_id,
-    dsl::AssumeNotNull<person_actions::followed>,
-    dsl::AssumeNotNull<person_actions::follow_pending>,
-  ) {
-    (
-      person_actions::target_id,
-      person_actions::person_id,
-      person_actions::followed.assume_not_null(),
-      person_actions::follow_pending.assume_not_null(),
-    )
-  }
-}
-
 #[async_trait]
 impl Followable for PersonFollower {
   type Form = PersonFollowerForm;
@@ -227,7 +212,7 @@ impl Followable for PersonFollower {
       .on_conflict((person_actions::person_id, person_actions::target_id))
       .do_update()
       .set(form)
-      .returning(Self::as_select_unwrap())
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }

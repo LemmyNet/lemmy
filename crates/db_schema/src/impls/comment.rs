@@ -13,6 +13,7 @@ use crate::{
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
+    expression::SelectableHelper,
     functions::coalesce,
     get_conn,
     naive_now,
@@ -149,22 +150,6 @@ impl Crud for Comment {
   }
 }
 
-impl CommentLike {
-  fn as_select_unwrap() -> (
-    comment_actions::person_id,
-    comment_actions::comment_id,
-    dsl::AssumeNotNull<comment_actions::like_score>,
-    dsl::AssumeNotNull<comment_actions::liked>,
-  ) {
-    (
-      comment_actions::person_id,
-      comment_actions::comment_id,
-      comment_actions::like_score.assume_not_null(),
-      comment_actions::liked.assume_not_null(),
-    )
-  }
-}
-
 #[async_trait]
 impl Likeable for CommentLike {
   type Form = CommentLikeForm;
@@ -180,7 +165,7 @@ impl Likeable for CommentLike {
       .on_conflict((comment_actions::comment_id, comment_actions::person_id))
       .do_update()
       .set(comment_like_form)
-      .returning(Self::as_select_unwrap())
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
@@ -195,20 +180,6 @@ impl Likeable for CommentLike {
       .set_null(comment_actions::liked)
       .get_result(conn)
       .await
-  }
-}
-
-impl CommentSaved {
-  fn as_select_unwrap() -> (
-    comment_actions::comment_id,
-    comment_actions::person_id,
-    dsl::AssumeNotNull<comment_actions::saved>,
-  ) {
-    (
-      comment_actions::comment_id,
-      comment_actions::person_id,
-      comment_actions::saved.assume_not_null(),
-    )
   }
 }
 
@@ -229,7 +200,7 @@ impl Saveable for CommentSaved {
       .on_conflict((comment_actions::comment_id, comment_actions::person_id))
       .do_update()
       .set(comment_saved_form)
-      .returning(Self::as_select_unwrap())
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }

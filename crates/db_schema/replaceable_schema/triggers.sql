@@ -533,7 +533,7 @@ CREATE TRIGGER delete_comments
     FOR EACH ROW
     EXECUTE FUNCTION r.delete_comments_before_post ();
 
-CREATE FUNCTION r.delete_community_actions_before_person ()
+CREATE FUNCTION r.delete_follow_before_person ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
@@ -544,10 +544,10 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER delete_community_actions
+CREATE TRIGGER delete_follow
     BEFORE DELETE ON person
     FOR EACH ROW
-    EXECUTE FUNCTION r.delete_community_actions_before_person ();
+    EXECUTE FUNCTION r.delete_follow_before_person ();
 
 -- Triggers that change values before insert or update
 CREATE FUNCTION r.comment_change_values ()

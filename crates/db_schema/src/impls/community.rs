@@ -20,6 +20,7 @@ use crate::{
   traits::{ApubActor, Bannable, Crud, Followable, Joinable},
   utils::{
     action_query,
+    expression::SelectableHelper,
     find_action,
     functions::{coalesce, lower},
     get_conn,
@@ -93,20 +94,6 @@ impl Crud for Community {
   }
 }
 
-impl CommunityModerator {
-  fn as_select_unwrap() -> (
-    community_actions::community_id,
-    community_actions::person_id,
-    dsl::AssumeNotNull<community_actions::became_moderator>,
-  ) {
-    (
-      community_actions::community_id,
-      community_actions::person_id,
-      community_actions::became_moderator.assume_not_null(),
-    )
-  }
-}
-
 #[async_trait]
 impl Joinable for CommunityModerator {
   type Form = CommunityModeratorForm;
@@ -127,7 +114,7 @@ impl Joinable for CommunityModerator {
       ))
       .do_update()
       .set(community_moderator_form)
-      .returning(Self::as_select_unwrap())
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
@@ -278,22 +265,6 @@ impl CommunityModerator {
   }
 }
 
-impl CommunityPersonBan {
-  fn as_select_unwrap() -> (
-    community_actions::community_id,
-    community_actions::person_id,
-    dsl::AssumeNotNull<community_actions::received_ban>,
-    community_actions::ban_expires,
-  ) {
-    (
-      community_actions::community_id,
-      community_actions::person_id,
-      community_actions::received_ban.assume_not_null(),
-      community_actions::ban_expires,
-    )
-  }
-}
-
 #[async_trait]
 impl Bannable for CommunityPersonBan {
   type Form = CommunityPersonBanForm;
@@ -314,7 +285,7 @@ impl Bannable for CommunityPersonBan {
       ))
       .do_update()
       .set(community_person_ban_form)
-      .returning(Self::as_select_unwrap())
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
@@ -339,20 +310,6 @@ impl Bannable for CommunityPersonBan {
 }
 
 impl CommunityFollower {
-  fn as_select_unwrap() -> (
-    community_actions::community_id,
-    community_actions::person_id,
-    dsl::AssumeNotNull<community_actions::followed>,
-    dsl::AssumeNotNull<community_actions::follow_pending>,
-  ) {
-    (
-      community_actions::community_id,
-      community_actions::person_id,
-      community_actions::followed.assume_not_null(),
-      community_actions::follow_pending.assume_not_null(),
-    )
-  }
-
   pub fn to_subscribed_type(follower: &Option<Self>) -> SubscribedType {
     match follower {
       Some(f) => {
@@ -412,7 +369,7 @@ impl Followable for CommunityFollower {
       ))
       .do_update()
       .set(form)
-      .returning(Self::as_select_unwrap())
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
@@ -427,7 +384,7 @@ impl Followable for CommunityFollower {
       (person_id, community_id),
     ))
     .set(community_actions::follow_pending.eq(Some(false)))
-    .returning(Self::as_select_unwrap())
+    .returning(Self::as_select())
     .get_result::<Self>(conn)
     .await
   }
