@@ -23,10 +23,10 @@ pub fn get_dump() -> String {
       "--no-subscriptions",
       "--no-table-access-method",
       "--no-tablespaces",
-      "--exclude=table=comment_aggregates_fast",
-      "--exclude=table=community_aggregates_fast",
-      "--exclude=table=post_aggregates_fast",
-      "--exclude=table=user_fast",
+      "--exclude-table=comment_aggregates_fast",
+      "--exclude-table=community_aggregates_fast",
+      "--exclude-table=post_aggregates_fast",
+      "--exclude-table=user_fast",
     ])
     .stderr(Stdio::inherit())
     .output()
@@ -253,10 +253,10 @@ fn remove_skipped_item_from_beginning(s: &str) -> Option<&str> {
   }
   // Skip old views and fast table triggers
   else if let Some(after) = s.strip_prefix("CREATE VIEW ")
-    .or_else(|| s.strip_prefix("CREATE OR REPLACE VIEW")
-    .or_else(|| s.strip_prefix("CREATE MATERIALIZED VIEW"))
-    .or_else(|| s.strip_prefix("CREATE FUNCTION ").and_then(after_skipped_trigger_name))
-    .or_else(|| s.strip_prefix("CREATE TRIGGER ").and_then(after_skipped_trigger_name))
+    .or_else(|| s.strip_prefix("CREATE OR REPLACE VIEW "))
+    .or_else(|| s.strip_prefix("CREATE MATERIALIZED VIEW "))
+    .or_else(|| s.strip_prefix("CREATE FUNCTION public.").and_then(after_skipped_trigger_name)/*.and_then(|a| a.strip_prefix("()"))*/)
+    .or_else(|| s.strip_prefix("CREATE TRIGGER ").and_then(after_skipped_trigger_name)/*.and_then(|a| a.strip_prefix(' '))*/)
   {
     Some(after_first_occurence(after, "\n\n"))
   } else {
@@ -269,12 +269,13 @@ fn after_first_occurence<'a>(s: &'a str, pat: &str) -> &'a str {
 }
 
 fn after_skipped_trigger_name(s: &str) -> Option<&str> {
-  s.strip_prefix("refresh_comment ")
-    .or_else(|| s.strip_prefix("refresh_comment_like ")
-    .or_else(|| s.strip_prefix("refresh_community ")
-    .or_else(|| s.strip_prefix("refresh_community_follower ")
-    .or_else(|| s.strip_prefix("refresh_community_user_ban ")
-    .or_else(|| s.strip_prefix("refresh_post ")
-    .or_else(|| s.strip_prefix("refresh_post_like ")
-    .or_else(|| s.strip_prefix("refresh_user ")
+  s.strip_prefix("refresh_comment")
+    .or_else(|| s.strip_prefix("refresh_comment_like"))
+    .or_else(|| s.strip_prefix("refresh_community"))
+    .or_else(|| s.strip_prefix("refresh_community_follower"))
+    .or_else(|| s.strip_prefix("refresh_community_user_ban"))
+    .or_else(|| s.strip_prefix("refresh_post"))
+    .or_else(|| s.strip_prefix("refresh_post_like"))
+    .or_else(|| s.strip_prefix("refresh_private_message"))
+    .or_else(|| s.strip_prefix("refresh_user"))
 }

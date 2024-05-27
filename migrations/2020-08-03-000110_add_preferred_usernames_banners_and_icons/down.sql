@@ -1,47 +1,47 @@
 -- Drops first
-DROP VIEW site_view;
+DROP VIEW IF EXISTS site_view;
 
-DROP TABLE user_fast;
+DROP TABLE IF EXISTS user_fast;
 
-DROP VIEW user_view;
+DROP VIEW IF EXISTS user_view;
 
-DROP VIEW post_fast_view;
+DROP VIEW IF EXISTS post_fast_view;
 
-DROP TABLE post_aggregates_fast;
+DROP TABLE IF EXISTS post_aggregates_fast;
 
-DROP VIEW post_view;
+DROP VIEW IF EXISTS post_view;
 
-DROP VIEW post_aggregates_view;
+DROP VIEW IF EXISTS post_aggregates_view;
 
-DROP VIEW community_moderator_view;
+DROP VIEW IF EXISTS community_moderator_view;
 
-DROP VIEW community_follower_view;
+DROP VIEW IF EXISTS community_follower_view;
 
-DROP VIEW community_user_ban_view;
+DROP VIEW IF EXISTS community_user_ban_view;
 
-DROP VIEW community_view;
+DROP VIEW IF EXISTS community_view;
 
-DROP VIEW community_aggregates_view;
+DROP VIEW IF EXISTS community_aggregates_view;
 
-DROP VIEW community_fast_view;
+DROP VIEW IF EXISTS community_fast_view;
 
-DROP TABLE community_aggregates_fast;
+DROP TABLE IF EXISTS community_aggregates_fast;
 
-DROP VIEW private_message_view;
+DROP VIEW IF EXISTS private_message_view;
 
-DROP VIEW user_mention_view;
+DROP VIEW IF EXISTS user_mention_view;
 
-DROP VIEW reply_fast_view;
+DROP VIEW IF EXISTS reply_fast_view;
 
-DROP VIEW comment_fast_view;
+DROP VIEW IF EXISTS comment_fast_view;
 
-DROP VIEW comment_view;
+DROP VIEW IF EXISTS comment_view;
 
-DROP VIEW user_mention_fast_view;
+DROP VIEW IF EXISTS user_mention_fast_view;
 
-DROP TABLE comment_aggregates_fast;
+DROP TABLE IF EXISTS comment_aggregates_fast;
 
-DROP VIEW comment_aggregates_view;
+DROP VIEW IF EXISTS comment_aggregates_view;
 
 ALTER TABLE site
     DROP COLUMN icon,

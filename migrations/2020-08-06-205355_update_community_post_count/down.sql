@@ -1,11 +1,11 @@
 -- Drop first
-DROP VIEW community_view;
+DROP VIEW IF EXISTS community_view;
 
-DROP VIEW community_aggregates_view;
+DROP VIEW IF EXISTS community_aggregates_view;
 
-DROP VIEW community_fast_view;
+DROP VIEW IF EXISTS community_fast_view;
 
-DROP TABLE community_aggregates_fast;
+DROP TABLE IF EXISTS community_aggregates_fast;
 
 CREATE VIEW community_aggregates_view AS
 SELECT
