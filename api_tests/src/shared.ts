@@ -370,7 +370,7 @@ export async function getReplies(
 ): Promise<GetRepliesResponse> {
   let form: GetReplies = {
     sort: "New",
-    unread_only: unread_only,
+    unread_only,
   };
   return api.getReplies(form);
 }

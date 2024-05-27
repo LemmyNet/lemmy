@@ -269,7 +269,7 @@ impl CommentReplyView {
 
     // These filters need to be kept in sync with the filters in queries().list()
     if !local_user.show_bot_accounts {
-      query = query.filter(person::bot_account.eq(false));
+      query = query.filter(not(person::bot_account));
     }
 
     query
