@@ -2,10 +2,9 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPost, GetPostResponse},
-  utils::{check_private_instance, is_mod_or_admin_opt, mark_post_as_read},
+  utils::{check_private_instance, is_mod_or_admin_opt, mark_post_as_read, update_read_comments},
 };
 use lemmy_db_schema::{
-  aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   source::{comment::Comment, post::Post},
   traits::Crud,
 };
@@ -14,7 +13,7 @@ use lemmy_db_views::{
   structs::{LocalUserView, PostView, SiteView},
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn get_post(
@@ -60,10 +59,17 @@ pub async fn get_post(
     .await?
     .ok_or(LemmyErrorType::CouldntFindPost)?;
 
-  // Mark the post as read
   let post_id = post_view.post.id;
   if let Some(person_id) = person_id {
     mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
+
+    update_read_comments(
+      person_id,
+      post_id,
+      post_view.counts.comments,
+      &mut context.pool(),
+    )
+    .await?;
   }
 
   // Necessary for the sidebar subscribed
@@ -75,20 +81,6 @@ pub async fn get_post(
   )
   .await?
   .ok_or(LemmyErrorType::CouldntFindCommunity)?;
-
-  // Insert into PersonPostAggregates
-  // to update the read_comments count
-  if let Some(person_id) = person_id {
-    let read_comments = post_view.counts.comments;
-    let person_post_agg_form = PersonPostAggregatesForm {
-      person_id,
-      post_id,
-      read_comments,
-    };
-    PersonPostAggregates::upsert(&mut context.pool(), &person_post_agg_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntFindPost)?;
-  }
 
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 

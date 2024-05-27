@@ -22,7 +22,7 @@ use lemmy_db_schema::{
     instance::{Instance, InstanceForm},
     site::Site,
   },
-  utils::{naive_now, DbPool},
+  utils::naive_now,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use once_cell::sync::Lazy;
@@ -75,7 +75,7 @@ pub(crate) struct InstanceWorker {
   followed_communities: HashMap<CommunityId, HashSet<Url>>,
   stop: CancellationToken,
   context: Data<LemmyContext>,
-  stats_sender: UnboundedSender<(String, FederationQueueState)>,
+  stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
   last_full_communities_fetch: DateTime<Utc>,
   last_incremental_communities_fetch: DateTime<Utc>,
   state: FederationQueueState,
@@ -86,12 +86,11 @@ impl InstanceWorker {
   pub(crate) async fn init_and_loop(
     instance: Instance,
     context: Data<LemmyContext>,
-    pool: &mut DbPool<'_>, /* in theory there's a ref to the pool in context, but i couldn't get
-                            * that to work wrt lifetimes */
     stop: CancellationToken,
-    stats_sender: UnboundedSender<(String, FederationQueueState)>,
+    stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
   ) -> Result<(), anyhow::Error> {
-    let state = FederationQueueState::load(pool, instance.id).await?;
+    let mut pool = context.pool();
+    let state = FederationQueueState::load(&mut pool, instance.id).await?;
     let mut worker = InstanceWorker {
       instance,
       site_loaded: false,
@@ -105,32 +104,29 @@ impl InstanceWorker {
       state,
       last_state_insert: Utc.timestamp_nanos(0),
     };
-    worker.loop_until_stopped(pool).await
+    worker.loop_until_stopped().await
   }
   /// loop fetch new activities from db and send them to the inboxes of the given instances
   /// this worker only returns if (a) there is an internal error or (b) the cancellation token is
   /// cancelled (graceful exit)
-  pub(crate) async fn loop_until_stopped(
-    &mut self,
-    pool: &mut DbPool<'_>,
-  ) -> Result<(), anyhow::Error> {
+  pub(crate) async fn loop_until_stopped(&mut self) -> Result<(), anyhow::Error> {
     debug!("Starting federation worker for {}", self.instance.domain);
     let save_state_every = chrono::Duration::from_std(SAVE_STATE_EVERY_TIME).expect("not negative");
 
-    self.update_communities(pool).await?;
+    self.update_communities().await?;
     self.initial_fail_sleep().await?;
     while !self.stop.is_cancelled() {
-      self.loop_batch(pool).await?;
+      self.loop_batch().await?;
       if self.stop.is_cancelled() {
         break;
       }
       if (Utc::now() - self.last_state_insert) > save_state_every {
-        self.save_and_send_state(pool).await?;
+        self.save_and_send_state().await?;
       }
-      self.update_communities(pool).await?;
+      self.update_communities().await?;
     }
     // final update of state in db
-    self.save_and_send_state(pool).await?;
+    self.save_and_send_state().await?;
     Ok(())
   }
 
@@ -155,8 +151,8 @@ impl InstanceWorker {
     Ok(())
   }
   /// send out a batch of CHECK_SAVE_STATE_EVERY_IT activities
-  async fn loop_batch(&mut self, pool: &mut DbPool<'_>) -> Result<()> {
-    let latest_id = get_latest_activity_id(pool).await?;
+  async fn loop_batch(&mut self) -> Result<()> {
+    let latest_id = get_latest_activity_id(&mut self.context.pool()).await?;
     let mut id = if let Some(id) = self.state.last_successful_id {
       id
     } else {
@@ -166,7 +162,7 @@ impl InstanceWorker {
       // skip all past activities:
       self.state.last_successful_id = Some(latest_id);
       // save here to ensure it's not read as 0 again later if no activities have happened
-      self.save_and_send_state(pool).await?;
+      self.save_and_send_state().await?;
       latest_id
     };
     if id >= latest_id {
@@ -184,7 +180,7 @@ impl InstanceWorker {
     {
       id = ActivityId(id.0 + 1);
       processed_activities += 1;
-      let Some(ele) = get_activity_cached(pool, id)
+      let Some(ele) = get_activity_cached(&mut self.context.pool(), id)
         .await
         .context("failed reading activity from db")?
       else {
@@ -192,7 +188,7 @@ impl InstanceWorker {
         self.state.last_successful_id = Some(id);
         continue;
       };
-      if let Err(e) = self.send_retry_loop(pool, &ele.0, &ele.1).await {
+      if let Err(e) = self.send_retry_loop(&ele.0, &ele.1).await {
         warn!(
           "sending {} errored internally, skipping activity: {:?}",
           ele.0.ap_id, e
@@ -213,12 +209,11 @@ impl InstanceWorker {
   // and will return an error if an internal error occurred (send errors cause an infinite loop)
   async fn send_retry_loop(
     &mut self,
-    pool: &mut DbPool<'_>,
     activity: &SentActivity,
     object: &SharedInboxActivities,
   ) -> Result<()> {
     let inbox_urls = self
-      .get_inbox_urls(pool, activity)
+      .get_inbox_urls(activity)
       .await
       .context("failed figuring out inbox urls")?;
     if inbox_urls.is_empty() {
@@ -230,7 +225,7 @@ impl InstanceWorker {
     let Some(actor_apub_id) = &activity.actor_apub_id else {
       return Ok(()); // activity was inserted before persistent queue was activated
     };
-    let actor = get_actor_cached(pool, activity.actor_type, actor_apub_id)
+    let actor = get_actor_cached(&mut self.context.pool(), activity.actor_type, actor_apub_id)
       .await
       .context("failed getting actor instance (was it marked deleted / removed?)")?;
 
@@ -249,7 +244,7 @@ impl InstanceWorker {
           "{}: retrying {:?} attempt {} with delay {retry_delay:.2?}. ({e})",
           self.instance.domain, activity.id, self.state.fail_count
         );
-        self.save_and_send_state(pool).await?;
+        self.save_and_send_state().await?;
         tokio::select! {
           () = sleep(retry_delay) => {},
           () = self.stop.cancelled() => {
@@ -268,7 +263,7 @@ impl InstanceWorker {
           .domain(self.instance.domain.clone())
           .updated(Some(naive_now()))
           .build();
-        Instance::update(pool, self.instance.id, form).await?;
+        Instance::update(&mut self.context.pool(), self.instance.id, form).await?;
       }
     }
     Ok(())
@@ -278,16 +273,12 @@ impl InstanceWorker {
   /// most often this will return 0 values (if instance doesn't care about the activity)
   /// or 1 value (the shared inbox)
   /// > 1 values only happens for non-lemmy software
-  async fn get_inbox_urls(
-    &mut self,
-    pool: &mut DbPool<'_>,
-    activity: &SentActivity,
-  ) -> Result<HashSet<Url>> {
+  async fn get_inbox_urls(&mut self, activity: &SentActivity) -> Result<HashSet<Url>> {
     let mut inbox_urls: HashSet<Url> = HashSet::new();
 
     if activity.send_all_instances {
       if !self.site_loaded {
-        self.site = Site::read_from_instance_id(pool, self.instance.id).await?;
+        self.site = Site::read_from_instance_id(&mut self.context.pool(), self.instance.id).await?;
         self.site_loaded = true;
       }
       if let Some(site) = &self.site {
@@ -312,22 +303,18 @@ impl InstanceWorker {
     Ok(inbox_urls)
   }
 
-  async fn update_communities(&mut self, pool: &mut DbPool<'_>) -> Result<()> {
+  async fn update_communities(&mut self) -> Result<()> {
     if (Utc::now() - self.last_full_communities_fetch) > *FOLLOW_REMOVALS_RECHECK_DELAY {
       // process removals every hour
       (self.followed_communities, self.last_full_communities_fetch) = self
-        .get_communities(pool, self.instance.id, Utc.timestamp_nanos(0))
+        .get_communities(self.instance.id, Utc.timestamp_nanos(0))
         .await?;
       self.last_incremental_communities_fetch = self.last_full_communities_fetch;
     }
     if (Utc::now() - self.last_incremental_communities_fetch) > *FOLLOW_ADDITIONS_RECHECK_DELAY {
       // process additions every minute
       let (news, time) = self
-        .get_communities(
-          pool,
-          self.instance.id,
-          self.last_incremental_communities_fetch,
-        )
+        .get_communities(self.instance.id, self.last_incremental_communities_fetch)
         .await?;
       self.followed_communities.extend(news);
       self.last_incremental_communities_fetch = time;
@@ -339,7 +326,6 @@ impl InstanceWorker {
   /// them
   async fn get_communities(
     &mut self,
-    pool: &mut DbPool<'_>,
     instance_id: InstanceId,
     last_fetch: DateTime<Utc>,
   ) -> Result<(HashMap<CommunityId, HashSet<Url>>, DateTime<Utc>)> {
@@ -347,22 +333,26 @@ impl InstanceWorker {
       Utc::now() - chrono::TimeDelta::try_seconds(10).expect("TimeDelta out of bounds"); // update to time before fetch to ensure overlap. subtract 10s to ensure overlap even if
                                                                                          // published date is not exact
     Ok((
-      CommunityFollowerView::get_instance_followed_community_inboxes(pool, instance_id, last_fetch)
-        .await?
-        .into_iter()
-        .fold(HashMap::new(), |mut map, (c, u)| {
-          map.entry(c).or_default().insert(u.into());
-          map
-        }),
+      CommunityFollowerView::get_instance_followed_community_inboxes(
+        &mut self.context.pool(),
+        instance_id,
+        last_fetch,
+      )
+      .await?
+      .into_iter()
+      .fold(HashMap::new(), |mut map, (c, u)| {
+        map.entry(c).or_default().insert(u.into());
+        map
+      }),
       new_last_fetch,
     ))
   }
-  async fn save_and_send_state(&mut self, pool: &mut DbPool<'_>) -> Result<()> {
+  async fn save_and_send_state(&mut self) -> Result<()> {
     self.last_state_insert = Utc::now();
-    FederationQueueState::upsert(pool, &self.state).await?;
+    FederationQueueState::upsert(&mut self.context.pool(), &self.state).await?;
     self
       .stats_sender
-      .send((self.instance.domain.clone(), self.state.clone()))?;
+      .send((self.instance.id, self.state.clone()))?;
     Ok(())
   }
 }
