@@ -17,7 +17,7 @@ use crate::{
     get_conn,
     naive_now,
     now,
-    uplete::{OrDelete, UpleteCount, UpleteTable},
+    uplete::{uplete, UpleteCount},
     DbPool,
     DELETED_REPLACEMENT_TEXT,
   },
@@ -33,16 +33,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
 use url::Url;
-
-impl UpleteTable for comment_actions::table {
-  type EmptyRow = (
-    comment_actions::person_id,
-    comment_actions::comment_id,
-    Option<i16>,
-    Option<DateTime<Utc>>,
-    Option<DateTime<Utc>>,
-  );
-}
 
 impl Comment {
   pub async fn permadelete_for_creator(
@@ -200,12 +190,9 @@ impl Likeable for CommentLike {
     comment_id: CommentId,
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(comment_actions::table.find((person_id, comment_id)))
-      .set((
-        comment_actions::like_score.eq(None::<i16>),
-        comment_actions::liked.eq(None::<DateTime<Utc>>),
-      ))
-      .or_delete()
+    uplete(comment_actions::table.find((person_id, comment_id)))
+      .set_null(comment_actions::like_score)
+      .set_null(comment_actions::liked)
       .get_result(conn)
       .await
   }
@@ -251,11 +238,10 @@ impl Saveable for CommentSaved {
     comment_saved_form: &CommentSavedForm,
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(
+    uplete(
       comment_actions::table.find((comment_saved_form.person_id, comment_saved_form.comment_id)),
     )
-    .set(comment_actions::saved.eq(None::<DateTime<Utc>>))
-    .or_delete()
+    .set_null(comment_actions::saved)
     .get_result(conn)
     .await
   }
