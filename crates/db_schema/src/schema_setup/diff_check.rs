@@ -252,11 +252,18 @@ fn remove_skipped_item_from_beginning(s: &str) -> Option<&str> {
     Some(after_first_occurence(after, "\n"))
   }
   // Skip old views and fast table triggers
-  else if let Some(after) = s.strip_prefix("CREATE VIEW ")
+  else if let Some(after) = s
+    .strip_prefix("CREATE VIEW ")
     .or_else(|| s.strip_prefix("CREATE OR REPLACE VIEW "))
     .or_else(|| s.strip_prefix("CREATE MATERIALIZED VIEW "))
-    .or_else(|| s.strip_prefix("CREATE FUNCTION public.").and_then(after_skipped_trigger_name)/*.and_then(|a| a.strip_prefix("()"))*/)
-    .or_else(|| s.strip_prefix("CREATE TRIGGER ").and_then(after_skipped_trigger_name)/*.and_then(|a| a.strip_prefix(' '))*/)
+    .or_else(|| {
+      s.strip_prefix("CREATE FUNCTION public.")
+        .and_then(after_skipped_trigger_name)
+    } /* .and_then(|a| a.strip_prefix("()")) */)
+    .or_else(|| {
+      s.strip_prefix("CREATE TRIGGER ")
+        .and_then(after_skipped_trigger_name)
+    } /* .and_then(|a| a.strip_prefix(' ')) */)
   {
     Some(after_first_occurence(after, "\n\n"))
   } else {

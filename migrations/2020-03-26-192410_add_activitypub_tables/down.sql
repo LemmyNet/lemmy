@@ -143,3 +143,4 @@ SELECT
     NULL AS subscribed
 FROM
     all_community ac;
+
