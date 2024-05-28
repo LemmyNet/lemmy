@@ -4,9 +4,9 @@ use diesel::{
   expression::{AsExpression, TypedExpressionType},
   pg::Pg,
   query_builder::{
-    methods::{SelectDsl, FilterDsl},
-    AstPass,
+    methods::{FilterDsl, SelectDsl},
     AsQuery,
+    AstPass,
     Query,
     QueryFragment,
     UpdateStatement,
@@ -55,19 +55,27 @@ where
   fn as_query(self) -> Self::Query {
     let primary_key = Q::Table::default().primary_key();
     let primary_key_type_ids = [primary_key.0.type_id(), primary_key.1.type_id()];
-    let other_columns = Q::Table::all_columns().into_array().into_iter().filter(|c: DynColumn| {
-      primary_key_type_ids
-        .iter()
-        .chain(self.set_null_columns.iter().map(|c| c.type_id()))
-        .all(|other| other != c.type_id());
-    }).collect::<Vec<_>>();
+    let other_columns = Q::Table::all_columns()
+      .into_array()
+      .into_iter()
+      .filter(|c: DynColumn| {
+        primary_key_type_ids
+          .iter()
+          .chain(self.set_null_columns.iter().map(|c| c.type_id()))
+          .all(|other| other != c.type_id())
+      })
+      .collect::<Vec<_>>();
     let subquery = self.query.select(primary_key.clone());
     UpleteQuery {
-      // Updated rows and deleted rows must not overlap, so updating all rows and using the returned new rows to determine which ones to delete is not an option.
+      // Updated rows and deleted rows must not overlap, so updating all rows and using the returned
+      // new rows to determine which ones to delete is not an option.
       //
       // https://www.postgresql.org/docs/16/queries-with.html#QUERIES-WITH-MODIFYING
       //
-      // "Trying to update the same row twice in a single statement is not supported. Only one of the modifications takes place, but it is not easy (and sometimes not possible) to reliably predict which one. This also applies to deleting a row that was already updated in the same statement: only the update is performed."
+      // "Trying to update the same row twice in a single statement is not supported. Only one of
+      // the modifications takes place, but it is not easy (and sometimes not possible) to reliably
+      // predict which one. This also applies to deleting a row that was already updated in the same
+      // statement: only the update is performed."
       update_subquery: Box::new(subquery.clone().filter(not(AllNull(other_columns.clone())))),
       delete_subquery: Box::new(subquery.filter(AllNull(other_columns))),
       table: Box::new(Q::Table::default()),
@@ -127,7 +135,8 @@ impl QueryFragment<Pg> for UpleteQuery {
     out.push_sql(") = ANY (SELECT * FROM update_keys) RETURNING 1)");
 
     // Count updated rows and deleted rows (`RETURNING 1` makes this possible)
-    out.push_sql(" SELECT (SELECT count(*) FROM update_result), (SELECT count(*) FROM delete_result)");
+    out.push_sql(" SELECT (SELECT count(*) FROM update_result)");
+    out.push_sql(", (SELECT count(*) FROM delete_result)");
 
     Ok(())
   }
@@ -170,10 +179,16 @@ pub struct UpleteCount {
 
 impl UpleteCount {
   pub fn only_updated(n: i64) -> Self {
-    UpleteCount { updated: n, deleted: 0 }
+    UpleteCount {
+      updated: n,
+      deleted: 0,
+    }
   }
 
   pub fn only_deleted(n: i64) -> Self {
-    UpleteCount { updated: 0, deleted: n }
+    UpleteCount {
+      updated: 0,
+      deleted: n,
+    }
   }
 }
