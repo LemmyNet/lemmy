@@ -60,7 +60,7 @@ fn queries<'a>() -> Queries<
   impl ListFn<'a, PostView, (PostQuery<'a>, &'a Site)>,
 > {
   let creator_is_admin = exists(
-    local_user::table.filter(
+    post::table.filter(
       comment::creator_id
         .eq(local_user::person_id)
         .and(local_user::admin.eq(true)),
