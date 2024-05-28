@@ -173,7 +173,6 @@ pub struct PersonPostAggregatesForm {
   pub person_id: PersonId,
   pub post_id: PostId,
   pub read_comments: i64,
-  pub published: Option<DateTime<Utc>>,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Copy, Hash)]
