@@ -12,9 +12,16 @@ pub fn get_dump() -> String {
   let db_url = SETTINGS.get_database_url();
   let output = Command::new("pg_dump")
     .args([
+      // Specify database URL
       "--dbname",
       &db_url,
+      // Allow differences in row data and old fast tables
       "--schema-only",
+      "--exclude-table=comment_aggregates_fast",
+      "--exclude-table=community_aggregates_fast",
+      "--exclude-table=post_aggregates_fast",
+      "--exclude-table=user_fast",
+      // Ignore some things to reduce the amount of queries done by pg_dump
       "--no-owner",
       "--no-privileges",
       "--no-comments",
@@ -23,10 +30,6 @@ pub fn get_dump() -> String {
       "--no-subscriptions",
       "--no-table-access-method",
       "--no-tablespaces",
-      "--exclude-table=comment_aggregates_fast",
-      "--exclude-table=community_aggregates_fast",
-      "--exclude-table=post_aggregates_fast",
-      "--exclude-table=user_fast",
     ])
     .stderr(Stdio::inherit())
     .output()
@@ -46,6 +49,7 @@ pub fn check_dump_diff(before: String, after: String, label: &str) {
     return;
   }
 
+  // Borrow checker requires this to be a separate variable
   let normalized_chunk_vecs = [&before, &after]
     // Remove identical items
     .map(|dump| chunks(dump).collect::<BTreeSet<_>>())
@@ -53,8 +57,7 @@ pub fn check_dump_diff(before: String, after: String, label: &str) {
     // Remove items without unwanted types of differences (if migrations are correct, then this
     // removes everything)
     .map(|chunks| chunks.map(|&i| normalize_chunk(i)).collect::<BTreeSet<_>>());
-
-  let [only_in_before, only_in_after] = normalized_chunk_vecs
+  let [only_in_before, only_in_after] = normalized_chunk_vecs // Imagine that this line doesn't exist
     .differences()
     .map(|chunks| chunks.map(|i| &**i).collect::<Vec<_>>());
 
@@ -86,7 +89,7 @@ pub fn check_dump_diff(before: String, after: String, label: &str) {
           }
         })?;
 
-      let lines = if after_has_more {
+      let diff_lines = if after_has_more {
         diff::lines(most_similar_chunk, chunk)
       } else {
         diff::lines(chunk, most_similar_chunk)
@@ -95,16 +98,16 @@ pub fn check_dump_diff(before: String, after: String, label: &str) {
       other_chunks.swap_remove(most_similar_chunk_index);
 
       Some(
-        lines
+        diff_lines
           .into_iter()
-          .map(|line| {
-            Cow::Owned(match line {
-              diff::Result::Left(s) => format!("- {s}\n"),
-              diff::Result::Right(s) => format!("+ {s}\n"),
-              diff::Result::Both(s, _) => format!("  {s}\n"),
-            })
+          .flat_map(|line| {
+            match line {
+              diff::Result::Left(s) => ["- ", s, "\n"],
+              diff::Result::Right(s) => ["+ ", s, "\n"],
+              diff::Result::Both(s, _) => ["  ", s, "\n"],
+            }
           })
-          .chain([Cow::Borrowed("\n")])
+          .chain(["\n"])
           .collect::<String>(),
       )
     });
@@ -231,7 +234,7 @@ fn sort_within_sections<T: Ord + ?Sized>(vec: &mut [&T], mut section: impl FnMut
   vec.sort_unstable_by_key(|&i| (section(i), i));
 }
 
-fn chunks(dump: &str) -> impl Iterator<Item = &str> {
+fn chunks(diff: &str) -> impl Iterator<Item = &str> {
   let mut remaining = dump;
   std::iter::from_fn(move || {
     remaining = remaining.trim_start();
@@ -259,11 +262,13 @@ fn remove_skipped_item_from_beginning(s: &str) -> Option<&str> {
     .or_else(|| {
       s.strip_prefix("CREATE FUNCTION public.")
         .and_then(after_skipped_trigger_name)
-    } /* .and_then(|a| a.strip_prefix("()")) */)
+        .and_then(|a| a.strip_prefix('('))
+    })
     .or_else(|| {
       s.strip_prefix("CREATE TRIGGER ")
         .and_then(after_skipped_trigger_name)
-    } /* .and_then(|a| a.strip_prefix(' ')) */)
+        .and_then(|a| a.strip_prefix(' '))
+    })
   {
     Some(after_first_occurence(after, "\n\n"))
   } else {
