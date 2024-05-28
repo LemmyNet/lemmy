@@ -2,13 +2,7 @@ use diesel::{
   associations::HasTable,
   dsl,
   pg::Pg,
-  query_builder::{
-    AsQuery,
-    AstPass,
-    Query,
-    QueryFragment,
-    QueryId,
-  },
+  query_builder::{AsQuery, AstPass, Query, QueryFragment, QueryId},
   query_dsl::methods::{FilterDsl, SelectDsl},
   result::Error,
   sql_types,
@@ -74,7 +68,11 @@ where
       // the modifications takes place, but it is not easy (and sometimes not possible) to reliably
       // predict which one. This also applies to deleting a row that was already updated in the same
       // statement: only the update is performed."
-      update_subquery: Box::new(subquery.clone().filter(dsl::not(AllNull(other_columns.clone())))),
+      update_subquery: Box::new(
+        subquery
+          .clone()
+          .filter(dsl::not(AllNull(other_columns.clone()))),
+      ),
       delete_subquery: Box::new(subquery.filter(AllNull(other_columns))),
       table: Box::new(Q::Table::default()),
       primary_key: Box::new(primary_key),
