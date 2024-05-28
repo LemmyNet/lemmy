@@ -142,7 +142,7 @@ impl QueryFragment<Pg> for UpleteQuery {
   }
 }
 
-struct AllNull(Vec<DynColumn>);
+pub struct AllNull(Vec<DynColumn>);
 
 impl Expression for AllNull {
   type SqlType = sql_types::Bool;
@@ -163,7 +163,7 @@ impl QueryFragment for AllNull {
   }
 }
 
-struct DynColumn(Box<dyn Any + QueryFragment<Pg>>);
+pub struct DynColumn(Box<dyn Any + QueryFragment<Pg>>);
 
 impl<T: Any + QueryFragment<Pg>> From<T> for DynColumn {
   fn from(value: T) -> Self {
