@@ -1,5 +1,4 @@
-use crate::util::LEMMY_TEST_FAST_FEDERATION;
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, TimeDelta, TimeZone, Utc};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::CommunityId,
@@ -20,11 +19,11 @@ use std::collections::{HashMap, HashSet};
 /// currently fairly high because of the current structure of storing inboxes for every person, not
 /// having a separate list of shared_inboxes, and the architecture of having every instance queue be
 /// fully separate. (see https://github.com/LemmyNet/lemmy/issues/3958)
-static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::TimeDelta> = Lazy::new(|| {
-  if *LEMMY_TEST_FAST_FEDERATION {
-    chrono::TimeDelta::try_seconds(1).expect("TimeDelta out of bounds")
+static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<TimeDelta> = Lazy::new(|| {
+  if cfg!(debug_assertions) {
+    TimeDelta::try_seconds(1).expect("TimeDelta out of bounds")
   } else {
-    chrono::TimeDelta::try_minutes(2).expect("TimeDelta out of bounds")
+    TimeDelta::try_minutes(2).expect("TimeDelta out of bounds")
   }
 });
 
@@ -92,9 +91,11 @@ impl CommunityInboxCollector {
         .send_inboxes
         .iter()
         .filter_map(std::option::Option::as_ref)
-        .filter(|&u| (u.domain() == Some(&self.instance.domain)))
         .map(|u| u.inner().clone()),
     );
+
+    // TODO: also needs to send to user followers
+
     Ok(inbox_urls)
   }
 

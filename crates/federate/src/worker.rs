@@ -40,7 +40,10 @@ use tracing::{debug, info, trace, warn};
 static CHECK_SAVE_STATE_EVERY_IT: i64 = 100;
 /// Save state to db after this time has passed since the last state (so if the server crashes or is
 /// SIGKILLed, less than X seconds of activities are resent)
-static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(60);
+#[cfg(debug_assertions)]
+static SAVE_STATE_EVERY_TIME: chrono::Duration = chrono::Duration::seconds(1);
+#[cfg(not(debug_assertions))]
+static SAVE_STATE_EVERY_TIME: chrono::Duration = chrono::Duration::seconds(60);
 
 pub(crate) struct InstanceWorker {
   instance: Instance,
@@ -78,8 +81,6 @@ impl InstanceWorker {
   /// cancelled (graceful exit)
   pub(crate) async fn loop_until_stopped(&mut self) -> LemmyResult<()> {
     debug!("Starting federation worker for {}", self.instance.domain);
-    let save_state_every = chrono::Duration::from_std(SAVE_STATE_EVERY_TIME).expect("not negative");
-
     self.inboxes.update_communities(&self.context).await?;
     self.initial_fail_sleep().await?;
     while !self.stop.is_cancelled() {
@@ -87,7 +88,7 @@ impl InstanceWorker {
       if self.stop.is_cancelled() {
         break;
       }
-      if (Utc::now() - self.last_state_insert) > save_state_every {
+      if (Utc::now() - self.last_state_insert) > SAVE_STATE_EVERY_TIME {
         self.save_and_send_state().await?;
       }
       self.inboxes.update_communities(&self.context).await?;
@@ -135,7 +136,7 @@ impl InstanceWorker {
     if id >= latest_id {
       // no more work to be done, wait before rechecking
       tokio::select! {
-        () = sleep(*WORK_FINISHED_RECHECK_DELAY) => {},
+        () = sleep(WORK_FINISHED_RECHECK_DELAY) => {},
         () = self.stop.cancelled() => {}
       }
       return Ok(());
@@ -179,6 +180,7 @@ impl InstanceWorker {
     activity: &SentActivity,
     object: &SharedInboxActivities,
   ) -> LemmyResult<()> {
+    println!("send retry loop {:?}", activity.id);
     let inbox_urls = self.inboxes.get_inbox_urls(activity, &self.context).await?;
     if inbox_urls.is_empty() {
       trace!("{}: {:?} no inboxes", self.instance.domain, activity.id);
@@ -186,6 +188,7 @@ impl InstanceWorker {
       self.state.last_successful_published_time = Some(activity.published);
       return Ok(());
     }
+    // TODO: make db column not null
     let Some(actor_apub_id) = &activity.actor_apub_id else {
       return Ok(()); // activity was inserted before persistent queue was activated
     };
@@ -239,6 +242,149 @@ impl InstanceWorker {
     self
       .stats_sender
       .send((self.instance.id, self.state.clone()))?;
+    Ok(())
+  }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
+mod test {
+
+  use super::*;
+  use activitypub_federation::http_signatures::generate_actor_keypair;
+  use actix_web::{rt::System, web, App, HttpResponse, HttpServer};
+  use lemmy_api_common::utils::{generate_inbox_url, generate_shared_inbox_url};
+  use lemmy_db_schema::{
+    newtypes::DbUrl,
+    source::{
+      activity::{ActorType, SentActivityForm},
+      person::{Person, PersonInsertForm},
+    },
+    traits::Crud,
+  };
+  use reqwest::StatusCode;
+  use serde_json::Value;
+  use serial_test::serial;
+  use std::{fs::File, io::BufReader};
+  use tokio::{
+    select,
+    spawn,
+    sync::mpsc::{error::TryRecvError, unbounded_channel},
+  };
+  use url::Url;
+
+  #[tokio::test]
+  #[serial]
+  async fn test_worker() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let instance = Instance::read_or_create(&mut context.pool(), "alpha.com".to_string()).await?;
+
+    let actor_keypair = generate_actor_keypair()?;
+    let actor_id: DbUrl = Url::parse("http://local.com/u/alice")?.into();
+    let person_form = PersonInsertForm::builder()
+      .name("alice".to_string())
+      .actor_id(Some(actor_id.clone()))
+      .private_key(Some(actor_keypair.private_key))
+      .public_key(actor_keypair.public_key)
+      .inbox_url(Some(generate_inbox_url(&actor_id)?))
+      .shared_inbox_url(Some(generate_shared_inbox_url(context.settings())?))
+      .instance_id(instance.id)
+      .build();
+    let person = Person::create(&mut context.pool(), &person_form).await?;
+
+    let cancel = CancellationToken::new();
+    let (stats_sender, mut stats_receiver) = unbounded_channel();
+    let (inbox_sender, mut inbox_receiver) = unbounded_channel();
+
+    // listen for received activities in background
+    let cancel_ = cancel.clone();
+    std::thread::spawn(move || System::new().block_on(listen_activities(inbox_sender, cancel_)));
+
+    spawn(InstanceWorker::init_and_loop(
+      instance.clone(),
+      context.reset_request_count(),
+      cancel.clone(),
+      stats_sender,
+    ));
+    // wait for startup before creating sent activity
+    sleep(WORK_FINISHED_RECHECK_DELAY).await;
+
+    // create outgoing activity
+    let file = File::open("../apub/assets/lemmy/activities/voting/like_note.json")?;
+    let reader = BufReader::new(file);
+    let form = SentActivityForm {
+      ap_id: Url::parse("http://local.com/activity/1")?.into(),
+      data: serde_json::from_reader(reader)?,
+      sensitive: false,
+      send_inboxes: vec![Some(Url::parse("http://localhost:8085/inbox")?.into())],
+      send_all_instances: false,
+      send_community_followers_of: None,
+      actor_type: ActorType::Person,
+      actor_apub_id: person.actor_id,
+    };
+    let sent = SentActivity::create(&mut context.pool(), form).await?;
+
+    sleep(WORK_FINISHED_RECHECK_DELAY).await;
+
+    // first receive at startup
+    let rcv = stats_receiver.recv().await.unwrap();
+    assert_eq!(instance.id, rcv.0);
+    assert_eq!(instance.id, rcv.1.instance_id);
+    assert_eq!(Some(ActivityId(0)), rcv.1.last_successful_id);
+
+    // receive for successfully sent activity
+    let inbox_rcv = inbox_receiver.recv().await.unwrap();
+    let parsed_activity = serde_json::from_str::<WithContext<Value>>(&inbox_rcv)?;
+    assert_eq!(&sent.data, parsed_activity.inner());
+
+    let rcv = stats_receiver.recv().await.unwrap();
+    assert_eq!(instance.id, rcv.0);
+    assert_eq!(instance.id, rcv.1.instance_id);
+    assert_eq!(Some(sent.id), rcv.1.last_successful_id);
+
+    // cleanup
+    cancel.cancel();
+    Instance::delete_all(&mut context.pool()).await?;
+    Person::delete(&mut context.pool(), person.id).await?;
+
+    // also receive state on shutdown
+    let rcv = stats_receiver.try_recv();
+    assert!(rcv.is_ok());
+
+    // nothing further received
+    let rcv = stats_receiver.try_recv();
+    assert_eq!(Some(TryRecvError::Disconnected), rcv.err());
+    let inbox_rcv = inbox_receiver.try_recv();
+    assert_eq!(Some(TryRecvError::Empty), inbox_rcv.err());
+
+    Ok(())
+  }
+
+  async fn listen_activities(
+    inbox_sender: UnboundedSender<String>,
+    cancel: CancellationToken,
+  ) -> LemmyResult<()> {
+    let run = HttpServer::new(move || {
+      App::new()
+        .app_data(actix_web::web::Data::new(inbox_sender.clone()))
+        .route(
+          "/inbox",
+          web::post().to(
+            |inbox_sender: actix_web::web::Data<UnboundedSender<String>>, body: String| async move {
+              inbox_sender.send(body.clone()).unwrap();
+              HttpResponse::new(StatusCode::OK)
+            },
+          ),
+        )
+    })
+    .bind(("127.0.0.1", 8085))?
+    .run();
+    select! {
+      _ = run => {},
+      _ = cancel.cancelled() => {
+    }
+    }
     Ok(())
   }
 }
