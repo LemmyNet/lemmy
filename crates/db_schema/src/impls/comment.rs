@@ -13,7 +13,6 @@ use crate::{
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
-    expression::SelectableHelper,
     functions::coalesce,
     get_conn,
     naive_now,
@@ -25,7 +24,8 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{self, insert_into},
+  dsl::insert_into,
+  expression::SelectableHelper,
   result::Error,
   ExpressionMethods,
   NullableExpressionMethods,
