@@ -1,25 +1,23 @@
 use diesel::{
   associations::HasTable,
   dsl,
-  expression::{AsExpression, TypedExpressionType},
   pg::Pg,
   query_builder::{
-    methods::{FilterDsl, SelectDsl},
     AsQuery,
     AstPass,
     Query,
     QueryFragment,
-    UpdateStatement,
+    QueryId,
   },
+  query_dsl::methods::{FilterDsl, SelectDsl},
   result::Error,
   sql_types,
   Column,
-  QueryId,
+  Expression,
   Table,
 };
+use std::any::Any;
 use tuplex::{IntoArray, Len};
-
-pub type CountSqlType = (sql_types::BigInt, sql_types::BigInt);
 
 /// Set columns to null and delete the row if all columns not in the primary key are null
 pub fn uplete<Q>(query: Q) -> UpleteBuilder<Q> {
@@ -76,7 +74,7 @@ where
       // the modifications takes place, but it is not easy (and sometimes not possible) to reliably
       // predict which one. This also applies to deleting a row that was already updated in the same
       // statement: only the update is performed."
-      update_subquery: Box::new(subquery.clone().filter(not(AllNull(other_columns.clone())))),
+      update_subquery: Box::new(subquery.clone().filter(dsl::not(AllNull(other_columns.clone())))),
       delete_subquery: Box::new(subquery.filter(AllNull(other_columns))),
       table: Box::new(Q::Table::default()),
       primary_key: Box::new(primary_key),
@@ -97,6 +95,10 @@ impl QueryId for UpleteQuery {
   type QueryId = ();
 
   const HAS_STATIC_QUERY_ID: bool = false;
+}
+
+impl Query for UpleteQuery {
+  type SqlType = (sql_types::BigInt, sql_types::BigInt);
 }
 
 impl QueryFragment<Pg> for UpleteQuery {
