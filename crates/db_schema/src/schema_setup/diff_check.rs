@@ -232,7 +232,7 @@ fn sort_within_sections<T: Ord + ?Sized>(vec: &mut [&T], mut section: impl FnMut
   vec.sort_unstable_by_key(|&i| (section(i), i));
 }
 
-fn chunks(diff: &str) -> impl Iterator<Item = &str> {
+fn chunks(dump: &str) -> impl Iterator<Item = &str> {
   let mut remaining = dump;
   std::iter::from_fn(move || {
     remaining = remaining.trim_start();
