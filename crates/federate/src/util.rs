@@ -17,6 +17,7 @@ use lemmy_db_schema::{
   traits::ApubActor,
   utils::{get_conn, DbPool},
 };
+use lemmy_utils::error::LemmyResult;
 use moka::future::Cache;
 use once_cell::sync::Lazy;
 use reqwest::Url;
@@ -24,6 +25,7 @@ use serde_json::Value;
 use std::{fmt::Debug, future::Future, pin::Pin, sync::Arc, time::Duration};
 use tokio::{task::JoinHandle, time::sleep};
 use tokio_util::sync::CancellationToken;
+use tracing::error;
 
 /// Decrease the delays of the federation queue.
 /// Should only be used for federation tests since it significantly increases CPU and DB load of the
@@ -59,36 +61,29 @@ impl CancellableTask {
   /// spawn a task but with graceful shutdown
   pub fn spawn<F, R: Debug>(
     timeout: Duration,
-    task: impl Fn(CancellationToken) -> F + Send + 'static,
+    task: impl FnOnce(CancellationToken) -> F + Send + 'static,
   ) -> CancellableTask
   where
-    F: Future<Output = R> + Send + 'static,
+    F: Future<Output = LemmyResult<R>> + Send + 'static,
+    R: Send + 'static,
   {
     let stop = CancellationToken::new();
     let stop2 = stop.clone();
-    let task: JoinHandle<()> = tokio::spawn(async move {
-      loop {
-        let res = task(stop2.clone()).await;
-        if stop2.is_cancelled() {
-          return;
-        } else {
-          tracing::warn!("task exited, restarting: {res:?}");
-        }
-      }
-    });
+    let task: JoinHandle<LemmyResult<R>> = tokio::spawn(task(stop2));
     let abort = task.abort_handle();
     CancellableTask {
       f: Box::pin(async move {
         stop.cancel();
         tokio::select! {
             r = task => {
-              r.context("could not join")?;
-                Ok(())
+              if let Err(ref e) = r? {
+                error!("CancellableTask threw error: {e}");
+              }
+              Ok(())
             },
             _ = sleep(timeout) => {
                 abort.abort();
-                tracing::warn!("Graceful shutdown timed out, aborting task");
-                Err(anyhow!("task aborted due to timeout"))
+                Err(anyhow!("CancellableTask aborted due to shutdown timeout"))
             }
         }
       }),
