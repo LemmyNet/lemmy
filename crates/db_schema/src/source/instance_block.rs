@@ -21,8 +21,8 @@ use serde::{Deserialize, Serialize};
 pub struct InstanceBlock {
   pub person_id: PersonId,
   pub instance_id: InstanceId,
-  #[diesel(select_expression = instance_actions::blocked.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<instance_actions::blocked>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = instance_actions::blocked.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<instance_actions::blocked>))]
   pub published: DateTime<Utc>,
 }
 

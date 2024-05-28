@@ -150,8 +150,8 @@ pub struct CommunityUpdateForm {
 pub struct CommunityModerator {
   pub community_id: CommunityId,
   pub person_id: PersonId,
-  #[diesel(select_expression = community_actions::became_moderator.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<community_actions::became_moderator>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = community_actions::became_moderator.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<community_actions::became_moderator>))]
   pub published: DateTime<Utc>,
 }
 
@@ -178,11 +178,11 @@ pub struct CommunityModeratorForm {
 pub struct CommunityPersonBan {
   pub community_id: CommunityId,
   pub person_id: PersonId,
-  #[diesel(select_expression = community_actions::received_ban.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<community_actions::received_ban>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = community_actions::received_ban.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<community_actions::received_ban>))]
   pub published: DateTime<Utc>,
-  #[diesel(select_expression = community_actions::ban_expires.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<community_actions::ban_expires>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = community_actions::ban_expires.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<community_actions::ban_expires>))]
   pub expires: Option<DateTime<Utc>>,
 }
 
@@ -211,11 +211,11 @@ pub struct CommunityPersonBanForm {
 pub struct CommunityFollower {
   pub community_id: CommunityId,
   pub person_id: PersonId,
-  #[diesel(select_expression = community_actions::followed.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<community_actions::followed>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = community_actions::followed.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<community_actions::followed>))]
   pub published: DateTime<Utc>,
-  #[diesel(select_expression = community_actions::follow_pending.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<community_actions::follow_pending>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = community_actions::follow_pending.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<community_actions::follow_pending>))]
   pub pending: bool,
 }
 

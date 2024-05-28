@@ -127,11 +127,11 @@ pub struct PersonUpdateForm {
 pub struct PersonFollower {
   pub person_id: PersonId,
   pub follower_id: PersonId,
-  #[diesel(select_expression = person_actions::followed.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<person_actions::followed>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = person_actions::followed.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<person_actions::followed>))]
   pub published: DateTime<Utc>,
-  #[diesel(select_expression = person_actions::follow_pending.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<person_actions::follow_pending>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = person_actions::follow_pending.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<person_actions::follow_pending>))]
   pub pending: bool,
 }
 

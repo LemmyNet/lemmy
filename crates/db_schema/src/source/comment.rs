@@ -101,11 +101,11 @@ pub struct CommentUpdateForm {
 pub struct CommentLike {
   pub person_id: PersonId,
   pub comment_id: CommentId,
-  #[diesel(select_expression = comment_actions::like_score.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::like_score>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = comment_actions::like_score.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::like_score>))]
   pub score: i16,
-  #[diesel(select_expression = comment_actions::liked.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::liked>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = comment_actions::liked.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::liked>))]
   pub published: DateTime<Utc>,
 }
 
@@ -131,8 +131,8 @@ pub struct CommentLikeForm {
 pub struct CommentSaved {
   pub comment_id: CommentId,
   pub person_id: PersonId,
-  #[diesel(select_expression = comment_actions::saved.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::saved>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = comment_actions::saved.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::saved>))]
   pub published: DateTime<Utc>,
 }
 

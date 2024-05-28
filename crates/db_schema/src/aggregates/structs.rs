@@ -164,11 +164,11 @@ pub struct PersonPostAggregates {
   /// The number of comments they've read on that post.
   ///
   /// This is updated to the current post comment count every time they view a post.
-  #[diesel(select_expression = post_actions::read_comments_amount.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<post_actions::read_comments_amount>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::read_comments_amount.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::read_comments_amount>))]
   pub read_comments: i64,
-  #[diesel(select_expression = post_actions::read_comments.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<post_actions::read_comments>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::read_comments.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::read_comments>))]
   pub published: DateTime<Utc>,
 }
 
