@@ -1,4 +1,4 @@
-use activitypub_federation::config::Data;p
+use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   build_response::build_comment_response,
