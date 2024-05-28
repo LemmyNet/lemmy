@@ -279,13 +279,13 @@ fn after_first_occurence<'a>(s: &'a str, pat: &str) -> &'a str {
 }
 
 fn after_skipped_trigger_name(s: &str) -> Option<&str> {
-  s.strip_prefix("refresh_comment")
-    .or_else(|| s.strip_prefix("refresh_comment_like"))
-    .or_else(|| s.strip_prefix("refresh_community"))
+  s.strip_prefix("refresh_comment_like")
+    .or_else(|| s.strip_prefix("refresh_comment"))
     .or_else(|| s.strip_prefix("refresh_community_follower"))
     .or_else(|| s.strip_prefix("refresh_community_user_ban"))
-    .or_else(|| s.strip_prefix("refresh_post"))
+    .or_else(|| s.strip_prefix("refresh_community"))
     .or_else(|| s.strip_prefix("refresh_post_like"))
+    .or_else(|| s.strip_prefix("refresh_post"))
     .or_else(|| s.strip_prefix("refresh_private_message"))
     .or_else(|| s.strip_prefix("refresh_user"))
 }
