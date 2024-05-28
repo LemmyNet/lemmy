@@ -8,7 +8,7 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
-use diesel::{dsl, expression_methods::NullableExplessionMethods};
+use diesel::{dsl, expression_methods::NullableExpressionMethods};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
