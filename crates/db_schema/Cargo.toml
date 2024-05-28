@@ -84,7 +84,7 @@ i-love-jesus = { workspace = true, optional = true }
 anyhow = { workspace = true }
 diesel-bind-if-some = { workspace = true, optional = true }
 moka.workspace = true
-tuplex = { workspace = true }
+tuplex = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
