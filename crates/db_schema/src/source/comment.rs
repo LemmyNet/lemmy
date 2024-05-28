@@ -5,7 +5,7 @@ use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
 use crate::schema::{comment, comment_actions};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
-use diesel::{dsl, expression_methods::NullableExpressionMethods}
+use diesel::{dsl, expression_methods::NullableExpressionMethods};
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
