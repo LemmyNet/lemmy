@@ -189,7 +189,6 @@ mod tests {
 
     // Timothy votes down his own comment
     let timmy_comment_vote_form = CommentLikeForm {
-      post_id: inserted_post.id,
       comment_id: inserted_comment.id,
       person_id: inserted_timmy.id,
       score: -1,
@@ -200,7 +199,6 @@ mod tests {
 
     // Sara upvotes timmy's comment
     let sara_comment_vote_form = CommentLikeForm {
-      post_id: inserted_post.id,
       comment_id: inserted_comment.id,
       person_id: inserted_sara.id,
       score: 1,
