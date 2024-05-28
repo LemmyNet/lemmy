@@ -132,11 +132,11 @@ pub struct PostUpdateForm {
 pub struct PostLike {
   pub post_id: PostId,
   pub person_id: PersonId,
-  #[diesel(select_expression = post_actions::like_score.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<post_actions::like_score>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::like_score.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::like_score>))]
   pub score: i16,
-  #[diesel(select_expression = post_actions::liked.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<post_actions::liked>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::liked.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::liked>))]
   pub published: DateTime<Utc>,
 }
 
@@ -162,8 +162,8 @@ pub struct PostLikeForm {
 pub struct PostSaved {
   pub post_id: PostId,
   pub person_id: PersonId,
-  #[diesel(select_expression = post_actions::saved.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<post_actions::saved>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::saved.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::saved>))]
   pub published: DateTime<Utc>,
 }
 
@@ -186,8 +186,8 @@ pub struct PostSavedForm {
 pub struct PostRead {
   pub post_id: PostId,
   pub person_id: PersonId,
-  #[diesel(select_expression = post_actions::read.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<post_actions::read>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::read.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::read>))]
   pub published: DateTime<Utc>,
 }
 
@@ -210,8 +210,8 @@ pub(crate) struct PostReadForm {
 pub struct PostHide {
   pub post_id: PostId,
   pub person_id: PersonId,
-  #[diesel(select_expression = post_actions::hidden.assume_not_null())]
-  #[diesel(select_expression_type = dsl::AssumeNotNull<post_actions::hidden>)]
+  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::hidden.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::hidden>))]
   pub published: DateTime<Utc>,
 }
 
