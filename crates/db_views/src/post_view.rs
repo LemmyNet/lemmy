@@ -59,10 +59,18 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
   impl ListFn<'a, PostView, (PostQuery<'a>, &'a Site)>,
 > {
+  let creator_is_admin = exists(
+    local_user::table.filter(
+      comment::creator_id
+        .eq(local_user::person_id)
+        .and(local_user::admin.eq(true)),
+    ),
+  );
+
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>| {
     query
-      .inner_join(person::table.left_join(local_user::table))
+      .inner_join(person::table)
       .inner_join(community::table)
       .inner_join(post::table)
       .left_join(actions(
@@ -103,7 +111,7 @@ fn queries<'a>() -> Queries<
           .field(community_actions::became_moderator)
           .nullable()
           .is_not_null(),
-        coalesce(local_user::admin.nullable(), false),
+        creator_is_admin,
         post_aggregates::all_columns,
         CommunityFollower::select_subscribed_type(),
         post_actions::saved.nullable().is_not_null(),
@@ -111,7 +119,10 @@ fn queries<'a>() -> Queries<
         post_actions::hidden.nullable().is_not_null(),
         person_actions::blocked.nullable().is_not_null(),
         post_actions::like_score.nullable(),
-        post_aggregates::comments - coalesce(post_actions::read_comments_amount.nullable(), 0),
+        coalesce(
+          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
+          post_aggregates::comments,
+        ),
       ))
   };
 

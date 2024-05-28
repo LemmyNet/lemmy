@@ -46,12 +46,11 @@ fn queries<'a>() -> Queries<
 > {
   let all_joins = |query: comment_report::BoxedQuery<'a, Pg>, my_person_id: PersonId| {
     query
+      .inner_join(comment::table)
+      .inner_join(post::table.on(comment::post_id.eq(post::id)))
+      .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(
-        comment::table
-          .inner_join(post::table.inner_join(community::table))
-          .inner_join(aliases::person1.left_join(local_user::table)),
-      )
+      .inner_join(aliases::person1.on(comment::creator_id.eq(aliases::person1.field(person::id))))
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
       )
@@ -60,6 +59,22 @@ fn queries<'a>() -> Queries<
         Some(my_person_id),
         comment_report::comment_id,
       ))
+      .left_join(
+        aliases::person2
+          .on(comment_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
+      )
+      .left_join(actions_alias(
+        creator_community_actions,
+        comment::creator_id,
+        post::community_id,
+      ))
+      .left_join(
+        local_user::table.on(
+          comment::creator_id
+            .eq(local_user::person_id)
+            .and(local_user::admin.eq(true)),
+        ),
+      )
       .left_join(actions(
         person_actions::table,
         Some(my_person_id),
@@ -68,15 +83,6 @@ fn queries<'a>() -> Queries<
       .left_join(actions(
         community_actions::table,
         Some(my_person_id),
-        post::community_id,
-      ))
-      .left_join(
-        aliases::person2
-          .on(comment_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
-      )
-      .left_join(actions_alias(
-        creator_community_actions,
-        comment::creator_id,
         post::community_id,
       ))
       .select((
@@ -104,7 +110,7 @@ fn queries<'a>() -> Queries<
           .field(community_actions::became_moderator)
           .nullable()
           .is_not_null(),
-        coalesce(local_user::admin.nullable(), false),
+        local_user::admin.nullable().is_not_null(),
         person_actions::blocked.nullable().is_not_null(),
         CommunityFollower::select_subscribed_type(),
         comment_actions::saved.nullable().is_not_null(),

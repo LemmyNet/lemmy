@@ -1,5 +1,12 @@
 use crate::structs::CommentReplyView;
-use diesel::{pg::Pg, result::Error, ExpressionMethods, NullableExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::exists,
+  pg::Pg,
+  result::Error,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
@@ -36,16 +43,23 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommentReplyView, (CommentReplyId, Option<PersonId>)>,
   impl ListFn<'a, CommentReplyView, CommentReplyQuery>,
 > {
+  let creator_is_admin = exists(
+    local_user::table.filter(
+      comment::creator_id
+        .eq(local_user::person_id)
+        .and(local_user::admin.eq(true)),
+    ),
+  );
+
   let all_joins = move |query: comment_reply::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>| {
     query
-      .inner_join(
-        comment::table
-          .inner_join(person::table.left_join(local_user::table))
-          .inner_join(post::table.inner_join(community::table))
-          .inner_join(comment_aggregates::table),
-      )
+      .inner_join(comment::table)
+      .inner_join(person::table.on(comment::creator_id.eq(person::id)))
+      .inner_join(post::table.on(comment::post_id.eq(post::id)))
+      .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(aliases::person1)
+      .inner_join(comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id)))
       .left_join(actions(comment_actions::table, my_person_id, comment::id))
       .left_join(actions(
         community_actions::table,
@@ -79,7 +93,7 @@ fn queries<'a>() -> Queries<
           .field(community_actions::became_moderator)
           .nullable()
           .is_not_null(),
-        coalesce(local_user::admin.nullable(), false),
+        creator_is_admin,
         CommunityFollower::select_subscribed_type(),
         comment_actions::saved.nullable().is_not_null(),
         person_actions::blocked.nullable().is_not_null(),
