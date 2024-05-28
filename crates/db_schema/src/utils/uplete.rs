@@ -36,13 +36,14 @@ impl<Q: HasTable> UpleteBuilder<Q> {
 impl<K0: 'static, K1: 'static, Q: AsQuery + HasTable> AsQuery for UpleteBuilder<Q>
 where
   Q::Table: Default + Table<PrimaryKey = (K0, K1)>,
-  Q::Table::AllColumns: IntoArray<DynColumn, Output = [DynColumn; Q::Table::AllColumns::LEN]>,
+  Q::Table::AllColumns: IntoArray<DynColumn>,
+  <Q::Table::AllColumns as IntoArray<DynColumn>: IntoIterator<Item = DynColumn>,
   Q::Query: SelectDsl<(K0, K1)>,
   dsl::Select<Q::Query, (K0, K1)>: Clone + FilterDsl<AllNull> + FilterDsl<dsl::not<AllNull>>,
 {
   type Query = UpleteQuery;
 
-  type SqlType = CountSqlType;
+  type SqlType = (sql_types::BigInt, sql_types::BigInt);
 
   fn as_query(self) -> Self::Query {
     let primary_key = Q::Table::default().primary_key();
@@ -163,9 +164,9 @@ impl QueryFragment for AllNull {
   }
 }
 
-pub struct DynColumn(Box<dyn Any + QueryFragment<Pg>>);
+pub struct DynColumn(Box<dyn QueryFragment<Pg> + 'static>);
 
-impl<T: Any + QueryFragment<Pg>> From<T> for DynColumn {
+impl<T: QueryFragment<Pg> + 'static> From<T> for DynColumn {
   fn from(value: T) -> Self {
     DynColumn(Box::new(value))
   }
