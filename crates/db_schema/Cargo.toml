@@ -39,6 +39,7 @@ full = [
   "rustls",
   "i-love-jesus",
   "diesel-bind-if-some",
+  "tuplex",
 ]
 
 [dependencies]
@@ -83,6 +84,7 @@ i-love-jesus = { workspace = true, optional = true }
 anyhow = { workspace = true }
 diesel-bind-if-some = { workspace = true, optional = true }
 moka.workspace = true
+tuplex = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
