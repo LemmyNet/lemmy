@@ -16,6 +16,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use tracing::info;
 
+mod inboxes;
 mod stats;
 mod util;
 mod worker;
