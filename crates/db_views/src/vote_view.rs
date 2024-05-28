@@ -10,7 +10,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommentId, PostId},
-  schema::{comment_like, community_person_ban, person, post, post_like},
+  schema::{comment, comment_like, community_person_ban, person, post, post_like},
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
@@ -59,7 +59,7 @@ impl VoteView {
 
     comment_like::table
       .inner_join(person::table)
-      .inner_join(post::table)
+      .inner_join(comment::table.inner_join(post::table))
       // Join to community_person_ban to get creator_banned_from_community
       .left_join(
         community_person_ban::table.on(
