@@ -100,12 +100,10 @@ pub fn check_dump_diff(before: String, after: String, label: &str) {
       Some(
         diff_lines
           .into_iter()
-          .flat_map(|line| {
-            match line {
-              diff::Result::Left(s) => ["- ", s, "\n"],
-              diff::Result::Right(s) => ["+ ", s, "\n"],
-              diff::Result::Both(s, _) => ["  ", s, "\n"],
-            }
+          .flat_map(|line| match line {
+            diff::Result::Left(s) => ["- ", s, "\n"],
+            diff::Result::Right(s) => ["+ ", s, "\n"],
+            diff::Result::Both(s, _) => ["  ", s, "\n"],
           })
           .chain(["\n"])
           .collect::<String>(),
