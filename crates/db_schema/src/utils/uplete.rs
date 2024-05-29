@@ -80,7 +80,8 @@ where
       // predict which one. This also applies to deleting a row that was already updated in the same
       // statement: only the update is performed."
       update_subquery: Box::new(
-        self.query
+        self
+          .query
           .clone()
           .filter(dsl::not(AllNull(other_columns.clone()))),
       ),
