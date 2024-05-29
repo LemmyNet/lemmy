@@ -37,7 +37,7 @@ impl<K0: 'static, K1: 'static, Q: AsQuery + HasTable> AsQuery for UpleteBuilder<
 where
   Q::Table: Default + Table<PrimaryKey = (K0, K1)>,
   Q::Table::AllColumns: IntoArray<DynColumn>,
-  <Q::Table::AllColumns as IntoArray<DynColumn>::Output: IntoIterator<Item = DynColumn>,
+  <Q::Table::AllColumns as IntoArray<DynColumn>>::Output: IntoIterator<Item = DynColumn>,
   Q::Query: SelectDsl<(K0, K1)>,
   dsl::Select<Q::Query, (K0, K1)>: Clone + FilterDsl<AllNull> + FilterDsl<dsl::not<AllNull>>,
 {
