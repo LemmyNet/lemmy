@@ -46,7 +46,7 @@ static SAVE_STATE_EVERY_TIME: chrono::Duration = chrono::Duration::seconds(1);
 static SAVE_STATE_EVERY_TIME: chrono::Duration = chrono::Duration::seconds(60);
 
 pub(crate) struct InstanceWorker {
-  instance: Instance,
+  target: Instance,
   inboxes: CommunityInboxCollector,
   stop: CancellationToken,
   context: Data<LemmyContext>,
@@ -66,7 +66,7 @@ impl InstanceWorker {
     let state = FederationQueueState::load(&mut pool, instance.id).await?;
     let inboxes = CommunityInboxCollector::new(instance.clone());
     let mut worker = InstanceWorker {
-      instance,
+      target: instance,
       inboxes,
       stop,
       context,
@@ -80,7 +80,7 @@ impl InstanceWorker {
   /// this worker only returns if (a) there is an internal error or (b) the cancellation token is
   /// cancelled (graceful exit)
   pub(crate) async fn loop_until_stopped(&mut self) -> LemmyResult<()> {
-    debug!("Starting federation worker for {}", self.instance.domain);
+    debug!("Starting federation worker for {}", self.target.domain);
     self.inboxes.update_communities(&self.context).await?;
     self.initial_fail_sleep().await?;
     while !self.stop.is_cancelled() {
@@ -152,7 +152,7 @@ impl InstanceWorker {
         .await
         .context("failed reading activity from db")?
       else {
-        debug!("{}: {:?} does not exist", self.instance.domain, id);
+        debug!("{}: {:?} does not exist", self.target.domain, id);
         self.state.last_successful_id = Some(id);
         continue;
       };
@@ -183,7 +183,7 @@ impl InstanceWorker {
     println!("send retry loop {:?}", activity.id);
     let inbox_urls = self.inboxes.get_inbox_urls(activity, &self.context).await?;
     if inbox_urls.is_empty() {
-      trace!("{}: {:?} no inboxes", self.instance.domain, activity.id);
+      trace!("{}: {:?} no inboxes", self.target.domain, activity.id);
       self.state.last_successful_id = Some(activity.id);
       self.state.last_successful_published_time = Some(activity.published);
       return Ok(());
@@ -209,7 +209,7 @@ impl InstanceWorker {
         let retry_delay: Duration = federate_retry_sleep_duration(self.state.fail_count);
         info!(
           "{}: retrying {:?} attempt {} with delay {retry_delay:.2?}. ({e})",
-          self.instance.domain, activity.id, self.state.fail_count
+          self.target.domain, activity.id, self.state.fail_count
         );
         self.save_and_send_state().await?;
         tokio::select! {
@@ -222,15 +222,15 @@ impl InstanceWorker {
       }
 
       // Activity send successful, mark instance as alive if it hasn't been updated in a while.
-      let updated = self.instance.updated.unwrap_or(self.instance.published);
+      let updated = self.target.updated.unwrap_or(self.target.published);
       if updated.add(Days::new(1)) < Utc::now() {
-        self.instance.updated = Some(Utc::now());
+        self.target.updated = Some(Utc::now());
 
         let form = InstanceForm::builder()
-          .domain(self.instance.domain.clone())
+          .domain(self.target.domain.clone())
           .updated(Some(naive_now()))
           .build();
-        Instance::update(&mut self.context.pool(), self.instance.id, form).await?;
+        Instance::update(&mut self.context.pool(), self.target.id, form).await?;
       }
     }
     Ok(())
@@ -241,7 +241,7 @@ impl InstanceWorker {
     FederationQueueState::upsert(&mut self.context.pool(), &self.state).await?;
     self
       .stats_sender
-      .send((self.instance.id, self.state.clone()))?;
+      .send((self.target.id, self.state.clone()))?;
     Ok(())
   }
 }

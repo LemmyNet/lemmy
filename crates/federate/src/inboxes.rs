@@ -34,7 +34,7 @@ static FOLLOW_REMOVALS_RECHECK_DELAY: Lazy<chrono::TimeDelta> =
   Lazy::new(|| chrono::TimeDelta::try_hours(1).expect("TimeDelta out of bounds"));
 
 pub(crate) struct CommunityInboxCollector {
-  instance: Instance,
+  target: Instance,
   // load site lazily because if an instance is first seen due to being on allowlist,
   // the corresponding row in `site` may not exist yet since that is only added once
   // `fetch_instance_actor_for_object` is called.
@@ -48,9 +48,9 @@ pub(crate) struct CommunityInboxCollector {
 }
 
 impl CommunityInboxCollector {
-  pub fn new(instance: Instance) -> Self {
+  pub fn new(target: Instance) -> Self {
     Self {
-      instance,
+      target,
       site_loaded: false,
       site: None,
       followed_communities: HashMap::new(),
@@ -72,7 +72,7 @@ impl CommunityInboxCollector {
 
     if activity.send_all_instances {
       if !self.site_loaded {
-        self.site = Site::read_from_instance_id(&mut context.pool(), self.instance.id).await?;
+        self.site = Site::read_from_instance_id(&mut context.pool(), self.target.id).await?;
         self.site_loaded = true;
       }
       if let Some(site) = &self.site {
@@ -91,6 +91,7 @@ impl CommunityInboxCollector {
         .send_inboxes
         .iter()
         .filter_map(std::option::Option::as_ref)
+        .filter(|&u| (u.domain() == Some(&self.target.domain)))
         .map(|u| u.inner().clone()),
     );
 
@@ -135,7 +136,7 @@ impl CommunityInboxCollector {
   ) -> LemmyResult<HashMap<CommunityId, HashSet<Url>>> {
     let followed = CommunityFollowerView::get_instance_followed_community_inboxes(
       &mut context.pool(),
-      self.instance.id,
+      self.target.id,
       last_fetch,
     )
     .await?;
