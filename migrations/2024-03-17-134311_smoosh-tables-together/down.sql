@@ -158,7 +158,6 @@ FROM
 WHERE
     saved IS NOT NULL;
 
-
 -- Do the opposite of the `ALTER TABLE` commands in up.sql
 DELETE FROM comment_actions
 WHERE liked IS NULL;
