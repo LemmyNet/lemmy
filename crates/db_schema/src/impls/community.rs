@@ -217,12 +217,10 @@ impl CommunityModerator {
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    uplete(
-      community_actions::table.filter(community_actions::community_id.eq(for_community_id)),
-    )
-    .set_null(community_actions::became_moderator)
-    .get_result(conn)
-    .await
+    uplete(community_actions::table.filter(community_actions::community_id.eq(for_community_id)))
+      .set_null(community_actions::became_moderator)
+      .get_result(conn)
+      .await
   }
 
   pub async fn leave_all_communities(
