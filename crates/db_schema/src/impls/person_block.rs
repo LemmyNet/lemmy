@@ -65,11 +65,9 @@ impl Blockable for PersonBlock {
     person_block_form: &Self::Form,
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete(
-      person_actions::table.find((person_block_form.person_id, person_block_form.target_id)),
-    )
-    .set_null(person_actions::blocked)
-    .get_result(conn)
-    .await
+    uplete(person_actions::table.find((person_block_form.person_id, person_block_form.target_id)))
+      .set_null(person_actions::blocked)
+      .get_result(conn)
+      .await
   }
 }
