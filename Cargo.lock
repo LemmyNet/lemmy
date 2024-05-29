@@ -2946,6 +2946,7 @@ dependencies = [
  "diesel",
  "diesel-async",
  "lemmy_db_schema",
+ "lemmy_db_views",
  "lemmy_utils",
  "pretty_assertions",
  "serde",
