@@ -297,7 +297,6 @@ impl InstanceWorker {
         .send_inboxes
         .iter()
         .filter_map(std::option::Option::as_ref)
-        .filter(|&u| (u.domain() == Some(&self.instance.domain)))
         .map(|u| u.inner().clone()),
     );
     Ok(inbox_urls)
