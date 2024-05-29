@@ -16,7 +16,7 @@ use tuplex::{IntoArray, Len};
 /// Set columns to null and delete the row if all columns not in the primary key are null
 pub fn uplete<Q>(query: Q) -> UpleteBuilder<Q>
 where
-  Q: AsQuery + Table,
+  Q: AsQuery + HasTable,
   Q::Table: Default,
   Q::Query: SelectDsl<<Q::Table as Table>::PrimaryKey>,
 {
