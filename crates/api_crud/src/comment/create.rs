@@ -9,11 +9,11 @@ use lemmy_api_common::{
     check_community_user_action,
     check_post_deleted_or_removed,
     generate_local_apub_endpoint,
-    get_post,
     get_url_blocklist,
     is_mod_or_admin,
     local_site_to_slur_regex,
     process_markdown,
+    update_read_comments,
     EndpointType,
   },
 };
@@ -28,7 +28,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
@@ -51,8 +51,19 @@ pub async fn create_comment(
 
   // Check for a community ban
   let post_id = data.post_id;
-  let post = get_post(post_id, &mut context.pool()).await?;
-  let community_id = post.community_id;
+
+  // Read the full post view in order to get the comments count.
+  let post_view = PostView::read(
+    &mut context.pool(),
+    post_id,
+    Some(local_user_view.person.id),
+    true,
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindPost)?;
+
+  let post = post_view.post;
+  let community_id = post_view.community.id;
 
   check_community_user_action(&local_user_view.person, community_id, &mut context.pool()).await?;
   check_post_deleted_or_removed(&post)?;
@@ -70,7 +81,8 @@ pub async fn create_comment(
     Comment::read(&mut context.pool(), parent_id).await.ok()
   } else {
     None
-  };
+  }
+  .flatten();
 
   // If there's a parent_id, check to make sure that comment is in that post
   // Strange issue where sometimes the post ID of the parent comment is incorrect
@@ -163,6 +175,15 @@ pub async fn create_comment(
   )
   .await?;
 
+  // Update the read comments, so your own new comment doesn't appear as a +1 unread
+  update_read_comments(
+    local_user_view.person.id,
+    post_id,
+    post_view.counts.comments + 1,
+    &mut context.pool(),
+  )
+  .await?;
+
   // If we're responding to a comment where we're the recipient,
   // (ie we're the grandparent, or the recipient of the parent comment_reply),
   // then mark the parent as read.
@@ -172,7 +193,7 @@ pub async fn create_comment(
     let parent_id = parent.id;
     let comment_reply =
       CommentReply::read_by_comment_and_person(&mut context.pool(), parent_id, person_id).await;
-    if let Ok(reply) = comment_reply {
+    if let Ok(Some(reply)) = comment_reply {
       CommentReply::update(
         &mut context.pool(),
         reply.id,
@@ -185,7 +206,7 @@ pub async fn create_comment(
     // If the parent has PersonMentions mark them as read too
     let person_mention =
       PersonMention::read_by_comment_and_person(&mut context.pool(), parent_id, person_id).await;
-    if let Ok(mention) = person_mention {
+    if let Ok(Some(mention)) = person_mention {
       PersonMention::update(
         &mut context.pool(),
         mention.id,

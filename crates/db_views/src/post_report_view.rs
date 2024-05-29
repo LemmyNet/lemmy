@@ -163,7 +163,7 @@ fn queries<'a>() -> Queries<
       post_report::table.find(report_id).into_boxed(),
       my_person_id,
     )
-    .first::<PostReportView>(&mut conn)
+    .first(&mut conn)
     .await
   };
 
@@ -178,7 +178,8 @@ fn queries<'a>() -> Queries<
       query = query.filter(post::id.eq(post_id));
     }
 
-    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
+    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
+    // first (FIFO)
     if options.unresolved_only {
       query = query
         .filter(post_report::resolved.eq(false))
@@ -219,7 +220,7 @@ impl PostReportView {
     pool: &mut DbPool<'_>,
     report_id: PostReportId,
     my_person_id: PersonId,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     queries().read(pool, (report_id, my_person_id)).await
   }
 
@@ -421,6 +422,7 @@ mod tests {
     let read_jessica_report_view =
       PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
         .await
+        .unwrap()
         .unwrap();
 
     assert_eq!(
@@ -458,6 +460,7 @@ mod tests {
     let read_jessica_report_view_after_resolve =
       PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
         .await
+        .unwrap()
         .unwrap();
     assert!(read_jessica_report_view_after_resolve.post_report.resolved);
     assert_eq!(

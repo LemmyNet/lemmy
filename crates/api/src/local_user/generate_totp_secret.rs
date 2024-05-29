@@ -1,11 +1,7 @@
 use crate::{build_totp_2fa, generate_totp_2fa_secret};
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_common::{
-  context::LemmyContext,
-  person::GenerateTotpSecretResponse,
-  sensitive::Sensitive,
-};
+use lemmy_api_common::{context::LemmyContext, person::GenerateTotpSecretResponse};
 use lemmy_db_schema::source::local_user::{LocalUser, LocalUserUpdateForm};
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -17,7 +13,9 @@ pub async fn generate_totp_secret(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<GenerateTotpSecretResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
 
   if local_user_view.local_user.totp_2fa_enabled {
     return Err(LemmyErrorType::TotpAlreadyEnabled)?;
@@ -39,6 +37,6 @@ pub async fn generate_totp_secret(
   .await?;
 
   Ok(Json(GenerateTotpSecretResponse {
-    totp_secret_url: Sensitive::new(secret_url),
+    totp_secret_url: secret_url.into(),
   }))
 }

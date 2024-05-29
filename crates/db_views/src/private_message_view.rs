@@ -53,7 +53,7 @@ fn queries<'a>() -> Queries<
     all_joins(private_message::table.find(private_message_id).into_boxed())
       .order_by(private_message::published.desc())
       .select(selection)
-      .first::<PrivateMessageView>(&mut conn)
+      .first(&mut conn)
       .await
   };
 
@@ -113,7 +113,7 @@ impl PrivateMessageView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     private_message_id: PrivateMessageId,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     queries().read(pool, private_message_id).await
   }
 

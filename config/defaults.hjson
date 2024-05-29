@@ -47,9 +47,10 @@
     # 
     # To be removed in 0.20
     cache_external_link_previews: true
-    # Specifies how to handle remote images, so that users don't have to connect directly to remote servers.
+    # Specifies how to handle remote images, so that users don't have to connect directly to remote
+    # servers.
     image_mode: 
-      # Leave images unchanged, don't generate any local thumbnails for post urls. Instead the the
+      # Leave images unchanged, don't generate any local thumbnails for post urls. Instead the
       # Opengraph image is directly returned as thumbnail
       "None"
 
@@ -64,10 +65,11 @@
 
       # or
 
-      # If enabled, all images from remote domains are rewritten to pass through `/api/v3/image_proxy`,
-      # including embedded images in markdown. Images are stored temporarily in pict-rs for caching.
-      # This improves privacy as users don't expose their IP to untrusted servers, and decreases load
-      # on other servers. However it increases bandwidth use for the local server.
+      # If enabled, all images from remote domains are rewritten to pass through
+      # `/api/v3/image_proxy`, including embedded images in markdown. Images are stored temporarily
+      # in pict-rs for caching. This improves privacy as users don't expose their IP to untrusted
+      # servers, and decreases load on other servers. However it increases bandwidth use for the
+      # local server.
       # 
       # Requires pict-rs 0.5
       "ProxyAllImages"

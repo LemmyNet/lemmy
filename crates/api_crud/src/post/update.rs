@@ -11,7 +11,6 @@ use lemmy_api_common::{
     get_url_blocklist,
     local_site_to_slur_regex,
     process_markdown_opt,
-    proxy_image_link_opt_apub,
   },
 };
 use lemmy_db_schema::{
@@ -70,7 +69,9 @@ pub async fn update_post(
   check_url_scheme(&custom_thumbnail)?;
 
   let post_id = data.post_id;
-  let orig_post = Post::read(&mut context.pool(), post_id).await?;
+  let orig_post = Post::read(&mut context.pool(), post_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -84,11 +85,6 @@ pub async fn update_post(
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
-  let url = match url {
-    Some(url) => Some(proxy_image_link_opt_apub(Some(url), &context).await?),
-    _ => Default::default(),
-  };
-
   let language_id = data.language_id;
   CommunityLanguage::is_allowed_community_language(
     &mut context.pool(),
@@ -99,7 +95,7 @@ pub async fn update_post(
 
   let post_form = PostUpdateForm {
     name: data.name.clone(),
-    url,
+    url: Some(url.map(Into::into)),
     body: diesel_option_overwrite(body),
     alt_text: diesel_option_overwrite(data.alt_text.clone()),
     nsfw: data.nsfw,
@@ -119,7 +115,8 @@ pub async fn update_post(
     |post| Some(SendActivityData::UpdatePost(post)),
     Some(local_site),
     context.reset_request_count(),
-  );
+  )
+  .await?;
 
   build_post_response(
     context.deref(),

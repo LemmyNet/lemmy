@@ -42,7 +42,7 @@ pub struct Page {
   pub(crate) kind: PageType,
   pub(crate) id: ObjectId<ApubPost>,
   pub(crate) attributed_to: AttributedTo,
-  #[serde(deserialize_with = "deserialize_one_or_many")]
+  #[serde(deserialize_with = "deserialize_one_or_many", default)]
   pub(crate) to: Vec<Url>,
   // If there is inReplyTo field this is actually a comment and must not be parsed
   #[serde(deserialize_with = "deserialize_not_present", default)]
@@ -60,7 +60,6 @@ pub struct Page {
   #[serde(default)]
   pub(crate) attachment: Vec<Attachment>,
   pub(crate) image: Option<ImageObject>,
-  pub(crate) comments_enabled: Option<bool>,
   pub(crate) sensitive: Option<bool>,
   pub(crate) published: Option<DateTime<Utc>>,
   pub(crate) updated: Option<DateTime<Utc>>,
@@ -156,28 +155,6 @@ pub enum HashtagType {
 }
 
 impl Page {
-  /// Only mods can change the post's locked status. So if it is changed from the default value,
-  /// it is a mod action and needs to be verified as such.
-  ///
-  /// Locked needs to be false on a newly created post (verified in [[CreatePost]].
-  pub(crate) async fn is_mod_action(&self, context: &Data<LemmyContext>) -> LemmyResult<bool> {
-    let old_post = self.id.clone().dereference_local(context).await;
-    Ok(Page::is_locked_changed(&old_post, &self.comments_enabled))
-  }
-
-  pub(crate) fn is_locked_changed<E>(
-    old_post: &Result<ApubPost, E>,
-    new_comments_enabled: &Option<bool>,
-  ) -> bool {
-    if let Some(new_comments_enabled) = new_comments_enabled {
-      if let Ok(old_post) = old_post {
-        return new_comments_enabled != &!old_post.locked;
-      }
-    }
-
-    false
-  }
-
   pub(crate) fn creator(&self) -> LemmyResult<ObjectId<ApubPerson>> {
     match &self.attributed_to {
       AttributedTo::Lemmy(l) => Ok(l.clone()),
@@ -233,6 +210,10 @@ impl ActivityHandler for Page {
 #[async_trait::async_trait]
 impl InCommunity for Page {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    if let Some(audience) = &self.audience {
+      return audience.dereference(context).await;
+    }
+
     let community = match &self.attributed_to {
       AttributedTo::Lemmy(_) => {
         let mut iter = self.to.iter().merge(self.cc.iter());
@@ -243,7 +224,7 @@ impl InCommunity for Page {
               break c;
             }
           } else {
-            Err(LemmyErrorType::NoCommunityFoundInCc)?
+            Err(LemmyErrorType::CouldntFindCommunity)?;
           }
         }
       }
@@ -251,11 +232,12 @@ impl InCommunity for Page {
         p.iter()
           .find(|a| a.kind == PersonOrGroupType::Group)
           .map(|a| ObjectId::<ApubCommunity>::from(a.id.clone().into_inner()))
-          .ok_or(LemmyErrorType::PageDoesNotSpecifyGroup)?
+          .ok_or(LemmyErrorType::CouldntFindCommunity)?
           .dereference(context)
           .await?
       }
     };
+
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

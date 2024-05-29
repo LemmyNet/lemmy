@@ -49,7 +49,7 @@ pub async fn ban_from_site(
 
   // if its a local user, invalidate logins
   let local_user = LocalUserView::read_person(&mut context.pool(), person.id).await;
-  if let Ok(local_user) = local_user {
+  if let Ok(Some(local_user)) = local_user {
     LoginToken::invalidate_all(&mut context.pool(), local_user.local_user.id).await?;
   }
 
@@ -70,7 +70,9 @@ pub async fn ban_from_site(
 
   ModBan::create(&mut context.pool(), &form).await?;
 
-  let person_view = PersonView::read(&mut context.pool(), person.id).await?;
+  let person_view = PersonView::read(&mut context.pool(), person.id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPerson)?;
 
   ban_nonlocal_user_from_local_communities(
     &local_user_view,

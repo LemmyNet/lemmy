@@ -42,14 +42,15 @@ fn queries<'a>() -> Queries<
 
   let read = move |mut conn: DbConn<'a>, report_id: PrivateMessageReportId| async move {
     all_joins(private_message_report::table.find(report_id).into_boxed())
-      .first::<PrivateMessageReportView>(&mut conn)
+      .first(&mut conn)
       .await
   };
 
   let list = move |mut conn: DbConn<'a>, options: PrivateMessageReportQuery| async move {
     let mut query = all_joins(private_message_report::table.into_boxed());
 
-    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
+    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
+    // first (FIFO)
     if options.unresolved_only {
       query = query
         .filter(private_message_report::resolved.eq(false))
@@ -77,7 +78,7 @@ impl PrivateMessageReportView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     report_id: PrivateMessageReportId,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     queries().read(pool, report_id).await
   }
 

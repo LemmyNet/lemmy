@@ -25,7 +25,9 @@ pub async fn remove_comment(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
   let comment_id = data.comment_id;
-  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
+  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   check_community_mod_action(
     &local_user_view.person,
@@ -34,6 +36,12 @@ pub async fn remove_comment(
     &mut context.pool(),
   )
   .await?;
+
+  // Don't allow removing or restoring comment which was deleted by user, as it would reveal
+  // the comment text in mod log.
+  if orig_comment.comment.deleted {
+    return Err(LemmyErrorType::CouldntUpdateComment.into());
+  }
 
   // Do the remove
   let removed = data.removed;

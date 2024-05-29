@@ -38,7 +38,9 @@ pub async fn like_post(
 
   // Check for a community ban
   let post_id = data.post_id;
-  let post = Post::read(&mut context.pool(), post_id).await?;
+  let post = Post::read(&mut context.pool(), post_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -66,14 +68,17 @@ pub async fn like_post(
       .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
   }
 
-  // Mark the post as read
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
+
+  let community = Community::read(&mut context.pool(), post.community_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
 
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {
       object_id: post.ap_id,
       actor: local_user_view.person.clone(),
-      community: Community::read(&mut context.pool(), post.community_id).await?,
+      community,
       score: data.score,
     },
     &context,

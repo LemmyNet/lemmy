@@ -1,5 +1,5 @@
 use crate::{
-  diesel::DecoratableTarget,
+  diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{CommunityId, DbUrl, PersonId},
   schema::{community, community_follower, instance},
   source::{
@@ -141,29 +141,35 @@ impl Community {
     Ok(community_)
   }
 
-  /// Get the community which has a given moderators or featured url, also return the collection type
+  /// Get the community which has a given moderators or featured url, also return the collection
+  /// type
   pub async fn get_by_collection_url(
     pool: &mut DbPool<'_>,
     url: &DbUrl,
-  ) -> Result<(Community, CollectionType), Error> {
+  ) -> Result<Option<(Community, CollectionType)>, Error> {
     use crate::schema::community::dsl::{featured_url, moderators_url};
     use CollectionType::*;
     let conn = &mut get_conn(pool).await?;
     let res = community::table
       .filter(moderators_url.eq(url))
-      .first::<Self>(conn)
-      .await;
-    if let Ok(c) = res {
-      return Ok((c, Moderators));
+      .first(conn)
+      .await
+      .optional()?;
+
+    if let Some(c) = res {
+      Ok(Some((c, Moderators)))
+    } else {
+      let res = community::table
+        .filter(featured_url.eq(url))
+        .first(conn)
+        .await
+        .optional()?;
+      if let Some(c) = res {
+        Ok(Some((c, Featured)))
+      } else {
+        Ok(None)
+      }
     }
-    let res = community::table
-      .filter(featured_url.eq(url))
-      .first::<Self>(conn)
-      .await;
-    if let Ok(c) = res {
-      return Ok((c, Featured));
-    }
-    Err(diesel::NotFound)
   }
 
   pub async fn set_featured_posts(
@@ -348,21 +354,18 @@ impl ApubActor for Community {
     object_id: &DbUrl,
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    Ok(
-      community::table
-        .filter(community::actor_id.eq(object_id))
-        .first::<Community>(conn)
-        .await
-        .ok()
-        .map(Into::into),
-    )
+    community::table
+      .filter(community::actor_id.eq(object_id))
+      .first(conn)
+      .await
+      .optional()
   }
 
   async fn read_from_name(
     pool: &mut DbPool<'_>,
     community_name: &str,
     include_deleted: bool,
-  ) -> Result<Community, Error> {
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let mut q = community::table
       .into_boxed()
@@ -373,22 +376,23 @@ impl ApubActor for Community {
         .filter(community::deleted.eq(false))
         .filter(community::removed.eq(false));
     }
-    q.first::<Self>(conn).await
+    q.first(conn).await.optional()
   }
 
   async fn read_from_name_and_domain(
     pool: &mut DbPool<'_>,
     community_name: &str,
     for_domain: &str,
-  ) -> Result<Community, Error> {
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     community::table
       .inner_join(instance::table)
       .filter(lower(community::name).eq(community_name.to_lowercase()))
       .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
       .select(community::all_columns)
-      .first::<Self>(conn)
+      .first(conn)
       .await
+      .optional()
   }
 }
 
@@ -524,7 +528,10 @@ mod tests {
       expires: None,
     };
 
-    let read_community = Community::read(pool, inserted_community.id).await.unwrap();
+    let read_community = Community::read(pool, inserted_community.id)
+      .await
+      .unwrap()
+      .unwrap();
 
     let update_community_form = CommunityUpdateForm {
       title: Some("nada".to_owned()),

@@ -28,7 +28,7 @@ impl LocalSite {
       CACHE
         .try_get_with((), async {
           let conn = &mut get_conn(pool).await?;
-          local_site::table.first::<Self>(conn).await
+          local_site::table.first(conn).await
         })
         .await?,
     )

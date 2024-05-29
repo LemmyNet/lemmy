@@ -52,7 +52,9 @@ pub async fn update_site(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SiteResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
   let local_site = site_view.local_site;
   let site = site_view.site;
 
@@ -154,7 +156,8 @@ pub async fn update_site(
   // TODO can't think of a better way to do this.
   // If the server suddenly requires email verification, or required applications, no old users
   // will be able to log in. It really only wants this to be a requirement for NEW signups.
-  // So if it was set from false, to true, you need to update all current users columns to be verified.
+  // So if it was set from false, to true, you need to update all current users columns to be
+  // verified.
 
   let old_require_application =
     local_site.registration_mode == RegistrationMode::RequireApplication;
@@ -181,7 +184,9 @@ pub async fn update_site(
   let new_taglines = data.taglines.clone();
   let taglines = Tagline::replace(&mut context.pool(), local_site.id, new_taglines).await?;
 
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
 
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);

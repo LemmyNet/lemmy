@@ -375,7 +375,8 @@ impl From<FederationQueueState> for ReadableFederationState {
 pub struct InstanceWithFederationState {
   #[serde(flatten)]
   pub instance: Instance,
-  /// if federation to this instance is or was active, show state of outgoing federation to this instance
+  /// if federation to this instance is or was active, show state of outgoing federation to this
+  /// instance
   pub federation_state: Option<ReadableFederationState>,
 }
 

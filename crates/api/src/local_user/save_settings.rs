@@ -28,6 +28,7 @@ use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},
 };
+use std::ops::Deref;
 
 #[tracing::instrument(skip(context))]
 pub async fn save_user_settings(
@@ -35,7 +36,9 @@ pub async fn save_user_settings(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
 
   let slur_regex = local_site_to_slur_regex(&site_view.local_site);
   let url_blocklist = get_url_blocklist(&context).await?;
@@ -55,7 +58,7 @@ pub async fn save_user_settings(
   if let Some(Some(email)) = &email {
     let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();
     // if email was changed, check that it is not taken and send verification mail
-    if &previous_email != email {
+    if previous_email.deref() != email {
       if LocalUser::is_email_taken(&mut context.pool(), email).await? {
         return Err(LemmyErrorType::EmailAlreadyExists)?;
       }
@@ -69,7 +72,8 @@ pub async fn save_user_settings(
     }
   }
 
-  // When the site requires email, make sure email is not Some(None). IE, an overwrite to a None value
+  // When the site requires email, make sure email is not Some(None). IE, an overwrite to a None
+  // value
   if let Some(email) = &email {
     if email.is_none() && site_view.local_site.require_email_verification {
       Err(LemmyErrorType::EmailRequired)?
@@ -139,11 +143,7 @@ pub async fn save_user_settings(
     ..Default::default()
   };
 
-  // Ignore errors, because 'no fields updated' will return an error.
-  // https://github.com/LemmyNet/lemmy/issues/4076
-  LocalUser::update(&mut context.pool(), local_user_id, &local_user_form)
-    .await
-    .ok();
+  LocalUser::update(&mut context.pool(), local_user_id, &local_user_form).await?;
 
   // Update the vote display modes
   let vote_display_modes_form = LocalUserVoteDisplayModeUpdateForm {

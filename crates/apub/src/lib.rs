@@ -29,7 +29,9 @@ pub(crate) mod mentions;
 pub mod objects;
 pub mod protocol;
 
-pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 50;
+/// Maximum number of outgoing HTTP requests to fetch a single object. Needs to be high enough
+/// to fetch a new community with posts, moderators and featured posts.
+pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 100;
 
 /// Only include a basic context to save space and bandwidth. The main context is hosted statically
 /// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could
@@ -78,7 +80,10 @@ impl UrlVerifier for VerifyUrlData {
 /// - URL not being in the blocklist (if it is active)
 #[tracing::instrument(skip(local_site_data))]
 fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> LemmyResult<()> {
-  let domain = apub_id.domain().expect("apud id has domain").to_string();
+  let domain = apub_id
+    .domain()
+    .ok_or(LemmyErrorType::UrlWithoutDomain)?
+    .to_string();
 
   if !local_site_data
     .local_site
@@ -158,7 +163,10 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
   is_strict: bool,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
-  let domain = apub_id.domain().expect("apud id has domain").to_string();
+  let domain = apub_id
+    .domain()
+    .ok_or(LemmyErrorType::UrlWithoutDomain)?
+    .to_string();
   let local_instance = context
     .settings()
     .get_hostname_without_port()
@@ -185,7 +193,10 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
       .expect("local hostname is valid");
     allowed_and_local.push(local_instance);
 
-    let domain = apub_id.domain().expect("apud id has domain").to_string();
+    let domain = apub_id
+      .domain()
+      .ok_or(LemmyErrorType::UrlWithoutDomain)?
+      .to_string();
     if !allowed_and_local.contains(&domain) {
       Err(LemmyErrorType::FederationDisabledByStrictAllowList)?
     }
@@ -195,7 +206,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
 
 /// Store received activities in the database.
 ///
-/// This ensures that the same activity doesnt get received and processed more than once, which
+/// This ensures that the same activity doesn't get received and processed more than once, which
 /// would be a waste of resources.
 #[tracing::instrument(skip(data))]
 async fn insert_received_activity(ap_id: &Url, data: &Data<LemmyContext>) -> LemmyResult<()> {

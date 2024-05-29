@@ -33,9 +33,23 @@ pub async fn add_mod_to_community(
     &mut context.pool(),
   )
   .await?;
-  let community = Community::read(&mut context.pool(), community_id).await?;
+  let community = Community::read(&mut context.pool(), community_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+
+  // If user is admin and community is remote, explicitly check that he is a
+  // moderator. This is necessary because otherwise the action would be rejected
+  // by the community's home instance.
   if local_user_view.local_user.admin && !community.local {
-    Err(LemmyErrorType::NotAModerator)?
+    let is_mod = CommunityModeratorView::is_community_moderator(
+      &mut context.pool(),
+      community.id,
+      local_user_view.person.id,
+    )
+    .await?;
+    if !is_mod {
+      Err(LemmyErrorType::NotAModerator)?
+    }
   }
 
   // Update in local database

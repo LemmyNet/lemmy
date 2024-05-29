@@ -131,7 +131,7 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) {
         &mut conn,
         "comment",
         "a.hot_rank != 0",
-        "SET hot_rank = hot_rank(a.score, a.published)",
+        "SET hot_rank = r.hot_rank(a.score, a.published)",
       )
       .await;
 
@@ -139,7 +139,7 @@ async fn update_hot_ranks(pool: &mut DbPool<'_>) {
         &mut conn,
         "community",
         "a.hot_rank != 0",
-        "SET hot_rank = hot_rank(a.subscribers, a.published)",
+        "SET hot_rank = r.hot_rank(a.subscribers, a.published)",
       )
       .await;
 
@@ -236,9 +236,9 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
                LIMIT $2
                FOR UPDATE SKIP LOCKED)
          UPDATE post_aggregates pa
-           SET hot_rank = hot_rank(pa.score, pa.published),
-           hot_rank_active = hot_rank(pa.score, pa.newest_comment_time_necro),
-           scaled_rank = scaled_rank(pa.score, pa.published, ca.users_active_month)
+           SET hot_rank = r.hot_rank(pa.score, pa.published),
+           hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro),
+           scaled_rank = r.scaled_rank(pa.score, pa.published, ca.users_active_month)
          FROM batch, community_aggregates ca
          WHERE pa.post_id = batch.post_id and pa.community_id = ca.community_id RETURNING pa.published;
     "#,
@@ -467,17 +467,18 @@ async fn update_instance_software(
       for instance in instances {
         let node_info_url = format!("https://{}/nodeinfo/2.0.json", instance.domain);
 
-        // The `updated` column is used to check if instances are alive. If it is more than three days
-        // in the past, no outgoing activities will be sent to that instance. However not every
-        // Fediverse instance has a valid Nodeinfo endpoint (its not required for Activitypub). That's
-        // why we always need to mark instances as updated if they are alive.
+        // The `updated` column is used to check if instances are alive. If it is more than three
+        // days in the past, no outgoing activities will be sent to that instance. However
+        // not every Fediverse instance has a valid Nodeinfo endpoint (its not required for
+        // Activitypub). That's why we always need to mark instances as updated if they are
+        // alive.
         let default_form = InstanceForm::builder()
           .domain(instance.domain.clone())
           .updated(Some(naive_now()))
           .build();
         let form = match client.get(&node_info_url).send().await {
           Ok(res) if res.status().is_client_error() => {
-            // Instance doesnt have nodeinfo but sent a response, consider it alive
+            // Instance doesn't have nodeinfo but sent a response, consider it alive
             Some(default_form)
           }
           Ok(res) => match res.json::<NodeInfo>().await {

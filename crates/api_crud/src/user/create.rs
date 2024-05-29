@@ -45,7 +45,9 @@ pub async fn register(
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
   let local_site = site_view.local_site;
   let require_registration_application =
     local_site.registration_mode == RegistrationMode::RequireApplication;
@@ -140,12 +142,17 @@ pub async fn register(
     .map(|lang_str| lang_str.split('-').next().unwrap_or_default().to_string())
     .collect();
 
+  // Show nsfw content if param is true, or if content_warning exists
+  let show_nsfw = data
+    .show_nsfw
+    .unwrap_or(site_view.site.content_warning.is_some());
+
   // Create the local user
   let local_user_form = LocalUserInsertForm::builder()
     .person_id(inserted_person.id)
     .email(data.email.as_deref().map(str::to_lowercase))
     .password_encrypted(data.password.to_string())
-    .show_nsfw(Some(data.show_nsfw))
+    .show_nsfw(Some(show_nsfw))
     .accepted_application(accepted_application)
     .default_listing_type(Some(local_site.default_post_listing_type))
     .post_listing_mode(Some(local_site.default_post_listing_mode))
@@ -190,7 +197,8 @@ pub async fn register(
     verify_email_sent: false,
   };
 
-  // Log the user in directly if the site is not setup, or email verification and application aren't required
+  // Log the user in directly if the site is not setup, or email verification and application aren't
+  // required
   if !local_site.site_setup
     || (!require_registration_application && !local_site.require_email_verification)
   {

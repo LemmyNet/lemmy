@@ -55,12 +55,17 @@ impl LocalUser {
     pool: &mut DbPool<'_>,
     local_user_id: LocalUserId,
     form: &LocalUserUpdateForm,
-  ) -> Result<LocalUser, Error> {
+  ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(local_user::table.find(local_user_id))
+    let res = diesel::update(local_user::table.find(local_user_id))
       .set(form)
-      .get_result::<Self>(conn)
-      .await
+      .execute(conn)
+      .await;
+    // Diesel will throw an error if the query is all Nones (not updating anything), ignore this.
+    match res {
+      Err(Error::QueryBuilderError(_)) => Ok(0),
+      other => other,
+    }
   }
 
   pub async fn delete(pool: &mut DbPool<'_>, id: LocalUserId) -> Result<usize, Error> {

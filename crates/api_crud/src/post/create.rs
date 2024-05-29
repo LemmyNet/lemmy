@@ -14,7 +14,6 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     mark_post_as_read,
     process_markdown_opt,
-    proxy_image_link_opt_apub,
     EndpointType,
   },
 };
@@ -75,7 +74,6 @@ pub async fn create_post(
   is_url_blocked(&url, &url_blocklist)?;
   check_url_scheme(&url)?;
   check_url_scheme(&custom_thumbnail)?;
-  let url = proxy_image_link_opt_apub(url, &context).await?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -85,7 +83,9 @@ pub async fn create_post(
   .await?;
 
   let community_id = data.community_id;
-  let community = Community::read(&mut context.pool(), community_id).await?;
+  let community = Community::read(&mut context.pool(), community_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;
     let is_mod = CommunityModeratorView::is_community_moderator(
@@ -123,7 +123,7 @@ pub async fn create_post(
 
   let post_form = PostInsertForm::builder()
     .name(data.name.trim().to_string())
-    .url(url)
+    .url(url.map(Into::into))
     .body(body)
     .alt_text(data.alt_text.clone())
     .community_id(data.community_id)
@@ -160,7 +160,8 @@ pub async fn create_post(
     |post| Some(SendActivityData::CreatePost(post)),
     Some(local_site),
     context.reset_request_count(),
-  );
+  )
+  .await?;
 
   // They like their own post by default
   let person_id = local_user_view.person.id;
@@ -175,7 +176,6 @@ pub async fn create_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
-  // Mark the post as read
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
   if let Some(url) = updated_post.url.clone() {

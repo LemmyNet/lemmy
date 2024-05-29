@@ -37,7 +37,7 @@ pub(crate) struct InstanceWorker {
   stop: CancellationToken,
   federation_lib_config: FederationConfig<LemmyContext>,
   federation_worker_config: FederationWorkerConfig,
-  stats_sender: UnboundedSender<(String, FederationQueueState)>,
+  stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
   state: FederationQueueState,
   last_state_insert: DateTime<Utc>,
   pool: ActualDbPool,
@@ -50,7 +50,7 @@ impl InstanceWorker {
     config: FederationConfig<LemmyContext>,
     federation_worker_config: FederationWorkerConfig,
     stop: CancellationToken,
-    stats_sender: UnboundedSender<(String, FederationQueueState)>,
+    stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
   ) -> Result<(), anyhow::Error> {
     let pool = config.to_request_data().inner_pool().clone();
     let state = FederationQueueState::load(&mut DbPool::Pool(&pool), instance.id).await?;
