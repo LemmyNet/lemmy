@@ -14,9 +14,14 @@ use std::any::Any;
 use tuplex::{IntoArray, Len};
 
 /// Set columns to null and delete the row if all columns not in the primary key are null
-pub fn uplete<Q>(query: Q) -> UpleteBuilder<Q> {
+pub fn uplete<Q>(query: Q) -> UpleteBuilder<Q>
+where
+  Q: AsQuery + Table,
+  Q::Table: Default,
+  Q::Query: SelectDsl<<Q::Table as Table>::PrimaryKey>,
+{
   UpleteBuilder {
-    query,
+    query: query.as_query().select(Q::Table::default().primary_key()),
     set_null_columns: Vec::new(),
   }
 }
@@ -33,32 +38,37 @@ impl<Q: HasTable> UpleteBuilder<Q> {
   }
 }
 
-impl<K0: 'static, K1: 'static, Q: AsQuery + HasTable> AsQuery for UpleteBuilder<Q>
+impl<K0, K1, Q> AsQuery for UpleteBuilder<Q>
 where
-  Q::Table: Default + Table<PrimaryKey = (K0, K1)>,
+  K0: 'static,
+  K1: 'static,
+  (K0, K1): Expression + QueryFragment<Pg> + Send,
+  Q: HasTable,
+  Q::Table: Default + Table<PrimaryKey = (K0, K1)> + QueryFragment<Pg> + Send + 'static,
   <Q::Table as Table>::AllColumns: IntoArray<DynColumn>,
   <<Q::Table as Table>::AllColumns as IntoArray<DynColumn>>::Output: IntoIterator<Item = DynColumn>,
-  Q::Query: SelectDsl<(K0, K1)>,
-  dsl::Select<Q::Query, (K0, K1)>: Clone + FilterDsl<AllNull> + FilterDsl<dsl::not<AllNull>>,
+  Q: Clone + FilterDsl<AllNull> + FilterDsl<dsl::not<AllNull>>,
+  dsl::Filter<Q, AllNull>: QueryFragment<Pg> + Send + 'static,
+  dsl::Filter<Q, dsl::not<AllNull>>: QueryFragment<Pg> + Send + 'static,
 {
   type Query = UpleteQuery;
 
   type SqlType = (sql_types::BigInt, sql_types::BigInt);
 
   fn as_query(self) -> Self::Query {
-    let primary_key = Q::Table::default().primary_key();
-    let primary_key_type_ids = [primary_key.0.type_id(), primary_key.1.type_id()];
+    let table = Q::Table::default();
+    let pk = table.primary_key();
+    let pk_type_ids = [pk.0.type_id(), pk.1.type_id()];
     let other_columns = Q::Table::all_columns()
       .into_array()
       .into_iter()
       .filter(|c: DynColumn| {
-        primary_key_type_ids
+        pk_type_ids
           .iter()
           .chain(self.set_null_columns.iter().map(|c| c.type_id()))
           .all(|other| other != c.type_id())
       })
       .collect::<Vec<_>>();
-    let subquery = self.query.select(primary_key.clone());
     UpleteQuery {
       // Updated rows and deleted rows must not overlap, so updating all rows and using the returned
       // new rows to determine which ones to delete is not an option.
@@ -70,23 +80,23 @@ where
       // predict which one. This also applies to deleting a row that was already updated in the same
       // statement: only the update is performed."
       update_subquery: Box::new(
-        subquery
+        self.query
           .clone()
           .filter(dsl::not(AllNull(other_columns.clone()))),
       ),
-      delete_subquery: Box::new(subquery.filter(AllNull(other_columns))),
-      table: Box::new(Q::Table::default()),
-      primary_key: Box::new(primary_key),
+      delete_subquery: Box::new(self.query.filter(AllNull(other_columns))),
+      table: Box::new(table),
+      primary_key: Box::new(pk),
       set_null_columns: self.set_null_columns,
     }
   }
 }
 
 pub struct UpleteQuery {
-  update_subquery: Box<dyn QueryFragment<Pg>>,
-  delete_subquery: Box<dyn QueryFragment<Pg>>,
-  table: Box<dyn QueryFragment<Pg>>,
-  primary_key: Box<dyn QueryFragment<Pg>>,
+  update_subquery: Box<dyn QueryFragment<Pg> + Send + 'static>,
+  delete_subquery: Box<dyn QueryFragment<Pg> + Send + 'static>,
+  table: Box<dyn QueryFragment<Pg> + Send + 'static>,
+  primary_key: Box<dyn QueryFragment<Pg> + Send + 'static>,
   set_null_columns: Vec<DynColumn>,
 }
 
@@ -164,7 +174,7 @@ impl QueryFragment<Pg> for AllNull {
   }
 }
 
-pub struct DynColumn(Box<dyn QueryFragment<Pg> + 'static>);
+pub struct DynColumn(Box<dyn QueryFragment<Pg> + Send + 'static>);
 
 impl<T: QueryFragment<Pg> + 'static> From<T> for DynColumn {
   fn from(value: T) -> Self {
