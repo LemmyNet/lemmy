@@ -109,7 +109,7 @@ serde = { version = "1.0.202", features = ["derive"] }
 serde_with = "3.8.1"
 actix-web = { version = "4.6.0", default-features = false, features = [
   "macros",
-  "rustls",
+  "rustls-0_23",
   "compress-brotli",
   "compress-gzip",
   "compress-zstd",
