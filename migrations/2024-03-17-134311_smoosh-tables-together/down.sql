@@ -35,22 +35,8 @@ ALTER TABLE comment_like
     ALTER COLUMN published SET NOT NULL,
     ALTER COLUMN published SET DEFAULT now(),
     ALTER COLUMN score SET NOT NULL,
-    DROP COLUMN saved,
-    ADD COLUMN post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE;
-
-UPDATE
-    comment_like
-SET
-    post_id = (
-        SELECT
-            post_id
-        FROM
-            comment
-        WHERE
-            comment.id = comment_like.comment_id);
-
-ALTER TABLE comment_like
-    ALTER COLUMN post_id SET NOT NULL;
+    ALTER COLUMN post_id SET NOT NULL,
+    DROP COLUMN saved;
 
 -- Create community_follower from community_actions
 CREATE TABLE community_block (

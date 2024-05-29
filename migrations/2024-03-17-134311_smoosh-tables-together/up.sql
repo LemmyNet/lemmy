@@ -11,12 +11,14 @@ ALTER TABLE comment_actions RENAME COLUMN published TO liked;
 ALTER TABLE comment_actions RENAME COLUMN score TO like_score;
 
 ALTER TABLE comment_actions
-    DROP COLUMN post_id,
+    ALTER COLUMN post_id DROP NOT NULL,
     ALTER COLUMN liked DROP NOT NULL,
     ALTER COLUMN liked DROP DEFAULT,
     ALTER COLUMN like_score DROP NOT NULL,
     ADD COLUMN saved timestamptz,
-    ADD CONSTRAINT comment_actions_check_liked CHECK ((liked IS NULL) = (like_score IS NULL));
+    -- `post_id` was only in the `comment_liked` table, and removing it entirely or making it not null
+    -- for the `saved` action would make this PR too complicated
+    ADD CONSTRAINT comment_actions_check_liked CHECK ((liked IS NULL) = (like_score IS NULL) = (post_id IS NULL));
 
 WITH old_comment_saved AS (
     DELETE FROM comment_saved

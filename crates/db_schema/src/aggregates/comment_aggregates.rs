@@ -118,6 +118,7 @@ mod tests {
 
     let comment_like = CommentLikeForm {
       comment_id: inserted_comment.id,
+      post_id: inserted_post.id,
       person_id: inserted_person.id,
       score: 1,
     };
@@ -136,6 +137,7 @@ mod tests {
     // Add a post dislike from the other person
     let comment_dislike = CommentLikeForm {
       comment_id: inserted_comment.id,
+      post_id: inserted_post.id,
       person_id: another_inserted_person.id,
       score: -1,
     };

@@ -160,6 +160,7 @@ pub async fn create_comment(
   // You like your own comment by default
   let like_form = CommentLikeForm {
     comment_id: inserted_comment.id,
+    post_id: post.id,
     person_id: local_user_view.person.id,
     score: 1,
   };

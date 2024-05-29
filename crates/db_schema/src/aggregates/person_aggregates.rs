@@ -100,6 +100,7 @@ mod tests {
 
     let mut comment_like = CommentLikeForm {
       comment_id: inserted_comment.id,
+      post_id: inserted_post.id,
       person_id: inserted_person.id,
       score: 1,
     };
@@ -119,6 +120,7 @@ mod tests {
 
     let child_comment_like = CommentLikeForm {
       comment_id: inserted_child_comment.id,
+      post_id: inserted_post.id,
       person_id: another_inserted_person.id,
       score: 1,
     };

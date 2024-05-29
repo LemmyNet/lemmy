@@ -101,6 +101,9 @@ pub struct CommentUpdateForm {
 pub struct CommentLike {
   pub person_id: PersonId,
   pub comment_id: CommentId,
+  #[cfg_attr(feature = "full", diesel(select_expression = comment_actions::post_id.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::post_id>))]
+  pub post_id: PostId, // TODO this is redundant
   #[cfg_attr(feature = "full", diesel(select_expression = comment_actions::like_score.assume_not_null()))]
   #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::like_score>))]
   pub score: i16,
@@ -115,6 +118,7 @@ pub struct CommentLike {
 pub struct CommentLikeForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,
+  pub post_id: PostId, // TODO this is redundant
   #[cfg_attr(feature = "full", diesel(column_name = like_score))]
   pub score: i16,
 }

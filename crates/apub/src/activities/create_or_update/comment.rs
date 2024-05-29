@@ -160,6 +160,7 @@ impl ActivityHandler for CreateOrUpdateNote {
     // author likes their own comment by default
     let like_form = CommentLikeForm {
       comment_id: comment.id,
+      post_id: comment.post_id,
       person_id: comment.creator_id,
       score: 1,
     };

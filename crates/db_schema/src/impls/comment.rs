@@ -178,6 +178,9 @@ impl Likeable for CommentLike {
     uplete(comment_actions::table.find((person_id, comment_id)))
       .set_null(comment_actions::like_score)
       .set_null(comment_actions::liked)
+      // Deleting empty `comment_actions` rows would not work without setting `post_id` to
+      // null, because it's not part of the primary key
+      .set_null(comment_actions::post_id)
       .get_result(conn)
       .await
   }
@@ -320,6 +323,7 @@ mod tests {
     // Comment Like
     let comment_like_form = CommentLikeForm {
       comment_id: inserted_comment.id,
+      post_id: inserted_post.id,
       person_id: inserted_person.id,
       score: 1,
     };
@@ -328,6 +332,7 @@ mod tests {
 
     let expected_comment_like = CommentLike {
       comment_id: inserted_comment.id,
+      post_id: inserted_post.id,
       person_id: inserted_person.id,
       published: inserted_comment_like.published,
       score: 1,
@@ -343,6 +348,7 @@ mod tests {
 
     let expected_comment_saved = CommentSaved {
       comment_id: inserted_comment.id,
+      post_id: inserted_post.id,
       person_id: inserted_person.id,
       published: inserted_comment_saved.published,
     };
