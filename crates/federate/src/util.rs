@@ -59,13 +59,13 @@ pub struct CancellableTask {
 
 impl CancellableTask {
   /// spawn a task but with graceful shutdown
-  pub fn spawn<F, R: Debug>(
+  pub fn spawn<F, R>(
     timeout: Duration,
     task: impl FnOnce(CancellationToken) -> F + Send + 'static,
   ) -> CancellableTask
   where
     F: Future<Output = LemmyResult<R>> + Send + 'static,
-    R: Send + 'static,
+    R: Send + Debug + 'static,
   {
     let stop = CancellationToken::new();
     let stop2 = stop.clone();
