@@ -18,7 +18,7 @@ ALTER TABLE comment_actions
     ADD COLUMN saved timestamptz,
     -- `post_id` was only in the `comment_liked` table, and removing it entirely or making it not null
     -- for the `saved` action would make this PR too complicated
-    ADD CONSTRAINT comment_actions_check_liked CHECK ((liked IS NULL) = ALL (ARRAY[like_score IS NULL, post_id IS NULL]);
+    ADD CONSTRAINT comment_actions_check_liked CHECK ((liked IS NULL) = ALL (ARRAY[like_score IS NULL, post_id IS NULL]));
 
 WITH old_comment_saved AS (
     DELETE FROM comment_saved
