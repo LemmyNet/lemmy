@@ -21,7 +21,7 @@ use crate::{
     get_conn,
     naive_now,
     now,
-    uplete::{OrDelete, UpleteCount, UpleteTable},
+    uplete::{uplete, UpleteCount},
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
@@ -32,7 +32,7 @@ use crate::{
 use ::url::Url;
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{self, insert_into},
+  dsl::insert_into,
   expression::SelectableHelper,
   result::Error,
   DecoratableTarget,
@@ -43,20 +43,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use std::collections::HashSet;
-
-impl UpleteTable for post_actions::table {
-  type EmptyRow = (
-    post_actions::post_id,
-    post_actions::person_id,
-    Option<DateTime<Utc>>,
-    Option<DateTime<Utc>>,
-    Option<i64>,
-    Option<DateTime<Utc>>,
-    Option<DateTime<Utc>>,
-    Option<i16>,
-    Option<DateTime<Utc>>,
-  );
-}
 
 #[async_trait]
 impl Crud for Post {
@@ -284,12 +270,9 @@ impl Likeable for PostLike {
     post_id: PostId,
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(post_actions::table.find((person_id, post_id)))
-      .set((
-        post_actions::like_score.eq(None::<i16>),
-        post_actions::liked.eq(None::<DateTime<Utc>>),
-      ))
-      .or_delete()
+    uplete(post_actions::table.find((person_id, post_id)))
+      .set_null(post_actions::like_score)
+      .set_null(post_actions::liked)
       .get_result(conn)
       .await
   }
@@ -315,9 +298,8 @@ impl Saveable for PostSaved {
     post_saved_form: &PostSavedForm,
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(post_actions::table.find((post_saved_form.person_id, post_saved_form.post_id)))
-      .set(post_actions::saved.eq(None::<DateTime<Utc>>))
-      .or_delete()
+    uplete(post_actions::table.find((post_saved_form.person_id, post_saved_form.post_id)))
+      .set_null(post_actions::saved)
       .get_result(conn)
       .await
   }
@@ -356,13 +338,12 @@ impl PostRead {
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel::update(
+    uplete(
       post_actions::table
         .filter(post_actions::post_id.eq_any(post_id_))
         .filter(post_actions::person_id.eq(person_id_)),
     )
-    .set(post_actions::read.eq(None::<DateTime<Utc>>))
-    .or_delete()
+    .set_null(post_actions::read)
     .get_result(conn)
     .await
   }
@@ -401,13 +382,12 @@ impl PostHide {
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel::update(
+    uplete(
       post_actions::table
         .filter(post_actions::post_id.eq_any(post_id_))
         .filter(post_actions::person_id.eq(person_id_)),
     )
-    .set(post_actions::hidden.eq(None::<DateTime<Utc>>))
-    .or_delete()
+    .set_null(post_actions::hidden)
     .get_result(conn)
     .await
   }

@@ -125,7 +125,9 @@ pub struct PersonUpdateForm {
 #[cfg_attr(feature = "full", diesel(primary_key(follower_id, person_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct PersonFollower {
+  #[cfg_attr(feature = "full", diesel(column_name = target_id))]
   pub person_id: PersonId,
+  #[cfg_attr(feature = "full", diesel(column_name = person_id))]
   pub follower_id: PersonId,
   #[cfg_attr(feature = "full", diesel(select_expression = person_actions::followed.assume_not_null()))]
   #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<person_actions::followed>))]

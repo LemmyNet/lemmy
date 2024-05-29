@@ -16,13 +16,13 @@ use crate::{
     get_conn,
     naive_now,
     now,
-    uplete::{OrDelete, UpleteCount, UpleteTable},
+    uplete::{uplete, UpleteCount},
     DbPool,
   },
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{self, insert_into},
+  dsl::insert_into,
   expression::SelectableHelper,
   result::Error,
   CombineDsl,
@@ -32,16 +32,6 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-
-impl UpleteTable for person_actions::table {
-  type EmptyRow = (
-    person_actions::target_id,
-    person_actions::person_id,
-    Option<DateTime<Utc>>,
-    Option<bool>,
-    Option<DateTime<Utc>>,
-  );
-}
 
 #[async_trait]
 impl Crud for Person {
@@ -224,12 +214,9 @@ impl Followable for PersonFollower {
     form: &PersonFollowerForm,
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(person_actions::table.find((form.follower_id, form.person_id)))
-      .set((
-        person_actions::followed.eq(None::<DateTime<Utc>>),
-        person_actions::follow_pending.eq(None::<bool>),
-      ))
-      .or_delete()
+    uplete(person_actions::table.find((form.follower_id, form.person_id)))
+      .set_null(person_actions::followed)
+      .set_null(person_actions::follow_pending)
       .get_result(conn)
       .await
   }

@@ -19,7 +19,6 @@ use crate::{
     get_conn,
     naive_now,
     now,
-    uplete::UpleteTable,
     DbPool,
   },
 };
@@ -34,14 +33,6 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-
-impl UpleteTable for instance_actions::table {
-  type EmptyRow = (
-    instance_actions::person_id,
-    instance_actions::instance_id,
-    Option<DateTime<Utc>>,
-  );
-}
 
 impl Instance {
   /// Attempt to read Instance column for the given domain. If it doesn't exist, insert a new one.

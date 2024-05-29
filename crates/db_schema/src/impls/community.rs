@@ -20,12 +20,11 @@ use crate::{
   traits::{ApubActor, Bannable, Crud, Followable, Joinable},
   utils::{
     action_query,
-    expression::SelectableHelper,
     find_action,
     functions::{coalesce, lower},
     get_conn,
     now,
-    uplete::{OrDelete, UpleteCount, UpleteTable},
+    uplete::{uplete, UpleteCount},
     DbPool,
   },
   SubscribedType,
@@ -35,6 +34,7 @@ use diesel::{
   deserialize,
   dsl,
   dsl::{exists, insert_into},
+  expression::SelectableHelper,
   pg::Pg,
   result::Error,
   select,
@@ -47,19 +47,6 @@ use diesel::{
   Queryable,
 };
 use diesel_async::RunQueryDsl;
-
-impl UpleteTable for community_actions::table {
-  type EmptyRow = (
-    community_actions::community_id,
-    community_actions::person_id,
-    Option<DateTime<Utc>>,
-    Option<bool>,
-    Option<DateTime<Utc>>,
-    Option<DateTime<Utc>>,
-    Option<DateTime<Utc>>,
-    Option<DateTime<Utc>>,
-  );
-}
 
 #[async_trait]
 impl Crud for Community {
@@ -124,12 +111,11 @@ impl Joinable for CommunityModerator {
     community_moderator_form: &CommunityModeratorForm,
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(community_actions::table.find((
+    uplete(community_actions::table.find((
       community_moderator_form.person_id,
       community_moderator_form.community_id,
     )))
-    .set(community_actions::became_moderator.eq(None::<DateTime<Utc>>))
-    .or_delete()
+    .set_null(community_actions::became_moderator)
     .get_result(conn)
     .await
   }
@@ -231,11 +217,10 @@ impl CommunityModerator {
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel::update(
+    uplete(
       community_actions::table.filter(community_actions::community_id.eq(for_community_id)),
     )
-    .set(community_actions::became_moderator.eq(None::<DateTime<Utc>>))
-    .or_delete()
+    .set_null(community_actions::became_moderator)
     .get_result(conn)
     .await
   }
@@ -245,9 +230,8 @@ impl CommunityModerator {
     for_person_id: PersonId,
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(community_actions::table.filter(community_actions::person_id.eq(for_person_id)))
-      .set(community_actions::became_moderator.eq(None::<DateTime<Utc>>))
-      .or_delete()
+    uplete(community_actions::table.filter(community_actions::person_id.eq(for_person_id)))
+      .set_null(community_actions::became_moderator)
       .get_result(conn)
       .await
   }
@@ -295,15 +279,12 @@ impl Bannable for CommunityPersonBan {
     community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(community_actions::table.find((
+    uplete(community_actions::table.find((
       community_person_ban_form.person_id,
       community_person_ban_form.community_id,
     )))
-    .set((
-      community_actions::received_ban.eq(None::<DateTime<Utc>>),
-      community_actions::ban_expires.eq(None::<DateTime<Utc>>),
-    ))
-    .or_delete()
+    .set_null(community_actions::received_ban)
+    .set_null(community_actions::ban_expires)
     .get_result(conn)
     .await
   }
@@ -393,12 +374,9 @@ impl Followable for CommunityFollower {
     form: &CommunityFollowerForm,
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(community_actions::table.find((form.person_id, form.community_id)))
-      .set((
-        community_actions::followed.eq(None::<DateTime<Utc>>),
-        community_actions::follow_pending.eq(None::<bool>),
-      ))
-      .or_delete()
+    uplete(community_actions::table.find((form.person_id, form.community_id)))
+      .set_null(community_actions::followed)
+      .set_null(community_actions::follow_pending)
       .get_result(conn)
       .await
   }

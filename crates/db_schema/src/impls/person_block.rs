@@ -7,13 +7,12 @@ use crate::{
     find_action,
     get_conn,
     now,
-    uplete::{OrDelete, UpleteCount},
+    uplete::{uplete, UpleteCount},
     DbPool,
   },
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl,
   dsl::{exists, insert_into},
   expression::SelectableHelper,
   result::Error,
@@ -66,11 +65,10 @@ impl Blockable for PersonBlock {
     person_block_form: &Self::Form,
   ) -> Result<UpleteCount, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(
+    uplete(
       person_actions::table.find((person_block_form.person_id, person_block_form.target_id)),
     )
-    .set(person_actions::blocked.eq(None::<DateTime<Utc>>))
-    .or_delete()
+    .set_null(person_actions::blocked)
     .get_result(conn)
     .await
   }
