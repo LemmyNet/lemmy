@@ -11,6 +11,7 @@ use lemmy_db_schema::{
   source::{
     activity::{ActorType, SentActivity},
     community::Community,
+    federation_queue_state::FederationQueueState,
     person::Person,
     site::Site,
   },
@@ -182,4 +183,11 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Acti
     })
     .await
     .map_err(|e| anyhow::anyhow!("err getting id: {e:?}"))
+}
+
+/// the domain name is needed for logging, pass it to the stats printer so it doesn't need to look
+/// up the domain itself
+pub(crate) struct FederationQueueStateWithDomain {
+  pub domain: String,
+  pub state: FederationQueueState,
 }
