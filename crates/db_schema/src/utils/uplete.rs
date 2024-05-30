@@ -170,12 +170,12 @@ impl ValidGrouping<()> for AllNull {
 
 impl QueryFragment<Pg> for AllNull {
   fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, Pg>) -> Result<(), Error> {
-    let mut item_prefix = "(";
+    // Must produce a valid expression even if `self.0` is empty
+    out.push_sql("(TRUE");
     for column in &self.0 {
-      out.push_sql(item_prefix);
+      out.push_sql(" AND ");
       column.0.walk_ast(out.reborrow())?;
       out.push_sql(" IS NOT NULL");
-      item_prefix = " AND ";
     }
     out.push_sql(")");
 
