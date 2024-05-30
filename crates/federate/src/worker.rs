@@ -8,9 +8,7 @@ use crate::{
     WORK_FINISHED_RECHECK_DELAY,
   },
 };
-use activitypub_federation::{
-  config::{FederationConfig},
-};
+use activitypub_federation::config::FederationConfig;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Days, TimeZone, Utc};
 use lemmy_api_common::{
@@ -119,11 +117,9 @@ impl InstanceWorker {
         let next_id_to_send = ActivityId(last_sent_id.0 + 1);
         {
           // sanity check: calculate next id to send based on the last id and the in flight requests
-          let last_successful_id = self
-            .state
-            .last_successful_id
-            .map(|e| e.0)
-            .expect("set above");
+          let last_successful_id = self.state.last_successful_id.map(|e| e.0).context(
+            "impossible: id is initialized in get_latest_ids and never returned to None",
+          )?;
           let expected_next_id = last_successful_id + (successfuls.len() as i64) + in_flight + 1;
           // compare to next id based on incrementing
           if expected_next_id != next_id_to_send.0 {

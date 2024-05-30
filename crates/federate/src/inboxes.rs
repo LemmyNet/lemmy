@@ -92,6 +92,10 @@ impl CommunityInboxCollector {
         .send_inboxes
         .iter()
         .filter_map(std::option::Option::as_ref)
+        // a similar filter also happens within the activitypub-federation crate. but that filter
+        // happens much later - by doing it here, we can ensure that in the happy case, this
+        // function returns 0 urls which means the system doesn't have to create a tokio
+        // task for sending at all (since that task has a fair amount of overhead)
         .filter(|&u| (u.domain() == Some(&self.domain)))
         .map(|u| u.inner().clone()),
     );
