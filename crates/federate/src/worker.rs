@@ -95,7 +95,6 @@ impl InstanceWorker {
       self.inboxes.update_communities(&self.context).await?;
     }
     // final update of state in db
-    dbg!("done");
     self.save_and_send_state().await?;
     Ok(())
   }
@@ -165,7 +164,6 @@ impl InstanceWorker {
         );
       }
       if self.stop.is_cancelled() {
-        dbg!("done");
         return Ok(());
       }
       // send success!
