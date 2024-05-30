@@ -64,7 +64,7 @@ impl CancellableTask {
   ) -> CancellableTask
   where
     F: Future<Output = R> + Send + 'static,
-    R: Send + 'static,
+    R: Send + Debug + 'static,
   {
     let stop = CancellationToken::new();
     let stop2 = stop.clone();
