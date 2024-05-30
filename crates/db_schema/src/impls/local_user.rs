@@ -163,21 +163,21 @@ impl LocalUser {
 
     let followed_communities = action_query(community_actions::followed)
       .filter(community_actions::person_id.eq(person_id_))
-      .inner_join(community::table.on(community_actions::community_id.eq(community::id)))
+      .inner_join(community::table)
       .select(community::actor_id)
       .get_results(conn)
       .await?;
 
     let saved_posts = action_query(post_actions::saved)
       .filter(post_actions::person_id.eq(person_id_))
-      .inner_join(post::table.on(post_actions::post_id.eq(post::id)))
+      .inner_join(post::table)
       .select(post::ap_id)
       .get_results(conn)
       .await?;
 
     let saved_comments = action_query(comment_actions::saved)
       .filter(comment_actions::person_id.eq(person_id_))
-      .inner_join(comment::table.on(comment_actions::comment_id.eq(comment::id)))
+      .inner_join(comment::table)
       .select(comment::ap_id)
       .get_results(conn)
       .await?;
@@ -191,7 +191,7 @@ impl LocalUser {
 
     let blocked_users = action_query(person_actions::blocked)
       .filter(person_actions::person_id.eq(person_id_))
-      .inner_join(person::table.on(person_actions::target_id.eq(person::id)))
+      .inner_join(person::table)
       .select(person::actor_id)
       .get_results(conn)
       .await?;
