@@ -224,6 +224,7 @@ impl InstanceWorker {
 
       // Activity send successful, mark instance as alive if it hasn't been updated in a while.
       let updated = self.target.updated.unwrap_or(self.target.published);
+      dbg!(&updated);
       if updated.add(Days::new(1)) < Utc::now() {
         self.target.updated = Some(Utc::now());
 
@@ -351,8 +352,6 @@ mod test {
 
     let sent = send_activity(data.person.actor_id.clone(), &data.context).await?;
 
-    sleep(WORK_FINISHED_RECHECK_DELAY * 2).await;
-
     // receive for successfully sent activity
     let inbox_rcv = data.inbox_receiver.recv().await.unwrap();
     let parsed_activity = serde_json::from_str::<WithContext<Value>>(&inbox_rcv)?;
@@ -373,6 +372,32 @@ mod test {
     assert_eq!(Some(TryRecvError::Disconnected), rcv.err());
     let inbox_rcv = data.inbox_receiver.try_recv();
     assert_eq!(Some(TryRecvError::Empty), inbox_rcv.err());
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_update_instance() -> LemmyResult<()> {
+    let mut data = Data::init().await?;
+
+    let published = DateTime::from_timestamp_nanos(0);
+    let form = InstanceForm::builder()
+      .domain(data.instance.domain.clone())
+      .published(Some(published))
+      .updated(None)
+      .build();
+    Instance::update(&mut data.context.pool(), data.instance.id, form).await?;
+
+    send_activity(data.person.actor_id.clone(), &data.context).await?;
+    data.inbox_receiver.recv().await.unwrap();
+
+    let instance =
+      Instance::read_or_create(&mut data.context.pool(), data.instance.domain.clone()).await?;
+
+    assert!(instance.updated.is_some());
+
+    data.cleanup().await?;
 
     Ok(())
   }
@@ -418,6 +443,10 @@ mod test {
       actor_type: ActorType::Person,
       actor_apub_id: actor_id,
     };
-    Ok(SentActivity::create(&mut context.pool(), form).await?)
+    let sent = SentActivity::create(&mut context.pool(), form).await?;
+
+    sleep(WORK_FINISHED_RECHECK_DELAY * 2).await;
+
+    Ok(sent)
   }
 }
