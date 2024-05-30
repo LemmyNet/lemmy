@@ -1,6 +1,7 @@
 use diesel::{
   associations::HasTable,
   dsl,
+  expression::{is_aggregate, ValidGrouping},
   pg::Pg,
   query_builder::{AsQuery, AstPass, Query, QueryFragment, QueryId},
   query_dsl::methods::{FilterDsl, SelectDsl},
@@ -163,6 +164,10 @@ pub struct AllNull(Vec<DynColumn>);
 
 impl Expression for AllNull {
   type SqlType = sql_types::Bool;
+}
+
+impl ValidGrouping<()> for AllNull {
+  type IsAggregate = is_aggregate::No;
 }
 
 impl QueryFragment<Pg> for AllNull {

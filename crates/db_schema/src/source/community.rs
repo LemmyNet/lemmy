@@ -181,6 +181,7 @@ pub struct CommunityPersonBan {
   #[cfg_attr(feature = "full", diesel(select_expression = community_actions::received_ban.assume_not_null()))]
   #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<community_actions::received_ban>))]
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", diesel(column_name = ban_expires))]
   pub expires: Option<DateTime<Utc>>,
 }
 
