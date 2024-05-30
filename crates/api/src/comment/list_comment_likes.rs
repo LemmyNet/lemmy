@@ -4,7 +4,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::is_mod_or_admin,
 };
-use lemmy_db_schema::viewer::Viewer;
 use lemmy_db_views::structs::{CommentView, LocalUserView, VoteView};
 use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
@@ -13,18 +12,19 @@ use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 pub async fn list_comment_likes(
   data: Query<ListCommentLikes>,
   context: Data<LemmyContext>,
-  viewer: Viewer,
+  local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListCommentLikesResponse>> {
   let comment_view = CommentView::read(
     &mut context.pool(),
     data.comment_id,
-    viewer.person_id(),
+    Some(local_user_view.person.id),
   )
   .await?
   .ok_or(LemmyErrorType::CouldntFindComment)?;
 
-  viewer.check_mod_or_admin(
+  is_mod_or_admin(
     &mut context.pool(),
+    &local_user_view.person,
     comment_view.community.id,
   )
   .await?;

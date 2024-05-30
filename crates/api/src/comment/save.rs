@@ -6,7 +6,6 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::comment::{CommentSaved, CommentSavedForm},
   traits::Saveable,
-  viewer::Viewer,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -15,12 +14,11 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 pub async fn save_comment(
   data: Json<SaveComment>,
   context: Data<LemmyContext>,
-  viewer: Viewer,
+  local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
-  let person = viewer.require_logged_in()?.person;
   let comment_saved_form = CommentSavedForm {
     comment_id: data.comment_id,
-    person_id: person.id,
+    person_id: local_user_view.person.id,
   };
 
   if data.save {
@@ -34,7 +32,8 @@ pub async fn save_comment(
   }
 
   let comment_id = data.comment_id;
-  let comment_view = CommentView::read(&mut context.pool(), comment_id, Some(person.id))
+  let person_id = local_user_view.person.id;
+  let comment_view = CommentView::read(&mut context.pool(), comment_id, Some(person_id))
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
 
