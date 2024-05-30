@@ -188,13 +188,13 @@ impl InstanceWorker {
       self.state.last_successful_published_time = Some(activity.published);
       return Ok(());
     }
-    // TODO: make db column not null
-    let Some(actor_apub_id) = &activity.actor_apub_id else {
-      return Ok(()); // activity was inserted before persistent queue was activated
-    };
-    let actor = get_actor_cached(&mut self.context.pool(), activity.actor_type, actor_apub_id)
-      .await
-      .context("failed getting actor instance (was it marked deleted / removed?)")?;
+    let actor = get_actor_cached(
+      &mut self.context.pool(),
+      activity.actor_type,
+      &activity.actor_apub_id,
+    )
+    .await
+    .context("failed getting actor instance (was it marked deleted / removed?)")?;
 
     let object = WithContext::new(object.clone(), FEDERATION_CONTEXT.deref().clone());
     let inbox_urls = inbox_urls.into_iter().collect();

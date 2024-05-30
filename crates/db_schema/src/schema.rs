@@ -877,7 +877,7 @@ diesel::table! {
         send_community_followers_of -> Nullable<Int4>,
         send_all_instances -> Bool,
         actor_type -> ActorTypeEnum,
-        actor_apub_id -> Nullable<Text>,
+        actor_apub_id -> Text,
     }
 }
 

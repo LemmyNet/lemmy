@@ -65,7 +65,7 @@ pub struct SentActivity {
   pub send_community_followers_of: Option<CommunityId>,
   pub send_all_instances: bool,
   pub actor_type: ActorType,
-  pub actor_apub_id: Option<DbUrl>,
+  pub actor_apub_id: DbUrl,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable))]
