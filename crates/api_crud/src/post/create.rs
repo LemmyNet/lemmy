@@ -176,7 +176,6 @@ pub async fn create_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
-  // Mark the post as read
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
   if let Some(url) = updated_post.url.clone() {

@@ -364,10 +364,13 @@ export async function getUnreadCount(
   return api.getUnreadCount();
 }
 
-export async function getReplies(api: LemmyHttp): Promise<GetRepliesResponse> {
+export async function getReplies(
+  api: LemmyHttp,
+  unread_only: boolean = false,
+): Promise<GetRepliesResponse> {
   let form: GetReplies = {
     sort: "New",
-    unread_only: false,
+    unread_only,
   };
   return api.getReplies(form);
 }

@@ -41,7 +41,7 @@ use lemmy_apub::{
   FEDERATION_HTTP_FETCH_LIMIT,
 };
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
-use lemmy_federate::{start_stop_federation_workers_cancellable, Opts};
+use lemmy_federate::{Opts, SendManager};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{
   error::LemmyResult,
@@ -210,13 +210,12 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     None
   };
   let federate = (!args.disable_activity_sending).then(|| {
-    start_stop_federation_workers_cancellable(
+    SendManager::run(
       Opts {
         process_index: args.federate_process_index,
         process_count: args.federate_process_count,
       },
-      pool.clone(),
-      federation_config.clone(),
+      federation_config,
     )
   });
   let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;
