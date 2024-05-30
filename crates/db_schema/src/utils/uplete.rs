@@ -19,6 +19,9 @@ where
   Q: AsQuery + HasTable,
   Q::Table: Default,
   Q::Query: SelectDsl<<Q::Table as Table>::PrimaryKey>,
+
+  // For better error messages
+  UpleteBuilder<Q>: AsQuery,
 {
   UpleteBuilder {
     query: query.as_query().select(Q::Table::default().primary_key()),
@@ -38,14 +41,13 @@ impl<Q: HasTable> UpleteBuilder<Q> {
   }
 }
 
-impl<K0, K1, Q> AsQuery for UpleteBuilder<Q>
+impl<Q> AsQuery for UpleteBuilder<Q>
 where
-  K0: 'static,
-  K1: 'static,
-  (K0, K1): Expression + QueryFragment<Pg> + Send,
   Q: HasTable,
-  Q::Table: Default + Table<PrimaryKey = (K0, K1)> + QueryFragment<Pg> + Send + 'static,
+  Q::Table: Default + QueryFragment<Pg> + Send + 'static,
+  <Q::Table as Table>::PrimaryKey: IntoArray<DynColumn> + QueryFragment<Pg> + Send + 'static,
   <Q::Table as Table>::AllColumns: IntoArray<DynColumn>,
+  <<Q::Table as Table>::PrimaryKey as IntoArray<DynColumn>>::Output: IntoIterator<Item = DynColumn>,
   <<Q::Table as Table>::AllColumns as IntoArray<DynColumn>>::Output: IntoIterator<Item = DynColumn>,
   Q: Clone + FilterDsl<AllNull> + FilterDsl<dsl::not<AllNull>>,
   dsl::Filter<Q, AllNull>: QueryFragment<Pg> + Send + 'static,
@@ -57,18 +59,19 @@ where
 
   fn as_query(self) -> Self::Query {
     let table = Q::Table::default();
-    let pk = table.primary_key();
-    let pk_type_ids = [pk.0.type_id(), pk.1.type_id()];
-    let other_columns = Q::Table::all_columns()
-      .into_array()
-      .into_iter()
-      .filter(|c: DynColumn| {
-        pk_type_ids
-          .iter()
-          .chain(self.set_null_columns.iter().map(|c| c.type_id()))
-          .all(|other| other != c.type_id())
-      })
-      .collect::<Vec<_>>();
+    let primary_key_columns = table.primary_key().into_array();
+    let deletion_condition = AllNull(
+      Q::Table::all_columns()
+        .into_array()
+        .into_iter()
+        .filter(|c: DynColumn| {
+          primary_key_columns
+            .iter()
+            .chain(&self.set_null_columns)
+            .all(|excluded_column| excluded_column.type_id() != c.type_id())
+        })
+        .collect::<Vec<_>>()
+    );
     UpleteQuery {
       // Updated rows and deleted rows must not overlap, so updating all rows and using the returned
       // new rows to determine which ones to delete is not an option.
@@ -83,11 +86,11 @@ where
         self
           .query
           .clone()
-          .filter(dsl::not(AllNull(other_columns.clone()))),
+          .filter(dsl::not(deletion_condition.clone())),
       ),
-      delete_subquery: Box::new(self.query.filter(AllNull(other_columns))),
+      delete_subquery: Box::new(self.query.filter(deletion_condition)),
       table: Box::new(table),
-      primary_key: Box::new(pk),
+      primary_key: Box::new(table.primary_key()),
       set_null_columns: self.set_null_columns,
     }
   }
@@ -115,17 +118,18 @@ impl QueryFragment<Pg> for UpleteQuery {
   fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, Pg>) -> Result<(), Error> {
     assert_ne!(self.set_null_columns.len(), 0, "`set_null` was not called");
 
-    // Which rows to update
-    out.push_sql("WITH update_keys AS (");
-    self.update_subquery.walk_ast(out.reborrow())?;
-    out.push_sql(" FOR UPDATE)");
+    // Declare `update_keys` and `delete_keys` CTEs, which select primary keys
+    for (prefix, subquery) in [
+      ("WITH update_keys", &self.update_subquery),
+      (", delete_keys", &self.delete_subquery),
+    ] {
+      out.push_sql(prefix);
+      out.push_sql(" AS (");
+      subquery.walk_ast(out.reborrow())?;
+      out.push_sql(" FOR UPDATE)");
+    }
 
-    // Which rows to delete
-    out.push_sql(", delete_keys AS (");
-    self.delete_subquery.walk_ast(out.reborrow())?;
-    out.push_sql(" FOR UPDATE)");
-
-    // Update rows
+    // Update rows that are referenced in `update_keys`
     out.push_sql(", update_result AS (UPDATE ");
     self.table.walk_ast(out.reborrow())?;
     let mut item_prefix = " SET ";
@@ -139,7 +143,7 @@ impl QueryFragment<Pg> for UpleteQuery {
     self.primary_key.walk_ast(out.reborrow())?;
     out.push_sql(") = ANY (SELECT * FROM update_keys) RETURNING 1)");
 
-    // Delete rows
+    // Delete rows that are referenced in `delete_keys`
     out.push_sql(", delete_result AS (DELETE FROM ");
     self.table.walk_ast(out.reborrow())?;
     out.push_sql(" WHERE (");
@@ -154,6 +158,7 @@ impl QueryFragment<Pg> for UpleteQuery {
   }
 }
 
+#[derive(Clone)]
 pub struct AllNull(Vec<DynColumn>);
 
 impl Expression for AllNull {
