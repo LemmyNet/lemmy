@@ -32,7 +32,6 @@ use lemmy_db_schema::{
   utils::{
     actions,
     actions_alias,
-    functions::coalesce,
     fuzzy_search,
     limit_and_offset,
     DbConn,
