@@ -53,7 +53,7 @@ services:
 
   lemmy-ui:
     # use "image" to pull down an already compiled lemmy-ui. make sure to comment out "build".
-    image: dessalines/lemmy-ui:0.19.3
+    image: dessalines/lemmy-ui:0.19.4-rc.3
     # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
     # use "build" to build your local lemmy ui image for development. make sure to comment out "image".
     # run: docker compose up --build
