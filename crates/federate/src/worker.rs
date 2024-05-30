@@ -314,13 +314,12 @@ mod test {
 
     let sent = send_activity(person.actor_id, &context).await?;
 
-    sleep(WORK_FINISHED_RECHECK_DELAY).await;
+    sleep(WORK_FINISHED_RECHECK_DELAY * 2).await;
 
     // first receive at startup
     let rcv = stats_receiver.recv().await.unwrap();
-    assert_eq!(instance.id, rcv.0);
-    assert_eq!(instance.id, rcv.1.instance_id);
-    assert_eq!(Some(ActivityId(0)), rcv.1.last_successful_id);
+    assert_eq!(instance.id, rcv.state.instance_id);
+    assert_eq!(Some(ActivityId(0)), rcv.state.last_successful_id);
 
     // receive for successfully sent activity
     let inbox_rcv = inbox_receiver.recv().await.unwrap();
@@ -328,9 +327,8 @@ mod test {
     assert_eq!(&sent.data, parsed_activity.inner());
 
     let rcv = stats_receiver.recv().await.unwrap();
-    assert_eq!(instance.id, rcv.0);
-    assert_eq!(instance.id, rcv.1.instance_id);
-    assert_eq!(Some(sent.id), rcv.1.last_successful_id);
+    assert_eq!(instance.id, rcv.state.instance_id);
+    assert_eq!(Some(sent.id), rcv.state.last_successful_id);
 
     // cleanup
     cancel.cancel();
