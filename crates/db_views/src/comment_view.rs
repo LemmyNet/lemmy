@@ -1,5 +1,4 @@
 use crate::structs::{CommentView, LocalUserView};
-use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{exists, not},
   pg::Pg,
@@ -61,17 +60,6 @@ fn queries<'a>() -> Queries<
           .and(community_person_ban::person_id.eq(person_id)),
       ),
     )
-  };
-
-  let is_saved = |person_id| {
-    comment_saved::table
-      .filter(
-        comment::id
-          .eq(comment_saved::comment_id)
-          .and(comment_saved::person_id.eq(person_id)),
-      )
-      .select(comment_saved::published.nullable())
-      .single_value()
   };
 
   let is_community_followed = |person_id| {
@@ -147,14 +135,6 @@ fn queries<'a>() -> Queries<
       Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
     };
 
-    let is_saved_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Timestamptz>>,
-    > = if let Some(person_id) = my_person_id {
-      Box::new(is_saved(person_id))
-    } else {
-      Box::new(None::<DateTime<Utc>>.into_sql::<sql_types::Nullable<sql_types::Timestamptz>>())
-    };
-
     let is_creator_blocked_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
       if let Some(person_id) = my_person_id {
         Box::new(is_creator_blocked(person_id))
@@ -167,6 +147,13 @@ fn queries<'a>() -> Queries<
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(comment_aggregates::table)
+      .left_join(
+        comment_saved::table.on(
+          comment::id
+            .eq(comment_saved::comment_id)
+            .and(comment_saved::person_id.eq(my_person_id.unwrap_or(PersonId(-1)))),
+        ),
+      )
       .select((
         comment::all_columns,
         person::all_columns,
@@ -178,7 +165,7 @@ fn queries<'a>() -> Queries<
         creator_is_moderator,
         creator_is_admin,
         subscribed_type_selection,
-        is_saved_selection.is_not_null(),
+        comment_saved::person_id.nullable().is_not_null(),
         is_creator_blocked_selection,
         score_selection,
       ))
@@ -260,8 +247,8 @@ fn queries<'a>() -> Queries<
     // If its saved only, then filter, and order by the saved time, not the comment creation time.
     if options.saved_only {
       query = query
-        .filter(is_saved(person_id_join).is_not_null())
-        .then_order_by(is_saved(person_id_join).desc());
+        .filter(comment_saved::person_id.is_not_null())
+        .then_order_by(comment_saved::published.desc());
     }
 
     if let Some(my_id) = my_person_id {

@@ -4,6 +4,7 @@ use crate::{
     get_activity_cached,
     get_actor_cached,
     get_latest_activity_id,
+    FederationQueueStateWithDomain,
     WORK_FINISHED_RECHECK_DELAY,
   },
 };
@@ -17,7 +18,7 @@ use chrono::{DateTime, Days, TimeZone, Utc};
 use lemmy_api_common::{context::LemmyContext, federate_retry_sleep_duration};
 use lemmy_apub::{activity_lists::SharedInboxActivities, FEDERATION_CONTEXT};
 use lemmy_db_schema::{
-  newtypes::{ActivityId, InstanceId},
+  newtypes::ActivityId,
   source::{
     activity::SentActivity,
     federation_queue_state::FederationQueueState,
@@ -50,7 +51,7 @@ pub(crate) struct InstanceWorker {
   inboxes: CommunityInboxCollector,
   stop: CancellationToken,
   context: Data<LemmyContext>,
-  stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
+  stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
   state: FederationQueueState,
   last_state_insert: DateTime<Utc>,
 }
@@ -60,7 +61,7 @@ impl InstanceWorker {
     instance: Instance,
     context: Data<LemmyContext>,
     stop: CancellationToken,
-    stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
+    stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
   ) -> LemmyResult<()> {
     let mut pool = context.pool();
     let state = FederationQueueState::load(&mut pool, instance.id).await?;
@@ -239,9 +240,10 @@ impl InstanceWorker {
   async fn save_and_send_state(&mut self) -> Result<()> {
     self.last_state_insert = Utc::now();
     FederationQueueState::upsert(&mut self.context.pool(), &self.state).await?;
-    self
-      .stats_sender
-      .send((self.target.id, self.state.clone()))?;
+    self.stats_sender.send(FederationQueueStateWithDomain {
+      state: self.state.clone(),
+      domain: self.target.domain.clone(),
+    })?;
     Ok(())
   }
 }

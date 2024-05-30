@@ -31,6 +31,7 @@ use lemmy_db_schema::{
     person_mention,
     post,
   },
+  source::local_user::LocalUser,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
 };
@@ -192,6 +193,8 @@ fn queries<'a>() -> Queries<
     };
 
   let list = move |mut conn: DbConn<'a>, options: PersonMentionQuery| async move {
+    // These filters need to be kept in sync with the filters in
+    // PersonMentionView::get_unread_mentions()
     let mut query = all_joins(person_mention::table.into_boxed(), options.my_person_id);
 
     if let Some(recipient_id) = options.recipient_id {
@@ -203,7 +206,7 @@ fn queries<'a>() -> Queries<
     }
 
     if !options.show_bot_accounts {
-      query = query.filter(person::bot_account.eq(false));
+      query = query.filter(not(person::bot_account));
     };
 
     query = match options.sort.unwrap_or(CommentSortType::Hot) {
@@ -247,23 +250,32 @@ impl PersonMentionView {
   /// Gets the number of unread mentions
   pub async fn get_unread_mentions(
     pool: &mut DbPool<'_>,
-    my_person_id: PersonId,
+    local_user: &LocalUser,
   ) -> Result<i64, Error> {
     use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
 
-    person_mention::table
+    let mut query = person_mention::table
       .inner_join(comment::table)
       .left_join(
         person_block::table.on(
           comment::creator_id
             .eq(person_block::target_id)
-            .and(person_block::person_id.eq(my_person_id)),
+            .and(person_block::person_id.eq(local_user.person_id)),
         ),
       )
-      // Dont count replies from blocked users
+      .inner_join(person::table.on(comment::creator_id.eq(person::id)))
+      .into_boxed();
+
+    // These filters need to be kept in sync with the filters in queries().list()
+    if !local_user.show_bot_accounts {
+      query = query.filter(not(person::bot_account));
+    }
+
+    query
+      // Don't count replies from blocked users
       .filter(person_block::person_id.is_null())
-      .filter(person_mention::recipient_id.eq(my_person_id))
+      .filter(person_mention::recipient_id.eq(local_user.person_id))
       .filter(person_mention::read.eq(false))
       .filter(comment::deleted.eq(false))
       .filter(comment::removed.eq(false))
@@ -300,7 +312,8 @@ mod tests {
       comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
-      person::{Person, PersonInsertForm},
+      local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+      person::{Person, PersonInsertForm, PersonUpdateForm},
       person_block::{PersonBlock, PersonBlockForm},
       person_mention::{PersonMention, PersonMentionInsertForm, PersonMentionUpdateForm},
       post::{Post, PostInsertForm},
@@ -308,6 +321,7 @@ mod tests {
     traits::{Blockable, Crud},
     utils::build_db_pool_for_tests,
   };
+  use lemmy_db_views::structs::LocalUserView;
   use lemmy_utils::{error::LemmyResult, LemmyErrorType};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -336,6 +350,9 @@ mod tests {
 
     let inserted_recipient = Person::create(pool, &recipient_form).await?;
     let recipient_id = inserted_recipient.id;
+
+    let recipient_local_user =
+      LocalUser::create(pool, &LocalUserInsertForm::test_form(recipient_id), vec![]).await?;
 
     let new_community = CommunityInsertForm::builder()
       .name("test community lake".to_string())
@@ -387,7 +404,8 @@ mod tests {
       PersonMention::update(pool, inserted_mention.id, &person_mention_update_form).await?;
 
     // Test to make sure counts and blocks work correctly
-    let unread_mentions = PersonMentionView::get_unread_mentions(pool, recipient_id).await?;
+    let unread_mentions =
+      PersonMentionView::get_unread_mentions(pool, &recipient_local_user).await?;
 
     let query = PersonMentionQuery {
       recipient_id: Some(recipient_id),
@@ -410,10 +428,43 @@ mod tests {
     PersonBlock::block(pool, &block_form).await?;
 
     let unread_mentions_after_block =
-      PersonMentionView::get_unread_mentions(pool, recipient_id).await?;
-    let mentions_after_block = query.list(pool).await?;
+      PersonMentionView::get_unread_mentions(pool, &recipient_local_user).await?;
+    let mentions_after_block = query.clone().list(pool).await?;
     assert_eq!(0, unread_mentions_after_block);
     assert_eq!(0, mentions_after_block.len());
+
+    // Unblock user so we can reuse the same person
+    PersonBlock::unblock(pool, &block_form).await?;
+
+    // Turn Terry into a bot account
+    let person_update_form = PersonUpdateForm {
+      bot_account: Some(true),
+      ..Default::default()
+    };
+    Person::update(pool, inserted_person.id, &person_update_form).await?;
+
+    let recipient_local_user_update_form = LocalUserUpdateForm {
+      show_bot_accounts: Some(false),
+      ..Default::default()
+    };
+    LocalUser::update(
+      pool,
+      recipient_local_user.id,
+      &recipient_local_user_update_form,
+    )
+    .await?;
+    let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
+
+    let unread_mentions_after_hide_bots =
+      PersonMentionView::get_unread_mentions(pool, &recipient_local_user_view.local_user).await?;
+
+    let mut query_without_bots = query.clone();
+    query_without_bots.show_bot_accounts = false;
+    let replies_after_hide_bots = query_without_bots.list(pool).await?;
+    assert_eq!(0, unread_mentions_after_hide_bots);
+    assert_eq!(0, replies_after_hide_bots.len());
 
     Comment::delete(pool, inserted_comment.id).await?;
     Post::delete(pool, inserted_post.id).await?;
