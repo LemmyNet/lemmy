@@ -278,7 +278,7 @@ mod test {
   #[serial]
   async fn test_worker() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let instance = Instance::read_or_create(&mut context.pool(), "alpha.com".to_string()).await?;
+    let instance = Instance::read_or_create(&mut context.pool(), "localhost".to_string()).await?;
 
     let actor_keypair = generate_actor_keypair()?;
     let actor_id: DbUrl = Url::parse("http://local.com/u/alice")?.into();
@@ -310,20 +310,7 @@ mod test {
     // wait for startup before creating sent activity
     sleep(WORK_FINISHED_RECHECK_DELAY).await;
 
-    // create outgoing activity
-    let file = File::open("../apub/assets/lemmy/activities/voting/like_note.json")?;
-    let reader = BufReader::new(file);
-    let form = SentActivityForm {
-      ap_id: Url::parse("http://local.com/activity/1")?.into(),
-      data: serde_json::from_reader(reader)?,
-      sensitive: false,
-      send_inboxes: vec![Some(Url::parse("http://localhost:8085/inbox")?.into())],
-      send_all_instances: false,
-      send_community_followers_of: None,
-      actor_type: ActorType::Person,
-      actor_apub_id: person.actor_id,
-    };
-    let sent = SentActivity::create(&mut context.pool(), form).await?;
+    let sent = send_activity(person.actor_id, &context).await?;
 
     sleep(WORK_FINISHED_RECHECK_DELAY).await;
 
@@ -348,7 +335,7 @@ mod test {
     Instance::delete_all(&mut context.pool()).await?;
     Person::delete(&mut context.pool(), person.id).await?;
 
-    // also receive state on shutdown
+    // it also sends state on shutdown
     let rcv = stats_receiver.try_recv();
     assert!(rcv.is_ok());
 
@@ -386,5 +373,22 @@ mod test {
     }
     }
     Ok(())
+  }
+
+  async fn send_activity(actor_id: DbUrl, context: &LemmyContext) -> LemmyResult<SentActivity> {
+    // create outgoing activity
+    let file = File::open("../apub/assets/lemmy/activities/voting/like_note.json")?;
+    let reader = BufReader::new(file);
+    let form = SentActivityForm {
+      ap_id: Url::parse("http://local.com/activity/1")?.into(),
+      data: serde_json::from_reader(reader)?,
+      sensitive: false,
+      send_inboxes: vec![Some(Url::parse("http://localhost:8085/inbox")?.into())],
+      send_all_instances: false,
+      send_community_followers_of: None,
+      actor_type: ActorType::Person,
+      actor_apub_id: actor_id,
+    };
+    Ok(SentActivity::create(&mut context.pool(), form).await?)
   }
 }
