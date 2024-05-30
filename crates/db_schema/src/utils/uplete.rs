@@ -61,16 +61,15 @@ where
 
   fn as_query(self) -> Self::Query {
     let table = Q::Table::default();
+    let primary_key_columns = table.primary_key().into_array();
     let deletion_condition = || {
       AllNull(
         Q::Table::all_columns()
           .into_array()
           .into_iter()
           .filter(|c: DynColumn| {
-            table
-              .primary_key()
-              .into_array()
-              .into_iter()
+            primary_key_columns
+              .iter()
               .chain(&self.set_null_columns)
               .all(|excluded_column| excluded_column.type_id() != c.type_id())
           })
