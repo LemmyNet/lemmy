@@ -69,7 +69,7 @@ where
           .filter(|c: DynColumn| {
             table
               .primary_key()
-              .into_array();
+              .into_array()
               .into_iter()
               .chain(&self.set_null_columns)
               .all(|excluded_column| excluded_column.type_id() != c.type_id())
