@@ -60,8 +60,8 @@ where
   type SqlType = (sql_types::BigInt, sql_types::BigInt);
 
   fn as_query(self) -> Self::Query {
-    let table = Q::Table::default();
-    let primary_key_columns = table.primary_key().into_array();
+    let table = Q::Table::default;
+    let primary_key_columns = table().primary_key().into_array();
     let deletion_condition = || {
       AllNull(
         Q::Table::all_columns()
@@ -89,8 +89,8 @@ where
       // statement: only the update is performed."
       update_subquery: Box::new(self.query.clone().filter(dsl::not(deletion_condition()))),
       delete_subquery: Box::new(self.query.filter(deletion_condition())),
-      table: Box::new(table),
-      primary_key: Box::new(table.primary_key()),
+      table: Box::new(table()),
+      primary_key: Box::new(table().primary_key()),
       set_null_columns: self.set_null_columns,
     }
   }
