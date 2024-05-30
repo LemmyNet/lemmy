@@ -1,7 +1,34 @@
+<<<<<<< HEAD
 use crate::{
   inboxes::CommunityInboxCollector,
   send::{SendActivityResult, SendRetryTask, SendSuccessInfo},
   util::{get_activity_cached, get_latest_activity_id, WORK_FINISHED_RECHECK_DELAY},
+||||||| 51970ffc8
+use crate::util::{
+  get_activity_cached,
+  get_actor_cached,
+  get_latest_activity_id,
+  LEMMY_TEST_FAST_FEDERATION,
+  WORK_FINISHED_RECHECK_DELAY,
+};
+use activitypub_federation::{
+  activity_sending::SendActivityTask,
+  config::Data,
+  protocol::context::WithContext,
+=======
+use crate::util::{
+  get_activity_cached,
+  get_actor_cached,
+  get_latest_activity_id,
+  FederationQueueStateWithDomain,
+  LEMMY_TEST_FAST_FEDERATION,
+  WORK_FINISHED_RECHECK_DELAY,
+};
+use activitypub_federation::{
+  activity_sending::SendActivityTask,
+  config::Data,
+  protocol::context::WithContext,
+>>>>>>> origin/main
 };
 use activitypub_federation::config::FederationConfig;
 use anyhow::{Context, Result};
@@ -35,6 +62,10 @@ const MAX_SUCCESSFULS: usize = 1000;
 pub(crate) struct InstanceWorker {
   instance: Instance,
   stop: CancellationToken,
+  context: Data<LemmyContext>,
+  stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
+  last_full_communities_fetch: DateTime<Utc>,
+  last_incremental_communities_fetch: DateTime<Utc>,
   federation_lib_config: FederationConfig<LemmyContext>,
   federation_worker_config: FederationWorkerConfig,
   stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
@@ -350,10 +381,23 @@ impl InstanceWorker {
   async fn save_and_send_state(&mut self) -> Result<()> {
     tracing::debug!("{}: saving and sending state", self.instance.domain);
     self.last_state_insert = Utc::now();
+<<<<<<< HEAD
     FederationQueueState::upsert(&mut self.pool(), &self.state).await?;
     self
       .stats_sender
       .send((self.instance.domain.clone(), self.state.clone()))?;
+||||||| 51970ffc8
+    FederationQueueState::upsert(&mut self.context.pool(), &self.state).await?;
+    self
+      .stats_sender
+      .send((self.instance.id, self.state.clone()))?;
+=======
+    FederationQueueState::upsert(&mut self.context.pool(), &self.state).await?;
+    self.stats_sender.send(FederationQueueStateWithDomain {
+      state: self.state.clone(),
+      domain: self.instance.domain.clone(),
+    })?;
+>>>>>>> origin/main
     Ok(())
   }
 

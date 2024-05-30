@@ -6,10 +6,7 @@ use lemmy_api_common::{
   federate_retry_sleep_duration,
   lemmy_utils::settings::structs::FederationWorkerConfig,
 };
-use lemmy_db_schema::{
-  newtypes::InstanceId,
-  source::{federation_queue_state::FederationQueueState, instance::Instance},
-};
+use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
 use lemmy_utils::error::LemmyResult;
 use stats::receive_print_stats;
 use std::{collections::HashMap, time::Duration};
@@ -20,6 +17,7 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 use tracing::info;
+use util::FederationQueueStateWithDomain;
 
 mod inboxes;
 mod send;
@@ -45,7 +43,7 @@ pub struct SendManager {
   opts: Opts,
   workers: HashMap<InstanceId, CancellableTask>,
   context: FederationConfig<LemmyContext>,
-  stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
+  stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
   exit_print: JoinHandle<()>,
   federation_worker_config: FederationWorkerConfig,
 }
@@ -135,6 +133,7 @@ impl SendManager {
           }
           // create new worker
           let context = self.context.clone();
+          let context = self.context.clone();
           let stats_sender = self.stats_sender.clone();
           let federation_worker_config = self.federation_worker_config.clone();
 
@@ -210,7 +209,7 @@ mod test {
     collections::HashSet,
     sync::{Arc, Mutex},
   };
-  use tokio::{spawn, time::sleep};
+  use tokio::spawn;
 
   struct TestData {
     send_manager: SendManager,
