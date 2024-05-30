@@ -217,10 +217,12 @@ impl CommunityModerator {
   ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    uplete::new(community_actions::table.filter(community_actions::community_id.eq(for_community_id)))
-      .set_null(community_actions::became_moderator)
-      .get_result(conn)
-      .await
+    uplete::new(
+      community_actions::table.filter(community_actions::community_id.eq(for_community_id)),
+    )
+    .set_null(community_actions::became_moderator)
+    .get_result(conn)
+    .await
   }
 
   pub async fn leave_all_communities(
@@ -451,7 +453,7 @@ mod tests {
       person::{Person, PersonInsertForm},
     },
     traits::{Bannable, Crud, Followable, Joinable},
-    utils::{build_db_pool_for_tests, uplete::uplete::Count},
+    utils::{build_db_pool_for_tests, uplete::Count},
     CommunityVisibility,
   };
   use pretty_assertions::assert_eq;

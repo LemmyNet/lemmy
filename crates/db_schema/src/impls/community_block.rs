@@ -3,13 +3,7 @@ use crate::{
   schema::community_actions,
   source::community_block::{CommunityBlock, CommunityBlockForm},
   traits::Blockable,
-  utils::{
-    find_action,
-    get_conn,
-    now,
-    uplete,
-    DbPool,
-  },
+  utils::{find_action, get_conn, now, uplete, DbPool},
 };
 use diesel::{
   dsl::{exists, insert_into},

@@ -3,13 +3,7 @@ use crate::{
   schema::instance_actions,
   source::instance_block::{InstanceBlock, InstanceBlockForm},
   traits::Blockable,
-  utils::{
-    find_action,
-    get_conn,
-    now,
-    uplete,
-    DbPool,
-  },
+  utils::{find_action, get_conn, now, uplete, DbPool},
 };
 use diesel::{
   dsl::{exists, insert_into},

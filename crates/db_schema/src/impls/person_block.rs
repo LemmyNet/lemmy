@@ -3,13 +3,7 @@ use crate::{
   schema::person_actions,
   source::person_block::{PersonBlock, PersonBlockForm},
   traits::Blockable,
-  utils::{
-    find_action,
-    get_conn,
-    now,
-    uplete,
-    DbPool,
-  },
+  utils::{find_action, get_conn, now, uplete, DbPool},
 };
 use diesel::{
   dsl::{exists, insert_into},
@@ -64,9 +58,11 @@ impl Blockable for PersonBlock {
     person_block_form: &Self::Form,
   ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete::new(person_actions::table.find((person_block_form.person_id, person_block_form.target_id)))
-      .set_null(person_actions::blocked)
-      .get_result(conn)
-      .await
+    uplete::new(
+      person_actions::table.find((person_block_form.person_id, person_block_form.target_id)),
+    )
+    .set_null(person_actions::blocked)
+    .get_result(conn)
+    .await
   }
 }
