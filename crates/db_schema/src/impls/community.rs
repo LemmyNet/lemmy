@@ -453,7 +453,7 @@ mod tests {
       person::{Person, PersonInsertForm},
     },
     traits::{Bannable, Crud, Followable, Joinable},
-    utils::{build_db_pool_for_tests, uplete::Count},
+    utils::{build_db_pool_for_tests, uplete},
     CommunityVisibility,
   };
   use pretty_assertions::assert_eq;

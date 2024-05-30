@@ -1,7 +1,7 @@
 use crate::{
   diesel::OptionalExtension,
   newtypes::{CommunityId, DbUrl, PersonId},
-  utils::{get_conn, uplete::Count, DbPool},
+  utils::{get_conn, uplete, DbPool},
 };
 use diesel::{
   associations::HasTable,

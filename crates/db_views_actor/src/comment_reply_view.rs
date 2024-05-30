@@ -188,7 +188,7 @@ impl CommentReplyView {
     }
 
     query
-      // Dont count replies from blocked users
+      // Don't count replies from blocked users
       .filter(person_actions::blocked.is_null())
       .filter(comment_reply::recipient_id.eq(local_user.person_id))
       .filter(comment_reply::read.eq(false))

@@ -189,7 +189,7 @@ impl PersonMentionView {
     }
 
     query
-      // Dont count replies from blocked users
+      // Don't count replies from blocked users
       .filter(person_actions::blocked.is_null())
       .filter(person_mention::recipient_id.eq(local_user.person_id))
       .filter(person_mention::read.eq(false))
