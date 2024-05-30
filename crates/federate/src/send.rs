@@ -20,7 +20,12 @@ pub(crate) struct SendSuccessInfo {
   pub published: Option<DateTime<Utc>>,
   pub was_skipped: bool,
 }
-// need to be able to order them for the binary heap in the worker
+// order backwards by activity_id for the binary heap in the worker
+impl PartialEq for SendSuccessInfo {
+  fn eq(&self, other: &Self) -> bool {
+    self.activity_id == other.activity_id
+  }
+}
 impl PartialOrd for SendSuccessInfo {
   fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
     other.activity_id.partial_cmp(&self.activity_id)
