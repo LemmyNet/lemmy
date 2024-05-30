@@ -11,7 +11,7 @@ use diesel::{
   Expression,
   Table,
 };
-use std::any::Any;
+use std::any::TypeId;
 use tuplex::IntoArray;
 
 /// Set columns (each specified with `UpleteBuilder::set_null`) to null in the rows found by
@@ -49,7 +49,7 @@ where
   Q::Table: Default + QueryFragment<Pg> + Send + 'static,
   <Q::Table as Table>::PrimaryKey: IntoArray<DynColumn> + QueryFragment<Pg> + Send + 'static,
   <Q::Table as Table>::AllColumns: IntoArray<DynColumn>,
-  <<Q::Table as Table>::PrimaryKey as IntoArray<DynColumn>>::Output: AsRef<[DynColumn]>,
+  <<Q::Table as Table>::PrimaryKey as IntoArray<DynColumn>>::Output: IntoIterator<Item = DynColumn>,
   <<Q::Table as Table>::AllColumns as IntoArray<DynColumn>>::Output: IntoIterator<Item = DynColumn>,
   Q: Clone + FilterDsl<AllNull> + FilterDsl<dsl::not<AllNull>>,
   dsl::Filter<Q, AllNull>: QueryFragment<Pg> + Send + 'static,
@@ -61,22 +61,20 @@ where
 
   fn as_query(self) -> Self::Query {
     let table = Q::Table::default;
-    let primary_key_columns = table().primary_key().into_array();
-    let deletion_condition = || {
-      AllNull(
-        Q::Table::all_columns()
-          .into_array()
-          .into_iter()
-          .filter(|c: &DynColumn| {
-            primary_key_columns
-              .as_ref()
-              .iter()
-              .chain(&self.set_null_columns)
-              .all(|excluded_column| excluded_column.type_id() != c.type_id())
-          })
-          .collect::<Vec<_>>(),
-      )
-    };
+    let deletion_condition = AllNull(
+      Q::Table::all_columns()
+        .into_array()
+        .into_iter()
+        .filter(|c: DynColumn| {
+          table()
+            .primary_key()
+            .into_array();
+            .into_iter()
+            .chain(self.set_null_columns.iter().copied())
+            .all(|excluded_column| excluded_column.type_id != c.type_id)
+        })
+        .collect::<Vec<_>>(),
+    );
     UpleteQuery {
       // Updated rows and deleted rows must not overlap, so updating all rows and using the returned
       // new rows to determine which ones to delete is not an option.
@@ -87,8 +85,8 @@ where
       // the modifications takes place, but it is not easy (and sometimes not possible) to reliably
       // predict which one. This also applies to deleting a row that was already updated in the same
       // statement: only the update is performed."
-      update_subquery: Box::new(self.query.clone().filter(dsl::not(deletion_condition()))),
-      delete_subquery: Box::new(self.query.filter(deletion_condition())),
+      update_subquery: Box::new(self.query.clone().filter(dsl::not(deletion_condition.clone()))),
+      delete_subquery: Box::new(self.query.filter(deletion_condition)),
       table: Box::new(table()),
       primary_key: Box::new(table().primary_key()),
       set_null_columns: self.set_null_columns,
@@ -135,7 +133,7 @@ impl QueryFragment<Pg> for UpleteQuery {
     let mut item_prefix = " SET ";
     for column in &self.set_null_columns {
       out.push_sql(item_prefix);
-      column.0.walk_ast(out.reborrow())?;
+      out.push_identifier(column.name)?;
       out.push_sql(" = NULL");
       item_prefix = ",";
     }
@@ -158,6 +156,7 @@ impl QueryFragment<Pg> for UpleteQuery {
   }
 }
 
+#[derive(Clone)]
 pub struct AllNull(Vec<DynColumn>);
 
 impl Expression for AllNull {
@@ -174,7 +173,7 @@ impl QueryFragment<Pg> for AllNull {
     out.push_sql("(TRUE");
     for column in &self.0 {
       out.push_sql(" AND ");
-      column.0.walk_ast(out.reborrow())?;
+      out.push_identifier(column.name)?;
       out.push_sql(" IS NOT NULL");
     }
     out.push_sql(")");
@@ -183,11 +182,18 @@ impl QueryFragment<Pg> for AllNull {
   }
 }
 
-pub struct DynColumn(Box<dyn QueryFragment<Pg> + Send + 'static>);
+#[derive(Clone)]
+pub struct DynColumn {
+  type_id: TypeId,
+  name: &'static str,
+};
 
-impl<T: QueryFragment<Pg> + Send + 'static> From<T> for DynColumn {
-  fn from(value: T) -> Self {
-    DynColumn(Box::new(value))
+impl<T: Column + 'static> From<T> for DynColumn {
+  fn from(_value: T) -> Self {
+    DynColumn {
+      type_id: TypeId::of::<T>(),
+      name: T::NAME,
+    }
   }
 }
 
