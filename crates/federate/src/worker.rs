@@ -315,9 +315,16 @@ impl InstanceWorker {
       .await
       .context("failed figuring out inbox urls")?;
     if inbox_urls.is_empty() {
+      // this is the case when the activity is not relevant to this receiving instance (e.g. no user
+      // subscribed to the relevant community)
       tracing::debug!("{}: {:?} no inboxes", self.instance.domain, activity.id);
       report.send(SendActivityResult::Success(SendSuccessInfo {
         activity_id,
+        // it would be valid here to either return None or Some(activity.published). The published
+        // time is only used for stats pages that track federation delay. None can be a bit
+        // misleading because if you look at / chart the published time for federation from a large
+        // to a small instance that's only subscribed to a few small communities, then it will show
+        // the last published time as a days ago even though federation is up to date.
         published: Some(activity.published),
         was_skipped: true,
       }))?;
