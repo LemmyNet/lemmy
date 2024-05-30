@@ -77,6 +77,7 @@ impl SendManager {
   pub fn run(opts: Opts, context: FederationConfig<LemmyContext>, config: FederationWorkerConfig) -> CancellableTask {
     CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |cancel| {
       let opts = opts.clone();
+      let config = config.clone();
       let context = context.clone();
       let mut manager = Self::new(opts, context, config);
       async move {
@@ -135,7 +136,7 @@ impl SendManager {
           // create new worker
           let context = self.context.clone();
           let stats_sender = self.stats_sender.clone();
-          let federation_worker_config = federation_worker_config.clone();
+          let federation_worker_config = self.federation_worker_config.clone();
 
           self.workers.insert(
             instance.id,
@@ -143,10 +144,9 @@ impl SendManager {
               // if the instance worker ends unexpectedly due to internal/db errors, this lambda is
               // rerun by cancellabletask.
               let instance = instance.clone();
-              let req_data = context.to_request_data();
               InstanceWorker::init_and_loop(
                 instance,
-                req_data,
+                context.clone(),
                 federation_worker_config.clone(),
                 stop,
                 stats_sender.clone(),
