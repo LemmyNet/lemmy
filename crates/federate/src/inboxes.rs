@@ -136,9 +136,10 @@ impl CommunityInboxCollector {
     instance_id: InstanceId,
     last_fetch: DateTime<Utc>,
   ) -> Result<(HashMap<CommunityId, HashSet<Url>>, DateTime<Utc>)> {
+    // update to time before fetch to ensure overlap. subtract 10s to ensure overlap even if
+    // published date is not exact
     let new_last_fetch =
-      Utc::now() - chrono::TimeDelta::try_seconds(10).expect("TimeDelta out of bounds"); // update to time before fetch to ensure overlap. subtract 10s to ensure overlap even if
-                                                                                         // published date is not exact
+      Utc::now() - chrono::TimeDelta::try_seconds(10).expect("TimeDelta out of bounds");
     Ok((
       CommunityFollowerView::get_instance_followed_community_inboxes(
         &mut self.pool(),
