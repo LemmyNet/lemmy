@@ -67,7 +67,7 @@ where
         Q::Table::all_columns()
           .into_array()
           .into_iter()
-          .filter(|c: DynColumn| {
+          .filter(|c: &DynColumn| {
             primary_key_columns
               .as_ref()
               .iter()
