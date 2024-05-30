@@ -14,18 +14,19 @@ use std::ops::Deref;
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 use tokio_util::sync::CancellationToken;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Eq)]
 pub(crate) struct SendSuccessInfo {
   pub activity_id: ActivityId,
   pub published: Option<DateTime<Utc>>,
   pub was_skipped: bool,
 }
-// order backwards by activity_id for the binary heap in the worker
+/// order backwards by activity_id for the binary heap in the worker
 impl PartialEq for SendSuccessInfo {
   fn eq(&self, other: &Self) -> bool {
     self.activity_id == other.activity_id
   }
 }
+/// order backwards because the binary heap is a max heap, and we need the smallest element to be on top
 impl PartialOrd for SendSuccessInfo {
   fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
     other.activity_id.partial_cmp(&self.activity_id)
