@@ -16,7 +16,7 @@ use crate::{
     get_conn,
     naive_now,
     now,
-    uplete::{uplete, UpleteCount},
+    uplete,
     DbPool,
   },
 };
@@ -211,9 +211,9 @@ impl Followable for PersonFollower {
   async fn unfollow(
     pool: &mut DbPool<'_>,
     form: &PersonFollowerForm,
-  ) -> Result<UpleteCount, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete(person_actions::table.find((form.follower_id, form.person_id)))
+    uplete::new(person_actions::table.find((form.follower_id, form.person_id)))
       .set_null(person_actions::followed)
       .set_null(person_actions::follow_pending)
       .get_result(conn)
@@ -247,7 +247,7 @@ mod tests {
       person::{Person, PersonFollower, PersonFollowerForm, PersonInsertForm, PersonUpdateForm},
     },
     traits::{Crud, Followable},
-    utils::{build_db_pool_for_tests, uplete::UpleteCount},
+    utils::{build_db_pool_for_tests, uplete::uplete::Count},
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -354,6 +354,6 @@ mod tests {
     assert_eq!(vec![person_2], followers);
 
     let unfollow = PersonFollower::unfollow(pool, &follow_form).await.unwrap();
-    assert_eq!(UpleteCount::only_deleted(1), unfollow);
+    assert_eq!(uplete::Count::only_deleted(1), unfollow);
   }
 }

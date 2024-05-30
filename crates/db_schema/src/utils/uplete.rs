@@ -14,8 +14,9 @@ use diesel::{
 use std::any::Any;
 use tuplex::IntoArray;
 
-/// Set columns to null and delete the row if all columns not in the primary key are null
-pub fn uplete<Q>(query: Q) -> UpleteBuilder<dsl::Select<Q::Query, <Q::Table as Table>::PrimaryKey>>
+/// Set columns (each specified with `UpleteBuilder::set_null`) to null in the rows found by
+/// `query`, and delete rows that have no remaining non-null values outside of the primary key
+pub fn new<Q>(query: Q) -> UpleteBuilder<dsl::Select<Q::Query, <Q::Table as Table>::PrimaryKey>>
 where
   Q: AsQuery + HasTable,
   Q::Table: Default,
@@ -48,8 +49,8 @@ where
   Q::Table: Default + QueryFragment<Pg> + Send + 'static,
   <Q::Table as Table>::PrimaryKey: IntoArray<DynColumn> + QueryFragment<Pg> + Send + 'static,
   <Q::Table as Table>::AllColumns: IntoArray<DynColumn>,
-  <<Q::Table as Table>::PrimaryKey as IntoArray<DynColumn>>::Output: AsRef<[DynColumn]>,
-  <<Q::Table as Table>::AllColumns as IntoArray<DynColumn>>::Output: AsRef<[DynColumn]>,
+  <<Q::Table as Table>::PrimaryKey as IntoArray<DynColumn>>::Output: IntoIterator<Item = DynColumn>,
+  <<Q::Table as Table>::AllColumns as IntoArray<DynColumn>>::Output: IntoIterator<Item = DynColumn>,
   Q: Clone + FilterDsl<AllNull> + FilterDsl<dsl::not<AllNull>>,
   dsl::Filter<Q, AllNull>: QueryFragment<Pg> + Send + 'static,
   dsl::Filter<Q, dsl::not<AllNull>>: QueryFragment<Pg> + Send + 'static,
@@ -60,17 +61,16 @@ where
 
   fn as_query(self) -> Self::Query {
     let table = Q::Table::default();
-    let primary_key_columns = table.primary_key().into_array();
-    let all_columns = Q::Table::all_columns().into_array();
     let deletion_condition = || {
       AllNull(
-        all_columns
-          .as_ref()
-          .iter()
+        Q::Table::all_columns()
+          .into_array()
+          .into_iter()
           .filter(|c: DynColumn| {
-            primary_key_columns
-              .as_ref()
-              .iter()
+            table
+              .primary_key()
+              .into_array();
+              .into_iter()
               .chain(&self.set_null_columns)
               .all(|excluded_column| excluded_column.type_id() != c.type_id())
           })
@@ -192,21 +192,21 @@ impl<T: QueryFragment<Pg> + Send + 'static> From<T> for DynColumn {
 }
 
 #[derive(Queryable, PartialEq, Eq, Debug)]
-pub struct UpleteCount {
+pub struct Count {
   pub updated: i64,
   pub deleted: i64,
 }
 
-impl UpleteCount {
+impl Count {
   pub fn only_updated(n: i64) -> Self {
-    UpleteCount {
+    Count {
       updated: n,
       deleted: 0,
     }
   }
 
   pub fn only_deleted(n: i64) -> Self {
-    UpleteCount {
+    Count {
       updated: 0,
       deleted: n,
     }

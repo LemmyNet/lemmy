@@ -7,7 +7,7 @@ use crate::{
     find_action,
     get_conn,
     now,
-    uplete::{uplete, UpleteCount},
+    uplete,
     DbPool,
   },
 };
@@ -59,9 +59,9 @@ impl Blockable for InstanceBlock {
   async fn unblock(
     pool: &mut DbPool<'_>,
     instance_block_form: &Self::Form,
-  ) -> Result<UpleteCount, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete(instance_actions::table.find((
+    uplete::new(instance_actions::table.find((
       instance_block_form.person_id,
       instance_block_form.instance_id,
     )))

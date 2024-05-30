@@ -24,7 +24,7 @@ use crate::{
     functions::{coalesce, lower},
     get_conn,
     now,
-    uplete::{uplete, UpleteCount},
+    uplete,
     DbPool,
   },
   SubscribedType,
@@ -109,9 +109,9 @@ impl Joinable for CommunityModerator {
   async fn leave(
     pool: &mut DbPool<'_>,
     community_moderator_form: &CommunityModeratorForm,
-  ) -> Result<UpleteCount, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete(community_actions::table.find((
+    uplete::new(community_actions::table.find((
       community_moderator_form.person_id,
       community_moderator_form.community_id,
     )))
@@ -214,10 +214,10 @@ impl CommunityModerator {
   pub async fn delete_for_community(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
-  ) -> Result<UpleteCount, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    uplete(community_actions::table.filter(community_actions::community_id.eq(for_community_id)))
+    uplete::new(community_actions::table.filter(community_actions::community_id.eq(for_community_id)))
       .set_null(community_actions::became_moderator)
       .get_result(conn)
       .await
@@ -226,9 +226,9 @@ impl CommunityModerator {
   pub async fn leave_all_communities(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
-  ) -> Result<UpleteCount, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete(community_actions::table.filter(community_actions::person_id.eq(for_person_id)))
+    uplete::new(community_actions::table.filter(community_actions::person_id.eq(for_person_id)))
       .set_null(community_actions::became_moderator)
       .get_result(conn)
       .await
@@ -275,9 +275,9 @@ impl Bannable for CommunityPersonBan {
   async fn unban(
     pool: &mut DbPool<'_>,
     community_person_ban_form: &CommunityPersonBanForm,
-  ) -> Result<UpleteCount, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete(community_actions::table.find((
+    uplete::new(community_actions::table.find((
       community_person_ban_form.person_id,
       community_person_ban_form.community_id,
     )))
@@ -370,9 +370,9 @@ impl Followable for CommunityFollower {
   async fn unfollow(
     pool: &mut DbPool<'_>,
     form: &CommunityFollowerForm,
-  ) -> Result<UpleteCount, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete(community_actions::table.find((form.person_id, form.community_id)))
+    uplete::new(community_actions::table.find((form.person_id, form.community_id)))
       .set_null(community_actions::followed)
       .set_null(community_actions::follow_pending)
       .get_result(conn)
@@ -451,7 +451,7 @@ mod tests {
       person::{Person, PersonInsertForm},
     },
     traits::{Bannable, Crud, Followable, Joinable},
-    utils::{build_db_pool_for_tests, uplete::UpleteCount},
+    utils::{build_db_pool_for_tests, uplete::uplete::Count},
     CommunityVisibility,
   };
   use pretty_assertions::assert_eq;
@@ -595,9 +595,9 @@ mod tests {
     assert_eq!(expected_community_follower, inserted_community_follower);
     assert_eq!(expected_community_moderator, inserted_community_moderator);
     assert_eq!(expected_community_person_ban, inserted_community_person_ban);
-    assert_eq!(UpleteCount::only_updated(1), ignored_community);
-    assert_eq!(UpleteCount::only_updated(1), left_community);
-    assert_eq!(UpleteCount::only_deleted(1), unban);
+    assert_eq!(uplete::Count::only_updated(1), ignored_community);
+    assert_eq!(uplete::Count::only_updated(1), left_community);
+    assert_eq!(uplete::Count::only_deleted(1), unban);
     // assert_eq!(2, loaded_count);
     assert_eq!(1, num_deleted);
   }

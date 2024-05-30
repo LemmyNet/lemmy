@@ -17,7 +17,7 @@ use crate::{
     get_conn,
     naive_now,
     now,
-    uplete::{uplete, UpleteCount},
+    uplete,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
   },
@@ -173,9 +173,9 @@ impl Likeable for CommentLike {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     comment_id: CommentId,
-  ) -> Result<UpleteCount, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete(comment_actions::table.find((person_id, comment_id)))
+    uplete::new(comment_actions::table.find((person_id, comment_id)))
       .set_null(comment_actions::like_score)
       .set_null(comment_actions::liked)
       // Deleting empty `comment_actions` rows would not work without setting `post_id` to
@@ -210,9 +210,9 @@ impl Saveable for CommentSaved {
   async fn unsave(
     pool: &mut DbPool<'_>,
     comment_saved_form: &CommentSavedForm,
-  ) -> Result<UpleteCount, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete(
+    uplete::new(
       comment_actions::table.find((comment_saved_form.person_id, comment_saved_form.comment_id)),
     )
     .set_null(comment_actions::saved)
@@ -244,7 +244,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Likeable, Saveable},
-    utils::{build_db_pool_for_tests, uplete::UpleteCount},
+    utils::{build_db_pool_for_tests, uplete::uplete::Count},
   };
   use diesel_ltree::Ltree;
   use pretty_assertions::assert_eq;
@@ -392,8 +392,8 @@ mod tests {
       format!("0.{}.{}", expected_comment.id, inserted_child_comment.id),
       inserted_child_comment.path.0,
     );
-    assert_eq!(UpleteCount::only_updated(1), like_removed);
-    assert_eq!(UpleteCount::only_deleted(1), saved_removed);
+    assert_eq!(uplete::Count::only_updated(1), like_removed);
+    assert_eq!(uplete::Count::only_deleted(1), saved_removed);
     assert_eq!(1, num_deleted);
   }
 }

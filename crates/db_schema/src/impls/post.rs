@@ -21,7 +21,7 @@ use crate::{
     get_conn,
     naive_now,
     now,
-    uplete::{uplete, UpleteCount},
+    uplete,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
@@ -268,9 +268,9 @@ impl Likeable for PostLike {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     post_id: PostId,
-  ) -> Result<UpleteCount, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete(post_actions::table.find((person_id, post_id)))
+    uplete::new(post_actions::table.find((person_id, post_id)))
       .set_null(post_actions::like_score)
       .set_null(post_actions::liked)
       .get_result(conn)
@@ -296,9 +296,9 @@ impl Saveable for PostSaved {
   async fn unsave(
     pool: &mut DbPool<'_>,
     post_saved_form: &PostSavedForm,
-  ) -> Result<UpleteCount, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    uplete(post_actions::table.find((post_saved_form.person_id, post_saved_form.post_id)))
+    uplete::new(post_actions::table.find((post_saved_form.person_id, post_saved_form.post_id)))
       .set_null(post_actions::saved)
       .get_result(conn)
       .await
@@ -335,10 +335,10 @@ impl PostRead {
     pool: &mut DbPool<'_>,
     post_id_: HashSet<PostId>,
     person_id_: PersonId,
-  ) -> Result<UpleteCount, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    uplete(
+    uplete::new(
       post_actions::table
         .filter(post_actions::post_id.eq_any(post_id_))
         .filter(post_actions::person_id.eq(person_id_)),
@@ -379,10 +379,10 @@ impl PostHide {
     pool: &mut DbPool<'_>,
     post_id_: HashSet<PostId>,
     person_id_: PersonId,
-  ) -> Result<UpleteCount, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    uplete(
+    uplete::new(
       post_actions::table
         .filter(post_actions::post_id.eq_any(post_id_))
         .filter(post_actions::person_id.eq(person_id_)),
@@ -415,7 +415,7 @@ mod tests {
       },
     },
     traits::{Crud, Likeable, Saveable},
-    utils::{build_db_pool_for_tests, uplete::UpleteCount},
+    utils::{build_db_pool_for_tests, uplete::uplete::Count},
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -542,9 +542,9 @@ mod tests {
     let like_removed = PostLike::remove(pool, inserted_person.id, inserted_post.id)
       .await
       .unwrap();
-    assert_eq!(UpleteCount::only_updated(1), like_removed);
+    assert_eq!(uplete::Count::only_updated(1), like_removed);
     let saved_removed = PostSaved::unsave(pool, &post_saved_form).await.unwrap();
-    assert_eq!(UpleteCount::only_updated(1), saved_removed);
+    assert_eq!(uplete::Count::only_updated(1), saved_removed);
     let read_removed = PostRead::mark_as_unread(
       pool,
       HashSet::from([inserted_post.id, inserted_post2.id]),
@@ -552,7 +552,7 @@ mod tests {
     )
     .await
     .unwrap();
-    assert_eq!(UpleteCount::only_deleted(2), read_removed);
+    assert_eq!(uplete::Count::only_deleted(2), read_removed);
 
     let num_deleted = Post::delete(pool, inserted_post.id).await.unwrap()
       + Post::delete(pool, inserted_post2.id).await.unwrap();
