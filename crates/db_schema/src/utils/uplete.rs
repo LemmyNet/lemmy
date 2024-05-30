@@ -12,10 +12,10 @@ use diesel::{
   Table,
 };
 use std::any::Any;
-use tuplex::{IntoArray, Len};
+use tuplex::IntoArray;
 
 /// Set columns to null and delete the row if all columns not in the primary key are null
-pub fn uplete<Q>(query: Q) -> UpleteBuilder<Q>
+pub fn uplete<Q>(query: Q) -> UpleteBuilder<dsl::Select<Q::Query, <Q::Table as Table>::PrimaryKey>>
 where
   Q: AsQuery + HasTable,
   Q::Table: Default,
@@ -48,8 +48,8 @@ where
   Q::Table: Default + QueryFragment<Pg> + Send + 'static,
   <Q::Table as Table>::PrimaryKey: IntoArray<DynColumn> + QueryFragment<Pg> + Send + 'static,
   <Q::Table as Table>::AllColumns: IntoArray<DynColumn>,
-  <<Q::Table as Table>::PrimaryKey as IntoArray<DynColumn>>::Output: IntoIterator<Item = DynColumn>,
-  <<Q::Table as Table>::AllColumns as IntoArray<DynColumn>>::Output: IntoIterator<Item = DynColumn>,
+  <<Q::Table as Table>::PrimaryKey as IntoArray<DynColumn>>::Output: AsRef<[DynColumn]>,
+  <<Q::Table as Table>::AllColumns as IntoArray<DynColumn>>::Output: AsRef<[DynColumn]>,
   Q: Clone + FilterDsl<AllNull> + FilterDsl<dsl::not<AllNull>>,
   dsl::Filter<Q, AllNull>: QueryFragment<Pg> + Send + 'static,
   dsl::Filter<Q, dsl::not<AllNull>>: QueryFragment<Pg> + Send + 'static,
@@ -61,18 +61,22 @@ where
   fn as_query(self) -> Self::Query {
     let table = Q::Table::default();
     let primary_key_columns = table.primary_key().into_array();
-    let deletion_condition = AllNull(
-      Q::Table::all_columns()
-        .into_array()
-        .into_iter()
-        .filter(|c: DynColumn| {
-          primary_key_columns
-            .iter()
-            .chain(&self.set_null_columns)
-            .all(|excluded_column| excluded_column.type_id() != c.type_id())
-        })
-        .collect::<Vec<_>>(),
-    );
+    let all_columns = Q::Table::all_columns().into_array();
+    let deletion_condition = || {
+      AllNull(
+        all_columns
+          .as_ref()
+          .iter()
+          .filter(|c: DynColumn| {
+            primary_key_columns
+              .as_ref()
+              .iter()
+              .chain(&self.set_null_columns)
+              .all(|excluded_column| excluded_column.type_id() != c.type_id())
+          })
+          .collect::<Vec<_>>(),
+      )
+    };
     UpleteQuery {
       // Updated rows and deleted rows must not overlap, so updating all rows and using the returned
       // new rows to determine which ones to delete is not an option.
@@ -84,12 +88,9 @@ where
       // predict which one. This also applies to deleting a row that was already updated in the same
       // statement: only the update is performed."
       update_subquery: Box::new(
-        self
-          .query
-          .clone()
-          .filter(dsl::not(deletion_condition.clone())),
+        self.query.clone().filter(dsl::not(deletion_condition())),
       ),
-      delete_subquery: Box::new(self.query.filter(deletion_condition)),
+      delete_subquery: Box::new(self.query.filter(deletion_condition())),
       table: Box::new(table),
       primary_key: Box::new(table.primary_key()),
       set_null_columns: self.set_null_columns,
@@ -136,7 +137,7 @@ impl QueryFragment<Pg> for UpleteQuery {
     let mut item_prefix = " SET ";
     for column in &self.set_null_columns {
       out.push_sql(item_prefix);
-      column.walk_ast(out.reborrow())?;
+      column.0.walk_ast(out.reborrow())?;
       out.push_sql(" = NULL");
       item_prefix = ",";
     }
@@ -159,7 +160,6 @@ impl QueryFragment<Pg> for UpleteQuery {
   }
 }
 
-#[derive(Clone)]
 pub struct AllNull(Vec<DynColumn>);
 
 impl Expression for AllNull {
@@ -175,7 +175,7 @@ impl QueryFragment<Pg> for AllNull {
     let mut item_prefix = "(";
     for column in &self.0 {
       out.push_sql(item_prefix);
-      column.walk_ast(out.reborrow())?;
+      column.0.walk_ast(out.reborrow())?;
       out.push_sql(" IS NOT NULL");
       item_prefix = " AND ";
     }
@@ -187,7 +187,7 @@ impl QueryFragment<Pg> for AllNull {
 
 pub struct DynColumn(Box<dyn QueryFragment<Pg> + Send + 'static>);
 
-impl<T: QueryFragment<Pg> + 'static> From<T> for DynColumn {
+impl<T: QueryFragment<Pg> + Send + 'static> From<T> for DynColumn {
   fn from(value: T) -> Self {
     DynColumn(Box::new(value))
   }
