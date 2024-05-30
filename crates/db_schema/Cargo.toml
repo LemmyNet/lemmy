@@ -38,8 +38,8 @@ full = [
   "tokio-postgres-rustls",
   "rustls",
   "i-love-jesus",
-  "diesel-bind-if-some",
   "tuplex",
+  "diesel-bind-if-some",
 ]
 
 [dependencies]
