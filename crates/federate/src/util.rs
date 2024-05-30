@@ -180,6 +180,7 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Acti
 
 /// the domain name is needed for logging, pass it to the stats printer so it doesn't need to look
 /// up the domain itself
+#[derive(Debug)]
 pub(crate) struct FederationQueueStateWithDomain {
   pub domain: String,
   pub state: FederationQueueState,
