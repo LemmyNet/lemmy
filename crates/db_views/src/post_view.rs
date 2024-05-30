@@ -613,7 +613,7 @@ mod tests {
       site::Site,
     },
     traits::{Bannable, Blockable, Crud, Joinable, Likeable},
-    utils::{build_db_pool, build_db_pool_for_tests, uplete::UpleteCount, DbPool, RANK_DEFAULT},
+    utils::{build_db_pool, build_db_pool_for_tests, uplete, DbPool, RANK_DEFAULT},
     CommunityVisibility,
     SortType,
     SubscribedType,
@@ -953,7 +953,7 @@ mod tests {
 
     let like_removed =
       PostLike::remove(pool, data.local_user_view.person.id, data.inserted_post.id).await?;
-    assert_eq!(UpleteCount::only_deleted(1), like_removed);
+    assert_eq!(uplete::Count::only_deleted(1), like_removed);
     cleanup(data, pool).await
   }
 
