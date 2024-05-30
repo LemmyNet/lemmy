@@ -1,9 +1,7 @@
 use crate::{util::CancellableTask, worker::InstanceWorker};
 use activitypub_federation::config::FederationConfig;
-use chrono::{Local, Timelike};
 use lemmy_api_common::{
   context::LemmyContext,
-  federate_retry_sleep_duration,
   lemmy_utils::settings::structs::FederationWorkerConfig,
 };
 use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
@@ -72,7 +70,11 @@ impl SendManager {
     }
   }
 
-  pub fn run(opts: Opts, context: FederationConfig<LemmyContext>, config: FederationWorkerConfig) -> CancellableTask {
+  pub fn run(
+    opts: Opts,
+    context: FederationConfig<LemmyContext>,
+    config: FederationWorkerConfig,
+  ) -> CancellableTask {
     CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |cancel| {
       let opts = opts.clone();
       let config = config.clone();
@@ -132,7 +134,6 @@ impl SendManager {
             continue;
           }
           // create new worker
-          let context = self.context.clone();
           let context = self.context.clone();
           let stats_sender = self.stats_sender.clone();
           let federation_worker_config = self.federation_worker_config.clone();

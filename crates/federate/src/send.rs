@@ -46,7 +46,8 @@ pub(crate) struct SendRetryTask<'a> {
   pub inbox_urls: Vec<Url>,
   /// report to the main instance worker
   pub report: &'a mut UnboundedSender<SendActivityResult>,
-  /// the first request will be sent immediately, but the next one will be delayed according to the number of previous fails + 1
+  /// the first request will be sent immediately, but the next one will be delayed according to the
+  /// number of previous fails + 1
   pub initial_fail_count: i32,
   /// for logging
   pub domain: String,

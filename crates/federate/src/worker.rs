@@ -1,36 +1,16 @@
-<<<<<<< HEAD
 use crate::{
   inboxes::CommunityInboxCollector,
   send::{SendActivityResult, SendRetryTask, SendSuccessInfo},
-  util::{get_activity_cached, get_latest_activity_id, WORK_FINISHED_RECHECK_DELAY},
-||||||| 51970ffc8
-use crate::util::{
-  get_activity_cached,
-  get_actor_cached,
-  get_latest_activity_id,
-  LEMMY_TEST_FAST_FEDERATION,
-  WORK_FINISHED_RECHECK_DELAY,
+  util::{
+    get_activity_cached,
+    get_latest_activity_id,
+    FederationQueueStateWithDomain,
+    WORK_FINISHED_RECHECK_DELAY,
+  },
 };
 use activitypub_federation::{
-  activity_sending::SendActivityTask,
-  config::Data,
-  protocol::context::WithContext,
-=======
-use crate::util::{
-  get_activity_cached,
-  get_actor_cached,
-  get_latest_activity_id,
-  FederationQueueStateWithDomain,
-  LEMMY_TEST_FAST_FEDERATION,
-  WORK_FINISHED_RECHECK_DELAY,
+  config::{FederationConfig},
 };
-use activitypub_federation::{
-  activity_sending::SendActivityTask,
-  config::Data,
-  protocol::context::WithContext,
->>>>>>> origin/main
-};
-use activitypub_federation::config::FederationConfig;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Days, TimeZone, Utc};
 use lemmy_api_common::{
@@ -53,7 +33,8 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
-/// Save state to db after this time has passed since the last state (so if the server crashes or is SIGKILLed, less than X seconds of activities are resent)
+/// Save state to db after this time has passed since the last state (so if the server crashes or is
+/// SIGKILLed, less than X seconds of activities are resent)
 static SAVE_STATE_EVERY_TIME: Duration = Duration::from_secs(60);
 
 /// Maximum number of successful sends to allow out of order
@@ -62,13 +43,9 @@ const MAX_SUCCESSFULS: usize = 1000;
 pub(crate) struct InstanceWorker {
   instance: Instance,
   stop: CancellationToken,
-  context: Data<LemmyContext>,
   stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
-  last_full_communities_fetch: DateTime<Utc>,
-  last_incremental_communities_fetch: DateTime<Utc>,
   federation_lib_config: FederationConfig<LemmyContext>,
   federation_worker_config: FederationWorkerConfig,
-  stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
   state: FederationQueueState,
   last_state_insert: DateTime<Utc>,
   pool: ActualDbPool,
@@ -81,7 +58,7 @@ impl InstanceWorker {
     config: FederationConfig<LemmyContext>,
     federation_worker_config: FederationWorkerConfig,
     stop: CancellationToken,
-    stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
+    stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
   ) -> Result<(), anyhow::Error> {
     let pool = config.to_request_data().inner_pool().clone();
     let state = FederationQueueState::load(&mut DbPool::Pool(&pool), instance.id).await?;
@@ -103,7 +80,8 @@ impl InstanceWorker {
     worker.loop_until_stopped().await
   }
   /// loop fetch new activities from db and send them to the inboxes of the given instances
-  /// this worker only returns if (a) there is an internal error or (b) the cancellation token is cancelled (graceful exit)
+  /// this worker only returns if (a) there is an internal error or (b) the cancellation token is
+  /// cancelled (graceful exit)
   async fn loop_until_stopped(&mut self) -> Result<()> {
     self.initial_fail_sleep().await?;
     let (mut last_sent_id, mut newest_id) = self.get_latest_ids().await?;
@@ -119,8 +97,9 @@ impl InstanceWorker {
       tokio::sync::mpsc::unbounded_channel::<SendActivityResult>();
     while !self.stop.is_cancelled() {
       // check if we need to wait for a send to finish before sending the next one
-      // we wait if (a) the last request failed, only if a request is already in flight (not at the start of the loop)
-      // or (b) if we have too many successfuls in memory or (c) if we have too many in flight
+      // we wait if (a) the last request failed, only if a request is already in flight (not at the
+      // start of the loop) or (b) if we have too many successfuls in memory or (c) if we have
+      // too many in flight
       let need_wait_for_event = (in_flight != 0 && self.state.fail_count > 0)
         || successfuls.len() >= MAX_SUCCESSFULS
         || in_flight >= self.federation_worker_config.concurrent_sends_per_instance;
@@ -131,8 +110,8 @@ impl InstanceWorker {
         self
           .handle_send_results(&mut receive_send_result, &mut successfuls, &mut in_flight)
           .await?;
-        // handle_send_results does not guarantee that we are now in a condition where we want to  send a new one,
-        // so repeat this check until the if no longer applies
+        // handle_send_results does not guarantee that we are now in a condition where we want to
+        // send a new one, so repeat this check until the if no longer applies
         continue;
       } else {
         // send a new activity if there is one
@@ -214,8 +193,8 @@ impl InstanceWorker {
     if let Some(last) = self.state.last_successful_id {
       Ok((last, latest_id))
     } else {
-      // this is the initial creation (instance first seen) of the federation queue for this instance
-      // skip all past activities:
+      // this is the initial creation (instance first seen) of the federation queue for this
+      // instance skip all past activities:
       self.state.last_successful_id = Some(latest_id);
       // save here to ensure it's not read as 0 again later if no activities have happened
       self.save_and_send_state().await?;
@@ -245,7 +224,8 @@ impl InstanceWorker {
         }
         SendActivityResult::Failure { fail_count, .. } => {
           if fail_count > self.state.fail_count {
-            // override fail count - if multiple activities are currently sending this value may get conflicting info but that's fine
+            // override fail count - if multiple activities are currently sending this value may get
+            // conflicting info but that's fine
             self.state.fail_count = fail_count;
             self.state.last_retry = Some(Utc::now());
             force_write = true;
@@ -272,15 +252,19 @@ impl InstanceWorker {
     }
     Ok(())
   }
-  /// Checks that sequential activities `last_successful_id + 1`, `last_successful_id + 2` etc have been sent successfully.
-  /// In that case updates `last_successful_id` and saves the state to the database if the time since the last save is greater than `SAVE_STATE_EVERY_TIME`.
+  /// Checks that sequential activities `last_successful_id + 1`, `last_successful_id + 2` etc have
+  /// been sent successfully. In that case updates `last_successful_id` and saves the state to the
+  /// database if the time since the last save is greater than `SAVE_STATE_EVERY_TIME`.
   async fn pop_successfuls_and_write(
     &mut self,
     successfuls: &mut BinaryHeap<SendSuccessInfo>,
     force_write: bool,
   ) -> Result<()> {
     let Some(mut last_id) = self.state.last_successful_id else {
-      tracing::warn!("{} should be impossible: last successful id is None", self.instance.domain);
+      tracing::warn!(
+        "{} should be impossible: last successful id is None",
+        self.instance.domain
+      );
       return Ok(());
     };
     tracing::debug!(
@@ -292,7 +276,7 @@ impl InstanceWorker {
     );
     while successfuls
       .peek()
-      .map(|a| &a.activity_id == &ActivityId(last_id.0 + 1))
+      .map(|a| a.activity_id == ActivityId(last_id.0 + 1))
       .unwrap_or(false)
     {
       let next = successfuls.pop().unwrap();
@@ -308,8 +292,9 @@ impl InstanceWorker {
     Ok(())
   }
 
-  /// we collect the relevant inboxes in the main instance worker task, and only spawn the send task if we have inboxes to send to
-  /// this limits CPU usage and reduces overhead for the (many) cases where we don't have any inboxes
+  /// we collect the relevant inboxes in the main instance worker task, and only spawn the send task
+  /// if we have inboxes to send to this limits CPU usage and reduces overhead for the (many)
+  /// cases where we don't have any inboxes
   async fn spawn_send_if_needed(
     &mut self,
     activity_id: ActivityId,
@@ -381,23 +366,11 @@ impl InstanceWorker {
   async fn save_and_send_state(&mut self) -> Result<()> {
     tracing::debug!("{}: saving and sending state", self.instance.domain);
     self.last_state_insert = Utc::now();
-<<<<<<< HEAD
     FederationQueueState::upsert(&mut self.pool(), &self.state).await?;
-    self
-      .stats_sender
-      .send((self.instance.domain.clone(), self.state.clone()))?;
-||||||| 51970ffc8
-    FederationQueueState::upsert(&mut self.context.pool(), &self.state).await?;
-    self
-      .stats_sender
-      .send((self.instance.id, self.state.clone()))?;
-=======
-    FederationQueueState::upsert(&mut self.context.pool(), &self.state).await?;
     self.stats_sender.send(FederationQueueStateWithDomain {
       state: self.state.clone(),
       domain: self.instance.domain.clone(),
     })?;
->>>>>>> origin/main
     Ok(())
   }
 
