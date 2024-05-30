@@ -70,7 +70,7 @@ where
             .chain(&self.set_null_columns)
             .all(|excluded_column| excluded_column.type_id() != c.type_id())
         })
-        .collect::<Vec<_>>()
+        .collect::<Vec<_>>(),
     );
     UpleteQuery {
       // Updated rows and deleted rows must not overlap, so updating all rows and using the returned

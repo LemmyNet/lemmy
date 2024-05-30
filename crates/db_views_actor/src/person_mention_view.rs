@@ -23,10 +23,7 @@ use lemmy_db_schema::{
     person_mention,
     post,
   },
-  source::{
-    community::CommunityFollower,
-    local_user::LocalUser,
-  },
+  source::{community::CommunityFollower, local_user::LocalUser},
   utils::{
     actions,
     actions_alias,
