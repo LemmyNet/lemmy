@@ -210,14 +210,13 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     None
   };
   let federate = (!args.disable_activity_sending).then(|| {
-    let task = SendManager::new(
+    SendManager::run(
       Opts {
         process_index: args.federate_process_index,
         process_count: args.federate_process_count,
       },
       federation_config,
-    );
-    task.run()
+    )
   });
   let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;
   let mut terminate = tokio::signal::unix::signal(SignalKind::terminate())?;

@@ -18,7 +18,6 @@ use lemmy_db_schema::{
   traits::ApubActor,
   utils::{get_conn, DbPool},
 };
-use lemmy_utils::error::LemmyResult;
 use moka::future::Cache;
 use once_cell::sync::Lazy;
 use reqwest::Url;
@@ -26,7 +25,6 @@ use serde_json::Value;
 use std::{fmt::Debug, future::Future, pin::Pin, sync::Arc, time::Duration};
 use tokio::{task::JoinHandle, time::sleep};
 use tokio_util::sync::CancellationToken;
-use tracing::error;
 
 /// Decrease the delays of the federation queue.
 /// Should only be used for federation tests since it significantly increases CPU and DB load of the
@@ -62,24 +60,31 @@ impl CancellableTask {
   /// spawn a task but with graceful shutdown
   pub fn spawn<F, R>(
     timeout: Duration,
-    task: impl FnOnce(CancellationToken) -> F + Send + 'static,
+    task: impl Fn(CancellationToken) -> F + Send + 'static,
   ) -> CancellableTask
   where
-    F: Future<Output = LemmyResult<R>> + Send + 'static,
+    F: Future<Output = R> + Send + 'static,
     R: Send + Debug + 'static,
   {
     let stop = CancellationToken::new();
     let stop2 = stop.clone();
-    let task: JoinHandle<LemmyResult<R>> = tokio::spawn(task(stop2));
+    let task: JoinHandle<()> = tokio::spawn(async move {
+      loop {
+        let res = task(stop2.clone()).await;
+        if stop2.is_cancelled() {
+          return;
+        } else {
+          tracing::warn!("task exited, restarting: {res:?}");
+        }
+      }
+    });
     let abort = task.abort_handle();
     CancellableTask {
       f: Box::pin(async move {
         stop.cancel();
         tokio::select! {
             r = task => {
-              if let Err(ref e) = r? {
-                error!("CancellableTask threw error: {e}");
-              }
+              r.context("CancellableTask failed to cancel cleanly, returned error")?;
               Ok(())
             },
             _ = sleep(timeout) => {
