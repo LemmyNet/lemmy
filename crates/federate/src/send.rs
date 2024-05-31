@@ -26,7 +26,8 @@ impl PartialEq for SendSuccessInfo {
     self.activity_id == other.activity_id
   }
 }
-/// order backwards because the binary heap is a max heap, and we need the smallest element to be on top
+/// order backwards because the binary heap is a max heap, and we need the smallest element to be on
+/// top
 impl PartialOrd for SendSuccessInfo {
   fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
     other.activity_id.partial_cmp(&self.activity_id)
