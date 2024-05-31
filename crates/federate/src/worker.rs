@@ -275,7 +275,9 @@ impl InstanceWorker {
       .map(|a| a.activity_id == ActivityId(last_id.0 + 1))
       .unwrap_or(false)
     {
-      let next = successfuls.pop().unwrap();
+      let next = successfuls
+        .pop()
+        .context("peek above ensures pop has value")?;
       last_id = next.activity_id;
       self.state.last_successful_id = Some(next.activity_id);
       self.state.last_successful_published_time = next.published;

@@ -30,7 +30,7 @@ impl PartialEq for SendSuccessInfo {
 /// top
 impl PartialOrd for SendSuccessInfo {
   fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-    other.activity_id.partial_cmp(&self.activity_id)
+    Some(self.cmp(other))
   }
 }
 impl Ord for SendSuccessInfo {
