@@ -70,7 +70,7 @@ where
             .primary_key()
             .into_array()
             .into_iter()
-            .chain(self.set_null_columns.iter().copied())
+            .chain(self.set_null_columns.iter().cloned())
             .all(|excluded_column| excluded_column.type_id != c.type_id)
         })
         .collect::<Vec<_>>(),
