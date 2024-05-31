@@ -68,7 +68,7 @@ where
         .filter(|c: DynColumn| {
           table()
             .primary_key()
-            .into_array();
+            .into_array()
             .into_iter()
             .chain(self.set_null_columns.iter().copied())
             .all(|excluded_column| excluded_column.type_id != c.type_id)
@@ -186,7 +186,7 @@ impl QueryFragment<Pg> for AllNull {
 pub struct DynColumn {
   type_id: TypeId,
   name: &'static str,
-};
+}
 
 impl<T: Column + 'static> From<T> for DynColumn {
   fn from(_value: T) -> Self {
