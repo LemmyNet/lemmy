@@ -85,7 +85,12 @@ where
       // the modifications takes place, but it is not easy (and sometimes not possible) to reliably
       // predict which one. This also applies to deleting a row that was already updated in the same
       // statement: only the update is performed."
-      update_subquery: Box::new(self.query.clone().filter(dsl::not(deletion_condition.clone()))),
+      update_subquery: Box::new(
+        self
+          .query
+          .clone()
+          .filter(dsl::not(deletion_condition.clone())),
+      ),
       delete_subquery: Box::new(self.query.filter(deletion_condition)),
       table: Box::new(table()),
       primary_key: Box::new(table().primary_key()),
