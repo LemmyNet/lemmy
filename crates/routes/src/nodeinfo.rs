@@ -9,6 +9,7 @@ use lemmy_utils::{
   VERSION,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use url::Url;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
@@ -71,7 +72,7 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
       inbound: Some(vec![]),
       outbound: Some(vec![]),
     }),
-    metadata: Some(vec![]),
+    metadata: Some(HashMap::new()),
   };
 
   Ok(HttpResponse::Ok().json(json))
@@ -99,7 +100,7 @@ pub struct NodeInfo {
   pub open_registrations: Option<bool>,
   /// These fields are required by the spec for no reason
   pub services: Option<NodeInfoServices>,
-  pub metadata: Option<Vec<String>>,
+  pub metadata: Option<HashMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
