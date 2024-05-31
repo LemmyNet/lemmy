@@ -151,7 +151,7 @@ impl QueryFragment<Pg> for UpleteQuery {
     self.table.walk_ast(out.reborrow())?;
     out.push_sql(" WHERE (");
     self.primary_key.walk_ast(out.reborrow())?;
-    out.push_sql(") = ANY (SELECT * FROM update_keys) RETURNING 1)");
+    out.push_sql(") = ANY (SELECT * FROM delete_keys) RETURNING 1)");
 
     // Count updated rows and deleted rows (`RETURNING 1` makes this possible)
     out.push_sql(" SELECT (SELECT count(*) FROM update_result)");
