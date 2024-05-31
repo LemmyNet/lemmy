@@ -129,7 +129,7 @@ impl QueryFragment<Pg> for UpleteQuery {
       out.push_sql(prefix);
       out.push_sql(" AS (");
       subquery.walk_ast(out.reborrow())?;
-      out.push_sql(" )");
+      out.push_sql(" FOR UPDATE)");
     }
 
     // Update rows that are referenced in `update_keys`
@@ -156,8 +156,6 @@ impl QueryFragment<Pg> for UpleteQuery {
     // Count updated rows and deleted rows (`RETURNING 1` makes this possible)
     out.push_sql(" SELECT (SELECT count(*) FROM update_result)");
     out.push_sql(", (SELECT count(*) FROM delete_result)");
-    //out.push_sql(" SELECT (SELECT count(*) FROM update_keys)");
-    //out.push_sql(", (SELECT count(*) FROM delete_keys)");
 
     Ok(())
   }

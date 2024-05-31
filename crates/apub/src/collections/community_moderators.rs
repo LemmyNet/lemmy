@@ -69,16 +69,7 @@ impl Collection for ApubCommunityModerators {
           community_id: mod_user.community.id,
           person_id: mod_user.moderator.id,
         };
-        let c = CommunityModerator::leave(&mut data.pool(), &community_moderator_form).await?;
-        assert_eq!(c.deleted + c.updated, 1);
-      }
-    }
-    let current_moderators =
-      CommunityModeratorView::for_community(&mut data.pool(), community_id).await?;
-    for mod_user in &current_moderators {
-      let mod_id = ObjectId::from(mod_user.moderator.actor_id.clone());
-      if !apub.ordered_items.contains(&mod_id) {
-        panic!("pain");
+        CommunityModerator::leave(&mut data.pool(), &community_moderator_form).await?;
       }
     }
 
