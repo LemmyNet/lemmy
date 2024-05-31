@@ -53,7 +53,7 @@ ALTER TABLE community_actions
         ADD COLUMN received_ban timestamptz,
         ADD COLUMN ban_expires timestamptz,
         ADD CONSTRAINT community_actions_check_followed CHECK ((followed IS NULL) = (follow_pending IS NULL)),
-        ADD CONSTRAINT community_actions_check_received_ban CHECK ((received_ban IS NULL, ban_expires IS NULL) != (FALSE, TRUE));
+        ADD CONSTRAINT community_actions_check_received_ban CHECK ((received_ban IS NULL, ban_expires IS NULL) != (TRUE, FALSE));
 
 ALTER TABLE instance_actions
     ALTER COLUMN blocked DROP NOT NULL,

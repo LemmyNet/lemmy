@@ -65,7 +65,7 @@ where
       Q::Table::all_columns()
         .into_array()
         .into_iter()
-        .filter(|c: DynColumn| {
+        .filter(|c: &DynColumn| {
           table()
             .primary_key()
             .into_array()
@@ -129,7 +129,7 @@ impl QueryFragment<Pg> for UpleteQuery {
       out.push_sql(prefix);
       out.push_sql(" AS (");
       subquery.walk_ast(out.reborrow())?;
-      out.push_sql(" FOR UPDATE)");
+      out.push_sql(" )");
     }
 
     // Update rows that are referenced in `update_keys`
@@ -154,8 +154,10 @@ impl QueryFragment<Pg> for UpleteQuery {
     out.push_sql(") = ANY (SELECT * FROM update_keys) RETURNING 1)");
 
     // Count updated rows and deleted rows (`RETURNING 1` makes this possible)
-    out.push_sql(" SELECT (SELECT count(*) FROM update_result)");
-    out.push_sql(", (SELECT count(*) FROM delete_result)");
+    //out.push_sql(" SELECT (SELECT count(*) FROM update_result)");
+    //out.push_sql(", (SELECT count(*) FROM delete_result)");
+    out.push_sql(" SELECT (SELECT count(*) FROM update_keys)");
+    out.push_sql(", (SELECT count(*) FROM delete_keys)");
 
     Ok(())
   }
@@ -177,9 +179,9 @@ impl QueryFragment<Pg> for AllNull {
     // Must produce a valid expression even if `self.0` is empty
     out.push_sql("(TRUE");
     for column in &self.0 {
-      out.push_sql(" AND ");
+      out.push_sql(" AND (");
       out.push_identifier(column.name)?;
-      out.push_sql(" IS NOT NULL");
+      out.push_sql(" IS NULL)");
     }
     out.push_sql(")");
 

@@ -40,11 +40,13 @@ impl CommunityModeratorView {
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
+    use diesel::NullableExpressionMethods;
     let conn = &mut get_conn(pool).await?;
     action_query(community_actions::became_moderator)
       .inner_join(community::table)
       .inner_join(person::table)
       .filter(community_actions::community_id.eq(community_id))
+      .filter(community_actions::became_moderator.is_not_null())
       .select((community::all_columns, person::all_columns))
       .order_by(community_actions::became_moderator)
       .load::<CommunityModeratorView>(conn)
