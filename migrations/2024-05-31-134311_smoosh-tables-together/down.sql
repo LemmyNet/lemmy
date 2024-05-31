@@ -254,8 +254,6 @@ ALTER INDEX comment_actions_pkey RENAME TO comment_like_pkey;
 
 ALTER INDEX idx_comment_actions_comment RENAME TO idx_comment_like_comment;
 
-ALTER INDEX idx_comment_actions_post RENAME TO idx_comment_like_post;
-
 ALTER TABLE comment_like RENAME CONSTRAINT comment_actions_comment_id_fkey TO comment_like_comment_id_fkey;
 
 ALTER TABLE comment_like RENAME CONSTRAINT comment_actions_person_id_fkey TO comment_like_person_id_fkey;
@@ -297,8 +295,6 @@ DROP INDEX idx_community_actions_followed;
 CREATE INDEX idx_comment_saved_comment ON comment_saved (comment_id);
 
 CREATE INDEX idx_comment_saved_person ON comment_saved (person_id);
-
-CREATE INDEX idx_comment_like_post ON comment_like (post_id);
 
 CREATE INDEX idx_community_block_community ON community_block (community_id);
 
