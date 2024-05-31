@@ -154,10 +154,10 @@ impl QueryFragment<Pg> for UpleteQuery {
     out.push_sql(") = ANY (SELECT * FROM update_keys) RETURNING 1)");
 
     // Count updated rows and deleted rows (`RETURNING 1` makes this possible)
-    //out.push_sql(" SELECT (SELECT count(*) FROM update_result)");
-    //out.push_sql(", (SELECT count(*) FROM delete_result)");
-    out.push_sql(" SELECT (SELECT count(*) FROM update_keys)");
-    out.push_sql(", (SELECT count(*) FROM delete_keys)");
+    out.push_sql(" SELECT (SELECT count(*) FROM update_result)");
+    out.push_sql(", (SELECT count(*) FROM delete_result)");
+    //out.push_sql(" SELECT (SELECT count(*) FROM update_keys)");
+    //out.push_sql(", (SELECT count(*) FROM delete_keys)");
 
     Ok(())
   }
