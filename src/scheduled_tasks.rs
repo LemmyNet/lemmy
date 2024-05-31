@@ -28,11 +28,12 @@ use lemmy_db_schema::{
   },
   utils::{get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
-use lemmy_routes::nodeinfo::NodeInfo;
+use lemmy_routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use lemmy_utils::error::LemmyResult;
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
 use tracing::{error, info, warn};
+use url::Url;
 
 /// Schedules various cleanup tasks for lemmy in a background thread
 pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
@@ -450,9 +451,14 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) {
   }
 }
 
-/// Updates the instance software and version
+/// Updates the instance software and version.
+///
+/// Does so using the /.well-known/nodeinfo protocol described here:
+/// https://github.com/jhass/nodeinfo/blob/main/PROTOCOL.md
 ///
 /// TODO: if instance has been dead for a long time, it should be checked less frequently
+/// TODO This function is a bit of a nightmare with its embedded matches, but the only other way
+/// would be to extract the fetches into functions which return the default_form on errors.
 async fn update_instance_software(
   pool: &mut DbPool<'_>,
   client: &ClientWithMiddleware,
@@ -460,13 +466,16 @@ async fn update_instance_software(
   info!("Updating instances software and versions...");
   let conn = get_conn(pool).await;
 
+  let allowed_rels = [
+    Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.1")?,
+    Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.0")?,
+  ];
+
   match conn {
     Ok(mut conn) => {
       let instances = instance::table.get_results::<Instance>(&mut conn).await?;
 
       for instance in instances {
-        let node_info_url = format!("https://{}/nodeinfo/2.0.json", instance.domain);
-
         // The `updated` column is used to check if instances are alive. If it is more than three
         // days in the past, no outgoing activities will be sent to that instance. However
         // not every Fediverse instance has a valid Nodeinfo endpoint (its not required for
@@ -476,23 +485,49 @@ async fn update_instance_software(
           .domain(instance.domain.clone())
           .updated(Some(naive_now()))
           .build();
-        let form = match client.get(&node_info_url).send().await {
+
+        // First, fetch their /.well-known/nodeinfo, then extract the correct nodeinfo link from it
+        let well_known_url = format!("https://{}/.well-known/nodeinfo", instance.domain);
+
+        let form = match client.get(&well_known_url).send().await {
           Ok(res) if res.status().is_client_error() => {
-            // Instance doesn't have nodeinfo but sent a response, consider it alive
+            // Instance doesn't have well-known but sent a response, consider it alive
             Some(default_form)
           }
-          Ok(res) => match res.json::<NodeInfo>().await {
-            Ok(node_info) => {
-              // Instance sent valid nodeinfo, write it to db
-              let software = node_info.software.as_ref();
-              Some(
-                InstanceForm::builder()
-                  .domain(instance.domain)
-                  .updated(Some(naive_now()))
-                  .software(software.and_then(|s| s.name.clone()))
-                  .version(software.and_then(|s| s.version.clone()))
-                  .build(),
-              )
+          Ok(res) => match res.json::<NodeInfoWellKnown>().await {
+            Ok(well_known) => {
+              // Find the first link where the rel contains the allowed rels above
+              match well_known
+                .links
+                .into_iter()
+                .find(|links| allowed_rels.contains(&links.rel))
+              {
+                Some(well_known_link) => {
+                  let node_info_url = well_known_link.href;
+
+                  // Fetch the node_info from the well known href
+                  match client.get(node_info_url).send().await {
+                    Ok(node_info_res) => match node_info_res.json::<NodeInfo>().await {
+                      Ok(node_info) => {
+                        // Instance sent valid nodeinfo, write it to db
+                        let software = node_info.software.as_ref();
+                        Some(
+                          InstanceForm::builder()
+                            .domain(instance.domain)
+                            .updated(Some(naive_now()))
+                            .software(software.and_then(|s| s.name.clone()))
+                            .version(software.and_then(|s| s.version.clone()))
+                            .build(),
+                        )
+                      }
+                      Err(_) => Some(default_form),
+                    },
+                    Err(_) => Some(default_form),
+                  }
+                }
+                // If none is found, use the default form above
+                None => Some(default_form),
+              }
             }
             Err(_) => {
               // No valid nodeinfo but valid HTTP response, consider instance alive
