@@ -33,7 +33,6 @@ use lemmy_utils::error::LemmyResult;
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
 use tracing::{error, info, warn};
-use url::Url;
 
 /// Schedules various cleanup tasks for lemmy in a background thread
 pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
@@ -466,11 +465,6 @@ async fn update_instance_software(
   info!("Updating instances software and versions...");
   let conn = get_conn(pool).await;
 
-  let allowed_rels = [
-    Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.1")?,
-    Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.0")?,
-  ];
-
   match conn {
     Ok(mut conn) => {
       let instances = instance::table.get_results::<Instance>(&mut conn).await?;
@@ -481,7 +475,7 @@ async fn update_instance_software(
         // not every Fediverse instance has a valid Nodeinfo endpoint (its not required for
         // Activitypub). That's why we always need to mark instances as updated if they are
         // alive.
-        let default_form = InstanceForm::builder()
+        let mut instance_form = InstanceForm::builder()
           .domain(instance.domain.clone())
           .updated(Some(naive_now()))
           .build();
@@ -492,16 +486,17 @@ async fn update_instance_software(
         let form = match client.get(&well_known_url).send().await {
           Ok(res) if res.status().is_client_error() => {
             // Instance doesn't have well-known but sent a response, consider it alive
-            Some(default_form)
+            Some(instance_form)
           }
           Ok(res) => match res.json::<NodeInfoWellKnown>().await {
             Ok(well_known) => {
               // Find the first link where the rel contains the allowed rels above
-              match well_known
-                .links
-                .into_iter()
-                .find(|links| allowed_rels.contains(&links.rel))
-              {
+              match well_known.links.into_iter().find(|links| {
+                links
+                  .rel
+                  .as_str()
+                  .starts_with("http://nodeinfo.diaspora.software/ns/schema/2.")
+              }) {
                 Some(well_known_link) => {
                   let node_info_url = well_known_link.href;
 
@@ -510,28 +505,25 @@ async fn update_instance_software(
                     Ok(node_info_res) => match node_info_res.json::<NodeInfo>().await {
                       Ok(node_info) => {
                         // Instance sent valid nodeinfo, write it to db
-                        let software = node_info.software.as_ref();
-                        Some(
-                          InstanceForm::builder()
-                            .domain(instance.domain)
-                            .updated(Some(naive_now()))
-                            .software(software.and_then(|s| s.name.clone()))
-                            .version(software.and_then(|s| s.version.clone()))
-                            .build(),
-                        )
+                        // Set the instance form fields.
+                        if let Some(software) = node_info.software.as_ref() {
+                          instance_form.software = software.name.clone();
+                          instance_form.version = software.version.clone();
+                        }
+                        Some(instance_form)
                       }
-                      Err(_) => Some(default_form),
+                      Err(_) => Some(instance_form),
                     },
-                    Err(_) => Some(default_form),
+                    Err(_) => Some(instance_form),
                   }
                 }
                 // If none is found, use the default form above
-                None => Some(default_form),
+                None => Some(instance_form),
               }
             }
             Err(_) => {
               // No valid nodeinfo but valid HTTP response, consider instance alive
-              Some(default_form)
+              Some(instance_form)
             }
           },
           Err(_) => {
