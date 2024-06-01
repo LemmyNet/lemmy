@@ -258,8 +258,6 @@ ALTER TABLE comment_like RENAME CONSTRAINT comment_actions_comment_id_fkey TO co
 
 ALTER TABLE comment_like RENAME CONSTRAINT comment_actions_person_id_fkey TO comment_like_person_id_fkey;
 
-ALTER TABLE comment_like RENAME CONSTRAINT comment_actions_post_id_fkey TO comment_like_post_id_fkey;
-
 ALTER INDEX community_actions_pkey RENAME TO community_follower_pkey;
 
 ALTER INDEX idx_community_actions_community RENAME TO idx_community_follower_community;
