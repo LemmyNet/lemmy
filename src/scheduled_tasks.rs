@@ -507,8 +507,8 @@ async fn update_instance_software(
                         // Instance sent valid nodeinfo, write it to db
                         // Set the instance form fields.
                         if let Some(software) = node_info.software.as_ref() {
-                          instance_form.software = software.name.clone();
-                          instance_form.version = software.version.clone();
+                          instance_form.software.clone_from(&software.name);
+                          instance_form.version.clone_from(&software.version);
                         }
                         Some(instance_form)
                       }
