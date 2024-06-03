@@ -30,7 +30,6 @@ use lemmy_db_schema::{
 };
 use lemmy_routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use lemmy_utils::error::LemmyResult;
-use reqwest::Response;
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
 use tracing::{error, info, warn};
