@@ -30,6 +30,7 @@ use lemmy_db_schema::{
 };
 use lemmy_routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use lemmy_utils::error::LemmyResult;
+use reqwest::Response;
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
 use tracing::{error, info, warn};
@@ -484,9 +485,6 @@ async fn update_instance_software(
 /// This builds an instance update form, for a given domain.
 /// If the instance sends a response, but doesn't have a well-known or nodeinfo,
 /// Then return a default form with only the updated field.
-///
-/// TODO This function is a bit of a nightmare with its embedded matches, but the only other way
-/// would be to extract the fetches into functions which return the default_form on errors.
 async fn build_update_instance_form(
   domain: &str,
   client: &ClientWithMiddleware,
@@ -504,55 +502,51 @@ async fn build_update_instance_form(
   // First, fetch their /.well-known/nodeinfo, then extract the correct nodeinfo link from it
   let well_known_url = format!("https://{}/.well-known/nodeinfo", domain);
 
-  match client.get(&well_known_url).send().await {
-    Ok(res) if res.status().is_client_error() => {
-      // Instance doesn't have well-known but sent a response, consider it alive
-      Some(instance_form)
-    }
-    Ok(res) => match res.json::<NodeInfoWellKnown>().await {
-      Ok(well_known) => {
-        // Find the first link where the rel contains the allowed rels above
-        match well_known.links.into_iter().find(|links| {
-          links
-            .rel
-            .as_str()
-            .starts_with("http://nodeinfo.diaspora.software/ns/schema/2.")
-        }) {
-          Some(well_known_link) => {
-            let node_info_url = well_known_link.href;
+  let Ok(res) = client.get(&well_known_url).send().await else {
+    // This is the only kind of error that means the instance is dead
+    return None;
+  };
 
-            // Fetch the node_info from the well known href
-            match client.get(node_info_url).send().await {
-              Ok(node_info_res) => match node_info_res.json::<NodeInfo>().await {
-                Ok(node_info) => {
-                  // Instance sent valid nodeinfo, write it to db
-                  // Set the instance form fields.
-                  if let Some(software) = node_info.software.as_ref() {
-                    instance_form.software.clone_from(&software.name);
-                    instance_form.version.clone_from(&software.version);
-                  }
-                  Some(instance_form)
-                }
-                Err(_) => Some(instance_form),
-              },
-              Err(_) => Some(instance_form),
-            }
-          }
-          // If none is found, use the default form above
-          None => Some(instance_form),
-        }
-      }
-      Err(_) => {
-        // No valid nodeinfo but valid HTTP response, consider instance alive
-        Some(instance_form)
-      }
-    },
-    Err(_) => {
-      // dead instance, do nothing
-      None
+  // In this block, returning `None` is ignored, and only means not writing nodeinfo to db
+  async {
+    if res.status().is_client_error() {
+      return None;
     }
+
+    let node_info_url = res
+      .json::<NodeInfoWellKnown>()
+      .await
+      .ok()?
+      .links
+      .into_iter()
+      .find(|links| {
+        links
+          .rel
+          .as_str()
+          .starts_with("http://nodeinfo.diaspora.software/ns/schema/2.")
+      })?
+      .href;
+
+    let software = client
+      .get(node_info_url)
+      .send()
+      .await
+      .ok()?
+      .json::<NodeInfo>()
+      .await
+      .ok()?
+      .software?;
+
+    instance_form.software = software.name;
+    instance_form.version = software.version;
+
+    Some(())
   }
+  .await;
+
+  Some(instance_form)
 }
+
 #[cfg(test)]
 #[allow(clippy::indexing_slicing)]
 mod tests {
