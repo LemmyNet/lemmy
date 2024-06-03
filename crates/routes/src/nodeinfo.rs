@@ -79,12 +79,12 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct NodeInfoWellKnown {
+pub struct NodeInfoWellKnown {
   pub links: Vec<NodeInfoWellKnownLinks>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct NodeInfoWellKnownLinks {
+pub struct NodeInfoWellKnownLinks {
   pub rel: Url,
   pub href: Url,
 }
