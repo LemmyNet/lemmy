@@ -186,10 +186,16 @@ test("Set a new avatar, old avatar is deleted", async () => {
   expect(upload2.url).toBeDefined();
 
   let form2 = {
-    avatar: upload1.url,
+    avatar: upload2.url,
   };
   await saveUserSettings(alpha, form2);
   // make sure only the new avatar is kept
   const listMediaRes2 = await alphaImage.listMedia();
   expect(listMediaRes2.images.length).toBe(1);
+
+  // Upload that same form2 avatar, make sure it isn't replaced / deleted
+  await saveUserSettings(alpha, form2);
+  // make sure only the new avatar is kept
+  const listMediaRes3 = await alphaImage.listMedia();
+  expect(listMediaRes3.images.length).toBe(1);
 });
