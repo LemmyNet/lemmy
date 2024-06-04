@@ -286,10 +286,7 @@ fn queries<'a>() -> Queries<
           );
       }
 
-      // Hide posts in local only communities from unauthenticated users
-      if my_person_id.is_none() {
-        query = query.filter(community::visibility.eq(CommunityVisibility::Public));
-      }
+      query = query.filter(Viewer::from(my_person_id).can_see_community());
 
       Commented::new(query)
         .text("PostView::read")
@@ -430,10 +427,7 @@ fn queries<'a>() -> Queries<
       }
     };
 
-    // Hide posts in local only communities from unauthenticated users
-    if !viewer.is_logged_in() {
-      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
-    }
+    query = query.filter(viewer.can_see_community());
 
     // Dont filter blocks or missing languages for moderator view type
     if let (Some(person_id), false) = (
