@@ -418,7 +418,7 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if let Some(my_id) = viewer.person_id {
+    if let Some(my_id) = viewer.person_id() {
       let not_creator_filter = post_aggregates::creator_id.ne(my_id);
       if options.liked_only {
         query = query.filter(not_creator_filter).filter(score(my_id).eq(1));
