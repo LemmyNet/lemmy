@@ -1,11 +1,8 @@
 use crate::{
   newtypes::{PersonId, LocalUserId};
-  schema::{community, local_site, local_user, site},
-  source::{local_user::LocalUser, person::Person, site::Site},
+  schema::community,
+  source::{local_user::LocalUser, site::Site},
   CommunityVisibility,
-  ListingType,
-  PostListingMode,
-  SortType,
 };
 use diesel::{
   dsl,
