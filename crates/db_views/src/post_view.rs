@@ -56,7 +56,6 @@ use lemmy_db_schema::{
     ReverseTimestampKey,
   },
   viewer::Viewer,
-  CommunityVisibility,
   ListingType,
   SortType,
 };
