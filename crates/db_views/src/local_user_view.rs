@@ -14,7 +14,6 @@ use lemmy_db_schema::{
     Queries,
     ReadFn,
   },
-  viewer::Viewer,
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorType};
 use std::future::{ready, Ready};
@@ -139,8 +138,9 @@ impl FromRequest for LocalUserView {
   }
 }
 
-impl<'a> From<Option<&'a LocalUserView>> for Viewer<Option<&'a LocalUser>, ()> {
-  fn from(local_user_view: Option<&'a LocalUserView>) -> Self {
-    local_user_view.map(|l| &l.local_user).into()
+// Allow conversion to Viewer
+impl AsRef<LocalUser> for LocalUserView {
+  fn as_ref(&self) -> &LocalUser {
+    &self.local_user
   }
 }
