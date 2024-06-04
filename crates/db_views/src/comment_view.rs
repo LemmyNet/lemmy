@@ -37,7 +37,6 @@ use lemmy_db_schema::{
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   viewer::Viewer,
   CommentSortType,
-  CommunityVisibility,
   ListingType,
 };
 
@@ -248,7 +247,7 @@ fn queries<'a>() -> Queries<
         .then_order_by(comment_saved::published.desc());
     }
 
-    if let Some(my_id) = my_person_id {
+    if let Some(my_id) = viewer.person_id() {
       let not_creator_filter = comment::creator_id.ne(my_id);
       if options.liked_only {
         query = query.filter(not_creator_filter).filter(score(my_id).eq(1));
