@@ -29,7 +29,7 @@ impl From<Option<PersonId>> for Viewer<(), ()> {
   }
 }
 
-impl<'a> From<&'a LocalUser> for Viewer<Option<&'a LocalUser>, ()> {
+impl<'a> From<Option<&'a LocalUser>> for Viewer<Option<&'a LocalUser>, ()> {
   fn from(local_user: Option<&'a LocalUser>) -> Self {
     Viewer {
       person_id: local_user.map(|l| l.person_id),
@@ -44,7 +44,7 @@ where
   Viewer<L, ()>: From<T>,
 {
   fn from((value, site): (T, &'a Site)) -> Self {
-    let Viewer { person_id, local_user, .. } = Viewer::from(value);
+    let Viewer { person_id, local_user, .. } = value.into();
     Viewer {
       person_id,
       local_user,
