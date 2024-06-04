@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{PersonId, LocalUserId};
+  newtypes::{PersonId, LocalUserId},
   schema::community,
   source::{local_user::LocalUser, site::Site},
   CommunityVisibility,
@@ -8,13 +8,13 @@ use diesel::{
   dsl,
   query_dsl::methods::FilterDsl,
   ExpressionMethods,
-}
+};
 
 pub struct Viewer<L, S> {
   person_id: Option<PersonId>,
   local_user: L,
   site_has_content_warning: S,
-};
+}
 
 impl From<Option<PersonId>> for Viewer<(), ()> {
   fn from(person_id: Option<PersonId>) -> Self {
