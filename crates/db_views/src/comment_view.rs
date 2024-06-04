@@ -35,6 +35,7 @@ use lemmy_db_schema::{
     post,
   },
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  viewer::Viewer,
   CommentSortType,
   CommunityVisibility,
   ListingType,
@@ -174,22 +175,18 @@ fn queries<'a>() -> Queries<
   let read = move |mut conn: DbConn<'a>,
                    (comment_id, my_person_id): (CommentId, Option<PersonId>)| async move {
     let mut query = all_joins(comment::table.find(comment_id).into_boxed(), my_person_id);
-    // Hide local only communities from unauthenticated users
-    if my_person_id.is_none() {
-      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
-    }
+    query = query.filter(Viewer::from(my_person_id).can_see_community())
     query.first(&mut conn).await
   };
 
   let list = move |mut conn: DbConn<'a>, options: CommentQuery<'a>| async move {
-    let my_person_id = options.local_user.map(|l| l.person.id);
-    let my_local_user_id = options.local_user.map(|l| l.local_user.id);
+    let viewer = Viewer::from(options.local_user);
 
     // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
-    let local_user_id_join = my_local_user_id.unwrap_or(LocalUserId(-1));
+    let person_id_join = viewer.person_id().unwrap_or(PersonId(-1));
+    let local_user_id_join = viewer.local_user_id().unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(comment::table.into_boxed(), my_person_id);
+    let mut query = all_joins(comment::table.into_boxed(), viewer.person_id());
 
     if let Some(creator_id) = options.creator_id {
       query = query.filter(comment::creator_id.eq(creator_id));
@@ -260,11 +257,7 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if !options
-      .local_user
-      .map(|l| l.local_user.show_bot_accounts)
-      .unwrap_or(true)
-    {
+    if !viewer.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
 
@@ -298,10 +291,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(not(is_creator_blocked(person_id_join)));
     };
 
-    // Hide comments in local only communities from unauthenticated users
-    if options.local_user.is_none() {
-      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
-    }
+    query = query.filter(viewer.can_see_community());
 
     // A Max depth given means its a tree fetch
     let (limit, offset) = if let Some(max_depth) = options.max_depth {
