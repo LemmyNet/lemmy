@@ -98,7 +98,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(not_removed_or_deleted);
     }
 
-    query = query.filter(Viewer::from(my_person_id).can_see_community());
+    query = Viewer::from(my_person_id).visible_communities_only(query);
 
     query.first(&mut conn).await
   };
