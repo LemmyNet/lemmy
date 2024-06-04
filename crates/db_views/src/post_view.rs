@@ -286,7 +286,7 @@ fn queries<'a>() -> Queries<
           );
       }
 
-      query = query.filter(Viewer::from(my_person_id).can_see_community());
+      query = Viewer::from(my_person_id).visible_communities_only(query);
 
       Commented::new(query)
         .text("PostView::read")
@@ -427,7 +427,7 @@ fn queries<'a>() -> Queries<
       }
     };
 
-    query = query.filter(viewer.can_see_community());
+    query = viewer.visible_communities_only(query);
 
     // Dont filter blocks or missing languages for moderator view type
     if let (Some(person_id), false) = (
