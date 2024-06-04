@@ -304,13 +304,13 @@ fn queries<'a>() -> Queries<
     let person_id_join = viewer.person_id().unwrap_or(PersonId(-1));
     let local_user_id_join = viewer.local_user_id().unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(post_aggregates::table.into_boxed(), options.person_id());
+    let mut query = all_joins(post_aggregates::table.into_boxed(), viewer.person_id());
 
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
 
     // only show deleted posts to creator
-    if let Some(person_id) = options.person_id() {
+    if let Some(person_id) = viewer.person_id() {
       query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
     } else {
       query = query.filter(post::deleted.eq(false));
@@ -600,7 +600,7 @@ pub struct PostQuery<'a> {
   // if true, the query should be handled as if community_id was not given except adding the
   // literal filter
   pub community_id_just_for_prefetch: bool,
-  pub local_user: Option<'a LocalUserView>,
+  pub local_user: Option<&'a LocalUserView>,
   pub search_term: Option<String>,
   pub url_search: Option<String>,
   pub saved_only: bool,
@@ -614,7 +614,7 @@ pub struct PostQuery<'a> {
   pub show_hidden: bool,
 }
 
-impl PostQuery {
+impl<'a> PostQuery<'a> {
   async fn prefetch_upper_bound_for_page_before(
     &self,
     site: &Site,
