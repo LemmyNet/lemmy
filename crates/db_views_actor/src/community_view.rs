@@ -23,6 +23,7 @@ use lemmy_db_schema::{
   },
   source::{community::CommunityFollower, local_user::LocalUser, site::Site},
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  viewer::Viewer,
   CommunityVisibility,
   ListingType,
   SortType,
@@ -97,10 +98,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(not_removed_or_deleted);
     }
 
-    // Hide local only communities from unauthenticated users
-    if my_person_id.is_none() {
-      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
-    }
+    query = query.filter(Viewer::from(my_person_id).can_see_community());
 
     query.first(&mut conn).await
   };
@@ -108,13 +106,12 @@ fn queries<'a>() -> Queries<
   let list = move |mut conn: DbConn<'a>, (options, site): (CommunityQuery<'a>, &'a Site)| async move {
     use SortType::*;
 
-    let my_person_id = options.local_user.map(|l| l.person_id);
+    let viewer = Viewer::from((options.local_user, site));
 
     // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
+    let person_id_join = viewer.person_id().unwrap_or(PersonId(-1));
 
-    let mut query = all_joins(community::table.into_boxed(), my_person_id)
-      .left_join(local_user::table.on(local_user::person_id.eq(person_id_join)))
+    let mut query = all_joins(community::table.into_boxed(), viewer.person_id())
       .select(selection);
 
     if let Some(search_term) = options.search_term {
@@ -162,20 +159,13 @@ fn queries<'a>() -> Queries<
 
     // Don't show blocked communities and communities on blocked instances. nsfw communities are
     // also hidden (based on profile setting)
-    if options.local_user.is_some() {
-      query = query.filter(instance_block::person_id.is_null());
-      query = query.filter(community_block::person_id.is_null());
-      query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
-    } else {
-      // No person in request, only show nsfw communities if show_nsfw is passed into request or if
-      // site has content warning.
-      let has_content_warning = site.content_warning.is_some();
-      if !options.show_nsfw && !has_content_warning {
-        query = query.filter(community::nsfw.eq(false));
-      }
-      // Hide local only communities from unauthenticated users
-      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
+    query = query.filter(instance_block::person_id.is_null());
+    query = query.filter(community_block::person_id.is_null());
+    if !(viewer.show_nsfw() || options.show_nsfw) {
+      query = query.filter(community::nsfw.eq(false));
     }
+
+    query = viewer.visible_communities_only(query);
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
     query
