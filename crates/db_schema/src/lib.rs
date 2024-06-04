@@ -43,6 +43,8 @@ pub mod source;
 pub mod traits;
 #[cfg(feature = "full")]
 pub mod utils;
+#[cfg(feature = "full")]
+pub mod viewer;
 
 #[cfg(feature = "full")]
 mod schema_setup;
