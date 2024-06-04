@@ -64,7 +64,7 @@ use tracing::debug;
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
-  impl ListFn<'a, PostView, (PostQuery, &'a Viewer)>,
+  impl ListFn<'a, PostView, (PostQuery<'a>, &'a Site)>,
 > {
   let is_creator_banned_from_community = exists(
     community_person_ban::table.filter(
@@ -297,18 +297,20 @@ fn queries<'a>() -> Queries<
         .await
     };
 
-  let list = move |mut conn: DbConn<'a>, (options, viewer): (PostQuery, &'a Viewer)| async move {
+  let list = move |mut conn: DbConn<'a>, (options, site): (PostQuery<'a>, &'a Site)| async move {
+    let viewer = Viewer::from((options.local_user, site));
+
     // The left join below will return None in this case
     let person_id_join = viewer.person_id().unwrap_or(PersonId(-1));
     let local_user_id_join = viewer.local_user_id().unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(post_aggregates::table.into_boxed(), viewer.person_id());
+    let mut query = all_joins(post_aggregates::table.into_boxed(), options.person_id());
 
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
 
     // only show deleted posts to creator
-    if let Some(person_id) = viewer.person_id() {
+    if let Some(person_id) = options.person_id() {
       query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
     } else {
       query = query.filter(post::deleted.eq(false));
@@ -590,7 +592,7 @@ impl PaginationCursor {
 pub struct PaginationCursorData(PostAggregates);
 
 #[derive(Clone, Default)]
-pub struct PostQuery {
+pub struct PostQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<SortType>,
   pub creator_id: Option<PersonId>,
@@ -598,6 +600,7 @@ pub struct PostQuery {
   // if true, the query should be handled as if community_id was not given except adding the
   // literal filter
   pub community_id_just_for_prefetch: bool,
+  pub local_user: Option<'a LocalUserView>,
   pub search_term: Option<String>,
   pub url_search: Option<String>,
   pub saved_only: bool,
@@ -614,7 +617,7 @@ pub struct PostQuery {
 impl PostQuery {
   async fn prefetch_upper_bound_for_page_before(
     &self,
-    viewer: &Viewer,
+    site: &Site,
     pool: &mut DbPool<'_>,
   ) -> Result<Option<PostQuery<'a>>, Error> {
     // first get one page for the most popular community to get an upper bound for the page end for
@@ -642,9 +645,11 @@ impl PostQuery {
         "legacy pagination cannot be combined with v2 pagination".into(),
       ));
     }
-    let self_person_id = viewer
-      .person_id()
-      .expect("part of the above if");
+    let self_person_id = self
+      .local_user
+      .expect("part of the above if")
+      .local_user
+      .person_id;
     let largest_subscribed = {
       let conn = &mut get_conn(pool).await?;
       community_follower
@@ -671,7 +676,7 @@ impl PostQuery {
             community_id_just_for_prefetch: true,
             ..self.clone()
           },
-          viewer,
+          site,
         ),
       )
       .await?;
@@ -695,7 +700,7 @@ impl PostQuery {
     }
   }
 
-  pub async fn list(self, viewer: &Viewer, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
     if self.listing_type == Some(ListingType::Subscribed)
       && self.community_id.is_none()
       && self.local_user.is_some()
