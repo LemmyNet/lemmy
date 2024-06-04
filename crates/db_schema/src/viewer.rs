@@ -1,52 +1,96 @@
 use crate::{
-  schema::{local_site, local_user, site},
-  source::person::Person,
+  newtypes::{PersonId, LocalUserId};
+  schema::{community, local_site, local_user, site},
+  source::{local_user::LocalUser, person::Person, site::Site},
+  CommunityVisibility,
   ListingType,
   PostListingMode,
   SortType,
 };
+use diesel::{
+  dsl,
+  query_dsl::methods::FilterDsl,
+  ExpressionMethods,
+}
 
-pub struct Viewer {
-  logged_in_viewer: Option<LoggedInViewer>,
-  local_site_fields: LocalSiteFields,
-  site_fields: SiteFields,
+pub struct Viewer<L, S> {
+  person_id: Option<PersonId>,
+  local_user: L,
+  site_has_content_warning: S,
 };
 
-struct LoggedInViewer {
-  local_user_fields: LocalUserFields,
-  person: Person,
+impl From<Option<PersonId>> for Viewer<(), ()> {
+  fn from(person_id: Option<PersonId>) -> Self {
+    Viewer {
+      person_id,
+      local_user: (),
+      site_has_content_warning: (),
+    }
+  }
 }
 
-#[derive(Queryable)]
-#[diesel(table_name = local_site)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-struct LocalUserFields {
-  pub id: LocalUserId,
-  pub person_id: PersonId,
-  pub show_nsfw: bool,
-  pub default_sort_type: SortType,
-  pub default_listing_type: ListingType,
-  pub show_bot_accounts: bool,
-  pub show_read_posts: bool,
-  pub admin: bool,
-  // TODO: remove if not needed
-  pub email: Option<SensitiveString>,
-  pub interface_language: String,
-  pub send_notifications_to_email: bool,
+impl<'a> From<&'a LocalUser> for Viewer<Option<&'a LocalUser>, ()> {
+  fn from(local_user: Option<&'a LocalUser>) -> Self {
+    Viewer {
+      person_id: local_user.map(|l| l.person_id),
+      local_user,
+      site_has_content_warning: (),
+    }
+  }
 }
 
-#[derive(Queryable)]
-#[diesel(table_name = local_site)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-struct LocalSiteFilds {
-  default_post_listing_type: ListingType,
-  default_post_listing_mode: PostListingMode,
-  default_sort_type: SortType,
+impl<'a, T, L> From<(T, &'a Site)> for Viewer<L, bool>
+where
+  Viewer<L, ()>: From<T>,
+{
+  fn from((value, site): (T, &'a Site)) -> Self {
+    let Viewer { person_id, local_user, .. } = Viewer::from(value);
+    Viewer {
+      person_id,
+      local_user,
+      site_has_content_warning: site.content_warning.is_some(),
+    }
+  }
 }
 
-#[derive(Queryable)]
-#[diesel(table_name = local_site)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-struct SiteFields {
-  content_warning: Option<String>,
+impl<L, S> Viewer<L, S> {
+  /// Hide local only communities from unauthenticated users
+  pub fn visible_communities_only<Q>(&self, mut query: Q) -> Q
+  where
+    Q: FilterDsl<dsl::Eq<community::visibility, CommunityVisibility>, Output = Q>,
+  {
+    if self.person_id.is_some() {
+      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
+    }
+
+    query
+  }
+
+  pub fn person_id(&self) -> Option<PersonId> {
+    self.person_id
+  }
+}
+
+impl<'a, S> Viewer<Option<&'a LocalUser>, S> {
+  pub fn local_user_id(&self) -> Option<LocalUserId> {
+    self.local_user.id
+  }
+
+  pub fn show_bot_accounts(&self) -> bool {
+    self.local_user.map(|l| l.show_bot_accounts).unwrap_or(true)
+  }
+
+  pub fn show_read_posts(&self) -> bool {
+    self.local_user.map(|l| l.show_read_posts).unwrap_or(true)
+  }
+
+  pub fn is_admin(&self) -> bool {
+    self.local_user.map(|l| l.admin).unwrap_or(false)
+  }
+}
+
+impl<'a> Viewer<Option<&'a LocalUser>, bool> {
+  pub fn show_nsfw(&self) -> bool {
+    self.local_user.map(|l| l.show_nsfw).unwrap_or(self.site_has_content_warning)
+  }
 }
