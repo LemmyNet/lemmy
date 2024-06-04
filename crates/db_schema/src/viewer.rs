@@ -22,8 +22,9 @@ impl From<Option<PersonId>> for Viewer<(), ()> {
   }
 }
 
-impl<'a> From<Option<&'a LocalUser>> for Viewer<Option<&'a LocalUser>, ()> {
-  fn from(local_user: Option<&'a LocalUser>) -> Self {
+impl<'a, T: AsRef<LocalUser>> From<Option<&'a T>> for Viewer<Option<&'a LocalUser>, ()> {
+  fn from(local_user: Option<&'a T>) -> Self {
+    let local_user = local_user.map(|l| l.as_ref());
     Viewer {
       person_id: local_user.map(|l| l.person_id),
       local_user,
