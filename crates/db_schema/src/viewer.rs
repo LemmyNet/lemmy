@@ -66,7 +66,7 @@ impl<L, S> Viewer<L, S> {
 
 impl<'a, S> Viewer<Option<&'a LocalUser>, S> {
   pub fn local_user_id(&self) -> Option<LocalUserId> {
-    self.local_user.id
+    self.local_user.map(|l| l.id)
   }
 
   pub fn show_bot_accounts(&self) -> bool {
