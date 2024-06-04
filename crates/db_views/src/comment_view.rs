@@ -175,7 +175,7 @@ fn queries<'a>() -> Queries<
   let read = move |mut conn: DbConn<'a>,
                    (comment_id, my_person_id): (CommentId, Option<PersonId>)| async move {
     let mut query = all_joins(comment::table.find(comment_id).into_boxed(), my_person_id);
-    query = query.filter(Viewer::from(my_person_id).can_see_community())
+    query = Viewer::from(my_person_id).visible_communities_only(query);
     query.first(&mut conn).await
   };
 
@@ -291,7 +291,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(not(is_creator_blocked(person_id_join)));
     };
 
-    query = query.filter(viewer.can_see_community());
+    query = viewer.visible_communities_only(query);
 
     // A Max depth given means its a tree fetch
     let (limit, offset) = if let Some(max_depth) = options.max_depth {
