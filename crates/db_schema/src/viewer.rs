@@ -1,14 +1,10 @@
 use crate::{
-  newtypes::{PersonId, LocalUserId},
+  newtypes::{LocalUserId, PersonId},
   schema::community,
   source::{local_user::LocalUser, site::Site},
   CommunityVisibility,
 };
-use diesel::{
-  dsl,
-  query_dsl::methods::FilterDsl,
-  ExpressionMethods,
-};
+use diesel::{dsl, query_dsl::methods::FilterDsl, ExpressionMethods};
 
 pub struct Viewer<L, S> {
   person_id: Option<PersonId>,
@@ -41,10 +37,10 @@ where
   Viewer<L, ()>: From<T>,
 {
   fn from((value, site): (T, &'a Site)) -> Self {
-    let Viewer { person_id, local_user, .. } = value.into();
+    let viewer = Viewer::from(value);
     Viewer {
-      person_id,
-      local_user,
+      person_id: viewer.person_id,
+      local_user: viewer.local_user,
       site_has_content_warning: site.content_warning.is_some(),
     }
   }
@@ -88,6 +84,9 @@ impl<'a, S> Viewer<Option<&'a LocalUser>, S> {
 
 impl<'a> Viewer<Option<&'a LocalUser>, bool> {
   pub fn show_nsfw(&self) -> bool {
-    self.local_user.map(|l| l.show_nsfw).unwrap_or(self.site_has_content_warning)
+    self
+      .local_user
+      .map(|l| l.show_nsfw)
+      .unwrap_or(self.site_has_content_warning)
   }
 }
