@@ -27,7 +27,7 @@ use lemmy_db_schema::{
     tagline::Tagline,
   },
   traits::Crud,
-  utils::{diesel_option_overwrite, naive_now},
+  utils::{diesel_string_update, diesel_url_update, naive_now},
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
@@ -67,22 +67,27 @@ pub async fn update_site(
     SiteLanguage::update(&mut context.pool(), discussion_languages.clone(), &site).await?;
   }
 
-  replace_image(&data.icon, &site.icon, &context).await?;
-  replace_image(&data.banner, &site.banner, &context).await?;
-
   let slur_regex = local_site_to_slur_regex(&local_site);
   let url_blocklist = get_url_blocklist(&context).await?;
-  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
-  let icon = proxy_image_link_opt_api(&data.icon, &context).await?;
-  let banner = proxy_image_link_opt_api(&data.banner, &context).await?;
+  let sidebar = diesel_string_update(
+    &process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?,
+  );
+
+  let icon = diesel_url_update(&data.icon)?;
+  replace_image(&icon, &site.icon, &context).await?;
+  let icon = proxy_image_link_opt_api(icon, &context).await?;
+
+  let banner = diesel_url_update(&data.banner)?;
+  replace_image(&banner, &site.banner, &context).await?;
+  let banner = proxy_image_link_opt_api(banner, &context).await?;
 
   let site_form = SiteUpdateForm {
     name: data.name.clone(),
-    sidebar: diesel_option_overwrite(sidebar),
-    description: diesel_option_overwrite(data.description.clone()),
+    sidebar,
+    description: diesel_string_update(&data.description),
     icon,
     banner,
-    content_warning: diesel_option_overwrite(data.content_warning.clone()),
+    content_warning: diesel_string_update(&data.content_warning),
     updated: Some(Some(naive_now())),
     ..Default::default()
   };
@@ -99,16 +104,16 @@ pub async fn update_site(
     enable_nsfw: data.enable_nsfw,
     community_creation_admin_only: data.community_creation_admin_only,
     require_email_verification: data.require_email_verification,
-    application_question: diesel_option_overwrite(data.application_question.clone()),
+    application_question: diesel_string_update(&data.application_question),
     private_instance: data.private_instance,
     default_theme: data.default_theme.clone(),
     default_post_listing_type: data.default_post_listing_type,
     default_sort_type: data.default_sort_type,
-    legal_information: diesel_option_overwrite(data.legal_information.clone()),
+    legal_information: diesel_string_update(&data.legal_information),
     application_email_admins: data.application_email_admins,
     hide_modlog_mod_names: data.hide_modlog_mod_names,
     updated: Some(Some(naive_now())),
-    slur_filter_regex: diesel_option_overwrite(data.slur_filter_regex.clone()),
+    slur_filter_regex: diesel_string_update(&data.slur_filter_regex),
     actor_name_max_length: data.actor_name_max_length,
     federation_enabled: data.federation_enabled,
     captcha_enabled: data.captcha_enabled,
@@ -229,7 +234,9 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
   )?;
 
   // Ensure that the sidebar has fewer than the max num characters...
-  is_valid_body_field(&edit_site.sidebar, false)?;
+  if let Some(body) = &edit_site.sidebar {
+    is_valid_body_field(body, false)?;
+  }
 
   application_question_check(
     &local_site.application_question,

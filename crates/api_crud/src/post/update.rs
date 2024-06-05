@@ -20,16 +20,15 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_option_overwrite, naive_now},
+  utils::{diesel_string_update, diesel_url_update, naive_now},
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
-    slurs::check_slurs_opt,
+    slurs::check_slurs,
     validation::{
       check_url_scheme,
-      clean_url_params,
       is_url_blocked,
       is_valid_alt_text_field,
       is_valid_body_field,
@@ -47,26 +46,41 @@ pub async fn update_post(
 ) -> LemmyResult<Json<PostResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  // TODO No good way to handle a clear.
-  // Issue link: https://github.com/LemmyNet/lemmy/issues/2287
-  let url = data.url.as_ref().map(clean_url_params);
-  let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);
+  let url = diesel_url_update(&data.url)?;
+
+  let custom_thumbnail = diesel_url_update(&data.custom_thumbnail)?;
 
   let url_blocklist = get_url_blocklist(&context).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
-  check_slurs_opt(&data.name, &slur_regex)?;
-  let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
+
+  let body = diesel_string_update(
+    &process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?,
+  );
+
+  let alt_text = diesel_string_update(&data.alt_text);
 
   if let Some(name) = &data.name {
     is_valid_post_title(name)?;
+    check_slurs(name, &slur_regex)?;
   }
 
-  is_valid_body_field(&body, true)?;
-  is_valid_alt_text_field(&data.alt_text)?;
-  is_url_blocked(&url, &url_blocklist)?;
-  check_url_scheme(&url)?;
-  check_url_scheme(&custom_thumbnail)?;
+  if let Some(Some(body)) = &body {
+    is_valid_body_field(body, true)?;
+  }
+
+  if let Some(Some(alt_text)) = &alt_text {
+    is_valid_alt_text_field(alt_text)?;
+  }
+
+  if let Some(Some(url)) = &url {
+    is_url_blocked(url, &url_blocklist)?;
+    check_url_scheme(url)?;
+  }
+
+  if let Some(Some(custom_thumbnail)) = &custom_thumbnail {
+    check_url_scheme(custom_thumbnail)?;
+  }
 
   let post_id = data.post_id;
   let orig_post = Post::read(&mut context.pool(), post_id)
@@ -95,9 +109,9 @@ pub async fn update_post(
 
   let post_form = PostUpdateForm {
     name: data.name.clone(),
-    url: Some(url.map(Into::into)),
-    body: diesel_option_overwrite(body),
-    alt_text: diesel_option_overwrite(data.alt_text.clone()),
+    url,
+    body,
+    alt_text,
     nsfw: data.nsfw,
     language_id: data.language_id,
     updated: Some(Some(naive_now())),
@@ -111,7 +125,7 @@ pub async fn update_post(
 
   generate_post_link_metadata(
     updated_post.clone(),
-    custom_thumbnail,
+    custom_thumbnail.flatten().map(Into::into),
     |post| Some(SendActivityData::UpdatePost(post)),
     Some(local_site),
     context.reset_request_count(),

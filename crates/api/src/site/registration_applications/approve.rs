@@ -10,7 +10,7 @@ use lemmy_db_schema::{
     registration_application::{RegistrationApplication, RegistrationApplicationUpdateForm},
   },
   traits::Crud,
-  utils::diesel_option_overwrite,
+  utils::diesel_string_update,
 };
 use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView};
 use lemmy_utils::{error::LemmyResult, LemmyErrorType};
@@ -26,7 +26,7 @@ pub async fn approve_registration_application(
   is_admin(&local_user_view)?;
 
   // Update the registration with reason, admin_id
-  let deny_reason = diesel_option_overwrite(data.deny_reason.clone());
+  let deny_reason = diesel_string_update(&data.deny_reason.clone());
   let app_form = RegistrationApplicationUpdateForm {
     admin_id: Some(Some(local_user_view.person.id)),
     deny_reason,
