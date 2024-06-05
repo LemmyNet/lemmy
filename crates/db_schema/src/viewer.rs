@@ -22,9 +22,12 @@ impl From<Option<PersonId>> for Viewer<(), ()> {
   }
 }
 
-impl<'a, T: AsRef<LocalUser>> From<Option<&'a T>> for Viewer<Option<&'a LocalUser>, ()> {
+impl<'a, T> From<Option<&'a T>> for Viewer<Option<&'a LocalUser>, ()>
+where
+  &'a T: Into<&'a LocalUser>,
+{
   fn from(local_user: Option<&'a T>) -> Self {
-    let local_user = local_user.map(AsRef::as_ref);
+    let local_user = local_user.map(Into::into);
     Viewer {
       person_id: local_user.map(|l| l.person_id),
       local_user,
