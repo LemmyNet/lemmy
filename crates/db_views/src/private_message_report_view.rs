@@ -140,18 +140,10 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person_1 = PersonInsertForm::builder()
-      .name("timmy_mrv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_1 = PersonInsertForm::new_local("timmy_mrv", inserted_instance.id);
     let inserted_timmy = Person::create(pool, &new_person_1).await.unwrap();
 
-    let new_person_2 = PersonInsertForm::builder()
-      .name("jessica_mrv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_2 = PersonInsertForm::new_local("jessica_mrv", inserted_instance.id);
     let inserted_jessica = Person::create(pool, &new_person_2).await.unwrap();
 
     // timmy sends private message to jessica
@@ -184,11 +176,7 @@ mod tests {
     assert_eq!(pm_report.reason, reports[0].private_message_report.reason);
     assert_eq!(pm.content, reports[0].private_message.content);
 
-    let new_person_3 = PersonInsertForm::builder()
-      .name("admin_mrv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_3 = PersonInsertForm::new_local("admin_mrv", inserted_instance.id);
     let inserted_admin = Person::create(pool, &new_person_3).await.unwrap();
 
     // admin resolves the report (after taking appropriate action)
