@@ -163,11 +163,7 @@ mod tests {
       .await
       .unwrap();
 
-    let timmy_person_form = PersonInsertForm::builder()
-      .name("timmy_rav".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let timmy_person_form = PersonInsertForm::new_local("timmy_rav", inserted_instance.id);
 
     let inserted_timmy_person = Person::create(pool, &timmy_person_form).await.unwrap();
 
@@ -181,11 +177,7 @@ mod tests {
       .await
       .unwrap();
 
-    let sara_person_form = PersonInsertForm::builder()
-      .name("sara_rav".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let sara_person_form = PersonInsertForm::new_local("sara_rav", inserted_instance.id);
 
     let inserted_sara_person = Person::create(pool, &sara_person_form).await.unwrap();
 
@@ -213,11 +205,7 @@ mod tests {
       .unwrap()
       .unwrap();
 
-    let jess_person_form = PersonInsertForm::builder()
-      .name("jess_rav".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let jess_person_form = PersonInsertForm::new_local("jess_rav", inserted_instance.id);
 
     let inserted_jess_person = Person::create(pool, &jess_person_form).await.unwrap();
 
