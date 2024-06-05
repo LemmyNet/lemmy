@@ -142,7 +142,7 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::new_local("Gerry9812".into(), inserted_instance.id);
+    let new_person = PersonInsertForm::new_local("Gerry9812", inserted_instance.id);
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
