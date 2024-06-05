@@ -139,8 +139,8 @@ impl FromRequest for LocalUserView {
 }
 
 // Allow conversion to Viewer
-impl AsRef<LocalUser> for LocalUserView {
-  fn as_ref(&self) -> &LocalUser {
-    &self.local_user
+impl<'a> From<&'a LocalUserView> for &'a LocalUser {
+  fn from(local_user_view: &'a LocalUserView) -> Self {
+    &local_user_view.local_user
   }
 }
