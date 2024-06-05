@@ -12,7 +12,14 @@ use crate::{
   traits::{ApubActor, Crud, Followable},
   utils::{functions::lower, get_conn, naive_now, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error, CombineDsl, ExpressionMethods, JoinOnDsl, QueryDsl};
+use diesel::{
+  dsl::{insert_into, not},
+  result::Error,
+  CombineDsl,
+  ExpressionMethods,
+  JoinOnDsl,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -100,6 +107,8 @@ impl Person {
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .filter(community::local.eq(true))
+      .filter(not(community::deleted))
+      .filter(not(community::removed))
       .filter(comment::creator_id.eq(for_creator_id))
       .select(community::id)
       .union(
