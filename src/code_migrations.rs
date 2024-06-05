@@ -447,7 +447,6 @@ async fn initialize_local_site_2022_10_10(
   let instance = Instance::read_or_create(pool, domain).await?;
 
   if let Some(setup) = &settings.setup {
-    let person_keypair = generate_actor_keypair()?;
     let person_actor_id = generate_local_apub_endpoint(
       EndpointType::Person,
       &setup.admin_username,
@@ -455,15 +454,12 @@ async fn initialize_local_site_2022_10_10(
     )?;
 
     // Register the user if there's a site setup
-    let person_form = PersonInsertForm::builder()
-      .name(setup.admin_username.clone())
-      .instance_id(instance.id)
-      .actor_id(Some(person_actor_id.clone()))
-      .private_key(Some(person_keypair.private_key))
-      .public_key(person_keypair.public_key)
-      .inbox_url(Some(generate_inbox_url(&person_actor_id)?))
-      .shared_inbox_url(Some(generate_shared_inbox_url(settings)?))
-      .build();
+    let person_form = PersonInsertForm {
+      actor_id: Some(person_actor_id.clone()),
+      inbox_url: Some(generate_inbox_url(&person_actor_id)?),
+      shared_inbox_url: Some(generate_shared_inbox_url(settings)?),
+      ..PersonInsertForm::new_local(&setup.admin_username, instance.id)
+    };
     let person_inserted = Person::create(pool, &person_form).await?;
 
     let local_user_form = LocalUserInsertForm::builder()
