@@ -311,7 +311,7 @@ pub fn diesel_url_update(opt: &Option<String>) -> LemmyResult<Option<Option<DbUr
   }
 }
 
-/// Takes an optional API URL-type input, and converts it to an optional diesel DB update.
+/// Takes an optional API URL-type input, and converts it to an optional diesel DB create.
 /// Also cleans the url params.
 pub fn diesel_url_create(opt: &Option<String>) -> LemmyResult<Option<DbUrl>> {
   match opt.as_deref() {
