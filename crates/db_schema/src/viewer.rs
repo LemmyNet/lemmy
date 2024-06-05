@@ -8,7 +8,9 @@ use diesel::{dsl, query_dsl::methods::FilterDsl, ExpressionMethods};
 
 pub struct Viewer<L, S> {
   person_id: Option<PersonId>,
+  /// `Option<&LocalUser>` or `()`, depending on what type was converted to `Viewer`
   local_user: L,
+  /// `bool` or `()`, depending on what type was converted to `Viewer`
   site_has_content_warning: S,
 }
 
@@ -50,6 +52,7 @@ where
   }
 }
 
+// Methods that are always available
 impl<L, S> Viewer<L, S> {
   /// Hide local only communities from unauthenticated users
   pub fn visible_communities_only<Q>(&self, query: Q) -> Q
@@ -68,6 +71,7 @@ impl<L, S> Viewer<L, S> {
   }
 }
 
+// Methods that can only work as expected if `local_user` is set
 impl<'a, S> Viewer<Option<&'a LocalUser>, S> {
   pub fn local_user_id(&self) -> Option<LocalUserId> {
     self.local_user.map(|l| l.id)
@@ -86,6 +90,7 @@ impl<'a, S> Viewer<Option<&'a LocalUser>, S> {
   }
 }
 
+// Methods that can only work as expected if `local_user` and `site_has_content_warning` are set
 impl<'a> Viewer<Option<&'a LocalUser>, bool> {
   pub fn show_nsfw(&self) -> bool {
     self
