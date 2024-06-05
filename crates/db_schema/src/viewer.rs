@@ -62,7 +62,7 @@ impl<L, S> Viewer<L, S> {
     if self.person_id.is_none() {
       query.filter(community::visibility.eq(CommunityVisibility::Public));
     } else {
-        query
+      query
     }
   }
 
