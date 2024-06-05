@@ -56,7 +56,7 @@ impl<L, S> Viewer<L, S> {
   where
     Q: FilterDsl<dsl::Eq<community::visibility, CommunityVisibility>, Output = Q>,
   {
-    if self.person_id.is_some() {
+    if self.person_id.is_none() {
       query = query.filter(community::visibility.eq(CommunityVisibility::Public));
     }
 
