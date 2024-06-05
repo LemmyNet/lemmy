@@ -52,15 +52,15 @@ where
 
 impl<L, S> Viewer<L, S> {
   /// Hide local only communities from unauthenticated users
-  pub fn visible_communities_only<Q>(&self, mut query: Q) -> Q
+  pub fn visible_communities_only<Q>(&self, query: Q) -> Q
   where
     Q: FilterDsl<dsl::Eq<community::visibility, CommunityVisibility>, Output = Q>,
   {
     if self.person_id.is_none() {
-      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
+      query.filter(community::visibility.eq(CommunityVisibility::Public));
+    } else {
+        query
     }
-
-    query
   }
 
   pub fn person_id(&self) -> Option<PersonId> {
