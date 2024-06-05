@@ -1,3 +1,3 @@
-ALTER TABLE comment_like
+ALTER TABLE comment_actions
     DROP COLUMN post_id;
 
