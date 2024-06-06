@@ -1,4 +1,4 @@
-use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
+use activitypub_federation::config::Data;
 use actix_web::{web::Json, HttpRequest};
 use lemmy_api_common::{
   claims::Claims,
@@ -115,7 +115,7 @@ pub async fn register(
     actor_id: Some(actor_id.clone()),
     inbox_url: Some(generate_inbox_url(&actor_id)?),
     shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
-    ..PersonInsertForm::new_local(&data.username, site_view.site.instance_id)
+    ..PersonInsertForm::new_local(&data.username, site_view.site.instance_id)?
   };
 
   // insert the person
