@@ -60,16 +60,12 @@ pub struct Person {
   pub instance_id: InstanceId,
 }
 
-#[derive(Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
 pub struct PersonInsertForm {
-  #[builder(!default)]
   pub name: String,
-  #[builder(!default)]
   pub public_key: String,
-  #[builder(!default)]
   pub instance_id: InstanceId,
   pub display_name: Option<String>,
   pub avatar: Option<DbUrl>,
