@@ -264,7 +264,7 @@ mod tests {
       local: true,
       bot_account: false,
       private_key: None,
-      public_key: "nada".to_owned(),
+      public_key: "pubkey".to_owned(),
       last_refreshed_at: inserted_person.published,
       inbox_url: inserted_person.inbox_url.clone(),
       shared_inbox_url: None,
