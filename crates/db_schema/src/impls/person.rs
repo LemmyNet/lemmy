@@ -24,7 +24,7 @@ impl PersonInsertForm {
     let actor_keypair = generate_actor_keypair()?;
 
     Ok(PersonInsertForm {
-      name,
+      name: name.into(),
       public_key: actor_keypair.public_key,
       instance_id,
       display_name: None,
