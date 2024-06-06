@@ -10,7 +10,7 @@ use diesel::{dsl, query_dsl::methods::FilterDsl, ExpressionMethods};
 ///
 /// TODO: change `read` functions to take `impl Viewer` instead of `Option<PersonId>`,
 /// and move this function to `Viewer`
-fn visible_communities_only<T, Q>(local_user: Option<T>, query: Q) -> Q
+pub fn visible_communities_only<T, Q>(local_user: Option<T>, query: Q) -> Q
 where
   Q: FilterDsl<dsl::Eq<community::visibility, CommunityVisibility>, Output = Q>,
 {
@@ -21,7 +21,7 @@ where
   }
 }
 
-trait Viewer {
+pub trait Viewer {
   fn local_user(&self) -> Option<&LocalUser>;
 
   fn person_id(&self) -> Option<PersonId> {
