@@ -447,22 +447,22 @@ async fn initialize_local_site_2022_10_10(
   let instance = Instance::read_or_create(pool, domain).await?;
 
   if let Some(setup) = &settings.setup {
+    let person_keypair = generate_actor_keypair()?;
     let person_actor_id = generate_local_apub_endpoint(
       EndpointType::Person,
       &setup.admin_username,
       &settings.get_protocol_and_hostname(),
     )?;
-    let actor_keypair = generate_actor_keypair()?;
 
     // Register the user if there's a site setup
     let person_form = PersonInsertForm {
       actor_id: Some(person_actor_id.clone()),
       inbox_url: Some(generate_inbox_url(&person_actor_id)?),
       shared_inbox_url: Some(generate_shared_inbox_url(settings)?),
-      private_key: Some(actor_keypair.private_key),
+      private_key: Some(person_keypair.private_key),
       ..PersonInsertForm::new(
         setup.admin_username.clone(),
-        actor_keypair.public_key,
+        person_keypair.public_key,
         instance.id,
       )
     };
