@@ -22,7 +22,9 @@ where
 }
 
 trait Viewer {
-  fn local_user(self) -> Option<&LocalUser>;
+  fn local_user<'a>(self) -> Option<&'a LocalUser>
+  where
+    Self: 'a;
 
   fn person_id(self) -> Option<PersonId> {
     self.local_user().map(|l| l.person_id)
@@ -55,8 +57,11 @@ trait Viewer {
   }
 }
 
-impl<'a, T: Into<&'a LocalUser>> Viewer for Option<T> {
-  fn local_user(self) -> Option<&LocalUser> {
+impl<'b, T: Into<&'b LocalUser>> Viewer for Option<T> {
+  fn local_user<'a>(self) -> Option<&'a LocalUser>
+  where
+    Self: 'a,
+  {
     self.map(Into::into)
   }
 }
