@@ -129,7 +129,7 @@ mod tests {
     let inserted_instance =
       Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;
 
-    let old_mod = PersonInsertForm::new_local("holly", inserted_instance.id);
+    let old_mod = PersonInsertForm::new_local("holly", inserted_instance.id)?;
 
     let old_mod = Person::create(&mut context.pool(), &old_mod).await?;
     let community_moderator_form = CommunityModeratorForm {
