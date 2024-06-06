@@ -104,7 +104,7 @@ fn queries<'a>() -> Queries<
   let list = move |mut conn: DbConn<'a>, (options, site): (CommunityQuery<'a>, &'a Site)| async move {
     use SortType::*;
 
-    let viewer = Viewer::from((options.local_user, site));
+    let viewer = Viewer::from(options.local_user);
 
     // The left join below will return None in this case
     let person_id_join = viewer.person_id().unwrap_or(PersonId(-1));
@@ -158,7 +158,7 @@ fn queries<'a>() -> Queries<
     // also hidden (based on profile setting)
     query = query.filter(instance_block::person_id.is_null());
     query = query.filter(community_block::person_id.is_null());
-    if !(viewer.show_nsfw() || options.show_nsfw) {
+    if !(viewer.show_nsfw(site) || options.show_nsfw) {
       query = query.filter(community::nsfw.eq(false));
     }
 
