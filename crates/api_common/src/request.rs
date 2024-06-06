@@ -338,16 +338,19 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Lemm
   }
 }
 
-/// When adding a new avatar or similar image, delete the old one.
+/// When adding a new avatar, banner or similar image, delete the old one.
 pub async fn replace_image(
   new_image: &Option<String>,
   old_image: &Option<DbUrl>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  if new_image.is_some() {
-    // Ignore errors because image may be stored externally.
-    if let Some(avatar) = &old_image {
-      let image = LocalImage::delete_by_url(&mut context.pool(), avatar)
+  if let (Some(new_image), Some(old_image)) = (new_image, old_image) {
+    // Note: Oftentimes front ends will include the current image in the form.
+    // In this case, deleting `old_image` would also be deletion of `new_image`,
+    // so the deletion must be skipped for the image to be kept.
+    if new_image != old_image.as_str() {
+      // Ignore errors because image may be stored externally.
+      let image = LocalImage::delete_by_url(&mut context.pool(), old_image)
         .await
         .ok();
       if let Some(image) = image {

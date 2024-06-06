@@ -16,9 +16,9 @@ checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 
 [[package]]
 name = "activitypub_federation"
-version = "0.5.6"
+version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac8ff2d0151ce9ac02eb29e4a58b41d28693f141f7963d4bfabd2f9d402ecec7"
+checksum = "69876675c80e73ab5e15e07b414cd3aa7c4c4e91f81fa43b52ea3ef28cbc225c"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
@@ -1110,51 +1110,15 @@ dependencies = [
 
 [[package]]
 name = "console-api"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2895653b4d9f1538a83970077cb01dfc77a4810524e51a110944688e916b18e"
-dependencies = [
- "prost 0.11.9",
- "prost-types 0.11.9",
- "tonic 0.9.2",
- "tracing-core",
-]
-
-[[package]]
-name = "console-api"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd326812b3fd01da5bb1af7d340d0d555fd3d4b641e7f1dfcf5962a902952787"
 dependencies = [
  "futures-core",
  "prost 0.12.6",
- "prost-types 0.12.6",
+ "prost-types",
  "tonic 0.10.2",
  "tracing-core",
-]
-
-[[package]]
-name = "console-subscriber"
-version = "0.1.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4cf42660ac07fcebed809cfe561dd8730bcd35b075215e6479c516bcd0d11cb"
-dependencies = [
- "console-api 0.5.0",
- "crossbeam-channel",
- "crossbeam-utils",
- "futures",
- "hdrhistogram",
- "humantime",
- "prost-types 0.11.9",
- "serde",
- "serde_json",
- "thread_local",
- "tokio",
- "tokio-stream",
- "tonic 0.9.2",
- "tracing",
- "tracing-core",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -1163,13 +1127,13 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7481d4c57092cd1c19dd541b92bdce883de840df30aa5d03fd48a3935c01842e"
 dependencies = [
- "console-api 0.6.0",
+ "console-api",
  "crossbeam-channel",
  "crossbeam-utils",
  "futures-task",
  "hdrhistogram",
  "humantime",
- "prost-types 0.12.6",
+ "prost-types",
  "serde",
  "serde_json",
  "thread_local",
@@ -2744,7 +2708,7 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "lemmy_api"
-version = "0.19.4-rc.4"
+version = "0.19.4-rc.8"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2773,7 +2737,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.19.4-rc.4"
+version = "0.19.4-rc.8"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2811,7 +2775,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "0.19.4-rc.4"
+version = "0.19.4-rc.8"
 dependencies = [
  "accept-language",
  "activitypub_federation",
@@ -2834,7 +2798,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "0.19.4-rc.4"
+version = "0.19.4-rc.8"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2872,7 +2836,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_perf"
-version = "0.19.4-rc.4"
+version = "0.19.4-rc.8"
 dependencies = [
  "anyhow",
  "clap",
@@ -2887,7 +2851,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.19.4-rc.4"
+version = "0.19.4-rc.8"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -2929,7 +2893,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.19.4-rc.4"
+version = "0.19.4-rc.8"
 dependencies = [
  "actix-web",
  "chrono",
@@ -2951,7 +2915,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_actor"
-version = "0.19.4-rc.4"
+version = "0.19.4-rc.8"
 dependencies = [
  "chrono",
  "diesel",
@@ -2972,7 +2936,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_moderator"
-version = "0.19.4-rc.4"
+version = "0.19.4-rc.8"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -2984,7 +2948,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_federate"
-version = "0.19.4-rc.4"
+version = "0.19.4-rc.8"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -3009,7 +2973,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "0.19.4-rc.4"
+version = "0.19.4-rc.8"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3034,7 +2998,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "0.19.4-rc.4"
+version = "0.19.4-rc.8"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -3043,7 +3007,7 @@ dependencies = [
  "chrono",
  "clap",
  "clokwerk",
- "console-subscriber 0.1.10",
+ "console-subscriber",
  "diesel",
  "diesel-async",
  "futures-util",
@@ -3077,7 +3041,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.19.4-rc.4"
+version = "0.19.4-rc.8"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -4039,7 +4003,7 @@ dependencies = [
  "clap",
  "color-eyre",
  "config",
- "console-subscriber 0.2.0",
+ "console-subscriber",
  "dashmap",
  "diesel",
  "diesel-async",
@@ -4346,15 +4310,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.65",
-]
-
-[[package]]
-name = "prost-types"
-version = "0.11.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "213622a1460818959ac1181aaeb2dc9c7f63df720db7d788b3e24eacd1983e13"
-dependencies = [
- "prost 0.11.9",
 ]
 
 [[package]]
@@ -5068,9 +5023,9 @@ checksum = "61697e0a1c7e512e84a621326239844a24d8207b4669b41bc18b32ea5cbf988b"
 
 [[package]]
 name = "serde"
-version = "1.0.202"
+version = "1.0.203"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "226b61a0d411b2ba5ff6d7f73a476ac4f8bb900373459cd00fab8512828ba395"
+checksum = "7253ab4de971e72fb7be983802300c30b5a7f0c2e56fab8abfc6a214307c0094"
 dependencies = [
  "serde_derive",
 ]
@@ -5086,9 +5041,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.202"
+version = "1.0.203"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6048858004bcff69094cd972ed40a32500f153bd3be9f716b2eed2e8217c4838"
+checksum = "500cbc0ebeb6f46627f50f3f5811ccf6bf00643be300b4c3eabc0ef55dc5b5ba"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5931,34 +5886,6 @@ dependencies = [
  "tower-service",
  "tracing",
  "tracing-futures",
-]
-
-[[package]]
-name = "tonic"
-version = "0.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3082666a3a6433f7f511c7192923fa1fe07c69332d3c6a2e6bb040b569199d5a"
-dependencies = [
- "async-trait",
- "axum",
- "base64 0.21.7",
- "bytes",
- "futures-core",
- "futures-util",
- "h2 0.3.26",
- "http 0.2.12",
- "http-body 0.4.6",
- "hyper 0.14.28",
- "hyper-timeout",
- "percent-encoding",
- "pin-project",
- "prost 0.11.9",
- "tokio",
- "tokio-stream",
- "tower",
- "tower-layer",
- "tower-service",
- "tracing",
 ]
 
 [[package]]
