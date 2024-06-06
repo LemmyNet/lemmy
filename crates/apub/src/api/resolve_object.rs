@@ -23,10 +23,9 @@ pub async fn resolve_object(
 ) -> LemmyResult<Json<ResolveObjectResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
   check_private_instance(&local_user_view, &local_site)?;
-  let person_id = local_user_view.map(|v| v.person.id);
   // If we get a valid personId back we can safely assume that the user is authenticated,
   // if there's no personId then the JWT was missing or invalid.
-  let is_authenticated = person_id.is_some();
+  let is_authenticated = local_user_view.is_some();
 
   let res = if is_authenticated {
     // user is fully authenticated; allow remote lookups as well.
@@ -37,24 +36,25 @@ pub async fn resolve_object(
   }
   .with_lemmy_type(LemmyErrorType::CouldntFindObject)?;
 
-  convert_response(res, person_id, &mut context.pool())
+  convert_response(res, local_user_view.as_ref(), &mut context.pool())
     .await
     .with_lemmy_type(LemmyErrorType::CouldntFindObject)
 }
 
 async fn convert_response(
   object: SearchableObjects,
-  user_id: Option<PersonId>,
+  local_user_view: Option<&LocalUserView>,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<Json<ResolveObjectResponse>> {
   use SearchableObjects::*;
+  let user_id = local_user_view.map(|v| v.person.id);
   let removed_or_deleted;
   let mut res = ResolveObjectResponse::default();
   match object {
     Post(p) => {
       removed_or_deleted = p.deleted || p.removed;
       res.post = Some(
-        PostView::read(pool, p.id, user_id, false)
+        PostView::read(pool, p.id, local_user_view, false)
           .await?
           .ok_or(LemmyErrorType::CouldntFindPost)?,
       )
