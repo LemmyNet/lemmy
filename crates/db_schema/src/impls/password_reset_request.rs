@@ -70,11 +70,7 @@ mod tests {
 
     // Setup
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
-    let new_person = PersonInsertForm::builder()
-      .name("thommy prw".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::new_local("thommy prw", inserted_instance.id);
     let inserted_person = Person::create(pool, &new_person).await?;
     let new_local_user = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
