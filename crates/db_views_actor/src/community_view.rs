@@ -22,7 +22,7 @@ use lemmy_db_schema::{
   },
   source::{community::CommunityFollower, local_user::LocalUser, site::Site},
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
-  viewer::Viewer,
+  viewer::{visible_communities_only, Viewer},
   ListingType,
   SortType,
 };
@@ -96,7 +96,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(not_removed_or_deleted);
     }
 
-    query = Viewer::from(my_person_id).visible_communities_only(query);
+    query = visible_communities_only(my_person_id, query);
 
     query.first(&mut conn).await
   };
@@ -104,12 +104,10 @@ fn queries<'a>() -> Queries<
   let list = move |mut conn: DbConn<'a>, (options, site): (CommunityQuery<'a>, &'a Site)| async move {
     use SortType::*;
 
-    let viewer = Viewer::from(options.local_user);
-
     // The left join below will return None in this case
-    let person_id_join = viewer.person_id().unwrap_or(PersonId(-1));
+    let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
 
-    let mut query = all_joins(community::table.into_boxed(), viewer.person_id()).select(selection);
+    let mut query = all_joins(community::table.into_boxed(), options.local_user.person_id()).select(selection);
 
     if let Some(search_term) = options.search_term {
       let searcher = fuzzy_search(&search_term);
@@ -158,11 +156,11 @@ fn queries<'a>() -> Queries<
     // also hidden (based on profile setting)
     query = query.filter(instance_block::person_id.is_null());
     query = query.filter(community_block::person_id.is_null());
-    if !(viewer.show_nsfw(site) || options.show_nsfw) {
+    if !(options.local_user.show_nsfw(site) || options.show_nsfw) {
       query = query.filter(community::nsfw.eq(false));
     }
 
-    query = viewer.visible_communities_only(query);
+    query = visible_communities_only(options.local_user, query);
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
     query
