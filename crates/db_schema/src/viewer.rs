@@ -6,20 +6,23 @@ use crate::{
 };
 use diesel::{dsl, query_dsl::methods::FilterDsl, ExpressionMethods};
 
+/// Hide local only communities from unauthenticated users
+///
+/// TODO: change `read` functions to take `impl Viewer` instead of `Option<PersonId>`,
+/// and move this function to `Viewer`
+fn visible_communities_only<T, Q>(local_user: Option<T>, query: Q) -> Q
+where
+  Q: FilterDsl<dsl::Eq<community::visibility, CommunityVisibility>, Output = Q>,
+{
+  if local_user.is_none() {
+    query.filter(community::visibility.eq(CommunityVisibility::Public))
+  } else {
+    query
+  }
+}
+
 trait Viewer {
   fn local_user(&self) -> Option<&LocalUser>;
-
-  /// Hide local only communities from unauthenticated users
-  fn visible_communities_only<Q>(&self, query: Q) -> Q
-  where
-    Q: FilterDsl<dsl::Eq<community::visibility, CommunityVisibility>, Output = Q>,
-  {
-    if self.local_user().is_none() {
-      query.filter(community::visibility.eq(CommunityVisibility::Public))
-    } else {
-      query
-    }
-  }
 
   fn person_id(&self) -> Option<PersonId> {
     self.local_user().map(|l| l.person_id)
