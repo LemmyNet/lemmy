@@ -240,11 +240,7 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("holly".into())
-      .public_key("nada".to_owned())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::new_local("holly", inserted_instance.id);
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
@@ -303,17 +299,9 @@ mod tests {
       .await
       .unwrap();
 
-    let person_form_1 = PersonInsertForm::builder()
-      .name("erich".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let person_form_1 = PersonInsertForm::new_local("erich", inserted_instance.id);
     let person_1 = Person::create(pool, &person_form_1).await.unwrap();
-    let person_form_2 = PersonInsertForm::builder()
-      .name("michele".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let person_form_2 = PersonInsertForm::new_local("michele", inserted_instance.id);
     let person_2 = Person::create(pool, &person_form_2).await.unwrap();
 
     let follow_form = PersonFollowerForm {
