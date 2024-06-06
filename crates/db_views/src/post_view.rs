@@ -296,9 +296,15 @@ fn queries<'a>() -> Queries<
   let list = move |mut conn: DbConn<'a>, (options, site): (PostQuery<'a>, &'a Site)| async move {
     // The left join below will return None in this case
     let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
-    let local_user_id_join = options.local_user.local_user_id().unwrap_or(LocalUserId(-1));
+    let local_user_id_join = options
+      .local_user
+      .local_user_id()
+      .unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(post_aggregates::table.into_boxed(), options.local_user.person_id());
+    let mut query = all_joins(
+      post_aggregates::table.into_boxed(),
+      options.local_user.person_id(),
+    );
 
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
