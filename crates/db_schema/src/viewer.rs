@@ -22,32 +22,32 @@ where
 }
 
 trait Viewer {
-  fn local_user(&self) -> Option<&LocalUser>;
+  fn local_user(self) -> Option<&LocalUser>;
 
-  fn person_id(&self) -> Option<PersonId> {
+  fn person_id(self) -> Option<PersonId> {
     self.local_user().map(|l| l.person_id)
   }
 
-  fn local_user_id(&self) -> Option<LocalUserId> {
+  fn local_user_id(self) -> Option<LocalUserId> {
     self.local_user().map(|l| l.id)
   }
 
-  fn show_bot_accounts(&self) -> bool {
+  fn show_bot_accounts(self) -> bool {
     self
       .local_user()
       .map(|l| l.show_bot_accounts)
       .unwrap_or(true)
   }
 
-  fn show_read_posts(&self) -> bool {
+  fn show_read_posts(self) -> bool {
     self.local_user().map(|l| l.show_read_posts).unwrap_or(true)
   }
 
-  fn is_admin(&self) -> bool {
+  fn is_admin(self) -> bool {
     self.local_user().map(|l| l.admin).unwrap_or(false)
   }
 
-  fn show_nsfw(&self, site: &Site) -> bool {
+  fn show_nsfw(self, site: &Site) -> bool {
     self
       .local_user()
       .map(|l| l.show_nsfw)
@@ -56,7 +56,7 @@ trait Viewer {
 }
 
 impl<'a, T: Into<&'a LocalUser>> Viewer for Option<T> {
-  fn local_user(&self) -> Option<&LocalUser> {
+  fn local_user(self) -> Option<&LocalUser> {
     self.map(Into::into)
   }
 }
