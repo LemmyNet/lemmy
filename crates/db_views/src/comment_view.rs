@@ -35,7 +35,7 @@ use lemmy_db_schema::{
     post,
   },
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
-  viewer::Viewer,
+  viewer::{visible_communities_only, Viewer},
   CommentSortType,
   ListingType,
 };
@@ -174,18 +174,16 @@ fn queries<'a>() -> Queries<
   let read = move |mut conn: DbConn<'a>,
                    (comment_id, my_person_id): (CommentId, Option<PersonId>)| async move {
     let mut query = all_joins(comment::table.find(comment_id).into_boxed(), my_person_id);
-    query = Viewer::from(my_person_id).visible_communities_only(query);
+    query = visible_communities_only(my_person_id, query);
     query.first(&mut conn).await
   };
 
   let list = move |mut conn: DbConn<'a>, options: CommentQuery<'a>| async move {
-    let viewer = Viewer::from(options.local_user);
-
     // The left join below will return None in this case
-    let person_id_join = viewer.person_id().unwrap_or(PersonId(-1));
-    let local_user_id_join = viewer.local_user_id().unwrap_or(LocalUserId(-1));
+    let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
+    let local_user_id_join = options.local_user.local_user_id().unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(comment::table.into_boxed(), viewer.person_id());
+    let mut query = all_joins(comment::table.into_boxed(), options.local_user.person_id());
 
     if let Some(creator_id) = options.creator_id {
       query = query.filter(comment::creator_id.eq(creator_id));
@@ -247,7 +245,7 @@ fn queries<'a>() -> Queries<
         .then_order_by(comment_saved::published.desc());
     }
 
-    if let Some(my_id) = viewer.person_id() {
+    if let Some(my_id) = options.local_user.person_id() {
       let not_creator_filter = comment::creator_id.ne(my_id);
       if options.liked_only {
         query = query.filter(not_creator_filter).filter(score(my_id).eq(1));
@@ -256,7 +254,7 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if !viewer.show_bot_accounts() {
+    if !options.local_user.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
 
@@ -290,7 +288,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(not(is_creator_blocked(person_id_join)));
     };
 
-    query = viewer.visible_communities_only(query);
+    query = visible_communities_only(options.local_user, query);
 
     // A Max depth given means its a tree fetch
     let (limit, offset) = if let Some(max_depth) = options.max_depth {
@@ -665,7 +663,7 @@ mod tests {
     let read_comment_from_blocked_person = CommentView::read(
       pool,
       data.inserted_comment_1.id,
-      Some(&data.timmy_local_user_view),
+      Some(data.timmy_local_user_view.person.id),
     )
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
@@ -1160,7 +1158,7 @@ mod tests {
     let authenticated_comment = CommentView::read(
       pool,
       data.inserted_comment_0.id,
-      Some(&data.timmy_local_user_view),
+      Some(data.timmy_local_user_view.person.id),
     )
     .await;
     assert!(authenticated_comment.is_ok());
@@ -1200,7 +1198,7 @@ mod tests {
     let comment_view = CommentView::read(
       pool,
       data.inserted_comment_0.id,
-      Some(&inserted_banned_from_comm_local_user),
+      Some(inserted_banned_from_comm_local_user.person_id),
     )
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
@@ -1221,7 +1219,7 @@ mod tests {
     let comment_view = CommentView::read(
       pool,
       data.inserted_comment_0.id,
-      Some(&data.timmy_local_user_view),
+      Some(data.timmy_local_user_view.person.id),
     )
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
