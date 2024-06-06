@@ -341,7 +341,7 @@ mod tests {
     let person_form = PersonInsertForm {
       display_name: Some(name.clone()),
       bio,
-      ..PersonInsertForm::new_local(name, instance.id)
+      ..PersonInsertForm::new_local(name, instance.id)?
     };
     let person = Person::create(&mut context.pool(), &person_form).await?;
 
