@@ -107,7 +107,11 @@ fn queries<'a>() -> Queries<
     // The left join below will return None in this case
     let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
 
-    let mut query = all_joins(community::table.into_boxed(), options.local_user.person_id()).select(selection);
+    let mut query = all_joins(
+      community::table.into_boxed(),
+      options.local_user.person_id(),
+    )
+    .select(selection);
 
     if let Some(search_term) = options.search_term {
       let searcher = fuzzy_search(&search_term);
