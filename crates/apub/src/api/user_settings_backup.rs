@@ -338,13 +338,11 @@ mod tests {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<LocalUserView> {
     let instance = Instance::read_or_create(&mut context.pool(), "example.com".to_string()).await?;
-    let person_form = PersonInsertForm::builder()
-      .name(name.clone())
-      .display_name(Some(name.clone()))
-      .bio(bio)
-      .public_key("asd".to_string())
-      .instance_id(instance.id)
-      .build();
+    let person_form = PersonInsertForm {
+      display_name: Some(name.clone()),
+      bio,
+      ..PersonInsertForm::new_local(name, instance.id)
+    };
     let person = Person::create(&mut context.pool(), &person_form).await?;
 
     let user_form = LocalUserInsertForm::builder()
