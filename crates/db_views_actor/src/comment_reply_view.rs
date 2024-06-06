@@ -334,19 +334,13 @@ mod tests {
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-    let terry_form = PersonInsertForm::builder()
-      .name("terrylake".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let terry_form = PersonInsertForm::new_local("terrylake", inserted_instance.id);
     let inserted_terry = Person::create(pool, &terry_form).await?;
 
-    let recipient_form = PersonInsertForm::builder()
-      .name("terrylakes recipient".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .local(Some(true))
-      .build();
+    let recipient_form = PersonInsertForm {
+      local: Some(true),
+      ..PersonInsertForm::new_local("terrylakes recipient", inserted_instance.id)
+    };
 
     let inserted_recipient = Person::create(pool, &recipient_form).await?;
     let recipient_id = inserted_recipient.id;
