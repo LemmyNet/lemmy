@@ -138,7 +138,7 @@ impl FromRequest for LocalUserView {
   }
 }
 
-// Allow conversion to Viewer
+// Used by `lemmy_db_schema::viewer::Viewer`
 impl<'a> From<&'a LocalUserView> for &'a LocalUser {
   fn from(local_user_view: &'a LocalUserView) -> Self {
     &local_user_view.local_user
