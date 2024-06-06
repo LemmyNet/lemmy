@@ -52,7 +52,7 @@ trait Viewer {
   }
 }
 
-impl<'a, T: Into<&'a LocalUser>> for Option<T> {
+impl<'a, T: Into<&'a LocalUser>> Viewer for Option<T> {
   fn local_user(&self) -> Option<&LocalUser> {
     self.map(Into::into)
   }
