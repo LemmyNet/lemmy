@@ -191,12 +191,10 @@ mod tests {
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-    let alice_form = PersonInsertForm::builder()
-      .name("alice".to_string())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .local(Some(true))
-      .build();
+    let alice_form = PersonInsertForm {
+      local: Some(true),
+      ..PersonInsertForm::test_form(inserted_instance.id, "alice")
+    };
     let alice = Person::create(pool, &alice_form).await?;
     let alice_local_user_form = LocalUserInsertForm::builder()
       .person_id(alice.id)
@@ -204,13 +202,11 @@ mod tests {
       .build();
     let alice_local_user = LocalUser::create(pool, &alice_local_user_form, vec![]).await?;
 
-    let bob_form = PersonInsertForm::builder()
-      .name("bob".to_string())
-      .bot_account(Some(true))
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .local(Some(false))
-      .build();
+    let bob_form = PersonInsertForm {
+      bot_account: Some(true),
+      local: Some(false),
+      ..PersonInsertForm::test_form(inserted_instance.id, "bob")
+    };
     let bob = Person::create(pool, &bob_form).await?;
     let bob_local_user_form = LocalUserInsertForm::builder()
       .person_id(bob.id)
