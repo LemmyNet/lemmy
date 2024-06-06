@@ -209,27 +209,15 @@ mod tests {
       .await
       .unwrap();
 
-    let timmy_form = PersonInsertForm::builder()
-      .name("timmy_rav".into())
-      .public_key("pubkey".to_string())
-      .instance_id(instance.id)
-      .build();
+    let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_rav");
 
     let timmy = Person::create(pool, &timmy_form).await.unwrap();
 
-    let sara_form = PersonInsertForm::builder()
-      .name("sara_rav".into())
-      .public_key("pubkey".to_string())
-      .instance_id(instance.id)
-      .build();
+    let sara_form = PersonInsertForm::test_form(instance.id, "sara_rav");
 
     let sara = Person::create(pool, &sara_form).await.unwrap();
 
-    let jess_form = PersonInsertForm::builder()
-      .name("jess_rav".into())
-      .public_key("pubkey".to_string())
-      .instance_id(instance.id)
-      .build();
+    let jess_form = PersonInsertForm::test_form(instance.id, "jess_rav");
 
     let jess = Person::create(pool, &jess_form).await.unwrap();
 
