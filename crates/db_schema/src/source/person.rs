@@ -60,29 +60,46 @@ pub struct Person {
   pub instance_id: InstanceId,
 }
 
-#[derive(Clone)]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
 pub struct PersonInsertForm {
   pub name: String,
   pub public_key: String,
   pub instance_id: InstanceId,
+  #[new(default)]
   pub display_name: Option<String>,
+  #[new(default)]
   pub avatar: Option<DbUrl>,
+  #[new(default)]
   pub banned: Option<bool>,
+  #[new(default)]
   pub published: Option<DateTime<Utc>>,
+  #[new(default)]
   pub updated: Option<DateTime<Utc>>,
+  #[new(default)]
   pub actor_id: Option<DbUrl>,
+  #[new(default)]
   pub bio: Option<String>,
+  #[new(default)]
   pub local: Option<bool>,
+  #[new(default)]
   pub private_key: Option<String>,
+  #[new(default)]
   pub last_refreshed_at: Option<DateTime<Utc>>,
+  #[new(default)]
   pub banner: Option<DbUrl>,
+  #[new(default)]
   pub deleted: Option<bool>,
+  #[new(default)]
   pub inbox_url: Option<DbUrl>,
+  #[new(default)]
   pub shared_inbox_url: Option<DbUrl>,
+  #[new(default)]
   pub matrix_user_id: Option<String>,
+  #[new(default)]
   pub bot_account: Option<bool>,
+  #[new(default)]
   pub ban_expires: Option<DateTime<Utc>>,
 }
 
