@@ -665,7 +665,7 @@ mod tests {
     let read_comment_from_blocked_person = CommentView::read(
       pool,
       data.inserted_comment_1.id,
-      Some(data.timmy_local_user_view.person.id),
+      Some(&data.timmy_local_user_view),
     )
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
@@ -1160,7 +1160,7 @@ mod tests {
     let authenticated_comment = CommentView::read(
       pool,
       data.inserted_comment_0.id,
-      Some(data.timmy_local_user_view.person.id),
+      Some(&data.timmy_local_user_view),
     )
     .await;
     assert!(authenticated_comment.is_ok());
@@ -1200,7 +1200,7 @@ mod tests {
     let comment_view = CommentView::read(
       pool,
       data.inserted_comment_0.id,
-      Some(inserted_banned_from_comm_local_user.person_id),
+      Some(&inserted_banned_from_comm_local_user),
     )
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
@@ -1221,7 +1221,7 @@ mod tests {
     let comment_view = CommentView::read(
       pool,
       data.inserted_comment_0.id,
-      Some(data.timmy_local_user_view.person.id),
+      Some(&data.timmy_local_user_view),
     )
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
