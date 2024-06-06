@@ -33,7 +33,10 @@ trait Viewer {
   }
 
   fn show_bot_accounts(&self) -> bool {
-    self.local_user().map(|l| l.show_bot_accounts).unwrap_or(true)
+    self
+      .local_user()
+      .map(|l| l.show_bot_accounts)
+      .unwrap_or(true)
   }
 
   fn show_read_posts(&self) -> bool {
