@@ -21,6 +21,7 @@ import {
   fetchFunction,
   alphaImage,
   unfollows,
+  saveUserSettingsBio,
 } from "./shared";
 import { LemmyHttp, SaveUserSettings, UploadImage } from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
@@ -198,4 +199,14 @@ test("Set a new avatar, old avatar is deleted", async () => {
   // make sure only the new avatar is kept
   const listMediaRes3 = await alphaImage.listMedia();
   expect(listMediaRes3.images.length).toBe(1);
+
+  // Now try to save a user settings, with the icon missing,
+  // and make sure it doesn't clear the data, or delete the image
+  await saveUserSettingsBio(alpha);
+  let site = await getSite(alpha);
+  expect(site.my_user?.local_user_view.person.avatar).toBe(upload2.url);
+
+  // make sure only the new avatar is kept
+  const listMediaRes4 = await alphaImage.listMedia();
+  expect(listMediaRes4.images.length).toBe(1);
 });

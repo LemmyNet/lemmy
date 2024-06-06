@@ -158,14 +158,12 @@ pub fn is_valid_post_title(title: &str) -> LemmyResult<()> {
 }
 
 /// This could be post bodies, comments, or any description field
-pub fn is_valid_body_field(body: &Option<String>, post: bool) -> LemmyResult<()> {
-  if let Some(body) = body {
-    if post {
-      max_length_check(body, POST_BODY_MAX_LENGTH, LemmyErrorType::InvalidBodyField)?;
-    } else {
-      max_length_check(body, BODY_MAX_LENGTH, LemmyErrorType::InvalidBodyField)?;
-    };
-  }
+pub fn is_valid_body_field(body: &str, post: bool) -> LemmyResult<()> {
+  if post {
+    max_length_check(body, POST_BODY_MAX_LENGTH, LemmyErrorType::InvalidBodyField)?;
+  } else {
+    max_length_check(body, BODY_MAX_LENGTH, LemmyErrorType::InvalidBodyField)?;
+  };
   Ok(())
 }
 
@@ -173,16 +171,14 @@ pub fn is_valid_bio_field(bio: &str) -> LemmyResult<()> {
   max_length_check(bio, BIO_MAX_LENGTH, LemmyErrorType::BioLengthOverflow)
 }
 
-pub fn is_valid_alt_text_field(alt_text: &Option<String>) -> LemmyResult<()> {
-  if let Some(alt_text) = alt_text {
-    max_length_check(
-      alt_text,
-      ALT_TEXT_MAX_LENGTH,
-      LemmyErrorType::AltTextLengthOverflow,
-    )
-  } else {
-    Ok(())
-  }
+pub fn is_valid_alt_text_field(alt_text: &str) -> LemmyResult<()> {
+  max_length_check(
+    alt_text,
+    ALT_TEXT_MAX_LENGTH,
+    LemmyErrorType::AltTextLengthOverflow,
+  )?;
+
+  Ok(())
 }
 
 /// Checks the site name length, the limit as defined in the DB.
@@ -287,23 +283,17 @@ pub fn check_site_visibility_valid(
   }
 }
 
-pub fn check_url_scheme(url: &Option<Url>) -> LemmyResult<()> {
-  if let Some(url) = url {
-    if !ALLOWED_POST_URL_SCHEMES.contains(&url.scheme()) {
-      Err(LemmyErrorType::InvalidUrlScheme.into())
-    } else {
-      Ok(())
-    }
-  } else {
-    Ok(())
+pub fn check_url_scheme(url: &Url) -> LemmyResult<()> {
+  if !ALLOWED_POST_URL_SCHEMES.contains(&url.scheme()) {
+    Err(LemmyErrorType::InvalidUrlScheme)?
   }
+
+  Ok(())
 }
 
-pub fn is_url_blocked(url: &Option<Url>, blocklist: &RegexSet) -> LemmyResult<()> {
-  if let Some(url) = url {
-    if blocklist.is_match(url.as_str()) {
-      Err(LemmyErrorType::BlockedUrl)?
-    }
+pub fn is_url_blocked(url: &Url, blocklist: &RegexSet) -> LemmyResult<()> {
+  if blocklist.is_match(url.as_str()) {
+    Err(LemmyErrorType::BlockedUrl)?
   }
 
   Ok(())
@@ -350,12 +340,11 @@ pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 #[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{
-    error::LemmyErrorType,
+    error::{LemmyErrorType, LemmyResult},
     utils::validation::{
       build_and_check_regex,
       check_site_visibility_valid,
@@ -379,15 +368,17 @@ mod tests {
   use url::Url;
 
   #[test]
-  fn test_clean_url_params() {
-    let url = Url::parse("https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&username=randomuser&id=123").unwrap();
+  fn test_clean_url_params() -> LemmyResult<()> {
+    let url = Url::parse("https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&username=randomuser&id=123")?;
     let cleaned = clean_url_params(&url);
-    let expected = Url::parse("https://example.com/path/123?username=randomuser&id=123").unwrap();
+    let expected = Url::parse("https://example.com/path/123?username=randomuser&id=123")?;
     assert_eq!(expected.to_string(), cleaned.to_string());
 
-    let url = Url::parse("https://example.com/path/123").unwrap();
+    let url = Url::parse("https://example.com/path/123")?;
     let cleaned = clean_url_params(&url);
     assert_eq!(url.to_string(), cleaned.to_string());
+
+    Ok(())
   }
 
   #[test]
@@ -465,7 +456,7 @@ mod tests {
   }
 
   #[test]
-  fn test_valid_site_name() {
+  fn test_valid_site_name() -> LemmyResult<()> {
     let valid_names = [
       (0..SITE_NAME_MAX_LENGTH).map(|_| 'A').collect::<String>(),
       String::from("A"),
@@ -496,12 +487,13 @@ mod tests {
 
         assert!(result.is_err());
         assert!(
-          result.unwrap_err().error_type.eq(&expected_err.clone()),
+          result.is_err_and(|e| e.error_type.eq(&expected_err.clone())),
           "Testing {}, expected error {}",
           invalid_name,
           expected_err
         );
       });
+    Ok(())
   }
 
   #[test]
@@ -513,10 +505,7 @@ mod tests {
 
     assert!(
       invalid_result.is_err()
-        && invalid_result
-          .unwrap_err()
-          .error_type
-          .eq(&LemmyErrorType::BioLengthOverflow)
+        && invalid_result.is_err_and(|e| e.error_type.eq(&LemmyErrorType::BioLengthOverflow))
     );
   }
 
@@ -537,10 +526,9 @@ mod tests {
 
     assert!(
       invalid_result.is_err()
-        && invalid_result
-          .unwrap_err()
+        && invalid_result.is_err_and(|e| e
           .error_type
-          .eq(&LemmyErrorType::SiteDescriptionLengthOverflow)
+          .eq(&LemmyErrorType::SiteDescriptionLengthOverflow))
     );
   }
 
@@ -570,7 +558,7 @@ mod tests {
 
         assert!(result.is_err());
         assert!(
-          result.unwrap_err().error_type.eq(&expected_err.clone()),
+          result.is_err_and(|e| e.error_type.eq(&expected_err.clone())),
           "Testing regex {:?}, expected error {}",
           regex_str,
           expected_err
@@ -591,38 +579,38 @@ mod tests {
   }
 
   #[test]
-  fn test_check_url_scheme() {
-    assert!(check_url_scheme(&None).is_ok());
-    assert!(check_url_scheme(&Some(Url::parse("http://example.com").unwrap())).is_ok());
-    assert!(check_url_scheme(&Some(Url::parse("https://example.com").unwrap())).is_ok());
-    assert!(check_url_scheme(&Some(Url::parse("https://example.com").unwrap())).is_ok());
-    assert!(check_url_scheme(&Some(Url::parse("ftp://example.com").unwrap())).is_err());
-    assert!(check_url_scheme(&Some(Url::parse("javascript:void").unwrap())).is_err());
+  fn test_check_url_scheme() -> LemmyResult<()> {
+    assert!(check_url_scheme(&Url::parse("http://example.com")?).is_ok());
+    assert!(check_url_scheme(&Url::parse("https://example.com")?).is_ok());
+    assert!(check_url_scheme(&Url::parse("https://example.com")?).is_ok());
+    assert!(check_url_scheme(&Url::parse("ftp://example.com")?).is_err());
+    assert!(check_url_scheme(&Url::parse("javascript:void")?).is_err());
 
     let magnet_link="magnet:?xt=urn:btih:4b390af3891e323778959d5abfff4b726510f14c&dn=Ravel%20Complete%20Piano%20Sheet%20Music%20-%20Public%20Domain&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce";
-    assert!(check_url_scheme(&Some(Url::parse(magnet_link).unwrap())).is_ok());
+    assert!(check_url_scheme(&Url::parse(magnet_link)?).is_ok());
+
+    Ok(())
   }
 
   #[test]
-  fn test_url_block() {
+  fn test_url_block() -> LemmyResult<()> {
     let set = regex::RegexSet::new(vec![
       r"(https://)?example\.org/page/to/article",
       r"(https://)?example\.net/?",
       r"(https://)?example\.com/?",
-    ])
-    .unwrap();
+    ])?;
 
-    assert!(is_url_blocked(&Some(Url::parse("https://example.blog").unwrap()), &set).is_ok());
+    assert!(is_url_blocked(&Url::parse("https://example.blog")?, &set).is_ok());
 
-    assert!(is_url_blocked(&Some(Url::parse("https://example.org").unwrap()), &set).is_ok());
+    assert!(is_url_blocked(&Url::parse("https://example.org")?, &set).is_ok());
 
-    assert!(is_url_blocked(&None, &set).is_ok());
+    assert!(is_url_blocked(&Url::parse("https://example.com")?, &set).is_err());
 
-    assert!(is_url_blocked(&Some(Url::parse("https://example.com").unwrap()), &set).is_err());
+    Ok(())
   }
 
   #[test]
-  fn test_url_parsed() {
+  fn test_url_parsed() -> LemmyResult<()> {
     // Make sure the scheme is removed, and uniques also
     assert_eq!(
       &check_urls_are_valid(&vec![
@@ -630,8 +618,7 @@ mod tests {
         "http://example.com".to_string(),
         "https://example.com".to_string(),
         "https://example.com/test?q=test2&q2=test3#test4".to_string(),
-      ])
-      .unwrap(),
+      ])?,
       &vec![
         "example.com".to_string(),
         "example.com/test?q=test2&q2=test3#test4".to_string()
@@ -639,5 +626,6 @@ mod tests {
     );
 
     assert!(check_urls_are_valid(&vec!["https://example .com".to_string()]).is_err());
+    Ok(())
   }
 }

@@ -47,7 +47,7 @@ pub async fn create_comment(
   let slur_regex = local_site_to_slur_regex(&local_site);
   let url_blocklist = get_url_blocklist(&context).await?;
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
-  is_valid_body_field(&Some(content.clone()), false)?;
+  is_valid_body_field(&content, false)?;
 
   // Check for a community ban
   let post_id = data.post_id;

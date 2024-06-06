@@ -219,7 +219,10 @@ impl Object for ApubPost {
     } else {
       None
     };
-    check_url_scheme(&url)?;
+
+    if let Some(url) = &url {
+      check_url_scheme(url)?;
+    }
 
     let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
 
