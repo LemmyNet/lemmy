@@ -46,19 +46,21 @@ pub async fn update_post(
 ) -> LemmyResult<Json<PostResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let url = diesel_url_update(&data.url)?;
+  let url = diesel_url_update(data.url.as_deref())?;
 
-  let custom_thumbnail = diesel_url_update(&data.custom_thumbnail)?;
+  let custom_thumbnail = diesel_url_update(data.custom_thumbnail.as_deref())?;
 
   let url_blocklist = get_url_blocklist(&context).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
 
   let body = diesel_string_update(
-    &process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?,
+    process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context)
+      .await?
+      .as_deref(),
   );
 
-  let alt_text = diesel_string_update(&data.alt_text);
+  let alt_text = diesel_string_update(data.alt_text.as_deref());
 
   if let Some(name) = &data.name {
     is_valid_post_title(name)?;

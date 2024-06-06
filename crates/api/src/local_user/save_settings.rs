@@ -43,21 +43,23 @@ pub async fn save_user_settings(
   let slur_regex = local_site_to_slur_regex(&site_view.local_site);
   let url_blocklist = get_url_blocklist(&context).await?;
   let bio = diesel_string_update(
-    &process_markdown_opt(&data.bio, &slur_regex, &url_blocklist, &context).await?,
+    process_markdown_opt(&data.bio, &slur_regex, &url_blocklist, &context)
+      .await?
+      .as_deref(),
   );
 
-  let avatar = diesel_url_update(&data.avatar)?;
+  let avatar = diesel_url_update(data.avatar.as_deref())?;
   replace_image(&avatar, &local_user_view.person.avatar, &context).await?;
   let avatar = proxy_image_link_opt_api(avatar, &context).await?;
 
-  let banner = diesel_url_update(&data.banner)?;
+  let banner = diesel_url_update(data.banner.as_deref())?;
   replace_image(&banner, &local_user_view.person.banner, &context).await?;
   let banner = proxy_image_link_opt_api(banner, &context).await?;
 
-  let display_name = diesel_string_update(&data.display_name);
-  let matrix_user_id = diesel_string_update(&data.matrix_user_id.clone());
+  let display_name = diesel_string_update(data.display_name.as_deref());
+  let matrix_user_id = diesel_string_update(data.matrix_user_id.as_deref());
   let email_deref = data.email.as_deref().map(str::to_lowercase);
-  let email = diesel_string_update(&email_deref.clone());
+  let email = diesel_string_update(email_deref.as_deref());
 
   if let Some(Some(email)) = &email {
     let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();

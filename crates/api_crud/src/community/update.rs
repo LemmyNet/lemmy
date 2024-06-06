@@ -42,7 +42,9 @@ pub async fn update_community(
   check_slurs_opt(&data.title, &slur_regex)?;
 
   let description = diesel_string_update(
-    &process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context).await?,
+    process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context)
+      .await?
+      .as_deref(),
   );
 
   if let Some(Some(desc)) = &description {
@@ -53,11 +55,11 @@ pub async fn update_community(
     .await?
     .ok_or(LemmyErrorType::CouldntFindCommunity)?;
 
-  let icon = diesel_url_update(&data.icon)?;
+  let icon = diesel_url_update(data.icon.as_deref())?;
   replace_image(&icon, &old_community.icon, &context).await?;
   let icon = proxy_image_link_opt_api(icon, &context).await?;
 
-  let banner = diesel_url_update(&data.banner)?;
+  let banner = diesel_url_update(data.banner.as_deref())?;
   replace_image(&banner, &old_community.banner, &context).await?;
   let banner = proxy_image_link_opt_api(banner, &context).await?;
 

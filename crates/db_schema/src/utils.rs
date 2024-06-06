@@ -289,8 +289,8 @@ pub fn is_email_regex(test: &str) -> bool {
 }
 
 /// Takes an API text input, and converts it to an optional diesel DB update.
-pub fn diesel_string_update(opt: &Option<String>) -> Option<Option<String>> {
-  match opt.as_deref() {
+pub fn diesel_string_update(opt: Option<&str>) -> Option<Option<String>> {
+  match opt {
     // An empty string is an erase
     Some("") => Some(None),
     Some(str) => Some(Some(str.into())),
@@ -300,8 +300,8 @@ pub fn diesel_string_update(opt: &Option<String>) -> Option<Option<String>> {
 
 /// Takes an optional API URL-type input, and converts it to an optional diesel DB update.
 /// Also cleans the url params.
-pub fn diesel_url_update(opt: &Option<String>) -> LemmyResult<Option<Option<DbUrl>>> {
-  match opt.as_deref() {
+pub fn diesel_url_update(opt: Option<&str>) -> LemmyResult<Option<Option<DbUrl>>> {
+  match opt {
     // An empty string is an erase
     Some("") => Ok(Some(None)),
     Some(str_url) => Url::parse(str_url)
@@ -313,8 +313,8 @@ pub fn diesel_url_update(opt: &Option<String>) -> LemmyResult<Option<Option<DbUr
 
 /// Takes an optional API URL-type input, and converts it to an optional diesel DB create.
 /// Also cleans the url params.
-pub fn diesel_url_create(opt: &Option<String>) -> LemmyResult<Option<DbUrl>> {
-  match opt.as_deref() {
+pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
+  match opt {
     Some(str_url) => Url::parse(str_url)
       .map(|u| Some(clean_url_params(&u).into()))
       .with_lemmy_type(LemmyErrorType::InvalidUrl),
@@ -591,25 +591,22 @@ mod tests {
 
   #[test]
   fn test_diesel_option_overwrite() {
-    assert_eq!(diesel_string_update(&None), None);
-    assert_eq!(diesel_string_update(&Some(String::new())), Some(None));
+    assert_eq!(diesel_string_update(None), None);
+    assert_eq!(diesel_string_update(Some("")), Some(None));
     assert_eq!(
-      diesel_string_update(&Some("test".to_string())),
+      diesel_string_update(Some("test")),
       Some(Some("test".to_string()))
     );
   }
 
   #[test]
   fn test_diesel_option_overwrite_to_url() -> LemmyResult<()> {
-    assert!(matches!(diesel_url_update(&None), Ok(None)));
-    assert!(matches!(
-      diesel_url_update(&Some(String::new())),
-      Ok(Some(None))
-    ));
-    assert!(diesel_url_update(&Some("invalid_url".to_string())).is_err());
+    assert!(matches!(diesel_url_update(None), Ok(None)));
+    assert!(matches!(diesel_url_update(Some("")), Ok(Some(None))));
+    assert!(diesel_url_update(Some("invalid_url")).is_err());
     let example_url = "https://example.com";
     assert!(matches!(
-      diesel_url_update(&Some(example_url.to_string())),
+      diesel_url_update(Some(example_url)),
       Ok(Some(Some(url))) if url == Url::parse(example_url)?.into()
     ));
     Ok(())

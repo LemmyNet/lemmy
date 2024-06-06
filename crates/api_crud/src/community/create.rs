@@ -63,10 +63,10 @@ pub async fn create_community(
   let description =
     process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context).await?;
 
-  let icon = diesel_url_create(&data.icon)?;
+  let icon = diesel_url_create(data.icon.as_deref())?;
   let icon = proxy_image_link_api(icon, &context).await?;
 
-  let banner = diesel_url_create(&data.banner)?;
+  let banner = diesel_url_create(data.banner.as_deref())?;
   let banner = proxy_image_link_api(banner, &context).await?;
 
   is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;

@@ -64,8 +64,8 @@ pub async fn create_post(
   let url_blocklist = get_url_blocklist(&context).await?;
 
   let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
-  let url = diesel_url_create(&data.url)?;
-  let custom_thumbnail = diesel_url_create(&data.custom_thumbnail)?;
+  let url = diesel_url_create(data.url.as_deref())?;
+  let custom_thumbnail = diesel_url_create(data.custom_thumbnail.as_deref())?;
 
   is_valid_post_title(&data.name)?;
 

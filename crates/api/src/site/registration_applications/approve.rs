@@ -26,7 +26,7 @@ pub async fn approve_registration_application(
   is_admin(&local_user_view)?;
 
   // Update the registration with reason, admin_id
-  let deny_reason = diesel_string_update(&data.deny_reason.clone());
+  let deny_reason = diesel_string_update(data.deny_reason.as_deref());
   let app_form = RegistrationApplicationUpdateForm {
     admin_id: Some(Some(local_user_view.person.id)),
     deny_reason,

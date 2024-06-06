@@ -70,24 +70,26 @@ pub async fn update_site(
   let slur_regex = local_site_to_slur_regex(&local_site);
   let url_blocklist = get_url_blocklist(&context).await?;
   let sidebar = diesel_string_update(
-    &process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?,
+    process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
+      .await?
+      .as_deref(),
   );
 
-  let icon = diesel_url_update(&data.icon)?;
+  let icon = diesel_url_update(data.icon.as_deref())?;
   replace_image(&icon, &site.icon, &context).await?;
   let icon = proxy_image_link_opt_api(icon, &context).await?;
 
-  let banner = diesel_url_update(&data.banner)?;
+  let banner = diesel_url_update(data.banner.as_deref())?;
   replace_image(&banner, &site.banner, &context).await?;
   let banner = proxy_image_link_opt_api(banner, &context).await?;
 
   let site_form = SiteUpdateForm {
     name: data.name.clone(),
     sidebar,
-    description: diesel_string_update(&data.description),
+    description: diesel_string_update(data.description.as_deref()),
     icon,
     banner,
-    content_warning: diesel_string_update(&data.content_warning),
+    content_warning: diesel_string_update(data.content_warning.as_deref()),
     updated: Some(Some(naive_now())),
     ..Default::default()
   };
@@ -104,16 +106,16 @@ pub async fn update_site(
     enable_nsfw: data.enable_nsfw,
     community_creation_admin_only: data.community_creation_admin_only,
     require_email_verification: data.require_email_verification,
-    application_question: diesel_string_update(&data.application_question),
+    application_question: diesel_string_update(data.application_question.as_deref()),
     private_instance: data.private_instance,
     default_theme: data.default_theme.clone(),
     default_post_listing_type: data.default_post_listing_type,
     default_sort_type: data.default_sort_type,
-    legal_information: diesel_string_update(&data.legal_information),
+    legal_information: diesel_string_update(data.legal_information.as_deref()),
     application_email_admins: data.application_email_admins,
     hide_modlog_mod_names: data.hide_modlog_mod_names,
     updated: Some(Some(naive_now())),
-    slur_filter_regex: diesel_string_update(&data.slur_filter_regex),
+    slur_filter_regex: diesel_string_update(data.slur_filter_regex.as_deref()),
     actor_name_max_length: data.actor_name_max_length,
     federation_enabled: data.federation_enabled,
     captcha_enabled: data.captcha_enabled,
