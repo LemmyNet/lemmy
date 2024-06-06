@@ -12,8 +12,41 @@ use crate::{
   traits::{ApubActor, Crud, Followable},
   utils::{functions::lower, get_conn, naive_now, DbPool},
 };
+use activitypub_federation::http_signatures::generate_actor_keypair;
 use diesel::{dsl::insert_into, result::Error, CombineDsl, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
+
+impl PersonInsertForm {
+  pub fn new_local(
+    name: impl Into<String>,
+    instance_id: InstanceId,
+  ) -> std::io::Result<Self> {
+    let actor_keypair = generate_actor_keypair()?;
+
+    Ok(PersonInsertForm {
+      name,
+      public_key: actor_keypair.public_key,
+      instance_id,
+      display_name: None,
+      avatar: None,
+      banned: None,
+      published: None,
+      updated: None,
+      actor_id: None,
+      bio: None,
+      local: None,
+      private_key: Some(actor_keypair.private_key),
+      last_refreshed_at: None,
+      banner: None,
+      deleted: None,
+      inbox_url: None,
+      shared_inbox_url: None,
+      matrix_user_id: None,
+      bot_account: None,
+      ban_expires: None,
+    })
+  }
+}
 
 #[async_trait]
 impl Crud for Person {
