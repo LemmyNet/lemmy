@@ -55,7 +55,7 @@ use lemmy_db_schema::{
     ReadFn,
     ReverseTimestampKey,
   },
-  viewer::Viewer,
+  viewer::{visible_communities_only, Viewer},
   ListingType,
   SortType,
 };
@@ -285,7 +285,7 @@ fn queries<'a>() -> Queries<
           );
       }
 
-      query = Viewer::from(my_person_id).visible_communities_only(query);
+      query = visible_communities_only(my_person_id, query);
 
       Commented::new(query)
         .text("PostView::read")
@@ -294,26 +294,24 @@ fn queries<'a>() -> Queries<
     };
 
   let list = move |mut conn: DbConn<'a>, (options, site): (PostQuery<'a>, &'a Site)| async move {
-    let viewer = Viewer::from(options.local_user);
-
     // The left join below will return None in this case
-    let person_id_join = viewer.person_id().unwrap_or(PersonId(-1));
-    let local_user_id_join = viewer.local_user_id().unwrap_or(LocalUserId(-1));
+    let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
+    let local_user_id_join = options.local_user.local_user_id().unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(post_aggregates::table.into_boxed(), viewer.person_id());
+    let mut query = all_joins(post_aggregates::table.into_boxed(), options.local_user.person_id());
 
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
 
     // only show deleted posts to creator
-    if let Some(person_id) = viewer.person_id() {
+    if let Some(person_id) = options.local_user.person_id() {
       query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
     } else {
       query = query.filter(post::deleted.eq(false));
     }
 
     // only show removed posts to admin when viewing user profile
-    if !(options.creator_id.is_some() && viewer.is_admin()) {
+    if !(options.creator_id.is_some() && options.local_user.is_admin()) {
       query = query
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
@@ -327,7 +325,7 @@ fn queries<'a>() -> Queries<
     }
 
     if let Some(listing_type) = options.listing_type {
-      if let Some(person_id) = viewer.person_id() {
+      if let Some(person_id) = options.local_user.person_id() {
         let is_subscribed = exists(
           community_follower::table.filter(
             post_aggregates::community_id
@@ -390,7 +388,7 @@ fn queries<'a>() -> Queries<
         .filter(community::nsfw.eq(false));
     };
 
-    if !viewer.show_bot_accounts() {
+    if !options.local_user.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
 
@@ -402,7 +400,7 @@ fn queries<'a>() -> Queries<
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
-    else if !viewer.show_read_posts() {
+    else if !options.local_user.show_read_posts() {
       // Do not hide read posts when it is a user profile view
       // Or, only hide read posts on non-profile views
       if let (None, Some(person_id)) = (options.creator_id, viewer.person_id()) {
@@ -417,7 +415,7 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if let Some(my_id) = viewer.person_id() {
+    if let Some(my_id) = options.local_user.person_id() {
       let not_creator_filter = post_aggregates::creator_id.ne(my_id);
       if options.liked_only {
         query = query.filter(not_creator_filter).filter(score(my_id).eq(1));
@@ -426,11 +424,11 @@ fn queries<'a>() -> Queries<
       }
     };
 
-    query = viewer.visible_communities_only(query);
+    query = visible_communities_only(options.local_user, query);
 
     // Dont filter blocks or missing languages for moderator view type
     if let (Some(person_id), false) = (
-      viewer.person_id(),
+      options.local_user.person_id(),
       options.listing_type.unwrap_or_default() == ListingType::ModeratorView,
     ) {
       // Filter out the rows with missing languages
@@ -1059,7 +1057,7 @@ mod tests {
     let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(&data.local_user_view),
+      Some(data.local_user_view.person.id),
       false,
     )
     .await?
@@ -1726,7 +1724,7 @@ mod tests {
     let authenticated_post = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(&data.local_user_view),
+      Some(data.local_user_view.person.id),
       false,
     )
     .await;
@@ -1768,7 +1766,7 @@ mod tests {
     let post_view = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(&inserted_banned_from_comm_local_user),
+      Some(inserted_banned_from_comm_local_user.person_id),
       false,
     )
     .await?
@@ -1790,7 +1788,7 @@ mod tests {
     let post_view = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(&data.local_user_view),
+      Some(data.local_user_view.person.id),
       false,
     )
     .await?
