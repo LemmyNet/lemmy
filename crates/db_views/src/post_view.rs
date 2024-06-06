@@ -294,7 +294,7 @@ fn queries<'a>() -> Queries<
     };
 
   let list = move |mut conn: DbConn<'a>, (options, site): (PostQuery<'a>, &'a Site)| async move {
-    let viewer = Viewer::from((options.local_user, site));
+    let viewer = Viewer::from(options.local_user);
 
     // The left join below will return None in this case
     let person_id_join = viewer.person_id().unwrap_or(PersonId(-1));
@@ -384,7 +384,7 @@ fn queries<'a>() -> Queries<
         .filter(not(post::removed.or(post::deleted)));
     }
 
-    if !viewer.show_nsfw() {
+    if !viewer.show_nsfw(site) {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
