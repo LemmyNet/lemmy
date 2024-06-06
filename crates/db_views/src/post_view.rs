@@ -382,7 +382,7 @@ fn queries<'a>() -> Queries<
         .filter(not(post::removed.or(post::deleted)));
     }
 
-    if !viewer.show_nsfw(site) {
+    if !options.local_user.show_nsfw(site) {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
@@ -403,14 +403,14 @@ fn queries<'a>() -> Queries<
     else if !options.local_user.show_read_posts() {
       // Do not hide read posts when it is a user profile view
       // Or, only hide read posts on non-profile views
-      if let (None, Some(person_id)) = (options.creator_id, viewer.person_id()) {
+      if let (None, Some(person_id)) = (options.creator_id, options.local_user.person_id()) {
         query = query.filter(not(is_read(person_id)));
       }
     }
 
     if !options.show_hidden {
       // If a creator id isn't given (IE its on home or community pages), hide the hidden posts
-      if let (None, Some(person_id)) = (options.creator_id, viewer.person_id()) {
+      if let (None, Some(person_id)) = (options.creator_id, options.local_user.person_id()) {
         query = query.filter(not(is_hidden(person_id)));
       }
     }
