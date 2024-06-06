@@ -286,7 +286,7 @@ mod tests {
 
     let person_name = "tegan".to_string();
 
-    let new_person = PersonInsertForm::new_local(&person_name, inserted_instance.id);
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, &person_name);
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 

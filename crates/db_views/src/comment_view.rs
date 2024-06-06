@@ -488,7 +488,7 @@ mod tests {
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-    let timmy_person_form = PersonInsertForm::new_local("timmy", inserted_instance.id);
+    let timmy_person_form = PersonInsertForm::test_form(inserted_instance.id, "timmy");
     let inserted_timmy_person = Person::create(pool, &timmy_person_form).await?;
     let timmy_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_timmy_person.id)
@@ -497,7 +497,7 @@ mod tests {
       .build();
     let inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
 
-    let sara_person_form = PersonInsertForm::new_local("sara", inserted_instance.id);
+    let sara_person_form = PersonInsertForm::test_form(inserted_instance.id, "sara");
     let inserted_sara_person = Person::create(pool, &sara_person_form).await?;
 
     let new_community = CommunityInsertForm::builder()

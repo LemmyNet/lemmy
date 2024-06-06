@@ -513,11 +513,11 @@ mod tests {
       .await
       .unwrap();
 
-    let new_mod = PersonInsertForm::new_local("the mod", inserted_instance.id);
+    let new_mod = PersonInsertForm::test_form(inserted_instance.id, "the mod");
 
     let inserted_mod = Person::create(pool, &new_mod).await.unwrap();
 
-    let new_person = PersonInsertForm::new_local("jim2", inserted_instance.id);
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "jim2");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 

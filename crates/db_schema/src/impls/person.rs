@@ -12,18 +12,8 @@ use crate::{
   traits::{ApubActor, Crud, Followable},
   utils::{functions::lower, get_conn, naive_now, DbPool},
 };
-use activitypub_federation::http_signatures::generate_actor_keypair;
 use diesel::{dsl::insert_into, result::Error, CombineDsl, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
-
-impl PersonInsertForm {
-  pub fn new_local(
-    name: impl Into<String>,
-    instance_id: InstanceId,
-  ) -> Self {
-    PersonInsertForm::new(name.into(), "pubkey", instance_id)
-  }
-}
 
 #[async_trait]
 impl Crud for Person {
@@ -126,11 +116,7 @@ impl Person {
 
 impl PersonInsertForm {
   pub fn test_form(instance_id: InstanceId, name: &str) -> Self {
-    Self::builder()
-      .name(name.to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(instance_id)
-      .build()
+    Self::new(name.to_owned(), "pubkey".to_string(), instance_id)
   }
 }
 
@@ -250,7 +236,7 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::new_local("holly", inserted_instance.id);
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "holly");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
@@ -309,9 +295,9 @@ mod tests {
       .await
       .unwrap();
 
-    let person_form_1 = PersonInsertForm::new_local("erich", inserted_instance.id);
+    let person_form_1 = PersonInsertForm::test_form(inserted_instance.id, "erich");
     let person_1 = Person::create(pool, &person_form_1).await.unwrap();
-    let person_form_2 = PersonInsertForm::new_local("michele", inserted_instance.id);
+    let person_form_2 = PersonInsertForm::test_form(inserted_instance.id, "michele");
     let person_2 = Person::create(pool, &person_form_2).await.unwrap();
 
     let follow_form = PersonFollowerForm {

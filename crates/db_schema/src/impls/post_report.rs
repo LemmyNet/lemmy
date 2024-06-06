@@ -101,7 +101,7 @@ mod tests {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
       .await
       .unwrap();
-    let person_form = PersonInsertForm::new_local("jim", inserted_instance.id);
+    let person_form = PersonInsertForm::test_form(inserted_instance.id, "jim");
     let person = Person::create(pool, &person_form).await.unwrap();
 
     let community_form = CommunityInsertForm::builder()

@@ -42,7 +42,7 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::new_local("thommy_site_agg", inserted_instance.id);
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_site_agg");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 

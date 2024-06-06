@@ -163,7 +163,7 @@ mod tests {
       .await
       .unwrap();
 
-    let timmy_person_form = PersonInsertForm::new_local("timmy_rav", inserted_instance.id);
+    let timmy_person_form = PersonInsertForm::test_form(inserted_instance.id, "timmy_rav");
 
     let inserted_timmy_person = Person::create(pool, &timmy_person_form).await.unwrap();
 
@@ -177,7 +177,7 @@ mod tests {
       .await
       .unwrap();
 
-    let sara_person_form = PersonInsertForm::new_local("sara_rav", inserted_instance.id);
+    let sara_person_form = PersonInsertForm::test_form(inserted_instance.id, "sara_rav");
 
     let inserted_sara_person = Person::create(pool, &sara_person_form).await.unwrap();
 
@@ -205,7 +205,7 @@ mod tests {
       .unwrap()
       .unwrap();
 
-    let jess_person_form = PersonInsertForm::new_local("jess_rav", inserted_instance.id);
+    let jess_person_form = PersonInsertForm::test_form(inserted_instance.id, "jess_rav");
 
     let inserted_jess_person = Person::create(pool, &jess_person_form).await.unwrap();
 

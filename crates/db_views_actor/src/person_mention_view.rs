@@ -334,11 +334,11 @@ mod tests {
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-    let new_person = PersonInsertForm::new_local("terrylake", inserted_instance.id);
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "terrylake");
 
     let inserted_person = Person::create(pool, &new_person).await?;
 
-    let recipient_form = PersonInsertForm::new_local("terrylakes recipient", inserted_instance.id);
+    let recipient_form = PersonInsertForm::test_form(inserted_instance.id, "terrylakes recipient");
 
     let inserted_recipient = Person::create(pool, &recipient_form).await?;
     let recipient_id = inserted_recipient.id;

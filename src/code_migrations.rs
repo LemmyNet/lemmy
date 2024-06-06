@@ -452,13 +452,19 @@ async fn initialize_local_site_2022_10_10(
       &setup.admin_username,
       &settings.get_protocol_and_hostname(),
     )?;
+    let actor_keypair = generate_actor_keypair()?;
 
     // Register the user if there's a site setup
     let person_form = PersonInsertForm {
       actor_id: Some(person_actor_id.clone()),
       inbox_url: Some(generate_inbox_url(&person_actor_id)?),
       shared_inbox_url: Some(generate_shared_inbox_url(settings)?),
-      ..PersonInsertForm::new_local(&setup.admin_username, instance.id)
+      private_key: Some(actor_keypair.private_key),
+      ..PersonInsertForm::new(
+        setup.admin_username.clone(),
+        actor_keypair.public_key,
+        instance.id,
+      )
     };
     let person_inserted = Person::create(pool, &person_form).await?;
 

@@ -72,7 +72,7 @@ async fn try_main() -> LemmyResult<()> {
   println!("🫃 creating {} people", args.people);
   let mut person_ids = vec![];
   for i in 0..args.people.get() {
-    let form = PersonInsertForm::new_local(format!("p{i}")), instance.id)?;
+    let form = PersonInsertForm::test_form(instance.id, &format!("p{i}"));
     person_ids.push(Person::create(&mut conn.into(), &form).await?.id);
   }
 

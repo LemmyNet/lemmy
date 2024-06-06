@@ -193,7 +193,7 @@ mod tests {
 
     let alice_form = PersonInsertForm {
       local: Some(true),
-      ..PersonInsertForm::new_local("alice", inserted_instance.id)
+      ..PersonInsertForm::test_form(inserted_instance.id, "alice")
     };
     let alice = Person::create(pool, &alice_form).await?;
     let alice_local_user_form = LocalUserInsertForm::builder()
@@ -205,7 +205,7 @@ mod tests {
     let bob_form = PersonInsertForm {
       bot_account: Some(true),
       local: Some(false),
-      ..PersonInsertForm::new_local("bob", inserted_instance.id)
+      ..PersonInsertForm::test_form(inserted_instance.id, "bob")
     };
     let bob = Person::create(pool, &bob_form).await?;
     let bob_local_user_form = LocalUserInsertForm::builder()

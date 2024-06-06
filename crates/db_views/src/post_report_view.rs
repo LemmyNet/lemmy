@@ -319,7 +319,7 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::new_local("timmy_prv", inserted_instance.id);
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "timmy_prv");
 
     let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
 
@@ -337,12 +337,12 @@ mod tests {
       counts: Default::default(),
     };
 
-    let new_person_2 = PersonInsertForm::new_local("sara_prv", inserted_instance.id);
+    let new_person_2 = PersonInsertForm::test_form(inserted_instance.id, "sara_prv");
 
     let inserted_sara = Person::create(pool, &new_person_2).await.unwrap();
 
     // Add a third person, since new ppl can only report something once.
-    let new_person_3 = PersonInsertForm::new_local("jessica_prv", inserted_instance.id);
+    let new_person_3 = PersonInsertForm::test_form(inserted_instance.id, "jessica_prv");
 
     let inserted_jessica = Person::create(pool, &new_person_3).await.unwrap();
 

@@ -531,7 +531,7 @@ mod tests {
 
     let (site, instance) = create_test_site(pool).await;
 
-    let person_form = PersonInsertForm::new_local("my test person", instance.id);
+    let person_form = PersonInsertForm::test_form(instance.id, "my test person");
     let person = Person::create(pool, &person_form).await.unwrap();
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(person.id)
@@ -643,7 +643,7 @@ mod tests {
       .await
       .unwrap();
 
-    let person_form = PersonInsertForm::new_local("my test person", instance.id);
+    let person_form = PersonInsertForm::test_form(instance.id, "my test person");
     let person = Person::create(pool, &person_form).await.unwrap();
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(person.id)

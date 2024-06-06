@@ -209,15 +209,15 @@ mod tests {
       .await
       .unwrap();
 
-    let timmy_form = PersonInsertForm::new_local("timmy_rav", instance.id);
+    let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_rav");
 
     let timmy = Person::create(pool, &timmy_form).await.unwrap();
 
-    let sara_form = PersonInsertForm::new_local("sara_rav", instance.id);
+    let sara_form = PersonInsertForm::test_form(instance.id, "sara_rav");
 
     let sara = Person::create(pool, &sara_form).await.unwrap();
 
-    let jess_form = PersonInsertForm::new_local("jess_rav", instance.id);
+    let jess_form = PersonInsertForm::test_form(instance.id, "jess_rav");
 
     let jess = Person::create(pool, &jess_form).await.unwrap();
 
