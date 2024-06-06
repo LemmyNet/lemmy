@@ -1059,7 +1059,7 @@ mod tests {
     let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person.id),
+      Some(&data.local_user_view),
       false,
     )
     .await?
@@ -1726,7 +1726,7 @@ mod tests {
     let authenticated_post = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person.id),
+      Some(&data.local_user_view),
       false,
     )
     .await;
@@ -1768,7 +1768,7 @@ mod tests {
     let post_view = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(inserted_banned_from_comm_local_user.person_id),
+      Some(&inserted_banned_from_comm_local_user),
       false,
     )
     .await?
@@ -1790,7 +1790,7 @@ mod tests {
     let post_view = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person.id),
+      Some(&data.local_user_view),
       false,
     )
     .await?
