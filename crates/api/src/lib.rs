@@ -73,6 +73,9 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> LemmyResult<String> {
     writer16
       .flush()
       .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+    writer
+      .finalize()
+      .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
 
     Ok(base64.encode(output_buffer.into_inner()))
   } else {
