@@ -70,7 +70,8 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> LemmyResult<String> {
     for sample in concat_samples {
       writer16.write_sample(sample);
     }
-    writer16.flush()
+    writer16
+      .flush()
       .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
 
     Ok(base64.encode(output_buffer.into_inner()))
