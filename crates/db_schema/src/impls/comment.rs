@@ -117,9 +117,8 @@ impl Crud for Comment {
   type UpdateForm = CommentUpdateForm;
   type IdType = CommentId;
 
-  /// This is unimplemented, use [[Comment::create]]
-  async fn create(_pool: &mut DbPool<'_>, _comment_form: &Self::InsertForm) -> Result<Self, Error> {
-    unimplemented!();
+  async fn create(pool: &mut DbPool<'_>, comment_form: &Self::InsertForm) -> Result<Self, Error> {
+    Comment::create(pool, comment_form, None).await
   }
 
   async fn update(
