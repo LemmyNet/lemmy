@@ -57,6 +57,13 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION r.local_url (url_path text)
+    RETURNS text
+    LANGUAGE sql
+    STABLE PARALLEL SAFE
+    RETURN (
+        current_setting ('lemmy.protocol_and_hostname') || url_path)
+
 -- This function creates statement-level triggers for all operation types. It's designed this way
 -- because of these limitations:
 --   * A trigger that uses transition tables can only handle 1 operation type.
