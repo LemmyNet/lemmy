@@ -564,6 +564,8 @@ BEGIN
     IF NOT (NEW.path ~ ('*.' || id)::lquery) THEN
         NEW.path = NEW.path || id;
     END IF;
+    -- Set `ap_id`
+    NEW.ap_id = coalesce(NEW.ap_id, r.local_url('/comment/' || id));
     RETURN NEW;
 END
 $$;
