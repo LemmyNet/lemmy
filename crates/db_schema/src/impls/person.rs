@@ -127,11 +127,7 @@ impl Person {
 
 impl PersonInsertForm {
   pub fn test_form(instance_id: InstanceId, name: &str) -> Self {
-    Self::builder()
-      .name(name.to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(instance_id)
-      .build()
+    Self::new(name.to_owned(), "pubkey".to_string(), instance_id)
   }
 }
 
@@ -256,11 +252,7 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("holly".into())
-      .public_key("nada".to_owned())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "holly");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
@@ -279,7 +271,7 @@ mod tests {
       local: true,
       bot_account: false,
       private_key: None,
-      public_key: "nada".to_owned(),
+      public_key: "pubkey".to_owned(),
       last_refreshed_at: inserted_person.published,
       inbox_url: inserted_person.inbox_url.clone(),
       shared_inbox_url: None,
@@ -319,17 +311,9 @@ mod tests {
       .await
       .unwrap();
 
-    let person_form_1 = PersonInsertForm::builder()
-      .name("erich".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let person_form_1 = PersonInsertForm::test_form(inserted_instance.id, "erich");
     let person_1 = Person::create(pool, &person_form_1).await.unwrap();
-    let person_form_2 = PersonInsertForm::builder()
-      .name("michele".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let person_form_2 = PersonInsertForm::test_form(inserted_instance.id, "michele");
     let person_2 = Person::create(pool, &person_form_2).await.unwrap();
 
     let follow_form = PersonFollowerForm {

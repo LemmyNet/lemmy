@@ -31,7 +31,9 @@ pub async fn ban_from_site(
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
-  is_valid_body_field(&data.reason, false)?;
+  if let Some(reason) = &data.reason {
+    is_valid_body_field(reason, false)?;
+  }
 
   let expires = check_expire_time(data.expires)?;
 

@@ -1003,26 +1003,25 @@ pub(crate) async fn proxy_image_link(link: Url, context: &LemmyContext) -> Lemmy
 }
 
 pub async fn proxy_image_link_opt_api(
-  link: &Option<String>,
+  link: Option<Option<DbUrl>>,
   context: &LemmyContext,
 ) -> LemmyResult<Option<Option<DbUrl>>> {
-  proxy_image_link_api(link, context).await.map(Some)
+  if let Some(Some(link)) = link {
+    proxy_image_link(link.into(), context)
+      .await
+      .map(Some)
+      .map(Some)
+  } else {
+    Ok(link)
+  }
 }
 
 pub async fn proxy_image_link_api(
-  link: &Option<String>,
+  link: Option<DbUrl>,
   context: &LemmyContext,
 ) -> LemmyResult<Option<DbUrl>> {
-  let link: Option<DbUrl> = match link.as_ref().map(String::as_str) {
-    // An empty string is an erase
-    Some("") => None,
-    Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(u.into()))
-      .with_lemmy_type(LemmyErrorType::InvalidUrl)?,
-    None => None,
-  };
-  if let Some(l) = link {
-    proxy_image_link(l.into(), context).await.map(Some)
+  if let Some(link) = link {
+    proxy_image_link(link.into(), context).await.map(Some)
   } else {
     Ok(link)
   }
@@ -1128,30 +1127,5 @@ mod tests {
         .await
         .is_ok()
     );
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_diesel_option_overwrite_to_url() {
-    let context = LemmyContext::init_test_context().await;
-
-    assert!(matches!(
-      proxy_image_link_api(&None, &context).await,
-      Ok(None)
-    ));
-    assert!(matches!(
-      proxy_image_link_opt_api(&Some(String::new()), &context).await,
-      Ok(Some(None))
-    ));
-    assert!(
-      proxy_image_link_opt_api(&Some("invalid_url".to_string()), &context)
-        .await
-        .is_err()
-    );
-    let example_url = "https://lemmy-alpha/image.png";
-    assert!(matches!(
-      proxy_image_link_opt_api(&Some(example_url.to_string()), &context).await,
-      Ok(Some(Some(url))) if url == Url::parse(example_url).unwrap().into()
-    ));
   }
 }

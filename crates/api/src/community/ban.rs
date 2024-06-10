@@ -43,7 +43,10 @@ pub async fn ban_from_community(
     &mut context.pool(),
   )
   .await?;
-  is_valid_body_field(&data.reason, false)?;
+
+  if let Some(reason) = &data.reason {
+    is_valid_body_field(reason, false)?;
+  }
 
   let community_user_ban_form = CommunityPersonBanForm {
     community_id: data.community_id,

@@ -469,11 +469,7 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("bobbee".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "bobbee");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
