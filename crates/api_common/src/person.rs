@@ -433,6 +433,7 @@ pub struct UpdateTotpResponse {
 pub struct ListMedia {
   pub page: Option<i64>,
   pub limit: Option<i64>,
+  pub person_id: PersonId
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

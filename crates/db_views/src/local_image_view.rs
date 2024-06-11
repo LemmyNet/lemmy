@@ -2,7 +2,7 @@ use crate::structs::LocalImageView;
 use diesel::{result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  newtypes::LocalUserId,
+  newtypes::{LocalUserId, PersonId},
   schema::{local_image, local_user, person},
   utils::{get_conn, limit_and_offset, DbPool},
 };
@@ -10,7 +10,8 @@ use lemmy_db_schema::{
 impl LocalImageView {
   async fn get_all_helper(
     pool: &mut DbPool<'_>,
-    user_id: Option<LocalUserId>,
+    person_id: Option<PersonId>,
+    local_user_id: Option<LocalUserId>,
     page: Option<i64>,
     limit: Option<i64>,
     ignore_page_limits: bool,
@@ -23,7 +24,7 @@ impl LocalImageView {
       .order_by(local_image::published.desc())
       .into_boxed();
 
-    if let Some(user_id) = user_id {
+    if let Some(user_id) = local_user_id {
       query = query.filter(local_image::local_user_id.eq(user_id))
     }
 
@@ -37,18 +38,19 @@ impl LocalImageView {
 
   pub async fn get_all_paged_by_local_user_id(
     pool: &mut DbPool<'_>,
-    user_id: LocalUserId,
+    person_id: PersonId,
+    local_user_id: LocalUserId,
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {
-    Self::get_all_helper(pool, Some(user_id), page, limit, false).await
+    Self::get_all_helper(pool, Some(person_id), Some(local_user_id), page, limit, false).await
   }
 
   pub async fn get_all_by_local_user_id(
     pool: &mut DbPool<'_>,
-    user_id: LocalUserId,
+    local_user_id: LocalUserId,
   ) -> Result<Vec<Self>, Error> {
-    Self::get_all_helper(pool, Some(user_id), None, None, true).await
+    Self::get_all_helper(pool, None, Some(local_user_id), None, None, true).await
   }
 
   pub async fn get_all(
@@ -56,6 +58,6 @@ impl LocalImageView {
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {
-    Self::get_all_helper(pool, None, page, limit, false).await
+    Self::get_all_helper(pool, None, None, page, limit, false).await
   }
 }
