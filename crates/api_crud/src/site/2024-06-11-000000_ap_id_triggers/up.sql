@@ -1,0 +1,8 @@
+ALTER TABLE comment
+    ALTER COLUMN ap_id DROP DEFAULT;
+
+ALTER TABLE community
+    ALTER COLUMN actor_id DROP DEFAULT,
+    ALTER COLUMN followers_url DROP DEFAULT,
+    ALTER COLUMN inbox_url DROP DEFAULT,
+    ALTER COLUMN shared_inbox_url DROP DEFAULT;
