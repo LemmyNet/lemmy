@@ -107,8 +107,6 @@ pub async fn register(
 
   // Register the new person
   let person_form = PersonInsertForm {
-    inbox_url: Some(generate_inbox_url(&actor_id)?),
-    shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
     private_key: Some(actor_keypair.private_key),
     ..PersonInsertForm::new(
       data.username.clone(),
