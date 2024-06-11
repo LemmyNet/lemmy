@@ -7,7 +7,6 @@ use lemmy_api_common::{
   utils::{
     generate_followers_url,
     generate_inbox_url,
-    generate_local_apub_endpoint,
     generate_shared_inbox_url,
     get_url_blocklist,
     is_admin,
@@ -75,18 +74,6 @@ pub async fn create_community(
     is_valid_body_field(desc, false)?;
   }
 
-  // Double check for duplicate community actor_ids
-  let community_actor_id = generate_local_apub_endpoint(
-    EndpointType::Community,
-    &data.name,
-    &context.settings().get_protocol_and_hostname(),
-  )?;
-  let community_dupe =
-    Community::read_from_apub_id(&mut context.pool(), &community_actor_id).await?;
-  if community_dupe.is_some() {
-    Err(LemmyErrorType::CommunityAlreadyExists)?
-  }
-
   // When you create a community, make sure the user becomes a moderator and a follower
   let keypair = generate_actor_keypair()?;
 
@@ -97,7 +84,6 @@ pub async fn create_community(
     .icon(icon)
     .banner(banner)
     .nsfw(data.nsfw)
-    .actor_id(Some(community_actor_id.clone()))
     .private_key(Some(keypair.private_key))
     .public_key(keypair.public_key)
     .followers_url(Some(generate_followers_url(&community_actor_id)?))
