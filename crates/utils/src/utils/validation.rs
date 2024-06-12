@@ -261,7 +261,7 @@ pub fn clean_url_params(url: &Url) -> Url {
   if let Some(query) = url.query() {
     let new_query = query
       .split_inclusive('&')
-      .filter(|q| !CLEAN_URL_PARAMS_REGEX.is_match(&q.0))
+      .filter(|q| !CLEAN_URL_PARAMS_REGEX.is_match(q))
       .collect::<String>();
     url_out.set_query(Some(&new_query));
   }
