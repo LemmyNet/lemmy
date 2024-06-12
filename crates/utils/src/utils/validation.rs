@@ -11,8 +11,10 @@ static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
 });
 // taken from https://en.wikipedia.org/wiki/UTM_parameters
 static CLEAN_URL_PARAMS_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^(utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|gclsrc|dclid|fbclid)=")
-    .expect("compile regex")
+  Regex::new(
+    r"^(utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|gclsrc|dclid|fbclid)=",
+  )
+  .expect("compile regex")
 });
 const ALLOWED_POST_URL_SCHEMES: [&str; 3] = ["http", "https", "magnet"];
 
