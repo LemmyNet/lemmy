@@ -6,3 +6,20 @@ ALTER TABLE community
     ALTER COLUMN followers_url DROP DEFAULT,
     ALTER COLUMN inbox_url DROP DEFAULT,
     ALTER COLUMN shared_inbox_url DROP DEFAULT;
+
+ALTER TABLE person
+    ALTER COLUMN actor_id DROP DEFAULT,
+    ALTER COLUMN inbox_url DROP DEFAULT;
+
+ALTER TABLE post
+    ALTER COLUMN ap_id DROP DEFAULT;
+
+ALTER TABLE private_message
+    ALTER COLUMN ap_id DROP DEFAULT;
+
+ALTER TABLE site
+    ALTER COLUMN actor_id DROP DEFAULT,
+    ALTER COLUMN inbox_url DROP DEFAULT;
+
+DROP FUNCTION generate_unique_changeme;
+
