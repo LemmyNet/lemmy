@@ -11,8 +11,10 @@ static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
 });
 // taken from https://en.wikipedia.org/wiki/UTM_parameters
 static CLEAN_URL_PARAMS_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|gclsrc|dclid|fbclid$")
-    .expect("compile regex")
+  Regex::new(
+    r"^(utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|gclsrc|dclid|fbclid)=",
+  )
+  .expect("compile regex")
 });
 const ALLOWED_POST_URL_SCHEMES: [&str; 3] = ["http", "https", "magnet"];
 
@@ -256,12 +258,11 @@ pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Option
 
 pub fn clean_url_params(url: &Url) -> Url {
   let mut url_out = url.clone();
-  if url.query().is_some() {
-    let new_query = url
-      .query_pairs()
-      .filter(|q| !CLEAN_URL_PARAMS_REGEX.is_match(&q.0))
-      .map(|q| format!("{}={}", q.0, q.1))
-      .join("&");
+  if let Some(query) = url.query() {
+    let new_query = query
+      .split_inclusive('&')
+      .filter(|q| !CLEAN_URL_PARAMS_REGEX.is_match(q))
+      .collect::<String>();
     url_out.set_query(Some(&new_query));
   }
   url_out
@@ -369,9 +370,9 @@ mod tests {
 
   #[test]
   fn test_clean_url_params() -> LemmyResult<()> {
-    let url = Url::parse("https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&username=randomuser&id=123")?;
+    let url = Url::parse("https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user%20&id=123")?;
     let cleaned = clean_url_params(&url);
-    let expected = Url::parse("https://example.com/path/123?username=randomuser&id=123")?;
+    let expected = Url::parse("https://example.com/path/123?user+name=random+user%20&id=123")?;
     assert_eq!(expected.to_string(), cleaned.to_string());
 
     let url = Url::parse("https://example.com/path/123")?;
