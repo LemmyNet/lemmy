@@ -11,7 +11,6 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     process_markdown,
     send_email_to_user,
-    EndpointType,
   },
 };
 use lemmy_db_schema::{

@@ -552,7 +552,8 @@ CREATE TRIGGER delete_follow
     FOR EACH ROW
     EXECUTE FUNCTION r.delete_follow_before_person ();
 
--- Triggers that change values before insert or update
+-- Triggers that change values before insert or update (they can't be for insert only, because regenerating
+-- the values using update must be possible)
 CREATE FUNCTION r.comment_change_values ()
     RETURNS TRIGGER
     LANGUAGE plpgsql

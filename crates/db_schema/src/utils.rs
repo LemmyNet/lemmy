@@ -22,7 +22,7 @@ use diesel_async::{
     AsyncDieselConnectionManager,
     ManagerConfig,
   },
-  SimpleAsyncConnection,
+  RunQueryDsl,
 };
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
@@ -348,7 +348,7 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
       // for more complicated queries
       functions::set_config("from_collapse_limit", "11", false),
       functions::set_config("join_collapse_limit", "11", false),
-      // * Set `lemmy.protocol_and_hostname` so triggers can use it
+      // Set `lemmy.protocol_and_hostname` so triggers can use it
       functions::set_config("lemmy.protocol_and_hostname", SETTINGS.get_protocol_and_hostname(), false),
     ))
       .execute(&mut conn)
@@ -503,7 +503,7 @@ pub mod functions {
   // really this function is variadic, this just adds the two-argument version
   sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
 
-  sql_function(fn set_config(setting_name: Text, new_value: Text, is_local: Bool) -> Text);
+  sql_function!(fn set_config(setting_name: Text, new_value: Text, is_local: Bool) -> Text);
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";

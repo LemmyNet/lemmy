@@ -5,7 +5,6 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{CreateSite, SiteResponse},
   utils::{
-    generate_shared_inbox_url,
     get_url_blocklist,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,

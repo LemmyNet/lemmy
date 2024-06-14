@@ -860,6 +860,22 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
   Ok(())
 }
 
+pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{actor_id}/followers"))?.into())
+}
+
+pub fn generate_outbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{actor_id}/outbox"))?.into())
+}
+
+pub fn generate_featured_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
+  Ok(Url::parse(&format!("{actor_id}/featured"))?.into())
+}
+
+pub fn generate_moderators_url(community_id: &DbUrl) -> LemmyResult<DbUrl> {
+  Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
+}
+
 /// Ensure that ban/block expiry is in valid range. If its in past, throw error. If its more
 /// than 10 years in future, convert to permanent ban. Otherwise return the same value.
 pub fn check_expire_time(expires_unix_opt: Option<i64>) -> LemmyResult<Option<DateTime<Utc>>> {

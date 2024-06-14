@@ -13,7 +13,6 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     mark_post_as_read,
     process_markdown_opt,
-    EndpointType,
   },
 };
 use lemmy_db_schema::{
@@ -147,7 +146,7 @@ pub async fn create_post(
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
   generate_post_link_metadata(
-    updated_post.clone(),
+    inserted_post.clone(),
     custom_thumbnail.map(Into::into),
     |post| Some(SendActivityData::CreatePost(post)),
     Some(local_site),

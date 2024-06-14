@@ -13,7 +13,6 @@ use lemmy_api_common::{
     local_site_to_slur_regex,
     process_markdown,
     update_read_comments,
-    EndpointType,
   },
 };
 use lemmy_db_schema::{
