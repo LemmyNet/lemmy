@@ -167,6 +167,14 @@ impl InstanceWorker {
       latest_id
     };
     if id >= latest_id {
+      if id > latest_id {
+        tracing::error!(
+          "{}: last successful id {} is higher than latest id {} in database (did the db get cleared?)",
+          self.instance.domain,
+          id.0,
+          latest_id.0
+        );
+      }
       // no more work to be done, wait before rechecking
       tokio::select! {
         () = sleep(*WORK_FINISHED_RECHECK_DELAY) => {},

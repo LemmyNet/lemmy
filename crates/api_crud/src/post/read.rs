@@ -88,6 +88,7 @@ pub async fn get_post(
   let cross_posts = if let Some(url) = &post_view.post.url {
     let mut x_posts = PostQuery {
       url_search: Some(url.inner().as_str().into()),
+      local_user: local_user_view.as_ref(),
       ..Default::default()
     }
     .list(&local_site.site, &mut context.pool())

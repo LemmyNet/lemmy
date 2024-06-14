@@ -5,6 +5,9 @@ pushd ../
 # Check unused deps
 cargo udeps --all-targets
 
+# Update deps first
+cargo update
+
 # Upgrade deps
 cargo upgrade
 
