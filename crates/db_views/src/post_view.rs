@@ -1,4 +1,4 @@
-use crate::structs::{LocalUserView, PaginationCursor, PostView};
+use crate::structs::{PaginationCursor, PostView};
 use diesel::{
   debug_query,
   dsl::{exists, not, IntervalDsl},
@@ -20,6 +20,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aggregates::structs::{post_aggregates_keys as key, PostAggregates},
+  impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     community,
@@ -40,13 +41,14 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  source::site::Site,
+  source::{local_user::LocalUser, site::Site},
   utils::{
     functions::coalesce,
     fuzzy_search,
     get_conn,
     limit_and_offset,
     now,
+    visible_communities_only,
     Commented,
     DbConn,
     DbPool,
@@ -55,7 +57,6 @@ use lemmy_db_schema::{
     ReadFn,
     ReverseTimestampKey,
   },
-  viewer::{visible_communities_only, Viewer},
   ListingType,
   SortType,
 };
@@ -430,7 +431,7 @@ fn queries<'a>() -> Queries<
       }
     };
 
-    query = visible_communities_only(options.local_user, query);
+    query = visible_communities_only(options.local_user.person_id(), query);
 
     // Dont filter blocks or missing languages for moderator view type
     if let (Some(person_id), false) = (
@@ -597,7 +598,7 @@ pub struct PostQuery<'a> {
   // if true, the query should be handled as if community_id was not given except adding the
   // literal filter
   pub community_id_just_for_prefetch: bool,
-  pub local_user: Option<&'a LocalUserView>,
+  pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
   pub url_search: Option<String>,
   pub saved_only: bool,
@@ -642,11 +643,7 @@ impl<'a> PostQuery<'a> {
         "legacy pagination cannot be combined with v2 pagination".into(),
       ));
     }
-    let self_person_id = self
-      .local_user
-      .expect("part of the above if")
-      .local_user
-      .person_id;
+    let self_person_id = self.local_user.expect("part of the above if").person_id;
     let largest_subscribed = {
       let conn = &mut get_conn(pool).await?;
       community_follower
@@ -786,7 +783,7 @@ mod tests {
     fn default_post_query(&self) -> PostQuery<'_> {
       PostQuery {
         sort: Some(SortType::New),
-        local_user: Some(&self.local_user_view),
+        local_user: Some(&self.local_user_view.local_user),
         ..Default::default()
       }
     }
@@ -1303,8 +1300,8 @@ mod tests {
     // Deleted post is only shown to creator
     for (local_user, expect_contains_deleted) in [
       (None, false),
-      (Some(&data.blocked_local_user_view), false),
-      (Some(&data.local_user_view), true),
+      (Some(&data.blocked_local_user_view.local_user), false),
+      (Some(&data.local_user_view.local_user), true),
     ] {
       let contains_deleted = PostQuery {
         local_user,
@@ -1542,7 +1539,7 @@ mod tests {
     // Make sure it does come back with the show_hidden option
     let post_listings_show_hidden = PostQuery {
       sort: Some(SortType::New),
-      local_user: Some(&data.local_user_view),
+      local_user: Some(&data.local_user_view.local_user),
       show_hidden: true,
       ..Default::default()
     }
@@ -1717,7 +1714,7 @@ mod tests {
     assert_eq!(0, unauthenticated_query.len());
 
     let authenticated_query = PostQuery {
-      local_user: Some(&data.local_user_view),
+      local_user: Some(&data.local_user_view.local_user),
       ..Default::default()
     }
     .list(&data.site, pool)

@@ -11,6 +11,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
+  impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
   schema::{
     community,
@@ -21,8 +22,16 @@ use lemmy_db_schema::{
     instance_block,
   },
   source::{community::CommunityFollower, local_user::LocalUser, site::Site},
-  utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
-  viewer::{visible_communities_only, Viewer},
+  utils::{
+    fuzzy_search,
+    limit_and_offset,
+    visible_communities_only,
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+  },
   ListingType,
   SortType,
 };
@@ -164,7 +173,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(community::nsfw.eq(false));
     }
 
-    query = visible_communities_only(options.local_user, query);
+    query = visible_communities_only(options.local_user.person_id(), query);
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
     query

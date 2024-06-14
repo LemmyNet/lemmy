@@ -5,7 +5,6 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{LocalUserId, PersonId},
   schema::{local_user, local_user_vote_display_mode, person, person_aggregates},
-  source::local_user::LocalUser,
   utils::{
     functions::{coalesce, lower},
     DbConn,
@@ -135,12 +134,5 @@ impl FromRequest for LocalUserView {
       Some(c) => Ok(c.clone()),
       None => Err(LemmyErrorType::IncorrectLogin.into()),
     })
-  }
-}
-
-// Used by `lemmy_db_schema::viewer::Viewer`
-impl<'a> From<&'a LocalUserView> for &'a LocalUser {
-  fn from(local_user_view: &'a LocalUserView) -> Self {
-    &local_user_view.local_user
   }
 }

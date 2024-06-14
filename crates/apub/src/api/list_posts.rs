@@ -70,8 +70,10 @@ pub async fn list_posts(
     None
   };
 
+  let local_user = local_user_view.as_ref().map(|l| &l.local_user);
+
   let posts = PostQuery {
-    local_user: local_user_view.as_ref(),
+    local_user,
     listing_type,
     sort,
     community_id,
