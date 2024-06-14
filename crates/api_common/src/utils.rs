@@ -860,56 +860,6 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
   Ok(())
 }
 
-pub enum EndpointType {
-  Community,
-  Person,
-  Post,
-  Comment,
-  PrivateMessage,
-}
-
-/// Generates an apub endpoint for a given domain, IE xyz.tld
-pub fn generate_local_apub_endpoint(
-  endpoint_type: EndpointType,
-  name: &str,
-  domain: &str,
-) -> Result<DbUrl, ParseError> {
-  let point = match endpoint_type {
-    EndpointType::Community => "c",
-    EndpointType::Person => "u",
-    EndpointType::Post => "post",
-    EndpointType::Comment => "comment",
-    EndpointType::PrivateMessage => "private_message",
-  };
-
-  Ok(Url::parse(&format!("{domain}/{point}/{name}"))?.into())
-}
-
-pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{actor_id}/followers"))?.into())
-}
-
-pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{actor_id}/inbox"))?.into())
-}
-
-pub fn generate_shared_inbox_url(settings: &Settings) -> LemmyResult<DbUrl> {
-  let url = format!("{}/inbox", settings.get_protocol_and_hostname());
-  Ok(Url::parse(&url)?.into())
-}
-
-pub fn generate_outbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{actor_id}/outbox"))?.into())
-}
-
-pub fn generate_featured_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{actor_id}/featured"))?.into())
-}
-
-pub fn generate_moderators_url(community_id: &DbUrl) -> LemmyResult<DbUrl> {
-  Ok(Url::parse(&format!("{community_id}/moderators"))?.into())
-}
-
 /// Ensure that ban/block expiry is in valid range. If its in past, throw error. If its more
 /// than 10 years in future, convert to permanent ban. Otherwise return the same value.
 pub fn check_expire_time(expires_unix_opt: Option<i64>) -> LemmyResult<Option<DateTime<Utc>>> {
