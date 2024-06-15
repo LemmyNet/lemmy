@@ -5,6 +5,7 @@ use crate::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
     local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeInsertForm},
+    site::Site,
   },
   utils::{
     functions::{coalesce, lower},
@@ -213,6 +214,44 @@ impl LocalUser {
       blocked_users,
       blocked_instances,
     })
+  }
+}
+
+/// Adds some helper functions for an optional LocalUser
+pub trait LocalUserOptionHelper {
+  fn person_id(&self) -> Option<PersonId>;
+  fn local_user_id(&self) -> Option<LocalUserId>;
+  fn show_bot_accounts(&self) -> bool;
+  fn show_read_posts(&self) -> bool;
+  fn is_admin(&self) -> bool;
+  fn show_nsfw(&self, site: &Site) -> bool;
+}
+
+impl LocalUserOptionHelper for Option<&LocalUser> {
+  fn person_id(&self) -> Option<PersonId> {
+    self.map(|l| l.person_id)
+  }
+
+  fn local_user_id(&self) -> Option<LocalUserId> {
+    self.map(|l| l.id)
+  }
+
+  fn show_bot_accounts(&self) -> bool {
+    self.map(|l| l.show_bot_accounts).unwrap_or(true)
+  }
+
+  fn show_read_posts(&self) -> bool {
+    self.map(|l| l.show_read_posts).unwrap_or(true)
+  }
+
+  fn is_admin(&self) -> bool {
+    self.map(|l| l.admin).unwrap_or(false)
+  }
+
+  fn show_nsfw(&self, site: &Site) -> bool {
+    self
+      .map(|l| l.show_nsfw)
+      .unwrap_or(site.content_warning.is_some())
   }
 }
 

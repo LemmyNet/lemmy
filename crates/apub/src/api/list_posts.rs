@@ -49,17 +49,17 @@ pub async fn list_posts(
     return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
   }
 
-  let local_user_ref = local_user_view.as_ref().map(|u| &u.local_user);
+  let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let listing_type = Some(listing_type_with_default(
     data.type_,
-    local_user_ref,
+    local_user,
     &local_site.local_site,
     community_id,
   ));
 
   let sort = Some(sort_type_with_default(
     data.sort,
-    local_user_ref,
+    local_user,
     &local_site.local_site,
   ));
 
@@ -71,7 +71,7 @@ pub async fn list_posts(
   };
 
   let posts = PostQuery {
-    local_user: local_user_view.as_ref(),
+    local_user,
     listing_type,
     sort,
     community_id,

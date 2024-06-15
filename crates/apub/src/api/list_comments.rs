@@ -70,6 +70,8 @@ pub async fn list_comments(
 
   let parent_path_cloned = parent_path.clone();
   let post_id = data.post_id;
+  let local_user = local_user_view.as_ref().map(|l| &l.local_user);
+
   let comments = CommentQuery {
     listing_type,
     sort,
@@ -80,7 +82,7 @@ pub async fn list_comments(
     community_id,
     parent_path: parent_path_cloned,
     post_id,
-    local_user: local_user_view.as_ref(),
+    local_user,
     page,
     limit,
     ..Default::default()
