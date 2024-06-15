@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.19.4-beta.7"
+version = "0.19.4"
 edition = "2021"
 description = "A link aggregator for the fediverse"
 license = "AGPL-3.0"
@@ -67,8 +67,8 @@ members = [
 
 [workspace.lints.clippy]
 cast_lossless = "deny"
-complexity = "deny"
-correctness = "deny"
+complexity = { level = "deny", priority = -1 }
+correctness = { level = "deny", priority = -1 }
 dbg_macro = "deny"
 explicit_into_iter_loop = "deny"
 explicit_iter_loop = "deny"
@@ -79,44 +79,44 @@ inefficient_to_string = "deny"
 items-after-statements = "deny"
 manual_string_new = "deny"
 needless_collect = "deny"
-perf = "deny"
+perf = { level = "deny", priority = -1 }
 redundant_closure_for_method_calls = "deny"
-style = "deny"
-suspicious = "deny"
+style = { level = "deny", priority = -1 }
+suspicious = { level = "deny", priority = -1 }
 uninlined_format_args = "allow"
 unused_self = "deny"
 unwrap_used = "deny"
 
 [workspace.dependencies]
-lemmy_api = { version = "=0.19.4-beta.7", path = "./crates/api" }
-lemmy_api_crud = { version = "=0.19.4-beta.7", path = "./crates/api_crud" }
-lemmy_apub = { version = "=0.19.4-beta.7", path = "./crates/apub" }
-lemmy_utils = { version = "=0.19.4-beta.7", path = "./crates/utils", default-features = false }
-lemmy_db_schema = { version = "=0.19.4-beta.7", path = "./crates/db_schema" }
-lemmy_api_common = { version = "=0.19.4-beta.7", path = "./crates/api_common" }
-lemmy_routes = { version = "=0.19.4-beta.7", path = "./crates/routes" }
-lemmy_db_views = { version = "=0.19.4-beta.7", path = "./crates/db_views" }
-lemmy_db_views_actor = { version = "=0.19.4-beta.7", path = "./crates/db_views_actor" }
-lemmy_db_views_moderator = { version = "=0.19.4-beta.7", path = "./crates/db_views_moderator" }
-lemmy_federate = { version = "=0.19.4-beta.7", path = "./crates/federate" }
+lemmy_api = { version = "=0.19.4", path = "./crates/api" }
+lemmy_api_crud = { version = "=0.19.4", path = "./crates/api_crud" }
+lemmy_apub = { version = "=0.19.4", path = "./crates/apub" }
+lemmy_utils = { version = "=0.19.4", path = "./crates/utils", default-features = false }
+lemmy_db_schema = { version = "=0.19.4", path = "./crates/db_schema" }
+lemmy_api_common = { version = "=0.19.4", path = "./crates/api_common" }
+lemmy_routes = { version = "=0.19.4", path = "./crates/routes" }
+lemmy_db_views = { version = "=0.19.4", path = "./crates/db_views" }
+lemmy_db_views_actor = { version = "=0.19.4", path = "./crates/db_views_actor" }
+lemmy_db_views_moderator = { version = "=0.19.4", path = "./crates/db_views_moderator" }
+lemmy_federate = { version = "=0.19.4", path = "./crates/federate" }
 activitypub_federation = { version = "0.5.6", default-features = false, features = [
   "actix-web",
 ] }
 diesel = "2.1.6"
 diesel_migrations = "2.1.0"
 diesel-async = "0.4.1"
-serde = { version = "1.0.199", features = ["derive"] }
+serde = { version = "1.0.203", features = ["derive"] }
 serde_with = "3.8.1"
-actix-web = { version = "4.5.1", default-features = false, features = [
+actix-web = { version = "4.6.0", default-features = false, features = [
   "macros",
-  "rustls",
+  "rustls-0_23",
   "compress-brotli",
   "compress-gzip",
   "compress-zstd",
   "cookies",
 ] }
 tracing = "0.1.40"
-tracing-actix-web = { version = "0.7.10", default-features = false }
+tracing-actix-web = { version = "0.7.11", default-features = false }
 tracing-error = "0.2.0"
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
@@ -128,25 +128,25 @@ clokwerk = "0.4.0"
 doku = { version = "0.21.1", features = ["url-2"] }
 bcrypt = "0.15.1"
 chrono = { version = "0.4.38", features = ["serde"], default-features = false }
-serde_json = { version = "1.0.116", features = ["preserve_order"] }
+serde_json = { version = "1.0.117", features = ["preserve_order"] }
 base64 = "0.22.1"
 uuid = { version = "1.8.0", features = ["serde", "v4"] }
 async-trait = "0.1.80"
 captcha = "0.0.9"
-anyhow = { version = "1.0.82", features = [
+anyhow = { version = "1.0.86", features = [
   "backtrace",
 ] } # backtrace is on by default on nightly, but not stable rust
 diesel_ltree = "0.3.1"
 typed-builder = "0.18.2"
-serial_test = "2.0.0"
-tokio = { version = "1.37.0", features = ["full"] }
+serial_test = "3.1.1"
+tokio = { version = "1.38.0", features = ["full"] }
 regex = "1.10.4"
 once_cell = "1.19.0"
 diesel-derive-newtype = "2.1.2"
 diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
-strum = "0.25.0"
-strum_macros = "0.25.3"
-itertools = "0.12.1"
+strum = "0.26.2"
+strum_macros = "0.26.4"
+itertools = "0.13.0"
 futures = "0.3.30"
 http = "0.2.12"
 rosetta-i18n = "0.1.3"
@@ -157,7 +157,7 @@ ts-rs = { version = "7.1.1", features = [
   "chrono-impl",
   "no-serde-warnings",
 ] }
-rustls = { version = "0.23.5", features = ["ring"] }
+rustls = { version = "0.23.9", features = ["ring"] }
 futures-util = "0.3.30"
 tokio-postgres = "0.7.10"
 tokio-postgres-rustls = "0.12.0"
@@ -165,8 +165,9 @@ urlencoding = "2.1.3"
 enum-map = "2.7"
 moka = { version = "0.12.7", features = ["future"] }
 i-love-jesus = { version = "0.1.0" }
-clap = { version = "4.5.4", features = ["derive"] }
+clap = { version = "4.5.6", features = ["derive", "env"] }
 pretty_assertions = "1.4.0"
+derive-new = "0.6.0"
 
 [dependencies]
 lemmy_api = { workspace = true }
@@ -194,17 +195,17 @@ clokwerk = { workspace = true }
 serde_json = { workspace = true }
 tracing-opentelemetry = { workspace = true, optional = true }
 opentelemetry = { workspace = true, optional = true }
-console-subscriber = { version = "0.1.10", optional = true }
+console-subscriber = { version = "0.3.0", optional = true }
 opentelemetry-otlp = { version = "0.12.0", optional = true }
-pict-rs = { version = "0.5.13", optional = true }
+pict-rs = { version = "0.5.15", optional = true }
 tokio.workspace = true
-actix-cors = "0.6.5"
+actix-cors = "0.7.0"
 futures-util = { workspace = true }
 chrono = { workspace = true }
-prometheus = { version = "0.13.3", features = ["process"] }
+prometheus = { version = "0.13.4", features = ["process"] }
 serial_test = { workspace = true }
 clap = { workspace = true }
-actix-web-prom = "0.7.0"
+actix-web-prom = "0.8.0"
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

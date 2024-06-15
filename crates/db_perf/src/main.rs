@@ -72,11 +72,7 @@ async fn try_main() -> LemmyResult<()> {
   println!("🫃 creating {} people", args.people);
   let mut person_ids = vec![];
   for i in 0..args.people.get() {
-    let form = PersonInsertForm::builder()
-      .name(format!("p{i}"))
-      .public_key("pubkey".to_owned())
-      .instance_id(instance.id)
-      .build();
+    let form = PersonInsertForm::test_form(instance.id, &format!("p{i}"));
     person_ids.push(Person::create(&mut conn.into(), &form).await?.id);
   }
 
@@ -132,7 +128,8 @@ async fn try_main() -> LemmyResult<()> {
   // Make sure the println above shows the correct amount
   assert_eq!(num_inserted_posts, num_posts as usize);
 
-  // Manually trigger and wait for a statistics update to ensure consistent and high amount of accuracy in the statistics used for query planning
+  // Manually trigger and wait for a statistics update to ensure consistent and high amount of
+  // accuracy in the statistics used for query planning
   println!("🧮 updating database statistics");
   conn.batch_execute("ANALYZE;").await?;
 

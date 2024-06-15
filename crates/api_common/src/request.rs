@@ -93,35 +93,21 @@ pub async fn generate_post_link_metadata(
   let allow_sensitive = local_site_opt_to_sensitive(&local_site);
   let allow_generate_thumbnail = allow_sensitive || !post.nsfw;
 
-  let thumbnail_url = if is_image_post {
-    if allow_generate_thumbnail {
-      match post.url {
-        Some(url) => generate_pictrs_thumbnail(&url, &context)
-          .await
-          .ok()
-          .map(Into::into),
-        None => None,
-      }
-    } else {
-      None
-    }
+  let image_url = if is_image_post {
+    post.url
   } else {
-    // Use custom thumbnail if available and its not an image post
-    if let Some(custom_thumbnail) = custom_thumbnail {
-      proxy_image_link(custom_thumbnail, &context).await.ok()
-    } else if allow_generate_thumbnail {
-      match metadata.opengraph_data.image {
-        Some(url) => generate_pictrs_thumbnail(&url, &context)
-          .await
-          .ok()
-          .map(Into::into),
-        None => None,
-      }
-    }
-    // Otherwise use opengraph preview image directly
-    else {
-      metadata.opengraph_data.image
-    }
+    metadata.opengraph_data.image.clone()
+  };
+
+  let thumbnail_url = if let (false, Some(url)) = (is_image_post, custom_thumbnail) {
+    proxy_image_link(url, &context).await.ok()
+  } else if let (true, Some(url)) = (allow_generate_thumbnail, image_url) {
+    generate_pictrs_thumbnail(&url, &context)
+      .await
+      .ok()
+      .map(Into::into)
+  } else {
+    metadata.opengraph_data.image.clone()
   };
 
   let form = PostUpdateForm {
@@ -212,9 +198,12 @@ impl PictrsFile {
   }
 }
 
+/// Stores extra details about a Pictrs image.
 #[derive(Deserialize, Serialize, Debug)]
 pub struct PictrsFileDetails {
+  /// In pixels
   pub width: u16,
+  /// In pixels
   pub height: u16,
   pub content_type: String,
   pub created_at: DateTime<Utc>,
@@ -315,34 +304,36 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     encode(image_url.as_str())
   );
 
-  let res: PictrsResponse = context
+  let res = context
     .client()
     .get(&fetch_url)
     .timeout(REQWEST_TIMEOUT)
     .send()
     .await?
-    .json()
+    .json::<PictrsResponse>()
     .await?;
 
-  if let Some(image) = res.files.unwrap_or_default().first() {
-    let form = LocalImageForm {
-      // This is none because its an internal request.
-      // IE, a local user shouldn't get to delete the thumbnails for their link posts
-      local_user_id: None,
-      pictrs_alias: image.file.clone(),
-      pictrs_delete_token: image.delete_token.clone(),
-    };
-    let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-    let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
+  let files = res.files.unwrap_or_default();
 
-    // Also store the details for the image
-    let details_form = image.details.build_image_details_form(&thumbnail_url);
-    LocalImage::create(&mut context.pool(), &form, &details_form).await?;
+  let image = files
+    .first()
+    .ok_or(LemmyErrorType::PictrsResponseError(res.msg))?;
 
-    Ok(thumbnail_url)
-  } else {
-    Err(LemmyErrorType::PictrsResponseError(res.msg))?
-  }
+  let form = LocalImageForm {
+    // This is none because its an internal request.
+    // IE, a local user shouldn't get to delete the thumbnails for their link posts
+    local_user_id: None,
+    pictrs_alias: image.file.clone(),
+    pictrs_delete_token: image.delete_token.clone(),
+  };
+  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+  let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
+
+  // Also store the details for the image
+  let details_form = image.details.build_image_details_form(&thumbnail_url);
+  LocalImage::create(&mut context.pool(), &form, &details_form).await?;
+
+  Ok(thumbnail_url)
 }
 
 /// Fetches the image details for pictrs proxied images
@@ -353,25 +344,24 @@ pub async fn fetch_pictrs_proxied_image_details(
   image_url: &Url,
   context: &LemmyContext,
 ) -> LemmyResult<PictrsFileDetails> {
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_url = context.settings().pictrs_config()?.url;
+  let encoded_image_url = encode(image_url.as_str());
 
   // Pictrs needs you to fetch the proxied image before you can fetch the details
-  let proxy_url = format!(
-    "{}image/original?proxy={}",
-    context.settings().pictrs_config()?.url,
-    encode(image_url.as_str())
-  );
+  let proxy_url = format!("{pictrs_url}image/original?proxy={encoded_image_url}");
 
-  let res = context.client().get(&proxy_url).send().await?.status();
+  let res = context
+    .client()
+    .get(&proxy_url)
+    .timeout(REQWEST_TIMEOUT)
+    .send()
+    .await?
+    .status();
   if !res.is_success() {
     Err(LemmyErrorType::NotAnImageType)?
   }
 
-  let details_url = format!(
-    "{}image/details/original?proxy={}",
-    pictrs_config.url,
-    encode(image_url.as_str())
-  );
+  let details_url = format!("{pictrs_url}image/details/original?proxy={encoded_image_url}");
 
   let res = context
     .client()
@@ -402,16 +392,19 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Lemm
   }
 }
 
-/// When adding a new avatar or similar image, delete the old one.
+/// When adding a new avatar, banner or similar image, delete the old one.
 pub async fn replace_image(
-  new_image: &Option<String>,
+  new_image: &Option<Option<DbUrl>>,
   old_image: &Option<DbUrl>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  if new_image.is_some() {
-    // Ignore errors because image may be stored externally.
-    if let Some(avatar) = &old_image {
-      let image = LocalImage::delete_by_url(&mut context.pool(), avatar)
+  if let (Some(Some(new_image)), Some(old_image)) = (new_image, old_image) {
+    // Note: Oftentimes front ends will include the current image in the form.
+    // In this case, deleting `old_image` would also be deletion of `new_image`,
+    // so the deletion must be skipped for the image to be kept.
+    if new_image != old_image {
+      // Ignore errors because image may be stored externally.
+      let image = LocalImage::delete_by_url(&mut context.pool(), old_image)
         .await
         .ok();
       if let Some(image) = image {

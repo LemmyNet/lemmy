@@ -141,7 +141,8 @@ impl Community {
     Ok(community_)
   }
 
-  /// Get the community which has a given moderators or featured url, also return the collection type
+  /// Get the community which has a given moderators or featured url, also return the collection
+  /// type
   pub async fn get_by_collection_url(
     pool: &mut DbPool<'_>,
     url: &DbUrl,
@@ -433,11 +434,7 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("bobbee".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "bobbee");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 

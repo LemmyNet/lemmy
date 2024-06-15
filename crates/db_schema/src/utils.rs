@@ -1,7 +1,15 @@
-use crate::{newtypes::DbUrl, CommentSortType, SortType};
+use crate::{
+  diesel::ExpressionMethods,
+  newtypes::{DbUrl, PersonId},
+  schema::community,
+  CommentSortType,
+  CommunityVisibility,
+  SortType,
+};
 use chrono::{DateTime, TimeDelta, Utc};
 use deadpool::Runtime;
 use diesel::{
+  dsl,
   helper_types::AsExprOf,
   pg::Pg,
   query_builder::{Query, QueryFragment},
@@ -29,6 +37,7 @@ use i_love_jesus::CursorKey;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
+  utils::validation::clean_url_params,
 };
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -61,7 +70,8 @@ pub const RANK_DEFAULT: f64 = 0.0001;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
-/// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit reborrowing.
+/// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
+/// reborrowing.
 ///
 /// https://github.com/rust-lang/rfcs/issues/1403
 pub enum DbPool<'a> {
@@ -101,7 +111,8 @@ impl<'a> DerefMut for DbConn<'a> {
   }
 }
 
-// Allows functions that take `DbPool<'_>` to be called in a transaction by passing `&mut conn.into()`
+// Allows functions that take `DbPool<'_>` to be called in a transaction by passing `&mut
+// conn.into()`
 impl<'a> From<&'a mut AsyncPgConnection> for DbPool<'a> {
   fn from(value: &'a mut AsyncPgConnection) -> Self {
     DbPool::Conn(value)
@@ -120,11 +131,13 @@ impl<'a> From<&'a ActualDbPool> for DbPool<'a> {
   }
 }
 
-/// Runs multiple async functions that take `&mut DbPool<'_>` as input and return `Result`. Only works when the  `futures` crate is listed in `Cargo.toml`.
+/// Runs multiple async functions that take `&mut DbPool<'_>` as input and return `Result`. Only
+/// works when the  `futures` crate is listed in `Cargo.toml`.
 ///
 /// `$pool` is the value given to each function.
 ///
-/// A `Result` is returned (not in a `Future`, so don't use `.await`). The `Ok` variant contains a tuple with the values returned by the given functions.
+/// A `Result` is returned (not in a `Future`, so don't use `.await`). The `Ok` variant contains a
+/// tuple with the values returned by the given functions.
 ///
 /// The functions run concurrently if `$pool` has the `DbPool::Pool` variant.
 #[macro_export]
@@ -283,37 +296,35 @@ pub fn is_email_regex(test: &str) -> bool {
   EMAIL_REGEX.is_match(test)
 }
 
-pub fn diesel_option_overwrite(opt: Option<String>) -> Option<Option<String>> {
+/// Takes an API text input, and converts it to an optional diesel DB update.
+pub fn diesel_string_update(opt: Option<&str>) -> Option<Option<String>> {
   match opt {
     // An empty string is an erase
-    Some(unwrapped) => {
-      if !unwrapped.eq("") {
-        Some(Some(unwrapped))
-      } else {
-        Some(None)
-      }
-    }
+    Some("") => Some(None),
+    Some(str) => Some(Some(str.into())),
     None => None,
   }
 }
 
-pub fn diesel_option_overwrite_to_url(opt: &Option<String>) -> LemmyResult<Option<Option<DbUrl>>> {
-  match opt.as_ref().map(String::as_str) {
+/// Takes an optional API URL-type input, and converts it to an optional diesel DB update.
+/// Also cleans the url params.
+pub fn diesel_url_update(opt: Option<&str>) -> LemmyResult<Option<Option<DbUrl>>> {
+  match opt {
     // An empty string is an erase
     Some("") => Ok(Some(None)),
     Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(Some(u.into())))
+      .map(|u| Some(Some(clean_url_params(&u).into())))
       .with_lemmy_type(LemmyErrorType::InvalidUrl),
     None => Ok(None),
   }
 }
 
-pub fn diesel_option_overwrite_to_url_create(opt: &Option<String>) -> LemmyResult<Option<DbUrl>> {
-  match opt.as_ref().map(String::as_str) {
-    // An empty string is nothing
-    Some("") => Ok(None),
+/// Takes an optional API URL-type input, and converts it to an optional diesel DB create.
+/// Also cleans the url params.
+pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
+  match opt {
     Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(u.into()))
+      .map(|u| Some(clean_url_params(&u).into()))
       .with_lemmy_type(LemmyErrorType::InvalidUrl),
     None => Ok(None),
   }
@@ -337,8 +348,10 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
       }
     });
     let mut conn = AsyncPgConnection::try_from(client).await?;
-    // * Change geqo_threshold back to default value if it was changed, so it's higher than the collapse limits
-    // * Change collapse limits from 8 to 11 so the query planner can find a better table join order for more complicated queries
+    // * Change geqo_threshold back to default value if it was changed, so it's higher than the
+    //   collapse limits
+    // * Change collapse limits from 8 to 11 so the query planner can find a better table join order
+    //   for more complicated queries
     conn
       .batch_execute("SET geqo_threshold=12;SET from_collapse_limit=11;SET join_collapse_limit=11;")
       .await
@@ -415,9 +428,11 @@ pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let pool = Pool::builder(manager)
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
-    // Limit connection age to prevent use of prepared statements that have query plans based on very old statistics
+    // Limit connection age to prevent use of prepared statements that have query plans based on
+    // very old statistics
     .pre_recycle(Hook::sync_fn(|_conn, metrics| {
-      // Preventing the first recycle can cause an infinite loop when trying to get a new connection from the pool
+      // Preventing the first recycle can cause an infinite loop when trying to get a new connection
+      // from the pool
       let conn_was_used = metrics.recycled.is_some();
       if metrics.age() > Duration::from_secs(3 * 24 * 60 * 60) && conn_was_used {
         Err(HookError::Continue(None))
@@ -508,7 +523,8 @@ pub trait ListFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>> 
 
 impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>> ListFn<'a, T, Args> for F {}
 
-/// Allows read and list functions to capture a shared closure that has an inferred return type, which is useful for join logic
+/// Allows read and list functions to capture a shared closure that has an inferred return type,
+/// which is useful for join logic
 pub struct Queries<RF, LF> {
   pub read_fn: RF,
   pub list_fn: LF,
@@ -559,8 +575,21 @@ impl<RF, LF> Queries<RF, LF> {
   }
 }
 
+pub fn visible_communities_only<Q>(my_person_id: Option<PersonId>, query: Q) -> Q
+where
+  Q: diesel::query_dsl::methods::FilterDsl<
+    dsl::Eq<community::visibility, CommunityVisibility>,
+    Output = Q,
+  >,
+{
+  if my_person_id.is_none() {
+    query.filter(community::visibility.eq(CommunityVisibility::Public))
+  } else {
+    query
+  }
+}
+
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 #[allow(clippy::indexing_slicing)]
 mod tests {
 
@@ -584,26 +613,24 @@ mod tests {
 
   #[test]
   fn test_diesel_option_overwrite() {
-    assert_eq!(diesel_option_overwrite(None), None);
-    assert_eq!(diesel_option_overwrite(Some(String::new())), Some(None));
+    assert_eq!(diesel_string_update(None), None);
+    assert_eq!(diesel_string_update(Some("")), Some(None));
     assert_eq!(
-      diesel_option_overwrite(Some("test".to_string())),
+      diesel_string_update(Some("test")),
       Some(Some("test".to_string()))
     );
   }
 
   #[test]
-  fn test_diesel_option_overwrite_to_url() {
-    assert!(matches!(diesel_option_overwrite_to_url(&None), Ok(None)));
-    assert!(matches!(
-      diesel_option_overwrite_to_url(&Some(String::new())),
-      Ok(Some(None))
-    ));
-    assert!(diesel_option_overwrite_to_url(&Some("invalid_url".to_string())).is_err());
+  fn test_diesel_option_overwrite_to_url() -> LemmyResult<()> {
+    assert!(matches!(diesel_url_update(None), Ok(None)));
+    assert!(matches!(diesel_url_update(Some("")), Ok(Some(None))));
+    assert!(diesel_url_update(Some("invalid_url")).is_err());
     let example_url = "https://example.com";
     assert!(matches!(
-      diesel_option_overwrite_to_url(&Some(example_url.to_string())),
-      Ok(Some(Some(url))) if url == Url::parse(example_url).unwrap().into()
+      diesel_url_update(Some(example_url)),
+      Ok(Some(Some(url))) if url == Url::parse(example_url)?.into()
     ));
+    Ok(())
   }
 }

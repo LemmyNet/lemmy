@@ -103,11 +103,11 @@ impl ImageDetails {
   pub(crate) async fn create(
     conn: &mut AsyncPgConnection,
     form: &ImageDetailsForm,
-  ) -> Result<Self, Error> {
+  ) -> Result<usize, Error> {
     insert_into(image_details::table)
       .values(form)
       .on_conflict_do_nothing()
-      .get_result::<ImageDetails>(conn)
+      .execute(conn)
       .await
   }
 }

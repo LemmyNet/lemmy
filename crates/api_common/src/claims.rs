@@ -1,9 +1,10 @@
-use crate::{context::LemmyContext, sensitive::Sensitive};
+use crate::context::LemmyContext;
 use actix_web::{http::header::USER_AGENT, HttpRequest};
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
+  sensitive::SensitiveString,
   source::login_token::{LoginToken, LoginTokenCreateForm},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -40,7 +41,7 @@ impl Claims {
     user_id: LocalUserId,
     req: HttpRequest,
     context: &LemmyContext,
-  ) -> LemmyResult<Sensitive<String>> {
+  ) -> LemmyResult<SensitiveString> {
     let hostname = context.settings().hostname.clone();
     let my_claims = Claims {
       sub: user_id.0.to_string(),
@@ -50,7 +51,7 @@ impl Claims {
 
     let secret = &context.secret().jwt_secret;
     let key = EncodingKey::from_secret(secret.as_ref());
-    let token = encode(&Header::default(), &my_claims, &key)?;
+    let token: SensitiveString = encode(&Header::default(), &my_claims, &key)?.into();
     let ip = req
       .connection_info()
       .realip_remote_addr()
@@ -67,7 +68,7 @@ impl Claims {
       user_agent,
     };
     LoginToken::create(&mut context.pool(), form).await?;
-    Ok(Sensitive::new(token))
+    Ok(token)
   }
 }
 
@@ -111,11 +112,7 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("Gerry9812".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "Gerry9812");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 

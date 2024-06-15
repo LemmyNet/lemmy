@@ -272,11 +272,17 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         // Handle /user/login separately to add the register() rate limiter
         // TODO: pretty annoying way to apply rate limits for register and login, we should
-        //       group them under a common path so that rate limit is only applied once (eg under /account).
+        //       group them under a common path so that rate limit is only applied once (eg under
+        // /account).
         web::resource("/user/login")
           .guard(guard::Post())
           .wrap(rate_limit.register())
           .route(web::post().to(login)),
+      )
+      .service(
+        web::resource("/user/password_reset")
+          .wrap(rate_limit.register())
+          .route(web::post().to(reset_password)),
       )
       .service(
         // Handle captcha separately
@@ -318,7 +324,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           // TODO Account actions. I don't like that they're in /user maybe /accounts
           .route("/logout", web::post().to(logout))
           .route("/delete_account", web::post().to(delete_account))
-          .route("/password_reset", web::post().to(reset_password))
           .route(
             "/password_change",
             web::post().to(change_password_after_reset),

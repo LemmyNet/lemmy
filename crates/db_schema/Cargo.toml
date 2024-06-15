@@ -70,7 +70,7 @@ diesel_ltree = { workspace = true, optional = true }
 typed-builder = { workspace = true }
 async-trait = { workspace = true }
 tracing = { workspace = true }
-deadpool = { version = "0.10.0", features = ["rt_tokio_1"], optional = true }
+deadpool = { version = "0.12.1", features = ["rt_tokio_1"], optional = true }
 ts-rs = { workspace = true, optional = true }
 futures-util = { workspace = true }
 tokio = { workspace = true, optional = true }
@@ -81,6 +81,7 @@ uuid = { workspace = true, features = ["v4"] }
 i-love-jesus = { workspace = true, optional = true }
 anyhow = { workspace = true }
 moka.workspace = true
+derive-new.workspace = true
 
 [dev-dependencies]
 serial_test = { workspace = true }

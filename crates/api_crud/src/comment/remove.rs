@@ -37,6 +37,12 @@ pub async fn remove_comment(
   )
   .await?;
 
+  // Don't allow removing or restoring comment which was deleted by user, as it would reveal
+  // the comment text in mod log.
+  if orig_comment.comment.deleted {
+    return Err(LemmyErrorType::CouldntUpdateComment.into());
+  }
+
   // Do the remove
   let removed = data.removed;
   let updated_comment = Comment::update(

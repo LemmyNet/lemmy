@@ -94,11 +94,15 @@ impl Instance {
       .await
   }
 
-  #[cfg(test)]
+  /// Only for use in tests
   pub async fn delete_all(pool: &mut DbPool<'_>) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
+    diesel::delete(federation_queue_state::table)
+      .execute(conn)
+      .await?;
     diesel::delete(instance::table).execute(conn).await
   }
+
   pub async fn allowlist(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     instance::table
@@ -117,15 +121,15 @@ impl Instance {
       .await
   }
 
-  /// returns a list of all instances, each with a flag of whether the instance is allowed or not and dead or not
-  /// ordered by id
+  /// returns a list of all instances, each with a flag of whether the instance is allowed or not
+  /// and dead or not ordered by id
   pub async fn read_federated_with_blocked_and_dead(
     pool: &mut DbPool<'_>,
   ) -> Result<Vec<(Self, bool, bool)>, Error> {
     let conn = &mut get_conn(pool).await?;
     let is_dead_expr = coalesce(instance::updated, instance::published).lt(now() - 3.days());
-    // this needs to be done in two steps because the meaning of the "blocked" column depends on the existence
-    // of any value at all in the allowlist. (so a normal join wouldn't work)
+    // this needs to be done in two steps because the meaning of the "blocked" column depends on the
+    // existence of any value at all in the allowlist. (so a normal join wouldn't work)
     let use_allowlist = federation_allowlist::table
       .select(count_star().gt(0))
       .get_result::<bool>(conn)

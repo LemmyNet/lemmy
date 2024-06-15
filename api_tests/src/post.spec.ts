@@ -82,7 +82,7 @@ async function assertPostFederation(postOne: PostView, postTwo: PostView) {
 
 test("Create a post", async () => {
   // Setup some allowlists and blocklists
-  let editSiteForm: EditSite = {};
+  const editSiteForm: EditSite = {};
 
   editSiteForm.allowed_instances = [];
   editSiteForm.blocked_instances = ["lemmy-alpha"];
@@ -502,7 +502,7 @@ test("Enforce site ban federation for local user", async () => {
   }
   let newAlphaUserJwt = await loginUser(alpha, alphaUserPerson.name);
   alphaUserHttp.setHeaders({
-    Authorization: "Bearer " + newAlphaUserJwt.jwt ?? "",
+    Authorization: "Bearer " + newAlphaUserJwt.jwt,
   });
   // alpha makes new post in beta community, it federates
   let postRes2 = await createPost(alphaUserHttp, betaCommunity!.community.id);

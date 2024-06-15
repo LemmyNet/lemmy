@@ -10,6 +10,7 @@ use crate::{
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
+  aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
@@ -143,13 +144,7 @@ pub fn is_top_mod(
   }
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn get_post(post_id: PostId, pool: &mut DbPool<'_>) -> LemmyResult<Post> {
-  Post::read(pool, post_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost.into())
-}
-
+/// Marks a post as read for a given person.
 #[tracing::instrument(skip_all)]
 pub async fn mark_post_as_read(
   person_id: PersonId,
@@ -159,6 +154,28 @@ pub async fn mark_post_as_read(
   PostRead::mark_as_read(pool, HashSet::from([post_id]), person_id)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)?;
+  Ok(())
+}
+
+/// Updates the read comment count for a post. Usually done when reading or creating a new comment.
+#[tracing::instrument(skip_all)]
+pub async fn update_read_comments(
+  person_id: PersonId,
+  post_id: PostId,
+  read_comments: i64,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
+  let person_post_agg_form = PersonPostAggregatesForm {
+    person_id,
+    post_id,
+    read_comments,
+    ..PersonPostAggregatesForm::default()
+  };
+
+  PersonPostAggregates::upsert(pool, &person_post_agg_form)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntFindPost)?;
+
   Ok(())
 }
 
@@ -360,7 +377,8 @@ pub async fn build_federated_instances(
         federation_state: federation_state.map(std::convert::Into::into),
       };
       if is_blocked {
-        // blocked instances will only have an entry here if they had been federated with in the past.
+        // blocked instances will only have an entry here if they had been federated with in the
+        // past.
         blocked.push(i);
       } else if is_allowed {
         allowed.push(i.clone());
@@ -444,7 +462,7 @@ pub async fn send_password_reset_email(
   // Insert the row after successful send, to avoid using daily reset limit while
   // email sending is broken.
   let local_user_id = user.local_user.id;
-  PasswordResetRequest::create_token(pool, local_user_id, token.clone()).await?;
+  PasswordResetRequest::create(pool, local_user_id, token.clone()).await?;
   Ok(())
 }
 
@@ -969,8 +987,8 @@ pub async fn process_markdown_opt(
 
 /// A wrapper for `proxy_image_link` for use in tests.
 ///
-/// The parameter `force_image_proxy` is the config value of `pictrs.image_proxy`. Its necessary to pass
-/// as separate parameter so it can be changed in tests.
+/// The parameter `force_image_proxy` is the config value of `pictrs.image_proxy`. Its necessary to
+/// pass as separate parameter so it can be changed in tests.
 async fn proxy_image_link_internal(
   link: Url,
   image_mode: PictrsImageMode,
@@ -981,14 +999,13 @@ async fn proxy_image_link_internal(
     Ok(link.into())
   } else if image_mode == PictrsImageMode::ProxyAllImages {
     let proxied = build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
-
     // This should fail softly, since pictrs might not even be running
     let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
 
     if let Ok(details) = details_res {
       let details_form = details.build_image_details_form(&proxied);
       RemoteImage::create(&mut context.pool(), &details_form).await?;
-    }
+    };
 
     Ok(proxied.into())
   } else {
@@ -1008,26 +1025,25 @@ pub(crate) async fn proxy_image_link(link: Url, context: &LemmyContext) -> Lemmy
 }
 
 pub async fn proxy_image_link_opt_api(
-  link: &Option<String>,
+  link: Option<Option<DbUrl>>,
   context: &LemmyContext,
 ) -> LemmyResult<Option<Option<DbUrl>>> {
-  proxy_image_link_api(link, context).await.map(Some)
+  if let Some(Some(link)) = link {
+    proxy_image_link(link.into(), context)
+      .await
+      .map(Some)
+      .map(Some)
+  } else {
+    Ok(link)
+  }
 }
 
 pub async fn proxy_image_link_api(
-  link: &Option<String>,
+  link: Option<DbUrl>,
   context: &LemmyContext,
 ) -> LemmyResult<Option<DbUrl>> {
-  let link: Option<DbUrl> = match link.as_ref().map(String::as_str) {
-    // An empty string is an erase
-    Some("") => None,
-    Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(u.into()))
-      .with_lemmy_type(LemmyErrorType::InvalidUrl)?,
-    None => None,
-  };
-  if let Some(l) = link {
-    proxy_image_link(l.into(), context).await.map(Some)
+  if let Some(link) = link {
+    proxy_image_link(link.into(), context).await.map(Some)
   } else {
     Ok(link)
   }
@@ -1136,30 +1152,5 @@ mod tests {
         .await
         .is_err()
     );
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_diesel_option_overwrite_to_url() {
-    let context = LemmyContext::init_test_context().await;
-
-    assert!(matches!(
-      proxy_image_link_api(&None, &context).await,
-      Ok(None)
-    ));
-    assert!(matches!(
-      proxy_image_link_opt_api(&Some(String::new()), &context).await,
-      Ok(Some(None))
-    ));
-    assert!(
-      proxy_image_link_opt_api(&Some("invalid_url".to_string()), &context)
-        .await
-        .is_err()
-    );
-    let example_url = "https://lemmy-alpha/image.png";
-    assert!(matches!(
-      proxy_image_link_opt_api(&Some(example_url.to_string()), &context).await,
-      Ok(Some(Some(url))) if url == Url::parse(example_url).unwrap().into()
-    ));
   }
 }

@@ -178,7 +178,8 @@ fn queries<'a>() -> Queries<
       query = query.filter(post::id.eq(post_id));
     }
 
-    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
+    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
+    // first (FIFO)
     if options.unresolved_only {
       query = query
         .filter(post_report::resolved.eq(false))
@@ -318,11 +319,7 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("timmy_prv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "timmy_prv");
 
     let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
 
@@ -340,20 +337,12 @@ mod tests {
       counts: Default::default(),
     };
 
-    let new_person_2 = PersonInsertForm::builder()
-      .name("sara_prv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_2 = PersonInsertForm::test_form(inserted_instance.id, "sara_prv");
 
     let inserted_sara = Person::create(pool, &new_person_2).await.unwrap();
 
     // Add a third person, since new ppl can only report something once.
-    let new_person_3 = PersonInsertForm::builder()
-      .name("jessica_prv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_3 = PersonInsertForm::test_form(inserted_instance.id, "jessica_prv");
 
     let inserted_jessica = Person::create(pool, &new_person_3).await.unwrap();
 

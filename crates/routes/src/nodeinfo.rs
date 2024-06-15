@@ -9,15 +9,21 @@ use lemmy_utils::{
   VERSION,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use url::Url;
 
+/// A description of the nodeinfo endpoint is here:
+/// https://github.com/jhass/nodeinfo/blob/main/PROTOCOL.md
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
     .route(
-      "/nodeinfo/2.0.json",
+      "/nodeinfo/2.1",
       web::get().to(node_info).wrap(cache_1hour()),
     )
-    .service(web::redirect("/version", "/nodeinfo/2.0.json"))
+    .service(web::redirect("/version", "/nodeinfo/2.1"))
+    // For backwards compatibility, can be removed after Lemmy 0.20
+    .service(web::redirect("/nodeinfo/2.0.json", "/nodeinfo/2.1"))
+    .service(web::redirect("/nodeinfo/2.1.json", "/nodeinfo/2.1"))
     .route(
       "/.well-known/nodeinfo",
       web::get().to(node_info_well_known).wrap(cache_3days()),
@@ -27,9 +33,9 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 async fn node_info_well_known(context: web::Data<LemmyContext>) -> LemmyResult<HttpResponse> {
   let node_info = NodeInfoWellKnown {
     links: vec![NodeInfoWellKnownLinks {
-      rel: Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.0")?,
+      rel: Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.1")?,
       href: Url::parse(&format!(
-        "{}/nodeinfo/2.0.json",
+        "{}/nodeinfo/2.1",
         &context.settings().get_protocol_and_hostname(),
       ))?,
     }],
@@ -69,19 +75,19 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
       inbound: Some(vec![]),
       outbound: Some(vec![]),
     }),
-    metadata: Some(vec![]),
+    metadata: Some(HashMap::new()),
   };
 
   Ok(HttpResponse::Ok().json(json))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct NodeInfoWellKnown {
+pub struct NodeInfoWellKnown {
   pub links: Vec<NodeInfoWellKnownLinks>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct NodeInfoWellKnownLinks {
+pub struct NodeInfoWellKnownLinks {
   pub rel: Url,
   pub href: Url,
 }
@@ -97,7 +103,7 @@ pub struct NodeInfo {
   pub open_registrations: Option<bool>,
   /// These fields are required by the spec for no reason
   pub services: Option<NodeInfoServices>,
-  pub metadata: Option<Vec<String>>,
+  pub metadata: Option<HashMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]

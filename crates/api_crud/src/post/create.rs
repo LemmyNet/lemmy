@@ -26,6 +26,7 @@ use lemmy_db_schema::{
     post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
   },
   traits::{Crud, Likeable},
+  utils::diesel_url_create,
   CommunityVisibility,
 };
 use lemmy_db_views::structs::LocalUserView;
@@ -37,7 +38,6 @@ use lemmy_utils::{
     slurs::check_slurs,
     validation::{
       check_url_scheme,
-      clean_url_params,
       is_url_blocked,
       is_valid_alt_text_field,
       is_valid_body_field,
@@ -64,16 +64,27 @@ pub async fn create_post(
   let url_blocklist = get_url_blocklist(&context).await?;
 
   let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
-  let data_url = data.url.as_ref();
-  let url = data_url.map(clean_url_params); // TODO no good way to handle a "clear"
-  let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);
+  let url = diesel_url_create(data.url.as_deref())?;
+  let custom_thumbnail = diesel_url_create(data.custom_thumbnail.as_deref())?;
 
   is_valid_post_title(&data.name)?;
-  is_valid_body_field(&body, true)?;
-  is_valid_alt_text_field(&data.alt_text)?;
-  is_url_blocked(&url, &url_blocklist)?;
-  check_url_scheme(&url)?;
-  check_url_scheme(&custom_thumbnail)?;
+
+  if let Some(url) = &url {
+    is_url_blocked(url, &url_blocklist)?;
+    check_url_scheme(url)?;
+  }
+
+  if let Some(custom_thumbnail) = &custom_thumbnail {
+    check_url_scheme(custom_thumbnail)?;
+  }
+
+  if let Some(alt_text) = &data.alt_text {
+    is_valid_alt_text_field(alt_text)?;
+  }
+
+  if let Some(body) = &body {
+    is_valid_body_field(body, true)?;
+  }
 
   check_community_user_action(
     &local_user_view.person,
@@ -156,7 +167,7 @@ pub async fn create_post(
 
   generate_post_link_metadata(
     updated_post.clone(),
-    custom_thumbnail,
+    custom_thumbnail.map(Into::into),
     |post| Some(SendActivityData::CreatePost(post)),
     Some(local_site),
     context.reset_request_count(),
@@ -176,7 +187,6 @@ pub async fn create_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
-  // Mark the post as read
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
   if let Some(url) = updated_post.url.clone() {

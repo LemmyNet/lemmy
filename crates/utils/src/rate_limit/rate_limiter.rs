@@ -46,9 +46,10 @@ impl Bucket {
   fn update(self, now: InstantSecs, config: BucketConfig) -> Self {
     let secs_since_last_checked = now.secs.saturating_sub(self.last_checked.secs);
 
-    // For `secs_since_last_checked` seconds, the amount of tokens increases by `capacity` every `secs_to_refill` seconds.
-    // The amount of tokens added per second is `capacity / secs_to_refill`.
-    // The expression below is like `secs_since_last_checked * (capacity / secs_to_refill)` but with precision and non-overflowing multiplication.
+    // For `secs_since_last_checked` seconds, the amount of tokens increases by `capacity` every
+    // `secs_to_refill` seconds. The amount of tokens added per second is `capacity /
+    // secs_to_refill`. The expression below is like `secs_since_last_checked * (capacity /
+    // secs_to_refill)` but with precision and non-overflowing multiplication.
     let added_tokens = u64::from(secs_since_last_checked) * u64::from(config.capacity)
       / u64::from(config.secs_to_refill);
 
@@ -124,8 +125,9 @@ impl<K: Eq + Hash, C: MapLevel> MapLevel for Map<K, C> {
       ..config
     });
 
-    // Remove groups that are no longer needed if the hash map's existing allocation has no space for new groups.
-    // This is done before calling `HashMap::entry` because that immediately allocates just like `HashMap::insert`.
+    // Remove groups that are no longer needed if the hash map's existing allocation has no space
+    // for new groups. This is done before calling `HashMap::entry` because that immediately
+    // allocates just like `HashMap::insert`.
     if (self.capacity() == self.len()) && !self.contains_key(&addr_part) {
       self.remove_full_buckets(now, configs);
     }
@@ -219,7 +221,8 @@ impl<C: Default> RateLimitedGroup<C> {
 
     if new_bucket.tokens == 0 {
       // Not enough tokens yet
-      // Setting `bucket` to `new_bucket` here is useless and would cause the bucket to start over at 0 tokens because of rounding
+      // Setting `bucket` to `new_bucket` here is useless and would cause the bucket to start over
+      // at 0 tokens because of rounding
       false
     } else {
       // Consume 1 token
@@ -239,10 +242,12 @@ pub struct RateLimitState {
   ///
   /// The same thing happens for the first 48 and 56 bits, but with increased capacity.
   ///
-  /// This is done because all users can easily switch to any other IPv6 address that has the same first 64 bits.
-  /// It could be as low as 48 bits for some networks, which is the reason for 48 and 56 bit address groups.
+  /// This is done because all users can easily switch to any other IPv6 address that has the same
+  /// first 64 bits. It could be as low as 48 bits for some networks, which is the reason for 48
+  /// and 56 bit address groups.
   ipv6_buckets: Map<[u8; 6], Map<u8, Map<u8, ()>>>,
-  /// This stores a `BucketConfig` for each `ActionType`. `EnumMap` makes it impossible to have a missing `BucketConfig`.
+  /// This stores a `BucketConfig` for each `ActionType`. `EnumMap` makes it impossible to have a
+  /// missing `BucketConfig`.
   bucket_configs: EnumMap<ActionType, BucketConfig>,
 }
 
@@ -339,7 +344,8 @@ mod tests {
     let mut rate_limiter = RateLimitState::new(bucket_configs);
     let mut now = InstantSecs::now();
 
-    // Do 1 `Message` and 1 `Post` action for each IP address, and expect the limit to not be reached
+    // Do 1 `Message` and 1 `Post` action for each IP address, and expect the limit to not be
+    // reached
     let ips = [
       "123.123.123.123",
       "1:2:3::",

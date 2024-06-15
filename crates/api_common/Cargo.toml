@@ -66,13 +66,13 @@ actix-web = { workspace = true, optional = true }
 enum-map = { workspace = true }
 urlencoding = { workspace = true }
 mime = { version = "0.3.17", optional = true }
-webpage = { version = "1.6", default-features = false, features = [
+webpage = { version = "2.0", default-features = false, features = [
   "serde",
 ], optional = true }
 encoding_rs = { version = "0.8.34", optional = true }
-jsonwebtoken = { version = "8.3.0", optional = true }
+jsonwebtoken = { version = "9.3.0", optional = true }
 # necessary for wasmt compilation
-getrandom = { version = "0.2.14", features = ["js"] }
+getrandom = { version = "0.2.15", features = ["js"] }
 
 [package.metadata.cargo-machete]
 ignored = ["getrandom"]
