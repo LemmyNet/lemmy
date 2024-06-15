@@ -11,7 +11,13 @@ export default [
   },
   // For some reason this has to be in its own block
   {
-    ignores: ["putTypesInIndex.js", "dist/*", "docs/*", ".yalc", "jest.config.js"],
+    ignores: [
+      "putTypesInIndex.js",
+      "dist/*",
+      "docs/*",
+      ".yalc",
+      "jest.config.js",
+    ],
   },
   {
     files: ["src/**/*"],
