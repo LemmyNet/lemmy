@@ -760,7 +760,7 @@ dependencies = [
  "bitflags 2.5.0",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "lazy_static",
  "lazycell",
  "log",
@@ -1121,12 +1121,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "console-api"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a257c22cd7e487dd4a13d413beabc512c5052f0bc048db0da6a84c3d8a6142fd"
+dependencies = [
+ "futures-core",
+ "prost 0.12.6",
+ "prost-types",
+ "tonic 0.11.0",
+ "tracing-core",
+]
+
+[[package]]
 name = "console-subscriber"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7481d4c57092cd1c19dd541b92bdce883de840df30aa5d03fd48a3935c01842e"
 dependencies = [
- "console-api",
+ "console-api 0.6.0",
  "crossbeam-channel",
  "crossbeam-utils",
  "futures-task",
@@ -1139,6 +1152,31 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tonic 0.10.2",
+ "tracing",
+ "tracing-core",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "console-subscriber"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31c4cc54bae66f7d9188996404abdf7fdfa23034ef8e43478c8810828abad758"
+dependencies = [
+ "console-api 0.7.0",
+ "crossbeam-channel",
+ "crossbeam-utils",
+ "futures-task",
+ "hdrhistogram",
+ "humantime",
+ "prost 0.12.6",
+ "prost-types",
+ "serde",
+ "serde_json",
+ "thread_local",
+ "tokio",
+ "tokio-stream",
+ "tonic 0.11.0",
  "tracing",
  "tracing-core",
  "tracing-subscriber",
@@ -2833,7 +2871,7 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "lemmy_api"
-version = "0.19.4"
+version = "0.19.5-alpha.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2862,7 +2900,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.19.4"
+version = "0.19.5-alpha.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2900,7 +2938,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "0.19.4"
+version = "0.19.5-alpha.1"
 dependencies = [
  "accept-language",
  "activitypub_federation",
@@ -2923,7 +2961,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "0.19.4"
+version = "0.19.5-alpha.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -2961,7 +2999,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_perf"
-version = "0.19.4"
+version = "0.19.5-alpha.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -2976,7 +3014,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.19.4"
+version = "0.19.5-alpha.1"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -3017,7 +3055,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.19.4"
+version = "0.19.5-alpha.1"
 dependencies = [
  "actix-web",
  "chrono",
@@ -3039,7 +3077,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_actor"
-version = "0.19.4"
+version = "0.19.5-alpha.1"
 dependencies = [
  "chrono",
  "diesel",
@@ -3060,7 +3098,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_moderator"
-version = "0.19.4"
+version = "0.19.5-alpha.1"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -3072,7 +3110,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_federate"
-version = "0.19.4"
+version = "0.19.5-alpha.1"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -3097,7 +3135,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "0.19.4"
+version = "0.19.5-alpha.1"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3122,7 +3160,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "0.19.4"
+version = "0.19.5-alpha.1"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -3131,7 +3169,7 @@ dependencies = [
  "chrono",
  "clap",
  "clokwerk",
- "console-subscriber",
+ "console-subscriber 0.3.0",
  "diesel",
  "diesel-async",
  "futures-util",
@@ -3165,7 +3203,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.19.4"
+version = "0.19.5-alpha.1"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -3243,7 +3281,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.5",
 ]
 
 [[package]]
@@ -4124,7 +4162,7 @@ dependencies = [
  "clap",
  "color-eyre",
  "config",
- "console-subscriber",
+ "console-subscriber 0.2.0",
  "dashmap",
  "diesel",
  "diesel-async",
@@ -4427,7 +4465,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "syn 2.0.66",
