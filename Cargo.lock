@@ -3158,7 +3158,7 @@ dependencies = [
  "tracing-actix-web",
  "tracing-error",
  "tracing-log 0.2.0",
- "tracing-opentelemetry 0.19.0",
+ "tracing-opentelemetry 0.24.0",
  "tracing-subscriber",
  "url",
 ]
@@ -6229,20 +6229,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ffbf13a0f8b054a4e59df3a173b818e9c6177c02789871f2073977fd0062076"
 dependencies = [
  "opentelemetry 0.16.0",
- "tracing",
- "tracing-core",
- "tracing-log 0.1.4",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "tracing-opentelemetry"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00a39dcf9bfc1742fa4d6215253b33a6e474be78275884c216fc2a06267b3600"
-dependencies = [
- "once_cell",
- "opentelemetry 0.19.0",
  "tracing",
  "tracing-core",
  "tracing-log 0.1.4",
