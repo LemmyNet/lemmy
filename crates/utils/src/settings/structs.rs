@@ -83,7 +83,6 @@ pub struct PictrsConfig {
   /// Backwards compatibility with 0.18.1. False is equivalent to `image_mode: None`, true is
   /// equivalent to `image_mode: StoreLinkPreviews`.
   ///
-  /// TODO
   /// To be removed in 0.20
   pub(super) cache_external_link_previews: Option<bool>,
 
