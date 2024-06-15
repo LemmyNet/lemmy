@@ -75,7 +75,7 @@ services:
     init: true
 
   pictrs:
-    image: asonix/pictrs:0.5.14
+    image: asonix/pictrs:0.5.16
     # this needs to match the pictrs url in lemmy.hjson
     hostname: pictrs
     # we can set options to pictrs like this, here we set max. image size and forced format for conversion
