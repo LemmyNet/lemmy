@@ -761,7 +761,7 @@ dependencies = [
  "bitflags 2.5.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "lazy_static",
  "lazycell",
  "log",
@@ -2858,7 +2858,7 @@ dependencies = [
  "once_cell",
  "pretty_assertions",
  "regex",
- "rustls 0.23.9",
+ "rustls 0.23.10",
  "serde",
  "serde_json",
  "serde_with",
@@ -3103,7 +3103,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.5",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -4005,7 +4005,7 @@ dependencies = [
  "reqwest 0.12.4",
  "reqwest-middleware 0.3.1",
  "reqwest-tracing 0.5.0",
- "rustls 0.23.9",
+ "rustls 0.23.10",
  "rustls-channel-resolver",
  "rustls-pemfile 2.1.2",
  "rusty-s3",
@@ -4289,7 +4289,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.66",
@@ -4817,9 +4817,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.23.9"
+version = "0.23.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a218f0f6d05669de4eabfb24f31ce802035c952429d037507b4a4a39f0e60c5b"
+checksum = "05cff451f60db80f490f3c182b77c35260baace73209e9cdbbe526bfe3a4d402"
 dependencies = [
  "aws-lc-rs",
  "log",
@@ -4838,7 +4838,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fede2a247359da6b4998f7723ec6468c2d6a577a5d8c17e54f21806426ad2290"
 dependencies = [
  "nanorand",
- "rustls 0.23.9",
+ "rustls 0.23.10",
 ]
 
 [[package]]
@@ -5707,7 +5707,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8e98c31c29b2666fb28720739e11476166be4ead1610a37dcd7414bb124413a"
 dependencies = [
  "aws-lc-rs",
- "rustls 0.23.9",
+ "rustls 0.23.10",
  "tokio",
  "tokio-postgres",
  "tokio-rustls 0.26.0",
@@ -5721,7 +5721,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04fb792ccd6bbcd4bba408eb8a292f70fc4a3589e5d793626f45190e6454b6ab"
 dependencies = [
  "ring",
- "rustls 0.23.9",
+ "rustls 0.23.10",
  "tokio",
  "tokio-postgres",
  "tokio-rustls 0.26.0",
@@ -5745,7 +5745,7 @@ version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c7bc40d0e5a97695bb96e27995cd3a08538541b0a846f65bba7a359f36700d4"
 dependencies = [
- "rustls 0.23.9",
+ "rustls 0.23.10",
  "rustls-pki-types",
  "tokio",
 ]
