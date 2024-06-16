@@ -567,7 +567,7 @@ BEGIN
     END IF;
     -- Set local apub URLs
     IF NEW.local THEN
-        NEW.ap_id = coalesce(NEW.ap_id, r.local_url('/comment/' || id));
+        NEW.ap_id = coalesce(r.null_if_needs_replacement (NEW.ap_id), r.local_url('/comment/' || id));
     END IF;
     RETURN NEW;
 END
@@ -585,7 +585,7 @@ CREATE FUNCTION r.community_change_values ()
 BEGIN
     -- Set local apub URLs
     IF NEW.local THEN
-        NEW.actor_id = coalesce(NEW.actor_id, r.local_url('/c/' || NEW.id::text));
+        NEW.actor_id = coalesce(r.null_if_needs_replacement (NEW.actor_id), r.local_url('/c/' || NEW.id::text));
         NEW.followers_url = coalesce(NEW.followers_url, NEW.actor_id || '/followers');
         NEW.inbox_url = coalesce(NEW.inbox_url, NEW.actor_id || '/inbox');
         NEW.moderators_url = coalesce(NEW.moderators_url, NEW.actor_id || '/moderators');
@@ -608,9 +608,9 @@ CREATE FUNCTION r.person_change_values ()
 BEGIN
     -- Set local apub URLs
     IF NEW.local THEN
-        NEW.actor_id = coalesce(NEW.actor_id, r.local_url('/u/' || NEW.id::text));
+        NEW.actor_id = coalesce(r.null_if_needs_replacement (NEW.actor_id), r.local_url('/u/' || NEW.id::text));
         NEW.inbox_url = coalesce(NEW.inbox_url, NEW.actor_id || '/inbox');
-        NEW.shared_inbox_url = coalesce(NEW.shared_inbox_url, r.local_url('/inbox');
+        NEW.shared_inbox_url = coalesce(NEW.shared_inbox_url, r.local_url('/inbox'));
     END IF;
     RETURN NEW;
 END
@@ -628,7 +628,7 @@ CREATE FUNCTION r.post_change_values ()
 BEGIN
     -- Set local apub URLs
     IF NEW.local THEN
-        NEW.ap_id = coalesce(NEW.ap_id, r.local_url('/post/' || NEW.id::text));
+        NEW.ap_id = coalesce(r.null_if_needs_replacement (NEW.ap_id), r.local_url('/post/' || NEW.id::text));
     END IF;
     RETURN NEW;
 END
@@ -646,7 +646,7 @@ CREATE FUNCTION r.private_message_change_values ()
 BEGIN
     -- Set local apub URLs
     IF NEW.local THEN
-        NEW.ap_id = coalesce(NEW.ap_id, r.local_url('/private_message/' || NEW.id::text));
+        NEW.ap_id = coalesce(r.null_if_needs_replacement (NEW.ap_id), r.local_url('/private_message/' || NEW.id::text));
     END IF;
     RETURN NEW;
 END

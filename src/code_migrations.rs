@@ -10,13 +10,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_api_common::{
   lemmy_db_views::structs::SiteView,
-  utils::{
-    generate_followers_url,
-    generate_inbox_url,
-    generate_local_apub_endpoint,
-    generate_shared_inbox_url,
-    EndpointType,
-  },
 };
 use lemmy_db_schema::{
   source::{
@@ -66,7 +59,7 @@ async fn user_updates_2020_04_02(
 
   info!("Running user_updates_2020_04_02");
 
-  // Update the actor_id, private_key, and public_key, last_refreshed_at
+  // Update the actor_id (in trigger), private_key, and public_key, last_refreshed_at
   let incorrect_persons = person
     .filter(actor_id.like("http://changeme%"))
     .filter(local.eq(true))
@@ -77,11 +70,6 @@ async fn user_updates_2020_04_02(
     let keypair = generate_actor_keypair()?;
 
     let form = PersonUpdateForm {
-      actor_id: Some(generate_local_apub_endpoint(
-        EndpointType::Person,
-        &cperson.name,
-        protocol_and_hostname,
-      )?),
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(keypair.public_key),
       last_refreshed_at: Some(naive_now()),
@@ -105,7 +93,7 @@ async fn community_updates_2020_04_02(
 
   info!("Running community_updates_2020_04_02");
 
-  // Update the actor_id, private_key, and public_key, last_refreshed_at
+  // Update the actor_id (in trigger), private_key, and public_key, last_refreshed_at
   let incorrect_communities = community
     .filter(actor_id.like("http://changeme%"))
     .filter(local.eq(true))
@@ -114,14 +102,8 @@ async fn community_updates_2020_04_02(
 
   for ccommunity in &incorrect_communities {
     let keypair = generate_actor_keypair()?;
-    let community_actor_id = generate_local_apub_endpoint(
-      EndpointType::Community,
-      &ccommunity.name,
-      protocol_and_hostname,
-    )?;
 
     let form = CommunityUpdateForm {
-      actor_id: Some(community_actor_id.clone()),
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(keypair.public_key),
       last_refreshed_at: Some(naive_now()),
@@ -145,7 +127,7 @@ async fn post_updates_2020_04_03(
 
   info!("Running post_updates_2020_04_03");
 
-  // Update the ap_id
+  // Update the ap_id (in trigger)
   let incorrect_posts = post
     .filter(ap_id.like("http://changeme%"))
     .filter(local.eq(true))
@@ -153,18 +135,10 @@ async fn post_updates_2020_04_03(
     .await?;
 
   for cpost in &incorrect_posts {
-    let apub_id = generate_local_apub_endpoint(
-      EndpointType::Post,
-      &cpost.id.to_string(),
-      protocol_and_hostname,
-    )?;
     Post::update(
       pool,
       cpost.id,
-      &PostUpdateForm {
-        ap_id: Some(apub_id),
-        ..Default::default()
-      },
+      &PostUpdateForm::default(),
     )
     .await?;
   }
@@ -183,7 +157,7 @@ async fn comment_updates_2020_04_03(
 
   info!("Running comment_updates_2020_04_03");
 
-  // Update the ap_id
+  // Update the ap_id (in trigger)
   let incorrect_comments = comment
     .filter(ap_id.like("http://changeme%"))
     .filter(local.eq(true))
@@ -191,18 +165,10 @@ async fn comment_updates_2020_04_03(
     .await?;
 
   for ccomment in &incorrect_comments {
-    let apub_id = generate_local_apub_endpoint(
-      EndpointType::Comment,
-      &ccomment.id.to_string(),
-      protocol_and_hostname,
-    )?;
     Comment::update(
       pool,
       ccomment.id,
-      &CommentUpdateForm {
-        ap_id: Some(apub_id),
-        ..Default::default()
-      },
+      &CommentUpdateForm::default(),
     )
     .await?;
   }
@@ -229,18 +195,10 @@ async fn private_message_updates_2020_05_05(
     .await?;
 
   for cpm in &incorrect_pms {
-    let apub_id = generate_local_apub_endpoint(
-      EndpointType::PrivateMessage,
-      &cpm.id.to_string(),
-      protocol_and_hostname,
-    )?;
     PrivateMessage::update(
       pool,
       cpm.id,
-      &PrivateMessageUpdateForm {
-        ap_id: Some(apub_id),
-        ..Default::default()
-      },
+      &PrivateMessageUpdateForm::default(),
     )
     .await?;
   }
