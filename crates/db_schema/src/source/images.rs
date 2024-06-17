@@ -7,7 +7,6 @@ use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -30,7 +29,7 @@ pub struct LocalImage {
   pub published: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, TypedBuilder)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = local_image))]
 pub struct LocalImageForm {
@@ -52,7 +51,7 @@ pub struct RemoteImage {
   pub published: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, TypedBuilder)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = remote_image))]
 pub struct RemoteImageForm {
@@ -73,7 +72,7 @@ pub struct ImageDetails {
   pub content_type: String,
 }
 
-#[derive(Debug, Clone, TypedBuilder)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = image_details))]
 pub struct ImageDetailsForm {

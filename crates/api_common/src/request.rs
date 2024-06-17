@@ -352,7 +352,7 @@ pub async fn fetch_pictrs_proxied_image_details(
 
   let res = context
     .client()
-    .get(&proxy_url)
+    .head(&proxy_url)
     .timeout(REQWEST_TIMEOUT)
     .send()
     .await?
