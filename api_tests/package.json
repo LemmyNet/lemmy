@@ -6,7 +6,7 @@
   "repository": "https://github.com/LemmyNet/lemmy",
   "author": "Dessalines",
   "license": "AGPL-3.0",
-  "packageManager": "pnpm@9.3.0",
+  "packageManager": "pnpm@9.4.0",
   "scripts": {
     "lint": "tsc --noEmit && eslint --report-unused-disable-directives --ext .js,.ts,.tsx src && prettier --check 'src/**/*.ts'",
     "fix": "prettier --write src && eslint --fix src",
