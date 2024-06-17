@@ -50,6 +50,7 @@ use rustls::{
   },
   crypto::{self, verify_tls12_signature, verify_tls13_signature},
   pki_types::{CertificateDer, ServerName, UnixTime},
+  ring::default_provider().install_default().expect("Failed to install rustls crypto provider"),
   ClientConfig,
   DigitallySignedStruct,
   SignatureScheme,
