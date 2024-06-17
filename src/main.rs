@@ -7,9 +7,9 @@ pub async fn main() -> LemmyResult<()> {
   init_logging(&SETTINGS.opentelemetry_url)?;
   let args = CmdArgs::parse();
 
-  rusttls::crypto::ring::default_provider()
+  rustls::crypto::ring::default_provider()
     .install_default()
-    .expect("Failed to install rusttls crypto provider");
+    .expect("Failed to install rustls crypto provider");
 
   #[cfg(not(feature = "embed-pictrs"))]
   start_lemmy_server(args).await?;
