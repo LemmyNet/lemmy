@@ -419,13 +419,13 @@ export async function banPersonFromSite(
   api: LemmyHttp,
   person_id: number,
   ban: boolean,
-  remove_data: boolean,
+  remove_or_restore_data: boolean,
 ): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
     person_id,
     ban,
-    remove_data,
+    remove_or_restore_data,
   };
   return api.banPerson(form);
 }
@@ -434,13 +434,13 @@ export async function banPersonFromCommunity(
   api: LemmyHttp,
   person_id: number,
   community_id: number,
-  remove_data: boolean,
+  remove_or_restore_data: boolean,
   ban: boolean,
 ): Promise<BanFromCommunityResponse> {
   let form: BanFromCommunity = {
     person_id,
     community_id,
-    remove_data: remove_data,
+    remove_or_restore_data,
     ban,
   };
   return api.banFromCommunity(form);
