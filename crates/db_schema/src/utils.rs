@@ -332,6 +332,10 @@ pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
 
 fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
   let fut = async {
+    rustls::crypto::ring::default_provider()
+      .install_default()
+      .expect("Failed to install rustls crypto provider");
+
     let rustls_config = DangerousClientConfigBuilder {
       cfg: ClientConfig::builder(),
     }
