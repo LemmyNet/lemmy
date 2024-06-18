@@ -5,19 +5,15 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::{
   actor_language::{LocalUserLanguage, SiteLanguage},
+  community_block::CommunityBlock,
+  instance_block::InstanceBlock,
   language::Language,
   local_site_url_blocklist::LocalSiteUrlBlocklist,
+  person_block::PersonBlock,
   tagline::Tagline,
 };
 use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
-use lemmy_db_views_actor::structs::{
-  CommunityBlockView,
-  CommunityFollowerView,
-  CommunityModeratorView,
-  InstanceBlockView,
-  PersonBlockView,
-  PersonView,
-};
+use lemmy_db_views_actor::structs::{CommunityFollowerView, CommunityModeratorView, PersonView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   CACHE_DURATION_API,
@@ -81,9 +77,9 @@ pub async fn get_site(
       discussion_languages,
     ) = lemmy_db_schema::try_join_with_pool!(pool => (
       |pool| CommunityFollowerView::for_person(pool, person_id),
-      |pool| CommunityBlockView::for_person(pool, person_id),
-      |pool| InstanceBlockView::for_person(pool, person_id),
-      |pool| PersonBlockView::for_person(pool, person_id),
+      |pool| CommunityBlock::for_person(pool, person_id),
+      |pool| InstanceBlock::for_person(pool, person_id),
+      |pool| PersonBlock::for_person(pool, person_id),
       |pool| CommunityModeratorView::for_person(pool, person_id, true),
       |pool| LocalUserLanguage::read(pool, local_user_id)
     ))
