@@ -83,7 +83,7 @@ pub enum SendActivityData {
     moderator: Person,
     banned_user: Person,
     reason: Option<String>,
-    remove_data: Option<bool>,
+    remove_or_restore_data: Option<bool>,
     ban: bool,
     expires: Option<i64>,
   },

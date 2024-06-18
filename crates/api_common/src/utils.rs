@@ -787,13 +787,30 @@ pub async fn remove_user_data(
   Ok(())
 }
 
-pub async fn remove_user_data_in_community(
+/// We can't restore their images, but we can unremove their posts and comments
+pub async fn restore_user_data(
+  banned_person_id: PersonId,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  let pool = &mut context.pool();
+
+  // Posts
+  Post::update_removed_for_creator(pool, banned_person_id, None, false).await?;
+
+  // Comments
+  Comment::update_removed_for_creator(pool, banned_person_id, false).await?;
+
+  Ok(())
+}
+
+pub async fn remove_or_restore_user_data_in_community(
   community_id: CommunityId,
   banned_person_id: PersonId,
+  remove: bool,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   // Posts
-  Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), true).await?;
+  Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), remove).await?;
 
   // Comments
   // TODO Diesel doesn't allow updates with joins, so this has to be a loop
@@ -811,7 +828,7 @@ pub async fn remove_user_data_in_community(
       pool,
       comment_id,
       &CommentUpdateForm {
-        removed: Some(true),
+        removed: Some(remove),
         ..Default::default()
       },
     )
