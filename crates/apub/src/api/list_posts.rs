@@ -42,6 +42,7 @@ pub async fn list_posts(
   };
   let saved_only = data.saved_only.unwrap_or_default();
   let show_hidden = data.show_hidden.unwrap_or_default();
+  let show_read = data.show_read.unwrap_or_default();
 
   let liked_only = data.liked_only.unwrap_or_default();
   let disliked_only = data.disliked_only.unwrap_or_default();
@@ -82,6 +83,7 @@ pub async fn list_posts(
     page_after,
     limit,
     show_hidden,
+    show_read,
     ..Default::default()
   }
   .list(&local_site.site, &mut context.pool())

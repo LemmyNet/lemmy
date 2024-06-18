@@ -407,7 +407,7 @@ fn queries<'a>() -> Queries<
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
-    else if !options.local_user.show_read_posts() {
+    else if !(options.show_read || options.local_user.show_read_posts()) {
       // Do not hide read posts when it is a user profile view
       // Or, only hide read posts on non-profile views
       if let (None, Some(person_id)) = (options.creator_id, options.local_user.person_id()) {
@@ -610,6 +610,7 @@ pub struct PostQuery<'a> {
   pub page_before_or_equal: Option<PaginationCursorData>,
   pub page_back: bool,
   pub show_hidden: bool,
+  pub show_read: bool,
 }
 
 impl<'a> PostQuery<'a> {
@@ -1513,6 +1514,15 @@ mod tests {
     // Make sure you don't see the read post in the results
     let post_listings_hide_read = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(vec![POST], names(&post_listings_hide_read));
+
+    // Test with the show_read override
+    let post_listings_show_read = PostQuery {
+      show_read: true,
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_read));
 
     cleanup(data, pool).await
   }
