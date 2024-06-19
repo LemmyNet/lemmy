@@ -67,7 +67,7 @@ pub async fn purge_person(
       moderator: local_user_view.person,
       banned_user: person,
       reason: data.reason.clone(),
-      remove_data: Some(true),
+      remove_or_restore_data: Some(true),
       ban: true,
       expires: None,
     },

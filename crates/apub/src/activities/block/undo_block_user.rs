@@ -17,7 +17,10 @@ use activitypub_federation::{
   protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{remove_or_restore_user_data_in_community, restore_user_data},
+};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -36,6 +39,7 @@ impl UndoBlockUser {
     target: &SiteOrCommunity,
     user: &ApubPerson,
     mod_: &ApubPerson,
+    restore_data: bool,
     reason: Option<String>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
@@ -58,6 +62,7 @@ impl UndoBlockUser {
       kind: UndoType::Undo,
       id: id.clone(),
       audience,
+      restore_data: Some(restore_data),
     };
 
     let mut inboxes = ActivitySendTargets::to_inbox(user.shared_inbox_or_inbox());
@@ -114,6 +119,10 @@ impl ActivityHandler for UndoBlockUser {
         )
         .await?;
 
+        if self.restore_data.unwrap_or(false) {
+          restore_user_data(blocked_person.id, context).await?;
+        }
+
         // write mod log
         let form = ModBanForm {
           mod_person_id: mod_person.id,
@@ -131,6 +140,16 @@ impl ActivityHandler for UndoBlockUser {
           expires: None,
         };
         CommunityPersonBan::unban(&mut context.pool(), &community_user_ban_form).await?;
+
+        if self.restore_data.unwrap_or(false) {
+          remove_or_restore_user_data_in_community(
+            community.id,
+            blocked_person.id,
+            false,
+            &mut context.pool(),
+          )
+          .await?;
+        }
 
         // write to mod log
         let form = ModBanFromCommunityForm {
