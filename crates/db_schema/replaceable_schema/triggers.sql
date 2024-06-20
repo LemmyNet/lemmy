@@ -486,7 +486,7 @@ BEGIN
         INNER JOIN old_post ON old_post.id = new_post.id
             AND (old_post.featured_community,
                 old_post.featured_local) != (new_post.featured_community,
-                old_post.featured_local)
+                new_post.featured_local)
     WHERE
         post_aggregates.post_id = new_post.id;
     RETURN NULL;

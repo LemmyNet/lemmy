@@ -1,4 +1,4 @@
-use crate::structs::{CommentView, LocalUserView};
+use crate::structs::CommentView;
 use diesel::{
   dsl::{exists, not},
   pg::Pg,
@@ -16,6 +16,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
+  impls::local_user::LocalUserOptionHelper,
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     comment,
@@ -34,9 +35,18 @@ use lemmy_db_schema::{
     person_block,
     post,
   },
-  utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  source::local_user::LocalUser,
+  utils::{
+    fuzzy_search,
+    limit_and_offset,
+    visible_communities_only,
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+  },
   CommentSortType,
-  CommunityVisibility,
   ListingType,
 };
 
@@ -174,22 +184,19 @@ fn queries<'a>() -> Queries<
   let read = move |mut conn: DbConn<'a>,
                    (comment_id, my_person_id): (CommentId, Option<PersonId>)| async move {
     let mut query = all_joins(comment::table.find(comment_id).into_boxed(), my_person_id);
-    // Hide local only communities from unauthenticated users
-    if my_person_id.is_none() {
-      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
-    }
+    query = visible_communities_only(my_person_id, query);
     query.first(&mut conn).await
   };
 
   let list = move |mut conn: DbConn<'a>, options: CommentQuery<'a>| async move {
-    let my_person_id = options.local_user.map(|l| l.person.id);
-    let my_local_user_id = options.local_user.map(|l| l.local_user.id);
-
     // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
-    let local_user_id_join = my_local_user_id.unwrap_or(LocalUserId(-1));
+    let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
+    let local_user_id_join = options
+      .local_user
+      .local_user_id()
+      .unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(comment::table.into_boxed(), my_person_id);
+    let mut query = all_joins(comment::table.into_boxed(), options.local_user.person_id());
 
     if let Some(creator_id) = options.creator_id {
       query = query.filter(comment::creator_id.eq(creator_id));
@@ -251,7 +258,7 @@ fn queries<'a>() -> Queries<
         .then_order_by(comment_saved::published.desc());
     }
 
-    if let Some(my_id) = my_person_id {
+    if let Some(my_id) = options.local_user.person_id() {
       let not_creator_filter = comment::creator_id.ne(my_id);
       if options.liked_only {
         query = query.filter(not_creator_filter).filter(score(my_id).eq(1));
@@ -260,11 +267,7 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if !options
-      .local_user
-      .map(|l| l.local_user.show_bot_accounts)
-      .unwrap_or(true)
-    {
+    if !options.local_user.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
 
@@ -298,10 +301,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(not(is_creator_blocked(person_id_join)));
     };
 
-    // Hide comments in local only communities from unauthenticated users
-    if options.local_user.is_none() {
-      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
-    }
+    query = visible_communities_only(options.local_user.person_id(), query);
 
     // A Max depth given means its a tree fetch
     let (limit, offset) = if let Some(max_depth) = options.max_depth {
@@ -396,7 +396,7 @@ pub struct CommentQuery<'a> {
   pub post_id: Option<PostId>,
   pub parent_path: Option<Ltree>,
   pub creator_id: Option<PersonId>,
-  pub local_user: Option<&'a LocalUserView>,
+  pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
   pub saved_only: bool,
   pub liked_only: bool,
@@ -659,7 +659,7 @@ mod tests {
     let read_comment_views_with_person = CommentQuery {
       sort: (Some(CommentSortType::Old)),
       post_id: (Some(data.inserted_post.id)),
-      local_user: (Some(&data.timmy_local_user_view)),
+      local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
     .list(pool)
@@ -711,7 +711,7 @@ mod tests {
     CommentLike::like(pool, &comment_like_form).await?;
 
     let read_liked_comment_views = CommentQuery {
-      local_user: (Some(&data.timmy_local_user_view)),
+      local_user: (Some(&data.timmy_local_user_view.local_user)),
       liked_only: (true),
       ..Default::default()
     }
@@ -727,7 +727,7 @@ mod tests {
     assert_length!(1, read_liked_comment_views);
 
     let read_disliked_comment_views: Vec<CommentView> = CommentQuery {
-      local_user: (Some(&data.timmy_local_user_view)),
+      local_user: (Some(&data.timmy_local_user_view.local_user)),
       disliked_only: (true),
       ..Default::default()
     }
@@ -822,7 +822,7 @@ mod tests {
     // by default, user has all languages enabled and should see all comments
     // (except from blocked user)
     let all_languages = CommentQuery {
-      local_user: (Some(&data.timmy_local_user_view)),
+      local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
     .list(pool)
@@ -840,7 +840,7 @@ mod tests {
     )
     .await?;
     let finnish_comments = CommentQuery {
-      local_user: (Some(&data.timmy_local_user_view)),
+      local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
     .list(pool)
@@ -866,7 +866,7 @@ mod tests {
     )
     .await?;
     let undetermined_comment = CommentQuery {
-      local_user: (Some(&data.timmy_local_user_view)),
+      local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
     .list(pool)
@@ -979,7 +979,7 @@ mod tests {
 
     // Fetch the saved comments
     let comments = CommentQuery {
-      local_user: Some(&data.timmy_local_user_view),
+      local_user: Some(&data.timmy_local_user_view.local_user),
       saved_only: true,
       ..Default::default()
     }
@@ -1158,7 +1158,7 @@ mod tests {
     assert_eq!(0, unauthenticated_query.len());
 
     let authenticated_query = CommentQuery {
-      local_user: Some(&data.timmy_local_user_view),
+      local_user: Some(&data.timmy_local_user_view.local_user),
       ..Default::default()
     }
     .list(pool)
