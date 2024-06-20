@@ -28,6 +28,7 @@ use lemmy_db_schema::{
     community_follower,
     community_moderator,
     community_person_ban,
+    image_details,
     instance_block,
     local_user,
     local_user_language,
@@ -218,6 +219,7 @@ fn queries<'a>() -> Queries<
       .inner_join(person::table)
       .inner_join(community::table)
       .inner_join(post::table)
+      .left_join(image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable())))
       .left_join(
         post_saved::table.on(
           post_aggregates::post_id
@@ -229,6 +231,7 @@ fn queries<'a>() -> Queries<
         post::all_columns,
         person::all_columns,
         community::all_columns,
+        image_details::all_columns.nullable(),
         is_creator_banned_from_community,
         is_local_user_banned_from_community_selection,
         creator_is_moderator,
@@ -1631,6 +1634,7 @@ mod tests {
         public_key: inserted_person.public_key.clone(),
         last_refreshed_at: inserted_person.last_refreshed_at,
       },
+      image_details: None,
       creator_banned_from_community: false,
       banned_from_community: false,
       creator_is_moderator: false,
