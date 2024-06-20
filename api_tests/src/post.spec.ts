@@ -512,7 +512,7 @@ test("Enforce site ban federation for local user", async () => {
   }
   let newAlphaUserJwt = await loginUser(alpha, alphaUserPerson.name);
   alphaUserHttp.setHeaders({
-    Authorization: "Bearer " + newAlphaUserJwt.jwt ?? "",
+    Authorization: "Bearer " + newAlphaUserJwt.jwt,
   });
   // alpha makes new post in beta community, it federates
   let postRes2 = await createPost(alphaUserHttp, betaCommunity!.community.id);
