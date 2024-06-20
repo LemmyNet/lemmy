@@ -35,9 +35,13 @@ pub async fn create_comment_report(
 
   let person_id = local_user_view.person.id;
   let comment_id = data.comment_id;
-  let comment_view = CommentView::read(&mut context.pool(), comment_id, None)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+  let comment_view = CommentView::read(
+    &mut context.pool(),
+    comment_id,
+    Some(local_user_view.person.id),
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   check_community_user_action(
     &local_user_view.person,

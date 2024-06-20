@@ -104,7 +104,7 @@ pub async fn send_local_notifs(
   let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
 
   // Read the comment view to get extra info
-  let comment_view = CommentView::read(&mut context.pool(), comment_id, None)
+  let comment_view = CommentView::read(&mut context.pool(), comment_id, Some(person.id))
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
   let comment = comment_view.comment;

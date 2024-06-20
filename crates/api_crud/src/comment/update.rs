@@ -36,9 +36,13 @@ pub async fn update_comment(
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let comment_id = data.comment_id;
-  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+  let orig_comment = CommentView::read(
+    &mut context.pool(),
+    comment_id,
+    Some(local_user_view.person.id),
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   check_community_user_action(
     &local_user_view.person,
