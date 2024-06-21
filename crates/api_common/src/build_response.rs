@@ -17,7 +17,6 @@ use lemmy_db_schema::{
     actor_language::CommunityLanguage,
     comment::Comment,
     comment_reply::{CommentReply, CommentReplyInsertForm},
-    person::Person,
     person_mention::{PersonMention, PersonMentionInsertForm},
   },
   traits::Crud,
@@ -74,15 +73,21 @@ pub async fn build_community_response(
 pub async fn build_post_response(
   context: &LemmyContext,
   community_id: CommunityId,
-  person: &Person,
+  local_user_view: LocalUserView,
   post_id: PostId,
 ) -> LemmyResult<Json<PostResponse>> {
-  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), person, community_id)
+  let local_user = local_user_view.local_user;
+  let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view.person, community_id)
     .await
     .is_ok();
-  let post_view = PostView::read(&mut context.pool(), post_id, None, is_mod_or_admin)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+  let post_view = PostView::read(
+    &mut context.pool(),
+    post_id,
+    Some(&local_user),
+    is_mod_or_admin,
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindPost)?;
   Ok(Json(PostResponse { post_view }))
 }
 
