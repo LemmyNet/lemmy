@@ -552,8 +552,7 @@ CREATE TRIGGER delete_follow
     FOR EACH ROW
     EXECUTE FUNCTION r.delete_follow_before_person ();
 
--- Triggers that change values before insert or update (they can't be for insert only, because regenerating
--- the values using update must be possible)
+-- Triggers that change values before insert or update
 CREATE FUNCTION r.comment_change_values ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
@@ -565,7 +564,7 @@ BEGIN
     IF NOT (NEW.path ~ ('*.' || id)::lquery) THEN
         NEW.path = NEW.path || id;
     END IF;
-    -- Set local apub URLs
+    -- Set local ap_id
     IF NEW.local THEN
         NEW.ap_id = coalesce(r.null_if_needs_replacement (NEW.ap_id), r.local_url('/comment/' || id));
     END IF;
@@ -578,55 +577,12 @@ CREATE TRIGGER change_values
     FOR EACH ROW
     EXECUTE FUNCTION r.comment_change_values ();
 
-CREATE FUNCTION r.community_change_values ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    -- Set local apub URLs
-    IF NEW.local THEN
-        NEW.actor_id = coalesce(r.null_if_needs_replacement (NEW.actor_id), r.local_url('/c/' || NEW.id::text));
-        NEW.followers_url = coalesce(NEW.followers_url, NEW.actor_id || '/followers');
-        NEW.inbox_url = coalesce(NEW.inbox_url, NEW.actor_id || '/inbox');
-        NEW.moderators_url = coalesce(NEW.moderators_url, NEW.actor_id || '/moderators');
-        NEW.featured_url = coalesce(NEW.featured_url, NEW.actor_id || '/featured');
-        NEW.shared_inbox_url = coalesce(NEW.shared_inbox_url, r.local_url('/inbox');
-    END IF;
-    RETURN NEW;
-END
-$$;
-
-CREATE TRIGGER change_values
-    BEFORE INSERT OR UPDATE ON community
-    FOR EACH ROW
-    EXECUTE FUNCTION r.community_change_values ();
-
-CREATE FUNCTION r.person_change_values ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    -- Set local apub URLs
-    IF NEW.local THEN
-        NEW.actor_id = coalesce(r.null_if_needs_replacement (NEW.actor_id), r.local_url('/u/' || NEW.id::text));
-        NEW.inbox_url = coalesce(NEW.inbox_url, NEW.actor_id || '/inbox');
-        NEW.shared_inbox_url = coalesce(NEW.shared_inbox_url, r.local_url('/inbox'));
-    END IF;
-    RETURN NEW;
-END
-$$;
-
-CREATE TRIGGER change_values
-    BEFORE INSERT OR UPDATE ON person
-    FOR EACH ROW
-    EXECUTE FUNCTION r.person_change_values ();
-
 CREATE FUNCTION r.post_change_values ()
     RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    -- Set local apub URLs
+    -- Set local ap_id
     IF NEW.local THEN
         NEW.ap_id = coalesce(r.null_if_needs_replacement (NEW.ap_id), r.local_url('/post/' || NEW.id::text));
     END IF;
@@ -635,7 +591,7 @@ END
 $$;
 
 CREATE TRIGGER change_values
-    BEFORE INSERT OR UPDATE ON post
+    BEFORE INSERT ON post
     FOR EACH ROW
     EXECUTE FUNCTION r.post_change_values ();
 
@@ -644,7 +600,7 @@ CREATE FUNCTION r.private_message_change_values ()
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    -- Set local apub URLs
+    -- Set local ap_id
     IF NEW.local THEN
         NEW.ap_id = coalesce(r.null_if_needs_replacement (NEW.ap_id), r.local_url('/private_message/' || NEW.id::text));
     END IF;
@@ -653,7 +609,7 @@ END
 $$;
 
 CREATE TRIGGER change_values
-    BEFORE INSERT OR UPDATE ON private_message
+    BEFORE INSERT ON private_message
     FOR EACH ROW
     EXECUTE FUNCTION r.private_message_change_values ();
 

@@ -30,7 +30,7 @@ use diesel_async::{
     AsyncDieselConnectionManager,
     ManagerConfig,
   },
-  RunQueryDsl,
+  SimpleAsyncConnection,
 };
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
@@ -352,18 +352,12 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
       }
     });
     let mut conn = AsyncPgConnection::try_from(client).await?;
-    diesel::select((
-      // Change geqo_threshold back to default value if it was changed, so it's higher than the
-      // collapse limits
-      functions::set_config("geqo_threshold", "12", false),
-      // Change collapse limits from 8 to 11 so the query planner can find a better table join order
-      // for more complicated queries
-      functions::set_config("from_collapse_limit", "11", false),
-      functions::set_config("join_collapse_limit", "11", false),
-      // Set `lemmy.protocol_and_hostname` so triggers can use it
-      functions::set_config("lemmy.protocol_and_hostname", SETTINGS.get_protocol_and_hostname(), false),
-    ))
-      .execute(&mut conn)
+    // * Change geqo_threshold back to default value if it was changed, so it's higher than the
+    //   collapse limits
+    // * Change collapse limits from 8 to 11 so the query planner can find a better table join order
+    //   for more complicated queries
+    conn
+      .batch_execute("SET geqo_threshold=12;SET from_collapse_limit=11;SET join_collapse_limit=11;")
       .await
       .map_err(ConnectionError::CouldntSetupConfiguration)?;
     Ok(conn)
@@ -491,7 +485,7 @@ static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
 });
 
 pub mod functions {
-  use diesel::sql_types::{BigInt, Bool, Text, Timestamptz};
+  use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
     #[sql_name = "r.hot_rank"]
@@ -514,8 +508,6 @@ pub mod functions {
 
   // really this function is variadic, this just adds the two-argument version
   sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
-
-  sql_function!(fn set_config(setting_name: Text, new_value: Text, is_local: Bool) -> Text);
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
