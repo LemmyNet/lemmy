@@ -403,14 +403,17 @@ fn queries<'a>() -> Queries<
     };
 
     // If its saved only, then filter, and order by the saved time, not the comment creation time.
-    if options.saved_only {
+    if options.saved_only.unwrap_or_default() {
       query = query
         .filter(post_saved::person_id.is_not_null())
         .then_order_by(post_saved::published.desc());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
-    else if !options.local_user.show_read_posts() {
+    else if !options
+      .show_read
+      .unwrap_or(options.local_user.show_read_posts())
+    {
       // Do not hide read posts when it is a user profile view
       // Or, only hide read posts on non-profile views
       if let (None, Some(person_id)) = (options.creator_id, options.local_user.person_id()) {
@@ -418,7 +421,7 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if !options.show_hidden {
+    if !options.show_hidden.unwrap_or_default() {
       // If a creator id isn't given (IE its on home or community pages), hide the hidden posts
       if let (None, Some(person_id)) = (options.creator_id, options.local_user.person_id()) {
         query = query.filter(not(is_hidden(person_id)));
@@ -427,9 +430,9 @@ fn queries<'a>() -> Queries<
 
     if let Some(my_id) = options.local_user.person_id() {
       let not_creator_filter = post_aggregates::creator_id.ne(my_id);
-      if options.liked_only {
+      if options.liked_only.unwrap_or_default() {
         query = query.filter(not_creator_filter).filter(score(my_id).eq(1));
-      } else if options.disliked_only {
+      } else if options.disliked_only.unwrap_or_default() {
         query = query.filter(not_creator_filter).filter(score(my_id).eq(-1));
       }
     };
@@ -476,7 +479,7 @@ fn queries<'a>() -> Queries<
     let page_after = options.page_after.map(|c| c.0);
     let page_before_or_equal = options.page_before_or_equal.map(|c| c.0);
 
-    if options.page_back {
+    if options.page_back.unwrap_or_default() {
       query = query
         .before(page_after)
         .after_or_equal(page_before_or_equal)
@@ -604,15 +607,16 @@ pub struct PostQuery<'a> {
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
   pub url_search: Option<String>,
-  pub saved_only: bool,
-  pub liked_only: bool,
-  pub disliked_only: bool,
+  pub saved_only: Option<bool>,
+  pub liked_only: Option<bool>,
+  pub disliked_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub page_after: Option<PaginationCursorData>,
   pub page_before_or_equal: Option<PaginationCursorData>,
-  pub page_back: bool,
-  pub show_hidden: bool,
+  pub page_back: Option<bool>,
+  pub show_hidden: Option<bool>,
+  pub show_read: Option<bool>,
 }
 
 impl<'a> PostQuery<'a> {
@@ -683,7 +687,7 @@ impl<'a> PostQuery<'a> {
     if (v.len() as i64) < limit {
       Ok(Some(self.clone()))
     } else {
-      let item = if self.page_back {
+      let item = if self.page_back.unwrap_or_default() {
         // for backward pagination, get first element instead
         v.into_iter().next()
       } else {
@@ -1122,7 +1126,7 @@ mod tests {
     // Read the liked only
     let read_liked_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
-      liked_only: true,
+      liked_only: Some(true),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
@@ -1133,7 +1137,7 @@ mod tests {
 
     let read_disliked_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
-      disliked_only: true,
+      disliked_only: Some(true),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
@@ -1459,7 +1463,7 @@ mod tests {
     loop {
       let post_listings = PostQuery {
         page_after: page_before,
-        page_back: true,
+        page_back: Some(true),
         ..options.clone()
       }
       .list(&data.site, pool)
@@ -1517,6 +1521,26 @@ mod tests {
     let post_listings_hide_read = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(vec![POST], names(&post_listings_hide_read));
 
+    // Test with the show_read override as true
+    let post_listings_show_read_true = PostQuery {
+      show_read: Some(true),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(
+      vec![POST_BY_BOT, POST],
+      names(&post_listings_show_read_true)
+    );
+
+    // Test with the show_read override as false
+    let post_listings_show_read_false = PostQuery {
+      show_read: Some(false),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(vec![POST], names(&post_listings_show_read_false));
     cleanup(data, pool).await
   }
 
@@ -1543,7 +1567,7 @@ mod tests {
     let post_listings_show_hidden = PostQuery {
       sort: Some(SortType::New),
       local_user: Some(&data.local_user_view.local_user),
-      show_hidden: true,
+      show_hidden: Some(true),
       ..Default::default()
     }
     .list(&data.site, pool)

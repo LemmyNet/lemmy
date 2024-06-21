@@ -40,12 +40,13 @@ pub async fn list_posts(
   } else {
     data.community_id
   };
-  let saved_only = data.saved_only.unwrap_or_default();
-  let show_hidden = data.show_hidden.unwrap_or_default();
+  let saved_only = data.saved_only;
+  let show_hidden = data.show_hidden;
+  let show_read = data.show_read;
 
-  let liked_only = data.liked_only.unwrap_or_default();
-  let disliked_only = data.disliked_only.unwrap_or_default();
-  if liked_only && disliked_only {
+  let liked_only = data.liked_only;
+  let disliked_only = data.disliked_only;
+  if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
     return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
   }
 
@@ -82,6 +83,7 @@ pub async fn list_posts(
     page_after,
     limit,
     show_hidden,
+    show_read,
     ..Default::default()
   }
   .list(&local_site.site, &mut context.pool())
