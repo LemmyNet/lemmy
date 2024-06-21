@@ -6,13 +6,11 @@ use lemmy_api_common::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_person_block,
-    generate_local_apub_endpoint,
     get_interface_language,
     get_url_blocklist,
     local_site_to_slur_regex,
     process_markdown,
     send_email_to_user,
-    EndpointType,
   },
 };
 use lemmy_db_schema::{
@@ -57,24 +55,6 @@ pub async fn create_private_message(
   let inserted_private_message = PrivateMessage::create(&mut context.pool(), &private_message_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)?;
-
-  let inserted_private_message_id = inserted_private_message.id;
-  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let apub_id = generate_local_apub_endpoint(
-    EndpointType::PrivateMessage,
-    &inserted_private_message_id.to_string(),
-    &protocol_and_hostname,
-  )?;
-  PrivateMessage::update(
-    &mut context.pool(),
-    inserted_private_message.id,
-    &PrivateMessageUpdateForm {
-      ap_id: Some(apub_id),
-      ..Default::default()
-    },
-  )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)?;
 
   let view = PrivateMessageView::read(&mut context.pool(), inserted_private_message.id)
     .await?
