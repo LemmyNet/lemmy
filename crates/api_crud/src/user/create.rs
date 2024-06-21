@@ -5,11 +5,15 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{LoginResponse, Register},
   utils::{
+    generate_inbox_url,
+    generate_local_apub_endpoint,
+    generate_shared_inbox_url,
     honeypot_check,
     local_site_to_slur_regex,
     password_length_check,
     send_new_applicant_email_to_admins,
     send_verification_email,
+    EndpointType,
   },
 };
 use lemmy_db_schema::{
@@ -93,6 +97,11 @@ pub async fn register(
 
   let actor_keypair = generate_actor_keypair()?;
   is_valid_actor_name(&data.username, local_site.actor_name_max_length as usize)?;
+  let actor_id = generate_local_apub_endpoint(
+    EndpointType::Person,
+    &data.username,
+    &context.settings().get_protocol_and_hostname(),
+  )?;
 
   if let Some(email) = &data.email {
     if LocalUser::is_email_taken(&mut context.pool(), email).await? {
@@ -104,6 +113,9 @@ pub async fn register(
 
   // Register the new person
   let person_form = PersonInsertForm {
+    actor_id: Some(actor_id.clone()),
+    inbox_url: Some(generate_inbox_url(&actor_id)?),
+    shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
     private_key: Some(actor_keypair.private_key),
     ..PersonInsertForm::new(
       data.username.clone(),
