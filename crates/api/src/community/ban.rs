@@ -4,7 +4,12 @@ use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, check_expire_time, remove_user_data_in_community},
+  utils::{
+    check_community_mod_action,
+    check_expire_time,
+    check_is_higher_mod,
+    remove_user_data_in_community,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -41,6 +46,14 @@ pub async fn ban_from_community(
     data.community_id,
     false,
     &mut context.pool(),
+  )
+  .await?;
+
+  check_is_higher_mod(
+    &mut context.pool(),
+    &local_user_view,
+    data.community_id,
+    &[data.person_id],
   )
   .await?;
 

@@ -241,7 +241,7 @@ impl CommunityModerator {
     for_community_id: CommunityId,
     mod_person_id: PersonId,
     target_person_ids: &[PersonId],
-  ) -> Result<bool, Error> {
+  ) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
 
     // Build the list of persons
@@ -259,7 +259,7 @@ impl CommunityModerator {
 
     // If the first result sorted by published is the acting mod
     if res.person_id == mod_person_id {
-      Ok(true)
+      Ok(())
     } else {
       Err(diesel::result::Error::NotFound)
     }
@@ -554,8 +554,8 @@ mod tests {
       inserted_bobby.id,
       &moderator_person_ids,
     )
-    .await?;
-    assert!(bobby_higher_check);
+    .await;
+    assert!(bobby_higher_check.is_ok());
 
     // This should throw an error, since artemis was added later
     let artemis_higher_check = CommunityModerator::is_higher_mod_check(

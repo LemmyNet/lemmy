@@ -178,6 +178,25 @@ pub async fn check_is_higher_admin(
   Ok(())
 }
 
+/// Checks to make sure the acting admin is higher than the target admin.
+/// This needs to be done on admin removals, and all purge functions
+pub async fn check_is_higher_mod_or_admin(
+  pool: &mut DbPool<'_>,
+  local_user_view: &LocalUserView,
+  community_id: CommunityId,
+  target_person_ids: &[PersonId],
+) -> LemmyResult<()> {
+  let higher_admin_check = check_is_higher_admin(pool, local_user_view, target_person_ids).await;
+  let higher_mod_check =
+    check_is_higher_mod(pool, local_user_view, community_id, target_person_ids).await;
+
+  if higher_mod_check.is_ok() || higher_admin_check.is_ok() {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotHigherMod)?
+  }
+}
+
 /// Marks a post as read for a given person.
 #[tracing::instrument(skip_all)]
 pub async fn mark_post_as_read(
