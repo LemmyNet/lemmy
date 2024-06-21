@@ -72,9 +72,7 @@ commit_preprocessors = [
   # remove issue numbers from commits
   { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "" },
 ]
-commit_parsers = [
-  { field = "author.name", pattern = "renovate", skip = true },
-]
+commit_parsers = [{ field = "author.name", pattern = "renovate", skip = true }]
 # protect breaking changes from being skipped due to matching a skipping commit_parser
 protect_breaking_commits = false
 # filter out the commits that are not matched by commit parsers
