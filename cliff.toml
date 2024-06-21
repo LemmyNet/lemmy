@@ -26,6 +26,7 @@ body = """
     {%- endif %}
 {%- endfor -%}
 
+{%- if github -%}
 {% if github.contributors | filter(attribute="is_first_time", value=true) | length != 0 %}
   {% raw %}\n{% endraw -%}
   ## New Contributors
@@ -36,6 +37,7 @@ body = """
       [#{{ contributor.pr_number }}]({{ self::remote_url() }}/pull/{{ contributor.pr_number }}) \
     {%- endif %}
 {%- endfor -%}
+{%- endif -%}
 
 {% if version %}
     {% if previous.version %}
@@ -69,6 +71,9 @@ split_commits = false
 commit_preprocessors = [
   # remove issue numbers from commits
   { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "" },
+]
+commit_parsers = [
+  { field = "author.name", pattern = "renovate", skip = true },
 ]
 # protect breaking changes from being skipped due to matching a skipping commit_parser
 protect_breaking_commits = false
