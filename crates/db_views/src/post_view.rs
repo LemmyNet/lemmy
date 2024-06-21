@@ -407,7 +407,7 @@ fn queries<'a>() -> Queries<
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
-    else if !(options.show_read.unwrap_or_default() || options.local_user.show_read_posts()) {
+    else if !options.show_read.unwrap_or(options.local_user.show_read_posts()) {
       // Do not hide read posts when it is a user profile view
       // Or, only hide read posts on non-profile views
       if let (None, Some(person_id)) = (options.creator_id, options.local_user.person_id()) {
