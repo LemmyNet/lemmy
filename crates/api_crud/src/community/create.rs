@@ -5,11 +5,16 @@ use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
   context::LemmyContext,
   utils::{
+    generate_followers_url,
+    generate_inbox_url,
+    generate_local_apub_endpoint,
+    generate_shared_inbox_url,
     get_url_blocklist,
     is_admin,
     local_site_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_api,
+    EndpointType,
   },
 };
 use lemmy_db_schema::{
@@ -70,6 +75,18 @@ pub async fn create_community(
     is_valid_body_field(desc, false)?;
   }
 
+  // Double check for duplicate community actor_ids
+  let community_actor_id = generate_local_apub_endpoint(
+    EndpointType::Community,
+    &data.name,
+    &context.settings().get_protocol_and_hostname(),
+  )?;
+  let community_dupe =
+    Community::read_from_apub_id(&mut context.pool(), &community_actor_id).await?;
+  if community_dupe.is_some() {
+    Err(LemmyErrorType::CommunityAlreadyExists)?
+  }
+
   // When you create a community, make sure the user becomes a moderator and a follower
   let keypair = generate_actor_keypair()?;
 
@@ -80,8 +97,12 @@ pub async fn create_community(
     .icon(icon)
     .banner(banner)
     .nsfw(data.nsfw)
+    .actor_id(Some(community_actor_id.clone()))
     .private_key(Some(keypair.private_key))
     .public_key(keypair.public_key)
+    .followers_url(Some(generate_followers_url(&community_actor_id)?))
+    .inbox_url(Some(generate_inbox_url(&community_actor_id)?))
+    .shared_inbox_url(Some(generate_shared_inbox_url(context.settings())?))
     .posting_restricted_to_mods(data.posting_restricted_to_mods)
     .instance_id(site_view.site.instance_id)
     .visibility(data.visibility)

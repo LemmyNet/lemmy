@@ -5,6 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   site::{CreateSite, SiteResponse},
   utils::{
+    generate_shared_inbox_url,
     get_url_blocklist,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
@@ -53,6 +54,8 @@ pub async fn create_site(
 
   validate_create_payload(&local_site, &data)?;
 
+  let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
+  let inbox_url = Some(generate_shared_inbox_url(context.settings())?);
   let keypair = generate_actor_keypair()?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
@@ -71,7 +74,9 @@ pub async fn create_site(
     description: diesel_string_update(data.description.as_deref()),
     icon: Some(icon),
     banner: Some(banner),
+    actor_id: Some(actor_id),
     last_refreshed_at: Some(naive_now()),
+    inbox_url,
     private_key: Some(Some(keypair.private_key)),
     public_key: Some(keypair.public_key),
     content_warning: diesel_string_update(data.content_warning.as_deref()),
