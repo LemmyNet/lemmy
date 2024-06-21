@@ -89,8 +89,8 @@ impl CommunityModeratorView {
       // https://stackoverflow.com/questions/24042359/how-to-join-only-one-row-in-joined-table-with-postgres
       .distinct_on(community_moderator::community_id)
       .order_by((
-         community_moderator::community_id,
-         community_moderator::published,
+        community_moderator::community_id,
+        community_moderator::published,
       ))
       .load::<CommunityModeratorView>(conn)
       .await
