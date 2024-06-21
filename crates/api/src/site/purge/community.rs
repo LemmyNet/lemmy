@@ -5,10 +5,11 @@ use lemmy_api_common::{
   request::purge_image_from_pictrs,
   send_activity::{ActivityChannel, SendActivityData},
   site::PurgeCommunity,
-  utils::{is_admin, purge_image_posts_for_community},
+  utils::{check_is_higher_admin, is_admin, purge_image_posts_for_community},
   SuccessResponse,
 };
 use lemmy_db_schema::{
+  newtypes::PersonId,
   source::{
     community::Community,
     moderator::{AdminPurgeCommunity, AdminPurgeCommunityForm},
@@ -16,6 +17,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
@@ -31,6 +33,21 @@ pub async fn purge_community(
   let community = Community::read(&mut context.pool(), data.community_id)
     .await?
     .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+
+  // Also check that you're a higher admin than all the mods
+  let community_mod_person_ids =
+    CommunityModeratorView::for_community(&mut context.pool(), community.id)
+      .await?
+      .iter()
+      .map(|cmv| cmv.moderator.id)
+      .collect::<Vec<PersonId>>();
+
+  check_is_higher_admin(
+    &mut context.pool(),
+    &local_user_view,
+    &community_mod_person_ids,
+  )
+  .await?;
 
   if let Some(banner) = &community.banner {
     purge_image_from_pictrs(banner, &context).await.ok();

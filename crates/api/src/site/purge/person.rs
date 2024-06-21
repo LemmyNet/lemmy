@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   site::PurgePerson,
-  utils::{is_admin, purge_user_account},
+  utils::{check_is_higher_admin, is_admin, purge_user_account},
   SuccessResponse,
 };
 use lemmy_db_schema::{
@@ -27,9 +27,13 @@ pub async fn purge_person(
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 
+  // Also check that you're a higher admin
+  check_is_higher_admin(&mut context.pool(), &local_user_view, &[data.person_id]).await?;
+
   let person = Person::read(&mut context.pool(), data.person_id)
     .await?
     .ok_or(LemmyErrorType::CouldntFindPerson)?;
+
   ban_nonlocal_user_from_local_communities(
     &local_user_view,
     &person,

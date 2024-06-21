@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   site::PurgeComment,
-  utils::is_admin,
+  utils::{check_is_higher_admin, is_admin},
   SuccessResponse,
 };
 use lemmy_db_schema::{
@@ -32,6 +32,14 @@ pub async fn purge_comment(
   let comment_view = CommentView::read(&mut context.pool(), comment_id, None)
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
+
+  // Also check that you're a higher admin
+  check_is_higher_admin(
+    &mut context.pool(),
+    &local_user_view,
+    &[comment_view.creator.id],
+  )
+  .await?;
 
   let post_id = comment_view.comment.post_id;
 

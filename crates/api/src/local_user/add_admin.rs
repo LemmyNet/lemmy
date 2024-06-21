@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{AddAdmin, AddAdminResponse},
-  utils::is_admin,
+  utils::{check_is_higher_admin, is_admin},
 };
 use lemmy_db_schema::{
   source::{
@@ -23,6 +23,11 @@ pub async fn add_admin(
 ) -> LemmyResult<Json<AddAdminResponse>> {
   // Make sure user is an admin
   is_admin(&local_user_view)?;
+
+  // If its an admin removal, also check that you're a higher admin
+  if !data.added {
+    check_is_higher_admin(&mut context.pool(), &local_user_view, &[data.person_id]).await?;
+  }
 
   // Make sure that the person_id added is local
   let added_local_user = LocalUserView::read_person(&mut context.pool(), data.person_id)

@@ -215,6 +215,35 @@ impl LocalUser {
       blocked_instances,
     })
   }
+
+  /// Checks to make sure the acting moderator is higher than the target moderator
+  pub async fn is_higher_admin_check(
+    pool: &mut DbPool<'_>,
+    admin_person_id: PersonId,
+    target_person_ids: &[PersonId],
+  ) -> Result<bool, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    // Build the list of persons
+    let mut persons = target_person_ids.to_owned();
+    persons.push(admin_person_id);
+    persons.dedup();
+
+    let res = local_user::table
+      .filter(local_user::admin.eq(true))
+      .filter(local_user::person_id.eq_any(persons))
+      .order_by(local_user::id)
+      // This does a limit 1 select first
+      .first::<LocalUser>(conn)
+      .await?;
+
+    // If the first result sorted by published is the acting mod
+    if res.person_id == admin_person_id {
+      Ok(true)
+    } else {
+      Err(diesel::result::Error::NotFound)
+    }
+  }
 }
 
 /// Adds some helper functions for an optional LocalUser
@@ -257,10 +286,14 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
 
 impl LocalUserInsertForm {
   pub fn test_form(person_id: PersonId) -> Self {
-    Self::builder()
-      .person_id(person_id)
-      .password_encrypted(String::new())
-      .build()
+    Self::new(person_id, String::new())
+  }
+
+  pub fn test_form_admin(person_id: PersonId) -> Self {
+    LocalUserInsertForm {
+      admin: Some(true),
+      ..Self::test_form(person_id)
+    }
   }
 }
 
@@ -271,4 +304,58 @@ pub struct UserBackupLists {
   pub blocked_communities: Vec<DbUrl>,
   pub blocked_users: Vec<DbUrl>,
   pub blocked_instances: Vec<String>,
+}
+
+#[cfg(test)]
+#[allow(clippy::indexing_slicing)]
+mod tests {
+  use crate::{
+    source::{
+      instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
+      person::{Person, PersonInsertForm},
+    },
+    traits::Crud,
+    utils::build_db_pool_for_tests,
+  };
+  use lemmy_utils::error::LemmyResult;
+  use serial_test::serial;
+
+  #[tokio::test]
+  #[serial]
+  async fn test_admin_higher_check() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let fiona_person = PersonInsertForm::test_form(inserted_instance.id, "fiona");
+    let inserted_fiona_person = Person::create(pool, &fiona_person).await?;
+
+    let fiona_local_user_form = LocalUserInsertForm::test_form_admin(inserted_fiona_person.id);
+    let _inserted_fiona_local_user =
+      LocalUser::create(pool, &fiona_local_user_form, vec![]).await?;
+
+    let delores_person = PersonInsertForm::test_form(inserted_instance.id, "delores");
+    let inserted_delores_person = Person::create(pool, &delores_person).await?;
+    let delores_local_user_form = LocalUserInsertForm::test_form_admin(inserted_delores_person.id);
+    let _inserted_delores_local_user =
+      LocalUser::create(pool, &delores_local_user_form, vec![]).await?;
+
+    let admin_person_ids = vec![inserted_fiona_person.id, inserted_delores_person.id];
+
+    // Make sure fiona is marked as a higher admin than delores, and vice versa
+    let fiona_higher_check =
+      LocalUser::is_higher_admin_check(pool, inserted_fiona_person.id, &admin_person_ids).await?;
+    assert!(fiona_higher_check);
+
+    // This should throw an error, since delores was added later
+    let delores_higher_check =
+      LocalUser::is_higher_admin_check(pool, inserted_delores_person.id, &admin_person_ids).await;
+    assert!(delores_higher_check.is_err());
+
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    Ok(())
+  }
 }
