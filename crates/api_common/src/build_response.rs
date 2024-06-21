@@ -36,8 +36,8 @@ pub async fn build_comment_response(
   local_user_view: Option<LocalUserView>,
   recipient_ids: Vec<LocalUserId>,
 ) -> LemmyResult<CommentResponse> {
-  let person_id = local_user_view.map(|l| l.person.id);
-  let comment_view = CommentView::read(&mut context.pool(), comment_id, person_id)
+  let local_user = local_user_view.map(|l| l.local_user);
+  let comment_view = CommentView::read(&mut context.pool(), comment_id, local_user.as_ref())
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
   Ok(CommentResponse {
@@ -54,11 +54,11 @@ pub async fn build_community_response(
   let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &local_user_view.person, community_id)
     .await
     .is_ok();
-  let person_id = local_user_view.person.id;
+  let local_user = local_user_view.local_user;
   let community_view = CommunityView::read(
     &mut context.pool(),
     community_id,
-    Some(person_id),
+    Some(&local_user),
     is_mod_or_admin,
   )
   .await?
@@ -80,14 +80,9 @@ pub async fn build_post_response(
   let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), person, community_id)
     .await
     .is_ok();
-  let post_view = PostView::read(
-    &mut context.pool(),
-    post_id,
-    Some(person.id),
-    is_mod_or_admin,
-  )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindPost)?;
+  let post_view = PostView::read(&mut context.pool(), post_id, None, is_mod_or_admin)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
   Ok(Json(PostResponse { post_view }))
 }
 
@@ -96,17 +91,24 @@ pub async fn build_post_response(
 pub async fn send_local_notifs(
   mentions: Vec<MentionData>,
   comment_id: CommentId,
-  person: &Person,
+  my_local_user: &LocalUserView,
   do_send_email: bool,
   context: &LemmyContext,
 ) -> LemmyResult<Vec<LocalUserId>> {
   let mut recipient_ids = Vec::new();
   let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
 
+  let person = &my_local_user.person;
+
+  // let person = my_local_user.person;
   // Read the comment view to get extra info
-  let comment_view = CommentView::read(&mut context.pool(), comment_id, Some(person.id))
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+  let comment_view = CommentView::read(
+    &mut context.pool(),
+    comment_id,
+    Some(&my_local_user.local_user),
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindComment)?;
   let comment = comment_view.comment;
   let post = comment_view.post;
   let community = comment_view.community;

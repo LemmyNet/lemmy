@@ -32,7 +32,7 @@ pub async fn purge_comment(
   let comment_view = CommentView::read(
     &mut context.pool(),
     comment_id,
-    Some(local_user_view.person.id),
+    Some(&local_user_view.local_user),
   )
   .await?
   .ok_or(LemmyErrorType::CouldntFindComment)?;

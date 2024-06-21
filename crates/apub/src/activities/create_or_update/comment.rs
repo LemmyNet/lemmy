@@ -39,6 +39,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
@@ -178,8 +179,10 @@ impl ActivityHandler for CreateOrUpdateNote {
     // anyway.
     // TODO: for compatibility with other projects, it would be much better to read this from cc or
     // tags
-    let mentions = scrape_text_for_mentions(&comment.content);
-    send_local_notifs(mentions, comment.id, &actor, do_send_email, context).await?;
+    if let Some(local_user) = LocalUserView::read_person(&mut context.pool(), actor.id).await? {
+      let mentions = scrape_text_for_mentions(&comment.content);
+      send_local_notifs(mentions, comment.id, &local_user, do_send_email, context).await?;
+    }
     Ok(())
   }
 }

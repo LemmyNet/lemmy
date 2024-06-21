@@ -28,7 +28,7 @@ pub async fn remove_comment(
   let orig_comment = CommentView::read(
     &mut context.pool(),
     comment_id,
-    Some(local_user_view.person.id),
+    Some(&local_user_view.local_user),
   )
   .await?
   .ok_or(LemmyErrorType::CouldntFindComment)?;
@@ -72,14 +72,8 @@ pub async fn remove_comment(
   };
   ModRemoveComment::create(&mut context.pool(), &form).await?;
 
-  let recipient_ids = send_local_notifs(
-    vec![],
-    comment_id,
-    &local_user_view.person.clone(),
-    false,
-    &context,
-  )
-  .await?;
+  let recipient_ids =
+    send_local_notifs(vec![], comment_id, &local_user_view, false, &context).await?;
   let updated_comment_id = updated_comment.id;
 
   ActivityChannel::submit_activity(

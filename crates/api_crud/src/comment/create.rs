@@ -56,7 +56,7 @@ pub async fn create_comment(
   let post_view = PostView::read(
     &mut context.pool(),
     post_id,
-    Some(local_user_view.person.id),
+    Some(&local_user_view.local_user),
     true,
   )
   .await?
@@ -151,7 +151,7 @@ pub async fn create_comment(
   let recipient_ids = send_local_notifs(
     mentions,
     inserted_comment_id,
-    &local_user_view.person,
+    &local_user_view,
     true,
     &context,
   )
