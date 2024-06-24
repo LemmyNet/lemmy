@@ -226,13 +226,13 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   } else {
     None
   };
-  let federate = (!args.disable_activity_sending).then(|| {
+  let federate = federation_sender_config.map(|cfg| {
     SendManager::run(
       Opts {
         process_index: args.federate_process_index,
         process_count: args.federate_process_count,
       },
-      federation_sender_config.expect("same condition as the execution of this code"),
+      cfg,
     )
   });
   let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;
