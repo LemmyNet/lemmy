@@ -2,7 +2,7 @@ version: "3.7"
 
 x-ui-default: &ui-default
   init: true
-  image: dessalines/lemmy-ui:0.19.3
+  image: dessalines/lemmy-ui:0.19.5
   # assuming lemmy-ui is cloned besides lemmy directory
   # build:
   #   context: ../../../lemmy-ui
@@ -49,7 +49,7 @@ services:
 
   pictrs:
     restart: always
-    image: asonix/pictrs:0.5.14
+    image: asonix/pictrs:0.5.16
     user: 991:991
     volumes:
       - ./volumes/pictrs_alpha:/mnt:Z

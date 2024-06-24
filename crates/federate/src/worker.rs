@@ -136,6 +136,14 @@ impl InstanceWorker {
           // lazily fetch latest id only if we have cought up
           newest_id = self.get_latest_ids().await?.1;
           if next_id_to_send > newest_id {
+            if next_id_to_send > ActivityId(newest_id.0 + 1) {
+              tracing::error!(
+                "{}: next send id {} is higher than latest id {}+1 in database (did the db get cleared?)",
+                self.instance.domain,
+                next_id_to_send.0,
+                newest_id.0
+              );
+            }
             // no more work to be done, wait before rechecking
             tokio::select! {
               () = sleep(*WORK_FINISHED_RECHECK_DELAY) => {},

@@ -44,33 +44,38 @@ pub mod site;
 pub mod sitemap;
 
 /// Converts the captcha to a base64 encoded wav audio file
-#[allow(deprecated)]
 pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> LemmyResult<String> {
   let letters = captcha.as_wav();
 
   // Decode each wav file, concatenate the samples
   let mut concat_samples: Vec<i16> = Vec::new();
-  let mut any_header: Option<wav::Header> = None;
+  let mut any_header: Option<hound::WavSpec> = None;
   for letter in letters {
     let mut cursor = Cursor::new(letter.unwrap_or_default());
-    let (header, samples) = wav::read(&mut cursor)?;
-    any_header = Some(header);
-    if let Some(samples16) = samples.as_sixteen() {
-      concat_samples.extend(samples16);
-    } else {
-      Err(LemmyErrorType::CouldntCreateAudioCaptcha)?
-    }
+    let reader = hound::WavReader::new(&mut cursor)?;
+    any_header = Some(reader.spec());
+    let samples16 = reader
+      .into_samples::<i16>()
+      .collect::<Result<Vec<_>, _>>()
+      .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+    concat_samples.extend(samples16);
   }
 
   // Encode the concatenated result as a wav file
   let mut output_buffer = Cursor::new(vec![]);
   if let Some(header) = any_header {
-    wav::write(
-      header,
-      &wav::BitDepth::Sixteen(concat_samples),
-      &mut output_buffer,
-    )
-    .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+    let mut writer = hound::WavWriter::new(&mut output_buffer, header)
+      .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+    let mut writer16 = writer.get_i16_writer(concat_samples.len() as u32);
+    for sample in concat_samples {
+      writer16.write_sample(sample);
+    }
+    writer16
+      .flush()
+      .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+    writer
+      .finalize()
+      .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
 
     Ok(base64.encode(output_buffer.into_inner()))
   } else {

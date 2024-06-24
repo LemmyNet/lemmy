@@ -112,15 +112,17 @@ pub async fn register(
   // We have to create both a person, and local_user
 
   // Register the new person
-  let person_form = PersonInsertForm::builder()
-    .name(data.username.clone())
-    .actor_id(Some(actor_id.clone()))
-    .private_key(Some(actor_keypair.private_key))
-    .public_key(actor_keypair.public_key)
-    .inbox_url(Some(generate_inbox_url(&actor_id)?))
-    .shared_inbox_url(Some(generate_shared_inbox_url(context.settings())?))
-    .instance_id(site_view.site.instance_id)
-    .build();
+  let person_form = PersonInsertForm {
+    actor_id: Some(actor_id.clone()),
+    inbox_url: Some(generate_inbox_url(&actor_id)?),
+    shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
+    private_key: Some(actor_keypair.private_key),
+    ..PersonInsertForm::new(
+      data.username.clone(),
+      actor_keypair.public_key,
+      site_view.site.instance_id,
+    )
+  };
 
   // insert the person
   let inserted_person = Person::create(&mut context.pool(), &person_form)

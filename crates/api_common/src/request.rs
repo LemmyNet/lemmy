@@ -11,7 +11,7 @@ use encoding_rs::{Encoding, UTF_8};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
-    images::{LocalImage, LocalImageForm},
+    images::{ImageDetailsForm, LocalImage, LocalImageForm},
     local_site::LocalSite,
     post::{Post, PostUpdateForm},
   },
@@ -209,6 +209,19 @@ pub struct PictrsFileDetails {
   pub created_at: DateTime<Utc>,
 }
 
+impl PictrsFileDetails {
+  /// Builds the image form. This should always use the thumbnail_url,
+  /// Because the post_view joins to it
+  pub fn build_image_details_form(&self, thumbnail_url: &Url) -> ImageDetailsForm {
+    ImageDetailsForm {
+      link: thumbnail_url.clone().into(),
+      width: self.width.into(),
+      height: self.height.into(),
+      content_type: self.content_type.clone(),
+    }
+  }
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 struct PictrsPurgeResponse {
   msg: String,
@@ -316,9 +329,50 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
 
-  LocalImage::create(&mut context.pool(), &form).await?;
+  // Also store the details for the image
+  let details_form = image.details.build_image_details_form(&thumbnail_url);
+  LocalImage::create(&mut context.pool(), &form, &details_form).await?;
 
   Ok(thumbnail_url)
+}
+
+/// Fetches the image details for pictrs proxied images
+///
+/// We don't need to check for image mode, as that's already been done
+#[tracing::instrument(skip_all)]
+pub async fn fetch_pictrs_proxied_image_details(
+  image_url: &Url,
+  context: &LemmyContext,
+) -> LemmyResult<PictrsFileDetails> {
+  let pictrs_url = context.settings().pictrs_config()?.url;
+  let encoded_image_url = encode(image_url.as_str());
+
+  // Pictrs needs you to fetch the proxied image before you can fetch the details
+  let proxy_url = format!("{pictrs_url}image/original?proxy={encoded_image_url}");
+
+  let res = context
+    .client()
+    .get(&proxy_url)
+    .timeout(REQWEST_TIMEOUT)
+    .send()
+    .await?
+    .status();
+  if !res.is_success() {
+    Err(LemmyErrorType::NotAnImageType)?
+  }
+
+  let details_url = format!("{pictrs_url}image/details/original?proxy={encoded_image_url}");
+
+  let res = context
+    .client()
+    .get(&details_url)
+    .timeout(REQWEST_TIMEOUT)
+    .send()
+    .await?
+    .json()
+    .await?;
+
+  Ok(res)
 }
 
 // TODO: get rid of this by reading content type from db
@@ -338,16 +392,19 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Lemm
   }
 }
 
-/// When adding a new avatar or similar image, delete the old one.
+/// When adding a new avatar, banner or similar image, delete the old one.
 pub async fn replace_image(
-  new_image: &Option<String>,
+  new_image: &Option<Option<DbUrl>>,
   old_image: &Option<DbUrl>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  if new_image.is_some() {
-    // Ignore errors because image may be stored externally.
-    if let Some(avatar) = &old_image {
-      let image = LocalImage::delete_by_url(&mut context.pool(), avatar)
+  if let (Some(Some(new_image)), Some(old_image)) = (new_image, old_image) {
+    // Note: Oftentimes front ends will include the current image in the form.
+    // In this case, deleting `old_image` would also be deletion of `new_image`,
+    // so the deletion must be skipped for the image to be kept.
+    if new_image != old_image {
+      // Ignore errors because image may be stored externally.
+      let image = LocalImage::delete_by_url(&mut context.pool(), old_image)
         .await
         .ok();
       if let Some(image) = image {
