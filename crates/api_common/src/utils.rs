@@ -1,6 +1,10 @@
 use crate::{
   context::LemmyContext,
-  request::{delete_image_from_pictrs, purge_image_from_pictrs},
+  request::{
+    delete_image_from_pictrs,
+    fetch_pictrs_proxied_image_details,
+    purge_image_from_pictrs,
+  },
   site::{FederatedInstances, InstanceWithFederationState},
 };
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
@@ -949,7 +953,18 @@ pub async fn process_markdown(
 
   if context.settings().pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
-    RemoteImage::create(&mut context.pool(), links).await?;
+
+    // Create images and image detail rows
+    for link in links {
+      // Insert image details for the remote image
+      let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
+      if let Ok(details) = details_res {
+        let proxied =
+          build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
+        let details_form = details.build_image_details_form(&proxied);
+        RemoteImage::create(&mut context.pool(), &details_form).await?;
+      }
+    }
     Ok(text)
   } else {
     Ok(text)
@@ -984,8 +999,14 @@ async fn proxy_image_link_internal(
     Ok(link.into())
   } else if image_mode == PictrsImageMode::ProxyAllImages {
     let proxied = build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
+    // This should fail softly, since pictrs might not even be running
+    let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
 
-    RemoteImage::create(&mut context.pool(), vec![link]).await?;
+    if let Ok(details) = details_res {
+      let details_form = details.build_image_details_form(&proxied);
+      RemoteImage::create(&mut context.pool(), &details_form).await?;
+    };
+
     Ok(proxied.into())
   } else {
     Ok(link.into())
@@ -1123,10 +1144,13 @@ mod tests {
       "https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
       proxied.as_str()
     );
+
+    // This fails, because the details can't be fetched without pictrs running,
+    // And a remote image won't be inserted.
     assert!(
       RemoteImage::validate(&mut context.pool(), remote_image.into())
         .await
-        .is_ok()
+        .is_err()
     );
   }
 }

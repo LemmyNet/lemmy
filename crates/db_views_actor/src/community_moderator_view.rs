@@ -90,7 +90,7 @@ impl CommunityModeratorView {
       .distinct_on(community_moderator::community_id)
       .order_by((
         community_moderator::community_id,
-        community_moderator::person_id,
+        community_moderator::published,
       ))
       .load::<CommunityModeratorView>(conn)
       .await

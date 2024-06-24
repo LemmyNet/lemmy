@@ -252,7 +252,7 @@ fn queries<'a>() -> Queries<
     }
 
     // If its saved only, then filter, and order by the saved time, not the comment creation time.
-    if options.saved_only {
+    if options.saved_only.unwrap_or_default() {
       query = query
         .filter(comment_saved::person_id.is_not_null())
         .then_order_by(comment_saved::published.desc());
@@ -260,9 +260,9 @@ fn queries<'a>() -> Queries<
 
     if let Some(my_id) = options.local_user.person_id() {
       let not_creator_filter = comment::creator_id.ne(my_id);
-      if options.liked_only {
+      if options.liked_only.unwrap_or_default() {
         query = query.filter(not_creator_filter).filter(score(my_id).eq(1));
-      } else if options.disliked_only {
+      } else if options.disliked_only.unwrap_or_default() {
         query = query.filter(not_creator_filter).filter(score(my_id).eq(-1));
       }
     }
@@ -398,9 +398,9 @@ pub struct CommentQuery<'a> {
   pub creator_id: Option<PersonId>,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
-  pub saved_only: bool,
-  pub liked_only: bool,
-  pub disliked_only: bool,
+  pub saved_only: Option<bool>,
+  pub liked_only: Option<bool>,
+  pub disliked_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub max_depth: Option<i32>,
@@ -711,8 +711,8 @@ mod tests {
     CommentLike::like(pool, &comment_like_form).await?;
 
     let read_liked_comment_views = CommentQuery {
-      local_user: (Some(&data.timmy_local_user_view.local_user)),
-      liked_only: (true),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      liked_only: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -727,8 +727,8 @@ mod tests {
     assert_length!(1, read_liked_comment_views);
 
     let read_disliked_comment_views: Vec<CommentView> = CommentQuery {
-      local_user: (Some(&data.timmy_local_user_view.local_user)),
-      disliked_only: (true),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      disliked_only: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -980,7 +980,7 @@ mod tests {
     // Fetch the saved comments
     let comments = CommentQuery {
       local_user: Some(&data.timmy_local_user_view.local_user),
-      saved_only: true,
+      saved_only: Some(true),
       ..Default::default()
     }
     .list(pool)
