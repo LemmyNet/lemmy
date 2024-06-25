@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   schema::{community, community_actions, community_aggregates, instance_actions},
   source::{community::CommunityFollower, local_user::LocalUser, site::Site},
   utils::{
-    actions, 
+    actions,
     fuzzy_search,
     limit_and_offset,
     visible_communities_only,
