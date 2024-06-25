@@ -2,6 +2,7 @@ use crate::util::{
   get_activity_cached,
   get_actor_cached,
   get_latest_activity_id,
+  FederationQueueStateWithDomain,
   LEMMY_TEST_FAST_FEDERATION,
   WORK_FINISHED_RECHECK_DELAY,
 };
@@ -75,7 +76,7 @@ pub(crate) struct InstanceWorker {
   followed_communities: HashMap<CommunityId, HashSet<Url>>,
   stop: CancellationToken,
   context: Data<LemmyContext>,
-  stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
+  stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
   last_full_communities_fetch: DateTime<Utc>,
   last_incremental_communities_fetch: DateTime<Utc>,
   state: FederationQueueState,
@@ -87,7 +88,7 @@ impl InstanceWorker {
     instance: Instance,
     context: Data<LemmyContext>,
     stop: CancellationToken,
-    stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
+    stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
   ) -> Result<(), anyhow::Error> {
     let mut pool = context.pool();
     let state = FederationQueueState::load(&mut pool, instance.id).await?;
@@ -166,6 +167,14 @@ impl InstanceWorker {
       latest_id
     };
     if id >= latest_id {
+      if id > latest_id {
+        tracing::error!(
+          "{}: last successful id {} is higher than latest id {} in database (did the db get cleared?)",
+          self.instance.domain,
+          id.0,
+          latest_id.0
+        );
+      }
       // no more work to be done, wait before rechecking
       tokio::select! {
         () = sleep(*WORK_FINISHED_RECHECK_DELAY) => {},
@@ -350,9 +359,10 @@ impl InstanceWorker {
   async fn save_and_send_state(&mut self) -> Result<()> {
     self.last_state_insert = Utc::now();
     FederationQueueState::upsert(&mut self.context.pool(), &self.state).await?;
-    self
-      .stats_sender
-      .send((self.instance.id, self.state.clone()))?;
+    self.stats_sender.send(FederationQueueStateWithDomain {
+      state: self.state.clone(),
+      domain: self.instance.domain.clone(),
+    })?;
     Ok(())
   }
 }

@@ -1,10 +1,7 @@
 use crate::{util::CancellableTask, worker::InstanceWorker};
 use activitypub_federation::config::FederationConfig;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{
-  newtypes::InstanceId,
-  source::{federation_queue_state::FederationQueueState, instance::Instance},
-};
+use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
 use lemmy_utils::error::LemmyResult;
 use stats::receive_print_stats;
 use std::{collections::HashMap, time::Duration};
@@ -15,6 +12,7 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 use tracing::info;
+use util::FederationQueueStateWithDomain;
 
 mod stats;
 mod util;
@@ -38,12 +36,12 @@ pub struct SendManager {
   opts: Opts,
   workers: HashMap<InstanceId, CancellableTask>,
   context: FederationConfig<LemmyContext>,
-  stats_sender: UnboundedSender<(InstanceId, FederationQueueState)>,
+  stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
   exit_print: JoinHandle<()>,
 }
 
 impl SendManager {
-  pub fn new(opts: Opts, context: FederationConfig<LemmyContext>) -> Self {
+  fn new(opts: Opts, context: FederationConfig<LemmyContext>) -> Self {
     assert!(opts.process_count > 0);
     assert!(opts.process_index > 0);
     assert!(opts.process_index <= opts.process_count);
@@ -61,11 +59,27 @@ impl SendManager {
     }
   }
 
-  pub fn run(mut self) -> CancellableTask {
-    CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |cancel| async move {
-      self.do_loop(cancel).await?;
-      self.cancel().await?;
-      Ok(())
+  pub fn run(opts: Opts, context: FederationConfig<LemmyContext>) -> CancellableTask {
+    CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |cancel| {
+      let opts = opts.clone();
+      let context = context.clone();
+      let mut manager = Self::new(opts, context);
+      async move {
+        let result = manager.do_loop(cancel).await;
+        // the loop function will only return if there is (a) an internal error (e.g. db connection
+        // failure) or (b) it was cancelled from outside.
+        if let Err(e) = result {
+          // don't let this error bubble up, just log it, so the below cancel function will run
+          // regardless
+          tracing::error!("SendManager failed: {e}");
+        }
+        // cancel all the dependent workers as well to ensure they don't get orphaned and keep
+        // running.
+        manager.cancel().await?;
+        LemmyResult::Ok(())
+        // if the task was not intentionally cancelled, then this whole lambda will be run again by
+        // CancellableTask after this
+      }
     })
   }
 
@@ -104,14 +118,24 @@ impl SendManager {
             continue;
           }
           // create new worker
-          let instance = instance.clone();
-          let req_data = self.context.to_request_data();
+          let context = self.context.clone();
           let stats_sender = self.stats_sender.clone();
           self.workers.insert(
             instance.id,
-            CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |stop| async move {
-              InstanceWorker::init_and_loop(instance, req_data, stop, stats_sender).await?;
-              Ok(())
+            CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |stop| {
+              // if the instance worker ends unexpectedly due to internal/db errors, this lambda is rerun by cancellabletask.
+              let instance = instance.clone();
+              let req_data = context.to_request_data();
+              let stats_sender = stats_sender.clone();
+              async move {
+                InstanceWorker::init_and_loop(
+                  instance,
+                  req_data,
+                  stop,
+                  stats_sender,
+                )
+                .await
+              }
             }),
           );
         } else if !should_federate {
@@ -171,7 +195,7 @@ mod test {
     collections::HashSet,
     sync::{Arc, Mutex},
   };
-  use tokio::{spawn, time::sleep};
+  use tokio::spawn;
 
   struct TestData {
     send_manager: SendManager,

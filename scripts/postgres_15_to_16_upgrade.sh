@@ -24,7 +24,7 @@ echo "Removing the old postgres folder"
 sudo rm -rf volumes/postgres
 
 echo "Updating docker compose to use postgres version 16."
-sudo sed -i "s/image: .*postgres:.*/image: docker.io/postgres:16-alpine/" ./docker-compose.yml
+sudo sed -i "s/image: .*postgres:.*/image: docker.io\/postgres:16-alpine/" ./docker-compose.yml
 
 echo "Starting up new postgres..."
 sudo docker compose up -d postgres
