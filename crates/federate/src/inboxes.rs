@@ -99,6 +99,11 @@ impl CommunityInboxCollector {
         .filter(|&u| (u.domain() == Some(&self.domain)))
         .map(|u| u.inner().clone()),
     );
+    tracing::trace!(
+      "get_inbox_urls: {:?}, send_inboxes: {:?}",
+      inbox_urls,
+      activity.send_inboxes
+    );
     Ok(inbox_urls.into_iter().collect())
   }
 

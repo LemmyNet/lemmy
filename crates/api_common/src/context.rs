@@ -55,7 +55,7 @@ impl LemmyContext {
   /// Initialize a context for use in tests which blocks federation network calls.
   ///
   /// Do not use this in production code.
-  pub async fn init_test_context() -> Data<LemmyContext> {
+  pub async fn init_test_federation_config() -> FederationConfig<LemmyContext> {
     // call this to run migrations
     let pool = build_db_pool_for_tests().await;
 
@@ -73,11 +73,16 @@ impl LemmyContext {
     let config = FederationConfig::builder()
       .domain(context.settings().hostname.clone())
       .app_data(context)
+      .debug(true)
       // Dont allow any network fetches
       .http_fetch_limit(0)
       .build()
       .await
       .expect("build federation config");
+    return config;
+  }
+  pub async fn init_test_context() -> Data<LemmyContext> {
+    let config = Self::init_test_federation_config().await;
     config.to_request_data()
   }
 }
