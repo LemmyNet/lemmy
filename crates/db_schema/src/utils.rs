@@ -24,11 +24,14 @@ use diesel::{
   OptionalExtension,
 };
 use diesel_async::{
-  pg::AsyncPgConnection, pooled_connection::{
+  pg::AsyncPgConnection,
+  pooled_connection::{
     deadpool::{Hook, HookError, Object as PooledConnection, Pool},
     AsyncDieselConnectionManager,
     ManagerConfig,
-  }, AsyncConnection, RunQueryDsl
+  },
+  AsyncConnection,
+  RunQueryDsl,
 };
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
@@ -360,16 +363,20 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
       // Change geqo_threshold back to default value if it was changed, so it's higher than the
       // collapse limits
       functions::set_config("geqo_threshold", "12", false),
-      // Change collapse limits from 8 to 11 so the query planner can find a better table join order
-      // for more complicated queries
+      // Change collapse limits from 8 to 11 so the query planner can find a better table join
+      // order for more complicated queries
       functions::set_config("from_collapse_limit", "11", false),
       functions::set_config("join_collapse_limit", "11", false),
       // Set `lemmy.protocol_and_hostname` so triggers can use it
-      functions::set_config("lemmy.protocol_and_hostname", SETTINGS.get_protocol_and_hostname(), false),
+      functions::set_config(
+        "lemmy.protocol_and_hostname",
+        SETTINGS.get_protocol_and_hostname(),
+        false,
+      ),
     ))
-      .execute(&mut conn)
-      .await
-      .map_err(ConnectionError::CouldntSetupConfiguration)?;
+    .execute(&mut conn)
+    .await
+    .map_err(ConnectionError::CouldntSetupConfiguration)?;
     Ok(conn)
   };
   fut.boxed()

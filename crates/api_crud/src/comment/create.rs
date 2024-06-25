@@ -19,7 +19,7 @@ use lemmy_db_schema::{
   impls::actor_language::default_post_language,
   source::{
     actor_language::CommunityLanguage,
-    comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
+    comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
     comment_reply::{CommentReply, CommentReplyUpdateForm},
     local_site::LocalSite,
     person_mention::{PersonMention, PersonMentionUpdateForm},

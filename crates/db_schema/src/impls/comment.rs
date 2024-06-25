@@ -223,7 +223,7 @@ mod tests {
   use diesel_ltree::Ltree;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
-use url::Url;
+  use url::Url;
 
   #[tokio::test]
   #[serial]
@@ -274,7 +274,12 @@ use url::Url;
       path: Ltree(format!("0.{}", inserted_comment.id)),
       published: inserted_comment.published,
       updated: None,
-      ap_id: Url::parse(&format!("https://lemmy-alpha/comment/{}", inserted_comment.id)).unwrap().into(),
+      ap_id: Url::parse(&format!(
+        "https://lemmy-alpha/comment/{}",
+        inserted_comment.id
+      ))
+      .unwrap()
+      .into(),
       distinguished: false,
       local: true,
       language_id: LanguageId::default(),

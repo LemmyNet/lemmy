@@ -21,7 +21,7 @@ use lemmy_db_schema::{
     actor_language::CommunityLanguage,
     community::Community,
     local_site::LocalSite,
-    post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
+    post::{Post, PostInsertForm, PostLike, PostLikeForm},
   },
   traits::{Crud, Likeable},
   utils::diesel_url_create,

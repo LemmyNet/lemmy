@@ -16,7 +16,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     local_site::LocalSite,
-    private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
+    private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
   traits::Crud,
 };
