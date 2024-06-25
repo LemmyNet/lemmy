@@ -566,7 +566,7 @@ BEGIN
     END IF;
     -- Set local ap_id
     IF NEW.local THEN
-        NEW.ap_id = coalesce(NEW.ap_id, r.local_url('/comment/' || id));
+        NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/comment/' || id));
     END IF;
     RETURN NEW;
 END
@@ -584,7 +584,7 @@ CREATE FUNCTION r.post_change_values ()
 BEGIN
     -- Set local ap_id
     IF NEW.local THEN
-        NEW.ap_id = coalesce(NEW.ap_id, r.local_url('/post/' || NEW.id::text));
+        NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/post/' || NEW.id::text));
     END IF;
     RETURN NEW;
 END
@@ -602,7 +602,7 @@ CREATE FUNCTION r.private_message_change_values ()
 BEGIN
     -- Set local ap_id
     IF NEW.local THEN
-        NEW.ap_id = coalesce(NEW.ap_id, r.local_url('/private_message/' || NEW.id::text));
+        NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/private_message/' || NEW.id::text));
     END IF;
     RETURN NEW;
 END
