@@ -10,7 +10,7 @@ third_semver=$(echo $new_tag | cut -d "." -f 3)
 CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 cd $CWD/../
 
-# The ansible and docker installs should only update for non release-candidates
+# The docker installs should only update for non release-candidates
 # IE, when the third semver is a number, not '2-rc'
 if [ ! -z "${third_semver##*[!0-9]*}" ]; then
   pushd docker
@@ -19,14 +19,6 @@ if [ ! -z "${third_semver##*[!0-9]*}" ]; then
   sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" federation/docker-compose.yml
   git add docker-compose.yml
   git add federation/docker-compose.yml
-  popd
-
-  # Setting the version for Ansible
-  pushd ../lemmy-ansible
-  echo $new_tag > "VERSION"
-  git add "VERSION"
-  git commit -m"Updating VERSION"
-  git push
   popd
 fi
 

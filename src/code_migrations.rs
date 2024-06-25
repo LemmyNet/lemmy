@@ -455,15 +455,17 @@ async fn initialize_local_site_2022_10_10(
     )?;
 
     // Register the user if there's a site setup
-    let person_form = PersonInsertForm::builder()
-      .name(setup.admin_username.clone())
-      .instance_id(instance.id)
-      .actor_id(Some(person_actor_id.clone()))
-      .private_key(Some(person_keypair.private_key))
-      .public_key(person_keypair.public_key)
-      .inbox_url(Some(generate_inbox_url(&person_actor_id)?))
-      .shared_inbox_url(Some(generate_shared_inbox_url(settings)?))
-      .build();
+    let person_form = PersonInsertForm {
+      actor_id: Some(person_actor_id.clone()),
+      inbox_url: Some(generate_inbox_url(&person_actor_id)?),
+      shared_inbox_url: Some(generate_shared_inbox_url(settings)?),
+      private_key: Some(person_keypair.private_key),
+      ..PersonInsertForm::new(
+        setup.admin_username.clone(),
+        person_keypair.public_key,
+        instance.id,
+      )
+    };
     let person_inserted = Person::create(pool, &person_form).await?;
 
     let local_user_form = LocalUserInsertForm::builder()

@@ -141,11 +141,7 @@ mod tests {
     let inserted_instance =
       Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;
 
-    let old_mod = PersonInsertForm::builder()
-      .name("holly".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let old_mod = PersonInsertForm::test_form(inserted_instance.id, "holly");
 
     let old_mod = Person::create(&mut context.pool(), &old_mod).await?;
     let community_moderator_form = CommunityModeratorForm {

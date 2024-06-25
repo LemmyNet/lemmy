@@ -83,11 +83,13 @@ pub async fn get_post(
   .ok_or(LemmyErrorType::CouldntFindCommunity)?;
 
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
+  let local_user = local_user_view.as_ref().map(|u| &u.local_user);
 
   // Fetch the cross_posts
   let cross_posts = if let Some(url) = &post_view.post.url {
     let mut x_posts = PostQuery {
       url_search: Some(url.inner().as_str().into()),
+      local_user,
       ..Default::default()
     }
     .list(&local_site.site, &mut context.pool())

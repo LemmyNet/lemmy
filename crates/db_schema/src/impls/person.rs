@@ -13,7 +13,7 @@ use crate::{
   utils::{action_query, functions::lower, get_conn, naive_now, now, uplete, DbPool},
 };
 use diesel::{
-  dsl::insert_into,
+  dsl::{insert_into, not},
   expression::SelectableHelper,
   result::Error,
   CombineDsl,
@@ -109,6 +109,8 @@ impl Person {
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .filter(community::local.eq(true))
+      .filter(not(community::deleted))
+      .filter(not(community::removed))
       .filter(comment::creator_id.eq(for_creator_id))
       .select(community::id)
       .union(
@@ -125,11 +127,7 @@ impl Person {
 
 impl PersonInsertForm {
   pub fn test_form(instance_id: InstanceId, name: &str) -> Self {
-    Self::builder()
-      .name(name.to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(instance_id)
-      .build()
+    Self::new(name.to_owned(), "pubkey".to_string(), instance_id)
   }
 }
 
@@ -254,11 +252,7 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("holly".into())
-      .public_key("nada".to_owned())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "holly");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
@@ -277,7 +271,7 @@ mod tests {
       local: true,
       bot_account: false,
       private_key: None,
-      public_key: "nada".to_owned(),
+      public_key: "pubkey".to_owned(),
       last_refreshed_at: inserted_person.published,
       inbox_url: inserted_person.inbox_url.clone(),
       shared_inbox_url: None,
@@ -317,17 +311,9 @@ mod tests {
       .await
       .unwrap();
 
-    let person_form_1 = PersonInsertForm::builder()
-      .name("erich".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let person_form_1 = PersonInsertForm::test_form(inserted_instance.id, "erich");
     let person_1 = Person::create(pool, &person_form_1).await.unwrap();
-    let person_form_2 = PersonInsertForm::builder()
-      .name("michele".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let person_form_2 = PersonInsertForm::test_form(inserted_instance.id, "michele");
     let person_2 = Person::create(pool, &person_form_2).await.unwrap();
 
     let follow_form = PersonFollowerForm {
