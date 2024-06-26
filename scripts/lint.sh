@@ -12,6 +12,6 @@ cargo +nightly fmt
 taplo format
 
 # Format sql files
-find migrations -type f -name '*.sql' -exec pg_format -i {} +
+find migrations crates/db_schema/replaceable_schema -type f -name '*.sql' -exec pg_format -i {} +
 
 cargo clippy --workspace --fix --allow-staged --allow-dirty --tests --all-targets --all-features -- -D warnings
