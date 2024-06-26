@@ -14,6 +14,7 @@ use tokio_util::sync::CancellationToken;
 use tracing::info;
 use util::FederationQueueStateWithDomain;
 
+mod inboxes;
 mod stats;
 mod util;
 mod worker;

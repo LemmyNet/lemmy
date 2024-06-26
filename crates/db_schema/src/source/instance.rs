@@ -35,4 +35,5 @@ pub struct InstanceForm {
   pub software: Option<String>,
   pub version: Option<String>,
   pub updated: Option<DateTime<Utc>>,
+  pub published: Option<DateTime<Utc>>,
 }

@@ -3113,6 +3113,7 @@ name = "lemmy_federate"
 version = "0.19.5"
 dependencies = [
  "activitypub_federation",
+ "actix-web",
  "anyhow",
  "chrono",
  "diesel",
@@ -3131,6 +3132,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+ "url",
 ]
 
 [[package]]
@@ -3219,7 +3221,6 @@ dependencies = [
  "lettre",
  "markdown-it",
  "once_cell",
- "openssl",
  "pretty_assertions",
  "regex",
  "reqwest 0.11.27",

@@ -2,7 +2,6 @@ use cfg_if::cfg_if;
 
 cfg_if! {
   if #[cfg(feature = "full")] {
-    pub mod apub;
     pub mod cache_header;
     pub mod email;
     pub mod rate_limit;
