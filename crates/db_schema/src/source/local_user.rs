@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -69,38 +68,59 @@ pub struct LocalUser {
   pub collapse_bot_comments: bool,
 }
 
-#[derive(Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
 pub struct LocalUserInsertForm {
-  #[builder(!default)]
   pub person_id: PersonId,
-  #[builder(!default)]
   pub password_encrypted: String,
+  #[new(default)]
   pub email: Option<String>,
+  #[new(default)]
   pub show_nsfw: Option<bool>,
+  #[new(default)]
   pub theme: Option<String>,
+  #[new(default)]
   pub default_sort_type: Option<SortType>,
+  #[new(default)]
   pub default_listing_type: Option<ListingType>,
+  #[new(default)]
   pub interface_language: Option<String>,
+  #[new(default)]
   pub show_avatars: Option<bool>,
+  #[new(default)]
   pub send_notifications_to_email: Option<bool>,
+  #[new(default)]
   pub show_bot_accounts: Option<bool>,
+  #[new(default)]
   pub show_scores: Option<bool>,
+  #[new(default)]
   pub show_read_posts: Option<bool>,
+  #[new(default)]
   pub email_verified: Option<bool>,
+  #[new(default)]
   pub accepted_application: Option<bool>,
+  #[new(default)]
   pub totp_2fa_secret: Option<Option<String>>,
+  #[new(default)]
   pub open_links_in_new_tab: Option<bool>,
+  #[new(default)]
   pub blur_nsfw: Option<bool>,
+  #[new(default)]
   pub auto_expand: Option<bool>,
+  #[new(default)]
   pub infinite_scroll_enabled: Option<bool>,
+  #[new(default)]
   pub admin: Option<bool>,
+  #[new(default)]
   pub post_listing_mode: Option<PostListingMode>,
+  #[new(default)]
   pub totp_2fa_enabled: Option<bool>,
+  #[new(default)]
   pub enable_keyboard_navigation: Option<bool>,
+  #[new(default)]
   pub enable_animated_images: Option<bool>,
+  #[new(default)]
   pub collapse_bot_comments: Option<bool>,
 }
 

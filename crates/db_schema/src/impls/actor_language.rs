@@ -533,10 +533,7 @@ mod tests {
 
     let person_form = PersonInsertForm::test_form(instance.id, "my test person");
     let person = Person::create(pool, &person_form).await.unwrap();
-    let local_user_form = LocalUserInsertForm::builder()
-      .person_id(person.id)
-      .password_encrypted("my_pw".to_string())
-      .build();
+    let local_user_form = LocalUserInsertForm::test_form(person.id);
 
     let local_user = LocalUser::create(pool, &local_user_form, vec![])
       .await
@@ -645,10 +642,7 @@ mod tests {
 
     let person_form = PersonInsertForm::test_form(instance.id, "my test person");
     let person = Person::create(pool, &person_form).await.unwrap();
-    let local_user_form = LocalUserInsertForm::builder()
-      .person_id(person.id)
-      .password_encrypted("my_pw".to_string())
-      .build();
+    let local_user_form = LocalUserInsertForm::test_form(person.id);
     let local_user = LocalUser::create(pool, &local_user_form, vec![])
       .await
       .unwrap();

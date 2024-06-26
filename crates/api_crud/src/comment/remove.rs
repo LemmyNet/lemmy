@@ -5,7 +5,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, RemoveComment},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_community_mod_action,
+  utils::{check_community_mod_action, check_is_higher_mod_or_admin},
 };
 use lemmy_db_schema::{
   source::{
@@ -34,6 +34,14 @@ pub async fn remove_comment(
     orig_comment.community.id,
     false,
     &mut context.pool(),
+  )
+  .await?;
+
+  check_is_higher_mod_or_admin(
+    &mut context.pool(),
+    &local_user_view,
+    orig_comment.community.id,
+    &[orig_comment.creator.id],
   )
   .await?;
 

@@ -23,6 +23,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    local_user::LocalUser,
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
@@ -141,6 +142,58 @@ pub fn is_top_mod(
     Err(LemmyErrorType::NotTopMod)?
   } else {
     Ok(())
+  }
+}
+
+/// Checks to make sure the acting moderator is higher than the target moderator.
+pub async fn check_is_higher_mod(
+  pool: &mut DbPool<'_>,
+  local_user_view: &LocalUserView,
+  community_id: CommunityId,
+  target_person_ids: &[PersonId],
+) -> LemmyResult<()> {
+  CommunityModerator::is_higher_mod_check(
+    pool,
+    community_id,
+    local_user_view.person.id,
+    target_person_ids,
+  )
+  .await
+  .with_lemmy_type(LemmyErrorType::NotHigherMod)?;
+
+  Ok(())
+}
+
+/// Checks to make sure the acting admin is higher than the target admin.
+/// This needs to be done on admin removals, and all purge functions
+pub async fn check_is_higher_admin(
+  pool: &mut DbPool<'_>,
+  local_user_view: &LocalUserView,
+  target_person_ids: &[PersonId],
+) -> LemmyResult<()> {
+  LocalUser::is_higher_admin_check(pool, local_user_view.person.id, target_person_ids)
+    .await
+    .with_lemmy_type(LemmyErrorType::NotHigherAdmin)?;
+
+  Ok(())
+}
+
+/// Checks to make sure the acting admin is higher than the target admin.
+/// This needs to be done on admin removals, and all purge functions
+pub async fn check_is_higher_mod_or_admin(
+  pool: &mut DbPool<'_>,
+  local_user_view: &LocalUserView,
+  community_id: CommunityId,
+  target_person_ids: &[PersonId],
+) -> LemmyResult<()> {
+  let higher_admin_check = check_is_higher_admin(pool, local_user_view, target_person_ids).await;
+  let higher_mod_check =
+    check_is_higher_mod(pool, local_user_view, community_id, target_person_ids).await;
+
+  if higher_mod_check.is_ok() || higher_admin_check.is_ok() {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotHigherMod)?
   }
 }
 

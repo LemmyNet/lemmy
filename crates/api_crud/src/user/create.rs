@@ -150,18 +150,18 @@ pub async fn register(
     .unwrap_or(site_view.site.content_warning.is_some());
 
   // Create the local user
-  let local_user_form = LocalUserInsertForm::builder()
-    .person_id(inserted_person.id)
-    .email(data.email.as_deref().map(str::to_lowercase))
-    .password_encrypted(data.password.to_string())
-    .show_nsfw(Some(show_nsfw))
-    .accepted_application(accepted_application)
-    .default_listing_type(Some(local_site.default_post_listing_type))
-    .post_listing_mode(Some(local_site.default_post_listing_mode))
-    .interface_language(language_tags.first().cloned())
+  let local_user_form = LocalUserInsertForm {
+    email: data.email.as_deref().map(str::to_lowercase),
+    password_encrypted: data.password.to_string(),
+    show_nsfw: Some(show_nsfw),
+    accepted_application,
+    default_listing_type: Some(local_site.default_post_listing_type),
+    post_listing_mode: Some(local_site.default_post_listing_mode),
+    interface_language: language_tags.first().cloned(),
     // If its the initial site setup, they are an admin
-    .admin(Some(!local_site.site_setup))
-    .build();
+    admin: Some(!local_site.site_setup),
+    ..LocalUserInsertForm::new(inserted_person.id, data.password.to_string())
+  };
 
   let all_languages = Language::read_all(&mut context.pool()).await?;
   // use hashset to avoid duplicates
