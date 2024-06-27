@@ -8,7 +8,7 @@ CREATE FUNCTION r.controversy_rank (upvotes numeric, downvotes numeric)
         0
     ELSE
         (
-            upvotes + downvotes) * CASE WHEN upvotes > downvotes THEN
+            upvotes + downvotes) ^ CASE WHEN upvotes > downvotes THEN
             downvotes::float / upvotes::float
         ELSE
             upvotes::float / downvotes::float
