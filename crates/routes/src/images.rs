@@ -5,9 +5,10 @@ use actix_web::{
     StatusCode,
   },
   web,
-  web::Query,
+  web::{Query, Redirect},
   HttpRequest,
   HttpResponse,
+  Responder,
 };
 use futures::stream::{Stream, StreamExt};
 use lemmy_api_common::{context::LemmyContext, request::PictrsResponse};
@@ -225,9 +226,22 @@ pub async fn image_proxy(
   // for arbitrary purposes.
   RemoteImage::validate(&mut context.pool(), url.clone().into()).await?;
 
+  if context
+    .settings()
+    .pictrs_config()?
+    .proxy_bypass_domains
+    .iter()
+    .any(|s| url.domain().expect("Invalid URL").starts_with(s))
+  {
+    return Ok(
+      Redirect::to(url.to_string())
+        .respond_to(&req)
+        .map_into_boxed_body(),
+    );
+  }
+
   let pictrs_config = context.settings().pictrs_config()?;
   let url = format!("{}image/original?proxy={}", pictrs_config.url, &params.url);
-
   image(url, req, &client).await
 }
 

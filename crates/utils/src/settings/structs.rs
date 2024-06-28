@@ -91,6 +91,10 @@ pub struct PictrsConfig {
   #[default(PictrsImageMode::StoreLinkPreviews)]
   pub(super) image_mode: PictrsImageMode,
 
+  /// Allows bypassing proxy for specific image hosts when using ProxyAllImages
+  #[default([].to_vec())]
+  pub proxy_bypass_domains: Vec<String>,
+
   /// Timeout for uploading images to pictrs (in seconds)
   #[default(30)]
   pub upload_timeout: u64,
