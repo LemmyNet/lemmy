@@ -422,10 +422,8 @@ mod test {
   use std::{fs::File, io::BufReader};
   use test_context::{test_context, AsyncTestContext};
   use tokio::{
-    select,
     spawn,
     sync::mpsc::{error::TryRecvError, unbounded_channel, UnboundedReceiver},
-    task::JoinHandle,
   };
   use tracing_test::traced_test;
   use url::Url;
@@ -462,8 +460,7 @@ mod test {
       let (inbox_sender, inbox_receiver) = unbounded_channel();
 
       // listen for received activities in background
-      let cancel_ = cancel.clone();
-      let wait_stop_server = listen_activities(inbox_sender, cancel_)?;
+      let wait_stop_server = listen_activities(inbox_sender)?;
 
       let fed_config = FederationWorkerConfig {
         concurrent_sends_per_instance: 1,
@@ -578,10 +575,7 @@ mod test {
     Ok(())
   }
 
-  fn listen_activities(
-    inbox_sender: UnboundedSender<String>,
-    cancel: CancellationToken,
-  ) -> LemmyResult<ServerHandle> {
+  fn listen_activities(inbox_sender: UnboundedSender<String>) -> LemmyResult<ServerHandle> {
     let run = HttpServer::new(move || {
       App::new()
         .app_data(actix_web::web::Data::new(inbox_sender.clone()))
@@ -616,7 +610,7 @@ mod test {
     let form = SentActivityForm {
       ap_id: Url::parse(&format!(
         "http://local.com/activity/{}",
-        uuid::Uuid::new_v4().to_string()
+        uuid::Uuid::new_v4()
       ))?
       .into(),
       data: serde_json::from_reader(reader)?,

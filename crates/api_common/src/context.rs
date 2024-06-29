@@ -70,7 +70,8 @@ impl LemmyContext {
     let rate_limit_cell = RateLimitCell::with_test_config();
 
     let context = LemmyContext::create(pool, client, secret, rate_limit_cell.clone());
-    let config = FederationConfig::builder()
+
+    FederationConfig::builder()
       .domain(context.settings().hostname.clone())
       .app_data(context)
       .debug(true)
@@ -78,8 +79,7 @@ impl LemmyContext {
       .http_fetch_limit(0)
       .build()
       .await
-      .expect("build federation config");
-    return config;
+      .expect("build federation config")
   }
   pub async fn init_test_context() -> Data<LemmyContext> {
     let config = Self::init_test_federation_config().await;
