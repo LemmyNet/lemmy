@@ -37,3 +37,8 @@ tokio-util = "0.7.11"
 
 [dev-dependencies]
 serial_test = { workspace = true }
+url.workspace = true
+actix-web.workspace = true
+tracing-test = "0.2.5"
+uuid.workspace = true
+test-context = "0.3.0"
