@@ -59,7 +59,6 @@ pub async fn like_comment(
 
   let like_form = CommentLikeForm {
     comment_id: data.comment_id,
-    post_id: orig_comment.post.id,
     person_id: local_user_view.person.id,
     score: data.score,
   };

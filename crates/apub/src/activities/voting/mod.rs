@@ -62,7 +62,6 @@ async fn vote_comment(
   let comment_id = comment.id;
   let like_form = CommentLikeForm {
     comment_id,
-    post_id: comment.post_id,
     person_id: actor.id,
     score: vote_type.into(),
   };
