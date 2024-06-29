@@ -28,7 +28,8 @@ use tokio_util::sync::CancellationToken;
 
 /// Decrease the delays of the federation queue.
 /// Should only be used for federation tests since it significantly increases CPU and DB load of the
-/// federation queue.
+/// federation queue. This is intentionally a separate flag from other flags like debug_assertions,
+/// since this is a invasive change we only need rarely.
 pub(crate) static LEMMY_TEST_FAST_FEDERATION: Lazy<bool> = Lazy::new(|| {
   std::env::var("LEMMY_TEST_FAST_FEDERATION")
     .map(|s| !s.is_empty())
