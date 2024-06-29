@@ -85,11 +85,5 @@ pub async fn like_post(
   )
   .await?;
 
-  build_post_response(
-    context.deref(),
-    post.community_id,
-    &local_user_view.person,
-    post_id,
-  )
-  .await
+  build_post_response(context.deref(), post.community_id, local_user_view, post_id).await
 }

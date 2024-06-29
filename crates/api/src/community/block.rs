@@ -50,10 +50,14 @@ pub async fn block_community(
       .with_lemmy_type(LemmyErrorType::CommunityBlockAlreadyExists)?;
   }
 
-  let community_view =
-    CommunityView::read(&mut context.pool(), community_id, Some(person_id), false)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  let community_view = CommunityView::read(
+    &mut context.pool(),
+    community_id,
+    Some(&local_user_view.local_user),
+    false,
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindCommunity)?;
 
   ActivityChannel::submit_activity(
     SendActivityData::FollowCommunity(

@@ -36,9 +36,13 @@ pub async fn update_comment(
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let comment_id = data.comment_id;
-  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+  let orig_comment = CommentView::read(
+    &mut context.pool(),
+    comment_id,
+    Some(&local_user_view.local_user),
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -81,14 +85,8 @@ pub async fn update_comment(
   // Do the mentions / recipients
   let updated_comment_content = updated_comment.content.clone();
   let mentions = scrape_text_for_mentions(&updated_comment_content);
-  let recipient_ids = send_local_notifs(
-    mentions,
-    comment_id,
-    &local_user_view.person,
-    false,
-    &context,
-  )
-  .await?;
+  let recipient_ids =
+    send_local_notifs(mentions, comment_id, &local_user_view, false, &context).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::UpdateComment(updated_comment.clone()),
