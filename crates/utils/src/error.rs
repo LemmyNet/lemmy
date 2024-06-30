@@ -176,6 +176,9 @@ pub enum LemmyErrorType {
   CantBlockLocalInstance,
   UrlWithoutDomain,
   InboxTimeout,
+  OauthAuthorizationInvalid,
+  OauthLoginFailed,
+  OauthRegistrationClosed,
   Unknown(String),
 }
 

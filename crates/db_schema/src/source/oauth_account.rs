@@ -1,0 +1,42 @@
+use crate::newtypes::{LocalUserId, OAuthAccountId, OAuthProviderId};
+#[cfg(feature = "full")]
+use crate::schema::oauth_account;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use ts_rs::TS;
+use typed_builder::TypedBuilder;
+
+#[skip_serializing_none]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
+#[cfg_attr(feature = "full", diesel(table_name = oauth_account))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// An auth account method.
+pub struct OAuthAccount {
+  pub id: OAuthAccountId,
+  pub local_user_id: LocalUserId,
+  pub oauth_provider_id: OAuthProviderId,
+  pub oauth_user_id: String,
+  pub published: DateTime<Utc>,
+  pub updated: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, TypedBuilder)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = oauth_account))]
+pub struct OAuthAccountInsertForm {
+  pub local_user_id: LocalUserId,
+  pub oauth_provider_id: OAuthProviderId,
+  pub oauth_user_id: String,
+}
+
+#[derive(Debug, Clone, TypedBuilder)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = oauth_account))]
+pub struct OAuthAccountUpdateForm {
+  pub oauth_provider_id: OAuthProviderId,
+  pub oauth_user_id: String,
+}

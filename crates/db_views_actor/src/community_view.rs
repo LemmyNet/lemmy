@@ -277,7 +277,7 @@ mod tests {
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_person.id)
-      .password_encrypted(String::new())
+      .password_encrypted(Some(String::new()))
       .build();
     let local_user = LocalUser::create(pool, &local_user_form, vec![])
       .await

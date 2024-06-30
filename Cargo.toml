@@ -44,7 +44,7 @@ console = [
   "opentelemetry",
   "opentelemetry-otlp",
   "tracing-opentelemetry",
-  "reqwest-tracing/opentelemetry_0_16",
+  "reqwest-tracing/opentelemetry_0_19",
 ]
 json-log = ["tracing-subscriber/json"]
 default = []
@@ -121,9 +121,14 @@ tracing-error = "0.2.0"
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 url = { version = "2.5.0", features = ["serde"] }
-reqwest = { version = "0.11.27", features = ["json", "blocking", "gzip"] }
+reqwest = { version = "0.11.27", features = [
+  "json",
+  "blocking",
+  "gzip",
+  "rustls-tls-native-roots",
+] }
 reqwest-middleware = "0.2.5"
-reqwest-tracing = "0.4.8"
+reqwest-tracing = { version = "0.4.8", features = ["opentelemetry_0_19"] }
 clokwerk = "0.4.0"
 doku = { version = "0.21.1", features = ["url-2"] }
 bcrypt = "0.15.1"
@@ -168,6 +173,8 @@ i-love-jesus = { version = "0.1.0" }
 clap = { version = "4.5.6", features = ["derive", "env"] }
 pretty_assertions = "1.4.0"
 derive-new = "0.6.0"
+sha3 = "0.10.8"
+rand = "0.8.5"
 
 [dependencies]
 lemmy_api = { workspace = true }

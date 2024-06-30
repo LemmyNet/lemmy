@@ -4,8 +4,7 @@ use actix_web::{
     header::{HeaderName, ACCEPT_ENCODING, HOST},
     StatusCode,
   },
-  web,
-  web::Query,
+  web::{self, Query},
   HttpRequest,
   HttpResponse,
 };
