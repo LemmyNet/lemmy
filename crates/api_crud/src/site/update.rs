@@ -119,6 +119,7 @@ pub async fn update_site(
     captcha_difficulty: data.captcha_difficulty.clone(),
     reports_email_admins: data.reports_email_admins,
     default_post_listing_mode: data.default_post_listing_mode,
+    oauth_registration: data.oauth_registration,
     ..Default::default()
   };
 
@@ -278,6 +279,7 @@ mod tests {
           None::<bool>,
           None::<String>,
           None::<RegistrationMode>,
+          None::<bool>,
         ),
       ),
       (
@@ -301,6 +303,7 @@ mod tests {
           None::<bool>,
           None::<String>,
           None::<RegistrationMode>,
+          None::<bool>,
         ),
       ),
       (
@@ -324,6 +327,7 @@ mod tests {
           None::<bool>,
           None::<String>,
           None::<RegistrationMode>,
+          None::<bool>,
         ),
       ),
       (
@@ -347,6 +351,7 @@ mod tests {
           Some(true),
           None::<String>,
           None::<RegistrationMode>,
+          None::<bool>,
         ),
       ),
       (
@@ -370,6 +375,7 @@ mod tests {
           Some(true),
           None::<String>,
           None::<RegistrationMode>,
+          None::<bool>,
         ),
       ),
       (
@@ -393,6 +399,7 @@ mod tests {
           None::<bool>,
           None::<String>,
           Some(RegistrationMode::RequireApplication),
+          None::<bool>,
         ),
       ),
     ];
@@ -447,6 +454,7 @@ mod tests {
           None::<bool>,
           None::<String>,
           None::<RegistrationMode>,
+          None::<bool>,
         ),
       ),
       (
@@ -469,6 +477,7 @@ mod tests {
           Some(true),
           Some(String::new()),
           Some(RegistrationMode::Open),
+          None::<bool>,
         ),
       ),
       (
@@ -491,6 +500,7 @@ mod tests {
           None::<bool>,
           None::<String>,
           None::<RegistrationMode>,
+          None::<bool>,
         ),
       ),
       (
@@ -513,6 +523,7 @@ mod tests {
           None::<bool>,
           None::<String>,
           Some(RegistrationMode::RequireApplication),
+          None::<bool>,
         ),
       ),
     ];
@@ -561,6 +572,7 @@ mod tests {
     site_is_federated: Option<bool>,
     site_application_question: Option<String>,
     site_registration_mode: Option<RegistrationMode>,
+    site_oauth_registration: Option<bool>,
   ) -> EditSite {
     EditSite {
       name: site_name,
@@ -607,6 +619,7 @@ mod tests {
       reports_email_admins: None,
       content_warning: None,
       default_post_listing_mode: None,
+      oauth_registration: site_oauth_registration,
     }
   }
 }

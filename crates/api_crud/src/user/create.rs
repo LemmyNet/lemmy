@@ -3,8 +3,12 @@ use actix_web::{web::Json, HttpRequest};
 use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
+  oauth_provider::{OAuth, TokenResponse},
   person::{LoginResponse, Register},
   utils::{
+    check_email_verified,
+    check_registration_application,
+    check_user_valid,
     generate_inbox_url,
     generate_local_apub_endpoint,
     generate_shared_inbox_url,
@@ -18,11 +22,15 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
+  newtypes::{InstanceId, OAuthProviderId},
   source::{
     captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
     language::Language,
+    local_site::LocalSite,
     local_user::{LocalUser, LocalUserInsertForm},
     local_user_vote_display_mode::LocalUserVoteDisplayMode,
+    oauth_account::{OAuthAccount, OAuthAccountInsertForm},
+    oauth_provider::UnsafeOAuthProvider,
     person::{Person, PersonInsertForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
@@ -31,15 +39,15 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_actor_name,
   },
 };
+use rand::Rng;
 use std::collections::HashSet;
 
-#[tracing::instrument(skip(context))]
 pub async fn register(
   data: Json<Register>,
   req: HttpRequest,
@@ -93,14 +101,6 @@ pub async fn register(
   check_slurs(&data.username, &slur_regex)?;
   check_slurs_opt(&data.answer, &slur_regex)?;
 
-  let actor_keypair = generate_actor_keypair()?;
-  is_valid_actor_name(&data.username, local_site.actor_name_max_length as usize)?;
-  let actor_id = generate_local_apub_endpoint(
-    EndpointType::Person,
-    &data.username,
-    &context.settings().get_protocol_and_hostname(),
-  )?;
-
   if let Some(email) = &data.email {
     if LocalUser::is_email_taken(&mut context.pool(), email).await? {
       Err(LemmyErrorType::EmailAlreadyExists)?
@@ -108,24 +108,13 @@ pub async fn register(
   }
 
   // We have to create both a person, and local_user
-
-  // Register the new person
-  let person_form = PersonInsertForm {
-    actor_id: Some(actor_id.clone()),
-    inbox_url: Some(generate_inbox_url(&actor_id)?),
-    shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
-    private_key: Some(actor_keypair.private_key),
-    ..PersonInsertForm::new(
-      data.username.clone(),
-      actor_keypair.public_key,
-      site_view.site.instance_id,
-    )
-  };
-
-  // insert the person
-  let inserted_person = Person::create(&mut context.pool(), &person_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
+  let inserted_person = create_person(
+    data.username.clone(),
+    &local_site,
+    site_view.site.instance_id,
+    &context,
+  )
+  .await?;
 
   // Automatically set their application as accepted, if they created this with open registration.
   // Also fixes a bug which allows users to log in when registrations are changed to closed.
@@ -150,7 +139,6 @@ pub async fn register(
   // Create the local user
   let local_user_form = LocalUserInsertForm {
     email: data.email.as_deref().map(str::to_lowercase),
-    password_encrypted: data.password.to_string(),
     show_nsfw: Some(show_nsfw),
     accepted_application,
     default_listing_type: Some(local_site.default_post_listing_type),
@@ -158,7 +146,7 @@ pub async fn register(
     interface_language: language_tags.first().cloned(),
     // If its the initial site setup, they are an admin
     admin: Some(!local_site.site_setup),
-    ..LocalUserInsertForm::new(inserted_person.id, data.password.to_string())
+    ..LocalUserInsertForm::new(inserted_person.id, Some(data.password.to_string()))
   };
 
   let all_languages = Language::read_all(&mut context.pool()).await?;
@@ -235,4 +223,322 @@ pub async fn register(
   }
 
   Ok(Json(login_response))
+}
+
+#[tracing::instrument(skip(context))]
+pub async fn register_from_oauth(
+  data: Json<OAuth>,
+  req: HttpRequest,
+  context: Data<LemmyContext>,
+) -> LemmyResult<Json<LoginResponse>> {
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+
+  let local_site: LocalSite = site_view.local_site.clone();
+
+  // validate inputs
+  if data.oauth_provider_id == OAuthProviderId(0i64)
+    || data.redirect_uri.is_none()
+    || data.code.is_empty()
+    || data.code.len() > 300
+  {
+    return Err(LemmyErrorType::OauthAuthorizationInvalid)?;
+  }
+
+  // validate the redirect_uri
+  let redirect_uri = data
+    .redirect_uri
+    .as_ref()
+    .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?;
+  if !redirect_uri
+    .host_str()
+    .unwrap_or("")
+    .eq(context.settings().get_ui_hostname())
+    || !redirect_uri
+      .scheme()
+      .eq(context.settings().get_protocol_string())
+    || !redirect_uri.path().eq(&String::from("/oauth/callback"))
+    || !redirect_uri.query().unwrap_or("").is_empty()
+  {
+    Err(LemmyErrorType::OauthAuthorizationInvalid)?
+  }
+
+  // Fetch the OAUTH provider and make sure it's enabled
+  let oauth_provider_id = data.oauth_provider_id;
+  let oauth_provider = UnsafeOAuthProvider::get(&mut context.pool(), oauth_provider_id)
+    .await
+    .ok()
+    .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?;
+
+  if !oauth_provider.enabled {
+    return Err(LemmyErrorType::OauthAuthorizationInvalid)?;
+  }
+
+  // Request an Access Token from the OAUTH provider
+  let response = context
+    .client()
+    .post(oauth_provider.token_endpoint.as_str())
+    .header("Accept", "application/json")
+    .form(&[
+      ("grant_type", "authorization_code"),
+      ("code", &data.code),
+      ("redirect_uri", redirect_uri.as_str()),
+      ("client_id", &oauth_provider.client_id),
+      ("client_secret", &oauth_provider.client_secret),
+    ])
+    .send()
+    .await;
+
+  if response.is_err() {
+    return Err(LemmyErrorType::OauthLoginFailed)?;
+  }
+
+  let response = response.expect("invalid oauth token endpoint response");
+  if !response.status().is_success() {
+    return Err(LemmyErrorType::OauthLoginFailed)?;
+  }
+
+  // Extract the access token
+  let token_response = response
+    .json::<TokenResponse>()
+    .await
+    .ok()
+    .ok_or(LemmyErrorType::OauthLoginFailed)?;
+
+  // Request the user info from the OAUTH provider
+  let response = context
+    .client()
+    .get(oauth_provider.userinfo_endpoint.as_str())
+    .header("Accept", "application/json")
+    .bearer_auth(token_response.access_token)
+    .send()
+    .await;
+
+  if response.is_err() {
+    return Err(LemmyErrorType::OauthLoginFailed)?;
+  }
+
+  let response = response.expect("invalid oauth userinfo response");
+  if !response.status().is_success() {
+    return Err(LemmyErrorType::OauthLoginFailed)?;
+  }
+
+  // Extract the OAUTH user_id claim from the returned user_info
+  let user_info = response
+    .json::<serde_json::Value>()
+    .await
+    .ok()
+    .ok_or(LemmyErrorType::OauthLoginFailed)?;
+
+  let oauth_user_id: String;
+  if let Some(oauth_user_id_value) = user_info.get(oauth_provider.id_claim) {
+    oauth_user_id = serde_json::from_value::<String>(oauth_user_id_value.clone())
+      .ok()
+      .ok_or(LemmyErrorType::OauthLoginFailed)?;
+  } else {
+    return Err(LemmyErrorType::OauthLoginFailed)?;
+  }
+
+  let mut login_response = LoginResponse {
+    jwt: None,
+    registration_created: false,
+    verify_email_sent: false,
+  };
+
+  // Lookup user by oauth_user_id
+  let mut local_user_view =
+    LocalUserView::find_by_oauth_id(&mut context.pool(), oauth_provider.id, &oauth_user_id).await?;
+
+  let local_user: LocalUser;
+  if let Some(user_view) = local_user_view {
+    // user found by oauth_user_id => Login user
+    local_user = user_view.clone().local_user;
+
+    check_user_valid(&user_view.person)?;
+    check_email_verified(&user_view, &site_view)?;
+    check_registration_application(&user_view, &site_view.local_site, &mut context.pool()).await?;
+  } else {
+    // user has never previously registered using oauth
+
+    // prevent registration if registration is closed
+    if local_site.registration_mode == RegistrationMode::Closed {
+      Err(LemmyErrorType::RegistrationClosed)?
+    }
+
+    // prevent registration if registration is closed for OAUTH providers
+    if !local_site.oauth_registration {
+      return Err(LemmyErrorType::OauthRegistrationClosed)?;
+    }
+
+    // Extract the OAUTH email claim from the returned user_info
+    let email: String;
+    if let Some(email_value) = user_info.get("email") {
+      email = serde_json::from_value::<String>(email_value.clone())
+        .ok()
+        .ok_or(LemmyErrorType::OauthLoginFailed)?;
+    } else {
+      return Err(LemmyErrorType::OauthLoginFailed)?;
+    }
+
+    // Lookup user by OAUTH email and link accounts
+    local_user_view = LocalUserView::find_by_email(&mut context.pool(), &email).await?;
+
+    let person;
+    if let Some(user_view) = local_user_view {
+      // user found by email => link and login if linking is allowed
+
+      if oauth_provider.account_linking_enabled {
+        // Link with OAUTH => Login user
+        let oauth_account_form = OAuthAccountInsertForm::builder()
+          .local_user_id(user_view.local_user.id)
+          .oauth_provider_id(oauth_provider.id)
+          .oauth_user_id(oauth_user_id)
+          .build();
+
+        OAuthAccount::create(&mut context.pool(), &oauth_account_form)
+          .await
+          .ok()
+          .ok_or(LemmyErrorType::OauthLoginFailed)?;
+
+        local_user = user_view.local_user;
+        person = user_view.person;
+      } else {
+        // email already registered
+        return Err(LemmyErrorType::EmailAlreadyExists)?;
+      }
+    } else {
+      // No user was found by email => Register as new user
+
+      // Extract the OAUTH name claim from the returned user_info
+      let user_name: String;
+      if let Some(user_name_value) = user_info.get(oauth_provider.name_claim) {
+        user_name = serde_json::from_value::<String>(user_name_value.clone())
+          .ok()
+          .ok_or(LemmyErrorType::OauthLoginFailed)?;
+      } else {
+        return Err(LemmyErrorType::OauthLoginFailed)?;
+      }
+
+      // remove spaces from username
+      let username = str::replace(&user_name, " ", "_");
+      let username = username + &rand::thread_rng().gen_range(0..999).to_string();
+
+      // check for slurs
+      let slur_regex = local_site_to_slur_regex(&local_site);
+      check_slurs(&username, &slur_regex)
+        .ok()
+        .ok_or(LemmyErrorType::OauthLoginFailed)?;
+
+      // We have to create a person, a local_user, and an oauth_account
+      person = create_person(username, &local_site, site_view.site.instance_id, &context).await?;
+
+      // Create the local user
+      let local_user_form = LocalUserInsertForm::builder()
+        .person_id(person.id)
+        .email(Some(str::to_lowercase(&email)))
+        .password_encrypted(None)
+        .show_nsfw(Some(false))
+        .accepted_application(Some(oauth_provider.auto_approve_application))
+        .email_verified(Some(oauth_provider.auto_verify_email))
+        .default_listing_type(Some(local_site.default_post_listing_type))
+        // If its the initial site setup, they are an admin
+        .admin(Some(!local_site.site_setup))
+        .build();
+
+      local_user = LocalUser::create(&mut context.pool(), &local_user_form, vec![])
+        .await
+        .ok()
+        .ok_or(LemmyErrorType::OauthLoginFailed)?;
+
+      // Create the oauth account
+      let oauth_account_form = OAuthAccountInsertForm::builder()
+        .local_user_id(local_user.id)
+        .oauth_provider_id(oauth_provider.id)
+        .oauth_user_id(oauth_user_id)
+        .build();
+
+      OAuthAccount::create(&mut context.pool(), &oauth_account_form)
+        .await
+        .ok()
+        .ok_or(LemmyErrorType::IncorrectLogin)?;
+    }
+
+    // prevent sign in until application is accepted
+    if local_site.site_setup
+      && local_site.registration_mode == RegistrationMode::RequireApplication
+      && !local_user.accepted_application
+      && !local_user.admin
+    {
+      // Create the registration application
+      let form = RegistrationApplicationInsertForm {
+        local_user_id: local_user.id,
+        answer: String::from("SSO ") + &oauth_provider.display_name,
+      };
+
+      RegistrationApplication::create(&mut context.pool(), &form).await?;
+
+      login_response.registration_created = true;
+    }
+
+    // Check email is verified when required
+    if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
+      let local_user_view = LocalUserView {
+        local_user: local_user.clone(),
+        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
+        person,
+        counts: PersonAggregates::default(),
+      };
+
+      send_verification_email(
+        &local_user_view,
+        &local_user
+          .email
+          .clone()
+          .expect("invalid verification email"),
+        &mut context.pool(),
+        context.settings(),
+      )
+      .await?;
+      login_response.verify_email_sent = true;
+    }
+  }
+
+  if !login_response.registration_created && !login_response.verify_email_sent {
+    let jwt = Claims::generate(local_user.id, req, &context).await?;
+    login_response.jwt = Some(jwt);
+  }
+
+  return Ok(Json(login_response));
+}
+
+async fn create_person(
+  username: String,
+  local_site: &LocalSite,
+  instance_id: InstanceId,
+  context: &Data<LemmyContext>,
+) -> Result<Person, LemmyError> {
+  let actor_keypair = generate_actor_keypair()?;
+  is_valid_actor_name(&username, local_site.actor_name_max_length as usize)?;
+  let actor_id = generate_local_apub_endpoint(
+    EndpointType::Person,
+    &username,
+    &context.settings().get_protocol_and_hostname(),
+  )?;
+
+  // Register the new person
+  let person_form = PersonInsertForm {
+    actor_id: Some(actor_id.clone()),
+    inbox_url: Some(generate_inbox_url(&actor_id)?),
+    shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
+    private_key: Some(actor_keypair.private_key),
+    ..PersonInsertForm::new(username.clone(), actor_keypair.public_key, instance_id)
+  };
+
+  // insert the person
+  let inserted_person = Person::create(&mut context.pool(), &person_form)
+    .await
+    .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
+
+  Ok(inserted_person)
 }

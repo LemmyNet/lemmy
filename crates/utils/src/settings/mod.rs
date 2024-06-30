@@ -73,6 +73,13 @@ impl Settings {
     fs::read_to_string(Self::get_config_location())
   }
 
+  pub fn get_ui_hostname(&self) -> &str {
+    match &self.hostname_ui {
+      Some(domain) => domain,
+      _ => &self.hostname,
+    }
+  }
+
   /// Returns either "http" or "https", depending on tls_enabled setting
   pub fn get_protocol_string(&self) -> &'static str {
     if self.tls_enabled {

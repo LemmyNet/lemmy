@@ -9,6 +9,7 @@ use lemmy_db_schema::source::{
   instance_block::InstanceBlock,
   language::Language,
   local_site_url_blocklist::LocalSiteUrlBlocklist,
+  oauth_provider::OAuthProvider,
   person_block::PersonBlock,
   tagline::Tagline,
 };
@@ -45,6 +46,7 @@ pub async fn get_site(
       let custom_emojis =
         CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
       let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
+      let oauth_providers = OAuthProvider::get_all(&mut context.pool()).await?;
       Ok(GetSiteResponse {
         site_view,
         admins,
@@ -55,6 +57,7 @@ pub async fn get_site(
         taglines,
         custom_emojis,
         blocked_urls,
+        oauth_providers,
       })
     })
     .await
@@ -83,6 +86,11 @@ pub async fn get_site(
     ))
     .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
+    // filter oauth_providers for normal users
+    if !local_user_view.local_user.admin {
+      filter_oauth_providers(&mut site_response.oauth_providers);
+    }
+
     Some(MyUserInfo {
       local_user_view,
       follows,
@@ -93,8 +101,34 @@ pub async fn get_site(
       discussion_languages,
     })
   } else {
+    // filter oauth_providers for public access
+    filter_oauth_providers(&mut site_response.oauth_providers);
     None
   };
 
   Ok(Json(site_response))
+}
+
+fn filter_oauth_providers(oauth_providers: &mut [Option<OAuthProvider>]) {
+  for oauth_provider_opt in oauth_providers {
+    if let Some(oauth_provider) = oauth_provider_opt {
+      if oauth_provider.enabled.is_some()
+        && oauth_provider.enabled.expect("unexpected enabled value")
+      {
+        oauth_provider.issuer = None;
+        oauth_provider.token_endpoint = None;
+        oauth_provider.userinfo_endpoint = None;
+        oauth_provider.id_claim = None;
+        oauth_provider.name_claim = None;
+        oauth_provider.auto_verify_email = None;
+        oauth_provider.auto_approve_application = None;
+        oauth_provider.account_linking_enabled = None;
+        oauth_provider.enabled = None;
+        oauth_provider.published = None;
+        oauth_provider.updated = None;
+      } else {
+        *oauth_provider_opt = None;
+      }
+    }
+  }
 }

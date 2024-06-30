@@ -19,11 +19,12 @@ pub async fn delete_account(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
   // Verify the password
-  let valid: bool = verify(
-    &data.password,
-    &local_user_view.local_user.password_encrypted,
-  )
-  .unwrap_or(false);
+  let valid: bool = if let Some(password_encrypted) = &local_user_view.local_user.password_encrypted
+  {
+    verify(&data.password, password_encrypted).unwrap_or(false)
+  } else {
+    false
+  };
   if !valid {
     Err(LemmyErrorType::IncorrectLogin)?
   }
