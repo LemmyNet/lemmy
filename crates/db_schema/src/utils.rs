@@ -541,8 +541,7 @@ pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
   diesel::dsl::now.into_sql::<Timestamptz>()
 }
 
-pub type AsRecordOutput<T> = dsl::AsExprOf<T, sql_types::Record<<T as Expression>::SqlType>>;
-
+/// Trait alias for a type that can be converted to an SQL tuple using `IntoSql::into_sql`
 pub trait AsRecord: Expression + AsExpression<sql_types::Record<Self::SqlType>>
 where
   Self::SqlType: 'static,
@@ -554,8 +553,25 @@ impl<T: Expression + AsExpression<sql_types::Record<T::SqlType>>> AsRecord for T
 {
 }
 
+/// Output of `IntoSql::into_sql` for a type that implements `AsRecord`
+pub type AsRecordOutput<T> = dsl::AsExprOf<T, sql_types::Record<<T as Expression>::SqlType>>;
+
+/// Output of `t.on((l0, l1).into_sql().eq((r0, r1)))`
 type OnTupleEq<T, L0, L1, R0, R1> = dsl::On<T, dsl::Eq<AsRecordOutput<(L0, L1)>, (R0, R1)>>;
 
+/// Creates an `ON` clause for a table where a person ID and another column are used as the
+/// primary key. Use with the `QueryDsl::left_join` method.
+///
+/// This example modifies a query to make columns in `community_actions` available:
+///
+/// ```
+/// community::table
+///   .left_join(actions(
+///     community_actions::table,
+///     my_person_id,
+///     community::id,
+///   ))
+/// ```
 pub fn actions<T, P, C, K0, K1>(
   actions_table: T,
   person_id: Option<P>,
@@ -585,8 +601,7 @@ pub fn actions_alias<T, P, C, K0, K1>(
 ) -> OnTupleEq<Alias<T>, AliasedField<T, K0>, AliasedField<T, K1>, P, C>
 where
   Alias<T>: QuerySource + Copy,
-  T: AliasSource + Default,
-  T::Target: Table<PrimaryKey = (K0, K1)>,
+  T: AliasSource<Target: Table<PrimaryKey = (K0, K1)>> + Default,
   K0: Column<Table = T::Target>,
   K1: Column<Table = T::Target>,
   (AliasedField<T, K0>, AliasedField<T, K1>): AsRecord,
@@ -606,34 +621,32 @@ where
 /// `table_name::table.filter(table_name::action_name.is_not_null())`.
 pub fn action_query<C>(column: C) -> dsl::Filter<C::Table, dsl::IsNotNull<C>>
 where
-  C: Column,
-  C::Table: Default + FilterDsl<dsl::IsNotNull<C>>,
-  C::SqlType: SingleValue,
+  C: Column<Table: Default + FilterDsl<dsl::IsNotNull<C>>, SqlType: SingleValue>,
 {
   action_query_with_fn(column, |t| t)
 }
 
+/// `find_action(table_name::action_name, key)` is the same as
+/// `table_name::table.find(key).filter(table_name::action_name.is_not_null())`.
 pub fn find_action<C, K>(
   column: C,
   key: K,
 ) -> dsl::Filter<dsl::Find<C::Table, K>, dsl::IsNotNull<C>>
 where
-  C: Column,
-  C::Table: Default + FindDsl<K>,
-  dsl::Find<C::Table, K>: FilterDsl<dsl::IsNotNull<C>>,
-  C::SqlType: SingleValue,
+  C:
+    Column<Table: Default + FindDsl<K, Output: FilterDsl<dsl::IsNotNull<C>>>, SqlType: SingleValue>,
 {
   action_query_with_fn(column, |t| t.find(key))
 }
 
+/// `action_query_with_fn(table_name::action_name, f)` is the same as
+/// `f(table_name::table).filter(table_name::action_name.is_not_null())`.
 fn action_query_with_fn<C, Q>(
   column: C,
   f: impl FnOnce(C::Table) -> Q,
 ) -> dsl::Filter<Q, dsl::IsNotNull<C>>
 where
-  C: Column,
-  C::Table: Default,
-  C::SqlType: SingleValue,
+  C: Column<Table: Default, SqlType: SingleValue>,
   Q: FilterDsl<dsl::IsNotNull<C>>,
 {
   f(C::Table::default()).filter(column.is_not_null())
