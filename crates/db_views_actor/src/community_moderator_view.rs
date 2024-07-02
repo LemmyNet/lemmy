@@ -3,8 +3,8 @@ use diesel::{dsl::exists, result::Error, select, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
-  schema::{community, community_moderator, person},
-  utils::{get_conn, DbPool},
+  schema::{community, community_actions, person},
+  utils::{action_query, find_action, get_conn, DbPool},
   CommunityVisibility,
 };
 
@@ -14,17 +14,11 @@ impl CommunityModeratorView {
     find_community_id: CommunityId,
     find_person_id: PersonId,
   ) -> Result<bool, Error> {
-    use lemmy_db_schema::schema::community_moderator::dsl::{
-      community_id,
-      community_moderator,
-      person_id,
-    };
     let conn = &mut get_conn(pool).await?;
-    select(exists(
-      community_moderator
-        .filter(community_id.eq(find_community_id))
-        .filter(person_id.eq(find_person_id)),
-    ))
+    select(exists(find_action(
+      community_actions::became_moderator,
+      (find_person_id, find_community_id),
+    )))
     .get_result::<bool>(conn)
     .await
   }
@@ -33,10 +27,10 @@ impl CommunityModeratorView {
     pool: &mut DbPool<'_>,
     find_person_id: PersonId,
   ) -> Result<bool, Error> {
-    use lemmy_db_schema::schema::community_moderator::dsl::{community_moderator, person_id};
     let conn = &mut get_conn(pool).await?;
     select(exists(
-      community_moderator.filter(person_id.eq(find_person_id)),
+      action_query(community_actions::became_moderator)
+        .filter(community_actions::person_id.eq(find_person_id)),
     ))
     .get_result::<bool>(conn)
     .await
@@ -47,12 +41,12 @@ impl CommunityModeratorView {
     community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    community_moderator::table
+    action_query(community_actions::became_moderator)
       .inner_join(community::table)
       .inner_join(person::table)
-      .filter(community_moderator::community_id.eq(community_id))
+      .filter(community_actions::community_id.eq(community_id))
       .select((community::all_columns, person::all_columns))
-      .order_by(community_moderator::published)
+      .order_by(community_actions::became_moderator)
       .load::<CommunityModeratorView>(conn)
       .await
   }
@@ -63,10 +57,10 @@ impl CommunityModeratorView {
     is_authenticated: bool,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let mut query = community_moderator::table
+    let mut query = action_query(community_actions::became_moderator)
       .inner_join(community::table)
       .inner_join(person::table)
-      .filter(community_moderator::person_id.eq(person_id))
+      .filter(community_actions::person_id.eq(person_id))
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .select((community::all_columns, person::all_columns))
@@ -81,16 +75,16 @@ impl CommunityModeratorView {
   /// Ideally this should be a group by, but diesel doesn't support it yet
   pub async fn get_community_first_mods(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    community_moderator::table
+    action_query(community_actions::became_moderator)
       .inner_join(community::table)
       .inner_join(person::table)
       .select((community::all_columns, person::all_columns))
       // A hacky workaround instead of group_bys
       // https://stackoverflow.com/questions/24042359/how-to-join-only-one-row-in-joined-table-with-postgres
-      .distinct_on(community_moderator::community_id)
+      .distinct_on(community_actions::community_id)
       .order_by((
-        community_moderator::community_id,
-        community_moderator::published,
+        community_actions::community_id,
+        community_actions::became_moderator,
       ))
       .load::<CommunityModeratorView>(conn)
       .await

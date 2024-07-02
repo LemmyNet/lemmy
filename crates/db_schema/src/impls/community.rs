@@ -1,7 +1,7 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{CommunityId, DbUrl, PersonId},
-  schema::{community, community_follower, instance},
+  schema::{community, community_actions, instance},
   source::{
     actor_language::CommunityLanguage,
     community::{
@@ -19,8 +19,12 @@ use crate::{
   },
   traits::{ApubActor, Bannable, Crud, Followable, Joinable},
   utils::{
+    action_query,
+    find_action,
     functions::{coalesce, lower},
     get_conn,
+    now,
+    uplete,
     DbPool,
   },
   SubscribedType,
@@ -30,6 +34,7 @@ use diesel::{
   deserialize,
   dsl,
   dsl::{exists, insert_into},
+  expression::SelectableHelper,
   pg::Pg,
   result::Error,
   select,
@@ -83,10 +88,20 @@ impl Joinable for CommunityModerator {
     pool: &mut DbPool<'_>,
     community_moderator_form: &CommunityModeratorForm,
   ) -> Result<Self, Error> {
-    use crate::schema::community_moderator::dsl::community_moderator;
     let conn = &mut get_conn(pool).await?;
-    insert_into(community_moderator)
+    let community_moderator_form = (
+      community_moderator_form,
+      community_actions::became_moderator.eq(now().nullable()),
+    );
+    insert_into(community_actions::table)
       .values(community_moderator_form)
+      .on_conflict((
+        community_actions::person_id,
+        community_actions::community_id,
+      ))
+      .do_update()
+      .set(community_moderator_form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
@@ -94,14 +109,14 @@ impl Joinable for CommunityModerator {
   async fn leave(
     pool: &mut DbPool<'_>,
     community_moderator_form: &CommunityModeratorForm,
-  ) -> Result<usize, Error> {
-    use crate::schema::community_moderator::dsl::community_moderator;
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(community_moderator.find((
+    uplete::new(community_actions::table.find((
       community_moderator_form.person_id,
       community_moderator_form.community_id,
     )))
-    .execute(conn)
+    .set_null(community_actions::became_moderator)
+    .get_result(conn)
     .await
   }
 }
@@ -199,23 +214,25 @@ impl CommunityModerator {
   pub async fn delete_for_community(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
-  ) -> Result<usize, Error> {
-    use crate::schema::community_moderator::dsl::{community_id, community_moderator};
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel::delete(community_moderator.filter(community_id.eq(for_community_id)))
-      .execute(conn)
-      .await
+    uplete::new(
+      community_actions::table.filter(community_actions::community_id.eq(for_community_id)),
+    )
+    .set_null(community_actions::became_moderator)
+    .get_result(conn)
+    .await
   }
 
   pub async fn leave_all_communities(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
-  ) -> Result<usize, Error> {
-    use crate::schema::community_moderator::dsl::{community_moderator, person_id};
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(community_moderator.filter(person_id.eq(for_person_id)))
-      .execute(conn)
+    uplete::new(community_actions::table.filter(community_actions::person_id.eq(for_person_id)))
+      .set_null(community_actions::became_moderator)
+      .get_result(conn)
       .await
   }
 
@@ -223,11 +240,10 @@ impl CommunityModerator {
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
   ) -> Result<Vec<CommunityId>, Error> {
-    use crate::schema::community_moderator::dsl::{community_id, community_moderator, person_id};
     let conn = &mut get_conn(pool).await?;
-    community_moderator
-      .filter(person_id.eq(for_person_id))
-      .select(community_id)
+    action_query(community_actions::became_moderator)
+      .filter(community_actions::person_id.eq(for_person_id))
+      .select(community_actions::community_id)
       .load::<CommunityId>(conn)
       .await
   }
@@ -240,13 +256,20 @@ impl Bannable for CommunityPersonBan {
     pool: &mut DbPool<'_>,
     community_person_ban_form: &CommunityPersonBanForm,
   ) -> Result<Self, Error> {
-    use crate::schema::community_person_ban::dsl::{community_id, community_person_ban, person_id};
     let conn = &mut get_conn(pool).await?;
-    insert_into(community_person_ban)
+    let community_person_ban_form = (
+      community_person_ban_form,
+      community_actions::received_ban.eq(now().nullable()),
+    );
+    insert_into(community_actions::table)
       .values(community_person_ban_form)
-      .on_conflict((community_id, person_id))
+      .on_conflict((
+        community_actions::community_id,
+        community_actions::person_id,
+      ))
       .do_update()
       .set(community_person_ban_form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
@@ -254,14 +277,15 @@ impl Bannable for CommunityPersonBan {
   async fn unban(
     pool: &mut DbPool<'_>,
     community_person_ban_form: &CommunityPersonBanForm,
-  ) -> Result<usize, Error> {
-    use crate::schema::community_person_ban::dsl::community_person_ban;
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(community_person_ban.find((
+    uplete::new(community_actions::table.find((
       community_person_ban_form.person_id,
       community_person_ban_form.community_id,
     )))
-    .execute(conn)
+    .set_null(community_actions::received_ban)
+    .set_null(community_actions::ban_expires)
+    .get_result(conn)
     .await
   }
 }
@@ -281,8 +305,8 @@ impl CommunityFollower {
     }
   }
 
-  pub fn select_subscribed_type() -> dsl::Nullable<community_follower::pending> {
-    community_follower::pending.nullable()
+  pub fn select_subscribed_type() -> dsl::Nullable<community_actions::follow_pending> {
+    community_actions::follow_pending.nullable()
   }
 
   /// Check if a remote instance has any followers on local instance. For this it is enough to check
@@ -291,10 +315,10 @@ impl CommunityFollower {
     pool: &mut DbPool<'_>,
     remote_community_id: CommunityId,
   ) -> Result<bool, Error> {
-    use crate::schema::community_follower::dsl::{community_follower, community_id};
     let conn = &mut get_conn(pool).await?;
     select(exists(
-      community_follower.filter(community_id.eq(remote_community_id)),
+      action_query(community_actions::followed)
+        .filter(community_actions::community_id.eq(remote_community_id)),
     ))
     .get_result(conn)
     .await
@@ -316,13 +340,17 @@ impl Queryable<sql_types::Nullable<sql_types::Bool>, Pg> for SubscribedType {
 impl Followable for CommunityFollower {
   type Form = CommunityFollowerForm;
   async fn follow(pool: &mut DbPool<'_>, form: &CommunityFollowerForm) -> Result<Self, Error> {
-    use crate::schema::community_follower::dsl::{community_follower, community_id, person_id};
     let conn = &mut get_conn(pool).await?;
-    insert_into(community_follower)
+    let form = (form, community_actions::followed.eq(now().nullable()));
+    insert_into(community_actions::table)
       .values(form)
-      .on_conflict((community_id, person_id))
+      .on_conflict((
+        community_actions::community_id,
+        community_actions::person_id,
+      ))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
@@ -331,18 +359,25 @@ impl Followable for CommunityFollower {
     community_id: CommunityId,
     person_id: PersonId,
   ) -> Result<Self, Error> {
-    use crate::schema::community_follower::dsl::{community_follower, pending};
     let conn = &mut get_conn(pool).await?;
-    diesel::update(community_follower.find((person_id, community_id)))
-      .set(pending.eq(false))
-      .get_result::<Self>(conn)
-      .await
+    diesel::update(find_action(
+      community_actions::follow_pending,
+      (person_id, community_id),
+    ))
+    .set(community_actions::follow_pending.eq(Some(false)))
+    .returning(Self::as_select())
+    .get_result::<Self>(conn)
+    .await
   }
-  async fn unfollow(pool: &mut DbPool<'_>, form: &CommunityFollowerForm) -> Result<usize, Error> {
-    use crate::schema::community_follower::dsl::community_follower;
+  async fn unfollow(
+    pool: &mut DbPool<'_>,
+    form: &CommunityFollowerForm,
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(community_follower.find((form.person_id, form.community_id)))
-      .execute(conn)
+    uplete::new(community_actions::table.find((form.person_id, form.community_id)))
+      .set_null(community_actions::followed)
+      .set_null(community_actions::follow_pending)
+      .get_result(conn)
       .await
   }
 }
@@ -418,7 +453,7 @@ mod tests {
       person::{Person, PersonInsertForm},
     },
     traits::{Bannable, Crud, Followable, Joinable},
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, uplete},
     CommunityVisibility,
   };
   use pretty_assertions::assert_eq;
@@ -558,9 +593,9 @@ mod tests {
     assert_eq!(expected_community_follower, inserted_community_follower);
     assert_eq!(expected_community_moderator, inserted_community_moderator);
     assert_eq!(expected_community_person_ban, inserted_community_person_ban);
-    assert_eq!(1, ignored_community);
-    assert_eq!(1, left_community);
-    assert_eq!(1, unban);
+    assert_eq!(uplete::Count::only_updated(1), ignored_community);
+    assert_eq!(uplete::Count::only_updated(1), left_community);
+    assert_eq!(uplete::Count::only_deleted(1), unban);
     // assert_eq!(2, loaded_count);
     assert_eq!(1, num_deleted);
   }
