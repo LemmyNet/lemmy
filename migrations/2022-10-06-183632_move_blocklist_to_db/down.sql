@@ -6,7 +6,7 @@ ALTER TABLE site
     ADD COLUMN community_creation_admin_only boolean DEFAULT FALSE NOT NULL,
     ADD COLUMN require_email_verification boolean DEFAULT FALSE NOT NULL,
     ADD COLUMN require_application boolean DEFAULT TRUE NOT NULL,
-    ADD COLUMN application_question text DEFAULT 'to verify that you are human, please explain why you want to create an account on this site'::text,
+    ADD COLUMN application_question text DEFAULT 'To verify that you are human, please explain why you want to create an account on this site'::text,
     ADD COLUMN private_instance boolean DEFAULT FALSE NOT NULL,
     ADD COLUMN default_theme text DEFAULT 'browser'::text NOT NULL,
     ADD COLUMN default_post_listing_type text DEFAULT 'Local'::text NOT NULL,

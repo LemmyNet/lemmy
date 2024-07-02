@@ -2,6 +2,7 @@ use crate::{
   diesel::ExpressionMethods,
   newtypes::{DbUrl, PersonId},
   schema::community,
+  schema_setup,
   CommentSortType,
   CommunityVisibility,
   SortType,
@@ -457,7 +458,7 @@ pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  crate::schema_setup::run(&db_url)?;
+  schema_setup::run(schema_setup::Options::default().run())?;
 
   Ok(pool)
 }

@@ -1,39 +1,39 @@
 -- functions and triggers
-DROP TRIGGER refresh_user ON user_;
+DROP TRIGGER IF EXISTS refresh_user ON user_;
 
-DROP FUNCTION refresh_user ();
+DROP FUNCTION IF EXISTS refresh_user ();
 
-DROP TRIGGER refresh_post ON post;
+DROP TRIGGER IF EXISTS refresh_post ON post;
 
-DROP FUNCTION refresh_post ();
+DROP FUNCTION IF EXISTS refresh_post ();
 
-DROP TRIGGER refresh_post_like ON post_like;
+DROP TRIGGER IF EXISTS refresh_post_like ON post_like;
 
-DROP FUNCTION refresh_post_like ();
+DROP FUNCTION IF EXISTS refresh_post_like ();
 
-DROP TRIGGER refresh_community ON community;
+DROP TRIGGER IF EXISTS refresh_community ON community;
 
-DROP FUNCTION refresh_community ();
+DROP FUNCTION IF EXISTS refresh_community ();
 
-DROP TRIGGER refresh_community_follower ON community_follower;
+DROP TRIGGER IF EXISTS refresh_community_follower ON community_follower;
 
-DROP FUNCTION refresh_community_follower ();
+DROP FUNCTION IF EXISTS refresh_community_follower ();
 
-DROP TRIGGER refresh_community_user_ban ON community_user_ban;
+DROP TRIGGER IF EXISTS refresh_community_user_ban ON community_user_ban;
 
-DROP FUNCTION refresh_community_user_ban ();
+DROP FUNCTION IF EXISTS refresh_community_user_ban ();
 
-DROP TRIGGER refresh_comment ON comment;
+DROP TRIGGER IF EXISTS refresh_comment ON comment;
 
-DROP FUNCTION refresh_comment ();
+DROP FUNCTION IF EXISTS refresh_comment ();
 
-DROP TRIGGER refresh_comment_like ON comment_like;
+DROP TRIGGER IF EXISTS refresh_comment_like ON comment_like;
 
-DROP FUNCTION refresh_comment_like ();
+DROP FUNCTION IF EXISTS refresh_comment_like ();
 
 -- post
 -- Recreate the view
-DROP VIEW post_view;
+DROP VIEW IF EXISTS post_view;
 
 CREATE VIEW post_view AS
 with all_post AS (
@@ -167,16 +167,16 @@ FROM
     FROM
         all_post ap;
 
-DROP VIEW post_mview;
+DROP VIEW IF EXISTS post_mview;
 
 DROP MATERIALIZED VIEW post_aggregates_mview;
 
-DROP VIEW post_aggregates_view;
+DROP VIEW IF EXISTS post_aggregates_view;
 
 -- user
 DROP MATERIALIZED VIEW user_mview;
 
-DROP VIEW user_view;
+DROP VIEW IF EXISTS user_view;
 
 CREATE VIEW user_view AS
 SELECT
@@ -226,13 +226,13 @@ FROM
     user_ u;
 
 -- community
-DROP VIEW community_mview;
+DROP VIEW IF EXISTS community_mview;
 
 DROP MATERIALIZED VIEW community_aggregates_mview;
 
-DROP VIEW community_view;
+DROP VIEW IF EXISTS community_view;
 
-DROP VIEW community_aggregates_view;
+DROP VIEW IF EXISTS community_aggregates_view;
 
 CREATE VIEW community_view AS
 with all_community AS (
@@ -314,17 +314,17 @@ FROM
     all_community ac;
 
 -- reply and comment view
-DROP VIEW reply_view;
+DROP VIEW IF EXISTS reply_view;
 
-DROP VIEW user_mention_view;
+DROP VIEW IF EXISTS user_mention_view;
 
-DROP VIEW comment_view;
+DROP VIEW IF EXISTS comment_view;
 
-DROP VIEW comment_mview;
+DROP VIEW IF EXISTS comment_mview;
 
 DROP MATERIALIZED VIEW comment_aggregates_mview;
 
-DROP VIEW comment_aggregates_view;
+DROP VIEW IF EXISTS comment_aggregates_view;
 
 CREATE VIEW comment_view AS
 with all_comment AS (
