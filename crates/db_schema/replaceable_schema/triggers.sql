@@ -566,6 +566,10 @@ BEGIN
     IF NOT (NEW.path ~ ('*.' || id)::lquery) THEN
         NEW.path = NEW.path || id;
     END IF;
+    -- Set local ap_id
+    IF NEW.local THEN
+        NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/comment/' || id));
+    END IF;
     RETURN NEW;
 END
 $$;
@@ -574,4 +578,40 @@ CREATE TRIGGER change_values
     BEFORE INSERT OR UPDATE ON comment
     FOR EACH ROW
     EXECUTE FUNCTION r.comment_change_values ();
+
+CREATE FUNCTION r.post_change_values ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Set local ap_id
+    IF NEW.local THEN
+        NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/post/' || NEW.id::text));
+    END IF;
+    RETURN NEW;
+END
+$$;
+
+CREATE TRIGGER change_values
+    BEFORE INSERT ON post
+    FOR EACH ROW
+    EXECUTE FUNCTION r.post_change_values ();
+
+CREATE FUNCTION r.private_message_change_values ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Set local ap_id
+    IF NEW.local THEN
+        NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/private_message/' || NEW.id::text));
+    END IF;
+    RETURN NEW;
+END
+$$;
+
+CREATE TRIGGER change_values
+    BEFORE INSERT ON private_message
+    FOR EACH ROW
+    EXECUTE FUNCTION r.private_message_change_values ();
 
