@@ -88,12 +88,6 @@ pub struct PersonMentionId(i32);
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// The person block id.
-pub struct PersonBlockId(i32);
-
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
 /// The comment report id.
 pub struct CommentReportId(i32);
 
