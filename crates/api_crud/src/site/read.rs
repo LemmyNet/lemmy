@@ -109,26 +109,23 @@ pub async fn get_site(
   Ok(Json(site_response))
 }
 
-fn filter_oauth_providers(oauth_providers: &mut [Option<OAuthProvider>]) {
-  for oauth_provider_opt in oauth_providers {
-    if let Some(oauth_provider) = oauth_provider_opt {
-      if oauth_provider.enabled.is_some()
-        && oauth_provider.enabled.expect("unexpected enabled value")
-      {
-        oauth_provider.issuer = None;
-        oauth_provider.token_endpoint = None;
-        oauth_provider.userinfo_endpoint = None;
-        oauth_provider.id_claim = None;
-        oauth_provider.name_claim = None;
-        oauth_provider.auto_verify_email = None;
-        oauth_provider.auto_approve_application = None;
-        oauth_provider.account_linking_enabled = None;
-        oauth_provider.enabled = None;
-        oauth_provider.published = None;
-        oauth_provider.updated = None;
-      } else {
-        *oauth_provider_opt = None;
-      }
+fn filter_oauth_providers(oauth_providers: &mut Vec<OAuthProvider>) {
+  oauth_providers.retain_mut(|oauth_provider| {
+    if oauth_provider.enabled.unwrap_or(false) {
+      oauth_provider.issuer = None;
+      oauth_provider.token_endpoint = None;
+      oauth_provider.userinfo_endpoint = None;
+      oauth_provider.id_claim = None;
+      oauth_provider.name_claim = None;
+      oauth_provider.auto_verify_email = None;
+      oauth_provider.auto_approve_application = None;
+      oauth_provider.account_linking_enabled = None;
+      oauth_provider.enabled = None;
+      oauth_provider.published = None;
+      oauth_provider.updated = None;
+      true
+    } else {
+      false
     }
-  }
+  })
 }

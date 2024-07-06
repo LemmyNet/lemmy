@@ -129,7 +129,7 @@ use lemmy_api_crud::{
   },
   site::{create::create_site, read::get_site, update::update_site},
   user::{
-    create::{register, register_from_oauth},
+    create::{authenticate_with_oauth, register},
     delete::delete_account,
   },
 };
@@ -400,7 +400,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         web::scope("/oauth")
           .wrap(rate_limit.register())
-          .route("/register", web::post().to(register_from_oauth)),
+          .route("/authenticate", web::post().to(authenticate_with_oauth)),
       ),
   );
   cfg.service(

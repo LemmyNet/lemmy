@@ -41,24 +41,6 @@ impl Crud for UnsafeOAuthProvider {
 }
 
 impl UnsafeOAuthProvider {
-  pub async fn get(
-    pool: &mut DbPool<'_>,
-    oauth_provider_id: OAuthProviderId,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let oauth_providers = oauth_provider::table
-      .find(oauth_provider_id)
-      .select(oauth_provider::all_columns)
-      .limit(1)
-      .load::<UnsafeOAuthProvider>(conn)
-      .await?;
-    if let Some(oauth_provider) = oauth_providers.into_iter().next() {
-      Ok(oauth_provider)
-    } else {
-      Err(diesel::result::Error::NotFound)
-    }
-  }
-
   pub async fn get_all(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let oauth_providers = oauth_provider::table
@@ -72,12 +54,12 @@ impl UnsafeOAuthProvider {
 }
 
 impl OAuthProvider {
-  pub async fn get_all(pool: &mut DbPool<'_>) -> Result<Vec<Option<Self>>, Error> {
+  pub async fn get_all(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let oauth_providers = UnsafeOAuthProvider::get_all(pool).await?;
-    let mut result = Vec::<Option<OAuthProvider>>::new();
+    let mut result = Vec::<OAuthProvider>::new();
 
     for oauth_provider in &oauth_providers {
-      result.push(Some(Self::from_unsafe(oauth_provider)));
+      result.push(Self::from_unsafe(oauth_provider));
     }
 
     Ok(result)

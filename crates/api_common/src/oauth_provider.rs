@@ -57,16 +57,16 @@ pub struct DeleteOAuthProvider {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Logging in with an OAuth 2.0 authorization
-pub struct OAuth {
+pub struct AuthenticateWithOauth {
   pub code: String,
   #[cfg_attr(feature = "full", ts(type = "string"))]
   pub oauth_provider_id: OAuthProviderId,
   #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub redirect_uri: Option<Url>,
+  pub redirect_uri: Url,
 }
 
 #[skip_serializing_none]

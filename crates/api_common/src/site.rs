@@ -321,7 +321,7 @@ pub struct GetSiteResponse {
   /// A list of custom emojis your site supports.
   pub custom_emojis: Vec<CustomEmojiView>,
   /// A list of external auth methods your site supports.
-  pub oauth_providers: Vec<Option<OAuthProvider>>,
+  pub oauth_providers: Vec<OAuthProvider>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
 }
 
