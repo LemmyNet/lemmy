@@ -387,11 +387,8 @@ pub async fn authenticate_with_oauth(
 
       if oauth_provider.account_linking_enabled {
         // Link with OAUTH => Login user
-        let oauth_account_form = OAuthAccountInsertForm::builder()
-          .local_user_id(user_view.local_user.id)
-          .oauth_provider_id(oauth_provider.id)
-          .oauth_user_id(oauth_user_id)
-          .build();
+        let oauth_account_form =
+          OAuthAccountInsertForm::new(user_view.local_user.id, oauth_provider.id, oauth_user_id);
 
         OAuthAccount::create(&mut context.pool(), &oauth_account_form)
           .await
@@ -449,11 +446,8 @@ pub async fn authenticate_with_oauth(
         .ok_or(LemmyErrorType::OauthLoginFailed)?;
 
       // Create the oauth account
-      let oauth_account_form = OAuthAccountInsertForm::builder()
-        .local_user_id(local_user.id)
-        .oauth_provider_id(oauth_provider.id)
-        .oauth_user_id(oauth_user_id)
-        .build();
+      let oauth_account_form =
+        OAuthAccountInsertForm::new(local_user.id, oauth_provider.id, oauth_user_id);
 
       OAuthAccount::create(&mut context.pool(), &oauth_account_form)
         .await
