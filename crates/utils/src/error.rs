@@ -53,6 +53,7 @@ pub enum LemmyErrorType {
   CouldntFindCommentReply,
   CouldntFindPrivateMessage,
   CouldntFindActivity,
+  CouldntFindOauthProvider,
   PersonIsBlocked,
   CommunityIsBlocked,
   InstanceIsBlocked,

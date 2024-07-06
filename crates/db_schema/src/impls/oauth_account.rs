@@ -33,20 +33,3 @@ impl Crud for OAuthAccount {
       .await
   }
 }
-
-impl OAuthAccount {
-  pub async fn get(pool: &mut DbPool<'_>, oauth_account_id: OAuthAccountId) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let oauth_accounts = oauth_account::table
-      .find(oauth_account_id)
-      .select(oauth_account::all_columns)
-      .limit(1)
-      .load::<OAuthAccount>(conn)
-      .await?;
-    if let Some(oauth_account) = oauth_accounts.into_iter().next() {
-      Ok(oauth_account)
-    } else {
-      Err(diesel::result::Error::NotFound)
-    }
-  }
-}

@@ -3,7 +3,7 @@ use actix_web::{web::Json, HttpRequest};
 use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
-  oauth_provider::{OAuth, TokenResponse},
+  oauth_provider::{AuthenticateWithOauth, TokenResponse},
   person::{LoginResponse, Register},
   utils::{
     check_email_verified,
@@ -229,8 +229,8 @@ pub async fn register(
 }
 
 #[tracing::instrument(skip(context))]
-pub async fn register_from_oauth(
-  data: Json<OAuth>,
+pub async fn authenticate_with_oauth(
+  data: Json<AuthenticateWithOauth>,
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
@@ -242,7 +242,6 @@ pub async fn register_from_oauth(
 
   // validate inputs
   if data.oauth_provider_id == OAuthProviderId(0i64)
-    || data.redirect_uri.is_none()
     || data.code.is_empty()
     || data.code.len() > 300
   {
@@ -250,10 +249,7 @@ pub async fn register_from_oauth(
   }
 
   // validate the redirect_uri
-  let redirect_uri = data
-    .redirect_uri
-    .as_ref()
-    .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?;
+  let redirect_uri = &data.redirect_uri;
   if !redirect_uri
     .host_str()
     .unwrap_or("")
@@ -269,9 +265,10 @@ pub async fn register_from_oauth(
 
   // Fetch the OAUTH provider and make sure it's enabled
   let oauth_provider_id = data.oauth_provider_id;
-  let oauth_provider = UnsafeOAuthProvider::get(&mut context.pool(), oauth_provider_id)
+  let oauth_provider = UnsafeOAuthProvider::read(&mut context.pool(), oauth_provider_id)
     .await
     .ok()
+    .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?
     .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?;
 
   if !oauth_provider.enabled {
