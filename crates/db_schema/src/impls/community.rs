@@ -447,6 +447,7 @@ mod tests {
         CommunityUpdateForm,
       },
       instance::Instance,
+      local_user::LocalUser,
       person::{Person, PersonInsertForm},
     },
     traits::{Bannable, Crud, Followable, Joinable},
@@ -556,6 +557,16 @@ mod tests {
     )
     .await;
     assert!(bobby_higher_check.is_ok());
+
+    // Also check the other is_higher_mod_or_admin function just in case
+    let bobby_higher_check_2 = LocalUser::is_higher_mod_or_admin_check(
+      pool,
+      inserted_community.id,
+      inserted_bobby.id,
+      &moderator_person_ids,
+    )
+    .await;
+    assert!(bobby_higher_check_2.is_ok());
 
     // This should throw an error, since artemis was added later
     let artemis_higher_check = CommunityModerator::is_higher_mod_check(
