@@ -17,6 +17,7 @@ use lemmy_db_schema::{
     actor_language::CommunityLanguage,
     comment::Comment,
     comment_reply::{CommentReply, CommentReplyInsertForm},
+    person::Person,
     person_mention::{PersonMention, PersonMentionInsertForm},
   },
   traits::Crud,
@@ -96,24 +97,18 @@ pub async fn build_post_response(
 pub async fn send_local_notifs(
   mentions: Vec<MentionData>,
   comment_id: CommentId,
-  my_local_user: &LocalUserView,
+  person: &Person,
   do_send_email: bool,
   context: &LemmyContext,
 ) -> LemmyResult<Vec<LocalUserId>> {
   let mut recipient_ids = Vec::new();
   let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
 
-  let person = &my_local_user.person;
-
   // let person = my_local_user.person;
   // Read the comment view to get extra info
-  let comment_view = CommentView::read(
-    &mut context.pool(),
-    comment_id,
-    Some(&my_local_user.local_user),
-  )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindComment)?;
+  let comment_view = CommentView::read(&mut context.pool(), comment_id, None)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindComment)?;
   let comment = comment_view.comment;
   let post = comment_view.post;
   let community = comment_view.community;

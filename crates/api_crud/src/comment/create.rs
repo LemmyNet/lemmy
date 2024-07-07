@@ -131,7 +131,7 @@ pub async fn create_comment(
   let recipient_ids = send_local_notifs(
     mentions,
     inserted_comment_id,
-    &local_user_view,
+    &local_user_view.person,
     true,
     &context,
   )

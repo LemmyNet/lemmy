@@ -73,7 +73,7 @@ pub async fn remove_comment(
   ModRemoveComment::create(&mut context.pool(), &form).await?;
 
   let recipient_ids =
-    send_local_notifs(vec![], comment_id, &local_user_view, false, &context).await?;
+    send_local_notifs(vec![], comment_id, &local_user_view.person, false, &context).await?;
   let updated_comment_id = updated_comment.id;
 
   ActivityChannel::submit_activity(

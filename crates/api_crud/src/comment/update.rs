@@ -85,8 +85,14 @@ pub async fn update_comment(
   // Do the mentions / recipients
   let updated_comment_content = updated_comment.content.clone();
   let mentions = scrape_text_for_mentions(&updated_comment_content);
-  let recipient_ids =
-    send_local_notifs(mentions, comment_id, &local_user_view, false, &context).await?;
+  let recipient_ids = send_local_notifs(
+    mentions,
+    comment_id,
+    &local_user_view.person,
+    false,
+    &context,
+  )
+  .await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::UpdateComment(updated_comment.clone()),
