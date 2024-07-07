@@ -392,7 +392,10 @@ fn queries<'a>() -> Queries<
         .filter(not(post::removed.or(post::deleted)));
     }
 
-    if !options.local_user.show_nsfw(site) {
+    if !options
+      .show_nsfw
+      .unwrap_or(options.local_user.show_nsfw(site))
+    {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
@@ -617,6 +620,7 @@ pub struct PostQuery<'a> {
   pub page_back: Option<bool>,
   pub show_hidden: Option<bool>,
   pub show_read: Option<bool>,
+  pub show_nsfw: Option<bool>,
 }
 
 impl<'a> PostQuery<'a> {
@@ -1580,6 +1584,48 @@ mod tests {
         .first()
         .ok_or(LemmyErrorType::CouldntFindPost)?
         .hidden
+    );
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listings_hide_nsfw() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Mark a post as nsfw
+    let update_form = PostUpdateForm {
+      nsfw: Some(true),
+      ..Default::default()
+    };
+
+    Post::update(pool, data.inserted_bot_post.id, &update_form).await?;
+
+    // Make sure you don't see the nsfw post in the regular results
+    let post_listings_hide_nsfw = data.default_post_query().list(&data.site, pool).await?;
+    assert_eq!(vec![POST], names(&post_listings_hide_nsfw));
+
+    // Make sure it does come back with the show_nsfw option
+    let post_listings_show_nsfw = PostQuery {
+      sort: Some(SortType::New),
+      show_nsfw: Some(true),
+      local_user: Some(&data.local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_nsfw));
+
+    // Make sure that nsfw field is true.
+    assert!(
+      &post_listings_show_nsfw
+        .first()
+        .ok_or(LemmyErrorType::CouldntFindPost)?
+        .post
+        .nsfw
     );
 
     cleanup(data, pool).await
