@@ -7,7 +7,7 @@ use lemmy_api_common::{
   utils::{
     check_community_mod_action,
     check_expire_time,
-    check_is_higher_mod,
+    check_is_higher_mod_or_admin,
     remove_user_data_in_community,
   },
 };
@@ -49,7 +49,7 @@ pub async fn ban_from_community(
   )
   .await?;
 
-  check_is_higher_mod(
+  check_is_higher_mod_or_admin(
     &mut context.pool(),
     &local_user_view,
     data.community_id,

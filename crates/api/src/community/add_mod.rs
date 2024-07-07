@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, check_is_higher_mod},
+  utils::{check_community_mod_action, check_is_higher_mod_or_admin},
 };
 use lemmy_db_schema::{
   source::{
@@ -36,7 +36,7 @@ pub async fn add_mod_to_community(
 
   // If its a mod removal, also check that you're a higher mod.
   if !data.added {
-    check_is_higher_mod(
+    check_is_higher_mod_or_admin(
       &mut context.pool(),
       &local_user_view,
       community_id,
