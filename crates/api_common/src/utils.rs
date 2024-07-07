@@ -178,8 +178,7 @@ pub async fn check_is_higher_admin(
   Ok(())
 }
 
-/// Checks to make sure the acting admin is higher than the target admin.
-/// This needs to be done on admin removals, and all purge functions
+/// Checks to make sure the acting mod or admin is higher than the target persons.
 pub async fn check_is_higher_mod_or_admin(
   pool: &mut DbPool<'_>,
   local_user_view: &LocalUserView,
