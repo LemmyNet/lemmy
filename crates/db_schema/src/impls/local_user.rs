@@ -1,6 +1,6 @@
 use crate::{
-  newtypes::{DbUrl, LanguageId, LocalUserId, PersonId},
-  schema::{local_user, person, registration_application},
+  newtypes::{CommunityId, DbUrl, LanguageId, LocalUserId, PersonId},
+  schema::{community_moderator, local_user, person, registration_application},
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
@@ -18,6 +18,7 @@ use bcrypt::{hash, DEFAULT_COST};
 use diesel::{
   dsl::{insert_into, not, IntervalDsl},
   result::Error,
+  CombineDsl,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
@@ -239,6 +240,46 @@ impl LocalUser {
 
     // If the first result sorted by published is the acting mod
     if res.person_id == admin_person_id {
+      Ok(())
+    } else {
+      Err(diesel::result::Error::NotFound)
+    }
+  }
+
+  /// Checks to make sure the acting moderator is higher than the target moderator
+  pub async fn is_higher_mod_or_admin_check(
+    pool: &mut DbPool<'_>,
+    for_community_id: CommunityId,
+    admin_person_id: PersonId,
+    target_person_ids: &[PersonId],
+  ) -> Result<(), Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    // Build the list of persons
+    let mut persons = target_person_ids.to_owned();
+    persons.push(admin_person_id);
+    persons.dedup();
+
+    let admins = local_user::table
+      .filter(local_user::admin.eq(true))
+      .filter(local_user::person_id.eq_any(&persons))
+      .order_by(local_user::id)
+      .select(local_user::person_id);
+
+    let mods = community_moderator::table
+      .filter(community_moderator::community_id.eq(for_community_id))
+      .filter(community_moderator::person_id.eq_any(&persons))
+      .order_by(community_moderator::published)
+      .select(community_moderator::person_id);
+
+    let res = admins.union_all(mods).get_results::<PersonId>(conn).await?;
+    let first_person = res
+      .as_slice()
+      .first()
+      .ok_or(diesel::result::Error::NotFound)?;
+
+    // If the first result sorted by published is the acting mod
+    if *first_person == admin_person_id {
       Ok(())
     } else {
       Err(diesel::result::Error::NotFound)

@@ -186,15 +186,16 @@ pub async fn check_is_higher_mod_or_admin(
   community_id: CommunityId,
   target_person_ids: &[PersonId],
 ) -> LemmyResult<()> {
-  let higher_admin_check = check_is_higher_admin(pool, local_user_view, target_person_ids).await;
-  let higher_mod_check =
-    check_is_higher_mod(pool, local_user_view, community_id, target_person_ids).await;
+  LocalUser::is_higher_mod_or_admin_check(
+    pool,
+    community_id,
+    local_user_view.person.id,
+    target_person_ids,
+  )
+  .await
+  .with_lemmy_type(LemmyErrorType::NotHigherMod)?;
 
-  if higher_mod_check.is_ok() || higher_admin_check.is_ok() {
-    Ok(())
-  } else {
-    Err(LemmyErrorType::NotHigherMod)?
-  }
+  Ok(())
 }
 
 /// Marks a post as read for a given person.
