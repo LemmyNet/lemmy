@@ -29,9 +29,13 @@ pub async fn purge_comment(
   let comment_id = data.comment_id;
 
   // Read the comment to get the post_id and community
-  let comment_view = CommentView::read(&mut context.pool(), comment_id, None)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+  let comment_view = CommentView::read(
+    &mut context.pool(),
+    comment_id,
+    Some(&local_user_view.local_user),
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   // Also check that you're a higher admin
   check_is_higher_admin(

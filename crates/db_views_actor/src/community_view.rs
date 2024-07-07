@@ -22,27 +22,18 @@ use lemmy_db_schema::{
     instance_block,
   },
   source::{community::CommunityFollower, local_user::LocalUser, site::Site},
-  utils::{
-    fuzzy_search,
-    limit_and_offset,
-    visible_communities_only,
-    DbConn,
-    DbPool,
-    ListFn,
-    Queries,
-    ReadFn,
-  },
+  utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   SortType,
 };
 
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, bool)>,
+  impl ReadFn<'a, CommunityView, (CommunityId, Option<&'a LocalUser>, bool)>,
   impl ListFn<'a, CommunityView, (CommunityQuery<'a>, &'a Site)>,
 > {
-  let all_joins = |query: community::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
+  let all_joins = |query: community::BoxedQuery<'a, Pg>, my_local_user: Option<&'a LocalUser>| {
     // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
+    let person_id_join = my_local_user.person_id().unwrap_or(PersonId(-1));
 
     query
       .inner_join(community_aggregates::table)
@@ -89,14 +80,14 @@ fn queries<'a>() -> Queries<
     .and(community::deleted.eq(false));
 
   let read = move |mut conn: DbConn<'a>,
-                   (community_id, my_person_id, is_mod_or_admin): (
+                   (community_id, my_local_user, is_mod_or_admin): (
     CommunityId,
-    Option<PersonId>,
+    Option<&'a LocalUser>,
     bool,
   )| async move {
     let mut query = all_joins(
       community::table.find(community_id).into_boxed(),
-      my_person_id,
+      my_local_user,
     )
     .select(selection);
 
@@ -105,7 +96,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(not_removed_or_deleted);
     }
 
-    query = visible_communities_only(my_person_id, query);
+    query = my_local_user.visible_communities_only(query);
 
     query.first(&mut conn).await
   };
@@ -116,11 +107,7 @@ fn queries<'a>() -> Queries<
     // The left join below will return None in this case
     let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
 
-    let mut query = all_joins(
-      community::table.into_boxed(),
-      options.local_user.person_id(),
-    )
-    .select(selection);
+    let mut query = all_joins(community::table.into_boxed(), options.local_user).select(selection);
 
     if let Some(search_term) = options.search_term {
       let searcher = fuzzy_search(&search_term);
@@ -173,7 +160,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(community::nsfw.eq(false));
     }
 
-    query = visible_communities_only(options.local_user.person_id(), query);
+    query = options.local_user.visible_communities_only(query);
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
     query
@@ -187,14 +174,14 @@ fn queries<'a>() -> Queries<
 }
 
 impl CommunityView {
-  pub async fn read(
+  pub async fn read<'a>(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
-    my_person_id: Option<PersonId>,
+    my_local_user: Option<&'a LocalUser>,
     is_mod_or_admin: bool,
   ) -> Result<Option<Self>, Error> {
     queries()
-      .read(pool, (community_id, my_person_id, is_mod_or_admin))
+      .read(pool, (community_id, my_local_user, is_mod_or_admin))
       .await
   }
 
@@ -385,7 +372,7 @@ mod tests {
     let authenticated_community = CommunityView::read(
       pool,
       data.inserted_community.id,
-      Some(data.local_user.person_id),
+      Some(&data.local_user),
       false,
     )
     .await;

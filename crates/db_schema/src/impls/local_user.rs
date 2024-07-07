@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, LanguageId, LocalUserId, PersonId},
-  schema::{community_moderator, local_user, person, registration_application},
+  schema::{community, community_moderator, local_user, person, registration_application},
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
@@ -13,6 +13,7 @@ use crate::{
     now,
     DbPool,
   },
+  CommunityVisibility,
 };
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{
@@ -295,6 +296,12 @@ pub trait LocalUserOptionHelper {
   fn show_read_posts(&self) -> bool;
   fn is_admin(&self) -> bool;
   fn show_nsfw(&self, site: &Site) -> bool;
+  fn visible_communities_only<Q>(&self, query: Q) -> Q
+  where
+    Q: diesel::query_dsl::methods::FilterDsl<
+      diesel::dsl::Eq<community::visibility, CommunityVisibility>,
+      Output = Q,
+    >;
 }
 
 impl LocalUserOptionHelper for Option<&LocalUser> {
@@ -322,6 +329,20 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
     self
       .map(|l| l.show_nsfw)
       .unwrap_or(site.content_warning.is_some())
+  }
+
+  fn visible_communities_only<Q>(&self, query: Q) -> Q
+  where
+    Q: diesel::query_dsl::methods::FilterDsl<
+      diesel::dsl::Eq<community::visibility, CommunityVisibility>,
+      Output = Q,
+    >,
+  {
+    if self.is_none() {
+      query.filter(community::visibility.eq(CommunityVisibility::Public))
+    } else {
+      query
+    }
   }
 }
 

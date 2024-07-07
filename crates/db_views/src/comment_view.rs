@@ -36,22 +36,13 @@ use lemmy_db_schema::{
     post,
   },
   source::local_user::LocalUser,
-  utils::{
-    fuzzy_search,
-    limit_and_offset,
-    visible_communities_only,
-    DbConn,
-    DbPool,
-    ListFn,
-    Queries,
-    ReadFn,
-  },
+  utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
   ListingType,
 };
 
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, CommentView, (CommentId, Option<PersonId>)>,
+  impl ReadFn<'a, CommentView, (CommentId, Option<&'a LocalUser>)>,
   impl ListFn<'a, CommentView, CommentQuery<'a>>,
 > {
   let is_creator_banned_from_community = exists(
@@ -182,9 +173,12 @@ fn queries<'a>() -> Queries<
   };
 
   let read = move |mut conn: DbConn<'a>,
-                   (comment_id, my_person_id): (CommentId, Option<PersonId>)| async move {
-    let mut query = all_joins(comment::table.find(comment_id).into_boxed(), my_person_id);
-    query = visible_communities_only(my_person_id, query);
+                   (comment_id, my_local_user): (CommentId, Option<&'a LocalUser>)| async move {
+    let mut query = all_joins(
+      comment::table.find(comment_id).into_boxed(),
+      my_local_user.person_id(),
+    );
+    query = my_local_user.visible_communities_only(query);
     query.first(&mut conn).await
   };
 
@@ -301,7 +295,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(not(is_creator_blocked(person_id_join)));
     };
 
-    query = visible_communities_only(options.local_user.person_id(), query);
+    query = options.local_user.visible_communities_only(query);
 
     // A Max depth given means its a tree fetch
     let (limit, offset) = if let Some(max_depth) = options.max_depth {
@@ -366,16 +360,16 @@ fn queries<'a>() -> Queries<
 }
 
 impl CommentView {
-  pub async fn read(
+  pub async fn read<'a>(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    my_person_id: Option<PersonId>,
+    my_local_user: Option<&'a LocalUser>,
   ) -> Result<Option<Self>, Error> {
     // If a person is given, then my_vote (res.9), if None, should be 0, not null
     // Necessary to differentiate between other person's votes
-    if let Ok(Some(res)) = queries().read(pool, (comment_id, my_person_id)).await {
+    if let Ok(Some(res)) = queries().read(pool, (comment_id, my_local_user)).await {
       let mut new_view = res.clone();
-      if my_person_id.is_some() && res.my_vote.is_none() {
+      if my_local_user.is_some() && res.my_vote.is_none() {
         new_view.my_vote = Some(0);
       }
       if res.comment.deleted || res.comment.removed {
@@ -673,7 +667,7 @@ mod tests {
     let read_comment_from_blocked_person = CommentView::read(
       pool,
       data.inserted_comment_1.id,
-      Some(data.timmy_local_user_view.person.id),
+      Some(&data.timmy_local_user_view.local_user),
     )
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
@@ -1168,7 +1162,7 @@ mod tests {
     let authenticated_comment = CommentView::read(
       pool,
       data.inserted_comment_0.id,
-      Some(data.timmy_local_user_view.person.id),
+      Some(&data.timmy_local_user_view.local_user),
     )
     .await;
     assert!(authenticated_comment.is_ok());
@@ -1208,7 +1202,7 @@ mod tests {
     let comment_view = CommentView::read(
       pool,
       data.inserted_comment_0.id,
-      Some(inserted_banned_from_comm_local_user.person_id),
+      Some(&inserted_banned_from_comm_local_user),
     )
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
@@ -1229,7 +1223,7 @@ mod tests {
     let comment_view = CommentView::read(
       pool,
       data.inserted_comment_0.id,
-      Some(data.timmy_local_user_view.person.id),
+      Some(&data.timmy_local_user_view.local_user),
     )
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
