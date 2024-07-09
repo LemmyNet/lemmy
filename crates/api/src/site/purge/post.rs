@@ -33,7 +33,7 @@ pub async fn purge_post(
     .ok_or(LemmyErrorType::CouldntFindPost)?;
 
   // Also check that you're a higher admin
-  check_is_higher_admin(&mut context.pool(), &local_user_view, &[post.creator_id]).await?;
+  check_is_higher_admin(&mut context.pool(), &local_user_view, vec![post.creator_id]).await?;
 
   // Purge image
   if let Some(url) = &post.url {

@@ -45,7 +45,7 @@ pub async fn purge_community(
   check_is_higher_admin(
     &mut context.pool(),
     &local_user_view,
-    &community_mod_person_ids,
+    community_mod_person_ids,
   )
   .await?;
 

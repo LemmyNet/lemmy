@@ -218,16 +218,16 @@ impl LocalUser {
     })
   }
 
-  /// Checks to make sure the acting moderator is higher than the target moderator
+  /// Checks to make sure the acting admin is higher than the target admin
   pub async fn is_higher_admin_check(
     pool: &mut DbPool<'_>,
     admin_person_id: PersonId,
-    target_person_ids: &[PersonId],
+    target_person_ids: Vec<PersonId>,
   ) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
 
     // Build the list of persons
-    let mut persons = target_person_ids.to_owned();
+    let mut persons = target_person_ids;
     persons.push(admin_person_id);
     persons.dedup();
 
@@ -239,7 +239,7 @@ impl LocalUser {
       .first::<LocalUser>(conn)
       .await?;
 
-    // If the first result sorted by published is the acting mod
+    // If the first result sorted by published is the acting admin
     if res.person_id == admin_person_id {
       Ok(())
     } else {
@@ -252,12 +252,12 @@ impl LocalUser {
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
     admin_person_id: PersonId,
-    target_person_ids: &[PersonId],
+    target_person_ids: Vec<PersonId>,
   ) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
 
     // Build the list of persons
-    let mut persons = target_person_ids.to_owned();
+    let mut persons = target_person_ids;
     persons.push(admin_person_id);
     persons.dedup();
 
@@ -408,12 +408,13 @@ mod tests {
 
     // Make sure fiona is marked as a higher admin than delores, and vice versa
     let fiona_higher_check =
-      LocalUser::is_higher_admin_check(pool, inserted_fiona_person.id, &admin_person_ids).await;
+      LocalUser::is_higher_admin_check(pool, inserted_fiona_person.id, admin_person_ids.clone())
+        .await;
     assert!(fiona_higher_check.is_ok());
 
     // This should throw an error, since delores was added later
     let delores_higher_check =
-      LocalUser::is_higher_admin_check(pool, inserted_delores_person.id, &admin_person_ids).await;
+      LocalUser::is_higher_admin_check(pool, inserted_delores_person.id, admin_person_ids).await;
     assert!(delores_higher_check.is_err());
 
     Instance::delete(pool, inserted_instance.id).await?;

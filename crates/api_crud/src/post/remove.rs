@@ -41,7 +41,7 @@ pub async fn remove_post(
     &mut context.pool(),
     &local_user_view,
     orig_post.community_id,
-    &[orig_post.creator_id],
+    vec![orig_post.creator_id],
   )
   .await?;
 

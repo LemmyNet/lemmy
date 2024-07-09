@@ -41,7 +41,7 @@ pub async fn purge_comment(
   check_is_higher_admin(
     &mut context.pool(),
     &local_user_view,
-    &[comment_view.creator.id],
+    vec![comment_view.creator.id],
   )
   .await?;
 

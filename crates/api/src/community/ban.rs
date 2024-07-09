@@ -53,7 +53,7 @@ pub async fn ban_from_community(
     &mut context.pool(),
     &local_user_view,
     data.community_id,
-    &[data.person_id],
+    vec![data.person_id],
   )
   .await?;
 

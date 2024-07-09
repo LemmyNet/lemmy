@@ -150,7 +150,7 @@ pub async fn check_is_higher_mod(
   pool: &mut DbPool<'_>,
   local_user_view: &LocalUserView,
   community_id: CommunityId,
-  target_person_ids: &[PersonId],
+  target_person_ids: Vec<PersonId>,
 ) -> LemmyResult<()> {
   CommunityModerator::is_higher_mod_check(
     pool,
@@ -169,7 +169,7 @@ pub async fn check_is_higher_mod(
 pub async fn check_is_higher_admin(
   pool: &mut DbPool<'_>,
   local_user_view: &LocalUserView,
-  target_person_ids: &[PersonId],
+  target_person_ids: Vec<PersonId>,
 ) -> LemmyResult<()> {
   LocalUser::is_higher_admin_check(pool, local_user_view.person.id, target_person_ids)
     .await
@@ -183,7 +183,7 @@ pub async fn check_is_higher_mod_or_admin(
   pool: &mut DbPool<'_>,
   local_user_view: &LocalUserView,
   community_id: CommunityId,
-  target_person_ids: &[PersonId],
+  target_person_ids: Vec<PersonId>,
 ) -> LemmyResult<()> {
   LocalUser::is_higher_mod_or_admin_check(
     pool,

@@ -26,7 +26,7 @@ pub async fn add_admin(
 
   // If its an admin removal, also check that you're a higher admin
   if !data.added {
-    check_is_higher_admin(&mut context.pool(), &local_user_view, &[data.person_id]).await?;
+    check_is_higher_admin(&mut context.pool(), &local_user_view, vec![data.person_id]).await?;
   }
 
   // Make sure that the person_id added is local

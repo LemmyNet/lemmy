@@ -40,7 +40,7 @@ pub async fn add_mod_to_community(
       &mut context.pool(),
       &local_user_view,
       community_id,
-      &[data.person_id],
+      vec![data.person_id],
     )
     .await?;
   }

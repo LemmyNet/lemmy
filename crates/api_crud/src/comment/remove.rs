@@ -45,7 +45,7 @@ pub async fn remove_comment(
     &mut context.pool(),
     &local_user_view,
     orig_comment.community.id,
-    &[orig_comment.creator.id],
+    vec![orig_comment.creator.id],
   )
   .await?;
 

@@ -235,17 +235,17 @@ impl CommunityModerator {
       .await
   }
 
-  /// Checks to make sure the acting moderator is higher than the target moderator
+  /// Checks to make sure the acting moderator was added earlier than the target moderator
   pub async fn is_higher_mod_check(
     pool: &mut DbPool<'_>,
     for_community_id: CommunityId,
     mod_person_id: PersonId,
-    target_person_ids: &[PersonId],
+    target_person_ids: Vec<PersonId>,
   ) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
 
     // Build the list of persons
-    let mut persons = target_person_ids.to_owned();
+    let mut persons = target_person_ids;
     persons.push(mod_person_id);
     persons.dedup();
 
@@ -553,7 +553,7 @@ mod tests {
       pool,
       inserted_community.id,
       inserted_bobby.id,
-      &moderator_person_ids,
+      moderator_person_ids.clone(),
     )
     .await;
     assert!(bobby_higher_check.is_ok());
@@ -563,7 +563,7 @@ mod tests {
       pool,
       inserted_community.id,
       inserted_bobby.id,
-      &moderator_person_ids,
+      moderator_person_ids.clone(),
     )
     .await;
     assert!(bobby_higher_check_2.is_ok());
@@ -573,7 +573,7 @@ mod tests {
       pool,
       inserted_community.id,
       inserted_artemis.id,
-      &moderator_person_ids,
+      moderator_person_ids,
     )
     .await;
     assert!(artemis_higher_check.is_err());

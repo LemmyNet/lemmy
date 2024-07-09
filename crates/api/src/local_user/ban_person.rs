@@ -32,7 +32,7 @@ pub async fn ban_from_site(
   is_admin(&local_user_view)?;
 
   // Also make sure you're a higher admin than the target
-  check_is_higher_admin(&mut context.pool(), &local_user_view, &[data.person_id]).await?;
+  check_is_higher_admin(&mut context.pool(), &local_user_view, vec![data.person_id]).await?;
 
   if let Some(reason) = &data.reason {
     is_valid_body_field(reason, false)?;
