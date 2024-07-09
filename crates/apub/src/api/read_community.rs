@@ -29,7 +29,7 @@ pub async fn get_community(
 
   check_private_instance(&local_user_view, &local_site)?;
 
-  let person_id = local_user_view.as_ref().map(|u| u.person.id);
+  let local_user = local_user_view.as_ref().map(|u| &u.local_user);
 
   let community_id = match data.id {
     Some(id) => id,
@@ -53,7 +53,7 @@ pub async fn get_community(
   let community_view = CommunityView::read(
     &mut context.pool(),
     community_id,
-    person_id,
+    local_user,
     is_mod_or_admin,
   )
   .await?
