@@ -1,6 +1,9 @@
-use crate::newtypes::{DbUrl, OAuthProviderId};
 #[cfg(feature = "full")]
 use crate::schema::oauth_provider;
+use crate::{
+  newtypes::{DbUrl, OAuthProviderId},
+  sensitive::SensitiveString,
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -14,7 +17,6 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// oauth provider with client_secret - should never be sent to the client
 pub struct UnsafeOAuthProvider {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub id: OAuthProviderId,
   /// The OAuth 2.0 provider name displayed to the user on the Login page
   pub display_name: String,
@@ -45,7 +47,7 @@ pub struct UnsafeOAuthProvider {
   /// The client_secret is provided by the OAuth 2.0 provider and is used to authenticate this
   /// service with the provider
   #[serde(skip)]
-  pub client_secret: String,
+  pub client_secret: SensitiveString,
   /// Lists the scopes requested from users. Users will have to grant access to the requested scope
   /// at sign up.
   pub scopes: String,
@@ -66,7 +68,6 @@ pub struct UnsafeOAuthProvider {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct OAuthProvider {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub id: OAuthProviderId,
   /// The OAuth 2.0 provider name displayed to the user on the Login page
   pub display_name: String,
@@ -114,7 +115,6 @@ pub struct OAuthProvider {
 #[cfg_attr(feature = "full", diesel(table_name = oauth_provider))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct OAuthProviderInsertForm {
-  pub id: OAuthProviderId,
   pub display_name: String,
   #[cfg_attr(feature = "full", ts(type = "string"))]
   pub issuer: DbUrl,
@@ -140,20 +140,20 @@ pub struct OAuthProviderInsertForm {
 #[cfg_attr(feature = "full", diesel(table_name = oauth_provider))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct OAuthProviderUpdateForm {
-  pub display_name: String,
+  pub display_name: Option<String>,
   #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub authorization_endpoint: DbUrl,
+  pub authorization_endpoint: Option<DbUrl>,
   #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub token_endpoint: DbUrl,
+  pub token_endpoint: Option<DbUrl>,
   #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub userinfo_endpoint: DbUrl,
-  pub id_claim: String,
-  pub name_claim: String,
+  pub userinfo_endpoint: Option<DbUrl>,
+  pub id_claim: Option<String>,
+  pub name_claim: Option<String>,
   pub client_secret: Option<String>,
-  pub scopes: String,
-  pub auto_verify_email: bool,
-  pub auto_approve_application: bool,
-  pub account_linking_enabled: bool,
-  pub enabled: bool,
+  pub scopes: Option<String>,
+  pub auto_verify_email: Option<bool>,
+  pub auto_approve_application: Option<bool>,
+  pub account_linking_enabled: Option<bool>,
+  pub enabled: Option<bool>,
   pub updated: DateTime<Utc>,
 }
