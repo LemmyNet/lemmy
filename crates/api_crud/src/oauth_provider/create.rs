@@ -6,16 +6,11 @@ use lemmy_api_common::{
   utils::is_admin,
 };
 use lemmy_db_schema::{
-  newtypes::OAuthProviderId,
   source::oauth_provider::{OAuthProvider, OAuthProviderInsertForm, UnsafeOAuthProvider},
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
-use sha3::{
-  digest::{ExtendableOutput, Update, XofReader},
-  Shake128,
-};
 use url::Url;
 
 #[tracing::instrument(skip(context))]
@@ -27,17 +22,8 @@ pub async fn create_oauth_provider(
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
-  // hash the issuer and client_id to create a deterministic i64 id
-  let mut hasher = Shake128::default();
-  hasher.update(data.issuer.as_bytes());
-  hasher.update(data.client_id.as_bytes());
-  let mut reader = hasher.finalize_xof();
-  let mut id_bytes = [0u8; 8];
-  reader.read(&mut id_bytes);
-
   let cloned_data = data.clone();
   let oauth_provider_form = OAuthProviderInsertForm {
-    id: OAuthProviderId(i64::from_ne_bytes(id_bytes)),
     display_name: cloned_data.display_name,
     issuer: Url::parse(&cloned_data.issuer)?.into(),
     authorization_endpoint: Url::parse(&cloned_data.authorization_endpoint)?.into(),

@@ -63,7 +63,7 @@ impl LocalUser {
     form: &LocalUserUpdateForm,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    let res: Result<usize, Error> = diesel::update(local_user::table.find(local_user_id))
+    let res = diesel::update(local_user::table.find(local_user_id))
       .set(form)
       .execute(conn)
       .await;

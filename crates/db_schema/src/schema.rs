@@ -613,10 +613,9 @@ diesel::table! {
 }
 
 diesel::table! {
-    oauth_account (id) {
-        id -> Int4,
+    oauth_account (oauth_provider_id, local_user_id) {
         local_user_id -> Int4,
-        oauth_provider_id -> Int8,
+        oauth_provider_id -> Int4,
         oauth_user_id -> Text,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
@@ -625,7 +624,7 @@ diesel::table! {
 
 diesel::table! {
     oauth_provider (id) {
-        id -> Int8,
+        id -> Int4,
         display_name -> Text,
         issuer -> Text,
         authorization_endpoint -> Text,
@@ -1038,6 +1037,7 @@ diesel::joinable!(mod_remove_post -> person (mod_person_id));
 diesel::joinable!(mod_remove_post -> post (post_id));
 diesel::joinable!(mod_transfer_community -> community (community_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));
+diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
 diesel::joinable!(person -> instance (instance_id));
 diesel::joinable!(person_aggregates -> person (person_id));

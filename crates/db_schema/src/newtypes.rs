@@ -154,19 +154,11 @@ pub struct CustomEmojiId(i32);
 /// The registration application id.
 pub struct RegistrationApplicationId(i32);
 
-#[repr(transparent)]
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
-#[serde(into = "String", from = "String")]
 /// The oauth provider id.
-pub struct OAuthProviderId(pub i64);
-
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The oauth account id.
-pub struct OAuthAccountId(pub i32);
+pub struct OAuthProviderId(pub i32);
 
 #[cfg(feature = "full")]
 #[derive(Serialize, Deserialize)]
@@ -289,21 +281,6 @@ where
 {
   fn from(id: ObjectId<Kind>) -> Self {
     DbUrl(Box::new(id.into()))
-  }
-}
-
-impl From<OAuthProviderId> for String {
-  fn from(id: OAuthProviderId) -> Self {
-    id.0.to_string()
-  }
-}
-
-impl From<String> for OAuthProviderId {
-  fn from(id: String) -> Self {
-    OAuthProviderId(
-      id.parse::<i64>()
-        .expect("OAuthProviderID is not a valid integer"),
-    )
   }
 }
 

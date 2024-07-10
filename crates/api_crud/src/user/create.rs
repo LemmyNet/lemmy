@@ -238,10 +238,7 @@ pub async fn authenticate_with_oauth(
   let local_site: LocalSite = site_view.local_site.clone();
 
   // validate inputs
-  if data.oauth_provider_id == OAuthProviderId(0i64)
-    || data.code.is_empty()
-    || data.code.len() > 300
-  {
+  if data.oauth_provider_id == OAuthProviderId(0) || data.code.is_empty() || data.code.len() > 300 {
     return Err(LemmyErrorType::OauthAuthorizationInvalid)?;
   }
 

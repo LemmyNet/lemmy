@@ -182,6 +182,7 @@ pub enum LemmyErrorType {
   OauthAuthorizationInvalid,
   OauthLoginFailed,
   OauthRegistrationClosed,
+  CouldntDeleteOauthProvider,
   Unknown(String),
   CantDeleteSite,
   UrlLengthOverflow,

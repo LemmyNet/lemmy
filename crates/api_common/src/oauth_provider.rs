@@ -31,20 +31,19 @@ pub struct CreateOAuthProvider {
 #[cfg_attr(feature = "full", ts(export))]
 /// Edit an external auth method.
 pub struct EditOAuthProvider {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub id: OAuthProviderId,
-  pub display_name: String,
-  pub authorization_endpoint: String,
-  pub token_endpoint: String,
-  pub userinfo_endpoint: String,
-  pub id_claim: String,
-  pub name_claim: String,
-  pub client_secret: String,
-  pub scopes: String,
-  pub auto_verify_email: bool,
-  pub auto_approve_application: bool,
-  pub account_linking_enabled: bool,
-  pub enabled: bool,
+  pub display_name: Option<String>,
+  pub authorization_endpoint: Option<String>,
+  pub token_endpoint: Option<String>,
+  pub userinfo_endpoint: Option<String>,
+  pub id_claim: Option<String>,
+  pub name_claim: Option<String>,
+  pub client_secret: Option<String>,
+  pub scopes: Option<String>,
+  pub auto_verify_email: Option<bool>,
+  pub auto_approve_application: Option<bool>,
+  pub account_linking_enabled: Option<bool>,
+  pub enabled: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -52,7 +51,6 @@ pub struct EditOAuthProvider {
 #[cfg_attr(feature = "full", ts(export))]
 /// Delete an external auth method.
 pub struct DeleteOAuthProvider {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub id: OAuthProviderId,
 }
 

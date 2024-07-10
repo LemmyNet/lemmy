@@ -4,11 +4,10 @@ use lemmy_api_common::{context::LemmyContext, oauth_provider::EditOAuthProvider,
 use lemmy_db_schema::{
   source::oauth_provider::{OAuthProvider, OAuthProviderUpdateForm, UnsafeOAuthProvider},
   traits::Crud,
-  utils::naive_now,
+  utils::{diesel_required_string_update, diesel_required_url_update, naive_now},
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{error::LemmyError, LemmyErrorType};
-use url::Url;
 
 #[tracing::instrument(skip(context))]
 pub async fn update_oauth_provider(
@@ -21,18 +20,16 @@ pub async fn update_oauth_provider(
 
   let cloned_data = data.clone();
   let oauth_provider_form = OAuthProviderUpdateForm {
-    display_name: cloned_data.display_name,
-    authorization_endpoint: Url::parse(&cloned_data.authorization_endpoint)?.into(),
-    token_endpoint: Url::parse(&cloned_data.token_endpoint)?.into(),
-    userinfo_endpoint: Url::parse(&cloned_data.userinfo_endpoint)?.into(),
-    id_claim: data.id_claim.to_string(),
-    name_claim: data.name_claim.to_string(),
-    client_secret: if !data.client_secret.is_empty() {
-      Some(data.client_secret.to_string())
-    } else {
-      None
-    },
-    scopes: data.scopes.to_string(),
+    display_name: diesel_required_string_update(cloned_data.display_name.as_deref()),
+    authorization_endpoint: diesel_required_url_update(
+      cloned_data.authorization_endpoint.as_deref(),
+    )?,
+    token_endpoint: diesel_required_url_update(cloned_data.token_endpoint.as_deref())?,
+    userinfo_endpoint: diesel_required_url_update(cloned_data.userinfo_endpoint.as_deref())?,
+    id_claim: diesel_required_string_update(data.id_claim.as_deref()),
+    name_claim: diesel_required_string_update(data.name_claim.as_deref()),
+    client_secret: diesel_required_string_update(data.client_secret.as_deref()),
+    scopes: diesel_required_string_update(data.scopes.as_deref()),
     auto_verify_email: data.auto_verify_email,
     auto_approve_application: data.auto_approve_application,
     account_linking_enabled: data.account_linking_enabled,
