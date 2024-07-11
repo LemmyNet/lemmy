@@ -421,7 +421,6 @@ mod test {
   use lemmy_api_common::utils::{generate_inbox_url, generate_shared_inbox_url};
   use lemmy_db_schema::{
     newtypes::DbUrl,
-    schema::received_activity,
     source::{
       activity::{ActorType, SentActivity, SentActivityForm},
       person::{Person, PersonInsertForm},
@@ -733,7 +732,7 @@ mod test {
         a.data["id"]
           .as_str()
           .unwrap()
-          .cmp(&b.data["id"].as_str().unwrap())
+          .cmp(b.data["id"].as_str().unwrap())
       });
     }
     // receive for successfully sent activity
