@@ -73,6 +73,11 @@
       # 
       # Requires pict-rs 0.5
       "ProxyAllImages"
+    # Allows bypassing proxy for specific image hosts when using ProxyAllImages
+    proxy_bypass_domains: [
+      "string"
+      /* ... */
+    ]
     # Timeout for uploading images to pictrs (in seconds)
     upload_timeout: 30
   }
