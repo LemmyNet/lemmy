@@ -45,7 +45,7 @@ pub async fn get_site(
       let site_view = SiteView::read_local(&mut context.pool())
         .await?
         .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
-      let admins: Vec<PersonView> = PersonView::admins(&mut context.pool()).await?;
+      let admins = PersonView::admins(&mut context.pool()).await?;
       let all_languages = Language::read_all(&mut context.pool()).await?;
       let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
       let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
