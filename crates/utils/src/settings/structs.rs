@@ -28,11 +28,6 @@ pub struct Settings {
   #[default("unset")]
   #[doku(example = "example.com")]
   pub hostname: String,
-  /// the domain name of your lemmy-ui instance used for OAUTH2 (defaults to the backend instance
-  /// hostname)
-  #[default(None)]
-  #[doku(example = "example.com")]
-  pub hostname_ui: Option<String>,
   /// Address where lemmy should listen for incoming requests
   #[default(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)))]
   #[doku(as = "String")]
