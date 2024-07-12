@@ -102,9 +102,6 @@
   }
   # the domain name of your instance (mandatory)
   hostname: "unset"
-  # the domain name of your lemmy-ui instance used for OAUTH2 (defaults to the backend instance
-  # hostname)
-  hostname_ui: "example.com"
   # Address where lemmy should listen for incoming requests
   bind: "0.0.0.0"
   # Port where lemmy should listen for incoming requests

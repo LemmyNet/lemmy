@@ -244,13 +244,7 @@ pub async fn authenticate_with_oauth(
 
   // validate the redirect_uri
   let redirect_uri = &data.redirect_uri;
-  if !redirect_uri
-    .host_str()
-    .unwrap_or("")
-    .eq(context.settings().get_ui_hostname())
-    || !redirect_uri
-      .scheme()
-      .eq(context.settings().get_protocol_string())
+  if redirect_uri.host_str().unwrap_or("").is_empty()
     || !redirect_uri.path().eq(&String::from("/oauth/callback"))
     || !redirect_uri.query().unwrap_or("").is_empty()
   {
