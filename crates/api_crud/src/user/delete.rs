@@ -22,7 +22,7 @@ pub async fn delete_account(
   let valid: bool = local_user_view
     .local_user
     .password_encrypted
-    .clone()
+    .as_ref()
     .and_then(|password_encrypted| verify(&data.password, &password_encrypted).ok())
     .unwrap_or(false);
   if !valid {
