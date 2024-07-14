@@ -23,6 +23,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    oauth_account::OAuthAccount,
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
@@ -893,6 +894,11 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
 
   // Leave communities they mod
   CommunityModerator::leave_all_communities(pool, person_id).await?;
+
+  // Delete the oauth accounts linked to the local user
+  if let Ok(Some(local_user)) = LocalUserView::read_person(pool, person_id).await {
+    OAuthAccount::delete_user_accounts(pool, local_user.local_user.id).await?;
+  }
 
   Person::delete_account(pool, person_id).await?;
 
