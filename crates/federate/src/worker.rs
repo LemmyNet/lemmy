@@ -241,8 +241,20 @@ impl InstanceWorker {
   async fn handle_send_results(&mut self) -> Result<(), anyhow::Error> {
     let mut force_write = false;
     let mut events = Vec::new();
-    // wait for at least one event but if there's multiple handle them all
-    self.receive_send_result.recv_many(&mut events, 1000).await;
+    // Wait for at least one event but if there's multiple handle them all.
+    // We need to listen to the cancel event here as well in order to prevent a hang on shutdown:
+    // If the SendRetryTask gets cancelled, it immediately exits without reporting any state.
+    // So if the worker is waiting for a send result and all SendRetryTask gets cancelled, this recv
+    // could hang indefinitely otherwise. The tasks will also drop their handle of
+    // report_send_result which would cause the recv_many method to return 0 elements, but since
+    // InstanceWorker holds a copy of the send result channel as well, that won't happen.
+    tokio::select! {
+      _ = self.receive_send_result.recv_many(&mut events, 1000) => {},
+      () = self.stop.cancelled() => {
+        tracing::debug!("cancelled worker loop while waiting for send results");
+        return Ok(());
+      }
+    }
     for event in events {
       match event {
         SendActivityResult::Success(s) => {

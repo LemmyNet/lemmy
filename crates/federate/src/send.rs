@@ -129,8 +129,9 @@ impl<'a> SendRetryTask<'a> {
         tokio::select! {
           () = sleep(retry_delay) => {},
           () = stop.cancelled() => {
-            // save state to db and exit
-            // TODO: do we need to report state here to prevent hang on exit?
+            // cancel sending without reporting any result.
+            // the InstanceWorker needs to be careful to not hang on receive of that
+            // channel when cancelled (see handle_send_results)
             return Ok(());
           }
         }
