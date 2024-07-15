@@ -5,12 +5,13 @@ use lemmy_api_common::{
   comment::{CommentResponse, RemoveComment},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, check_is_higher_mod_or_admin},
+  utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
     comment_report::CommentReport,
+    local_user::LocalUser,
     moderator::{ModRemoveComment, ModRemoveCommentForm},
   },
   traits::{Crud, Reportable},
@@ -41,10 +42,10 @@ pub async fn remove_comment(
   )
   .await?;
 
-  check_is_higher_mod_or_admin(
+  LocalUser::is_higher_mod_or_admin_check(
     &mut context.pool(),
-    &local_user_view,
     orig_comment.community.id,
+    local_user_view.person.id,
     vec![orig_comment.creator.id],
   )
   .await?;

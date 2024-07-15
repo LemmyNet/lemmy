@@ -5,13 +5,14 @@ use lemmy_api_common::{
   request::purge_image_from_pictrs,
   send_activity::{ActivityChannel, SendActivityData},
   site::PurgeCommunity,
-  utils::{check_is_higher_admin, is_admin, purge_image_posts_for_community},
+  utils::{is_admin, purge_image_posts_for_community},
   SuccessResponse,
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
   source::{
     community::Community,
+    local_user::LocalUser,
     moderator::{AdminPurgeCommunity, AdminPurgeCommunityForm},
   },
   traits::Crud,
@@ -42,9 +43,9 @@ pub async fn purge_community(
       .map(|cmv| cmv.moderator.id)
       .collect::<Vec<PersonId>>();
 
-  check_is_higher_admin(
+  LocalUser::is_higher_admin_check(
     &mut context.pool(),
-    &local_user_view,
+    local_user_view.person.id,
     community_mod_person_ids,
   )
   .await?;

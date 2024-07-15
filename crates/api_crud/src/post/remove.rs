@@ -5,10 +5,11 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{PostResponse, RemovePost},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, check_is_higher_mod_or_admin},
+  utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
   source::{
+    local_user::LocalUser,
     moderator::{ModRemovePost, ModRemovePostForm},
     post::{Post, PostUpdateForm},
     post_report::PostReport,
@@ -37,10 +38,10 @@ pub async fn remove_post(
   )
   .await?;
 
-  check_is_higher_mod_or_admin(
+  LocalUser::is_higher_mod_or_admin_check(
     &mut context.pool(),
-    &local_user_view,
     orig_post.community_id,
+    local_user_view.person.id,
     vec![orig_post.creator_id],
   )
   .await?;

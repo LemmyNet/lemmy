@@ -5,10 +5,11 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_expire_time, check_is_higher_admin, is_admin, remove_user_data},
+  utils::{check_expire_time, is_admin, remove_user_data},
 };
 use lemmy_db_schema::{
   source::{
+    local_user::LocalUser,
     login_token::LoginToken,
     moderator::{ModBan, ModBanForm},
     person::{Person, PersonUpdateForm},
@@ -32,7 +33,12 @@ pub async fn ban_from_site(
   is_admin(&local_user_view)?;
 
   // Also make sure you're a higher admin than the target
-  check_is_higher_admin(&mut context.pool(), &local_user_view, vec![data.person_id]).await?;
+  LocalUser::is_higher_admin_check(
+    &mut context.pool(),
+    local_user_view.person.id,
+    vec![data.person_id],
+  )
+  .await?;
 
   if let Some(reason) = &data.reason {
     is_valid_body_field(reason, false)?;

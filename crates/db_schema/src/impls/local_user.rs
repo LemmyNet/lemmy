@@ -25,6 +25,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl LocalUser {
   pub async fn create(
@@ -223,7 +224,7 @@ impl LocalUser {
     pool: &mut DbPool<'_>,
     admin_person_id: PersonId,
     target_person_ids: Vec<PersonId>,
-  ) -> Result<(), Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
 
     // Build the list of persons
@@ -243,7 +244,7 @@ impl LocalUser {
     if res.person_id == admin_person_id {
       Ok(())
     } else {
-      Err(diesel::result::Error::NotFound)
+      Err(LemmyErrorType::NotHigherAdmin)?
     }
   }
 
@@ -253,7 +254,7 @@ impl LocalUser {
     for_community_id: CommunityId,
     admin_person_id: PersonId,
     target_person_ids: Vec<PersonId>,
-  ) -> Result<(), Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
 
     // Build the list of persons
@@ -274,16 +275,13 @@ impl LocalUser {
       .select(community_moderator::person_id);
 
     let res = admins.union_all(mods).get_results::<PersonId>(conn).await?;
-    let first_person = res
-      .as_slice()
-      .first()
-      .ok_or(diesel::result::Error::NotFound)?;
+    let first_person = res.as_slice().first().ok_or(LemmyErrorType::NotHigherMod)?;
 
     // If the first result sorted by published is the acting mod
     if *first_person == admin_person_id {
       Ok(())
     } else {
-      Err(diesel::result::Error::NotFound)
+      Err(LemmyErrorType::NotHigherMod)?
     }
   }
 }

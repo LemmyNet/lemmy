@@ -5,11 +5,12 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   site::PurgePerson,
-  utils::{check_is_higher_admin, is_admin, purge_user_account},
+  utils::{is_admin, purge_user_account},
   SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
+    local_user::LocalUser,
     moderator::{AdminPurgePerson, AdminPurgePersonForm},
     person::{Person, PersonUpdateForm},
   },
@@ -28,7 +29,12 @@ pub async fn purge_person(
   is_admin(&local_user_view)?;
 
   // Also check that you're a higher admin
-  check_is_higher_admin(&mut context.pool(), &local_user_view, vec![data.person_id]).await?;
+  LocalUser::is_higher_admin_check(
+    &mut context.pool(),
+    local_user_view.person.id,
+    vec![data.person_id],
+  )
+  .await?;
 
   let person = Person::read(&mut context.pool(), data.person_id)
     .await?

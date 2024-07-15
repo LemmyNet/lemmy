@@ -5,11 +5,12 @@ use lemmy_api_common::{
   request::purge_image_from_pictrs,
   send_activity::{ActivityChannel, SendActivityData},
   site::PurgePost,
-  utils::{check_is_higher_admin, is_admin},
+  utils::is_admin,
   SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
+    local_user::LocalUser,
     moderator::{AdminPurgePost, AdminPurgePostForm},
     post::Post,
   },
@@ -33,7 +34,12 @@ pub async fn purge_post(
     .ok_or(LemmyErrorType::CouldntFindPost)?;
 
   // Also check that you're a higher admin
-  check_is_higher_admin(&mut context.pool(), &local_user_view, vec![post.creator_id]).await?;
+  LocalUser::is_higher_admin_check(
+    &mut context.pool(),
+    local_user_view.person.id,
+    vec![post.creator_id],
+  )
+  .await?;
 
   // Purge image
   if let Some(url) = &post.url {

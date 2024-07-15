@@ -4,12 +4,7 @@ use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_community_mod_action,
-    check_expire_time,
-    check_is_higher_mod_or_admin,
-    remove_user_data_in_community,
-  },
+  utils::{check_community_mod_action, check_expire_time, remove_user_data_in_community},
 };
 use lemmy_db_schema::{
   source::{
@@ -19,6 +14,7 @@ use lemmy_db_schema::{
       CommunityPersonBan,
       CommunityPersonBanForm,
     },
+    local_user::LocalUser,
     moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
   },
   traits::{Bannable, Crud, Followable},
@@ -49,10 +45,10 @@ pub async fn ban_from_community(
   )
   .await?;
 
-  check_is_higher_mod_or_admin(
+  LocalUser::is_higher_mod_or_admin_check(
     &mut context.pool(),
-    &local_user_view,
     data.community_id,
+    local_user_view.person.id,
     vec![data.person_id],
   )
   .await?;

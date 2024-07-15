@@ -49,6 +49,7 @@ use diesel::{
   Queryable,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[async_trait]
 impl Crud for Community {
@@ -241,7 +242,7 @@ impl CommunityModerator {
     for_community_id: CommunityId,
     mod_person_id: PersonId,
     target_person_ids: Vec<PersonId>,
-  ) -> Result<(), Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
 
     // Build the list of persons
@@ -261,7 +262,7 @@ impl CommunityModerator {
     if res.person_id == mod_person_id {
       Ok(())
     } else {
-      Err(diesel::result::Error::NotFound)
+      Err(LemmyErrorType::NotHigherMod)?
     }
   }
 }
