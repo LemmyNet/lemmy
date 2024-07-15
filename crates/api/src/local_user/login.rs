@@ -33,7 +33,7 @@ pub async fn login(
     .local_user
     .password_encrypted
     .as_ref()
-    .and_then(|password_encrypted| verify(&data.password, &password_encrypted).ok())
+    .and_then(|password_encrypted| verify(&data.password, password_encrypted).ok())
     .unwrap_or(false);
   if !valid {
     Err(LemmyErrorType::IncorrectLogin)?
