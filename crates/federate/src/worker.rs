@@ -144,14 +144,11 @@ impl InstanceWorker {
       let next_id_to_send = ActivityId(last_sent_id.0 + 1);
       {
         // sanity check: calculate next id to send based on the last id and the in flight requests
-        let last_successful_id =
-          self.state.last_successful_id.map(|e| e.0).context(
-            "impossible: id is initialized in get_latest_ids and never returned to None",
-          )?;
-        let expected_next_id =
-          last_successful_id + (self.successfuls.len() as i64) + self.in_flight + 1;
+        let expected_next_id = self.state.last_successful_id.map(|last_successful_id| {
+          last_successful_id.0 + (self.successfuls.len() as i64) + self.in_flight + 1
+        });
         // compare to next id based on incrementing
-        if expected_next_id != next_id_to_send.0 {
+        if expected_next_id != Some(next_id_to_send.0) {
           anyhow::bail!(
             "{}: next id to send is not as expected: {:?} != {:?}",
             self.instance.domain,
@@ -226,16 +223,19 @@ impl InstanceWorker {
   /// sets last_successful_id in database if it's the first time this instance is seen
   async fn get_latest_ids(&mut self) -> Result<(ActivityId, ActivityId)> {
     let latest_id = get_latest_activity_id(&mut self.pool()).await?;
-    if let Some(last) = self.state.last_successful_id {
-      Ok((last, latest_id))
+    let last = if let Some(last) = self.state.last_successful_id {
+      last
     } else {
       // this is the initial creation (instance first seen) of the federation queue for this
-      // instance skip all past activities:
+      // instance
+
+      // skip all past activities:
       self.state.last_successful_id = Some(latest_id);
       // save here to ensure it's not read as 0 again later if no activities have happened
       self.save_and_send_state().await?;
-      Ok((latest_id, latest_id))
-    }
+      latest_id
+    };
+    Ok((last, latest_id))
   }
 
   async fn handle_send_results(&mut self) -> Result<(), anyhow::Error> {

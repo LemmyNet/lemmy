@@ -134,7 +134,7 @@ test("Create user with Arabic name", async () => {
   let user = await registerUser(
     alpha,
     alphaUrl,
-    "تجريب" + Math.random().toString().slice(2, 5),
+    "تجريب" + Math.random().toString().slice(2),
   );
 
   let site = await getSite(user);
