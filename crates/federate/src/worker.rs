@@ -116,9 +116,7 @@ impl InstanceWorker {
   /// loop fetch new activities from db and send them to the inboxes of the given instances
   /// this worker only returns if (a) there is an internal error or (b) the cancellation token is
   /// cancelled (graceful exit)
-  async fn loop_until_stopped(
-    &mut self,
-  ) -> Result<()> {
+  async fn loop_until_stopped(&mut self) -> Result<()> {
     self.initial_fail_sleep().await?;
     let (mut last_sent_id, mut newest_id) = self.get_latest_ids().await?;
 
@@ -139,56 +137,55 @@ impl InstanceWorker {
         // handle_send_results does not guarantee that we are now in a condition where we want to
         // send a new one, so repeat this check until the if no longer applies
         continue;
-      } else {
-        // send a new activity if there is one
-        self.inbox_collector.update_communities().await?;
-        let next_id_to_send = ActivityId(last_sent_id.0 + 1);
-        {
-          // sanity check: calculate next id to send based on the last id and the in flight requests
-          let last_successful_id = self.state.last_successful_id.map(|e| e.0).context(
+      }
+
+      // send a new activity if there is one
+      self.inbox_collector.update_communities().await?;
+      let next_id_to_send = ActivityId(last_sent_id.0 + 1);
+      {
+        // sanity check: calculate next id to send based on the last id and the in flight requests
+        let last_successful_id =
+          self.state.last_successful_id.map(|e| e.0).context(
             "impossible: id is initialized in get_latest_ids and never returned to None",
           )?;
-          let expected_next_id =
-            last_successful_id + (self.successfuls.len() as i64) + self.in_flight + 1;
-          // compare to next id based on incrementing
-          if expected_next_id != next_id_to_send.0 {
-            anyhow::bail!(
-              "{}: next id to send is not as expected: {:?} != {:?}",
-              self.instance.domain,
-              expected_next_id,
-              next_id_to_send
-            )
-          }
+        let expected_next_id =
+          last_successful_id + (self.successfuls.len() as i64) + self.in_flight + 1;
+        // compare to next id based on incrementing
+        if expected_next_id != next_id_to_send.0 {
+          anyhow::bail!(
+            "{}: next id to send is not as expected: {:?} != {:?}",
+            self.instance.domain,
+            expected_next_id,
+            next_id_to_send
+          )
         }
+      }
 
+      if next_id_to_send > newest_id {
+        // lazily fetch latest id only if we have cought up
+        newest_id = self.get_latest_ids().await?.1;
         if next_id_to_send > newest_id {
-          // lazily fetch latest id only if we have cought up
-          newest_id = self.get_latest_ids().await?.1;
-          if next_id_to_send > newest_id {
-            if next_id_to_send > ActivityId(newest_id.0 + 1) {
-              tracing::error!(
+          if next_id_to_send > ActivityId(newest_id.0 + 1) {
+            tracing::error!(
                 "{}: next send id {} is higher than latest id {}+1 in database (did the db get cleared?)",
                 self.instance.domain,
                 next_id_to_send.0,
                 newest_id.0
               );
-            }
-            // no more work to be done, wait before rechecking
-            tokio::select! {
-              () = sleep(*WORK_FINISHED_RECHECK_DELAY) => {},
-              () = self.stop.cancelled() => {
-                tracing::debug!("cancelled worker loop while waiting for new work")
-              }
-            }
-            continue;
           }
+          // no more work to be done, wait before rechecking
+          tokio::select! {
+            () = sleep(*WORK_FINISHED_RECHECK_DELAY) => {},
+            () = self.stop.cancelled() => {
+              tracing::debug!("cancelled worker loop while waiting for new work")
+            }
+          }
+          continue;
         }
-        self.in_flight += 1;
-        last_sent_id = next_id_to_send;
-        self
-          .spawn_send_if_needed(next_id_to_send)
-          .await?;
       }
+      self.in_flight += 1;
+      last_sent_id = next_id_to_send;
+      self.spawn_send_if_needed(next_id_to_send).await?;
     }
     tracing::debug!("cancelled worker loop after send");
 
@@ -327,20 +324,19 @@ impl InstanceWorker {
   /// we collect the relevant inboxes in the main instance worker task, and only spawn the send task
   /// if we have inboxes to send to this limits CPU usage and reduces overhead for the (many)
   /// cases where we don't have any inboxes
-  async fn spawn_send_if_needed(
-    &mut self,
-    activity_id: ActivityId,
-  ) -> Result<()> {
+  async fn spawn_send_if_needed(&mut self, activity_id: ActivityId) -> Result<()> {
     let Some(ele) = get_activity_cached(&mut self.pool(), activity_id)
       .await
       .context("failed reading activity from db")?
     else {
       tracing::debug!("{}: {:?} does not exist", self.instance.domain, activity_id);
-      self.report_send_result.send(SendActivityResult::Success(SendSuccessInfo {
-        activity_id,
-        published: None,
-        was_skipped: true,
-      }))?;
+      self
+        .report_send_result
+        .send(SendActivityResult::Success(SendSuccessInfo {
+          activity_id,
+          published: None,
+          was_skipped: true,
+        }))?;
       return Ok(());
     };
     let activity = &ele.0;
@@ -353,16 +349,19 @@ impl InstanceWorker {
       // this is the case when the activity is not relevant to this receiving instance (e.g. no user
       // subscribed to the relevant community)
       tracing::debug!("{}: {:?} no inboxes", self.instance.domain, activity.id);
-      self.report_send_result.send(SendActivityResult::Success(SendSuccessInfo {
-        activity_id,
-        // it would be valid here to either return None or Some(activity.published). The published
-        // time is only used for stats pages that track federation delay. None can be a bit
-        // misleading because if you look at / chart the published time for federation from a large
-        // to a small instance that's only subscribed to a few small communities, then it will show
-        // the last published time as a days ago even though federation is up to date.
-        published: Some(activity.published),
-        was_skipped: true,
-      }))?;
+      self
+        .report_send_result
+        .send(SendActivityResult::Success(SendSuccessInfo {
+          activity_id,
+          // it would be valid here to either return None or Some(activity.published). The published
+          // time is only used for stats pages that track federation delay. None can be a bit
+          // misleading because if you look at / chart the published time for federation from a
+          // large to a small instance that's only subscribed to a few small communities,
+          // then it will show the last published time as a days ago even though
+          // federation is up to date.
+          published: Some(activity.published),
+          was_skipped: true,
+        }))?;
       return Ok(());
     }
     let initial_fail_count = self.state.fail_count;
