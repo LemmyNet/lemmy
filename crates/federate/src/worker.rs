@@ -70,6 +70,13 @@ pub(crate) struct InstanceWorker {
   stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
   // each HTTP send will report back to this channel concurrently
   receive_send_result: mpsc::UnboundedReceiver<SendActivityResult>,
+  // this part of the channel is cloned and passed to the SendRetryTasks
+  report_send_result: mpsc::UnboundedSender<SendActivityResult>,
+  // activities that have been successfully sent but
+  // that are not the lowest number and thus can't be written to the database yet
+  successfuls: BinaryHeap<SendSuccessInfo>,
+  // number of activities that currently have a task spawned to send it
+  in_flight: i64,
 }
 
 impl InstanceWorker {
@@ -99,42 +106,36 @@ impl InstanceWorker {
       last_state_insert: Utc.timestamp_nanos(0),
       pool,
       receive_send_result,
+      report_send_result,
+      successfuls: BinaryHeap::<SendSuccessInfo>::new(),
+      in_flight: 0,
     };
 
-    worker.loop_until_stopped(report_send_result).await
+    worker.loop_until_stopped().await
   }
   /// loop fetch new activities from db and send them to the inboxes of the given instances
   /// this worker only returns if (a) there is an internal error or (b) the cancellation token is
   /// cancelled (graceful exit)
   async fn loop_until_stopped(
     &mut self,
-    report_send_result: UnboundedSender<SendActivityResult>,
   ) -> Result<()> {
     self.initial_fail_sleep().await?;
     let (mut last_sent_id, mut newest_id) = self.get_latest_ids().await?;
-
-    // activities that have been successfully sent but
-    // that are not the lowest number and thus can't be written to the database yet
-    let mut successfuls = BinaryHeap::<SendSuccessInfo>::new();
-    // number of activities that currently have a task spawned to send it
-    let mut in_flight: i64 = 0;
 
     while !self.stop.is_cancelled() {
       // check if we need to wait for a send to finish before sending the next one
       // we wait if (a) the last request failed, only if a request is already in flight (not at the
       // start of the loop) or (b) if we have too many successfuls in memory or (c) if we have
       // too many in flight
-      let need_wait_for_event = (in_flight != 0 && self.state.fail_count > 0)
-        || successfuls.len() >= MAX_SUCCESSFULS
-        || in_flight >= self.federation_worker_config.concurrent_sends_per_instance;
+      let need_wait_for_event = (self.in_flight != 0 && self.state.fail_count > 0)
+        || self.successfuls.len() >= MAX_SUCCESSFULS
+        || self.in_flight >= self.federation_worker_config.concurrent_sends_per_instance;
       if need_wait_for_event || self.receive_send_result.len() > MIN_ACTIVITY_SEND_RESULTS_TO_HANDLE
       {
         // if len() > 0 then this does not block and allows us to write to db more often
         // if len is 0 then this means we wait for something to change our above conditions,
         // which can only happen by an event sent into the channel
-        self
-          .handle_send_results(&mut successfuls, &mut in_flight)
-          .await?;
+        self.handle_send_results().await?;
         // handle_send_results does not guarantee that we are now in a condition where we want to
         // send a new one, so repeat this check until the if no longer applies
         continue;
@@ -147,7 +148,8 @@ impl InstanceWorker {
           let last_successful_id = self.state.last_successful_id.map(|e| e.0).context(
             "impossible: id is initialized in get_latest_ids and never returned to None",
           )?;
-          let expected_next_id = last_successful_id + (successfuls.len() as i64) + in_flight + 1;
+          let expected_next_id =
+            last_successful_id + (self.successfuls.len() as i64) + self.in_flight + 1;
           // compare to next id based on incrementing
           if expected_next_id != next_id_to_send.0 {
             anyhow::bail!(
@@ -181,10 +183,10 @@ impl InstanceWorker {
             continue;
           }
         }
-        in_flight += 1;
+        self.in_flight += 1;
         last_sent_id = next_id_to_send;
         self
-          .spawn_send_if_needed(next_id_to_send, report_send_result.clone())
+          .spawn_send_if_needed(next_id_to_send)
           .await?;
       }
     }
@@ -239,11 +241,7 @@ impl InstanceWorker {
     }
   }
 
-  async fn handle_send_results(
-    &mut self,
-    successfuls: &mut BinaryHeap<SendSuccessInfo>,
-    in_flight: &mut i64,
-  ) -> Result<(), anyhow::Error> {
+  async fn handle_send_results(&mut self) -> Result<(), anyhow::Error> {
     let mut force_write = false;
     let mut events = Vec::new();
     // wait for at least one event but if there's multiple handle them all
@@ -252,11 +250,11 @@ impl InstanceWorker {
       match event {
         SendActivityResult::Success(s) => {
           self.state.fail_count = 0;
-          *in_flight -= 1;
+          self.in_flight -= 1;
           if !s.was_skipped {
             self.mark_instance_alive().await?;
           }
-          successfuls.push(s);
+          self.successfuls.push(s);
         }
         SendActivityResult::Failure { fail_count, .. } => {
           if fail_count > self.state.fail_count {
@@ -269,9 +267,7 @@ impl InstanceWorker {
         }
       }
     }
-    self
-      .pop_successfuls_and_write(successfuls, force_write)
-      .await?;
+    self.pop_successfuls_and_write(force_write).await?;
     Ok(())
   }
   async fn mark_instance_alive(&mut self) -> Result<()> {
@@ -291,11 +287,7 @@ impl InstanceWorker {
   /// Checks that sequential activities `last_successful_id + 1`, `last_successful_id + 2` etc have
   /// been sent successfully. In that case updates `last_successful_id` and saves the state to the
   /// database if the time since the last save is greater than `SAVE_STATE_EVERY_TIME`.
-  async fn pop_successfuls_and_write(
-    &mut self,
-    successfuls: &mut BinaryHeap<SendSuccessInfo>,
-    force_write: bool,
-  ) -> Result<()> {
+  async fn pop_successfuls_and_write(&mut self, force_write: bool) -> Result<()> {
     let Some(mut last_id) = self.state.last_successful_id else {
       tracing::warn!(
         "{} should be impossible: last successful id is None",
@@ -307,15 +299,17 @@ impl InstanceWorker {
       "{} last: {:?}, next: {:?}, currently in successfuls: {:?}",
       self.instance.domain,
       last_id,
-      successfuls.peek(),
-      successfuls.iter()
+      self.successfuls.peek(),
+      self.successfuls.iter()
     );
-    while successfuls
+    while self
+      .successfuls
       .peek()
       .map(|a| a.activity_id == ActivityId(last_id.0 + 1))
       .unwrap_or(false)
     {
-      let next = successfuls
+      let next = self
+        .successfuls
         .pop()
         .context("peek above ensures pop has value")?;
       last_id = next.activity_id;
@@ -336,14 +330,13 @@ impl InstanceWorker {
   async fn spawn_send_if_needed(
     &mut self,
     activity_id: ActivityId,
-    report: UnboundedSender<SendActivityResult>,
   ) -> Result<()> {
     let Some(ele) = get_activity_cached(&mut self.pool(), activity_id)
       .await
       .context("failed reading activity from db")?
     else {
       tracing::debug!("{}: {:?} does not exist", self.instance.domain, activity_id);
-      report.send(SendActivityResult::Success(SendSuccessInfo {
+      self.report_send_result.send(SendActivityResult::Success(SendSuccessInfo {
         activity_id,
         published: None,
         was_skipped: true,
@@ -360,7 +353,7 @@ impl InstanceWorker {
       // this is the case when the activity is not relevant to this receiving instance (e.g. no user
       // subscribed to the relevant community)
       tracing::debug!("{}: {:?} no inboxes", self.instance.domain, activity.id);
-      report.send(SendActivityResult::Success(SendSuccessInfo {
+      self.report_send_result.send(SendActivityResult::Success(SendSuccessInfo {
         activity_id,
         // it would be valid here to either return None or Some(activity.published). The published
         // time is only used for stats pages that track federation delay. None can be a bit
@@ -376,8 +369,8 @@ impl InstanceWorker {
     let data = self.federation_lib_config.to_request_data();
     let stop = self.stop.clone();
     let domain = self.instance.domain.clone();
+    let mut report = self.report_send_result.clone();
     tokio::spawn(async move {
-      let mut report = report;
       let res = SendRetryTask {
         activity: &ele.0,
         object: &ele.1,
