@@ -78,7 +78,6 @@ impl OAuthProvider {
       client_id: unsafe_oauth_provider.client_id.clone(),
       scopes: unsafe_oauth_provider.scopes.clone(),
       auto_verify_email: Some(unsafe_oauth_provider.auto_verify_email),
-      auto_approve_application: Some(unsafe_oauth_provider.auto_approve_application),
       account_linking_enabled: Some(unsafe_oauth_provider.account_linking_enabled),
       enabled: Some(unsafe_oauth_provider.enabled),
       published: Some(unsafe_oauth_provider.published),

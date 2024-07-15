@@ -31,7 +31,6 @@ pub async fn update_oauth_provider(
     client_secret: diesel_required_string_update(data.client_secret.as_deref()),
     scopes: diesel_required_string_update(data.scopes.as_deref()),
     auto_verify_email: data.auto_verify_email,
-    auto_approve_application: data.auto_approve_application,
     account_linking_enabled: data.account_linking_enabled,
     enabled: data.enabled,
     updated: naive_now(),

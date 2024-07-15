@@ -424,7 +424,6 @@ pub async fn authenticate_with_oauth(
         .email(Some(str::to_lowercase(&email)))
         .password_encrypted(None)
         .show_nsfw(Some(false))
-        .accepted_application(Some(oauth_provider.auto_approve_application))
         .email_verified(Some(oauth_provider.auto_verify_email))
         .default_listing_type(Some(local_site.default_post_listing_type))
         // If its the initial site setup, they are an admin

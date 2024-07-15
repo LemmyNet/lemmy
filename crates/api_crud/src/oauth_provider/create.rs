@@ -35,7 +35,6 @@ pub async fn create_oauth_provider(
     client_secret: data.client_secret.to_string(),
     scopes: data.scopes.to_string(),
     auto_verify_email: data.auto_verify_email,
-    auto_approve_application: data.auto_approve_application,
     account_linking_enabled: data.account_linking_enabled,
     enabled: data.enabled,
   };

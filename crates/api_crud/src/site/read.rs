@@ -118,7 +118,6 @@ fn filter_oauth_providers(oauth_providers: &mut Vec<OAuthProvider>) {
       oauth_provider.id_claim = None;
       oauth_provider.name_claim = None;
       oauth_provider.auto_verify_email = None;
-      oauth_provider.auto_approve_application = None;
       oauth_provider.account_linking_enabled = None;
       oauth_provider.enabled = None;
       oauth_provider.published = None;
