@@ -14,7 +14,6 @@ CREATE TABLE oauth_provider (
     client_secret text NOT NULL,
     scopes text NOT NULL,
     auto_verify_email boolean DEFAULT TRUE NOT NULL,
-    auto_approve_application boolean DEFAULT TRUE NOT NULL,
     account_linking_enabled boolean DEFAULT FALSE NOT NULL,
     enabled boolean DEFAULT FALSE NOT NULL,
     published timestamp with time zone DEFAULT now() NOT NULL,

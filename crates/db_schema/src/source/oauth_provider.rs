@@ -53,8 +53,6 @@ pub struct UnsafeOAuthProvider {
   pub scopes: String,
   /// Automatically sets email as verified on registration
   pub auto_verify_email: bool,
-  /// Automatically approves user application on registration
-  pub auto_approve_application: bool,
   /// Allows linking an OAUTH account to an existing user account by matching emails
   pub account_linking_enabled: bool,
   /// switch to enable or disable an oauth provider
@@ -100,8 +98,6 @@ pub struct OAuthProvider {
   pub scopes: String,
   /// Automatically sets email as verified on registration
   pub auto_verify_email: Option<bool>,
-  /// Automatically approves user application on registration
-  pub auto_approve_application: Option<bool>,
   /// Allows linking an OAUTH account to an existing user account by matching emails
   pub account_linking_enabled: Option<bool>,
   /// switch to enable or disable an oauth provider
@@ -130,7 +126,6 @@ pub struct OAuthProviderInsertForm {
   pub client_secret: String,
   pub scopes: String,
   pub auto_verify_email: bool,
-  pub auto_approve_application: bool,
   pub account_linking_enabled: bool,
   pub enabled: bool,
 }
@@ -152,7 +147,6 @@ pub struct OAuthProviderUpdateForm {
   pub client_secret: Option<String>,
   pub scopes: Option<String>,
   pub auto_verify_email: Option<bool>,
-  pub auto_approve_application: Option<bool>,
   pub account_linking_enabled: Option<bool>,
   pub enabled: Option<bool>,
   pub updated: DateTime<Utc>,

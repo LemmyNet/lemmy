@@ -638,7 +638,6 @@ diesel::table! {
         client_secret -> Text,
         scopes -> Text,
         auto_verify_email -> Bool,
-        auto_approve_application -> Bool,
         account_linking_enabled -> Bool,
         enabled -> Bool,
         published -> Timestamptz,

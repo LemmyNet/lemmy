@@ -21,7 +21,6 @@ pub struct CreateOAuthProvider {
   pub client_secret: String,
   pub scopes: String,
   pub auto_verify_email: bool,
-  pub auto_approve_application: bool,
   pub account_linking_enabled: bool,
   pub enabled: bool,
 }
@@ -41,7 +40,6 @@ pub struct EditOAuthProvider {
   pub client_secret: Option<String>,
   pub scopes: Option<String>,
   pub auto_verify_email: Option<bool>,
-  pub auto_approve_application: Option<bool>,
   pub account_linking_enabled: Option<bool>,
   pub enabled: Option<bool>,
 }
