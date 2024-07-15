@@ -121,7 +121,12 @@ tracing-error = "0.2.0"
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 url = { version = "2.5.0", features = ["serde"] }
-reqwest = { version = "0.11.27", features = ["json", "blocking", "gzip"] }
+reqwest = { version = "0.11.27", default-features = false, features = [
+  "json",
+  "blocking",
+  "gzip",
+  "rustls-tls",
+] }
 reqwest-middleware = "0.2.5"
 reqwest-tracing = "0.4.8"
 clokwerk = "0.4.0"
