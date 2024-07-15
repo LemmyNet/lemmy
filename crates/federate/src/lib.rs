@@ -229,8 +229,14 @@ mod test {
         .app_data(context.clone())
         .build()
         .await?;
-      let federation_worker_config = FederationWorkerConfig::default(); // TODO
+      let concurrent_sends_per_instance = std::env::var("LEMMY_TEST_FEDERATION_CONCURRENT_SENDS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(1);
 
+      let federation_worker_config = FederationWorkerConfig {
+        concurrent_sends_per_instance,
+      };
       let pool = &mut context.pool();
       let instances = vec![
         Instance::read_or_create(pool, "alpha.com".to_string()).await?,
