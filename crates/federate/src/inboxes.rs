@@ -1,8 +1,9 @@
 use crate::util::LEMMY_TEST_FAST_FEDERATION;
 use anyhow::Result;
+use async_trait::async_trait;
 use chrono::{DateTime, TimeZone, Utc};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, InstanceId},
+  newtypes::{CommunityId, DbUrl, InstanceId},
   source::{activity::SentActivity, site::Site},
   utils::{ActualDbPool, DbPool},
 };
@@ -33,7 +34,52 @@ static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::TimeDelta> = Lazy::new(|| {
 static FOLLOW_REMOVALS_RECHECK_DELAY: Lazy<chrono::TimeDelta> =
   Lazy::new(|| chrono::TimeDelta::try_hours(1).expect("TimeDelta out of bounds"));
 
-pub(crate) struct CommunityInboxCollector {
+#[async_trait]
+pub trait DataSource: Send + Sync {
+  async fn read_site_from_instance_id(
+    &self,
+    instance_id: InstanceId,
+  ) -> Result<Option<Site>, diesel::result::Error>;
+  async fn get_instance_followed_community_inboxes(
+    &self,
+    instance_id: InstanceId,
+    last_fetch: DateTime<Utc>,
+  ) -> Result<Vec<(CommunityId, DbUrl)>, diesel::result::Error>;
+}
+pub struct DbDataSource {
+  pool: ActualDbPool,
+}
+
+impl DbDataSource {
+  pub fn new(pool: ActualDbPool) -> Self {
+    Self { pool }
+  }
+}
+
+#[async_trait]
+impl DataSource for DbDataSource {
+  async fn read_site_from_instance_id(
+    &self,
+    instance_id: InstanceId,
+  ) -> Result<Option<Site>, diesel::result::Error> {
+    Site::read_from_instance_id(&mut DbPool::Pool(&self.pool), instance_id).await
+  }
+
+  async fn get_instance_followed_community_inboxes(
+    &self,
+    instance_id: InstanceId,
+    last_fetch: DateTime<Utc>,
+  ) -> Result<Vec<(CommunityId, DbUrl)>, diesel::result::Error> {
+    CommunityFollowerView::get_instance_followed_community_inboxes(
+      &mut DbPool::Pool(&self.pool),
+      instance_id,
+      last_fetch,
+    )
+    .await
+  }
+}
+
+pub(crate) struct CommunityInboxCollector<T: DataSource> {
   // load site lazily because if an instance is first seen due to being on allowlist,
   // the corresponding row in `site` may not exist yet since that is only added once
   // `fetch_instance_actor_for_object` is called.
@@ -45,16 +91,26 @@ pub(crate) struct CommunityInboxCollector {
   last_incremental_communities_fetch: DateTime<Utc>,
   instance_id: InstanceId,
   domain: String,
-  pool: ActualDbPool,
+  pub(crate) data_source: T,
 }
-impl CommunityInboxCollector {
-  pub fn new(
+
+pub type RealCommunityInboxCollector = CommunityInboxCollector<DbDataSource>;
+
+impl<T: DataSource> CommunityInboxCollector<T> {
+  pub fn new_real(
     pool: ActualDbPool,
     instance_id: InstanceId,
     domain: String,
-  ) -> CommunityInboxCollector {
+  ) -> RealCommunityInboxCollector {
+    CommunityInboxCollector::new(DbDataSource::new(pool), instance_id, domain)
+  }
+  pub fn new(
+    data_source: T,
+    instance_id: InstanceId,
+    domain: String,
+  ) -> CommunityInboxCollector<T> {
     CommunityInboxCollector {
-      pool,
+      data_source,
       site_loaded: false,
       site: None,
       followed_communities: HashMap::new(),
@@ -73,7 +129,10 @@ impl CommunityInboxCollector {
 
     if activity.send_all_instances {
       if !self.site_loaded {
-        self.site = Site::read_from_instance_id(&mut self.pool(), self.instance_id).await?;
+        self.site = self
+          .data_source
+          .read_site_from_instance_id(self.instance_id)
+          .await?;
         self.site_loaded = true;
       }
       if let Some(site) = &self.site {
@@ -145,22 +204,397 @@ impl CommunityInboxCollector {
     // published date is not exact
     let new_last_fetch =
       Utc::now() - chrono::TimeDelta::try_seconds(10).expect("TimeDelta out of bounds");
-    Ok((
-      CommunityFollowerView::get_instance_followed_community_inboxes(
-        &mut self.pool(),
-        instance_id,
-        last_fetch,
-      )
-      .await?
-      .into_iter()
-      .fold(HashMap::new(), |mut map, (c, u)| {
+
+    let inboxes = self
+      .data_source
+      .get_instance_followed_community_inboxes(instance_id, last_fetch)
+      .await?;
+
+    let map: HashMap<CommunityId, HashSet<Url>> =
+      inboxes.into_iter().fold(HashMap::new(), |mut map, (c, u)| {
         map.entry(c).or_default().insert(u.into());
         map
-      }),
-      new_last_fetch,
-    ))
+      });
+
+    Ok((map, new_last_fetch))
   }
-  fn pool(&self) -> DbPool<'_> {
-    DbPool::Pool(&self.pool)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use lemmy_db_schema::{
+    newtypes::{ActivityId, CommunityId, InstanceId, SiteId},
+    source::activity::{ActorType, SentActivity},
+  };
+  use mockall::{mock, predicate::*};
+  use serde_json::json;
+
+  mock! {
+      DataSource {}
+      #[async_trait]
+      impl DataSource for DataSource {
+          async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> Result<Option<Site>, diesel::result::Error>;
+          async fn get_instance_followed_community_inboxes(
+              &self,
+              instance_id: InstanceId,
+              last_fetch: DateTime<Utc>,
+          ) -> Result<Vec<(CommunityId, DbUrl)>, diesel::result::Error>;
+      }
+  }
+
+  fn setup_collector() -> CommunityInboxCollector<MockDataSource> {
+    let mock_data_source = MockDataSource::new();
+    let instance_id = InstanceId(1);
+    let domain = "example.com".to_string();
+    CommunityInboxCollector::new(mock_data_source, instance_id, domain)
+  }
+
+  #[tokio::test]
+  async fn test_get_inbox_urls_empty() {
+    let mut collector = setup_collector();
+    let activity = SentActivity {
+      id: ActivityId(1),
+      ap_id: Url::parse("https://example.com/activities/1")
+        .unwrap()
+        .into(),
+      data: json!({}),
+      sensitive: false,
+      published: Utc::now(),
+      send_inboxes: vec![],
+      send_community_followers_of: None,
+      send_all_instances: false,
+      actor_type: ActorType::Person,
+      actor_apub_id: None,
+    };
+
+    let result = collector.get_inbox_urls(&activity).await.unwrap();
+    assert!(result.is_empty());
+  }
+
+  #[tokio::test]
+  async fn test_get_inbox_urls_send_all_instances() {
+    let mut collector = setup_collector();
+    let site = Site {
+      id: SiteId(1),
+      name: "Test Site".to_string(),
+      sidebar: None,
+      published: Utc::now(),
+      updated: None,
+      icon: None,
+      banner: None,
+      description: None,
+      actor_id: Url::parse("https://example.com/site").unwrap().into(),
+      last_refreshed_at: Utc::now(),
+      inbox_url: Url::parse("https://example.com/inbox").unwrap().into(),
+      private_key: None,
+      public_key: "test_key".to_string(),
+      instance_id: InstanceId(1),
+      content_warning: None,
+    };
+
+    collector
+      .data_source
+      .expect_read_site_from_instance_id()
+      .return_once(move |_| Ok(Some(site)));
+
+    let activity = SentActivity {
+      id: ActivityId(1),
+      ap_id: Url::parse("https://example.com/activities/1")
+        .unwrap()
+        .into(),
+      data: json!({}),
+      sensitive: false,
+      published: Utc::now(),
+      send_inboxes: vec![],
+      send_community_followers_of: None,
+      send_all_instances: true,
+      actor_type: ActorType::Person,
+      actor_apub_id: None,
+    };
+
+    let result = collector.get_inbox_urls(&activity).await.unwrap();
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0], Url::parse("https://example.com/inbox").unwrap());
+  }
+
+  #[tokio::test]
+  async fn test_get_inbox_urls_community_followers() {
+    let mut collector = setup_collector();
+    let community_id = CommunityId(1);
+
+    collector
+      .data_source
+      .expect_get_instance_followed_community_inboxes()
+      .return_once(move |_, _| {
+        Ok(vec![
+          (
+            community_id,
+            Url::parse("https://follower1.example.com/inbox").unwrap().into(),
+          ),
+          (
+            community_id,
+            Url::parse("https://follower2.example.com/inbox").unwrap().into(),
+          ),
+        ])
+      });
+
+    collector.update_communities().await.unwrap();
+
+    let activity = SentActivity {
+      id: ActivityId(1),
+      ap_id: Url::parse("https://example.com/activities/1")
+        .unwrap()
+        .into(),
+      data: json!({}),
+      sensitive: false,
+      published: Utc::now(),
+      send_inboxes: vec![],
+      send_community_followers_of: Some(community_id),
+      send_all_instances: false,
+      actor_type: ActorType::Person,
+      actor_apub_id: None,
+    };
+
+    let result = collector.get_inbox_urls(&activity).await.unwrap();
+    assert_eq!(result.len(), 2);
+    assert!(result.contains(&Url::parse("https://follower1.example.com/inbox").unwrap()));
+    assert!(result.contains(&Url::parse("https://follower2.example.com/inbox").unwrap()));
+  }
+
+  #[tokio::test]
+  async fn test_get_inbox_urls_send_inboxes() {
+    let mut collector = setup_collector();
+    collector.domain = "example.com".to_string();
+
+    let activity = SentActivity {
+      id: ActivityId(1),
+      ap_id: Url::parse("https://example.com/activities/1")
+        .unwrap()
+        .into(),
+      data: json!({}),
+      sensitive: false,
+      published: Utc::now(),
+      send_inboxes: vec![
+        Some(
+          Url::parse("https://example.com/user1/inbox")
+            .unwrap()
+            .into(),
+        ),
+        Some(
+          Url::parse("https://example.com/user2/inbox")
+            .unwrap()
+            .into(),
+        ),
+        Some(
+          Url::parse("https://other-domain.com/user3/inbox")
+            .unwrap()
+            .into(),
+        ),
+      ],
+      send_community_followers_of: None,
+      send_all_instances: false,
+      actor_type: ActorType::Person,
+      actor_apub_id: None,
+    };
+
+    let result = collector.get_inbox_urls(&activity).await.unwrap();
+    assert_eq!(result.len(), 2);
+    assert!(result.contains(&Url::parse("https://example.com/user1/inbox").unwrap()));
+    assert!(result.contains(&Url::parse("https://example.com/user2/inbox").unwrap()));
+    assert!(!result.contains(&Url::parse("https://other-domain.com/user3/inbox").unwrap()));
+  }
+
+  #[tokio::test]
+  async fn test_get_inbox_urls_combined() {
+    let mut collector = setup_collector();
+    collector.domain = "example.com".to_string();
+    let community_id = CommunityId(1);
+
+    let site = Site {
+      id: SiteId(1),
+      name: "Test Site".to_string(),
+      sidebar: None,
+      published: Utc::now(),
+      updated: None,
+      icon: None,
+      banner: None,
+      description: None,
+      actor_id: Url::parse("https://example.com/site").unwrap().into(),
+      last_refreshed_at: Utc::now(),
+      inbox_url: Url::parse("https://example.com/site_inbox").unwrap().into(),
+      private_key: None,
+      public_key: "test_key".to_string(),
+      instance_id: InstanceId(1),
+      content_warning: None,
+    };
+
+    collector
+      .data_source
+      .expect_read_site_from_instance_id()
+      .return_once(move |_| Ok(Some(site)));
+
+    collector
+      .data_source
+      .expect_get_instance_followed_community_inboxes()
+      .return_once(move |_, _| {
+        Ok(vec![(
+          community_id,
+          Url::parse("https://follower.example.com/inbox").unwrap().into(),
+        )])
+      });
+
+    collector.update_communities().await.unwrap();
+
+    let activity = SentActivity {
+      id: ActivityId(1),
+      ap_id: Url::parse("https://example.com/activities/1")
+        .unwrap()
+        .into(),
+      data: json!({}),
+      sensitive: false,
+      published: Utc::now(),
+      send_inboxes: vec![
+        Some(
+          Url::parse("https://example.com/user1/inbox")
+            .unwrap()
+            .into(),
+        ),
+        Some(
+          Url::parse("https://other-domain.com/user2/inbox")
+            .unwrap()
+            .into(),
+        ),
+      ],
+      send_community_followers_of: Some(community_id),
+      send_all_instances: true,
+      actor_type: ActorType::Person,
+      actor_apub_id: None,
+    };
+
+    let result = collector.get_inbox_urls(&activity).await.unwrap();
+    assert_eq!(result.len(), 3);
+    assert!(result.contains(&Url::parse("https://example.com/site_inbox").unwrap()));
+    assert!(result.contains(&Url::parse("https://follower.example.com/inbox").unwrap()));
+    assert!(result.contains(&Url::parse("https://example.com/user1/inbox").unwrap()));
+    assert!(!result.contains(&Url::parse("https://other-domain.com/user2/inbox").unwrap()));
+  }
+
+  #[tokio::test]
+  async fn test_update_communities() {
+    let mut collector = setup_collector();
+    let community_id1 = CommunityId(1);
+    let community_id2 = CommunityId(2);
+    let community_id3 = CommunityId(3);
+
+    collector
+      .data_source
+      .expect_get_instance_followed_community_inboxes()
+      .times(2)
+      .returning(move |_, last_fetch| {
+        if last_fetch == Utc.timestamp_nanos(0) {
+          Ok(vec![
+            (
+              community_id1,
+              Url::parse("https://follower1.example.com/inbox").unwrap().into(),
+            ),
+            (
+              community_id2,
+              Url::parse("https://follower2.example.com/inbox").unwrap().into(),
+            ),
+          ])
+        } else {
+          Ok(vec![(
+            community_id3,
+            Url::parse("https://follower3.example.com/inbox").unwrap().into(),
+          )])
+        }
+      });
+
+    // First update
+    collector.update_communities().await.unwrap();
+    assert_eq!(collector.followed_communities.len(), 2);
+    assert!(collector.followed_communities[&community_id1]
+      .contains(&Url::parse("https://follower1.example.com/inbox").unwrap()));
+    assert!(collector.followed_communities[&community_id2]
+      .contains(&Url::parse("https://follower2.example.com/inbox").unwrap()));
+
+    // Simulate time passing
+    collector.last_full_communities_fetch = Utc::now() - chrono::TimeDelta::try_minutes(3).unwrap();
+    collector.last_incremental_communities_fetch =
+      Utc::now() - chrono::TimeDelta::try_minutes(3).unwrap();
+
+    // Second update (incremental)
+    collector.update_communities().await.unwrap();
+    assert_eq!(collector.followed_communities.len(), 3);
+    assert!(collector.followed_communities[&community_id1]
+      .contains(&Url::parse("https://follower1.example.com/inbox").unwrap()));
+    assert!(collector.followed_communities[&community_id3]
+      .contains(&Url::parse("https://follower3.example.com/inbox").unwrap()));
+    assert!(collector.followed_communities[&community_id2]
+      .contains(&Url::parse("https://follower2.example.com/inbox").unwrap()));
+  }
+
+  #[tokio::test]
+  async fn test_get_inbox_urls_no_duplicates() {
+    let mut collector = setup_collector();
+    collector.domain = "example.com".to_string();
+    let community_id = CommunityId(1);
+
+    let site = Site {
+      id: SiteId(1),
+      name: "Test Site".to_string(),
+      sidebar: None,
+      published: Utc::now(),
+      updated: None,
+      icon: None,
+      banner: None,
+      description: None,
+      actor_id: Url::parse("https://example.com/site").unwrap().into(),
+      last_refreshed_at: Utc::now(),
+      inbox_url: Url::parse("https://example.com/site_inbox").unwrap().into(),
+      private_key: None,
+      public_key: "test_key".to_string(),
+      instance_id: InstanceId(1),
+      content_warning: None,
+    };
+
+    collector
+      .data_source
+      .expect_read_site_from_instance_id()
+      .return_once(move |_| Ok(Some(site)));
+
+    collector
+      .data_source
+      .expect_get_instance_followed_community_inboxes()
+      .return_once(move |_, _| {
+        Ok(vec![(
+          community_id,
+          Url::parse("https://example.com/site_inbox").unwrap().into(),
+        )])
+      });
+
+    collector.update_communities().await.unwrap();
+
+    let activity = SentActivity {
+      id: ActivityId(1),
+      ap_id: Url::parse("https://example.com/activities/1")
+        .unwrap()
+        .into(),
+      data: json!({}),
+      sensitive: false,
+      published: Utc::now(),
+      send_inboxes: vec![Some(
+        Url::parse("https://example.com/site_inbox").unwrap().into(),
+      )],
+      send_community_followers_of: Some(community_id),
+      send_all_instances: true,
+      actor_type: ActorType::Person,
+      actor_apub_id: None,
+    };
+
+    let result = collector.get_inbox_urls(&activity).await.unwrap();
+    assert_eq!(result.len(), 1);
+    assert!(result.contains(&Url::parse("https://example.com/site_inbox").unwrap()));
   }
 }

@@ -1,5 +1,5 @@
 use crate::{
-  inboxes::CommunityInboxCollector,
+  inboxes::RealCommunityInboxCollector,
   send::{SendActivityResult, SendRetryTask, SendSuccessInfo},
   util::{
     get_activity_cached,
@@ -65,7 +65,7 @@ pub(crate) struct InstanceWorker {
   state: FederationQueueState,
   last_state_insert: DateTime<Utc>,
   pool: ActualDbPool,
-  inbox_collector: CommunityInboxCollector,
+  inbox_collector: RealCommunityInboxCollector,
   // regularily send stats back to the SendManager
   stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
   // each HTTP send will report back to this channel concurrently
@@ -92,7 +92,7 @@ impl InstanceWorker {
     let (report_send_result, receive_send_result) =
       tokio::sync::mpsc::unbounded_channel::<SendActivityResult>();
     let mut worker = InstanceWorker {
-      inbox_collector: CommunityInboxCollector::new(
+      inbox_collector: RealCommunityInboxCollector::new_real(
         pool.clone(),
         instance.id,
         instance.domain.clone(),
