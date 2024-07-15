@@ -221,6 +221,8 @@ impl<T: DataSource> CommunityInboxCollector<T> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
   use super::*;
   use lemmy_db_schema::{
@@ -330,11 +332,15 @@ mod tests {
         Ok(vec![
           (
             community_id,
-            Url::parse("https://follower1.example.com/inbox").unwrap().into(),
+            Url::parse("https://follower1.example.com/inbox")
+              .unwrap()
+              .into(),
           ),
           (
             community_id,
-            Url::parse("https://follower2.example.com/inbox").unwrap().into(),
+            Url::parse("https://follower2.example.com/inbox")
+              .unwrap()
+              .into(),
           ),
         ])
       });
@@ -440,7 +446,9 @@ mod tests {
       .return_once(move |_, _| {
         Ok(vec![(
           community_id,
-          Url::parse("https://follower.example.com/inbox").unwrap().into(),
+          Url::parse("https://follower.example.com/inbox")
+            .unwrap()
+            .into(),
         )])
       });
 
@@ -496,17 +504,23 @@ mod tests {
           Ok(vec![
             (
               community_id1,
-              Url::parse("https://follower1.example.com/inbox").unwrap().into(),
+              Url::parse("https://follower1.example.com/inbox")
+                .unwrap()
+                .into(),
             ),
             (
               community_id2,
-              Url::parse("https://follower2.example.com/inbox").unwrap().into(),
+              Url::parse("https://follower2.example.com/inbox")
+                .unwrap()
+                .into(),
             ),
           ])
         } else {
           Ok(vec![(
             community_id3,
-            Url::parse("https://follower3.example.com/inbox").unwrap().into(),
+            Url::parse("https://follower3.example.com/inbox")
+              .unwrap()
+              .into(),
           )])
         }
       });
