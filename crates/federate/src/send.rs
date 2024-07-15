@@ -38,25 +38,46 @@ impl Ord for SendSuccessInfo {
     other.activity_id.cmp(&self.activity_id)
   }
 }
+
+/// Represents the result of sending an activity.
+///
+/// This enum is used to communicate the outcome of a send operation from a send task
+/// to the main instance worker. It's designed to maintain a clean separation between
+/// the send task and the main thread, allowing the send.rs file to be self-contained
+/// and easier to understand.
+///
+/// The use of a channel for communication (rather than shared atomic variables) was chosen
+/// because:
+/// 1. It keeps the send task cleanly separated with no direct interaction with the main thread.
+/// 2. The failure event needs to be transferred to the main task for database updates anyway.
+/// 3. The main fail_count should only be updated under certain conditions, which are best handled
+///    in the main task.
+/// 4. It maintains consistency in how data is communicated (all via channels rather than a mix of
+///    channels and atomics).
+/// 5. It simplifies concurrency management and makes the flow of data more predictable.
 pub(crate) enum SendActivityResult {
   Success(SendSuccessInfo),
-  Failure {
-    fail_count: i32,
-    // activity_id: ActivityId,
-  },
+  Failure { fail_count: i32 },
 }
-
+/// Represents a task for retrying to send an activity.
+///
+/// This struct encapsulates all the necessary information and resources for attempting
+/// to send an activity to multiple inbox URLs, with built-in retry logic.
 pub(crate) struct SendRetryTask<'a> {
   pub activity: &'a SentActivity,
   pub object: &'a SharedInboxActivities,
-  /// must not be empty at this point
+  /// Must not be empty at this point
   pub inbox_urls: Vec<Url>,
-  /// report to the main instance worker
+  /// Channel to report results back to the main instance worker
   pub report: &'a mut UnboundedSender<SendActivityResult>,
-  /// the first request will be sent immediately, but the next one will be delayed according to the
-  /// number of previous fails + 1
+  /// The first request will be sent immediately, but subsequent requests will be delayed
+  /// according to the number of previous fails + 1
+  ///
+  /// This is a read-only immutable variable that is passed only one way, from the main
+  /// thread to each send task. It allows the task to determine how long to sleep initially
+  /// if the request fails.
   pub initial_fail_count: i32,
-  /// for logging
+  /// For logging purposes
   pub domain: String,
   pub context: Data<LemmyContext>,
   pub stop: CancellationToken,
