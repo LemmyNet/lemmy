@@ -22,7 +22,7 @@ echo "Removing the old postgres folder"
 sudo rm -rf volumes/postgres
 
 echo "Updating docker-compose to use postgres version 15."
-sed -i "s/image: postgres:.*/image: postgres:15-alpine/" ./docker-compose.yml
+sudo sed -i "s/image: .*postgres:.*/image: pgautoupgrade\/pgautoupgrade:15-alpine/" ./docker-compose.yml
 
 echo "Starting up new postgres..."
 sudo docker-compose up -d postgres
