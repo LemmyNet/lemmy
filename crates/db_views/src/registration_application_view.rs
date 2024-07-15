@@ -169,7 +169,7 @@ mod tests {
 
     let timmy_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_timmy_person.id)
-      .password_encrypted("nada".to_string())
+      .password_encrypted(Some("nada".to_string()))
       .admin(Some(true))
       .build();
 
@@ -183,7 +183,7 @@ mod tests {
 
     let sara_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_sara_person.id)
-      .password_encrypted("nada".to_string())
+      .password_encrypted(Some("nada".to_string()))
       .build();
 
     let inserted_sara_local_user = LocalUser::create(pool, &sara_local_user_form, vec![])
@@ -211,7 +211,7 @@ mod tests {
 
     let jess_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_jess_person.id)
-      .password_encrypted("nada".to_string())
+      .password_encrypted(Some("nada".to_string()))
       .build();
 
     let inserted_jess_local_user = LocalUser::create(pool, &jess_local_user_form, vec![])

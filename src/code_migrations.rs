@@ -470,7 +470,7 @@ async fn initialize_local_site_2022_10_10(
 
     let local_user_form = LocalUserInsertForm::builder()
       .person_id(person_inserted.id)
-      .password_encrypted(setup.admin_password.clone())
+      .password_encrypted(Some(setup.admin_password.clone()))
       .email(setup.admin_email.clone())
       .admin(Some(true))
       .build();

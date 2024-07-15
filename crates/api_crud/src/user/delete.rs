@@ -8,7 +8,11 @@ use lemmy_api_common::{
   utils::purge_user_account,
   SuccessResponse,
 };
-use lemmy_db_schema::source::{login_token::LoginToken, person::Person};
+use lemmy_db_schema::source::{
+  login_token::LoginToken,
+  oauth_account::OAuthAccount,
+  person::Person,
+};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -19,11 +23,12 @@ pub async fn delete_account(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
   // Verify the password
-  let valid: bool = verify(
-    &data.password,
-    &local_user_view.local_user.password_encrypted,
-  )
-  .unwrap_or(false);
+  let valid: bool = local_user_view
+    .local_user
+    .password_encrypted
+    .as_ref()
+    .and_then(|password_encrypted| verify(&data.password, password_encrypted).ok())
+    .unwrap_or(false);
   if !valid {
     Err(LemmyErrorType::IncorrectLogin)?
   }
@@ -31,6 +36,7 @@ pub async fn delete_account(
   if data.delete_content {
     purge_user_account(local_user_view.person.id, &context).await?;
   } else {
+    OAuthAccount::delete_user_accounts(&mut context.pool(), local_user_view.local_user.id).await?;
     Person::delete_account(&mut context.pool(), local_user_view.person.id).await?;
   }
 

@@ -53,6 +53,7 @@ pub enum LemmyErrorType {
   CouldntFindCommentReply,
   CouldntFindPrivateMessage,
   CouldntFindActivity,
+  CouldntFindOauthProvider,
   PersonIsBlocked,
   CommunityIsBlocked,
   InstanceIsBlocked,
@@ -176,6 +177,10 @@ pub enum LemmyErrorType {
   CantBlockLocalInstance,
   UrlWithoutDomain,
   InboxTimeout,
+  OauthAuthorizationInvalid,
+  OauthLoginFailed,
+  OauthRegistrationClosed,
+  CouldntDeleteOauthProvider,
   Unknown(String),
 }
 

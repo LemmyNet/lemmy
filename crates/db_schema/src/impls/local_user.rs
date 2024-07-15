@@ -33,9 +33,11 @@ impl LocalUser {
   ) -> Result<LocalUser, Error> {
     let conn = &mut get_conn(pool).await?;
     let mut form_with_encrypted_password = form.clone();
-    let password_hash =
-      hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
-    form_with_encrypted_password.password_encrypted = password_hash;
+
+    if let Some(password_encrypted) = &form.password_encrypted {
+      let password_hash = hash(password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
+      form_with_encrypted_password.password_encrypted = Some(password_hash);
+    }
 
     let local_user_ = insert_into(local_user::table)
       .values(form_with_encrypted_password)
@@ -280,7 +282,7 @@ impl LocalUserInsertForm {
   pub fn test_form(person_id: PersonId) -> Self {
     Self::builder()
       .person_id(person_id)
-      .password_encrypted(String::new())
+      .password_encrypted(Some(String::new()))
       .build()
   }
 }

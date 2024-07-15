@@ -25,7 +25,7 @@ pub struct LocalUser {
   /// The person_id for the local user.
   pub person_id: PersonId,
   #[serde(skip)]
-  pub password_encrypted: SensitiveString,
+  pub password_encrypted: Option<SensitiveString>,
   pub email: Option<SensitiveString>,
   /// Whether to show NSFW content.
   pub show_nsfw: bool,
@@ -77,7 +77,7 @@ pub struct LocalUserInsertForm {
   #[builder(!default)]
   pub person_id: PersonId,
   #[builder(!default)]
-  pub password_encrypted: String,
+  pub password_encrypted: Option<String>,
   pub email: Option<String>,
   pub show_nsfw: Option<bool>,
   pub theme: Option<String>,

@@ -28,11 +28,13 @@ pub async fn change_password(
   }
 
   // Check the old password
-  let valid: bool = verify(
-    &data.old_password,
-    &local_user_view.local_user.password_encrypted,
-  )
-  .unwrap_or(false);
+  let valid: bool = if let Some(password_encrypted) = &local_user_view.local_user.password_encrypted
+  {
+    verify(&data.old_password, password_encrypted).unwrap_or(false)
+  } else {
+    data.old_password.is_empty()
+  };
+
   if !valid {
     Err(LemmyErrorType::IncorrectLogin)?
   }
