@@ -484,11 +484,8 @@ mod tests {
 
     let timmy_person_form = PersonInsertForm::test_form(inserted_instance.id, "timmy");
     let inserted_timmy_person = Person::create(pool, &timmy_person_form).await?;
-    let timmy_local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_timmy_person.id)
-      .admin(Some(true))
-      .password_encrypted(String::new())
-      .build();
+    let timmy_local_user_form = LocalUserInsertForm::test_form_admin(inserted_timmy_person.id);
+
     let inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
 
     let sara_person_form = PersonInsertForm::test_form(inserted_instance.id, "sara");

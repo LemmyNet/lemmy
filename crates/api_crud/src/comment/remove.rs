@@ -11,6 +11,7 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
     comment_report::CommentReport,
+    local_user::LocalUser,
     moderator::{ModRemoveComment, ModRemoveCommentForm},
   },
   traits::{Crud, Reportable},
@@ -38,6 +39,14 @@ pub async fn remove_comment(
     orig_comment.community.id,
     false,
     &mut context.pool(),
+  )
+  .await?;
+
+  LocalUser::is_higher_mod_or_admin_check(
+    &mut context.pool(),
+    orig_comment.community.id,
+    local_user_view.person.id,
+    vec![orig_comment.creator.id],
   )
   .await?;
 
