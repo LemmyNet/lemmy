@@ -21,7 +21,6 @@ pub(crate) struct SendSuccessInfo {
   // true if the activity was skipped because the target instance is not interested in this activity
   pub was_skipped: bool,
 }
-/// order backwards by activity_id for the binary heap in the worker
 impl PartialEq for SendSuccessInfo {
   fn eq(&self, other: &Self) -> bool {
     self.activity_id == other.activity_id

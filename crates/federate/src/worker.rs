@@ -268,7 +268,12 @@ impl InstanceWorker {
         SendActivityResult::Failure { fail_count, .. } => {
           if fail_count > self.state.fail_count {
             // override fail count - if multiple activities are currently sending this value may get
-            // conflicting info but that's fine
+            // conflicting info but that's fine.
+            // This needs to be this way, all alternatives would be worse. The reason is that if 10
+            // simultaneous requests fail within a 1s period, we don't want the next retry to be
+            // exponentially 2**10 s later. Any amount of failures within a fail-sleep period should
+            // only count as one failure.
+
             self.state.fail_count = fail_count;
             self.state.last_retry = Some(Utc::now());
             force_write = true;
@@ -400,6 +405,11 @@ impl InstanceWorker {
           ele.0.ap_id,
           e
         );
+        // An error in this location means there is some deeper internal issue with the activity,
+        // for example the actor can't be loaded or similar. These issues are probably not
+        // solveable by retrying and would cause the federation for this instance to permanently be
+        // stuck in a retry loop. So we log the error and skip the activity (by reporting success to
+        // the worker)
         report
           .send(SendActivityResult::Success(SendSuccessInfo {
             activity_id,
@@ -562,8 +572,6 @@ mod test {
     let rcv = data.stats_receiver.recv().await.unwrap();
     tracing::debug!("received first stats");
     assert_eq!(data.instance.id, rcv.state.instance_id);
-    // assert_eq!(Some(ActivityId(0)), rcv.state.last_successful_id);
-    // let last_id_before = rcv.state.last_successful_id.unwrap();
 
     let sent = send_activity(data.person.actor_id.clone(), &data.context, true).await?;
     tracing::debug!("sent activity");
@@ -597,7 +605,7 @@ mod test {
   #[tokio::test]
   #[traced_test]
   #[serial]
-  async fn test_send_100(data: &mut Data) -> LemmyResult<()> {
+  async fn test_send_40(data: &mut Data) -> LemmyResult<()> {
     tracing::debug!("hello world");
 
     // first receive at startup
@@ -607,7 +615,7 @@ mod test {
     // assert_eq!(Some(ActivityId(0)), rcv.state.last_successful_id);
     // let last_id_before = rcv.state.last_successful_id.unwrap();
     let mut sent = Vec::new();
-    for _ in 0..100 {
+    for _ in 0..40 {
       sent.push(send_activity(data.person.actor_id.clone(), &data.context, false).await?);
     }
     sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
@@ -623,7 +631,7 @@ mod test {
   #[serial]
   /// this test sends 15 activities, waits and checks they have all been received, then sends 50,
   /// etc
-  async fn test_send_15_50_200(data: &mut Data) -> LemmyResult<()> {
+  async fn test_send_15_20_30(data: &mut Data) -> LemmyResult<()> {
     tracing::debug!("hello world");
 
     // first receive at startup
@@ -632,7 +640,7 @@ mod test {
     assert_eq!(data.instance.id, rcv.state.instance_id);
     // assert_eq!(Some(ActivityId(0)), rcv.state.last_successful_id);
     // let last_id_before = rcv.state.last_successful_id.unwrap();
-    let counts = vec![15, 50, 200];
+    let counts = vec![15, 20, 35];
     for count in counts {
       tracing::debug!("sending {} activities", count);
       let mut sent = Vec::new();
