@@ -258,9 +258,9 @@ impl InstanceWorker {
     for event in events {
       match event {
         SendActivityResult::Success(s) => {
-          self.state.fail_count = 0;
           self.in_flight -= 1;
           if !s.was_skipped {
+            self.state.fail_count = 0;
             self.mark_instance_alive().await?;
           }
           self.successfuls.push(s);

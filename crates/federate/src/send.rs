@@ -18,6 +18,7 @@ use tokio_util::sync::CancellationToken;
 pub(crate) struct SendSuccessInfo {
   pub activity_id: ActivityId,
   pub published: Option<DateTime<Utc>>,
+  // true if the activity was skipped because the target instance is not interested in this activity
   pub was_skipped: bool,
 }
 /// order backwards by activity_id for the binary heap in the worker
