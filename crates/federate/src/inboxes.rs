@@ -231,7 +231,6 @@ mod tests {
   };
   use mockall::{mock, predicate::*};
   use serde_json::json;
-
   mock! {
       DataSource {}
       #[async_trait]
@@ -277,6 +276,7 @@ mod tests {
   #[tokio::test]
   async fn test_get_inbox_urls_send_all_instances() {
     let mut collector = setup_collector();
+    let site_inbox = Url::parse("https://example.com/inbox").unwrap();
     let site = Site {
       id: SiteId(1),
       name: "Test Site".to_string(),
@@ -288,7 +288,7 @@ mod tests {
       description: None,
       actor_id: Url::parse("https://example.com/site").unwrap().into(),
       last_refreshed_at: Utc::now(),
-      inbox_url: Url::parse("https://example.com/inbox").unwrap().into(),
+      inbox_url: site_inbox.clone().into(),
       private_key: None,
       public_key: "test_key".to_string(),
       instance_id: InstanceId(1),
@@ -317,31 +317,23 @@ mod tests {
 
     let result = collector.get_inbox_urls(&activity).await.unwrap();
     assert_eq!(result.len(), 1);
-    assert_eq!(result[0], Url::parse("https://example.com/inbox").unwrap());
+    assert_eq!(result[0], site_inbox);
   }
 
   #[tokio::test]
   async fn test_get_inbox_urls_community_followers() {
     let mut collector = setup_collector();
     let community_id = CommunityId(1);
+    let url1 = "https://follower1.example.com/inbox";
+    let url2 = "https://follower2.example.com/inbox";
 
     collector
       .data_source
       .expect_get_instance_followed_community_inboxes()
       .return_once(move |_, _| {
         Ok(vec![
-          (
-            community_id,
-            Url::parse("https://follower1.example.com/inbox")
-              .unwrap()
-              .into(),
-          ),
-          (
-            community_id,
-            Url::parse("https://follower2.example.com/inbox")
-              .unwrap()
-              .into(),
-          ),
+          (community_id, Url::parse(url1).unwrap().into()),
+          (community_id, Url::parse(url2).unwrap().into()),
         ])
       });
 
@@ -364,15 +356,17 @@ mod tests {
 
     let result = collector.get_inbox_urls(&activity).await.unwrap();
     assert_eq!(result.len(), 2);
-    assert!(result.contains(&Url::parse("https://follower1.example.com/inbox").unwrap()));
-    assert!(result.contains(&Url::parse("https://follower2.example.com/inbox").unwrap()));
+    assert!(result.contains(&Url::parse(url1).unwrap()));
+    assert!(result.contains(&Url::parse(url2).unwrap()));
   }
 
   #[tokio::test]
   async fn test_get_inbox_urls_send_inboxes() {
     let mut collector = setup_collector();
     collector.domain = "example.com".to_string();
-
+    let inbox_user_1 = Url::parse("https://example.com/user1/inbox").unwrap();
+    let inbox_user_2 = Url::parse("https://example.com/user2/inbox").unwrap();
+    let other_domain_inbox = Url::parse("https://other-domain.com/user3/inbox").unwrap();
     let activity = SentActivity {
       id: ActivityId(1),
       ap_id: Url::parse("https://example.com/activities/1")
@@ -382,21 +376,9 @@ mod tests {
       sensitive: false,
       published: Utc::now(),
       send_inboxes: vec![
-        Some(
-          Url::parse("https://example.com/user1/inbox")
-            .unwrap()
-            .into(),
-        ),
-        Some(
-          Url::parse("https://example.com/user2/inbox")
-            .unwrap()
-            .into(),
-        ),
-        Some(
-          Url::parse("https://other-domain.com/user3/inbox")
-            .unwrap()
-            .into(),
-        ),
+        Some(inbox_user_1.clone().into()),
+        Some(inbox_user_2.clone().into()),
+        Some(other_domain_inbox.clone().into()),
       ],
       send_community_followers_of: None,
       send_all_instances: false,
@@ -406,9 +388,9 @@ mod tests {
 
     let result = collector.get_inbox_urls(&activity).await.unwrap();
     assert_eq!(result.len(), 2);
-    assert!(result.contains(&Url::parse("https://example.com/user1/inbox").unwrap()));
-    assert!(result.contains(&Url::parse("https://example.com/user2/inbox").unwrap()));
-    assert!(!result.contains(&Url::parse("https://other-domain.com/user3/inbox").unwrap()));
+    assert!(result.contains(&inbox_user_1));
+    assert!(result.contains(&inbox_user_2));
+    assert!(!result.contains(&other_domain_inbox));
   }
 
   #[tokio::test]
@@ -417,6 +399,7 @@ mod tests {
     collector.domain = "example.com".to_string();
     let community_id = CommunityId(1);
 
+    let site_inbox = Url::parse("https://example.com/site_inbox").unwrap();
     let site = Site {
       id: SiteId(1),
       name: "Test Site".to_string(),
@@ -428,7 +411,7 @@ mod tests {
       description: None,
       actor_id: Url::parse("https://example.com/site").unwrap().into(),
       last_refreshed_at: Utc::now(),
-      inbox_url: Url::parse("https://example.com/site_inbox").unwrap().into(),
+      inbox_url: site_inbox.clone().into(),
       private_key: None,
       public_key: "test_key".to_string(),
       instance_id: InstanceId(1),
@@ -440,20 +423,20 @@ mod tests {
       .expect_read_site_from_instance_id()
       .return_once(move |_| Ok(Some(site)));
 
+    let subdomain_inbox = "https://follower.example.com/inbox";
     collector
       .data_source
       .expect_get_instance_followed_community_inboxes()
       .return_once(move |_, _| {
         Ok(vec![(
           community_id,
-          Url::parse("https://follower.example.com/inbox")
-            .unwrap()
-            .into(),
+          Url::parse(subdomain_inbox).unwrap().into(),
         )])
       });
 
     collector.update_communities().await.unwrap();
-
+    let user1_inbox = Url::parse("https://example.com/user1/inbox").unwrap();
+    let user2_inbox = Url::parse("https://other-domain.com/user2/inbox").unwrap();
     let activity = SentActivity {
       id: ActivityId(1),
       ap_id: Url::parse("https://example.com/activities/1")
@@ -463,16 +446,8 @@ mod tests {
       sensitive: false,
       published: Utc::now(),
       send_inboxes: vec![
-        Some(
-          Url::parse("https://example.com/user1/inbox")
-            .unwrap()
-            .into(),
-        ),
-        Some(
-          Url::parse("https://other-domain.com/user2/inbox")
-            .unwrap()
-            .into(),
-        ),
+        Some(user1_inbox.clone().into()),
+        Some(user2_inbox.clone().into()),
       ],
       send_community_followers_of: Some(community_id),
       send_all_instances: true,
@@ -482,10 +457,10 @@ mod tests {
 
     let result = collector.get_inbox_urls(&activity).await.unwrap();
     assert_eq!(result.len(), 3);
-    assert!(result.contains(&Url::parse("https://example.com/site_inbox").unwrap()));
-    assert!(result.contains(&Url::parse("https://follower.example.com/inbox").unwrap()));
-    assert!(result.contains(&Url::parse("https://example.com/user1/inbox").unwrap()));
-    assert!(!result.contains(&Url::parse("https://other-domain.com/user2/inbox").unwrap()));
+    assert!(result.contains(&site_inbox));
+    assert!(result.contains(&Url::parse(subdomain_inbox).unwrap()));
+    assert!(result.contains(&user1_inbox));
+    assert!(!result.contains(&user2_inbox));
   }
 
   #[tokio::test]
@@ -495,6 +470,13 @@ mod tests {
     let community_id2 = CommunityId(2);
     let community_id3 = CommunityId(3);
 
+    let user1_inbox_str = "https://follower1.example.com/inbox";
+    let user1_inbox = Url::parse(user1_inbox_str).unwrap();
+    let user2_inbox_str = "https://follower2.example.com/inbox";
+    let user2_inbox = Url::parse(user2_inbox_str).unwrap();
+    let user3_inbox_str = "https://follower3.example.com/inbox";
+    let user3_inbox = Url::parse(user3_inbox_str).unwrap();
+
     collector
       .data_source
       .expect_get_instance_followed_community_inboxes()
@@ -502,25 +484,13 @@ mod tests {
       .returning(move |_, last_fetch| {
         if last_fetch == Utc.timestamp_nanos(0) {
           Ok(vec![
-            (
-              community_id1,
-              Url::parse("https://follower1.example.com/inbox")
-                .unwrap()
-                .into(),
-            ),
-            (
-              community_id2,
-              Url::parse("https://follower2.example.com/inbox")
-                .unwrap()
-                .into(),
-            ),
+            (community_id1, Url::parse(user1_inbox_str).unwrap().into()),
+            (community_id2, Url::parse(user2_inbox_str).unwrap().into()),
           ])
         } else {
           Ok(vec![(
             community_id3,
-            Url::parse("https://follower3.example.com/inbox")
-              .unwrap()
-              .into(),
+            Url::parse(user3_inbox_str).unwrap().into(),
           )])
         }
       });
@@ -528,10 +498,8 @@ mod tests {
     // First update
     collector.update_communities().await.unwrap();
     assert_eq!(collector.followed_communities.len(), 2);
-    assert!(collector.followed_communities[&community_id1]
-      .contains(&Url::parse("https://follower1.example.com/inbox").unwrap()));
-    assert!(collector.followed_communities[&community_id2]
-      .contains(&Url::parse("https://follower2.example.com/inbox").unwrap()));
+    assert!(collector.followed_communities[&community_id1].contains(&user1_inbox));
+    assert!(collector.followed_communities[&community_id2].contains(&user2_inbox));
 
     // Simulate time passing
     collector.last_full_communities_fetch = Utc::now() - chrono::TimeDelta::try_minutes(3).unwrap();
@@ -541,12 +509,9 @@ mod tests {
     // Second update (incremental)
     collector.update_communities().await.unwrap();
     assert_eq!(collector.followed_communities.len(), 3);
-    assert!(collector.followed_communities[&community_id1]
-      .contains(&Url::parse("https://follower1.example.com/inbox").unwrap()));
-    assert!(collector.followed_communities[&community_id3]
-      .contains(&Url::parse("https://follower3.example.com/inbox").unwrap()));
-    assert!(collector.followed_communities[&community_id2]
-      .contains(&Url::parse("https://follower2.example.com/inbox").unwrap()));
+    assert!(collector.followed_communities[&community_id1].contains(&user1_inbox));
+    assert!(collector.followed_communities[&community_id3].contains(&user3_inbox));
+    assert!(collector.followed_communities[&community_id2].contains(&user2_inbox));
   }
 
   #[tokio::test]
@@ -554,7 +519,8 @@ mod tests {
     let mut collector = setup_collector();
     collector.domain = "example.com".to_string();
     let community_id = CommunityId(1);
-
+    let site_inbox = Url::parse("https://example.com/site_inbox").unwrap();
+    let site_inbox_clone = site_inbox.clone();
     let site = Site {
       id: SiteId(1),
       name: "Test Site".to_string(),
@@ -566,7 +532,7 @@ mod tests {
       description: None,
       actor_id: Url::parse("https://example.com/site").unwrap().into(),
       last_refreshed_at: Utc::now(),
-      inbox_url: Url::parse("https://example.com/site_inbox").unwrap().into(),
+      inbox_url: site_inbox.clone().into(),
       private_key: None,
       public_key: "test_key".to_string(),
       instance_id: InstanceId(1),
@@ -581,12 +547,7 @@ mod tests {
     collector
       .data_source
       .expect_get_instance_followed_community_inboxes()
-      .return_once(move |_, _| {
-        Ok(vec![(
-          community_id,
-          Url::parse("https://example.com/site_inbox").unwrap().into(),
-        )])
-      });
+      .return_once(move |_, _| Ok(vec![(community_id, site_inbox_clone.into())]));
 
     collector.update_communities().await.unwrap();
 
@@ -598,9 +559,7 @@ mod tests {
       data: json!({}),
       sensitive: false,
       published: Utc::now(),
-      send_inboxes: vec![Some(
-        Url::parse("https://example.com/site_inbox").unwrap().into(),
-      )],
+      send_inboxes: vec![Some(site_inbox.into())],
       send_community_followers_of: Some(community_id),
       send_all_instances: true,
       actor_type: ActorType::Person,
