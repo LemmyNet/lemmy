@@ -10,6 +10,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     comment::Comment,
+    local_user::LocalUser,
     moderator::{AdminPurgeComment, AdminPurgeCommentForm},
   },
   traits::Crud,
@@ -36,6 +37,14 @@ pub async fn purge_comment(
   )
   .await?
   .ok_or(LemmyErrorType::CouldntFindComment)?;
+
+  // Also check that you're a higher admin
+  LocalUser::is_higher_admin_check(
+    &mut context.pool(),
+    local_user_view.person.id,
+    vec![comment_view.creator.id],
+  )
+  .await?;
 
   let post_id = comment_view.comment.post_id;
 

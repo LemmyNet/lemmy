@@ -9,6 +9,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    local_user::LocalUser,
     moderator::{ModRemovePost, ModRemovePostForm},
     post::{Post, PostUpdateForm},
     post_report::PostReport,
@@ -34,6 +35,14 @@ pub async fn remove_post(
     orig_post.community_id,
     false,
     &mut context.pool(),
+  )
+  .await?;
+
+  LocalUser::is_higher_mod_or_admin_check(
+    &mut context.pool(),
+    orig_post.community_id,
+    local_user_view.person.id,
+    vec![orig_post.creator_id],
   )
   .await?;
 

@@ -9,6 +9,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    local_user::LocalUser,
     login_token::LoginToken,
     moderator::{ModBan, ModBanForm},
     person::{Person, PersonUpdateForm},
@@ -30,6 +31,14 @@ pub async fn ban_from_site(
 ) -> LemmyResult<Json<BanPersonResponse>> {
   // Make sure user is an admin
   is_admin(&local_user_view)?;
+
+  // Also make sure you're a higher admin than the target
+  LocalUser::is_higher_admin_check(
+    &mut context.pool(),
+    local_user_view.person.id,
+    vec![data.person_id],
+  )
+  .await?;
 
   if let Some(reason) = &data.reason {
     is_valid_body_field(reason, false)?;
