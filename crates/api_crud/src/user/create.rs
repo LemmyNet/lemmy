@@ -386,8 +386,12 @@ pub async fn authenticate_with_oauth(
           .ok()
           .ok_or(LemmyErrorType::OauthLoginFailed)?;
 
-        local_user = user_view.local_user;
-        person = user_view.person;
+        local_user = user_view.local_user.clone();
+
+        check_user_valid(&user_view.person)?;
+        check_registration_application(&user_view, &site_view.local_site, &mut context.pool())
+          .await?;
+        check_email_verified(&user_view, &site_view)?;
       } else {
         // email already registered
         return Err(LemmyErrorType::EmailAlreadyExists)?;
@@ -415,15 +419,28 @@ pub async fn authenticate_with_oauth(
         .ok()
         .ok_or(LemmyErrorType::OauthLoginFailed)?;
 
+      let require_registration_application =
+        local_site.registration_mode == RegistrationMode::RequireApplication;
+
+      if local_site.site_setup && require_registration_application && data.answer.is_none() {
+        Err(LemmyErrorType::RegistrationApplicationAnswerRequired)?
+      }
+
       // We have to create a person, a local_user, and an oauth_account
       person = create_person(username, &local_site, site_view.site.instance_id, &context).await?;
+
+      // Show nsfw content if param is true, or if content_warning exists
+      let show_nsfw = data
+        .show_nsfw
+        .unwrap_or(site_view.site.content_warning.is_some());
 
       // Create the local user
       let local_user_form = LocalUserInsertForm::builder()
         .person_id(person.id)
         .email(Some(str::to_lowercase(&email)))
         .password_encrypted(None)
-        .show_nsfw(Some(false))
+        .show_nsfw(Some(show_nsfw))
+        .accepted_application(Some(!require_registration_application))
         .email_verified(Some(oauth_provider.auto_verify_email))
         .default_listing_type(Some(local_site.default_post_listing_type))
         // If its the initial site setup, they are an admin
@@ -443,45 +460,45 @@ pub async fn authenticate_with_oauth(
         .await
         .ok()
         .ok_or(LemmyErrorType::IncorrectLogin)?;
-    }
 
-    // prevent sign in until application is accepted
-    if local_site.site_setup
-      && local_site.registration_mode == RegistrationMode::RequireApplication
-      && !local_user.accepted_application
-      && !local_user.admin
-    {
-      // Create the registration application
-      let form = RegistrationApplicationInsertForm {
-        local_user_id: local_user.id,
-        answer: String::from("SSO ") + &oauth_provider.display_name,
-      };
+      // prevent sign in until application is accepted
+      if local_site.site_setup
+        && require_registration_application
+        && !local_user.accepted_application
+        && !local_user.admin
+      {
+        // Create the registration application
+        let form = RegistrationApplicationInsertForm {
+          local_user_id: local_user.id,
+          answer: data.answer.clone().expect("must have an answer"),
+        };
 
-      RegistrationApplication::create(&mut context.pool(), &form).await?;
+        RegistrationApplication::create(&mut context.pool(), &form).await?;
 
-      login_response.registration_created = true;
-    }
+        login_response.registration_created = true;
+      }
 
-    // Check email is verified when required
-    if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
-      let local_user_view = LocalUserView {
-        local_user: local_user.clone(),
-        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
-        person,
-        counts: PersonAggregates::default(),
-      };
+      // Check email is verified when required
+      if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
+        let local_user_view = LocalUserView {
+          local_user: local_user.clone(),
+          local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
+          person,
+          counts: PersonAggregates::default(),
+        };
 
-      send_verification_email(
-        &local_user_view,
-        &local_user
-          .email
-          .clone()
-          .expect("invalid verification email"),
-        &mut context.pool(),
-        context.settings(),
-      )
-      .await?;
-      login_response.verify_email_sent = true;
+        send_verification_email(
+          &local_user_view,
+          &local_user
+            .email
+            .clone()
+            .expect("invalid verification email"),
+          &mut context.pool(),
+          context.settings(),
+        )
+        .await?;
+        login_response.verify_email_sent = true;
+      }
     }
   }
 

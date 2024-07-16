@@ -63,6 +63,9 @@ pub struct AuthenticateWithOauth {
   pub oauth_provider_id: OAuthProviderId,
   #[cfg_attr(feature = "full", ts(type = "string"))]
   pub redirect_uri: Url,
+  pub show_nsfw: Option<bool>,
+  /// An answer is mandatory if require application is enabled on the server
+  pub answer: Option<String>,
 }
 
 #[skip_serializing_none]
