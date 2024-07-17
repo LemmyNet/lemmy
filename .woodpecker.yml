@@ -181,6 +181,7 @@ steps:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
+      LEMMY_TEST_FAST_FEDERATION: "1"
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
@@ -236,7 +237,6 @@ steps:
       - cd api_tests/
       - pnpm i
       - pnpm api-test
-      - pnpm api-test # run twice to ensure they don't depend on specific state
     when: *slow_check_paths
 
   federation_tests_server_output:
