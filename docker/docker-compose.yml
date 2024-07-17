@@ -97,7 +97,7 @@ services:
     logging: *default-logging
 
   postgres:
-    image: postgres:16-alpine
+    image: pgautoupgrade/pgautoupgrade:16-alpine
     # this needs to match the database host in lemmy.hson
     # Tune your settings via
     # https://pgtune.leopard.in.ua/#/
