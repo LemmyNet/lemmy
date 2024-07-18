@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
-use lemmy_api_common::lemmy_utils::CACHE_DURATION_FEDERATION;
 use lemmy_apub::{
   activity_lists::SharedInboxActivities,
   fetcher::{site_or_community_or_user::SiteOrCommunityOrUser, user_or_community::UserOrCommunity},
@@ -36,17 +35,40 @@ pub(crate) static LEMMY_TEST_FAST_FEDERATION: Lazy<bool> = Lazy::new(|| {
     .unwrap_or(false)
 });
 
-/// Recheck for new federation work every n seconds.
+/// Recheck for new federation work every n seconds within each InstanceWorker.
 ///
 /// When the queue is processed faster than new activities are added and it reaches the current time
 /// with an empty batch, this is the delay the queue waits before it checks if new activities have
 /// been added to the sent_activities table. This delay is only applied if no federated activity
-/// happens during sending activities of the last batch.
+/// happens during sending activities of the last batch, which means on high-activity instances it
+/// may never be used. This means that it does not affect the maximum throughput of the queue.
+///
+///
+/// This is thus the interval with which tokio wakes up each of the
+/// InstanceWorkers to check for new work, if the queue previously was empty.
+/// If the delay is too short, the workers (one per federated instance) will wake up too
+/// often and consume a lot of CPU. If the delay is long, then activities on low-traffic instances
+/// will on average take delay/2 seconds to federate.
 pub(crate) static WORK_FINISHED_RECHECK_DELAY: Lazy<Duration> = Lazy::new(|| {
   if *LEMMY_TEST_FAST_FEDERATION {
     Duration::from_millis(100)
   } else {
     Duration::from_secs(30)
+  }
+});
+
+/// Cache the latest activity id for a certain duration.
+///
+/// This cache is common to all the instance workers and prevents there from being more than one
+/// call per N seconds between each DB query to find max(activity_id).
+pub(crate) static CACHE_DURATION_LATEST_ID: Lazy<Duration> = Lazy::new(|| {
+  if *LEMMY_TEST_FAST_FEDERATION {
+    // in test mode, we use the same cache duration as the recheck delay so when recheck happens
+    // data is fresh, accelerating the time the tests take.
+    *WORK_FINISHED_RECHECK_DELAY
+  } else {
+    // in normal mode, we limit the query to one per second
+    Duration::from_secs(1)
   }
 });
 
@@ -175,7 +197,7 @@ pub(crate) async fn get_activity_cached(
 pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<ActivityId> {
   static CACHE: Lazy<Cache<(), ActivityId>> = Lazy::new(|| {
     Cache::builder()
-      .time_to_live(CACHE_DURATION_FEDERATION)
+      .time_to_live(*CACHE_DURATION_LATEST_ID)
       .build()
   });
   CACHE
