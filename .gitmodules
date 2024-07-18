@@ -2,3 +2,6 @@
 	path = crates/utils/translations
 	url = https://github.com/LemmyNet/lemmy-translations.git
         branch = main
+[submodule "modules/Rules"]
+	path = modules/Rules
+	url = https://github.com/ClearURLs/Rules.git
