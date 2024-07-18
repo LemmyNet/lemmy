@@ -200,10 +200,10 @@ impl<T: DataSource> CommunityInboxCollector<T> {
     instance_id: InstanceId,
     last_fetch: DateTime<Utc>,
   ) -> Result<(HashMap<CommunityId, HashSet<Url>>, DateTime<Utc>)> {
-    // update to time before fetch to ensure overlap. subtract 10s to ensure overlap even if
+    // update to time before fetch to ensure overlap. subtract some time to ensure overlap even if
     // published date is not exact
     let new_last_fetch =
-      Utc::now() - chrono::TimeDelta::try_seconds(10).expect("TimeDelta out of bounds");
+      Utc::now() - *FOLLOW_ADDITIONS_RECHECK_DELAY / 2;
 
     let inboxes = self
       .data_source
