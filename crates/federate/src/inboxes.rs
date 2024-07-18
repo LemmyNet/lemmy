@@ -202,8 +202,7 @@ impl<T: DataSource> CommunityInboxCollector<T> {
   ) -> Result<(HashMap<CommunityId, HashSet<Url>>, DateTime<Utc>)> {
     // update to time before fetch to ensure overlap. subtract some time to ensure overlap even if
     // published date is not exact
-    let new_last_fetch =
-      Utc::now() - *FOLLOW_ADDITIONS_RECHECK_DELAY / 2;
+    let new_last_fetch = Utc::now() - *FOLLOW_ADDITIONS_RECHECK_DELAY / 2;
 
     let inboxes = self
       .data_source
