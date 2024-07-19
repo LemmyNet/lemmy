@@ -127,7 +127,7 @@ impl InstanceWorker {
       // too many in flight
       let need_wait_for_event = (self.in_flight != 0 && self.state.fail_count > 0)
         || self.successfuls.len() >= MAX_SUCCESSFULS
-        || self.in_flight as i64 >= self.federation_worker_config.concurrent_sends_per_instance;
+        || i64::from(self.in_flight) >= self.federation_worker_config.concurrent_sends_per_instance;
       if need_wait_for_event || self.receive_send_result.len() > MIN_ACTIVITY_SEND_RESULTS_TO_HANDLE
       {
         // if len() > 0 then this does not block and allows us to write to db more often
@@ -145,7 +145,7 @@ impl InstanceWorker {
       {
         // sanity check: calculate next id to send based on the last id and the in flight requests
         let expected_next_id = self.state.last_successful_id.map(|last_successful_id| {
-          last_successful_id.0 + (self.successfuls.len() as i64) + self.in_flight as i64 + 1
+          last_successful_id.0 + (self.successfuls.len() as i64) + i64::from(self.in_flight) + 1
         });
         // compare to next id based on incrementing
         if expected_next_id != Some(next_id_to_send.0) {
