@@ -227,7 +227,6 @@ impl PersonFollower {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 #[allow(clippy::indexing_slicing)]
 mod tests {
 
@@ -239,22 +238,21 @@ mod tests {
     traits::{Crud, Followable},
     utils::{build_db_pool_for_tests, uplete},
   };
+  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_crud() {
+  async fn test_crud() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "holly");
 
-    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+    let inserted_person = Person::create(pool, &new_person).await?;
 
     let expected_person = Person {
       id: inserted_person.id,
@@ -281,57 +279,54 @@ mod tests {
     };
 
     let read_person = Person::read(pool, inserted_person.id)
-      .await
-      .unwrap()
-      .unwrap();
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?;
 
     let update_person_form = PersonUpdateForm {
       actor_id: Some(inserted_person.actor_id.clone()),
       ..Default::default()
     };
-    let updated_person = Person::update(pool, inserted_person.id, &update_person_form)
-      .await
-      .unwrap();
+    let updated_person = Person::update(pool, inserted_person.id, &update_person_form).await?;
 
-    let num_deleted = Person::delete(pool, inserted_person.id).await.unwrap();
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    let num_deleted = Person::delete(pool, inserted_person.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
 
     assert_eq!(expected_person, read_person);
     assert_eq!(expected_person, inserted_person);
     assert_eq!(expected_person, updated_person);
     assert_eq!(1, num_deleted);
+
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn follow() {
+  async fn follow() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let person_form_1 = PersonInsertForm::test_form(inserted_instance.id, "erich");
-    let person_1 = Person::create(pool, &person_form_1).await.unwrap();
+    let person_1 = Person::create(pool, &person_form_1).await?;
     let person_form_2 = PersonInsertForm::test_form(inserted_instance.id, "michele");
-    let person_2 = Person::create(pool, &person_form_2).await.unwrap();
+    let person_2 = Person::create(pool, &person_form_2).await?;
 
     let follow_form = PersonFollowerForm {
       person_id: person_1.id,
       follower_id: person_2.id,
       pending: false,
     };
-    let person_follower = PersonFollower::follow(pool, &follow_form).await.unwrap();
+    let person_follower = PersonFollower::follow(pool, &follow_form).await?;
     assert_eq!(person_1.id, person_follower.person_id);
     assert_eq!(person_2.id, person_follower.follower_id);
     assert!(!person_follower.pending);
 
-    let followers = PersonFollower::list_followers(pool, person_1.id)
-      .await
-      .unwrap();
+    let followers = PersonFollower::list_followers(pool, person_1.id).await?;
     assert_eq!(vec![person_2], followers);
 
-    let unfollow = PersonFollower::unfollow(pool, &follow_form).await.unwrap();
+    let unfollow = PersonFollower::unfollow(pool, &follow_form).await?;
     assert_eq!(uplete::Count::only_deleted(1), unfollow);
+
+    Ok(())
   }
 }

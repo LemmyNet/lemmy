@@ -34,9 +34,14 @@ pub async fn save_post(
 
   let post_id = data.post_id;
   let person_id = local_user_view.person.id;
-  let post_view = PostView::read(&mut context.pool(), post_id, Some(person_id), false)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+  let post_view = PostView::read(
+    &mut context.pool(),
+    post_id,
+    Some(&local_user_view.local_user),
+    false,
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindPost)?;
 
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 

@@ -1,12 +1,6 @@
 pub mod uplete;
 
-use crate::{
-  newtypes::{DbUrl, PersonId},
-  schema::community,
-  CommentSortType,
-  CommunityVisibility,
-  SortType,
-};
+use crate::{newtypes::DbUrl, CommentSortType, SortType};
 use chrono::{DateTime, TimeDelta, Utc};
 use deadpool::Runtime;
 use diesel::{
@@ -711,20 +705,6 @@ impl<RF, LF> Queries<RF, LF> {
   {
     let conn = get_conn(pool).await?;
     (self.list_fn)(conn, args).await
-  }
-}
-
-pub fn visible_communities_only<Q>(my_person_id: Option<PersonId>, query: Q) -> Q
-where
-  Q: diesel::query_dsl::methods::FilterDsl<
-    dsl::Eq<community::visibility, CommunityVisibility>,
-    Output = Q,
-  >,
-{
-  if my_person_id.is_none() {
-    query.filter(community::visibility.eq(CommunityVisibility::Public))
-  } else {
-    query
   }
 }
 

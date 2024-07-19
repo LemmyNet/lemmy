@@ -167,11 +167,7 @@ mod tests {
 
     let inserted_timmy_person = Person::create(pool, &timmy_person_form).await.unwrap();
 
-    let timmy_local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_timmy_person.id)
-      .password_encrypted("nada".to_string())
-      .admin(Some(true))
-      .build();
+    let timmy_local_user_form = LocalUserInsertForm::test_form_admin(inserted_timmy_person.id);
 
     let _inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![])
       .await
@@ -181,10 +177,7 @@ mod tests {
 
     let inserted_sara_person = Person::create(pool, &sara_person_form).await.unwrap();
 
-    let sara_local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_sara_person.id)
-      .password_encrypted("nada".to_string())
-      .build();
+    let sara_local_user_form = LocalUserInsertForm::test_form(inserted_sara_person.id);
 
     let inserted_sara_local_user = LocalUser::create(pool, &sara_local_user_form, vec![])
       .await
@@ -209,10 +202,7 @@ mod tests {
 
     let inserted_jess_person = Person::create(pool, &jess_person_form).await.unwrap();
 
-    let jess_local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_jess_person.id)
-      .password_encrypted("nada".to_string())
-      .build();
+    let jess_local_user_form = LocalUserInsertForm::test_form(inserted_jess_person.id);
 
     let inserted_jess_local_user = LocalUser::create(pool, &jess_local_user_form, vec![])
       .await
