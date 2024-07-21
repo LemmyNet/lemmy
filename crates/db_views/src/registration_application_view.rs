@@ -1,6 +1,7 @@
 use crate::structs::RegistrationApplicationView;
 use diesel::{
   dsl::count,
+  pg::Pg,
   result::Error,
   ExpressionMethods,
   JoinOnDsl,
@@ -24,42 +25,8 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, RegistrationApplicationView, ReadBy>,
   impl ListFn<'a, RegistrationApplicationView, RegistrationApplicationQuery>,
 > {
-  let selection = (
-    registration_application::all_columns,
-    local_user::all_columns,
-    person::all_columns,
-    aliases::person1.fields(person::all_columns).nullable(),
-  );
-
-  let read = move |mut conn: DbConn<'a>, search: ReadBy| async move {
-    let mut query = registration_application::table
-      .into_boxed()
-      .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)));
-
-    query = match search {
-      ReadBy::Id(id) => query.filter(registration_application::id.eq(id)),
-      _ => query,
-    };
-    let mut query = query.inner_join(person::table.on(local_user::person_id.eq(person::id)));
-
-    query = match search {
-      ReadBy::Person(person_id) => query.filter(person::id.eq(person_id)),
-      _ => query,
-    };
-
+  let all_joins = |query: registration_application::BoxedQuery<'a, Pg>| {
     query
-      .left_join(
-        aliases::person1
-          .on(registration_application::admin_id.eq(aliases::person1.field(person::id).nullable())),
-      )
-      .select(selection)
-      .first(&mut conn)
-      .await
-  };
-
-  let list = move |mut conn: DbConn<'a>, options: RegistrationApplicationQuery| async move {
-    let mut query = registration_application::table
-      .into_boxed()
       .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
       .inner_join(person::table.on(local_user::person_id.eq(person::id)))
       .left_join(
@@ -67,7 +34,27 @@ fn queries<'a>() -> Queries<
           .on(registration_application::admin_id.eq(aliases::person1.field(person::id).nullable())),
       )
       .order_by(registration_application::published.desc())
-      .select(selection);
+      .select((
+        registration_application::all_columns,
+        local_user::all_columns,
+        person::all_columns,
+        aliases::person1.fields(person::all_columns).nullable(),
+      ))
+  };
+
+  let read = move |mut conn: DbConn<'a>, search: ReadBy| async move {
+    let mut query = all_joins(registration_application::table.into_boxed());
+
+    query = match search {
+      ReadBy::Id(id) => query.filter(registration_application::id.eq(id)),
+      ReadBy::Person(person_id) => query.filter(person::id.eq(person_id)),
+    };
+
+    query.first(&mut conn).await
+  };
+
+  let list = move |mut conn: DbConn<'a>, options: RegistrationApplicationQuery| async move {
+    let mut query = all_joins(registration_application::table.into_boxed());
 
     // If viewing all applications, order by newest, but if viewing unresolved only, show the oldest
     // first (FIFO)
