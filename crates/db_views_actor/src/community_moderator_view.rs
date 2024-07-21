@@ -67,8 +67,6 @@ impl CommunityModeratorView {
       .inner_join(community::table)
       .inner_join(person::table)
       .filter(community_moderator::person_id.eq(person_id))
-      .filter(community::deleted.eq(false))
-      .filter(community::removed.eq(false))
       .select((community::all_columns, person::all_columns))
       .into_boxed();
     if !is_authenticated {
