@@ -1,7 +1,6 @@
 use crate::structs::RegistrationApplicationView;
 use diesel::{
   dsl::count,
-  pg::Pg,
   result::Error,
   ExpressionMethods,
   JoinOnDsl,
@@ -11,16 +10,56 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
+  newtypes::{PersonId, RegistrationApplicationId},
   schema::{local_user, person, registration_application},
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
+enum ReadBy {
+  Id(RegistrationApplicationId),
+  Person(PersonId),
+}
+
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, RegistrationApplicationView, i32>,
+  impl ReadFn<'a, RegistrationApplicationView, ReadBy>,
   impl ListFn<'a, RegistrationApplicationView, RegistrationApplicationQuery>,
 > {
-  let all_joins = |query: registration_application::BoxedQuery<'a, Pg>| {
+  let selection = (
+    registration_application::all_columns,
+    local_user::all_columns,
+    person::all_columns,
+    aliases::person1.fields(person::all_columns).nullable(),
+  );
+
+  let read = move |mut conn: DbConn<'a>, search: ReadBy| async move {
+    let mut query = registration_application::table
+      .into_boxed()
+      .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)));
+
+    query = match search {
+      ReadBy::Id(id) => query.filter(registration_application::id.eq(id)),
+      _ => query,
+    };
+    let mut query = query.inner_join(person::table.on(local_user::person_id.eq(person::id)));
+
+    query = match search {
+      ReadBy::Person(person_id) => query.filter(person::id.eq(person_id)),
+      _ => query,
+    };
+
     query
+      .left_join(
+        aliases::person1
+          .on(registration_application::admin_id.eq(aliases::person1.field(person::id).nullable())),
+      )
+      .select(selection)
+      .first(&mut conn)
+      .await
+  };
+
+  let list = move |mut conn: DbConn<'a>, options: RegistrationApplicationQuery| async move {
+    let mut query = registration_application::table
+      .into_boxed()
       .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
       .inner_join(person::table.on(local_user::person_id.eq(person::id)))
       .left_join(
@@ -28,26 +67,7 @@ fn queries<'a>() -> Queries<
           .on(registration_application::admin_id.eq(aliases::person1.field(person::id).nullable())),
       )
       .order_by(registration_application::published.desc())
-      .select((
-        registration_application::all_columns,
-        local_user::all_columns,
-        person::all_columns,
-        aliases::person1.fields(person::all_columns).nullable(),
-      ))
-  };
-
-  let read = move |mut conn: DbConn<'a>, registration_application_id: i32| async move {
-    all_joins(
-      registration_application::table
-        .find(registration_application_id)
-        .into_boxed(),
-    )
-    .first(&mut conn)
-    .await
-  };
-
-  let list = move |mut conn: DbConn<'a>, options: RegistrationApplicationQuery| async move {
-    let mut query = all_joins(registration_application::table.into_boxed());
+      .select(selection);
 
     // If viewing all applications, order by newest, but if viewing unresolved only, show the oldest
     // first (FIFO)
@@ -76,11 +96,17 @@ fn queries<'a>() -> Queries<
 impl RegistrationApplicationView {
   pub async fn read(
     pool: &mut DbPool<'_>,
-    registration_application_id: i32,
+    id: RegistrationApplicationId,
   ) -> Result<Option<Self>, Error> {
-    queries().read(pool, registration_application_id).await
+    queries().read(pool, ReadBy::Id(id)).await
   }
 
+  pub async fn read_by_person(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+  ) -> Result<Option<Self>, Error> {
+    queries().read(pool, ReadBy::Person(person_id)).await
+  }
   /// Returns the current unread registration_application count
   pub async fn get_unread_count(
     pool: &mut DbPool<'_>,
