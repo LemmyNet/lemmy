@@ -52,17 +52,23 @@ beforeAll(async () => {
 
 afterAll(unfollows);
 
-async function assertPostFederation(postOne: PostView, postTwo: PostView) {
+async function assertPostFederation(
+  postOne: PostView,
+  postTwo: PostView,
+  waitForMeta = true,
+) {
   // Link metadata is generated in background task and may not be ready yet at this time,
   // so wait for it explicitly. For removed posts we cant refetch anything.
-  postOne = await waitForPost(beta, postOne.post, res => {
-    return res === null || res?.post.embed_title !== null;
-  });
-  postTwo = await waitForPost(
-    beta,
-    postTwo.post,
-    res => res === null || res?.post.embed_title !== null,
-  );
+  if (waitForMeta) {
+    postOne = await waitForPost(beta, postOne.post, res => {
+      return res === null || !!res?.post.embed_title;
+    });
+    postTwo = await waitForPost(
+      beta,
+      postTwo.post,
+      res => res === null || !!res?.post.embed_title,
+    );
+  }
 
   expect(postOne?.post.ap_id).toBe(postTwo?.post.ap_id);
   expect(postOne?.post.name).toBe(postTwo?.post.name);
@@ -408,7 +414,11 @@ test("Remove a post from admin and community on same instance", async () => {
     p => p?.post_view.post.removed ?? false,
   );
   expect(alphaPost?.post_view.post.removed).toBe(true);
-  await assertPostFederation(alphaPost.post_view, removePostRes.post_view);
+  await assertPostFederation(
+    alphaPost.post_view,
+    removePostRes.post_view,
+    false,
+  );
 
   // Undelete
   let undeletedPost = await removePost(beta, false, betaPost.post);
