@@ -27,7 +27,7 @@ use lemmy_db_schema::{
   SortType,
 };
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString};
+use strum::{Display, EnumString, IntoStaticStr};
 
 enum ListMode {
   Admins,
@@ -35,7 +35,7 @@ enum ListMode {
   Query(PersonQuery),
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(EnumString, Display, IntoStaticStr, Debug, Serialize, Deserialize, Clone, Copy)]
 /// The person sort types. Converted automatically from `SortType`
 enum PersonSortType {
   New,

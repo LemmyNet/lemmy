@@ -172,7 +172,7 @@ async fn get_feed_data(
 
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - {}", site_view.site.name, listing_type),
+    title: format!("{} - {}", site_view.site.name, Into::<&'static str>::into(listing_type)),
     link: context.settings().get_protocol_and_hostname(),
     items,
     ..Default::default()

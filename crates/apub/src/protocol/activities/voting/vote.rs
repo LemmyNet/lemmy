@@ -8,7 +8,7 @@ use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
-use strum_macros::Display;
+use strum::{Display, IntoStaticStr};
 use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -22,7 +22,7 @@ pub struct Vote {
   pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
-#[derive(Clone, Debug, Display, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Display, IntoStaticStr, Deserialize, Serialize, PartialEq, Eq)]
 pub enum VoteType {
   Like,
   Dislike,

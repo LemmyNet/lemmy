@@ -149,8 +149,7 @@ regex = "1.10.4"
 once_cell = "1.19.0"
 diesel-derive-newtype = "2.1.2"
 diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
-strum = "0.26.2"
-strum_macros = "0.26.4"
+strum = { version = "0.26.3", features = ["derive"] }
 itertools = "0.13.0"
 futures = "0.3.30"
 http = "0.2.12"

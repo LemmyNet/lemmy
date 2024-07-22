@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use strum_macros::Display;
+use strum::{Display, IntoStaticStr};
 
 pub mod block;
 pub mod community;
@@ -8,7 +8,7 @@ pub mod deletion;
 pub mod following;
 pub mod voting;
 
-#[derive(Clone, Debug, Display, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Display, IntoStaticStr, Deserialize, Serialize, PartialEq, Eq)]
 pub enum CreateOrUpdateType {
   Create,
   Update,
