@@ -34,6 +34,13 @@ tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
 moka.workspace = true
 tokio-util = "0.7.11"
+async-trait.workspace = true
 
 [dev-dependencies]
 serial_test = { workspace = true }
+url.workspace = true
+actix-web.workspace = true
+tracing-test = "0.2.5"
+uuid.workspace = true
+test-context = "0.3.0"
+mockall = "0.12.1"

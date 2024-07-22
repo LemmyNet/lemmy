@@ -1,6 +1,9 @@
 use crate::{util::CancellableTask, worker::InstanceWorker};
 use activitypub_federation::config::FederationConfig;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{
+  context::LemmyContext,
+  lemmy_utils::settings::structs::FederationWorkerConfig,
+};
 use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
 use lemmy_utils::error::LemmyResult;
 use stats::receive_print_stats;
@@ -14,6 +17,8 @@ use tokio_util::sync::CancellationToken;
 use tracing::info;
 use util::FederationQueueStateWithDomain;
 
+mod inboxes;
+mod send;
 mod stats;
 mod util;
 mod worker;
@@ -38,10 +43,15 @@ pub struct SendManager {
   context: FederationConfig<LemmyContext>,
   stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
   exit_print: JoinHandle<()>,
+  federation_worker_config: FederationWorkerConfig,
 }
 
 impl SendManager {
-  fn new(opts: Opts, context: FederationConfig<LemmyContext>) -> Self {
+  fn new(
+    opts: Opts,
+    context: FederationConfig<LemmyContext>,
+    federation_worker_config: FederationWorkerConfig,
+  ) -> Self {
     assert!(opts.process_count > 0);
     assert!(opts.process_index > 0);
     assert!(opts.process_index <= opts.process_count);
@@ -56,14 +66,20 @@ impl SendManager {
         stats_receiver,
       )),
       context,
+      federation_worker_config,
     }
   }
 
-  pub fn run(opts: Opts, context: FederationConfig<LemmyContext>) -> CancellableTask {
+  pub fn run(
+    opts: Opts,
+    context: FederationConfig<LemmyContext>,
+    config: FederationWorkerConfig,
+  ) -> CancellableTask {
     CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |cancel| {
       let opts = opts.clone();
+      let config = config.clone();
       let context = context.clone();
-      let mut manager = Self::new(opts, context);
+      let mut manager = Self::new(opts, context, config);
       async move {
         let result = manager.do_loop(cancel).await;
         // the loop function will only return if there is (a) an internal error (e.g. db connection
@@ -120,22 +136,21 @@ impl SendManager {
           // create new worker
           let context = self.context.clone();
           let stats_sender = self.stats_sender.clone();
+          let federation_worker_config = self.federation_worker_config.clone();
+
           self.workers.insert(
             instance.id,
             CancellableTask::spawn(WORKER_EXIT_TIMEOUT, move |stop| {
-              // if the instance worker ends unexpectedly due to internal/db errors, this lambda is rerun by cancellabletask.
+              // if the instance worker ends unexpectedly due to internal/db errors, this lambda is
+              // rerun by cancellabletask.
               let instance = instance.clone();
-              let req_data = context.to_request_data();
-              let stats_sender = stats_sender.clone();
-              async move {
-                InstanceWorker::init_and_loop(
-                  instance,
-                  req_data,
-                  stop,
-                  stats_sender,
-                )
-                .await
-              }
+              InstanceWorker::init_and_loop(
+                instance,
+                context.clone(),
+                federation_worker_config.clone(),
+                stop,
+                stats_sender.clone(),
+              )
             }),
           );
         } else if !should_federate {
@@ -214,7 +229,14 @@ mod test {
         .app_data(context.clone())
         .build()
         .await?;
+      let concurrent_sends_per_instance = std::env::var("LEMMY_TEST_FEDERATION_CONCURRENT_SENDS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(1);
 
+      let federation_worker_config = FederationWorkerConfig {
+        concurrent_sends_per_instance,
+      };
       let pool = &mut context.pool();
       let instances = vec![
         Instance::read_or_create(pool, "alpha.com".to_string()).await?,
@@ -222,7 +244,7 @@ mod test {
         Instance::read_or_create(pool, "gamma.com".to_string()).await?,
       ];
 
-      let send_manager = SendManager::new(opts, federation_config);
+      let send_manager = SendManager::new(opts, federation_config, federation_worker_config);
       Ok(Self {
         send_manager,
         context,
