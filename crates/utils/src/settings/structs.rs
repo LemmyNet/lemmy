@@ -242,5 +242,5 @@ pub struct FederationWorkerConfig {
   /// Set this to a higher value than 1 (e.g. 6) only if you have a huge instance (>10 activities
   /// per second) and if a receiving instance is not keeping up.
   #[default(1)]
-  pub concurrent_sends_per_instance: i64,
+  pub concurrent_sends_per_instance: i8,
 }
