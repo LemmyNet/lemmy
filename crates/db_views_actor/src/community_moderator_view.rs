@@ -7,7 +7,6 @@ use lemmy_db_schema::{
   schema::{community, community_moderator, person},
   source::local_user::LocalUser,
   utils::{get_conn, DbPool},
-  CommunityVisibility,
 };
 
 impl CommunityModeratorView {
@@ -59,10 +58,10 @@ impl CommunityModeratorView {
       .await
   }
 
-  pub async fn for_person<'a>(
+  pub async fn for_person(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-    local_user: Option<&'a LocalUser>,
+    local_user: Option<&LocalUser>,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let mut query = community_moderator::table
@@ -72,9 +71,7 @@ impl CommunityModeratorView {
       .select((community::all_columns, person::all_columns))
       .into_boxed();
 
-    if local_user.is_none() {
-      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
-    }
+    query = local_user.visible_communities_only(query);
 
     // only show deleted communities to creator
     if Some(person_id) != local_user.person_id() {
