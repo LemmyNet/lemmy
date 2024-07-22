@@ -3208,6 +3208,7 @@ dependencies = [
  "reqwest 0.11.27",
  "reqwest-middleware 0.2.5",
  "reqwest-tracing 0.4.8",
+ "rustls 0.23.10",
  "serde_json",
  "serial_test",
  "tokio",
