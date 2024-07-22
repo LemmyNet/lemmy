@@ -256,7 +256,7 @@ pub async fn authenticate_with_oauth(
   let oauth_provider = UnsafeOAuthProvider::read(&mut context.pool(), oauth_provider_id)
     .await
     .ok()
-    .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?
+    .flatten()
     .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?;
 
   if !oauth_provider.enabled {
@@ -417,7 +417,7 @@ pub async fn authenticate_with_oauth(
       let slur_regex = local_site_to_slur_regex(&local_site);
       check_slurs(&username, &slur_regex)
         .ok()
-        .ok_or(LemmyErrorType::OauthLoginFailed)?;
+        .ok_or(LemmyErrorType::Slurs)?;
 
       let require_registration_application =
         local_site.registration_mode == RegistrationMode::RequireApplication;
