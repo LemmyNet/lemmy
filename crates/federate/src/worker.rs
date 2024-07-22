@@ -76,7 +76,7 @@ pub(crate) struct InstanceWorker {
   // that are not the lowest number and thus can't be written to the database yet
   successfuls: BinaryHeap<SendSuccessInfo>,
   // number of activities that currently have a task spawned to send it
-  in_flight: i32,
+  in_flight: i8,
 }
 
 impl InstanceWorker {
@@ -127,7 +127,7 @@ impl InstanceWorker {
       // too many in flight
       let need_wait_for_event = (self.in_flight != 0 && self.state.fail_count > 0)
         || self.successfuls.len() >= MAX_SUCCESSFULS
-        || i64::from(self.in_flight) >= self.federation_worker_config.concurrent_sends_per_instance;
+        || self.in_flight >= self.federation_worker_config.concurrent_sends_per_instance;
       if need_wait_for_event || self.receive_send_result.len() > MIN_ACTIVITY_SEND_RESULTS_TO_HANDLE
       {
         // if len() > 0 then this does not block and allows us to write to db more often
