@@ -231,7 +231,6 @@ mod tests {
           None::<bool>,
           None::<String>,
           None::<RegistrationMode>,
-          None::<bool>,
         ),
       ),
       (
@@ -256,7 +255,6 @@ mod tests {
           None::<bool>,
           None::<String>,
           None::<RegistrationMode>,
-          None::<bool>,
         ),
       ),
       (
@@ -281,7 +279,6 @@ mod tests {
           None::<bool>,
           None::<String>,
           None::<RegistrationMode>,
-          None::<bool>,
         ),
       ),
       (
@@ -306,7 +303,6 @@ mod tests {
           None::<bool>,
           None::<String>,
           None::<RegistrationMode>,
-          None::<bool>,
         ),
       ),
       (
@@ -331,7 +327,6 @@ mod tests {
           Some(true),
           None::<String>,
           None::<RegistrationMode>,
-          None::<bool>,
         ),
       ),
       (
@@ -356,7 +351,6 @@ mod tests {
           Some(true),
           None::<String>,
           None::<RegistrationMode>,
-          None::<bool>,
         ),
       ),
       (
@@ -381,7 +375,6 @@ mod tests {
           None::<bool>,
           None::<String>,
           Some(RegistrationMode::RequireApplication),
-          None::<bool>,
         ),
       ),
     ];
@@ -440,7 +433,6 @@ mod tests {
           None::<bool>,
           None::<String>,
           None::<RegistrationMode>,
-          None::<bool>,
         ),
       ),
       (
@@ -464,7 +456,6 @@ mod tests {
           Some(true),
           Some(String::new()),
           Some(RegistrationMode::Open),
-          None::<bool>,
         ),
       ),
       (
@@ -488,7 +479,6 @@ mod tests {
           None::<bool>,
           None::<String>,
           None::<RegistrationMode>,
-          None::<bool>,
         ),
       ),
       (
@@ -512,7 +502,6 @@ mod tests {
           None::<bool>,
           None::<String>,
           Some(RegistrationMode::RequireApplication),
-          None::<bool>,
         ),
       ),
     ];
@@ -563,7 +552,6 @@ mod tests {
     site_is_federated: Option<bool>,
     site_application_question: Option<String>,
     site_registration_mode: Option<RegistrationMode>,
-    site_oauth_registration: Option<bool>,
   ) -> CreateSite {
     CreateSite {
       name: site_name,
@@ -606,7 +594,7 @@ mod tests {
       blocked_instances: None,
       taglines: None,
       registration_mode: site_registration_mode,
-      oauth_registration: site_oauth_registration,
+      oauth_registration: None,
       content_warning: None,
       default_post_listing_mode: None,
     }

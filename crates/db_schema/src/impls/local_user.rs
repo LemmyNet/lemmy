@@ -282,7 +282,6 @@ impl LocalUserInsertForm {
   pub fn test_form(person_id: PersonId) -> Self {
     Self::builder()
       .person_id(person_id)
-      .password_encrypted(Some(String::new()))
       .build()
   }
 }
