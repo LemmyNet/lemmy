@@ -68,15 +68,3 @@ pub struct AuthenticateWithOauth {
   pub answer: Option<String>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Response from OAuth token endpoint
-pub struct TokenResponse {
-  pub access_token: String,
-  pub token_type: String,
-  pub expires_in: Option<i64>,
-  pub refresh_token: Option<String>,
-  pub scope: Option<String>,
-}

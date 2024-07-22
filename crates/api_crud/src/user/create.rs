@@ -3,7 +3,7 @@ use actix_web::{web::Json, HttpRequest};
 use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,
-  oauth_provider::{AuthenticateWithOauth, TokenResponse},
+  oauth_provider::AuthenticateWithOauth,
   person::{LoginResponse, Register},
   utils::{
     check_email_verified,
@@ -47,6 +47,17 @@ use lemmy_utils::{
 };
 use rand::Rng;
 use std::collections::HashSet;
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+/// Response from OAuth token endpoint
+pub struct TokenResponse {
+  pub access_token: String,
+  pub token_type: String,
+  pub expires_in: Option<i64>,
+  pub refresh_token: Option<String>,
+  pub scope: Option<String>,
+}
 
 pub async fn register(
   data: Json<Register>,
