@@ -2,8 +2,10 @@ use crate::structs::CommunityModeratorView;
 use diesel::{dsl::exists, result::Error, select, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
+  impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
   schema::{community, community_moderator, person},
+  source::local_user::LocalUser,
   utils::{get_conn, DbPool},
   CommunityVisibility,
 };
@@ -57,10 +59,10 @@ impl CommunityModeratorView {
       .await
   }
 
-  pub async fn for_person(
+  pub async fn for_person<'a>(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-    is_authenticated: bool,
+    local_user: Option<&'a LocalUser>,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let mut query = community_moderator::table
@@ -69,9 +71,21 @@ impl CommunityModeratorView {
       .filter(community_moderator::person_id.eq(person_id))
       .select((community::all_columns, person::all_columns))
       .into_boxed();
-    if !is_authenticated {
+
+    if local_user.is_none() {
       query = query.filter(community::visibility.eq(CommunityVisibility::Public));
     }
+
+    // only show deleted communities to creator
+    if Some(person_id) != local_user.person_id() {
+      query = query.filter(community::deleted.eq(false));
+    }
+
+    // Show removed communities to admins only
+    if !local_user.is_admin() {
+      query = query.filter(community::removed.eq(false))
+    }
+
     query.load::<CommunityModeratorView>(conn).await
   }
 
