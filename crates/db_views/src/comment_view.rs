@@ -487,6 +487,7 @@ mod tests {
     let timmy_local_user_form = LocalUserInsertForm::builder()
       .person_id(inserted_timmy_person.id)
       .admin(Some(true))
+      .password_encrypted(None)
       .build();
     let inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
 

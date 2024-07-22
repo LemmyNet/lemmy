@@ -198,6 +198,7 @@ mod tests {
     let alice = Person::create(pool, &alice_form).await?;
     let alice_local_user_form = LocalUserInsertForm::builder()
       .person_id(alice.id)
+      .password_encrypted(None)
       .build();
     let alice_local_user = LocalUser::create(pool, &alice_local_user_form, vec![]).await?;
 
@@ -209,6 +210,7 @@ mod tests {
     let bob = Person::create(pool, &bob_form).await?;
     let bob_local_user_form = LocalUserInsertForm::builder()
       .person_id(bob.id)
+      .password_encrypted(None)
       .build();
     let bob_local_user = LocalUser::create(pool, &bob_local_user_form, vec![]).await?;
 
