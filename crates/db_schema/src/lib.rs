@@ -53,7 +53,18 @@ use strum::{Display, EnumString, IntoStaticStr};
 use ts_rs::TS;
 
 #[derive(
-  EnumString, IntoStaticStr, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
+  EnumString,
+  IntoStaticStr,
+  Display,
+  Debug,
+  Serialize,
+  Deserialize,
+  Clone,
+  Copy,
+  PartialEq,
+  Eq,
+  Default,
+  Hash,
 )]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
@@ -87,7 +98,19 @@ pub enum SortType {
   Scaled,
 }
 
-#[derive(EnumString, Display, IntoStaticStr, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+  EnumString,
+  Display,
+  IntoStaticStr,
+  Debug,
+  Serialize,
+  Deserialize,
+  Clone,
+  Copy,
+  PartialEq,
+  Eq,
+  Hash,
+)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The comment sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
@@ -100,7 +123,18 @@ pub enum CommentSortType {
 }
 
 #[derive(
-  EnumString, Display, IntoStaticStr, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
+  EnumString,
+  Display,
+  IntoStaticStr,
+  Debug,
+  Serialize,
+  Deserialize,
+  Clone,
+  Copy,
+  PartialEq,
+  Eq,
+  Default,
+  Hash,
 )]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
@@ -123,7 +157,18 @@ pub enum ListingType {
 }
 
 #[derive(
-  EnumString, Display, IntoStaticStr, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
+  EnumString,
+  Display,
+  IntoStaticStr,
+  Debug,
+  Serialize,
+  Deserialize,
+  Clone,
+  Copy,
+  PartialEq,
+  Eq,
+  Default,
+  Hash,
 )]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
@@ -144,7 +189,18 @@ pub enum RegistrationMode {
 }
 
 #[derive(
-  EnumString, Display, IntoStaticStr, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
+  EnumString,
+  Display,
+  IntoStaticStr,
+  Debug,
+  Serialize,
+  Deserialize,
+  Default,
+  Clone,
+  Copy,
+  PartialEq,
+  Eq,
+  Hash,
 )]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
@@ -164,7 +220,19 @@ pub enum PostListingMode {
   SmallCard,
 }
 
-#[derive(EnumString, Display, IntoStaticStr, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+  EnumString,
+  Display,
+  IntoStaticStr,
+  Debug,
+  Serialize,
+  Deserialize,
+  Clone,
+  Copy,
+  PartialEq,
+  Eq,
+  Hash,
+)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The type of content returned from a search.
@@ -177,7 +245,19 @@ pub enum SearchType {
   Url,
 }
 
-#[derive(EnumString, Display, IntoStaticStr, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, Hash)]
+#[derive(
+  EnumString,
+  Display,
+  IntoStaticStr,
+  Debug,
+  PartialEq,
+  Eq,
+  Serialize,
+  Deserialize,
+  Clone,
+  Copy,
+  Hash,
+)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A type / status for a community subscribe.
@@ -187,7 +267,19 @@ pub enum SubscribedType {
   Pending,
 }
 
-#[derive(EnumString, Display, IntoStaticStr, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+  EnumString,
+  Display,
+  IntoStaticStr,
+  Debug,
+  Serialize,
+  Deserialize,
+  Clone,
+  Copy,
+  PartialEq,
+  Eq,
+  Hash,
+)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A list of possible types for the various modlog actions.
@@ -211,7 +303,18 @@ pub enum ModlogActionType {
 }
 
 #[derive(
-  EnumString, Display, IntoStaticStr, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash,
+  EnumString,
+  Display,
+  IntoStaticStr,
+  Debug,
+  Serialize,
+  Deserialize,
+  Clone,
+  Copy,
+  Default,
+  PartialEq,
+  Eq,
+  Hash,
 )]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -225,7 +328,18 @@ pub enum PostFeatureType {
 }
 
 #[derive(
-  EnumString, Display, IntoStaticStr, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
+  EnumString,
+  Display,
+  IntoStaticStr,
+  Debug,
+  Serialize,
+  Deserialize,
+  Clone,
+  Copy,
+  PartialEq,
+  Eq,
+  Default,
+  Hash,
 )]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
