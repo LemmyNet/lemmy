@@ -6,7 +6,7 @@ use std::{
   net::{IpAddr, Ipv4Addr, Ipv6Addr},
   time::Instant,
 };
-use strum::{Display, IntoStaticStr};
+use strum::{AsRefStr, Display};
 use tracing::debug;
 
 static START_TIME: Lazy<Instant> = Lazy::new(Instant::now);
@@ -66,7 +66,7 @@ impl Bucket {
   }
 }
 
-#[derive(Debug, enum_map::Enum, Copy, Clone, Display, IntoStaticStr)]
+#[derive(Debug, enum_map::Enum, Copy, Clone, Display, AsRefStr)]
 pub enum ActionType {
   Message,
   Register,

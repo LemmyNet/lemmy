@@ -13,10 +13,10 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::community::Community, traits::Crud};
 use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 use serde::{Deserialize, Serialize};
-use strum::{Display, IntoStaticStr};
+use strum::Display;
 use url::Url;
 
-#[derive(Clone, Debug, Display, Deserialize, Serialize, IntoStaticStr)]
+#[derive(Clone, Debug, Display, Deserialize, Serialize)]
 pub enum LockType {
   Lock,
 }
