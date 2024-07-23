@@ -64,7 +64,6 @@ actix-web = { workspace = true, optional = true }
 anyhow = { workspace = true, optional = true }
 reqwest-middleware = { workspace = true, optional = true }
 strum = { workspace = true }
-strum_macros = { workspace = true }
 futures = { workspace = true, optional = true }
 diesel = { workspace = true, features = ["chrono"], optional = true }
 http = { workspace = true, optional = true }
