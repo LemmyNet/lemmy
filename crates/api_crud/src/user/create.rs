@@ -30,7 +30,7 @@ use lemmy_db_schema::{
     local_user::{LocalUser, LocalUserInsertForm},
     local_user_vote_display_mode::LocalUserVoteDisplayMode,
     oauth_account::{OAuthAccount, OAuthAccountInsertForm},
-    oauth_provider::UnsafeOAuthProvider,
+    oauth_provider::OAuthProvider,
     person::{Person, PersonInsertForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
@@ -47,6 +47,8 @@ use lemmy_utils::{
 };
 use rand::Rng;
 use std::collections::HashSet;
+use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -264,7 +266,7 @@ pub async fn authenticate_with_oauth(
 
   // Fetch the OAUTH provider and make sure it's enabled
   let oauth_provider_id = data.oauth_provider_id;
-  let oauth_provider = UnsafeOAuthProvider::read(&mut context.pool(), oauth_provider_id)
+  let oauth_provider = OAuthProvider::read(&mut context.pool(), oauth_provider_id)
     .await
     .ok()
     .flatten()

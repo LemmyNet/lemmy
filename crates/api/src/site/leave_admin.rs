@@ -64,7 +64,7 @@ pub async fn leave_admin(
   let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
   let custom_emojis =
     CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
-  let oauth_providers = OAuthProvider::get_all(&mut context.pool()).await?;
+  let oauth_providers = OAuthProvider::get_all_public(&mut context.pool()).await?;
   let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
 
   Ok(Json(GetSiteResponse {
@@ -76,7 +76,8 @@ pub async fn leave_admin(
     discussion_languages,
     taglines,
     custom_emojis,
-    oauth_providers,
+    oauth_providers: Some(oauth_providers),
+    admin_oauth_providers: None,
     blocked_urls,
   }))
 }

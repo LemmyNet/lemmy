@@ -16,8 +16,8 @@ use lemmy_db_schema::{
     instance::Instance,
     language::Language,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    oauth_provider::{OAuthProvider, PublicOAuthProvider},
     person::Person,
-    oauth_provider::OAuthProvider,
     tagline::Tagline,
   },
   ListingType,
@@ -321,7 +321,8 @@ pub struct GetSiteResponse {
   /// A list of custom emojis your site supports.
   pub custom_emojis: Vec<CustomEmojiView>,
   /// A list of external auth methods your site supports.
-  pub oauth_providers: Vec<OAuthProvider>,
+  pub oauth_providers: Option<Vec<PublicOAuthProvider>>,
+  pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
 }
 

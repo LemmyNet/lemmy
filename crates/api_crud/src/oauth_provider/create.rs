@@ -6,7 +6,7 @@ use lemmy_api_common::{
   utils::is_admin,
 };
 use lemmy_db_schema::{
-  source::oauth_provider::{OAuthProvider, OAuthProviderInsertForm, UnsafeOAuthProvider},
+  source::oauth_provider::{OAuthProvider, OAuthProviderInsertForm},
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
@@ -38,7 +38,6 @@ pub async fn create_oauth_provider(
     account_linking_enabled: data.account_linking_enabled,
     enabled: data.enabled,
   };
-  let unsafe_oauth_provider =
-    UnsafeOAuthProvider::create(&mut context.pool(), &oauth_provider_form).await?;
-  Ok(Json(OAuthProvider::from_unsafe(&unsafe_oauth_provider)))
+  let oauth_provider = OAuthProvider::create(&mut context.pool(), &oauth_provider_form).await?;
+  Ok(Json(oauth_provider))
 }

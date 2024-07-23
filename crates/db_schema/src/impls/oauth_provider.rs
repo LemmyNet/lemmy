@@ -4,8 +4,7 @@ use crate::{
   source::oauth_provider::{
     OAuthProvider,
     OAuthProviderInsertForm,
-    OAuthProviderUpdateForm,
-    UnsafeOAuthProvider,
+    OAuthProviderUpdateForm, PublicOAuthProvider,
   },
   traits::Crud,
   utils::{get_conn, DbPool},
@@ -14,7 +13,7 @@ use diesel::{dsl::insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
-impl Crud for UnsafeOAuthProvider {
+impl Crud for OAuthProvider {
   type InsertForm = OAuthProviderInsertForm;
   type UpdateForm = OAuthProviderUpdateForm;
   type IdType = OAuthProviderId;
@@ -40,48 +39,32 @@ impl Crud for UnsafeOAuthProvider {
   }
 }
 
-impl UnsafeOAuthProvider {
+impl OAuthProvider {
   pub async fn get_all(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let oauth_providers = oauth_provider::table
       .order(oauth_provider::id)
       .select(oauth_provider::all_columns)
-      .load::<UnsafeOAuthProvider>(conn)
+      .load::<OAuthProvider>(conn)
       .await?;
 
     Ok(oauth_providers)
   }
-}
 
-impl OAuthProvider {
-  pub async fn get_all(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
-    let oauth_providers = UnsafeOAuthProvider::get_all(pool).await?;
-    let mut result = Vec::<OAuthProvider>::new();
-
+  pub fn convert_providers_to_public(oauth_providers: Vec<OAuthProvider>) -> Vec<PublicOAuthProvider> {
+    let mut result = Vec::<PublicOAuthProvider>::new();
     for oauth_provider in &oauth_providers {
-      result.push(Self::from_unsafe(oauth_provider));
+      if oauth_provider.enabled {
+        result.push(PublicOAuthProvider(oauth_provider.clone()));
+      }
     }
-
-    Ok(result)
+    result
   }
 
-  pub fn from_unsafe(unsafe_oauth_provider: &UnsafeOAuthProvider) -> Self {
-    OAuthProvider {
-      id: unsafe_oauth_provider.id,
-      display_name: unsafe_oauth_provider.display_name.clone(),
-      issuer: Some(unsafe_oauth_provider.issuer.clone()),
-      authorization_endpoint: unsafe_oauth_provider.authorization_endpoint.clone(),
-      token_endpoint: Some(unsafe_oauth_provider.token_endpoint.clone()),
-      userinfo_endpoint: Some(unsafe_oauth_provider.userinfo_endpoint.clone()),
-      id_claim: Some(unsafe_oauth_provider.id_claim.clone()),
-      name_claim: Some(unsafe_oauth_provider.name_claim.clone()),
-      client_id: unsafe_oauth_provider.client_id.clone(),
-      scopes: unsafe_oauth_provider.scopes.clone(),
-      auto_verify_email: Some(unsafe_oauth_provider.auto_verify_email),
-      account_linking_enabled: Some(unsafe_oauth_provider.account_linking_enabled),
-      enabled: Some(unsafe_oauth_provider.enabled),
-      published: Some(unsafe_oauth_provider.published),
-      updated: unsafe_oauth_provider.updated,
-    }
+  pub async fn get_all_public(pool: &mut DbPool<'_>) -> Result<Vec<PublicOAuthProvider>, Error> {
+    let oauth_providers = OAuthProvider::get_all(pool).await?;
+    Ok(
+      Self::convert_providers_to_public(oauth_providers)
+    )
   }
 }

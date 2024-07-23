@@ -46,7 +46,9 @@ pub async fn get_site(
       let custom_emojis =
         CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
       let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
-      let oauth_providers = OAuthProvider::get_all(&mut context.pool()).await?;
+      let admin_oauth_providers = OAuthProvider::get_all(&mut context.pool()).await?;
+      let oauth_providers = OAuthProvider::convert_providers_to_public(admin_oauth_providers.clone());
+
       Ok(GetSiteResponse {
         site_view,
         admins,
@@ -57,7 +59,8 @@ pub async fn get_site(
         taglines,
         custom_emojis,
         blocked_urls,
-        oauth_providers,
+        oauth_providers: Some(oauth_providers),
+        admin_oauth_providers: Some(admin_oauth_providers)
       })
     })
     .await
@@ -87,9 +90,7 @@ pub async fn get_site(
     .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
     // filter oauth_providers for normal users
-    if !local_user_view.local_user.admin {
-      filter_oauth_providers(&mut site_response.oauth_providers);
-    }
+    filter_oauth_providers(&Some(local_user_view.clone()), &mut site_response);
 
     Some(MyUserInfo {
       local_user_view,
@@ -102,29 +103,15 @@ pub async fn get_site(
     })
   } else {
     // filter oauth_providers for public access
-    filter_oauth_providers(&mut site_response.oauth_providers);
+    filter_oauth_providers(&local_user_view, &mut site_response);
     None
   };
 
   Ok(Json(site_response))
 }
 
-fn filter_oauth_providers(oauth_providers: &mut Vec<OAuthProvider>) {
-  oauth_providers.retain_mut(|oauth_provider| {
-    if oauth_provider.enabled.unwrap_or(false) {
-      oauth_provider.issuer = None;
-      oauth_provider.token_endpoint = None;
-      oauth_provider.userinfo_endpoint = None;
-      oauth_provider.id_claim = None;
-      oauth_provider.name_claim = None;
-      oauth_provider.auto_verify_email = None;
-      oauth_provider.account_linking_enabled = None;
-      oauth_provider.enabled = None;
-      oauth_provider.published = None;
-      oauth_provider.updated = None;
-      true
-    } else {
-      false
-    }
-  })
+fn filter_oauth_providers(local_user_view: &Option<LocalUserView>, site_response: &mut GetSiteResponse) {
+  if local_user_view.is_none() || !local_user_view.clone().unwrap().local_user.admin {
+    site_response.admin_oauth_providers = None;
+  }
 }

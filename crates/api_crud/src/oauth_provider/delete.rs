@@ -6,7 +6,7 @@ use lemmy_api_common::{
   utils::is_admin,
   SuccessResponse,
 };
-use lemmy_db_schema::{source::oauth_provider::UnsafeOAuthProvider, traits::Crud};
+use lemmy_db_schema::{source::oauth_provider::OAuthProvider, traits::Crud};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
 
@@ -18,7 +18,7 @@ pub async fn delete_oauth_provider(
 ) -> Result<Json<SuccessResponse>, LemmyError> {
   // Make sure user is an admin
   is_admin(&local_user_view)?;
-  UnsafeOAuthProvider::delete(&mut context.pool(), data.id)
+  OAuthProvider::delete(&mut context.pool(), data.id)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntDeleteOauthProvider)?;
   Ok(Json(SuccessResponse::default()))
