@@ -96,7 +96,7 @@ pub async fn read_person(
   let moderates = CommunityModeratorView::for_person(
     &mut context.pool(),
     person_details_id,
-    local_user_view.is_some(),
+    local_user_view.map(|l| l.local_user).as_ref(),
   )
   .await?;
 
