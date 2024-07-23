@@ -2,7 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{context::LemmyContext, oauth_provider::EditOAuthProvider, utils::is_admin};
 use lemmy_db_schema::{
-  source::oauth_provider::{OAuthProvider, OAuthProviderUpdateForm, UnsafeOAuthProvider},
+  source::oauth_provider::{OAuthProvider, OAuthProviderUpdateForm},
   traits::Crud,
   utils::{diesel_required_string_update, diesel_required_url_update, naive_now},
 };
@@ -37,9 +37,9 @@ pub async fn update_oauth_provider(
   };
 
   let update_result =
-    UnsafeOAuthProvider::update(&mut context.pool(), data.id, &oauth_provider_form).await?;
-  let unsafe_oauth_provider = UnsafeOAuthProvider::read(&mut context.pool(), update_result.id)
+    OAuthProvider::update(&mut context.pool(), data.id, &oauth_provider_form).await?;
+  let oauth_provider = OAuthProvider::read(&mut context.pool(), update_result.id)
     .await?
     .ok_or(LemmyErrorType::CouldntFindOauthProvider)?;
-  Ok(Json(OAuthProvider::from_unsafe(&unsafe_oauth_provider)))
+  Ok(Json(oauth_provider))
 }
