@@ -148,6 +148,12 @@ pub struct LocalSiteId(i32);
 /// The custom emoji id.
 pub struct CustomEmojiId(i32);
 
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The registration application id.
+pub struct RegistrationApplicationId(i32);
+
 #[cfg(feature = "full")]
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Ltree")]

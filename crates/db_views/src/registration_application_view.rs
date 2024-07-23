@@ -11,12 +11,18 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
+  newtypes::{PersonId, RegistrationApplicationId},
   schema::{local_user, person, registration_application},
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
+enum ReadBy {
+  Id(RegistrationApplicationId),
+  Person(PersonId),
+}
+
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, RegistrationApplicationView, i32>,
+  impl ReadFn<'a, RegistrationApplicationView, ReadBy>,
   impl ListFn<'a, RegistrationApplicationView, RegistrationApplicationQuery>,
 > {
   let all_joins = |query: registration_application::BoxedQuery<'a, Pg>| {
@@ -36,14 +42,15 @@ fn queries<'a>() -> Queries<
       ))
   };
 
-  let read = move |mut conn: DbConn<'a>, registration_application_id: i32| async move {
-    all_joins(
-      registration_application::table
-        .find(registration_application_id)
-        .into_boxed(),
-    )
-    .first(&mut conn)
-    .await
+  let read = move |mut conn: DbConn<'a>, search: ReadBy| async move {
+    let mut query = all_joins(registration_application::table.into_boxed());
+
+    query = match search {
+      ReadBy::Id(id) => query.filter(registration_application::id.eq(id)),
+      ReadBy::Person(person_id) => query.filter(person::id.eq(person_id)),
+    };
+
+    query.first(&mut conn).await
   };
 
   let list = move |mut conn: DbConn<'a>, options: RegistrationApplicationQuery| async move {
@@ -76,11 +83,17 @@ fn queries<'a>() -> Queries<
 impl RegistrationApplicationView {
   pub async fn read(
     pool: &mut DbPool<'_>,
-    registration_application_id: i32,
+    id: RegistrationApplicationId,
   ) -> Result<Option<Self>, Error> {
-    queries().read(pool, registration_application_id).await
+    queries().read(pool, ReadBy::Id(id)).await
   }
 
+  pub async fn read_by_person(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+  ) -> Result<Option<Self>, Error> {
+    queries().read(pool, ReadBy::Person(person_id)).await
+  }
   /// Returns the current unread registration_application count
   pub async fn get_unread_count(
     pool: &mut DbPool<'_>,

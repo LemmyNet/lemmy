@@ -82,6 +82,7 @@ use lemmy_api::{
     },
     registration_applications::{
       approve::approve_registration_application,
+      get::get_registration_application,
       list::list_registration_applications,
       unread_count::get_unread_registration_application_count,
     },
@@ -360,6 +361,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route(
             "/registration_application/approve",
             web::put().to(approve_registration_application),
+          )
+          .route(
+            "/registration_application",
+            web::get().to(get_registration_application),
           )
           .route("/list_all_media", web::get().to(list_all_media))
           .service(
