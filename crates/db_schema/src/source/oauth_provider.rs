@@ -63,8 +63,9 @@ pub struct OAuthProvider {
   pub updated: Option<DateTime<Utc>>,
 }
 
-#[derive(Clone, PartialEq, Eq, Deserialize, Debug, TS)]
+#[derive(Clone, PartialEq, Eq, Debug, Deserialize)]
 #[serde(transparent)]
+#[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct PublicOAuthProvider(pub OAuthProvider);
 
