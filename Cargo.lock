@@ -2821,7 +2821,6 @@ dependencies = [
  "lemmy_utils",
  "moka",
  "once_cell",
- "rand",
  "serde",
  "serde_json",
  "serde_with",

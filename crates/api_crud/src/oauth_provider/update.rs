@@ -27,7 +27,6 @@ pub async fn update_oauth_provider(
     token_endpoint: diesel_required_url_update(cloned_data.token_endpoint.as_deref())?,
     userinfo_endpoint: diesel_required_url_update(cloned_data.userinfo_endpoint.as_deref())?,
     id_claim: diesel_required_string_update(data.id_claim.as_deref()),
-    name_claim: diesel_required_string_update(data.name_claim.as_deref()),
     client_secret: diesel_required_string_update(data.client_secret.as_deref()),
     scopes: diesel_required_string_update(data.scopes.as_deref()),
     auto_verify_email: data.auto_verify_email,

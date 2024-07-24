@@ -30,7 +30,6 @@ pub async fn create_oauth_provider(
     token_endpoint: Url::parse(&cloned_data.token_endpoint)?.into(),
     userinfo_endpoint: Url::parse(&cloned_data.userinfo_endpoint)?.into(),
     id_claim: cloned_data.id_claim,
-    name_claim: cloned_data.name_claim,
     client_id: data.client_id.to_string(),
     client_secret: data.client_secret.to_string(),
     scopes: data.scopes.to_string(),

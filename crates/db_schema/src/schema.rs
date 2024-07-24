@@ -633,7 +633,6 @@ diesel::table! {
         token_endpoint -> Text,
         userinfo_endpoint -> Text,
         id_claim -> Text,
-        name_claim -> Text,
         client_id -> Text,
         client_secret -> Text,
         scopes -> Text,
