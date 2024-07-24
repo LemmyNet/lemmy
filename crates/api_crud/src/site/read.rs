@@ -47,7 +47,8 @@ pub async fn get_site(
         CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
       let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
       let admin_oauth_providers = OAuthProvider::get_all(&mut context.pool()).await?;
-      let oauth_providers = OAuthProvider::convert_providers_to_public(admin_oauth_providers.clone());
+      let oauth_providers =
+        OAuthProvider::convert_providers_to_public(admin_oauth_providers.clone());
 
       Ok(GetSiteResponse {
         site_view,
@@ -60,7 +61,7 @@ pub async fn get_site(
         custom_emojis,
         blocked_urls,
         oauth_providers: Some(oauth_providers),
-        admin_oauth_providers: Some(admin_oauth_providers)
+        admin_oauth_providers: Some(admin_oauth_providers),
       })
     })
     .await
@@ -110,8 +111,11 @@ pub async fn get_site(
   Ok(Json(site_response))
 }
 
-fn filter_oauth_providers(local_user_view: &Option<LocalUserView>, site_response: &mut GetSiteResponse) {
-  if local_user_view.is_none() || !local_user_view.clone().unwrap().local_user.admin {
+fn filter_oauth_providers(
+  local_user_view: &Option<LocalUserView>,
+  site_response: &mut GetSiteResponse,
+) {
+  if local_user_view.is_none() || !local_user_view.clone().expect("user_view must be set").local_user.admin {
     site_response.admin_oauth_providers = None;
   }
 }

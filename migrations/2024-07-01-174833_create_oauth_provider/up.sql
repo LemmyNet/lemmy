@@ -9,7 +9,6 @@ CREATE TABLE oauth_provider (
     token_endpoint text NOT NULL,
     userinfo_endpoint text NOT NULL,
     id_claim text NOT NULL,
-    name_claim text NOT NULL,
     client_id text NOT NULL UNIQUE,
     client_secret text NOT NULL,
     scopes text NOT NULL,

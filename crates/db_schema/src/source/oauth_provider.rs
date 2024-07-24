@@ -5,7 +5,11 @@ use crate::{
   sensitive::SensitiveString,
 };
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize, ser::{Serializer, SerializeStruct}};
+use serde::{
+  ser::{SerializeStruct, Serializer},
+  Deserialize,
+  Serialize,
+};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
@@ -39,9 +43,6 @@ pub struct OAuthProvider {
   /// The OAuth 2.0 claim containing the unique user ID returned by the provider. Usually this
   /// should be set to "sub".
   pub id_claim: String,
-  /// The OAuth 2.0 claim containing the user name returned by the provider. This depends on the
-  /// provider and could be "name", "username", ...
-  pub name_claim: String,
   /// The client_id is provided by the OAuth 2.0 provider and is a unique identifier to this
   /// service
   pub client_id: String,
@@ -70,7 +71,7 @@ pub struct PublicOAuthProvider(pub OAuthProvider);
 impl Serialize for PublicOAuthProvider {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where
-      S: Serializer,
+    S: Serializer,
   {
     let mut state = serializer.serialize_struct("PublicOAuthProvider", 5)?;
     state.serialize_field("id", &self.0.id)?;
@@ -97,7 +98,6 @@ pub struct OAuthProviderInsertForm {
   #[cfg_attr(feature = "full", ts(type = "string"))]
   pub userinfo_endpoint: DbUrl,
   pub id_claim: String,
-  pub name_claim: String,
   pub client_id: String,
   pub client_secret: String,
   pub scopes: String,
@@ -119,7 +119,6 @@ pub struct OAuthProviderUpdateForm {
   #[cfg_attr(feature = "full", ts(type = "string"))]
   pub userinfo_endpoint: Option<DbUrl>,
   pub id_claim: Option<String>,
-  pub name_claim: Option<String>,
   pub client_secret: Option<String>,
   pub scopes: Option<String>,
   pub auto_verify_email: Option<bool>,

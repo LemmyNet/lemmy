@@ -45,10 +45,9 @@ use lemmy_utils::{
     validation::is_valid_actor_name,
   },
 };
-use rand::Rng;
-use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use std::collections::HashSet;
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -132,21 +131,12 @@ pub async fn register(
   // Also fixes a bug which allows users to log in when registrations are changed to closed.
   let accepted_application = Some(!require_registration_application);
 
-  // Get the user's preferred language using the Accept-Language header
-  let language_tags: Vec<String> = req
-    .headers()
-    .get("Accept-Language")
-    .map(|hdr| accept_language::parse(hdr.to_str().unwrap_or_default()))
-    .iter()
-    .flatten()
-    // Remove the optional region code
-    .map(|lang_str| lang_str.split('-').next().unwrap_or_default().to_string())
-    .collect();
-
   // Show nsfw content if param is true, or if content_warning exists
   let show_nsfw = data
     .show_nsfw
     .unwrap_or(site_view.site.content_warning.is_some());
+
+  let language_tags = get_language_tags(&req);
 
   // Create the local user
   let local_user_form = LocalUserInsertForm {
@@ -161,18 +151,7 @@ pub async fn register(
     ..LocalUserInsertForm::new(inserted_person.id, Some(data.password.to_string()))
   };
 
-  let all_languages = Language::read_all(&mut context.pool()).await?;
-  // use hashset to avoid duplicates
-  let mut language_ids = HashSet::new();
-  for l in language_tags {
-    if let Some(found) = all_languages.iter().find(|all| all.code == l) {
-      language_ids.insert(found.id);
-    }
-  }
-  let language_ids = language_ids.into_iter().collect();
-
-  let inserted_local_user =
-    LocalUser::create(&mut context.pool(), &local_user_form, language_ids).await?;
+  let inserted_local_user = create_local_user(&context, language_tags, &local_user_form).await?;
 
   if local_site.site_setup && require_registration_application {
     // Create the registration application
@@ -205,7 +184,13 @@ pub async fn register(
     let jwt = Claims::generate(inserted_local_user.id, req, &context).await?;
     login_response.jwt = Some(jwt);
   } else {
-    login_response.verify_email_sent = send_verification_email_if_required(&context, &local_site, &inserted_local_user, &inserted_person).await?;
+    login_response.verify_email_sent = send_verification_email_if_required(
+      &context,
+      &local_site,
+      &inserted_local_user,
+      &inserted_person,
+    )
+    .await?;
 
     if require_registration_application {
       login_response.registration_created = true;
@@ -360,7 +345,7 @@ pub async fn authenticate_with_oauth(
     }
 
     let require_registration_application =
-        local_site.registration_mode == RegistrationMode::RequireApplication;
+      local_site.registration_mode == RegistrationMode::RequireApplication;
 
     // Lookup user by OAUTH email and link accounts
     local_user_view = LocalUserView::find_by_email(&mut context.pool(), &email).await?;
@@ -369,8 +354,13 @@ pub async fn authenticate_with_oauth(
     if let Some(user_view) = local_user_view {
       // user found by email => link and login if linking is allowed
 
-      // we only allow linking by email when email_verification is required otherwise emails cannot be trusted
+      // we only allow linking by email when email_verification is required otherwise emails cannot
+      // be trusted
       if oauth_provider.account_linking_enabled && site_view.local_site.require_email_verification {
+        // WARNING:
+        // If an admin switches the require_email_verification config from false to true,
+        // users who signed up before the switch could have accounts with unverified emails falsely
+        // marked as verified.
 
         // make sure the user is valid before linking
         check_user_valid(&user_view.person)?;
@@ -380,7 +370,7 @@ pub async fn authenticate_with_oauth(
 
         // make sure the registration application is approved or not required before linking
         check_registration_application(&user_view, &site_view.local_site, &mut context.pool())
-        .await?;
+          .await?;
 
         // Link with OAUTH => Login user
         let oauth_account_form =
@@ -399,36 +389,38 @@ pub async fn authenticate_with_oauth(
     } else {
       // No user was found by email => Register as new user
 
-      // Extract the OAUTH name claim from the returned user_info
-      let user_name: String;
-      if let Some(user_name_value) = user_info.get(oauth_provider.name_claim) {
-        user_name = serde_json::from_value::<String>(user_name_value.clone())
-          .ok()
-          .ok_or(LemmyErrorType::OauthLoginFailed)?;
-      } else {
-        return Err(LemmyErrorType::OauthLoginFailed)?;
-      }
-
-      // remove spaces from username
-      let username = str::replace(&user_name, " ", "_");
-      let username = username + &rand::thread_rng().gen_range(0..999).to_string();
-
-      // check for slurs
-      let slur_regex = local_site_to_slur_regex(&local_site);
-      check_slurs(&username, &slur_regex)
-        .ok()
-        .ok_or(LemmyErrorType::Slurs)?;
-
       // make sure the registration answer is provided when the registration application is required
       validate_registration_answer(require_registration_application, &data.answer)?;
 
+      // make sure the username is provided
+      let username = data
+        .username
+        .as_ref()
+        .ok_or(LemmyErrorType::RegistrationUsernameRequired)?;
+
+      let slur_regex = local_site_to_slur_regex(&local_site);
+      check_slurs(username, &slur_regex)?;
+      check_slurs_opt(&data.answer, &slur_regex)?;
+
+      if Person::is_username_taken(&mut context.pool(), username).await? {
+        return Err(LemmyErrorType::UsernameAlreadyExists)?;
+      }
+
       // We have to create a person, a local_user, and an oauth_account
-      person = create_person(username, &local_site, site_view.site.instance_id, &context).await?;
+      person = create_person(
+        username.clone(),
+        &local_site,
+        site_view.site.instance_id,
+        &context,
+      )
+      .await?;
 
       // Show nsfw content if param is true, or if content_warning exists
       let show_nsfw = data
         .show_nsfw
         .unwrap_or(site_view.site.content_warning.is_some());
+
+      let language_tags = get_language_tags(&req);
 
       // Create the local user
       let local_user_form = LocalUserInsertForm::builder()
@@ -438,15 +430,13 @@ pub async fn authenticate_with_oauth(
         .show_nsfw(Some(show_nsfw))
         .accepted_application(Some(!require_registration_application))
         .email_verified(Some(oauth_provider.auto_verify_email))
-        .default_listing_type(Some(local_site.default_post_listing_type))
+        .post_listing_mode(Some(local_site.default_post_listing_mode))
+        .interface_language(language_tags.first().cloned())
         // If its the initial site setup, they are an admin
         .admin(Some(!local_site.site_setup))
         .build();
 
-      local_user = LocalUser::create(&mut context.pool(), &local_user_form, vec![])
-        .await
-        .ok()
-        .ok_or(LemmyErrorType::OauthLoginFailed)?;
+      local_user = create_local_user(&context, language_tags, &local_user_form).await?;
 
       // Create the oauth account
       let oauth_account_form =
@@ -464,16 +454,21 @@ pub async fn authenticate_with_oauth(
         && !local_user.admin
       {
         // Create the registration application
-        RegistrationApplication::create(&mut context.pool(), &RegistrationApplicationInsertForm {
-          local_user_id: local_user.id,
-          answer: data.answer.clone().expect("must have an answer"),
-        }).await?;
+        RegistrationApplication::create(
+          &mut context.pool(),
+          &RegistrationApplicationInsertForm {
+            local_user_id: local_user.id,
+            answer: data.answer.clone().expect("must have an answer"),
+          },
+        )
+        .await?;
 
         login_response.registration_created = true;
       }
 
       // Check email is verified when required
-      login_response.verify_email_sent = send_verification_email_if_required(&context, &local_site, &local_user, &person).await?;
+      login_response.verify_email_sent =
+        send_verification_email_if_required(&context, &local_site, &local_user, &person).await?;
     }
   }
 
@@ -516,7 +511,45 @@ async fn create_person(
   Ok(inserted_person)
 }
 
-async fn send_verification_email_if_required(context: &Data<LemmyContext>, local_site: &LocalSite, local_user: &LocalUser, person: &Person) -> LemmyResult<bool> {
+fn get_language_tags(req: &HttpRequest) -> Vec<String> {
+  req
+    .headers()
+    .get("Accept-Language")
+    .map(|hdr| accept_language::parse(hdr.to_str().unwrap_or_default()))
+    .iter()
+    .flatten()
+    // Remove the optional region code
+    .map(|lang_str| lang_str.split('-').next().unwrap_or_default().to_string())
+    .collect::<Vec<String>>()
+}
+
+async fn create_local_user(
+  context: &Data<LemmyContext>,
+  language_tags: Vec<String>,
+  local_user_form: &LocalUserInsertForm,
+) -> Result<LocalUser, LemmyError> {
+  let all_languages = Language::read_all(&mut context.pool()).await?;
+  // use hashset to avoid duplicates
+  let mut language_ids = HashSet::new();
+  for l in language_tags {
+    if let Some(found) = all_languages.iter().find(|all| all.code == l) {
+      language_ids.insert(found.id);
+    }
+  }
+  let language_ids = language_ids.into_iter().collect();
+
+  let inserted_local_user =
+    LocalUser::create(&mut context.pool(), local_user_form, language_ids).await?;
+
+  Ok(inserted_local_user)
+}
+
+async fn send_verification_email_if_required(
+  context: &Data<LemmyContext>,
+  local_site: &LocalSite,
+  local_user: &LocalUser,
+  person: &Person,
+) -> LemmyResult<bool> {
   let mut sent = false;
   if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
     let local_user_view = LocalUserView {
@@ -542,7 +575,10 @@ async fn send_verification_email_if_required(context: &Data<LemmyContext>, local
   Ok(sent)
 }
 
-fn validate_registration_answer(require_registration_application: bool, answer: &Option<String>) -> LemmyResult<()> {
+fn validate_registration_answer(
+  require_registration_application: bool,
+  answer: &Option<String>,
+) -> LemmyResult<()> {
   if require_registration_application && answer.is_none() {
     Err(LemmyErrorType::RegistrationApplicationAnswerRequired)?
   }

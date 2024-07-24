@@ -4,7 +4,8 @@ use crate::{
   source::oauth_provider::{
     OAuthProvider,
     OAuthProviderInsertForm,
-    OAuthProviderUpdateForm, PublicOAuthProvider,
+    OAuthProviderUpdateForm,
+    PublicOAuthProvider,
   },
   traits::Crud,
   utils::{get_conn, DbPool},
@@ -51,7 +52,9 @@ impl OAuthProvider {
     Ok(oauth_providers)
   }
 
-  pub fn convert_providers_to_public(oauth_providers: Vec<OAuthProvider>) -> Vec<PublicOAuthProvider> {
+  pub fn convert_providers_to_public(
+    oauth_providers: Vec<OAuthProvider>,
+  ) -> Vec<PublicOAuthProvider> {
     let mut result = Vec::<PublicOAuthProvider>::new();
     for oauth_provider in &oauth_providers {
       if oauth_provider.enabled {
@@ -63,8 +66,6 @@ impl OAuthProvider {
 
   pub async fn get_all_public(pool: &mut DbPool<'_>) -> Result<Vec<PublicOAuthProvider>, Error> {
     let oauth_providers = OAuthProvider::get_all(pool).await?;
-    Ok(
-      Self::convert_providers_to_public(oauth_providers)
-    )
+    Ok(Self::convert_providers_to_public(oauth_providers))
   }
 }

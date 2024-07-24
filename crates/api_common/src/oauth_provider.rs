@@ -16,7 +16,6 @@ pub struct CreateOAuthProvider {
   pub token_endpoint: String,
   pub userinfo_endpoint: String,
   pub id_claim: String,
-  pub name_claim: String,
   pub client_id: String,
   pub client_secret: String,
   pub scopes: String,
@@ -36,7 +35,6 @@ pub struct EditOAuthProvider {
   pub token_endpoint: Option<String>,
   pub userinfo_endpoint: Option<String>,
   pub id_claim: Option<String>,
-  pub name_claim: Option<String>,
   pub client_secret: Option<String>,
   pub scopes: Option<String>,
   pub auto_verify_email: Option<bool>,
@@ -64,7 +62,8 @@ pub struct AuthenticateWithOauth {
   #[cfg_attr(feature = "full", ts(type = "string"))]
   pub redirect_uri: Url,
   pub show_nsfw: Option<bool>,
+  /// Username is mandatory at registration time
+  pub username: Option<String>,
   /// An answer is mandatory if require application is enabled on the server
   pub answer: Option<String>,
 }
-
