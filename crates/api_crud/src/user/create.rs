@@ -82,9 +82,8 @@ pub async fn register(
     Err(LemmyErrorType::EmailRequired)?
   }
 
-  if local_site.site_setup && require_registration_application && data.answer.is_none() {
-    Err(LemmyErrorType::RegistrationApplicationAnswerRequired)?
-  }
+  // make sure the registration answer is provided when the registration application is required
+  validate_registration_answer(require_registration_application, &data.answer)?;
 
   // Make sure passwords match
   if data.password != data.password_verify {
@@ -206,29 +205,7 @@ pub async fn register(
     let jwt = Claims::generate(inserted_local_user.id, req, &context).await?;
     login_response.jwt = Some(jwt);
   } else {
-    if local_site.require_email_verification {
-      let local_user_view = LocalUserView {
-        local_user: inserted_local_user,
-        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
-        person: inserted_person,
-        counts: PersonAggregates::default(),
-      };
-      // we check at the beginning of this method that email is set
-      let email = local_user_view
-        .local_user
-        .email
-        .clone()
-        .expect("email was provided");
-
-      send_verification_email(
-        &local_user_view,
-        &email,
-        &mut context.pool(),
-        context.settings(),
-      )
-      .await?;
-      login_response.verify_email_sent = true;
-    }
+    login_response.verify_email_sent = send_verification_email_if_required(&context, &local_site, &inserted_local_user, &inserted_person).await?;
 
     if require_registration_application {
       login_response.registration_created = true;
@@ -382,6 +359,9 @@ pub async fn authenticate_with_oauth(
       return Err(LemmyErrorType::OauthLoginFailed)?;
     }
 
+    let require_registration_application =
+        local_site.registration_mode == RegistrationMode::RequireApplication;
+
     // Lookup user by OAUTH email and link accounts
     local_user_view = LocalUserView::find_by_email(&mut context.pool(), &email).await?;
 
@@ -389,7 +369,19 @@ pub async fn authenticate_with_oauth(
     if let Some(user_view) = local_user_view {
       // user found by email => link and login if linking is allowed
 
-      if oauth_provider.account_linking_enabled {
+      // we only allow linking by email when email_verification is required otherwise emails cannot be trusted
+      if oauth_provider.account_linking_enabled && site_view.local_site.require_email_verification {
+
+        // make sure the user is valid before linking
+        check_user_valid(&user_view.person)?;
+
+        // make sure the email is verified before linking
+        check_email_verified(&user_view, &site_view)?;
+
+        // make sure the registration application is approved or not required before linking
+        check_registration_application(&user_view, &site_view.local_site, &mut context.pool())
+        .await?;
+
         // Link with OAUTH => Login user
         let oauth_account_form =
           OAuthAccountInsertForm::new(user_view.local_user.id, oauth_provider.id, oauth_user_id);
@@ -400,11 +392,6 @@ pub async fn authenticate_with_oauth(
           .ok_or(LemmyErrorType::OauthLoginFailed)?;
 
         local_user = user_view.local_user.clone();
-
-        check_user_valid(&user_view.person)?;
-        check_registration_application(&user_view, &site_view.local_site, &mut context.pool())
-          .await?;
-        check_email_verified(&user_view, &site_view)?;
       } else {
         // email already registered
         return Err(LemmyErrorType::EmailAlreadyExists)?;
@@ -432,12 +419,8 @@ pub async fn authenticate_with_oauth(
         .ok()
         .ok_or(LemmyErrorType::Slurs)?;
 
-      let require_registration_application =
-        local_site.registration_mode == RegistrationMode::RequireApplication;
-
-      if local_site.site_setup && require_registration_application && data.answer.is_none() {
-        Err(LemmyErrorType::RegistrationApplicationAnswerRequired)?
-      }
+      // make sure the registration answer is provided when the registration application is required
+      validate_registration_answer(require_registration_application, &data.answer)?;
 
       // We have to create a person, a local_user, and an oauth_account
       person = create_person(username, &local_site, site_view.site.instance_id, &context).await?;
@@ -481,37 +464,16 @@ pub async fn authenticate_with_oauth(
         && !local_user.admin
       {
         // Create the registration application
-        let form = RegistrationApplicationInsertForm {
+        RegistrationApplication::create(&mut context.pool(), &RegistrationApplicationInsertForm {
           local_user_id: local_user.id,
           answer: data.answer.clone().expect("must have an answer"),
-        };
-
-        RegistrationApplication::create(&mut context.pool(), &form).await?;
+        }).await?;
 
         login_response.registration_created = true;
       }
 
       // Check email is verified when required
-      if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
-        let local_user_view = LocalUserView {
-          local_user: local_user.clone(),
-          local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
-          person,
-          counts: PersonAggregates::default(),
-        };
-
-        send_verification_email(
-          &local_user_view,
-          &local_user
-            .email
-            .clone()
-            .expect("invalid verification email"),
-          &mut context.pool(),
-          context.settings(),
-        )
-        .await?;
-        login_response.verify_email_sent = true;
-      }
+      login_response.verify_email_sent = send_verification_email_if_required(&context, &local_site, &local_user, &person).await?;
     }
   }
 
@@ -552,4 +514,38 @@ async fn create_person(
     .with_lemmy_type(LemmyErrorType::UserAlreadyExists)?;
 
   Ok(inserted_person)
+}
+
+async fn send_verification_email_if_required(context: &Data<LemmyContext>, local_site: &LocalSite, local_user: &LocalUser, person: &Person) -> LemmyResult<bool> {
+  let mut sent = false;
+  if !local_user.admin && local_site.require_email_verification && !local_user.email_verified {
+    let local_user_view = LocalUserView {
+      local_user: local_user.clone(),
+      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
+      person: person.clone(),
+      counts: PersonAggregates::default(),
+    };
+
+    send_verification_email(
+      &local_user_view,
+      &local_user
+        .email
+        .clone()
+        .expect("invalid verification email"),
+      &mut context.pool(),
+      context.settings(),
+    )
+    .await?;
+
+    sent = true;
+  }
+  Ok(sent)
+}
+
+fn validate_registration_answer(require_registration_application: bool, answer: &Option<String>) -> LemmyResult<()> {
+  if require_registration_application && answer.is_none() {
+    Err(LemmyErrorType::RegistrationApplicationAnswerRequired)?
+  }
+
+  Ok(())
 }
