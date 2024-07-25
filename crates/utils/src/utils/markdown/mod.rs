@@ -1,14 +1,14 @@
 use crate::{error::LemmyResult, settings::SETTINGS, LemmyErrorType};
 use markdown_it::{plugins::cmark::inline::image::Image, MarkdownIt};
-use once_cell::sync::Lazy;
 use regex::RegexSet;
+use std::sync::LazyLock;
 use url::Url;
 use urlencoding::encode;
 
 mod link_rule;
 mod spoiler_rule;
 
-static MARKDOWN_PARSER: Lazy<MarkdownIt> = Lazy::new(|| {
+static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
   let mut parser = MarkdownIt::new();
   markdown_it::plugins::cmark::add(&mut parser);
   markdown_it::plugins::extra::add(&mut parser);

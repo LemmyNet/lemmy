@@ -39,7 +39,6 @@ full = [
   "dep:urlencoding",
   "dep:doku",
   "dep:url",
-  "dep:once_cell",
   "dep:smart-default",
   "dep:enum-map",
   "dep:futures",
@@ -58,7 +57,6 @@ tracing-error = { workspace = true, optional = true }
 itertools = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true, optional = true }
-once_cell = { workspace = true, optional = true }
 url = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
 anyhow = { workspace = true, optional = true }

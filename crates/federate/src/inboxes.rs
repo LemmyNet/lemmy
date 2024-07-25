@@ -8,9 +8,11 @@ use lemmy_db_schema::{
   utils::{ActualDbPool, DbPool},
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
-use once_cell::sync::Lazy;
 use reqwest::Url;
-use std::collections::{HashMap, HashSet};
+use std::{
+  collections::{HashMap, HashSet},
+  sync::LazyLock,
+};
 
 /// interval with which new additions to community_followers are queried.
 ///
@@ -21,7 +23,7 @@ use std::collections::{HashMap, HashSet};
 /// currently fairly high because of the current structure of storing inboxes for every person, not
 /// having a separate list of shared_inboxes, and the architecture of having every instance queue be
 /// fully separate. (see https://github.com/LemmyNet/lemmy/issues/3958)
-static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::TimeDelta> = Lazy::new(|| {
+static FOLLOW_ADDITIONS_RECHECK_DELAY: LazyLock<chrono::TimeDelta> = LazyLock::new(|| {
   if *LEMMY_TEST_FAST_FEDERATION {
     chrono::TimeDelta::try_seconds(1).expect("TimeDelta out of bounds")
   } else {
@@ -31,8 +33,8 @@ static FOLLOW_ADDITIONS_RECHECK_DELAY: Lazy<chrono::TimeDelta> = Lazy::new(|| {
 /// The same as FOLLOW_ADDITIONS_RECHECK_DELAY, but triggering when the last person on an instance
 /// unfollows a specific remote community. This is expected to happen pretty rarely and updating it
 /// in a timely manner is not too important.
-static FOLLOW_REMOVALS_RECHECK_DELAY: Lazy<chrono::TimeDelta> =
-  Lazy::new(|| chrono::TimeDelta::try_hours(1).expect("TimeDelta out of bounds"));
+static FOLLOW_REMOVALS_RECHECK_DELAY: LazyLock<chrono::TimeDelta> =
+  LazyLock::new(|| chrono::TimeDelta::try_hours(1).expect("TimeDelta out of bounds"));
 
 #[async_trait]
 pub trait DataSource: Send + Sync {
