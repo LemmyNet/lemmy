@@ -493,3 +493,5 @@ SELECT
 FROM
     post_aggregates_fast pav;
 
+CREATE INDEX idx_post_aggregates_fast_hot_rank_published ON post_aggregates_fast (hot_rank DESC, published DESC);
+
