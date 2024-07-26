@@ -91,7 +91,7 @@ pub async fn update_comment(
     &local_user_view.person,
     false,
     &context,
-    None
+    Some(&local_user_view)
   )
   .await?;
 
