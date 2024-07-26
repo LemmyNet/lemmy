@@ -48,7 +48,7 @@ pub mod utils;
 mod schema_setup;
 
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString};
+use strum::{Display, EnumString};
 #[cfg(feature = "full")]
 use ts_rs::TS;
 

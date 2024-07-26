@@ -27,7 +27,7 @@ use lemmy_db_schema::{
   SortType,
 };
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString};
+use strum::{Display, EnumString};
 
 enum ListMode {
   Admins,

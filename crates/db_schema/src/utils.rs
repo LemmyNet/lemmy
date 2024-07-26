@@ -340,10 +340,6 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
   let fut = async {
     // We only support TLS with sslmode=require currently
     let mut conn = if config.contains("sslmode=require") {
-      rustls::crypto::ring::default_provider()
-        .install_default()
-        .expect("Failed to install rustls crypto provider");
-
       let rustls_config = DangerousClientConfigBuilder {
         cfg: ClientConfig::builder(),
       }

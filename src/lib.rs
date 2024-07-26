@@ -233,6 +233,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
         process_count: args.federate_process_count,
       },
       cfg,
+      SETTINGS.federation.clone(),
     )
   });
   let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;

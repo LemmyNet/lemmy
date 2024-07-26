@@ -109,7 +109,7 @@ impl Object for ApubSite {
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       inbox: self.inbox_url.clone().into(),
-      outbox: Url::parse(&format!("{}/site_outbox", self.actor_id))?,
+      outbox: Url::parse(&format!("{}site_outbox", self.actor_id))?,
       public_key: self.public_key(),
       language,
       content_warning: self.content_warning.clone(),

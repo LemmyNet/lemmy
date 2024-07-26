@@ -14,6 +14,7 @@ source scripts/start_dev_db.sh
 # so to load the config we need to traverse to the repo root
 export LEMMY_CONFIG_LOCATION=../../config/config.hjson
 export RUST_BACKTRACE=1
+export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queue has delays in the scale of 30s-5min
 
 if [ -n "$PACKAGE" ];
 then
