@@ -1,12 +1,4 @@
-use crate::{
-  diesel::ExpressionMethods,
-  newtypes::{DbUrl, CommentSortType, PersonId},
-  schema::community,
-  schema_setup,
-  CommentSortType,
-  CommunityVisibility,
-  SortType,
-};
+use crate::{newtypes::DbUrl, schema_setup, CommentSortType, SortType};
 use chrono::{DateTime, TimeDelta, Utc};
 use deadpool::Runtime;
 use diesel::{
@@ -435,7 +427,7 @@ pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
   // provide a setup function which handles creating the connection
   let mut config = ManagerConfig::default();
   config.custom_setup = Box::new(establish_connection);
-  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(&db_url, config);
+  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(db_url, config);
   let pool = Pool::builder(manager)
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
