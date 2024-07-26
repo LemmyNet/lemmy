@@ -46,7 +46,6 @@ serde = { workspace = true }
 serde_with = { workspace = true }
 url = { workspace = true }
 strum = { workspace = true }
-strum_macros = { workspace = true }
 serde_json = { workspace = true, optional = true }
 activitypub_federation = { workspace = true, optional = true }
 lemmy_utils = { workspace = true, optional = true }

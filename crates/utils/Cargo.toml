@@ -44,7 +44,6 @@ full = [
   "dep:enum-map",
   "dep:futures",
   "dep:tokio",
-  "dep:openssl",
   "dep:html2text",
   "dep:lettre",
   "dep:uuid",
@@ -65,7 +64,6 @@ actix-web = { workspace = true, optional = true }
 anyhow = { workspace = true, optional = true }
 reqwest-middleware = { workspace = true, optional = true }
 strum = { workspace = true }
-strum_macros = { workspace = true }
 futures = { workspace = true, optional = true }
 diesel = { workspace = true, features = ["chrono"], optional = true }
 http = { workspace = true, optional = true }
@@ -74,13 +72,14 @@ uuid = { workspace = true, features = ["serde", "v4"], optional = true }
 rosetta-i18n = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 urlencoding = { workspace = true, optional = true }
-openssl = { version = "0.10.64", optional = true }
 html2text = { version = "0.12.5", optional = true }
 deser-hjson = { version = "2.2.4", optional = true }
 smart-default = { version = "0.7.1", optional = true }
-lettre = { version = "0.11.7", features = [
+lettre = { version = "0.11.7", default-features = false, features = [
+  "builder",
   "tokio1",
-  "tokio1-native-tls",
+  "tokio1-rustls-tls",
+  "smtp-transport",
 ], optional = true }
 markdown-it = { version = "0.6.0", optional = true }
 ts-rs = { workspace = true, optional = true }

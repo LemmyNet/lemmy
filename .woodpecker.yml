@@ -195,6 +195,7 @@ steps:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
+      LEMMY_TEST_FAST_FEDERATION: "1"
     commands:
       # Install pg_dump for the schema setup test (must match server version)
       - apt update && apt install -y lsb-release
@@ -288,7 +289,7 @@ steps:
 
 services:
   database:
-    image: postgres:16-alpine
+    image: pgautoupgrade/pgautoupgrade:16-alpine
     environment:
       POSTGRES_DB: lemmy
       POSTGRES_USER: postgres

@@ -14,6 +14,7 @@ use lemmy_db_schema::{
       CommunityPersonBan,
       CommunityPersonBanForm,
     },
+    local_user::LocalUser,
     moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
   },
   traits::{Bannable, Crud, Followable},
@@ -41,6 +42,14 @@ pub async fn ban_from_community(
     data.community_id,
     false,
     &mut context.pool(),
+  )
+  .await?;
+
+  LocalUser::is_higher_mod_or_admin_check(
+    &mut context.pool(),
+    data.community_id,
+    local_user_view.person.id,
+    vec![data.person_id],
   )
   .await?;
 

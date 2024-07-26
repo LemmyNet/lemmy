@@ -2,10 +2,16 @@ use clap::Parser;
 use lemmy_server::{init_logging, start_lemmy_server, CmdArgs};
 use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 
+pub extern crate rustls;
+
 #[tokio::main]
 pub async fn main() -> LemmyResult<()> {
   init_logging(&SETTINGS.opentelemetry_url)?;
   let args = CmdArgs::parse();
+
+  rustls::crypto::ring::default_provider()
+    .install_default()
+    .expect("Failed to install rustls crypto provider");
 
   #[cfg(not(feature = "embed-pictrs"))]
   start_lemmy_server(args).await?;

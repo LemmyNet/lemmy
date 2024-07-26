@@ -1,6 +1,6 @@
 use crate::{
   diesel::ExpressionMethods,
-  newtypes::{DbUrl, PersonId},
+  newtypes::{DbUrl, CommentSortType, PersonId},
   schema::community,
   schema_setup,
   CommentSortType,
@@ -10,7 +10,6 @@ use crate::{
 use chrono::{DateTime, TimeDelta, Utc};
 use deadpool::Runtime;
 use diesel::{
-  dsl,
   helper_types::AsExprOf,
   pg::Pg,
   query_builder::{Query, QueryFragment},
@@ -336,10 +335,6 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
   let fut = async {
     // We only support TLS with sslmode=require currently
     let mut conn = if config.contains("sslmode=require") {
-      rustls::crypto::ring::default_provider()
-        .install_default()
-        .expect("Failed to install rustls crypto provider");
-
       let rustls_config = DangerousClientConfigBuilder {
         cfg: ClientConfig::builder(),
       }
@@ -590,20 +585,6 @@ impl<RF, LF> Queries<RF, LF> {
   {
     let conn = get_conn(pool).await?;
     (self.list_fn)(conn, args).await
-  }
-}
-
-pub fn visible_communities_only<Q>(my_person_id: Option<PersonId>, query: Q) -> Q
-where
-  Q: diesel::query_dsl::methods::FilterDsl<
-    dsl::Eq<community::visibility, CommunityVisibility>,
-    Output = Q,
-  >,
-{
-  if my_person_id.is_none() {
-    query.filter(community::visibility.eq(CommunityVisibility::Public))
-  } else {
-    query
   }
 }
 
