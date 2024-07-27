@@ -122,14 +122,12 @@ impl Object for SearchableObjects {
     Ok(match self {
       SearchableObjects::Post(p) => SearchableKinds::Page(Box::new(p.into_json(data).await?)),
       SearchableObjects::Comment(c) => SearchableKinds::Note(c.into_json(data).await?),
-      SearchableObjects::PersonOrCommunity(pc) => SearchableKinds::PersonOrGroup(Box::new(match *pc {
-        UserOrCommunity::User(p) => {
-          PersonOrGroup::Person(p.into_json(data).await?)
-        }
-        UserOrCommunity::Community(c) => {
-          PersonOrGroup::Group(c.into_json(data).await?)
-        }
-      })),
+      SearchableObjects::PersonOrCommunity(pc) => {
+        SearchableKinds::PersonOrGroup(Box::new(match *pc {
+          UserOrCommunity::User(p) => PersonOrGroup::Person(p.into_json(data).await?),
+          UserOrCommunity::Community(c) => PersonOrGroup::Group(c.into_json(data).await?),
+        }))
+      }
     })
   }
 
