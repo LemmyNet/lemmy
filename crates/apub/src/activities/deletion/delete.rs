@@ -175,8 +175,9 @@ pub(in crate::activities) async fn receive_remove_action(
       )
       .await?;
     }
-    DeletableObjects::PrivateMessage(_) => unimplemented!(),
-    DeletableObjects::Person { .. } => unimplemented!(),
+    // TODO these need to be implemented yet, for now, return errors
+    DeletableObjects::PrivateMessage(_) => Err(LemmyErrorType::CouldntFindPrivateMessage)?,
+    DeletableObjects::Person(_) => Err(LemmyErrorType::CouldntFindPerson)?,
   }
   Ok(())
 }

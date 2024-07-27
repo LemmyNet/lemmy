@@ -88,7 +88,7 @@ impl Object for ApubSite {
   }
 
   async fn delete(self, _data: &Data<Self::DataType>) -> LemmyResult<()> {
-    unimplemented!()
+    Err(LemmyErrorType::CantDeleteSite.into())
   }
 
   #[tracing::instrument(skip_all)]

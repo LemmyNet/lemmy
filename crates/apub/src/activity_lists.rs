@@ -26,7 +26,7 @@ use crate::{
 };
 use activitypub_federation::{config::Data, traits::ActivityHandler};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -117,7 +117,8 @@ impl InCommunity for AnnouncableActivities {
       CollectionRemove(a) => a.community(context).await,
       LockPost(a) => a.community(context).await,
       UndoLockPost(a) => a.community(context).await,
-      Page(_) => unimplemented!(),
+      // TODO this needs to be implemented
+      Page(_) => Err(LemmyErrorType::CouldntFindPost.into()),
     }
   }
 }
