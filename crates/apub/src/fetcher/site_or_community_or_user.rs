@@ -88,14 +88,13 @@ impl Object for SiteOrCommunityOrUser {
       SiteOrPersonOrGroup::Instance(a) => {
         SiteOrCommunityOrUser::Site(ApubSite::from_json(a, data).await?)
       }
-      SiteOrPersonOrGroup::PersonOrGroup(a) => match a {
-        PersonOrGroup::Person(p) => SiteOrCommunityOrUser::UserOrCommunity(UserOrCommunity::User(
+      SiteOrPersonOrGroup::PersonOrGroup(a) => SiteOrCommunityOrUser::UserOrCommunity(match a {
+        PersonOrGroup::Person(p) => UserOrCommunity::User(
           ApubPerson::from_json(p, data).await?,
-        )),
-        PersonOrGroup::Group(g) => SiteOrCommunityOrUser::UserOrCommunity(
-          UserOrCommunity::Community(ApubCommunity::from_json(g, data).await?),
         ),
-      },
+        PersonOrGroup::Group(g) =>
+          UserOrCommunity::Community(ApubCommunity::from_json(g, data).await?),
+      }),
     })
   }
 }
