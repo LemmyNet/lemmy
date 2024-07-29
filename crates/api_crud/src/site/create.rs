@@ -1,6 +1,6 @@
 use crate::site::{application_question_check, site_default_post_listing_type_check};
-use activitypub_federation::http_signatures::generate_actor_keypair;
-use actix_web::web::{Data, Json};
+use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
+use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{CreateSite, SiteResponse},
