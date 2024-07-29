@@ -43,3 +43,4 @@ serial_test = { workspace = true }
 tokio = { workspace = true }
 elementtree = "1.2.3"
 pretty_assertions = { workspace = true }
+lemmy_api_crud = { workspace = true }
