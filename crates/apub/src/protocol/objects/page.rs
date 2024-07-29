@@ -197,6 +197,7 @@ impl ActivityHandler for Page {
   }
   // TODO this needs to be implemented
   fn actor(&self) -> &Url {
+    debug_assert!(false);
     self.id.inner()
   }
   async fn verify(&self, data: &Data<Self::DataType>) -> LemmyResult<()> {
