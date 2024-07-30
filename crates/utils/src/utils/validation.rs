@@ -1,16 +1,16 @@
 use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder, RegexSet};
+use std::sync::LazyLock;
 use url::{ParseError, Url};
 
 // From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
-static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
+static VALID_MATRIX_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^@[A-Za-z0-9\x21-\x39\x3B-\x7F]+:[A-Za-z0-9.-]+(:[0-9]{2,5})?$")
     .expect("compile regex")
 });
 // taken from https://en.wikipedia.org/wiki/UTM_parameters
-static CLEAN_URL_PARAMS_REGEX: Lazy<Regex> = Lazy::new(|| {
+static CLEAN_URL_PARAMS_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(
     r"^(utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|gclsrc|dclid|fbclid)=",
   )
@@ -87,12 +87,12 @@ fn has_newline(name: &str) -> bool {
 }
 
 pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
-  static VALID_ACTOR_NAME_REGEX_EN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
-  static VALID_ACTOR_NAME_REGEX_AR: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^[\p{Arabic}0-9_]{3,}$").expect("compile regex"));
-  static VALID_ACTOR_NAME_REGEX_RU: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^[\p{Cyrillic}0-9_]{3,}$").expect("compile regex"));
+  static VALID_ACTOR_NAME_REGEX_EN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
+  static VALID_ACTOR_NAME_REGEX_AR: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[\p{Arabic}0-9_]{3,}$").expect("compile regex"));
+  static VALID_ACTOR_NAME_REGEX_RU: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[\p{Cyrillic}0-9_]{3,}$").expect("compile regex"));
 
   let check = name.chars().count() <= actor_name_max_length && !has_newline(name);
 

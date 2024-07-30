@@ -32,7 +32,6 @@ use lemmy_utils::{
   settings::SETTINGS,
   utils::validation::clean_url_params,
 };
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rustls::{
   client::danger::{
@@ -49,7 +48,7 @@ use rustls::{
 };
 use std::{
   ops::{Deref, DerefMut},
-  sync::Arc,
+  sync::{Arc, LazyLock},
   time::Duration,
 };
 use tracing::error;
@@ -478,7 +477,7 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
   }
 }
 
-static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
+static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
     .expect("compile email regex")
 });

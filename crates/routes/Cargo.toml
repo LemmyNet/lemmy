@@ -30,7 +30,6 @@ reqwest = { workspace = true, features = ["stream"] }
 reqwest-middleware = { workspace = true }
 serde = { workspace = true }
 url = { workspace = true }
-once_cell = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
 urlencoding = { workspace = true }
