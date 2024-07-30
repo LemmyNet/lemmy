@@ -24,14 +24,14 @@ use lemmy_utils::{
   VERSION,
 };
 use moka::future::Cache;
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_site(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<GetSiteResponse>> {
-  static CACHE: Lazy<Cache<(), GetSiteResponse>> = Lazy::new(|| {
+  static CACHE: LazyLock<Cache<(), GetSiteResponse>> = LazyLock::new(|| {
     Cache::builder()
       .max_capacity(1)
       .time_to_live(CACHE_DURATION_API)

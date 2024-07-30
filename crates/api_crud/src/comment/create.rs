@@ -134,6 +134,7 @@ pub async fn create_comment(
     &local_user_view.person,
     true,
     &context,
+    Some(&local_user_view),
   )
   .await?;
 

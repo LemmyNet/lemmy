@@ -18,10 +18,15 @@ use lemmy_db_schema::{
   utils::{get_conn, DbPool},
 };
 use moka::future::Cache;
-use once_cell::sync::Lazy;
 use reqwest::Url;
 use serde_json::Value;
-use std::{fmt::Debug, future::Future, pin::Pin, sync::Arc, time::Duration};
+use std::{
+  fmt::Debug,
+  future::Future,
+  pin::Pin,
+  sync::{Arc, LazyLock},
+  time::Duration,
+};
 use tokio::{task::JoinHandle, time::sleep};
 use tokio_util::sync::CancellationToken;
 
@@ -29,7 +34,7 @@ use tokio_util::sync::CancellationToken;
 /// Should only be used for federation tests since it significantly increases CPU and DB load of the
 /// federation queue. This is intentionally a separate flag from other flags like debug_assertions,
 /// since this is a invasive change we only need rarely.
-pub(crate) static LEMMY_TEST_FAST_FEDERATION: Lazy<bool> = Lazy::new(|| {
+pub(crate) static LEMMY_TEST_FAST_FEDERATION: LazyLock<bool> = LazyLock::new(|| {
   std::env::var("LEMMY_TEST_FAST_FEDERATION")
     .map(|s| !s.is_empty())
     .unwrap_or(false)
@@ -49,7 +54,7 @@ pub(crate) static LEMMY_TEST_FAST_FEDERATION: Lazy<bool> = Lazy::new(|| {
 /// If the delay is too short, the workers (one per federated instance) will wake up too
 /// often and consume a lot of CPU. If the delay is long, then activities on low-traffic instances
 /// will on average take delay/2 seconds to federate.
-pub(crate) static WORK_FINISHED_RECHECK_DELAY: Lazy<Duration> = Lazy::new(|| {
+pub(crate) static WORK_FINISHED_RECHECK_DELAY: LazyLock<Duration> = LazyLock::new(|| {
   if *LEMMY_TEST_FAST_FEDERATION {
     Duration::from_millis(100)
   } else {
@@ -61,7 +66,7 @@ pub(crate) static WORK_FINISHED_RECHECK_DELAY: Lazy<Duration> = Lazy::new(|| {
 ///
 /// This cache is common to all the instance workers and prevents there from being more than one
 /// call per N seconds between each DB query to find max(activity_id).
-pub(crate) static CACHE_DURATION_LATEST_ID: Lazy<Duration> = Lazy::new(|| {
+pub(crate) static CACHE_DURATION_LATEST_ID: LazyLock<Duration> = LazyLock::new(|| {
   if *LEMMY_TEST_FAST_FEDERATION {
     // in test mode, we use the same cache duration as the recheck delay so when recheck happens
     // data is fresh, accelerating the time the tests take.
@@ -132,8 +137,8 @@ pub(crate) async fn get_actor_cached(
   actor_type: ActorType,
   actor_apub_id: &Url,
 ) -> Result<Arc<SiteOrCommunityOrUser>> {
-  static CACHE: Lazy<Cache<Url, Arc<SiteOrCommunityOrUser>>> =
-    Lazy::new(|| Cache::builder().max_capacity(10000).build());
+  static CACHE: LazyLock<Cache<Url, Arc<SiteOrCommunityOrUser>>> =
+    LazyLock::new(|| Cache::builder().max_capacity(10000).build());
   CACHE
     .try_get_with(actor_apub_id.clone(), async {
       let url = actor_apub_id.clone().into();
@@ -172,8 +177,8 @@ pub(crate) async fn get_activity_cached(
   pool: &mut DbPool<'_>,
   activity_id: ActivityId,
 ) -> Result<CachedActivityInfo> {
-  static ACTIVITIES: Lazy<Cache<ActivityId, CachedActivityInfo>> =
-    Lazy::new(|| Cache::builder().max_capacity(10000).build());
+  static ACTIVITIES: LazyLock<Cache<ActivityId, CachedActivityInfo>> =
+    LazyLock::new(|| Cache::builder().max_capacity(10000).build());
   ACTIVITIES
     .try_get_with(activity_id, async {
       let row = SentActivity::read(pool, activity_id)
@@ -195,7 +200,7 @@ pub(crate) async fn get_activity_cached(
 
 /// return the most current activity id (with 1 second cache)
 pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<ActivityId> {
-  static CACHE: Lazy<Cache<(), ActivityId>> = Lazy::new(|| {
+  static CACHE: LazyLock<Cache<(), ActivityId>> = LazyLock::new(|| {
     Cache::builder()
       .time_to_live(*CACHE_DURATION_LATEST_ID)
       .build()
