@@ -117,7 +117,6 @@ impl InCommunity for AnnouncableActivities {
       CollectionRemove(a) => a.community(context).await,
       LockPost(a) => a.community(context).await,
       UndoLockPost(a) => a.community(context).await,
-      // TODO this needs to be implemented
       Page(_) => Err(LemmyErrorType::CouldntFindPost.into()),
     }
   }

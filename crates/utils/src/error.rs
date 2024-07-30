@@ -179,7 +179,6 @@ pub enum LemmyErrorType {
   UrlWithoutDomain,
   InboxTimeout,
   Unknown(String),
-  NotAnActor,
   CantDeleteSite,
 }
 
