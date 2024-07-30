@@ -100,15 +100,20 @@ pub async fn send_local_notifs(
   person: &Person,
   do_send_email: bool,
   context: &LemmyContext,
+  local_user_view: Option<&LocalUserView>,
 ) -> LemmyResult<Vec<LocalUserId>> {
   let mut recipient_ids = Vec::new();
   let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
 
   // let person = my_local_user.person;
   // Read the comment view to get extra info
-  let comment_view = CommentView::read(&mut context.pool(), comment_id, None)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+  let comment_view = CommentView::read(
+    &mut context.pool(),
+    comment_id,
+    local_user_view.map(|view| &view.local_user),
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindComment)?;
   let comment = comment_view.comment;
   let post = comment_view.post;
   let community = comment_view.community;
