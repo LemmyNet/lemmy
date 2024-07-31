@@ -38,7 +38,6 @@ pub enum SiteOrCommunity {
   Site(ApubSite),
   Community(ApubCommunity),
 }
-
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub enum InstanceOrGroup {
