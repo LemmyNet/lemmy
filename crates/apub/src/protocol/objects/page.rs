@@ -195,7 +195,7 @@ impl ActivityHandler for Page {
   fn id(&self) -> &Url {
     self.id.inner()
   }
-  // TODO this needs to be implemented
+
   fn actor(&self) -> &Url {
     debug_assert!(false);
     self.id.inner()
