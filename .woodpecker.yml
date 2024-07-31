@@ -7,7 +7,7 @@ variables:
   - &install_pnpm "corepack enable pnpm"
   - &install_binstall "wget -O- https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xvz -C /usr/local/cargo/bin"
   - install_diesel_cli: &install_diesel_cli
-      - apt-get update && apt-get install lsb-release ca-certificates
+      - apt-get update && apt-get -y install lsb-release ca-certificates
       # Instructions taken from here: https://www.postgresql.org/download/linux/ubuntu/
       - install -d /usr/share/postgresql-common/pgdg
       - curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
