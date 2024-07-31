@@ -7,14 +7,7 @@ variables:
   - &install_pnpm "corepack enable pnpm"
   - &install_binstall "wget -O- https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xvz -C /usr/local/cargo/bin"
   - install_diesel_cli: &install_diesel_cli
-      - apt-get update && apt-get -y install curl lsb-release ca-certificates
-      # Instructions taken from here: https://www.postgresql.org/download/linux/ubuntu/
-      - install -d /usr/share/postgresql-common/pgdg
-      - curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
-      - sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-      - apt-get update
-      - apt-cache search postgresql
-      - apt-get -y install postgresql-client-16
+      - apt-get update && apt-get install -y postgresql-client
       - cargo install diesel_cli --no-default-features --features postgres
       - export PATH="$CARGO_HOME/bin:$PATH"
   - &slow_check_paths
@@ -304,7 +297,7 @@ steps:
 
 services:
   database:
-    image: pgautoupgrade/pgautoupgrade:16-alpine
+    image: pgautoupgrade/pgautoupgrade:15-alpine
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password
