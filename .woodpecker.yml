@@ -41,52 +41,6 @@ steps:
     when:
       - event: [pull_request, tag]
 
-  check_diesel_migration:
-    # TODO: use willsquire/diesel-cli image when shared libraries become optional in lemmy_server
-    image: *rust_image
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      RUST_BACKTRACE: "1"
-      CARGO_HOME: .cargo_home
-      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      PGUSER: lemmy
-      PGPASSWORD: password
-      PGHOST: database
-      PGDATABASE: lemmy
-    commands:
-      # Install diesel_cli
-      - <<: *install_diesel_cli
-      # Run all migrations
-      - diesel migration run
-      # Dump schema to before.sqldump (PostgreSQL apt repo is used to prevent pg_dump version mismatch error)
-      - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
-      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f before.sqldump
-      # Make sure that the newest migration is revertable without the `r` schema
-      - diesel migration redo
-      # Run schema setup twice, which fails on the 2nd time if `DROP SCHEMA IF EXISTS r CASCADE` drops the wrong things
-      - alias lemmy_schema_setup="target/lemmy_server --disable-scheduled-tasks --disable-http-server --disable-activity-sending"
-      - lemmy_schema_setup
-      - lemmy_schema_setup
-      # Make sure that the newest migration is revertable with the `r` schema
-      - diesel migration redo
-      # Check for changes in the schema, which would be caused by an incorrect migration
-      - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
-      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f after.sqldump
-      - diff before.sqldump after.sqldump
-    when: *slow_check_paths
-
-  check_diesel_schema:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-    commands:
-      - <<: *install_diesel_cli
-      - diesel migration run
-      - diesel print-schema --config-file=diesel.toml > tmp.schema
-      - diff tmp.schema crates/db_schema/src/schema.rs
-    when: *slow_check_paths
-
   prettier_check:
     image: tmknom/prettier:3.0.0
     commands:
@@ -173,6 +127,18 @@ steps:
       - diff config/defaults.hjson config/defaults_current.hjson
     when: *slow_check_paths
 
+  check_diesel_schema:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+    commands:
+      - <<: *install_diesel_cli
+      - diesel migration run
+      - diesel print-schema --config-file=diesel.toml > tmp.schema
+      - diff tmp.schema crates/db_schema/src/schema.rs
+    when: *slow_check_paths
+
   check_db_perf_tool:
     image: *rust_image
     environment:
@@ -213,6 +179,39 @@ steps:
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
+    when: *slow_check_paths
+
+  check_diesel_migration:
+    # TODO: use willsquire/diesel-cli image when shared libraries become optional in lemmy_server
+    image: *rust_image
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: "1"
+      CARGO_HOME: .cargo_home
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      PGUSER: lemmy
+      PGPASSWORD: password
+      PGHOST: database
+      PGDATABASE: lemmy
+    commands:
+      # Install diesel_cli
+      - <<: *install_diesel_cli
+      # Run all migrations
+      - diesel migration run
+      - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
+      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f before.sqldump
+      # Make sure that the newest migration is revertable without the `r` schema
+      - diesel migration redo
+      # Run schema setup twice, which fails on the 2nd time if `DROP SCHEMA IF EXISTS r CASCADE` drops the wrong things
+      - alias lemmy_schema_setup="target/lemmy_server --disable-scheduled-tasks --disable-http-server --disable-activity-sending"
+      - lemmy_schema_setup
+      - lemmy_schema_setup
+      # Make sure that the newest migration is revertable with the `r` schema
+      - diesel migration redo
+      # Check for changes in the schema, which would be caused by an incorrect migration
+      - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
+      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f after.sqldump
+      - diff before.sqldump after.sqldump
     when: *slow_check_paths
 
   run_federation_tests:
@@ -297,6 +296,7 @@ steps:
 
 services:
   database:
+    # 15-alpine image necessary because of diesel tests
     image: pgautoupgrade/pgautoupgrade:15-alpine
     environment:
       POSTGRES_USER: lemmy
