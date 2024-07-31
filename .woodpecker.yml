@@ -7,13 +7,19 @@ variables:
   - &install_pnpm "corepack enable pnpm"
   - &install_binstall "wget -O- https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xvz -C /usr/local/cargo/bin"
   - install_diesel_cli: &install_diesel_cli
-      - apt-get update && apt-get install -y postgresql-common
+      # - apt-get update && apt-get install -y postgresql-common
       # - apt-get update && apt-get install -y lsb-release build-essential ca-certificates
-      - /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+      # - /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
       # - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
       # - curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc|gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
       # - apt-get update
       # - apt-get install -y postgresql-client-16
+      - apt-get install curl ca-certificates
+      - install -d /usr/share/postgresql-common/pgdg
+      - curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
+      - sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+      - apt-get update
+      - apt-get -y install postgresql-client-16
       - cargo install diesel_cli --no-default-features --features postgres
       - export PATH="$CARGO_HOME/bin:$PATH"
   - &slow_check_paths
