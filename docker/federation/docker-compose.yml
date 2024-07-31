@@ -20,7 +20,7 @@ x-lemmy-default: &lemmy-default
   restart: always
 
 x-postgres-default: &postgres-default
-  image: pgautoupgrade/pgautoupgrade:16-alpine
+  image: pgautoupgrade/pgautoupgrade:15-alpine
   environment:
     - POSTGRES_USER=lemmy
     - POSTGRES_PASSWORD=password
