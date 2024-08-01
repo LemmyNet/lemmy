@@ -42,4 +42,4 @@ actix-web.workspace = true
 tracing-test = "0.2.5"
 uuid.workspace = true
 test-context = "0.3.0"
-mockall = "0.12.1"
+mockall = "0.13.0"
