@@ -22,8 +22,8 @@
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node": "^20.12.4",
-    "@typescript-eslint/eslint-plugin": "^7.5.0",
-    "@typescript-eslint/parser": "^7.5.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "download-file-sync": "^1.0.4",
     "eslint": "^9.0.0",
     "eslint-plugin-prettier": "^5.1.3",
@@ -32,6 +32,6 @@
     "prettier": "^3.2.5",
     "ts-jest": "^29.1.0",
     "typescript": "^5.4.4",
-    "typescript-eslint": "^7.13.0"
+    "typescript-eslint": "^8.0.0"
   }
 }
