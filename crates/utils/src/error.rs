@@ -179,6 +179,7 @@ pub enum LemmyErrorType {
   UrlWithoutDomain,
   InboxTimeout,
   Unknown(String),
+  CantDeleteSite,
 }
 
 cfg_if! {

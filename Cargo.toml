@@ -86,6 +86,7 @@ suspicious = { level = "deny", priority = -1 }
 uninlined_format_args = "allow"
 unused_self = "deny"
 unwrap_used = "deny"
+unimplemented = "deny"
 
 [workspace.dependencies]
 lemmy_api = { version = "=0.19.5", path = "./crates/api" }
