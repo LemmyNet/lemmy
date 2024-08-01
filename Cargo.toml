@@ -105,7 +105,7 @@ activitypub_federation = { version = "0.5.8", default-features = false, features
 ] }
 diesel = "2.1.6"
 diesel_migrations = "2.1.0"
-diesel-async = "0.4.1"
+diesel-async = "0.5.0"
 serde = { version = "1.0.203", features = ["derive"] }
 serde_with = "3.8.1"
 actix-web = { version = "4.6.0", default-features = false, features = [
