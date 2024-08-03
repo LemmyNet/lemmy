@@ -8,7 +8,7 @@ use crate::{
 use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
-use futures::{StreamExt, TryStreamExt};
+use futures::StreamExt;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
@@ -68,24 +68,31 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
     .and_then(|h| h.to_str().ok())
     .and_then(|h| h.parse().ok());
 
-  // Can't use .text() here, because it only checks the content header, not the actual bytes
-  // https://github.com/LemmyNet/lemmy/issues/1964
-  // So we want to do deep inspection of the actually returned bytes but need to be careful not
-  // spend too much time parsing binary data as HTML
+  let opengraph_data = {
+    // if the content type is not text/html, we don't need to parse it
+    let is_html = content_type
+      .as_ref()
+      .map(|c| {
+        (c.type_() == mime::TEXT && c.subtype() == mime::HTML)
+      ||
+      // application/xhtml+xml is a subset of HTML
+      (c.type_() == mime::APPLICATION && c.subtype() == "xhtml")
+      })
+      .unwrap_or(false);
+    if !is_html {
+      Default::default()
+    } else {
+      // Can't use .text() here, because it only checks the content header, not the actual bytes
+      // https://github.com/LemmyNet/lemmy/issues/1964
+      // So we want to do deep inspection of the actually returned bytes but need to be careful not
+      // spend too much time parsing binary data as HTML
 
-  // only take first bytes regardless of how many bytes the server returns
-  let html_bytes = collect_bytes_until_limit(response, bytes_to_fetch).await?;
-  // https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md#binary-data
-  // In order to figure out whether a file is binary, the most effective heuristic that balances
-  // correctness with performance is to simply look for NUL bytes. At that point, the determination
-  // is simple: a file is considered "binary" if and only if it contains a NUL byte somewhere in its
-  // contents.
-  let opengraph_data = if !html_bytes.contains(&0) {
-    extract_opengraph_data(&html_bytes, url)
-      .map_err(|e| info!("{e}"))
-      .unwrap_or_default()
-  } else {
-    Default::default()
+      // only take first bytes regardless of how many bytes the server returns
+      let html_bytes = collect_bytes_until_limit(response, bytes_to_fetch).await?;
+      extract_opengraph_data(&html_bytes, url)
+        .map_err(|e| info!("{e}"))
+        .unwrap_or_default()
+    }
   };
   Ok(LinkMetadata {
     opengraph_data,
