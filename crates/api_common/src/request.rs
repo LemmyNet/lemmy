@@ -184,6 +184,18 @@ pub async fn generate_post_link_metadata(
 fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraphData> {
   let html = String::from_utf8_lossy(html_bytes);
 
+  // Make sure the first line is doctype html
+  let first_line = html
+    .trim_start()
+    .lines()
+    .next()
+    .ok_or(LemmyErrorType::NoLinesInHtml)?
+    .to_lowercase();
+
+  if !first_line.starts_with("<!doctype html") {
+    Err(LemmyErrorType::SiteMetadataPageIsNotDoctypeHtml)?
+  }
+
   let mut page = HTML::from_string(html.to_string(), None)?;
 
   // If the web page specifies that it isn't actually UTF-8, re-decode the received bytes with the
