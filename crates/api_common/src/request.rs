@@ -8,6 +8,7 @@ use crate::{
 use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
+use futures::{StreamExt, TryStreamExt};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
@@ -23,7 +24,12 @@ use lemmy_utils::{
   VERSION,
 };
 use mime::Mime;
-use reqwest::{header::CONTENT_TYPE, Client, ClientBuilder};
+use reqwest::{
+  header::{CONTENT_TYPE, RANGE},
+  Client,
+  ClientBuilder,
+  Response,
+};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
 use tracing::info;
@@ -44,7 +50,17 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
 #[tracing::instrument(skip_all)]
 pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResult<LinkMetadata> {
   info!("Fetching site metadata for url: {}", url);
-  let response = context.client().get(url.as_str()).send().await?;
+  // We only fetch the first 64kB of data in order to not waste bandwidth especially for large
+  // binary files
+  let bytes_to_fetch = 64 * 1024;
+  let response = context
+    .client()
+    .get(url.as_str())
+    // we only need the first chunk of data. Note that we do not check for Accept-Range so the
+    // server may ignore this and still respond with the full response
+    .header(RANGE, format!("bytes=0-{}", bytes_to_fetch - 1)) /* -1 because inclusive */
+    .send()
+    .await?;
 
   let content_type: Option<Mime> = response
     .headers()
@@ -54,15 +70,47 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
 
   // Can't use .text() here, because it only checks the content header, not the actual bytes
   // https://github.com/LemmyNet/lemmy/issues/1964
-  let html_bytes = response.bytes().await.map_err(LemmyError::from)?.to_vec();
+  // So we want to do deep inspection of the actually returned bytes but need to be careful not
+  // spend too much time parsing binary data as HTML
 
-  let opengraph_data = extract_opengraph_data(&html_bytes, url)
-    .map_err(|e| info!("{e}"))
-    .unwrap_or_default();
+  // only take first bytes regardless of how many bytes the server returns
+  let html_bytes = collect_bytes_until_limit(response, bytes_to_fetch).await?;
+  // https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md#binary-data
+  // In order to figure out whether a file is binary, the most effective heuristic that balances
+  // correctness with performance is to simply look for NUL bytes. At that point, the determination
+  // is simple: a file is considered "binary" if and only if it contains a NUL byte somewhere in its
+  // contents.
+  let opengraph_data = if !html_bytes.contains(&0) {
+    extract_opengraph_data(&html_bytes, url)
+      .map_err(|e| info!("{e}"))
+      .unwrap_or_default()
+  } else {
+    Default::default()
+  };
   Ok(LinkMetadata {
     opengraph_data,
     content_type: content_type.map(|c| c.to_string()),
   })
+}
+
+async fn collect_bytes_until_limit(
+  response: Response,
+  requested_bytes: usize,
+) -> Result<Vec<u8>, LemmyError> {
+  let mut stream = response.bytes_stream();
+  let mut bytes = Vec::with_capacity(requested_bytes);
+  let mut total_bytes = 0;
+  while let Some(chunk) = stream.next().await {
+    let chunk = chunk.map_err(LemmyError::from)?;
+    total_bytes += chunk.len();
+    // we may go over the requested size here but the important part is we don't keep aggregating
+    // more chunks than needed
+    bytes.extend_from_slice(&chunk);
+    if total_bytes >= requested_bytes {
+      break;
+    }
+  }
+  Ok(bytes)
 }
 
 /// Generates and saves a post thumbnail and metadata.
