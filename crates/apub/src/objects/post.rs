@@ -41,7 +41,7 @@ use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
   spawn_try_task,
-  utils::{markdown::markdown_to_html, slurs::check_slurs_opt, validation::check_url_scheme},
+  utils::{markdown::markdown_to_html, slurs::check_slurs_opt, validation::is_valid_url},
 };
 use std::ops::Deref;
 use stringreader::StringReader;
@@ -221,7 +221,7 @@ impl Object for ApubPost {
     };
 
     if let Some(url) = &url {
-      check_url_scheme(url)?;
+      is_valid_url(url)?;
     }
 
     let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
