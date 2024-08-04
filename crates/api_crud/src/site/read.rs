@@ -115,12 +115,9 @@ fn filter_oauth_providers(
   local_user_view: &Option<LocalUserView>,
   site_response: &mut GetSiteResponse,
 ) {
-  if local_user_view.is_none()
-    || !local_user_view
-      .clone()
-      .expect("user_view must be set")
-      .local_user
-      .admin
+  if !local_user_view
+    .clone()
+    .is_some_and(|local_user_view| local_user_view.local_user.admin)
   {
     site_response.admin_oauth_providers = None;
   }
