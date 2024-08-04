@@ -126,7 +126,9 @@ impl Person {
     use diesel::dsl::{exists, select};
     let conn = &mut get_conn(pool).await?;
     select(exists(
-      person::table.filter(lower(person::name).eq(username.to_lowercase())),
+      person::table
+        .filter(lower(person::name).eq(username.to_lowercase()))
+        .filter(person::local.eq(true)),
     ))
     .get_result(conn)
     .await
