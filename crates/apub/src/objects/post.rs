@@ -44,7 +44,7 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::check_slurs_opt,
-    validation::{check_url_scheme, is_url_blocked},
+    validation::{is_url_blocked, is_valid_url},
   },
 };
 use std::ops::Deref;
@@ -235,7 +235,7 @@ impl Object for ApubPost {
 
     if let Some(url) = &url {
       is_url_blocked(url, &url_blocklist)?;
-      check_url_scheme(url)?;
+      is_valid_url(url)?;
     }
 
     let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);

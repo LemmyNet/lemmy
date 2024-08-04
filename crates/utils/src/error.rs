@@ -180,6 +180,7 @@ pub enum LemmyErrorType {
   InboxTimeout,
   Unknown(String),
   CantDeleteSite,
+  UrlLengthOverflow,
 }
 
 cfg_if! {
