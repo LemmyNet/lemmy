@@ -106,14 +106,13 @@ async fn collect_bytes_until_limit(
 ) -> Result<Vec<u8>, LemmyError> {
   let mut stream = response.bytes_stream();
   let mut bytes = Vec::with_capacity(requested_bytes);
-  let mut total_bytes = 0;
   while let Some(chunk) = stream.next().await {
     let chunk = chunk.map_err(LemmyError::from)?;
-    total_bytes += chunk.len();
     // we may go over the requested size here but the important part is we don't keep aggregating
     // more chunks than needed
     bytes.extend_from_slice(&chunk);
-    if total_bytes >= requested_bytes {
+    if bytes.len() >= requested_bytes {
+      bytes.truncate(requested_bytes);
       break;
     }
   }
