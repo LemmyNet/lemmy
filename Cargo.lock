@@ -2817,6 +2817,7 @@ dependencies = [
  "elementtree",
  "hound",
  "lemmy_api_common",
+ "lemmy_api_crud",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
