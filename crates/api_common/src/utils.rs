@@ -958,9 +958,7 @@ pub async fn process_markdown(
       // Insert image details for the remote image
       let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
       if let Ok(details) = details_res {
-        let proxied =
-          build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
-        let details_form = details.build_image_details_form(&proxied);
+        let details_form = details.build_image_details_form(&link);
         RemoteImage::create(&mut context.pool(), &details_form).await?;
       }
     }
@@ -1002,7 +1000,7 @@ async fn proxy_image_link_internal(
     let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
 
     if let Ok(details) = details_res {
-      let details_form = details.build_image_details_form(&proxied);
+      let details_form = details.build_image_details_form(&link);
       RemoteImage::create(&mut context.pool(), &details_form).await?;
     };
 
