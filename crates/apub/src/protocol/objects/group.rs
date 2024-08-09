@@ -7,7 +7,7 @@ use crate::{
     community_outbox::ApubCommunityOutbox,
   },
   local_site_data_cached,
-  objects::{community::ApubCommunity, read_from_string_or_source_opt, verify_is_remote_object},
+  objects::{community::ApubCommunity, read_from_string_or_source_opt},
   protocol::{
     objects::{Endpoints, LanguageTag},
     ImageObject,
@@ -80,7 +80,6 @@ impl Group {
   ) -> LemmyResult<()> {
     check_apub_id_valid_with_strictness(self.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, self.id.inner())?;
-    verify_is_remote_object(&self.id, context)?;
 
     let local_site_data = local_site_data_cached(&mut context.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
