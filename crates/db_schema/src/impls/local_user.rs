@@ -115,11 +115,11 @@ impl LocalUser {
     let conn = &mut get_conn(pool).await?;
 
     // Make sure:
-    // - The deny reason exists
+    // - An admin has interacted with the application
     // - The app is older than a week
     // - The accepted_application is false
     let old_denied_registrations = registration_application::table
-      .filter(registration_application::deny_reason.is_not_null())
+      .filter(registration_application::admin_id.is_not_null())
       .filter(registration_application::published.lt(now() - 1.week()))
       .select(registration_application::local_user_id);
 
