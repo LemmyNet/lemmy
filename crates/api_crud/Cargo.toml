@@ -27,7 +27,7 @@ futures.workspace = true
 uuid = { workspace = true }
 moka.workspace = true
 anyhow.workspace = true
-webmention = "0.5.0"
+webmention = "0.6.0"
 accept-language = "3.1.0"
 
 [package.metadata.cargo-machete]
