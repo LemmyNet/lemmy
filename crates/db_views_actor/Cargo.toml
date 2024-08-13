@@ -16,9 +16,12 @@ workspace = true
 
 [features]
 full = [
-"lemmy_db_schema/full", 
+  "lemmy_db_schema/full",
   "lemmy_utils/full",
-"diesel", "diesel-async", "ts-rs"]
+  "diesel",
+  "diesel-async",
+  "ts-rs",
+]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
