@@ -12,19 +12,22 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 impl InstanceBlock {
   pub async fn read(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
     for_instance_id: InstanceId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     select(exists(
       instance_block.find((for_person_id, for_instance_id)),
     ))
-    .get_result(conn)
-    .await
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::InstanceIsBlocked.into())
   }
 }
 

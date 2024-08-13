@@ -8,13 +8,14 @@ use lemmy_db_schema::{
   source::local_user::LocalUser,
   utils::{get_conn, DbPool},
 };
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 impl CommunityModeratorView {
   pub async fn is_community_moderator(
     pool: &mut DbPool<'_>,
     find_community_id: CommunityId,
     find_person_id: PersonId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     use lemmy_db_schema::schema::community_moderator::dsl::{
       community_id,
       community_moderator,
@@ -27,20 +28,24 @@ impl CommunityModeratorView {
         .filter(person_id.eq(find_person_id)),
     ))
     .get_result::<bool>(conn)
-    .await
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::NotAModerator.into())
   }
 
   pub(crate) async fn is_community_moderator_of_any(
     pool: &mut DbPool<'_>,
     find_person_id: PersonId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     use lemmy_db_schema::schema::community_moderator::dsl::{community_moderator, person_id};
     let conn = &mut get_conn(pool).await?;
     select(exists(
       community_moderator.filter(person_id.eq(find_person_id)),
     ))
     .get_result::<bool>(conn)
-    .await
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::NotAModerator.into())
   }
 
   pub async fn for_community(

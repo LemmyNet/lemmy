@@ -184,15 +184,8 @@ impl Object for ApubPost {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
-      let is_mod = CommunityModeratorView::is_community_moderator(
-        &mut context.pool(),
-        community.id,
-        creator.id,
-      )
-      .await?;
-      if !is_mod {
-        Err(LemmyErrorType::OnlyModsCanPostInCommunity)?
-      }
+      CommunityModeratorView::is_community_moderator(&mut context.pool(), community.id, creator.id)
+        .await?;
     }
     let mut name = page
       .name

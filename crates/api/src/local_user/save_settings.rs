@@ -65,9 +65,7 @@ pub async fn save_user_settings(
     let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();
     // if email was changed, check that it is not taken and send verification mail
     if previous_email.deref() != email {
-      if LocalUser::is_email_taken(&mut context.pool(), email).await? {
-        return Err(LemmyErrorType::EmailAlreadyExists)?;
-      }
+      LocalUser::is_email_taken(&mut context.pool(), email).await?;
       send_verification_email(
         &local_user_view,
         email,

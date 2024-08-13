@@ -15,7 +15,10 @@ doctest = false
 workspace = true
 
 [features]
-full = ["lemmy_db_schema/full", "diesel", "diesel-async", "ts-rs"]
+full = [
+"lemmy_db_schema/full", 
+  "lemmy_utils/full",
+"diesel", "diesel-async", "ts-rs"]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
@@ -33,6 +36,7 @@ serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }
 chrono.workspace = true
 strum = { workspace = true }
+lemmy_utils = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

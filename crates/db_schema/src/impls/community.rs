@@ -325,13 +325,15 @@ impl CommunityFollower {
   pub async fn has_local_followers(
     pool: &mut DbPool<'_>,
     remote_community_id: CommunityId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     select(exists(community_follower::table.filter(
       community_follower::community_id.eq(remote_community_id),
     )))
-    .get_result(conn)
-    .await
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::CommunityHasNoFollowers.into())
   }
 }
 

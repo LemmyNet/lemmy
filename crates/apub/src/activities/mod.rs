@@ -87,12 +87,7 @@ pub(crate) async fn verify_person_in_community(
   }
   let person_id = person.id;
   let community_id = community.id;
-  let is_banned = CommunityPersonBanView::get(&mut context.pool(), person_id, community_id).await?;
-  if is_banned {
-    Err(LemmyErrorType::PersonIsBannedFromCommunity)?
-  } else {
-    Ok(())
-  }
+  CommunityPersonBanView::get(&mut context.pool(), person_id, community_id).await
 }
 
 /// Verify that mod action in community was performed by a moderator.
@@ -109,8 +104,8 @@ pub(crate) async fn verify_mod_action(
   let mod_ = mod_id.dereference(context).await?;
 
   let is_mod_or_admin =
-    CommunityView::is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await?;
-  if is_mod_or_admin {
+    CommunityView::is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await;
+  if is_mod_or_admin.is_ok() {
     return Ok(());
   }
 

@@ -15,12 +15,13 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{check_person_block, get_url_blocklist, local_site_opt_to_slur_regex, process_markdown},
+  utils::{get_url_blocklist, local_site_opt_to_slur_regex, process_markdown},
 };
 use lemmy_db_schema::{
   source::{
     local_site::LocalSite,
     person::Person,
+    person_block::PersonBlock,
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
   traits::Crud,
@@ -130,7 +131,7 @@ impl Object for ApubPrivateMessage {
   ) -> LemmyResult<ApubPrivateMessage> {
     let creator = note.attributed_to.dereference(context).await?;
     let recipient = note.to[0].dereference(context).await?;
-    check_person_block(creator.id, recipient.id, &mut context.pool()).await?;
+    PersonBlock::read(&mut context.pool(), recipient.id, creator.id).await?;
 
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);

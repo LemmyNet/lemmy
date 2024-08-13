@@ -136,14 +136,16 @@ impl LocalUser {
     diesel::delete(persons).execute(conn).await
   }
 
-  pub async fn is_email_taken(pool: &mut DbPool<'_>, email: &str) -> Result<bool, Error> {
+  pub async fn is_email_taken(pool: &mut DbPool<'_>, email: &str) -> LemmyResult<()> {
     use diesel::dsl::{exists, select};
     let conn = &mut get_conn(pool).await?;
     select(exists(local_user::table.filter(
       lower(coalesce(local_user::email, "")).eq(email.to_lowercase()),
     )))
-    .get_result(conn)
-    .await
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::EmailAlreadyExists.into())
   }
 
   // TODO: maybe move this and pass in LocalUserView

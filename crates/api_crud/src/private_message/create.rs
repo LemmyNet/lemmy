@@ -5,7 +5,6 @@ use lemmy_api_common::{
   private_message::{CreatePrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_person_block,
     get_interface_language,
     get_url_blocklist,
     local_site_to_slur_regex,
@@ -16,6 +15,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     local_site::LocalSite,
+    person_block::PersonBlock,
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
   traits::Crud,
@@ -39,10 +39,10 @@ pub async fn create_private_message(
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&content, false)?;
 
-  check_person_block(
-    local_user_view.person.id,
-    data.recipient_id,
+  PersonBlock::read(
     &mut context.pool(),
+    data.recipient_id,
+    local_user_view.person.id,
   )
   .await?;
 

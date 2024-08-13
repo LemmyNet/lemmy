@@ -97,15 +97,12 @@ pub async fn create_post(
     .ok_or(LemmyErrorType::CouldntFindCommunity)?;
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;
-    let is_mod = CommunityModeratorView::is_community_moderator(
+    CommunityModeratorView::is_community_moderator(
       &mut context.pool(),
       community_id,
       local_user_view.local_user.person_id,
     )
     .await?;
-    if !is_mod {
-      Err(LemmyErrorType::OnlyModsCanPostInCommunity)?
-    }
   }
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
