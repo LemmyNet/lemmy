@@ -15,6 +15,7 @@ use url::Url;
 pub async fn get_link_metadata(
   data: Query<GetSiteMetadata>,
   context: Data<LemmyContext>,
+  // Require an account for this API
   _local_user_view: LocalUserView,
 ) -> LemmyResult<Json<GetSiteMetadataResponse>> {
   let url = Url::parse(&data.url).with_lemmy_type(LemmyErrorType::InvalidUrl)?;
