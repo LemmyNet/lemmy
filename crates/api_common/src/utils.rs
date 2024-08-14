@@ -69,7 +69,7 @@ pub async fn is_mod_or_admin(
   community_id: CommunityId,
 ) -> LemmyResult<()> {
   check_user_valid(person)?;
-  CommunityView::is_mod_or_admin(pool, person.id, community_id).await
+  CommunityView::check_is_mod_or_admin(pool, person.id, community_id).await
 }
 
 #[tracing::instrument(skip_all)]
@@ -100,7 +100,7 @@ pub async fn check_community_mod_of_any_or_admin_action(
   let person = &local_user_view.person;
 
   check_user_valid(person)?;
-  CommunityView::is_mod_of_any_or_admin(pool, person.id).await
+  CommunityView::check_is_mod_of_any_or_admin(pool, person.id).await
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
@@ -190,7 +190,7 @@ pub async fn check_community_user_action(
 ) -> LemmyResult<()> {
   check_user_valid(person)?;
   check_community_deleted_removed(community_id, pool).await?;
-  CommunityPersonBanView::get(pool, person.id, community_id).await?;
+  CommunityPersonBanView::check(pool, person.id, community_id).await?;
   Ok(())
 }
 
@@ -218,7 +218,7 @@ pub async fn check_community_mod_action(
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   is_mod_or_admin(pool, person, community_id).await?;
-  CommunityPersonBanView::get(pool, person.id, community_id).await?;
+  CommunityPersonBanView::check(pool, person.id, community_id).await?;
 
   // it must be possible to restore deleted community
   if !allow_deleted {
@@ -252,9 +252,9 @@ pub async fn check_person_instance_community_block(
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  PersonBlock::read(pool, potential_blocker_id, my_id).await?;
-  InstanceBlock::read(pool, potential_blocker_id, community_instance_id).await?;
-  CommunityBlock::read(pool, potential_blocker_id, community_id).await?;
+  PersonBlock::check(pool, potential_blocker_id, my_id).await?;
+  InstanceBlock::check(pool, potential_blocker_id, community_instance_id).await?;
+  CommunityBlock::check(pool, potential_blocker_id, community_id).await?;
   Ok(())
 }
 

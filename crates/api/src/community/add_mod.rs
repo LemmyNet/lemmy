@@ -54,7 +54,7 @@ pub async fn add_mod_to_community(
   // moderator. This is necessary because otherwise the action would be rejected
   // by the community's home instance.
   if local_user_view.local_user.admin && !community.local {
-    CommunityModeratorView::is_community_moderator(
+    CommunityModeratorView::check_is_community_moderator(
       &mut context.pool(),
       community.id,
       local_user_view.person.id,

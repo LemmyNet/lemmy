@@ -11,7 +11,7 @@ use lemmy_db_schema::{
 use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 impl CommunityModeratorView {
-  pub async fn is_community_moderator(
+  pub async fn check_is_community_moderator(
     pool: &mut DbPool<'_>,
     find_community_id: CommunityId,
     find_person_id: PersonId,

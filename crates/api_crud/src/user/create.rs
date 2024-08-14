@@ -97,7 +97,7 @@ pub async fn register(
   )?;
 
   if let Some(email) = &data.email {
-    LocalUser::is_email_taken(&mut context.pool(), email).await?;
+    LocalUser::check_is_email_taken(&mut context.pool(), email).await?;
   }
 
   // We have to create both a person, and local_user

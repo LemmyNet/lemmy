@@ -186,13 +186,13 @@ impl CommunityView {
       .await
   }
 
-  pub async fn is_mod_or_admin(
+  pub async fn check_is_mod_or_admin(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     community_id: CommunityId,
   ) -> LemmyResult<()> {
     let is_mod =
-      CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await;
+      CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id).await;
     if is_mod.is_ok()
       || PersonView::read(pool, person_id)
         .await
@@ -205,7 +205,7 @@ impl CommunityView {
   }
 
   /// Checks if a person is an admin, or moderator of any community.
-  pub async fn is_mod_of_any_or_admin(
+  pub async fn check_is_mod_of_any_or_admin(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
   ) -> LemmyResult<()> {

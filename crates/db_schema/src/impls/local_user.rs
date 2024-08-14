@@ -136,12 +136,12 @@ impl LocalUser {
     diesel::delete(persons).execute(conn).await
   }
 
-  pub async fn is_email_taken(pool: &mut DbPool<'_>, email: &str) -> LemmyResult<()> {
+  pub async fn check_is_email_taken(pool: &mut DbPool<'_>, email: &str) -> LemmyResult<()> {
     use diesel::dsl::{exists, select};
     let conn = &mut get_conn(pool).await?;
-    select(exists(local_user::table.filter(
+    select(not(exists(local_user::table.filter(
       lower(coalesce(local_user::email, "")).eq(email.to_lowercase()),
-    )))
+    ))))
     .get_result::<bool>(conn)
     .await?
     .then_some(())
