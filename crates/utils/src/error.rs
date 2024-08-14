@@ -42,7 +42,6 @@ pub enum LemmyErrorType {
   NotHigherAdmin,
   SiteBan,
   Deleted,
-  BannedFromCommunity,
   CouldntFindCommunity,
   CouldntFindPerson,
   CouldntFindComment,

@@ -35,7 +35,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{
   deserialize,
-  dsl::{self, exists, insert_into, not},
+  dsl::{self, exists, insert_into},
   pg::Pg,
   result::Error,
   select,
@@ -326,9 +326,9 @@ impl CommunityFollower {
     remote_community_id: CommunityId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    select(not(exists(community_follower::table.filter(
+    select(exists(community_follower::table.filter(
       community_follower::community_id.eq(remote_community_id),
-    ))))
+    )))
     .get_result::<bool>(conn)
     .await?
     .then_some(())

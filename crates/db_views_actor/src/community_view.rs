@@ -196,7 +196,7 @@ impl CommunityView {
     if is_mod.is_ok()
       || PersonView::read(pool, person_id)
         .await
-        .is_ok_and(|t| t.is_some())
+        .is_ok_and(|t| t.is_some_and(|t| t.is_admin))
     {
       Ok(())
     } else {

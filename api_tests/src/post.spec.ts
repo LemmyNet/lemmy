@@ -623,7 +623,7 @@ test("Enforce community ban for federated user", async () => {
   // Alpha tries to make post on beta, but it fails because of ban
   await expect(
     createPost(alpha, betaCommunity.community.id),
-  ).rejects.toStrictEqual(Error("banned_from_community"));
+  ).rejects.toStrictEqual(Error("person_is_banned_from_community"));
 
   // Unban alpha
   let unBanAlpha = await banPersonFromCommunity(
