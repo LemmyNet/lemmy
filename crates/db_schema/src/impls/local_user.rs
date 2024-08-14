@@ -421,4 +421,32 @@ mod tests {
 
     Ok(())
   }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_email_taken() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+
+    let darwin_email = "charles.darwin@gmail.com";
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let darwin_person = PersonInsertForm::test_form(inserted_instance.id, "darwin");
+    let inserted_darwin_person = Person::create(pool, &darwin_person).await?;
+
+    let mut darwin_local_user_form =
+      LocalUserInsertForm::test_form_admin(inserted_darwin_person.id);
+    darwin_local_user_form.email = Some(darwin_email.into());
+    let _inserted_darwin_local_user =
+      LocalUser::create(pool, &darwin_local_user_form, vec![]).await?;
+
+    let check = LocalUser::check_is_email_taken(pool, darwin_email).await;
+    assert!(check.is_err());
+
+    let passed_check = LocalUser::check_is_email_taken(pool, "not_charles@gmail.com").await;
+    assert!(passed_check.is_ok());
+
+    Ok(())
+  }
 }
