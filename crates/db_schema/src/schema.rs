@@ -252,6 +252,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    community_post_tag (id) {
+        id -> Int4,
+        ap_id -> Text,
+        community_id -> Int4,
+        name -> Text,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
+        deleted -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     custom_emoji (id) {
         id -> Int4,
         local_site_id -> Int4,
@@ -760,6 +772,13 @@ diesel::table! {
 }
 
 diesel::table! {
+    post_community_post_tag (post_id, community_post_tag_id) {
+        post_id -> Int4,
+        community_post_tag_id -> Int4,
+    }
+}
+
+diesel::table! {
     post_hide (person_id, post_id) {
         post_id -> Int4,
         person_id -> Int4,
@@ -974,6 +993,7 @@ diesel::joinable!(community_moderator -> community (community_id));
 diesel::joinable!(community_moderator -> person (person_id));
 diesel::joinable!(community_person_ban -> community (community_id));
 diesel::joinable!(community_person_ban -> person (person_id));
+diesel::joinable!(community_post_tag -> community (community_id));
 diesel::joinable!(custom_emoji -> local_site (local_site_id));
 diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
@@ -1020,6 +1040,8 @@ diesel::joinable!(post_aggregates -> community (community_id));
 diesel::joinable!(post_aggregates -> instance (instance_id));
 diesel::joinable!(post_aggregates -> person (creator_id));
 diesel::joinable!(post_aggregates -> post (post_id));
+diesel::joinable!(post_community_post_tag -> community_post_tag (community_post_tag_id));
+diesel::joinable!(post_community_post_tag -> post (post_id));
 diesel::joinable!(post_hide -> person (person_id));
 diesel::joinable!(post_hide -> post (post_id));
 diesel::joinable!(post_like -> person (person_id));
@@ -1057,6 +1079,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     community_language,
     community_moderator,
     community_person_ban,
+    community_post_tag,
     custom_emoji,
     custom_emoji_keyword,
     email_verification,
@@ -1096,6 +1119,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     person_post_aggregates,
     post,
     post_aggregates,
+    post_community_post_tag,
     post_hide,
     post_like,
     post_read,

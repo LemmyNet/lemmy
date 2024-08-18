@@ -508,6 +508,11 @@ pub mod functions {
   sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
 
   sql_function!(fn set_config(setting_name: Text, new_value: Text, is_local: Bool) -> Text);
+
+  sql_function! {
+    #[aggregate]
+    fn json_agg<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(obj: T) -> Json
+  }
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";

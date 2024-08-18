@@ -2996,6 +2996,7 @@ dependencies = [
  "lemmy_utils",
  "pretty_assertions",
  "serde",
+ "serde_json",
  "serde_with",
  "serial_test",
  "tokio",

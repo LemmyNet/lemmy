@@ -30,6 +30,7 @@ pub struct CreatePost {
   pub language_id: Option<LanguageId>,
   /// Instead of fetching a thumbnail, use a custom one.
   pub custom_thumbnail: Option<String>,
+  pub community_post_tags: Option<Vec<CommunityPostTagId>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -124,6 +125,7 @@ pub struct EditPost {
   pub language_id: Option<LanguageId>,
   /// Instead of fetching a thumbnail, use a custom one.
   pub custom_thumbnail: Option<String>,
+  pub community_post_tags: Option<Vec<CommunityPostTagId>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

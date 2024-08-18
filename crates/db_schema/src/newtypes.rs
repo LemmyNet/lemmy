@@ -283,3 +283,10 @@ impl InstanceId {
     self.0
   }
 }
+
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The post id.
+pub struct CommunityPostTagId(pub i32);

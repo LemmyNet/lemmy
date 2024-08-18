@@ -41,10 +41,13 @@ use lemmy_db_schema::{
     post_like,
     post_read,
     post_saved,
+    post_community_post_tag,
+    community_post_tag
   },
   source::{local_user::LocalUser, site::Site},
   utils::{
     functions::coalesce,
+    functions::json_agg,
     fuzzy_search,
     get_conn,
     limit_and_offset,
@@ -214,6 +217,14 @@ fn queries<'a>() -> Queries<
     } else {
       Box::new(None::<i64>.into_sql::<sql_types::Nullable<sql_types::BigInt>>())
     };
+    let community_post_tags: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Json>>> =
+      Box::new(
+        post_community_post_tag::table
+          .inner_join(community_post_tag::table)
+          .select(diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(community_post_tag.*)"))
+          .filter(post_community_post_tag::post_id.eq(post_aggregates::post_id))
+          .single_value(),
+      );
 
     query
       .inner_join(person::table)
@@ -247,6 +258,7 @@ fn queries<'a>() -> Queries<
           post_aggregates::comments.nullable() - read_comments,
           post_aggregates::comments,
         ),
+        community_post_tags
       ))
   };
 
@@ -1764,6 +1776,7 @@ mod tests {
       hidden: false,
       saved: false,
       creator_blocked: false,
+      community_post_tags: None,
     })
   }
 

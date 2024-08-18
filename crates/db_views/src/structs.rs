@@ -3,23 +3,7 @@ use diesel::Queryable;
 use lemmy_db_schema::{
   aggregates::structs::{CommentAggregates, PersonAggregates, PostAggregates, SiteAggregates},
   source::{
-    comment::Comment,
-    comment_report::CommentReport,
-    community::Community,
-    custom_emoji::CustomEmoji,
-    custom_emoji_keyword::CustomEmojiKeyword,
-    images::{ImageDetails, LocalImage},
-    local_site::LocalSite,
-    local_site_rate_limit::LocalSiteRateLimit,
-    local_user::LocalUser,
-    local_user_vote_display_mode::LocalUserVoteDisplayMode,
-    person::Person,
-    post::Post,
-    post_report::PostReport,
-    private_message::PrivateMessage,
-    private_message_report::PrivateMessageReport,
-    registration_application::RegistrationApplication,
-    site::Site,
+    comment::Comment, comment_report::CommentReport, community::Community, community_post_tag::CommunityPostTag, custom_emoji::CustomEmoji, custom_emoji_keyword::CustomEmojiKeyword, images::{ImageDetails, LocalImage}, local_site::LocalSite, local_site_rate_limit::LocalSiteRateLimit, local_user::LocalUser, local_user_vote_display_mode::LocalUserVoteDisplayMode, person::Person, post::Post, post_report::PostReport, private_message::PrivateMessage, private_message_report::PrivateMessageReport, registration_application::RegistrationApplication, site::Site
   },
   SubscribedType,
 };
@@ -144,6 +128,7 @@ pub struct PostView {
   pub creator_blocked: bool,
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
+  pub community_post_tags: Option<serde_json::Value>
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
