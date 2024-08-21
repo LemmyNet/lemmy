@@ -35,11 +35,11 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs,
     validation::{
-      check_url_scheme,
       is_url_blocked,
       is_valid_alt_text_field,
       is_valid_body_field,
       is_valid_post_title,
+      is_valid_url,
     },
   },
 };
@@ -69,11 +69,11 @@ pub async fn create_post(
 
   if let Some(url) = &url {
     is_url_blocked(url, &url_blocklist)?;
-    check_url_scheme(url)?;
+    is_valid_url(url)?;
   }
 
   if let Some(custom_thumbnail) = &custom_thumbnail {
-    check_url_scheme(custom_thumbnail)?;
+    is_valid_url(custom_thumbnail)?;
   }
 
   if let Some(alt_text) = &data.alt_text {

@@ -39,7 +39,6 @@ full = [
   "dep:urlencoding",
   "dep:doku",
   "dep:url",
-  "dep:once_cell",
   "dep:smart-default",
   "dep:enum-map",
   "dep:futures",
@@ -58,7 +57,6 @@ tracing-error = { workspace = true, optional = true }
 itertools = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true, optional = true }
-once_cell = { workspace = true, optional = true }
 url = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
 anyhow = { workspace = true, optional = true }
@@ -81,7 +79,7 @@ lettre = { version = "0.11.7", default-features = false, features = [
   "tokio1-rustls-tls",
   "smtp-transport",
 ], optional = true }
-markdown-it = { version = "0.6.0", optional = true }
+markdown-it = { version = "0.6.1", optional = true }
 ts-rs = { workspace = true, optional = true }
 enum-map = { workspace = true, optional = true }
 cfg-if = "1"
