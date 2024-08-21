@@ -40,7 +40,6 @@ uuid = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }
 reqwest = { workspace = true }
-once_cell = { workspace = true }
 moka.workspace = true
 serde_with.workspace = true
 html2md = "0.2.14"

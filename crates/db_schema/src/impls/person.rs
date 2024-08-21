@@ -195,9 +195,12 @@ impl Followable for PersonFollower {
       .get_result::<Self>(conn)
       .await
   }
+
+  /// Currently no user following
   async fn follow_accepted(_: &mut DbPool<'_>, _: CommunityId, _: PersonId) -> Result<Self, Error> {
-    unimplemented!()
+    Err(Error::NotFound)
   }
+
   async fn unfollow(
     pool: &mut DbPool<'_>,
     form: &PersonFollowerForm,
