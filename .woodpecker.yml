@@ -191,12 +191,6 @@ steps:
       CARGO_HOME: .cargo_home
       LEMMY_TEST_FAST_FEDERATION: "1"
     commands:
-      # Install pg_dump for the schema setup test (must match server version)
-      - apt update && apt install -y lsb-release
-      - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-      - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-      - apt update && apt install -y postgresql-client-16
-      # Run tests
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
     when: *slow_check_paths
