@@ -1,14 +1,17 @@
 use crate::{
   newtypes::{CommunityId, PersonId},
-  schema::community_block::dsl::{community_block, community_id, person_id},
+  schema::community_actions,
   source::community_block::{CommunityBlock, CommunityBlockForm},
   traits::Blockable,
-  utils::{get_conn, DbPool},
+  utils::{find_action, get_conn, now, uplete, DbPool},
 };
 use diesel::{
   dsl::{exists, insert_into},
+  expression::SelectableHelper,
   result::Error,
   select,
+  ExpressionMethods,
+  NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -20,9 +23,10 @@ impl CommunityBlock {
     for_community_id: CommunityId,
   ) -> Result<bool, Error> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(
-      community_block.find((for_person_id, for_community_id)),
-    ))
+    select(exists(find_action(
+      community_actions::blocked,
+      (for_person_id, for_community_id),
+    )))
     .get_result(conn)
     .await
   }
@@ -33,24 +37,33 @@ impl Blockable for CommunityBlock {
   type Form = CommunityBlockForm;
   async fn block(pool: &mut DbPool<'_>, community_block_form: &Self::Form) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(community_block)
+    let community_block_form = (
+      community_block_form,
+      community_actions::blocked.eq(now().nullable()),
+    );
+    insert_into(community_actions::table)
       .values(community_block_form)
-      .on_conflict((person_id, community_id))
+      .on_conflict((
+        community_actions::person_id,
+        community_actions::community_id,
+      ))
       .do_update()
       .set(community_block_form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
   async fn unblock(
     pool: &mut DbPool<'_>,
     community_block_form: &Self::Form,
-  ) -> Result<usize, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(community_block.find((
+    uplete::new(community_actions::table.find((
       community_block_form.person_id,
       community_block_form.community_id,
     )))
-    .execute(conn)
+    .set_null(community_actions::blocked)
+    .get_result(conn)
     .await
   }
 }
