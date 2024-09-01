@@ -196,7 +196,7 @@ impl CommentReportView {
     queries().read(pool, (report_id, my_person_id)).await
   }
 
-  /// Returns the current unresolved post report count for the communities you mod
+  /// Returns the current unresolved comment report count for the communities you mod
   pub async fn get_report_count(
     pool: &mut DbPool<'_>,
     my_person_id: PersonId,
