@@ -1,11 +1,18 @@
 #[cfg(feature = "full")]
 use diesel::Queryable;
 use lemmy_db_schema::{
-  aggregates::structs::{CommentAggregates, PersonAggregates, PostAggregates, SiteAggregates},
+  aggregates::structs::{
+    CommentAggregates,
+    CommunityAggregates,
+    PersonAggregates,
+    PostAggregates,
+    SiteAggregates,
+  },
   source::{
     comment::Comment,
     comment_report::CommentReport,
     community::Community,
+    community_report::CommunityReport,
     custom_emoji::CustomEmoji,
     custom_emoji_keyword::CustomEmojiKeyword,
     images::{ImageDetails, LocalImage},
@@ -72,6 +79,21 @@ pub struct CommentView {
   pub saved: bool,
   pub creator_blocked: bool,
   pub my_vote: Option<i16>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A community report view.
+pub struct CommunityReportView {
+  pub community_report: CommunityReport,
+  pub community: Community,
+  pub creator: Person,
+  pub counts: CommunityAggregates,
+  pub subscribed: SubscribedType,
+  pub resolver: Option<Person>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
