@@ -171,7 +171,7 @@ moka = { version = "0.12.8", features = ["future"] }
 i-love-jesus = { version = "0.1.0" }
 clap = { version = "4.5.13", features = ["derive", "env"] }
 pretty_assertions = "1.4.0"
-derive-new = "0.6.0"
+derive-new = "0.7.0"
 
 [dependencies]
 lemmy_api = { workspace = true }
