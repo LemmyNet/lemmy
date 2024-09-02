@@ -183,14 +183,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/follow", web::post().to(follow_community))
           .route("/block", web::post().to(block_community))
           .route("/delete", web::post().to(delete_community))
-          .route("/post_tags", web::get().to(get_community_post_tags))
+          // .route("/post_tags", web::get().to(get_community_post_tags))
           // Mod Actions
+          // .route("/post_tags", web::post().to(create_update_community_post_tag))
+          // .route("/post_tags/delete", web::post().to(delete_community_post_tag)),
           .route("/remove", web::post().to(remove_community))
           .route("/transfer", web::post().to(transfer_community))
           .route("/ban_user", web::post().to(ban_from_community))
-          .route("/mod", web::post().to(add_mod_to_community))
-          .route("/post_tags", web::post().to(create_update_community_post_tag))
-          .route("/post_tags/delete", web::post().to(delete_community_post_tag)),
+          .route("/mod", web::post().to(add_mod_to_community)),
       )
       .service(
         web::scope("/federated_instances")

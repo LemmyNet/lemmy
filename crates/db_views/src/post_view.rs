@@ -28,6 +28,7 @@ use lemmy_db_schema::{
     community_follower,
     community_moderator,
     community_person_ban,
+    community_post_tag,
     image_details,
     instance_block,
     local_user,
@@ -37,17 +38,15 @@ use lemmy_db_schema::{
     person_post_aggregates,
     post,
     post_aggregates,
+    post_community_post_tag,
     post_hide,
     post_like,
     post_read,
     post_saved,
-    post_community_post_tag,
-    community_post_tag
   },
   source::{local_user::LocalUser, site::Site},
   utils::{
     functions::coalesce,
-    functions::json_agg,
     fuzzy_search,
     get_conn,
     limit_and_offset,
@@ -217,14 +216,31 @@ fn queries<'a>() -> Queries<
     } else {
       Box::new(None::<i64>.into_sql::<sql_types::Nullable<sql_types::BigInt>>())
     };
-    let community_post_tags: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Json>>> =
-      Box::new(
-        post_community_post_tag::table
-          .inner_join(community_post_tag::table)
-          .select(diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(community_post_tag.*)"))
-          .filter(post_community_post_tag::post_id.eq(post_aggregates::post_id))
-          .single_value(),
-      );
+
+    // We fetch post tags by letting postgresql aggregate them internally in a subquery into JSON.
+    // This is a simple way to join m rows into n rows without duplicating the data and getting
+    // complex diesel types. In pure SQL you would usually do this either using a LEFT JOIN + then
+    // aggregating the results in the application code. But this results in a lot of duplicate
+    // data transferred (since each post will be returned once per tag that it has) and more
+    // complicated application code. The diesel docs suggest doing three separate sequential queries
+    // in this case (see https://diesel.rs/guides/relations.html#many-to-many-or-mn ): First fetch
+    // the posts, then fetch all relevant post-tag-association tuples from the db, and then fetch
+    // all the relevant tag objects.
+    //
+    // If we want to filter by post tag we will have to add
+    // separate logic below since this subquery can't affect filtering, but it is simple (`WHERE
+    // exists (select 1 from post_community_post_tags where community_post_tag_id in (1,2,3,4)`).
+    let community_post_tags: Box<
+      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Json>>,
+    > = Box::new(
+      post_community_post_tag::table
+        .inner_join(community_post_tag::table)
+        .select(diesel::dsl::sql::<diesel::sql_types::Json>(
+          "json_agg(community_post_tag.*)",
+        ))
+        .filter(post_community_post_tag::post_id.eq(post_aggregates::post_id))
+        .single_value(),
+    );
 
     query
       .inner_join(person::table)
@@ -258,7 +274,7 @@ fn queries<'a>() -> Queries<
           post_aggregates::comments.nullable() - read_comments,
           post_aggregates::comments,
         ),
-        community_post_tags
+        community_post_tags,
       ))
   };
 
@@ -741,11 +757,12 @@ impl<'a> PostQuery<'a> {
   }
 }
 
+#[allow(clippy::indexing_slicing)]
 #[cfg(test)]
 mod tests {
   use crate::{
     post_view::{PaginationCursorData, PostQuery, PostView},
-    structs::LocalUserView,
+    structs::{LocalUserView, PostCommunityPostTags},
   };
   use chrono::Utc;
   use lemmy_db_schema::{
@@ -765,6 +782,11 @@ mod tests {
         CommunityUpdateForm,
       },
       community_block::{CommunityBlock, CommunityBlockForm},
+      community_post_tag::{
+        CommunityPostTag,
+        CommunityPostTagInsertForm,
+        PostCommunityPostTagInsertForm,
+      },
       instance::Instance,
       instance_block::{InstanceBlock, InstanceBlockForm},
       language::Language,
@@ -790,6 +812,7 @@ mod tests {
   const POST_BY_BLOCKED_PERSON: &str = "post by blocked person";
   const POST_BY_BOT: &str = "post by bot";
   const POST: &str = "post";
+  const POST_WITH_TAGS: &str = "post with tags";
 
   fn names(post_views: &[PostView]) -> Vec<&str> {
     post_views.iter().map(|i| i.post.name.as_str()).collect()
@@ -803,6 +826,9 @@ mod tests {
     inserted_community: Community,
     inserted_post: Post,
     inserted_bot_post: Post,
+    inserted_post_with_tags: Post,
+    tag_1: CommunityPostTag,
+    tag_2: CommunityPostTag,
     site: Site,
   }
 
@@ -874,6 +900,36 @@ mod tests {
 
     PersonBlock::block(pool, &person_block).await?;
 
+    // Two community post tags
+    let tag_1 = CommunityPostTag::create(
+      pool,
+      &CommunityPostTagInsertForm {
+        ap_id: Url::parse(&format!("{}/tags/test_tag1", inserted_community.actor_id))
+          .expect("valid")
+          .into(),
+        community_id: inserted_community.id,
+        name: "Test Tag 1".into(),
+        published: None,
+        updated: None,
+        deleted: None,
+      },
+    )
+    .await?;
+    let tag_2 = CommunityPostTag::create(
+      pool,
+      &CommunityPostTagInsertForm {
+        ap_id: Url::parse(&format!("{}/tags/test_tag2", inserted_community.actor_id))
+          .expect("valid")
+          .into(),
+        community_id: inserted_community.id,
+        name: "Test Tag 2".into(),
+        published: None,
+        updated: None,
+        deleted: None,
+      },
+    )
+    .await?;
+
     // A sample post
     let new_post = PostInsertForm::builder()
       .name(POST.to_string())
@@ -891,6 +947,28 @@ mod tests {
       .build();
 
     let inserted_bot_post = Post::create(pool, &new_bot_post).await?;
+
+    // A sample post with tags
+    let new_post = PostInsertForm::builder()
+      .name(POST_WITH_TAGS.to_string())
+      .creator_id(inserted_person.id)
+      .community_id(inserted_community.id)
+      .language_id(Some(LanguageId(47)))
+      .build();
+
+    let inserted_post_with_tags = Post::create(pool, &new_post).await?;
+    let inserted_tags = vec![
+      PostCommunityPostTagInsertForm {
+        post_id: inserted_post_with_tags.id,
+        community_post_tag_id: tag_1.id,
+      },
+      PostCommunityPostTagInsertForm {
+        post_id: inserted_post_with_tags.id,
+        community_post_tag_id: tag_2.id,
+      },
+    ];
+    PostCommunityPostTagInsertForm::insert_tag_associations(pool, &inserted_tags).await?;
+
     let local_user_view = LocalUserView {
       local_user: inserted_local_user,
       local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
@@ -930,6 +1008,9 @@ mod tests {
       inserted_community,
       inserted_post,
       inserted_bot_post,
+      inserted_post_with_tags,
+      tag_1,
+      tag_2,
       site,
     })
   }
@@ -948,12 +1029,14 @@ mod tests {
     LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user.show_bot_accounts = false;
 
-    let read_post_listing = PostQuery {
+    let mut read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
     .await?;
+    // remove tags post
+    read_post_listing.remove(0);
 
     let post_listing_single_with_person = PostView::read(
       pool,
@@ -990,7 +1073,10 @@ mod tests {
     .list(&data.site, pool)
     .await?;
     // should include bot post which has "undetermined" language
-    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_with_bots));
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
+      names(&post_listings_with_bots)
+    );
 
     cleanup(data, pool).await
   }
@@ -1019,13 +1105,13 @@ mod tests {
 
     // Should be 2 posts, with the bot post, and the blocked
     assert_eq!(
-      vec![POST_BY_BOT, POST, POST_BY_BLOCKED_PERSON],
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST, POST_BY_BLOCKED_PERSON],
       names(&read_post_listing_multiple_no_person)
     );
 
     assert_eq!(
       Some(&expected_post_listing_no_person),
-      read_post_listing_multiple_no_person.get(1)
+      read_post_listing_multiple_no_person.get(2)
     );
     assert_eq!(
       expected_post_listing_no_person,
@@ -1106,12 +1192,13 @@ mod tests {
     LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user.show_bot_accounts = false;
 
-    let read_post_listing = PostQuery {
+    let mut read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
     .await?;
+    read_post_listing.remove(0);
     assert_eq!(vec![expected_post_with_upvote], read_post_listing);
 
     let like_removed =
@@ -1196,6 +1283,7 @@ mod tests {
     .collect::<Vec<_>>();
 
     let expected_post_listing = vec![
+      ("tegan".to_owned(), true, true),
       ("mybot".to_owned(), false, false),
       ("tegan".to_owned(), true, true),
     ];
@@ -1234,17 +1322,23 @@ mod tests {
     let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
 
     // no language filters specified, all posts should be returned
-    assert_eq!(vec![EL_POSTO, POST_BY_BOT, POST], names(&post_listings_all));
+    assert_eq!(
+      vec![EL_POSTO, POST_WITH_TAGS, POST_BY_BOT, POST],
+      names(&post_listings_all)
+    );
 
     LocalUserLanguage::update(pool, vec![french_id], data.local_user_view.local_user.id).await?;
 
     let post_listing_french = data.default_post_query().list(&data.site, pool).await?;
 
     // only one post in french and one undetermined should be returned
-    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listing_french));
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
+      names(&post_listing_french)
+    );
     assert_eq!(
       Some(french_id),
-      post_listing_french.get(1).map(|p| p.post.language_id)
+      post_listing_french.get(2).map(|p| p.post.language_id)
     );
 
     LocalUserLanguage::update(
@@ -1261,6 +1355,7 @@ mod tests {
       .map(|p| (p.post.name, p.post.language_id))
       .collect::<Vec<_>>();
     let expected_post_listings_french_und = vec![
+      (POST_WITH_TAGS.to_owned(), french_id),
       (POST_BY_BOT.to_owned(), UNDETERMINED_ID),
       (POST.to_owned(), french_id),
     ];
@@ -1291,7 +1386,7 @@ mod tests {
 
     // Make sure you don't see the removed post in the results
     let post_listings_no_admin = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(vec![POST], names(&post_listings_no_admin));
+    assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listings_no_admin));
 
     // Removed bot post is shown to admins on its profile page
     data.local_user_view.local_user.admin = true;
@@ -1376,7 +1471,12 @@ mod tests {
     // no instance block, should return all posts
     let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(
-      vec![POST_FROM_BLOCKED_INSTANCE, POST_BY_BOT, POST],
+      vec![
+        POST_FROM_BLOCKED_INSTANCE,
+        POST_WITH_TAGS,
+        POST_BY_BOT,
+        POST
+      ],
       names(&post_listings_all)
     );
 
@@ -1389,7 +1489,10 @@ mod tests {
 
     // now posts from communities on that instance should be hidden
     let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_blocked));
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
+      names(&post_listings_blocked)
+    );
     assert!(post_listings_blocked
       .iter()
       .all(|p| p.post.id != post_from_blocked_instance.id));
@@ -1398,7 +1501,12 @@ mod tests {
     InstanceBlock::unblock(pool, &block_form).await?;
     let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(
-      vec![POST_FROM_BLOCKED_INSTANCE, POST_BY_BOT, POST],
+      vec![
+        POST_FROM_BLOCKED_INSTANCE,
+        POST_WITH_TAGS,
+        POST_BY_BOT,
+        POST
+      ],
       names(&post_listings_blocked)
     );
 
@@ -1539,7 +1647,7 @@ mod tests {
 
     // Make sure you don't see the read post in the results
     let post_listings_hide_read = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(vec![POST], names(&post_listings_hide_read));
+    assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listings_hide_read));
 
     // Test with the show_read override as true
     let post_listings_show_read_true = PostQuery {
@@ -1549,7 +1657,7 @@ mod tests {
     .list(&data.site, pool)
     .await?;
     assert_eq!(
-      vec![POST_BY_BOT, POST],
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
       names(&post_listings_show_read_true)
     );
 
@@ -1560,7 +1668,10 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(vec![POST], names(&post_listings_show_read_false));
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST],
+      names(&post_listings_show_read_false)
+    );
     cleanup(data, pool).await
   }
 
@@ -1581,7 +1692,10 @@ mod tests {
 
     // Make sure you don't see the hidden post in the results
     let post_listings_hide_hidden = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(vec![POST], names(&post_listings_hide_hidden));
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST],
+      names(&post_listings_hide_hidden)
+    );
 
     // Make sure it does come back with the show_hidden option
     let post_listings_show_hidden = PostQuery {
@@ -1592,15 +1706,13 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_hidden));
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
+      names(&post_listings_show_hidden)
+    );
 
     // Make sure that hidden field is true.
-    assert!(
-      &post_listings_show_hidden
-        .first()
-        .ok_or(LemmyErrorType::CouldntFindPost)?
-        .hidden
-    );
+    assert!(&post_listings_show_hidden[1].hidden);
 
     cleanup(data, pool).await
   }
@@ -1622,7 +1734,7 @@ mod tests {
 
     // Make sure you don't see the nsfw post in the regular results
     let post_listings_hide_nsfw = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(vec![POST], names(&post_listings_hide_nsfw));
+    assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listings_hide_nsfw));
 
     // Make sure it does come back with the show_nsfw option
     let post_listings_show_nsfw = PostQuery {
@@ -1633,16 +1745,13 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_nsfw));
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
+      names(&post_listings_show_nsfw)
+    );
 
     // Make sure that nsfw field is true.
-    assert!(
-      &post_listings_show_nsfw
-        .first()
-        .ok_or(LemmyErrorType::CouldntFindPost)?
-        .post
-        .nsfw
-    );
+    assert!(&post_listings_show_nsfw[1].post.nsfw);
 
     cleanup(data, pool).await
   }
@@ -1776,7 +1885,7 @@ mod tests {
       hidden: false,
       saved: false,
       creator_blocked: false,
-      community_post_tags: None,
+      community_post_tags: PostCommunityPostTags::default(),
     })
   }
 
@@ -1810,7 +1919,7 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(2, authenticated_query.len());
+    assert_eq!(3, authenticated_query.len());
 
     let unauthenticated_post = PostView::read(pool, data.inserted_post.id, None, false).await?;
     assert!(unauthenticated_post.is_none());
@@ -1891,5 +2000,33 @@ mod tests {
     assert!(!post_view.banned_from_community);
 
     cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_tags_present() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let post_view = PostView::read(
+      pool,
+      data.inserted_post_with_tags.id,
+      Some(&data.local_user_view.local_user),
+      false,
+    )
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
+
+    assert_eq!(2, post_view.community_post_tags.tags.len());
+    assert_eq!(data.tag_1.name, post_view.community_post_tags.tags[0].name);
+    assert_eq!(data.tag_2.name, post_view.community_post_tags.tags[1].name);
+
+    let all_posts = data.default_post_query().list(&data.site, pool).await?;
+    assert_eq!(2, all_posts[0].community_post_tags.tags.len()); // post with tags
+    assert_eq!(0, all_posts[1].community_post_tags.tags.len()); // bot post
+    assert_eq!(0, all_posts[2].community_post_tags.tags.len()); // normal post
+
+    Ok(())
   }
 }

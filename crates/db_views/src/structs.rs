@@ -1,9 +1,33 @@
 #[cfg(feature = "full")]
 use diesel::Queryable;
+use diesel::{
+  deserialize::{FromSql, FromSqlRow},
+  expression::AsExpression,
+  pg::{Pg, PgValue},
+  serialize::ToSql,
+  sql_types::{self, Nullable},
+};
 use lemmy_db_schema::{
   aggregates::structs::{CommentAggregates, PersonAggregates, PostAggregates, SiteAggregates},
   source::{
-    comment::Comment, comment_report::CommentReport, community::Community, community_post_tag::CommunityPostTag, custom_emoji::CustomEmoji, custom_emoji_keyword::CustomEmojiKeyword, images::{ImageDetails, LocalImage}, local_site::LocalSite, local_site_rate_limit::LocalSiteRateLimit, local_user::LocalUser, local_user_vote_display_mode::LocalUserVoteDisplayMode, person::Person, post::Post, post_report::PostReport, private_message::PrivateMessage, private_message_report::PrivateMessageReport, registration_application::RegistrationApplication, site::Site
+    comment::Comment,
+    comment_report::CommentReport,
+    community::Community,
+    community_post_tag::CommunityPostTag,
+    custom_emoji::CustomEmoji,
+    custom_emoji_keyword::CustomEmojiKeyword,
+    images::{ImageDetails, LocalImage},
+    local_site::LocalSite,
+    local_site_rate_limit::LocalSiteRateLimit,
+    local_user::LocalUser,
+    local_user_vote_display_mode::LocalUserVoteDisplayMode,
+    person::Person,
+    post::Post,
+    post_report::PostReport,
+    private_message::PrivateMessage,
+    private_message_report::PrivateMessageReport,
+    registration_application::RegistrationApplication,
+    site::Site,
   },
   SubscribedType,
 };
@@ -128,7 +152,7 @@ pub struct PostView {
   pub creator_blocked: bool,
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
-  pub community_post_tags: Option<serde_json::Value>
+  pub community_post_tags: PostCommunityPostTags,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
@@ -212,4 +236,43 @@ pub struct VoteView {
 pub struct LocalImageView {
   pub local_image: LocalImage,
   pub person: Person,
+}
+
+#[derive(
+  Clone,
+  serde::Serialize,
+  serde::Deserialize,
+  Debug,
+  PartialEq,
+  TS,
+  FromSqlRow,
+  AsExpression,
+  Default,
+)]
+#[serde(transparent)]
+#[diesel(sql_type = Nullable<sql_types::Json>)]
+pub struct PostCommunityPostTags {
+  pub tags: Vec<CommunityPostTag>,
+}
+
+impl FromSql<Nullable<sql_types::Json>, Pg> for PostCommunityPostTags {
+  fn from_sql(bytes: PgValue) -> diesel::deserialize::Result<Self> {
+    let value = <serde_json::Value as FromSql<sql_types::Json, Pg>>::from_sql(bytes)?;
+    Ok(serde_json::from_value::<PostCommunityPostTags>(value)?)
+  }
+  fn from_nullable_sql(
+    bytes: Option<<Pg as diesel::backend::Backend>::RawValue<'_>>,
+  ) -> diesel::deserialize::Result<Self> {
+    match bytes {
+      Some(bytes) => Self::from_sql(bytes),
+      None => Ok(Self { tags: vec![] }),
+    }
+  }
+}
+
+impl ToSql<Nullable<sql_types::Json>, Pg> for PostCommunityPostTags {
+  fn to_sql(&self, out: &mut diesel::serialize::Output<Pg>) -> diesel::serialize::Result {
+    let value = serde_json::to_value(self)?;
+    <serde_json::Value as ToSql<sql_types::Json, Pg>>::to_sql(&value, &mut out.reborrow())
+  }
 }
