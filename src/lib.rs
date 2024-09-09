@@ -23,7 +23,7 @@ use actix_web::{
   HttpServer,
 };
 use actix_web_prom::PrometheusMetricsBuilder;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
@@ -40,7 +40,7 @@ use lemmy_apub::{
   VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
 };
-use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
+use lemmy_db_schema::{schema_setup, source::secret::Secret, utils::build_db_pool};
 use lemmy_federate::{Opts, SendManager};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{
@@ -114,12 +114,55 @@ pub struct CmdArgs {
   /// If set, make sure to set --federate-process-index differently for each.
   #[arg(long, default_value_t = 1, env = "LEMMY_FEDERATE_PROCESS_COUNT")]
   federate_process_count: i32,
+  #[command(subcommand)]
+  subcommand: Option<CmdSubcommand>,
+}
+
+#[derive(Subcommand, Debug)]
+enum CmdSubcommand {
+  /// Do something with migrations, then exit.
+  Migration {
+    #[command(subcommand)]
+    subcommand: MigrationSubcommand,
+    #[arg(long, default_value_t = false)]
+    all: bool,
+    #[arg(long, default_value_t = 1)]
+    number: u64,
+  },
+}
+
+#[derive(Subcommand, Debug)]
+enum MigrationSubcommand {
+  /// Run up.sql for the specified migrations.
+  Run,
+  /// Run down.sql for the specified migrations.
+  Revert,
 }
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   // Print version number to log
   println!("Lemmy v{VERSION}");
+
+  if let Some(CmdSubcommand::Migration {
+    subcommand,
+    all,
+    number,
+  }) = args.subcommand
+  {
+    let mut options = match subcommand {
+      MigrationSubcommand::Run => schema_setup::Options::default().run(),
+      MigrationSubcommand::Revert => schema_setup::Options::default().revert(),
+    };
+
+    if !all {
+      options = options.limit(number);
+    }
+
+    schema_setup::run(options)?;
+
+    return Ok(());
+  }
 
   // return error 503 while running db migrations and startup tasks
   let mut startup_server_handle = None;
@@ -171,10 +214,10 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     rate_limit_cell.clone(),
   );
 
-  let scheduled_tasks = (!args.disable_scheduled_tasks).then(|| {
+  if !args.disable_scheduled_tasks {
     // Schedules various cleanup tasks for the DB
-    tokio::task::spawn(scheduled_tasks::setup(context.clone()))
-  });
+    let _scheduled_tasks = tokio::task::spawn(scheduled_tasks::setup(context.clone()));
+  }
 
   if let Some(prometheus) = SETTINGS.prometheus.clone() {
     serve_prometheus(prometheus, context.clone())?;
@@ -239,17 +282,15 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;
   let mut terminate = tokio::signal::unix::signal(SignalKind::terminate())?;
 
-  if server.is_some() || federate.is_some() || scheduled_tasks.is_some() {
-    tokio::select! {
-      _ = tokio::signal::ctrl_c() => {
-        tracing::warn!("Received ctrl-c, shutting down gracefully...");
-      }
-      _ = interrupt.recv() => {
-        tracing::warn!("Received interrupt, shutting down gracefully...");
-      }
-      _ = terminate.recv() => {
-        tracing::warn!("Received terminate, shutting down gracefully...");
-      }
+  tokio::select! {
+    _ = tokio::signal::ctrl_c() => {
+      tracing::warn!("Received ctrl-c, shutting down gracefully...");
+    }
+    _ = interrupt.recv() => {
+      tracing::warn!("Received interrupt, shutting down gracefully...");
+    }
+    _ = terminate.recv() => {
+      tracing::warn!("Received terminate, shutting down gracefully...");
     }
   }
   if let Some(server) = server {

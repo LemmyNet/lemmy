@@ -2960,6 +2960,7 @@ dependencies = [
  "diesel-derive-newtype",
  "diesel_ltree",
  "diesel_migrations",
+ "diff",
  "futures-util",
  "i-love-jesus",
  "lemmy_utils",

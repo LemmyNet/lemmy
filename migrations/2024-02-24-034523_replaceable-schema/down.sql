@@ -945,6 +945,13 @@ CREATE TRIGGER site_aggregates_comment_insert
     WHEN ((new.local = TRUE))
     EXECUTE FUNCTION site_aggregates_comment_insert ();
 
+CREATE TRIGGER site_aggregates_community_delete
+    AFTER DELETE OR UPDATE OF removed,
+    deleted ON community
+    FOR EACH ROW
+    WHEN (OLD.local = TRUE)
+    EXECUTE PROCEDURE site_aggregates_community_delete ();
+
 CREATE TRIGGER site_aggregates_community_insert
     AFTER INSERT OR UPDATE OF removed,
     deleted ON community

@@ -83,6 +83,7 @@ derive-new.workspace = true
 [dev-dependencies]
 serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
+diff = "0.1.13"
 
 [package.metadata.cargo-machete]
 ignored = ["strum"]
