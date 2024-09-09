@@ -1,12 +1,7 @@
 #[cfg(feature = "full")]
 use diesel::Queryable;
-use diesel::{
-  deserialize::{FromSql, FromSqlRow},
-  expression::AsExpression,
-  pg::{Pg, PgValue},
-  serialize::ToSql,
-  sql_types::{self, Nullable},
-};
+#[cfg(feature = "full")]
+use diesel::{deserialize::FromSqlRow, expression::AsExpression, sql_types};
 use lemmy_db_schema::{
   aggregates::structs::{CommentAggregates, PersonAggregates, PostAggregates, SiteAggregates},
   source::{
@@ -238,41 +233,10 @@ pub struct LocalImageView {
   pub person: Person,
 }
 
-#[derive(
-  Clone,
-  serde::Serialize,
-  serde::Deserialize,
-  Debug,
-  PartialEq,
-  TS,
-  FromSqlRow,
-  AsExpression,
-  Default,
-)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
+#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
 #[serde(transparent)]
-#[diesel(sql_type = Nullable<sql_types::Json>)]
+#[cfg_attr(feature = "full", diesel(sql_type = Nullable<sql_types::Json>))]
 pub struct PostCommunityPostTags {
   pub tags: Vec<CommunityPostTag>,
-}
-
-impl FromSql<Nullable<sql_types::Json>, Pg> for PostCommunityPostTags {
-  fn from_sql(bytes: PgValue) -> diesel::deserialize::Result<Self> {
-    let value = <serde_json::Value as FromSql<sql_types::Json, Pg>>::from_sql(bytes)?;
-    Ok(serde_json::from_value::<PostCommunityPostTags>(value)?)
-  }
-  fn from_nullable_sql(
-    bytes: Option<<Pg as diesel::backend::Backend>::RawValue<'_>>,
-  ) -> diesel::deserialize::Result<Self> {
-    match bytes {
-      Some(bytes) => Self::from_sql(bytes),
-      None => Ok(Self { tags: vec![] }),
-    }
-  }
-}
-
-impl ToSql<Nullable<sql_types::Json>, Pg> for PostCommunityPostTags {
-  fn to_sql(&self, out: &mut diesel::serialize::Output<Pg>) -> diesel::serialize::Result {
-    let value = serde_json::to_value(self)?;
-    <serde_json::Value as ToSql<sql_types::Json, Pg>>::to_sql(&value, &mut out.reborrow())
-  }
 }

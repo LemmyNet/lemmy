@@ -1,10 +1,10 @@
-use crate::{
-  newtypes::{CommunityId, CommunityPostTagId, DbUrl, PostId},
-  schema::{community_post_tag, post_community_post_tag},
-};
+use crate::newtypes::{CommunityId, CommunityPostTagId, DbUrl, PostId};
+#[cfg(feature = "full")]
+use crate::schema::{community_post_tag, post_community_post_tag};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
 use ts_rs::TS;
 
 /// A tag that can be assigned to a post within a community.
