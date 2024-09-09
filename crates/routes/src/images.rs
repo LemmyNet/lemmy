@@ -110,7 +110,7 @@ fn adapt_request(
   const INVALID_HEADERS: &[HeaderName] = &[ACCEPT_ENCODING, HOST];
 
   let client_request = client
-    .request(request.method().clone(), url)
+    .request(http::Method::from_bytes(request.method().as_str().as_bytes()).unwrap(), url)
     .timeout(REQWEST_TIMEOUT);
 
   request
@@ -120,7 +120,7 @@ fn adapt_request(
       if INVALID_HEADERS.contains(key) {
         client_req
       } else {
-        client_req.header(key, value)
+        client_req.header(key.as_str(), value.as_bytes())
       }
     })
 }
@@ -167,7 +167,7 @@ async fn upload(
     }
   }
 
-  Ok(HttpResponse::build(status).json(images))
+  Ok(HttpResponse::build(StatusCode::from_u16(status.as_u16())?).json(images))
 }
 
 async fn full_res(
@@ -210,14 +210,14 @@ async fn image(
 
   let res = client_req.send().await?;
 
-  if res.status() == StatusCode::NOT_FOUND {
+  if res.status() == http::StatusCode::NOT_FOUND {
     return Ok(HttpResponse::NotFound().finish());
   }
 
-  let mut client_res = HttpResponse::build(res.status());
+  let mut client_res = HttpResponse::build(StatusCode::from_u16(res.status().as_u16())?);
 
   for (name, value) in res.headers().iter().filter(|(h, _)| *h != "connection") {
-    client_res.insert_header((name.clone(), value.clone()));
+    client_res.insert_header((name.as_str(), value.as_bytes()));
   }
 
   Ok(client_res.body(BodyStream::new(res.bytes_stream())))
@@ -246,7 +246,10 @@ async fn delete(
 
   LocalImage::delete_by_alias(&mut context.pool(), &file).await?;
 
-  Ok(HttpResponse::build(res.status()).body(BodyStream::new(res.bytes_stream())))
+  Ok(
+    HttpResponse::build(StatusCode::from_u16(res.status().as_u16())?)
+      .body(BodyStream::new(res.bytes_stream())),
+  )
 }
 
 pub async fn image_proxy(

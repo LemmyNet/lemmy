@@ -9,7 +9,7 @@ use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
 use lemmy_api::{local_user_view_from_jwt, read_auth_token};
 use lemmy_api_common::context::LemmyContext;
-use reqwest::header::HeaderValue;
+use actix_web::http::header::HeaderValue;
 use std::{future::ready, rc::Rc};
 
 #[derive(Clone)]

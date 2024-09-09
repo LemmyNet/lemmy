@@ -84,7 +84,7 @@ async fn get_webfinger_response(
 
     Ok(
       HttpResponse::Ok()
-        .content_type(&WEBFINGER_CONTENT_TYPE)
+        .content_type(WEBFINGER_CONTENT_TYPE.as_bytes())
         .json(json),
     )
   }
