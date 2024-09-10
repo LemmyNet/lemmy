@@ -5,12 +5,17 @@
 -- (even if only other columns are updated) because triggers can run after the deletion of referenced rows and
 -- before the automatic deletion of the row that references it. This is not a problem for insert or delete.
 --
--- After a row update begins, a concurrent update on the same row can't begin until the whole
--- transaction that contains the first update is finished. To reduce this locking, statements in
--- triggers should be ordered based on the likelihood of concurrent writers. For example, updating
--- site_aggregates should be done last because the same row is updated for all local stuff. If
--- it were not last, then the locking period for concurrent writers would extend to include the
--- time consumed by statements that come after.
+-- Triggers that update multiple tables should use this order: person_aggregates, comment_aggregates,
+-- post_aggregates, community_aggregates, site_aggregates
+--   * The order matters because the updated rows are locked until the end of the transaction, and statements
+--     in a trigger don't use separate transactions. This means that updates closer to the beginning cause
+--     longer locks because the duration of each update extends the durations of the locks caused by previous
+--     updates. Long locks are worse on rows that have more concurrent transactions trying to update them. The
+--     listed order starts with tables that are less likely to have such rows.
+--     https://www.postgresql.org/docs/16/transaction-iso.html#XACT-READ-COMMITTED
+--   * Using the same order in every trigger matters because a deadlock is possible if multiple transactions
+--     update the same rows in a different order.
+--     https://www.postgresql.org/docs/current/explicit-locking.html#LOCKING-DEADLOCKS
 --
 --
 -- Create triggers for both post and comments
@@ -481,7 +486,7 @@ BEGIN
         INNER JOIN old_post ON old_post.id = new_post.id
             AND (old_post.featured_community,
                 old_post.featured_local) != (new_post.featured_community,
-                old_post.featured_local)
+                new_post.featured_local)
     WHERE
         post_aggregates.post_id = new_post.id;
     RETURN NULL;
@@ -559,6 +564,10 @@ BEGIN
     IF NOT (NEW.path ~ ('*.' || id)::lquery) THEN
         NEW.path = NEW.path || id;
     END IF;
+    -- Set local ap_id
+    IF NEW.local THEN
+        NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/comment/' || id));
+    END IF;
     RETURN NEW;
 END
 $$;
@@ -567,4 +576,40 @@ CREATE TRIGGER change_values
     BEFORE INSERT OR UPDATE ON comment
     FOR EACH ROW
     EXECUTE FUNCTION r.comment_change_values ();
+
+CREATE FUNCTION r.post_change_values ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Set local ap_id
+    IF NEW.local THEN
+        NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/post/' || NEW.id::text));
+    END IF;
+    RETURN NEW;
+END
+$$;
+
+CREATE TRIGGER change_values
+    BEFORE INSERT ON post
+    FOR EACH ROW
+    EXECUTE FUNCTION r.post_change_values ();
+
+CREATE FUNCTION r.private_message_change_values ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Set local ap_id
+    IF NEW.local THEN
+        NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/private_message/' || NEW.id::text));
+    END IF;
+    RETURN NEW;
+END
+$$;
+
+CREATE TRIGGER change_values
+    BEFORE INSERT ON private_message
+    FOR EACH ROW
+    EXECUTE FUNCTION r.private_message_change_values ();
 

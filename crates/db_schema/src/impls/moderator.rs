@@ -513,19 +513,11 @@ mod tests {
       .await
       .unwrap();
 
-    let new_mod = PersonInsertForm::builder()
-      .name("the mod".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_mod = PersonInsertForm::test_form(inserted_instance.id, "the mod");
 
     let inserted_mod = Person::create(pool, &new_mod).await.unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("jim2".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "jim2");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 

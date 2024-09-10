@@ -33,13 +33,14 @@ anyhow = { workspace = true }
 tracing = { workspace = true }
 chrono = { workspace = true }
 url = { workspace = true }
-wav = "1.0.1"
+hound = "3.5.1"
 sitemap-rs = "0.2.1"
-totp-rs = { version = "5.5.1", features = ["gen_secret", "otpauth"] }
-actix-web-httpauth = "0.8.1"
+totp-rs = { version = "5.6.0", features = ["gen_secret", "otpauth"] }
+actix-web-httpauth = "0.8.2"
 
 [dev-dependencies]
 serial_test = { workspace = true }
 tokio = { workspace = true }
 elementtree = "1.2.3"
 pretty_assertions = { workspace = true }
+lemmy_api_crud = { workspace = true }

@@ -1,8 +1,8 @@
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
-static MENTIONS_REGEX: Lazy<Regex> = Lazy::new(|| {
+static MENTIONS_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"@(?P<name>[\w.]+)@(?P<domain>[a-zA-Z0-9._:-]+)").expect("compile regex")
 });
 // TODO nothing is done with community / group webfingers yet, so just ignore those for now

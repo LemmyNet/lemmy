@@ -28,7 +28,7 @@ use lemmy_db_schema::{
   },
   utils::{get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
-use lemmy_routes::nodeinfo::NodeInfo;
+use lemmy_routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use lemmy_utils::error::LemmyResult;
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
@@ -450,7 +450,10 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) {
   }
 }
 
-/// Updates the instance software and version
+/// Updates the instance software and version.
+///
+/// Does so using the /.well-known/nodeinfo protocol described here:
+/// https://github.com/jhass/nodeinfo/blob/main/PROTOCOL.md
 ///
 /// TODO: if instance has been dead for a long time, it should be checked less frequently
 async fn update_instance_software(
@@ -465,46 +468,7 @@ async fn update_instance_software(
       let instances = instance::table.get_results::<Instance>(&mut conn).await?;
 
       for instance in instances {
-        let node_info_url = format!("https://{}/nodeinfo/2.0.json", instance.domain);
-
-        // The `updated` column is used to check if instances are alive. If it is more than three
-        // days in the past, no outgoing activities will be sent to that instance. However
-        // not every Fediverse instance has a valid Nodeinfo endpoint (its not required for
-        // Activitypub). That's why we always need to mark instances as updated if they are
-        // alive.
-        let default_form = InstanceForm::builder()
-          .domain(instance.domain.clone())
-          .updated(Some(naive_now()))
-          .build();
-        let form = match client.get(&node_info_url).send().await {
-          Ok(res) if res.status().is_client_error() => {
-            // Instance doesn't have nodeinfo but sent a response, consider it alive
-            Some(default_form)
-          }
-          Ok(res) => match res.json::<NodeInfo>().await {
-            Ok(node_info) => {
-              // Instance sent valid nodeinfo, write it to db
-              let software = node_info.software.as_ref();
-              Some(
-                InstanceForm::builder()
-                  .domain(instance.domain)
-                  .updated(Some(naive_now()))
-                  .software(software.and_then(|s| s.name.clone()))
-                  .version(software.and_then(|s| s.version.clone()))
-                  .build(),
-              )
-            }
-            Err(_) => {
-              // No valid nodeinfo but valid HTTP response, consider instance alive
-              Some(default_form)
-            }
-          },
-          Err(_) => {
-            // dead instance, do nothing
-            None
-          }
-        };
-        if let Some(form) = form {
+        if let Some(form) = build_update_instance_form(&instance.domain, client).await {
           Instance::update(pool, instance.id, form).await?;
         }
       }
@@ -517,28 +481,107 @@ async fn update_instance_software(
   Ok(())
 }
 
+/// This builds an instance update form, for a given domain.
+/// If the instance sends a response, but doesn't have a well-known or nodeinfo,
+/// Then return a default form with only the updated field.
+async fn build_update_instance_form(
+  domain: &str,
+  client: &ClientWithMiddleware,
+) -> Option<InstanceForm> {
+  // The `updated` column is used to check if instances are alive. If it is more than three
+  // days in the past, no outgoing activities will be sent to that instance. However
+  // not every Fediverse instance has a valid Nodeinfo endpoint (its not required for
+  // Activitypub). That's why we always need to mark instances as updated if they are
+  // alive.
+  let mut instance_form = InstanceForm::builder()
+    .domain(domain.to_string())
+    .updated(Some(naive_now()))
+    .build();
+
+  // First, fetch their /.well-known/nodeinfo, then extract the correct nodeinfo link from it
+  let well_known_url = format!("https://{}/.well-known/nodeinfo", domain);
+
+  let Ok(res) = client.get(&well_known_url).send().await else {
+    // This is the only kind of error that means the instance is dead
+    return None;
+  };
+
+  // In this block, returning `None` is ignored, and only means not writing nodeinfo to db
+  async {
+    if res.status().is_client_error() {
+      return None;
+    }
+
+    let node_info_url = res
+      .json::<NodeInfoWellKnown>()
+      .await
+      .ok()?
+      .links
+      .into_iter()
+      .find(|links| {
+        links
+          .rel
+          .as_str()
+          .starts_with("http://nodeinfo.diaspora.software/ns/schema/2.")
+      })?
+      .href;
+
+    let software = client
+      .get(node_info_url)
+      .send()
+      .await
+      .ok()?
+      .json::<NodeInfo>()
+      .await
+      .ok()?
+      .software?;
+
+    instance_form.software = software.name;
+    instance_form.version = software.version;
+
+    Some(())
+  }
+  .await;
+
+  Some(instance_form)
+}
+
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 #[allow(clippy::indexing_slicing)]
 mod tests {
 
-  use lemmy_routes::nodeinfo::NodeInfo;
+  use crate::scheduled_tasks::build_update_instance_form;
+  use lemmy_api_common::request::client_builder;
+  use lemmy_utils::{error::LemmyResult, settings::structs::Settings, LemmyErrorType};
   use pretty_assertions::assert_eq;
-  use reqwest::Client;
+  use reqwest_middleware::ClientBuilder;
+  use serial_test::serial;
 
   #[tokio::test]
-  #[ignore]
-  async fn test_nodeinfo() {
-    let client = Client::builder().build().unwrap();
-    let lemmy_ml_nodeinfo = client
-      .get("https://lemmy.ml/nodeinfo/2.0.json")
-      .send()
+  #[serial]
+  async fn test_nodeinfo_lemmy_ml() -> LemmyResult<()> {
+    let client = ClientBuilder::new(client_builder(&Settings::default()).build()?).build();
+    let form = build_update_instance_form("lemmy.ml", &client)
       .await
-      .unwrap()
-      .json::<NodeInfo>()
-      .await
-      .unwrap();
+      .ok_or(LemmyErrorType::CouldntFindObject)?;
+    assert_eq!(
+      form.software.ok_or(LemmyErrorType::CouldntFindObject)?,
+      "lemmy"
+    );
+    Ok(())
+  }
 
-    assert_eq!(lemmy_ml_nodeinfo.software.unwrap().name.unwrap(), "lemmy");
+  #[tokio::test]
+  #[serial]
+  async fn test_nodeinfo_mastodon_social() -> LemmyResult<()> {
+    let client = ClientBuilder::new(client_builder(&Settings::default()).build()?).build();
+    let form = build_update_instance_form("mastodon.social", &client)
+      .await
+      .ok_or(LemmyErrorType::CouldntFindObject)?;
+    assert_eq!(
+      form.software.ok_or(LemmyErrorType::CouldntFindObject)?,
+      "mastodon"
+    );
+    Ok(())
   }
 }

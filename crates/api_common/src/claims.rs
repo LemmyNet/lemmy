@@ -112,18 +112,11 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("Gerry9812".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "Gerry9812");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
-    let local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_person.id)
-      .password_encrypted("123456".to_string())
-      .build();
+    let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
 
     let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![])
       .await

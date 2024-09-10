@@ -40,26 +40,28 @@ pub async fn list_posts(
   } else {
     data.community_id
   };
-  let saved_only = data.saved_only.unwrap_or_default();
-  let show_hidden = data.show_hidden.unwrap_or_default();
+  let saved_only = data.saved_only;
+  let show_hidden = data.show_hidden;
+  let show_read = data.show_read;
+  let show_nsfw = data.show_nsfw;
 
-  let liked_only = data.liked_only.unwrap_or_default();
-  let disliked_only = data.disliked_only.unwrap_or_default();
-  if liked_only && disliked_only {
+  let liked_only = data.liked_only;
+  let disliked_only = data.disliked_only;
+  if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
     return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
   }
 
-  let local_user_ref = local_user_view.as_ref().map(|u| &u.local_user);
+  let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let listing_type = Some(listing_type_with_default(
     data.type_,
-    local_user_ref,
+    local_user,
     &local_site.local_site,
     community_id,
   ));
 
   let sort = Some(sort_type_with_default(
     data.sort,
-    local_user_ref,
+    local_user,
     &local_site.local_site,
   ));
 
@@ -71,7 +73,7 @@ pub async fn list_posts(
   };
 
   let posts = PostQuery {
-    local_user: local_user_view.as_ref(),
+    local_user,
     listing_type,
     sort,
     community_id,
@@ -82,6 +84,8 @@ pub async fn list_posts(
     page_after,
     limit,
     show_hidden,
+    show_read,
+    show_nsfw,
     ..Default::default()
   }
   .list(&local_site.site, &mut context.pool())

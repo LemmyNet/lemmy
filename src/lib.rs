@@ -34,7 +34,7 @@ use lemmy_apub::{
   FEDERATION_HTTP_FETCH_LIMIT,
 };
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
-use lemmy_federate::{start_stop_federation_workers_cancellable, Opts};
+use lemmy_federate::{Opts, SendManager};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{
   error::LemmyResult,
@@ -48,9 +48,16 @@ use prometheus_metrics::serve_prometheus;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
 use serde_json::json;
-use std::ops::Deref;
+use std::{ops::Deref, time::Duration};
 use tokio::signal::unix::SignalKind;
 use tracing_actix_web::{DefaultRootSpanBuilder, TracingLogger};
+
+/// Timeout for HTTP requests while sending activities. A longer timeout provides better
+/// compatibility with other ActivityPub software that might allocate more time for synchronous
+/// processing of incoming activities. This timeout should be slightly longer than the time we
+/// expect a remote server to wait before aborting processing on its own to account for delays from
+/// establishing the HTTP connection and sending the request itself.
+const ACTIVITY_SENDING_TIMEOUT: Duration = Duration::from_secs(125);
 
 #[derive(Parser, Debug)]
 #[command(
@@ -161,8 +168,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     serve_prometheus(prometheus, context.clone())?;
   }
 
-  let mut federation_config = FederationConfig::builder();
-  federation_config
+  let mut federation_config_builder = FederationConfig::builder();
+  federation_config_builder
     .domain(SETTINGS.hostname.clone())
     .app_data(context.clone())
     .client(client.clone())
@@ -172,9 +179,9 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     .url_verifier(Box::new(VerifyUrlData(context.inner_pool().clone())));
   if local_site.federation_signed_fetch {
     let site: ApubSite = site_view.site.into();
-    federation_config.signed_fetch_actor(&site);
+    federation_config_builder.signed_fetch_actor(&site);
   }
-  let federation_config = federation_config.build().await?;
+  let federation_config = federation_config_builder.build().await?;
 
   MATCH_OUTGOING_ACTIVITIES
     .set(Box::new(move |d, c| {
@@ -197,14 +204,24 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   } else {
     None
   };
-  let federate = (!args.disable_activity_sending).then(|| {
-    start_stop_federation_workers_cancellable(
+
+  // This FederationConfig instance is exclusively used to send activities, so we can safely
+  // increase the timeout without affecting timeouts for resolving objects anywhere.
+  let federation_sender_config = if !args.disable_activity_sending {
+    let mut federation_sender_config = federation_config_builder.clone();
+    federation_sender_config.request_timeout(ACTIVITY_SENDING_TIMEOUT);
+    Some(federation_sender_config.build().await?)
+  } else {
+    None
+  };
+  let federate = federation_sender_config.map(|cfg| {
+    SendManager::run(
       Opts {
         process_index: args.federate_process_index,
         process_count: args.federate_process_count,
       },
-      pool.clone(),
-      federation_config.clone(),
+      cfg,
+      SETTINGS.federation.clone(),
     )
   });
   let mut interrupt = tokio::signal::unix::signal(SignalKind::interrupt())?;

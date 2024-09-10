@@ -25,12 +25,7 @@ use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorato
 use lemmy_api_common::{
   context::LemmyContext,
   request::generate_post_link_metadata,
-  utils::{
-    get_url_blocklist,
-    local_site_opt_to_slur_regex,
-    process_markdown_opt,
-    proxy_image_link_opt_apub,
-  },
+  utils::{get_url_blocklist, local_site_opt_to_slur_regex, process_markdown_opt},
 };
 use lemmy_db_schema::{
   source::{
@@ -46,7 +41,11 @@ use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
   spawn_try_task,
-  utils::{markdown::markdown_to_html, slurs::check_slurs_opt, validation::check_url_scheme},
+  utils::{
+    markdown::markdown_to_html,
+    slurs::check_slurs_opt,
+    validation::{is_url_blocked, is_valid_url},
+  },
 };
 use std::ops::Deref;
 use stringreader::StringReader;
@@ -185,8 +184,15 @@ impl Object for ApubPost {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
-      CommunityModeratorView::is_community_moderator(&mut context.pool(), community.id, creator.id)
-        .await?;
+      let is_mod = CommunityModeratorView::is_community_moderator(
+        &mut context.pool(),
+        community.id,
+        creator.id,
+      )
+      .await?;
+      if !is_mod {
+        Err(LemmyErrorType::OnlyModsCanPostInCommunity)?
+      }
     }
     let mut name = page
       .name
@@ -224,14 +230,17 @@ impl Object for ApubPost {
     } else {
       None
     };
-    check_url_scheme(&url)?;
+
+    let url_blocklist = get_url_blocklist(context).await?;
+
+    if let Some(url) = &url {
+      is_url_blocked(url, &url_blocklist)?;
+      is_valid_url(url)?;
+    }
 
     let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
 
-    let url = proxy_image_link_opt_apub(url, context).await?;
-
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
-    let url_blocklist = get_url_blocklist(context).await?;
 
     let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
     let body = process_markdown_opt(&body, slur_regex, &url_blocklist, context).await?;

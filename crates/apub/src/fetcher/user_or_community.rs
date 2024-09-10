@@ -65,8 +65,11 @@ impl Object for UserOrCommunity {
     }
   }
 
-  async fn into_json(self, _data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    unimplemented!()
+  async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
+    Ok(match self {
+      UserOrCommunity::User(p) => PersonOrGroup::Person(p.into_json(data).await?),
+      UserOrCommunity::Community(p) => PersonOrGroup::Group(p.into_json(data).await?),
+    })
   }
 
   #[tracing::instrument(skip_all)]
@@ -115,7 +118,10 @@ impl Actor for UserOrCommunity {
   }
 
   fn inbox(&self) -> Url {
-    unimplemented!()
+    match self {
+      UserOrCommunity::User(p) => p.inbox(),
+      UserOrCommunity::Community(p) => p.inbox(),
+    }
   }
 }
 

@@ -8,13 +8,11 @@ use lemmy_api_common::{
   send_activity::SendActivityData,
   utils::{
     check_community_user_action,
-    generate_local_apub_endpoint,
     get_url_blocklist,
     honeypot_check,
     local_site_to_slur_regex,
     mark_post_as_read,
     process_markdown_opt,
-    EndpointType,
   },
 };
 use lemmy_db_schema::{
@@ -23,9 +21,10 @@ use lemmy_db_schema::{
     actor_language::CommunityLanguage,
     community::Community,
     local_site::LocalSite,
-    post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
+    post::{Post, PostInsertForm, PostLike, PostLikeForm},
   },
   traits::{Crud, Likeable},
+  utils::diesel_url_create,
   CommunityVisibility,
 };
 use lemmy_db_views::structs::LocalUserView;
@@ -36,12 +35,11 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs,
     validation::{
-      check_url_scheme,
-      clean_url_params,
       is_url_blocked,
       is_valid_alt_text_field,
       is_valid_body_field,
       is_valid_post_title,
+      is_valid_url,
     },
   },
 };
@@ -64,16 +62,27 @@ pub async fn create_post(
   let url_blocklist = get_url_blocklist(&context).await?;
 
   let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
-  let data_url = data.url.as_ref();
-  let url = data_url.map(clean_url_params); // TODO no good way to handle a "clear"
-  let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);
+  let url = diesel_url_create(data.url.as_deref())?;
+  let custom_thumbnail = diesel_url_create(data.custom_thumbnail.as_deref())?;
 
   is_valid_post_title(&data.name)?;
-  is_valid_body_field(&body, true)?;
-  is_valid_alt_text_field(&data.alt_text)?;
-  is_url_blocked(&url, &url_blocklist)?;
-  check_url_scheme(&url)?;
-  check_url_scheme(&custom_thumbnail)?;
+
+  if let Some(url) = &url {
+    is_url_blocked(url, &url_blocklist)?;
+    is_valid_url(url)?;
+  }
+
+  if let Some(custom_thumbnail) = &custom_thumbnail {
+    is_valid_url(custom_thumbnail)?;
+  }
+
+  if let Some(alt_text) = &data.alt_text {
+    is_valid_alt_text_field(alt_text)?;
+  }
+
+  if let Some(body) = &body {
+    is_valid_body_field(body, true)?;
+  }
 
   check_community_user_action(
     &local_user_view.person,
@@ -136,27 +145,9 @@ pub async fn create_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
-  let inserted_post_id = inserted_post.id;
-  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let apub_id = generate_local_apub_endpoint(
-    EndpointType::Post,
-    &inserted_post_id.to_string(),
-    &protocol_and_hostname,
-  )?;
-  let updated_post = Post::update(
-    &mut context.pool(),
-    inserted_post_id,
-    &PostUpdateForm {
-      ap_id: Some(apub_id),
-      ..Default::default()
-    },
-  )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
-
   generate_post_link_metadata(
-    updated_post.clone(),
-    custom_thumbnail,
+    inserted_post.clone(),
+    custom_thumbnail.map(Into::into),
     |post| Some(SendActivityData::CreatePost(post)),
     Some(local_site),
     context.reset_request_count(),
@@ -176,14 +167,13 @@ pub async fn create_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
-  // Mark the post as read
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
-  if let Some(url) = updated_post.url.clone() {
+  if let Some(url) = inserted_post.url.clone() {
     if community.visibility == CommunityVisibility::Public {
       spawn_try_task(async move {
         let mut webmention =
-          Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
+          Webmention::new::<Url>(inserted_post.ap_id.clone().into(), url.clone().into())?;
         webmention.set_checked(true);
         match webmention
           .send()
@@ -198,5 +188,5 @@ pub async fn create_post(
     }
   };
 
-  build_post_response(&context, community_id, &local_user_view.person, post_id).await
+  build_post_response(&context, community_id, local_user_view, post_id).await
 }

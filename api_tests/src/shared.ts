@@ -83,21 +83,22 @@ export const fetchFunction = fetch;
 export const imageFetchLimit = 50;
 export const sampleImage =
   "https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg";
+export const sampleSite = "https://yahoo.com";
 
-export let alphaUrl = "http://127.0.0.1:8541";
-export let betaUrl = "http://127.0.0.1:8551";
-export let gammaUrl = "http://127.0.0.1:8561";
-export let deltaUrl = "http://127.0.0.1:8571";
-export let epsilonUrl = "http://127.0.0.1:8581";
+export const alphaUrl = "http://127.0.0.1:8541";
+export const betaUrl = "http://127.0.0.1:8551";
+export const gammaUrl = "http://127.0.0.1:8561";
+export const deltaUrl = "http://127.0.0.1:8571";
+export const epsilonUrl = "http://127.0.0.1:8581";
 
-export let alpha = new LemmyHttp(alphaUrl, { fetchFunction });
-export let alphaImage = new LemmyHttp(alphaUrl);
-export let beta = new LemmyHttp(betaUrl, { fetchFunction });
-export let gamma = new LemmyHttp(gammaUrl, { fetchFunction });
-export let delta = new LemmyHttp(deltaUrl, { fetchFunction });
-export let epsilon = new LemmyHttp(epsilonUrl, { fetchFunction });
+export const alpha = new LemmyHttp(alphaUrl, { fetchFunction });
+export const alphaImage = new LemmyHttp(alphaUrl);
+export const beta = new LemmyHttp(betaUrl, { fetchFunction });
+export const gamma = new LemmyHttp(gammaUrl, { fetchFunction });
+export const delta = new LemmyHttp(deltaUrl, { fetchFunction });
+export const epsilon = new LemmyHttp(epsilonUrl, { fetchFunction });
 
-export let betaAllowedInstances = [
+export const betaAllowedInstances = [
   "lemmy-alpha",
   "lemmy-gamma",
   "lemmy-delta",
@@ -196,7 +197,7 @@ export async function setupLogins() {
     // (because last_successful_id is set to current id when federation to an instance is first started)
     // only needed the first time so do in this try
     await delay(10_000);
-  } catch (_) {
+  } catch {
     console.log("Communities already exist");
   }
 }
@@ -363,10 +364,13 @@ export async function getUnreadCount(
   return api.getUnreadCount();
 }
 
-export async function getReplies(api: LemmyHttp): Promise<GetRepliesResponse> {
+export async function getReplies(
+  api: LemmyHttp,
+  unread_only: boolean = false,
+): Promise<GetRepliesResponse> {
   let form: GetReplies = {
     sort: "New",
-    unread_only: false,
+    unread_only,
   };
   return api.getReplies(form);
 }
@@ -895,7 +899,6 @@ export async function deleteAllImages(api: LemmyHttp) {
   const imagesRes = await api.listAllMedia({
     limit: imageFetchLimit,
   });
-  imagesRes.images;
   Promise.all(
     imagesRes.images
       .map(image => {

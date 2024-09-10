@@ -1,7 +1,14 @@
 use crate::{
   newtypes::DbUrl,
-  schema::{local_image, remote_image},
-  source::images::{LocalImage, LocalImageForm, RemoteImage, RemoteImageForm},
+  schema::{image_details, local_image, remote_image},
+  source::images::{
+    ImageDetails,
+    ImageDetailsForm,
+    LocalImage,
+    LocalImageForm,
+    RemoteImage,
+    RemoteImageForm,
+  },
   utils::{get_conn, DbPool},
 };
 use diesel::{
@@ -13,15 +20,29 @@ use diesel::{
   NotFound,
   QueryDsl,
 };
-use diesel_async::RunQueryDsl;
-use url::Url;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 impl LocalImage {
-  pub async fn create(pool: &mut DbPool<'_>, form: &LocalImageForm) -> Result<Self, Error> {
+  pub async fn create(
+    pool: &mut DbPool<'_>,
+    form: &LocalImageForm,
+    image_details_form: &ImageDetailsForm,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(local_image::table)
-      .values(form)
-      .get_result::<Self>(conn)
+    conn
+      .build_transaction()
+      .run(|conn| {
+        Box::pin(async move {
+          let local_insert = insert_into(local_image::table)
+            .values(form)
+            .get_result::<Self>(conn)
+            .await;
+
+          ImageDetails::create(conn, image_details_form).await?;
+
+          local_insert
+        }) as _
+      })
       .await
   }
 
@@ -39,16 +60,26 @@ impl LocalImage {
 }
 
 impl RemoteImage {
-  pub async fn create(pool: &mut DbPool<'_>, links: Vec<Url>) -> Result<usize, Error> {
+  pub async fn create(pool: &mut DbPool<'_>, form: &ImageDetailsForm) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    let forms = links
-      .into_iter()
-      .map(|url| RemoteImageForm { link: url.into() })
-      .collect::<Vec<_>>();
-    insert_into(remote_image::table)
-      .values(forms)
-      .on_conflict_do_nothing()
-      .execute(conn)
+    conn
+      .build_transaction()
+      .run(|conn| {
+        Box::pin(async move {
+          let remote_image_form = RemoteImageForm {
+            link: form.link.clone(),
+          };
+          let remote_insert = insert_into(remote_image::table)
+            .values(remote_image_form)
+            .on_conflict_do_nothing()
+            .execute(conn)
+            .await;
+
+          ImageDetails::create(conn, form).await?;
+
+          remote_insert
+        }) as _
+      })
       .await
   }
 
@@ -65,5 +96,18 @@ impl RemoteImage {
     } else {
       Err(NotFound)
     }
+  }
+}
+
+impl ImageDetails {
+  pub(crate) async fn create(
+    conn: &mut AsyncPgConnection,
+    form: &ImageDetailsForm,
+  ) -> Result<usize, Error> {
+    insert_into(image_details::table)
+      .values(form)
+      .on_conflict_do_nothing()
+      .execute(conn)
+      .await
   }
 }

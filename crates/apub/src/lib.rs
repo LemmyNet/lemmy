@@ -14,9 +14,8 @@ use lemmy_utils::{
   CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
-use once_cell::sync::Lazy;
 use serde_json::Value;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use url::Url;
 
 pub mod activities;
@@ -36,7 +35,7 @@ pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 100;
 /// Only include a basic context to save space and bandwidth. The main context is hosted statically
 /// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could
 /// theoretically also be moved.
-pub static FEDERATION_CONTEXT: Lazy<Value> = Lazy::new(|| {
+pub static FEDERATION_CONTEXT: LazyLock<Value> = LazyLock::new(|| {
   Value::Array(vec![
     Value::String("https://join-lemmy.org/context.json".to_string()),
     Value::String("https://www.w3.org/ns/activitystreams".to_string()),
@@ -129,7 +128,7 @@ pub(crate) async fn local_site_data_cached(
   // multiple times. This causes a huge number of database reads if we hit the db directly. So we
   // cache these values for a short time, which will already make a huge difference and ensures that
   // changes take effect quickly.
-  static CACHE: Lazy<Cache<(), Arc<LocalSiteData>>> = Lazy::new(|| {
+  static CACHE: LazyLock<Cache<(), Arc<LocalSiteData>>> = LazyLock::new(|| {
     Cache::builder()
       .max_capacity(1)
       .time_to_live(CACHE_DURATION_FEDERATION)

@@ -88,12 +88,6 @@ pub struct PersonMentionId(i32);
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// The person block id.
-pub struct PersonBlockId(i32);
-
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
 /// The comment report id.
 pub struct CommentReportId(i32);
 
@@ -113,7 +107,7 @@ pub struct PrivateMessageReportId(i32);
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The site id.
-pub struct SiteId(i32);
+pub struct SiteId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
@@ -127,11 +121,13 @@ pub struct LanguageId(pub i32);
 /// The comment reply id.
 pub struct CommentReplyId(i32);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[derive(
+  Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default, Ord, PartialOrd,
+)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The instance id.
-pub struct InstanceId(i32);
+pub struct InstanceId(pub i32);
 
 #[derive(
   Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default, PartialOrd, Ord,
@@ -151,6 +147,12 @@ pub struct LocalSiteId(i32);
 #[cfg_attr(feature = "full", ts(export))]
 /// The custom emoji id.
 pub struct CustomEmojiId(i32);
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The registration application id.
+pub struct RegistrationApplicationId(i32);
 
 #[cfg(feature = "full")]
 #[derive(Serialize, Deserialize)]

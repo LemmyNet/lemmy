@@ -1,7 +1,7 @@
 use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
 use std::{backtrace::Backtrace, fmt::Debug};
-use strum_macros::{Display, EnumIter};
+use strum::{Display, EnumIter};
 
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
@@ -38,6 +38,8 @@ pub enum LemmyErrorType {
   NotTopAdmin,
   NotTopMod,
   NotLoggedIn,
+  NotHigherMod,
+  NotHigherAdmin,
   SiteBan,
   Deleted,
   BannedFromCommunity,
@@ -177,6 +179,8 @@ pub enum LemmyErrorType {
   UrlWithoutDomain,
   InboxTimeout,
   Unknown(String),
+  CantDeleteSite,
+  UrlLengthOverflow,
 }
 
 cfg_if! {
