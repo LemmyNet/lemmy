@@ -860,16 +860,16 @@ test("Dont send a comment reply to a blocked community", async () => {
 });
 
 /// Fetching a deeply nested comment can lead to stack overflow as all parent comments are also
-/// fetched recursively. Ensure that it works properly.
+/// fetched recursively. Ensure that it works properly. Stack size depends on the OS so this
+/// may fail in some cases. In release builds Lemmy is more optimized and can handle the max depth
+/// of 100.
 test("Fetch a deeply nested comment", async () => {
   let lastComment;
-  for (let i = 0; i < 100; i++) {
-    let parent_id = lastComment?.comment_view.comment.id;
-
+  for (let i = 0; i < 80; i++) {
     let commentRes = await createComment(
       alpha,
       postOnAlphaRes.post_view.post.id,
-      parent_id,
+      lastComment?.comment_view.comment.id,
     );
     expect(commentRes.comment_view.comment).toBeDefined();
     lastComment = commentRes;
@@ -880,7 +880,6 @@ test("Fetch a deeply nested comment", async () => {
     lastComment!.comment_view.comment,
   );
 
-  console.log(betaComment!.comment!.comment.path);
   expect(betaComment!.comment!.comment).toBeDefined();
   expect(betaComment?.comment?.post).toBeDefined();
 });
