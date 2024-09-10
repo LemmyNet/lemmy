@@ -11,6 +11,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
+  impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
   schema::{
     community,
@@ -19,22 +20,20 @@ use lemmy_db_schema::{
     community_follower,
     community_person_ban,
     instance_block,
-    local_user,
   },
   source::{community::CommunityFollower, local_user::LocalUser, site::Site},
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
-  CommunityVisibility,
   ListingType,
   SortType,
 };
 
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, CommunityView, (CommunityId, Option<PersonId>, bool)>,
+  impl ReadFn<'a, CommunityView, (CommunityId, Option<&'a LocalUser>, bool)>,
   impl ListFn<'a, CommunityView, (CommunityQuery<'a>, &'a Site)>,
 > {
-  let all_joins = |query: community::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
+  let all_joins = |query: community::BoxedQuery<'a, Pg>, my_local_user: Option<&'a LocalUser>| {
     // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
+    let person_id_join = my_local_user.person_id().unwrap_or(PersonId(-1));
 
     query
       .inner_join(community_aggregates::table)
@@ -81,14 +80,14 @@ fn queries<'a>() -> Queries<
     .and(community::deleted.eq(false));
 
   let read = move |mut conn: DbConn<'a>,
-                   (community_id, my_person_id, is_mod_or_admin): (
+                   (community_id, my_local_user, is_mod_or_admin): (
     CommunityId,
-    Option<PersonId>,
+    Option<&'a LocalUser>,
     bool,
   )| async move {
     let mut query = all_joins(
       community::table.find(community_id).into_boxed(),
-      my_person_id,
+      my_local_user,
     )
     .select(selection);
 
@@ -97,25 +96,18 @@ fn queries<'a>() -> Queries<
       query = query.filter(not_removed_or_deleted);
     }
 
-    // Hide local only communities from unauthenticated users
-    if my_person_id.is_none() {
-      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
-    }
+    query = my_local_user.visible_communities_only(query);
 
-    query.first::<CommunityView>(&mut conn).await
+    query.first(&mut conn).await
   };
 
   let list = move |mut conn: DbConn<'a>, (options, site): (CommunityQuery<'a>, &'a Site)| async move {
     use SortType::*;
 
-    let my_person_id = options.local_user.map(|l| l.person_id);
-
     // The left join below will return None in this case
-    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
+    let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
 
-    let mut query = all_joins(community::table.into_boxed(), my_person_id)
-      .left_join(local_user::table.on(local_user::person_id.eq(person_id_join)))
-      .select(selection);
+    let mut query = all_joins(community::table.into_boxed(), options.local_user).select(selection);
 
     if let Some(search_term) = options.search_term {
       let searcher = fuzzy_search(&search_term);
@@ -154,7 +146,7 @@ fn queries<'a>() -> Queries<
 
     if let Some(listing_type) = options.listing_type {
       query = match listing_type {
-        ListingType::Subscribed => query.filter(community_follower::pending.is_not_null()), // TODO could be this: and(community_follower::person_id.eq(person_id_join)),
+        ListingType::Subscribed => query.filter(community_follower::pending.is_not_null()), /* TODO could be this: and(community_follower::person_id.eq(person_id_join)), */
         ListingType::Local => query.filter(community::local.eq(true)),
         _ => query,
       };
@@ -162,20 +154,13 @@ fn queries<'a>() -> Queries<
 
     // Don't show blocked communities and communities on blocked instances. nsfw communities are
     // also hidden (based on profile setting)
-    if options.local_user.is_some() {
-      query = query.filter(instance_block::person_id.is_null());
-      query = query.filter(community_block::person_id.is_null());
-      query = query.filter(community::nsfw.eq(false).or(local_user::show_nsfw.eq(true)));
-    } else {
-      // No person in request, only show nsfw communities if show_nsfw is passed into request or if
-      // site has content warning.
-      let has_content_warning = site.content_warning.is_some();
-      if !options.show_nsfw && !has_content_warning {
-        query = query.filter(community::nsfw.eq(false));
-      }
-      // Hide local only communities from unauthenticated users
-      query = query.filter(community::visibility.eq(CommunityVisibility::Public));
+    query = query.filter(instance_block::person_id.is_null());
+    query = query.filter(community_block::person_id.is_null());
+    if !(options.local_user.show_nsfw(site) || options.show_nsfw) {
+      query = query.filter(community::nsfw.eq(false));
     }
+
+    query = options.local_user.visible_communities_only(query);
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
     query
@@ -189,14 +174,14 @@ fn queries<'a>() -> Queries<
 }
 
 impl CommunityView {
-  pub async fn read(
+  pub async fn read<'a>(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
-    my_person_id: Option<PersonId>,
+    my_local_user: Option<&'a LocalUser>,
     is_mod_or_admin: bool,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     queries()
-      .read(pool, (community_id, my_person_id, is_mod_or_admin))
+      .read(pool, (community_id, my_local_user, is_mod_or_admin))
       .await
   }
 
@@ -209,9 +194,10 @@ impl CommunityView {
       CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await?;
     if is_mod {
       Ok(true)
+    } else if let Ok(Some(person_view)) = PersonView::read(pool, person_id).await {
+      Ok(person_view.is_admin)
     } else {
-      let is_admin = PersonView::read(pool, person_id).await?.is_admin;
-      Ok(is_admin)
+      Ok(false)
     }
   }
 
@@ -223,11 +209,12 @@ impl CommunityView {
     let is_mod_of_any =
       CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await?;
     if is_mod_of_any {
-      return Ok(true);
+      Ok(true)
+    } else if let Ok(Some(person_view)) = PersonView::read(pool, person_id).await {
+      Ok(person_view.is_admin)
+    } else {
+      Ok(false)
     }
-
-    let is_admin = PersonView::read(pool, person_id).await?.is_admin;
-    Ok(is_admin)
   }
 }
 
@@ -250,9 +237,9 @@ impl<'a> CommunityQuery<'a> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{community_view::CommunityQuery, structs::CommunityView};
   use lemmy_db_schema::{
@@ -284,19 +271,14 @@ mod tests {
 
     let person_name = "tegan".to_string();
 
-    let new_person = PersonInsertForm::builder()
-      .name(person_name.clone())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, &person_name);
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
-    let local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_person.id)
-      .password_encrypted(String::new())
-      .build();
-    let local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+    let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
+    let local_user = LocalUser::create(pool, &local_user_form, vec![])
+      .await
+      .unwrap();
 
     let new_community = CommunityInsertForm::builder()
       .name("test_community_3".to_string())
@@ -382,13 +364,15 @@ mod tests {
     assert_eq!(1, authenticated_query.len());
 
     let unauthenticated_community =
-      CommunityView::read(pool, data.inserted_community.id, None, false).await;
-    assert!(unauthenticated_community.is_err());
+      CommunityView::read(pool, data.inserted_community.id, None, false)
+        .await
+        .unwrap();
+    assert!(unauthenticated_community.is_none());
 
     let authenticated_community = CommunityView::read(
       pool,
       data.inserted_community.id,
-      Some(data.local_user.person_id),
+      Some(&data.local_user),
       false,
     )
     .await;

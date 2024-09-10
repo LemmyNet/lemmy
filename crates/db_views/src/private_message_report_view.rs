@@ -42,21 +42,26 @@ fn queries<'a>() -> Queries<
 
   let read = move |mut conn: DbConn<'a>, report_id: PrivateMessageReportId| async move {
     all_joins(private_message_report::table.find(report_id).into_boxed())
-      .first::<PrivateMessageReportView>(&mut conn)
+      .first(&mut conn)
       .await
   };
 
   let list = move |mut conn: DbConn<'a>, options: PrivateMessageReportQuery| async move {
     let mut query = all_joins(private_message_report::table.into_boxed());
 
+    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
+    // first (FIFO)
     if options.unresolved_only {
-      query = query.filter(private_message_report::resolved.eq(false));
+      query = query
+        .filter(private_message_report::resolved.eq(false))
+        .order_by(private_message_report::published.asc());
+    } else {
+      query = query.order_by(private_message_report::published.desc());
     }
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
     query
-      .order_by(private_message::published.asc())
       .limit(limit)
       .offset(offset)
       .load::<PrivateMessageReportView>(&mut conn)
@@ -73,7 +78,7 @@ impl PrivateMessageReportView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     report_id: PrivateMessageReportId,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     queries().read(pool, report_id).await
   }
 
@@ -106,9 +111,9 @@ impl PrivateMessageReportQuery {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::private_message_report_view::PrivateMessageReportQuery;
   use lemmy_db_schema::{
@@ -135,18 +140,10 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person_1 = PersonInsertForm::builder()
-      .name("timmy_mrv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_1 = PersonInsertForm::test_form(inserted_instance.id, "timmy_mrv");
     let inserted_timmy = Person::create(pool, &new_person_1).await.unwrap();
 
-    let new_person_2 = PersonInsertForm::builder()
-      .name("jessica_mrv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_2 = PersonInsertForm::test_form(inserted_instance.id, "jessica_mrv");
     let inserted_jessica = Person::create(pool, &new_person_2).await.unwrap();
 
     // timmy sends private message to jessica
@@ -179,11 +176,7 @@ mod tests {
     assert_eq!(pm_report.reason, reports[0].private_message_report.reason);
     assert_eq!(pm.content, reports[0].private_message.content);
 
-    let new_person_3 = PersonInsertForm::builder()
-      .name("admin_mrv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_3 = PersonInsertForm::test_form(inserted_instance.id, "admin_mrv");
     let inserted_admin = Person::create(pool, &new_person_3).await.unwrap();
 
     // admin resolves the report (after taking appropriate action)

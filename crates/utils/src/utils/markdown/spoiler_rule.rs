@@ -34,8 +34,8 @@ use markdown_it::{
   NodeValue,
   Renderer,
 };
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
 #[derive(Debug)]
 struct SpoilerBlock {
@@ -46,8 +46,8 @@ const SPOILER_PREFIX: &str = "::: spoiler ";
 const SPOILER_SUFFIX: &str = ":::";
 const SPOILER_SUFFIX_NEWLINE: &str = ":::\n";
 
-static SPOILER_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^::: spoiler .*$").expect("compile spoiler markdown regex."));
+static SPOILER_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^::: spoiler .*$").expect("compile spoiler markdown regex."));
 
 impl NodeValue for SpoilerBlock {
   // Formats any node marked as a 'SpoilerBlock' into HTML.
@@ -134,9 +134,9 @@ pub fn add(markdown_parser: &mut MarkdownIt) {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::utils::markdown::spoiler_rule::add;
   use markdown_it::MarkdownIt;

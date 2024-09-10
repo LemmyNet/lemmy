@@ -1,8 +1,11 @@
-use actix_web::web::{Data, Json};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   person::SaveUserSettings,
+  request::replace_image,
   utils::{
+    get_url_blocklist,
     local_site_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_api,
@@ -14,39 +17,54 @@ use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserUpdateForm},
+    local_user_vote_display_mode::{LocalUserVoteDisplayMode, LocalUserVoteDisplayModeUpdateForm},
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,
-  utils::diesel_option_overwrite,
+  utils::{diesel_string_update, diesel_url_update},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
+  error::{LemmyErrorType, LemmyResult},
   utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},
 };
+use std::ops::Deref;
 
 #[tracing::instrument(skip(context))]
 pub async fn save_user_settings(
   data: Json<SaveUserSettings>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<SuccessResponse>, LemmyError> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+) -> LemmyResult<Json<SuccessResponse>> {
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
 
   let slur_regex = local_site_to_slur_regex(&site_view.local_site);
-  let bio = diesel_option_overwrite(process_markdown_opt(&data.bio, &slur_regex, &context).await?);
+  let url_blocklist = get_url_blocklist(&context).await?;
+  let bio = diesel_string_update(
+    process_markdown_opt(&data.bio, &slur_regex, &url_blocklist, &context)
+      .await?
+      .as_deref(),
+  );
 
-  let avatar = proxy_image_link_opt_api(&data.avatar, &context).await?;
-  let banner = proxy_image_link_opt_api(&data.banner, &context).await?;
-  let display_name = diesel_option_overwrite(data.display_name.clone());
-  let matrix_user_id = diesel_option_overwrite(data.matrix_user_id.clone());
+  let avatar = diesel_url_update(data.avatar.as_deref())?;
+  replace_image(&avatar, &local_user_view.person.avatar, &context).await?;
+  let avatar = proxy_image_link_opt_api(avatar, &context).await?;
+
+  let banner = diesel_url_update(data.banner.as_deref())?;
+  replace_image(&banner, &local_user_view.person.banner, &context).await?;
+  let banner = proxy_image_link_opt_api(banner, &context).await?;
+
+  let display_name = diesel_string_update(data.display_name.as_deref());
+  let matrix_user_id = diesel_string_update(data.matrix_user_id.as_deref());
   let email_deref = data.email.as_deref().map(str::to_lowercase);
-  let email = diesel_option_overwrite(email_deref.clone());
+  let email = diesel_string_update(email_deref.as_deref());
 
   if let Some(Some(email)) = &email {
     let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();
     // if email was changed, check that it is not taken and send verification mail
-    if &previous_email != email {
+    if previous_email.deref() != email {
       if LocalUser::is_email_taken(&mut context.pool(), email).await? {
         return Err(LemmyErrorType::EmailAlreadyExists)?;
       }
@@ -60,7 +78,8 @@ pub async fn save_user_settings(
     }
   }
 
-  // When the site requires email, make sure email is not Some(None). IE, an overwrite to a None value
+  // When the site requires email, make sure email is not Some(None). IE, an overwrite to a None
+  // value
   if let Some(email) = &email {
     if email.is_none() && site_view.local_site.require_email_verification {
       Err(LemmyErrorType::EmailRequired)?
@@ -129,11 +148,17 @@ pub async fn save_user_settings(
     ..Default::default()
   };
 
-  // Ignore errors, because 'no fields updated' will return an error.
-  // https://github.com/LemmyNet/lemmy/issues/4076
-  LocalUser::update(&mut context.pool(), local_user_id, &local_user_form)
-    .await
-    .ok();
+  LocalUser::update(&mut context.pool(), local_user_id, &local_user_form).await?;
+
+  // Update the vote display modes
+  let vote_display_modes_form = LocalUserVoteDisplayModeUpdateForm {
+    score: data.show_scores,
+    upvotes: data.show_upvotes,
+    downvotes: data.show_downvotes,
+    upvote_percentage: data.show_upvote_percentage,
+  };
+  LocalUserVoteDisplayMode::update(&mut context.pool(), local_user_id, &vote_display_modes_form)
+    .await?;
 
   Ok(Json(SuccessResponse::default()))
 }

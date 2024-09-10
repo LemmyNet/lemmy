@@ -4,7 +4,7 @@ use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl,
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{LocalUserId, PersonId},
-  schema::{local_user, person, person_aggregates},
+  schema::{local_user, local_user_vote_display_mode, person, person_aggregates},
   utils::{
     functions::{coalesce, lower},
     DbConn,
@@ -33,6 +33,7 @@ fn queries<'a>(
 ) -> Queries<impl ReadFn<'a, LocalUserView, ReadBy<'a>>, impl ListFn<'a, LocalUserView, ListMode>> {
   let selection = (
     local_user::all_columns,
+    local_user_vote_display_mode::all_columns,
     person::all_columns,
     person_aggregates::all_columns,
   );
@@ -58,9 +59,10 @@ fn queries<'a>(
       _ => query,
     };
     query
+      .inner_join(local_user_vote_display_mode::table)
       .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
       .select(selection)
-      .first::<LocalUserView>(&mut conn)
+      .first(&mut conn)
       .await
   };
 
@@ -68,10 +70,11 @@ fn queries<'a>(
     match mode {
       ListMode::AdminsWithEmails => {
         local_user::table
-          .filter(local_user::email.is_not_null())
-          .filter(local_user::admin.eq(true))
+          .inner_join(local_user_vote_display_mode::table)
           .inner_join(person::table)
           .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
+          .filter(local_user::email.is_not_null())
+          .filter(local_user::admin.eq(true))
           .select(selection)
           .load::<LocalUserView>(&mut conn)
           .await
@@ -83,28 +86,37 @@ fn queries<'a>(
 }
 
 impl LocalUserView {
-  pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<Self, Error> {
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    local_user_id: LocalUserId,
+  ) -> Result<Option<Self>, Error> {
     queries().read(pool, ReadBy::Id(local_user_id)).await
   }
 
-  pub async fn read_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read_person(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+  ) -> Result<Option<Self>, Error> {
     queries().read(pool, ReadBy::Person(person_id)).await
   }
 
-  pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> Result<Self, Error> {
+  pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> Result<Option<Self>, Error> {
     queries().read(pool, ReadBy::Name(name)).await
   }
 
   pub async fn find_by_email_or_name(
     pool: &mut DbPool<'_>,
     name_or_email: &str,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     queries()
       .read(pool, ReadBy::NameOrEmail(name_or_email))
       .await
   }
 
-  pub async fn find_by_email(pool: &mut DbPool<'_>, from_email: &str) -> Result<Self, Error> {
+  pub async fn find_by_email(
+    pool: &mut DbPool<'_>,
+    from_email: &str,
+  ) -> Result<Option<Self>, Error> {
     queries().read(pool, ReadBy::Email(from_email)).await
   }
 

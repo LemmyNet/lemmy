@@ -26,14 +26,14 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::naive_now,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 pub(crate) async fn send_update_community(
   community: Community,
   actor: Person,
   context: Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let community: ApubCommunity = community.into();
   let actor: ApubPerson = actor.into();
   let id = generate_activity_id(
@@ -76,7 +76,7 @@ impl ActivityHandler for UpdateCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
@@ -86,7 +86,7 @@ impl ActivityHandler for UpdateCommunity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let community = self.community(context).await?;
 
@@ -105,7 +105,7 @@ impl ActivityHandler for UpdateCommunity {
       last_refreshed_at: Some(naive_now()),
       icon: Some(self.object.icon.map(|i| i.url.into())),
       banner: Some(self.object.image.map(|i| i.url.into())),
-      followers_url: Some(self.object.followers.into()),
+      followers_url: self.object.followers.map(Into::into),
       inbox_url: Some(self.object.inbox.into()),
       shared_inbox_url: Some(self.object.endpoints.map(|e| e.shared_inbox.into())),
       moderators_url: self.object.attributed_to.map(Into::into),

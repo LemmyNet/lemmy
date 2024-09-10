@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   traits::Joinable,
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -29,10 +29,7 @@ impl Collection for ApubCommunityModerators {
   type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
-  async fn read_local(
-    owner: &Self::Owner,
-    data: &Data<Self::DataType>,
-  ) -> Result<Self::Kind, LemmyError> {
+  async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     let moderators = CommunityModeratorView::for_community(&mut data.pool(), owner.id).await?;
     let ordered_items = moderators
       .into_iter()
@@ -50,7 +47,7 @@ impl Collection for ApubCommunityModerators {
     group_moderators: &GroupModerators,
     expected_domain: &Url,
     _data: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     verify_domains_match(&group_moderators.id, expected_domain)?;
     Ok(())
   }
@@ -60,7 +57,7 @@ impl Collection for ApubCommunityModerators {
     apub: Self::Kind,
     owner: &Self::Owner,
     data: &Data<Self::DataType>,
-  ) -> Result<Self, LemmyError> {
+  ) -> LemmyResult<Self> {
     let community_id = owner.id;
     let current_moderators =
       CommunityModeratorView::for_community(&mut data.pool(), community_id).await?;
@@ -101,8 +98,8 @@ impl Collection for ApubCommunityModerators {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
   use crate::{
@@ -118,7 +115,6 @@ mod tests {
     },
     traits::Crud,
   };
-  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -133,11 +129,7 @@ mod tests {
     let inserted_instance =
       Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;
 
-    let old_mod = PersonInsertForm::builder()
-      .name("holly".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let old_mod = PersonInsertForm::test_form(inserted_instance.id, "holly");
 
     let old_mod = Person::create(&mut context.pool(), &old_mod).await?;
     let community_moderator_form = CommunityModeratorForm {

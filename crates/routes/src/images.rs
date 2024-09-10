@@ -1,18 +1,16 @@
 use actix_web::{
   body::BodyStream,
-  error,
   http::{
     header::{HeaderName, ACCEPT_ENCODING, HOST},
     StatusCode,
   },
   web,
   web::Query,
-  Error,
   HttpRequest,
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, request::PictrsResponse};
 use lemmy_db_schema::source::{
   images::{LocalImage, LocalImageForm, RemoteImage},
   local_site::LocalSite,
@@ -21,7 +19,7 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{error::LemmyResult, rate_limit::RateLimitCell, REQWEST_TIMEOUT};
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::time::Duration;
 use url::Url;
 use urlencoding::decode;
@@ -43,30 +41,72 @@ pub fn config(
     .service(web::resource("/pictrs/image/delete/{token}/{filename}").route(web::get().to(delete)));
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Image {
-  file: String,
-  delete_token: String,
+trait ProcessUrl {
+  /// If thumbnail or format is given, this uses the pictrs process endpoint.
+  /// Otherwise, it uses the normal pictrs url (IE image/original).
+  fn process_url(&self, image_url: &str, pictrs_url: &Url) -> String;
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Images {
-  msg: String,
-  files: Option<Vec<Image>>,
-}
-
-#[derive(Deserialize)]
-struct PictrsParams {
+#[derive(Deserialize, Clone)]
+struct PictrsGetParams {
   format: Option<String>,
   thumbnail: Option<i32>,
 }
 
+impl ProcessUrl for PictrsGetParams {
+  fn process_url(&self, src: &str, pictrs_url: &Url) -> String {
+    if self.format.is_none() && self.thumbnail.is_none() {
+      format!("{}image/original/{}", pictrs_url, src)
+    } else {
+      // Take file type from name, or jpg if nothing is given
+      let format = self
+        .clone()
+        .format
+        .unwrap_or_else(|| src.split('.').last().unwrap_or("jpg").to_string());
+
+      let mut url = format!("{}image/process.{}?src={}", pictrs_url, format, src);
+
+      if let Some(size) = self.thumbnail {
+        url = format!("{url}&thumbnail={size}",);
+      }
+      url
+    }
+  }
+}
+
+#[derive(Deserialize, Clone)]
+pub struct ImageProxyParams {
+  url: String,
+  format: Option<String>,
+  thumbnail: Option<i32>,
+}
+
+impl ProcessUrl for ImageProxyParams {
+  fn process_url(&self, proxy_url: &str, pictrs_url: &Url) -> String {
+    if self.format.is_none() && self.thumbnail.is_none() {
+      format!("{}image/original?proxy={}", pictrs_url, proxy_url)
+    } else {
+      // Take file type from name, or jpg if nothing is given
+      let format = self
+        .clone()
+        .format
+        .unwrap_or_else(|| proxy_url.split('.').last().unwrap_or("jpg").to_string());
+
+      let mut url = format!("{}image/process.{}?proxy={}", pictrs_url, format, proxy_url);
+
+      if let Some(size) = self.thumbnail {
+        url = format!("{url}&thumbnail={size}",);
+      }
+      url
+    }
+  }
+}
 fn adapt_request(
   request: &HttpRequest,
   client: &ClientWithMiddleware,
   url: String,
 ) -> RequestBuilder {
-  // remove accept-encoding header so that pictrs doesnt compress the response
+  // remove accept-encoding header so that pictrs doesn't compress the response
   const INVALID_HEADERS: &[HeaderName] = &[ACCEPT_ENCODING, HOST];
 
   let client_request = client
@@ -92,7 +132,7 @@ async fn upload(
   local_user_view: LocalUserView,
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
-) -> Result<HttpResponse, Error> {
+) -> LemmyResult<HttpResponse> {
   // TODO: check rate limit here
   let pictrs_config = context.settings().pictrs_config()?;
   let image_url = format!("{}image", pictrs_config.url);
@@ -106,21 +146,24 @@ async fn upload(
     .timeout(Duration::from_secs(pictrs_config.upload_timeout))
     .body(Body::wrap_stream(make_send(body)))
     .send()
-    .await
-    .map_err(error::ErrorBadRequest)?;
+    .await?;
 
   let status = res.status();
-  let images = res.json::<Images>().await.map_err(error::ErrorBadRequest)?;
+  let images = res.json::<PictrsResponse>().await?;
   if let Some(images) = &images.files {
-    for uploaded_image in images {
+    for image in images {
       let form = LocalImageForm {
-        local_user_id: local_user_view.local_user.id,
-        pictrs_alias: uploaded_image.file.to_string(),
-        pictrs_delete_token: uploaded_image.delete_token.to_string(),
+        local_user_id: Some(local_user_view.local_user.id),
+        pictrs_alias: image.file.to_string(),
+        pictrs_delete_token: image.delete_token.to_string(),
       };
-      LocalImage::create(&mut context.pool(), &form)
-        .await
-        .map_err(error::ErrorBadRequest)?;
+
+      let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+      let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
+
+      // Also store the details for the image
+      let details_form = image.details.build_image_details_form(&thumbnail_url);
+      LocalImage::create(&mut context.pool(), &form, &details_form).await?;
     }
   }
 
@@ -129,16 +172,14 @@ async fn upload(
 
 async fn full_res(
   filename: web::Path<String>,
-  web::Query(params): web::Query<PictrsParams>,
+  web::Query(params): web::Query<PictrsGetParams>,
   req: HttpRequest,
   client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> Result<HttpResponse, Error> {
+) -> LemmyResult<HttpResponse> {
   // block access to images if instance is private and unauthorized, public
-  let local_site = LocalSite::read(&mut context.pool())
-    .await
-    .map_err(error::ErrorBadRequest)?;
+  let local_site = LocalSite::read(&mut context.pool()).await?;
   if local_site.private_instance && local_user_view.is_none() {
     return Ok(HttpResponse::Unauthorized().finish());
   }
@@ -146,30 +187,17 @@ async fn full_res(
 
   // If there are no query params, the URL is original
   let pictrs_config = context.settings().pictrs_config()?;
-  let url = if params.format.is_none() && params.thumbnail.is_none() {
-    format!("{}image/original/{}", pictrs_config.url, name,)
-  } else {
-    // Take file type from name, or jpg if nothing is given
-    let format = params
-      .format
-      .unwrap_or_else(|| name.split('.').last().unwrap_or("jpg").to_string());
 
-    let mut url = format!("{}image/process.{}?src={}", pictrs_config.url, format, name,);
+  let processed_url = params.process_url(name, &pictrs_config.url);
 
-    if let Some(size) = params.thumbnail {
-      url = format!("{url}&thumbnail={size}",);
-    }
-    url
-  };
-
-  image(url, req, &client).await
+  image(processed_url, req, &client).await
 }
 
 async fn image(
   url: String,
   req: HttpRequest,
   client: &ClientWithMiddleware,
-) -> Result<HttpResponse, Error> {
+) -> LemmyResult<HttpResponse> {
   let mut client_req = adapt_request(&req, client, url);
 
   if let Some(addr) = req.head().peer_addr {
@@ -180,7 +208,7 @@ async fn image(
     client_req = client_req.header("X-Forwarded-For", addr.to_string());
   }
 
-  let res = client_req.send().await.map_err(error::ErrorBadRequest)?;
+  let res = client_req.send().await?;
 
   if res.status() == StatusCode::NOT_FOUND {
     return Ok(HttpResponse::NotFound().finish());
@@ -202,7 +230,7 @@ async fn delete(
   context: web::Data<LemmyContext>,
   // require login
   _local_user_view: LocalUserView,
-) -> Result<HttpResponse, Error> {
+) -> LemmyResult<HttpResponse> {
   let (token, file) = components.into_inner();
 
   let pictrs_config = context.settings().pictrs_config()?;
@@ -214,22 +242,17 @@ async fn delete(
     client_req = client_req.header("X-Forwarded-For", addr.to_string());
   }
 
-  let res = client_req.send().await.map_err(error::ErrorBadRequest)?;
+  let res = client_req.send().await?;
 
-  LocalImage::delete_by_alias(&mut context.pool(), &file)
-    .await
-    .map_err(error::ErrorBadRequest)?;
+  LocalImage::delete_by_alias(&mut context.pool(), &file).await?;
 
   Ok(HttpResponse::build(res.status()).body(BodyStream::new(res.bytes_stream())))
 }
 
-#[derive(Deserialize)]
-pub struct ImageProxyParams {
-  url: String,
-}
-
 pub async fn image_proxy(
   Query(params): Query<ImageProxyParams>,
+  req: HttpRequest,
+  client: web::Data<ClientWithMiddleware>,
   context: web::Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let url = Url::parse(&decode(&params.url)?)?;
@@ -239,10 +262,10 @@ pub async fn image_proxy(
   RemoteImage::validate(&mut context.pool(), url.clone().into()).await?;
 
   let pictrs_config = context.settings().pictrs_config()?;
-  let url = format!("{}image/original?proxy={}", pictrs_config.url, &params.url);
-  let image_response = context.client().get(url).send().await?;
 
-  Ok(HttpResponse::Ok().streaming(image_response.bytes_stream()))
+  let processed_url = params.process_url(&params.url, &pictrs_config.url);
+
+  image(processed_url, req, &client).await
 }
 
 fn make_send<S>(mut stream: S) -> impl Stream<Item = S::Item> + Send + Unpin + 'static

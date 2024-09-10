@@ -2,34 +2,34 @@
 # See https://github.com/woodpecker-ci/woodpecker/issues/1677
 
 variables:
-  - &rust_image "rust:1.76"
+  - &rust_image "rust:1.80"
+  - &rust_nightly_image "rustlang/rust:nightly"
   - &install_pnpm "corepack enable pnpm"
+  - &install_binstall "wget -O- https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xvz -C /usr/local/cargo/bin"
+  - install_diesel_cli: &install_diesel_cli
+      - apt-get update && apt-get install -y postgresql-client
+      - cargo install diesel_cli --no-default-features --features postgres
+      - export PATH="$CARGO_HOME/bin:$PATH"
   - &slow_check_paths
-    - path:
-        # rust source code
-        - "crates/**"
-        - "src/**"
-        - "**/Cargo.toml"
-        - "Cargo.lock"
-        # database migrations
-        - "migrations/**"
-        # typescript tests
-        - "api_tests/**"
-        # config files and scripts used by ci
-        - ".woodpecker.yml"
-        - ".rustfmt.toml"
-        - "scripts/update_config_defaults.sh"
-        - "diesel.toml"
-        - ".gitmodules"
-
-# Broken for cron jobs currently, see
-# https://github.com/woodpecker-ci/woodpecker/issues/1716
-# clone:
-#   git:
-#     image: woodpeckerci/plugin-git
-#     settings:
-#       recursive: true
-#       submodule_update_remote: true
+    - event: pull_request
+      path:
+        include: [
+            # rust source code
+            "crates/**",
+            "src/**",
+            "**/Cargo.toml",
+            "Cargo.lock",
+            # database migrations
+            "migrations/**",
+            # typescript tests
+            "api_tests/**",
+            # config files and scripts used by ci
+            ".woodpecker.yml",
+            ".rustfmt.toml",
+            "scripts/update_config_defaults.sh",
+            "diesel.toml",
+            ".gitmodules",
+          ]
 
 steps:
   prepare_repo:
@@ -38,39 +38,49 @@ steps:
       - apk add git
       - git submodule init
       - git submodule update
+    when:
+      - event: [pull_request, tag]
 
   prettier_check:
     image: tmknom/prettier:3.0.0
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
+    when:
+      - event: pull_request
 
   toml_fmt:
     image: tamasfe/taplo:0.8.1
     commands:
       - taplo format --check
+    when:
+      - event: pull_request
 
   sql_fmt:
-    image: backplane/pgformatter:latest
+    image: backplane/pgformatter
     commands:
       - ./scripts/sql_format_check.sh
+    when:
+      - event: pull_request
 
   cargo_fmt:
-    image: rustlang/rust:nightly
+    image: *rust_nightly_image
     environment:
       # store cargo data in repo folder so that it gets cached between steps
       CARGO_HOME: .cargo_home
     commands:
       - rustup component add rustfmt
       - cargo +nightly fmt -- --check
+    when:
+      - event: pull_request
 
   cargo_machete:
-    image: rustlang/rust:nightly
+    image: *rust_nightly_image
     commands:
-      - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - cp cargo-binstall /usr/local/cargo/bin
+      - *install_binstall
       - cargo binstall -y cargo-machete
       - cargo machete
+    when:
+      - event: pull_request
 
   ignored_files:
     image: alpine:3
@@ -78,6 +88,8 @@ steps:
       - apk add git
       - IGNORED=$(git ls-files --cached -i --exclude-standard)
       - if [[ "$IGNORED" ]]; then echo "Ignored files present:\n$IGNORED\n"; exit 1; fi
+    when:
+      - event: pull_request
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
@@ -116,24 +128,15 @@ steps:
     when: *slow_check_paths
 
   check_diesel_schema:
-    image: willsquire/diesel-cli
+    image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
+      - <<: *install_diesel_cli
       - diesel migration run
       - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
-    when: *slow_check_paths
-
-  check_diesel_migration_revertable:
-    image: willsquire/diesel-cli
-    environment:
-      CARGO_HOME: .cargo_home
-      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-    commands:
-      - diesel migration run
-      - diesel migration redo
     when: *slow_check_paths
 
   check_db_perf_tool:
@@ -154,7 +157,7 @@ steps:
       CARGO_HOME: .cargo_home
     commands:
       - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets --features console -- -D warnings
+      - cargo clippy --workspace --tests --all-targets -- -D warnings
     when: *slow_check_paths
 
   cargo_build:
@@ -172,9 +175,43 @@ steps:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
+      LEMMY_TEST_FAST_FEDERATION: "1"
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
+    when: *slow_check_paths
+
+  check_diesel_migration:
+    # TODO: use willsquire/diesel-cli image when shared libraries become optional in lemmy_server
+    image: *rust_image
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: "1"
+      CARGO_HOME: .cargo_home
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      PGUSER: lemmy
+      PGPASSWORD: password
+      PGHOST: database
+      PGDATABASE: lemmy
+    commands:
+      # Install diesel_cli
+      - <<: *install_diesel_cli
+      # Run all migrations
+      - diesel migration run
+      - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
+      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f before.sqldump
+      # Make sure that the newest migration is revertable without the `r` schema
+      - diesel migration redo
+      # Run schema setup twice, which fails on the 2nd time if `DROP SCHEMA IF EXISTS r CASCADE` drops the wrong things
+      - alias lemmy_schema_setup="target/lemmy_server --disable-scheduled-tasks --disable-http-server --disable-activity-sending"
+      - lemmy_schema_setup
+      - lemmy_schema_setup
+      # Make sure that the newest migration is revertable with the `r` schema
+      - diesel migration redo
+      # Check for changes in the schema, which would be caused by an incorrect migration
+      - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
+      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f after.sqldump
+      - diff before.sqldump after.sqldump
     when: *slow_check_paths
 
   run_federation_tests:
@@ -184,7 +221,7 @@ steps:
       DO_WRITE_HOSTS_FILE: "1"
     commands:
       - *install_pnpm
-      - apt update && apt install -y bash curl postgresql-client
+      - apt-get update && apt-get install -y bash curl postgresql-client
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - pnpm i
@@ -198,7 +235,8 @@ steps:
       - cat target/log/lemmy_*.out || true
       - "# If you can't see all output, then use the download button"
     when:
-      status: [failure]
+      - event: pull_request
+        status: failure
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
@@ -211,7 +249,7 @@ steps:
         - RUST_RELEASE_MODE=release
       tag: ${CI_COMMIT_TAG}
     when:
-      event: tag
+      - event: tag
 
   nightly_build:
     image: woodpeckerci/plugin-docker-buildx
@@ -224,20 +262,20 @@ steps:
         - RUST_RELEASE_MODE=release
       tag: dev
     when:
-      event: cron
+      - event: cron
 
   # using https://github.com/pksunkara/cargo-workspaces
   publish_to_crates_io:
     image: *rust_image
     commands:
-      - 'echo "pub const VERSION: &str = \"$(git describe --tag)\";" > "crates/utils/src/version.rs"'
-      - cargo install cargo-workspaces
+      - *install_binstall
+      # Install cargo-workspaces
+      - cargo binstall -y cargo-workspaces
       - cp -r migrations crates/db_schema/
-      - cargo login "$CARGO_API_TOKEN"
-      - cargo workspaces publish --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
+      - cargo workspaces publish --token "$CARGO_API_TOKEN" --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
     secrets: [cargo_api_token]
     when:
-      event: tag
+      - event: tag
 
   notify_on_failure:
     image: alpine:3
@@ -245,7 +283,8 @@ steps:
       - apk add curl
       - "curl -d'Lemmy CI build failed: ${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
     when:
-      status: [failure]
+      - event: [pull_request, tag]
+        status: failure
 
   notify_on_tag_deploy:
     image: alpine:3
@@ -253,11 +292,12 @@ steps:
       - apk add curl
       - "curl -d'lemmy:${CI_COMMIT_TAG} deployed' ntfy.sh/lemmy_drone_ci"
     when:
-      event: tag
+      - event: tag
 
 services:
   database:
-    image: postgres:16-alpine
+    # 15-alpine image necessary because of diesel tests
+    image: pgautoupgrade/pgautoupgrade:15-alpine
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password

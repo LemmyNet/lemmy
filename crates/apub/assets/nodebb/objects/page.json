@@ -1,0 +1,38 @@
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://community.nodebb.org/topic/17908",
+  "type": "Page",
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
+  "cc": ["https://community.nodebb.org/uid/2/followers"],
+  "inReplyTo": null,
+  "published": "2024-03-19T20:25:39.462Z",
+  "url": "https://community.nodebb.org/topic/17908/threadiverse-working-group",
+  "attributedTo": "https://community.nodebb.org/uid/2",
+  "audience": "https://community.nodebb.org/category/31/threadiverse-working-group",
+  "sensitive": false,
+  "summary": null,
+  "name": "Threadiverse Working Group",
+  "content": "<p dir=\"auto\">NodeBB is at this year's FediForum, and one of the breakout sessions centred around <strong>the Theadiverse</strong>, the subset of ActivityPub-enabled applications built around a topic-centric model of content representation.</p>\n<p dir=\"auto\">Some of the topic touched upon included:</p>\n<ul>\n<li>Aligning on a standard representation for collections of Notes</li>\n<li>FEP-1b12 — Group federation and implementation thereof by Lemmy, et al.</li>\n<li>Offering a comparatively more feature-rich experience vis-a-vis restrictions re: microblogging</li>\n<li>Going forward: collaborating on building compatible threadiverse implementations</li>\n</ul>\n<p dir=\"auto\">The main action item involved <strong>the genesis of an informal working group for the threadiverse</strong>, in order to align our disparate implementations toward a common path.</p>\n<p dir=\"auto\">We intend to meet monthly at first, with the first meeting likely sometime early-to-mid April.</p>\n<p dir=\"auto\">The topic of the first WG call is: <strong>Representation of the higherlevel collection of Notes (posts, etc.) — Article vs. Page, etc?</strong></p>\n<p dir=\"auto\">Interested?</p>\n<ul>\n<li>Publicly reply to this post (NodeBB does not support non-public posts at this time) if you'd like to join the list</li>\n<li>If you prefer to remain private, please email <a href=\"mailto:julian@nodebb.org\" rel=\"nofollow ugc\">julian@nodebb.org</a></li>\n</ul>\n<hr />\n<p dir=\"auto\">As an aside, I'd love to try something new and attempt tokeep as much of this as I can on the social web. Can you do me a favour and boost this to your followers?</p>\n",
+  "source": {
+    "content": "NodeBB is at this year's FediForum, and one of the breakout sessions centred around **the Theadiverse**, the subset of ActivityPub-enabled applications built around a topic-centric model of content representation.\n\nSome of the topic touched upon included:\n\n* Aligning on a standard representation for collections of Notes\n* FEP-1b12 — Group federation and implementation thereof by Lemmy, et al.\n* Offering a comparatively more feature-rich experience vis-a-vis restrictions re: microblogging\n* Going forward: collaborating on building compatible threadiverse implementations\n\nThe main action item involved **the genesis of an informal working group for the threadiverse**, in order to align our disparate implementations toward a common path.\n\nWe intend to meet monthly at first, with the first meeting likely sometime early-to-mid April.\n\nThe topic of the first WG call is: **Representation of the higher level collection of Notes (posts, etc.) — Article vs. Page, etc?**\n\nInterested?\n\n* Publicly reply to this post (NodeBB does not support non-public postsat this time) if you'd like to join the list\n* If you prefer to remain private, please email julian@nodebb.org\n\n----\n\nAs an aside, I'd love to try something new and attempt to keep as much of this as I can on the social web. Can you do me a favour and boost this to your followers?",
+    "mediaType": "text/markdown"
+  },
+  "tag": [
+    {
+      "type": "Hashtag",
+      "href": "https://community.nodebb.org/tags/fediforum",
+      "name": "#fediforum"
+    },
+    {
+      "type": "Hashtag",
+      "href": "https://community.nodebb.org/tags/activitypub",
+      "name": "#activitypub"
+    },
+    {
+      "type": "Hashtag",
+      "href": "https://community.nodebb.org/tags/threadiverse",
+      "name": "#threadiverse"
+    }
+  ],
+  "attachment": []
+}

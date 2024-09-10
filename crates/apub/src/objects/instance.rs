@@ -1,3 +1,4 @@
+use super::verify_is_remote_object;
 use crate::{
   activities::GetActorType,
   check_apub_id_valid_with_strictness,
@@ -19,10 +20,16 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{local_site_opt_to_slur_regex, process_markdown_opt, proxy_image_link_opt_apub},
+  utils::{
+    get_url_blocklist,
+    local_site_opt_to_slur_regex,
+    process_markdown_opt,
+    proxy_image_link_opt_apub,
+  },
 };
 use lemmy_db_schema::{
   newtypes::InstanceId,
+  sensitive::SensitiveString,
   source::{
     activity::ActorType,
     actor_language::SiteLanguage,
@@ -34,11 +41,12 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_utils::{
-  error::LemmyError,
+  error::{LemmyError, LemmyResult},
   utils::{
     markdown::markdown_to_html,
     slurs::{check_slurs, check_slurs_opt},
   },
+  LemmyErrorType,
 };
 use std::ops::Deref;
 use tracing::debug;
@@ -71,10 +79,7 @@ impl Object for ApubSite {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_id(
-    object_id: Url,
-    data: &Data<Self::DataType>,
-  ) -> Result<Option<Self>, LemmyError> {
+  async fn read_from_id(object_id: Url, data: &Data<Self::DataType>) -> LemmyResult<Option<Self>> {
     Ok(
       Site::read_from_apub_id(&mut data.pool(), &object_id.into())
         .await?
@@ -82,12 +87,12 @@ impl Object for ApubSite {
     )
   }
 
-  async fn delete(self, _data: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    unimplemented!()
+  async fn delete(self, _data: &Data<Self::DataType>) -> LemmyResult<()> {
+    Err(LemmyErrorType::CantDeleteSite.into())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_json(self, data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
+  async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     let site_id = self.id;
     let langs = SiteLanguage::read(&mut data.pool(), site_id).await?;
     let language = LanguageTag::new_multiple(langs, &mut data.pool()).await?;
@@ -96,6 +101,7 @@ impl Object for ApubSite {
       kind: ApplicationType::Application,
       id: self.id().into(),
       name: self.name.clone(),
+      preferred_username: Some(data.domain().to_string()),
       content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
       source: self.sidebar.clone().map(Source::new),
       summary: self.description.clone(),
@@ -103,7 +109,7 @@ impl Object for ApubSite {
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       inbox: self.inbox_url.clone().into(),
-      outbox: Url::parse(&format!("{}/site_outbox", self.actor_id))?,
+      outbox: Url::parse(&format!("{}site_outbox", self.actor_id))?,
       public_key: self.public_key(),
       language,
       content_warning: self.content_warning.clone(),
@@ -118,9 +124,10 @@ impl Object for ApubSite {
     apub: &Self::Kind,
     expected_domain: &Url,
     data: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     check_apub_id_valid_with_strictness(apub.id.inner(), true, data).await?;
     verify_domains_match(expected_domain, apub.id.inner())?;
+    verify_is_remote_object(&apub.id, data)?;
 
     let local_site_data = local_site_data_cached(&mut data.pool()).await?;
     let slur_regex = &local_site_opt_to_slur_regex(&local_site_data.local_site);
@@ -131,14 +138,19 @@ impl Object for ApubSite {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_json(apub: Self::Kind, context: &Data<Self::DataType>) -> Result<Self, LemmyError> {
-    let domain = apub.id.inner().domain().expect("group id has domain");
+  async fn from_json(apub: Self::Kind, context: &Data<Self::DataType>) -> LemmyResult<Self> {
+    let domain = apub
+      .id
+      .inner()
+      .domain()
+      .ok_or(LemmyErrorType::UrlWithoutDomain)?;
     let instance = DbInstance::read_or_create(&mut context.pool(), domain.to_string()).await?;
 
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+    let url_blocklist = get_url_blocklist(context).await?;
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
-    let sidebar = process_markdown_opt(&sidebar, slur_regex, context).await?;
+    let sidebar = process_markdown_opt(&sidebar, slur_regex, &url_blocklist, context).await?;
     let icon = proxy_image_link_opt_apub(apub.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), context).await?;
 
@@ -176,7 +188,7 @@ impl Actor for ApubSite {
   }
 
   fn private_key_pem(&self) -> Option<String> {
-    self.private_key.clone()
+    self.private_key.clone().map(SensitiveString::into_inner)
   }
 
   fn inbox(&self) -> Url {
@@ -193,7 +205,7 @@ impl GetActorType for ApubSite {
 pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
   object_id: &T,
   context: &Data<LemmyContext>,
-) -> Result<InstanceId, LemmyError> {
+) -> LemmyResult<InstanceId> {
   let object_id: Url = object_id.clone().into();
   let instance_id = Site::instance_actor_id_from_url(object_id);
   let site = ObjectId::<ApubSite>::from(instance_id.clone())
@@ -204,7 +216,9 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
     Err(e) => {
       // Failed to fetch instance actor, its probably not a lemmy instance
       debug!("Failed to dereference site for {}: {}", &instance_id, e);
-      let domain = instance_id.domain().expect("has domain");
+      let domain = instance_id
+        .domain()
+        .ok_or(LemmyErrorType::UrlWithoutDomain)?;
       Ok(
         DbInstance::read_or_create(&mut context.pool(), domain.to_string())
           .await?
@@ -218,7 +232,6 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
 pub(crate) mod tests {
   use super::*;
   use crate::protocol::tests::file_to_json_object;
-  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

@@ -5,7 +5,7 @@ use crate::{
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
     objects::{
-      page::{Attachment, AttributedTo, Page, PageType},
+      page::{Attachment, AttributedTo, Hashtag, HashtagType, Page, PageType},
       LanguageTag,
     },
     ImageObject,
@@ -24,28 +24,28 @@ use chrono::{DateTime, Utc};
 use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
-  request::fetch_link_metadata_opt,
-  utils::{
-    is_mod_or_admin,
-    local_site_opt_to_sensitive,
-    local_site_opt_to_slur_regex,
-    process_markdown_opt,
-    proxy_image_link_opt_apub,
-  },
+  request::generate_post_link_metadata,
+  utils::{get_url_blocklist, local_site_opt_to_slur_regex, process_markdown_opt},
 };
 use lemmy_db_schema::{
   source::{
     community::Community,
     local_site::LocalSite,
-    moderator::{ModLockPost, ModLockPostForm},
     person::Person,
     post::{Post, PostInsertForm, PostUpdateForm},
   },
   traits::Crud,
+  utils::naive_now,
 };
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
-  error::LemmyError,
-  utils::{markdown::markdown_to_html, slurs::check_slurs_opt, validation::check_url_scheme},
+  error::{LemmyError, LemmyErrorType, LemmyResult},
+  spawn_try_task,
+  utils::{
+    markdown::markdown_to_html,
+    slurs::check_slurs_opt,
+    validation::{is_url_blocked, is_valid_url},
+  },
 };
 use std::ops::Deref;
 use stringreader::StringReader;
@@ -83,7 +83,7 @@ impl Object for ApubPost {
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
-  ) -> Result<Option<Self>, LemmyError> {
+  ) -> LemmyResult<Option<Self>> {
     Ok(
       Post::read_from_apub_id(&mut context.pool(), object_id)
         .await?
@@ -92,7 +92,7 @@ impl Object for ApubPost {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     if !self.deleted {
       let form = PostUpdateForm {
         deleted: Some(true),
@@ -105,19 +105,34 @@ impl Object for ApubPost {
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
   #[tracing::instrument(skip_all)]
-  async fn into_json(self, context: &Data<Self::DataType>) -> Result<Page, LemmyError> {
+  async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Page> {
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut context.pool(), creator_id).await?;
+    let creator = Person::read(&mut context.pool(), creator_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?;
     let community_id = self.community_id;
-    let community = Community::read(&mut context.pool(), community_id).await?;
+    let community = Community::read(&mut context.pool(), community_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
     let language = LanguageTag::new_single(self.language_id, &mut context.pool()).await?;
 
     let attachment = self
       .url
       .clone()
-      .map(|url| Attachment::new(url.into(), self.url_content_type.clone()))
+      .map(|url| {
+        Attachment::new(
+          url.into(),
+          self.url_content_type.clone(),
+          self.alt_text.clone(),
+        )
+      })
       .into_iter()
       .collect();
+    let hashtag = Hashtag {
+      href: self.ap_id.clone().into(),
+      name: format!("#{}", &community.name),
+      kind: HashtagType::Hashtag,
+    };
 
     let page = Page {
       kind: PageType::Page,
@@ -131,13 +146,13 @@ impl Object for ApubPost {
       source: self.body.clone().map(Source::new),
       attachment,
       image: self.thumbnail_url.clone().map(ImageObject::new),
-      comments_enabled: Some(!self.locked),
       sensitive: Some(self.nsfw),
       language,
       published: Some(self.published),
       updated: self.updated,
       audience: Some(community.actor_id.into()),
       in_reply_to: None,
+      tag: vec![hashtag],
     };
     Ok(page)
   }
@@ -147,13 +162,9 @@ impl Object for ApubPost {
     page: &Page,
     expected_domain: &Url,
     context: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
-    // We can't verify the domain in case of mod action, because the mod may be on a different
-    // instance from the post author.
-    if !page.is_mod_action(context).await? {
-      verify_domains_match(page.id.inner(), expected_domain)?;
-      verify_is_remote_object(page.id.inner(), context.settings())?;
-    };
+  ) -> LemmyResult<()> {
+    verify_domains_match(page.id.inner(), expected_domain)?;
+    verify_is_remote_object(&page.id, context)?;
 
     let community = page.community(context).await?;
     check_apub_id_valid_with_strictness(page.id.inner(), community.local, context).await?;
@@ -169,11 +180,19 @@ impl Object for ApubPost {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_json(page: Page, context: &Data<Self::DataType>) -> Result<ApubPost, LemmyError> {
+  async fn from_json(page: Page, context: &Data<Self::DataType>) -> LemmyResult<ApubPost> {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
-      is_mod_or_admin(&mut context.pool(), &creator, community.id).await?;
+      let is_mod = CommunityModeratorView::is_community_moderator(
+        &mut context.pool(),
+        community.id,
+        creator.id,
+      )
+      .await?;
+      if !is_mod {
+        Err(LemmyErrorType::OnlyModsCanPostInCommunity)?
+      }
     }
     let mut name = page
       .name
@@ -200,89 +219,60 @@ impl Object for ApubPost {
       name = name.chars().take(MAX_TITLE_LENGTH).collect();
     }
 
-    // read existing, local post if any (for generating mod log)
-    let old_post = page.id.dereference_local(context).await;
+    let first_attachment = page.attachment.first();
+    let local_site = LocalSite::read(&mut context.pool()).await.ok();
 
-    let form = if !page.is_mod_action(context).await? {
-      let first_attachment = page.attachment.into_iter().map(Attachment::url).next();
-      let url = if first_attachment.is_some() {
-        first_attachment
-      } else if page.kind == PageType::Video {
-        // we cant display videos directly, so insert a link to external video page
-        Some(page.id.inner().clone())
-      } else {
-        None
-      };
-      check_url_scheme(&url)?;
-
-      let local_site = LocalSite::read(&mut context.pool()).await.ok();
-      let allow_sensitive = local_site_opt_to_sensitive(&local_site);
-      let page_is_sensitive = page.sensitive.unwrap_or(false);
-      let allow_generate_thumbnail = allow_sensitive || !page_is_sensitive;
-      let mut thumbnail_url = page.image.map(|i| i.url);
-      let do_generate_thumbnail = thumbnail_url.is_none() && allow_generate_thumbnail;
-
-      // Generate local thumbnail only if no thumbnail was federated and 'sensitive' attributes allow it.
-      let metadata = fetch_link_metadata_opt(url.as_ref(), do_generate_thumbnail, context).await;
-      if let Some(thumbnail_url_) = metadata.thumbnail {
-        thumbnail_url = Some(thumbnail_url_.into());
-      }
-      let url = proxy_image_link_opt_apub(url, context).await?;
-      let thumbnail_url = proxy_image_link_opt_apub(thumbnail_url, context).await?;
-
-      let slur_regex = &local_site_opt_to_slur_regex(&local_site);
-
-      let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
-      let body = process_markdown_opt(&body, slur_regex, context).await?;
-      let language_id =
-        LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
-
-      PostInsertForm {
-        name,
-        url: url.map(Into::into),
-        body,
-        creator_id: creator.id,
-        community_id: community.id,
-        removed: None,
-        locked: page.comments_enabled.map(|e| !e),
-        published: page.published.map(Into::into),
-        updated: page.updated.map(Into::into),
-        deleted: Some(false),
-        nsfw: page.sensitive,
-        embed_title: metadata.opengraph_data.title,
-        embed_description: metadata.opengraph_data.description,
-        embed_video_url: metadata.opengraph_data.embed_video_url,
-        thumbnail_url,
-        ap_id: Some(page.id.clone().into()),
-        local: Some(false),
-        language_id,
-        featured_community: None,
-        featured_local: None,
-        url_content_type: metadata.content_type,
-      }
+    let url = if let Some(attachment) = first_attachment.cloned() {
+      Some(attachment.url())
+    } else if page.kind == PageType::Video {
+      // we cant display videos directly, so insert a link to external video page
+      Some(page.id.inner().clone())
     } else {
-      // if is mod action, only update locked/stickied fields, nothing else
-      PostInsertForm::builder()
-        .name(name)
-        .creator_id(creator.id)
-        .community_id(community.id)
-        .ap_id(Some(page.id.clone().into()))
-        .locked(page.comments_enabled.map(|e| !e))
-        .updated(page.updated.map(Into::into))
-        .build()
+      None
     };
 
-    let post = Post::create(&mut context.pool(), &form).await?;
+    let url_blocklist = get_url_blocklist(context).await?;
 
-    // write mod log entry for lock
-    if Page::is_locked_changed(&old_post, &page.comments_enabled) {
-      let form = ModLockPostForm {
-        mod_person_id: creator.id,
-        post_id: post.id,
-        locked: Some(post.locked),
-      };
-      ModLockPost::create(&mut context.pool(), &form).await?;
+    if let Some(url) = &url {
+      is_url_blocked(url, &url_blocklist)?;
+      is_valid_url(url)?;
     }
+
+    let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
+
+    let slur_regex = &local_site_opt_to_slur_regex(&local_site);
+
+    let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
+    let body = process_markdown_opt(&body, slur_regex, &url_blocklist, context).await?;
+    let language_id =
+      LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
+
+    let form = PostInsertForm::builder()
+      .name(name)
+      .url(url.map(Into::into))
+      .body(body)
+      .alt_text(alt_text)
+      .creator_id(creator.id)
+      .community_id(community.id)
+      .published(page.published.map(Into::into))
+      .updated(page.updated.map(Into::into))
+      .deleted(Some(false))
+      .nsfw(page.sensitive)
+      .ap_id(Some(page.id.clone().into()))
+      .local(Some(false))
+      .language_id(language_id)
+      .build();
+
+    let timestamp = page.updated.or(page.published).unwrap_or_else(naive_now);
+    let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
+    let post_ = post.clone();
+    let context_ = context.reset_request_count();
+
+    // Generates a post thumbnail in background task, because some sites can be very slow to
+    // respond.
+    spawn_try_task(async move {
+      generate_post_link_metadata(post_, None, |_| None, local_site, context_).await
+    });
 
     Ok(post.into())
   }
@@ -293,14 +283,12 @@ mod tests {
   use super::*;
   use crate::{
     objects::{
-      community::{tests::parse_lemmy_community, ApubCommunity},
-      instance::ApubSite,
+      community::tests::parse_lemmy_community,
       person::{tests::parse_lemmy_person, ApubPerson},
     },
     protocol::tests::file_to_json_object,
   };
   use lemmy_db_schema::source::site::Site;
-  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -324,7 +312,10 @@ mod tests {
     assert!(!post.featured_community);
     assert_eq!(context.request_count(), 0);
 
-    cleanup(&context, person, site, community, post).await?;
+    Post::delete(&mut context.pool(), post.id).await?;
+    Person::delete(&mut context.pool(), person.id).await?;
+    Community::delete(&mut context.pool(), community.id).await?;
+    Site::delete(&mut context.pool(), site.id).await?;
     Ok(())
   }
 
@@ -332,29 +323,19 @@ mod tests {
   #[serial]
   async fn test_convert_mastodon_post_title() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let (person, site) = parse_lemmy_person(&context).await?;
     let community = parse_lemmy_community(&context).await?;
+
+    let json = file_to_json_object("assets/mastodon/objects/person.json")?;
+    let person = ApubPerson::from_json(json, &context).await?;
 
     let json = file_to_json_object("assets/mastodon/objects/page.json")?;
     let post = ApubPost::from_json(json, &context).await?;
 
     assert_eq!(post.name, "Variable never resetting at refresh");
 
-    cleanup(&context, person, site, community, post).await?;
-    Ok(())
-  }
-
-  async fn cleanup(
-    context: &Data<LemmyContext>,
-    person: ApubPerson,
-    site: ApubSite,
-    community: ApubCommunity,
-    post: ApubPost,
-  ) -> LemmyResult<()> {
     Post::delete(&mut context.pool(), post.id).await?;
     Person::delete(&mut context.pool(), person.id).await?;
     Community::delete(&mut context.pool(), community.id).await?;
-    Site::delete(&mut context.pool(), site.id).await?;
     Ok(())
   }
 }

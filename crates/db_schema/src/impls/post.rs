@@ -1,4 +1,5 @@
 use crate::{
+  diesel::OptionalExtension,
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
   schema::{post, post_hide, post_like, post_read, post_saved},
   source::post::{
@@ -27,8 +28,15 @@ use crate::{
   },
 };
 use ::url::Url;
-use chrono::{Duration, Utc};
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl, TextExpressionMethods};
+use chrono::{DateTime, Utc};
+use diesel::{
+  dsl::insert_into,
+  result::Error,
+  DecoratableTarget,
+  ExpressionMethods,
+  QueryDsl,
+  TextExpressionMethods,
+};
 use diesel_async::RunQueryDsl;
 use std::collections::HashSet;
 
@@ -42,9 +50,6 @@ impl Crud for Post {
     let conn = &mut get_conn(pool).await?;
     insert_into(post::table)
       .values(form)
-      .on_conflict(post::ap_id)
-      .do_update()
-      .set(form)
       .get_result::<Self>(conn)
       .await
   }
@@ -63,19 +68,19 @@ impl Crud for Post {
 }
 
 impl Post {
-  pub async fn list_for_community(
+  pub async fn insert_apub(
     pool: &mut DbPool<'_>,
-    the_community_id: CommunityId,
-  ) -> Result<Vec<Self>, Error> {
+    timestamp: DateTime<Utc>,
+    form: &PostInsertForm,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    post::table
-      .filter(post::community_id.eq(the_community_id))
-      .filter(post::deleted.eq(false))
-      .filter(post::removed.eq(false))
-      .then_order_by(post::featured_community.desc())
-      .then_order_by(post::published.desc())
-      .limit(FETCH_LIMIT_MAX)
-      .load::<Self>(conn)
+    insert_into(post::table)
+      .values(form)
+      .on_conflict(post::ap_id)
+      .filter_target(coalesce(post::updated, post::published).lt(timestamp))
+      .do_update()
+      .set(form)
+      .get_result::<Self>(conn)
       .await
   }
 
@@ -104,7 +109,9 @@ impl Post {
       .filter(post::local.eq(true))
       .filter(post::deleted.eq(false))
       .filter(post::removed.eq(false))
-      .filter(post::published.ge(Utc::now().naive_utc() - Duration::days(SITEMAP_DAYS)))
+      .filter(
+        post::published.ge(Utc::now().naive_utc() - SITEMAP_DAYS.expect("TimeDelta out of bounds")),
+      )
       .order(post::published.desc())
       .limit(SITEMAP_LIMIT)
       .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)
@@ -160,14 +167,11 @@ impl Post {
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     let object_id: DbUrl = object_id.into();
-    Ok(
-      post::table
-        .filter(post::ap_id.eq(object_id))
-        .first::<Post>(conn)
-        .await
-        .ok()
-        .map(Into::into),
-    )
+    post::table
+      .filter(post::ap_id.eq(object_id))
+      .first(conn)
+      .await
+      .optional()
   }
 
   pub async fn fetch_pictrs_posts_for_creator(
@@ -360,9 +364,9 @@ impl PostHide {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     source::{
@@ -386,6 +390,7 @@ mod tests {
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::collections::HashSet;
+  use url::Url;
 
   #[tokio::test]
   #[serial]
@@ -397,11 +402,7 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("jim".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "jim");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
@@ -434,6 +435,7 @@ mod tests {
       name: "A test post".into(),
       url: None,
       body: None,
+      alt_text: None,
       creator_id: inserted_person.id,
       community_id: inserted_community.id,
       published: inserted_post.published,
@@ -446,7 +448,9 @@ mod tests {
       embed_description: None,
       embed_video_url: None,
       thumbnail_url: None,
-      ap_id: inserted_post.ap_id.clone(),
+      ap_id: Url::parse(&format!("https://lemmy-alpha/post/{}", inserted_post.id))
+        .unwrap()
+        .into(),
       local: true,
       language_id: Default::default(),
       featured_community: false,
@@ -494,7 +498,7 @@ mod tests {
     .unwrap();
     assert_eq!(2, marked_as_read);
 
-    let read_post = Post::read(pool, inserted_post.id).await.unwrap();
+    let read_post = Post::read(pool, inserted_post.id).await.unwrap().unwrap();
 
     let new_post_update = PostUpdateForm {
       name: Some("A test post".into()),

@@ -1,0 +1,66 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    "https://purl.archive.org/socialweb/webfinger",
+    {
+      "schema": "http://schema.org#",
+      "toot": "http://joinmastodon.org/ns#",
+      "webfinger": "https://webfinger.net/#",
+      "lemmy": "https://join-lemmy.org/ns#",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "PropertyValue": "schema:PropertyValue",
+      "value": "schema:value",
+      "Hashtag": "as:Hashtag",
+      "featured": {
+        "@id": "toot:featured",
+        "@type": "@id"
+      },
+      "featuredTags": {
+        "@id": "toot:featuredTags",
+        "@type": "@id"
+      },
+      "moderators": {
+        "@id": "lemmy:moderators",
+        "@type": "@id"
+      },
+      "postingRestrictedToMods": "lemmy:postingRestrictedToMods",
+      "discoverable": "toot:discoverable",
+      "indexable": "toot:indexable",
+      "resource": "webfinger:resource"
+    }
+  ],
+  "id": "https://pfefferle.org/@pfefferle.org",
+  "type": "Group",
+  "attachment": [],
+  "attributedTo": "https://pfefferle.org/wp-json/activitypub/1.0/collections/moderators",
+  "name": "Matthias Pfefferle",
+  "icon": {
+    "type": "Image",
+    "url": "https://pfefferle.org/wp-content/uploads/2023/06/cropped-BeLItBV-_400x400.jpg"
+  },
+  "published": "2024-04-03T16:58:22Z",
+  "summary": "<p>Webworker, blogger und podcaster</p>\n",
+  "tag": [],
+  "url": "https://pfefferle.org/@pfefferle.org",
+  "inbox": "https://pfefferle.org/wp-json/activitypub/1.0/users/0/inbox",
+  "outbox": "https://pfefferle.org/wp-json/activitypub/1.0/users/0/outbox",
+  "following": "https://pfefferle.org/wp-json/activitypub/1.0/users/0/following",
+  "followers": "https://pfefferle.org/wp-json/activitypub/1.0/users/0/followers",
+  "preferredUsername": "pfefferle.org",
+  "endpoints": {
+    "sharedInbox": "https://pfefferle.org/wp-json/activitypub/1.0/inbox"
+  },
+  "publicKey": {
+    "id": "https://pfefferle.org/@pfefferle.org#main-key",
+    "owner": "https://pfefferle.org/@pfefferle.org",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuq8xeLMFcaCwPFBhgMRE\n/dDh2XKoNXFXnixctmK8BXSuuLMxucm3I/8NyhIvb3LqU+uP1fO8F0ecUbk2sN+x\nKag5vIV6yKXzJ8ILMWQ9AaELpXDmMZqL0zal0LUJRAOkDgPDovDAoq6tx++yDoV0\njdVbf9CoZKit1cz2ZrEuE5dswq3J/z9+c6POkhCkWEX5TPJzkOrmnjkvrXxGHUJ2\nA3+P+VaZhd5cmvqYosSpYNJshxCdev12pIF78OnYLiYiyXlgGHU+7uQR0M4tTcij\n6cUdLkms9m+b6H3ctXntPn410e5YLFPldjAYzQB5wHVdFZsWtyrbqfYdCa+KkKpA\nvwIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "manuallyApprovesFollowers": false,
+  "featured": "https://pfefferle.org/wp-json/activitypub/1.0/users/0/collections/featured",
+  "moderators": "https://pfefferle.org/wp-json/activitypub/1.0/collections/moderators",
+  "discoverable": true,
+  "indexable": true,
+  "webfinger": "pfefferle.org@pfefferle.org",
+  "postingRestrictedToMods": true
+}

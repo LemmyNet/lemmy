@@ -22,18 +22,22 @@ impl SentActivity {
       .await
   }
 
-  pub async fn read_from_apub_id(pool: &mut DbPool<'_>, object_id: &DbUrl) -> Result<Self, Error> {
+  pub async fn read_from_apub_id(
+    pool: &mut DbPool<'_>,
+    object_id: &DbUrl,
+  ) -> Result<Option<Self>, Error> {
     use crate::schema::sent_activity::dsl::{ap_id, sent_activity};
     let conn = &mut get_conn(pool).await?;
     sent_activity
       .filter(ap_id.eq(object_id))
-      .first::<Self>(conn)
+      .first(conn)
       .await
+      .optional()
   }
-  pub async fn read(pool: &mut DbPool<'_>, object_id: ActivityId) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, object_id: ActivityId) -> Result<Option<Self>, Error> {
     use crate::schema::sent_activity::dsl::sent_activity;
     let conn = &mut get_conn(pool).await?;
-    sent_activity.find(object_id).first::<Self>(conn).await
+    sent_activity.find(object_id).first(conn).await.optional()
   }
 }
 
@@ -61,9 +65,9 @@ impl ReceivedActivity {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
   use crate::{source::activity::ActorType, utils::build_db_pool_for_tests};
@@ -81,12 +85,9 @@ mod tests {
       .unwrap()
       .into();
 
-    // inserting activity for first time
-    let res = ReceivedActivity::create(pool, &ap_id).await;
-    assert!(res.is_ok());
-
-    let res = ReceivedActivity::create(pool, &ap_id).await;
-    assert!(res.is_err());
+    // inserting activity should only work once
+    ReceivedActivity::create(pool, &ap_id).await.unwrap();
+    ReceivedActivity::create(pool, &ap_id).await.unwrap_err();
   }
 
   #[tokio::test]
@@ -118,7 +119,10 @@ mod tests {
 
     SentActivity::create(pool, form).await.unwrap();
 
-    let res = SentActivity::read_from_apub_id(pool, &ap_id).await.unwrap();
+    let res = SentActivity::read_from_apub_id(pool, &ap_id)
+      .await
+      .unwrap()
+      .unwrap();
     assert_eq!(res.ap_id, ap_id);
     assert_eq!(res.data, data);
     assert_eq!(res.sensitive, sensitive);

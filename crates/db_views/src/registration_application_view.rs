@@ -11,12 +11,18 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
+  newtypes::{PersonId, RegistrationApplicationId},
   schema::{local_user, person, registration_application},
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
+enum ReadBy {
+  Id(RegistrationApplicationId),
+  Person(PersonId),
+}
+
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, RegistrationApplicationView, i32>,
+  impl ReadFn<'a, RegistrationApplicationView, ReadBy>,
   impl ListFn<'a, RegistrationApplicationView, RegistrationApplicationQuery>,
 > {
   let all_joins = |query: registration_application::BoxedQuery<'a, Pg>| {
@@ -36,20 +42,22 @@ fn queries<'a>() -> Queries<
       ))
   };
 
-  let read = move |mut conn: DbConn<'a>, registration_application_id: i32| async move {
-    all_joins(
-      registration_application::table
-        .find(registration_application_id)
-        .into_boxed(),
-    )
-    .first::<RegistrationApplicationView>(&mut conn)
-    .await
+  let read = move |mut conn: DbConn<'a>, search: ReadBy| async move {
+    let mut query = all_joins(registration_application::table.into_boxed());
+
+    query = match search {
+      ReadBy::Id(id) => query.filter(registration_application::id.eq(id)),
+      ReadBy::Person(person_id) => query.filter(person::id.eq(person_id)),
+    };
+
+    query.first(&mut conn).await
   };
 
   let list = move |mut conn: DbConn<'a>, options: RegistrationApplicationQuery| async move {
     let mut query = all_joins(registration_application::table.into_boxed());
 
-    // If viewing all applications, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
+    // If viewing all applications, order by newest, but if viewing unresolved only, show the oldest
+    // first (FIFO)
     if options.unread_only {
       query = query
         .filter(registration_application::admin_id.is_null())
@@ -75,11 +83,17 @@ fn queries<'a>() -> Queries<
 impl RegistrationApplicationView {
   pub async fn read(
     pool: &mut DbPool<'_>,
-    registration_application_id: i32,
-  ) -> Result<Self, Error> {
-    queries().read(pool, registration_application_id).await
+    id: RegistrationApplicationId,
+  ) -> Result<Option<Self>, Error> {
+    queries().read(pool, ReadBy::Id(id)).await
   }
 
+  pub async fn read_by_person(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+  ) -> Result<Option<Self>, Error> {
+    queries().read(pool, ReadBy::Person(person_id)).await
+  }
   /// Returns the current unread registration_application count
   pub async fn get_unread_count(
     pool: &mut DbPool<'_>,
@@ -127,9 +141,9 @@ impl RegistrationApplicationQuery {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::registration_application_view::{
     RegistrationApplicationQuery,
@@ -162,38 +176,23 @@ mod tests {
       .await
       .unwrap();
 
-    let timmy_person_form = PersonInsertForm::builder()
-      .name("timmy_rav".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let timmy_person_form = PersonInsertForm::test_form(inserted_instance.id, "timmy_rav");
 
     let inserted_timmy_person = Person::create(pool, &timmy_person_form).await.unwrap();
 
-    let timmy_local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_timmy_person.id)
-      .password_encrypted("nada".to_string())
-      .admin(Some(true))
-      .build();
+    let timmy_local_user_form = LocalUserInsertForm::test_form_admin(inserted_timmy_person.id);
 
-    let _inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form)
+    let _inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![])
       .await
       .unwrap();
 
-    let sara_person_form = PersonInsertForm::builder()
-      .name("sara_rav".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let sara_person_form = PersonInsertForm::test_form(inserted_instance.id, "sara_rav");
 
     let inserted_sara_person = Person::create(pool, &sara_person_form).await.unwrap();
 
-    let sara_local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_sara_person.id)
-      .password_encrypted("nada".to_string())
-      .build();
+    let sara_local_user_form = LocalUserInsertForm::test_form(inserted_sara_person.id);
 
-    let inserted_sara_local_user = LocalUser::create(pool, &sara_local_user_form)
+    let inserted_sara_local_user = LocalUser::create(pool, &sara_local_user_form, vec![])
       .await
       .unwrap();
 
@@ -209,22 +208,16 @@ mod tests {
 
     let read_sara_app_view = RegistrationApplicationView::read(pool, sara_app.id)
       .await
+      .unwrap()
       .unwrap();
 
-    let jess_person_form = PersonInsertForm::builder()
-      .name("jess_rav".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let jess_person_form = PersonInsertForm::test_form(inserted_instance.id, "jess_rav");
 
     let inserted_jess_person = Person::create(pool, &jess_person_form).await.unwrap();
 
-    let jess_local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_jess_person.id)
-      .password_encrypted("nada".to_string())
-      .build();
+    let jess_local_user_form = LocalUserInsertForm::test_form(inserted_jess_person.id);
 
-    let inserted_jess_local_user = LocalUser::create(pool, &jess_local_user_form)
+    let inserted_jess_local_user = LocalUser::create(pool, &jess_local_user_form, vec![])
       .await
       .unwrap();
 
@@ -240,6 +233,7 @@ mod tests {
 
     let read_jess_app_view = RegistrationApplicationView::read(pool, jess_app.id)
       .await
+      .unwrap()
       .unwrap();
 
     let mut expected_sara_app_view = RegistrationApplicationView {
@@ -342,6 +336,7 @@ mod tests {
 
     let read_sara_app_view_after_approve = RegistrationApplicationView::read(pool, sara_app.id)
       .await
+      .unwrap()
       .unwrap();
 
     // Make sure the columns changed

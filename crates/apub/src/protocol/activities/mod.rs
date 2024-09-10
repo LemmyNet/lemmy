@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use strum_macros::Display;
+use strum::Display;
 
 pub mod block;
 pub mod community;
@@ -94,6 +94,12 @@ mod tests {
   fn test_parse_mbin_activities() -> LemmyResult<()> {
     test_json::<AcceptFollow>("assets/mbin/activities/accept.json")?;
     test_json::<Report>("assets/mbin/activities/flag.json")?;
+    Ok(())
+  }
+
+  #[test]
+  fn test_parse_wordpress_activities() -> LemmyResult<()> {
+    test_json::<AnnounceActivity>("assets/wordpress/activities/announce.json")?;
     Ok(())
   }
 }

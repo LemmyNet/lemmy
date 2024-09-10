@@ -4,14 +4,14 @@ use lemmy_api_common::{
   private_message::{GetPrivateMessages, PrivateMessagesResponse},
 };
 use lemmy_db_views::{private_message_view::PrivateMessageQuery, structs::LocalUserView};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_private_message(
   data: Query<GetPrivateMessages>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PrivateMessagesResponse>, LemmyError> {
+) -> LemmyResult<Json<PrivateMessagesResponse>> {
   let person_id = local_user_view.person.id;
 
   let page = data.page;

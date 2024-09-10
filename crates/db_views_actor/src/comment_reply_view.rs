@@ -1,6 +1,6 @@
 use crate::structs::CommentReplyView;
 use diesel::{
-  dsl::exists,
+  dsl::{exists, not},
   pg::Pg,
   result::Error,
   sql_types,
@@ -31,6 +31,7 @@ use lemmy_db_schema::{
     person_block,
     post,
   },
+  source::local_user::LocalUser,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
 };
@@ -46,6 +47,16 @@ fn queries<'a>() -> Queries<
         .and(community_person_ban::person_id.eq(comment::creator_id)),
     ),
   );
+
+  let is_local_user_banned_from_community = |person_id| {
+    exists(
+      community_person_ban::table.filter(
+        community::id
+          .eq(community_person_ban::community_id)
+          .and(community_person_ban::person_id.eq(person_id)),
+      ),
+    )
+  };
 
   let is_saved = |person_id| {
     exists(
@@ -107,6 +118,14 @@ fn queries<'a>() -> Queries<
 
   let all_joins = move |query: comment_reply::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>| {
+    let is_local_user_banned_from_community_selection: Box<
+      dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>,
+    > = if let Some(person_id) = my_person_id {
+      Box::new(is_local_user_banned_from_community(person_id))
+    } else {
+      Box::new(false.into_sql::<sql_types::Bool>())
+    };
+
     let score_selection: Box<
       dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
     > = if let Some(person_id) = my_person_id {
@@ -153,6 +172,7 @@ fn queries<'a>() -> Queries<
         aliases::person1.fields(person::all_columns),
         comment_aggregates::all_columns,
         is_creator_banned_from_community,
+        is_local_user_banned_from_community_selection,
         creator_is_moderator,
         creator_is_admin,
         subscribed_type_selection,
@@ -169,11 +189,13 @@ fn queries<'a>() -> Queries<
         comment_reply::table.find(comment_reply_id).into_boxed(),
         my_person_id,
       )
-      .first::<CommentReplyView>(&mut conn)
+      .first(&mut conn)
       .await
     };
 
   let list = move |mut conn: DbConn<'a>, options: CommentReplyQuery| async move {
+    // These filters need to be kept in sync with the filters in
+    // CommentReplyView::get_unread_replies()
     let mut query = all_joins(comment_reply::table.into_boxed(), options.my_person_id);
 
     if let Some(recipient_id) = options.recipient_id {
@@ -185,7 +207,7 @@ fn queries<'a>() -> Queries<
     }
 
     if !options.show_bot_accounts {
-      query = query.filter(person::bot_account.eq(false));
+      query = query.filter(not(person::bot_account));
     };
 
     query = match options.sort.unwrap_or(CommentSortType::New) {
@@ -197,6 +219,11 @@ fn queries<'a>() -> Queries<
       CommentSortType::Old => query.then_order_by(comment_reply::published.asc()),
       CommentSortType::Top => query.order_by(comment_aggregates::score.desc()),
     };
+
+    // Don't show replies from blocked persons
+    if let Some(my_person_id) = options.my_person_id {
+      query = query.filter(not(is_creator_blocked(my_person_id)));
+    }
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
@@ -215,31 +242,40 @@ impl CommentReplyView {
     pool: &mut DbPool<'_>,
     comment_reply_id: CommentReplyId,
     my_person_id: Option<PersonId>,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     queries().read(pool, (comment_reply_id, my_person_id)).await
   }
 
   /// Gets the number of unread replies
   pub async fn get_unread_replies(
     pool: &mut DbPool<'_>,
-    my_person_id: PersonId,
+    local_user: &LocalUser,
   ) -> Result<i64, Error> {
     use diesel::dsl::count;
 
     let conn = &mut get_conn(pool).await?;
 
-    comment_reply::table
+    let mut query = comment_reply::table
       .inner_join(comment::table)
       .left_join(
         person_block::table.on(
           comment::creator_id
             .eq(person_block::target_id)
-            .and(person_block::person_id.eq(my_person_id)),
+            .and(person_block::person_id.eq(local_user.person_id)),
         ),
       )
-      // Dont count replies from blocked users
+      .inner_join(person::table.on(comment::creator_id.eq(person::id)))
+      .into_boxed();
+
+    // These filters need to be kept in sync with the filters in queries().list()
+    if !local_user.show_bot_accounts {
+      query = query.filter(not(person::bot_account));
+    }
+
+    query
+      // Don't count replies from blocked users
       .filter(person_block::person_id.is_null())
-      .filter(comment_reply::recipient_id.eq(my_person_id))
+      .filter(comment_reply::recipient_id.eq(local_user.person_id))
       .filter(comment_reply::read.eq(false))
       .filter(comment::deleted.eq(false))
       .filter(comment::removed.eq(false))
@@ -249,7 +285,7 @@ impl CommentReplyView {
   }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct CommentReplyQuery {
   pub my_person_id: Option<PersonId>,
   pub recipient_id: Option<PersonId>,
@@ -263,5 +299,176 @@ pub struct CommentReplyQuery {
 impl CommentReplyQuery {
   pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommentReplyView>, Error> {
     queries().list(pool, self).await
+  }
+}
+
+#[cfg(test)]
+#[allow(clippy::indexing_slicing)]
+mod tests {
+
+  use crate::{comment_reply_view::CommentReplyQuery, structs::CommentReplyView};
+  use lemmy_db_schema::{
+    source::{
+      comment::{Comment, CommentInsertForm},
+      comment_reply::{CommentReply, CommentReplyInsertForm, CommentReplyUpdateForm},
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+      person::{Person, PersonInsertForm, PersonUpdateForm},
+      person_block::{PersonBlock, PersonBlockForm},
+      post::{Post, PostInsertForm},
+    },
+    traits::{Blockable, Crud},
+    utils::build_db_pool_for_tests,
+  };
+  use lemmy_db_views::structs::LocalUserView;
+  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use pretty_assertions::assert_eq;
+  use serial_test::serial;
+
+  #[tokio::test]
+  #[serial]
+  async fn test_crud() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let terry_form = PersonInsertForm::test_form(inserted_instance.id, "terrylake");
+    let inserted_terry = Person::create(pool, &terry_form).await?;
+
+    let recipient_form = PersonInsertForm {
+      local: Some(true),
+      ..PersonInsertForm::test_form(inserted_instance.id, "terrylakes recipient")
+    };
+
+    let inserted_recipient = Person::create(pool, &recipient_form).await?;
+    let recipient_id = inserted_recipient.id;
+
+    let recipient_local_user =
+      LocalUser::create(pool, &LocalUserInsertForm::test_form(recipient_id), vec![]).await?;
+
+    let new_community = CommunityInsertForm::builder()
+      .name("test community lake".to_string())
+      .title("nada".to_owned())
+      .public_key("pubkey".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+
+    let inserted_community = Community::create(pool, &new_community).await?;
+
+    let new_post = PostInsertForm::builder()
+      .name("A test post".into())
+      .creator_id(inserted_terry.id)
+      .community_id(inserted_community.id)
+      .build();
+
+    let inserted_post = Post::create(pool, &new_post).await?;
+
+    let comment_form = CommentInsertForm::builder()
+      .content("A test comment".into())
+      .creator_id(inserted_terry.id)
+      .post_id(inserted_post.id)
+      .build();
+
+    let inserted_comment = Comment::create(pool, &comment_form, None).await?;
+
+    let comment_reply_form = CommentReplyInsertForm {
+      recipient_id: inserted_recipient.id,
+      comment_id: inserted_comment.id,
+      read: None,
+    };
+
+    let inserted_reply = CommentReply::create(pool, &comment_reply_form).await?;
+
+    let expected_reply = CommentReply {
+      id: inserted_reply.id,
+      recipient_id: inserted_reply.recipient_id,
+      comment_id: inserted_reply.comment_id,
+      read: false,
+      published: inserted_reply.published,
+    };
+
+    let read_reply = CommentReply::read(pool, inserted_reply.id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindComment)?;
+
+    let comment_reply_update_form = CommentReplyUpdateForm { read: Some(false) };
+    let updated_reply =
+      CommentReply::update(pool, inserted_reply.id, &comment_reply_update_form).await?;
+
+    // Test to make sure counts and blocks work correctly
+    let unread_replies = CommentReplyView::get_unread_replies(pool, &recipient_local_user).await?;
+
+    let query = CommentReplyQuery {
+      recipient_id: Some(recipient_id),
+      my_person_id: Some(recipient_id),
+      sort: None,
+      unread_only: false,
+      show_bot_accounts: true,
+      page: None,
+      limit: None,
+    };
+    let replies = query.clone().list(pool).await?;
+    assert_eq!(1, unread_replies);
+    assert_eq!(1, replies.len());
+
+    // Block the person, and make sure these counts are now empty
+    let block_form = PersonBlockForm {
+      person_id: recipient_id,
+      target_id: inserted_terry.id,
+    };
+    PersonBlock::block(pool, &block_form).await?;
+
+    let unread_replies_after_block =
+      CommentReplyView::get_unread_replies(pool, &recipient_local_user).await?;
+    let replies_after_block = query.clone().list(pool).await?;
+    assert_eq!(0, unread_replies_after_block);
+    assert_eq!(0, replies_after_block.len());
+
+    // Unblock user so we can reuse the same person
+    PersonBlock::unblock(pool, &block_form).await?;
+
+    // Turn Terry into a bot account
+    let person_update_form = PersonUpdateForm {
+      bot_account: Some(true),
+      ..Default::default()
+    };
+    Person::update(pool, inserted_terry.id, &person_update_form).await?;
+
+    let recipient_local_user_update_form = LocalUserUpdateForm {
+      show_bot_accounts: Some(false),
+      ..Default::default()
+    };
+    LocalUser::update(
+      pool,
+      recipient_local_user.id,
+      &recipient_local_user_update_form,
+    )
+    .await?;
+    let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
+
+    let unread_replies_after_hide_bots =
+      CommentReplyView::get_unread_replies(pool, &recipient_local_user_view.local_user).await?;
+
+    let mut query_without_bots = query.clone();
+    query_without_bots.show_bot_accounts = false;
+    let replies_after_hide_bots = query_without_bots.list(pool).await?;
+    assert_eq!(0, unread_replies_after_hide_bots);
+    assert_eq!(0, replies_after_hide_bots.len());
+
+    Comment::delete(pool, inserted_comment.id).await?;
+    Post::delete(pool, inserted_post.id).await?;
+    Community::delete(pool, inserted_community.id).await?;
+    Person::delete(pool, inserted_terry.id).await?;
+    Person::delete(pool, inserted_recipient.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    assert_eq!(expected_reply, read_reply);
+    assert_eq!(expected_reply, inserted_reply);
+    assert_eq!(expected_reply, updated_reply);
+    Ok(())
   }
 }

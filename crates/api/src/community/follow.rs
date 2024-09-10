@@ -15,15 +15,17 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn follow_community(
   data: Json<FollowCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommunityResponse>, LemmyError> {
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
+) -> LemmyResult<Json<CommunityResponse>> {
+  let community = Community::read(&mut context.pool(), data.community_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
   let mut community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     person_id: local_user_view.person.id,
@@ -60,9 +62,15 @@ pub async fn follow_community(
   }
 
   let community_id = data.community_id;
-  let person_id = local_user_view.person.id;
-  let community_view =
-    CommunityView::read(&mut context.pool(), community_id, Some(person_id), false).await?;
+  let community_view = CommunityView::read(
+    &mut context.pool(),
+    community_id,
+    Some(&local_user_view.local_user),
+    false,
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+
   let discussion_languages = CommunityLanguage::read(&mut context.pool(), community_id).await?;
 
   Ok(Json(CommunityResponse {

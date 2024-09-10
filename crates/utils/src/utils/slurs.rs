@@ -1,4 +1,4 @@
-use crate::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use regex::{Regex, RegexBuilder};
 
 pub fn remove_slurs(test: &str, slur_regex: &Option<Regex>) -> String {
@@ -39,7 +39,7 @@ pub fn build_slur_regex(regex_str: Option<&str>) -> Option<Regex> {
   })
 }
 
-pub fn check_slurs(text: &str, slur_regex: &Option<Regex>) -> Result<(), LemmyError> {
+pub fn check_slurs(text: &str, slur_regex: &Option<Regex>) -> LemmyResult<()> {
   if let Err(slurs) = slur_check(text, slur_regex) {
     Err(anyhow::anyhow!("{}", slurs_vec_to_str(&slurs))).with_lemmy_type(LemmyErrorType::Slurs)
   } else {
@@ -47,10 +47,7 @@ pub fn check_slurs(text: &str, slur_regex: &Option<Regex>) -> Result<(), LemmyEr
   }
 }
 
-pub fn check_slurs_opt(
-  text: &Option<String>,
-  slur_regex: &Option<Regex>,
-) -> Result<(), LemmyError> {
+pub fn check_slurs_opt(text: &Option<String>, slur_regex: &Option<Regex>) -> LemmyResult<()> {
   match text {
     Some(t) => check_slurs(t, slur_regex),
     None => Ok(()),
@@ -64,9 +61,9 @@ pub(crate) fn slurs_vec_to_str(slurs: &[&str]) -> String {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod test {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::utils::slurs::{remove_slurs, slur_check, slurs_vec_to_str};
   use pretty_assertions::assert_eq;
@@ -104,7 +101,7 @@ mod test {
   // These helped with testing
   // #[test]
   // fn test_send_email() {
-  //  let result =  send_email("not a subject", "test_email@gmail.com", "ur user", "<h1>HI there</h1>");
-  //   assert!(result.is_ok());
+  //  let result =  send_email("not a subject", "test_email@gmail.com", "ur user", "<h1>HI
+  // there</h1>");   assert!(result.is_ok());
   // }
 }

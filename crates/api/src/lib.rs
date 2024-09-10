@@ -26,7 +26,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   utils::slurs::check_slurs,
 };
 use std::io::Cursor;
@@ -44,32 +44,38 @@ pub mod site;
 pub mod sitemap;
 
 /// Converts the captcha to a base64 encoded wav audio file
-pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyError> {
+pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> LemmyResult<String> {
   let letters = captcha.as_wav();
 
   // Decode each wav file, concatenate the samples
   let mut concat_samples: Vec<i16> = Vec::new();
-  let mut any_header: Option<wav::Header> = None;
+  let mut any_header: Option<hound::WavSpec> = None;
   for letter in letters {
     let mut cursor = Cursor::new(letter.unwrap_or_default());
-    let (header, samples) = wav::read(&mut cursor)?;
-    any_header = Some(header);
-    if let Some(samples16) = samples.as_sixteen() {
-      concat_samples.extend(samples16);
-    } else {
-      Err(LemmyErrorType::CouldntCreateAudioCaptcha)?
-    }
+    let reader = hound::WavReader::new(&mut cursor)?;
+    any_header = Some(reader.spec());
+    let samples16 = reader
+      .into_samples::<i16>()
+      .collect::<Result<Vec<_>, _>>()
+      .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+    concat_samples.extend(samples16);
   }
 
   // Encode the concatenated result as a wav file
   let mut output_buffer = Cursor::new(vec![]);
   if let Some(header) = any_header {
-    wav::write(
-      header,
-      &wav::BitDepth::Sixteen(concat_samples),
-      &mut output_buffer,
-    )
-    .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+    let mut writer = hound::WavWriter::new(&mut output_buffer, header)
+      .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+    let mut writer16 = writer.get_i16_writer(concat_samples.len() as u32);
+    for sample in concat_samples {
+      writer16.write_sample(sample);
+    }
+    writer16
+      .flush()
+      .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
+    writer
+      .finalize()
+      .with_lemmy_type(LemmyErrorType::CouldntCreateAudioCaptcha)?;
 
     Ok(base64.encode(output_buffer.into_inner()))
   } else {
@@ -78,7 +84,7 @@ pub(crate) fn captcha_as_wav_base64(captcha: &Captcha) -> Result<String, LemmyEr
 }
 
 /// Check size of report
-pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Result<(), LemmyError> {
+pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> LemmyResult<()> {
   let slur_regex = &local_site_to_slur_regex(local_site);
 
   check_slurs(reason, slur_regex)?;
@@ -91,7 +97,7 @@ pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Resul
   }
 }
 
-pub fn read_auth_token(req: &HttpRequest) -> Result<Option<String>, LemmyError> {
+pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
   // Try reading jwt from auth header
   if let Ok(header) = Authorization::<Bearer>::parse(req) {
     Ok(Some(header.as_ref().token().to_string()))
@@ -135,11 +141,7 @@ pub(crate) fn generate_totp_2fa_secret() -> String {
   Secret::generate_secret().to_string()
 }
 
-pub(crate) fn build_totp_2fa(
-  site_name: &str,
-  username: &str,
-  secret: &str,
-) -> Result<TOTP, LemmyError> {
+fn build_totp_2fa(hostname: &str, username: &str, secret: &str) -> LemmyResult<TOTP> {
   let sec = Secret::Raw(secret.as_bytes().to_vec());
   let sec_bytes = sec
     .to_bytes()
@@ -151,7 +153,7 @@ pub(crate) fn build_totp_2fa(
     1,
     30,
     sec_bytes,
-    Some(site_name.to_string()),
+    Some(hostname.to_string()),
     username.to_string(),
   )
   .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
@@ -252,27 +254,29 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
 pub async fn local_user_view_from_jwt(
   jwt: &str,
   context: &LemmyContext,
-) -> Result<LocalUserView, LemmyError> {
+) -> LemmyResult<LocalUserView> {
   let local_user_id = Claims::validate(jwt, context)
     .await
     .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
-  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
+  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
   check_user_valid(&local_user_view.person)?;
 
   Ok(local_user_view)
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
 
   #[test]
   fn test_build_totp() {
     let generated_secret = generate_totp_2fa_secret();
-    let totp = build_totp_2fa("lemmy", "my_name", &generated_secret);
+    let totp = build_totp_2fa("lemmy.ml", "my_name", &generated_secret);
     assert!(totp.is_ok());
   }
 }

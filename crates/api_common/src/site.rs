@@ -1,11 +1,20 @@
 use crate::federate_retry_sleep_duration;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
+  newtypes::{
+    CommentId,
+    CommunityId,
+    InstanceId,
+    LanguageId,
+    PersonId,
+    PostId,
+    RegistrationApplicationId,
+  },
   source::{
     federation_queue_state::FederationQueueState,
     instance::Instance,
     language::Language,
+    local_site_url_blocklist::LocalSiteUrlBlocklist,
     tagline::Tagline,
   },
   ListingType,
@@ -118,6 +127,8 @@ pub struct GetModlog {
   pub limit: Option<i64>,
   pub type_: Option<ModlogActionType>,
   pub other_person_id: Option<PersonId>,
+  pub post_id: Option<PostId>,
+  pub comment_id: Option<CommentId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -266,6 +277,8 @@ pub struct EditSite {
   pub allowed_instances: Option<Vec<String>>,
   /// A list of blocked instances.
   pub blocked_instances: Option<Vec<String>>,
+  /// A list of blocked URLs
+  pub blocked_urls: Option<Vec<String>>,
   /// A list of taglines shown at the top of the front page.
   pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
@@ -303,6 +316,7 @@ pub struct GetSiteResponse {
   pub taglines: Vec<Tagline>,
   /// A list of custom emojis your site supports.
   pub custom_emojis: Vec<CustomEmojiView>,
+  pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
 }
 
 #[skip_serializing_none]
@@ -369,7 +383,8 @@ impl From<FederationQueueState> for ReadableFederationState {
 pub struct InstanceWithFederationState {
   #[serde(flatten)]
   pub instance: Instance,
-  /// if federation to this instance is or was active, show state of outgoing federation to this instance
+  /// if federation to this instance is or was active, show state of outgoing federation to this
+  /// instance
   pub federation_state: Option<ReadableFederationState>,
 }
 
@@ -434,12 +449,21 @@ pub struct ListRegistrationApplicationsResponse {
 }
 
 #[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Gets a registration application for a person
+pub struct GetRegistrationApplication {
+  pub person_id: PersonId,
+}
+
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Approves a registration application.
 pub struct ApproveRegistrationApplication {
-  pub id: i32,
+  pub id: RegistrationApplicationId,
   pub approve: bool,
   pub deny_reason: Option<String>,
 }

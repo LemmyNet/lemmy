@@ -11,7 +11,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::community::Community;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -33,9 +33,11 @@ pub struct CollectionAdd {
 
 #[async_trait::async_trait]
 impl InCommunity for CollectionAdd {
-  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let (community, _) =
-      Community::get_by_collection_url(&mut context.pool(), &self.clone().target.into()).await?;
+      Community::get_by_collection_url(&mut context.pool(), &self.clone().target.into())
+        .await?
+        .ok_or(LemmyErrorType::CouldntFindCommunity)?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

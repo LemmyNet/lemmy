@@ -3,5 +3,6 @@
   "to": ["https://www.w3.org/ns/activitystreams#Public"],
   "object": "http://ds9.lemmy.ml/u/lemmy_alpha",
   "type": "Delete",
-  "id": "http://ds9.lemmy.ml/activities/delete/f2abee48-c7bb-41d5-9e27-8775ff32db12"
+  "id": "http://ds9.lemmy.ml/activities/delete/f2abee48-c7bb-41d5-9e27-8775ff32db12",
+  "removeData": true
 }

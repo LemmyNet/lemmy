@@ -1,6 +1,6 @@
 use activitypub_federation::{
   config::Data,
-  fetch::webfinger::{extract_webfinger_name, Webfinger, WebfingerLink},
+  fetch::webfinger::{extract_webfinger_name, Webfinger, WebfingerLink, WEBFINGER_CONTENT_TYPE},
 };
 use actix_web::{web, web::Query, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   traits::ApubActor,
   CommunityVisibility,
 };
-use lemmy_utils::{cache_header::cache_3days, error::LemmyError};
+use lemmy_utils::{cache_header::cache_3days, error::LemmyResult};
 use serde::Deserialize;
 use std::collections::HashMap;
 use url::Url;
@@ -35,42 +35,59 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 async fn get_webfinger_response(
   info: Query<Params>,
   context: Data<LemmyContext>,
-) -> Result<HttpResponse, LemmyError> {
+) -> LemmyResult<HttpResponse> {
   let name = extract_webfinger_name(&info.resource, &context)?;
 
-  let user_id: Option<Url> = Person::read_from_name(&mut context.pool(), name, false)
-    .await
-    .ok()
-    .map(|c| c.actor_id.into());
-  let community_id: Option<Url> = Community::read_from_name(&mut context.pool(), name, false)
-    .await
-    .ok()
-    .and_then(|c| {
-      if c.visibility == CommunityVisibility::Public {
-        let id: Url = c.actor_id.into();
-        Some(id)
-      } else {
-        None
-      }
-    });
+  let links = if name == context.settings().hostname {
+    // webfinger response for instance actor (required for mastodon authorized fetch)
+    let url = Url::parse(&context.settings().get_protocol_and_hostname())?;
+    vec![webfinger_link_for_actor(Some(url), "none", &context)]
+  } else {
+    // webfinger response for user/community
+    let user_id: Option<Url> = Person::read_from_name(&mut context.pool(), name, false)
+      .await
+      .ok()
+      .flatten()
+      .map(|c| c.actor_id.into());
+    let community_id: Option<Url> = Community::read_from_name(&mut context.pool(), name, false)
+      .await
+      .ok()
+      .flatten()
+      .and_then(|c| {
+        if c.visibility == CommunityVisibility::Public {
+          let id: Url = c.actor_id.into();
+          Some(id)
+        } else {
+          None
+        }
+      });
 
-  // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
-  // community last so that it gets prioritized. For Lemmy the order doesnt matter.
-  let links = vec![
-    webfinger_link_for_actor(user_id, "Person", &context),
-    webfinger_link_for_actor(community_id, "Group", &context),
-  ]
+    // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
+    // community last so that it gets prioritized. For Lemmy the order doesn't matter.
+    vec![
+      webfinger_link_for_actor(user_id, "Person", &context),
+      webfinger_link_for_actor(community_id, "Group", &context),
+    ]
+  }
   .into_iter()
   .flatten()
-  .collect();
+  .collect::<Vec<_>>();
 
-  let json = Webfinger {
-    subject: info.resource.clone(),
-    links,
-    ..Default::default()
-  };
+  if links.is_empty() {
+    Ok(HttpResponse::NotFound().finish())
+  } else {
+    let json = Webfinger {
+      subject: info.resource.clone(),
+      links,
+      ..Default::default()
+    };
 
-  Ok(HttpResponse::Ok().json(json))
+    Ok(
+      HttpResponse::Ok()
+        .content_type(&WEBFINGER_CONTENT_TYPE)
+        .json(json),
+    )
+  }
 }
 
 fn webfinger_link_for_actor(

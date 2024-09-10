@@ -1,6 +1,6 @@
 use crate::{
   fetcher::user_or_community::{PersonOrGroup, UserOrCommunity},
-  objects::instance::ApubSite,
+  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::objects::instance::Instance,
 };
 use activitypub_federation::{
@@ -9,7 +9,7 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 
@@ -41,23 +41,31 @@ impl Object for SiteOrCommunityOrUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_id(
-    _object_id: Url,
-    _data: &Data<Self::DataType>,
-  ) -> Result<Option<Self>, LemmyError> {
-    unimplemented!();
+  async fn read_from_id(object_id: Url, data: &Data<Self::DataType>) -> LemmyResult<Option<Self>> {
+    let site = ApubSite::read_from_id(object_id.clone(), data).await?;
+    Ok(match site {
+      Some(o) => Some(SiteOrCommunityOrUser::Site(o)),
+      None => UserOrCommunity::read_from_id(object_id, data)
+        .await?
+        .map(SiteOrCommunityOrUser::UserOrCommunity),
+    })
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, data: &Data<Self::DataType>) -> LemmyResult<()> {
     match self {
       SiteOrCommunityOrUser::Site(p) => p.delete(data).await,
       SiteOrCommunityOrUser::UserOrCommunity(p) => p.delete(data).await,
     }
   }
 
-  async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
-    unimplemented!()
+  async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
+    Ok(match self {
+      SiteOrCommunityOrUser::Site(p) => SiteOrPersonOrGroup::Instance(p.into_json(data).await?),
+      SiteOrCommunityOrUser::UserOrCommunity(p) => {
+        SiteOrPersonOrGroup::PersonOrGroup(p.into_json(data).await?)
+      }
+    })
   }
 
   #[tracing::instrument(skip_all)]
@@ -65,7 +73,7 @@ impl Object for SiteOrCommunityOrUser {
     apub: &Self::Kind,
     expected_domain: &Url,
     data: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     match apub {
       SiteOrPersonOrGroup::Instance(a) => ApubSite::verify(a, expected_domain, data).await,
       SiteOrPersonOrGroup::PersonOrGroup(a) => {
@@ -75,8 +83,18 @@ impl Object for SiteOrCommunityOrUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_json(_apub: Self::Kind, _data: &Data<Self::DataType>) -> Result<Self, LemmyError> {
-    unimplemented!();
+  async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> LemmyResult<Self> {
+    Ok(match apub {
+      SiteOrPersonOrGroup::Instance(a) => {
+        SiteOrCommunityOrUser::Site(ApubSite::from_json(a, data).await?)
+      }
+      SiteOrPersonOrGroup::PersonOrGroup(a) => SiteOrCommunityOrUser::UserOrCommunity(match a {
+        PersonOrGroup::Person(p) => UserOrCommunity::User(ApubPerson::from_json(p, data).await?),
+        PersonOrGroup::Group(g) => {
+          UserOrCommunity::Community(ApubCommunity::from_json(g, data).await?)
+        }
+      }),
+    })
   }
 }
 
@@ -103,6 +121,9 @@ impl Actor for SiteOrCommunityOrUser {
   }
 
   fn inbox(&self) -> Url {
-    unimplemented!()
+    match self {
+      SiteOrCommunityOrUser::Site(u) => u.inbox(),
+      SiteOrCommunityOrUser::UserOrCommunity(c) => c.inbox(),
+    }
   }
 }

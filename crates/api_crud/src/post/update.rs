@@ -4,13 +4,13 @@ use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   post::{EditPost, PostResponse},
-  request::fetch_link_metadata,
-  send_activity::{ActivityChannel, SendActivityData},
+  request::generate_post_link_metadata,
+  send_activity::SendActivityData,
   utils::{
     check_community_user_action,
+    get_url_blocklist,
     local_site_to_slur_regex,
     process_markdown_opt,
-    proxy_image_link_opt_apub,
   },
 };
 use lemmy_db_schema::{
@@ -20,14 +20,20 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_option_overwrite, naive_now},
+  utils::{diesel_string_update, diesel_url_update, naive_now},
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
-    slurs::check_slurs_opt,
-    validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
+    slurs::check_slurs,
+    validation::{
+      is_url_blocked,
+      is_valid_alt_text_field,
+      is_valid_body_field,
+      is_valid_post_title,
+      is_valid_url,
+    },
   },
 };
 use std::ops::Deref;
@@ -37,28 +43,51 @@ pub async fn update_post(
   data: Json<EditPost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PostResponse>, LemmyError> {
+) -> LemmyResult<Json<PostResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  // TODO No good way to handle a clear.
-  // Issue link: https://github.com/LemmyNet/lemmy/issues/2287
-  let url = data.url.as_ref().map(clean_url_params);
-  let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);
+  let url = diesel_url_update(data.url.as_deref())?;
+
+  let custom_thumbnail = diesel_url_update(data.custom_thumbnail.as_deref())?;
+
+  let url_blocklist = get_url_blocklist(&context).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
-  check_slurs_opt(&data.name, &slur_regex)?;
-  let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
+
+  let body = diesel_string_update(
+    process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context)
+      .await?
+      .as_deref(),
+  );
+
+  let alt_text = diesel_string_update(data.alt_text.as_deref());
 
   if let Some(name) = &data.name {
     is_valid_post_title(name)?;
+    check_slurs(name, &slur_regex)?;
   }
 
-  is_valid_body_field(&body, true)?;
-  check_url_scheme(&url)?;
-  check_url_scheme(&custom_thumbnail)?;
+  if let Some(Some(body)) = &body {
+    is_valid_body_field(body, true)?;
+  }
+
+  if let Some(Some(alt_text)) = &alt_text {
+    is_valid_alt_text_field(alt_text)?;
+  }
+
+  if let Some(Some(url)) = &url {
+    is_url_blocked(url, &url_blocklist)?;
+    is_valid_url(url)?;
+  }
+
+  if let Some(Some(custom_thumbnail)) = &custom_thumbnail {
+    is_valid_url(custom_thumbnail)?;
+  }
 
   let post_id = data.post_id;
-  let orig_post = Post::read(&mut context.pool(), post_id).await?;
+  let orig_post = Post::read(&mut context.pool(), post_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -72,38 +101,6 @@ pub async fn update_post(
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
-  // Fetch post links and thumbnail if url was updated
-  let (embed_title, embed_description, embed_video_url, metadata_thumbnail) = match &url {
-    Some(url) => {
-      // Only generate the thumbnail if there's no custom thumbnail provided,
-      // otherwise it will save it in pictrs
-      let generate_thumbnail = custom_thumbnail.is_none();
-
-      let metadata = fetch_link_metadata(url, generate_thumbnail, &context).await?;
-      (
-        Some(metadata.opengraph_data.title),
-        Some(metadata.opengraph_data.description),
-        Some(metadata.opengraph_data.embed_video_url),
-        Some(metadata.thumbnail),
-      )
-    }
-    _ => Default::default(),
-  };
-
-  let url = match url {
-    Some(url) => Some(proxy_image_link_opt_apub(Some(url), &context).await?),
-    _ => Default::default(),
-  };
-
-  let custom_thumbnail = match custom_thumbnail {
-    Some(custom_thumbnail) => {
-      Some(proxy_image_link_opt_apub(Some(custom_thumbnail), &context).await?)
-    }
-    _ => Default::default(),
-  };
-
-  let thumbnail_url = custom_thumbnail.or(metadata_thumbnail);
-
   let language_id = data.language_id;
   CommunityLanguage::is_allowed_community_language(
     &mut context.pool(),
@@ -115,13 +112,10 @@ pub async fn update_post(
   let post_form = PostUpdateForm {
     name: data.name.clone(),
     url,
-    body: diesel_option_overwrite(body),
+    body,
+    alt_text,
     nsfw: data.nsfw,
-    embed_title,
-    embed_description,
-    embed_video_url,
     language_id: data.language_id,
-    thumbnail_url,
     updated: Some(Some(naive_now())),
     ..Default::default()
   };
@@ -131,12 +125,19 @@ pub async fn update_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
 
-  ActivityChannel::submit_activity(SendActivityData::UpdatePost(updated_post), &context).await?;
+  generate_post_link_metadata(
+    updated_post.clone(),
+    custom_thumbnail.flatten().map(Into::into),
+    |post| Some(SendActivityData::UpdatePost(post)),
+    Some(local_site),
+    context.reset_request_count(),
+  )
+  .await?;
 
   build_post_response(
     context.deref(),
     orig_post.community_id,
-    &local_user_view.person,
+    local_user_view,
     post_id,
   )
   .await

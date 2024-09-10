@@ -10,26 +10,41 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     comment::Comment,
+    local_user::LocalUser,
     moderator::{AdminPurgeComment, AdminPurgeCommentForm},
   },
   traits::Crud,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn purge_comment(
   data: Json<PurgeComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<SuccessResponse>, LemmyError> {
+) -> LemmyResult<Json<SuccessResponse>> {
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 
   let comment_id = data.comment_id;
 
   // Read the comment to get the post_id and community
-  let comment_view = CommentView::read(&mut context.pool(), comment_id, None).await?;
+  let comment_view = CommentView::read(
+    &mut context.pool(),
+    comment_id,
+    Some(&local_user_view.local_user),
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindComment)?;
+
+  // Also check that you're a higher admin
+  LocalUser::is_higher_admin_check(
+    &mut context.pool(),
+    local_user_view.person.id,
+    vec![comment_view.creator.id],
+  )
+  .await?;
 
   let post_id = comment_view.comment.post_id;
 

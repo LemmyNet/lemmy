@@ -9,15 +9,21 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn distinguish_comment(
   data: Json<DistinguishComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommentResponse>, LemmyError> {
-  let orig_comment = CommentView::read(&mut context.pool(), data.comment_id, None).await?;
+) -> LemmyResult<Json<CommentResponse>> {
+  let orig_comment = CommentView::read(
+    &mut context.pool(),
+    data.comment_id,
+    Some(&local_user_view.local_user),
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -52,9 +58,10 @@ pub async fn distinguish_comment(
   let comment_view = CommentView::read(
     &mut context.pool(),
     data.comment_id,
-    Some(local_user_view.person.id),
+    Some(&local_user_view.local_user),
   )
-  .await?;
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   Ok(Json(CommentResponse {
     comment_view,

@@ -1,5 +1,6 @@
 use crate::{
   aggregates::structs::CommentAggregates,
+  diesel::OptionalExtension,
   newtypes::CommentId,
   schema::comment_aggregates,
   utils::{functions::hot_rank, get_conn, DbPool},
@@ -8,12 +9,13 @@ use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl CommentAggregates {
-  pub async fn read(pool: &mut DbPool<'_>, comment_id: CommentId) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, comment_id: CommentId) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     comment_aggregates::table
       .find(comment_id)
-      .first::<Self>(conn)
+      .first(conn)
       .await
+      .optional()
   }
 
   pub async fn update_hot_rank(
@@ -33,9 +35,9 @@ impl CommentAggregates {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     aggregates::comment_aggregates::CommentAggregates,
@@ -62,19 +64,11 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("thommy_comment_agg".into())
-      .public_key("pubkey".into())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_comment_agg");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
-    let another_person = PersonInsertForm::builder()
-      .name("jerry_comment_agg".into())
-      .public_key("pubkey".into())
-      .instance_id(inserted_instance.id)
-      .build();
+    let another_person = PersonInsertForm::test_form(inserted_instance.id, "jerry_comment_agg");
 
     let another_inserted_person = Person::create(pool, &another_person).await.unwrap();
 
@@ -125,6 +119,7 @@ mod tests {
 
     let comment_aggs_before_delete = CommentAggregates::read(pool, inserted_comment.id)
       .await
+      .unwrap()
       .unwrap();
 
     assert_eq!(1, comment_aggs_before_delete.score);
@@ -143,6 +138,7 @@ mod tests {
 
     let comment_aggs_after_dislike = CommentAggregates::read(pool, inserted_comment.id)
       .await
+      .unwrap()
       .unwrap();
 
     assert_eq!(0, comment_aggs_after_dislike.score);
@@ -155,6 +151,7 @@ mod tests {
       .unwrap();
     let after_like_remove = CommentAggregates::read(pool, inserted_comment.id)
       .await
+      .unwrap()
       .unwrap();
     assert_eq!(-1, after_like_remove.score);
     assert_eq!(0, after_like_remove.upvotes);
@@ -164,8 +161,10 @@ mod tests {
     Post::delete(pool, inserted_post.id).await.unwrap();
 
     // Should be none found, since the post was deleted
-    let after_delete = CommentAggregates::read(pool, inserted_comment.id).await;
-    assert!(after_delete.is_err());
+    let after_delete = CommentAggregates::read(pool, inserted_comment.id)
+      .await
+      .unwrap();
+    assert!(after_delete.is_none());
 
     // This should delete all the associated rows, and fire triggers
     Person::delete(pool, another_inserted_person.id)

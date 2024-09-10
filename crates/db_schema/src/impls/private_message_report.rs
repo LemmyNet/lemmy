@@ -46,13 +46,13 @@ impl Reportable for PrivateMessageReport {
       .await
   }
 
-  // TODO: this is unused because private message doesnt have remove handler
+  // TODO: this is unused because private message doesn't have remove handler
   async fn resolve_all_for_object(
     _pool: &mut DbPool<'_>,
     _pm_id_: PrivateMessageId,
     _by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    unimplemented!()
+    Err(Error::NotFound)
   }
 
   async fn unresolve(

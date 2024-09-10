@@ -27,7 +27,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud},
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl UndoBlockUser {
@@ -38,7 +38,7 @@ impl UndoBlockUser {
     mod_: &ApubPerson,
     reason: Option<String>,
     context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
     let audience = if let SiteOrCommunity::Community(c) = target {
       Some(c.id().into())
@@ -88,7 +88,7 @@ impl ActivityHandler for UndoBlockUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     verify_is_public(&self.to, &self.cc)?;
     verify_domains_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context).await?;
@@ -96,9 +96,9 @@ impl ActivityHandler for UndoBlockUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
-    let expires = self.object.expires.map(Into::into);
+    let expires = self.object.end_time.map(Into::into);
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;
     match self.object.target.dereference(context).await? {

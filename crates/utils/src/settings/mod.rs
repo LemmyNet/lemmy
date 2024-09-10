@@ -1,9 +1,8 @@
-use crate::{error::LemmyError, location_info};
+use crate::{error::LemmyResult, location_info};
 use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
-use once_cell::sync::Lazy;
 use regex::Regex;
-use std::{env, fs, io::Error};
+use std::{env, fs, io::Error, sync::LazyLock};
 use urlencoding::encode;
 
 pub mod structs;
@@ -12,10 +11,19 @@ use structs::{DatabaseConnection, PictrsConfig, PictrsImageMode, Settings};
 
 static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
-pub static SETTINGS: Lazy<Settings> = Lazy::new(|| {
-  Settings::init().expect("Failed to load settings file, see documentation (https://join-lemmy.org/docs/en/administration/configuration.html)")
+pub static SETTINGS: LazyLock<Settings> = LazyLock::new(|| {
+  if env::var("LEMMY_INITIALIZE_WITH_DEFAULT_SETTINGS").is_ok() {
+    println!(
+      "LEMMY_INITIALIZE_WITH_DEFAULT_SETTINGS was set, any configuration file has been ignored."
+    );
+    println!("Use with other environment variables to configure this instance further; e.g. LEMMY_DATABASE_URL.");
+    Settings::default()
+  } else {
+    Settings::init().expect("Failed to load settings file, see documentation (https://join-lemmy.org/docs/en/administration/configuration.html).")
+  }
 });
-static WEBFINGER_REGEX: Lazy<Regex> = Lazy::new(|| {
+
+static WEBFINGER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(&format!(
     "^acct:([a-zA-Z0-9_]{{3,}})@{}$",
     SETTINGS.hostname
@@ -29,10 +37,8 @@ impl Settings {
   /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
   /// `lemmy_db_schema/src/lib.rs::get_database_url_from_env()`
   /// Warning: Only call this once.
-  pub(crate) fn init() -> Result<Self, LemmyError> {
-    // Read the config file
+  pub(crate) fn init() -> LemmyResult<Self> {
     let config = from_str::<Settings>(&Self::read_config_file()?)?;
-
     if config.hostname == "unset" {
       Err(anyhow!("Hostname variable is not set!").into())
     } else {
@@ -101,7 +107,7 @@ impl Settings {
     WEBFINGER_REGEX.clone()
   }
 
-  pub fn pictrs_config(&self) -> Result<PictrsConfig, LemmyError> {
+  pub fn pictrs_config(&self) -> LemmyResult<PictrsConfig> {
     self
       .pictrs
       .clone()

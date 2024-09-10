@@ -8,28 +8,27 @@ use lemmy_api_common::{
   utils::{
     check_community_user_action,
     check_post_deleted_or_removed,
-    generate_local_apub_endpoint,
-    get_post,
+    get_url_blocklist,
     is_mod_or_admin,
     local_site_to_slur_regex,
     process_markdown,
-    EndpointType,
+    update_read_comments,
   },
 };
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
   source::{
     actor_language::CommunityLanguage,
-    comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
+    comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
     comment_reply::{CommentReply, CommentReplyUpdateForm},
     local_site::LocalSite,
     person_mention::{PersonMention, PersonMentionUpdateForm},
   },
   traits::{Crud, Likeable},
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
 };
 
@@ -40,17 +39,29 @@ pub async fn create_comment(
   data: Json<CreateComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommentResponse>, LemmyError> {
+) -> LemmyResult<Json<CommentResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
-  let content = process_markdown(&data.content, &slur_regex, &context).await?;
-  is_valid_body_field(&Some(content.clone()), false)?;
+  let url_blocklist = get_url_blocklist(&context).await?;
+  let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
+  is_valid_body_field(&content, false)?;
 
   // Check for a community ban
   let post_id = data.post_id;
-  let post = get_post(post_id, &mut context.pool()).await?;
-  let community_id = post.community_id;
+
+  // Read the full post view in order to get the comments count.
+  let post_view = PostView::read(
+    &mut context.pool(),
+    post_id,
+    Some(&local_user_view.local_user),
+    true,
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindPost)?;
+
+  let post = post_view.post;
+  let community_id = post_view.community.id;
 
   check_community_user_action(&local_user_view.person, community_id, &mut context.pool()).await?;
   check_post_deleted_or_removed(&post)?;
@@ -68,7 +79,8 @@ pub async fn create_comment(
     Comment::read(&mut context.pool(), parent_id).await.ok()
   } else {
     None
-  };
+  }
+  .flatten();
 
   // If there's a parent_id, check to make sure that comment is in that post
   // Strange issue where sometimes the post ID of the parent comment is incorrect
@@ -112,35 +124,17 @@ pub async fn create_comment(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
 
-  // Necessary to update the ap_id
   let inserted_comment_id = inserted_comment.id;
-  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-
-  let apub_id = generate_local_apub_endpoint(
-    EndpointType::Comment,
-    &inserted_comment_id.to_string(),
-    &protocol_and_hostname,
-  )?;
-  let updated_comment = Comment::update(
-    &mut context.pool(),
-    inserted_comment_id,
-    &CommentUpdateForm {
-      ap_id: Some(apub_id),
-      ..Default::default()
-    },
-  )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
 
   // Scan the comment for user mentions, add those rows
   let mentions = scrape_text_for_mentions(&content);
   let recipient_ids = send_local_notifs(
     mentions,
-    &updated_comment,
+    inserted_comment_id,
     &local_user_view.person,
-    &post,
     true,
     &context,
+    Some(&local_user_view),
   )
   .await?;
 
@@ -157,16 +151,30 @@ pub async fn create_comment(
     .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::CreateComment(updated_comment.clone()),
+    SendActivityData::CreateComment(inserted_comment.clone()),
     &context,
   )
   .await?;
 
-  // If its a reply, mark the parent as read
+  // Update the read comments, so your own new comment doesn't appear as a +1 unread
+  update_read_comments(
+    local_user_view.person.id,
+    post_id,
+    post_view.counts.comments + 1,
+    &mut context.pool(),
+  )
+  .await?;
+
+  // If we're responding to a comment where we're the recipient,
+  // (ie we're the grandparent, or the recipient of the parent comment_reply),
+  // then mark the parent as read.
+  // Then we don't have to do it manually after we respond to a comment.
   if let Some(parent) = parent_opt {
+    let person_id = local_user_view.person.id;
     let parent_id = parent.id;
-    let comment_reply = CommentReply::read_by_comment(&mut context.pool(), parent_id).await;
-    if let Ok(reply) = comment_reply {
+    let comment_reply =
+      CommentReply::read_by_comment_and_person(&mut context.pool(), parent_id, person_id).await;
+    if let Ok(Some(reply)) = comment_reply {
       CommentReply::update(
         &mut context.pool(),
         reply.id,
@@ -177,10 +185,9 @@ pub async fn create_comment(
     }
 
     // If the parent has PersonMentions mark them as read too
-    let person_id = local_user_view.person.id;
     let person_mention =
       PersonMention::read_by_comment_and_person(&mut context.pool(), parent_id, person_id).await;
-    if let Ok(mention) = person_mention {
+    if let Ok(Some(mention)) = person_mention {
       PersonMention::update(
         &mut context.pool(),
         mention.id,
@@ -202,7 +209,7 @@ pub async fn create_comment(
   ))
 }
 
-pub fn check_comment_depth(comment: &Comment) -> Result<(), LemmyError> {
+pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
   let path = &comment.path.0;
   let length = path.split('.').count();
   if length > MAX_COMMENT_DEPTH_LIMIT {

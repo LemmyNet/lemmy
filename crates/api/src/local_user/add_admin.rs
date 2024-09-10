@@ -13,23 +13,33 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn add_admin(
   data: Json<AddAdmin>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<AddAdminResponse>, LemmyError> {
+) -> LemmyResult<Json<AddAdminResponse>> {
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
+  // If its an admin removal, also check that you're a higher admin
+  if !data.added {
+    LocalUser::is_higher_admin_check(
+      &mut context.pool(),
+      local_user_view.person.id,
+      vec![data.person_id],
+    )
+    .await?;
+  }
+
   // Make sure that the person_id added is local
   let added_local_user = LocalUserView::read_person(&mut context.pool(), data.person_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::ObjectNotLocal)?;
+    .await?
+    .ok_or(LemmyErrorType::ObjectNotLocal)?;
 
-  let added_admin = LocalUser::update(
+  LocalUser::update(
     &mut context.pool(),
     added_local_user.local_user.id,
     &LocalUserUpdateForm {
@@ -43,7 +53,7 @@ pub async fn add_admin(
   // Mod tables
   let form = ModAddForm {
     mod_person_id: local_user_view.person.id,
-    other_person_id: added_admin.person_id,
+    other_person_id: added_local_user.person.id,
     removed: Some(!data.added),
   };
 

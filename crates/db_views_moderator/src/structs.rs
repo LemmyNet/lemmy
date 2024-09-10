@@ -1,7 +1,7 @@
 #[cfg(feature = "full")]
 use diesel::Queryable;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId},
+  newtypes::{CommentId, CommunityId, PersonId, PostId},
   source::{
     comment::Comment,
     community::Community,
@@ -228,6 +228,8 @@ pub struct ModlogListParams {
   pub community_id: Option<CommunityId>,
   pub mod_person_id: Option<PersonId>,
   pub other_person_id: Option<PersonId>,
+  pub post_id: Option<PostId>,
+  pub comment_id: Option<CommentId>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub hide_modlog_names: bool,

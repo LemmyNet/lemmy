@@ -1,16 +1,17 @@
 use crate::site::{application_question_check, site_default_post_listing_type_check};
-use activitypub_federation::http_signatures::generate_actor_keypair;
-use actix_web::web::{Data, Json};
+use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
+use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{CreateSite, SiteResponse},
   utils::{
     generate_shared_inbox_url,
+    get_url_blocklist,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
     process_markdown_opt,
-    proxy_image_link_opt_api,
+    proxy_image_link_api,
   },
 };
 use lemmy_db_schema::{
@@ -22,11 +23,11 @@ use lemmy_db_schema::{
     tagline::Tagline,
   },
   traits::Crud,
-  utils::{diesel_option_overwrite, naive_now},
+  utils::{diesel_string_update, diesel_url_create, naive_now},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorType, LemmyResult},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{
@@ -45,7 +46,7 @@ pub async fn create_site(
   data: Json<CreateSite>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<SiteResponse>, LemmyError> {
+) -> LemmyResult<Json<SiteResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   // Make sure user is an admin; other types of users should not create site data...
@@ -58,22 +59,27 @@ pub async fn create_site(
   let keypair = generate_actor_keypair()?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
-  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &context).await?;
-  let icon = proxy_image_link_opt_api(&data.icon, &context).await?;
-  let banner = proxy_image_link_opt_api(&data.banner, &context).await?;
+  let url_blocklist = get_url_blocklist(&context).await?;
+  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
+
+  let icon = diesel_url_create(data.icon.as_deref())?;
+  let icon = proxy_image_link_api(icon, &context).await?;
+
+  let banner = diesel_url_create(data.banner.as_deref())?;
+  let banner = proxy_image_link_api(banner, &context).await?;
 
   let site_form = SiteUpdateForm {
     name: Some(data.name.clone()),
-    sidebar: diesel_option_overwrite(sidebar),
-    description: diesel_option_overwrite(data.description.clone()),
-    icon,
-    banner,
+    sidebar: diesel_string_update(sidebar.as_deref()),
+    description: diesel_string_update(data.description.as_deref()),
+    icon: Some(icon),
+    banner: Some(banner),
     actor_id: Some(actor_id),
     last_refreshed_at: Some(naive_now()),
     inbox_url,
     private_key: Some(Some(keypair.private_key)),
     public_key: Some(keypair.public_key),
-    content_warning: diesel_option_overwrite(data.content_warning.clone()),
+    content_warning: diesel_string_update(data.content_warning.as_deref()),
     ..Default::default()
   };
 
@@ -89,16 +95,16 @@ pub async fn create_site(
     enable_nsfw: data.enable_nsfw,
     community_creation_admin_only: data.community_creation_admin_only,
     require_email_verification: data.require_email_verification,
-    application_question: diesel_option_overwrite(data.application_question.clone()),
+    application_question: diesel_string_update(data.application_question.as_deref()),
     private_instance: data.private_instance,
     default_theme: data.default_theme.clone(),
     default_post_listing_type: data.default_post_listing_type,
     default_sort_type: data.default_sort_type,
-    legal_information: diesel_option_overwrite(data.legal_information.clone()),
+    legal_information: diesel_string_update(data.legal_information.as_deref()),
     application_email_admins: data.application_email_admins,
     hide_modlog_mod_names: data.hide_modlog_mod_names,
     updated: Some(Some(naive_now())),
-    slur_filter_regex: diesel_option_overwrite(data.slur_filter_regex.clone()),
+    slur_filter_regex: diesel_string_update(data.slur_filter_regex.as_deref()),
     actor_name_max_length: data.actor_name_max_length,
     federation_enabled: data.federation_enabled,
     captcha_enabled: data.captcha_enabled,
@@ -127,7 +133,9 @@ pub async fn create_site(
 
   LocalSiteRateLimit::update(&mut context.pool(), &local_site_rate_limit_form).await?;
 
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
 
   let new_taglines = data.taglines.clone();
   let taglines = Tagline::replace(&mut context.pool(), local_site.id, new_taglines).await?;
@@ -175,7 +183,9 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
   )?;
 
   // Ensure that the sidebar has fewer than the max num characters...
-  is_valid_body_field(&create_site.sidebar, false)?;
+  if let Some(body) = &create_site.sidebar {
+    is_valid_body_field(body, false)?;
+  }
 
   application_question_check(
     &local_site.application_question,
@@ -187,9 +197,9 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::site::create::validate_create_payload;
   use lemmy_api_common::site::CreateSite;

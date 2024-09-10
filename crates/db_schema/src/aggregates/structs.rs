@@ -176,7 +176,7 @@ pub struct PersonPostAggregatesForm {
   pub published: Option<DateTime<Utc>>,
 }
 
-#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Copy, Hash)]
 #[cfg_attr(
   feature = "full",
   derive(Queryable, Selectable, Associations, Identifiable, TS)

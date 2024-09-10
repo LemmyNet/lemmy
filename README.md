@@ -133,21 +133,25 @@ Lemmy is made possible by a generous grant from the [NLnet foundation](https://n
 - bitcoin: `1Hefs7miXS5ff5Ck5xvmjKjXf5242KzRtK`
 - ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
 - monero: `41taVyY6e1xApqKyMVDRVxJ76sPkfZhALLTjRvVKpaAh2pBd4wv9RgYj1tSPrx8wc6iE1uWUfjtQdTmTy2FGMeChGVKPQuV`
-- cardano: `addr1q858t89l2ym6xmrugjs0af9cslfwvnvsh2xxp6x4dcez7pf5tushkp4wl7zxfhm2djp6gq60dk4cmc7seaza5p3slx0sakjutm`
 
 ## Contributing
+
+Read the following documentation to setup the development environment and start coding:
 
 - [Contributing instructions](https://join-lemmy.org/docs/contributors/01-overview.html)
 - [Docker Development](https://join-lemmy.org/docs/contributors/03-docker-development.html)
 - [Local Development](https://join-lemmy.org/docs/contributors/02-local-development.html)
 
+When working on an issue or pull request, you can comment with any questions you may have so that maintainers can answer them. You can also join the [Matrix Development Chat](https://matrix.to/#/#lemmydev:matrix.org) for general assistance.
+
 ### Translations
 
 - If you want to help with translating, take a look at [Weblate](https://weblate.join-lemmy.org/projects/lemmy/). You can also help by [translating the documentation](https://github.com/LemmyNet/lemmy-docs#adding-a-new-language).
 
-## Contact
+## Community
 
-- [Mastodon](https://mastodon.social/@LemmyDev)
+- [Matrix Space](https://matrix.to/#/#lemmy-space:matrix.org)
+- [Lemmy Forum](https://lemmy.ml/c/lemmy)
 - [Lemmy Support Forum](https://lemmy.ml/c/lemmy_support)
 
 ## Code Mirrors

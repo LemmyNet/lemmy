@@ -1,9 +1,10 @@
-use crate::{context::LemmyContext, sensitive::Sensitive};
+use crate::context::LemmyContext;
 use actix_web::{http::header::USER_AGENT, HttpRequest};
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
+  sensitive::SensitiveString,
   source::login_token::{LoginToken, LoginTokenCreateForm},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -40,7 +41,7 @@ impl Claims {
     user_id: LocalUserId,
     req: HttpRequest,
     context: &LemmyContext,
-  ) -> LemmyResult<Sensitive<String>> {
+  ) -> LemmyResult<SensitiveString> {
     let hostname = context.settings().hostname.clone();
     let my_claims = Claims {
       sub: user_id.0.to_string(),
@@ -50,7 +51,7 @@ impl Claims {
 
     let secret = &context.secret().jwt_secret;
     let key = EncodingKey::from_secret(secret.as_ref());
-    let token = encode(&Header::default(), &my_claims, &key)?;
+    let token: SensitiveString = encode(&Header::default(), &my_claims, &key)?.into();
     let ip = req
       .connection_info()
       .realip_remote_addr()
@@ -67,14 +68,14 @@ impl Claims {
       user_agent,
     };
     LoginToken::create(&mut context.pool(), form).await?;
-    Ok(Sensitive::new(token))
+    Ok(token)
   }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{claims::Claims, context::LemmyContext};
   use actix_web::test::TestRequest;
@@ -99,7 +100,7 @@ mod tests {
   async fn test_should_not_validate_user_token_after_password_change() {
     let pool_ = build_db_pool_for_tests().await;
     let pool = &mut (&pool_).into();
-    let secret = Secret::init(pool).await.unwrap();
+    let secret = Secret::init(pool).await.unwrap().unwrap();
     let context = LemmyContext::create(
       pool_.clone(),
       ClientBuilder::new(Client::default()).build(),
@@ -111,20 +112,15 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("Gerry9812".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "Gerry9812");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
-    let local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_person.id)
-      .password_encrypted("123456".to_string())
-      .build();
+    let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
 
-    let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+    let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![])
+      .await
+      .unwrap();
 
     let req = TestRequest::default().to_http_request();
     let jwt = Claims::generate(inserted_local_user.id, req, &context)

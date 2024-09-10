@@ -20,7 +20,9 @@ use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   source::{
     captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
+    language::Language,
     local_user::{LocalUser, LocalUserInsertForm},
+    local_user_vote_display_mode::LocalUserVoteDisplayMode,
     person::{Person, PersonInsertForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
@@ -29,20 +31,23 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_actor_name,
   },
 };
+use std::collections::HashSet;
 
 #[tracing::instrument(skip(context))]
 pub async fn register(
   data: Json<Register>,
   req: HttpRequest,
   context: Data<LemmyContext>,
-) -> Result<Json<LoginResponse>, LemmyError> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+) -> LemmyResult<Json<LoginResponse>> {
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
   let local_site = site_view.local_site;
   let require_registration_application =
     local_site.registration_mode == RegistrationMode::RequireApplication;
@@ -107,15 +112,17 @@ pub async fn register(
   // We have to create both a person, and local_user
 
   // Register the new person
-  let person_form = PersonInsertForm::builder()
-    .name(data.username.clone())
-    .actor_id(Some(actor_id.clone()))
-    .private_key(Some(actor_keypair.private_key))
-    .public_key(actor_keypair.public_key)
-    .inbox_url(Some(generate_inbox_url(&actor_id)?))
-    .shared_inbox_url(Some(generate_shared_inbox_url(context.settings())?))
-    .instance_id(site_view.site.instance_id)
-    .build();
+  let person_form = PersonInsertForm {
+    actor_id: Some(actor_id.clone()),
+    inbox_url: Some(generate_inbox_url(&actor_id)?),
+    shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
+    private_key: Some(actor_keypair.private_key),
+    ..PersonInsertForm::new(
+      data.username.clone(),
+      actor_keypair.public_key,
+      site_view.site.instance_id,
+    )
+  };
 
   // insert the person
   let inserted_person = Person::create(&mut context.pool(), &person_form)
@@ -127,28 +134,47 @@ pub async fn register(
   let accepted_application = Some(!require_registration_application);
 
   // Get the user's preferred language using the Accept-Language header
-  let language_tag = req.headers().get("Accept-Language").and_then(|hdr| {
-    accept_language::parse(hdr.to_str().unwrap_or_default())
-      .first()
-      // Remove the optional region code
-      .map(|lang_str| lang_str.split('-').next().unwrap_or_default().to_string())
-  });
+  let language_tags: Vec<String> = req
+    .headers()
+    .get("Accept-Language")
+    .map(|hdr| accept_language::parse(hdr.to_str().unwrap_or_default()))
+    .iter()
+    .flatten()
+    // Remove the optional region code
+    .map(|lang_str| lang_str.split('-').next().unwrap_or_default().to_string())
+    .collect();
+
+  // Show nsfw content if param is true, or if content_warning exists
+  let show_nsfw = data
+    .show_nsfw
+    .unwrap_or(site_view.site.content_warning.is_some());
 
   // Create the local user
-  let local_user_form = LocalUserInsertForm::builder()
-    .person_id(inserted_person.id)
-    .email(data.email.as_deref().map(str::to_lowercase))
-    .password_encrypted(data.password.to_string())
-    .show_nsfw(Some(data.show_nsfw))
-    .accepted_application(accepted_application)
-    .default_listing_type(Some(local_site.default_post_listing_type))
-    .post_listing_mode(Some(local_site.default_post_listing_mode))
-    .interface_language(language_tag)
+  let local_user_form = LocalUserInsertForm {
+    email: data.email.as_deref().map(str::to_lowercase),
+    password_encrypted: data.password.to_string(),
+    show_nsfw: Some(show_nsfw),
+    accepted_application,
+    default_listing_type: Some(local_site.default_post_listing_type),
+    post_listing_mode: Some(local_site.default_post_listing_mode),
+    interface_language: language_tags.first().cloned(),
     // If its the initial site setup, they are an admin
-    .admin(Some(!local_site.site_setup))
-    .build();
+    admin: Some(!local_site.site_setup),
+    ..LocalUserInsertForm::new(inserted_person.id, data.password.to_string())
+  };
 
-  let inserted_local_user = LocalUser::create(&mut context.pool(), &local_user_form).await?;
+  let all_languages = Language::read_all(&mut context.pool()).await?;
+  // use hashset to avoid duplicates
+  let mut language_ids = HashSet::new();
+  for l in language_tags {
+    if let Some(found) = all_languages.iter().find(|all| all.code == l) {
+      language_ids.insert(found.id);
+    }
+  }
+  let language_ids = language_ids.into_iter().collect();
+
+  let inserted_local_user =
+    LocalUser::create(&mut context.pool(), &local_user_form, language_ids).await?;
 
   if local_site.site_setup && require_registration_application {
     // Create the registration application
@@ -173,7 +199,8 @@ pub async fn register(
     verify_email_sent: false,
   };
 
-  // Log the user in directly if the site is not setup, or email verification and application aren't required
+  // Log the user in directly if the site is not setup, or email verification and application aren't
+  // required
   if !local_site.site_setup
     || (!require_registration_application && !local_site.require_email_verification)
   {
@@ -183,6 +210,7 @@ pub async fn register(
     if local_site.require_email_verification {
       let local_user_view = LocalUserView {
         local_user: inserted_local_user,
+        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
         person: inserted_person,
         counts: PersonAggregates::default(),
       };

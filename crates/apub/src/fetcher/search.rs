@@ -1,6 +1,7 @@
 use crate::{
+  fetcher::user_or_community::{PersonOrGroup, UserOrCommunity},
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::objects::{group::Group, note::Note, page::Page, person::Person},
+  protocol::objects::{note::Note, page::Page},
 };
 use activitypub_federation::{
   config::Data,
@@ -9,7 +10,7 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Deserialize;
 use url::Url;
 
@@ -18,28 +19,22 @@ use url::Url;
 /// which gets resolved to an URL.
 #[tracing::instrument(skip_all)]
 pub(crate) async fn search_query_to_object_id(
-  query: &str,
+  mut query: String,
   context: &Data<LemmyContext>,
-) -> Result<SearchableObjects, LemmyError> {
-  Ok(match Url::parse(query) {
+) -> LemmyResult<SearchableObjects> {
+  Ok(match Url::parse(&query) {
     Ok(url) => {
       // its already an url, just go with it
       ObjectId::from(url).dereference(context).await?
     }
     Err(_) => {
       // not an url, try to resolve via webfinger
-      let mut chars = query.chars();
-      let kind = chars.next();
-      let identifier = chars.as_str();
-      match kind {
-        Some('@') => SearchableObjects::Person(
-          webfinger_resolve_actor::<LemmyContext, ApubPerson>(identifier, context).await?,
-        ),
-        Some('!') => SearchableObjects::Community(
-          webfinger_resolve_actor::<LemmyContext, ApubCommunity>(identifier, context).await?,
-        ),
-        _ => return Err(LemmyErrorType::InvalidQuery)?,
+      if query.starts_with('!') || query.starts_with('@') {
+        query.remove(0);
       }
+      SearchableObjects::PersonOrCommunity(Box::new(
+        webfinger_resolve_actor::<LemmyContext, UserOrCommunity>(&query, context).await?,
+      ))
     }
   })
 }
@@ -51,7 +46,7 @@ pub(crate) async fn search_query_to_object_id(
 pub(crate) async fn search_query_to_object_id_local(
   query: &str,
   context: &Data<LemmyContext>,
-) -> Result<SearchableObjects, LemmyError> {
+) -> LemmyResult<SearchableObjects> {
   let url = Url::parse(query)?;
   ObjectId::from(url).dereference_local(context).await
 }
@@ -59,19 +54,17 @@ pub(crate) async fn search_query_to_object_id_local(
 /// The types of ActivityPub objects that can be fetched directly by searching for their ID.
 #[derive(Debug)]
 pub(crate) enum SearchableObjects {
-  Person(ApubPerson),
-  Community(ApubCommunity),
   Post(ApubPost),
   Comment(ApubComment),
+  PersonOrCommunity(Box<UserOrCommunity>),
 }
 
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub(crate) enum SearchableKinds {
-  Group(Group),
-  Person(Person),
-  Page(Page),
+  Page(Box<Page>),
   Note(Note),
+  PersonOrGroup(Box<PersonOrGroup>),
 }
 
 #[async_trait::async_trait]
@@ -82,10 +75,9 @@ impl Object for SearchableObjects {
 
   fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     match self {
-      SearchableObjects::Person(p) => p.last_refreshed_at(),
-      SearchableObjects::Community(c) => c.last_refreshed_at(),
       SearchableObjects::Post(p) => p.last_refreshed_at(),
       SearchableObjects::Comment(c) => c.last_refreshed_at(),
+      SearchableObjects::PersonOrCommunity(p) => p.last_refreshed_at(),
     }
   }
 
@@ -98,14 +90,10 @@ impl Object for SearchableObjects {
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
-  ) -> Result<Option<Self>, LemmyError> {
-    let c = ApubCommunity::read_from_id(object_id.clone(), context).await?;
-    if let Some(c) = c {
-      return Ok(Some(SearchableObjects::Community(c)));
-    }
-    let p = ApubPerson::read_from_id(object_id.clone(), context).await?;
-    if let Some(p) = p {
-      return Ok(Some(SearchableObjects::Person(p)));
+  ) -> LemmyResult<Option<Self>> {
+    let uc = UserOrCommunity::read_from_id(object_id.clone(), context).await?;
+    if let Some(uc) = uc {
+      return Ok(Some(SearchableObjects::PersonOrCommunity(Box::new(uc))));
     }
     let p = ApubPost::read_from_id(object_id.clone(), context).await?;
     if let Some(p) = p {
@@ -119,17 +107,28 @@ impl Object for SearchableObjects {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn delete(self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn delete(self, data: &Data<Self::DataType>) -> LemmyResult<()> {
     match self {
-      SearchableObjects::Person(p) => p.delete(data).await,
-      SearchableObjects::Community(c) => c.delete(data).await,
       SearchableObjects::Post(p) => p.delete(data).await,
       SearchableObjects::Comment(c) => c.delete(data).await,
+      SearchableObjects::PersonOrCommunity(pc) => match *pc {
+        UserOrCommunity::User(p) => p.delete(data).await,
+        UserOrCommunity::Community(c) => c.delete(data).await,
+      },
     }
   }
 
-  async fn into_json(self, _data: &Data<Self::DataType>) -> Result<Self::Kind, LemmyError> {
-    unimplemented!()
+  async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
+    Ok(match self {
+      SearchableObjects::Post(p) => SearchableKinds::Page(Box::new(p.into_json(data).await?)),
+      SearchableObjects::Comment(c) => SearchableKinds::Note(c.into_json(data).await?),
+      SearchableObjects::PersonOrCommunity(pc) => {
+        SearchableKinds::PersonOrGroup(Box::new(match *pc {
+          UserOrCommunity::User(p) => PersonOrGroup::Person(p.into_json(data).await?),
+          UserOrCommunity::Community(c) => PersonOrGroup::Group(c.into_json(data).await?),
+        }))
+      }
+    })
   }
 
   #[tracing::instrument(skip_all)]
@@ -137,24 +136,27 @@ impl Object for SearchableObjects {
     apub: &Self::Kind,
     expected_domain: &Url,
     data: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     match apub {
-      SearchableKinds::Group(a) => ApubCommunity::verify(a, expected_domain, data).await,
-      SearchableKinds::Person(a) => ApubPerson::verify(a, expected_domain, data).await,
       SearchableKinds::Page(a) => ApubPost::verify(a, expected_domain, data).await,
       SearchableKinds::Note(a) => ApubComment::verify(a, expected_domain, data).await,
+      SearchableKinds::PersonOrGroup(pg) => match pg.as_ref() {
+        PersonOrGroup::Person(a) => ApubPerson::verify(a, expected_domain, data).await,
+        PersonOrGroup::Group(a) => ApubCommunity::verify(a, expected_domain, data).await,
+      },
     }
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_json(apub: Self::Kind, context: &Data<LemmyContext>) -> Result<Self, LemmyError> {
+  async fn from_json(apub: Self::Kind, context: &Data<LemmyContext>) -> LemmyResult<Self> {
     use SearchableKinds as SAT;
     use SearchableObjects as SO;
     Ok(match apub {
-      SAT::Group(g) => SO::Community(ApubCommunity::from_json(g, context).await?),
-      SAT::Person(p) => SO::Person(ApubPerson::from_json(p, context).await?),
-      SAT::Page(p) => SO::Post(ApubPost::from_json(p, context).await?),
+      SAT::Page(p) => SO::Post(ApubPost::from_json(*p, context).await?),
       SAT::Note(n) => SO::Comment(ApubComment::from_json(n, context).await?),
+      SAT::PersonOrGroup(pg) => {
+        SO::PersonOrCommunity(Box::new(UserOrCommunity::from_json(*pg, context).await?))
+      }
     })
   }
 }

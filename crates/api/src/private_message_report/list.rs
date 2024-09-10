@@ -8,14 +8,14 @@ use lemmy_db_views::{
   private_message_report_view::PrivateMessageReportQuery,
   structs::LocalUserView,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn list_pm_reports(
   data: Query<ListPrivateMessageReports>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<ListPrivateMessageReportsResponse>, LemmyError> {
+) -> LemmyResult<Json<ListPrivateMessageReportsResponse>> {
   is_admin(&local_user_view)?;
 
   let unresolved_only = data.unresolved_only.unwrap_or_default();

@@ -13,15 +13,17 @@ use lemmy_db_views::{
   structs::{LocalUserView, SiteView},
 };
 use lemmy_db_views_actor::{community_view::CommunityQuery, person_view::PersonQuery};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn search(
   data: Query<Search>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> Result<Json<SearchResponse>, LemmyError> {
-  let local_site = SiteView::read_local(&mut context.pool()).await?;
+) -> LemmyResult<Json<SearchResponse>> {
+  let local_site = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
 
   check_private_instance(&local_user_view, &local_site.local_site)?;
 
@@ -53,7 +55,7 @@ pub async fn search(
     data.community_id
   };
   let creator_id = data.creator_id;
-  let local_user = local_user_view.as_ref().map(|luv| &luv.local_user);
+  let local_user = local_user_view.as_ref().map(|l| &l.local_user);
 
   match search_type {
     SearchType::Posts => {
@@ -62,7 +64,7 @@ pub async fn search(
         listing_type: (listing_type),
         community_id: (community_id),
         creator_id: (creator_id),
-        local_user: (local_user_view.as_ref()),
+        local_user,
         search_term: (Some(q)),
         page: (page),
         limit: (limit),
@@ -78,7 +80,7 @@ pub async fn search(
         search_term: (Some(q)),
         community_id: (community_id),
         creator_id: (creator_id),
-        local_user: (local_user_view.as_ref()),
+        local_user,
         page: (page),
         limit: (limit),
         ..Default::default()
@@ -123,7 +125,7 @@ pub async fn search(
         listing_type: (listing_type),
         community_id: (community_id),
         creator_id: (creator_id),
-        local_user: (local_user_view.as_ref()),
+        local_user,
         search_term: (Some(q)),
         page: (page),
         limit: (limit),
@@ -140,7 +142,7 @@ pub async fn search(
         search_term: (Some(q)),
         community_id: (community_id),
         creator_id: (creator_id),
-        local_user: (local_user_view.as_ref()),
+        local_user,
         page: (page),
         limit: (limit),
         ..Default::default()
@@ -190,6 +192,7 @@ pub async fn search(
         community_id: (community_id),
         creator_id: (creator_id),
         url_search: (Some(q)),
+        local_user,
         page: (page),
         limit: (limit),
         ..Default::default()

@@ -4,6 +4,7 @@ use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
     language::Language,
+    local_site_url_blocklist::LocalSiteUrlBlocklist,
     local_user::{LocalUser, LocalUserUpdateForm},
     moderator::{ModAdd, ModAddForm},
     tagline::Tagline,
@@ -13,15 +14,15 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
-  version,
+  error::{LemmyErrorType, LemmyResult},
+  VERSION,
 };
 
 #[tracing::instrument(skip(context))]
 pub async fn leave_admin(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<GetSiteResponse>, LemmyError> {
+) -> LemmyResult<Json<GetSiteResponse>> {
   is_admin(&local_user_view)?;
 
   // Make sure there isn't just one admin (so if one leaves, there will still be one left)
@@ -54,7 +55,9 @@ pub async fn leave_admin(
   ModAdd::create(&mut context.pool(), &form).await?;
 
   // Reread site and admins
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
   let admins = PersonView::admins(&mut context.pool()).await?;
 
   let all_languages = Language::read_all(&mut context.pool()).await?;
@@ -62,15 +65,17 @@ pub async fn leave_admin(
   let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
   let custom_emojis =
     CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
+  let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
 
   Ok(Json(GetSiteResponse {
     site_view,
     admins,
-    version: version::VERSION.to_string(),
+    version: VERSION.to_string(),
     my_user: None,
     all_languages,
     discussion_languages,
     taglines,
     custom_emojis,
+    blocked_urls,
   }))
 }

@@ -1,5 +1,6 @@
 jest.setTimeout(120000);
 
+import { AddModToCommunity } from "lemmy-js-client/dist/types/AddModToCommunity";
 import { CommunityView } from "lemmy-js-client/dist/types/CommunityView";
 import {
   alpha,
@@ -9,6 +10,7 @@ import {
   resolveCommunity,
   createCommunity,
   deleteCommunity,
+  delay,
   removeCommunity,
   getCommunity,
   followCommunity,
@@ -31,10 +33,12 @@ import {
   searchPostLocal,
   longDelay,
   editCommunity,
+  unfollows,
 } from "./shared";
 import { EditCommunity, EditSite } from "lemmy-js-client";
 
 beforeAll(setupLogins);
+afterAll(unfollows);
 
 function assertCommunityFederation(
   communityOne?: CommunityView,
@@ -240,7 +244,7 @@ test("Admin actions in remote community are not federated to origin", async () =
   );
   expect(banRes.banned).toBe(true);
 
-  // ban doesnt federate to community's origin instance alpha
+  // ban doesn't federate to community's origin instance alpha
   let alphaPost = (await resolvePost(alpha, gammaPost.post)).post;
   expect(alphaPost?.creator_banned_from_community).toBe(false);
 
@@ -378,8 +382,8 @@ test("User blocks instance, communities are hidden", async () => {
 test("Community follower count is federated", async () => {
   // Follow the beta community from alpha
   let community = await createCommunity(beta);
-  let community_id = community.community_view.community.actor_id;
-  let resolved = await resolveCommunity(alpha, community_id);
+  let communityActorId = community.community_view.community.actor_id;
+  let resolved = await resolveCommunity(alpha, communityActorId);
   if (!resolved.community) {
     throw "Missing beta community";
   }
@@ -387,7 +391,7 @@ test("Community follower count is federated", async () => {
   await followCommunity(alpha, true, resolved.community.community.id);
   let followed = (
     await waitUntil(
-      () => resolveCommunity(alpha, community_id),
+      () => resolveCommunity(alpha, communityActorId),
       c => c.community?.subscribed === "Subscribed",
     )
   ).community;
@@ -396,7 +400,7 @@ test("Community follower count is federated", async () => {
   expect(followed?.counts.subscribers).toBe(1);
 
   // Follow the community from gamma
-  resolved = await resolveCommunity(gamma, community_id);
+  resolved = await resolveCommunity(gamma, communityActorId);
   if (!resolved.community) {
     throw "Missing beta community";
   }
@@ -404,7 +408,7 @@ test("Community follower count is federated", async () => {
   await followCommunity(gamma, true, resolved.community.community.id);
   followed = (
     await waitUntil(
-      () => resolveCommunity(gamma, community_id),
+      () => resolveCommunity(gamma, communityActorId),
       c => c.community?.subscribed === "Subscribed",
     )
   ).community;
@@ -413,7 +417,7 @@ test("Community follower count is federated", async () => {
   expect(followed?.counts?.subscribers).toBe(2);
 
   // Follow the community from delta
-  resolved = await resolveCommunity(delta, community_id);
+  resolved = await resolveCommunity(delta, communityActorId);
   if (!resolved.community) {
     throw "Missing beta community";
   }
@@ -421,7 +425,7 @@ test("Community follower count is federated", async () => {
   await followCommunity(delta, true, resolved.community.community.id);
   followed = (
     await waitUntil(
-      () => resolveCommunity(delta, community_id),
+      () => resolveCommunity(delta, communityActorId),
       c => c.community?.subscribed === "Subscribed",
     )
   ).community;
@@ -450,7 +454,7 @@ test("Dont receive community activities after unsubscribe", async () => {
   );
   expect(communityRes1.community_view.counts.subscribers).toBe(2);
 
-  // temporarily block alpha, so that it doesnt know about unfollow
+  // temporarily block alpha, so that it doesn't know about unfollow
   let editSiteForm: EditSite = {};
   editSiteForm.allowed_instances = ["lemmy-epsilon"];
   await beta.editSite(editSiteForm);
@@ -511,7 +515,7 @@ test("Fetch community, includes posts", async () => {
   expect(post_listing.posts[0].post.ap_id).toBe(postRes.post_view.post.ap_id);
 });
 
-test("Content in local-only community doesnt federate", async () => {
+test("Content in local-only community doesn't federate", async () => {
   // create a community and set it local-only
   let communityRes = (await createCommunity(alpha)).community_view.community;
   let form: EditCommunity = {
@@ -529,5 +533,43 @@ test("Content in local-only community doesnt federate", async () => {
   let postRes = await createPost(alpha, communityRes.id);
   await expect(resolvePost(beta, postRes.post_view.post)).rejects.toStrictEqual(
     Error("couldnt_find_object"),
+  );
+});
+
+test("Remote mods can edit communities", async () => {
+  let communityRes = await createCommunity(alpha);
+
+  let betaCommunity = await resolveCommunity(
+    beta,
+    communityRes.community_view.community.actor_id,
+  );
+  if (!betaCommunity.community) {
+    throw "Missing beta community";
+  }
+  let betaOnAlpha = await resolvePerson(alpha, "lemmy_beta@lemmy-beta:8551");
+
+  let form: AddModToCommunity = {
+    community_id: communityRes.community_view.community.id,
+    person_id: betaOnAlpha.person?.person.id as number,
+    added: true,
+  };
+  alpha.addModToCommunity(form);
+
+  let form2: EditCommunity = {
+    community_id: betaCommunity.community?.community.id as number,
+    description: "Example description",
+  };
+
+  await editCommunity(beta, form2);
+  // give alpha time to get and process the edit
+  await delay(1000);
+
+  let alphaCommunity = await getCommunity(
+    alpha,
+    communityRes.community_view.community.id,
+  );
+
+  await expect(alphaCommunity.community_view.community.description).toBe(
+    "Example description",
   );
 });

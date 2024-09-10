@@ -8,9 +8,11 @@ use lemmy_db_schema::{
     community::Community,
     custom_emoji::CustomEmoji,
     custom_emoji_keyword::CustomEmojiKeyword,
+    images::{ImageDetails, LocalImage},
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_user::LocalUser,
+    local_user_vote_display_mode::LocalUserVoteDisplayMode,
     person::Person,
     post::Post,
     post_report::PostReport,
@@ -41,6 +43,11 @@ pub struct CommentReportView {
   pub comment_creator: Person,
   pub counts: CommentAggregates,
   pub creator_banned_from_community: bool,
+  pub creator_is_moderator: bool,
+  pub creator_is_admin: bool,
+  pub creator_blocked: bool,
+  pub subscribed: SubscribedType,
+  pub saved: bool,
   pub my_vote: Option<i16>,
   pub resolver: Option<Person>,
 }
@@ -58,6 +65,7 @@ pub struct CommentView {
   pub community: Community,
   pub counts: CommentAggregates,
   pub creator_banned_from_community: bool,
+  pub banned_from_community: bool,
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub subscribed: SubscribedType,
@@ -73,6 +81,7 @@ pub struct CommentView {
 /// A local user view.
 pub struct LocalUserView {
   pub local_user: LocalUser,
+  pub local_user_vote_display_mode: LocalUserVoteDisplayMode,
   pub person: Person,
   pub counts: PersonAggregates,
 }
@@ -90,14 +99,23 @@ pub struct PostReportView {
   pub creator: Person,
   pub post_creator: Person,
   pub creator_banned_from_community: bool,
+  pub creator_is_moderator: bool,
+  pub creator_is_admin: bool,
+  pub subscribed: SubscribedType,
+  pub saved: bool,
+  pub read: bool,
+  pub hidden: bool,
+  pub creator_blocked: bool,
   pub my_vote: Option<i16>,
+  pub unread_comments: i64,
   pub counts: PostAggregates,
   pub resolver: Option<Person>,
 }
 
-/// currently this is just a wrapper around post id, but should be seen as opaque from the client's perspective
-/// stringified since we might want to use arbitrary info later, with a P prepended to prevent ossification
-/// (api users love to make assumptions (e.g. parse stuff that looks like numbers as numbers) about apis that aren't part of the spec
+/// currently this is just a wrapper around post id, but should be seen as opaque from the client's
+/// perspective. stringified since we might want to use arbitrary info later, with a P prepended to
+/// prevent ossification (api users love to make assumptions (e.g. parse stuff that looks like
+/// numbers as numbers) about apis that aren't part of the spec
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -113,7 +131,9 @@ pub struct PostView {
   pub post: Post,
   pub creator: Person,
   pub community: Community,
+  pub image_details: Option<ImageDetails>,
   pub creator_banned_from_community: bool,
+  pub banned_from_community: bool,
   pub creator_is_moderator: bool,
   pub creator_is_admin: bool,
   pub counts: PostAggregates,
@@ -194,5 +214,17 @@ pub struct CustomEmojiView {
 /// A vote view for checking a post or comments votes.
 pub struct VoteView {
   pub creator: Person,
+  pub creator_banned_from_community: bool,
   pub score: i16,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A local image view.
+pub struct LocalImageView {
+  pub local_image: LocalImage,
+  pub person: Person,
 }

@@ -27,7 +27,7 @@ use lemmy_db_schema::{
   SortType,
 };
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString};
+use strum::{Display, EnumString};
 
 enum ListMode {
   Admins,
@@ -72,7 +72,7 @@ fn queries<'a>(
 
   let read = move |mut conn: DbConn<'a>, person_id: PersonId| async move {
     all_joins(person::table.find(person_id).into_boxed())
-      .first::<PersonView>(&mut conn)
+      .first(&mut conn)
       .await
   };
 
@@ -134,7 +134,7 @@ fn queries<'a>(
 }
 
 impl PersonView {
-  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Option<Self>, Error> {
     queries().read(pool, person_id).await
   }
 
@@ -163,12 +163,10 @@ impl PersonQuery {
 }
 
 #[cfg(test)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
-  use diesel::NotFound;
   use lemmy_db_schema::{
     assert_length,
     source::{
@@ -179,7 +177,7 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
-  use lemmy_utils::error::LemmyResult;
+  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -193,32 +191,22 @@ mod tests {
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-    let alice_form = PersonInsertForm::builder()
-      .name("alice".to_string())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .local(Some(true))
-      .build();
+    let alice_form = PersonInsertForm {
+      local: Some(true),
+      ..PersonInsertForm::test_form(inserted_instance.id, "alice")
+    };
     let alice = Person::create(pool, &alice_form).await?;
-    let alice_local_user_form = LocalUserInsertForm::builder()
-      .person_id(alice.id)
-      .password_encrypted(String::new())
-      .build();
-    let alice_local_user = LocalUser::create(pool, &alice_local_user_form).await?;
+    let alice_local_user_form = LocalUserInsertForm::test_form(alice.id);
+    let alice_local_user = LocalUser::create(pool, &alice_local_user_form, vec![]).await?;
 
-    let bob_form = PersonInsertForm::builder()
-      .name("bob".to_string())
-      .bot_account(Some(true))
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .local(Some(false))
-      .build();
+    let bob_form = PersonInsertForm {
+      bot_account: Some(true),
+      local: Some(false),
+      ..PersonInsertForm::test_form(inserted_instance.id, "bob")
+    };
     let bob = Person::create(pool, &bob_form).await?;
-    let bob_local_user_form = LocalUserInsertForm::builder()
-      .person_id(bob.id)
-      .password_encrypted(String::new())
-      .build();
-    let bob_local_user = LocalUser::create(pool, &bob_local_user_form).await?;
+    let bob_local_user_form = LocalUserInsertForm::test_form(bob.id);
+    let bob_local_user = LocalUser::create(pool, &bob_local_user_form, vec![]).await?;
 
     Ok(Data {
       alice,
@@ -254,8 +242,8 @@ mod tests {
     )
     .await?;
 
-    let read = PersonView::read(pool, data.alice.id).await;
-    assert_eq!(read.err(), Some(NotFound));
+    let read = PersonView::read(pool, data.alice.id).await?;
+    assert!(read.is_none());
 
     let list = PersonQuery {
       sort: Some(SortType::New),
@@ -314,10 +302,16 @@ mod tests {
     assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
 
-    let is_admin = PersonView::read(pool, data.alice.id).await?.is_admin;
+    let is_admin = PersonView::read(pool, data.alice.id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?
+      .is_admin;
     assert!(is_admin);
 
-    let is_admin = PersonView::read(pool, data.bob.id).await?.is_admin;
+    let is_admin = PersonView::read(pool, data.bob.id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?
+      .is_admin;
     assert!(!is_admin);
 
     cleanup(data, pool).await

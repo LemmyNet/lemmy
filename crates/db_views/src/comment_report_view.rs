@@ -12,16 +12,20 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
-  newtypes::{CommentReportId, CommunityId, PersonId},
+  newtypes::{CommentId, CommentReportId, CommunityId, PersonId},
   schema::{
     comment,
     comment_aggregates,
     comment_like,
     comment_report,
+    comment_saved,
     community,
+    community_follower,
     community_moderator,
     community_person_ban,
+    local_user,
     person,
+    person_block,
     post,
   },
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
@@ -64,6 +68,45 @@ fn queries<'a>() -> Queries<
             ),
         ),
       )
+      .left_join(
+        aliases::community_moderator1.on(
+          community::id
+            .eq(aliases::community_moderator1.field(community_moderator::community_id))
+            .and(
+              aliases::community_moderator1
+                .field(community_moderator::person_id)
+                .eq(comment::creator_id),
+            ),
+        ),
+      )
+      .left_join(
+        local_user::table.on(
+          comment::creator_id
+            .eq(local_user::person_id)
+            .and(local_user::admin.eq(true)),
+        ),
+      )
+      .left_join(
+        person_block::table.on(
+          comment::creator_id
+            .eq(person_block::target_id)
+            .and(person_block::person_id.eq(my_person_id)),
+        ),
+      )
+      .left_join(
+        community_follower::table.on(
+          post::community_id
+            .eq(community_follower::community_id)
+            .and(community_follower::person_id.eq(my_person_id)),
+        ),
+      )
+      .left_join(
+        comment_saved::table.on(
+          comment::id
+            .eq(comment_saved::comment_id)
+            .and(comment_saved::person_id.eq(my_person_id)),
+        ),
+      )
       .select((
         comment_report::all_columns,
         comment::all_columns,
@@ -73,6 +116,14 @@ fn queries<'a>() -> Queries<
         aliases::person1.fields(person::all_columns),
         comment_aggregates::all_columns,
         community_person_ban::community_id.nullable().is_not_null(),
+        aliases::community_moderator1
+          .field(community_moderator::community_id)
+          .nullable()
+          .is_not_null(),
+        local_user::admin.nullable().is_not_null(),
+        person_block::target_id.nullable().is_not_null(),
+        community_follower::pending.nullable(),
+        comment_saved::published.nullable().is_not_null(),
         comment_like::score.nullable(),
         aliases::person2.fields(person::all_columns).nullable(),
       ))
@@ -83,7 +134,7 @@ fn queries<'a>() -> Queries<
       comment_report::table.find(report_id).into_boxed(),
       my_person_id,
     )
-    .first::<CommentReportView>(&mut conn)
+    .first(&mut conn)
     .await
   };
 
@@ -95,7 +146,12 @@ fn queries<'a>() -> Queries<
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
+    if let Some(comment_id) = options.comment_id {
+      query = query.filter(comment_report::comment_id.eq(comment_id));
+    }
+
+    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
+    // first (FIFO)
     if options.unresolved_only {
       query = query
         .filter(comment_report::resolved.eq(false))
@@ -136,11 +192,11 @@ impl CommentReportView {
     pool: &mut DbPool<'_>,
     report_id: CommentReportId,
     my_person_id: PersonId,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     queries().read(pool, (report_id, my_person_id)).await
   }
 
-  /// Returns the current unresolved post report count for the communities you mod
+  /// Returns the current unresolved comment report count for the communities you mod
   pub async fn get_report_count(
     pool: &mut DbPool<'_>,
     my_person_id: PersonId,
@@ -186,6 +242,7 @@ impl CommentReportView {
 #[derive(Default)]
 pub struct CommentReportQuery {
   pub community_id: Option<CommunityId>,
+  pub comment_id: Option<CommentId>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unresolved_only: bool,
@@ -202,9 +259,9 @@ impl CommentReportQuery {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     comment_report_view::{CommentReportQuery, CommentReportView},
@@ -218,12 +275,14 @@ mod tests {
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
+      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Joinable, Reportable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
     CommunityVisibility,
+    SubscribedType,
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -238,39 +297,27 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("timmy_crv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "timmy_crv");
 
     let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
 
-    let new_local_user = LocalUserInsertForm::builder()
-      .person_id(inserted_timmy.id)
-      .password_encrypted("123".to_string())
-      .build();
-    let timmy_local_user = LocalUser::create(pool, &new_local_user).await.unwrap();
+    let new_local_user = LocalUserInsertForm::test_form(inserted_timmy.id);
+    let timmy_local_user = LocalUser::create(pool, &new_local_user, vec![])
+      .await
+      .unwrap();
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
+      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_timmy.clone(),
       counts: Default::default(),
     };
 
-    let new_person_2 = PersonInsertForm::builder()
-      .name("sara_crv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_2 = PersonInsertForm::test_form(inserted_instance.id, "sara_crv");
 
     let inserted_sara = Person::create(pool, &new_person_2).await.unwrap();
 
     // Add a third person, since new ppl can only report something once.
-    let new_person_3 = PersonInsertForm::builder()
-      .name("jessica_crv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_3 = PersonInsertForm::test_form(inserted_instance.id, "jessica_crv");
 
     let inserted_jessica = Person::create(pool, &new_person_3).await.unwrap();
 
@@ -335,16 +382,23 @@ mod tests {
 
     let agg = CommentAggregates::read(pool, inserted_comment.id)
       .await
+      .unwrap()
       .unwrap();
 
     let read_jessica_report_view =
       CommentReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
         .await
+        .unwrap()
         .unwrap();
     let expected_jessica_report_view = CommentReportView {
       comment_report: inserted_jessica_report.clone(),
       comment: inserted_comment.clone(),
       post: inserted_post,
+      creator_is_moderator: true,
+      creator_is_admin: false,
+      creator_blocked: false,
+      subscribed: SubscribedType::NotSubscribed,
+      saved: false,
       community: Community {
         id: inserted_community.id,
         name: inserted_community.name,
@@ -488,6 +542,7 @@ mod tests {
     let read_jessica_report_view_after_resolve =
       CommentReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
         .await
+        .unwrap()
         .unwrap();
 
     let mut expected_jessica_report_view_after_resolve = expected_jessica_report_view;

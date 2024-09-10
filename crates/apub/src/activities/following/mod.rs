@@ -5,7 +5,7 @@ use crate::{
 use activitypub_federation::config::Data;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::{community::Community, person::Person};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 pub mod accept;
 pub mod follow;
@@ -16,7 +16,7 @@ pub async fn send_follow_community(
   person: Person,
   follow: bool,
   context: &Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let community: ApubCommunity = community.into();
   let actor: ApubPerson = person.into();
   if follow {

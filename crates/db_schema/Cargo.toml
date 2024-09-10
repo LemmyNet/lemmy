@@ -27,7 +27,6 @@ full = [
   "lemmy_utils",
   "activitypub_federation",
   "regex",
-  "once_cell",
   "serde_json",
   "diesel_ltree",
   "diesel-async",
@@ -46,7 +45,6 @@ serde = { workspace = true }
 serde_with = { workspace = true }
 url = { workspace = true }
 strum = { workspace = true }
-strum_macros = { workspace = true }
 serde_json = { workspace = true, optional = true }
 activitypub_federation = { workspace = true, optional = true }
 lemmy_utils = { workspace = true, optional = true }
@@ -65,12 +63,11 @@ diesel-async = { workspace = true, features = [
   "deadpool",
 ], optional = true }
 regex = { workspace = true, optional = true }
-once_cell = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
 typed-builder = { workspace = true }
 async-trait = { workspace = true }
 tracing = { workspace = true }
-deadpool = { version = "0.10.0", features = ["rt_tokio_1"], optional = true }
+deadpool = { version = "0.12.1", features = ["rt_tokio_1"], optional = true }
 ts-rs = { workspace = true, optional = true }
 futures-util = { workspace = true }
 tokio = { workspace = true, optional = true }
@@ -80,6 +77,8 @@ rustls = { workspace = true, optional = true }
 uuid = { workspace = true, features = ["v4"] }
 i-love-jesus = { workspace = true, optional = true }
 anyhow = { workspace = true }
+moka.workspace = true
+derive-new.workspace = true
 
 [dev-dependencies]
 serial_test = { workspace = true }

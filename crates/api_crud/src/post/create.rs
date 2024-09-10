@@ -4,17 +4,15 @@ use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   post::{CreatePost, PostResponse},
-  request::fetch_link_metadata_opt,
-  send_activity::{ActivityChannel, SendActivityData},
+  request::generate_post_link_metadata,
+  send_activity::SendActivityData,
   utils::{
     check_community_user_action,
-    generate_local_apub_endpoint,
+    get_url_blocklist,
     honeypot_check,
     local_site_to_slur_regex,
     mark_post_as_read,
     process_markdown_opt,
-    proxy_image_link_opt_apub,
-    EndpointType,
   },
 };
 use lemmy_db_schema::{
@@ -23,19 +21,26 @@ use lemmy_db_schema::{
     actor_language::CommunityLanguage,
     community::Community,
     local_site::LocalSite,
-    post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
+    post::{Post, PostInsertForm, PostLike, PostLikeForm},
   },
   traits::{Crud, Likeable},
+  utils::diesel_url_create,
   CommunityVisibility,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::CommunityView;
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   spawn_try_task,
   utils::{
     slurs::check_slurs,
-    validation::{check_url_scheme, clean_url_params, is_valid_body_field, is_valid_post_title},
+    validation::{
+      is_url_blocked,
+      is_valid_alt_text_field,
+      is_valid_body_field,
+      is_valid_post_title,
+      is_valid_url,
+    },
   },
 };
 use tracing::Instrument;
@@ -47,22 +52,37 @@ pub async fn create_post(
   data: Json<CreatePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PostResponse>, LemmyError> {
+) -> LemmyResult<Json<PostResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
+
+  honeypot_check(&data.honeypot)?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.name, &slur_regex)?;
-  let body = process_markdown_opt(&data.body, &slur_regex, &context).await?;
-  honeypot_check(&data.honeypot)?;
+  let url_blocklist = get_url_blocklist(&context).await?;
 
-  let data_url = data.url.as_ref();
-  let url = data_url.map(clean_url_params); // TODO no good way to handle a "clear"
-  let custom_thumbnail = data.custom_thumbnail.as_ref().map(clean_url_params);
+  let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
+  let url = diesel_url_create(data.url.as_deref())?;
+  let custom_thumbnail = diesel_url_create(data.custom_thumbnail.as_deref())?;
 
   is_valid_post_title(&data.name)?;
-  is_valid_body_field(&body, true)?;
-  check_url_scheme(&url)?;
-  check_url_scheme(&custom_thumbnail)?;
+
+  if let Some(url) = &url {
+    is_url_blocked(url, &url_blocklist)?;
+    is_valid_url(url)?;
+  }
+
+  if let Some(custom_thumbnail) = &custom_thumbnail {
+    is_valid_url(custom_thumbnail)?;
+  }
+
+  if let Some(alt_text) = &data.alt_text {
+    is_valid_alt_text_field(alt_text)?;
+  }
+
+  if let Some(body) = &body {
+    is_valid_body_field(body, true)?;
+  }
 
   check_community_user_action(
     &local_user_view.person,
@@ -72,31 +92,21 @@ pub async fn create_post(
   .await?;
 
   let community_id = data.community_id;
-  let community = Community::read(&mut context.pool(), community_id).await?;
+  let community = Community::read(&mut context.pool(), community_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;
-    let is_mod = CommunityView::is_mod_or_admin(
+    let is_mod = CommunityModeratorView::is_community_moderator(
       &mut context.pool(),
-      local_user_view.local_user.person_id,
       community_id,
+      local_user_view.local_user.person_id,
     )
     .await?;
     if !is_mod {
       Err(LemmyErrorType::OnlyModsCanPostInCommunity)?
     }
   }
-
-  // Only generate the thumbnail if there's no custom thumbnail provided,
-  // otherwise it will save it in pictrs
-  let generate_thumbnail = custom_thumbnail.is_none();
-
-  // Fetch post links and pictrs cached image
-  let metadata = fetch_link_metadata_opt(url.as_ref(), generate_thumbnail, &context).await;
-  let url = proxy_image_link_opt_apub(url, &context).await?;
-  let thumbnail_url = proxy_image_link_opt_apub(custom_thumbnail, &context)
-    .await?
-    .map(Into::into)
-    .or(metadata.thumbnail);
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
@@ -122,39 +132,27 @@ pub async fn create_post(
 
   let post_form = PostInsertForm::builder()
     .name(data.name.trim().to_string())
-    .url(url)
+    .url(url.map(Into::into))
     .body(body)
+    .alt_text(data.alt_text.clone())
     .community_id(data.community_id)
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)
-    .embed_title(metadata.opengraph_data.title)
-    .embed_description(metadata.opengraph_data.description)
-    .embed_video_url(metadata.opengraph_data.embed_video_url)
     .language_id(language_id)
-    .thumbnail_url(thumbnail_url)
     .build();
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
-  let inserted_post_id = inserted_post.id;
-  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let apub_id = generate_local_apub_endpoint(
-    EndpointType::Post,
-    &inserted_post_id.to_string(),
-    &protocol_and_hostname,
-  )?;
-  let updated_post = Post::update(
-    &mut context.pool(),
-    inserted_post_id,
-    &PostUpdateForm {
-      ap_id: Some(apub_id),
-      ..Default::default()
-    },
+  generate_post_link_metadata(
+    inserted_post.clone(),
+    custom_thumbnail.map(Into::into),
+    |post| Some(SendActivityData::CreatePost(post)),
+    Some(local_site),
+    context.reset_request_count(),
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+  .await?;
 
   // They like their own post by default
   let person_id = local_user_view.person.id;
@@ -169,17 +167,13 @@ pub async fn create_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
-  ActivityChannel::submit_activity(SendActivityData::CreatePost(updated_post.clone()), &context)
-    .await?;
-
-  // Mark the post as read
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
-  if let Some(url) = updated_post.url.clone() {
+  if let Some(url) = inserted_post.url.clone() {
     if community.visibility == CommunityVisibility::Public {
       spawn_try_task(async move {
         let mut webmention =
-          Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
+          Webmention::new::<Url>(inserted_post.ap_id.clone().into(), url.clone().into())?;
         webmention.set_checked(true);
         match webmention
           .send()
@@ -194,5 +188,5 @@ pub async fn create_post(
     }
   };
 
-  build_post_response(&context, community_id, &local_user_view.person, post_id).await
+  build_post_response(&context, community_id, local_user_view, post_id).await
 }

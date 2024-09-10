@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   traits::Likeable,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::ops::Deref;
 
 #[tracing::instrument(skip(context))]
@@ -25,7 +25,7 @@ pub async fn like_comment(
   data: Json<CreateCommentLike>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommentResponse>, LemmyError> {
+) -> LemmyResult<Json<CommentResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let mut recipient_ids = Vec::<LocalUserId>::new();
@@ -35,7 +35,13 @@ pub async fn like_comment(
   check_bot_account(&local_user_view.person)?;
 
   let comment_id = data.comment_id;
-  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None).await?;
+  let orig_comment = CommentView::read(
+    &mut context.pool(),
+    comment_id,
+    Some(&local_user_view.local_user),
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -46,9 +52,10 @@ pub async fn like_comment(
 
   // Add parent poster or commenter to recipients
   let comment_reply = CommentReply::read_by_comment(&mut context.pool(), comment_id).await;
-  if let Ok(reply) = comment_reply {
+  if let Ok(Some(reply)) = comment_reply {
     let recipient_id = reply.recipient_id;
-    if let Ok(local_recipient) = LocalUserView::read_person(&mut context.pool(), recipient_id).await
+    if let Ok(Some(local_recipient)) =
+      LocalUserView::read_person(&mut context.pool(), recipient_id).await
     {
       recipient_ids.push(local_recipient.local_user.id);
     }

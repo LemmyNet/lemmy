@@ -12,16 +12,18 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn delete_post(
   data: Json<DeletePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PostResponse>, LemmyError> {
+) -> LemmyResult<Json<PostResponse>> {
   let post_id = data.post_id;
-  let orig_post = Post::read(&mut context.pool(), post_id).await?;
+  let orig_post = Post::read(&mut context.pool(), post_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
   // Dont delete it if its already been deleted.
   if orig_post.deleted == data.deleted {
@@ -60,7 +62,7 @@ pub async fn delete_post(
   build_post_response(
     &context,
     orig_post.community_id,
-    &local_user_view.person,
+    local_user_view,
     data.post_id,
   )
   .await
