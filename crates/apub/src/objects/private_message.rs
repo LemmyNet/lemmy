@@ -131,7 +131,7 @@ impl Object for ApubPrivateMessage {
   ) -> LemmyResult<ApubPrivateMessage> {
     let creator = note.attributed_to.dereference(context).await?;
     let recipient = note.to[0].dereference(context).await?;
-    PersonBlock::check(&mut context.pool(), recipient.id, creator.id).await?;
+    PersonBlock::read(&mut context.pool(), recipient.id, creator.id).await?;
 
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);

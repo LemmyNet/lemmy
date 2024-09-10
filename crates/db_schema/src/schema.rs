@@ -446,7 +446,6 @@ diesel::table! {
         interface_language -> Varchar,
         show_avatars -> Bool,
         send_notifications_to_email -> Bool,
-        show_scores -> Bool,
         show_bot_accounts -> Bool,
         show_read_posts -> Bool,
         email_verified -> Bool,

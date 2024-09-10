@@ -39,7 +39,7 @@ pub async fn create_private_message(
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&content, false)?;
 
-  PersonBlock::check(
+  PersonBlock::read(
     &mut context.pool(),
     data.recipient_id,
     local_user_view.person.id,

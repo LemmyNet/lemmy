@@ -252,9 +252,9 @@ pub async fn check_person_instance_community_block(
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  PersonBlock::check(pool, potential_blocker_id, my_id).await?;
-  InstanceBlock::check(pool, potential_blocker_id, community_instance_id).await?;
-  CommunityBlock::check(pool, potential_blocker_id, community_id).await?;
+  PersonBlock::read(pool, potential_blocker_id, my_id).await?;
+  InstanceBlock::read(pool, potential_blocker_id, community_instance_id).await?;
+  CommunityBlock::read(pool, potential_blocker_id, community_id).await?;
   Ok(())
 }
 
