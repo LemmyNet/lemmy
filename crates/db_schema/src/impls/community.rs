@@ -321,7 +321,7 @@ impl CommunityFollower {
 
   /// Check if a remote instance has any followers on local instance. For this it is enough to check
   /// if any follow relation is stored. Dont use this for local community.
-  pub async fn has_local_followers(
+  pub async fn check_has_local_followers(
     pool: &mut DbPool<'_>,
     remote_community_id: CommunityId,
   ) -> LemmyResult<()> {

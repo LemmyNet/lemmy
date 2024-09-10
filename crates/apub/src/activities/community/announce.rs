@@ -218,7 +218,7 @@ async fn can_accept_activity_in_community(
       return Err(LemmyErrorType::CouldntFindCommunity.into());
     }
     if !community.local {
-      CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
+      CommunityFollower::check_has_local_followers(&mut context.pool(), community.id).await?
     }
   }
   Ok(())
