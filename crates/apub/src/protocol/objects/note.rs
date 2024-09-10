@@ -59,8 +59,8 @@ impl Note {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<(ApubPost, Option<ApubComment>)> {
     // Fetch parent comment chain in a box, otherwise it can cause a stack overflow.
-    let parent = Box::pin(self.in_reply_to.dereference(context).await?);
-    match parent.deref() {
+    let parent = self.in_reply_to.dereference(context).await?;
+    match parent {
       PostOrComment::Post(p) => Ok((p.clone(), None)),
       PostOrComment::Comment(c) => {
         let post_id = c.post_id;
