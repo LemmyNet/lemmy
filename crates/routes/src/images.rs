@@ -110,7 +110,10 @@ fn adapt_request(
   const INVALID_HEADERS: &[HeaderName] = &[ACCEPT_ENCODING, HOST];
 
   let client_request = client
-    .request(http::Method::from_bytes(request.method().as_str().as_bytes()).unwrap(), url)
+    .request(
+      http::Method::from_bytes(request.method().as_str().as_bytes()).unwrap(),
+      url,
+    )
     .timeout(REQWEST_TIMEOUT);
 
   request

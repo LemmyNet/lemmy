@@ -4,7 +4,7 @@ use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{propagation::TraceContextPropagator, Resource};
 use tracing::{subscriber::set_global_default, Subscriber};
-use tracing_subscriber::{filter::Targets, layer::SubscriberExt, registry::LookupSpan, Layer};
+use tracing_subscriber::{filter::Targets, layer::SubscriberExt, registry::LookupSpan};
 
 pub fn init_tracing<S>(opentelemetry_url: &str, subscriber: S, targets: Targets) -> LemmyResult<()>
 where
@@ -23,7 +23,7 @@ where
   let tracer = opentelemetry_otlp::new_pipeline()
     .tracing()
     .with_trace_config(
-      opentelemetry_sdk::trace::config()
+      opentelemetry_sdk::trace::Config::default()
         .with_resource(Resource::new(vec![KeyValue::new("service.name", "lemmy")])),
     )
     .with_exporter(
