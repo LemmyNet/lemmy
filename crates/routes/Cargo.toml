@@ -35,4 +35,4 @@ tracing = { workspace = true }
 tokio = { workspace = true }
 urlencoding = { workspace = true }
 http.workspace = true
-rss = "2.0.8"
+rss = "2.0.9"

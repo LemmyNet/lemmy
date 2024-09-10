@@ -2,6 +2,7 @@ use actix_web::{
   body::BodyStream,
   http::{
     header::{HeaderName, ACCEPT_ENCODING, HOST},
+    Method,
     StatusCode,
   },
   web,
@@ -10,6 +11,7 @@ use actix_web::{
   HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
+use http::HeaderValue;
 use lemmy_api_common::{context::LemmyContext, request::PictrsResponse};
 use lemmy_db_schema::source::{
   images::{LocalImage, LocalImageForm, RemoteImage},
@@ -110,10 +112,7 @@ fn adapt_request(
   const INVALID_HEADERS: &[HeaderName] = &[ACCEPT_ENCODING, HOST];
 
   let client_request = client
-    .request(
-      http::Method::from_bytes(request.method().as_str().as_bytes()).unwrap(),
-      url,
-    )
+    .request(convert_method(request.method()), url)
     .timeout(REQWEST_TIMEOUT);
 
   request
@@ -123,6 +122,7 @@ fn adapt_request(
       if INVALID_HEADERS.contains(key) {
         client_req
       } else {
+        // TODO: remove as_str and as_bytes conversions after actix-web upgrades to http 1.0
         client_req.header(key.as_str(), value.as_bytes())
       }
     })
@@ -170,7 +170,7 @@ async fn upload(
     }
   }
 
-  Ok(HttpResponse::build(StatusCode::from_u16(status.as_u16())?).json(images))
+  Ok(HttpResponse::build(convert_status(status)).json(images))
 }
 
 async fn full_res(
@@ -220,7 +220,7 @@ async fn image(
   let mut client_res = HttpResponse::build(StatusCode::from_u16(res.status().as_u16())?);
 
   for (name, value) in res.headers().iter().filter(|(h, _)| *h != "connection") {
-    client_res.insert_header((name.as_str(), value.as_bytes()));
+    client_res.insert_header(convert_header(name, value));
   }
 
   Ok(client_res.body(BodyStream::new(res.bytes_stream())))
@@ -249,10 +249,7 @@ async fn delete(
 
   LocalImage::delete_by_alias(&mut context.pool(), &file).await?;
 
-  Ok(
-    HttpResponse::build(StatusCode::from_u16(res.status().as_u16())?)
-      .body(BodyStream::new(res.bytes_stream())),
-  )
+  Ok(HttpResponse::build(convert_status(res.status())).body(BodyStream::new(res.bytes_stream())))
 }
 
 pub async fn image_proxy(
@@ -314,4 +311,15 @@ where
   ) -> std::task::Poll<Option<Self::Item>> {
     std::pin::Pin::new(&mut self.rx).poll_recv(cx)
   }
+}
+
+// TODO: remove these conversions after actix-web upgrades to http 1.0
+fn convert_status(status: http::StatusCode) -> StatusCode {
+  StatusCode::from_u16(status.as_u16()).expect("status can be converted")
+}
+fn convert_method(method: &Method) -> http::Method {
+  http::Method::from_bytes(method.as_str().as_bytes()).expect("method can be converted")
+}
+fn convert_header<'a>(name: &'a http::HeaderName, value: &'a HeaderValue) -> (&'a str, &'a [u8]) {
+  (name.as_str(), value.as_bytes())
 }
