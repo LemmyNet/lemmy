@@ -240,10 +240,13 @@ steps:
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
-    secrets: [docker_username, docker_password]
     settings:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
       platforms: linux/amd64, linux/arm64
       build_args:
         - RUST_RELEASE_MODE=release
@@ -253,10 +256,13 @@ steps:
 
   nightly_build:
     image: woodpeckerci/plugin-docker-buildx
-    secrets: [docker_username, docker_password]
     settings:
       repo: dessalines/lemmy
       dockerfile: docker/Dockerfile
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
       platforms: linux/amd64,linux/arm64
       build_args:
         - RUST_RELEASE_MODE=release
