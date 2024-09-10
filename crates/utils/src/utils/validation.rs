@@ -1,16 +1,16 @@
 use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder, RegexSet};
+use std::sync::LazyLock;
 use url::{ParseError, Url};
 
 // From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
-static VALID_MATRIX_ID_REGEX: Lazy<Regex> = Lazy::new(|| {
+static VALID_MATRIX_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^@[A-Za-z0-9\x21-\x39\x3B-\x7F]+:[A-Za-z0-9.-]+(:[0-9]{2,5})?$")
     .expect("compile regex")
 });
 // taken from https://en.wikipedia.org/wiki/UTM_parameters
-static CLEAN_URL_PARAMS_REGEX: Lazy<Regex> = Lazy::new(|| {
+static CLEAN_URL_PARAMS_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(
     r"^(utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|gclsrc|dclid|fbclid)=",
   )
@@ -21,6 +21,7 @@ const ALLOWED_POST_URL_SCHEMES: [&str; 3] = ["http", "https", "magnet"];
 const BODY_MAX_LENGTH: usize = 10000;
 const POST_BODY_MAX_LENGTH: usize = 50000;
 const BIO_MAX_LENGTH: usize = 300;
+const URL_MAX_LENGTH: usize = 2000;
 const ALT_TEXT_MAX_LENGTH: usize = 1500;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
@@ -87,12 +88,12 @@ fn has_newline(name: &str) -> bool {
 }
 
 pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
-  static VALID_ACTOR_NAME_REGEX_EN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
-  static VALID_ACTOR_NAME_REGEX_AR: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^[\p{Arabic}0-9_]{3,}$").expect("compile regex"));
-  static VALID_ACTOR_NAME_REGEX_RU: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^[\p{Cyrillic}0-9_]{3,}$").expect("compile regex"));
+  static VALID_ACTOR_NAME_REGEX_EN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
+  static VALID_ACTOR_NAME_REGEX_AR: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[\p{Arabic}0-9_]{3,}$").expect("compile regex"));
+  static VALID_ACTOR_NAME_REGEX_RU: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[\p{Cyrillic}0-9_]{3,}$").expect("compile regex"));
 
   let check = name.chars().count() <= actor_name_max_length && !has_newline(name);
 
@@ -284,10 +285,16 @@ pub fn check_site_visibility_valid(
   }
 }
 
-pub fn check_url_scheme(url: &Url) -> LemmyResult<()> {
+pub fn is_valid_url(url: &Url) -> LemmyResult<()> {
   if !ALLOWED_POST_URL_SCHEMES.contains(&url.scheme()) {
     Err(LemmyErrorType::InvalidUrlScheme)?
   }
+
+  max_length_check(
+    url.as_str(),
+    URL_MAX_LENGTH,
+    LemmyErrorType::UrlLengthOverflow,
+  )?;
 
   Ok(())
 }
@@ -349,7 +356,6 @@ mod tests {
     utils::validation::{
       build_and_check_regex,
       check_site_visibility_valid,
-      check_url_scheme,
       check_urls_are_valid,
       clean_url_params,
       is_url_blocked,
@@ -358,11 +364,13 @@ mod tests {
       is_valid_display_name,
       is_valid_matrix_id,
       is_valid_post_title,
+      is_valid_url,
       site_description_length_check,
       site_name_length_check,
       BIO_MAX_LENGTH,
       SITE_DESCRIPTION_MAX_LENGTH,
       SITE_NAME_MAX_LENGTH,
+      URL_MAX_LENGTH,
     },
   };
   use pretty_assertions::assert_eq;
@@ -580,15 +588,27 @@ mod tests {
   }
 
   #[test]
-  fn test_check_url_scheme() -> LemmyResult<()> {
-    assert!(check_url_scheme(&Url::parse("http://example.com")?).is_ok());
-    assert!(check_url_scheme(&Url::parse("https://example.com")?).is_ok());
-    assert!(check_url_scheme(&Url::parse("https://example.com")?).is_ok());
-    assert!(check_url_scheme(&Url::parse("ftp://example.com")?).is_err());
-    assert!(check_url_scheme(&Url::parse("javascript:void")?).is_err());
+  fn test_check_url_valid() -> LemmyResult<()> {
+    assert!(is_valid_url(&Url::parse("http://example.com")?).is_ok());
+    assert!(is_valid_url(&Url::parse("https://example.com")?).is_ok());
+    assert!(is_valid_url(&Url::parse("https://example.com")?).is_ok());
+    assert!(is_valid_url(&Url::parse("ftp://example.com")?)
+      .is_err_and(|e| e.error_type.eq(&LemmyErrorType::InvalidUrlScheme)));
+    assert!(is_valid_url(&Url::parse("javascript:void")?)
+      .is_err_and(|e| e.error_type.eq(&LemmyErrorType::InvalidUrlScheme)));
 
     let magnet_link="magnet:?xt=urn:btih:4b390af3891e323778959d5abfff4b726510f14c&dn=Ravel%20Complete%20Piano%20Sheet%20Music%20-%20Public%20Domain&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce";
-    assert!(check_url_scheme(&Url::parse(magnet_link)?).is_ok());
+    assert!(is_valid_url(&Url::parse(magnet_link)?).is_ok());
+
+    // Also make sure the length overflow hits an error
+    let mut long_str = "http://example.com/test=".to_string();
+    for _ in 1..URL_MAX_LENGTH {
+      long_str.push('X');
+    }
+    let long_url = Url::parse(&long_str)?;
+    assert!(
+      is_valid_url(&long_url).is_err_and(|e| e.error_type.eq(&LemmyErrorType::UrlLengthOverflow))
+    );
 
     Ok(())
   }

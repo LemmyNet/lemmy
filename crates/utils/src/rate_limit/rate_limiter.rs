@@ -1,15 +1,15 @@
 use enum_map::EnumMap;
-use once_cell::sync::Lazy;
 use std::{
   collections::HashMap,
   hash::Hash,
   net::{IpAddr, Ipv4Addr, Ipv6Addr},
+  sync::LazyLock,
   time::Instant,
 };
-use strum_macros::AsRefStr;
+use strum::{AsRefStr, Display};
 use tracing::debug;
 
-static START_TIME: Lazy<Instant> = Lazy::new(Instant::now);
+static START_TIME: LazyLock<Instant> = LazyLock::new(Instant::now);
 
 /// Smaller than `std::time::Instant` because it uses a smaller integer for seconds and doesn't
 /// store nanoseconds
@@ -66,7 +66,7 @@ impl Bucket {
   }
 }
 
-#[derive(Debug, enum_map::Enum, Copy, Clone, AsRefStr)]
+#[derive(Debug, enum_map::Enum, Copy, Clone, Display, AsRefStr)]
 pub enum ActionType {
   Message,
   Register,

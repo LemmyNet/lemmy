@@ -40,12 +40,66 @@ pub fn config(
     .service(web::resource("/pictrs/image/delete/{token}/{filename}").route(web::get().to(delete)));
 }
 
-#[derive(Deserialize)]
+trait ProcessUrl {
+  /// If thumbnail or format is given, this uses the pictrs process endpoint.
+  /// Otherwise, it uses the normal pictrs url (IE image/original).
+  fn process_url(&self, image_url: &str, pictrs_url: &Url) -> String;
+}
+
+#[derive(Deserialize, Clone)]
 struct PictrsGetParams {
   format: Option<String>,
   thumbnail: Option<i32>,
 }
 
+impl ProcessUrl for PictrsGetParams {
+  fn process_url(&self, src: &str, pictrs_url: &Url) -> String {
+    if self.format.is_none() && self.thumbnail.is_none() {
+      format!("{}image/original/{}", pictrs_url, src)
+    } else {
+      // Take file type from name, or jpg if nothing is given
+      let format = self
+        .clone()
+        .format
+        .unwrap_or_else(|| src.split('.').last().unwrap_or("jpg").to_string());
+
+      let mut url = format!("{}image/process.{}?src={}", pictrs_url, format, src);
+
+      if let Some(size) = self.thumbnail {
+        url = format!("{url}&thumbnail={size}",);
+      }
+      url
+    }
+  }
+}
+
+#[derive(Deserialize, Clone)]
+pub struct ImageProxyParams {
+  url: String,
+  format: Option<String>,
+  thumbnail: Option<i32>,
+}
+
+impl ProcessUrl for ImageProxyParams {
+  fn process_url(&self, proxy_url: &str, pictrs_url: &Url) -> String {
+    if self.format.is_none() && self.thumbnail.is_none() {
+      format!("{}image/original?proxy={}", pictrs_url, proxy_url)
+    } else {
+      // Take file type from name, or jpg if nothing is given
+      let format = self
+        .clone()
+        .format
+        .unwrap_or_else(|| proxy_url.split('.').last().unwrap_or("jpg").to_string());
+
+      let mut url = format!("{}image/process.{}?proxy={}", pictrs_url, format, proxy_url);
+
+      if let Some(size) = self.thumbnail {
+        url = format!("{url}&thumbnail={size}",);
+      }
+      url
+    }
+  }
+}
 fn adapt_request(
   request: &HttpRequest,
   client: &ClientWithMiddleware,
@@ -132,23 +186,10 @@ async fn full_res(
 
   // If there are no query params, the URL is original
   let pictrs_config = context.settings().pictrs_config()?;
-  let url = if params.format.is_none() && params.thumbnail.is_none() {
-    format!("{}image/original/{}", pictrs_config.url, name,)
-  } else {
-    // Take file type from name, or jpg if nothing is given
-    let format = params
-      .format
-      .unwrap_or_else(|| name.split('.').last().unwrap_or("jpg").to_string());
 
-    let mut url = format!("{}image/process.{}?src={}", pictrs_config.url, format, name,);
+  let processed_url = params.process_url(name, &pictrs_config.url);
 
-    if let Some(size) = params.thumbnail {
-      url = format!("{url}&thumbnail={size}",);
-    }
-    url
-  };
-
-  image(url, req, &client).await
+  image(processed_url, req, &client).await
 }
 
 async fn image(
@@ -207,11 +248,6 @@ async fn delete(
   Ok(HttpResponse::build(res.status()).body(BodyStream::new(res.bytes_stream())))
 }
 
-#[derive(Deserialize)]
-pub struct ImageProxyParams {
-  url: String,
-}
-
 pub async fn image_proxy(
   Query(params): Query<ImageProxyParams>,
   req: HttpRequest,
@@ -225,9 +261,10 @@ pub async fn image_proxy(
   RemoteImage::validate(&mut context.pool(), url.clone().into()).await?;
 
   let pictrs_config = context.settings().pictrs_config()?;
-  let url = format!("{}image/original?proxy={}", pictrs_config.url, &params.url);
 
-  image(url, req, &client).await
+  let processed_url = params.process_url(&params.url, &pictrs_config.url);
+
+  image(processed_url, req, &client).await
 }
 
 fn make_send<S>(mut stream: S) -> impl Stream<Item = S::Item> + Send + Unpin + 'static

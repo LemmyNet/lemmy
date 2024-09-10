@@ -2,9 +2,14 @@
 # See https://github.com/woodpecker-ci/woodpecker/issues/1677
 
 variables:
-  - &rust_image "rust:1.78"
+  - &rust_image "rust:1.80"
   - &rust_nightly_image "rustlang/rust:nightly"
   - &install_pnpm "corepack enable pnpm"
+  - &install_binstall "wget -O- https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xvz -C /usr/local/cargo/bin"
+  - install_diesel_cli: &install_diesel_cli
+      - apt-get update && apt-get install -y postgresql-client
+      - cargo install diesel_cli --no-default-features --features postgres
+      - export PATH="$CARGO_HOME/bin:$PATH"
   - &slow_check_paths
     - event: pull_request
       path:
@@ -25,17 +30,6 @@ variables:
             "diesel.toml",
             ".gitmodules",
           ]
-  - install_binstall: &install_binstall
-      - wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - tar -xvf cargo-binstall-x86_64-unknown-linux-musl.tgz
-      - cp cargo-binstall /usr/local/cargo/bin
-  - install_diesel_cli: &install_diesel_cli
-      - apt update && apt install -y lsb-release build-essential
-      - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-      - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-      - apt update && apt install -y postgresql-client-16
-      - cargo install diesel_cli --no-default-features --features postgres
-      - export PATH="$CARGO_HOME/bin:$PATH"
 
 steps:
   prepare_repo:
@@ -82,7 +76,7 @@ steps:
   cargo_machete:
     image: *rust_nightly_image
     commands:
-      - <<: *install_binstall
+      - *install_binstall
       - cargo binstall -y cargo-machete
       - cargo machete
     when:
@@ -181,6 +175,7 @@ steps:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
+      LEMMY_TEST_FAST_FEDERATION: "1"
     commands:
       - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
@@ -203,11 +198,6 @@ steps:
       - <<: *install_diesel_cli
       # Run all migrations
       - diesel migration run
-      # Dump schema to before.sqldump (PostgreSQL apt repo is used to prevent pg_dump version mismatch error)
-      - apt update && apt install -y lsb-release
-      - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-      - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-      - apt update && apt install -y postgresql-client-16
       - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
       - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f before.sqldump
       # Make sure that the newest migration is revertable without the `r` schema
@@ -231,7 +221,7 @@ steps:
       DO_WRITE_HOSTS_FILE: "1"
     commands:
       - *install_pnpm
-      - apt update && apt install -y bash curl postgresql-client
+      - apt-get update && apt-get install -y bash curl postgresql-client
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - pnpm i
@@ -278,7 +268,7 @@ steps:
   publish_to_crates_io:
     image: *rust_image
     commands:
-      - <<: *install_binstall
+      - *install_binstall
       # Install cargo-workspaces
       - cargo binstall -y cargo-workspaces
       - cp -r migrations crates/db_schema/
@@ -306,7 +296,8 @@ steps:
 
 services:
   database:
-    image: postgres:16-alpine
+    # 15-alpine image necessary because of diesel tests
+    image: pgautoupgrade/pgautoupgrade:15-alpine
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password

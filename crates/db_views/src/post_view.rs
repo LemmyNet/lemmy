@@ -49,7 +49,6 @@ use lemmy_db_schema::{
     get_conn,
     limit_and_offset,
     now,
-    visible_communities_only,
     Commented,
     DbConn,
     DbPool,
@@ -64,7 +63,7 @@ use lemmy_db_schema::{
 use tracing::debug;
 
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
+  impl ReadFn<'a, PostView, (PostId, Option<&'a LocalUser>, bool)>,
   impl ListFn<'a, PostView, (PostQuery<'a>, &'a Site)>,
 > {
   let is_creator_banned_from_community = exists(
@@ -142,6 +141,7 @@ fn queries<'a>() -> Queries<
       .single_value()
   };
 
+  // TODO maybe this should go to localuser also
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>| {
     let is_local_user_banned_from_community_selection: Box<
@@ -250,52 +250,56 @@ fn queries<'a>() -> Queries<
       ))
   };
 
-  let read =
-    move |mut conn: DbConn<'a>,
-          (post_id, my_person_id, is_mod_or_admin): (PostId, Option<PersonId>, bool)| async move {
-      // The left join below will return None in this case
-      let person_id_join = my_person_id.unwrap_or(PersonId(-1));
+  let read = move |mut conn: DbConn<'a>,
+                   (post_id, my_local_user, is_mod_or_admin): (
+    PostId,
+    Option<&'a LocalUser>,
+    bool,
+  )| async move {
+    // The left join below will return None in this case
+    let my_person_id = my_local_user.person_id();
+    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
-      let mut query = all_joins(
-        post_aggregates::table
-          .filter(post_aggregates::post_id.eq(post_id))
-          .into_boxed(),
-        my_person_id,
-      );
+    let mut query = all_joins(
+      post_aggregates::table
+        .filter(post_aggregates::post_id.eq(post_id))
+        .into_boxed(),
+      my_person_id,
+    );
 
-      // Hide deleted and removed for non-admins or mods
-      if !is_mod_or_admin {
-        query = query
-          .filter(
-            community::removed
-              .eq(false)
-              .or(post::creator_id.eq(person_id_join)),
-          )
-          .filter(
-            post::removed
-              .eq(false)
-              .or(post::creator_id.eq(person_id_join)),
-          )
-          // users can see their own deleted posts
-          .filter(
-            community::deleted
-              .eq(false)
-              .or(post::creator_id.eq(person_id_join)),
-          )
-          .filter(
-            post::deleted
-              .eq(false)
-              .or(post::creator_id.eq(person_id_join)),
-          );
-      }
+    // Hide deleted and removed for non-admins or mods
+    if !is_mod_or_admin {
+      query = query
+        .filter(
+          community::removed
+            .eq(false)
+            .or(post::creator_id.eq(person_id_join)),
+        )
+        .filter(
+          post::removed
+            .eq(false)
+            .or(post::creator_id.eq(person_id_join)),
+        )
+        // users can see their own deleted posts
+        .filter(
+          community::deleted
+            .eq(false)
+            .or(post::creator_id.eq(person_id_join)),
+        )
+        .filter(
+          post::deleted
+            .eq(false)
+            .or(post::creator_id.eq(person_id_join)),
+        );
+    }
 
-      query = visible_communities_only(my_person_id, query);
+    query = my_local_user.visible_communities_only(query);
 
-      Commented::new(query)
-        .text("PostView::read")
-        .first(&mut conn)
-        .await
-    };
+    Commented::new(query)
+      .text("PostView::read")
+      .first(&mut conn)
+      .await
+  };
 
   let list = move |mut conn: DbConn<'a>, (options, site): (PostQuery<'a>, &'a Site)| async move {
     // The left join below will return None in this case
@@ -392,7 +396,10 @@ fn queries<'a>() -> Queries<
         .filter(not(post::removed.or(post::deleted)));
     }
 
-    if !options.local_user.show_nsfw(site) {
+    if !options
+      .show_nsfw
+      .unwrap_or(options.local_user.show_nsfw(site))
+    {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
@@ -437,7 +444,7 @@ fn queries<'a>() -> Queries<
       }
     };
 
-    query = visible_communities_only(options.local_user.person_id(), query);
+    query = options.local_user.visible_communities_only(query);
 
     // Dont filter blocks or missing languages for moderator view type
     if let (Some(person_id), false) = (
@@ -552,14 +559,14 @@ fn queries<'a>() -> Queries<
 }
 
 impl PostView {
-  pub async fn read(
+  pub async fn read<'a>(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    my_person_id: Option<PersonId>,
+    my_local_user: Option<&'a LocalUser>,
     is_mod_or_admin: bool,
   ) -> Result<Option<Self>, Error> {
     queries()
-      .read(pool, (post_id, my_person_id, is_mod_or_admin))
+      .read(pool, (post_id, my_local_user, is_mod_or_admin))
       .await
   }
 }
@@ -617,6 +624,7 @@ pub struct PostQuery<'a> {
   pub page_back: Option<bool>,
   pub show_hidden: Option<bool>,
   pub show_read: Option<bool>,
+  pub show_nsfw: Option<bool>,
 }
 
 impl<'a> PostQuery<'a> {
@@ -938,7 +946,7 @@ mod tests {
     let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person.id),
+      Some(&data.local_user_view.local_user),
       false,
     )
     .await?
@@ -1067,7 +1075,7 @@ mod tests {
     let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person.id),
+      Some(&data.local_user_view.local_user),
       false,
     )
     .await?
@@ -1585,6 +1593,48 @@ mod tests {
     cleanup(data, pool).await
   }
 
+  #[tokio::test]
+  #[serial]
+  async fn post_listings_hide_nsfw() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Mark a post as nsfw
+    let update_form = PostUpdateForm {
+      nsfw: Some(true),
+      ..Default::default()
+    };
+
+    Post::update(pool, data.inserted_bot_post.id, &update_form).await?;
+
+    // Make sure you don't see the nsfw post in the regular results
+    let post_listings_hide_nsfw = data.default_post_query().list(&data.site, pool).await?;
+    assert_eq!(vec![POST], names(&post_listings_hide_nsfw));
+
+    // Make sure it does come back with the show_nsfw option
+    let post_listings_show_nsfw = PostQuery {
+      sort: Some(SortType::New),
+      show_nsfw: Some(true),
+      local_user: Some(&data.local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_nsfw));
+
+    // Make sure that nsfw field is true.
+    assert!(
+      &post_listings_show_nsfw
+        .first()
+        .ok_or(LemmyErrorType::CouldntFindPost)?
+        .post
+        .nsfw
+    );
+
+    cleanup(data, pool).await
+  }
+
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
     let num_deleted = Post::delete(pool, data.inserted_post.id).await?;
     Community::delete(pool, data.inserted_community.id).await?;
@@ -1755,7 +1805,7 @@ mod tests {
     let authenticated_post = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person.id),
+      Some(&data.local_user_view.local_user),
       false,
     )
     .await;
@@ -1797,7 +1847,7 @@ mod tests {
     let post_view = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(inserted_banned_from_comm_local_user.person_id),
+      Some(&inserted_banned_from_comm_local_user),
       false,
     )
     .await?
@@ -1819,7 +1869,7 @@ mod tests {
     let post_view = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person.id),
+      Some(&data.local_user_view.local_user),
       false,
     )
     .await?

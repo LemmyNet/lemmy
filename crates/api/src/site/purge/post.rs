@@ -10,6 +10,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    local_user::LocalUser,
     moderator::{AdminPurgePost, AdminPurgePostForm},
     post::Post,
   },
@@ -31,6 +32,14 @@ pub async fn purge_post(
   let post = Post::read(&mut context.pool(), data.post_id)
     .await?
     .ok_or(LemmyErrorType::CouldntFindPost)?;
+
+  // Also check that you're a higher admin
+  LocalUser::is_higher_admin_check(
+    &mut context.pool(),
+    local_user_view.person.id,
+    vec![post.creator_id],
+  )
+  .await?;
 
   // Purge image
   if let Some(url) = &post.url {
