@@ -20,6 +20,7 @@ use typed_builder::TypedBuilder;
 #[cfg_attr(feature = "full", ts(export))]
 /// The vote display settings for your user.
 pub struct LocalUserVoteDisplayMode {
+  #[serde(skip)]
   pub local_user_id: LocalUserId,
   pub score: bool,
   pub upvotes: bool,

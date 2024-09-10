@@ -33,7 +33,6 @@ import {
   sampleImage,
   sampleSite,
 } from "./shared";
-const downloadFileSync = require("download-file-sync");
 
 beforeAll(setupLogins);
 
@@ -57,7 +56,8 @@ test("Upload image and delete it", async () => {
   expect(upload.delete_url).toBeDefined();
 
   // ensure that image download is working. theres probably a better way to do this
-  const content = downloadFileSync(upload.url);
+  const response = await fetch(upload.url ?? "");
+  const content = await response.text();
   expect(content.length).toBeGreaterThan(0);
 
   // Ensure that it comes back with the list_media endpoint
@@ -92,7 +92,8 @@ test("Upload image and delete it", async () => {
   expect(delete_).toBe(true);
 
   // ensure that image is deleted
-  const content2 = downloadFileSync(upload.url);
+  const response2 = await fetch(upload.url ?? "");
+  const content2 = await response2.text();
   expect(content2).toBe("");
 
   // Ensure that it shows the image is deleted
@@ -120,7 +121,8 @@ test("Purge user, uploaded image removed", async () => {
   expect(upload.delete_url).toBeDefined();
 
   // ensure that image download is working. theres probably a better way to do this
-  const content = downloadFileSync(upload.url);
+  const response = await fetch(upload.url ?? "");
+  const content = await response.text();
   expect(content.length).toBeGreaterThan(0);
 
   // purge user
@@ -132,7 +134,8 @@ test("Purge user, uploaded image removed", async () => {
   expect(delete_.success).toBe(true);
 
   // ensure that image is deleted
-  const content2 = downloadFileSync(upload.url);
+  const response2 = await fetch(upload.url ?? "");
+  const content2 = await response2.text();
   expect(content2).toBe("");
 });
 
@@ -150,7 +153,8 @@ test("Purge post, linked image removed", async () => {
   expect(upload.delete_url).toBeDefined();
 
   // ensure that image download is working. theres probably a better way to do this
-  const content = downloadFileSync(upload.url);
+  const response = await fetch(upload.url ?? "");
+  const content = await response.text();
   expect(content.length).toBeGreaterThan(0);
 
   let community = await resolveBetaCommunity(user);
@@ -160,6 +164,7 @@ test("Purge post, linked image removed", async () => {
     upload.url,
   );
   expect(post.post_view.post.url).toBe(upload.url);
+  expect(post.post_view.image_details).toBeDefined();
 
   // purge post
   const purgeForm: PurgePost = {
@@ -169,7 +174,8 @@ test("Purge post, linked image removed", async () => {
   expect(delete_.success).toBe(true);
 
   // ensure that image is deleted
-  const content2 = downloadFileSync(upload.url);
+  const response2 = await fetch(upload.url ?? "");
+  const content2 = await response2.text();
   expect(content2).toBe("");
 });
 
@@ -183,6 +189,9 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   );
   const post = postRes.post_view.post;
   expect(post).toBeDefined();
+
+  // Make sure it fetched the image details
+  expect(postRes.post_view.image_details).toBeDefined();
 
   // remote image gets proxied after upload
   expect(

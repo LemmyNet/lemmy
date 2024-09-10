@@ -2,7 +2,7 @@ version: "3.7"
 
 x-ui-default: &ui-default
   init: true
-  image: dessalines/lemmy-ui:0.19.4
+  image: dessalines/lemmy-ui:0.19.5
   # assuming lemmy-ui is cloned besides lemmy directory
   # build:
   #   context: ../../../lemmy-ui
@@ -20,7 +20,7 @@ x-lemmy-default: &lemmy-default
   restart: always
 
 x-postgres-default: &postgres-default
-  image: postgres:16-alpine
+  image: pgautoupgrade/pgautoupgrade:15-alpine
   environment:
     - POSTGRES_USER=lemmy
     - POSTGRES_PASSWORD=password

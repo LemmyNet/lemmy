@@ -1,7 +1,7 @@
 use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
-use strum_macros::{Display, EnumIter};
+use std::{backtrace::Backtrace, fmt::Debug};
+use strum::{Display, EnumIter};
 
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
@@ -38,6 +38,8 @@ pub enum LemmyErrorType {
   NotTopAdmin,
   NotTopMod,
   NotLoggedIn,
+  NotHigherMod,
+  NotHigherAdmin,
   SiteBan,
   Deleted,
   BannedFromCommunity,
@@ -177,19 +179,20 @@ pub enum LemmyErrorType {
   UrlWithoutDomain,
   InboxTimeout,
   Unknown(String),
+  CantDeleteSite,
+  UrlLengthOverflow,
 }
 
 cfg_if! {
   if #[cfg(feature = "full")] {
 
-    use tracing_error::SpanTrace;
     use std::fmt;
     pub type LemmyResult<T> = Result<T, LemmyError>;
 
     pub struct LemmyError {
       pub error_type: LemmyErrorType,
       pub inner: anyhow::Error,
-      pub context: SpanTrace,
+      pub context: Backtrace,
     }
 
     /// Maximum number of items in an array passed as API parameter. See [[LemmyErrorType::TooManyItems]]
@@ -204,7 +207,7 @@ cfg_if! {
         LemmyError {
           error_type: LemmyErrorType::Unknown(format!("{}", &cause)),
           inner: cause,
-          context: SpanTrace::capture(),
+          context: Backtrace::capture(),
         }
       }
     }
@@ -249,7 +252,7 @@ cfg_if! {
         LemmyError {
           error_type,
           inner,
-          context: SpanTrace::capture(),
+          context: Backtrace::capture(),
         }
       }
     }
@@ -263,7 +266,7 @@ cfg_if! {
         self.map_err(|error| LemmyError {
           error_type,
           inner: error.into(),
-          context: SpanTrace::capture(),
+          context: Backtrace::capture(),
         })
       }
     }

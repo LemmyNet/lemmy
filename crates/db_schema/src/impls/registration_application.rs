@@ -1,6 +1,6 @@
 use crate::{
   diesel::OptionalExtension,
-  newtypes::LocalUserId,
+  newtypes::{LocalUserId, RegistrationApplicationId},
   schema::registration_application::dsl::{local_user_id, registration_application},
   source::registration_application::{
     RegistrationApplication,
@@ -17,7 +17,7 @@ use diesel_async::RunQueryDsl;
 impl Crud for RegistrationApplication {
   type InsertForm = RegistrationApplicationInsertForm;
   type UpdateForm = RegistrationApplicationUpdateForm;
-  type IdType = i32;
+  type IdType = RegistrationApplicationId;
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;

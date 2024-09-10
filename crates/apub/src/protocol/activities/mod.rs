@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use strum_macros::Display;
+use strum::Display;
 
 pub mod block;
 pub mod community;
