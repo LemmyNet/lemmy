@@ -345,10 +345,7 @@ mod tests {
     };
     let person = Person::create(&mut context.pool(), &person_form).await?;
 
-    let user_form = LocalUserInsertForm::builder()
-      .person_id(person.id)
-      .password_encrypted("pass".to_string())
-      .build();
+    let user_form = LocalUserInsertForm::test_form(person.id);
     let local_user = LocalUser::create(&mut context.pool(), &user_form, vec![]).await?;
 
     Ok(

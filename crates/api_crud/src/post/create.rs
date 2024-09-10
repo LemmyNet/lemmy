@@ -8,13 +8,11 @@ use lemmy_api_common::{
   send_activity::SendActivityData,
   utils::{
     check_community_user_action,
-    generate_local_apub_endpoint,
     get_url_blocklist,
     honeypot_check,
     local_site_to_slur_regex,
     mark_post_as_read,
     process_markdown_opt,
-    EndpointType,
   },
 };
 use lemmy_db_schema::{
@@ -23,7 +21,7 @@ use lemmy_db_schema::{
     actor_language::CommunityLanguage,
     community::Community,
     local_site::LocalSite,
-    post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
+    post::{Post, PostInsertForm, PostLike, PostLikeForm},
   },
   traits::{Crud, Likeable},
   utils::diesel_url_create,
@@ -37,11 +35,11 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs,
     validation::{
-      check_url_scheme,
       is_url_blocked,
       is_valid_alt_text_field,
       is_valid_body_field,
       is_valid_post_title,
+      is_valid_url,
     },
   },
 };
@@ -71,11 +69,11 @@ pub async fn create_post(
 
   if let Some(url) = &url {
     is_url_blocked(url, &url_blocklist)?;
-    check_url_scheme(url)?;
+    is_valid_url(url)?;
   }
 
   if let Some(custom_thumbnail) = &custom_thumbnail {
-    check_url_scheme(custom_thumbnail)?;
+    is_valid_url(custom_thumbnail)?;
   }
 
   if let Some(alt_text) = &data.alt_text {
@@ -147,26 +145,8 @@ pub async fn create_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
-  let inserted_post_id = inserted_post.id;
-  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let apub_id = generate_local_apub_endpoint(
-    EndpointType::Post,
-    &inserted_post_id.to_string(),
-    &protocol_and_hostname,
-  )?;
-  let updated_post = Post::update(
-    &mut context.pool(),
-    inserted_post_id,
-    &PostUpdateForm {
-      ap_id: Some(apub_id),
-      ..Default::default()
-    },
-  )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
-
   generate_post_link_metadata(
-    updated_post.clone(),
+    inserted_post.clone(),
     custom_thumbnail.map(Into::into),
     |post| Some(SendActivityData::CreatePost(post)),
     Some(local_site),
@@ -189,11 +169,11 @@ pub async fn create_post(
 
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
-  if let Some(url) = updated_post.url.clone() {
+  if let Some(url) = inserted_post.url.clone() {
     if community.visibility == CommunityVisibility::Public {
       spawn_try_task(async move {
         let mut webmention =
-          Webmention::new::<Url>(updated_post.ap_id.clone().into(), url.clone().into())?;
+          Webmention::new::<Url>(inserted_post.ap_id.clone().into(), url.clone().into())?;
         webmention.set_checked(true);
         match webmention
           .send()
@@ -208,5 +188,5 @@ pub async fn create_post(
     }
   };
 
-  build_post_response(&context, community_id, &local_user_view.person, post_id).await
+  build_post_response(&context, community_id, local_user_view, post_id).await
 }

@@ -36,22 +36,13 @@ use lemmy_db_schema::{
     post,
   },
   source::local_user::LocalUser,
-  utils::{
-    fuzzy_search,
-    limit_and_offset,
-    visible_communities_only,
-    DbConn,
-    DbPool,
-    ListFn,
-    Queries,
-    ReadFn,
-  },
+  utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
   ListingType,
 };
 
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, CommentView, (CommentId, Option<PersonId>)>,
+  impl ReadFn<'a, CommentView, (CommentId, Option<&'a LocalUser>)>,
   impl ListFn<'a, CommentView, CommentQuery<'a>>,
 > {
   let is_creator_banned_from_community = exists(
@@ -182,9 +173,12 @@ fn queries<'a>() -> Queries<
   };
 
   let read = move |mut conn: DbConn<'a>,
-                   (comment_id, my_person_id): (CommentId, Option<PersonId>)| async move {
-    let mut query = all_joins(comment::table.find(comment_id).into_boxed(), my_person_id);
-    query = visible_communities_only(my_person_id, query);
+                   (comment_id, my_local_user): (CommentId, Option<&'a LocalUser>)| async move {
+    let mut query = all_joins(
+      comment::table.find(comment_id).into_boxed(),
+      my_local_user.person_id(),
+    );
+    query = my_local_user.visible_communities_only(query);
     query.first(&mut conn).await
   };
 
@@ -252,7 +246,7 @@ fn queries<'a>() -> Queries<
     }
 
     // If its saved only, then filter, and order by the saved time, not the comment creation time.
-    if options.saved_only {
+    if options.saved_only.unwrap_or_default() {
       query = query
         .filter(comment_saved::person_id.is_not_null())
         .then_order_by(comment_saved::published.desc());
@@ -260,9 +254,9 @@ fn queries<'a>() -> Queries<
 
     if let Some(my_id) = options.local_user.person_id() {
       let not_creator_filter = comment::creator_id.ne(my_id);
-      if options.liked_only {
+      if options.liked_only.unwrap_or_default() {
         query = query.filter(not_creator_filter).filter(score(my_id).eq(1));
-      } else if options.disliked_only {
+      } else if options.disliked_only.unwrap_or_default() {
         query = query.filter(not_creator_filter).filter(score(my_id).eq(-1));
       }
     }
@@ -301,7 +295,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(not(is_creator_blocked(person_id_join)));
     };
 
-    query = visible_communities_only(options.local_user.person_id(), query);
+    query = options.local_user.visible_communities_only(query);
 
     // A Max depth given means its a tree fetch
     let (limit, offset) = if let Some(max_depth) = options.max_depth {
@@ -366,16 +360,16 @@ fn queries<'a>() -> Queries<
 }
 
 impl CommentView {
-  pub async fn read(
+  pub async fn read<'a>(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    my_person_id: Option<PersonId>,
+    my_local_user: Option<&'a LocalUser>,
   ) -> Result<Option<Self>, Error> {
     // If a person is given, then my_vote (res.9), if None, should be 0, not null
     // Necessary to differentiate between other person's votes
-    if let Ok(Some(res)) = queries().read(pool, (comment_id, my_person_id)).await {
+    if let Ok(Some(res)) = queries().read(pool, (comment_id, my_local_user)).await {
       let mut new_view = res.clone();
-      if my_person_id.is_some() && res.my_vote.is_none() {
+      if my_local_user.is_some() && res.my_vote.is_none() {
         new_view.my_vote = Some(0);
       }
       if res.comment.deleted || res.comment.removed {
@@ -398,9 +392,9 @@ pub struct CommentQuery<'a> {
   pub creator_id: Option<PersonId>,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
-  pub saved_only: bool,
-  pub liked_only: bool,
-  pub disliked_only: bool,
+  pub saved_only: Option<bool>,
+  pub liked_only: Option<bool>,
+  pub disliked_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub max_depth: Option<i32>,
@@ -490,11 +484,8 @@ mod tests {
 
     let timmy_person_form = PersonInsertForm::test_form(inserted_instance.id, "timmy");
     let inserted_timmy_person = Person::create(pool, &timmy_person_form).await?;
-    let timmy_local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_timmy_person.id)
-      .admin(Some(true))
-      .password_encrypted(String::new())
-      .build();
+    let timmy_local_user_form = LocalUserInsertForm::test_form_admin(inserted_timmy_person.id);
+
     let inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
 
     let sara_person_form = PersonInsertForm::test_form(inserted_instance.id, "sara");
@@ -676,7 +667,7 @@ mod tests {
     let read_comment_from_blocked_person = CommentView::read(
       pool,
       data.inserted_comment_1.id,
-      Some(data.timmy_local_user_view.person.id),
+      Some(&data.timmy_local_user_view.local_user),
     )
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
@@ -711,8 +702,8 @@ mod tests {
     CommentLike::like(pool, &comment_like_form).await?;
 
     let read_liked_comment_views = CommentQuery {
-      local_user: (Some(&data.timmy_local_user_view.local_user)),
-      liked_only: (true),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      liked_only: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -727,8 +718,8 @@ mod tests {
     assert_length!(1, read_liked_comment_views);
 
     let read_disliked_comment_views: Vec<CommentView> = CommentQuery {
-      local_user: (Some(&data.timmy_local_user_view.local_user)),
-      disliked_only: (true),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      disliked_only: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -980,7 +971,7 @@ mod tests {
     // Fetch the saved comments
     let comments = CommentQuery {
       local_user: Some(&data.timmy_local_user_view.local_user),
-      saved_only: true,
+      saved_only: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -1171,7 +1162,7 @@ mod tests {
     let authenticated_comment = CommentView::read(
       pool,
       data.inserted_comment_0.id,
-      Some(data.timmy_local_user_view.person.id),
+      Some(&data.timmy_local_user_view.local_user),
     )
     .await;
     assert!(authenticated_comment.is_ok());
@@ -1211,7 +1202,7 @@ mod tests {
     let comment_view = CommentView::read(
       pool,
       data.inserted_comment_0.id,
-      Some(inserted_banned_from_comm_local_user.person_id),
+      Some(&inserted_banned_from_comm_local_user),
     )
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;
@@ -1232,7 +1223,7 @@ mod tests {
     let comment_view = CommentView::read(
       pool,
       data.inserted_comment_0.id,
-      Some(data.timmy_local_user_view.person.id),
+      Some(&data.timmy_local_user_view.local_user),
     )
     .await?
     .ok_or(LemmyErrorType::CouldntFindComment)?;

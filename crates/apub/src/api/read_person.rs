@@ -55,11 +55,11 @@ pub async fn read_person(
   let sort = data.sort;
   let page = data.page;
   let limit = data.limit;
-  let saved_only = data.saved_only.unwrap_or_default();
+  let saved_only = data.saved_only;
   let community_id = data.community_id;
   // If its saved only, you don't care what creator it was
   // Or, if its not saved, then you only want it for that specific creator
-  let creator_id = if !saved_only {
+  let creator_id = if !saved_only.unwrap_or_default() {
     Some(person_details_id)
   } else {
     None
@@ -96,7 +96,7 @@ pub async fn read_person(
   let moderates = CommunityModeratorView::for_person(
     &mut context.pool(),
     person_details_id,
-    local_user_view.is_some(),
+    local_user_view.map(|l| l.local_user).as_ref(),
   )
   .await?;
 

@@ -24,14 +24,14 @@ use lemmy_utils::{
   VERSION,
 };
 use moka::future::Cache;
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_site(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<GetSiteResponse>> {
-  static CACHE: Lazy<Cache<(), GetSiteResponse>> = Lazy::new(|| {
+  static CACHE: LazyLock<Cache<(), GetSiteResponse>> = LazyLock::new(|| {
     Cache::builder()
       .max_capacity(1)
       .time_to_live(CACHE_DURATION_API)
@@ -84,7 +84,7 @@ pub async fn get_site(
       |pool| CommunityBlockView::for_person(pool, person_id),
       |pool| InstanceBlockView::for_person(pool, person_id),
       |pool| PersonBlockView::for_person(pool, person_id),
-      |pool| CommunityModeratorView::for_person(pool, person_id, true),
+      |pool| CommunityModeratorView::for_person(pool, person_id, Some(&local_user_view.local_user)),
       |pool| LocalUserLanguage::read(pool, local_user_id)
     ))
     .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;

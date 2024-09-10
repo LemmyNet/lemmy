@@ -9,6 +9,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
+    local_user::LocalUser,
     moderator::{ModAddCommunity, ModAddCommunityForm},
   },
   traits::{Crud, Joinable},
@@ -33,6 +34,18 @@ pub async fn add_mod_to_community(
     &mut context.pool(),
   )
   .await?;
+
+  // If its a mod removal, also check that you're a higher mod.
+  if !data.added {
+    LocalUser::is_higher_mod_or_admin_check(
+      &mut context.pool(),
+      community_id,
+      local_user_view.person.id,
+      vec![data.person_id],
+    )
+    .await?;
+  }
+
   let community = Community::read(&mut context.pool(), community_id)
     .await?
     .ok_or(LemmyErrorType::CouldntFindCommunity)?;

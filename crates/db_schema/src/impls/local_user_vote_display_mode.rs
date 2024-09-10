@@ -31,6 +31,7 @@ impl LocalUserVoteDisplayMode {
       .get_result::<Self>(conn)
       .await
   }
+
   pub async fn update(
     pool: &mut DbPool<'_>,
     local_user_id: LocalUserId,
