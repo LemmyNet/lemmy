@@ -191,9 +191,12 @@ impl Followable for PersonFollower {
       .get_result::<Self>(conn)
       .await
   }
+
+  /// Currently no user following
   async fn follow_accepted(_: &mut DbPool<'_>, _: CommunityId, _: PersonId) -> Result<Self, Error> {
-    unimplemented!()
+    Err(Error::NotFound)
   }
+
   async fn unfollow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(person_follower::table.find((form.follower_id, form.person_id)))

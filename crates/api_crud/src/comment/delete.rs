@@ -59,8 +59,15 @@ pub async fn delete_comment(
   .await
   .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
-  let recipient_ids =
-    send_local_notifs(vec![], comment_id, &local_user_view.person, false, &context).await?;
+  let recipient_ids = send_local_notifs(
+    vec![],
+    comment_id,
+    &local_user_view.person,
+    false,
+    &context,
+    Some(&local_user_view),
+  )
+  .await?;
   let updated_comment_id = updated_comment.id;
 
   ActivityChannel::submit_activity(

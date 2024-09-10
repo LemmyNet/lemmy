@@ -8,7 +8,7 @@ use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
-use strum_macros::Display;
+use strum::Display;
 use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

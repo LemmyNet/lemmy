@@ -53,10 +53,9 @@ use lemmy_utils::{
   CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
-use once_cell::sync::Lazy;
 use regex::{escape, Regex, RegexSet};
 use rosetta_i18n::{Language, LanguageId};
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::LazyLock};
 use tracing::warn;
 use url::{ParseError, Url};
 use urlencoding::encode;
@@ -546,7 +545,7 @@ pub fn local_site_opt_to_sensitive(local_site: &Option<LocalSite>) -> bool {
 }
 
 pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> {
-  static URL_BLOCKLIST: Lazy<Cache<(), RegexSet>> = Lazy::new(|| {
+  static URL_BLOCKLIST: LazyLock<Cache<(), RegexSet>> = LazyLock::new(|| {
     Cache::builder()
       .max_capacity(1)
       .time_to_live(CACHE_DURATION_FEDERATION)
