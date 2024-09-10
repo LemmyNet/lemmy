@@ -136,6 +136,8 @@ impl Object for ApubComment {
     Ok(note)
   }
 
+  /// Recursively fetches all parent comments. This can lead to a stack overflow so we need to
+  /// Box::pin all large futures on the heap.
   #[tracing::instrument(skip_all)]
   async fn verify(
     note: &Note,
@@ -163,7 +165,7 @@ impl Object for ApubComment {
 
     let (post, _) = Box::pin(note.get_parents(context)).await?;
     let creator = Box::pin(note.attributed_to.dereference(context)).await?;
-    let is_mod_or_admin = Box::pin(is_mod_or_admin(&mut context.pool(), &creator, community.id))
+    let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &creator, community.id)
       .await
       .is_ok();
     if post.locked && !is_mod_or_admin {

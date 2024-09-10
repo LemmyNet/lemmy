@@ -858,3 +858,29 @@ test("Dont send a comment reply to a blocked community", async () => {
   blockRes = await blockCommunity(beta, newCommunityId, false);
   expect(blockRes.blocked).toBe(false);
 });
+
+/// Fetching a deeply nested comment can lead to stack overflow as all parent comments are also
+/// fetched recursively. Ensure that it works properly.
+test("Fetch a deeply nested comment", async () => {
+  let lastComment;
+  for (let i = 0; i < 100; i++) {
+    let parent_id = lastComment?.comment_view.comment.id;
+
+    let commentRes = await createComment(
+      alpha,
+      postOnAlphaRes.post_view.post.id,
+      parent_id,
+    );
+    expect(commentRes.comment_view.comment).toBeDefined();
+    lastComment = commentRes;
+  }
+
+  let betaComment = await resolveComment(
+    beta,
+    lastComment!.comment_view.comment,
+  );
+
+  console.log(betaComment!.comment!.comment.path);
+  expect(betaComment!.comment!.comment).toBeDefined();
+  expect(betaComment?.comment?.post).toBeDefined();
+});

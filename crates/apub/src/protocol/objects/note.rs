@@ -23,7 +23,6 @@ use lemmy_db_schema::{
 use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use std::ops::Deref;
 use url::Url;
 
 #[skip_serializing_none]
