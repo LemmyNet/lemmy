@@ -29,7 +29,8 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field}, MAX_COMMENT_DEPTH_LIMIT,
+  utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
+  MAX_COMMENT_DEPTH_LIMIT,
 };
 
 #[tracing::instrument(skip(context))]
