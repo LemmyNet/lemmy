@@ -20,7 +20,7 @@ const ALLOWED_POST_URL_SCHEMES: [&str; 3] = ["http", "https", "magnet"];
 
 const BODY_MAX_LENGTH: usize = 10000;
 const POST_BODY_MAX_LENGTH: usize = 50000;
-const BIO_MAX_LENGTH: usize = 300;
+const BIO_MAX_LENGTH: usize = 1000;
 const URL_MAX_LENGTH: usize = 2000;
 const ALT_TEXT_MAX_LENGTH: usize = 1500;
 const SITE_NAME_MAX_LENGTH: usize = 20;
