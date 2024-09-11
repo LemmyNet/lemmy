@@ -1,17 +1,10 @@
 pub mod api_routes_http;
 pub mod code_migrations;
 pub mod prometheus_metrics;
-pub mod root_span_builder;
 pub mod scheduled_tasks;
 pub mod session_middleware;
-#[cfg(feature = "console")]
-pub mod telemetry;
 
-use crate::{
-  code_migrations::run_advanced_migrations,
-  root_span_builder::QuieterRootSpanBuilder,
-  session_middleware::SessionMiddleware,
-};
+use crate::{code_migrations::run_advanced_migrations, session_middleware::SessionMiddleware};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_cors::Cors;
 use actix_web::{
@@ -55,14 +48,9 @@ use prometheus_metrics::serve_prometheus;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
 use serde_json::json;
-use std::{env, ops::Deref, time::Duration};
+use std::{ops::Deref, time::Duration};
 use tokio::signal::unix::SignalKind;
-use tracing::subscriber::set_global_default;
-use tracing_actix_web::TracingLogger;
-use tracing_error::ErrorLayer;
-use tracing_log::LogTracer;
-use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry};
-use url::Url;
+use tracing_actix_web::{DefaultRootSpanBuilder, TracingLogger};
 
 /// Timeout for HTTP requests while sending activities. A longer timeout provides better
 /// compatibility with other ActivityPub software that might allocate more time for synchronous
@@ -119,7 +107,7 @@ pub struct CmdArgs {
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   // Print version number to log
-  println!("Lemmy v{VERSION}");
+  println!("Starting Lemmy v{VERSION}");
 
   // return error 503 while running db migrations and startup tasks
   let mut startup_server_handle = None;
@@ -318,7 +306,7 @@ fn create_http_server(
       ))
       .wrap(middleware::Compress::default())
       .wrap(cors_config)
-      .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
+      .wrap(TracingLogger::<DefaultRootSpanBuilder>::new())
       .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
@@ -372,39 +360,4 @@ fn cors_config(settings: &Settings) -> Cors {
       .expose_any_header()
       .max_age(3600),
   }
-}
-
-pub fn init_logging(opentelemetry_url: &Option<Url>) -> LemmyResult<()> {
-  LogTracer::init()?;
-
-  let log_description = env::var("RUST_LOG").unwrap_or_else(|_| "info".into());
-
-  let targets = log_description
-    .trim()
-    .trim_matches('"')
-    .parse::<Targets>()?;
-
-  let format_layer = {
-    #[cfg(feature = "json-log")]
-    let layer = tracing_subscriber::fmt::layer().with_ansi(false).json();
-    #[cfg(not(feature = "json-log"))]
-    let layer = tracing_subscriber::fmt::layer().with_ansi(false);
-
-    layer.with_filter(targets.clone())
-  };
-
-  let subscriber = Registry::default()
-    .with(format_layer)
-    .with(ErrorLayer::default());
-
-  if let Some(_url) = opentelemetry_url {
-    #[cfg(feature = "console")]
-    telemetry::init_tracing(_url.as_ref(), subscriber, targets)?;
-    #[cfg(not(feature = "console"))]
-    tracing::error!("Feature `console` must be enabled for opentelemetry tracing");
-  } else {
-    set_global_default(subscriber)?;
-  }
-
-  Ok(())
 }
