@@ -20,11 +20,7 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  LemmyErrorType,
-  MAX_COMMENT_DEPTH_LIMIT,
-};
+use lemmy_utils::{error::LemmyResult, LemmyErrorType, MAX_COMMENT_DEPTH_LIMIT};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
