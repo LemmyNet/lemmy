@@ -1,7 +1,7 @@
 use lemmy_db_schema::{
   newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
   sensitive::SensitiveString,
-  source::site::Site,
+  source::{login_token::LoginToken, site::Site},
   CommentSortType,
   ListingType,
   PostListingMode,
@@ -440,4 +440,11 @@ pub struct ListMedia {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ListMediaResponse {
   pub images: Vec<LocalImageView>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ListLoginsResponse {
+  pub logins: Vec<LoginToken>,
 }

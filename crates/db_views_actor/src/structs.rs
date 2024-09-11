@@ -6,11 +6,9 @@ use lemmy_db_schema::{
     comment::Comment,
     comment_reply::CommentReply,
     community::Community,
-    instance::Instance,
     person::Person,
     person_mention::PersonMention,
     post::Post,
-    site::Site,
   },
   SubscribedType,
 };
@@ -18,28 +16,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
-/// A community block.
-pub struct CommunityBlockView {
-  pub person: Person,
-  pub community: Community,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
-/// An instance block by a user.
-pub struct InstanceBlockView {
-  pub person: Person,
-  pub instance: Instance,
-  pub site: Option<Site>,
-}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
@@ -81,16 +57,6 @@ pub struct CommunityView {
   pub blocked: bool,
   pub counts: CommunityAggregates,
   pub banned_from_community: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
-/// A person block.
-pub struct PersonBlockView {
-  pub person: Person,
-  pub target: Person,
 }
 
 #[skip_serializing_none]
