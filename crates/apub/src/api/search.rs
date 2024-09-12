@@ -57,21 +57,23 @@ pub async fn search(
   let creator_id = data.creator_id;
   let local_user = local_user_view.as_ref().map(|l| &l.local_user);
 
+  let mut posts_query = PostQuery {
+    sort: (sort),
+    listing_type: (listing_type),
+    community_id: (community_id),
+    creator_id: (creator_id),
+    local_user,
+    search_term: (Some(q.clone())),
+    page: (page),
+    limit: (limit),
+    ..Default::default()
+  };
+
   match search_type {
     SearchType::Posts => {
-      posts = PostQuery {
-        sort: (sort),
-        listing_type: (listing_type),
-        community_id: (community_id),
-        creator_id: (creator_id),
-        local_user,
-        search_term: (Some(q)),
-        page: (page),
-        limit: (limit),
-        ..Default::default()
-      }
-      .list(&local_site.site, &mut context.pool())
-      .await?;
+      posts = posts_query
+        .list(&local_site.site, &mut context.pool())
+        .await?;
     }
     SearchType::Comments => {
       comments = CommentQuery {
@@ -118,21 +120,9 @@ pub async fn search(
       let community_or_creator_included =
         data.community_id.is_some() || data.community_name.is_some() || data.creator_id.is_some();
 
-      let q = data.q.clone();
-
-      posts = PostQuery {
-        sort: (sort),
-        listing_type: (listing_type),
-        community_id: (community_id),
-        creator_id: (creator_id),
-        local_user,
-        search_term: (Some(q)),
-        page: (page),
-        limit: (limit),
-        ..Default::default()
-      }
-      .list(&local_site.site, &mut context.pool())
-      .await?;
+      posts = posts_query
+        .list(&local_site.site, &mut context.pool())
+        .await?;
 
       let q = data.q.clone();
 
@@ -200,21 +190,11 @@ pub async fn search(
       .list(&local_site.site, &mut context.pool())
       .await?;
     }
-    SearchType::Title => {
-      posts = PostQuery {
-        sort: (sort),
-        listing_type: (listing_type),
-        community_id: (community_id),
-        creator_id: (creator_id),
-        search_term: (Some(q)),
-        local_user,
-        page: (page),
-        limit: (limit),
-        title_only: (Some(true)),
-        ..Default::default()
-      }
-      .list(&local_site.site, &mut context.pool())
-      .await?;
+    SearchType::PostTitle => {
+      posts_query.title_only = Some(true);
+      posts = posts_query
+        .list(&local_site.site, &mut context.pool())
+        .await?;
     }
   };
 
