@@ -29,8 +29,6 @@ pub struct LocalSite {
   pub site_setup: bool,
   /// Whether downvotes are enabled.
   pub enable_downvotes: bool,
-  /// Whether NSFW is enabled.
-  pub enable_nsfw: bool,
   /// Whether only admins can create communities.
   pub community_creation_admin_only: bool,
   /// Whether emails are required.
@@ -81,7 +79,6 @@ pub struct LocalSiteInsertForm {
   pub site_id: SiteId,
   pub site_setup: Option<bool>,
   pub enable_downvotes: Option<bool>,
-  pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
   pub application_question: Option<String>,
@@ -109,7 +106,6 @@ pub struct LocalSiteInsertForm {
 pub struct LocalSiteUpdateForm {
   pub site_setup: Option<bool>,
   pub enable_downvotes: Option<bool>,
-  pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
   pub application_question: Option<Option<String>>,

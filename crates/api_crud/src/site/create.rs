@@ -92,7 +92,6 @@ pub async fn create_site(
     site_setup: Some(true),
     enable_downvotes: data.enable_downvotes,
     registration_mode: data.registration_mode,
-    enable_nsfw: data.enable_nsfw,
     community_creation_admin_only: data.community_creation_admin_only,
     require_email_verification: data.require_email_verification,
     application_question: diesel_string_update(data.application_question.as_deref()),

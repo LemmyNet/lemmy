@@ -102,4 +102,13 @@ impl Site {
     url.set_query(None);
     url
   }
+
+  pub async fn read_local(pool: &mut DbPool<'_>) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    site::table
+      .filter(site::private_key.is_not_null())
+      .get_result::<Self>(conn)
+      .await
+  }
 }

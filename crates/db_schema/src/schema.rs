@@ -370,7 +370,6 @@ diesel::table! {
         site_id -> Int4,
         site_setup -> Bool,
         enable_downvotes -> Bool,
-        enable_nsfw -> Bool,
         community_creation_admin_only -> Bool,
         require_email_verification -> Bool,
         application_question -> Nullable<Text>,
