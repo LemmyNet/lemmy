@@ -200,6 +200,22 @@ pub async fn search(
       .list(&local_site.site, &mut context.pool())
       .await?;
     }
+    SearchType::Title => {
+      posts = PostQuery {
+        sort: (sort),
+        listing_type: (listing_type),
+        community_id: (community_id),
+        creator_id: (creator_id),
+        url_search: (Some(q)),
+        local_user,
+        page: (page),
+        limit: (limit),
+        title_only: (Some(true)),
+        ..Default::default()
+      }
+      .list(&local_site.site, &mut context.pool())
+      .await?;
+    }
   };
 
   // Return the jwt

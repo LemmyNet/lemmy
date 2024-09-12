@@ -175,6 +175,7 @@ pub enum SearchType {
   Communities,
   Users,
   Url,
+  Title,
 }
 
 #[derive(EnumString, Display, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, Hash)]

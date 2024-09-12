@@ -387,13 +387,22 @@ fn queries<'a>() -> Queries<
 
     if let Some(search_term) = &options.search_term {
       let searcher = fuzzy_search(search_term);
-      query = query
+      if options.title_only.unwrap_or_default() {
+        query = query
         .filter(
           post::name
-            .ilike(searcher.clone())
-            .or(post::body.ilike(searcher)),
+            .ilike(searcher)
         )
         .filter(not(post::removed.or(post::deleted)));
+      } else {
+        query = query
+          .filter(
+            post::name
+              .ilike(searcher.clone())
+              .or(post::body.ilike(searcher)),
+          )
+          .filter(not(post::removed.or(post::deleted)));
+      }
     }
 
     if !options
@@ -617,6 +626,7 @@ pub struct PostQuery<'a> {
   pub saved_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
+  pub title_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub page_after: Option<PaginationCursorData>,
