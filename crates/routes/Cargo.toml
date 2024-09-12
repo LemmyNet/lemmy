@@ -32,4 +32,5 @@ serde = { workspace = true }
 url = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
-rss = "2.0.8"
+http.workspace = true
+rss = "2.0.9"
