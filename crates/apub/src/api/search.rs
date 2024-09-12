@@ -206,7 +206,7 @@ pub async fn search(
         listing_type: (listing_type),
         community_id: (community_id),
         creator_id: (creator_id),
-        url_search: (Some(q)),
+        search_term: (Some(q)),
         local_user,
         page: (page),
         limit: (limit),
