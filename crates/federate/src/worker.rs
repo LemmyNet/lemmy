@@ -459,7 +459,6 @@ mod test {
     traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
-  use reqwest::StatusCode;
   use serde_json::{json, Value};
   use serial_test::serial;
   use test_context::{test_context, AsyncTestContext};
