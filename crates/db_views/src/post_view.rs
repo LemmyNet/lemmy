@@ -389,11 +389,8 @@ fn queries<'a>() -> Queries<
       let searcher = fuzzy_search(search_term);
       if options.title_only.unwrap_or_default() {
         query = query
-        .filter(
-          post::name
-            .ilike(searcher)
-        )
-        .filter(not(post::removed.or(post::deleted)));
+          .filter(post::name.ilike(searcher))
+          .filter(not(post::removed.or(post::deleted)));
       } else {
         query = query
           .filter(
