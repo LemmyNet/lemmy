@@ -81,6 +81,8 @@ markdown-it = { version = "0.6.1", optional = true }
 ts-rs = { workspace = true, optional = true }
 enum-map = { workspace = true, optional = true }
 cfg-if = "1"
+linkify = { version = "0.10.0" }
+clearurls = { version = "0.0.2", features = ["linkify"] }
 
 [dev-dependencies]
 reqwest = { workspace = true }
