@@ -688,7 +688,7 @@ mod test {
             |inbox_sender: actix_web::web::Data<UnboundedSender<String>>, body: String| async move {
               tracing::debug!("received activity: {:?}", body);
               inbox_sender.send(body.clone()).unwrap();
-              HttpResponse::new(StatusCode::OK)
+              HttpResponse::new(actix_web::http::StatusCode::OK)
             },
           ),
         )
