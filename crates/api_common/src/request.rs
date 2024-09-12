@@ -13,7 +13,6 @@ use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
     images::{ImageDetailsForm, LocalImage, LocalImageForm},
-    local_site::LocalSite,
     post::{Post, PostUpdateForm},
     site::Site,
   },
@@ -131,7 +130,6 @@ pub async fn generate_post_link_metadata(
   post: Post,
   custom_thumbnail: Option<Url>,
   send_activity: impl FnOnce(Post) -> Option<SendActivityData> + Send + 'static,
-  local_site: Option<LocalSite>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let metadata = match &post.url {

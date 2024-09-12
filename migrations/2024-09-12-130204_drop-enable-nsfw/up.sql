@@ -17,3 +17,4 @@ WHERE
 
 ALTER TABLE local_site
     DROP enable_nsfw;
+

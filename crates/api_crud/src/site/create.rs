@@ -132,9 +132,7 @@ pub async fn create_site(
 
   LocalSiteRateLimit::update(&mut context.pool(), &local_site_rate_limit_form).await?;
 
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   let new_taglines = data.taglines.clone();
   let taglines = Tagline::replace(&mut context.pool(), local_site.id, new_taglines).await?;

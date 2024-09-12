@@ -24,9 +24,7 @@ pub async fn login(
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   // Fetch that username / email
   let username_or_email = data.username_or_email.clone();

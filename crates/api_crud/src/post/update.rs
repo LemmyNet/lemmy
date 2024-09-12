@@ -129,7 +129,6 @@ pub async fn update_post(
     updated_post.clone(),
     custom_thumbnail.flatten().map(Into::into),
     |post| Some(SendActivityData::UpdatePost(post)),
-    Some(local_site),
     context.reset_request_count(),
   )
   .await?;

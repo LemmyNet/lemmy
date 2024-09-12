@@ -18,12 +18,9 @@ use activitypub_federation::{
 };
 use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
-use lemmy_db_schema::{utils::FETCH_LIMIT_MAX, SortType};
-use lemmy_db_views::{post_view::PostQuery, structs::SiteView};
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  LemmyErrorType,
-};
+use lemmy_db_schema::{source::site::Site, utils::FETCH_LIMIT_MAX, SortType};
+use lemmy_db_views::post_view::PostQuery;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -38,10 +35,7 @@ impl Collection for ApubCommunityOutbox {
 
   #[tracing::instrument(skip_all)]
   async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    let site = SiteView::read_local(&mut data.pool())
-      .await?
-      .ok_or(LemmyErrorType::LocalSiteNotSetup)?
-      .site;
+    let site = Site::read_local(&mut data.pool()).await?;
 
     let post_views = PostQuery {
       community_id: Some(owner.id),

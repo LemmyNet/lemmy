@@ -45,9 +45,7 @@ pub async fn register(
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
   let require_registration_application =
     local_site.registration_mode == RegistrationMode::RequireApplication;

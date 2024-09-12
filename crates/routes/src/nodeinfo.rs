@@ -1,11 +1,10 @@
-use actix_web::{error::ErrorBadRequest, web, Error, HttpResponse, Result};
-use anyhow::anyhow;
+use actix_web::{web, Error, HttpResponse, Result};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::RegistrationMode;
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   cache_header::{cache_1hour, cache_3days},
-  error::{LemmyError, LemmyResult},
+  error::LemmyResult,
   VERSION,
 };
 use serde::{Deserialize, Serialize};
@@ -44,10 +43,7 @@ async fn node_info_well_known(context: web::Data<LemmyContext>) -> LemmyResult<H
 }
 
 async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Error> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await
-    .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
-    .ok_or(ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   // Since there are 3 registration options,
   // we need to set open_registrations as true if RegistrationMode is not Closed.

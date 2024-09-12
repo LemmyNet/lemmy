@@ -149,7 +149,6 @@ pub async fn create_post(
     inserted_post.clone(),
     custom_thumbnail.map(Into::into),
     |post| Some(SendActivityData::CreatePost(post)),
-    Some(local_site),
     context.reset_request_count(),
   )
   .await?;

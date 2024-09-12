@@ -16,9 +16,7 @@ pub async fn verify_email(
   data: Json<VerifyEmail>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   let token = data.token.clone();
   let verification = EmailVerification::read_for_token(&mut context.pool(), &token)
     .await?
