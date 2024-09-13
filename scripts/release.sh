@@ -8,7 +8,7 @@ third_semver=$(echo $new_tag | cut -d "." -f 3)
 
 # Goto the upper route
 CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-cd $CWD/../
+cd "$CWD/../"
 
 # The docker installs should only update for non release-candidates
 # IE, when the third semver is a number, not '2-rc'

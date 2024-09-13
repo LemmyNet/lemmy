@@ -35,9 +35,6 @@ pub struct LocalUser {
   /// Whether to show avatars.
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
-  /// Whether to show comment / post scores.
-  // TODO now that there is a vote_display_mode, this can be gotten rid of in future releases.
-  pub show_scores: bool,
   /// Whether to show bot accounts.
   pub show_bot_accounts: bool,
   /// Whether to show read posts.
@@ -93,8 +90,6 @@ pub struct LocalUserInsertForm {
   #[new(default)]
   pub show_bot_accounts: Option<bool>,
   #[new(default)]
-  pub show_scores: Option<bool>,
-  #[new(default)]
   pub show_read_posts: Option<bool>,
   #[new(default)]
   pub email_verified: Option<bool>,
@@ -138,7 +133,6 @@ pub struct LocalUserUpdateForm {
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
   pub show_bot_accounts: Option<bool>,
-  pub show_scores: Option<bool>,
   pub show_read_posts: Option<bool>,
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
