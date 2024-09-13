@@ -94,14 +94,14 @@ pub async fn create_community(
     site_view.site.instance_id,
     data.name.clone(),
     data.title.clone(),
-    keypair.private_key,
+    keypair.public_key,
   );
   community_form.description = description;
   community_form.icon = icon;
   community_form.banner = banner;
   community_form.nsfw = data.nsfw;
   community_form.actor_id = Some(community_actor_id.clone());
-  community_form.public_key = keypair.public_key;
+  community_form.private_key = Some(keypair.private_key);
   community_form.followers_url = Some(generate_followers_url(&community_actor_id)?);
   community_form.inbox_url = Some(generate_inbox_url(&community_actor_id)?);
   community_form.shared_inbox_url = Some(generate_shared_inbox_url(context.settings())?);
