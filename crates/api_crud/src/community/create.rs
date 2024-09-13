@@ -30,6 +30,7 @@ use lemmy_db_schema::{
     },
   },
   traits::{ApubActor, Crud, Followable, Joinable},
+  utils::diesel_url_create,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
@@ -61,11 +62,18 @@ pub async fn create_community(
   check_slurs(&data.title, &slur_regex)?;
   let description =
     process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context).await?;
-  let icon = proxy_image_link_api(&data.icon, &context).await?;
-  let banner = proxy_image_link_api(&data.banner, &context).await?;
+
+  let icon = diesel_url_create(data.icon.as_deref())?;
+  let icon = proxy_image_link_api(icon, &context).await?;
+
+  let banner = diesel_url_create(data.banner.as_deref())?;
+  let banner = proxy_image_link_api(banner, &context).await?;
 
   is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
-  is_valid_body_field(&data.description, false)?;
+
+  if let Some(desc) = &data.description {
+    is_valid_body_field(desc, false)?;
+  }
 
   // Double check for duplicate community actor_ids
   let community_actor_id = generate_local_apub_endpoint(

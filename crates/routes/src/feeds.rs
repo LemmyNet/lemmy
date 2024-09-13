@@ -25,7 +25,6 @@ use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::markdown::{markdown_to_html, sanitize_html},
 };
-use once_cell::sync::Lazy;
 use rss::{
   extension::{dublincore::DublinCoreExtension, ExtensionBuilder, ExtensionMap},
   Channel,
@@ -34,7 +33,7 @@ use rss::{
   Item,
 };
 use serde::Deserialize;
-use std::{collections::BTreeMap, str::FromStr};
+use std::{collections::BTreeMap, str::FromStr, sync::LazyLock};
 
 const RSS_FETCH_LIMIT: i64 = 20;
 
@@ -80,7 +79,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
   );
 }
 
-static RSS_NAMESPACE: Lazy<BTreeMap<String, String>> = Lazy::new(|| {
+static RSS_NAMESPACE: LazyLock<BTreeMap<String, String>> = LazyLock::new(|| {
   let mut h = BTreeMap::new();
   h.insert(
     "dc".to_string(),
@@ -355,7 +354,7 @@ async fn get_feed_front(
 
   let posts = PostQuery {
     listing_type: (Some(ListingType::Subscribed)),
-    local_user: (Some(&local_user)),
+    local_user: (Some(&local_user.local_user)),
     sort: (Some(*sort_type)),
     limit: (Some(*limit)),
     page: (Some(*page)),

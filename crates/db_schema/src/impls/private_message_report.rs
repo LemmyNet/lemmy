@@ -52,7 +52,7 @@ impl Reportable for PrivateMessageReport {
     _pm_id_: PrivateMessageId,
     _by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
-    unimplemented!()
+    Err(Error::NotFound)
   }
 
   async fn unresolve(

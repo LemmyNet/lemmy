@@ -22,15 +22,16 @@ use diesel_async::{
     AsyncDieselConnectionManager,
     ManagerConfig,
   },
-  SimpleAsyncConnection,
+  AsyncConnection,
+  RunQueryDsl,
 };
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
+  utils::validation::clean_url_params,
 };
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rustls::{
   client::danger::{
@@ -47,7 +48,7 @@ use rustls::{
 };
 use std::{
   ops::{Deref, DerefMut},
-  sync::Arc,
+  sync::{Arc, LazyLock},
   time::Duration,
 };
 use tracing::error;
@@ -287,37 +288,35 @@ pub fn is_email_regex(test: &str) -> bool {
   EMAIL_REGEX.is_match(test)
 }
 
-pub fn diesel_option_overwrite(opt: Option<String>) -> Option<Option<String>> {
+/// Takes an API text input, and converts it to an optional diesel DB update.
+pub fn diesel_string_update(opt: Option<&str>) -> Option<Option<String>> {
   match opt {
     // An empty string is an erase
-    Some(unwrapped) => {
-      if !unwrapped.eq("") {
-        Some(Some(unwrapped))
-      } else {
-        Some(None)
-      }
-    }
+    Some("") => Some(None),
+    Some(str) => Some(Some(str.into())),
     None => None,
   }
 }
 
-pub fn diesel_option_overwrite_to_url(opt: &Option<String>) -> LemmyResult<Option<Option<DbUrl>>> {
-  match opt.as_ref().map(String::as_str) {
+/// Takes an optional API URL-type input, and converts it to an optional diesel DB update.
+/// Also cleans the url params.
+pub fn diesel_url_update(opt: Option<&str>) -> LemmyResult<Option<Option<DbUrl>>> {
+  match opt {
     // An empty string is an erase
     Some("") => Ok(Some(None)),
     Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(Some(u.into())))
+      .map(|u| Some(Some(clean_url_params(&u).into())))
       .with_lemmy_type(LemmyErrorType::InvalidUrl),
     None => Ok(None),
   }
 }
 
-pub fn diesel_option_overwrite_to_url_create(opt: &Option<String>) -> LemmyResult<Option<DbUrl>> {
-  match opt.as_ref().map(String::as_str) {
-    // An empty string is nothing
-    Some("") => Ok(None),
+/// Takes an optional API URL-type input, and converts it to an optional diesel DB create.
+/// Also cleans the url params.
+pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
+  match opt {
     Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(u.into()))
+      .map(|u| Some(clean_url_params(&u).into()))
       .with_lemmy_type(LemmyErrorType::InvalidUrl),
     None => Ok(None),
   }
@@ -325,30 +324,46 @@ pub fn diesel_option_overwrite_to_url_create(opt: &Option<String>) -> LemmyResul
 
 fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
   let fut = async {
-    let rustls_config = DangerousClientConfigBuilder {
-      cfg: ClientConfig::builder(),
-    }
-    .with_custom_certificate_verifier(Arc::new(NoCertVerifier {}))
-    .with_no_client_auth();
-
-    let tls = tokio_postgres_rustls::MakeRustlsConnect::new(rustls_config);
-    let (client, conn) = tokio_postgres::connect(config, tls)
-      .await
-      .map_err(|e| ConnectionError::BadConnection(e.to_string()))?;
-    tokio::spawn(async move {
-      if let Err(e) = conn.await {
-        error!("Database connection failed: {e}");
+    // We only support TLS with sslmode=require currently
+    let mut conn = if config.contains("sslmode=require") {
+      let rustls_config = DangerousClientConfigBuilder {
+        cfg: ClientConfig::builder(),
       }
-    });
-    let mut conn = AsyncPgConnection::try_from(client).await?;
-    // * Change geqo_threshold back to default value if it was changed, so it's higher than the
-    //   collapse limits
-    // * Change collapse limits from 8 to 11 so the query planner can find a better table join order
-    //   for more complicated queries
-    conn
-      .batch_execute("SET geqo_threshold=12;SET from_collapse_limit=11;SET join_collapse_limit=11;")
-      .await
-      .map_err(ConnectionError::CouldntSetupConfiguration)?;
+      .with_custom_certificate_verifier(Arc::new(NoCertVerifier {}))
+      .with_no_client_auth();
+
+      let tls = tokio_postgres_rustls::MakeRustlsConnect::new(rustls_config);
+      let (client, conn) = tokio_postgres::connect(config, tls)
+        .await
+        .map_err(|e| ConnectionError::BadConnection(e.to_string()))?;
+      tokio::spawn(async move {
+        if let Err(e) = conn.await {
+          error!("Database connection failed: {e}");
+        }
+      });
+      AsyncPgConnection::try_from(client).await?
+    } else {
+      AsyncPgConnection::establish(config).await?
+    };
+
+    diesel::select((
+      // Change geqo_threshold back to default value if it was changed, so it's higher than the
+      // collapse limits
+      functions::set_config("geqo_threshold", "12", false),
+      // Change collapse limits from 8 to 11 so the query planner can find a better table join
+      // order for more complicated queries
+      functions::set_config("from_collapse_limit", "11", false),
+      functions::set_config("join_collapse_limit", "11", false),
+      // Set `lemmy.protocol_and_hostname` so triggers can use it
+      functions::set_config(
+        "lemmy.protocol_and_hostname",
+        SETTINGS.get_protocol_and_hostname(),
+        false,
+      ),
+    ))
+    .execute(&mut conn)
+    .await
+    .map_err(ConnectionError::CouldntSetupConfiguration)?;
     Ok(conn)
   };
   fut.boxed()
@@ -407,17 +422,11 @@ impl ServerCertVerifier for NoCertVerifier {
 
 pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let db_url = SETTINGS.get_database_url();
-  // We only support TLS with sslmode=require currently
-  let tls_enabled = db_url.contains("sslmode=require");
-  let manager = if tls_enabled {
-    // diesel-async does not support any TLS connections out of the box, so we need to manually
-    // provide a setup function which handles creating the connection
-    let mut config = ManagerConfig::default();
-    config.custom_setup = Box::new(establish_connection);
-    AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(&db_url, config)
-  } else {
-    AsyncDieselConnectionManager::<AsyncPgConnection>::new(&db_url)
-  };
+  // diesel-async does not support any TLS connections out of the box, so we need to manually
+  // provide a setup function which handles creating the connection
+  let mut config = ManagerConfig::default();
+  config.custom_setup = Box::new(establish_connection);
+  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(&db_url, config);
   let pool = Pool::builder(manager)
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
@@ -468,13 +477,13 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
   }
 }
 
-static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
+static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
     .expect("compile email regex")
 });
 
 pub mod functions {
-  use diesel::sql_types::{BigInt, Text, Timestamptz};
+  use diesel::sql_types::{BigInt, Bool, Text, Timestamptz};
 
   sql_function! {
     #[sql_name = "r.hot_rank"]
@@ -497,6 +506,8 @@ pub mod functions {
 
   // really this function is variadic, this just adds the two-argument version
   sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
+
+  sql_function!(fn set_config(setting_name: Text, new_value: Text, is_local: Bool) -> Text);
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
@@ -569,7 +580,6 @@ impl<RF, LF> Queries<RF, LF> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 #[allow(clippy::indexing_slicing)]
 mod tests {
 
@@ -593,26 +603,24 @@ mod tests {
 
   #[test]
   fn test_diesel_option_overwrite() {
-    assert_eq!(diesel_option_overwrite(None), None);
-    assert_eq!(diesel_option_overwrite(Some(String::new())), Some(None));
+    assert_eq!(diesel_string_update(None), None);
+    assert_eq!(diesel_string_update(Some("")), Some(None));
     assert_eq!(
-      diesel_option_overwrite(Some("test".to_string())),
+      diesel_string_update(Some("test")),
       Some(Some("test".to_string()))
     );
   }
 
   #[test]
-  fn test_diesel_option_overwrite_to_url() {
-    assert!(matches!(diesel_option_overwrite_to_url(&None), Ok(None)));
-    assert!(matches!(
-      diesel_option_overwrite_to_url(&Some(String::new())),
-      Ok(Some(None))
-    ));
-    assert!(diesel_option_overwrite_to_url(&Some("invalid_url".to_string())).is_err());
+  fn test_diesel_option_overwrite_to_url() -> LemmyResult<()> {
+    assert!(matches!(diesel_url_update(None), Ok(None)));
+    assert!(matches!(diesel_url_update(Some("")), Ok(Some(None))));
+    assert!(diesel_url_update(Some("invalid_url")).is_err());
     let example_url = "https://example.com";
     assert!(matches!(
-      diesel_option_overwrite_to_url(&Some(example_url.to_string())),
-      Ok(Some(Some(url))) if url == Url::parse(example_url).unwrap().into()
+      diesel_url_update(Some(example_url)),
+      Ok(Some(Some(url))) if url == Url::parse(example_url)?.into()
     ));
+    Ok(())
   }
 }

@@ -197,7 +197,7 @@ export async function setupLogins() {
     // (because last_successful_id is set to current id when federation to an instance is first started)
     // only needed the first time so do in this try
     await delay(10_000);
-  } catch (_) {
+  } catch {
     console.log("Communities already exist");
   }
 }
@@ -364,10 +364,13 @@ export async function getUnreadCount(
   return api.getUnreadCount();
 }
 
-export async function getReplies(api: LemmyHttp): Promise<GetRepliesResponse> {
+export async function getReplies(
+  api: LemmyHttp,
+  unread_only: boolean = false,
+): Promise<GetRepliesResponse> {
   let form: GetReplies = {
     sort: "New",
-    unread_only: false,
+    unread_only,
   };
   return api.getReplies(form);
 }
@@ -896,7 +899,6 @@ export async function deleteAllImages(api: LemmyHttp) {
   const imagesRes = await api.listAllMedia({
     limit: imageFetchLimit,
   });
-  imagesRes.images;
   Promise.all(
     imagesRes.images
       .map(image => {

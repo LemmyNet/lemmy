@@ -1,12 +1,22 @@
 use crate::federate_retry_sleep_duration;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
+  newtypes::{
+    CommentId,
+    CommunityId,
+    InstanceId,
+    LanguageId,
+    PersonId,
+    PostId,
+    RegistrationApplicationId,
+  },
   source::{
+    community::Community,
     federation_queue_state::FederationQueueState,
     instance::Instance,
     language::Language,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    person::Person,
     tagline::Tagline,
   },
   ListingType,
@@ -25,12 +35,9 @@ use lemmy_db_views::structs::{
   SiteView,
 };
 use lemmy_db_views_actor::structs::{
-  CommunityBlockView,
   CommunityFollowerView,
   CommunityModeratorView,
   CommunityView,
-  InstanceBlockView,
-  PersonBlockView,
   PersonView,
 };
 use lemmy_db_views_moderator::structs::{
@@ -329,9 +336,9 @@ pub struct MyUserInfo {
   pub local_user_view: LocalUserView,
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
-  pub community_blocks: Vec<CommunityBlockView>,
-  pub instance_blocks: Vec<InstanceBlockView>,
-  pub person_blocks: Vec<PersonBlockView>,
+  pub community_blocks: Vec<Community>,
+  pub instance_blocks: Vec<Instance>,
+  pub person_blocks: Vec<Person>,
   pub discussion_languages: Vec<LanguageId>,
 }
 
@@ -441,12 +448,21 @@ pub struct ListRegistrationApplicationsResponse {
 }
 
 #[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Gets a registration application for a person
+pub struct GetRegistrationApplication {
+  pub person_id: PersonId,
+}
+
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Approves a registration application.
 pub struct ApproveRegistrationApplication {
-  pub id: i32,
+  pub id: RegistrationApplicationId,
   pub approve: bool,
   pub deny_reason: Option<String>,
 }

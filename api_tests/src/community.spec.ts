@@ -1,5 +1,6 @@
 jest.setTimeout(120000);
 
+import { AddModToCommunity } from "lemmy-js-client/dist/types/AddModToCommunity";
 import { CommunityView } from "lemmy-js-client/dist/types/CommunityView";
 import {
   alpha,
@@ -9,6 +10,7 @@ import {
   resolveCommunity,
   createCommunity,
   deleteCommunity,
+  delay,
   removeCommunity,
   getCommunity,
   followCommunity,
@@ -531,5 +533,43 @@ test("Content in local-only community doesn't federate", async () => {
   let postRes = await createPost(alpha, communityRes.id);
   await expect(resolvePost(beta, postRes.post_view.post)).rejects.toStrictEqual(
     Error("couldnt_find_object"),
+  );
+});
+
+test("Remote mods can edit communities", async () => {
+  let communityRes = await createCommunity(alpha);
+
+  let betaCommunity = await resolveCommunity(
+    beta,
+    communityRes.community_view.community.actor_id,
+  );
+  if (!betaCommunity.community) {
+    throw "Missing beta community";
+  }
+  let betaOnAlpha = await resolvePerson(alpha, "lemmy_beta@lemmy-beta:8551");
+
+  let form: AddModToCommunity = {
+    community_id: communityRes.community_view.community.id,
+    person_id: betaOnAlpha.person?.person.id as number,
+    added: true,
+  };
+  alpha.addModToCommunity(form);
+
+  let form2: EditCommunity = {
+    community_id: betaCommunity.community?.community.id as number,
+    description: "Example description",
+  };
+
+  await editCommunity(beta, form2);
+  // give alpha time to get and process the edit
+  await delay(1000);
+
+  let alphaCommunity = await getCommunity(
+    alpha,
+    communityRes.community_view.community.id,
+  );
+
+  await expect(alphaCommunity.community_view.community.description).toBe(
+    "Example description",
   );
 });

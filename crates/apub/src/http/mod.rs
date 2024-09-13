@@ -11,7 +11,6 @@ use activitypub_federation::{
   FEDERATION_CONTENT_TYPE,
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
-use http::{header::LOCATION, StatusCode};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::DbUrl,
@@ -76,14 +75,14 @@ fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> LemmyResult<HttpRespon
   Ok(
     HttpResponse::Gone()
       .content_type(FEDERATION_CONTENT_TYPE)
-      .status(StatusCode::GONE)
+      .status(actix_web::http::StatusCode::GONE)
       .body(json),
   )
 }
 
 fn redirect_remote_object(url: &DbUrl) -> HttpResponse {
   let mut res = HttpResponse::PermanentRedirect();
-  res.insert_header((LOCATION, url.as_str()));
+  res.insert_header((actix_web::http::header::LOCATION, url.as_str()));
   res.finish()
 }
 

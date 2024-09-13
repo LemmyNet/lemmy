@@ -122,7 +122,6 @@ pub async fn import_settings(
       .settings
       .as_ref()
       .map(|s| s.send_notifications_to_email),
-    show_scores: data.settings.as_ref().map(|s| s.show_scores),
     show_bot_accounts: data.settings.as_ref().map(|s| s.show_bot_accounts),
     show_read_posts: data.settings.as_ref().map(|s| s.show_read_posts),
     open_links_in_new_tab: data.settings.as_ref().map(|s| s.open_links_in_new_tab),
@@ -338,19 +337,14 @@ mod tests {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<LocalUserView> {
     let instance = Instance::read_or_create(&mut context.pool(), "example.com".to_string()).await?;
-    let person_form = PersonInsertForm::builder()
-      .name(name.clone())
-      .display_name(Some(name.clone()))
-      .bio(bio)
-      .public_key("asd".to_string())
-      .instance_id(instance.id)
-      .build();
+    let person_form = PersonInsertForm {
+      display_name: Some(name.clone()),
+      bio,
+      ..PersonInsertForm::test_form(instance.id, &name)
+    };
     let person = Person::create(&mut context.pool(), &person_form).await?;
 
-    let user_form = LocalUserInsertForm::builder()
-      .person_id(person.id)
-      .password_encrypted("pass".to_string())
-      .build();
+    let user_form = LocalUserInsertForm::test_form(person.id);
     let local_user = LocalUser::create(&mut context.pool(), &user_form, vec![]).await?;
 
     Ok(

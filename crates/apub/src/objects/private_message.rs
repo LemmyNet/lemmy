@@ -73,7 +73,7 @@ impl Object for ApubPrivateMessage {
 
   async fn delete(self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     // do nothing, because pm can't be fetched over http
-    unimplemented!()
+    Err(LemmyErrorType::CouldntFindPrivateMessage.into())
   }
 
   #[tracing::instrument(skip_all)]
