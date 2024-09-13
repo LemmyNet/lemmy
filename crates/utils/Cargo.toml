@@ -71,7 +71,7 @@ urlencoding = { workspace = true, optional = true }
 html2text = { version = "0.12.5", optional = true }
 deser-hjson = { version = "2.2.4", optional = true }
 smart-default = { version = "0.7.1", optional = true }
-lettre = { version = "0.11.7", default-features = false, features = [
+lettre = { version = "0.11.8", default-features = false, features = [
   "builder",
   "tokio1",
   "tokio1-rustls-tls",
