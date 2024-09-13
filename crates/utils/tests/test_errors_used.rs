@@ -9,18 +9,32 @@ fn test_errors_used() {
   current_dir.pop();
   current_dir.pop();
   for error in LemmyErrorType::iter() {
-    let mut command = Command::new("grep");
-    let command = command
+    let mut grep_all = Command::new("grep");
+    let grep_all = grep_all
       .current_dir(current_dir.clone())
       .arg("-R")
       .arg("--exclude=error.rs")
       .arg(error.to_string())
       .arg("crates/")
       .arg("src/");
-    let output = command.output().unwrap();
-    let stdout = std::str::from_utf8(&output.stdout).unwrap();
-    if stdout.len() == 0 {
+    let output = grep_all.output().unwrap();
+    let grep_all_out = std::str::from_utf8(&output.stdout).unwrap();
+
+    let mut grep_apub = Command::new("grep");
+    let grep_apub = grep_apub
+      .current_dir(current_dir.clone())
+      .arg("-R")
+      .arg(error.to_string())
+      .arg("crates/apub/");
+    let output = grep_apub.output().unwrap();
+    let grep_apub_out = std::str::from_utf8(&output.stdout).unwrap();
+
+    if grep_all_out.len() == 0 {
       println!("LemmyErrorType::{} is unused", error);
+      unused_error_found = true;
+    }
+    if grep_all_out == grep_apub_out {
+      println!("LemmyErrorType::{} is only used for federation", error);
       unused_error_found = true;
     }
   }
