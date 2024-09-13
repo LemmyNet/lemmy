@@ -1,15 +1,7 @@
-use crate::{
-  diesel::ExpressionMethods,
-  newtypes::{DbUrl, PersonId},
-  schema::community,
-  CommentSortType,
-  CommunityVisibility,
-  SortType,
-};
+use crate::{newtypes::DbUrl, CommentSortType, SortType};
 use chrono::{DateTime, TimeDelta, Utc};
 use deadpool::Runtime;
 use diesel::{
-  dsl,
   helper_types::AsExprOf,
   pg::Pg,
   query_builder::{Query, QueryFragment},
@@ -30,7 +22,8 @@ use diesel_async::{
     AsyncDieselConnectionManager,
     ManagerConfig,
   },
-  SimpleAsyncConnection,
+  AsyncConnection,
+  RunQueryDsl,
 };
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
@@ -39,7 +32,6 @@ use lemmy_utils::{
   settings::SETTINGS,
   utils::validation::clean_url_params,
 };
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rustls::{
   client::danger::{
@@ -56,7 +48,7 @@ use rustls::{
 };
 use std::{
   ops::{Deref, DerefMut},
-  sync::Arc,
+  sync::{Arc, LazyLock},
   time::Duration,
 };
 use tracing::error;
@@ -332,34 +324,46 @@ pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
 
 fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
   let fut = async {
-    rustls::crypto::ring::default_provider()
-      .install_default()
-      .expect("Failed to install rustls crypto provider");
-
-    let rustls_config = DangerousClientConfigBuilder {
-      cfg: ClientConfig::builder(),
-    }
-    .with_custom_certificate_verifier(Arc::new(NoCertVerifier {}))
-    .with_no_client_auth();
-
-    let tls = tokio_postgres_rustls::MakeRustlsConnect::new(rustls_config);
-    let (client, conn) = tokio_postgres::connect(config, tls)
-      .await
-      .map_err(|e| ConnectionError::BadConnection(e.to_string()))?;
-    tokio::spawn(async move {
-      if let Err(e) = conn.await {
-        error!("Database connection failed: {e}");
+    // We only support TLS with sslmode=require currently
+    let mut conn = if config.contains("sslmode=require") {
+      let rustls_config = DangerousClientConfigBuilder {
+        cfg: ClientConfig::builder(),
       }
-    });
-    let mut conn = AsyncPgConnection::try_from(client).await?;
-    // * Change geqo_threshold back to default value if it was changed, so it's higher than the
-    //   collapse limits
-    // * Change collapse limits from 8 to 11 so the query planner can find a better table join order
-    //   for more complicated queries
-    conn
-      .batch_execute("SET geqo_threshold=12;SET from_collapse_limit=11;SET join_collapse_limit=11;")
-      .await
-      .map_err(ConnectionError::CouldntSetupConfiguration)?;
+      .with_custom_certificate_verifier(Arc::new(NoCertVerifier {}))
+      .with_no_client_auth();
+
+      let tls = tokio_postgres_rustls::MakeRustlsConnect::new(rustls_config);
+      let (client, conn) = tokio_postgres::connect(config, tls)
+        .await
+        .map_err(|e| ConnectionError::BadConnection(e.to_string()))?;
+      tokio::spawn(async move {
+        if let Err(e) = conn.await {
+          error!("Database connection failed: {e}");
+        }
+      });
+      AsyncPgConnection::try_from(client).await?
+    } else {
+      AsyncPgConnection::establish(config).await?
+    };
+
+    diesel::select((
+      // Change geqo_threshold back to default value if it was changed, so it's higher than the
+      // collapse limits
+      functions::set_config("geqo_threshold", "12", false),
+      // Change collapse limits from 8 to 11 so the query planner can find a better table join
+      // order for more complicated queries
+      functions::set_config("from_collapse_limit", "11", false),
+      functions::set_config("join_collapse_limit", "11", false),
+      // Set `lemmy.protocol_and_hostname` so triggers can use it
+      functions::set_config(
+        "lemmy.protocol_and_hostname",
+        SETTINGS.get_protocol_and_hostname(),
+        false,
+      ),
+    ))
+    .execute(&mut conn)
+    .await
+    .map_err(ConnectionError::CouldntSetupConfiguration)?;
     Ok(conn)
   };
   fut.boxed()
@@ -418,17 +422,11 @@ impl ServerCertVerifier for NoCertVerifier {
 
 pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let db_url = SETTINGS.get_database_url();
-  // We only support TLS with sslmode=require currently
-  let tls_enabled = db_url.contains("sslmode=require");
-  let manager = if tls_enabled {
-    // diesel-async does not support any TLS connections out of the box, so we need to manually
-    // provide a setup function which handles creating the connection
-    let mut config = ManagerConfig::default();
-    config.custom_setup = Box::new(establish_connection);
-    AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(&db_url, config)
-  } else {
-    AsyncDieselConnectionManager::<AsyncPgConnection>::new(&db_url)
-  };
+  // diesel-async does not support any TLS connections out of the box, so we need to manually
+  // provide a setup function which handles creating the connection
+  let mut config = ManagerConfig::default();
+  config.custom_setup = Box::new(establish_connection);
+  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(&db_url, config);
   let pool = Pool::builder(manager)
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
@@ -479,13 +477,13 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
   }
 }
 
-static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
+static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
     .expect("compile email regex")
 });
 
 pub mod functions {
-  use diesel::sql_types::{BigInt, Text, Timestamptz};
+  use diesel::sql_types::{BigInt, Bool, Text, Timestamptz};
 
   sql_function! {
     #[sql_name = "r.hot_rank"]
@@ -508,6 +506,8 @@ pub mod functions {
 
   // really this function is variadic, this just adds the two-argument version
   sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
+
+  sql_function!(fn set_config(setting_name: Text, new_value: Text, is_local: Bool) -> Text);
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
@@ -576,20 +576,6 @@ impl<RF, LF> Queries<RF, LF> {
   {
     let conn = get_conn(pool).await?;
     (self.list_fn)(conn, args).await
-  }
-}
-
-pub fn visible_communities_only<Q>(my_person_id: Option<PersonId>, query: Q) -> Q
-where
-  Q: diesel::query_dsl::methods::FilterDsl<
-    dsl::Eq<community::visibility, CommunityVisibility>,
-    Output = Q,
-  >,
-{
-  if my_person_id.is_none() {
-    query.filter(community::visibility.eq(CommunityVisibility::Public))
-  } else {
-    query
   }
 }
 

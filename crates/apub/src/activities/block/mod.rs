@@ -38,7 +38,6 @@ pub enum SiteOrCommunity {
   Site(ApubSite),
   Community(ApubCommunity),
 }
-
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub enum InstanceOrGroup {
@@ -74,12 +73,18 @@ impl Object for SiteOrCommunity {
     })
   }
 
-  async fn delete(self, _data: &Data<Self::DataType>) -> LemmyResult<()> {
-    unimplemented!()
+  async fn delete(self, data: &Data<Self::DataType>) -> LemmyResult<()> {
+    match self {
+      SiteOrCommunity::Site(i) => i.delete(data).await,
+      SiteOrCommunity::Community(c) => c.delete(data).await,
+    }
   }
 
-  async fn into_json(self, _data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    unimplemented!()
+  async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
+    Ok(match self {
+      SiteOrCommunity::Site(i) => InstanceOrGroup::Instance(i.into_json(data).await?),
+      SiteOrCommunity::Community(c) => InstanceOrGroup::Group(c.into_json(data).await?),
+    })
   }
 
   #[tracing::instrument(skip_all)]

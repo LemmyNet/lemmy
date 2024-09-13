@@ -20,7 +20,7 @@ impl Crud for Site {
 
   /// Use SiteView::read_local, or Site::read_from_apub_id instead
   async fn read(_pool: &mut DbPool<'_>, _site_id: SiteId) -> Result<Option<Self>, Error> {
-    unimplemented!()
+    Err(Error::NotFound)
   }
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {

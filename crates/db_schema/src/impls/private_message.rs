@@ -100,6 +100,7 @@ mod tests {
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
+  use url::Url;
 
   #[tokio::test]
   #[serial]
@@ -138,7 +139,12 @@ mod tests {
       read: false,
       updated: None,
       published: inserted_private_message.published,
-      ap_id: inserted_private_message.ap_id.clone(),
+      ap_id: Url::parse(&format!(
+        "https://lemmy-alpha/private_message/{}",
+        inserted_private_message.id
+      ))
+      .unwrap()
+      .into(),
       local: true,
     };
 

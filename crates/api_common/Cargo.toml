@@ -34,7 +34,6 @@ full = [
   "reqwest",
   "actix-web",
   "futures",
-  "once_cell",
   "jsonwebtoken",
   "mime",
 ]
@@ -61,7 +60,6 @@ reqwest = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 moka.workspace = true
 anyhow.workspace = true
-once_cell = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
 enum-map = { workspace = true }
 urlencoding = { workspace = true }

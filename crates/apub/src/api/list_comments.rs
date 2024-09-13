@@ -37,11 +37,11 @@ pub async fn list_comments(
   };
   let sort = data.sort;
   let max_depth = data.max_depth;
-  let saved_only = data.saved_only.unwrap_or_default();
+  let saved_only = data.saved_only;
 
-  let liked_only = data.liked_only.unwrap_or_default();
-  let disliked_only = data.disliked_only.unwrap_or_default();
-  if liked_only && disliked_only {
+  let liked_only = data.liked_only;
+  let disliked_only = data.disliked_only;
+  if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
     return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
   }
 

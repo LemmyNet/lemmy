@@ -5,7 +5,7 @@ set -e
 
 CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
-cd $CWD/../
+cd "$CWD/../"
 
 # Copy the files to a temp dir
 TMP_DIR=$(mktemp -d)

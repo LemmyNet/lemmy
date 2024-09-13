@@ -135,7 +135,6 @@ pub async fn save_user_settings(
     blur_nsfw: data.blur_nsfw,
     auto_expand: data.auto_expand,
     show_bot_accounts: data.show_bot_accounts,
-    show_scores: data.show_scores,
     default_sort_type,
     default_listing_type,
     theme: data.theme.clone(),

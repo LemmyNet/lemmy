@@ -24,6 +24,16 @@ pub async fn add_admin(
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
+  // If its an admin removal, also check that you're a higher admin
+  if !data.added {
+    LocalUser::is_higher_admin_check(
+      &mut context.pool(),
+      local_user_view.person.id,
+      vec![data.person_id],
+    )
+    .await?;
+  }
+
   // Make sure that the person_id added is local
   let added_local_user = LocalUserView::read_person(&mut context.pool(), data.person_id)
     .await?

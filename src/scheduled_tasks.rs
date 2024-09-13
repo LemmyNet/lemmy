@@ -559,9 +559,9 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_nodeinfo_voyager_lemmy_ml() -> LemmyResult<()> {
+  async fn test_nodeinfo_lemmy_ml() -> LemmyResult<()> {
     let client = ClientBuilder::new(client_builder(&Settings::default()).build()?).build();
-    let form = build_update_instance_form("voyager.lemmy.ml", &client)
+    let form = build_update_instance_form("lemmy.ml", &client)
       .await
       .ok_or(LemmyErrorType::CouldntFindObject)?;
     assert_eq!(

@@ -193,10 +193,12 @@ impl ActivityHandler for Page {
   type DataType = LemmyContext;
   type Error = LemmyError;
   fn id(&self) -> &Url {
-    unimplemented!()
+    self.id.inner()
   }
+
   fn actor(&self) -> &Url {
-    unimplemented!()
+    debug_assert!(false);
+    self.id.inner()
   }
   async fn verify(&self, data: &Data<Self::DataType>) -> LemmyResult<()> {
     ApubPost::verify(self, self.id.inner(), data).await

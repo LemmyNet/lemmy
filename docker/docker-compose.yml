@@ -23,7 +23,7 @@ services:
 
   lemmy:
     # use "image" to pull down an already compiled lemmy. make sure to comment out "build".
-    # image: dessalines/lemmy:0.19.4
+    # image: dessalines/lemmy:0.19.5
     # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
     # use "build" to build your local lemmy server image for development. make sure to comment out "image".
     # run: docker compose up --build
@@ -53,7 +53,7 @@ services:
 
   lemmy-ui:
     # use "image" to pull down an already compiled lemmy-ui. make sure to comment out "build".
-    image: dessalines/lemmy-ui:0.19.4
+    image: dessalines/lemmy-ui:0.19.5
     # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
     # use "build" to build your local lemmy ui image for development. make sure to comment out "image".
     # run: docker compose up --build
@@ -97,7 +97,7 @@ services:
     logging: *default-logging
 
   postgres:
-    image: postgres:16-alpine
+    image: pgautoupgrade/pgautoupgrade:16-alpine
     # this needs to match the database host in lemmy.hson
     # Tune your settings via
     # https://pgtune.leopard.in.ua/#/

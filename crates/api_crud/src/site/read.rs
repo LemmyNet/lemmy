@@ -5,33 +5,29 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::{
   actor_language::{LocalUserLanguage, SiteLanguage},
+  community_block::CommunityBlock,
+  instance_block::InstanceBlock,
   language::Language,
   local_site_url_blocklist::LocalSiteUrlBlocklist,
+  person_block::PersonBlock,
   tagline::Tagline,
 };
 use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
-use lemmy_db_views_actor::structs::{
-  CommunityBlockView,
-  CommunityFollowerView,
-  CommunityModeratorView,
-  InstanceBlockView,
-  PersonBlockView,
-  PersonView,
-};
+use lemmy_db_views_actor::structs::{CommunityFollowerView, CommunityModeratorView, PersonView};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   CACHE_DURATION_API,
   VERSION,
 };
 use moka::future::Cache;
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_site(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<GetSiteResponse>> {
-  static CACHE: Lazy<Cache<(), GetSiteResponse>> = Lazy::new(|| {
+  static CACHE: LazyLock<Cache<(), GetSiteResponse>> = LazyLock::new(|| {
     Cache::builder()
       .max_capacity(1)
       .time_to_live(CACHE_DURATION_API)
@@ -81,10 +77,10 @@ pub async fn get_site(
       discussion_languages,
     ) = lemmy_db_schema::try_join_with_pool!(pool => (
       |pool| CommunityFollowerView::for_person(pool, person_id),
-      |pool| CommunityBlockView::for_person(pool, person_id),
-      |pool| InstanceBlockView::for_person(pool, person_id),
-      |pool| PersonBlockView::for_person(pool, person_id),
-      |pool| CommunityModeratorView::for_person(pool, person_id, true),
+      |pool| CommunityBlock::for_person(pool, person_id),
+      |pool| InstanceBlock::for_person(pool, person_id),
+      |pool| PersonBlock::for_person(pool, person_id),
+      |pool| CommunityModeratorView::for_person(pool, person_id, Some(&local_user_view.local_user)),
       |pool| LocalUserLanguage::read(pool, local_user_id)
     ))
     .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;

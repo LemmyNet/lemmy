@@ -196,7 +196,7 @@ impl CommentReportView {
     queries().read(pool, (report_id, my_person_id)).await
   }
 
-  /// Returns the current unresolved post report count for the communities you mod
+  /// Returns the current unresolved comment report count for the communities you mod
   pub async fn get_report_count(
     pool: &mut DbPool<'_>,
     my_person_id: PersonId,
@@ -301,10 +301,7 @@ mod tests {
 
     let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
 
-    let new_local_user = LocalUserInsertForm::builder()
-      .person_id(inserted_timmy.id)
-      .password_encrypted("123".to_string())
-      .build();
+    let new_local_user = LocalUserInsertForm::test_form(inserted_timmy.id);
     let timmy_local_user = LocalUser::create(pool, &new_local_user, vec![])
       .await
       .unwrap();
