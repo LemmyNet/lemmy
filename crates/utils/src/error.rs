@@ -1,6 +1,6 @@
 use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
-use std::{backtrace::Backtrace, fmt::Debug};
+use std::fmt::Debug;
 use strum::{Display, EnumIter};
 
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
@@ -23,19 +23,14 @@ pub enum LemmyErrorType {
   CouldntUpdateComment,
   CouldntUpdatePrivateMessage,
   CannotLeaveAdmin,
-  NoLinesInHtml,
-  SiteMetadataPageIsNotDoctypeHtml,
   PictrsResponseError(String),
   PictrsPurgeResponseError(String),
-  PictrsCachingDisabled,
   ImageUrlMissingPathSegments,
   ImageUrlMissingLastPathSegment,
   PictrsApiKeyNotProvided,
   NoContentTypeHeader,
   NotAnImageType,
   NotAModOrAdmin,
-  NoAdmins,
-  NotTopAdmin,
   NotTopMod,
   NotLoggedIn,
   NotHigherMod,
@@ -84,18 +79,15 @@ pub enum LemmyErrorType {
   RegistrationClosed,
   RegistrationApplicationAnswerRequired,
   EmailAlreadyExists,
-  FederationForbiddenByStrictAllowList,
   PersonIsBannedFromCommunity,
   ObjectIsNotPublic,
   InvalidCommunity,
   CannotCreatePostOrCommentInDeletedOrRemovedCommunity,
   CannotReceivePage,
-  NewPostCannotBeLocked,
   OnlyLocalAdminCanRemoveCommunity,
   OnlyLocalAdminCanRestoreCommunity,
   NoIdGiven,
   IncorrectLogin,
-  InvalidQuery,
   ObjectNotLocal,
   PostIsLocked,
   PersonIsBannedFromSite(String),
@@ -138,7 +130,6 @@ pub enum LemmyErrorType {
   CouldntUpdateCommunity,
   CouldntUpdateReplies,
   CouldntUpdatePersonMentions,
-  PostTitleTooLong,
   CouldntCreatePost,
   CouldntCreatePrivateMessage,
   CouldntUpdatePrivate,
