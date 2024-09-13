@@ -3,7 +3,7 @@ UPDATE
     site
 SET
     content_warning = CASE WHEN local_site.enable_nsfw THEN
-        'nsfw'
+        'NSFW'
     ELSE
         NULL
     END
