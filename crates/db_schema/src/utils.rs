@@ -305,7 +305,7 @@ pub fn diesel_url_update(opt: Option<&str>) -> LemmyResult<Option<Option<DbUrl>>
     // An empty string is an erase
     Some("") => Ok(Some(None)),
     Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(Some(clean_url(&u).ok()?.into())))
+      .map(|u| Some(Some(clean_url(&u).into())))
       .with_lemmy_type(LemmyErrorType::InvalidUrl),
     None => Ok(None),
   }
@@ -316,7 +316,7 @@ pub fn diesel_url_update(opt: Option<&str>) -> LemmyResult<Option<Option<DbUrl>>
 pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
   match opt {
     Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(clean_url(&u).ok()?.into()))
+      .map(|u| Some(clean_url(&u).into()))
       .with_lemmy_type(LemmyErrorType::InvalidUrl),
     None => Ok(None),
   }
