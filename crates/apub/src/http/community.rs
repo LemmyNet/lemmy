@@ -151,14 +151,14 @@ pub(crate) mod tests {
       Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;
     create_local_site(context, instance.id).await?;
 
-    let community_form = CommunityInsertForm::builder()
-      .name("testcom6".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(instance.id)
-      .deleted(Some(deleted))
-      .visibility(Some(visibility))
-      .build();
+    let mut community_form = CommunityInsertForm::new(
+      instance.id,
+      "testcom6".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    community_form.deleted = Some(deleted);
+    community_form.visibility = Some(visibility);
     let community = Community::create(&mut context.pool(), &community_form).await?;
     Ok((instance, community))
   }
@@ -169,18 +169,13 @@ pub(crate) mod tests {
     instance_id: InstanceId,
   ) -> LemmyResult<()> {
     // Create a local site, since this is necessary for community fetching.
-    let site_form = SiteInsertForm::builder()
-      .name("test site".to_string())
-      .instance_id(instance_id)
-      .build();
+    let site_form = SiteInsertForm::new("test site".to_string(), instance_id);
     let site = Site::create(&mut context.pool(), &site_form).await?;
 
-    let local_site_form = LocalSiteInsertForm::builder().site_id(site.id).build();
+    let local_site_form = LocalSiteInsertForm::new(site.id);
     let local_site = LocalSite::create(&mut context.pool(), &local_site_form).await?;
-    let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::builder()
-      .local_site_id(local_site.id)
-      .build();
 
+    let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::new(local_site.id);
     LocalSiteRateLimit::create(&mut context.pool(), &local_site_rate_limit_form).await?;
     Ok(())
   }

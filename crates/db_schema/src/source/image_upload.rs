@@ -7,7 +7,6 @@ use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -30,7 +29,7 @@ pub struct ImageUpload {
   pub published: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, TypedBuilder)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = image_upload))]
 pub struct ImageUploadForm {

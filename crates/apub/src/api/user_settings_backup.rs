@@ -362,11 +362,12 @@ mod tests {
     let export_user =
       create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
 
-    let community_form = CommunityInsertForm::builder()
-      .name("testcom".to_string())
-      .title("testcom".to_string())
-      .instance_id(export_user.person.instance_id)
-      .build();
+    let community_form = CommunityInsertForm::new(
+      export_user.person.instance_id,
+      "testcom".to_string(),
+      "testcom".to_string(),
+      "pubkey".to_string(),
+    );
     let community = Community::create(&mut context.pool(), &community_form).await?;
     let follower_form = CommunityFollowerForm {
       community_id: community.id,
@@ -412,11 +413,12 @@ mod tests {
     let export_user =
       create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
 
-    let community_form = CommunityInsertForm::builder()
-      .name("testcom".to_string())
-      .title("testcom".to_string())
-      .instance_id(export_user.person.instance_id)
-      .build();
+    let community_form = CommunityInsertForm::new(
+      export_user.person.instance_id,
+      "testcom".to_string(),
+      "testcom".to_string(),
+      "pubkey".to_string(),
+    );
     let community = Community::create(&mut context.pool(), &community_form).await?;
     let follower_form = CommunityFollowerForm {
       community_id: community.id,

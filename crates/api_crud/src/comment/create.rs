@@ -111,12 +111,9 @@ pub async fn create_comment(
     }
   };
 
-  let comment_form = CommentInsertForm::builder()
-    .content(content.clone())
-    .post_id(data.post_id)
-    .creator_id(local_user_view.person.id)
-    .language_id(language_id)
-    .build();
+  let mut comment_form =
+    CommentInsertForm::new(local_user_view.person.id, data.post_id, content.clone());
+  comment_form.language_id = language_id;
 
   // Create the comment
   let parent_path = parent_opt.clone().map(|t| t.path);

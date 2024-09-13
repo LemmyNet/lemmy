@@ -147,11 +147,11 @@ mod tests {
     let inserted_jessica = Person::create(pool, &new_person_2).await.unwrap();
 
     // timmy sends private message to jessica
-    let pm_form = PrivateMessageInsertForm::builder()
-      .creator_id(inserted_timmy.id)
-      .recipient_id(inserted_jessica.id)
-      .content("something offensive".to_string())
-      .build();
+    let pm_form = PrivateMessageInsertForm::new(
+      inserted_timmy.id,
+      inserted_jessica.id,
+      "something offensive".to_string(),
+    );
     let pm = PrivateMessage::create(pool, &pm_form).await.unwrap();
 
     // jessica reports private message

@@ -348,29 +348,23 @@ mod tests {
     let recipient_local_user =
       LocalUser::create(pool, &LocalUserInsertForm::test_form(recipient_id), vec![]).await?;
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community lake".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community lake".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await?;
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post".into())
-      .creator_id(inserted_terry.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post".into(),
+      inserted_terry.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let comment_form = CommentInsertForm::builder()
-      .content("A test comment".into())
-      .creator_id(inserted_terry.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let comment_form =
+      CommentInsertForm::new(inserted_terry.id, inserted_post.id, "A test comment".into());
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     let comment_reply_form = CommentReplyInsertForm {

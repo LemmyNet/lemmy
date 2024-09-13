@@ -521,29 +521,27 @@ mod tests {
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
-    let new_community = CommunityInsertForm::builder()
-      .name("mod_community".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "mod_community".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
 
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post thweep".into())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post thweep".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
-    let comment_form = CommentInsertForm::builder()
-      .content("A test comment".into())
-      .creator_id(inserted_person.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
     let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
 
     // Now the actual tests

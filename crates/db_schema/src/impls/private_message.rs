@@ -120,11 +120,11 @@ mod tests {
 
     let inserted_recipient = Person::create(pool, &recipient_form).await.unwrap();
 
-    let private_message_form = PrivateMessageInsertForm::builder()
-      .content("A test private message".into())
-      .creator_id(inserted_creator.id)
-      .recipient_id(inserted_recipient.id)
-      .build();
+    let private_message_form = PrivateMessageInsertForm::new(
+      inserted_creator.id,
+      inserted_recipient.id,
+      "A test private message".into(),
+    );
 
     let inserted_private_message = PrivateMessage::create(pool, &private_message_form)
       .await
