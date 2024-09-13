@@ -1,7 +1,6 @@
 use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use clearurls::UrlCleaner;
 use itertools::Itertools;
-use linkify::LinkFinder;
 use regex::{Regex, RegexBuilder, RegexSet};
 use std::sync::LazyLock;
 use url::{ParseError, Url};
@@ -256,18 +255,17 @@ pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Option
 }
 
 /// Cleans a url of tracking parameters.
-pub fn clean_url(url: &Url) -> LemmyResult<Url> {
-  match URL_CLEANER.clear_single_url(url.as_str()) {
-    Ok(res) => Ok(Url::parse(&res)?),
+pub fn clean_url(url: &Url) -> Url {
+  match URL_CLEANER.clear_single_url(url) {
+    Ok(res) => res.into_owned(),
     // If there are any errors, just return the original url
-    Err(_) => Ok(url.clone()),
+    Err(_) => url.clone(),
   }
 }
 
 /// Cleans all the links in a string of tracking parameters.
 pub fn clean_urls_in_text(text: &str) -> String {
-  let finder = LinkFinder::new();
-  match URL_CLEANER.clear_text(text, &finder) {
+  match URL_CLEANER.clear_text(text) {
     Ok(res) => res.into_owned(),
     // If there are any errors, just return the original text
     Err(_) => text.to_owned(),
@@ -387,11 +385,11 @@ mod tests {
     let url = Url::parse("https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123")?;
     let cleaned = clean_url(&url);
     let expected = Url::parse("https://example.com/path/123?user+name=random+user&id=123")?;
-    assert_eq!(expected.to_string(), cleaned?.to_string());
+    assert_eq!(expected.to_string(), cleaned.to_string());
 
     let url = Url::parse("https://example.com/path/123")?;
     let cleaned = clean_url(&url);
-    assert_eq!(url.to_string(), cleaned?.to_string());
+    assert_eq!(url.to_string(), cleaned.to_string());
 
     Ok(())
   }

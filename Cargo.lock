@@ -1014,9 +1014,9 @@ checksum = "4b82cf0babdbd58558212896d1a4272303a57bdb245c2bf1147185fb45640e70"
 
 [[package]]
 name = "clearurls"
-version = "0.0.2"
+version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9238d037969902a5bfc3e793ae0ad745cc5828d6e6573ca7f45b1f697d727c38"
+checksum = "e291c00af89ac0a5b400d9ba46a682e38015ae3cd8926dbbe85b3b864d550be3"
 dependencies = [
  "linkify",
  "percent-encoding",
@@ -3183,7 +3183,6 @@ dependencies = [
  "http 1.1.0",
  "itertools 0.13.0",
  "lettre",
- "linkify",
  "markdown-it",
  "pretty_assertions",
  "regex",
