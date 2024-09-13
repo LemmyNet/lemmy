@@ -64,7 +64,6 @@ diesel-async = { workspace = true, features = [
 ], optional = true }
 regex = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
-typed-builder = { workspace = true }
 async-trait = { workspace = true }
 tracing = { workspace = true }
 deadpool = { version = "0.12.1", features = ["rt_tokio_1"], optional = true }

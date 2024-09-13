@@ -480,44 +480,36 @@ async fn initialize_local_site_2022_10_10(
   let site_key_pair = generate_actor_keypair()?;
   let site_actor_id = Url::parse(&settings.get_protocol_and_hostname())?;
 
-  let site_form = SiteInsertForm::builder()
-    .name(
-      settings
-        .setup
-        .clone()
-        .map(|s| s.site_name)
-        .unwrap_or_else(|| "New Site".to_string()),
-    )
-    .instance_id(instance.id)
-    .actor_id(Some(site_actor_id.clone().into()))
-    .last_refreshed_at(Some(naive_now()))
-    .inbox_url(Some(generate_shared_inbox_url(settings)?))
-    .private_key(Some(site_key_pair.private_key))
-    .public_key(Some(site_key_pair.public_key))
-    .build();
+  let name = settings
+    .setup
+    .clone()
+    .map(|s| s.site_name)
+    .unwrap_or_else(|| "New Site".to_string());
+  let mut site_form = SiteInsertForm::new(name, instance.id);
+  site_form.actor_id = Some(site_actor_id.clone().into());
+  site_form.last_refreshed_at = Some(naive_now());
+  site_form.inbox_url = Some(generate_shared_inbox_url(settings)?);
+  site_form.private_key = Some(site_key_pair.private_key);
+  site_form.public_key = Some(site_key_pair.public_key);
   let site = Site::create(pool, &site_form).await?;
 
   // Finally create the local_site row
-  let local_site_form = LocalSiteInsertForm::builder()
-    .site_id(site.id)
-    .site_setup(Some(settings.setup.is_some()))
-    .build();
+  let mut local_site_form = LocalSiteInsertForm::new(site.id);
+  local_site_form.site_setup = Some(settings.setup.is_some());
   let local_site = LocalSite::create(pool, &local_site_form).await?;
 
   // Create the rate limit table
-  let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::builder()
-    // TODO these have to be set, because the database defaults are too low for the federation
-    // tests to pass, and there's no way to live update the rate limits without restarting the
-    // server.
-    // This can be removed once live rate limits are enabled.
-    .message(Some(999))
-    .post(Some(999))
-    .register(Some(999))
-    .image(Some(999))
-    .comment(Some(999))
-    .search(Some(999))
-    .local_site_id(local_site.id)
-    .build();
+  let mut local_site_rate_limit_form = LocalSiteRateLimitInsertForm::new(local_site.id);
+  // TODO these have to be set, because the database defaults are too low for the federation
+  // tests to pass, and there's no way to live update the rate limits without restarting the
+  // server.
+  // This can be removed once live rate limits are enabled.
+  local_site_rate_limit_form.message = Some(999);
+  local_site_rate_limit_form.post = Some(999);
+  local_site_rate_limit_form.register = Some(999);
+  local_site_rate_limit_form.image = Some(999);
+  local_site_rate_limit_form.comment = Some(999);
+  local_site_rate_limit_form.search = Some(999);
   LocalSiteRateLimit::create(pool, &local_site_rate_limit_form).await?;
 
   Ok(())

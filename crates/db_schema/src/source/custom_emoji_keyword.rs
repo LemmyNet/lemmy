@@ -4,7 +4,6 @@ use crate::schema::custom_emoji_keyword;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(
@@ -25,7 +24,7 @@ pub struct CustomEmojiKeyword {
   pub keyword: String,
 }
 
-#[derive(Debug, Clone, TypedBuilder)]
+#[derive(Debug, Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = custom_emoji_keyword))]
 pub struct CustomEmojiKeywordInsertForm {

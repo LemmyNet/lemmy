@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize, Default)]
@@ -72,34 +71,54 @@ pub struct LocalSite {
   pub default_sort_type: SortType,
 }
 
-#[derive(Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site))]
 pub struct LocalSiteInsertForm {
-  #[builder(!default)]
   pub site_id: SiteId,
+  #[new(default)]
   pub site_setup: Option<bool>,
+  #[new(default)]
   pub enable_downvotes: Option<bool>,
+  #[new(default)]
   pub enable_nsfw: Option<bool>,
+  #[new(default)]
   pub community_creation_admin_only: Option<bool>,
+  #[new(default)]
   pub require_email_verification: Option<bool>,
+  #[new(default)]
   pub application_question: Option<String>,
+  #[new(default)]
   pub private_instance: Option<bool>,
+  #[new(default)]
   pub default_theme: Option<String>,
+  #[new(default)]
   pub default_post_listing_type: Option<ListingType>,
+  #[new(default)]
   pub legal_information: Option<String>,
+  #[new(default)]
   pub hide_modlog_mod_names: Option<bool>,
+  #[new(default)]
   pub application_email_admins: Option<bool>,
+  #[new(default)]
   pub slur_filter_regex: Option<String>,
+  #[new(default)]
   pub actor_name_max_length: Option<i32>,
+  #[new(default)]
   pub federation_enabled: Option<bool>,
+  #[new(default)]
   pub captcha_enabled: Option<bool>,
+  #[new(default)]
   pub captcha_difficulty: Option<String>,
+  #[new(default)]
   pub registration_mode: Option<RegistrationMode>,
+  #[new(default)]
   pub reports_email_admins: Option<bool>,
+  #[new(default)]
   pub federation_signed_fetch: Option<bool>,
+  #[new(default)]
   pub default_post_listing_mode: Option<PostListingMode>,
+  #[new(default)]
   pub default_sort_type: Option<SortType>,
 }
 

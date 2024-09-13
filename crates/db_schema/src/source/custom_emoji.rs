@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -33,7 +32,7 @@ pub struct CustomEmoji {
   pub updated: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, TypedBuilder)]
+#[derive(Debug, Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = custom_emoji))]
 pub struct CustomEmojiInsertForm {
@@ -44,7 +43,7 @@ pub struct CustomEmojiInsertForm {
   pub category: String,
 }
 
-#[derive(Debug, Clone, TypedBuilder)]
+#[derive(Debug, Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = custom_emoji))]
 pub struct CustomEmojiUpdateForm {

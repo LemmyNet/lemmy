@@ -321,13 +321,12 @@ mod tests {
 
     let inserted_jessica = Person::create(pool, &new_person_3).await.unwrap();
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community crv".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community crv".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
     // Make timmy a mod
@@ -340,20 +339,19 @@ mod tests {
       .await
       .unwrap();
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post crv".into())
-      .creator_id(inserted_timmy.id)
-      .community_id(inserted_community.id)
-      .build();
+    let new_post = PostInsertForm::new(
+      "A test post crv".into(),
+      inserted_timmy.id,
+      inserted_community.id,
+    );
 
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
-    let comment_form = CommentInsertForm::builder()
-      .content("A test comment 32".into())
-      .creator_id(inserted_timmy.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let comment_form = CommentInsertForm::new(
+      inserted_timmy.id,
+      inserted_post.id,
+      "A test comment 32".into(),
+    );
     let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
 
     // sara reports

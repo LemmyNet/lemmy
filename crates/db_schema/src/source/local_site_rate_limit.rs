@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -40,26 +39,38 @@ pub struct LocalSiteRateLimit {
   pub import_user_settings_per_second: i32,
 }
 
-#[derive(Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site_rate_limit))]
 pub struct LocalSiteRateLimitInsertForm {
-  #[builder(!default)]
   pub local_site_id: LocalSiteId,
+  #[new(default)]
   pub message: Option<i32>,
+  #[new(default)]
   pub message_per_second: Option<i32>,
+  #[new(default)]
   pub post: Option<i32>,
+  #[new(default)]
   pub post_per_second: Option<i32>,
+  #[new(default)]
   pub register: Option<i32>,
+  #[new(default)]
   pub register_per_second: Option<i32>,
+  #[new(default)]
   pub image: Option<i32>,
+  #[new(default)]
   pub image_per_second: Option<i32>,
+  #[new(default)]
   pub comment: Option<i32>,
+  #[new(default)]
   pub comment_per_second: Option<i32>,
+  #[new(default)]
   pub search: Option<i32>,
+  #[new(default)]
   pub search_per_second: Option<i32>,
+  #[new(default)]
   pub import_user_settings: Option<i32>,
+  #[new(default)]
   pub import_user_settings_per_second: Option<i32>,
 }
 

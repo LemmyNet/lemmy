@@ -354,10 +354,8 @@ mod test {
     let mut data = TestData::init(1, 1).await?;
 
     let instance = &data.instances[0];
-    let form = InstanceForm::builder()
-      .domain(instance.domain.clone())
-      .updated(DateTime::from_timestamp(0, 0))
-      .build();
+    let mut form = InstanceForm::new(instance.domain.clone());
+    form.updated = DateTime::from_timestamp(0, 0);
     Instance::update(&mut data.context.pool(), instance.id, form).await?;
 
     data.run().await?;

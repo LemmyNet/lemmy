@@ -824,13 +824,12 @@ mod tests {
 
     let inserted_bot = Person::create(pool, &new_bot).await?;
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test_community_3".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test_community_3".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await?;
 
     // Test a person block, make sure the post query doesn't include their post
@@ -845,13 +844,12 @@ mod tests {
     )
     .await?;
 
-    let post_from_blocked_person = PostInsertForm::builder()
-      .name(POST_BY_BLOCKED_PERSON.to_string())
-      .creator_id(inserted_blocked_person.id)
-      .community_id(inserted_community.id)
-      .language_id(Some(LanguageId(1)))
-      .build();
-
+    let mut post_from_blocked_person = PostInsertForm::new(
+      POST_BY_BLOCKED_PERSON.to_string(),
+      inserted_blocked_person.id,
+      inserted_community.id,
+    );
+    post_from_blocked_person.language_id = Some(LanguageId(1));
     Post::create(pool, &post_from_blocked_person).await?;
 
     // block that person
@@ -863,22 +861,18 @@ mod tests {
     PersonBlock::block(pool, &person_block).await?;
 
     // A sample post
-    let new_post = PostInsertForm::builder()
-      .name(POST.to_string())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .language_id(Some(LanguageId(47)))
-      .build();
-
+    let mut new_post =
+      PostInsertForm::new(POST.to_string(), inserted_person.id, inserted_community.id);
+    new_post.language_id = Some(LanguageId(47));
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let new_bot_post = PostInsertForm::builder()
-      .name(POST_BY_BOT.to_string())
-      .creator_id(inserted_bot.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_bot_post = PostInsertForm::new(
+      POST_BY_BOT.to_string(),
+      inserted_bot.id,
+      inserted_community.id,
+    );
     let inserted_bot_post = Post::create(pool, &new_bot_post).await?;
+
     let local_user_view = LocalUserView {
       local_user: inserted_local_user,
       local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
@@ -1210,13 +1204,12 @@ mod tests {
       .await?
       .expect("french should exist");
 
-    let post_spanish = PostInsertForm::builder()
-      .name(EL_POSTO.to_string())
-      .creator_id(data.local_user_view.person.id)
-      .community_id(data.inserted_community.id)
-      .language_id(Some(spanish_id))
-      .build();
-
+    let mut post_spanish = PostInsertForm::new(
+      EL_POSTO.to_string(),
+      data.local_user_view.person.id,
+      data.inserted_community.id,
+    );
+    post_spanish.language_id = Some(spanish_id);
     Post::create(pool, &post_spanish).await?;
 
     let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
@@ -1344,21 +1337,20 @@ mod tests {
 
     let blocked_instance = Instance::read_or_create(pool, "another_domain.tld".to_string()).await?;
 
-    let community_form = CommunityInsertForm::builder()
-      .name("test_community_4".to_string())
-      .title("none".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(blocked_instance.id)
-      .build();
+    let community_form = CommunityInsertForm::new(
+      blocked_instance.id,
+      "test_community_4".to_string(),
+      "none".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &community_form).await?;
 
-    let post_form = PostInsertForm::builder()
-      .name(POST_FROM_BLOCKED_INSTANCE.to_string())
-      .creator_id(data.inserted_bot.id)
-      .community_id(inserted_community.id)
-      .language_id(Some(LanguageId(1)))
-      .build();
-
+    let mut post_form = PostInsertForm::new(
+      POST_FROM_BLOCKED_INSTANCE.to_string(),
+      data.inserted_bot.id,
+      inserted_community.id,
+    );
+    post_form.language_id = Some(LanguageId(1));
     let post_from_blocked_instance = Post::create(pool, &post_form).await?;
 
     // no instance block, should return all posts
@@ -1401,12 +1393,12 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let community_form = CommunityInsertForm::builder()
-      .name("yes".to_string())
-      .title("yes".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(data.inserted_instance.id)
-      .build();
+    let community_form = CommunityInsertForm::new(
+      data.inserted_instance.id,
+      "yes".to_string(),
+      "yes".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &community_form).await?;
 
     let mut inserted_post_ids = vec![];
@@ -1416,23 +1408,23 @@ mod tests {
     // and featured
     for comments in 0..10 {
       for _ in 0..15 {
-        let post_form = PostInsertForm::builder()
-          .name("keep Christ in Christmas".to_owned())
-          .creator_id(data.local_user_view.person.id)
-          .community_id(inserted_community.id)
-          .featured_local(Some((comments % 2) == 0))
-          .featured_community(Some((comments % 2) == 0))
-          .published(Some(Utc::now() - Duration::from_secs(comments % 3)))
-          .build();
+        let mut post_form = PostInsertForm::new(
+          "keep Christ in Christmas".to_owned(),
+          data.local_user_view.person.id,
+          inserted_community.id,
+        );
+        post_form.featured_local = Some((comments % 2) == 0);
+        post_form.featured_community = Some((comments % 2) == 0);
+        post_form.published = Some(Utc::now() - Duration::from_secs(comments % 3));
         let inserted_post = Post::create(pool, &post_form).await?;
         inserted_post_ids.push(inserted_post.id);
 
         for _ in 0..comments {
-          let comment_form = CommentInsertForm::builder()
-            .creator_id(data.local_user_view.person.id)
-            .post_id(inserted_post.id)
-            .content("yes".to_owned())
-            .build();
+          let comment_form = CommentInsertForm::new(
+            data.local_user_view.person.id,
+            inserted_post.id,
+            "yes".to_owned(),
+          );
           let inserted_comment = Comment::create(pool, &comment_form, None).await?;
           inserted_comment_ids.push(inserted_comment.id);
         }

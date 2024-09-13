@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -60,35 +59,50 @@ pub struct Post {
   pub alt_text: Option<String>,
 }
 
-#[derive(Debug, Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Debug, Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostInsertForm {
-  #[builder(!default)]
   pub name: String,
-  #[builder(!default)]
   pub creator_id: PersonId,
-  #[builder(!default)]
   pub community_id: CommunityId,
+  #[new(default)]
   pub nsfw: Option<bool>,
+  #[new(default)]
   pub url: Option<DbUrl>,
+  #[new(default)]
   pub body: Option<String>,
+  #[new(default)]
   pub removed: Option<bool>,
+  #[new(default)]
   pub locked: Option<bool>,
+  #[new(default)]
   pub updated: Option<DateTime<Utc>>,
+  #[new(default)]
   pub published: Option<DateTime<Utc>>,
+  #[new(default)]
   pub deleted: Option<bool>,
+  #[new(default)]
   pub embed_title: Option<String>,
+  #[new(default)]
   pub embed_description: Option<String>,
+  #[new(default)]
   pub embed_video_url: Option<DbUrl>,
+  #[new(default)]
   pub thumbnail_url: Option<DbUrl>,
+  #[new(default)]
   pub ap_id: Option<DbUrl>,
+  #[new(default)]
   pub local: Option<bool>,
+  #[new(default)]
   pub language_id: Option<LanguageId>,
+  #[new(default)]
   pub featured_community: Option<bool>,
+  #[new(default)]
   pub featured_local: Option<bool>,
+  #[new(default)]
   pub url_content_type: Option<String>,
+  #[new(default)]
   pub alt_text: Option<String>,
 }
 

@@ -47,9 +47,7 @@ impl LocalUser {
     LocalUserLanguage::update(pool, languages, local_user_.id).await?;
 
     // Create their vote_display_modes
-    let vote_display_mode_form = LocalUserVoteDisplayModeInsertForm::builder()
-      .local_user_id(local_user_.id)
-      .build();
+    let vote_display_mode_form = LocalUserVoteDisplayModeInsertForm::new(local_user_.id);
     LocalUserVoteDisplayMode::create(pool, &vote_display_mode_form).await?;
 
     Ok(local_user_)

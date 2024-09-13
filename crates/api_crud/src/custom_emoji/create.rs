@@ -23,20 +23,18 @@ pub async fn create_custom_emoji(
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
-  let emoji_form = CustomEmojiInsertForm::builder()
-    .local_site_id(local_site.id)
-    .shortcode(data.shortcode.to_lowercase().trim().to_string())
-    .alt_text(data.alt_text.to_string())
-    .category(data.category.to_string())
-    .image_url(data.clone().image_url.into())
-    .build();
+  let emoji_form = CustomEmojiInsertForm::new(
+    local_site.id,
+    data.shortcode.to_lowercase().trim().to_string(),
+    data.clone().image_url.into(),
+    data.alt_text.to_string(),
+    data.category.to_string(),
+  );
   let emoji = CustomEmoji::create(&mut context.pool(), &emoji_form).await?;
   let mut keywords = vec![];
   for keyword in &data.keywords {
-    let keyword_form = CustomEmojiKeywordInsertForm::builder()
-      .custom_emoji_id(emoji.id)
-      .keyword(keyword.to_lowercase().trim().to_string())
-      .build();
+    let keyword_form =
+      CustomEmojiKeywordInsertForm::new(emoji.id, keyword.to_lowercase().trim().to_string());
     keywords.push(keyword_form);
   }
   CustomEmojiKeyword::create(&mut context.pool(), keywords).await?;

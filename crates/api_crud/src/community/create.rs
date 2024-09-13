@@ -90,23 +90,23 @@ pub async fn create_community(
   // When you create a community, make sure the user becomes a moderator and a follower
   let keypair = generate_actor_keypair()?;
 
-  let community_form = CommunityInsertForm::builder()
-    .name(data.name.clone())
-    .title(data.title.clone())
-    .description(description)
-    .icon(icon)
-    .banner(banner)
-    .nsfw(data.nsfw)
-    .actor_id(Some(community_actor_id.clone()))
-    .private_key(Some(keypair.private_key))
-    .public_key(keypair.public_key)
-    .followers_url(Some(generate_followers_url(&community_actor_id)?))
-    .inbox_url(Some(generate_inbox_url(&community_actor_id)?))
-    .shared_inbox_url(Some(generate_shared_inbox_url(context.settings())?))
-    .posting_restricted_to_mods(data.posting_restricted_to_mods)
-    .instance_id(site_view.site.instance_id)
-    .visibility(data.visibility)
-    .build();
+  let mut community_form = CommunityInsertForm::new(
+    site_view.site.instance_id,
+    data.name.clone(),
+    data.title.clone(),
+    keypair.private_key,
+  );
+  community_form.description = description;
+  community_form.icon = icon;
+  community_form.banner = banner;
+  community_form.nsfw = data.nsfw;
+  community_form.actor_id = Some(community_actor_id.clone());
+  community_form.public_key = keypair.public_key;
+  community_form.followers_url = Some(generate_followers_url(&community_actor_id)?);
+  community_form.inbox_url = Some(generate_inbox_url(&community_actor_id)?);
+  community_form.shared_inbox_url = Some(generate_shared_inbox_url(context.settings())?);
+  community_form.posting_restricted_to_mods = data.posting_restricted_to_mods;
+  community_form.visibility = data.visibility;
 
   let inserted_community = Community::create(&mut context.pool(), &community_form)
     .await

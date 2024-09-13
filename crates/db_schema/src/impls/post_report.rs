@@ -104,19 +104,15 @@ mod tests {
     let person_form = PersonInsertForm::test_form(inserted_instance.id, "jim");
     let person = Person::create(pool, &person_form).await.unwrap();
 
-    let community_form = CommunityInsertForm::builder()
-      .name("test community_4".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let community_form = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community_4".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let community = Community::create(pool, &community_form).await.unwrap();
 
-    let form = PostInsertForm::builder()
-      .name("A test post".into())
-      .creator_id(person.id)
-      .community_id(community.id)
-      .build();
+    let form = PostInsertForm::new("A test post".into(), person.id, community.id);
     let post = Post::create(pool, &form).await.unwrap();
 
     let report_form = PostReportForm {

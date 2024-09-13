@@ -46,11 +46,11 @@ pub async fn create_private_message(
   )
   .await?;
 
-  let private_message_form = PrivateMessageInsertForm::builder()
-    .content(content.clone())
-    .creator_id(local_user_view.person.id)
-    .recipient_id(data.recipient_id)
-    .build();
+  let private_message_form = PrivateMessageInsertForm::new(
+    local_user_view.person.id,
+    data.recipient_id,
+    content.clone(),
+  );
 
   let inserted_private_message = PrivateMessage::create(&mut context.pool(), &private_message_form)
     .await
