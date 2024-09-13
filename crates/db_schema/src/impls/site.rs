@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{DbUrl, InstanceId, SiteId},
-  schema::site,
+  schema::{local_site, site},
   source::{
     actor_language::SiteLanguage,
     site::{Site, SiteInsertForm, SiteUpdateForm},
@@ -109,7 +109,8 @@ impl Site {
 
     Ok(
       site::table
-        .filter(site::private_key.is_not_null())
+        .inner_join(local_site::table)
+        .select(site::all_columns)
         .first(conn)
         .await
         .optional()?
