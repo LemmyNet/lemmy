@@ -144,7 +144,7 @@ pub async fn search(
         person_query.list(&mut context.pool()).await?
       };
     }
-    SearchType::PostUrl => {
+    SearchType::Url => {
       posts = PostQuery {
         sort: (sort),
         listing_type: (listing_type),
