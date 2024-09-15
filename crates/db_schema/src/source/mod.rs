@@ -10,6 +10,7 @@ pub mod comment_reply;
 pub mod comment_report;
 pub mod community;
 pub mod community_block;
+pub mod community_report;
 pub mod custom_emoji;
 pub mod custom_emoji_keyword;
 pub mod email_verification;
