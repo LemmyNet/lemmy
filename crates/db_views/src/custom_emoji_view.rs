@@ -35,10 +35,6 @@ impl CustomEmojiView {
     }
   }
 
-  pub async fn get_all(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
-    Self::list(pool, &None, None, None, true).await
-  }
-
   pub async fn list(
     pool: &mut DbPool<'_>,
     category: &Option<String>,
