@@ -1,3 +1,4 @@
+pub(crate) use crate::diesel::OptionalExtension;
 use crate::{
   aggregates::structs::PersonAggregates,
   newtypes::PersonId,
@@ -8,19 +9,20 @@ use diesel::{result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl PersonAggregates {
-  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     person_aggregates::table
       .find(person_id)
-      .first::<Self>(conn)
+      .first(conn)
       .await
+      .optional()
   }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     aggregates::person_aggregates::PersonAggregates,
@@ -47,19 +49,11 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("thommy_user_agg".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_user_agg");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
-    let another_person = PersonInsertForm::builder()
-      .name("jerry_user_agg".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let another_person = PersonInsertForm::test_form(inserted_instance.id, "jerry_user_agg");
 
     let another_inserted_person = Person::create(pool, &another_person).await.unwrap();
 
@@ -127,6 +121,7 @@ mod tests {
 
     let person_aggregates_before_delete = PersonAggregates::read(pool, inserted_person.id)
       .await
+      .unwrap()
       .unwrap();
 
     assert_eq!(1, person_aggregates_before_delete.post_count);
@@ -140,6 +135,7 @@ mod tests {
       .unwrap();
     let after_post_like_remove = PersonAggregates::read(pool, inserted_person.id)
       .await
+      .unwrap()
       .unwrap();
     assert_eq!(0, after_post_like_remove.post_score);
 
@@ -166,6 +162,7 @@ mod tests {
 
     let after_parent_comment_removed = PersonAggregates::read(pool, inserted_person.id)
       .await
+      .unwrap()
       .unwrap();
     assert_eq!(0, after_parent_comment_removed.comment_count);
     // TODO: fix person aggregate comment score calculation
@@ -178,6 +175,7 @@ mod tests {
       .unwrap();
     let after_parent_comment_delete = PersonAggregates::read(pool, inserted_person.id)
       .await
+      .unwrap()
       .unwrap();
     assert_eq!(0, after_parent_comment_delete.comment_count);
     // TODO: fix person aggregate comment score calculation
@@ -193,6 +191,7 @@ mod tests {
     CommentLike::like(pool, &comment_like).await.unwrap();
     let after_comment_add = PersonAggregates::read(pool, inserted_person.id)
       .await
+      .unwrap()
       .unwrap();
     assert_eq!(2, after_comment_add.comment_count);
     // TODO: fix person aggregate comment score calculation
@@ -201,6 +200,7 @@ mod tests {
     Post::delete(pool, inserted_post.id).await.unwrap();
     let after_post_delete = PersonAggregates::read(pool, inserted_person.id)
       .await
+      .unwrap()
       .unwrap();
     // TODO: fix person aggregate comment score calculation
     // assert_eq!(0, after_post_delete.comment_score);
@@ -222,8 +222,10 @@ mod tests {
     assert_eq!(1, community_num_deleted);
 
     // Should be none found
-    let after_delete = PersonAggregates::read(pool, inserted_person.id).await;
-    assert!(after_delete.is_err());
+    let after_delete = PersonAggregates::read(pool, inserted_person.id)
+      .await
+      .unwrap();
+    assert!(after_delete.is_none());
 
     Instance::delete(pool, inserted_instance.id).await.unwrap();
   }

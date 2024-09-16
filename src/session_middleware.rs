@@ -1,7 +1,7 @@
 use actix_web::{
   body::MessageBody,
   dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-  http::header::CACHE_CONTROL,
+  http::header::{HeaderValue, CACHE_CONTROL},
   Error,
   HttpMessage,
 };
@@ -9,7 +9,6 @@ use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
 use lemmy_api::{local_user_view_from_jwt, read_auth_token};
 use lemmy_api_common::context::LemmyContext;
-use reqwest::header::HeaderValue;
 use std::{future::ready, rc::Rc};
 
 #[derive(Clone)]
@@ -98,9 +97,9 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
   use actix_web::test::TestRequest;
@@ -130,7 +129,7 @@ mod tests {
 
     let pool_ = build_db_pool_for_tests().await;
     let pool = &mut (&pool_).into();
-    let secret = Secret::init(pool).await.unwrap();
+    let secret = Secret::init(pool).await.unwrap().unwrap();
     let context = LemmyContext::create(
       pool_.clone(),
       ClientBuilder::new(Client::default()).build(),
@@ -142,20 +141,15 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("Gerry9812".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "Gerry9812");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
-    let local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_person.id)
-      .password_encrypted("123456".to_string())
-      .build();
+    let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
 
-    let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+    let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![])
+      .await
+      .unwrap();
 
     let req = TestRequest::default().to_http_request();
     let jwt = Claims::generate(inserted_local_user.id, req, &context)

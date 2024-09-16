@@ -24,7 +24,7 @@ use lemmy_db_views_moderator::structs::{
   ModTransferCommunityView,
   ModlogListParams,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 use ModlogActionType::*;
 
 #[tracing::instrument(skip(context))]
@@ -32,7 +32,7 @@ pub async fn get_mod_log(
   data: Query<GetModlog>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> Result<Json<GetModlogResponse>, LemmyError> {
+) -> LemmyResult<Json<GetModlogResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site)?;
@@ -55,10 +55,15 @@ pub async fn get_mod_log(
     data.mod_person_id
   };
   let other_person_id = data.other_person_id;
+  let post_id = data.post_id;
+  let comment_id = data.comment_id;
+
   let params = ModlogListParams {
     community_id,
     mod_person_id,
     other_person_id,
+    post_id,
+    comment_id,
     page: data.page,
     limit: data.limit,
     hide_modlog_names,

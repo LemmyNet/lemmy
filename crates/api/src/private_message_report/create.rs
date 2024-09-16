@@ -14,14 +14,14 @@ use lemmy_db_schema::{
   traits::{Crud, Reportable},
 };
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageReportView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn create_pm_report(
   data: Json<CreatePrivateMessageReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PrivateMessageReportResponse>, LemmyError> {
+) -> LemmyResult<Json<PrivateMessageReportResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let reason = data.reason.trim().to_string();
@@ -29,7 +29,9 @@ pub async fn create_pm_report(
 
   let person_id = local_user_view.person.id;
   let private_message_id = data.private_message_id;
-  let private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
+  let private_message = PrivateMessage::read(&mut context.pool(), private_message_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPrivateMessage)?;
 
   // Make sure that only the recipient of the private message can create a report
   if person_id != private_message.recipient_id {
@@ -47,8 +49,9 @@ pub async fn create_pm_report(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
 
-  let private_message_report_view =
-    PrivateMessageReportView::read(&mut context.pool(), report.id).await?;
+  let private_message_report_view = PrivateMessageReportView::read(&mut context.pool(), report.id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPrivateMessageReport)?;
 
   // Email the admins
   if local_site.reports_email_admins {

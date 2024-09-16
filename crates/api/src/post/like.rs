@@ -21,7 +21,7 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::ops::Deref;
 
 #[tracing::instrument(skip(context))]
@@ -29,7 +29,7 @@ pub async fn like_post(
   data: Json<CreatePostLike>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PostResponse>, LemmyError> {
+) -> LemmyResult<Json<PostResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   // Don't do a downvote if site has downvotes disabled
@@ -38,7 +38,9 @@ pub async fn like_post(
 
   // Check for a community ban
   let post_id = data.post_id;
-  let post = Post::read(&mut context.pool(), post_id).await?;
+  let post = Post::read(&mut context.pool(), post_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindPost)?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -66,25 +68,22 @@ pub async fn like_post(
       .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
   }
 
-  // Mark the post as read
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
+
+  let community = Community::read(&mut context.pool(), post.community_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
 
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {
       object_id: post.ap_id,
       actor: local_user_view.person.clone(),
-      community: Community::read(&mut context.pool(), post.community_id).await?,
+      community,
       score: data.score,
     },
     &context,
   )
   .await?;
 
-  build_post_response(
-    context.deref(),
-    post.community_id,
-    &local_user_view.person,
-    post_id,
-  )
-  .await
+  build_post_response(context.deref(), post.community_id, local_user_view, post_id).await
 }

@@ -1,0 +1,22 @@
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://community.nodebb.org/category/31",
+  "url": "https://community.nodebb.org/category/31/threadiverse-working-group",
+  "inbox": "https://community.nodebb.org/category/31/inbox",
+  "outbox": "https://community.nodebb.org/category/31/outbox",
+  "sharedInbox": "https://community.nodebb.org/inbox",
+  "type": "Group",
+  "name": "Threadiverse Working Group",
+  "preferredUsername": "swicg-threadiverse-wg",
+  "summary": "Discussion and announcements related to the SWICG Threadiverse task force",
+  "icon": {
+    "type": "Image",
+    "mediaType": "image/png",
+    "url": "https://community.nodebb.org/assets/uploads/system/site-logo.png"
+  },
+  "publicKey": {
+    "id": "https://community.nodebb.org/category/31#key",
+    "owner": "https://community.nodebb.org/category/31",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0/Or3Ox2/jbhBZzF8W0Y\nWuS/4lgm5O5rxQk2nDRBXU/qNaZnMPkW2FxFPuPetndUVKSD2+vWF3SUlFyZ/vhT\nITzLkbRSILMiZCUg+0mvqi6va1WMBglMe5jLkc7wdfgNsosqBzKMdyMxqDZr++mJ\n8DjuqzWHENcjWcbMfSfAa9nkZHBIQUsHGGIwxEbKNlPqF0JIB66py7xmXbboDxpD\nPVF3EMkgZNnbmDGtlkZCKbztradyNRVl/u6KJpV3fbi+m/8CZ+POc4I5sKCQY1Hr\ndslHlm6tCkJQxIIKQtz0ZJ5yCUYmk48C2gFCndfJtYoEy9iR62xSemky6y04gWVc\naQIDAQAB\n-----END PUBLIC KEY-----\n"
+  }
+}

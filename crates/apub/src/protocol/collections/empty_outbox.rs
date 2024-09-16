@@ -1,5 +1,5 @@
 use activitypub_federation::kinds::collection::OrderedCollectionType;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -14,7 +14,7 @@ pub(crate) struct EmptyOutbox {
 }
 
 impl EmptyOutbox {
-  pub(crate) fn new(outbox_id: Url) -> Result<EmptyOutbox, LemmyError> {
+  pub(crate) fn new(outbox_id: Url) -> LemmyResult<EmptyOutbox> {
     Ok(EmptyOutbox {
       r#type: OrderedCollectionType::OrderedCollection,
       id: outbox_id,

@@ -1,0 +1,26 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "Hashtag": "as:Hashtag"
+    }
+  ],
+  "id": "https://pfefferle.org/this-is-a-test-federation/",
+  "type": "Article",
+  "attachment": [],
+  "attributedTo": "https://pfefferle.org/author/pfefferle/",
+  "content": "<p>with Discource!</p>",
+  "contentMap": {
+    "en": "<p>with Discource!</p>"
+  },
+  "name": "This is a test-federation",
+  "published": "2024-04-30T15:16:41Z",
+  "summary": "with Discource! [...]",
+  "tag": [],
+  "url": "https://pfefferle.org/this-is-a-test-federation/",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public",
+    "https://pfefferle.org/wp-json/activitypub/1.0/users/1/followers"
+  ],
+  "cc": []
+}

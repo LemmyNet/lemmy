@@ -82,7 +82,7 @@ impl AnnounceActivity {
     object: RawAnnouncableActivities,
     community: &ApubCommunity,
     context: &Data<LemmyContext>,
-  ) -> Result<AnnounceActivity, LemmyError> {
+  ) -> LemmyResult<AnnounceActivity> {
     let inner_kind = object
       .other
       .get("type")
@@ -94,7 +94,12 @@ impl AnnounceActivity {
       actor: community.id().into(),
       to: vec![public()],
       object: IdOrNestedObject::NestedObject(object),
-      cc: vec![community.followers_url.clone().into()],
+      cc: community
+        .followers_url
+        .clone()
+        .map(Into::into)
+        .into_iter()
+        .collect(),
       kind: AnnounceType::Announce,
       id,
     })
@@ -105,7 +110,7 @@ impl AnnounceActivity {
     object: RawAnnouncableActivities,
     community: &ApubCommunity,
     context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     let announce = AnnounceActivity::new(object.clone(), community, context)?;
     let inboxes = ActivitySendTargets::to_local_community_followers(community.id);
     send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
@@ -148,13 +153,13 @@ impl ActivityHandler for AnnounceActivity {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, _context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     verify_is_public(&self.to, &self.cc)?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
 

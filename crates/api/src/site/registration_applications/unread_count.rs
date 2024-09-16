@@ -1,4 +1,5 @@
-use actix_web::web::{Data, Json};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   site::GetUnreadRegistrationApplicationCountResponse,
@@ -6,12 +7,12 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView};
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 pub async fn get_unread_registration_application_count(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<GetUnreadRegistrationApplicationCountResponse>, LemmyError> {
+) -> LemmyResult<Json<GetUnreadRegistrationApplicationCountResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   // Only let admins do this

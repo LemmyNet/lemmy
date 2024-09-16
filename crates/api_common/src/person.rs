@@ -1,13 +1,13 @@
-use crate::sensitive::Sensitive;
 use lemmy_db_schema::{
   newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
-  source::site::Site,
+  sensitive::SensitiveString,
+  source::{login_token::LoginToken, site::Site},
   CommentSortType,
   ListingType,
   PostListingMode,
   PostSortType,
 };
-use lemmy_db_views::structs::{CommentView, PostView};
+use lemmy_db_views::structs::{CommentView, LocalImageView, PostView};
 use lemmy_db_views_actor::structs::{
   CommentReplyView,
   CommunityModeratorView,
@@ -25,8 +25,8 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", ts(export))]
 /// Logging into lemmy.
 pub struct Login {
-  pub username_or_email: Sensitive<String>,
-  pub password: Sensitive<String>,
+  pub username_or_email: SensitiveString,
+  pub password: SensitiveString,
   /// May be required, if totp is enabled for their account.
   pub totp_2fa_token: Option<String>,
 }
@@ -38,11 +38,11 @@ pub struct Login {
 /// Register / Sign up to lemmy.
 pub struct Register {
   pub username: String,
-  pub password: Sensitive<String>,
-  pub password_verify: Sensitive<String>,
-  pub show_nsfw: bool,
+  pub password: SensitiveString,
+  pub password_verify: SensitiveString,
+  pub show_nsfw: Option<bool>,
   /// email is mandatory if email verification is enabled on the server
-  pub email: Option<Sensitive<String>>,
+  pub email: Option<SensitiveString>,
   /// The UUID of the captcha item.
   pub captcha_uuid: Option<String>,
   /// Your captcha answer.
@@ -86,13 +86,11 @@ pub struct SaveUserSettings {
   pub show_nsfw: Option<bool>,
   pub blur_nsfw: Option<bool>,
   pub auto_expand: Option<bool>,
-  /// Show post and comment scores.
-  pub show_scores: Option<bool>,
   /// Your user's theme.
   pub theme: Option<String>,
   /// The default post listing type, usually "local"
   pub default_listing_type: Option<ListingType>,
-  /// Default value for listing mode, usually "list"
+  /// A post-view mode that changes how multiple post listings look.
   pub post_listing_mode: Option<PostListingMode>,
   /// The default post sort, usually "active"
   pub default_post_sort_type: Option<PostSortType>,
@@ -107,7 +105,7 @@ pub struct SaveUserSettings {
   /// Your display name, which can contain strange characters, and does not need to be unique.
   pub display_name: Option<String>,
   /// Your email.
-  pub email: Option<Sensitive<String>>,
+  pub email: Option<SensitiveString>,
   /// Your bio / info, in markdown.
   pub bio: Option<String>,
   /// Your matrix user id. Ex: @my_user:matrix.org
@@ -130,10 +128,16 @@ pub struct SaveUserSettings {
   pub infinite_scroll_enabled: Option<bool>,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
   pub enable_keyboard_navigation: Option<bool>,
-  /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or should be paused
+  /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or
+  /// should be paused
   pub enable_animated_images: Option<bool>,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: Option<bool>,
+  /// Some vote display mode settings
+  pub show_scores: Option<bool>,
+  pub show_upvotes: Option<bool>,
+  pub show_downvotes: Option<bool>,
+  pub show_upvote_percentage: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -141,9 +145,9 @@ pub struct SaveUserSettings {
 #[cfg_attr(feature = "full", ts(export))]
 /// Changes your account password.
 pub struct ChangePassword {
-  pub new_password: Sensitive<String>,
-  pub new_password_verify: Sensitive<String>,
-  pub old_password: Sensitive<String>,
+  pub new_password: SensitiveString,
+  pub new_password_verify: SensitiveString,
+  pub old_password: SensitiveString,
 }
 
 #[skip_serializing_none]
@@ -152,8 +156,9 @@ pub struct ChangePassword {
 #[cfg_attr(feature = "full", ts(export))]
 /// A response for your login.
 pub struct LoginResponse {
-  /// This is None in response to `Register` if email verification is enabled, or the server requires registration applications.
-  pub jwt: Option<Sensitive<String>>,
+  /// This is None in response to `Register` if email verification is enabled, or the server
+  /// requires registration applications.
+  pub jwt: Option<SensitiveString>,
   /// If registration applications are required, this will return true for a signup response.
   pub registration_created: bool,
   /// If email verifications are required, this will return true for a signup response.
@@ -341,7 +346,7 @@ pub struct CommentReplyResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Delete your account.
 pub struct DeleteAccount {
-  pub password: Sensitive<String>,
+  pub password: SensitiveString,
   pub delete_content: bool,
 }
 
@@ -350,7 +355,7 @@ pub struct DeleteAccount {
 #[cfg_attr(feature = "full", ts(export))]
 /// Reset your password via email.
 pub struct PasswordReset {
-  pub email: Sensitive<String>,
+  pub email: SensitiveString,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -358,9 +363,9 @@ pub struct PasswordReset {
 #[cfg_attr(feature = "full", ts(export))]
 /// Change your password after receiving a reset request.
 pub struct PasswordChangeAfterReset {
-  pub token: Sensitive<String>,
-  pub password: Sensitive<String>,
-  pub password_verify: Sensitive<String>,
+  pub token: SensitiveString,
+  pub password: SensitiveString,
+  pub password_verify: SensitiveString,
 }
 
 #[skip_serializing_none]
@@ -406,7 +411,7 @@ pub struct VerifyEmail {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct GenerateTotpSecretResponse {
-  pub totp_secret_url: Sensitive<String>,
+  pub totp_secret_url: SensitiveString,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
@@ -422,4 +427,28 @@ pub struct UpdateTotp {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct UpdateTotpResponse {
   pub enabled: bool,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Get your user's image / media uploads.
+pub struct ListMedia {
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ListMediaResponse {
+  pub images: Vec<LocalImageView>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ListLoginsResponse {
+  pub logins: Vec<LoginToken>,
 }

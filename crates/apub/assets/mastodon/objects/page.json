@@ -11,21 +11,21 @@
       "votersCount": "toot:votersCount"
     }
   ],
-  "id": "https://dice.camp/users/thekernelinyellow/statuses/110830743680706519",
+  "id": "https://masto.qa.urbanwildlife.biz/users/mastodon/statuses/110830743680706519",
   "type": "Note",
   "summary": null,
   "inReplyTo": null,
   "published": "2023-08-04T09:55:39Z",
-  "url": "https://dice.camp/@thekernelinyellow/110830743680706519",
-  "attributedTo": "https://dice.camp/users/thekernelinyellow",
+  "url": "https://masto.qa.urbanwildlife.biz/110830743680706519",
+  "attributedTo": "https://masto.qa.urbanwildlife.biz/users/mastodon",
   "to": ["https://www.w3.org/ns/activitystreams#Public"],
   "cc": [
-    "https://dice.camp/users/thekernelinyellow/followers",
+    "https://masto.qa.urbanwildlife.biz/users/mastodon/followers",
     "https://enterprise.lemmy.ml/c/tenforward",
     "https://enterprise.lemmy.ml/c/tenforward/followers"
   ],
   "sensitive": false,
-  "atomUri": "https://dice.camp/users/thekernelinyellow/statuses/110830743680706519",
+  "atomUri": "https://masto.qa.urbanwildlife.biz/statuses/110830743680706519",
   "inReplyToAtomUri": null,
   "conversation": "tag:dice.camp,2023-08-04:objectId=29969291:objectType=Conversation",
   "content": "<p><span class=\"h-card\" translate=\"no\"><a href=\"https://enterprise.lemmy.ml/c/tenforward\" class=\"u-url mention\">@<span>tenforward</span></a></span> Variable never resetting at refresh</p><p>Hi! I&#39;m using a variable to count elements in my generator but every time I generate a new character, the counter&#39;s value carries on from the previous one. Is there a function to reset it (I set it to 0 at the beginning of the file)</p>",
@@ -41,12 +41,12 @@
     }
   ],
   "replies": {
-    "id": "https://dice.camp/users/thekernelinyellow/statuses/110830743680706519/replies",
+    "id": "https://masto.qa.urbanwildlife.biz/users/mastodon/statuses/110830743680706519/replies",
     "type": "Collection",
     "first": {
       "type": "CollectionPage",
-      "next": "https://dice.camp/users/thekernelinyellow/statuses/110830743680706519/replies?only_other_accounts=true&page=true",
-      "partOf": "https://dice.camp/users/thekernelinyellow/statuses/110830743680706519/replies",
+      "next": "https://masto.qa.urbanwildlife.biz/users/mastodon/statuses/110830743680706519/replies?only_other_accounts=true&page=true",
+      "partOf": "https://masto.qa.urbanwildlife.biz/users/mastodon/statuses/110830743680706519/replies",
       "items": []
     }
   }

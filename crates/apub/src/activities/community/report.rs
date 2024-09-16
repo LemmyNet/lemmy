@@ -29,7 +29,10 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Reportable},
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  LemmyErrorType,
+};
 use url::Url;
 
 impl Report {
@@ -40,7 +43,7 @@ impl Report {
     community: Community,
     reason: String,
     context: Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     let actor: ApubPerson = actor.into();
     let community: ApubCommunity = community.into();
     let kind = FlagType::Flag;
@@ -67,7 +70,9 @@ impl Report {
       PostOrComment::Post(p) => p.creator_id,
       PostOrComment::Comment(c) => c.creator_id,
     };
-    let object_creator = Person::read(&mut context.pool(), object_creator_id).await?;
+    let object_creator = Person::read(&mut context.pool(), object_creator_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindPerson)?;
     let object_creator_site: Option<ApubSite> =
       Site::read_from_instance_id(&mut context.pool(), object_creator.instance_id)
         .await?
@@ -94,14 +99,14 @@ impl ActivityHandler for Report {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     let reason = self.reason()?;

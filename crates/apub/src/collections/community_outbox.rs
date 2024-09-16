@@ -1,6 +1,6 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  objects::{community::ApubCommunity, post::ApubPost},
+  objects::community::ApubCommunity,
   protocol::{
     activities::{
       community::announce::AnnounceActivity,
@@ -18,12 +18,9 @@ use activitypub_federation::{
 };
 use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
-use lemmy_db_schema::{
-  source::{person::Person, post::Post},
-  traits::Crud,
-  utils::FETCH_LIMIT_MAX,
-};
-use lemmy_utils::error::LemmyError;
+use lemmy_db_schema::{source::site::Site, utils::FETCH_LIMIT_MAX, PostSortType};
+use lemmy_db_views::post_view::PostQuery;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -37,22 +34,28 @@ impl Collection for ApubCommunityOutbox {
   type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
-  async fn read_local(
-    owner: &Self::Owner,
-    data: &Data<Self::DataType>,
-  ) -> Result<Self::Kind, LemmyError> {
-    let post_list: Vec<ApubPost> = Post::list_for_community(&mut data.pool(), owner.id)
-      .await?
-      .into_iter()
-      .map(Into::into)
-      .collect();
+  async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
+    let site = Site::read_local(&mut data.pool()).await?;
+
+    let post_views = PostQuery {
+      community_id: Some(owner.id),
+      sort: Some(PostSortType::New),
+      limit: Some(FETCH_LIMIT_MAX),
+      ..Default::default()
+    }
+    .list(&site, &mut data.pool())
+    .await?;
+
     let mut ordered_items = vec![];
-    for post in post_list {
-      let person = Person::read(&mut data.pool(), post.creator_id)
-        .await?
-        .into();
-      let create =
-        CreateOrUpdatePage::new(post, &person, owner, CreateOrUpdateType::Create, data).await?;
+    for post_view in post_views {
+      let create = CreateOrUpdatePage::new(
+        post_view.post.into(),
+        &post_view.creator.into(),
+        owner,
+        CreateOrUpdateType::Create,
+        data,
+      )
+      .await?;
       let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
       let announce = AnnounceActivity::new(announcable.try_into()?, owner, data)?;
       ordered_items.push(announce);
@@ -71,7 +74,7 @@ impl Collection for ApubCommunityOutbox {
     group_outbox: &GroupOutbox,
     expected_domain: &Url,
     _data: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     verify_domains_match(expected_domain, &group_outbox.id)?;
     Ok(())
   }
@@ -81,7 +84,7 @@ impl Collection for ApubCommunityOutbox {
     apub: Self::Kind,
     _owner: &Self::Owner,
     data: &Data<Self::DataType>,
-  ) -> Result<Self, LemmyError> {
+  ) -> LemmyResult<Self> {
     let mut outbox_activities = apub.ordered_items;
     if outbox_activities.len() as i64 > FETCH_LIMIT_MAX {
       outbox_activities = outbox_activities
@@ -93,7 +96,8 @@ impl Collection for ApubCommunityOutbox {
     // We intentionally ignore errors here. This is because the outbox might contain posts from old
     // Lemmy versions, or from other software which we cant parse. In that case, we simply skip the
     // item and only parse the ones that work.
-    // process items in parallel, to avoid long delay from fetch_site_metadata() and other processing
+    // process items in parallel, to avoid long delay from fetch_site_metadata() and other
+    // processing
     join_all(outbox_activities.into_iter().map(|activity| {
       async {
         // Receiving announce requires at least one local community follower for anti spam purposes.

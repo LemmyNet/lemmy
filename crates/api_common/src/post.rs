@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use url::Url;
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -20,17 +19,17 @@ use url::Url;
 pub struct CreatePost {
   pub name: String,
   pub community_id: CommunityId,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub url: Option<Url>,
+  pub url: Option<String>,
   /// An optional body for the post in markdown.
   pub body: Option<String>,
+  /// An optional alt_text, usable for image posts.
+  pub alt_text: Option<String>,
   /// A honeypot to catch bots. Should be None.
   pub honeypot: Option<String>,
   pub nsfw: Option<bool>,
   pub language_id: Option<LanguageId>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   /// Instead of fetching a thumbnail, use a custom one.
-  pub custom_thumbnail: Option<Url>,
+  pub custom_thumbnail: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -79,6 +78,11 @@ pub struct GetPosts {
   pub saved_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
+  pub show_hidden: Option<bool>,
+  /// If true, then show the read posts (even if your user setting is to hide them)
+  pub show_read: Option<bool>,
+  /// If true, then show the nsfw posts (even if your user setting is to hide them)
+  pub show_nsfw: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
 }
 
@@ -111,15 +115,15 @@ pub struct CreatePostLike {
 pub struct EditPost {
   pub post_id: PostId,
   pub name: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub url: Option<Url>,
+  pub url: Option<String>,
   /// An optional body for the post in markdown.
   pub body: Option<String>,
+  /// An optional alt_text, usable for image posts.
+  pub alt_text: Option<String>,
   pub nsfw: Option<bool>,
   pub language_id: Option<LanguageId>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   /// Instead of fetching a thumbnail, use a custom one.
-  pub custom_thumbnail: Option<Url>,
+  pub custom_thumbnail: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -148,10 +152,18 @@ pub struct RemovePost {
 #[cfg_attr(feature = "full", ts(export))]
 /// Mark a post as read.
 pub struct MarkPostAsRead {
-  /// TODO: deprecated, send `post_ids` instead
-  pub post_id: Option<PostId>,
-  pub post_ids: Option<Vec<PostId>>,
+  pub post_ids: Vec<PostId>,
   pub read: bool,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Hide a post from list views
+pub struct HidePost {
+  pub post_ids: Vec<PostId>,
+  pub hide: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -220,6 +232,7 @@ pub struct ListPostReports {
   pub unresolved_only: Option<bool>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
+  pub post_id: Option<PostId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -235,8 +248,7 @@ pub struct ListPostReportsResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Get metadata for a given site.
 pub struct GetSiteMetadata {
-  #[cfg_attr(feature = "full", ts(type = "string"))]
-  pub url: Url,
+  pub url: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -256,8 +268,6 @@ pub struct LinkMetadata {
   #[serde(flatten)]
   pub opengraph_data: OpenGraphData,
   pub content_type: Option<String>,
-  #[serde(skip)]
-  pub thumbnail: Option<DbUrl>,
 }
 
 #[skip_serializing_none]

@@ -16,7 +16,7 @@ doctest = false
 workspace = true
 
 [dependencies]
-lemmy_utils = { workspace = true }
+lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_views = { workspace = true }
 lemmy_db_views_actor = { workspace = true }
 lemmy_db_schema = { workspace = true }
@@ -30,8 +30,7 @@ reqwest = { workspace = true, features = ["stream"] }
 reqwest-middleware = { workspace = true }
 serde = { workspace = true }
 url = { workspace = true }
-once_cell = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
-urlencoding = { workspace = true }
-rss = "2.0.7"
+http.workspace = true
+rss = "2.0.9"

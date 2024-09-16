@@ -20,7 +20,7 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::ops::Deref;
@@ -57,14 +57,16 @@ impl Note {
   pub(crate) async fn get_parents(
     &self,
     context: &Data<LemmyContext>,
-  ) -> Result<(ApubPost, Option<ApubComment>), LemmyError> {
+  ) -> LemmyResult<(ApubPost, Option<ApubComment>)> {
     // Fetch parent comment chain in a box, otherwise it can cause a stack overflow.
     let parent = Box::pin(self.in_reply_to.dereference(context).await?);
     match parent.deref() {
       PostOrComment::Post(p) => Ok((p.clone(), None)),
       PostOrComment::Comment(c) => {
         let post_id = c.post_id;
-        let post = Post::read(&mut context.pool(), post_id).await?;
+        let post = Post::read(&mut context.pool(), post_id)
+          .await?
+          .ok_or(LemmyErrorType::CouldntFindPost)?;
         Ok((post.into(), Some(c.clone())))
       }
     }
@@ -73,9 +75,11 @@ impl Note {
 
 #[async_trait::async_trait]
 impl InCommunity for Note {
-  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let (post, _) = self.get_parents(context).await?;
-    let community = Community::read(&mut context.pool(), post.community_id).await?;
+    let community = Community::read(&mut context.pool(), post.community_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

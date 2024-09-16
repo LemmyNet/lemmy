@@ -19,7 +19,7 @@ use lemmy_db_schema::{
   traits::Reportable,
 };
 use lemmy_db_views::structs::{CommentReportView, CommentView, LocalUserView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 /// Creates a comment report and notifies the moderators of the community
 #[tracing::instrument(skip(context))]
@@ -27,7 +27,7 @@ pub async fn create_comment_report(
   data: Json<CreateCommentReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommentReportResponse>, LemmyError> {
+) -> LemmyResult<Json<CommentReportResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let reason = data.reason.trim().to_string();
@@ -35,7 +35,13 @@ pub async fn create_comment_report(
 
   let person_id = local_user_view.person.id;
   let comment_id = data.comment_id;
-  let comment_view = CommentView::read(&mut context.pool(), comment_id, None).await?;
+  let comment_view = CommentView::read(
+    &mut context.pool(),
+    comment_id,
+    Some(&local_user_view.local_user),
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -58,8 +64,9 @@ pub async fn create_comment_report(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
 
-  let comment_report_view =
-    CommentReportView::read(&mut context.pool(), report.id, person_id).await?;
+  let comment_report_view = CommentReportView::read(&mut context.pool(), report.id, person_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommentReport)?;
 
   // Email the admins
   if local_site.reports_email_admins {

@@ -221,9 +221,9 @@ fn parse_ip(addr: &str) -> Option<IpAddr> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   #[test]
   fn test_parse_ip() {

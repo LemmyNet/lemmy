@@ -13,14 +13,14 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn get_community(
   data: Query<GetCommunity>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> Result<Json<GetCommunityResponse>, LemmyError> {
+) -> LemmyResult<Json<GetCommunityResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   if data.name.is_none() && data.id.is_none() {
@@ -29,7 +29,7 @@ pub async fn get_community(
 
   check_private_instance(&local_user_view, &local_site)?;
 
-  let person_id = local_user_view.as_ref().map(|u| u.person.id);
+  let local_user = local_user_view.as_ref().map(|u| &u.local_user);
 
   let community_id = match data.id {
     Some(id) => id,
@@ -53,11 +53,11 @@ pub async fn get_community(
   let community_view = CommunityView::read(
     &mut context.pool(),
     community_id,
-    person_id,
+    local_user,
     is_mod_or_admin,
   )
-  .await
-  .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindCommunity)?;
 
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id)
     .await

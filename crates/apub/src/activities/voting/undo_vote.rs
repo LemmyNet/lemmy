@@ -19,7 +19,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl UndoVote {
@@ -28,7 +28,7 @@ impl UndoVote {
     actor: &ApubPerson,
     community: &ApubCommunity,
     context: &Data<LemmyContext>,
-  ) -> Result<Self, LemmyError> {
+  ) -> LemmyResult<Self> {
     Ok(UndoVote {
       actor: actor.id().into(),
       object: vote,
@@ -56,7 +56,7 @@ impl ActivityHandler for UndoVote {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
@@ -65,7 +65,7 @@ impl ActivityHandler for UndoVote {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
     let object = self.object.object.dereference(context).await?;

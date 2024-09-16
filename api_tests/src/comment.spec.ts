@@ -37,15 +37,15 @@ import {
   followCommunity,
   blockCommunity,
   delay,
+  saveUserSettings,
 } from "./shared";
-import { CommentView, CommunityView } from "lemmy-js-client";
+import { CommentView, CommunityView, SaveUserSettings } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 let postOnAlphaRes: PostResponse;
 
 beforeAll(async () => {
   await setupLogins();
-  await unfollows();
   await Promise.all([followBeta(alpha), followBeta(gamma)]);
   betaCommunity = (await resolveBetaCommunity(alpha)).community;
   if (betaCommunity) {
@@ -53,9 +53,7 @@ beforeAll(async () => {
   }
 });
 
-afterAll(() => {
-  unfollows();
-});
+afterAll(unfollows);
 
 function assertCommentFederation(
   commentOne?: CommentView,
@@ -128,8 +126,9 @@ test("Update a comment", async () => {
 });
 
 test("Delete a comment", async () => {
+  let post = await createPost(alpha, betaCommunity!.community.id);
   // creating a comment on alpha (remote from home of community)
-  let commentRes = await createComment(alpha, postOnAlphaRes.post_view.post.id);
+  let commentRes = await createComment(alpha, post.post_view.post.id);
 
   // Find the comment on beta (home of community)
   let betaComment = (
@@ -157,6 +156,7 @@ test("Delete a comment", async () => {
     commentRes.comment_view.comment.id,
   );
   expect(deleteCommentRes.comment_view.comment.deleted).toBe(true);
+  expect(deleteCommentRes.comment_view.comment.content).toBe("");
 
   // Make sure that comment is undefined on beta
   await waitUntil(
@@ -255,6 +255,16 @@ test("Remove a comment from admin and community on different instance", async ()
     betaComment.comment.id,
   );
   expect(removeCommentRes.comment_view.comment.removed).toBe(true);
+  expect(removeCommentRes.comment_view.comment.content).toBe("");
+
+  // Comment text is also hidden from list
+  let listComments = await getComments(
+    beta,
+    removeCommentRes.comment_view.post.id,
+  );
+  expect(listComments.comments.length).toBe(1);
+  expect(listComments.comments[0].comment.removed).toBe(true);
+  expect(listComments.comments[0].comment.content).toBe("");
 
   // Make sure its not removed on alpha
   let refetchedPostComments = await getComments(
@@ -432,6 +442,59 @@ test("Reply to a comment from another instance, get notification", async () => {
   // this is a new notification, getReplies fetch was for read/unread both, confirm it is unread.
   expect(alphaReply.comment_reply.read).toBe(false);
   assertCommentFederation(alphaReply, replyRes.comment_view);
+});
+
+test("Bot reply notifications are filtered when bots are hidden", async () => {
+  const newAlphaBot = await registerUser(alpha, alphaUrl);
+  let form: SaveUserSettings = {
+    bot_account: true,
+  };
+  await saveUserSettings(newAlphaBot, form);
+
+  const alphaCommunity = (
+    await resolveCommunity(alpha, "!main@lemmy-alpha:8541")
+  ).community;
+
+  if (!alphaCommunity) {
+    throw "Missing alpha community";
+  }
+
+  await alpha.markAllAsRead();
+  form = {
+    show_bot_accounts: false,
+  };
+  await saveUserSettings(alpha, form);
+  const postOnAlphaRes = await createPost(alpha, alphaCommunity.community.id);
+
+  // Bot reply to alpha's post
+  let commentRes = await createComment(
+    newAlphaBot,
+    postOnAlphaRes.post_view.post.id,
+  );
+  expect(commentRes).toBeDefined();
+
+  let alphaUnreadCountRes = await getUnreadCount(alpha);
+  expect(alphaUnreadCountRes.replies).toBe(0);
+
+  let alphaUnreadRepliesRes = await getReplies(alpha, true);
+  expect(alphaUnreadRepliesRes.replies.length).toBe(0);
+
+  // This both restores the original state that may be expected by other tests
+  // implicitly and is used by the next steps to ensure replies are still
+  // returned when a user later decides to show bot accounts again.
+  form = {
+    show_bot_accounts: true,
+  };
+  await saveUserSettings(alpha, form);
+
+  alphaUnreadCountRes = await getUnreadCount(alpha);
+  expect(alphaUnreadCountRes.replies).toBe(1);
+
+  alphaUnreadRepliesRes = await getReplies(alpha, true);
+  expect(alphaUnreadRepliesRes.replies.length).toBe(1);
+  expect(alphaUnreadRepliesRes.replies[0].comment.id).toBe(
+    commentRes.comment_view.comment.id,
+  );
 });
 
 test("Mention beta from alpha", async () => {

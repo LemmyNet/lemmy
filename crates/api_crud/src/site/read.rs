@@ -5,35 +5,32 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::{
   actor_language::{LocalUserLanguage, SiteLanguage},
+  community_block::CommunityBlock,
+  instance_block::InstanceBlock,
   language::Language,
+  local_site_url_blocklist::LocalSiteUrlBlocklist,
+  person_block::PersonBlock,
   tagline::Tagline,
 };
 use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
-use lemmy_db_views_actor::structs::{
-  CommunityBlockView,
-  CommunityFollowerView,
-  CommunityModeratorView,
-  InstanceBlockView,
-  PersonBlockView,
-  PersonView,
-};
+use lemmy_db_views_actor::structs::{CommunityFollowerView, CommunityModeratorView, PersonView};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  version,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  CACHE_DURATION_API,
+  VERSION,
 };
 use moka::future::Cache;
-use once_cell::sync::Lazy;
-use std::time::Duration;
+use std::sync::LazyLock;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_site(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
-) -> Result<Json<GetSiteResponse>, LemmyError> {
-  static CACHE: Lazy<Cache<(), GetSiteResponse>> = Lazy::new(|| {
+) -> LemmyResult<Json<GetSiteResponse>> {
+  static CACHE: LazyLock<Cache<(), GetSiteResponse>> = LazyLock::new(|| {
     Cache::builder()
       .max_capacity(1)
-      .time_to_live(Duration::from_secs(1))
+      .time_to_live(CACHE_DURATION_API)
       .build()
   });
 
@@ -47,15 +44,17 @@ pub async fn get_site(
       let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
       let custom_emojis =
         CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
+      let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
       Ok(GetSiteResponse {
         site_view,
         admins,
-        version: version::VERSION.to_string(),
+        version: VERSION.to_string(),
         my_user: None,
         all_languages,
         discussion_languages,
         taglines,
         custom_emojis,
+        blocked_urls,
       })
     })
     .await
@@ -76,10 +75,10 @@ pub async fn get_site(
       discussion_languages,
     ) = lemmy_db_schema::try_join_with_pool!(pool => (
       |pool| CommunityFollowerView::for_person(pool, person_id),
-      |pool| CommunityBlockView::for_person(pool, person_id),
-      |pool| InstanceBlockView::for_person(pool, person_id),
-      |pool| PersonBlockView::for_person(pool, person_id),
-      |pool| CommunityModeratorView::for_person(pool, person_id, true),
+      |pool| CommunityBlock::for_person(pool, person_id),
+      |pool| InstanceBlock::for_person(pool, person_id),
+      |pool| PersonBlock::for_person(pool, person_id),
+      |pool| CommunityModeratorView::for_person(pool, person_id, Some(&local_user_view.local_user)),
       |pool| LocalUserLanguage::read(pool, local_user_id)
     ))
     .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;

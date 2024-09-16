@@ -39,7 +39,10 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  LemmyErrorType,
+};
 use url::Url;
 
 impl BlockUser {
@@ -51,7 +54,7 @@ impl BlockUser {
     reason: Option<String>,
     expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
-  ) -> Result<BlockUser, LemmyError> {
+  ) -> LemmyResult<BlockUser> {
     let audience = if let SiteOrCommunity::Community(c) = target {
       Some(c.id().into())
     } else {
@@ -71,7 +74,7 @@ impl BlockUser {
         &context.settings().get_protocol_and_hostname(),
       )?,
       audience,
-      expires,
+      end_time: expires,
     })
   }
 
@@ -84,7 +87,7 @@ impl BlockUser {
     reason: Option<String>,
     expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     let block = BlockUser::new(
       target,
       user,
@@ -124,11 +127,15 @@ impl ActivityHandler for BlockUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+  async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     verify_is_public(&self.to, &self.cc)?;
     match self.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
-        let domain = self.object.inner().domain().expect("url needs domain");
+        let domain = self
+          .object
+          .inner()
+          .domain()
+          .ok_or(LemmyErrorType::UrlWithoutDomain)?;
         if context.settings().hostname == domain {
           return Err(
             anyhow!("Site bans from remote instance can't affect user's home instance").into(),
@@ -147,9 +154,9 @@ impl ActivityHandler for BlockUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
-    let expires = self.expires.map(Into::into);
+    let expires = self.end_time.map(Into::into);
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;

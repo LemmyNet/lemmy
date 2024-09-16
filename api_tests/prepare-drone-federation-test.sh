@@ -3,9 +3,9 @@
 #   it is expected that this script is called by run-federation-test.sh script.
 set -e
 
-if [ -n "$LEMMY_LOG_LEVEL" ];
+if [ -z "$LEMMY_LOG_LEVEL" ];
 then
-  LEMMY_LOG_LEVEL=warn
+  LEMMY_LOG_LEVEL=info
 fi
 
 export RUST_BACKTRACE=1
@@ -14,8 +14,8 @@ export RUST_LOG="warn,lemmy_server=$LEMMY_LOG_LEVEL,lemmy_federate=$LEMMY_LOG_LE
 export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queue has delays in the scale of 30s-5min
 
 # pictrs setup
-if [ ! -f "pict-rs" ]; then
-  curl "https://git.asonix.dog/asonix/pict-rs/releases/download/v0.5.0-beta.2/pict-rs-linux-amd64" -o api_tests/pict-rs
+if [ ! -f "api_tests/pict-rs" ]; then
+  curl "https://git.asonix.dog/asonix/pict-rs/releases/download/v0.5.16/pict-rs-linux-amd64" -o api_tests/pict-rs
   chmod +x api_tests/pict-rs
 fi
 ./api_tests/pict-rs \

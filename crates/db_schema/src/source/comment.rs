@@ -41,7 +41,8 @@ pub struct Comment {
   #[cfg(feature = "full")]
   #[cfg_attr(feature = "full", serde(with = "LtreeDef"))]
   #[cfg_attr(feature = "full", ts(type = "string"))]
-  /// The path / tree location of a comment, separated by dots, ending with the comment's id. Ex: 0.24.27
+  /// The path / tree location of a comment, separated by dots, ending with the comment's id. Ex:
+  /// 0.24.27
   pub path: Ltree,
   #[cfg(not(feature = "full"))]
   pub path: String,

@@ -53,7 +53,7 @@ fn queries<'a>() -> Queries<
     all_joins(private_message::table.find(private_message_id).into_boxed())
       .order_by(private_message::published.desc())
       .select(selection)
-      .first::<PrivateMessageView>(&mut conn)
+      .first(&mut conn)
       .await
   };
 
@@ -113,7 +113,7 @@ impl PrivateMessageView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     private_message_id: PrivateMessageId,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     queries().read(pool, private_message_id).await
   }
 
@@ -173,9 +173,9 @@ impl PrivateMessageQuery {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{private_message_view::PrivateMessageQuery, structs::PrivateMessageView};
   use lemmy_db_schema::{
@@ -209,27 +209,15 @@ mod tests {
       .await
       .unwrap();
 
-    let timmy_form = PersonInsertForm::builder()
-      .name("timmy_rav".into())
-      .public_key("pubkey".to_string())
-      .instance_id(instance.id)
-      .build();
+    let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_rav");
 
     let timmy = Person::create(pool, &timmy_form).await.unwrap();
 
-    let sara_form = PersonInsertForm::builder()
-      .name("sara_rav".into())
-      .public_key("pubkey".to_string())
-      .instance_id(instance.id)
-      .build();
+    let sara_form = PersonInsertForm::test_form(instance.id, "sara_rav");
 
     let sara = Person::create(pool, &sara_form).await.unwrap();
 
-    let jess_form = PersonInsertForm::builder()
-      .name("jess_rav".into())
-      .public_key("pubkey".to_string())
-      .instance_id(instance.id)
-      .build();
+    let jess_form = PersonInsertForm::test_form(instance.id, "jess_rav");
 
     let jess = Person::create(pool, &jess_form).await.unwrap();
 

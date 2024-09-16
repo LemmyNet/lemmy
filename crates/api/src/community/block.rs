@@ -14,14 +14,14 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn block_community(
   data: Json<BlockCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<BlockCommunityResponse>, LemmyError> {
+) -> LemmyResult<Json<BlockCommunityResponse>> {
   let community_id = data.community_id;
   let person_id = local_user_view.person.id;
   let community_block_form = CommunityBlockForm {
@@ -50,8 +50,14 @@ pub async fn block_community(
       .with_lemmy_type(LemmyErrorType::CommunityBlockAlreadyExists)?;
   }
 
-  let community_view =
-    CommunityView::read(&mut context.pool(), community_id, Some(person_id), false).await?;
+  let community_view = CommunityView::read(
+    &mut context.pool(),
+    community_id,
+    Some(&local_user_view.local_user),
+    false,
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindCommunity)?;
 
   ActivityChannel::submit_activity(
     SendActivityData::FollowCommunity(

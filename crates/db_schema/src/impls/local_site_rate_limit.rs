@@ -1,4 +1,5 @@
 use crate::{
+  diesel::OptionalExtension,
   schema::local_site_rate_limit,
   source::local_site_rate_limit::{
     LocalSiteRateLimit,
@@ -11,9 +12,9 @@ use diesel::{dsl::insert_into, result::Error};
 use diesel_async::RunQueryDsl;
 
 impl LocalSiteRateLimit {
-  pub async fn read(pool: &mut DbPool<'_>) -> Result<Self, Error> {
+  pub async fn read(pool: &mut DbPool<'_>) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    local_site_rate_limit::table.first::<Self>(conn).await
+    local_site_rate_limit::table.first(conn).await.optional()
   }
 
   pub async fn create(

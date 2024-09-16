@@ -52,6 +52,11 @@ impl ModAddCommunityView {
       query = query.filter(person_alias_1.field(person::id).eq(other_person_id));
     };
 
+    // If a post or comment ID is given, then don't find any results
+    if params.post_id.is_some() || params.comment_id.is_some() {
+      return Ok(vec![]);
+    }
+
     let (limit, offset) = limit_and_offset(params.page, params.limit)?;
 
     query

@@ -9,26 +9,46 @@ use lemmy_api_common::{
   SuccessResponse,
 };
 use lemmy_db_schema::{
+  newtypes::PersonId,
   source::{
     community::Community,
+    local_user::LocalUser,
     moderator::{AdminPurgeCommunity, AdminPurgeCommunityForm},
   },
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::LemmyError;
+use lemmy_db_views_actor::structs::CommunityModeratorView;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 #[tracing::instrument(skip(context))]
 pub async fn purge_community(
   data: Json<PurgeCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<SuccessResponse>, LemmyError> {
+) -> LemmyResult<Json<SuccessResponse>> {
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 
   // Read the community to get its images
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
+  let community = Community::read(&mut context.pool(), data.community_id)
+    .await?
+    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+
+  // Also check that you're a higher admin than all the mods
+  let community_mod_person_ids =
+    CommunityModeratorView::for_community(&mut context.pool(), community.id)
+      .await?
+      .iter()
+      .map(|cmv| cmv.moderator.id)
+      .collect::<Vec<PersonId>>();
+
+  LocalUser::is_higher_admin_check(
+    &mut context.pool(),
+    local_user_view.person.id,
+    community_mod_person_ids,
+  )
+  .await?;
 
   if let Some(banner) = &community.banner {
     purge_image_from_pictrs(banner, &context).await.ok();
