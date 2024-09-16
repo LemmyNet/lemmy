@@ -52,7 +52,7 @@ use std::collections::HashSet;
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 /// Response from OAuth token endpoint
-pub struct TokenResponse {
+struct TokenResponse {
   pub access_token: String,
   pub token_type: String,
   pub expires_in: Option<i64>,
@@ -82,7 +82,9 @@ pub async fn register(
   }
 
   // make sure the registration answer is provided when the registration application is required
-  validate_registration_answer(require_registration_application, &data.answer)?;
+  if local_site.site_setup {
+    validate_registration_answer(require_registration_application, &data.answer)?;
+  }
 
   // Make sure passwords match
   if data.password != data.password_verify {
@@ -111,6 +113,10 @@ pub async fn register(
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.username, &slur_regex)?;
   check_slurs_opt(&data.answer, &slur_regex)?;
+
+  if Person::is_username_taken(&mut context.pool(), &data.username).await? {
+    return Err(LemmyErrorType::UsernameAlreadyExists)?;
+  }
 
   if let Some(email) = &data.email {
     if LocalUser::is_email_taken(&mut context.pool(), email).await? {
@@ -206,11 +212,8 @@ pub async fn authenticate_with_oauth(
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
-
-  let local_site: LocalSite = site_view.local_site.clone();
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_site = site_view.local_site.clone();
 
   // validate inputs
   if data.oauth_provider_id == OAuthProviderId(0) || data.code.is_empty() || data.code.len() > 300 {
@@ -238,70 +241,18 @@ pub async fn authenticate_with_oauth(
     return Err(LemmyErrorType::OauthAuthorizationInvalid)?;
   }
 
-  // Request an Access Token from the OAUTH provider
-  let response = context
-    .client()
-    .post(oauth_provider.token_endpoint.as_str())
-    .header("Accept", "application/json")
-    .form(&[
-      ("grant_type", "authorization_code"),
-      ("code", &data.code),
-      ("redirect_uri", redirect_uri.as_str()),
-      ("client_id", &oauth_provider.client_id),
-      ("client_secret", &oauth_provider.client_secret),
-    ])
-    .send()
-    .await;
+  let token_response =
+    oauth_request_access_token(&context, &oauth_provider, &data.code, redirect_uri.as_str())
+      .await?;
 
-  if response.is_err() {
-    return Err(LemmyErrorType::OauthLoginFailed)?;
-  }
+  let user_info = oidc_get_user_info(
+    &context,
+    &oauth_provider,
+    token_response.access_token.as_str(),
+  )
+  .await?;
 
-  let response = response.expect("invalid oauth token endpoint response");
-  if !response.status().is_success() {
-    return Err(LemmyErrorType::OauthLoginFailed)?;
-  }
-
-  // Extract the access token
-  let token_response = response
-    .json::<TokenResponse>()
-    .await
-    .ok()
-    .ok_or(LemmyErrorType::OauthLoginFailed)?;
-
-  // Request the user info from the OAUTH provider
-  let response = context
-    .client()
-    .get(oauth_provider.userinfo_endpoint.as_str())
-    .header("Accept", "application/json")
-    .bearer_auth(token_response.access_token)
-    .send()
-    .await;
-
-  if response.is_err() {
-    return Err(LemmyErrorType::OauthLoginFailed)?;
-  }
-
-  let response = response.expect("invalid oauth userinfo response");
-  if !response.status().is_success() {
-    return Err(LemmyErrorType::OauthLoginFailed)?;
-  }
-
-  // Extract the OAUTH user_id claim from the returned user_info
-  let user_info = response
-    .json::<serde_json::Value>()
-    .await
-    .ok()
-    .ok_or(LemmyErrorType::OauthLoginFailed)?;
-
-  let oauth_user_id: String;
-  if let Some(oauth_user_id_value) = user_info.get(oauth_provider.id_claim) {
-    oauth_user_id = serde_json::from_value::<String>(oauth_user_id_value.clone())
-      .ok()
-      .ok_or(LemmyErrorType::OauthLoginFailed)?;
-  } else {
-    return Err(LemmyErrorType::OauthLoginFailed)?;
-  }
+  let oauth_user_id = read_user_info(&user_info, oauth_provider.id_claim.as_str())?;
 
   let mut login_response = LoginResponse {
     jwt: None,
@@ -335,14 +286,7 @@ pub async fn authenticate_with_oauth(
     }
 
     // Extract the OAUTH email claim from the returned user_info
-    let email: String;
-    if let Some(email_value) = user_info.get("email") {
-      email = serde_json::from_value::<String>(email_value.clone())
-        .ok()
-        .ok_or(LemmyErrorType::OauthLoginFailed)?;
-    } else {
-      return Err(LemmyErrorType::OauthLoginFailed)?;
-    }
+    let email = read_user_info(&user_info, "email")?;
 
     let require_registration_application =
       local_site.registration_mode == RegistrationMode::RequireApplication;
@@ -362,13 +306,8 @@ pub async fn authenticate_with_oauth(
         // users who signed up before the switch could have accounts with unverified emails falsely
         // marked as verified.
 
-        // make sure the user is valid before linking
         check_user_valid(&user_view.person)?;
-
-        // make sure the email is verified before linking
         check_email_verified(&user_view, &site_view)?;
-
-        // make sure the registration application is approved or not required before linking
         check_registration_application(&user_view, &site_view.local_site, &mut context.pool())
           .await?;
 
@@ -378,12 +317,10 @@ pub async fn authenticate_with_oauth(
 
         OAuthAccount::create(&mut context.pool(), &oauth_account_form)
           .await
-          .ok()
-          .ok_or(LemmyErrorType::OauthLoginFailed)?;
+          .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
 
         local_user = user_view.local_user.clone();
       } else {
-        // email already registered
         return Err(LemmyErrorType::EmailAlreadyExists)?;
       }
     } else {
@@ -423,18 +360,17 @@ pub async fn authenticate_with_oauth(
       let language_tags = get_language_tags(&req);
 
       // Create the local user
-      let local_user_form = LocalUserInsertForm::builder()
-        .person_id(person.id)
-        .email(Some(str::to_lowercase(&email)))
-        .password_encrypted(None)
-        .show_nsfw(Some(show_nsfw))
-        .accepted_application(Some(!require_registration_application))
-        .email_verified(Some(oauth_provider.auto_verify_email))
-        .post_listing_mode(Some(local_site.default_post_listing_mode))
-        .interface_language(language_tags.first().cloned())
+      let local_user_form = LocalUserInsertForm {
+        email: Some(str::to_lowercase(&email)),
+        show_nsfw: Some(show_nsfw),
+        accepted_application: Some(!require_registration_application),
+        email_verified: Some(oauth_provider.auto_verify_email),
+        post_listing_mode: Some(local_site.default_post_listing_mode),
+        interface_language: language_tags.first().cloned(),
         // If its the initial site setup, they are an admin
-        .admin(Some(!local_site.site_setup))
-        .build();
+        admin: Some(!local_site.site_setup),
+        ..LocalUserInsertForm::new(person.id, None)
+      };
 
       local_user = create_local_user(&context, language_tags, &local_user_form).await?;
 
@@ -444,8 +380,7 @@ pub async fn authenticate_with_oauth(
 
       OAuthAccount::create(&mut context.pool(), &oauth_account_form)
         .await
-        .ok()
-        .ok_or(LemmyErrorType::IncorrectLogin)?;
+        .map_err(|_| LemmyErrorType::IncorrectLogin)?;
 
       // prevent sign in until application is accepted
       if local_site.site_setup
@@ -584,4 +519,76 @@ fn validate_registration_answer(
   }
 
   Ok(())
+}
+
+async fn oauth_request_access_token(
+  context: &Data<LemmyContext>,
+  oauth_provider: &OAuthProvider,
+  code: &str,
+  redirect_uri: &str,
+) -> LemmyResult<TokenResponse> {
+  // Request an Access Token from the OAUTH provider
+  let response = context
+    .client()
+    .post(oauth_provider.token_endpoint.as_str())
+    .header("Accept", "application/json")
+    .form(&[
+      ("grant_type", "authorization_code"),
+      ("code", code),
+      ("redirect_uri", redirect_uri),
+      ("client_id", &oauth_provider.client_id),
+      ("client_secret", &oauth_provider.client_secret),
+    ])
+    .send()
+    .await;
+
+  let response = response.map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+  if !response.status().is_success() {
+    Err(LemmyErrorType::OauthLoginFailed)?;
+  }
+
+  // Extract the access token
+  let token_response = response
+    .json::<TokenResponse>()
+    .await
+    .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+
+  Ok(token_response)
+}
+
+async fn oidc_get_user_info(
+  context: &Data<LemmyContext>,
+  oauth_provider: &OAuthProvider,
+  access_token: &str,
+) -> LemmyResult<serde_json::Value> {
+  // Request the user info from the OAUTH provider
+  let response = context
+    .client()
+    .get(oauth_provider.userinfo_endpoint.as_str())
+    .header("Accept", "application/json")
+    .bearer_auth(access_token)
+    .send()
+    .await;
+
+  let response = response.map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+  if !response.status().is_success() {
+    Err(LemmyErrorType::OauthLoginFailed)?;
+  }
+
+  // Extract the OAUTH user_id claim from the returned user_info
+  let user_info = response
+    .json::<serde_json::Value>()
+    .await
+    .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+
+  Ok(user_info)
+}
+
+fn read_user_info(user_info: &serde_json::Value, key: &str) -> LemmyResult<String> {
+  if let Some(value) = user_info.get(key) {
+    let result = serde_json::from_value::<String>(value.clone())
+      .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+    return Ok(result);
+  }
+  Err(LemmyErrorType::OauthLoginFailed)?
 }

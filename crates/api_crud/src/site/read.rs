@@ -68,7 +68,7 @@ pub async fn get_site(
     .map_err(|e| anyhow::anyhow!("Failed to construct site response: {e}"))?;
 
   // Build the local user with parallel queries and add it to site response
-  site_response.my_user = if let Some(local_user_view) = local_user_view {
+  site_response.my_user = if let Some(ref local_user_view) = local_user_view {
     let person_id = local_user_view.person.id;
     let local_user_id = local_user_view.local_user.id;
     let pool = &mut context.pool();
@@ -90,11 +90,8 @@ pub async fn get_site(
     ))
     .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
-    // filter oauth_providers for normal users
-    filter_oauth_providers(&Some(local_user_view.clone()), &mut site_response);
-
     Some(MyUserInfo {
-      local_user_view,
+      local_user_view: local_user_view.clone(),
       follows,
       moderates,
       community_blocks,
@@ -103,22 +100,16 @@ pub async fn get_site(
       discussion_languages,
     })
   } else {
-    // filter oauth_providers for public access
-    filter_oauth_providers(&local_user_view, &mut site_response);
     None
   };
 
-  Ok(Json(site_response))
-}
-
-fn filter_oauth_providers(
-  local_user_view: &Option<LocalUserView>,
-  site_response: &mut GetSiteResponse,
-) {
+  // filter oauth_providers for public access
   if !local_user_view
-    .clone()
-    .is_some_and(|local_user_view| local_user_view.local_user.admin)
+    .map(|l| l.local_user.admin)
+    .unwrap_or_default()
   {
     site_response.admin_oauth_providers = None;
   }
+
+  Ok(Json(site_response))
 }

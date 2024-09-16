@@ -329,7 +329,7 @@ pub fn diesel_required_url_update(opt: Option<&str>) -> LemmyResult<Option<DbUrl
     // An empty string is no change
     Some("") => Ok(None),
     Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(clean_url_params(&u).into()))
+      .map(|u| Some(clean_url(&u).into()))
       .with_lemmy_type(LemmyErrorType::InvalidUrl),
     None => Ok(None),
   }

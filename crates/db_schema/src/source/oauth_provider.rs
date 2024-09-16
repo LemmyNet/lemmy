@@ -67,6 +67,8 @@ pub struct OAuthProvider {
 #[serde(transparent)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+// A subset of OAuthProvider used for public requests, for example to display the OAUTH buttons on
+// the login page
 pub struct PublicOAuthProvider(pub OAuthProvider);
 
 impl Serialize for PublicOAuthProvider {
@@ -125,5 +127,5 @@ pub struct OAuthProviderUpdateForm {
   pub auto_verify_email: Option<bool>,
   pub account_linking_enabled: Option<bool>,
   pub enabled: Option<bool>,
-  pub updated: DateTime<Utc>,
+  pub updated: Option<Option<DateTime<Utc>>>,
 }

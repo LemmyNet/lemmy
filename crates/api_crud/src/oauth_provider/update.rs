@@ -32,7 +32,7 @@ pub async fn update_oauth_provider(
     auto_verify_email: data.auto_verify_email,
     account_linking_enabled: data.account_linking_enabled,
     enabled: data.enabled,
-    updated: naive_now(),
+    updated: Some(Some(naive_now())),
   };
 
   let update_result =
