@@ -1,1 +1,3 @@
-alter table post drop column scheduled_time;
+ALTER TABLE post
+    DROP COLUMN scheduled_time;
+

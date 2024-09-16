@@ -1,1 +1,3 @@
-alter table post add column scheduled_time timestamptz;
+ALTER TABLE post
+    ADD COLUMN scheduled_time timestamptz;
+

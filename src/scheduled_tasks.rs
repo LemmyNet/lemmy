@@ -486,11 +486,17 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
       diesel::update(post::table)
         .filter(post::id.eq_any(post_ids))
         .set(post::scheduled_time.eq(None::<DateTime<Utc>>))
-        .execute(&mut conn).await.unwrap();
+        .execute(&mut conn)
+        .await
+        .map_err(|e| error!("Failed update scheduled post: {e}"))
+        .ok();
 
       for p in posts {
         let send_activity = SendActivityData::CreatePost(p.0.clone());
-        ActivityChannel::submit_activity(send_activity, context).await.unwrap();
+        ActivityChannel::submit_activity(send_activity, context)
+          .await
+          .map_err(|e| error!("Failed federate scheduled post: {e}"))
+          .ok();
         send_webmention(p.0, p.1);
       }
     }
