@@ -3,7 +3,7 @@ use crate::{
   lemmy_db_schema::traits::Crud,
   post::{LinkMetadata, OpenGraphData},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{local_site_opt_to_sensitive, proxy_image_link},
+  utils::proxy_image_link,
 };
 use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
@@ -13,8 +13,8 @@ use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
     images::{ImageDetailsForm, LocalImage, LocalImageForm},
-    local_site::LocalSite,
     post::{Post, PostUpdateForm},
+    site::Site,
   },
 };
 use lemmy_utils::{
@@ -130,7 +130,6 @@ pub async fn generate_post_link_metadata(
   post: Post,
   custom_thumbnail: Option<Url>,
   send_activity: impl FnOnce(Post) -> Option<SendActivityData> + Send + 'static,
-  local_site: Option<LocalSite>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let metadata = match &post.url {
@@ -144,7 +143,8 @@ pub async fn generate_post_link_metadata(
     .is_some_and(|content_type| content_type.starts_with("image"));
 
   // Decide if we are allowed to generate local thumbnail
-  let allow_sensitive = local_site_opt_to_sensitive(&local_site);
+  let site = Site::read_local(&mut context.pool()).await?;
+  let allow_sensitive = site.content_warning.is_some();
   let allow_generate_thumbnail = allow_sensitive || !post.nsfw;
 
   let image_url = if is_image_post {

@@ -122,7 +122,6 @@ pub async fn import_settings(
       .settings
       .as_ref()
       .map(|s| s.send_notifications_to_email),
-    show_scores: data.settings.as_ref().map(|s| s.show_scores),
     show_bot_accounts: data.settings.as_ref().map(|s| s.show_bot_accounts),
     show_read_posts: data.settings.as_ref().map(|s| s.show_read_posts),
     open_links_in_new_tab: data.settings.as_ref().map(|s| s.open_links_in_new_tab),

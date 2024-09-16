@@ -36,9 +36,7 @@ pub async fn save_user_settings(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&site_view.local_site);
   let url_blocklist = get_url_blocklist(&context).await?;
@@ -135,7 +133,6 @@ pub async fn save_user_settings(
     blur_nsfw: data.blur_nsfw,
     auto_expand: data.auto_expand,
     show_bot_accounts: data.show_bot_accounts,
-    show_scores: data.show_scores,
     default_sort_type,
     default_listing_type,
     theme: data.theme.clone(),
