@@ -24,6 +24,7 @@ fn test_errors_used() {
     let grep_apub = grep_apub
       .current_dir(current_dir.clone())
       .arg("-R")
+      .arg("--exclude-dir=api")
       .arg(error.to_string())
       .arg("crates/apub/");
     let output = grep_apub.output().unwrap();
