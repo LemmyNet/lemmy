@@ -502,9 +502,16 @@ test("Enforce site ban federation for local user", async () => {
     alpha,
     alphaPerson.person.id,
     false,
-    false,
+    true,
   );
   expect(unBanAlpha.banned).toBe(false);
+
+  // existing alpha post should be restored on beta
+  betaBanRes = await waitUntil(
+    () => getPost(beta, searchBeta1.post.id),
+    s => !s.post_view.post.removed,
+  );
+  expect(betaBanRes.post_view.post.removed).toBe(false);
 
   // Login gets invalidated by ban, need to login again
   if (!alphaUserPerson) {
