@@ -54,6 +54,16 @@ impl Crud for Post {
       .await
   }
 
+  /// Ignores unpublished scheduled posts
+  async fn read(
+    pool: &mut DbPool<'_>
+    , id: Self::IdType
+  ) -> Result<Option<Self>, Error> {
+    let conn = &mut *get_conn(pool).await?;
+    post::table.find(id)
+    .filter(post::scheduled_time.is_null()).first(conn).await.optional()
+  }
+
   async fn update(
     pool: &mut DbPool<'_>,
     post_id: PostId,
@@ -169,6 +179,7 @@ impl Post {
     let object_id: DbUrl = object_id.into();
     post::table
       .filter(post::ap_id.eq(object_id))
+      .filter(post::scheduled_time.is_null())
       .first(conn)
       .await
       .optional()
