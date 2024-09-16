@@ -37,9 +37,7 @@ pub async fn get_site(
   // This data is independent from the user account so we can cache it across requests
   let mut site_response = CACHE
     .try_get_with::<_, LemmyError>((), async {
-      let site_view = SiteView::read_local(&mut context.pool())
-        .await?
-        .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+      let site_view = SiteView::read_local(&mut context.pool()).await?;
       let admins = PersonView::admins(&mut context.pool()).await?;
       let all_languages = Language::read_all(&mut context.pool()).await?;
       let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
