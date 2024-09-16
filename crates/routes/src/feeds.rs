@@ -151,9 +151,7 @@ async fn get_feed_data(
   limit: i64,
   page: i64,
 ) -> LemmyResult<HttpResponse> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   check_private_instance(&None, &site_view.local_site)?;
 
@@ -258,9 +256,7 @@ async fn get_feed_user(
   page: &i64,
   user_name: &str,
 ) -> LemmyResult<Channel> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   let person = Person::read_from_name(&mut context.pool(), user_name, false)
     .await?
     .ok_or(LemmyErrorType::CouldntFindPerson)?;
@@ -298,9 +294,7 @@ async fn get_feed_community(
   page: &i64,
   community_name: &str,
 ) -> LemmyResult<Channel> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   let community = Community::read_from_name(&mut context.pool(), community_name, false)
     .await?
     .ok_or(LemmyErrorType::CouldntFindCommunity)?;
@@ -345,9 +339,7 @@ async fn get_feed_front(
   page: &i64,
   jwt: &str,
 ) -> LemmyResult<Channel> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_user = local_user_view_from_jwt(jwt, context).await?;
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
@@ -382,9 +374,7 @@ async fn get_feed_front(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channel> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_user = local_user_view_from_jwt(jwt, context).await?;
   let person_id = local_user.local_user.person_id;
   let show_bot_accounts = local_user.local_user.show_bot_accounts;

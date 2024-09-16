@@ -21,9 +21,7 @@ pub async fn get_post(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPostResponse>> {
-  let local_site = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site.local_site)?;
 

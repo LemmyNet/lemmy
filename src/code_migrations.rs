@@ -345,7 +345,7 @@ async fn instance_actor_2022_01_28(
   settings: &Settings,
 ) -> LemmyResult<()> {
   info!("Running instance_actor_2021_09_29");
-  if let Ok(Some(site_view)) = SiteView::read_local(pool).await {
+  if let Ok(site_view) = SiteView::read_local(pool).await {
     let site = site_view.site;
     // if site already has public key, we dont need to do anything here
     if !site.public_key.is_empty() {

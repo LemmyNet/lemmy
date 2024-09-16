@@ -47,9 +47,7 @@ pub async fn create_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
 
   if local_site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
