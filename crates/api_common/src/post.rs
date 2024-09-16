@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, PostReportId},
   ListingType,
@@ -30,6 +31,7 @@ pub struct CreatePost {
   pub language_id: Option<LanguageId>,
   /// Instead of fetching a thumbnail, use a custom one.
   pub custom_thumbnail: Option<String>,
+  pub scheduled_time: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

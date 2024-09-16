@@ -317,11 +317,18 @@ fn queries<'a>() -> Queries<
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
 
-    // only show deleted posts to creator
+    // only creator can see deleted posts and unpublished scheduled posts
     if let Some(person_id) = options.local_user.person_id() {
       query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
+      query = query.filter(
+        post::scheduled_time
+          .is_null()
+          .or(post::creator_id.eq(person_id)),
+      );
     } else {
-      query = query.filter(post::deleted.eq(false));
+      query = query
+        .filter(post::deleted.eq(false))
+        .filter(post::scheduled_time.is_null());
     }
 
     // only show removed posts to admin when viewing user profile
@@ -1686,6 +1693,7 @@ mod tests {
         featured_community: false,
         featured_local: false,
         url_content_type: None,
+        scheduled_time: None,
       },
       my_vote: None,
       unread_comments: 0,

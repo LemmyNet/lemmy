@@ -1,0 +1,1 @@
+alter table post drop column scheduled_time;

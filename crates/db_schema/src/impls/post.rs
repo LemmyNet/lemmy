@@ -456,6 +456,7 @@ mod tests {
       featured_community: false,
       featured_local: false,
       url_content_type: None,
+      scheduled_time: None,
     };
 
     // Post Like

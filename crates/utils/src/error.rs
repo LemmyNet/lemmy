@@ -181,6 +181,7 @@ pub enum LemmyErrorType {
   Unknown(String),
   CantDeleteSite,
   UrlLengthOverflow,
+  PostScheduleTimeMustBeInFuture,
 }
 
 cfg_if! {

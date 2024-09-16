@@ -1,5 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use chrono::Utc;
 use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
@@ -130,6 +131,12 @@ pub async fn create_post(
     }
   };
 
+  if let Some(scheduled_time) = data.scheduled_time {
+    if scheduled_time < Utc::now() {
+      Err(LemmyErrorType::PostScheduleTimeMustBeInFuture)?;
+    }
+  }
+
   let post_form = PostInsertForm::builder()
     .name(data.name.trim().to_string())
     .url(url.map(Into::into))
@@ -139,16 +146,22 @@ pub async fn create_post(
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)
     .language_id(language_id)
+    .scheduled_time(data.scheduled_time)
     .build();
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
+  let federate_post = if data.scheduled_time.is_none() {
+    |post| Some(SendActivityData::CreatePost(post))
+  } else {
+    |_| None
+  };
   generate_post_link_metadata(
     inserted_post.clone(),
     custom_thumbnail.map(Into::into),
-    |post| Some(SendActivityData::CreatePost(post)),
+    federate_post,
     Some(local_site),
     context.reset_request_count(),
   )
@@ -168,12 +181,16 @@ pub async fn create_post(
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
+  send_webmention(inserted_post, community);
 
-  if let Some(url) = inserted_post.url.clone() {
+  build_post_response(&context, community_id, local_user_view, post_id).await
+}
+
+pub fn send_webmention(post: Post, community: Community) {
+  if let Some(url) = post.url.clone() {
     if community.visibility == CommunityVisibility::Public {
       spawn_try_task(async move {
-        let mut webmention =
-          Webmention::new::<Url>(inserted_post.ap_id.clone().into(), url.clone().into())?;
+        let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
         webmention.set_checked(true);
         match webmention
           .send()
@@ -187,6 +204,4 @@ pub async fn create_post(
       });
     }
   };
-
-  build_post_response(&context, community_id, local_user_view, post_id).await
 }

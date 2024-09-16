@@ -1,3 +1,4 @@
+use activitypub_federation::config::Data;
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
@@ -10,11 +11,17 @@ use diesel::{
   QueryableByName,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{
+  context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
+};
+use lemmy_api_crud::post::create::send_webmention;
 use lemmy_db_schema::{
+  newtypes::PostId,
   schema::{
     captcha_answer,
     comment,
+    community,
     community_person_ban,
     instance,
     person,
@@ -23,8 +30,10 @@ use lemmy_db_schema::{
     sent_activity,
   },
   source::{
+    community::Community,
     instance::{Instance, InstanceForm},
     local_user::LocalUser,
+    post::Post,
   },
   utils::{get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
@@ -35,19 +44,20 @@ use std::time::Duration;
 use tracing::{error, info, warn};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
-pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
+pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // Setup the connections
   let mut scheduler = AsyncScheduler::new();
   startup_jobs(&mut context.pool()).await;
 
-  let context_1 = context.clone();
-  // Update active counts every hour
+  let context_1 = context.reset_request_count();
+  // Update active counts expired bans and unpublished posts every hour
   scheduler.every(CTimeUnits::hour(1)).run(move || {
-    let context = context_1.clone();
+    let context = context_1.reset_request_count();
 
     async move {
       active_counts(&mut context.pool()).await;
       update_banned_when_expired(&mut context.pool()).await;
+      publish_scheduled_posts(&context).await;
     }
   });
 
@@ -443,6 +453,46 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) {
       .await
       .map_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
       .ok();
+    }
+    Err(e) => {
+      error!("Failed to get connection from pool: {e}");
+    }
+  }
+}
+
+/// Find all unpublished posts with scheduled date in the future, and publish them.
+async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
+  let pool = &mut context.pool();
+  let conn = get_conn(pool).await;
+
+  match conn {
+    Ok(mut conn) => {
+      let x: Option<Vec<(Post, Community)>> = post::table
+        .inner_join(community::table)
+        .filter(post::scheduled_time.is_not_null())
+        // TODO: throws error `overflow evaluating the requirement std::marker::Sized``
+        //.filter(post::scheduled_time.ge(Some(now())))
+        .get_results::<(Post, Community)>(&mut conn)
+        .await
+        .map_err(|e| error!("Failed to read unpublished posts: {e}"))
+        .ok();
+      let posts: Vec<(Post, Community)> = x
+        .into_iter()
+        .flatten()
+        .filter(|(p, _)| p.scheduled_time > Some(Utc::now()))
+        .collect();
+      let post_ids: Vec<PostId> = posts.iter().map(|p| p.0.id).collect();
+
+      diesel::update(post::table)
+        .filter(post::id.eq_any(post_ids))
+        .set(post::scheduled_time.eq(None::<DateTime<Utc>>))
+        .execute(&mut conn).await.unwrap();
+
+      for p in posts {
+        let send_activity = SendActivityData::CreatePost(p.0.clone());
+        ActivityChannel::submit_activity(send_activity, context).await.unwrap();
+        send_webmention(p.0, p.1);
+      }
     }
     Err(e) => {
       error!("Failed to get connection from pool: {e}");

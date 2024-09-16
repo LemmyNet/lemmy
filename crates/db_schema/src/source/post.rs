@@ -58,6 +58,7 @@ pub struct Post {
   pub url_content_type: Option<String>,
   /// An optional alt_text, usable for image posts.
   pub alt_text: Option<String>,
+  pub scheduled_time: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, TypedBuilder)]
@@ -90,6 +91,7 @@ pub struct PostInsertForm {
   pub featured_local: Option<bool>,
   pub url_content_type: Option<String>,
   pub alt_text: Option<String>,
+  pub scheduled_time: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Default)]
