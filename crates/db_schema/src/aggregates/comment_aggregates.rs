@@ -64,19 +64,11 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("thommy_comment_agg".into())
-      .public_key("pubkey".into())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_comment_agg");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
-    let another_person = PersonInsertForm::builder()
-      .name("jerry_comment_agg".into())
-      .public_key("pubkey".into())
-      .instance_id(inserted_instance.id)
-      .build();
+    let another_person = PersonInsertForm::test_form(inserted_instance.id, "jerry_comment_agg");
 
     let another_inserted_person = Person::create(pool, &another_person).await.unwrap();
 

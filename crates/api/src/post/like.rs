@@ -68,7 +68,6 @@ pub async fn like_post(
       .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
   }
 
-  // Mark the post as read
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
   let community = Community::read(&mut context.pool(), post.community_id)
@@ -86,11 +85,5 @@ pub async fn like_post(
   )
   .await?;
 
-  build_post_response(
-    context.deref(),
-    post.community_id,
-    &local_user_view.person,
-    post_id,
-  )
-  .await
+  build_post_response(context.deref(), post.community_id, local_user_view, post_id).await
 }

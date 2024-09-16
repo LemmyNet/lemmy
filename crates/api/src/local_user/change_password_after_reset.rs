@@ -19,7 +19,7 @@ pub async fn change_password_after_reset(
 ) -> LemmyResult<Json<SuccessResponse>> {
   // Fetch the user_id from the token
   let token = data.token.clone();
-  let local_user_id = PasswordResetRequest::read_from_token(&mut context.pool(), &token)
+  let local_user_id = PasswordResetRequest::read_and_delete(&mut context.pool(), &token)
     .await?
     .ok_or(LemmyErrorType::TokenNotFound)?
     .local_user_id;

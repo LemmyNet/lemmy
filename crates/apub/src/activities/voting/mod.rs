@@ -44,7 +44,7 @@ pub(crate) async fn send_like_activity(
     let activity = AnnouncableActivities::Vote(vote);
     send_activity_in_community(activity, &actor, &community, empty, false, &context).await
   } else {
-    // Lemmy API doesnt distinguish between Undo/Like and Undo/Dislike, so we hardcode it here.
+    // Lemmy API doesn't distinguish between Undo/Like and Undo/Dislike, so we hardcode it here.
     let vote = Vote::new(object_id, &actor, &community, VoteType::Like, &context)?;
     let undo_vote = UndoVote::new(vote, &actor, &community, &context)?;
     let activity = AnnouncableActivities::UndoVote(undo_vote);

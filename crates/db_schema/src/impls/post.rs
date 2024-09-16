@@ -84,22 +84,6 @@ impl Post {
       .await
   }
 
-  pub async fn list_for_community(
-    pool: &mut DbPool<'_>,
-    the_community_id: CommunityId,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    post::table
-      .filter(post::community_id.eq(the_community_id))
-      .filter(post::deleted.eq(false))
-      .filter(post::removed.eq(false))
-      .then_order_by(post::featured_community.desc())
-      .then_order_by(post::published.desc())
-      .limit(FETCH_LIMIT_MAX)
-      .load::<Self>(conn)
-      .await
-  }
-
   pub async fn list_featured_for_community(
     pool: &mut DbPool<'_>,
     the_community_id: CommunityId,
@@ -406,6 +390,7 @@ mod tests {
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::collections::HashSet;
+  use url::Url;
 
   #[tokio::test]
   #[serial]
@@ -417,11 +402,7 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person = PersonInsertForm::builder()
-      .name("jim".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "jim");
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
@@ -467,7 +448,9 @@ mod tests {
       embed_description: None,
       embed_video_url: None,
       thumbnail_url: None,
-      ap_id: inserted_post.ap_id.clone(),
+      ap_id: Url::parse(&format!("https://lemmy-alpha/post/{}", inserted_post.id))
+        .unwrap()
+        .into(),
       local: true,
       language_id: Default::default(),
       featured_community: false,

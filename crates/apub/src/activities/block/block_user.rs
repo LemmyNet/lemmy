@@ -39,7 +39,10 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  LemmyErrorType,
+};
 use url::Url;
 
 impl BlockUser {
@@ -71,7 +74,6 @@ impl BlockUser {
         &context.settings().get_protocol_and_hostname(),
       )?,
       audience,
-      expires,
       end_time: expires,
     })
   }
@@ -129,7 +131,11 @@ impl ActivityHandler for BlockUser {
     verify_is_public(&self.to, &self.cc)?;
     match self.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
-        let domain = self.object.inner().domain().expect("url needs domain");
+        let domain = self
+          .object
+          .inner()
+          .domain()
+          .ok_or(LemmyErrorType::UrlWithoutDomain)?;
         if context.settings().hostname == domain {
           return Err(
             anyhow!("Site bans from remote instance can't affect user's home instance").into(),
@@ -150,7 +156,7 @@ impl ActivityHandler for BlockUser {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
-    let expires = self.expires.or(self.end_time).map(Into::into);
+    let expires = self.end_time.map(Into::into);
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;

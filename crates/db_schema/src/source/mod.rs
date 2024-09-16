@@ -43,7 +43,8 @@ pub mod tagline;
 /// Default value for columns like [community::Community.inbox_url] which are marked as serde(skip).
 ///
 /// This is necessary so they can be successfully deserialized from API responses, even though the
-/// value is not sent by Lemmy. Necessary for crates which rely on Rust API such as lemmy-stats-crawler.
+/// value is not sent by Lemmy. Necessary for crates which rely on Rust API such as
+/// lemmy-stats-crawler.
 fn placeholder_apub_url() -> DbUrl {
   DbUrl(Box::new(
     Url::parse("http://example.com").expect("parse placeholder url"),

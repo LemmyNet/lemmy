@@ -22,7 +22,6 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_db_views::structs::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   LemmyErrorType,
@@ -38,7 +37,6 @@ pub enum SiteOrCommunity {
   Site(ApubSite),
   Community(ApubCommunity),
 }
-
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub enum InstanceOrGroup {
@@ -74,12 +72,18 @@ impl Object for SiteOrCommunity {
     })
   }
 
-  async fn delete(self, _data: &Data<Self::DataType>) -> LemmyResult<()> {
-    unimplemented!()
+  async fn delete(self, data: &Data<Self::DataType>) -> LemmyResult<()> {
+    match self {
+      SiteOrCommunity::Site(i) => i.delete(data).await,
+      SiteOrCommunity::Community(c) => c.delete(data).await,
+    }
   }
 
-  async fn into_json(self, _data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    unimplemented!()
+  async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
+    Ok(match self {
+      SiteOrCommunity::Site(i) => InstanceOrGroup::Instance(i.into_json(data).await?),
+      SiteOrCommunity::Community(c) => InstanceOrGroup::Group(c.into_json(data).await?),
+    })
   }
 
   #[tracing::instrument(skip_all)]
@@ -137,13 +141,7 @@ pub(crate) async fn send_ban_from_site(
   expires: Option<i64>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let site = SiteOrCommunity::Site(
-    SiteView::read_local(&mut context.pool())
-      .await?
-      .ok_or(LemmyErrorType::LocalSiteNotSetup)?
-      .site
-      .into(),
-  );
+  let site = SiteOrCommunity::Site(Site::read_local(&mut context.pool()).await?.into());
   let expires = check_expire_time(expires)?;
 
   // if the action affects a local user, federate to other instances

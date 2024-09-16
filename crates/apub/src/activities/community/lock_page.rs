@@ -26,6 +26,7 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::Community,
+    moderator::{ModLockPost, ModLockPostForm},
     person::Person,
     post::{Post, PostUpdateForm},
   },
@@ -60,12 +61,22 @@ impl ActivityHandler for LockPage {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
+    insert_received_activity(&self.id, context).await?;
+    let locked = Some(true);
     let form = PostUpdateForm {
-      locked: Some(true),
+      locked,
       ..Default::default()
     };
     let post = self.object.dereference(context).await?;
     Post::update(&mut context.pool(), post.id, &form).await?;
+
+    let form = ModLockPostForm {
+      mod_person_id: self.actor.dereference(context).await?.id,
+      post_id: post.id,
+      locked,
+    };
+    ModLockPost::create(&mut context.pool(), &form).await?;
+
     Ok(())
   }
 }
@@ -94,12 +105,21 @@ impl ActivityHandler for UndoLockPage {
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     insert_received_activity(&self.id, context).await?;
+    let locked = Some(false);
     let form = PostUpdateForm {
-      locked: Some(false),
+      locked,
       ..Default::default()
     };
     let post = self.object.object.dereference(context).await?;
     Post::update(&mut context.pool(), post.id, &form).await?;
+
+    let form = ModLockPostForm {
+      mod_person_id: self.actor.dereference(context).await?.id,
+      post_id: post.id,
+      locked,
+    };
+    ModLockPost::create(&mut context.pool(), &form).await?;
+
     Ok(())
   }
 }

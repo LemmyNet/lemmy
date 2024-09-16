@@ -61,8 +61,11 @@ impl Object for PostOrComment {
     }
   }
 
-  async fn into_json(self, _data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    unimplemented!()
+  async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
+    Ok(match self {
+      PostOrComment::Post(p) => PageOrNote::Page(Box::new(p.into_json(data).await?)),
+      PostOrComment::Comment(c) => PageOrNote::Note(c.into_json(data).await?),
+    })
   }
 
   #[tracing::instrument(skip_all)]

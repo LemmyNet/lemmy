@@ -49,7 +49,8 @@ fn queries<'a>() -> Queries<
   let list = move |mut conn: DbConn<'a>, options: PrivateMessageReportQuery| async move {
     let mut query = all_joins(private_message_report::table.into_boxed());
 
-    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest first (FIFO)
+    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
+    // first (FIFO)
     if options.unresolved_only {
       query = query
         .filter(private_message_report::resolved.eq(false))
@@ -139,18 +140,10 @@ mod tests {
       .await
       .unwrap();
 
-    let new_person_1 = PersonInsertForm::builder()
-      .name("timmy_mrv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_1 = PersonInsertForm::test_form(inserted_instance.id, "timmy_mrv");
     let inserted_timmy = Person::create(pool, &new_person_1).await.unwrap();
 
-    let new_person_2 = PersonInsertForm::builder()
-      .name("jessica_mrv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_2 = PersonInsertForm::test_form(inserted_instance.id, "jessica_mrv");
     let inserted_jessica = Person::create(pool, &new_person_2).await.unwrap();
 
     // timmy sends private message to jessica
@@ -183,11 +176,7 @@ mod tests {
     assert_eq!(pm_report.reason, reports[0].private_message_report.reason);
     assert_eq!(pm.content, reports[0].private_message.content);
 
-    let new_person_3 = PersonInsertForm::builder()
-      .name("admin_mrv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_3 = PersonInsertForm::test_form(inserted_instance.id, "admin_mrv");
     let inserted_admin = Person::create(pool, &new_person_3).await.unwrap();
 
     // admin resolves the report (after taking appropriate action)

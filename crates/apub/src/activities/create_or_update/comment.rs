@@ -19,7 +19,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::public,
-  protocol::verification::verify_domains_match,
+  protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::{
@@ -133,6 +133,7 @@ impl ActivityHandler for CreateOrUpdateNote {
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     check_community_deleted_or_removed(&community)?;
     check_post_deleted_or_removed(&post)?;
+    verify_urls_match(self.actor.inner(), self.object.attributed_to.inner())?;
 
     ApubComment::verify(&self.object, self.actor.inner(), context).await?;
     Ok(())
@@ -175,9 +176,10 @@ impl ActivityHandler for CreateOrUpdateNote {
     // Although mentions could be gotten from the post tags (they are included there), or the ccs,
     // Its much easier to scrape them from the comment body, since the API has to do that
     // anyway.
-    // TODO: for compatibility with other projects, it would be much better to read this from cc or tags
+    // TODO: for compatibility with other projects, it would be much better to read this from cc or
+    // tags
     let mentions = scrape_text_for_mentions(&comment.content);
-    send_local_notifs(mentions, comment.id, &actor, do_send_email, context).await?;
+    send_local_notifs(mentions, comment.id, &actor, do_send_email, context, None).await?;
     Ok(())
   }
 }

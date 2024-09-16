@@ -118,8 +118,17 @@ impl Object for SearchableObjects {
     }
   }
 
-  async fn into_json(self, _data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    unimplemented!()
+  async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
+    Ok(match self {
+      SearchableObjects::Post(p) => SearchableKinds::Page(Box::new(p.into_json(data).await?)),
+      SearchableObjects::Comment(c) => SearchableKinds::Note(c.into_json(data).await?),
+      SearchableObjects::PersonOrCommunity(pc) => {
+        SearchableKinds::PersonOrGroup(Box::new(match *pc {
+          UserOrCommunity::User(p) => PersonOrGroup::Person(p.into_json(data).await?),
+          UserOrCommunity::Community(c) => PersonOrGroup::Group(c.into_json(data).await?),
+        }))
+      }
+    })
   }
 
   #[tracing::instrument(skip_all)]

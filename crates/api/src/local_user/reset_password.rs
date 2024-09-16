@@ -6,7 +6,6 @@ use lemmy_api_common::{
   utils::send_password_reset_email,
   SuccessResponse,
 };
-use lemmy_db_schema::source::password_reset_request::PasswordResetRequest;
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -21,18 +20,7 @@ pub async fn reset_password(
     .await?
     .ok_or(LemmyErrorType::IncorrectLogin)?;
 
-  // Check for too many attempts (to limit potential abuse)
-  let recent_resets_count = PasswordResetRequest::get_recent_password_resets_count(
-    &mut context.pool(),
-    local_user_view.local_user.id,
-  )
-  .await?;
-  if recent_resets_count >= 3 {
-    Err(LemmyErrorType::PasswordResetLimitReached)?
-  }
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   check_email_verified(&local_user_view, &site_view)?;
 
   // Email the pure token to the user.

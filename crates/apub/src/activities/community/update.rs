@@ -105,7 +105,7 @@ impl ActivityHandler for UpdateCommunity {
       last_refreshed_at: Some(naive_now()),
       icon: Some(self.object.icon.map(|i| i.url.into())),
       banner: Some(self.object.image.map(|i| i.url.into())),
-      followers_url: Some(self.object.followers.into()),
+      followers_url: self.object.followers.map(Into::into),
       inbox_url: Some(self.object.inbox.into()),
       shared_inbox_url: Some(self.object.endpoints.map(|e| e.shared_inbox.into())),
       moderators_url: self.object.attributed_to.map(Into::into),

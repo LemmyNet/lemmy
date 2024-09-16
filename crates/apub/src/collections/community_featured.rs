@@ -72,7 +72,8 @@ impl Collection for ApubCommunityFeatured {
         .to_vec();
     }
 
-    // process items in parallel, to avoid long delay from fetch_site_metadata() and other processing
+    // process items in parallel, to avoid long delay from fetch_site_metadata() and other
+    // processing
     let stickied_posts: Vec<Post> = join_all(pages.into_iter().map(|page| {
       async {
         // use separate request counter for each item, otherwise there will be problems with

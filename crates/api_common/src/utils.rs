@@ -1,18 +1,23 @@
 use crate::{
   context::LemmyContext,
-  request::{delete_image_from_pictrs, purge_image_from_pictrs},
+  request::{
+    delete_image_from_pictrs,
+    fetch_pictrs_proxied_image_details,
+    purge_image_from_pictrs,
+  },
   site::{FederatedInstances, InstanceWithFederationState},
 };
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
+  aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
     community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
-    images::{LocalImage, RemoteImage},
+    images::RemoteImage,
     instance::Instance,
     instance_block::InstanceBlock,
     local_site::LocalSite,
@@ -27,7 +32,10 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
+use lemmy_db_views::{
+  comment_view::CommentQuery,
+  structs::{LocalImageView, LocalUserView},
+};
 use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
   CommunityPersonBanView,
@@ -41,14 +49,14 @@ use lemmy_utils::{
   utils::{
     markdown::{markdown_check_for_blocked_urls, markdown_rewrite_image_links},
     slurs::{build_slur_regex, remove_slurs},
+    validation::clean_urls_in_text,
   },
   CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
-use once_cell::sync::Lazy;
 use regex::{escape, Regex, RegexSet};
 use rosetta_i18n::{Language, LanguageId};
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::LazyLock};
 use tracing::warn;
 use url::{ParseError, Url};
 use urlencoding::encode;
@@ -136,13 +144,7 @@ pub fn is_top_mod(
   }
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn get_post(post_id: PostId, pool: &mut DbPool<'_>) -> LemmyResult<Post> {
-  Post::read(pool, post_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost.into())
-}
-
+/// Marks a post as read for a given person.
 #[tracing::instrument(skip_all)]
 pub async fn mark_post_as_read(
   person_id: PersonId,
@@ -152,6 +154,28 @@ pub async fn mark_post_as_read(
   PostRead::mark_as_read(pool, HashSet::from([post_id]), person_id)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)?;
+  Ok(())
+}
+
+/// Updates the read comment count for a post. Usually done when reading or creating a new comment.
+#[tracing::instrument(skip_all)]
+pub async fn update_read_comments(
+  person_id: PersonId,
+  post_id: PostId,
+  read_comments: i64,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
+  let person_post_agg_form = PersonPostAggregatesForm {
+    person_id,
+    post_id,
+    read_comments,
+    ..PersonPostAggregatesForm::default()
+  };
+
+  PersonPostAggregates::upsert(pool, &person_post_agg_form)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntFindPost)?;
+
   Ok(())
 }
 
@@ -353,7 +377,8 @@ pub async fn build_federated_instances(
         federation_state: federation_state.map(std::convert::Into::into),
       };
       if is_blocked {
-        // blocked instances will only have an entry here if they had been federated with in the past.
+        // blocked instances will only have an entry here if they had been federated with in the
+        // past.
         blocked.push(i);
       } else if is_allowed {
         allowed.push(i.clone());
@@ -437,7 +462,7 @@ pub async fn send_password_reset_email(
   // Insert the row after successful send, to avoid using daily reset limit while
   // email sending is broken.
   let local_user_id = user.local_user.id;
-  PasswordResetRequest::create_token(pool, local_user_id, token.clone()).await?;
+  PasswordResetRequest::create(pool, local_user_id, token.clone()).await?;
   Ok(())
 }
 
@@ -513,15 +538,8 @@ pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<Re
     .unwrap_or(None)
 }
 
-pub fn local_site_opt_to_sensitive(local_site: &Option<LocalSite>) -> bool {
-  local_site
-    .as_ref()
-    .map(|site| site.enable_nsfw)
-    .unwrap_or(false)
-}
-
 pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> {
-  static URL_BLOCKLIST: Lazy<Cache<(), RegexSet>> = Lazy::new(|| {
+  static URL_BLOCKLIST: LazyLock<Cache<(), RegexSet>> = LazyLock::new(|| {
     Cache::builder()
       .max_capacity(1)
       .time_to_live(CACHE_DURATION_FEDERATION)
@@ -533,25 +551,8 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
       .try_get_with::<_, LemmyError>((), async {
         let urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
 
-        let regexes = urls.iter().map(|url| {
-          let url = &url.url;
-          let parsed = Url::parse(url).expect("Coundln't parse URL.");
-          if url.ends_with('/') {
-            format!(
-              "({}://)?{}{}?",
-              parsed.scheme(),
-              escape(parsed.domain().expect("No domain.")),
-              escape(parsed.path())
-            )
-          } else {
-            format!(
-              "({}://)?{}{}",
-              parsed.scheme(),
-              escape(parsed.domain().expect("No domain.")),
-              escape(parsed.path())
-            )
-          }
-        });
+        // The urls are already validated on saving, so just escape them.
+        let regexes = urls.iter().map(|url| escape(&url.url));
 
         let set = RegexSet::new(regexes)?;
         Ok(set)
@@ -662,13 +663,18 @@ pub async fn purge_image_posts_for_person(
 async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
   if let Ok(Some(local_user)) = LocalUserView::read_person(&mut context.pool(), person_id).await {
     let pictrs_uploads =
-      LocalImage::get_all_by_local_user_id(&mut context.pool(), local_user.local_user.id).await?;
+      LocalImageView::get_all_by_local_user_id(&mut context.pool(), local_user.local_user.id)
+        .await?;
 
     // Delete their images
     for upload in pictrs_uploads {
-      delete_image_from_pictrs(&upload.pictrs_alias, &upload.pictrs_delete_token, context)
-        .await
-        .ok();
+      delete_image_from_pictrs(
+        &upload.local_image.pictrs_alias,
+        &upload.local_image.pictrs_delete_token,
+        context,
+      )
+      .await
+      .ok();
     }
   }
   Ok(())
@@ -935,12 +941,24 @@ pub async fn process_markdown(
   context: &LemmyContext,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
+  let text = clean_urls_in_text(&text);
 
   markdown_check_for_blocked_urls(&text, url_blocklist)?;
 
   if context.settings().pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
-    RemoteImage::create(&mut context.pool(), links).await?;
+
+    // Create images and image detail rows
+    for link in links {
+      // Insert image details for the remote image
+      let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
+      if let Ok(details) = details_res {
+        let proxied =
+          build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
+        let details_form = details.build_image_details_form(&proxied);
+        RemoteImage::create(&mut context.pool(), &details_form).await?;
+      }
+    }
     Ok(text)
   } else {
     Ok(text)
@@ -963,8 +981,8 @@ pub async fn process_markdown_opt(
 
 /// A wrapper for `proxy_image_link` for use in tests.
 ///
-/// The parameter `force_image_proxy` is the config value of `pictrs.image_proxy`. Its necessary to pass
-/// as separate parameter so it can be changed in tests.
+/// The parameter `force_image_proxy` is the config value of `pictrs.image_proxy`. Its necessary to
+/// pass as separate parameter so it can be changed in tests.
 async fn proxy_image_link_internal(
   link: Url,
   image_mode: PictrsImageMode,
@@ -974,13 +992,16 @@ async fn proxy_image_link_internal(
   if link.domain() == Some(&context.settings().hostname) {
     Ok(link.into())
   } else if image_mode == PictrsImageMode::ProxyAllImages {
-    let proxied = format!(
-      "{}/api/v3/image_proxy?url={}",
-      context.settings().get_protocol_and_hostname(),
-      encode(link.as_str())
-    );
-    RemoteImage::create(&mut context.pool(), vec![link]).await?;
-    Ok(Url::parse(&proxied)?.into())
+    let proxied = build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
+    // This should fail softly, since pictrs might not even be running
+    let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
+
+    if let Ok(details) = details_res {
+      let details_form = details.build_image_details_form(&proxied);
+      RemoteImage::create(&mut context.pool(), &details_form).await?;
+    };
+
+    Ok(proxied.into())
   } else {
     Ok(link.into())
   }
@@ -998,26 +1019,25 @@ pub(crate) async fn proxy_image_link(link: Url, context: &LemmyContext) -> Lemmy
 }
 
 pub async fn proxy_image_link_opt_api(
-  link: &Option<String>,
+  link: Option<Option<DbUrl>>,
   context: &LemmyContext,
 ) -> LemmyResult<Option<Option<DbUrl>>> {
-  proxy_image_link_api(link, context).await.map(Some)
+  if let Some(Some(link)) = link {
+    proxy_image_link(link.into(), context)
+      .await
+      .map(Some)
+      .map(Some)
+  } else {
+    Ok(link)
+  }
 }
 
 pub async fn proxy_image_link_api(
-  link: &Option<String>,
+  link: Option<DbUrl>,
   context: &LemmyContext,
 ) -> LemmyResult<Option<DbUrl>> {
-  let link: Option<DbUrl> = match link.as_ref().map(String::as_str) {
-    // An empty string is an erase
-    Some("") => None,
-    Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(u.into()))
-      .with_lemmy_type(LemmyErrorType::InvalidUrl)?,
-    None => None,
-  };
-  if let Some(l) = link {
-    proxy_image_link(l.into(), context).await.map(Some)
+  if let Some(link) = link {
+    proxy_image_link(link.into(), context).await.map(Some)
   } else {
     Ok(link)
   }
@@ -1032,6 +1052,17 @@ pub async fn proxy_image_link_opt_apub(
   } else {
     Ok(None)
   }
+}
+
+fn build_proxied_image_url(
+  link: &Url,
+  protocol_and_hostname: &str,
+) -> Result<Url, url::ParseError> {
+  Url::parse(&format!(
+    "{}/api/v3/image_proxy?url={}",
+    protocol_and_hostname,
+    encode(link.as_str())
+  ))
 }
 
 #[cfg(test)]
@@ -1107,35 +1138,13 @@ mod tests {
       "https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
       proxied.as_str()
     );
+
+    // This fails, because the details can't be fetched without pictrs running,
+    // And a remote image won't be inserted.
     assert!(
       RemoteImage::validate(&mut context.pool(), remote_image.into())
         .await
-        .is_ok()
-    );
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_diesel_option_overwrite_to_url() {
-    let context = LemmyContext::init_test_context().await;
-
-    assert!(matches!(
-      proxy_image_link_api(&None, &context).await,
-      Ok(None)
-    ));
-    assert!(matches!(
-      proxy_image_link_opt_api(&Some(String::new()), &context).await,
-      Ok(Some(None))
-    ));
-    assert!(
-      proxy_image_link_opt_api(&Some("invalid_url".to_string()), &context)
-        .await
         .is_err()
     );
-    let example_url = "https://lemmy-alpha/image.png";
-    assert!(matches!(
-      proxy_image_link_opt_api(&Some(example_url.to_string()), &context).await,
-      Ok(Some(Some(url))) if url == Url::parse(example_url).unwrap().into()
-    ));
   }
 }

@@ -101,7 +101,7 @@ mod test {
   // These helped with testing
   // #[test]
   // fn test_send_email() {
-  //  let result =  send_email("not a subject", "test_email@gmail.com", "ur user", "<h1>HI there</h1>");
-  //   assert!(result.is_ok());
+  //  let result =  send_email("not a subject", "test_email@gmail.com", "ur user", "<h1>HI
+  // there</h1>");   assert!(result.is_ok());
   // }
 }

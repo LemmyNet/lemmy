@@ -8,6 +8,7 @@ use lemmy_db_schema::{
     community::Community,
     custom_emoji::CustomEmoji,
     custom_emoji_keyword::CustomEmojiKeyword,
+    images::{ImageDetails, LocalImage},
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_user::LocalUser,
@@ -111,9 +112,10 @@ pub struct PostReportView {
   pub resolver: Option<Person>,
 }
 
-/// currently this is just a wrapper around post id, but should be seen as opaque from the client's perspective
-/// stringified since we might want to use arbitrary info later, with a P prepended to prevent ossification
-/// (api users love to make assumptions (e.g. parse stuff that looks like numbers as numbers) about apis that aren't part of the spec
+/// currently this is just a wrapper around post id, but should be seen as opaque from the client's
+/// perspective. stringified since we might want to use arbitrary info later, with a P prepended to
+/// prevent ossification (api users love to make assumptions (e.g. parse stuff that looks like
+/// numbers as numbers) about apis that aren't part of the spec
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -129,6 +131,7 @@ pub struct PostView {
   pub post: Post,
   pub creator: Person,
   pub community: Community,
+  pub image_details: Option<ImageDetails>,
   pub creator_banned_from_community: bool,
   pub banned_from_community: bool,
   pub creator_is_moderator: bool,
@@ -213,4 +216,15 @@ pub struct VoteView {
   pub creator: Person,
   pub creator_banned_from_community: bool,
   pub score: i16,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A local image view.
+pub struct LocalImageView {
+  pub local_image: LocalImage,
+  pub person: Person,
 }

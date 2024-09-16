@@ -178,7 +178,7 @@ diesel::table! {
         icon -> Nullable<Text>,
         banner -> Nullable<Text>,
         #[max_length = 255]
-        followers_url -> Varchar,
+        followers_url -> Nullable<Varchar>,
         #[max_length = 255]
         inbox_url -> Varchar,
         #[max_length = 255]
@@ -309,6 +309,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    image_details (link) {
+        link -> Text,
+        width -> Int4,
+        height -> Int4,
+        content_type -> Text,
+    }
+}
+
+diesel::table! {
     instance (id) {
         id -> Int4,
         #[max_length = 255]
@@ -360,7 +369,6 @@ diesel::table! {
         site_id -> Int4,
         site_setup -> Bool,
         enable_downvotes -> Bool,
-        enable_nsfw -> Bool,
         community_creation_admin_only -> Bool,
         require_email_verification -> Bool,
         application_question -> Nullable<Text>,
@@ -436,7 +444,6 @@ diesel::table! {
         interface_language -> Varchar,
         show_avatars -> Bool,
         send_notifications_to_email -> Bool,
-        show_scores -> Bool,
         show_bot_accounts -> Bool,
         show_read_posts -> Bool,
         email_verified -> Bool,
@@ -701,7 +708,7 @@ diesel::table! {
         id -> Int4,
         #[max_length = 200]
         name -> Varchar,
-        #[max_length = 512]
+        #[max_length = 2000]
         url -> Nullable<Varchar>,
         body -> Nullable<Text>,
         creator_id -> Int4,
@@ -848,8 +855,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    remote_image (id) {
-        id -> Int4,
+    remote_image (link) {
         link -> Text,
         published -> Timestamptz,
     }
@@ -1051,6 +1057,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     federation_allowlist,
     federation_blocklist,
     federation_queue_state,
+    image_details,
     instance,
     instance_block,
     language,

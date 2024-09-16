@@ -82,6 +82,7 @@ use lemmy_api::{
     },
     registration_applications::{
       approve::approve_registration_application,
+      get::get_registration_application,
       list::list_registration_applications,
       unread_count::get_unread_registration_application_count,
     },
@@ -269,11 +270,27 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       // User
       .service(
         // Account action, I don't like that it's in /user maybe /accounts
-        // Handle /user/register separately to add the register() rate limitter
+        // Handle /user/register separately to add the register() rate limiter
         web::resource("/user/register")
           .guard(guard::Post())
           .wrap(rate_limit.register())
           .route(web::post().to(register)),
+      )
+      // User
+      .service(
+        // Handle /user/login separately to add the register() rate limiter
+        // TODO: pretty annoying way to apply rate limits for register and login, we should
+        //       group them under a common path so that rate limit is only applied once (eg under
+        // /account).
+        web::resource("/user/login")
+          .guard(guard::Post())
+          .wrap(rate_limit.register())
+          .route(web::post().to(login)),
+      )
+      .service(
+        web::resource("/user/password_reset")
+          .wrap(rate_limit.register())
+          .route(web::post().to(reset_password)),
       )
       .service(
         // Handle captcha separately
@@ -313,10 +330,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/banned", web::get().to(list_banned_users))
           .route("/block", web::post().to(block_person))
           // TODO Account actions. I don't like that they're in /user maybe /accounts
-          .route("/login", web::post().to(login))
           .route("/logout", web::post().to(logout))
           .route("/delete_account", web::post().to(delete_account))
-          .route("/password_reset", web::post().to(reset_password))
           .route(
             "/password_change",
             web::post().to(change_password_after_reset),
@@ -353,6 +368,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route(
             "/registration_application/approve",
             web::put().to(approve_registration_application),
+          )
+          .route(
+            "/registration_application",
+            web::get().to(get_registration_application),
           )
           .route("/list_all_media", web::get().to(list_all_media))
           .service(

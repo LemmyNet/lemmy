@@ -11,9 +11,12 @@ pub async fn unread_count(
 ) -> LemmyResult<Json<GetUnreadCountResponse>> {
   let person_id = local_user_view.person.id;
 
-  let replies = CommentReplyView::get_unread_replies(&mut context.pool(), person_id).await?;
+  let replies =
+    CommentReplyView::get_unread_replies(&mut context.pool(), &local_user_view.local_user).await?;
 
-  let mentions = PersonMentionView::get_unread_mentions(&mut context.pool(), person_id).await?;
+  let mentions =
+    PersonMentionView::get_unread_mentions(&mut context.pool(), &local_user_view.local_user)
+      .await?;
 
   let private_messages =
     PrivateMessageView::get_unread_messages(&mut context.pool(), person_id).await?;

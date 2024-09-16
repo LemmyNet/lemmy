@@ -94,7 +94,12 @@ impl AnnounceActivity {
       actor: community.id().into(),
       to: vec![public()],
       object: IdOrNestedObject::NestedObject(object),
-      cc: vec![community.followers_url.clone().into()],
+      cc: community
+        .followers_url
+        .clone()
+        .map(Into::into)
+        .into_iter()
+        .collect(),
       kind: AnnounceType::Announce,
       id,
     })

@@ -9,7 +9,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  protocol::verification::verify_domains_match,
+  protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::context::LemmyContext;
@@ -61,6 +61,7 @@ impl ActivityHandler for CreateOrUpdateChatMessage {
     verify_person(&self.actor, context).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     verify_domains_match(self.to[0].inner(), self.object.to[0].inner())?;
+    verify_urls_match(self.actor.inner(), self.object.attributed_to.inner())?;
     ApubPrivateMessage::verify(&self.object, self.actor.inner(), context).await?;
     Ok(())
   }

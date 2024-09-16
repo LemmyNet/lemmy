@@ -14,10 +14,12 @@ use diesel::{
 
 /// Gererates a series of rows for insertion.
 ///
-/// An inclusive range is created from `start` and `stop`. A row for each number is generated using `selection`, which can be a tuple.
-/// [`current_value`] is an expression that gets the current value.
+/// An inclusive range is created from `start` and `stop`. A row for each number is generated using
+/// `selection`, which can be a tuple. [`current_value`] is an expression that gets the current
+/// value.
 ///
-/// For example, if there's a `numbers` table with a `number` column, this inserts all numbers from 1 to 10 in a single statement:
+/// For example, if there's a `numbers` table with a `number` column, this inserts all numbers from
+/// 1 to 10 in a single statement:
 ///
 /// ```
 /// dsl::insert_into(numbers::table)

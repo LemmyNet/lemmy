@@ -85,12 +85,9 @@ mod tests {
       .unwrap()
       .into();
 
-    // inserting activity for first time
-    let res = ReceivedActivity::create(pool, &ap_id).await;
-    assert!(res.is_ok());
-
-    let res = ReceivedActivity::create(pool, &ap_id).await;
-    assert!(res.is_err());
+    // inserting activity should only work once
+    ReceivedActivity::create(pool, &ap_id).await.unwrap();
+    ReceivedActivity::create(pool, &ap_id).await.unwrap_err();
   }
 
   #[tokio::test]

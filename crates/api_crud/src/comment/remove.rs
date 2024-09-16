@@ -11,6 +11,7 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
     comment_report::CommentReport,
+    local_user::LocalUser,
     moderator::{ModRemoveComment, ModRemoveCommentForm},
   },
   traits::{Crud, Reportable},
@@ -25,9 +26,13 @@ pub async fn remove_comment(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
   let comment_id = data.comment_id;
-  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+  let orig_comment = CommentView::read(
+    &mut context.pool(),
+    comment_id,
+    Some(&local_user_view.local_user),
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   check_community_mod_action(
     &local_user_view.person,
@@ -36,6 +41,20 @@ pub async fn remove_comment(
     &mut context.pool(),
   )
   .await?;
+
+  LocalUser::is_higher_mod_or_admin_check(
+    &mut context.pool(),
+    orig_comment.community.id,
+    local_user_view.person.id,
+    vec![orig_comment.creator.id],
+  )
+  .await?;
+
+  // Don't allow removing or restoring comment which was deleted by user, as it would reveal
+  // the comment text in mod log.
+  if orig_comment.comment.deleted {
+    return Err(LemmyErrorType::CouldntUpdateComment.into());
+  }
 
   // Do the remove
   let removed = data.removed;
@@ -65,9 +84,10 @@ pub async fn remove_comment(
   let recipient_ids = send_local_notifs(
     vec![],
     comment_id,
-    &local_user_view.person.clone(),
+    &local_user_view.person,
     false,
     &context,
+    Some(&local_user_view),
   )
   .await?;
   let updated_comment_id = updated_comment.id;

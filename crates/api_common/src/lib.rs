@@ -14,7 +14,6 @@ pub mod private_message;
 pub mod request;
 #[cfg(feature = "full")]
 pub mod send_activity;
-pub mod sensitive;
 pub mod site;
 pub mod tagline;
 #[cfg(feature = "full")]
