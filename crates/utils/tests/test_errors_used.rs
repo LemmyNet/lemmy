@@ -3,7 +3,7 @@ use std::{env::current_dir, process::Command};
 use strum::IntoEnumIterator;
 
 #[test]
-#[clippy::allow(unwrap_used)]
+#[allow(clippy::unwrap_used)]
 fn test_errors_used() {
   let mut unused_error_found = false;
   let mut current_dir = current_dir().unwrap();
@@ -31,7 +31,7 @@ fn test_errors_used() {
     let output = grep_apub.output().unwrap();
     let grep_apub_out = std::str::from_utf8(&output.stdout).unwrap();
 
-    if grep_all_out.len() == 0 {
+    if grep_all_out.is_empty() {
       println!("LemmyErrorType::{} is unused", error);
       unused_error_found = true;
     }
@@ -40,5 +40,5 @@ fn test_errors_used() {
       unused_error_found = true;
     }
   }
-  assert!(unused_error_found == false);
+  assert!(!unused_error_found);
 }
