@@ -40,7 +40,7 @@ import {
   createCommunity,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
-import { EditSite, ResolveObject } from "lemmy-js-client";
+import { CreatePost, EditSite, GetPost, ResolveObject } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 
@@ -788,4 +788,37 @@ test("Fetch post with redirect", async () => {
   };
   let gammaPost2 = await gamma.resolveObject(form);
   expect(gammaPost2.post).toBeDefined();
+});
+
+// TODO: havent managed to run this yet, path dependency in package.json isnt working
+test.only("Schedule post", async () => {
+  let form: CreatePost = {
+    name: randomString(5),
+    community_id: betaCommunity!.community.id,
+    scheduled_time: new Date(new Date().getTime() + 5),
+  };
+  let postRes = await alpha.createPost(form);
+  expect(postRes.post_view.post).toBeDefined();
+  expect(postRes.post_view.counts.score).toBe(1);
+
+  // scheduled post cant be seen by other users
+  let otherUser = await registerUser(alpha, alphaUrl);
+  const getPostForm: GetPost = { id: postRes.post_view.post.id };
+  const otherUserPost1 = await otherUser.getPost(getPostForm);
+  expect(otherUserPost1).toBeUndefined();
+
+  // scheduled post is not federated yet
+  const betaPost1 = resolvePost(beta, postRes.post_view.post);
+  expect(betaPost1).toBeUndefined();
+
+  // wait until scheduled time is over
+  await delay(5000);
+
+  // now post can be seen by other users and be federated
+  const otherUserPost2 = await otherUser.getPost(getPostForm);
+  expect(otherUserPost2.post_view.post.name).toBe(form.name);
+  expect(otherUserPost2.post_view.counts.score).toBe(1);
+
+  const betaPost2 = await resolvePost(beta, postRes.post_view.post);
+  expect(betaPost2.post?.counts.score).toBe(1);
 });
