@@ -49,6 +49,7 @@ use lemmy_utils::{
   utils::{
     markdown::{markdown_check_for_blocked_urls, markdown_rewrite_image_links},
     slurs::{build_slur_regex, remove_slurs},
+    validation::clean_urls_in_text,
   },
   CACHE_DURATION_FEDERATION,
 };
@@ -947,6 +948,7 @@ pub async fn process_markdown(
   context: &LemmyContext,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
+  let text = clean_urls_in_text(&text);
 
   markdown_check_for_blocked_urls(&text, url_blocklist)?;
 

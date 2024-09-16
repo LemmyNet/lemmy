@@ -878,6 +878,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1462739cb27611015575c0c11df5df7601141071f07518d56fcc1be504cbec97"
 
 [[package]]
+name = "clearurls"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e291c00af89ac0a5b400d9ba46a682e38015ae3cd8926dbbe85b3b864d550be3"
+dependencies = [
+ "linkify",
+ "percent-encoding",
+ "regex",
+ "serde",
+ "serde_json",
+ "url",
+]
+
+[[package]]
 name = "clokwerk"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2781,6 +2795,7 @@ dependencies = [
  "actix-web",
  "anyhow",
  "cfg-if",
+ "clearurls",
  "deser-hjson",
  "diesel",
  "doku",
