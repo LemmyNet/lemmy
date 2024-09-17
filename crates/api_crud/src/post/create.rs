@@ -1,6 +1,6 @@
+use super::convert_published_time;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use chrono::Utc;
 use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
@@ -131,12 +131,7 @@ pub async fn create_post(
     }
   };
 
-  if let Some(scheduled_time) = data.scheduled_time {
-    if scheduled_time < Utc::now() {
-      Err(LemmyErrorType::PostScheduleTimeMustBeInFuture)?;
-    }
-  }
-
+  let scheduled_publish_time = convert_published_time(data.scheduled_publish_time)?;
   let post_form = PostInsertForm::builder()
     .name(data.name.trim().to_string())
     .url(url.map(Into::into))
@@ -146,14 +141,14 @@ pub async fn create_post(
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)
     .language_id(language_id)
-    .scheduled_publish_time(data.scheduled_time)
+    .scheduled_publish_time(scheduled_publish_time)
     .build();
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
-  let federate_post = if data.scheduled_time.is_none() {
+  let federate_post = if scheduled_publish_time.is_none() {
     send_webmention(inserted_post.clone(), community);
     |post| Some(SendActivityData::CreatePost(post))
   } else {

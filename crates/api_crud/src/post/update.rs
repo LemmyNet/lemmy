@@ -1,3 +1,4 @@
+use super::convert_published_time;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
@@ -109,6 +110,12 @@ pub async fn update_post(
   )
   .await?;
 
+  let mut scheduled_publish_time = convert_published_time(data.scheduled_publish_time)?;
+  if orig_post.scheduled_publish_time.is_none() {
+    // cant schedule a post which is already published
+    scheduled_publish_time = None;
+  }
+
   let post_form = PostUpdateForm {
     name: data.name.clone(),
     url,
@@ -117,6 +124,7 @@ pub async fn update_post(
     nsfw: data.nsfw,
     language_id: data.language_id,
     updated: Some(Some(naive_now())),
+    scheduled_publish_time: Some(scheduled_publish_time),
     ..Default::default()
   };
 

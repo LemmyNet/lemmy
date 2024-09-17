@@ -119,6 +119,7 @@ pub struct PostUpdateForm {
   pub featured_local: Option<bool>,
   pub url_content_type: Option<Option<String>>,
   pub alt_text: Option<Option<String>>,
+  pub scheduled_publish_time: Option<Option<DateTime<Utc>>>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
