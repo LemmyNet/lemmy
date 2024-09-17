@@ -160,7 +160,6 @@ pub enum LemmyErrorType {
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
 #[cfg_attr(feature = "full", ts(export))]
-#[serde(tag = "error", content = "message", rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum FederationError {
   // TODO: merge into a single NotFound error
