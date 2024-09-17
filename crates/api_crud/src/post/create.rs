@@ -146,7 +146,7 @@ pub async fn create_post(
     .creator_id(local_user_view.person.id)
     .nsfw(data.nsfw)
     .language_id(language_id)
-    .scheduled_time(data.scheduled_time)
+    .scheduled_publish_time(data.scheduled_time)
     .build();
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)
@@ -154,6 +154,7 @@ pub async fn create_post(
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
   let federate_post = if data.scheduled_time.is_none() {
+    send_webmention(inserted_post.clone(), community);
     |post| Some(SendActivityData::CreatePost(post))
   } else {
     |_| None
@@ -181,7 +182,6 @@ pub async fn create_post(
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
-  send_webmention(inserted_post, community);
 
   build_post_response(&context, community_id, local_user_view, post_id).await
 }

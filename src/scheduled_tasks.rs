@@ -50,25 +50,25 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   let mut scheduler = AsyncScheduler::new();
   startup_jobs(&mut context.pool()).await;
 
-  let context_1 = context.reset_request_count();
+  let context_1 = context.clone();
   // Update active counts expired bans and unpublished posts every hour
   scheduler.every(CTimeUnits::hour(1)).run(move || {
-    let context = context_1.reset_request_count();
+    let context = context_1.clone();
 
     async move {
       active_counts(&mut context.pool()).await;
       update_banned_when_expired(&mut context.pool()).await;
-      publish_scheduled_posts(&context).await;
     }
   });
 
-  let context_1 = context.clone();
+  let context_1 = context.reset_request_count();
   // Update hot ranks every 15 minutes
   scheduler.every(CTimeUnits::minutes(10)).run(move || {
-    let context = context_1.clone();
+    let context = context_1.reset_request_count();
 
     async move {
       update_hot_ranks(&mut context.pool()).await;
+      publish_scheduled_posts(&context).await;
     }
   });
 
@@ -471,7 +471,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
       let scheduled_posts: Vec<_> = post::table
         .inner_join(community::table)
         .inner_join(person::table)
-        .filter(post::scheduled_time.is_not_null())
+        .filter(post::scheduled_publish_time.is_not_null())
         .filter(not(post::deleted))
         .filter(not(post::removed))
         .filter(not(person::banned))
@@ -485,13 +485,13 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
         .ok()
         .into_iter()
         .flatten()
-        .filter(|(p, _, _)| p.scheduled_time < Some(Utc::now()))
+        .filter(|(p, _, _)| p.scheduled_publish_time < Some(Utc::now()))
         .collect();
       let post_ids: Vec<PostId> = scheduled_posts.iter().map(|p| p.0.id).collect();
 
       diesel::update(post::table)
         .filter(post::id.eq_any(post_ids))
-        .set(post::scheduled_time.eq(None::<DateTime<Utc>>))
+        .set(post::scheduled_publish_time.eq(None::<DateTime<Utc>>))
         .execute(&mut conn)
         .await
         .inspect_err(|e| error!("Failed update scheduled post: {e}"))

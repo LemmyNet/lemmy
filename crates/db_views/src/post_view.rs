@@ -321,14 +321,14 @@ fn queries<'a>() -> Queries<
     if let Some(person_id) = options.local_user.person_id() {
       query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
       query = query.filter(
-        post::scheduled_time
+        post::scheduled_publish_time
           .is_null()
           .or(post::creator_id.eq(person_id)),
       );
     } else {
       query = query
         .filter(post::deleted.eq(false))
-        .filter(post::scheduled_time.is_null());
+        .filter(post::scheduled_publish_time.is_null());
     }
 
     // only show removed posts to admin when viewing user profile
@@ -1693,7 +1693,7 @@ mod tests {
         featured_community: false,
         featured_local: false,
         url_content_type: None,
-        scheduled_time: None,
+        scheduled_publish_time: None,
       },
       my_vote: None,
       unread_comments: 0,

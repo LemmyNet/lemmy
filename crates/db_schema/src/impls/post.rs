@@ -59,7 +59,7 @@ impl Crud for Post {
     let conn = &mut *get_conn(pool).await?;
     post::table
       .find(id)
-      .filter(post::scheduled_time.is_null())
+      .filter(post::scheduled_publish_time.is_null())
       .first(conn)
       .await
       .optional()
@@ -180,7 +180,7 @@ impl Post {
     let object_id: DbUrl = object_id.into();
     post::table
       .filter(post::ap_id.eq(object_id))
-      .filter(post::scheduled_time.is_null())
+      .filter(post::scheduled_publish_time.is_null())
       .first(conn)
       .await
       .optional()
@@ -468,7 +468,7 @@ mod tests {
       featured_community: false,
       featured_local: false,
       url_content_type: None,
-      scheduled_time: None,
+      scheduled_publish_time: None,
     };
 
     // Post Like
