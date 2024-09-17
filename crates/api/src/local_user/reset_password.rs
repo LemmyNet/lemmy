@@ -20,9 +20,7 @@ pub async fn reset_password(
     .await?
     .ok_or(LemmyErrorType::IncorrectLogin)?;
 
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   check_email_verified(&local_user_view, &site_view)?;
 
   // Email the pure token to the user.

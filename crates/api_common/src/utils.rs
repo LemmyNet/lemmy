@@ -49,6 +49,7 @@ use lemmy_utils::{
   utils::{
     markdown::{markdown_check_for_blocked_urls, markdown_rewrite_image_links},
     slurs::{build_slur_regex, remove_slurs},
+    validation::clean_urls_in_text,
   },
   CACHE_DURATION_FEDERATION,
 };
@@ -537,13 +538,6 @@ pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<Re
     .unwrap_or(None)
 }
 
-pub fn local_site_opt_to_sensitive(local_site: &Option<LocalSite>) -> bool {
-  local_site
-    .as_ref()
-    .map(|site| site.enable_nsfw)
-    .unwrap_or(false)
-}
-
 pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> {
   static URL_BLOCKLIST: LazyLock<Cache<(), RegexSet>> = LazyLock::new(|| {
     Cache::builder()
@@ -947,6 +941,7 @@ pub async fn process_markdown(
   context: &LemmyContext,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
+  let text = clean_urls_in_text(&text);
 
   markdown_check_for_blocked_urls(&text, url_blocklist)?;
 
