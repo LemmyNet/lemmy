@@ -2,7 +2,7 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
-  dsl::IntervalDsl,
+  dsl::{not, IntervalDsl},
   sql_query,
   sql_types::{Integer, Timestamptz},
   ExpressionMethods,
@@ -33,6 +33,7 @@ use lemmy_db_schema::{
     community::Community,
     instance::{Instance, InstanceForm},
     local_user::LocalUser,
+    person::Person,
     post::Post,
   },
   utils::{get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
@@ -467,21 +468,26 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
 
   match conn {
     Ok(mut conn) => {
-      let x: Option<Vec<(Post, Community)>> = post::table
+      let scheduled_posts: Vec<_> = post::table
         .inner_join(community::table)
+        .inner_join(person::table)
         .filter(post::scheduled_time.is_not_null())
+        .filter(not(post::deleted))
+        .filter(not(post::removed))
+        .filter(not(person::banned))
+        .filter(not(person::deleted))
         // TODO: throws error `overflow evaluating the requirement std::marker::Sized``
-        //.filter(post::scheduled_time.ge(Some(now())))
-        .get_results::<(Post, Community)>(&mut conn)
+        //.filter(post::scheduled_time.le(Some(now())))
+        // TODO: need to check for community ban
+        .get_results::<(Post, Community, Person)>(&mut conn)
         .await
         .inspect_err(|e| error!("Failed to read unpublished posts: {e}"))
-        .ok();
-      let posts: Vec<(Post, Community)> = x
+        .ok()
         .into_iter()
         .flatten()
-        .filter(|(p, _)| p.scheduled_time > Some(Utc::now()))
+        .filter(|(p, _, _)| p.scheduled_time < Some(Utc::now()))
         .collect();
-      let post_ids: Vec<PostId> = posts.iter().map(|p| p.0.id).collect();
+      let post_ids: Vec<PostId> = scheduled_posts.iter().map(|p| p.0.id).collect();
 
       diesel::update(post::table)
         .filter(post::id.eq_any(post_ids))
@@ -491,7 +497,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
         .inspect_err(|e| error!("Failed update scheduled post: {e}"))
         .ok();
 
-      for p in posts {
+      for p in scheduled_posts {
         let send_activity = SendActivityData::CreatePost(p.0.clone());
         ActivityChannel::submit_activity(send_activity, context)
           .await

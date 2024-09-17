@@ -3101,6 +3101,7 @@ dependencies = [
  "clokwerk",
  "diesel",
  "diesel-async",
+ "futures",
  "futures-util",
  "lemmy_api",
  "lemmy_api_common",
