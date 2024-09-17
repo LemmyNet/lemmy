@@ -479,7 +479,8 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
         .get_results::<(Post, Community, Person)>(&mut conn)
         .await
         .inspect_err(|e| error!("Failed to read unpublished posts: {e}"))
-        .ok().unwrap_or_default();
+        .ok()
+        .unwrap_or_default();
 
       for (post, community, person) in scheduled_posts {
         if post.scheduled_publish_time < Some(Utc::now()) {
