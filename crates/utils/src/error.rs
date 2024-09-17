@@ -23,19 +23,15 @@ pub enum LemmyErrorType {
   CouldntUpdateComment,
   CouldntUpdatePrivateMessage,
   CannotLeaveAdmin,
-  NoLinesInHtml,
-  SiteMetadataPageIsNotDoctypeHtml,
+  // TODO: also remove the translations of unused errors
   PictrsResponseError(String),
   PictrsPurgeResponseError(String),
-  PictrsCachingDisabled,
   ImageUrlMissingPathSegments,
   ImageUrlMissingLastPathSegment,
   PictrsApiKeyNotProvided,
   NoContentTypeHeader,
   NotAnImageType,
   NotAModOrAdmin,
-  NoAdmins,
-  NotTopAdmin,
   NotTopMod,
   NotLoggedIn,
   NotHigherMod,
@@ -54,7 +50,6 @@ pub enum LemmyErrorType {
   CouldntFindRegistrationApplication,
   CouldntFindCommentReply,
   CouldntFindPrivateMessage,
-  CouldntFindActivity,
   PersonIsBlocked,
   CommunityIsBlocked,
   InstanceIsBlocked,
@@ -84,23 +79,9 @@ pub enum LemmyErrorType {
   RegistrationClosed,
   RegistrationApplicationAnswerRequired,
   EmailAlreadyExists,
-  FederationForbiddenByStrictAllowList,
-  PersonIsBannedFromCommunity,
-  ObjectIsNotPublic,
-  InvalidCommunity,
-  CannotCreatePostOrCommentInDeletedOrRemovedCommunity,
-  CannotReceivePage,
-  NewPostCannotBeLocked,
-  OnlyLocalAdminCanRemoveCommunity,
-  OnlyLocalAdminCanRestoreCommunity,
   NoIdGiven,
   IncorrectLogin,
-  InvalidQuery,
   ObjectNotLocal,
-  PostIsLocked,
-  PersonIsBannedFromSite(String),
-  InvalidVoteValue,
-  PageDoesNotSpecifyCreator,
   NoEmailSetup,
   LocalSiteNotSetup,
   EmailSmtpServerNeedsAPort,
@@ -138,7 +119,6 @@ pub enum LemmyErrorType {
   CouldntUpdateCommunity,
   CouldntUpdateReplies,
   CouldntUpdatePersonMentions,
-  PostTitleTooLong,
   CouldntCreatePost,
   CouldntCreatePrivateMessage,
   CouldntUpdatePrivate,
@@ -154,10 +134,6 @@ pub enum LemmyErrorType {
   Slurs,
   CouldntFindObject,
   RegistrationDenied(Option<String>),
-  FederationDisabled,
-  DomainBlocked(String),
-  DomainNotInAllowList(String),
-  FederationDisabledByStrictAllowList,
   SiteNameRequired,
   SiteNameLengthOverflow,
   PermissiveRegex,
@@ -171,16 +147,45 @@ pub enum LemmyErrorType {
   /// Thrown when an API call is submitted with more than 1000 array elements, see
   /// [[MAX_API_PARAM_ELEMENTS]]
   TooManyItems,
-  CommunityHasNoFollowers,
   BanExpirationInPast,
   InvalidUnixTime,
   InvalidBotAction,
   CantBlockLocalInstance,
+  Unknown(String),
+  UrlLengthOverflow,
+  FederationError(Option<FederationError>),
+}
+
+/// Federation related errors, these dont need to be translated.
+#[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
+#[cfg_attr(feature = "full", derive(ts_rs::TS))]
+#[cfg_attr(feature = "full", ts(export))]
+#[non_exhaustive]
+pub enum FederationError {
+  // TODO: merge into a single NotFound error
+  CouldntFindActivity,
+  PersonIsBannedFromCommunity,
+  InvalidCommunity,
+  CannotCreatePostOrCommentInDeletedOrRemovedCommunity,
+  CannotReceivePage,
+  OnlyLocalAdminCanRemoveCommunity,
+  OnlyLocalAdminCanRestoreCommunity,
+  PostIsLocked,
+  PersonIsBannedFromSite(String),
+  InvalidVoteValue,
+  PageDoesNotSpecifyCreator,
+  CouldntGetComments,
+  CouldntGetPosts,
+  FederationDisabled,
+  DomainBlocked(String),
+  DomainNotInAllowList(String),
+  FederationDisabledByStrictAllowList,
+  ContradictingFilters,
+  CommunityHasNoFollowers,
   UrlWithoutDomain,
   InboxTimeout,
-  Unknown(String),
   CantDeleteSite,
-  UrlLengthOverflow,
+  ObjectIsNotPublic,
 }
 
 cfg_if! {
@@ -257,6 +262,17 @@ cfg_if! {
       }
     }
 
+    impl From<FederationError> for LemmyError {
+      fn from(error_type: FederationError) -> Self {
+        let inner = anyhow::anyhow!("{}", error_type);
+        LemmyError {
+          error_type: LemmyErrorType::FederationError(Some(error_type)),
+          inner,
+          context: Backtrace::capture(),
+        }
+      }
+    }
+
     pub trait LemmyErrorExt<T, E: Into<anyhow::Error>> {
       fn with_lemmy_type(self, error_type: LemmyErrorType) -> LemmyResult<T>;
     }
@@ -307,12 +323,12 @@ cfg_if! {
 
       #[test]
       fn deserializes_with_message() {
-        let reg_banned = LemmyErrorType::PersonIsBannedFromSite(String::from("reason"));
+        let reg_banned = LemmyErrorType::PictrsResponseError(String::from("reason"));
         let err = LemmyError::from(reg_banned).error_response();
         let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
         assert_eq!(
           &json,
-          "{\"error\":\"person_is_banned_from_site\",\"message\":\"reason\"}"
+          "{\"error\":\"pictrs_response_error\",\"message\":\"reason\"}"
         )
       }
 
