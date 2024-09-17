@@ -219,7 +219,7 @@ async fn check_community_deleted_removed(
   Ok(())
 }
 
-async fn check_community_ban(
+pub async fn check_community_ban(
   person: &Person,
   community_id: CommunityId,
   pool: &mut DbPool<'_>,

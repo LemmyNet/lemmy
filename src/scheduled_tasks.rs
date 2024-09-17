@@ -14,10 +14,10 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
+  utils::check_community_ban,
 };
 use lemmy_api_crud::post::create::send_webmention;
 use lemmy_db_schema::{
-  newtypes::PostId,
   schema::{
     captcha_answer,
     comment,
@@ -476,34 +476,40 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
         .filter(not(post::removed))
         .filter(not(person::banned))
         .filter(not(person::deleted))
-        // TODO: throws error `overflow evaluating the requirement std::marker::Sized``
-        //.filter(post::scheduled_time.le(Some(now())))
-        // TODO: need to check for community ban
         .get_results::<(Post, Community, Person)>(&mut conn)
         .await
         .inspect_err(|e| error!("Failed to read unpublished posts: {e}"))
-        .ok()
-        .into_iter()
-        .flatten()
-        .filter(|(p, _, _)| p.scheduled_publish_time < Some(Utc::now()))
-        .collect();
-      let post_ids: Vec<PostId> = scheduled_posts.iter().map(|p| p.0.id).collect();
+        .ok().unwrap_or_default();
 
-      diesel::update(post::table)
-        .filter(post::id.eq_any(post_ids))
-        .set(post::scheduled_publish_time.eq(None::<DateTime<Utc>>))
-        .execute(&mut conn)
-        .await
-        .inspect_err(|e| error!("Failed update scheduled post: {e}"))
-        .ok();
+      for (post, community, person) in scheduled_posts {
+        if post.scheduled_publish_time < Some(Utc::now()) {
+          // scheduled time is not reached yet, ignore
+          continue;
+        }
+        let is_banned = check_community_ban(&person, community.id, &mut context.pool())
+          .await
+          .is_err();
+        if is_banned {
+          // user is banned, ignore the scheduled post
+          continue;
+        }
 
-      for p in scheduled_posts {
-        let send_activity = SendActivityData::CreatePost(p.0.clone());
+        // mark post as published in db
+        diesel::update(post::table)
+          .filter(post::id.eq(post.id))
+          .set(post::scheduled_publish_time.eq(None::<DateTime<Utc>>))
+          .execute(&mut conn)
+          .await
+          .inspect_err(|e| error!("Failed update scheduled post: {e}"))
+          .ok();
+
+        // send out post via federation and webmention
+        let send_activity = SendActivityData::CreatePost(post.clone());
         ActivityChannel::submit_activity(send_activity, context)
           .await
           .inspect_err(|e| error!("Failed federate scheduled post: {e}"))
           .ok();
-        send_webmention(p.0, p.1);
+        send_webmention(post, community);
       }
     }
     Err(e) => {
