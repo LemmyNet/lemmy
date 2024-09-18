@@ -109,6 +109,11 @@ use lemmy_api_crud::{
     delete::delete_custom_emoji,
     update::update_custom_emoji,
   },
+  oauth_provider::{
+    create::create_oauth_provider,
+    delete::delete_oauth_provider,
+    update::update_oauth_provider,
+  },
   post::{
     create::create_post,
     delete::delete_post,
@@ -123,7 +128,10 @@ use lemmy_api_crud::{
     update::update_private_message,
   },
   site::{create::create_site, read::get_site, update::update_site},
-  user::{create::register, delete::delete_account},
+  user::{
+    create::{authenticate_with_oauth, register},
+    delete::delete_account,
+  },
 };
 use lemmy_apub::api::{
   list_comments::list_comments,
@@ -381,6 +389,18 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", web::post().to(create_custom_emoji))
           .route("", web::put().to(update_custom_emoji))
           .route("/delete", web::post().to(delete_custom_emoji)),
+      )
+      .service(
+        web::scope("/oauth_provider")
+          .wrap(rate_limit.message())
+          .route("", web::post().to(create_oauth_provider))
+          .route("", web::put().to(update_oauth_provider))
+          .route("/delete", web::post().to(delete_oauth_provider)),
+      )
+      .service(
+        web::scope("/oauth")
+          .wrap(rate_limit.register())
+          .route("/authenticate", web::post().to(authenticate_with_oauth)),
       ),
   );
   cfg.service(

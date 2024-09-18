@@ -97,7 +97,9 @@ pub struct BanFromCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub ban: bool,
-  pub remove_data: Option<bool>,
+  /// Optionally remove or restore all their data. Useful for new troll accounts.
+  /// If ban is true, then this means remove. If ban is false, it means restore.
+  pub remove_or_restore_data: Option<bool>,
   pub reason: Option<String>,
   /// A time that the ban will expire, in unix epoch seconds.
   ///

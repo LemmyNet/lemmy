@@ -71,7 +71,8 @@ pub struct LocalSite {
   pub default_post_sort_type: PostSortType,
   /// Default value for [LocalUser.comment_sort_type]
   pub default_comment_sort_type: CommentSortType,
-}
+  /// Whether or not external auth methods can auto-register users.
+  pub oauth_registration: bool,
 
 #[derive(Clone, TypedBuilder)]
 #[builder(field_defaults(default))]
@@ -97,6 +98,7 @@ pub struct LocalSiteInsertForm {
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
+  pub oauth_registration: Option<bool>,
   pub reports_email_admins: Option<bool>,
   pub federation_signed_fetch: Option<bool>,
   pub default_post_listing_mode: Option<PostListingMode>,
@@ -125,6 +127,7 @@ pub struct LocalSiteUpdateForm {
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
+  pub oauth_registration: Option<bool>,
   pub reports_email_admins: Option<bool>,
   pub updated: Option<Option<DateTime<Utc>>>,
   pub federation_signed_fetch: Option<bool>,
