@@ -307,6 +307,7 @@ pub struct GetSiteResponse {
   pub my_user: Option<MyUserInfo>,
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
+  /// If the site has any taglines, a random one is included here for displaying
   pub tagline: Option<Tagline>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
 }
