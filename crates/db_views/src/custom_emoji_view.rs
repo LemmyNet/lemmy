@@ -48,6 +48,7 @@ impl CustomEmojiView {
       .left_join(
         custom_emoji_keyword::table.on(custom_emoji_keyword::custom_emoji_id.eq(custom_emoji::id)),
       )
+      .order(custom_emoji::category)
       .into_boxed();
 
     if !ignore_page_limits {
@@ -58,7 +59,6 @@ impl CustomEmojiView {
     if let Some(category) = category {
       query = query
         .filter(custom_emoji::category.eq(category))
-        .order(custom_emoji::category)
     }
 
     query = query.then_order_by(custom_emoji::id);
