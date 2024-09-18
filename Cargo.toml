@@ -36,7 +36,6 @@ opt-level = "z" # Optimize for size.
 debug = 0
 
 [features]
-embed-pictrs = ["pict-rs"]
 json-log = ["tracing-subscriber/json"]
 default = []
 
@@ -182,7 +181,6 @@ reqwest-middleware = { workspace = true }
 reqwest-tracing = { workspace = true }
 clokwerk = { workspace = true }
 serde_json = { workspace = true }
-pict-rs = { version = "0.5.16", optional = true }
 rustls = { workspace = true }
 tokio.workspace = true
 actix-cors = "0.7.0"

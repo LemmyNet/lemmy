@@ -9,6 +9,7 @@ use lemmy_db_schema::source::{
   instance_block::InstanceBlock,
   language::Language,
   local_site_url_blocklist::LocalSiteUrlBlocklist,
+  oauth_provider::OAuthProvider,
   person_block::PersonBlock,
   tagline::Tagline,
 };
@@ -37,9 +38,7 @@ pub async fn get_site(
   // This data is independent from the user account so we can cache it across requests
   let mut site_response = CACHE
     .try_get_with::<_, LemmyError>((), async {
-      let site_view = SiteView::read_local(&mut context.pool())
-        .await?
-        .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+      let site_view = SiteView::read_local(&mut context.pool()).await?;
       let admins = PersonView::admins(&mut context.pool()).await?;
       let all_languages = Language::read_all(&mut context.pool()).await?;
       let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
@@ -47,6 +46,10 @@ pub async fn get_site(
       let custom_emojis =
         CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
       let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
+      let admin_oauth_providers = OAuthProvider::get_all(&mut context.pool()).await?;
+      let oauth_providers =
+        OAuthProvider::convert_providers_to_public(admin_oauth_providers.clone());
+
       Ok(GetSiteResponse {
         site_view,
         admins,
@@ -57,13 +60,15 @@ pub async fn get_site(
         taglines,
         custom_emojis,
         blocked_urls,
+        oauth_providers: Some(oauth_providers),
+        admin_oauth_providers: Some(admin_oauth_providers),
       })
     })
     .await
     .map_err(|e| anyhow::anyhow!("Failed to construct site response: {e}"))?;
 
   // Build the local user with parallel queries and add it to site response
-  site_response.my_user = if let Some(local_user_view) = local_user_view {
+  site_response.my_user = if let Some(ref local_user_view) = local_user_view {
     let person_id = local_user_view.person.id;
     let local_user_id = local_user_view.local_user.id;
     let pool = &mut context.pool();
@@ -86,7 +91,7 @@ pub async fn get_site(
     .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
     Some(MyUserInfo {
-      local_user_view,
+      local_user_view: local_user_view.clone(),
       follows,
       moderates,
       community_blocks,
@@ -97,6 +102,14 @@ pub async fn get_site(
   } else {
     None
   };
+
+  // filter oauth_providers for public access
+  if !local_user_view
+    .map(|l| l.local_user.admin)
+    .unwrap_or_default()
+  {
+    site_response.admin_oauth_providers = None;
+  }
 
   Ok(Json(site_response))
 }

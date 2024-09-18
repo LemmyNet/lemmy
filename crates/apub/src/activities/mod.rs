@@ -340,7 +340,7 @@ pub async fn match_outgoing_activities(
         moderator,
         banned_user,
         reason,
-        remove_data,
+        remove_or_restore_data,
         ban,
         expires,
       } => {
@@ -348,7 +348,7 @@ pub async fn match_outgoing_activities(
           moderator,
           banned_user,
           reason,
-          remove_data,
+          remove_or_restore_data,
           ban,
           expires,
           context,

@@ -121,6 +121,18 @@ impl Person {
       .load::<CommunityId>(conn)
       .await
   }
+
+  pub async fn is_username_taken(pool: &mut DbPool<'_>, username: &str) -> Result<bool, Error> {
+    use diesel::dsl::{exists, select};
+    let conn = &mut get_conn(pool).await?;
+    select(exists(
+      person::table
+        .filter(lower(person::name).eq(username.to_lowercase()))
+        .filter(person::local.eq(true)),
+    ))
+    .get_result(conn)
+    .await
+  }
 }
 
 impl PersonInsertForm {

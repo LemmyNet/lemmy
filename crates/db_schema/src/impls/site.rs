@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{DbUrl, InstanceId, SiteId},
-  schema::site,
+  schema::{local_site, site},
   source::{
     actor_language::SiteLanguage,
     site::{Site, SiteInsertForm, SiteUpdateForm},
@@ -10,6 +10,7 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 use url::Url;
 
 #[async_trait]
@@ -101,5 +102,19 @@ impl Site {
     url.set_path("");
     url.set_query(None);
     url
+  }
+
+  pub async fn read_local(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+
+    Ok(
+      site::table
+        .inner_join(local_site::table)
+        .select(site::all_columns)
+        .first(conn)
+        .await
+        .optional()?
+        .ok_or(LemmyErrorType::LocalSiteNotSetup)?,
+    )
   }
 }

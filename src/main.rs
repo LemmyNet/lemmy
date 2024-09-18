@@ -19,35 +19,6 @@ pub async fn main() -> LemmyResult<()> {
     .install_default()
     .expect("Failed to install rustls crypto provider");
 
-  #[cfg(not(feature = "embed-pictrs"))]
   start_lemmy_server(args).await?;
-  #[cfg(feature = "embed-pictrs")]
-  {
-    let pictrs_port = &SETTINGS
-      .pictrs_config()
-      .unwrap_or_default()
-      .url
-      .port()
-      .unwrap_or(8080);
-    let pictrs_address = ["127.0.0.1", &pictrs_port.to_string()].join(":");
-    let pictrs_config = pict_rs::ConfigSource::memory(serde_json::json!({
-        "server": {
-            "address": pictrs_address
-        },
-        "repo": {
-            "type": "sled",
-            "path": "./pictrs/sled-repo"
-        },
-        "store": {
-            "type": "filesystem",
-            "path": "./pictrs/files"
-        }
-    }))
-    .init::<&str>(None)
-    .expect("initialize pictrs config");
-    let (lemmy, pictrs) = tokio::join!(start_lemmy_server(args), pictrs_config.run_on_localset());
-    lemmy?;
-    pictrs.expect("run pictrs");
-  }
   Ok(())
 }

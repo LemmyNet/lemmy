@@ -29,8 +29,6 @@ pub struct LocalSite {
   pub site_setup: bool,
   /// Whether downvotes are enabled.
   pub enable_downvotes: bool,
-  /// Whether NSFW is enabled.
-  pub enable_nsfw: bool,
   /// Whether only admins can create communities.
   pub community_creation_admin_only: bool,
   /// Whether emails are required.
@@ -70,6 +68,8 @@ pub struct LocalSite {
   pub default_post_listing_mode: PostListingMode,
   /// Default value for [LocalUser.post_listing_mode]
   pub default_sort_type: SortType,
+  /// Whether or not external auth methods can auto-register users.
+  pub oauth_registration: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -81,7 +81,6 @@ pub struct LocalSiteInsertForm {
   pub site_id: SiteId,
   pub site_setup: Option<bool>,
   pub enable_downvotes: Option<bool>,
-  pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
   pub application_question: Option<String>,
@@ -97,6 +96,7 @@ pub struct LocalSiteInsertForm {
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
+  pub oauth_registration: Option<bool>,
   pub reports_email_admins: Option<bool>,
   pub federation_signed_fetch: Option<bool>,
   pub default_post_listing_mode: Option<PostListingMode>,
@@ -109,7 +109,6 @@ pub struct LocalSiteInsertForm {
 pub struct LocalSiteUpdateForm {
   pub site_setup: Option<bool>,
   pub enable_downvotes: Option<bool>,
-  pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
   pub application_question: Option<Option<String>>,
@@ -125,6 +124,7 @@ pub struct LocalSiteUpdateForm {
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
+  pub oauth_registration: Option<bool>,
   pub reports_email_admins: Option<bool>,
   pub updated: Option<Option<DateTime<Utc>>>,
   pub federation_signed_fetch: Option<bool>,

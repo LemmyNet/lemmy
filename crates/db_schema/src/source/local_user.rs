@@ -24,7 +24,7 @@ pub struct LocalUser {
   /// The person_id for the local user.
   pub person_id: PersonId,
   #[serde(skip)]
-  pub password_encrypted: SensitiveString,
+  pub password_encrypted: Option<SensitiveString>,
   pub email: Option<SensitiveString>,
   /// Whether to show NSFW content.
   pub show_nsfw: bool,
@@ -70,7 +70,7 @@ pub struct LocalUser {
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
 pub struct LocalUserInsertForm {
   pub person_id: PersonId,
-  pub password_encrypted: String,
+  pub password_encrypted: Option<String>,
   #[new(default)]
   pub email: Option<String>,
   #[new(default)]
