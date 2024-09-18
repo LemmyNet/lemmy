@@ -32,8 +32,8 @@ pub async fn update_tagline(
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
 
   let tagline_form = TaglineUpdateForm {
-    content: Some(content),
-    updated: Some(Some(naive_now())),
+    content,
+    updated: naive_now(),
   };
 
   let tagline = Tagline::update(&mut context.pool(), data.id, &tagline_form).await?;
