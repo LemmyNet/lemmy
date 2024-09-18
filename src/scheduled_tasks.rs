@@ -5,6 +5,7 @@ use diesel::{
   dsl::{not, IntervalDsl},
   sql_query,
   sql_types::{Integer, Timestamptz},
+  BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
@@ -36,7 +37,7 @@ use lemmy_db_schema::{
     person::Person,
     post::Post,
   },
-  utils::{get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{functions::coalesce, get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use lemmy_utils::error::LemmyResult;
@@ -471,11 +472,13 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
       let scheduled_posts: Vec<_> = post::table
         .inner_join(community::table)
         .inner_join(person::table)
+        // find all posts which have scheduled_publish_time that is in the  past
         .filter(post::scheduled_publish_time.is_not_null())
-        .filter(not(post::deleted))
-        .filter(not(post::removed))
-        .filter(not(person::banned))
-        .filter(not(person::deleted))
+        .filter(coalesce(post::scheduled_publish_time, now()).lt(now()))
+        // make sure the post, person and community are still around
+        .filter(not(post::deleted.or(post::removed)))
+        .filter(not(person::banned.or(person::deleted)))
+        .filter(not(community::removed.or(community::deleted)))
         .get_results::<(Post, Community, Person)>(&mut conn)
         .await
         .inspect_err(|e| error!("Failed to read unpublished posts: {e}"))
@@ -483,10 +486,6 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
         .unwrap_or_default();
 
       for (post, community, person) in scheduled_posts {
-        if post.scheduled_publish_time < Some(Utc::now()) {
-          // scheduled time is not reached yet, ignore
-          continue;
-        }
         let is_banned = check_community_ban(&person, community.id, &mut context.pool())
           .await
           .is_err();
