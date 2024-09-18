@@ -110,11 +110,12 @@ pub async fn update_post(
   )
   .await?;
 
-  let mut scheduled_publish_time = convert_published_time(data.scheduled_publish_time)?;
-  if orig_post.scheduled_publish_time.is_none() {
-    // cant schedule a post which is already published
-    scheduled_publish_time = None;
-  }
+  // cant schedule a post which is already published
+  let mut scheduled_publish_time = if orig_post.scheduled_publish_time.is_some() {
+    convert_published_time(data.scheduled_publish_time)?;
+  } else {
+    None;
+  };
 
   let post_form = PostUpdateForm {
     name: data.name.clone(),
