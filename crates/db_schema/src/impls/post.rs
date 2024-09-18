@@ -54,19 +54,6 @@ impl Crud for Post {
       .await
   }
 
-  /// Ignores unpublished scheduled posts
-  /// TODO: with this filter its not possible to view your own scheduled posts.
-  ///       need to find another way.
-  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Option<Self>, Error> {
-    let conn = &mut *get_conn(pool).await?;
-    post::table
-      .find(id)
-      //.filter(post::scheduled_publish_time.is_null())
-      .first(conn)
-      .await
-      .optional()
-  }
-
   async fn update(
     pool: &mut DbPool<'_>,
     post_id: PostId,
