@@ -62,23 +62,14 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   });
 
   let context_1 = context.reset_request_count();
-  // Update hot ranks every 15 minutes
+  // Every 10 minutes update hot ranks, delete expired captchas and publish scheduled posts
   scheduler.every(CTimeUnits::minutes(10)).run(move || {
     let context = context_1.reset_request_count();
 
     async move {
       update_hot_ranks(&mut context.pool()).await;
-      publish_scheduled_posts(&context).await;
-    }
-  });
-
-  let context_1 = context.clone();
-  // Delete any captcha answers older than ten minutes, every ten minutes
-  scheduler.every(CTimeUnits::minutes(10)).run(move || {
-    let context = context_1.clone();
-
-    async move {
       delete_expired_captcha_answers(&mut context.pool()).await;
+      publish_scheduled_posts(&context).await;
     }
   });
 
@@ -494,7 +485,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
       for (post, community) in scheduled_posts {
         // mark post as published in db
         let form = PostUpdateForm {
-          scheduled_publish_time: None,
+          scheduled_publish_time: Some(None),
           ..Default::default()
         };
         Post::update(&mut context.pool(), post.id, &form)
