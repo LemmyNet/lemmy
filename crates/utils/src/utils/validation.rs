@@ -22,8 +22,6 @@ const URL_MAX_LENGTH: usize = 2000;
 const ALT_TEXT_MAX_LENGTH: usize = 1500;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
-const TAGLINE_CONTENT_MIN_LENGTH: usize = 1;
-const TAGLINE_CONTENT_MAX_LENGTH: usize = 50000;
 const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
 //Invisible unicode characters, taken from https://invisible-characters.com/
 const FORBIDDEN_DISPLAY_CHARS: [char; 53] = [
@@ -166,20 +164,6 @@ pub fn is_valid_body_field(body: &str, post: bool) -> LemmyResult<()> {
   } else {
     max_length_check(body, BODY_MAX_LENGTH, LemmyErrorType::InvalidBodyField)?;
   };
-  Ok(())
-}
-
-pub fn is_valid_tagline_content(content: &str) -> LemmyResult<()> {
-  min_length_check(
-    content,
-    TAGLINE_CONTENT_MIN_LENGTH,
-    LemmyErrorType::TaglineInvalid,
-  )?;
-  max_length_check(
-    content,
-    TAGLINE_CONTENT_MAX_LENGTH,
-    LemmyErrorType::TaglineInvalid,
-  )?;
   Ok(())
 }
 
