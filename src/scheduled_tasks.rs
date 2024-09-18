@@ -2,7 +2,7 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
-  dsl::{not, IntervalDsl},
+  dsl::{exists, not, IntervalDsl},
   sql_query,
   sql_types::{Integer, Timestamptz},
   BoolExpressionMethods,
@@ -15,7 +15,6 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_community_ban,
 };
 use lemmy_api_crud::post::create::send_webmention;
 use lemmy_db_schema::{
@@ -34,9 +33,9 @@ use lemmy_db_schema::{
     community::Community,
     instance::{Instance, InstanceForm},
     local_user::LocalUser,
-    person::Person,
-    post::Post,
+    post::{Post, PostUpdateForm},
   },
+  traits::Crud,
   utils::{functions::coalesce, get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
@@ -479,26 +478,26 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
         .filter(not(post::deleted.or(post::removed)))
         .filter(not(person::banned.or(person::deleted)))
         .filter(not(community::removed.or(community::deleted)))
-        .get_results::<(Post, Community, Person)>(&mut conn)
+        // ensure that user isnt banned from community
+        .filter(not(exists(
+          community_person_ban::table
+            .filter(community_person_ban::community_id.eq(community::id))
+            .filter(community_person_ban::person_id.eq(person::id)),
+        )))
+        .select((post::all_columns, community::all_columns))
+        .get_results::<(Post, Community)>(&mut conn)
         .await
         .inspect_err(|e| error!("Failed to read unpublished posts: {e}"))
         .ok()
         .unwrap_or_default();
 
-      for (post, community, person) in scheduled_posts {
-        let is_banned = check_community_ban(&person, community.id, &mut context.pool())
-          .await
-          .is_err();
-        if is_banned {
-          // user is banned, ignore the scheduled post
-          continue;
-        }
-
+      for (post, community) in scheduled_posts {
         // mark post as published in db
-        diesel::update(post::table)
-          .filter(post::id.eq(post.id))
-          .set(post::scheduled_publish_time.eq(None::<DateTime<Utc>>))
-          .execute(&mut conn)
+        let form = PostUpdateForm {
+          scheduled_publish_time: None,
+          ..Default::default()
+        };
+        Post::update(&mut context.pool(), post.id, &form)
           .await
           .inspect_err(|e| error!("Failed update scheduled post: {e}"))
           .ok();
