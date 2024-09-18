@@ -482,24 +482,14 @@ pub fn naive_now() -> DateTime<Utc> {
 }
 
 pub fn post_to_comment_sort_type(sort: PostSortType) -> CommentSortType {
+  use PostSortType::*;
   match sort {
-    PostSortType::Active | PostSortType::Hot | PostSortType::Scaled => CommentSortType::Hot,
-    PostSortType::New | PostSortType::NewComments | PostSortType::MostComments => {
-      CommentSortType::New
-    }
-    PostSortType::Old => CommentSortType::Old,
-    PostSortType::Controversial => CommentSortType::Controversial,
-    PostSortType::TopHour
-    | PostSortType::TopSixHour
-    | PostSortType::TopTwelveHour
-    | PostSortType::TopDay
-    | PostSortType::TopAll
-    | PostSortType::TopWeek
-    | PostSortType::TopYear
-    | PostSortType::TopMonth
-    | PostSortType::TopThreeMonths
-    | PostSortType::TopSixMonths
-    | PostSortType::TopNineMonths => CommentSortType::Top,
+    Active | Hot | Scaled => CommentSortType::Hot,
+    New | NewComments | MostComments => CommentSortType::New,
+    Old => CommentSortType::Old,
+    Controversial => CommentSortType::Controversial,
+    TopHour | TopSixHour | TopTwelveHour | TopDay | TopAll | TopWeek | TopYear | TopMonth
+    | TopThreeMonths | TopSixMonths | TopNineMonths => CommentSortType::Top,
   }
 }
 

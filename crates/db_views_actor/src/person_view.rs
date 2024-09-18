@@ -47,13 +47,12 @@ enum PersonSortType {
 }
 
 fn post_to_person_sort_type(sort: PostSortType) -> PersonSortType {
+  use PostSortType::*;
   match sort {
-    PostSortType::Active | PostSortType::Hot | PostSortType::Controversial => {
-      PersonSortType::CommentScore
-    }
-    PostSortType::New | PostSortType::NewComments => PersonSortType::New,
-    PostSortType::MostComments => PersonSortType::MostComments,
-    PostSortType::Old => PersonSortType::Old,
+    Active | Hot | Controversial => PersonSortType::CommentScore,
+    New | NewComments => PersonSortType::New,
+    MostComments => PersonSortType::MostComments,
+    Old => PersonSortType::Old,
     _ => PersonSortType::CommentScore,
   }
 }

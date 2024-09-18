@@ -61,6 +61,7 @@ use lemmy_db_schema::{
   PostSortType,
 };
 use tracing::debug;
+use PostSortType::*;
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, PostView, (PostId, Option<&'a LocalUser>, bool)>,
@@ -510,33 +511,33 @@ fn queries<'a>() -> Queries<
     let time = |interval| post_aggregates::published.gt(now() - interval);
 
     // then use the main sort
-    query = match options.sort.unwrap_or(PostSortType::Hot) {
-      PostSortType::Active => query.then_desc(key::hot_rank_active),
-      PostSortType::Hot => query.then_desc(key::hot_rank),
-      PostSortType::Scaled => query.then_desc(key::scaled_rank),
-      PostSortType::Controversial => query.then_desc(key::controversy_rank),
-      PostSortType::New => query.then_desc(key::published),
-      PostSortType::Old => query.then_desc(ReverseTimestampKey(key::published)),
-      PostSortType::NewComments => query.then_desc(key::newest_comment_time),
-      PostSortType::MostComments => query.then_desc(key::comments),
-      PostSortType::TopAll => query.then_desc(key::score),
-      PostSortType::TopYear => query.then_desc(key::score).filter(time(1.years())),
-      PostSortType::TopMonth => query.then_desc(key::score).filter(time(1.months())),
-      PostSortType::TopWeek => query.then_desc(key::score).filter(time(1.weeks())),
-      PostSortType::TopDay => query.then_desc(key::score).filter(time(1.days())),
-      PostSortType::TopHour => query.then_desc(key::score).filter(time(1.hours())),
-      PostSortType::TopSixHour => query.then_desc(key::score).filter(time(6.hours())),
-      PostSortType::TopTwelveHour => query.then_desc(key::score).filter(time(12.hours())),
-      PostSortType::TopThreeMonths => query.then_desc(key::score).filter(time(3.months())),
-      PostSortType::TopSixMonths => query.then_desc(key::score).filter(time(6.months())),
-      PostSortType::TopNineMonths => query.then_desc(key::score).filter(time(9.months())),
+    query = match options.sort.unwrap_or(Hot) {
+      Active => query.then_desc(key::hot_rank_active),
+      Hot => query.then_desc(key::hot_rank),
+      Scaled => query.then_desc(key::scaled_rank),
+      Controversial => query.then_desc(key::controversy_rank),
+      New => query.then_desc(key::published),
+      Old => query.then_desc(ReverseTimestampKey(key::published)),
+      NewComments => query.then_desc(key::newest_comment_time),
+      MostComments => query.then_desc(key::comments),
+      TopAll => query.then_desc(key::score),
+      TopYear => query.then_desc(key::score).filter(time(1.years())),
+      TopMonth => query.then_desc(key::score).filter(time(1.months())),
+      TopWeek => query.then_desc(key::score).filter(time(1.weeks())),
+      TopDay => query.then_desc(key::score).filter(time(1.days())),
+      TopHour => query.then_desc(key::score).filter(time(1.hours())),
+      TopSixHour => query.then_desc(key::score).filter(time(6.hours())),
+      TopTwelveHour => query.then_desc(key::score).filter(time(12.hours())),
+      TopThreeMonths => query.then_desc(key::score).filter(time(3.months())),
+      TopSixMonths => query.then_desc(key::score).filter(time(6.months())),
+      TopNineMonths => query.then_desc(key::score).filter(time(9.months())),
     };
 
     // use publish as fallback. especially useful for hot rank which reaches zero after some days.
     // necessary because old posts can be fetched over federation and inserted with high post id
-    query = match options.sort.unwrap_or(PostSortType::Hot) {
+    query = match options.sort.unwrap_or(Hot) {
       // A second time-based sort would not be very useful
-      PostSortType::New | PostSortType::Old | PostSortType::NewComments => query,
+      New | Old | NewComments => query,
       _ => query.then_desc(key::published),
     };
 

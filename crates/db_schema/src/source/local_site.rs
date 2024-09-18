@@ -73,6 +73,7 @@ pub struct LocalSite {
   pub default_comment_sort_type: CommentSortType,
   /// Whether or not external auth methods can auto-register users.
   pub oauth_registration: bool,
+}
 
 #[derive(Clone, TypedBuilder)]
 #[builder(field_defaults(default))]
