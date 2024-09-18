@@ -16,6 +16,7 @@ use lemmy_db_schema::{
     instance::Instance,
     language::Language,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    oauth_provider::{OAuthProvider, PublicOAuthProvider},
     person::Person,
     tagline::Tagline,
   },
@@ -198,6 +199,7 @@ pub struct CreateSite {
   pub allowed_instances: Option<Vec<String>>,
   pub blocked_instances: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  pub oauth_registration: Option<bool>,
   pub content_warning: Option<String>,
   pub default_post_listing_mode: Option<PostListingMode>,
 }
@@ -278,6 +280,8 @@ pub struct EditSite {
   /// A list of blocked URLs
   pub blocked_urls: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  /// Whether or not external auth methods can auto-register users.
+  pub oauth_registration: Option<bool>,
   /// Whether to email admins for new reports.
   pub reports_email_admins: Option<bool>,
   /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
@@ -309,6 +313,9 @@ pub struct GetSiteResponse {
   pub discussion_languages: Vec<LanguageId>,
   /// If the site has any taglines, a random one is included here for displaying
   pub tagline: Option<Tagline>,
+  /// A list of external auth methods your site supports.
+  pub oauth_providers: Option<Vec<PublicOAuthProvider>>,
+  pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
 }
 

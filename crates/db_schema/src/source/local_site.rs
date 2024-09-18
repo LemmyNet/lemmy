@@ -68,6 +68,8 @@ pub struct LocalSite {
   pub default_post_listing_mode: PostListingMode,
   /// Default value for [LocalUser.post_listing_mode]
   pub default_sort_type: SortType,
+  /// Whether or not external auth methods can auto-register users.
+  pub oauth_registration: bool,
 }
 
 #[derive(Clone, TypedBuilder)]
@@ -94,6 +96,7 @@ pub struct LocalSiteInsertForm {
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
+  pub oauth_registration: Option<bool>,
   pub reports_email_admins: Option<bool>,
   pub federation_signed_fetch: Option<bool>,
   pub default_post_listing_mode: Option<PostListingMode>,
@@ -121,6 +124,7 @@ pub struct LocalSiteUpdateForm {
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
+  pub oauth_registration: Option<bool>,
   pub reports_email_admins: Option<bool>,
   pub updated: Option<Option<DateTime<Utc>>>,
   pub federation_signed_fetch: Option<bool>,

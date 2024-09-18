@@ -160,6 +160,12 @@ pub struct TaglineId(i32);
 /// The registration application id.
 pub struct RegistrationApplicationId(i32);
 
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The oauth provider id.
+pub struct OAuthProviderId(pub i32);
+
 #[cfg(feature = "full")]
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Ltree")]

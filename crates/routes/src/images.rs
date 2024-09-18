@@ -5,8 +5,7 @@ use actix_web::{
     Method,
     StatusCode,
   },
-  web,
-  web::Query,
+  web::{self, Query},
   HttpRequest,
   HttpResponse,
 };
