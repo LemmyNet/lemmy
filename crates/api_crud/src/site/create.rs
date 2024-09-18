@@ -591,6 +591,7 @@ mod tests {
       blocked_instances: None,
       taglines: None,
       registration_mode: site_registration_mode,
+      oauth_registration: None,
       content_warning: None,
       default_post_listing_mode: None,
     }

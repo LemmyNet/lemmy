@@ -288,12 +288,23 @@ pub fn is_email_regex(test: &str) -> bool {
   EMAIL_REGEX.is_match(test)
 }
 
-/// Takes an API text input, and converts it to an optional diesel DB update.
+/// Takes an API optional text input, and converts it to an optional diesel DB update.
 pub fn diesel_string_update(opt: Option<&str>) -> Option<Option<String>> {
   match opt {
     // An empty string is an erase
     Some("") => Some(None),
     Some(str) => Some(Some(str.into())),
+    None => None,
+  }
+}
+
+/// Takes an API optional text input, and converts it to an optional diesel DB update (for non
+/// nullable properties).
+pub fn diesel_required_string_update(opt: Option<&str>) -> Option<String> {
+  match opt {
+    // An empty string is no change
+    Some("") => None,
+    Some(str) => Some(str.into()),
     None => None,
   }
 }
@@ -306,6 +317,19 @@ pub fn diesel_url_update(opt: Option<&str>) -> LemmyResult<Option<Option<DbUrl>>
     Some("") => Ok(Some(None)),
     Some(str_url) => Url::parse(str_url)
       .map(|u| Some(Some(clean_url(&u).into())))
+      .with_lemmy_type(LemmyErrorType::InvalidUrl),
+    None => Ok(None),
+  }
+}
+
+/// Takes an optional API URL-type input, and converts it to an optional diesel DB update (for non
+/// nullable properties). Also cleans the url params.
+pub fn diesel_required_url_update(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
+  match opt {
+    // An empty string is no change
+    Some("") => Ok(None),
+    Some(str_url) => Url::parse(str_url)
+      .map(|u| Some(clean_url(&u).into()))
       .with_lemmy_type(LemmyErrorType::InvalidUrl),
     None => Ok(None),
   }
