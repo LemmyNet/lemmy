@@ -57,8 +57,7 @@ impl CustomEmojiView {
     }
 
     if let Some(category) = category {
-      query = query
-        .filter(custom_emoji::category.eq(category))
+      query = query.filter(custom_emoji::category.eq(category))
     }
 
     query = query.then_order_by(custom_emoji::id);
