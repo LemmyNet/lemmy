@@ -1,3 +1,4 @@
+use super::not_zero;
 use crate::site::{application_question_check, site_default_post_listing_type_check};
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::web::Json;
@@ -40,8 +41,6 @@ use lemmy_utils::{
   },
 };
 use url::Url;
-
-use super::not_zero;
 
 #[tracing::instrument(skip(context))]
 pub async fn create_site(

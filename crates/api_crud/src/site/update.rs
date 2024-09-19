@@ -1,3 +1,4 @@
+use super::not_zero;
 use crate::site::{application_question_check, site_default_post_listing_type_check};
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
@@ -45,8 +46,6 @@ use lemmy_utils::{
     },
   },
 };
-
-use super::not_zero;
 
 #[tracing::instrument(skip(context))]
 pub async fn update_site(

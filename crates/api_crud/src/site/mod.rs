@@ -98,6 +98,6 @@ mod tests {
 fn not_zero(val: Option<i32>) -> Option<i32> {
   match val {
     Some(0) => None,
-    v => v
+    v => v,
   }
 }
