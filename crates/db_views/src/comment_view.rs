@@ -35,7 +35,7 @@ use lemmy_db_schema::{
     person_block,
     post,
   },
-  source::local_user::LocalUser,
+  source::{local_user::LocalUser, site::Site},
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
   ListingType,
@@ -43,7 +43,7 @@ use lemmy_db_schema::{
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommentView, (CommentId, Option<&'a LocalUser>)>,
-  impl ListFn<'a, CommentView, CommentQuery<'a>>,
+  impl ListFn<'a, CommentView, (CommentQuery<'a>, &'a Site)>,
 > {
   let is_creator_banned_from_community = exists(
     community_person_ban::table.filter(
@@ -182,7 +182,7 @@ fn queries<'a>() -> Queries<
     query.first(&mut conn).await
   };
 
-  let list = move |mut conn: DbConn<'a>, options: CommentQuery<'a>| async move {
+  let list = move |mut conn: DbConn<'a>, (options, site): (CommentQuery<'a>, &'a Site)| async move {
     // The left join below will return None in this case
     let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
     let local_user_id_join = options
@@ -295,6 +295,12 @@ fn queries<'a>() -> Queries<
       query = query.filter(not(is_creator_blocked(person_id_join)));
     };
 
+    if !options.local_user.show_nsfw(site) {
+      query = query
+        .filter(post::nsfw.eq(false))
+        .filter(community::nsfw.eq(false));
+    };
+
     query = options.local_user.visible_communities_only(query);
 
     // A Max depth given means its a tree fetch
@@ -401,10 +407,10 @@ pub struct CommentQuery<'a> {
 }
 
 impl<'a> CommentQuery<'a> {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
     Ok(
       queries()
-        .list(pool, self)
+        .list(pool, (self, site))
         .await?
         .into_iter()
         .map(|mut c| {
@@ -457,7 +463,8 @@ mod tests {
       local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
-      post::{Post, PostInsertForm},
+      post::{Post, PostInsertForm, PostUpdateForm},
+      site::{Site, SiteInsertForm, SiteUpdateForm},
     },
     traits::{Bannable, Blockable, Crud, Joinable, Likeable, Saveable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
@@ -477,6 +484,7 @@ mod tests {
     timmy_local_user_view: LocalUserView,
     inserted_sara_person: Person,
     inserted_community: Community,
+    site: Site,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
@@ -608,6 +616,11 @@ mod tests {
       person: inserted_timmy_person.clone(),
       counts: Default::default(),
     };
+    let site_form = SiteInsertForm::builder()
+      .name("test site".to_string())
+      .instance_id(inserted_instance.id)
+      .build();
+    let site = Site::create(pool, &site_form).await?;
     Ok(Data {
       inserted_instance,
       inserted_comment_0,
@@ -617,6 +630,7 @@ mod tests {
       timmy_local_user_view,
       inserted_sara_person,
       inserted_community,
+      site,
     })
   }
 
@@ -637,7 +651,7 @@ mod tests {
       post_id: (Some(data.inserted_post.id)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     assert_eq!(
@@ -653,7 +667,7 @@ mod tests {
       local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     assert_eq!(
@@ -706,7 +720,7 @@ mod tests {
       liked_only: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?
     .into_iter()
     .map(|c| c.comment.content)
@@ -722,7 +736,7 @@ mod tests {
       disliked_only: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     assert!(read_disliked_comment_views.is_empty());
@@ -743,7 +757,7 @@ mod tests {
       parent_path: (Some(top_path)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     let child_path = data.inserted_comment_1.path.clone();
@@ -752,7 +766,7 @@ mod tests {
       parent_path: (Some(child_path)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     // Make sure the comment parent-limited fetch is correct
@@ -772,7 +786,7 @@ mod tests {
       max_depth: (Some(1)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     // Make sure a depth limited one only has the top comment
@@ -790,7 +804,7 @@ mod tests {
       sort: (Some(CommentSortType::New)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     // Make sure a depth limited one, and given child comment 1, has 3
@@ -816,7 +830,7 @@ mod tests {
       local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_length!(5, all_languages);
 
@@ -834,7 +848,7 @@ mod tests {
       local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_length!(2, finnish_comments);
     let finnish_comment = finnish_comments
@@ -860,7 +874,7 @@ mod tests {
       local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_length!(1, undetermined_comment);
 
@@ -884,7 +898,7 @@ mod tests {
       post_id: Some(data.inserted_comment_2.post_id),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_eq!(comments[0].comment.id, data.inserted_comment_2.id);
     assert!(comments[0].comment.distinguished);
@@ -913,7 +927,7 @@ mod tests {
       sort: (Some(CommentSortType::Old)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     assert_eq!(comments[1].creator.name, "sara");
@@ -934,7 +948,7 @@ mod tests {
       sort: (Some(CommentSortType::Old)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     // Timmy is an admin, and make sure that field is true
@@ -974,7 +988,7 @@ mod tests {
       saved_only: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     // There should only be two comments
@@ -1004,6 +1018,7 @@ mod tests {
     LocalUser::delete(pool, data.timmy_local_user_view.local_user.id).await?;
     Person::delete(pool, data.inserted_sara_person.id).await?;
     Instance::delete(pool, data.inserted_instance.id).await?;
+    Site::delete(pool, data.site.id).await?;
 
     Ok(())
   }
@@ -1144,7 +1159,7 @@ mod tests {
     let unauthenticated_query = CommentQuery {
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_eq!(0, unauthenticated_query.len());
 
@@ -1152,7 +1167,7 @@ mod tests {
       local_user: Some(&data.timmy_local_user_view.local_user),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_eq!(5, authenticated_query.len());
 
@@ -1210,6 +1225,38 @@ mod tests {
     assert!(comment_view.banned_from_community);
 
     Person::delete(pool, inserted_banned_from_comm_person.id).await?;
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn comment_listings_hide_nsfw() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Mark a post as nsfw
+    let update_form = PostUpdateForm {
+      nsfw: Some(true),
+      ..Default::default()
+    };
+    Post::update(pool, data.inserted_post.id, &update_form).await?;
+
+    // Make sure comments of this post are not returned
+    let comments = CommentQuery::default().list(&data.site, pool).await?;
+    assert_eq!(1, comments.len());
+
+    // Mark site as nsfw
+    let form = SiteUpdateForm {
+      content_warning: Some(Some("nsfw".to_string())),
+      ..Default::default()
+    };
+    Site::update(pool, data.site.id, &form).await?;
+
+    // Now comments of nsfw post are returned
+    let comments = CommentQuery::default().list(&data.site, pool).await?;
+    assert_eq!(1, comments.len());
+
     cleanup(data, pool).await
   }
 
