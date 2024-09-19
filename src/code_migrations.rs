@@ -471,7 +471,7 @@ async fn initialize_local_site_2022_10_10(
     let local_user_form = LocalUserInsertForm {
       email: setup.admin_email.clone(),
       admin: Some(true),
-      ..LocalUserInsertForm::new(person_inserted.id, setup.admin_password.clone())
+      ..LocalUserInsertForm::new(person_inserted.id, Some(setup.admin_password.clone()))
     };
     LocalUser::create(pool, &local_user_form, vec![]).await?;
   };

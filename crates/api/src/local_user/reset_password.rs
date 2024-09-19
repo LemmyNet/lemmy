@@ -1,9 +1,8 @@
-use crate::local_user::check_email_verified;
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   person::PasswordReset,
-  utils::send_password_reset_email,
+  utils::{check_email_verified, send_password_reset_email},
   SuccessResponse,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};

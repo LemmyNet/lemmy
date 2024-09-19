@@ -23,18 +23,21 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    oauth_account::OAuthAccount,
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
     post::{Post, PostRead},
+    registration_application::RegistrationApplication,
     site::Site,
   },
   traits::Crud,
   utils::DbPool,
+  RegistrationMode,
 };
 use lemmy_db_views::{
   comment_view::CommentQuery,
-  structs::{LocalImageView, LocalUserView},
+  structs::{LocalImageView, LocalUserView, SiteView},
 };
 use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
@@ -190,6 +193,46 @@ pub fn check_user_valid(person: &Person) -> LemmyResult<()> {
   } else {
     Ok(())
   }
+}
+
+/// Check if the user's email is verified if email verification is turned on
+/// However, skip checking verification if the user is an admin
+pub fn check_email_verified(
+  local_user_view: &LocalUserView,
+  site_view: &SiteView,
+) -> LemmyResult<()> {
+  if !local_user_view.local_user.admin
+    && site_view.local_site.require_email_verification
+    && !local_user_view.local_user.email_verified
+  {
+    Err(LemmyErrorType::EmailNotVerified)?
+  }
+  Ok(())
+}
+
+pub async fn check_registration_application(
+  local_user_view: &LocalUserView,
+  local_site: &LocalSite,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
+  if (local_site.registration_mode == RegistrationMode::RequireApplication
+    || local_site.registration_mode == RegistrationMode::Closed)
+    && !local_user_view.local_user.accepted_application
+    && !local_user_view.local_user.admin
+  {
+    // Fetch the registration application. If no admin id is present its still pending. Otherwise it
+    // was processed (either accepted or denied).
+    let local_user_id = local_user_view.local_user.id;
+    let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindRegistrationApplication)?;
+    if registration.admin_id.is_some() {
+      Err(LemmyErrorType::RegistrationDenied(registration.deny_reason))?
+    } else {
+      Err(LemmyErrorType::RegistrationApplicationIsPending)?
+    }
+  }
+  Ok(())
 }
 
 /// Checks that a normal user action (eg posting or voting) is allowed in a given community.
@@ -784,13 +827,30 @@ pub async fn remove_user_data(
   Ok(())
 }
 
-pub async fn remove_user_data_in_community(
+/// We can't restore their images, but we can unremove their posts and comments
+pub async fn restore_user_data(
+  banned_person_id: PersonId,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  let pool = &mut context.pool();
+
+  // Posts
+  Post::update_removed_for_creator(pool, banned_person_id, None, false).await?;
+
+  // Comments
+  Comment::update_removed_for_creator(pool, banned_person_id, false).await?;
+
+  Ok(())
+}
+
+pub async fn remove_or_restore_user_data_in_community(
   community_id: CommunityId,
   banned_person_id: PersonId,
+  remove: bool,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   // Posts
-  Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), true).await?;
+  Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), remove).await?;
 
   // Comments
   // TODO Diesel doesn't allow updates with joins, so this has to be a loop
@@ -808,7 +868,7 @@ pub async fn remove_user_data_in_community(
       pool,
       comment_id,
       &CommentUpdateForm {
-        removed: Some(true),
+        removed: Some(remove),
         ..Default::default()
       },
     )
@@ -851,6 +911,11 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
 
   // Leave communities they mod
   CommunityModerator::leave_all_communities(pool, person_id).await?;
+
+  // Delete the oauth accounts linked to the local user
+  if let Ok(Some(local_user)) = LocalUserView::read_person(pool, person_id).await {
+    OAuthAccount::delete_user_accounts(pool, local_user.local_user.id).await?;
+  }
 
   Person::delete_account(pool, person_id).await?;
 

@@ -119,6 +119,7 @@ pub async fn update_site(
     captcha_difficulty: data.captcha_difficulty.clone(),
     reports_email_admins: data.reports_email_admins,
     default_post_listing_mode: data.default_post_listing_mode,
+    oauth_registration: data.oauth_registration,
     ..Default::default()
   };
 

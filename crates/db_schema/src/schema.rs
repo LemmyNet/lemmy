@@ -392,6 +392,7 @@ diesel::table! {
         federation_signed_fetch -> Bool,
         default_post_listing_mode -> PostListingModeEnum,
         default_sort_type -> SortTypeEnum,
+        oauth_registration -> Bool,
     }
 }
 
@@ -435,7 +436,7 @@ diesel::table! {
     local_user (id) {
         id -> Int4,
         person_id -> Int4,
-        password_encrypted -> Text,
+        password_encrypted -> Nullable<Text>,
         email -> Nullable<Text>,
         show_nsfw -> Bool,
         theme -> Text,
@@ -608,6 +609,36 @@ diesel::table! {
         other_person_id -> Int4,
         community_id -> Int4,
         when_ -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    oauth_account (oauth_provider_id, local_user_id) {
+        local_user_id -> Int4,
+        oauth_provider_id -> Int4,
+        oauth_user_id -> Text,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    oauth_provider (id) {
+        id -> Int4,
+        display_name -> Text,
+        issuer -> Text,
+        authorization_endpoint -> Text,
+        token_endpoint -> Text,
+        userinfo_endpoint -> Text,
+        id_claim -> Text,
+        client_id -> Text,
+        client_secret -> Text,
+        scopes -> Text,
+        auto_verify_email -> Bool,
+        account_linking_enabled -> Bool,
+        enabled -> Bool,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
     }
 }
 
@@ -1003,6 +1034,8 @@ diesel::joinable!(mod_remove_community -> person (mod_person_id));
 diesel::joinable!(mod_remove_post -> person (mod_person_id));
 diesel::joinable!(mod_remove_post -> post (post_id));
 diesel::joinable!(mod_transfer_community -> community (community_id));
+diesel::joinable!(oauth_account -> local_user (local_user_id));
+diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
 diesel::joinable!(person -> instance (instance_id));
 diesel::joinable!(person_aggregates -> person (person_id));
@@ -1084,6 +1117,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     mod_remove_community,
     mod_remove_post,
     mod_transfer_community,
+    oauth_account,
+    oauth_provider,
     password_reset_request,
     person,
     person_aggregates,
