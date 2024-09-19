@@ -464,7 +464,7 @@ mod tests {
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
       post::{Post, PostInsertForm, PostUpdateForm},
-      site::{Site, SiteInsertForm, SiteUpdateForm},
+      site::{Site, SiteInsertForm},
     },
     traits::{Bannable, Blockable, Crud, Joinable, Likeable, Saveable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
@@ -1230,38 +1230,6 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn comment_listings_hide_nsfw() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
-    let pool = &mut pool.into();
-    let data = init_data(pool).await?;
-
-    // Mark a post as nsfw
-    let update_form = PostUpdateForm {
-      nsfw: Some(true),
-      ..Default::default()
-    };
-    Post::update(pool, data.inserted_post.id, &update_form).await?;
-
-    // Make sure comments of this post are not returned
-    let comments = CommentQuery::default().list(&data.site, pool).await?;
-    assert_eq!(1, comments.len());
-
-    // Mark site as nsfw
-    let form = SiteUpdateForm {
-      content_warning: Some(Some("nsfw".to_string())),
-      ..Default::default()
-    };
-    Site::update(pool, data.site.id, &form).await?;
-
-    // Now comments of nsfw post are returned
-    let comments = CommentQuery::default().list(&data.site, pool).await?;
-    assert_eq!(1, comments.len());
-
-    cleanup(data, pool).await
-  }
-
-  #[tokio::test]
-  #[serial]
   async fn comment_listing_local_user_not_banned_from_community() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -1276,6 +1244,35 @@ mod tests {
     .ok_or(LemmyErrorType::CouldntFindComment)?;
 
     assert!(!comment_view.banned_from_community);
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn comment_listings_hide_nsfw() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Mark a post as nsfw
+    let update_form = PostUpdateForm {
+      nsfw: Some(true),
+      ..Default::default()
+    };
+    Post::update(pool, data.inserted_post.id, &update_form).await?;
+
+    // Make sure comments of this post are not returned
+    let comments = CommentQuery::default().list(&data.site, pool).await?;
+    assert_eq!(0, comments.len());
+
+    // Mark site as nsfw
+    let mut site = data.site.clone();
+    site.content_warning = Some("nsfw".to_string());
+
+    // Now comments of nsfw post are returned
+    let comments = CommentQuery::default().list(&site, pool).await?;
+    assert_eq!(6, comments.len());
 
     cleanup(data, pool).await
   }
