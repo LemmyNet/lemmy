@@ -4,7 +4,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{Search, SearchResponse},
-  utils::{check_private_instance, is_admin},
+  utils::{check_conflicting_like_filters, check_private_instance, is_admin},
 };
 use lemmy_db_schema::{source::community::Community, utils::post_to_comment_sort_type, SearchType};
 use lemmy_db_views::{
@@ -13,10 +13,7 @@ use lemmy_db_views::{
   structs::{LocalUserView, SiteView},
 };
 use lemmy_db_views_actor::{community_view::CommunityQuery, person_view::PersonQuery};
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  LemmyErrorType,
-};
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn search(
@@ -58,13 +55,12 @@ pub async fn search(
   let creator_id = data.creator_id;
   let local_user = local_user_view.as_ref().map(|l| &l.local_user);
   let post_title_only = data.post_title_only;
+  let post_url_only = data.post_url_only;
   let saved_only = data.saved_only;
 
   let liked_only = data.liked_only;
   let disliked_only = data.disliked_only;
-  if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
-    return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
-  }
+  check_conflicting_like_filters(liked_only, disliked_only)?;
 
   let posts_query = PostQuery {
     sort,
@@ -72,10 +68,11 @@ pub async fn search(
     community_id,
     creator_id,
     local_user,
-    search_term: (Some(q.clone())),
+    search_term: Some(q.clone()),
     page,
     limit,
     title_only: post_title_only,
+    url_only: post_url_only,
     liked_only,
     disliked_only,
     saved_only,
@@ -83,9 +80,9 @@ pub async fn search(
   };
 
   let comment_query = CommentQuery {
-    sort: (sort.map(post_to_comment_sort_type)),
+    sort: sort.map(post_to_comment_sort_type),
     listing_type,
-    search_term: (Some(q.clone())),
+    search_term: Some(q.clone()),
     community_id,
     creator_id,
     local_user,
@@ -98,22 +95,22 @@ pub async fn search(
   };
 
   let community_query = CommunityQuery {
-    sort: (sort),
-    listing_type: (listing_type),
-    search_term: (Some(q.clone())),
+    sort,
+    listing_type,
+    search_term: Some(q.clone()),
     local_user,
-    is_mod_or_admin: (is_admin),
-    page: (page),
-    limit: (limit),
+    is_mod_or_admin: is_admin,
+    page,
+    limit,
     ..Default::default()
   };
 
   let person_query = PersonQuery {
     sort,
-    search_term: (Some(q.clone())),
-    listing_type: (listing_type),
-    page: (page),
-    limit: (limit),
+    search_term: Some(q.clone()),
+    listing_type,
+    page,
+    limit,
   };
 
   match search_type {
@@ -157,21 +154,6 @@ pub async fn search(
       } else {
         person_query.list(&mut context.pool()).await?
       };
-    }
-    SearchType::Url => {
-      posts = PostQuery {
-        sort: (sort),
-        listing_type: (listing_type),
-        community_id: (community_id),
-        creator_id: (creator_id),
-        url_search: (Some(q)),
-        local_user,
-        page: (page),
-        limit: (limit),
-        ..Default::default()
-      }
-      .list(&local_site.site, &mut context.pool())
-      .await?;
     }
   };
 

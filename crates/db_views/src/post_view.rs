@@ -382,22 +382,22 @@ fn queries<'a>() -> Queries<
       query = query.filter(community::hidden.eq(false));
     }
 
-    if let Some(url_search) = &options.url_search {
-      query = query.filter(post::url.eq(url_search));
-    }
-
     if let Some(search_term) = &options.search_term {
-      let searcher = fuzzy_search(search_term);
-      query = if options.title_only.unwrap_or_default() {
-        query.filter(post::name.ilike(searcher))
+      if options.url_only.unwrap_or_default() {
+        query = query.filter(post::url.eq(search_term));
       } else {
-        query.filter(
-          post::name
-            .ilike(searcher.clone())
-            .or(post::body.ilike(searcher)),
-        )
+        let searcher = fuzzy_search(search_term);
+        query = if options.title_only.unwrap_or_default() {
+          query.filter(post::name.ilike(searcher))
+        } else {
+          query.filter(
+            post::name
+              .ilike(searcher.clone())
+              .or(post::body.ilike(searcher)),
+          )
+        }
+        .filter(not(post::removed.or(post::deleted)));
       }
-      .filter(not(post::removed.or(post::deleted)));
     }
 
     if !options
@@ -617,7 +617,7 @@ pub struct PostQuery<'a> {
   pub community_id_just_for_prefetch: bool,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
-  pub url_search: Option<String>,
+  pub url_only: Option<bool>,
   pub saved_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,

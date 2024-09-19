@@ -91,7 +91,8 @@ pub async fn get_post(
   // Fetch the cross_posts
   let cross_posts = if let Some(url) = &post_view.post.url {
     let mut x_posts = PostQuery {
-      url_search: Some(url.inner().as_str().into()),
+      url_only: Some(true),
+      search_term: Some(url.inner().as_str().into()),
       local_user: local_user.as_ref(),
       ..Default::default()
     }

@@ -8,14 +8,14 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPosts, GetPostsResponse},
-  utils::check_private_instance,
+  utils::{check_conflicting_like_filters, check_private_instance},
 };
 use lemmy_db_schema::source::community::Community;
 use lemmy_db_views::{
   post_view::PostQuery,
   structs::{LocalUserView, PaginationCursor, SiteView},
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn list_posts(
@@ -45,9 +45,7 @@ pub async fn list_posts(
 
   let liked_only = data.liked_only;
   let disliked_only = data.disliked_only;
-  if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
-    return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
-  }
+  check_conflicting_like_filters(liked_only, disliked_only)?;
 
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let listing_type = Some(listing_type_with_default(

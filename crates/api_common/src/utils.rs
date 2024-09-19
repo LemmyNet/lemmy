@@ -999,6 +999,18 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
   }
 }
 
+#[tracing::instrument(skip_all)]
+pub fn check_conflicting_like_filters(
+  liked_only: Option<bool>,
+  disliked_only: Option<bool>,
+) -> LemmyResult<()> {
+  if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
+    Err(LemmyErrorType::ContradictingFilters)?
+  } else {
+    Ok(())
+  }
+}
+
 pub async fn process_markdown(
   text: &str,
   slur_regex: &Option<Regex>,

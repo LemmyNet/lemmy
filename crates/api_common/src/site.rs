@@ -79,6 +79,7 @@ pub struct Search {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub post_title_only: Option<bool>,
+  pub post_url_only: Option<bool>,
   pub saved_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
