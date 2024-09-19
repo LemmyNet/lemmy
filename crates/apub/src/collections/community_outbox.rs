@@ -18,7 +18,7 @@ use activitypub_federation::{
 };
 use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
-use lemmy_db_schema::{source::site::Site, utils::FETCH_LIMIT_MAX, SortType};
+use lemmy_db_schema::{source::site::Site, utils::FETCH_LIMIT_MAX, PostSortType};
 use lemmy_db_views::post_view::PostQuery;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
@@ -39,7 +39,7 @@ impl Collection for ApubCommunityOutbox {
 
     let post_views = PostQuery {
       community_id: Some(owner.id),
-      sort: Some(SortType::New),
+      sort: Some(PostSortType::New),
       limit: Some(FETCH_LIMIT_MAX),
       ..Default::default()
     }
