@@ -16,6 +16,7 @@ pub mod request;
 #[cfg(feature = "full")]
 pub mod send_activity;
 pub mod site;
+pub mod tagline;
 #[cfg(feature = "full")]
 pub mod utils;
 
