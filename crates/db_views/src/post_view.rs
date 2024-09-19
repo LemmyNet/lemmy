@@ -780,7 +780,7 @@ mod tests {
   use std::{collections::HashSet, time::Duration};
   use url::Url;
 
-  const POST_WITH_ANOTHER_TITLE: &str  = "Another title";
+  const POST_WITH_ANOTHER_TITLE: &str = "Another title";
   const POST_BY_BLOCKED_PERSON: &str = "post by blocked person";
   const POST_BY_BOT: &str = "post by bot";
   const POST: &str = "post";
@@ -1036,18 +1036,16 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-
     // A post which contains the search them 'Post' not in the title (but in the body)
     let new_post = PostInsertForm::builder()
-    .name( POST_WITH_ANOTHER_TITLE.to_string())
-    .creator_id(data.local_user_view.person.id)
-    .community_id(data.inserted_community.id)
-    .language_id(Some(LanguageId(47)))
-        .body(Some("Post".to_string()))
-    .build();
+      .name(POST_WITH_ANOTHER_TITLE.to_string())
+      .creator_id(data.local_user_view.person.id)
+      .community_id(data.inserted_community.id)
+      .language_id(Some(LanguageId(47)))
+      .body(Some("Post".to_string()))
+      .build();
 
     let inserted_post = Post::create(pool, &new_post).await?;
-
 
     let read_post_listing_by_title_only = PostQuery {
       community_id: Some(data.inserted_community.id),
@@ -1059,7 +1057,7 @@ mod tests {
     .list(&data.site, pool)
     .await?;
 
-    let read_post_listing  = PostQuery {
+    let read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       local_user: None,
       search_term: Some("Post".to_string()),
@@ -1070,19 +1068,23 @@ mod tests {
 
     // Should be 4 posts when we do not search for title only
     assert_eq!(
-      vec![POST_WITH_ANOTHER_TITLE, POST_BY_BOT, POST, POST_BY_BLOCKED_PERSON],
+      vec![
+        POST_WITH_ANOTHER_TITLE,
+        POST_BY_BOT,
+        POST,
+        POST_BY_BLOCKED_PERSON
+      ],
       names(&read_post_listing)
     );
 
     // Should be 3 posts when we search for title only
-   assert_eq!(
+    assert_eq!(
       vec![POST_BY_BOT, POST, POST_BY_BLOCKED_PERSON],
       names(&read_post_listing_by_title_only)
     );
     Post::delete(pool, inserted_post.id).await?;
     cleanup(data, pool).await
   }
-
 
   #[tokio::test]
   #[serial]
