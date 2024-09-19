@@ -13,7 +13,10 @@ use lemmy_db_views::{
   structs::{LocalUserView, SiteView},
 };
 use lemmy_db_views_actor::{community_view::CommunityQuery, person_view::PersonQuery};
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  LemmyErrorType,
+};
 
 #[tracing::instrument(skip(context))]
 pub async fn search(
@@ -55,29 +58,42 @@ pub async fn search(
   let creator_id = data.creator_id;
   let local_user = local_user_view.as_ref().map(|l| &l.local_user);
   let post_title_only = data.post_title_only;
+  let saved_only = data.saved_only;
+
+  let liked_only = data.liked_only;
+  let disliked_only = data.disliked_only;
+  if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
+    return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
+  }
 
   let posts_query = PostQuery {
-    sort: (sort),
-    listing_type: (listing_type),
-    community_id: (community_id),
-    creator_id: (creator_id),
+    sort,
+    listing_type,
+    community_id,
+    creator_id,
     local_user,
     search_term: (Some(q.clone())),
-    page: (page),
-    limit: (limit),
-    title_only: (post_title_only),
+    page,
+    limit,
+    title_only: post_title_only,
+    liked_only,
+    disliked_only,
+    saved_only,
     ..Default::default()
   };
 
   let comment_query = CommentQuery {
     sort: (sort.map(post_to_comment_sort_type)),
-    listing_type: (listing_type),
+    listing_type,
     search_term: (Some(q.clone())),
-    community_id: (community_id),
-    creator_id: (creator_id),
+    community_id,
+    creator_id,
     local_user,
-    page: (page),
-    limit: (limit),
+    page,
+    limit,
+    liked_only,
+    disliked_only,
+    saved_only,
     ..Default::default()
   };
 
