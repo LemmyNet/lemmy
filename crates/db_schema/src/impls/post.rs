@@ -68,6 +68,10 @@ impl Crud for Post {
 }
 
 impl Post {
+  pub async fn read_xx(pool: &mut DbPool<'_>, id: PostId) -> Result<Self, Error> {
+    let conn = &mut *get_conn(pool).await?;
+    post::table.find(id).first(conn).await
+  }
   pub async fn insert_apub(
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,
