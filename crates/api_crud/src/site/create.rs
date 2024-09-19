@@ -98,7 +98,8 @@ pub async fn create_site(
     private_instance: data.private_instance,
     default_theme: data.default_theme.clone(),
     default_post_listing_type: data.default_post_listing_type,
-    default_sort_type: data.default_sort_type,
+    default_post_sort_type: data.default_post_sort_type,
+    default_comment_sort_type: data.default_comment_sort_type,
     legal_information: diesel_string_update(data.legal_information.as_deref()),
     application_email_admins: data.application_email_admins,
     hide_modlog_mod_names: data.hide_modlog_mod_names,
@@ -200,7 +201,12 @@ mod tests {
 
   use crate::site::create::validate_create_payload;
   use lemmy_api_common::site::CreateSite;
-  use lemmy_db_schema::{source::local_site::LocalSite, ListingType, RegistrationMode, SortType};
+  use lemmy_db_schema::{
+    source::local_site::LocalSite,
+    ListingType,
+    PostSortType,
+    RegistrationMode,
+  };
   use lemmy_utils::error::LemmyErrorType;
 
   #[test]
@@ -383,7 +389,7 @@ mod tests {
           application_question: Some(String::new()),
           private_instance: Some(false),
           default_post_listing_type: Some(ListingType::All),
-          default_sort_type: Some(SortType::Active),
+          default_post_sort_type: Some(PostSortType::Active),
           slur_filter_regex: Some(String::new()),
           federation_enabled: Some(true),
           registration_mode: Some(RegistrationMode::Open),

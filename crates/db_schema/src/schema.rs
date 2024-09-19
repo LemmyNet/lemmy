@@ -6,6 +6,10 @@ pub mod sql_types {
     pub struct ActorTypeEnum;
 
     #[derive(diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "comment_sort_type_enum"))]
+    pub struct CommentSortTypeEnum;
+
+    #[derive(diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "community_visibility"))]
     pub struct CommunityVisibility;
 
@@ -22,12 +26,12 @@ pub mod sql_types {
     pub struct PostListingModeEnum;
 
     #[derive(diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "registration_mode_enum"))]
-    pub struct RegistrationModeEnum;
+    #[diesel(postgres_type(name = "post_sort_type_enum"))]
+    pub struct PostSortTypeEnum;
 
     #[derive(diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "sort_type_enum"))]
-    pub struct SortTypeEnum;
+    #[diesel(postgres_type(name = "registration_mode_enum"))]
+    pub struct RegistrationModeEnum;
 }
 
 diesel::table! {
@@ -363,7 +367,8 @@ diesel::table! {
     use super::sql_types::ListingTypeEnum;
     use super::sql_types::RegistrationModeEnum;
     use super::sql_types::PostListingModeEnum;
-    use super::sql_types::SortTypeEnum;
+    use super::sql_types::PostSortTypeEnum;
+    use super::sql_types::CommentSortTypeEnum;
 
     local_site (id) {
         id -> Int4,
@@ -391,7 +396,8 @@ diesel::table! {
         reports_email_admins -> Bool,
         federation_signed_fetch -> Bool,
         default_post_listing_mode -> PostListingModeEnum,
-        default_sort_type -> SortTypeEnum,
+        default_post_sort_type -> PostSortTypeEnum,
+        default_comment_sort_type -> CommentSortTypeEnum,
         oauth_registration -> Bool,
     }
 }
@@ -429,9 +435,10 @@ diesel::table! {
 
 diesel::table! {
     use diesel::sql_types::*;
-    use super::sql_types::SortTypeEnum;
+    use super::sql_types::PostSortTypeEnum;
     use super::sql_types::ListingTypeEnum;
     use super::sql_types::PostListingModeEnum;
+    use super::sql_types::CommentSortTypeEnum;
 
     local_user (id) {
         id -> Int4,
@@ -440,7 +447,7 @@ diesel::table! {
         email -> Nullable<Text>,
         show_nsfw -> Bool,
         theme -> Text,
-        default_sort_type -> SortTypeEnum,
+        default_post_sort_type -> PostSortTypeEnum,
         default_listing_type -> ListingTypeEnum,
         #[max_length = 20]
         interface_language -> Varchar,
@@ -461,6 +468,7 @@ diesel::table! {
         enable_keyboard_navigation -> Bool,
         enable_animated_images -> Bool,
         collapse_bot_comments -> Bool,
+        default_comment_sort_type -> CommentSortTypeEnum,
     }
 }
 

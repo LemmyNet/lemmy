@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   CommentSortType,
   CommunityVisibility,
   ListingType,
-  SortType,
+  PostSortType,
 };
 use lemmy_db_views::{
   post_view::PostQuery,
@@ -45,12 +45,12 @@ struct Params {
 }
 
 impl Params {
-  fn sort_type(&self) -> Result<SortType, Error> {
+  fn sort_type(&self) -> Result<PostSortType, Error> {
     let sort_query = self
       .sort
       .clone()
-      .unwrap_or_else(|| SortType::Hot.to_string());
-    SortType::from_str(&sort_query).map_err(ErrorBadRequest)
+      .unwrap_or_else(|| PostSortType::Hot.to_string());
+    PostSortType::from_str(&sort_query).map_err(ErrorBadRequest)
   }
   fn get_limit(&self) -> i64 {
     self.limit.unwrap_or(RSS_FETCH_LIMIT)
@@ -147,7 +147,7 @@ async fn get_local_feed(
 async fn get_feed_data(
   context: &LemmyContext,
   listing_type: ListingType,
-  sort_type: SortType,
+  sort_type: PostSortType,
   limit: i64,
   page: i64,
 ) -> LemmyResult<HttpResponse> {
@@ -251,7 +251,7 @@ async fn get_feed(
 #[tracing::instrument(skip_all)]
 async fn get_feed_user(
   context: &LemmyContext,
-  sort_type: &SortType,
+  sort_type: &PostSortType,
   limit: &i64,
   page: &i64,
   user_name: &str,
@@ -289,7 +289,7 @@ async fn get_feed_user(
 #[tracing::instrument(skip_all)]
 async fn get_feed_community(
   context: &LemmyContext,
-  sort_type: &SortType,
+  sort_type: &PostSortType,
   limit: &i64,
   page: &i64,
   community_name: &str,
@@ -334,7 +334,7 @@ async fn get_feed_community(
 #[tracing::instrument(skip_all)]
 async fn get_feed_front(
   context: &LemmyContext,
-  sort_type: &SortType,
+  sort_type: &PostSortType,
   limit: &i64,
   page: &i64,
   jwt: &str,
