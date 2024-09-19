@@ -27,6 +27,7 @@ use lemmy_utils::{
 };
 use rss::{
   extension::{dublincore::DublinCoreExtension, ExtensionBuilder, ExtensionMap},
+  Category,
   Channel,
   EnclosureBuilder,
   Guid,
@@ -569,6 +570,10 @@ fn create_post_items(posts: Vec<PostView>, protocol_and_hostname: &str) -> Lemmy
         BTreeMap::from([("content".to_string(), vec![thumbnail_ext.build()])]),
       );
     }
+    let category = Category {
+      name: p.community.title,
+      domain: Some(p.community.actor_id.to_string()),
+    };
 
     let i = Item {
       title: Some(sanitize_html(sanitize_xml(p.post.name).as_str())),
@@ -580,6 +585,7 @@ fn create_post_items(posts: Vec<PostView>, protocol_and_hostname: &str) -> Lemmy
       link: Some(post_url.clone()),
       extensions,
       enclosure: enclosure_opt,
+      categories: vec![category],
       ..Default::default()
     };
 
