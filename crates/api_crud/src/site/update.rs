@@ -255,7 +255,6 @@ mod tests {
   use lemmy_api_common::site::EditSite;
   use lemmy_db_schema::{
     source::local_site::LocalSite,
-    CommentSortType,
     ListingType,
     PostSortType,
     RegistrationMode,
@@ -268,152 +267,94 @@ mod tests {
       (
         "EditSite name matches LocalSite slur filter",
         LemmyErrorType::Slurs,
-        &generate_local_site(
-          Some(String::from("(foo|bar)")),
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_edit_site(
-          Some(String::from("foo site_name")),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<PostSortType>,
-          None::<CommentSortType>,
-          None::<String>,
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          None::<RegistrationMode>,
-          None::<bool>,
-        ),
+        &LocalSite {
+          private_instance: true,
+          slur_filter_regex: Some(String::from("(foo|bar)")),
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &EditSite {
+          name: Some(String::from("foo site_name")),
+          ..Default::default()
+        },
       ),
       (
         "EditSite name matches new slur filter",
         LemmyErrorType::Slurs,
-        &generate_local_site(
-          Some(String::from("(foo|bar)")),
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_edit_site(
-          Some(String::from("zeta site_name")),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<PostSortType>,
-          None::<CommentSortType>,
-          Some(String::from("(zeta|alpha)")),
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          None::<RegistrationMode>,
-          None::<bool>,
-        ),
+        &LocalSite {
+          private_instance: true,
+          slur_filter_regex: Some(String::from("(foo|bar)")),
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &EditSite {
+          name: Some(String::from("zeta site_name")),
+          slur_filter_regex: Some(String::from("(zeta|alpha)")),
+          ..Default::default()
+        },
       ),
       (
         "EditSite listing type is Subscribed, which is invalid",
         LemmyErrorType::InvalidDefaultPostListingType,
-        &generate_local_site(
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_edit_site(
-          Some(String::from("site_name")),
-          None::<String>,
-          None::<String>,
-          Some(ListingType::Subscribed),
-          None::<PostSortType>,
-          None::<CommentSortType>,
-          None::<String>,
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          None::<RegistrationMode>,
-          None::<bool>,
-        ),
+        &LocalSite {
+          private_instance: true,
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &EditSite {
+          name: Some(String::from("site_name")),
+          default_post_listing_type: Some(ListingType::Subscribed),
+          ..Default::default()
+        },
       ),
       (
         "EditSite is both private and federated",
         LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-        &generate_local_site(
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_edit_site(
-          Some(String::from("site_name")),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<PostSortType>,
-          None::<CommentSortType>,
-          None::<String>,
-          Some(true),
-          Some(true),
-          None::<String>,
-          None::<RegistrationMode>,
-          None::<bool>,
-        ),
+        &LocalSite {
+          private_instance: true,
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &EditSite {
+          name: Some(String::from("site_name")),
+          private_instance: Some(true),
+          federation_enabled: Some(true),
+          ..Default::default()
+        },
       ),
       (
         "LocalSite is private, but EditSite also makes it federated",
         LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-        &generate_local_site(
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_edit_site(
-          Some(String::from("site_name")),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<PostSortType>,
-          None::<CommentSortType>,
-          None::<String>,
-          None::<bool>,
-          Some(true),
-          None::<String>,
-          None::<RegistrationMode>,
-          None::<bool>,
-        ),
+        &LocalSite {
+          private_instance: true,
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &EditSite {
+          name: Some(String::from("site_name")),
+          federation_enabled: Some(true),
+          ..Default::default()
+        },
       ),
       (
         "EditSite requires application, but neither it nor LocalSite has an application question",
         LemmyErrorType::ApplicationQuestionRequired,
-        &generate_local_site(
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_edit_site(
-          Some(String::from("site_name")),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<PostSortType>,
-          None::<CommentSortType>,
-          None::<String>,
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          Some(RegistrationMode::RequireApplication),
-          None::<bool>,
-        ),
+        &LocalSite {
+          private_instance: true,
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &EditSite {
+          name: Some(String::from("site_name")),
+          registration_mode: Some(RegistrationMode::RequireApplication),
+          ..Default::default()
+        },
       ),
     ];
 
@@ -449,99 +390,65 @@ mod tests {
     let valid_payloads = [
       (
         "No changes between LocalSite and EditSite",
-        &generate_local_site(
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_edit_site(
-          None::<String>,
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<PostSortType>,
-          None::<CommentSortType>,
-          None::<String>,
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          None::<RegistrationMode>,
-          None::<bool>,
-        ),
+        &LocalSite {
+          private_instance: true,
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &EditSite::default(),
       ),
       (
         "EditSite allows clearing and changing values",
-        &generate_local_site(
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_edit_site(
-          Some(String::from("site_name")),
-          Some(String::new()),
-          Some(String::new()),
-          Some(ListingType::All),
-          Some(PostSortType::Active),
-          Some(CommentSortType::Hot),
-          Some(String::new()),
-          Some(false),
-          Some(true),
-          Some(String::new()),
-          Some(RegistrationMode::Open),
-          None::<bool>,
-        ),
+        &LocalSite {
+          private_instance: true,
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &EditSite {
+          name: Some(String::from("site_name")),
+          sidebar: Some(String::new()),
+          description: Some(String::new()),
+          application_question: Some(String::new()),
+          private_instance: Some(false),
+          default_post_listing_type: Some(ListingType::All),
+          default_post_sort_type: Some(PostSortType::Active),
+          slur_filter_regex: Some(String::new()),
+          registration_mode: Some(RegistrationMode::Open),
+          federation_enabled: Some(true),
+          ..Default::default()
+        },
       ),
       (
         "EditSite name passes slur filter regex",
-        &generate_local_site(
-          Some(String::from("(foo|bar)")),
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_edit_site(
-          Some(String::from("foo site_name")),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<PostSortType>,
-          None::<CommentSortType>,
-          Some(String::new()),
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          None::<RegistrationMode>,
-          None::<bool>,
-        ),
+        &LocalSite {
+          private_instance: true,
+          slur_filter_regex: Some(String::from("(foo|bar)")),
+          registration_mode: RegistrationMode::Open,
+          federation_enabled: false,
+          ..Default::default()
+        },
+        &EditSite {
+          name: Some(String::from("foo site_name")),
+          slur_filter_regex: Some(String::new()),
+          ..Default::default()
+        },
       ),
       (
         "LocalSite has application question and EditSite now requires applications,",
-        &generate_local_site(
-          None::<String>,
-          true,
-          false,
-          Some(String::from("question")),
-          RegistrationMode::Open,
-        ),
-        &generate_edit_site(
-          Some(String::from("site_name")),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<PostSortType>,
-          None::<CommentSortType>,
-          None::<String>,
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          Some(RegistrationMode::RequireApplication),
-          None::<bool>,
-        ),
+        &LocalSite {
+          application_question: Some(String::from("question")),
+          private_instance: true,
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &EditSite {
+          name: Some(String::from("site_name")),
+          registration_mode: Some(RegistrationMode::RequireApplication),
+          ..Default::default()
+        },
       ),
     ];
 
@@ -556,89 +463,5 @@ mod tests {
           idx
         );
       })
-  }
-
-  fn generate_local_site(
-    site_slur_filter_regex: Option<String>,
-    site_is_private: bool,
-    site_is_federated: bool,
-    site_application_question: Option<String>,
-    site_registration_mode: RegistrationMode,
-  ) -> LocalSite {
-    LocalSite {
-      application_question: site_application_question,
-      private_instance: site_is_private,
-      slur_filter_regex: site_slur_filter_regex,
-      federation_enabled: site_is_federated,
-      registration_mode: site_registration_mode,
-      ..Default::default()
-    }
-  }
-
-  // Allow the test helper function to have too many arguments.
-  // It's either this or generate the entire struct each time for testing.
-  #[allow(clippy::too_many_arguments)]
-  fn generate_edit_site(
-    site_name: Option<String>,
-    site_description: Option<String>,
-    site_sidebar: Option<String>,
-    site_listing_type: Option<ListingType>,
-    site_post_sort_type: Option<PostSortType>,
-    site_comment_sort_type: Option<CommentSortType>,
-    site_slur_filter_regex: Option<String>,
-    site_is_private: Option<bool>,
-    site_is_federated: Option<bool>,
-    site_application_question: Option<String>,
-    site_registration_mode: Option<RegistrationMode>,
-    site_oauth_registration: Option<bool>,
-  ) -> EditSite {
-    EditSite {
-      name: site_name,
-      sidebar: site_sidebar,
-      description: site_description,
-      icon: None,
-      banner: None,
-      enable_downvotes: None,
-      enable_nsfw: None,
-      community_creation_admin_only: None,
-      require_email_verification: None,
-      application_question: site_application_question,
-      private_instance: site_is_private,
-      default_theme: None,
-      default_post_listing_type: site_listing_type,
-      default_post_sort_type: site_post_sort_type,
-      default_comment_sort_type: site_comment_sort_type,
-      legal_information: None,
-      application_email_admins: None,
-      hide_modlog_mod_names: None,
-      discussion_languages: None,
-      slur_filter_regex: site_slur_filter_regex,
-      actor_name_max_length: None,
-      rate_limit_message: None,
-      rate_limit_message_per_second: None,
-      rate_limit_post: None,
-      rate_limit_post_per_second: None,
-      rate_limit_register: None,
-      rate_limit_register_per_second: None,
-      rate_limit_image: None,
-      rate_limit_image_per_second: None,
-      rate_limit_comment: None,
-      rate_limit_comment_per_second: None,
-      rate_limit_search: None,
-      rate_limit_search_per_second: None,
-      federation_enabled: site_is_federated,
-      federation_debug: None,
-      captcha_enabled: None,
-      captcha_difficulty: None,
-      allowed_instances: None,
-      blocked_instances: None,
-      blocked_urls: None,
-      taglines: None,
-      registration_mode: site_registration_mode,
-      reports_email_admins: None,
-      content_warning: None,
-      default_post_listing_mode: None,
-      oauth_registration: site_oauth_registration,
-    }
   }
 }
