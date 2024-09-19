@@ -24,7 +24,7 @@ use lemmy_db_schema::{
   source::{community::CommunityFollower, local_user::LocalUser, site::Site},
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
-  SortType,
+  PostSortType,
 };
 
 fn queries<'a>() -> Queries<
@@ -102,7 +102,7 @@ fn queries<'a>() -> Queries<
   };
 
   let list = move |mut conn: DbConn<'a>, (options, site): (CommunityQuery<'a>, &'a Site)| async move {
-    use SortType::*;
+    use PostSortType::*;
 
     // The left join below will return None in this case
     let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
@@ -221,7 +221,7 @@ impl CommunityView {
 #[derive(Default)]
 pub struct CommunityQuery<'a> {
   pub listing_type: Option<ListingType>,
-  pub sort: Option<SortType>,
+  pub sort: Option<PostSortType>,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
   pub is_mod_or_admin: bool,
