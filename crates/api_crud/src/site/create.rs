@@ -20,7 +20,6 @@ use lemmy_db_schema::{
     local_site::{LocalSite, LocalSiteUpdateForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
     site::{Site, SiteUpdateForm},
-    tagline::Tagline,
   },
   traits::Crud,
   utils::{diesel_string_update, diesel_url_create, naive_now},
@@ -135,17 +134,11 @@ pub async fn create_site(
 
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-  let new_taglines = data.taglines.clone();
-  let taglines = Tagline::replace(&mut context.pool(), local_site.id, new_taglines).await?;
-
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
   context.rate_limit_cell().set_config(rate_limit_config);
 
-  Ok(Json(SiteResponse {
-    site_view,
-    taglines,
-  }))
+  Ok(Json(SiteResponse { site_view }))
 }
 
 fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> LemmyResult<()> {
