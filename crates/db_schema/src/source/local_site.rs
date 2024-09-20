@@ -72,6 +72,10 @@ pub struct LocalSite {
   pub default_comment_sort_type: CommentSortType,
   /// Whether or not external auth methods can auto-register users.
   pub oauth_registration: bool,
+  /// If enabled, your site rejects federated upvotes.
+  pub reject_federated_upvotes: bool,
+  /// If enabled, your site rejects federated downvotes.
+  pub reject_federated_downvotes: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -114,8 +118,6 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub registration_mode: Option<RegistrationMode>,
   #[new(default)]
-  pub oauth_registration: Option<bool>,
-  #[new(default)]
   pub reports_email_admins: Option<bool>,
   #[new(default)]
   pub federation_signed_fetch: Option<bool>,
@@ -125,6 +127,12 @@ pub struct LocalSiteInsertForm {
   pub default_post_sort_type: Option<PostSortType>,
   #[new(default)]
   pub default_comment_sort_type: Option<CommentSortType>,
+  #[new(default)]
+  pub oauth_registration: Option<bool>,
+  #[new(default)]
+  pub reject_federated_upvotes: Option<bool>,
+  #[new(default)]
+  pub reject_federated_downvotes: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -148,11 +156,13 @@ pub struct LocalSiteUpdateForm {
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
-  pub oauth_registration: Option<bool>,
   pub reports_email_admins: Option<bool>,
   pub updated: Option<Option<DateTime<Utc>>>,
   pub federation_signed_fetch: Option<bool>,
   pub default_post_listing_mode: Option<PostListingMode>,
   pub default_post_sort_type: Option<PostSortType>,
   pub default_comment_sort_type: Option<CommentSortType>,
+  pub oauth_registration: Option<bool>,
+  pub reject_federated_upvotes: Option<bool>,
+  pub reject_federated_downvotes: Option<bool>,
 }

@@ -204,6 +204,8 @@ pub struct CreateSite {
   pub registration_mode: Option<RegistrationMode>,
   pub oauth_registration: Option<bool>,
   pub content_warning: Option<String>,
+  pub reject_federated_upvotes: Option<bool>,
+  pub reject_federated_downvotes: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -287,13 +289,17 @@ pub struct EditSite {
   /// A list of blocked URLs
   pub blocked_urls: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
-  /// Whether or not external auth methods can auto-register users.
-  pub oauth_registration: Option<bool>,
   /// Whether to email admins for new reports.
   pub reports_email_admins: Option<bool>,
   /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
   /// when the site is first opened by a user.
   pub content_warning: Option<String>,
+  /// Whether or not external auth methods can auto-register users.
+  pub oauth_registration: Option<bool>,
+  /// If enabled, your site rejects federated upvotes.
+  pub reject_federated_upvotes: Option<bool>,
+  /// If enabled, your site rejects federated downvotes.
+  pub reject_federated_downvotes: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

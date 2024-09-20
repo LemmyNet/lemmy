@@ -110,6 +110,8 @@ pub async fn create_site(
     captcha_enabled: data.captcha_enabled,
     captcha_difficulty: data.captcha_difficulty.clone(),
     default_post_listing_mode: data.default_post_listing_mode,
+    reject_federated_upvotes: data.reject_federated_upvotes,
+    reject_federated_downvotes: data.reject_federated_downvotes,
     ..Default::default()
   };
 

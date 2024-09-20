@@ -398,6 +398,8 @@ diesel::table! {
         default_post_sort_type -> PostSortTypeEnum,
         default_comment_sort_type -> CommentSortTypeEnum,
         oauth_registration -> Bool,
+        reject_federated_upvotes -> Bool,
+        reject_federated_downvotes -> Bool,
     }
 }
 

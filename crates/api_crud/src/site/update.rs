@@ -121,6 +121,8 @@ pub async fn update_site(
     reports_email_admins: data.reports_email_admins,
     default_post_listing_mode: data.default_post_listing_mode,
     oauth_registration: data.oauth_registration,
+    reject_federated_upvotes: data.reject_federated_upvotes,
+    reject_federated_downvotes: data.reject_federated_downvotes,
     ..Default::default()
   };
 

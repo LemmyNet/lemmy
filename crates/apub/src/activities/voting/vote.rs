@@ -68,12 +68,23 @@ impl ActivityHandler for Vote {
 
     check_bot_account(&actor.0)?;
 
-    let enable_downvotes = LocalSite::read(&mut context.pool())
-      .await
-      .map(|l| l.enable_downvotes)
+    // Check for enabled federation votes
+    let local_site = LocalSite::read(&mut context.pool()).await;
+    let enable_federated_downvotes = local_site
+      .as_ref()
+      .map(|l| l.enable_downvotes && !l.reject_federated_downvotes)
       .unwrap_or(true);
-    if self.kind == VoteType::Dislike && !enable_downvotes {
-      // If this is a downvote but downvotes are ignored, only undo any existing vote
+
+    let enable_federated_upvotes = local_site
+      .as_ref()
+      .map(|l| !l.reject_federated_upvotes)
+      .unwrap_or(true);
+
+    let reject_vote_check = (self.kind == VoteType::Dislike && !enable_federated_downvotes)
+      || (self.kind == VoteType::Like && !enable_federated_upvotes);
+
+    if reject_vote_check {
+      // If this is a rejection, undo the vote
       match object {
         PostOrComment::Post(p) => undo_vote_post(actor, &p, context).await,
         PostOrComment::Comment(c) => undo_vote_comment(actor, &c, context).await,
