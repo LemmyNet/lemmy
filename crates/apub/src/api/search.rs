@@ -37,29 +37,36 @@ pub async fn search(
 
   // TODO no clean / non-nsfw searching rn
 
-  let q = data.q.clone();
-  let page = data.page;
-  let limit = data.limit;
-  let sort = data.sort;
-  let listing_type = data.listing_type;
-  let search_type = data.type_.unwrap_or(SearchType::All);
-  let community_id = if let Some(name) = &data.community_name {
+  let Query(Search {
+    q,
+    community_id,
+    community_name,
+    creator_id,
+    type_,
+    sort,
+    listing_type,
+    page,
+    limit,
+    post_title_only,
+    post_url_only,
+    saved_only,
+    liked_only,
+    disliked_only,
+  }) = data;
+
+  let q = q.clone();
+  let search_type = type_.unwrap_or(SearchType::All);
+  let community_id = if let Some(name) = &community_name {
     Some(
       resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, false)
         .await?,
     )
     .map(|c| c.id)
   } else {
-    data.community_id
+    community_id
   };
-  let creator_id = data.creator_id;
   let local_user = local_user_view.as_ref().map(|l| &l.local_user);
-  let post_title_only = data.post_title_only;
-  let post_url_only = data.post_url_only;
-  let saved_only = data.saved_only;
 
-  let liked_only = data.liked_only;
-  let disliked_only = data.disliked_only;
   check_conflicting_like_filters(liked_only, disliked_only)?;
 
   let posts_query = PostQuery {
@@ -133,7 +140,7 @@ pub async fn search(
     SearchType::All => {
       // If the community or creator is included, dont search communities or users
       let community_or_creator_included =
-        data.community_id.is_some() || data.community_name.is_some() || data.creator_id.is_some();
+        community_id.is_some() || community_name.is_some() || creator_id.is_some();
 
       posts = posts_query
         .list(&local_site.site, &mut context.pool())
