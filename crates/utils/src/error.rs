@@ -182,6 +182,7 @@ pub enum LemmyErrorType {
   CantDeleteSite,
   UrlLengthOverflow,
   PostScheduleTimeMustBeInFuture,
+  TooManyScheduledPosts,
 }
 
 cfg_if! {

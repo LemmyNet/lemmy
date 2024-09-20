@@ -117,7 +117,9 @@ pub async fn update_post(
     data.scheduled_publish_time,
   ) {
     // schedule time can be changed if post is still scheduled (and not published yet)
-    (Some(_), Some(_)) => Some(convert_published_time(data.scheduled_publish_time)?),
+    (Some(_), Some(_)) => {
+      Some(convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?)
+    }
     // post was scheduled, gets changed to publish immediately
     (Some(_), None) => Some(None),
     // unchanged
