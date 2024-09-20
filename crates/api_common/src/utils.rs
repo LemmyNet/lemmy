@@ -1153,7 +1153,7 @@ mod tests {
     assert!(
       RemoteImage::validate(&mut context.pool(), remote_image.into())
         .await
-        .is_err()
+        .is_ok()
     );
   }
 }

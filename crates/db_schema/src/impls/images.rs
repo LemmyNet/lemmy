@@ -1,14 +1,7 @@
 use crate::{
   newtypes::DbUrl,
   schema::{image_details, local_image, remote_image},
-  source::images::{
-    ImageDetails,
-    ImageDetailsForm,
-    LocalImage,
-    LocalImageForm,
-    RemoteImage,
-    RemoteImageForm,
-  },
+  source::images::{ImageDetails, ImageDetailsForm, LocalImage, LocalImageForm, RemoteImage},
   utils::{get_conn, DbPool},
 };
 use diesel::{
@@ -65,7 +58,7 @@ impl RemoteImage {
     let conn = &mut get_conn(pool).await?;
     let forms = links
       .into_iter()
-      .map(|url| RemoteImageForm { link: url.into() })
+      .map(|url| remote_image::dsl::link.eq::<DbUrl>(url.into()))
       .collect::<Vec<_>>();
     insert_into(remote_image::table)
       .values(forms)
