@@ -290,10 +290,8 @@ impl InstanceWorker {
     if updated.add(Days::new(1)) < Utc::now() {
       self.instance.updated = Some(Utc::now());
 
-      let form = InstanceForm::builder()
-        .domain(self.instance.domain.clone())
-        .updated(Some(naive_now()))
-        .build();
+      let mut form = InstanceForm::new(self.instance.domain.clone());
+      form.updated = Some(naive_now());
       Instance::update(&mut self.pool(), self.instance.id, form).await?;
     }
     Ok(())
@@ -658,10 +656,7 @@ mod test {
   #[tokio::test]
   #[serial]
   async fn test_update_instance(data: &mut Data) -> LemmyResult<()> {
-    let form = InstanceForm::builder()
-      .domain(data.instance.domain.clone())
-      .updated(None)
-      .build();
+    let form = InstanceForm::new(data.instance.domain.clone());
     Instance::update(&mut data.context.pool(), data.instance.id, form).await?;
 
     send_activity(data.person.actor_id.clone(), &data.context, true).await?;

@@ -473,13 +473,12 @@ mod tests {
     let artemis_person = PersonInsertForm::test_form(inserted_instance.id, "artemis");
     let inserted_artemis = Person::create(pool, &artemis_person).await?;
 
-    let new_community = CommunityInsertForm::builder()
-      .name("TIL".into())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "TIL".into(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await?;
 
     let expected_community = Community {
