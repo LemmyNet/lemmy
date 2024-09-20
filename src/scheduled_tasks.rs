@@ -493,7 +493,7 @@ async fn build_update_instance_form(
   // not every Fediverse instance has a valid Nodeinfo endpoint (its not required for
   // Activitypub). That's why we always need to mark instances as updated if they are
   // alive.
-  let instance_form = InstanceForm {
+  let mut instance_form = InstanceForm {
     updated: Some(naive_now()),
     ..InstanceForm::new(domain.to_string())
   };
