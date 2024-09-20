@@ -345,7 +345,7 @@ async fn instance_actor_2022_01_28(
   settings: &Settings,
 ) -> LemmyResult<()> {
   info!("Running instance_actor_2021_09_29");
-  if let Ok(Some(site_view)) = SiteView::read_local(pool).await {
+  if let Ok(site_view) = SiteView::read_local(pool).await {
     let site = site_view.site;
     // if site already has public key, we dont need to do anything here
     if !site.public_key.is_empty() {
@@ -471,7 +471,7 @@ async fn initialize_local_site_2022_10_10(
     let local_user_form = LocalUserInsertForm {
       email: setup.admin_email.clone(),
       admin: Some(true),
-      ..LocalUserInsertForm::new(person_inserted.id, setup.admin_password.clone())
+      ..LocalUserInsertForm::new(person_inserted.id, Some(setup.admin_password.clone()))
     };
     LocalUser::create(pool, &local_user_form, vec![]).await?;
   };
