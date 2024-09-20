@@ -1031,13 +1031,13 @@ mod tests {
     let data = init_data(pool).await?;
 
     // A post which contains the search them 'Post' not in the title (but in the body)
-    let new_post = PostInsertForm::builder()
-      .name(POST_WITH_ANOTHER_TITLE.to_string())
-      .creator_id(data.local_user_view.person.id)
-      .community_id(data.inserted_community.id)
-      .language_id(Some(LanguageId(47)))
-      .body(Some("Post".to_string()))
-      .build();
+    let mut new_post = PostInsertForm::new(
+      POST_WITH_ANOTHER_TITLE.to_string(),
+      data.local_user_view.person.id,
+      data.inserted_community.id,
+    );
+    new_post.language_id = Some(LanguageId(47));
+    new_post.body = Some("Post".to_string());
 
     let inserted_post = Post::create(pool, &new_post).await?;
 
