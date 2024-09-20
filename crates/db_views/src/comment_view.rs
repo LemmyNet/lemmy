@@ -515,53 +515,63 @@ mod tests {
     //  3  4
     //     \
     //     5
-    let mut comment_form_0 = CommentInsertForm::new(
-      inserted_timmy_person.id,
-      inserted_post.id,
-      "Comment 0".into(),
-    );
-    comment_form_0.language_id = english_id;
+    let comment_form_0 = CommentInsertForm {
+      language_id: english_id,
+      ..CommentInsertForm::new(
+        inserted_timmy_person.id,
+        inserted_post.id,
+        "Comment 0".into(),
+      )
+    };
 
     let inserted_comment_0 = Comment::create(pool, &comment_form_0, None).await?;
 
-    let mut comment_form_1 = CommentInsertForm::new(
-      inserted_sara_person.id,
-      inserted_post.id,
-      "Comment 1, A test blocked comment".into(),
-    );
-    comment_form_1.language_id = english_id;
+    let comment_form_1 = CommentInsertForm {
+      language_id: english_id,
+      ..CommentInsertForm::new(
+        inserted_sara_person.id,
+        inserted_post.id,
+        "Comment 1, A test blocked comment".into(),
+      )
+    };
     let inserted_comment_1 =
       Comment::create(pool, &comment_form_1, Some(&inserted_comment_0.path)).await?;
 
     let finnish_id = Language::read_id_from_code(pool, Some("fi")).await?;
-    let mut comment_form_2 = CommentInsertForm::new(
-      inserted_timmy_person.id,
-      inserted_post.id,
-      "Comment 2".into(),
-    );
-    comment_form_2.language_id = finnish_id;
+    let comment_form_2 = CommentInsertForm {
+      language_id: finnish_id,
+      ..CommentInsertForm::new(
+        inserted_timmy_person.id,
+        inserted_post.id,
+        "Comment 2".into(),
+      )
+    };
 
     let inserted_comment_2 =
       Comment::create(pool, &comment_form_2, Some(&inserted_comment_0.path)).await?;
 
-    let mut comment_form_3 = CommentInsertForm::new(
-      inserted_timmy_person.id,
-      inserted_post.id,
-      "Comment 3".into(),
-    );
-    comment_form_3.language_id = english_id;
+    let comment_form_3 = CommentInsertForm {
+      language_id: english_id,
+      ..CommentInsertForm::new(
+        inserted_timmy_person.id,
+        inserted_post.id,
+        "Comment 3".into(),
+      )
+    };
     let _inserted_comment_3 =
       Comment::create(pool, &comment_form_3, Some(&inserted_comment_1.path)).await?;
 
     let polish_id = Language::read_id_from_code(pool, Some("pl"))
       .await?
       .ok_or(LemmyErrorType::LanguageNotAllowed)?;
-    let mut comment_form_4 = CommentInsertForm::new(
-      inserted_timmy_person.id,
-      inserted_post.id,
-      "Comment 4".into(),
-    );
-    comment_form_4.language_id = Some(polish_id);
+    let comment_form_4 = CommentInsertForm {
+      language_id: Some(polish_id),
+      ..CommentInsertForm::new(
+        inserted_timmy_person.id,
+        inserted_post.id,
+        "Comment 4".into(),
+      )
+    };
 
     let inserted_comment_4 =
       Comment::create(pool, &comment_form_4, Some(&inserted_comment_1.path)).await?;

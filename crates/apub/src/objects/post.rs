@@ -247,17 +247,19 @@ impl Object for ApubPost {
     let language_id =
       LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 
-    let mut form = PostInsertForm::new(name, creator.id, community.id);
-    form.url = url.map(Into::into);
-    form.body = body;
-    form.alt_text = alt_text;
-    form.published = page.published.map(Into::into);
-    form.updated = page.updated.map(Into::into);
-    form.deleted = Some(false);
-    form.nsfw = page.sensitive;
-    form.ap_id = Some(page.id.clone().into());
-    form.local = Some(false);
-    form.language_id = language_id;
+    let form = PostInsertForm {
+      url: url.map(Into::into),
+      body,
+      alt_text,
+      published: page.published.map(Into::into),
+      updated: page.updated.map(Into::into),
+      deleted: Some(false),
+      nsfw: page.sensitive,
+      ap_id: Some(page.id.clone().into()),
+      local: Some(false),
+      language_id,
+      ..PostInsertForm::new(name, creator.id, community.id)
+    };
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(naive_now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
