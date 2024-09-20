@@ -1,3 +1,4 @@
+use super::not_zero;
 use crate::site::{application_question_check, site_default_post_listing_type_check};
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::web::Json;
@@ -116,17 +117,17 @@ pub async fn create_site(
 
   let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm {
     message: data.rate_limit_message,
-    message_per_second: data.rate_limit_message_per_second,
+    message_per_second: not_zero(data.rate_limit_message_per_second),
     post: data.rate_limit_post,
-    post_per_second: data.rate_limit_post_per_second,
+    post_per_second: not_zero(data.rate_limit_post_per_second),
     register: data.rate_limit_register,
-    register_per_second: data.rate_limit_register_per_second,
+    register_per_second: not_zero(data.rate_limit_register_per_second),
     image: data.rate_limit_image,
-    image_per_second: data.rate_limit_image_per_second,
+    image_per_second: not_zero(data.rate_limit_image_per_second),
     comment: data.rate_limit_comment,
-    comment_per_second: data.rate_limit_comment_per_second,
+    comment_per_second: not_zero(data.rate_limit_comment_per_second),
     search: data.rate_limit_search,
-    search_per_second: data.rate_limit_search_per_second,
+    search_per_second: not_zero(data.rate_limit_search_per_second),
     ..Default::default()
   };
 

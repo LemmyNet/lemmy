@@ -120,29 +120,26 @@ mod tests {
 
     let inserted_sara = Person::create(pool, &new_person_2).await.unwrap();
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community vv".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community vv".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post vv".into())
-      .creator_id(inserted_timmy.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post vv".into(),
+      inserted_timmy.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
-    let comment_form = CommentInsertForm::builder()
-      .content("A test comment vv".into())
-      .creator_id(inserted_timmy.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let comment_form = CommentInsertForm::new(
+      inserted_timmy.id,
+      inserted_post.id,
+      "A test comment vv".into(),
+    );
     let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
 
     // Timmy upvotes his own post

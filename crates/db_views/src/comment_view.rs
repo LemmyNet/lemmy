@@ -491,21 +491,19 @@ mod tests {
     let sara_person_form = PersonInsertForm::test_form(inserted_instance.id, "sara");
     let inserted_sara_person = Person::create(pool, &sara_person_form).await?;
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community 5".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community 5".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await?;
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post 2".into())
-      .creator_id(inserted_timmy_person.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post 2".into(),
+      inserted_timmy_person.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await?;
     let english_id = Language::read_id_from_code(pool, Some("en")).await?;
 
@@ -517,65 +515,62 @@ mod tests {
     //  3  4
     //     \
     //     5
-    let comment_form_0 = CommentInsertForm::builder()
-      .content("Comment 0".into())
-      .creator_id(inserted_timmy_person.id)
-      .post_id(inserted_post.id)
-      .language_id(english_id)
-      .build();
+    let mut comment_form_0 = CommentInsertForm::new(
+      inserted_timmy_person.id,
+      inserted_post.id,
+      "Comment 0".into(),
+    );
+    comment_form_0.language_id = english_id;
 
     let inserted_comment_0 = Comment::create(pool, &comment_form_0, None).await?;
 
-    let comment_form_1 = CommentInsertForm::builder()
-      .content("Comment 1, A test blocked comment".into())
-      .creator_id(inserted_sara_person.id)
-      .post_id(inserted_post.id)
-      .language_id(english_id)
-      .build();
-
+    let mut comment_form_1 = CommentInsertForm::new(
+      inserted_sara_person.id,
+      inserted_post.id,
+      "Comment 1, A test blocked comment".into(),
+    );
+    comment_form_1.language_id = english_id;
     let inserted_comment_1 =
       Comment::create(pool, &comment_form_1, Some(&inserted_comment_0.path)).await?;
 
     let finnish_id = Language::read_id_from_code(pool, Some("fi")).await?;
-    let comment_form_2 = CommentInsertForm::builder()
-      .content("Comment 2".into())
-      .creator_id(inserted_timmy_person.id)
-      .post_id(inserted_post.id)
-      .language_id(finnish_id)
-      .build();
+    let mut comment_form_2 = CommentInsertForm::new(
+      inserted_timmy_person.id,
+      inserted_post.id,
+      "Comment 2".into(),
+    );
+    comment_form_2.language_id = finnish_id;
 
     let inserted_comment_2 =
       Comment::create(pool, &comment_form_2, Some(&inserted_comment_0.path)).await?;
 
-    let comment_form_3 = CommentInsertForm::builder()
-      .content("Comment 3".into())
-      .creator_id(inserted_timmy_person.id)
-      .post_id(inserted_post.id)
-      .language_id(english_id)
-      .build();
-
+    let mut comment_form_3 = CommentInsertForm::new(
+      inserted_timmy_person.id,
+      inserted_post.id,
+      "Comment 3".into(),
+    );
+    comment_form_3.language_id = english_id;
     let _inserted_comment_3 =
       Comment::create(pool, &comment_form_3, Some(&inserted_comment_1.path)).await?;
 
     let polish_id = Language::read_id_from_code(pool, Some("pl"))
       .await?
       .ok_or(LemmyErrorType::LanguageNotAllowed)?;
-    let comment_form_4 = CommentInsertForm::builder()
-      .content("Comment 4".into())
-      .creator_id(inserted_timmy_person.id)
-      .post_id(inserted_post.id)
-      .language_id(Some(polish_id))
-      .build();
+    let mut comment_form_4 = CommentInsertForm::new(
+      inserted_timmy_person.id,
+      inserted_post.id,
+      "Comment 4".into(),
+    );
+    comment_form_4.language_id = Some(polish_id);
 
     let inserted_comment_4 =
       Comment::create(pool, &comment_form_4, Some(&inserted_comment_1.path)).await?;
 
-    let comment_form_5 = CommentInsertForm::builder()
-      .content("Comment 5".into())
-      .creator_id(inserted_timmy_person.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let comment_form_5 = CommentInsertForm::new(
+      inserted_timmy_person.id,
+      inserted_post.id,
+      "Comment 5".into(),
+    );
     let _inserted_comment_5 =
       Comment::create(pool, &comment_form_5, Some(&inserted_comment_4.path)).await?;
 
