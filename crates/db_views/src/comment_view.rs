@@ -367,7 +367,7 @@ impl CommentView {
   ) -> Result<Option<Self>, Error> {
     // If a person is given, then my_vote (res.9), if None, should be 0, not null
     // Necessary to differentiate between other person's votes
-    if let Ok(Some(res)) = queries().read(pool, (comment_id, my_local_user)).await {
+    if let Ok(res) = queries().read(pool, (comment_id, my_local_user)).await {
       let mut new_view = res.clone();
       if my_local_user.is_some() && res.my_vote.is_none() {
         new_view.my_vote = Some(0);

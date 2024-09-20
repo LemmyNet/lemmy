@@ -87,8 +87,7 @@ pub async fn build_post_response(
     Some(&local_user),
     is_mod_or_admin,
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindPost)?;
+  .await?;
   Ok(Json(PostResponse { post_view }))
 }
 

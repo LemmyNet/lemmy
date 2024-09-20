@@ -22,22 +22,15 @@ impl SentActivity {
       .await
   }
 
-  pub async fn read_from_apub_id(
-    pool: &mut DbPool<'_>,
-    object_id: &DbUrl,
-  ) -> Result<Option<Self>, Error> {
+  pub async fn read_from_apub_id(pool: &mut DbPool<'_>, object_id: &DbUrl) -> Result<Self, Error> {
     use crate::schema::sent_activity::dsl::{ap_id, sent_activity};
     let conn = &mut get_conn(pool).await?;
-    sent_activity
-      .filter(ap_id.eq(object_id))
-      .first(conn)
-      .await
-      .optional()
+    sent_activity.filter(ap_id.eq(object_id)).first(conn).await
   }
-  pub async fn read(pool: &mut DbPool<'_>, object_id: ActivityId) -> Result<Option<Self>, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, object_id: ActivityId) -> Result<Self, Error> {
     use crate::schema::sent_activity::dsl::sent_activity;
     let conn = &mut get_conn(pool).await?;
-    sent_activity.find(object_id).first(conn).await.optional()
+    sent_activity.find(object_id).first(conn).await
   }
 }
 
@@ -119,10 +112,7 @@ mod tests {
 
     SentActivity::create(pool, form).await.unwrap();
 
-    let res = SentActivity::read_from_apub_id(pool, &ap_id)
-      .await
-      .unwrap()
-      .unwrap();
+    let res = SentActivity::read_from_apub_id(pool, &ap_id).await.unwrap();
     assert_eq!(res.ap_id, ap_id);
     assert_eq!(res.data, data);
     assert_eq!(res.sensitive, sensitive);

@@ -135,7 +135,7 @@ fn queries<'a>(
 }
 
 impl PersonView {
-  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Option<Self>, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     queries().read(pool, person_id).await
   }
 

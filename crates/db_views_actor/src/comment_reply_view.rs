@@ -242,7 +242,7 @@ impl CommentReplyView {
     pool: &mut DbPool<'_>,
     comment_reply_id: CommentReplyId,
     my_person_id: Option<PersonId>,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries().read(pool, (comment_reply_id, my_person_id)).await
   }
 
@@ -446,9 +446,7 @@ mod tests {
       &recipient_local_user_update_form,
     )
     .await?;
-    let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
+    let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id).await?;
 
     let unread_replies_after_hide_bots =
       CommentReplyView::get_unread_replies(pool, &recipient_local_user_view.local_user).await?;

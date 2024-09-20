@@ -77,7 +77,6 @@ pub enum LemmyErrorType {
   OnlyModsCanPostInCommunity,
   CouldntUpdatePost,
   NoPostEditAllowed,
-  CouldntFindPost,
   EditPrivateMessageNotAllowed,
   SiteAlreadyExists,
   ApplicationQuestionRequired,
@@ -188,6 +187,7 @@ pub enum LemmyErrorType {
   Unknown(String),
   CantDeleteSite,
   UrlLengthOverflow,
+  NotFound,
 }
 
 cfg_if! {
@@ -212,7 +212,7 @@ cfg_if! {
       fn from(t: T) -> Self {
         let cause = t.into();
         let error_type = match cause.downcast_ref::<diesel::result::Error>() {
-          Some(&diesel::NotFound) => LemmyErrorType::CouldntFindPost,
+          Some(&diesel::NotFound) => LemmyErrorType::NotFound,
           _ => LemmyErrorType::Unknown(format!("{}", &cause))
       };
         LemmyError {

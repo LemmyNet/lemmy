@@ -241,7 +241,7 @@ impl PersonMentionView {
     pool: &mut DbPool<'_>,
     person_mention_id: PersonMentionId,
     my_person_id: Option<PersonId>,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries()
       .read(pool, (person_mention_id, my_person_id))
       .await
