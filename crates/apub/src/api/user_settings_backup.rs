@@ -114,7 +114,8 @@ pub async fn import_settings(
   let local_user_form = LocalUserUpdateForm {
     show_nsfw: data.settings.as_ref().map(|s| s.show_nsfw),
     theme: data.settings.clone().map(|s| s.theme.clone()),
-    default_sort_type: data.settings.as_ref().map(|s| s.default_sort_type),
+    default_post_sort_type: data.settings.as_ref().map(|s| s.default_post_sort_type),
+    default_comment_sort_type: data.settings.as_ref().map(|s| s.default_comment_sort_type),
     default_listing_type: data.settings.as_ref().map(|s| s.default_listing_type),
     interface_language: data.settings.clone().map(|s| s.interface_language),
     show_avatars: data.settings.as_ref().map(|s| s.show_avatars),
@@ -122,7 +123,6 @@ pub async fn import_settings(
       .settings
       .as_ref()
       .map(|s| s.send_notifications_to_email),
-    show_scores: data.settings.as_ref().map(|s| s.show_scores),
     show_bot_accounts: data.settings.as_ref().map(|s| s.show_bot_accounts),
     show_read_posts: data.settings.as_ref().map(|s| s.show_read_posts),
     open_links_in_new_tab: data.settings.as_ref().map(|s| s.open_links_in_new_tab),
@@ -345,10 +345,7 @@ mod tests {
     };
     let person = Person::create(&mut context.pool(), &person_form).await?;
 
-    let user_form = LocalUserInsertForm::builder()
-      .person_id(person.id)
-      .password_encrypted("pass".to_string())
-      .build();
+    let user_form = LocalUserInsertForm::test_form(person.id);
     let local_user = LocalUser::create(&mut context.pool(), &user_form, vec![]).await?;
 
     Ok(
@@ -366,11 +363,12 @@ mod tests {
     let export_user =
       create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
 
-    let community_form = CommunityInsertForm::builder()
-      .name("testcom".to_string())
-      .title("testcom".to_string())
-      .instance_id(export_user.person.instance_id)
-      .build();
+    let community_form = CommunityInsertForm::new(
+      export_user.person.instance_id,
+      "testcom".to_string(),
+      "testcom".to_string(),
+      "pubkey".to_string(),
+    );
     let community = Community::create(&mut context.pool(), &community_form).await?;
     let follower_form = CommunityFollowerForm {
       community_id: community.id,
@@ -416,11 +414,12 @@ mod tests {
     let export_user =
       create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
 
-    let community_form = CommunityInsertForm::builder()
-      .name("testcom".to_string())
-      .title("testcom".to_string())
-      .instance_id(export_user.person.instance_id)
-      .build();
+    let community_form = CommunityInsertForm::new(
+      export_user.person.instance_id,
+      "testcom".to_string(),
+      "testcom".to_string(),
+      "pubkey".to_string(),
+    );
     let community = Community::create(&mut context.pool(), &community_form).await?;
     let follower_form = CommunityFollowerForm {
       community_id: community.id,

@@ -493,10 +493,8 @@ async fn build_update_instance_form(
   // not every Fediverse instance has a valid Nodeinfo endpoint (its not required for
   // Activitypub). That's why we always need to mark instances as updated if they are
   // alive.
-  let mut instance_form = InstanceForm::builder()
-    .domain(domain.to_string())
-    .updated(Some(naive_now()))
-    .build();
+  let mut instance_form = InstanceForm::new(domain.to_string());
+  instance_form.updated = Some(naive_now());
 
   // First, fetch their /.well-known/nodeinfo, then extract the correct nodeinfo link from it
   let well_known_url = format!("https://{}/.well-known/nodeinfo", domain);
@@ -559,9 +557,9 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_nodeinfo_voyager_lemmy_ml() -> LemmyResult<()> {
+  async fn test_nodeinfo_lemmy_ml() -> LemmyResult<()> {
     let client = ClientBuilder::new(client_builder(&Settings::default()).build()?).build();
-    let form = build_update_instance_form("voyager.lemmy.ml", &client)
+    let form = build_update_instance_form("lemmy.ml", &client)
       .await
       .ok_or(LemmyErrorType::CouldntFindObject)?;
     assert_eq!(

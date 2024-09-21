@@ -28,11 +28,11 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs,
     validation::{
-      check_url_scheme,
       is_url_blocked,
       is_valid_alt_text_field,
       is_valid_body_field,
       is_valid_post_title,
+      is_valid_url,
     },
   },
 };
@@ -77,11 +77,11 @@ pub async fn update_post(
 
   if let Some(Some(url)) = &url {
     is_url_blocked(url, &url_blocklist)?;
-    check_url_scheme(url)?;
+    is_valid_url(url)?;
   }
 
   if let Some(Some(custom_thumbnail)) = &custom_thumbnail {
-    check_url_scheme(custom_thumbnail)?;
+    is_valid_url(custom_thumbnail)?;
   }
 
   let post_id = data.post_id;
@@ -129,7 +129,6 @@ pub async fn update_post(
     updated_post.clone(),
     custom_thumbnail.flatten().map(Into::into),
     |post| Some(SendActivityData::UpdatePost(post)),
-    Some(local_site),
     context.reset_request_count(),
   )
   .await?;
@@ -137,7 +136,7 @@ pub async fn update_post(
   build_post_response(
     context.deref(),
     orig_post.community_id,
-    &local_user_view.person,
+    local_user_view,
     post_id,
   )
   .await

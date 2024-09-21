@@ -41,7 +41,11 @@ use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
   spawn_try_task,
-  utils::{markdown::markdown_to_html, slurs::check_slurs_opt, validation::check_url_scheme},
+  utils::{
+    markdown::markdown_to_html,
+    slurs::check_slurs_opt,
+    validation::{is_url_blocked, is_valid_url},
+  },
 };
 use std::ops::Deref;
 use stringreader::StringReader;
@@ -180,8 +184,15 @@ impl Object for ApubPost {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
-      CommunityModeratorView::is_community_moderator(&mut context.pool(), community.id, creator.id)
-        .await?;
+      let is_mod = CommunityModeratorView::is_community_moderator(
+        &mut context.pool(),
+        community.id,
+        creator.id,
+      )
+      .await?;
+      if !is_mod {
+        Err(LemmyErrorType::OnlyModsCanPostInCommunity)?
+      }
     }
     let mut name = page
       .name
@@ -220,35 +231,33 @@ impl Object for ApubPost {
       None
     };
 
+    let url_blocklist = get_url_blocklist(context).await?;
+
     if let Some(url) = &url {
-      check_url_scheme(url)?;
+      is_url_blocked(url, &url_blocklist)?;
+      is_valid_url(url)?;
     }
 
     let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
 
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
-    let url_blocklist = get_url_blocklist(context).await?;
 
     let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
     let body = process_markdown_opt(&body, slur_regex, &url_blocklist, context).await?;
     let language_id =
       LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 
-    let form = PostInsertForm::builder()
-      .name(name)
-      .url(url.map(Into::into))
-      .body(body)
-      .alt_text(alt_text)
-      .creator_id(creator.id)
-      .community_id(community.id)
-      .published(page.published.map(Into::into))
-      .updated(page.updated.map(Into::into))
-      .deleted(Some(false))
-      .nsfw(page.sensitive)
-      .ap_id(Some(page.id.clone().into()))
-      .local(Some(false))
-      .language_id(language_id)
-      .build();
+    let mut form = PostInsertForm::new(name, creator.id, community.id);
+    form.url = url.map(Into::into);
+    form.body = body;
+    form.alt_text = alt_text;
+    form.published = page.published.map(Into::into);
+    form.updated = page.updated.map(Into::into);
+    form.deleted = Some(false);
+    form.nsfw = page.sensitive;
+    form.ap_id = Some(page.id.clone().into());
+    form.local = Some(false);
+    form.language_id = language_id;
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(naive_now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
@@ -257,9 +266,9 @@ impl Object for ApubPost {
 
     // Generates a post thumbnail in background task, because some sites can be very slow to
     // respond.
-    spawn_try_task(async move {
-      generate_post_link_metadata(post_, None, |_| None, local_site, context_).await
-    });
+    spawn_try_task(
+      async move { generate_post_link_metadata(post_, None, |_| None, context_).await },
+    );
 
     Ok(post.into())
   }

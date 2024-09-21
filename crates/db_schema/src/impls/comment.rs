@@ -117,7 +117,7 @@ impl Crud for Comment {
   type UpdateForm = CommentUpdateForm;
   type IdType = CommentId;
 
-  /// This is unimplemented, use [[Comment::create]]
+  /// Use [[Comment::create]]
   async fn create(pool: &mut DbPool<'_>, comment_form: &Self::InsertForm) -> Result<Self, Error> {
     debug_assert!(false);
     Comment::create(pool, comment_form, None).await
@@ -223,6 +223,7 @@ mod tests {
   use diesel_ltree::Ltree;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
+  use url::Url;
 
   #[tokio::test]
   #[serial]
@@ -238,29 +239,26 @@ mod tests {
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post".into())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
-    let comment_form = CommentInsertForm::builder()
-      .content("A test comment".into())
-      .creator_id(inserted_person.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
     let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
 
     let expected_comment = Comment {
@@ -273,18 +271,22 @@ mod tests {
       path: Ltree(format!("0.{}", inserted_comment.id)),
       published: inserted_comment.published,
       updated: None,
-      ap_id: inserted_comment.ap_id.clone(),
+      ap_id: Url::parse(&format!(
+        "https://lemmy-alpha/comment/{}",
+        inserted_comment.id
+      ))
+      .unwrap()
+      .into(),
       distinguished: false,
       local: true,
       language_id: LanguageId::default(),
     };
 
-    let child_comment_form = CommentInsertForm::builder()
-      .content("A child comment".into())
-      .creator_id(inserted_person.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let child_comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A child comment".into(),
+    );
     let inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path))
         .await

@@ -26,9 +26,7 @@ pub async fn read_person(
     Err(LemmyErrorType::NoIdGiven)?
   }
 
-  let local_site = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site.local_site)?;
 
@@ -96,7 +94,7 @@ pub async fn read_person(
   let moderates = CommunityModeratorView::for_person(
     &mut context.pool(),
     person_details_id,
-    local_user_view.is_some(),
+    local_user_view.map(|l| l.local_user).as_ref(),
   )
   .await?;
 

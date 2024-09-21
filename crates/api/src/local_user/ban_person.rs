@@ -5,10 +5,11 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_expire_time, is_admin, remove_user_data},
+  utils::{check_expire_time, is_admin, remove_user_data, restore_user_data},
 };
 use lemmy_db_schema::{
   source::{
+    local_user::LocalUser,
     login_token::LoginToken,
     moderator::{ModBan, ModBanForm},
     person::{Person, PersonUpdateForm},
@@ -30,6 +31,14 @@ pub async fn ban_from_site(
 ) -> LemmyResult<Json<BanPersonResponse>> {
   // Make sure user is an admin
   is_admin(&local_user_view)?;
+
+  // Also make sure you're a higher admin than the target
+  LocalUser::is_higher_admin_check(
+    &mut context.pool(),
+    local_user_view.person.id,
+    vec![data.person_id],
+  )
+  .await?;
 
   if let Some(reason) = &data.reason {
     is_valid_body_field(reason, false)?;
@@ -56,10 +65,13 @@ pub async fn ban_from_site(
   }
 
   // Remove their data if that's desired
-  let remove_data = data.remove_data.unwrap_or(false);
-  if remove_data {
-    remove_user_data(person.id, &context).await?;
-  }
+  if data.remove_or_restore_data.unwrap_or(false) {
+    if data.ban {
+      remove_user_data(person.id, &context).await?;
+    } else {
+      restore_user_data(person.id, &context).await?;
+    }
+  };
 
   // Mod tables
   let form = ModBanForm {
@@ -81,7 +93,7 @@ pub async fn ban_from_site(
     &person,
     data.ban,
     &data.reason,
-    &data.remove_data,
+    &data.remove_or_restore_data,
     &data.expires,
     &context,
   )
@@ -92,7 +104,7 @@ pub async fn ban_from_site(
       moderator: local_user_view.person,
       banned_user: person_view.person.clone(),
       reason: data.reason.clone(),
-      remove_data: data.remove_data,
+      remove_or_restore_data: data.remove_or_restore_data,
       ban: data.ban,
       expires: data.expires,
     },

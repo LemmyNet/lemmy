@@ -172,7 +172,7 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
   target: &Person,
   ban: bool,
   reason: &Option<String>,
-  remove_data: &Option<bool>,
+  remove_or_restore_data: &Option<bool>,
   expires: &Option<i64>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
@@ -230,7 +230,7 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
         person_id: target.id,
         ban,
         reason: reason.clone(),
-        remove_data: *remove_data,
+        remove_or_restore_data: *remove_or_restore_data,
         expires: *expires,
       };
 

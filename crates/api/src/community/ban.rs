@@ -4,7 +4,11 @@ use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, check_expire_time, remove_user_data_in_community},
+  utils::{
+    check_community_mod_action,
+    check_expire_time,
+    remove_or_restore_user_data_in_community,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -14,6 +18,7 @@ use lemmy_db_schema::{
       CommunityPersonBan,
       CommunityPersonBanForm,
     },
+    local_user::LocalUser,
     moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
   },
   traits::{Bannable, Crud, Followable},
@@ -32,7 +37,6 @@ pub async fn ban_from_community(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<BanFromCommunityResponse>> {
   let banned_person_id = data.person_id;
-  let remove_data = data.remove_data.unwrap_or(false);
   let expires = check_expire_time(data.expires)?;
 
   // Verify that only mods or admins can ban
@@ -41,6 +45,14 @@ pub async fn ban_from_community(
     data.community_id,
     false,
     &mut context.pool(),
+  )
+  .await?;
+
+  LocalUser::is_higher_mod_or_admin_check(
+    &mut context.pool(),
+    data.community_id,
+    local_user_view.person.id,
+    vec![data.person_id],
   )
   .await?;
 
@@ -76,9 +88,16 @@ pub async fn ban_from_community(
   }
 
   // Remove/Restore their data if that's desired
-  if remove_data {
-    remove_user_data_in_community(data.community_id, banned_person_id, &mut context.pool()).await?;
-  }
+  if data.remove_or_restore_data.unwrap_or(false) {
+    let remove_data = data.ban;
+    remove_or_restore_user_data_in_community(
+      data.community_id,
+      banned_person_id,
+      remove_data,
+      &mut context.pool(),
+    )
+    .await?;
+  };
 
   // Mod tables
   let form = ModBanFromCommunityForm {

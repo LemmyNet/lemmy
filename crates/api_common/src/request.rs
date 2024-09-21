@@ -3,17 +3,18 @@ use crate::{
   lemmy_db_schema::traits::Crud,
   post::{LinkMetadata, OpenGraphData},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{local_site_opt_to_sensitive, proxy_image_link},
+  utils::proxy_image_link,
 };
 use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
+use futures::StreamExt;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
     images::{ImageDetailsForm, LocalImage, LocalImageForm},
-    local_site::LocalSite,
     post::{Post, PostUpdateForm},
+    site::Site,
   },
 };
 use lemmy_utils::{
@@ -23,7 +24,12 @@ use lemmy_utils::{
   VERSION,
 };
 use mime::Mime;
-use reqwest::{header::CONTENT_TYPE, Client, ClientBuilder};
+use reqwest::{
+  header::{CONTENT_TYPE, RANGE},
+  Client,
+  ClientBuilder,
+  Response,
+};
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
 use tracing::info;
@@ -38,13 +44,24 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
     .user_agent(user_agent.clone())
     .timeout(REQWEST_TIMEOUT)
     .connect_timeout(REQWEST_TIMEOUT)
+    .use_rustls_tls()
 }
 
 /// Fetches metadata for the given link and optionally generates thumbnail.
 #[tracing::instrument(skip_all)]
 pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResult<LinkMetadata> {
   info!("Fetching site metadata for url: {}", url);
-  let response = context.client().get(url.as_str()).send().await?;
+  // We only fetch the first 64kB of data in order to not waste bandwidth especially for large
+  // binary files
+  let bytes_to_fetch = 64 * 1024;
+  let response = context
+    .client()
+    .get(url.as_str())
+    // we only need the first chunk of data. Note that we do not check for Accept-Range so the
+    // server may ignore this and still respond with the full response
+    .header(RANGE, format!("bytes=0-{}", bytes_to_fetch - 1)) /* -1 because inclusive */
+    .send()
+    .await?;
 
   let content_type: Option<Mime> = response
     .headers()
@@ -52,17 +69,55 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
     .and_then(|h| h.to_str().ok())
     .and_then(|h| h.parse().ok());
 
-  // Can't use .text() here, because it only checks the content header, not the actual bytes
-  // https://github.com/LemmyNet/lemmy/issues/1964
-  let html_bytes = response.bytes().await.map_err(LemmyError::from)?.to_vec();
+  let opengraph_data = {
+    // if the content type is not text/html, we don't need to parse it
+    let is_html = content_type
+      .as_ref()
+      .map(|c| {
+        (c.type_() == mime::TEXT && c.subtype() == mime::HTML)
+      ||
+      // application/xhtml+xml is a subset of HTML
+      (c.type_() == mime::APPLICATION && c.subtype() == "xhtml")
+      })
+      .unwrap_or(false);
+    if !is_html {
+      Default::default()
+    } else {
+      // Can't use .text() here, because it only checks the content header, not the actual bytes
+      // https://github.com/LemmyNet/lemmy/issues/1964
+      // So we want to do deep inspection of the actually returned bytes but need to be careful not
+      // spend too much time parsing binary data as HTML
 
-  let opengraph_data = extract_opengraph_data(&html_bytes, url)
-    .map_err(|e| info!("{e}"))
-    .unwrap_or_default();
+      // only take first bytes regardless of how many bytes the server returns
+      let html_bytes = collect_bytes_until_limit(response, bytes_to_fetch).await?;
+      extract_opengraph_data(&html_bytes, url)
+        .map_err(|e| info!("{e}"))
+        .unwrap_or_default()
+    }
+  };
   Ok(LinkMetadata {
     opengraph_data,
     content_type: content_type.map(|c| c.to_string()),
   })
+}
+
+async fn collect_bytes_until_limit(
+  response: Response,
+  requested_bytes: usize,
+) -> Result<Vec<u8>, LemmyError> {
+  let mut stream = response.bytes_stream();
+  let mut bytes = Vec::with_capacity(requested_bytes);
+  while let Some(chunk) = stream.next().await {
+    let chunk = chunk.map_err(LemmyError::from)?;
+    // we may go over the requested size here but the important part is we don't keep aggregating
+    // more chunks than needed
+    bytes.extend_from_slice(&chunk);
+    if bytes.len() >= requested_bytes {
+      bytes.truncate(requested_bytes);
+      break;
+    }
+  }
+  Ok(bytes)
 }
 
 /// Generates and saves a post thumbnail and metadata.
@@ -76,7 +131,6 @@ pub async fn generate_post_link_metadata(
   post: Post,
   custom_thumbnail: Option<Url>,
   send_activity: impl FnOnce(Post) -> Option<SendActivityData> + Send + 'static,
-  local_site: Option<LocalSite>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let metadata = match &post.url {
@@ -90,7 +144,8 @@ pub async fn generate_post_link_metadata(
     .is_some_and(|content_type| content_type.starts_with("image"));
 
   // Decide if we are allowed to generate local thumbnail
-  let allow_sensitive = local_site_opt_to_sensitive(&local_site);
+  let site = Site::read_local(&mut context.pool()).await?;
+  let allow_sensitive = site.content_warning.is_some();
   let allow_generate_thumbnail = allow_sensitive || !post.nsfw;
 
   let image_url = if is_image_post {

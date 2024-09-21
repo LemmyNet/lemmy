@@ -76,11 +76,14 @@ pub async fn transfer_community(
   ModTransferCommunity::create(&mut context.pool(), &form).await?;
 
   let community_id = data.community_id;
-  let person_id = local_user_view.person.id;
-  let community_view =
-    CommunityView::read(&mut context.pool(), community_id, Some(person_id), false)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  let community_view = CommunityView::read(
+    &mut context.pool(),
+    community_id,
+    Some(&local_user_view.local_user),
+    false,
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindCommunity)?;
 
   let community_id = data.community_id;
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id)

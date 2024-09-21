@@ -24,10 +24,10 @@ use lemmy_db_schema::{
     ReadFn,
   },
   ListingType,
-  SortType,
+  PostSortType,
 };
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString};
+use strum::{Display, EnumString};
 
 enum ListMode {
   Admins,
@@ -46,12 +46,13 @@ enum PersonSortType {
   PostCount,
 }
 
-fn post_to_person_sort_type(sort: SortType) -> PersonSortType {
+fn post_to_person_sort_type(sort: PostSortType) -> PersonSortType {
+  use PostSortType::*;
   match sort {
-    SortType::Active | SortType::Hot | SortType::Controversial => PersonSortType::CommentScore,
-    SortType::New | SortType::NewComments => PersonSortType::New,
-    SortType::MostComments => PersonSortType::MostComments,
-    SortType::Old => PersonSortType::Old,
+    Active | Hot | Controversial => PersonSortType::CommentScore,
+    New | NewComments => PersonSortType::New,
+    MostComments => PersonSortType::MostComments,
+    Old => PersonSortType::Old,
     _ => PersonSortType::CommentScore,
   }
 }
@@ -149,7 +150,7 @@ impl PersonView {
 
 #[derive(Default)]
 pub struct PersonQuery {
-  pub sort: Option<SortType>,
+  pub sort: Option<PostSortType>,
   pub search_term: Option<String>,
   pub listing_type: Option<ListingType>,
   pub page: Option<i64>,
@@ -196,10 +197,7 @@ mod tests {
       ..PersonInsertForm::test_form(inserted_instance.id, "alice")
     };
     let alice = Person::create(pool, &alice_form).await?;
-    let alice_local_user_form = LocalUserInsertForm::builder()
-      .person_id(alice.id)
-      .password_encrypted(String::new())
-      .build();
+    let alice_local_user_form = LocalUserInsertForm::test_form(alice.id);
     let alice_local_user = LocalUser::create(pool, &alice_local_user_form, vec![]).await?;
 
     let bob_form = PersonInsertForm {
@@ -208,10 +206,7 @@ mod tests {
       ..PersonInsertForm::test_form(inserted_instance.id, "bob")
     };
     let bob = Person::create(pool, &bob_form).await?;
-    let bob_local_user_form = LocalUserInsertForm::builder()
-      .person_id(bob.id)
-      .password_encrypted(String::new())
-      .build();
+    let bob_local_user_form = LocalUserInsertForm::test_form(bob.id);
     let bob_local_user = LocalUser::create(pool, &bob_local_user_form, vec![]).await?;
 
     Ok(Data {
@@ -252,7 +247,7 @@ mod tests {
     assert!(read.is_none());
 
     let list = PersonQuery {
-      sort: Some(SortType::New),
+      sort: Some(PostSortType::New),
       ..Default::default()
     }
     .list(pool)

@@ -8,7 +8,7 @@ CREATE FUNCTION r.controversy_rank (upvotes numeric, downvotes numeric)
         0
     ELSE
         (
-            upvotes + downvotes) * CASE WHEN upvotes > downvotes THEN
+            upvotes + downvotes) ^ CASE WHEN upvotes > downvotes THEN
             downvotes::float / upvotes::float
         ELSE
             upvotes::float / downvotes::float
@@ -56,6 +56,13 @@ BEGIN
             OR item.removed), FALSE);
 END;
 $$;
+
+CREATE FUNCTION r.local_url (url_path text)
+    RETURNS text
+    LANGUAGE sql
+    STABLE PARALLEL SAFE RETURN (
+current_setting('lemmy.protocol_and_hostname') || url_path
+);
 
 -- This function creates statement-level triggers for all operation types. It's designed this way
 -- because of these limitations:

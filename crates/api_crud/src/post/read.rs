@@ -21,9 +21,7 @@ pub async fn get_post(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPostResponse>> {
-  let local_site = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site.local_site)?;
 
@@ -55,9 +53,15 @@ pub async fn get_post(
   .await
   .is_ok();
 
-  let post_view = PostView::read(&mut context.pool(), post_id, person_id, is_mod_or_admin)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+  let local_user = local_user_view.map(|l| l.local_user);
+  let post_view = PostView::read(
+    &mut context.pool(),
+    post_id,
+    local_user.as_ref(),
+    is_mod_or_admin,
+  )
+  .await?
+  .ok_or(LemmyErrorType::CouldntFindPost)?;
 
   let post_id = post_view.post.id;
   if let Some(person_id) = person_id {
@@ -76,20 +80,19 @@ pub async fn get_post(
   let community_view = CommunityView::read(
     &mut context.pool(),
     community_id,
-    person_id,
+    local_user.as_ref(),
     is_mod_or_admin,
   )
   .await?
   .ok_or(LemmyErrorType::CouldntFindCommunity)?;
 
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
-  let local_user = local_user_view.as_ref().map(|u| &u.local_user);
 
   // Fetch the cross_posts
   let cross_posts = if let Some(url) = &post_view.post.url {
     let mut x_posts = PostQuery {
       url_search: Some(url.inner().as_str().into()),
-      local_user,
+      local_user: local_user.as_ref(),
       ..Default::default()
     }
     .list(&local_site.site, &mut context.pool())

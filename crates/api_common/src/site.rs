@@ -1,36 +1,44 @@
 use crate::federate_retry_sleep_duration;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId},
+  newtypes::{
+    CommentId,
+    CommunityId,
+    InstanceId,
+    LanguageId,
+    PersonId,
+    PostId,
+    RegistrationApplicationId,
+  },
   source::{
+    community::Community,
     federation_queue_state::FederationQueueState,
     instance::Instance,
     language::Language,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    oauth_provider::{OAuthProvider, PublicOAuthProvider},
+    person::Person,
     tagline::Tagline,
   },
+  CommentSortType,
   ListingType,
   ModlogActionType,
   PostListingMode,
+  PostSortType,
   RegistrationMode,
   SearchType,
-  SortType,
 };
 use lemmy_db_views::structs::{
   CommentView,
-  CustomEmojiView,
   LocalUserView,
   PostView,
   RegistrationApplicationView,
   SiteView,
 };
 use lemmy_db_views_actor::structs::{
-  CommunityBlockView,
   CommunityFollowerView,
   CommunityModeratorView,
   CommunityView,
-  InstanceBlockView,
-  PersonBlockView,
   PersonView,
 };
 use lemmy_db_views_moderator::structs::{
@@ -66,10 +74,11 @@ pub struct Search {
   pub community_name: Option<String>,
   pub creator_id: Option<PersonId>,
   pub type_: Option<SearchType>,
-  pub sort: Option<SortType>,
+  pub sort: Option<PostSortType>,
   pub listing_type: Option<ListingType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
+  pub post_title_only: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -165,7 +174,9 @@ pub struct CreateSite {
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
   pub default_post_listing_type: Option<ListingType>,
-  pub default_sort_type: Option<SortType>,
+  pub default_post_listing_mode: Option<PostListingMode>,
+  pub default_post_sort_type: Option<PostSortType>,
+  pub default_comment_sort_type: Option<CommentSortType>,
   pub legal_information: Option<String>,
   pub application_email_admins: Option<bool>,
   pub hide_modlog_mod_names: Option<bool>,
@@ -190,10 +201,9 @@ pub struct CreateSite {
   pub captcha_difficulty: Option<String>,
   pub allowed_instances: Option<Vec<String>>,
   pub blocked_instances: Option<Vec<String>>,
-  pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  pub oauth_registration: Option<bool>,
   pub content_warning: Option<String>,
-  pub default_post_listing_mode: Option<PostListingMode>,
 }
 
 #[skip_serializing_none]
@@ -224,9 +234,14 @@ pub struct EditSite {
   pub private_instance: Option<bool>,
   /// The default theme. Usually "browser"
   pub default_theme: Option<String>,
+  /// The default post listing type, usually "local"
   pub default_post_listing_type: Option<ListingType>,
-  /// The default sort, usually "active"
-  pub default_sort_type: Option<SortType>,
+  /// Default value for listing mode, usually "list"
+  pub default_post_listing_mode: Option<PostListingMode>,
+  /// The default post sort, usually "active"
+  pub default_post_sort_type: Option<PostSortType>,
+  /// The default comment sort, usually "hot"
+  pub default_comment_sort_type: Option<CommentSortType>,
   /// An optional page of legal information
   pub legal_information: Option<String>,
   /// Whether to email admins when receiving a new application.
@@ -271,16 +286,14 @@ pub struct EditSite {
   pub blocked_instances: Option<Vec<String>>,
   /// A list of blocked URLs
   pub blocked_urls: Option<Vec<String>>,
-  /// A list of taglines shown at the top of the front page.
-  pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  /// Whether or not external auth methods can auto-register users.
+  pub oauth_registration: Option<bool>,
   /// Whether to email admins for new reports.
   pub reports_email_admins: Option<bool>,
   /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
   /// when the site is first opened by a user.
   pub content_warning: Option<String>,
-  /// Default value for [LocalUser.post_listing_mode]
-  pub default_post_listing_mode: Option<PostListingMode>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -289,7 +302,6 @@ pub struct EditSite {
 /// The response for a site.
 pub struct SiteResponse {
   pub site_view: SiteView,
-  pub taglines: Vec<Tagline>,
 }
 
 #[skip_serializing_none]
@@ -304,10 +316,11 @@ pub struct GetSiteResponse {
   pub my_user: Option<MyUserInfo>,
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
-  /// A list of taglines shown at the top of the front page.
-  pub taglines: Vec<Tagline>,
-  /// A list of custom emojis your site supports.
-  pub custom_emojis: Vec<CustomEmojiView>,
+  /// If the site has any taglines, a random one is included here for displaying
+  pub tagline: Option<Tagline>,
+  /// A list of external auth methods your site supports.
+  pub oauth_providers: Option<Vec<PublicOAuthProvider>>,
+  pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
 }
 
@@ -329,9 +342,9 @@ pub struct MyUserInfo {
   pub local_user_view: LocalUserView,
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
-  pub community_blocks: Vec<CommunityBlockView>,
-  pub instance_blocks: Vec<InstanceBlockView>,
-  pub person_blocks: Vec<PersonBlockView>,
+  pub community_blocks: Vec<Community>,
+  pub instance_blocks: Vec<Instance>,
+  pub person_blocks: Vec<Person>,
   pub discussion_languages: Vec<LanguageId>,
 }
 
@@ -441,12 +454,21 @@ pub struct ListRegistrationApplicationsResponse {
 }
 
 #[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Gets a registration application for a person
+pub struct GetRegistrationApplication {
+  pub person_id: PersonId,
+}
+
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Approves a registration application.
 pub struct ApproveRegistrationApplication {
-  pub id: i32,
+  pub id: RegistrationApplicationId,
   pub approve: bool,
   pub deny_reason: Option<String>,
 }

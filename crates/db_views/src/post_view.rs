@@ -49,7 +49,6 @@ use lemmy_db_schema::{
     get_conn,
     limit_and_offset,
     now,
-    visible_communities_only,
     Commented,
     DbConn,
     DbPool,
@@ -59,12 +58,13 @@ use lemmy_db_schema::{
     ReverseTimestampKey,
   },
   ListingType,
-  SortType,
+  PostSortType,
 };
 use tracing::debug;
+use PostSortType::*;
 
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, PostView, (PostId, Option<PersonId>, bool)>,
+  impl ReadFn<'a, PostView, (PostId, Option<&'a LocalUser>, bool)>,
   impl ListFn<'a, PostView, (PostQuery<'a>, &'a Site)>,
 > {
   let is_creator_banned_from_community = exists(
@@ -142,6 +142,7 @@ fn queries<'a>() -> Queries<
       .single_value()
   };
 
+  // TODO maybe this should go to localuser also
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>| {
     let is_local_user_banned_from_community_selection: Box<
@@ -250,52 +251,56 @@ fn queries<'a>() -> Queries<
       ))
   };
 
-  let read =
-    move |mut conn: DbConn<'a>,
-          (post_id, my_person_id, is_mod_or_admin): (PostId, Option<PersonId>, bool)| async move {
-      // The left join below will return None in this case
-      let person_id_join = my_person_id.unwrap_or(PersonId(-1));
+  let read = move |mut conn: DbConn<'a>,
+                   (post_id, my_local_user, is_mod_or_admin): (
+    PostId,
+    Option<&'a LocalUser>,
+    bool,
+  )| async move {
+    // The left join below will return None in this case
+    let my_person_id = my_local_user.person_id();
+    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
 
-      let mut query = all_joins(
-        post_aggregates::table
-          .filter(post_aggregates::post_id.eq(post_id))
-          .into_boxed(),
-        my_person_id,
-      );
+    let mut query = all_joins(
+      post_aggregates::table
+        .filter(post_aggregates::post_id.eq(post_id))
+        .into_boxed(),
+      my_person_id,
+    );
 
-      // Hide deleted and removed for non-admins or mods
-      if !is_mod_or_admin {
-        query = query
-          .filter(
-            community::removed
-              .eq(false)
-              .or(post::creator_id.eq(person_id_join)),
-          )
-          .filter(
-            post::removed
-              .eq(false)
-              .or(post::creator_id.eq(person_id_join)),
-          )
-          // users can see their own deleted posts
-          .filter(
-            community::deleted
-              .eq(false)
-              .or(post::creator_id.eq(person_id_join)),
-          )
-          .filter(
-            post::deleted
-              .eq(false)
-              .or(post::creator_id.eq(person_id_join)),
-          );
-      }
+    // Hide deleted and removed for non-admins or mods
+    if !is_mod_or_admin {
+      query = query
+        .filter(
+          community::removed
+            .eq(false)
+            .or(post::creator_id.eq(person_id_join)),
+        )
+        .filter(
+          post::removed
+            .eq(false)
+            .or(post::creator_id.eq(person_id_join)),
+        )
+        // users can see their own deleted posts
+        .filter(
+          community::deleted
+            .eq(false)
+            .or(post::creator_id.eq(person_id_join)),
+        )
+        .filter(
+          post::deleted
+            .eq(false)
+            .or(post::creator_id.eq(person_id_join)),
+        );
+    }
 
-      query = visible_communities_only(my_person_id, query);
+    query = my_local_user.visible_communities_only(query);
 
-      Commented::new(query)
-        .text("PostView::read")
-        .first(&mut conn)
-        .await
-    };
+    Commented::new(query)
+      .text("PostView::read")
+      .first(&mut conn)
+      .await
+  };
 
   let list = move |mut conn: DbConn<'a>, (options, site): (PostQuery<'a>, &'a Site)| async move {
     // The left join below will return None in this case
@@ -383,16 +388,22 @@ fn queries<'a>() -> Queries<
 
     if let Some(search_term) = &options.search_term {
       let searcher = fuzzy_search(search_term);
-      query = query
-        .filter(
+      query = if options.title_only.unwrap_or_default() {
+        query.filter(post::name.ilike(searcher))
+      } else {
+        query.filter(
           post::name
             .ilike(searcher.clone())
             .or(post::body.ilike(searcher)),
         )
-        .filter(not(post::removed.or(post::deleted)));
+      }
+      .filter(not(post::removed.or(post::deleted)));
     }
 
-    if !options.local_user.show_nsfw(site) {
+    if !options
+      .show_nsfw
+      .unwrap_or(options.local_user.show_nsfw(site))
+    {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
@@ -437,7 +448,7 @@ fn queries<'a>() -> Queries<
       }
     };
 
-    query = visible_communities_only(options.local_user.person_id(), query);
+    query = options.local_user.visible_communities_only(query);
 
     // Dont filter blocks or missing languages for moderator view type
     if let (Some(person_id), false) = (
@@ -500,33 +511,33 @@ fn queries<'a>() -> Queries<
     let time = |interval| post_aggregates::published.gt(now() - interval);
 
     // then use the main sort
-    query = match options.sort.unwrap_or(SortType::Hot) {
-      SortType::Active => query.then_desc(key::hot_rank_active),
-      SortType::Hot => query.then_desc(key::hot_rank),
-      SortType::Scaled => query.then_desc(key::scaled_rank),
-      SortType::Controversial => query.then_desc(key::controversy_rank),
-      SortType::New => query.then_desc(key::published),
-      SortType::Old => query.then_desc(ReverseTimestampKey(key::published)),
-      SortType::NewComments => query.then_desc(key::newest_comment_time),
-      SortType::MostComments => query.then_desc(key::comments),
-      SortType::TopAll => query.then_desc(key::score),
-      SortType::TopYear => query.then_desc(key::score).filter(time(1.years())),
-      SortType::TopMonth => query.then_desc(key::score).filter(time(1.months())),
-      SortType::TopWeek => query.then_desc(key::score).filter(time(1.weeks())),
-      SortType::TopDay => query.then_desc(key::score).filter(time(1.days())),
-      SortType::TopHour => query.then_desc(key::score).filter(time(1.hours())),
-      SortType::TopSixHour => query.then_desc(key::score).filter(time(6.hours())),
-      SortType::TopTwelveHour => query.then_desc(key::score).filter(time(12.hours())),
-      SortType::TopThreeMonths => query.then_desc(key::score).filter(time(3.months())),
-      SortType::TopSixMonths => query.then_desc(key::score).filter(time(6.months())),
-      SortType::TopNineMonths => query.then_desc(key::score).filter(time(9.months())),
+    query = match options.sort.unwrap_or(Hot) {
+      Active => query.then_desc(key::hot_rank_active),
+      Hot => query.then_desc(key::hot_rank),
+      Scaled => query.then_desc(key::scaled_rank),
+      Controversial => query.then_desc(key::controversy_rank),
+      New => query.then_desc(key::published),
+      Old => query.then_desc(ReverseTimestampKey(key::published)),
+      NewComments => query.then_desc(key::newest_comment_time),
+      MostComments => query.then_desc(key::comments),
+      TopAll => query.then_desc(key::score),
+      TopYear => query.then_desc(key::score).filter(time(1.years())),
+      TopMonth => query.then_desc(key::score).filter(time(1.months())),
+      TopWeek => query.then_desc(key::score).filter(time(1.weeks())),
+      TopDay => query.then_desc(key::score).filter(time(1.days())),
+      TopHour => query.then_desc(key::score).filter(time(1.hours())),
+      TopSixHour => query.then_desc(key::score).filter(time(6.hours())),
+      TopTwelveHour => query.then_desc(key::score).filter(time(12.hours())),
+      TopThreeMonths => query.then_desc(key::score).filter(time(3.months())),
+      TopSixMonths => query.then_desc(key::score).filter(time(6.months())),
+      TopNineMonths => query.then_desc(key::score).filter(time(9.months())),
     };
 
     // use publish as fallback. especially useful for hot rank which reaches zero after some days.
     // necessary because old posts can be fetched over federation and inserted with high post id
-    query = match options.sort.unwrap_or(SortType::Hot) {
+    query = match options.sort.unwrap_or(Hot) {
       // A second time-based sort would not be very useful
-      SortType::New | SortType::Old | SortType::NewComments => query,
+      New | Old | NewComments => query,
       _ => query.then_desc(key::published),
     };
 
@@ -552,14 +563,14 @@ fn queries<'a>() -> Queries<
 }
 
 impl PostView {
-  pub async fn read(
+  pub async fn read<'a>(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    my_person_id: Option<PersonId>,
+    my_local_user: Option<&'a LocalUser>,
     is_mod_or_admin: bool,
   ) -> Result<Option<Self>, Error> {
     queries()
-      .read(pool, (post_id, my_person_id, is_mod_or_admin))
+      .read(pool, (post_id, my_local_user, is_mod_or_admin))
       .await
   }
 }
@@ -598,7 +609,7 @@ pub struct PaginationCursorData(PostAggregates);
 #[derive(Clone, Default)]
 pub struct PostQuery<'a> {
   pub listing_type: Option<ListingType>,
-  pub sort: Option<SortType>,
+  pub sort: Option<PostSortType>,
   pub creator_id: Option<PersonId>,
   pub community_id: Option<CommunityId>,
   // if true, the query should be handled as if community_id was not given except adding the
@@ -610,6 +621,7 @@ pub struct PostQuery<'a> {
   pub saved_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
+  pub title_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub page_after: Option<PaginationCursorData>,
@@ -617,6 +629,7 @@ pub struct PostQuery<'a> {
   pub page_back: Option<bool>,
   pub show_hidden: Option<bool>,
   pub show_read: Option<bool>,
+  pub show_nsfw: Option<bool>,
 }
 
 impl<'a> PostQuery<'a> {
@@ -758,7 +771,7 @@ mod tests {
     traits::{Bannable, Blockable, Crud, Joinable, Likeable},
     utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
     CommunityVisibility,
-    SortType,
+    PostSortType,
     SubscribedType,
   };
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -767,6 +780,7 @@ mod tests {
   use std::{collections::HashSet, time::Duration};
   use url::Url;
 
+  const POST_WITH_ANOTHER_TITLE: &str = "Another title";
   const POST_BY_BLOCKED_PERSON: &str = "post by blocked person";
   const POST_BY_BOT: &str = "post by bot";
   const POST: &str = "post";
@@ -789,7 +803,7 @@ mod tests {
   impl Data {
     fn default_post_query(&self) -> PostQuery<'_> {
       PostQuery {
-        sort: Some(SortType::New),
+        sort: Some(PostSortType::New),
         local_user: Some(&self.local_user_view.local_user),
         ..Default::default()
       }
@@ -816,13 +830,12 @@ mod tests {
 
     let inserted_bot = Person::create(pool, &new_bot).await?;
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test_community_3".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test_community_3".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await?;
 
     // Test a person block, make sure the post query doesn't include their post
@@ -837,13 +850,12 @@ mod tests {
     )
     .await?;
 
-    let post_from_blocked_person = PostInsertForm::builder()
-      .name(POST_BY_BLOCKED_PERSON.to_string())
-      .creator_id(inserted_blocked_person.id)
-      .community_id(inserted_community.id)
-      .language_id(Some(LanguageId(1)))
-      .build();
-
+    let mut post_from_blocked_person = PostInsertForm::new(
+      POST_BY_BLOCKED_PERSON.to_string(),
+      inserted_blocked_person.id,
+      inserted_community.id,
+    );
+    post_from_blocked_person.language_id = Some(LanguageId(1));
     Post::create(pool, &post_from_blocked_person).await?;
 
     // block that person
@@ -855,22 +867,18 @@ mod tests {
     PersonBlock::block(pool, &person_block).await?;
 
     // A sample post
-    let new_post = PostInsertForm::builder()
-      .name(POST.to_string())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .language_id(Some(LanguageId(47)))
-      .build();
-
+    let mut new_post =
+      PostInsertForm::new(POST.to_string(), inserted_person.id, inserted_community.id);
+    new_post.language_id = Some(LanguageId(47));
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let new_bot_post = PostInsertForm::builder()
-      .name(POST_BY_BOT.to_string())
-      .creator_id(inserted_bot.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_bot_post = PostInsertForm::new(
+      POST_BY_BOT.to_string(),
+      inserted_bot.id,
+      inserted_community.id,
+    );
     let inserted_bot_post = Post::create(pool, &new_bot_post).await?;
+
     let local_user_view = LocalUserView {
       local_user: inserted_local_user,
       local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
@@ -938,7 +946,7 @@ mod tests {
     let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person.id),
+      Some(&data.local_user_view.local_user),
       false,
     )
     .await?
@@ -1017,6 +1025,63 @@ mod tests {
 
   #[tokio::test]
   #[serial]
+  async fn post_listing_title_only() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // A post which contains the search them 'Post' not in the title (but in the body)
+    let mut new_post = PostInsertForm::new(
+      POST_WITH_ANOTHER_TITLE.to_string(),
+      data.local_user_view.person.id,
+      data.inserted_community.id,
+    );
+    new_post.language_id = Some(LanguageId(47));
+    new_post.body = Some("Post".to_string());
+
+    let inserted_post = Post::create(pool, &new_post).await?;
+
+    let read_post_listing_by_title_only = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: None,
+      search_term: Some("Post".to_string()),
+      title_only: Some(true),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    let read_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: None,
+      search_term: Some("Post".to_string()),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    // Should be 4 posts when we do not search for title only
+    assert_eq!(
+      vec![
+        POST_WITH_ANOTHER_TITLE,
+        POST_BY_BOT,
+        POST,
+        POST_BY_BLOCKED_PERSON
+      ],
+      names(&read_post_listing)
+    );
+
+    // Should be 3 posts when we search for title only
+    assert_eq!(
+      vec![POST_BY_BOT, POST, POST_BY_BLOCKED_PERSON],
+      names(&read_post_listing_by_title_only)
+    );
+    Post::delete(pool, inserted_post.id).await?;
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
   async fn post_listing_block_community() -> LemmyResult<()> {
     let pool = &build_db_pool().await?;
     let pool = &mut pool.into();
@@ -1067,7 +1132,7 @@ mod tests {
     let post_listing_single_with_person = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person.id),
+      Some(&data.local_user_view.local_user),
       false,
     )
     .await?
@@ -1202,13 +1267,12 @@ mod tests {
       .await?
       .expect("french should exist");
 
-    let post_spanish = PostInsertForm::builder()
-      .name(EL_POSTO.to_string())
-      .creator_id(data.local_user_view.person.id)
-      .community_id(data.inserted_community.id)
-      .language_id(Some(spanish_id))
-      .build();
-
+    let mut post_spanish = PostInsertForm::new(
+      EL_POSTO.to_string(),
+      data.local_user_view.person.id,
+      data.inserted_community.id,
+    );
+    post_spanish.language_id = Some(spanish_id);
     Post::create(pool, &post_spanish).await?;
 
     let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
@@ -1336,21 +1400,20 @@ mod tests {
 
     let blocked_instance = Instance::read_or_create(pool, "another_domain.tld".to_string()).await?;
 
-    let community_form = CommunityInsertForm::builder()
-      .name("test_community_4".to_string())
-      .title("none".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(blocked_instance.id)
-      .build();
+    let community_form = CommunityInsertForm::new(
+      blocked_instance.id,
+      "test_community_4".to_string(),
+      "none".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &community_form).await?;
 
-    let post_form = PostInsertForm::builder()
-      .name(POST_FROM_BLOCKED_INSTANCE.to_string())
-      .creator_id(data.inserted_bot.id)
-      .community_id(inserted_community.id)
-      .language_id(Some(LanguageId(1)))
-      .build();
-
+    let mut post_form = PostInsertForm::new(
+      POST_FROM_BLOCKED_INSTANCE.to_string(),
+      data.inserted_bot.id,
+      inserted_community.id,
+    );
+    post_form.language_id = Some(LanguageId(1));
     let post_from_blocked_instance = Post::create(pool, &post_form).await?;
 
     // no instance block, should return all posts
@@ -1393,12 +1456,12 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let community_form = CommunityInsertForm::builder()
-      .name("yes".to_string())
-      .title("yes".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(data.inserted_instance.id)
-      .build();
+    let community_form = CommunityInsertForm::new(
+      data.inserted_instance.id,
+      "yes".to_string(),
+      "yes".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &community_form).await?;
 
     let mut inserted_post_ids = vec![];
@@ -1408,23 +1471,23 @@ mod tests {
     // and featured
     for comments in 0..10 {
       for _ in 0..15 {
-        let post_form = PostInsertForm::builder()
-          .name("keep Christ in Christmas".to_owned())
-          .creator_id(data.local_user_view.person.id)
-          .community_id(inserted_community.id)
-          .featured_local(Some((comments % 2) == 0))
-          .featured_community(Some((comments % 2) == 0))
-          .published(Some(Utc::now() - Duration::from_secs(comments % 3)))
-          .build();
+        let mut post_form = PostInsertForm::new(
+          "keep Christ in Christmas".to_owned(),
+          data.local_user_view.person.id,
+          inserted_community.id,
+        );
+        post_form.featured_local = Some((comments % 2) == 0);
+        post_form.featured_community = Some((comments % 2) == 0);
+        post_form.published = Some(Utc::now() - Duration::from_secs(comments % 3));
         let inserted_post = Post::create(pool, &post_form).await?;
         inserted_post_ids.push(inserted_post.id);
 
         for _ in 0..comments {
-          let comment_form = CommentInsertForm::builder()
-            .creator_id(data.local_user_view.person.id)
-            .post_id(inserted_post.id)
-            .content("yes".to_owned())
-            .build();
+          let comment_form = CommentInsertForm::new(
+            data.local_user_view.person.id,
+            inserted_post.id,
+            "yes".to_owned(),
+          );
           let inserted_comment = Comment::create(pool, &comment_form, None).await?;
           inserted_comment_ids.push(inserted_comment.id);
         }
@@ -1433,7 +1496,7 @@ mod tests {
 
     let options = PostQuery {
       community_id: Some(inserted_community.id),
-      sort: Some(SortType::MostComments),
+      sort: Some(PostSortType::MostComments),
       limit: Some(10),
       ..Default::default()
     };
@@ -1565,7 +1628,7 @@ mod tests {
 
     // Make sure it does come back with the show_hidden option
     let post_listings_show_hidden = PostQuery {
-      sort: Some(SortType::New),
+      sort: Some(PostSortType::New),
       local_user: Some(&data.local_user_view.local_user),
       show_hidden: Some(true),
       ..Default::default()
@@ -1580,6 +1643,48 @@ mod tests {
         .first()
         .ok_or(LemmyErrorType::CouldntFindPost)?
         .hidden
+    );
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listings_hide_nsfw() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Mark a post as nsfw
+    let update_form = PostUpdateForm {
+      nsfw: Some(true),
+      ..Default::default()
+    };
+
+    Post::update(pool, data.inserted_bot_post.id, &update_form).await?;
+
+    // Make sure you don't see the nsfw post in the regular results
+    let post_listings_hide_nsfw = data.default_post_query().list(&data.site, pool).await?;
+    assert_eq!(vec![POST], names(&post_listings_hide_nsfw));
+
+    // Make sure it does come back with the show_nsfw option
+    let post_listings_show_nsfw = PostQuery {
+      sort: Some(PostSortType::New),
+      show_nsfw: Some(true),
+      local_user: Some(&data.local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_nsfw));
+
+    // Make sure that nsfw field is true.
+    assert!(
+      &post_listings_show_nsfw
+        .first()
+        .ok_or(LemmyErrorType::CouldntFindPost)?
+        .post
+        .nsfw
     );
 
     cleanup(data, pool).await
@@ -1755,7 +1860,7 @@ mod tests {
     let authenticated_post = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person.id),
+      Some(&data.local_user_view.local_user),
       false,
     )
     .await;
@@ -1797,7 +1902,7 @@ mod tests {
     let post_view = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(inserted_banned_from_comm_local_user.person_id),
+      Some(&inserted_banned_from_comm_local_user),
       false,
     )
     .await?
@@ -1819,7 +1924,7 @@ mod tests {
     let post_view = PostView::read(
       pool,
       data.inserted_post.id,
-      Some(data.local_user_view.person.id),
+      Some(&data.local_user_view.local_user),
       false,
     )
     .await?

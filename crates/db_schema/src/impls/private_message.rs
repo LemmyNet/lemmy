@@ -100,6 +100,7 @@ mod tests {
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
+  use url::Url;
 
   #[tokio::test]
   #[serial]
@@ -119,11 +120,11 @@ mod tests {
 
     let inserted_recipient = Person::create(pool, &recipient_form).await.unwrap();
 
-    let private_message_form = PrivateMessageInsertForm::builder()
-      .content("A test private message".into())
-      .creator_id(inserted_creator.id)
-      .recipient_id(inserted_recipient.id)
-      .build();
+    let private_message_form = PrivateMessageInsertForm::new(
+      inserted_creator.id,
+      inserted_recipient.id,
+      "A test private message".into(),
+    );
 
     let inserted_private_message = PrivateMessage::create(pool, &private_message_form)
       .await
@@ -138,7 +139,12 @@ mod tests {
       read: false,
       updated: None,
       published: inserted_private_message.published,
-      ap_id: inserted_private_message.ap_id.clone(),
+      ap_id: Url::parse(&format!(
+        "https://lemmy-alpha/private_message/{}",
+        inserted_private_message.id
+      ))
+      .unwrap()
+      .into(),
       local: true,
     };
 

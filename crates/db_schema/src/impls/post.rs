@@ -390,6 +390,7 @@ mod tests {
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::collections::HashSet;
+  use url::Url;
 
   #[tokio::test]
   #[serial]
@@ -405,28 +406,27 @@ mod tests {
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community_3".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community_3".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
 
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post".into())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
-    let new_post2 = PostInsertForm::builder()
-      .name("A test post 2".into())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .build();
+    let new_post2 = PostInsertForm::new(
+      "A test post 2".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
     let inserted_post2 = Post::create(pool, &new_post2).await.unwrap();
 
     let expected_post = Post {
@@ -447,7 +447,9 @@ mod tests {
       embed_description: None,
       embed_video_url: None,
       thumbnail_url: None,
-      ap_id: inserted_post.ap_id.clone(),
+      ap_id: Url::parse(&format!("https://lemmy-alpha/post/{}", inserted_post.id))
+        .unwrap()
+        .into(),
       local: true,
       language_id: Default::default(),
       featured_community: false,

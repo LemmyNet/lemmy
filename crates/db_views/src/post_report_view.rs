@@ -323,10 +323,7 @@ mod tests {
 
     let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
 
-    let new_local_user = LocalUserInsertForm::builder()
-      .person_id(inserted_timmy.id)
-      .password_encrypted("123".to_string())
-      .build();
+    let new_local_user = LocalUserInsertForm::test_form(inserted_timmy.id);
     let timmy_local_user = LocalUser::create(pool, &new_local_user, vec![])
       .await
       .unwrap();
@@ -346,13 +343,12 @@ mod tests {
 
     let inserted_jessica = Person::create(pool, &new_person_3).await.unwrap();
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community prv".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community prv".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
     // Make timmy a mod
@@ -365,12 +361,11 @@ mod tests {
       .await
       .unwrap();
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post crv".into())
-      .creator_id(inserted_timmy.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post crv".into(),
+      inserted_timmy.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
     // sara reports
@@ -385,12 +380,11 @@ mod tests {
 
     PostReport::report(pool, &sara_report_form).await.unwrap();
 
-    let new_post_2 = PostInsertForm::builder()
-      .name("A test post crv 2".into())
-      .creator_id(inserted_timmy.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post_2 = PostInsertForm::new(
+      "A test post crv 2".into(),
+      inserted_timmy.id,
+      inserted_community.id,
+    );
     let inserted_post_2 = Post::create(pool, &new_post_2).await.unwrap();
 
     // jessica reports

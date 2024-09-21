@@ -116,10 +116,7 @@ mod tests {
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
-    let local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_person.id)
-      .password_encrypted("123456".to_string())
-      .build();
+    let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
 
     let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![])
       .await

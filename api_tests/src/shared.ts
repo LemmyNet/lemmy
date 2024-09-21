@@ -197,7 +197,7 @@ export async function setupLogins() {
     // (because last_successful_id is set to current id when federation to an instance is first started)
     // only needed the first time so do in this try
     await delay(10_000);
-  } catch (_) {
+  } catch {
     console.log("Communities already exist");
   }
 }
@@ -419,13 +419,13 @@ export async function banPersonFromSite(
   api: LemmyHttp,
   person_id: number,
   ban: boolean,
-  remove_data: boolean,
+  remove_or_restore_data: boolean,
 ): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
     person_id,
     ban,
-    remove_data,
+    remove_or_restore_data,
   };
   return api.banPerson(form);
 }
@@ -434,13 +434,13 @@ export async function banPersonFromCommunity(
   api: LemmyHttp,
   person_id: number,
   community_id: number,
-  remove_data: boolean,
+  remove_or_restore_data: boolean,
   ban: boolean,
 ): Promise<BanFromCommunityResponse> {
   let form: BanFromCommunity = {
     person_id,
     community_id,
-    remove_data: remove_data,
+    remove_or_restore_data,
     ban,
   };
   return api.banFromCommunity(form);
@@ -899,7 +899,6 @@ export async function deleteAllImages(api: LemmyHttp) {
   const imagesRes = await api.listAllMedia({
     limit: imageFetchLimit,
   });
-  imagesRes.images;
   Promise.all(
     imagesRes.images
       .map(image => {

@@ -196,7 +196,7 @@ impl CommentReportView {
     queries().read(pool, (report_id, my_person_id)).await
   }
 
-  /// Returns the current unresolved post report count for the communities you mod
+  /// Returns the current unresolved comment report count for the communities you mod
   pub async fn get_report_count(
     pool: &mut DbPool<'_>,
     my_person_id: PersonId,
@@ -301,10 +301,7 @@ mod tests {
 
     let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
 
-    let new_local_user = LocalUserInsertForm::builder()
-      .person_id(inserted_timmy.id)
-      .password_encrypted("123".to_string())
-      .build();
+    let new_local_user = LocalUserInsertForm::test_form(inserted_timmy.id);
     let timmy_local_user = LocalUser::create(pool, &new_local_user, vec![])
       .await
       .unwrap();
@@ -324,13 +321,12 @@ mod tests {
 
     let inserted_jessica = Person::create(pool, &new_person_3).await.unwrap();
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community crv".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community crv".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
     // Make timmy a mod
@@ -343,20 +339,19 @@ mod tests {
       .await
       .unwrap();
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post crv".into())
-      .creator_id(inserted_timmy.id)
-      .community_id(inserted_community.id)
-      .build();
+    let new_post = PostInsertForm::new(
+      "A test post crv".into(),
+      inserted_timmy.id,
+      inserted_community.id,
+    );
 
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
-    let comment_form = CommentInsertForm::builder()
-      .content("A test comment 32".into())
-      .creator_id(inserted_timmy.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let comment_form = CommentInsertForm::new(
+      inserted_timmy.id,
+      inserted_post.id,
+      "A test comment 32".into(),
+    );
     let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
 
     // sara reports

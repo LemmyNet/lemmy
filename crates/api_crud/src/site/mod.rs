@@ -40,12 +40,19 @@ pub fn application_question_check(
   }
 }
 
+fn not_zero(val: Option<i32>) -> Option<i32> {
+  match val {
+    Some(0) => None,
+    v => v,
+  }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 #[allow(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::site::{application_question_check, site_default_post_listing_type_check};
+  use crate::site::{application_question_check, not_zero, site_default_post_listing_type_check};
   use lemmy_db_schema::{ListingType, RegistrationMode};
 
   #[test]
@@ -92,5 +99,12 @@ mod tests {
       None::<String>,
       RegistrationMode::RequireApplication
     );
+  }
+
+  #[test]
+  fn test_not_zero() {
+    assert_eq!(None, not_zero(None));
+    assert_eq!(None, not_zero(Some(0)));
+    assert_eq!(Some(5), not_zero(Some(5)));
   }
 }
