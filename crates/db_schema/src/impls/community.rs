@@ -35,8 +35,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{
   deserialize,
-  dsl,
-  dsl::{exists, insert_into},
+  dsl::{self, exists, insert_into, not},
   pg::Pg,
   result::Error,
   select,
@@ -195,6 +194,20 @@ impl Community {
       .execute(conn)
       .await?;
     Ok(())
+  }
+
+  pub async fn get_random_local_community(pool: &mut DbPool<'_>) -> Result<Option<Self>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    sql_function!(fn random() -> Text);
+    community::table
+      .filter(community::local)
+      .filter(not(community::deleted))
+      .filter(not(community::removed))
+      .order(random())
+      .limit(1)
+      .first::<Self>(conn)
+      .await
+      .optional()
   }
 }
 
