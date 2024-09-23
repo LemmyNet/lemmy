@@ -130,16 +130,18 @@ pub async fn create_post(
     }
   };
 
-  let mut post_form = PostInsertForm::new(
-    data.name.trim().to_string(),
-    local_user_view.person.id,
-    data.community_id,
-  );
-  post_form.url = url.map(Into::into);
-  post_form.body = body;
-  post_form.alt_text = data.alt_text.clone();
-  post_form.nsfw = data.nsfw;
-  post_form.language_id = language_id;
+  let post_form = PostInsertForm {
+    url: url.map(Into::into),
+    body,
+    alt_text: data.alt_text.clone(),
+    nsfw: data.nsfw,
+    language_id,
+    ..PostInsertForm::new(
+      data.name.trim().to_string(),
+      local_user_view.person.id,
+      data.community_id,
+    )
+  };
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)
     .await

@@ -151,14 +151,16 @@ pub(crate) mod tests {
       Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;
     create_local_site(context, instance.id).await?;
 
-    let mut community_form = CommunityInsertForm::new(
-      instance.id,
-      "testcom6".to_string(),
-      "nada".to_owned(),
-      "pubkey".to_string(),
-    );
-    community_form.deleted = Some(deleted);
-    community_form.visibility = Some(visibility);
+    let community_form = CommunityInsertForm {
+      deleted: Some(deleted),
+      visibility: Some(visibility),
+      ..CommunityInsertForm::new(
+        instance.id,
+        "testcom6".to_string(),
+        "nada".to_owned(),
+        "pubkey".to_string(),
+      )
+    };
     let community = Community::create(&mut context.pool(), &community_form).await?;
     Ok((instance, community))
   }
