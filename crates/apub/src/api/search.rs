@@ -4,7 +4,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{Search, SearchResponse},
-  utils::{check_private_instance, is_admin},
+  utils::{check_conflicting_like_filters, check_private_instance, is_admin},
 };
 use lemmy_db_schema::{source::community::Community, utils::post_to_comment_sort_type, SearchType};
 use lemmy_db_views::{
@@ -37,67 +37,87 @@ pub async fn search(
 
   // TODO no clean / non-nsfw searching rn
 
-  let q = data.q.clone();
-  let page = data.page;
-  let limit = data.limit;
-  let sort = data.sort;
-  let listing_type = data.listing_type;
-  let search_type = data.type_.unwrap_or(SearchType::All);
-  let community_id = if let Some(name) = &data.community_name {
+  let Query(Search {
+    q,
+    community_id,
+    community_name,
+    creator_id,
+    type_,
+    sort,
+    listing_type,
+    page,
+    limit,
+    post_title_only,
+    post_url_only,
+    saved_only,
+    liked_only,
+    disliked_only,
+  }) = data;
+
+  let q = q.clone();
+  let search_type = type_.unwrap_or(SearchType::All);
+  let community_id = if let Some(name) = &community_name {
     Some(
       resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, false)
         .await?,
     )
     .map(|c| c.id)
   } else {
-    data.community_id
+    community_id
   };
-  let creator_id = data.creator_id;
   let local_user = local_user_view.as_ref().map(|l| &l.local_user);
-  let post_title_only = data.post_title_only;
+
+  check_conflicting_like_filters(liked_only, disliked_only)?;
 
   let posts_query = PostQuery {
-    sort: (sort),
-    listing_type: (listing_type),
-    community_id: (community_id),
-    creator_id: (creator_id),
+    sort,
+    listing_type,
+    community_id,
+    creator_id,
     local_user,
-    search_term: (Some(q.clone())),
-    page: (page),
-    limit: (limit),
-    title_only: (post_title_only),
+    search_term: Some(q.clone()),
+    page,
+    limit,
+    title_only: post_title_only,
+    url_only: post_url_only,
+    liked_only,
+    disliked_only,
+    saved_only,
     ..Default::default()
   };
 
   let comment_query = CommentQuery {
-    sort: (sort.map(post_to_comment_sort_type)),
-    listing_type: (listing_type),
-    search_term: (Some(q.clone())),
-    community_id: (community_id),
-    creator_id: (creator_id),
+    sort: sort.map(post_to_comment_sort_type),
+    listing_type,
+    search_term: Some(q.clone()),
+    community_id,
+    creator_id,
     local_user,
-    page: (page),
-    limit: (limit),
+    page,
+    limit,
+    liked_only,
+    disliked_only,
+    saved_only,
     ..Default::default()
   };
 
   let community_query = CommunityQuery {
-    sort: (sort),
-    listing_type: (listing_type),
-    search_term: (Some(q.clone())),
+    sort,
+    listing_type,
+    search_term: Some(q.clone()),
     local_user,
-    is_mod_or_admin: (is_admin),
-    page: (page),
-    limit: (limit),
+    is_mod_or_admin: is_admin,
+    page,
+    limit,
     ..Default::default()
   };
 
   let person_query = PersonQuery {
     sort,
-    search_term: (Some(q.clone())),
-    listing_type: (listing_type),
-    page: (page),
-    limit: (limit),
+    search_term: Some(q.clone()),
+    listing_type,
+    page,
+    limit,
   };
 
   match search_type {
@@ -120,7 +140,7 @@ pub async fn search(
     SearchType::All => {
       // If the community or creator is included, dont search communities or users
       let community_or_creator_included =
-        data.community_id.is_some() || data.community_name.is_some() || data.creator_id.is_some();
+        community_id.is_some() || community_name.is_some() || creator_id.is_some();
 
       posts = posts_query
         .list(&local_site.site, &mut context.pool())
@@ -141,21 +161,6 @@ pub async fn search(
       } else {
         person_query.list(&mut context.pool()).await?
       };
-    }
-    SearchType::Url => {
-      posts = PostQuery {
-        sort: (sort),
-        listing_type: (listing_type),
-        community_id: (community_id),
-        creator_id: (creator_id),
-        url_search: (Some(q)),
-        local_user,
-        page: (page),
-        limit: (limit),
-        ..Default::default()
-      }
-      .list(&local_site.site, &mut context.pool())
-      .await?;
     }
   };
 

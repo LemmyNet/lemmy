@@ -382,22 +382,22 @@ fn queries<'a>() -> Queries<
       query = query.filter(community::hidden.eq(false));
     }
 
-    if let Some(url_search) = &options.url_search {
-      query = query.filter(post::url.eq(url_search));
-    }
-
     if let Some(search_term) = &options.search_term {
-      let searcher = fuzzy_search(search_term);
-      query = if options.title_only.unwrap_or_default() {
-        query.filter(post::name.ilike(searcher))
+      if options.url_only.unwrap_or_default() {
+        query = query.filter(post::url.eq(search_term));
       } else {
-        query.filter(
-          post::name
-            .ilike(searcher.clone())
-            .or(post::body.ilike(searcher)),
-        )
+        let searcher = fuzzy_search(search_term);
+        query = if options.title_only.unwrap_or_default() {
+          query.filter(post::name.ilike(searcher))
+        } else {
+          query.filter(
+            post::name
+              .ilike(searcher.clone())
+              .or(post::body.ilike(searcher)),
+          )
+        }
+        .filter(not(post::removed.or(post::deleted)));
       }
-      .filter(not(post::removed.or(post::deleted)));
     }
 
     if !options
@@ -616,7 +616,7 @@ pub struct PostQuery<'a> {
   pub community_id_just_for_prefetch: bool,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
-  pub url_search: Option<String>,
+  pub url_only: Option<bool>,
   pub saved_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
@@ -765,10 +765,20 @@ mod tests {
       local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
-      post::{Post, PostHide, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
+      post::{
+        Post,
+        PostHide,
+        PostInsertForm,
+        PostLike,
+        PostLikeForm,
+        PostRead,
+        PostSaved,
+        PostSavedForm,
+        PostUpdateForm,
+      },
       site::Site,
     },
-    traits::{Bannable, Blockable, Crud, Joinable, Likeable},
+    traits::{Bannable, Blockable, Crud, Joinable, Likeable, Saveable},
     utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
     CommunityVisibility,
     PostSortType,
@@ -1211,6 +1221,36 @@ mod tests {
 
     // Should be no posts
     assert_eq!(read_disliked_post_listing, vec![]);
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_saved_only() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Save only the bot post
+    // The saved_only should only show the bot post
+    let post_save_form = PostSavedForm {
+      post_id: data.inserted_bot_post.id,
+      person_id: data.local_user_view.person.id,
+    };
+    PostSaved::save(pool, &post_save_form).await?;
+
+    // Read the saved only
+    let read_saved_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      saved_only: Some(true),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    // This should only include the bot post, not the one you created
+    assert_eq!(vec![POST_BY_BOT], names(&read_saved_post_listing));
 
     cleanup(data, pool).await
   }
