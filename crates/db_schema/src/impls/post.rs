@@ -68,6 +68,10 @@ impl Crud for Post {
 }
 
 impl Post {
+  pub async fn read_xx(pool: &mut DbPool<'_>, id: PostId) -> Result<Self, Error> {
+    let conn = &mut *get_conn(pool).await?;
+    post::table.find(id).first(conn).await
+  }
   pub async fn insert_apub(
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,
@@ -497,7 +501,7 @@ mod tests {
     .unwrap();
     assert_eq!(2, marked_as_read);
 
-    let read_post = Post::read(pool, inserted_post.id).await.unwrap().unwrap();
+    let read_post = Post::read(pool, inserted_post.id).await.unwrap();
 
     let new_post_update = PostUpdateForm {
       name: Some("A test post".into()),

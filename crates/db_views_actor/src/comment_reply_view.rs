@@ -242,7 +242,7 @@ impl CommentReplyView {
     pool: &mut DbPool<'_>,
     comment_reply_id: CommentReplyId,
     my_person_id: Option<PersonId>,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries().read(pool, (comment_reply_id, my_person_id)).await
   }
 
@@ -322,7 +322,7 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use lemmy_db_views::structs::LocalUserView;
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -383,9 +383,7 @@ mod tests {
       published: inserted_reply.published,
     };
 
-    let read_reply = CommentReply::read(pool, inserted_reply.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindComment)?;
+    let read_reply = CommentReply::read(pool, inserted_reply.id).await?;
 
     let comment_reply_update_form = CommentReplyUpdateForm { read: Some(false) };
     let updated_reply =
@@ -440,9 +438,7 @@ mod tests {
       &recipient_local_user_update_form,
     )
     .await?;
-    let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
+    let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id).await?;
 
     let unread_replies_after_hide_bots =
       CommentReplyView::get_unread_replies(pool, &recipient_local_user_view.local_user).await?;

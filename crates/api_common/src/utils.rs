@@ -175,9 +175,7 @@ pub async fn update_read_comments(
     ..PersonPostAggregatesForm::default()
   };
 
-  PersonPostAggregates::upsert(pool, &person_post_agg_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntFindPost)?;
+  PersonPostAggregates::upsert(pool, &person_post_agg_form).await?;
 
   Ok(())
 }
@@ -223,9 +221,7 @@ pub async fn check_registration_application(
     // Fetch the registration application. If no admin id is present its still pending. Otherwise it
     // was processed (either accepted or denied).
     let local_user_id = local_user_view.local_user.id;
-    let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindRegistrationApplication)?;
+    let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id).await?;
     if registration.admin_id.is_some() {
       Err(LemmyErrorType::RegistrationDenied(registration.deny_reason))?
     } else {
@@ -254,9 +250,7 @@ async fn check_community_deleted_removed(
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let community = Community::read(pool, community_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  let community = Community::read(pool, community_id).await?;
   if community.deleted || community.removed {
     Err(LemmyErrorType::Deleted)?
   }
@@ -704,7 +698,7 @@ pub async fn purge_image_posts_for_person(
 
 /// Delete a local_user's images
 async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
-  if let Ok(Some(local_user)) = LocalUserView::read_person(&mut context.pool(), person_id).await {
+  if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), person_id).await {
     let pictrs_uploads =
       LocalImageView::get_all_by_local_user_id(&mut context.pool(), local_user.local_user.id)
         .await?;
@@ -749,9 +743,7 @@ pub async fn remove_user_data(
 ) -> LemmyResult<()> {
   let pool = &mut context.pool();
   // Purge user images
-  let person = Person::read(pool, banned_person_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?;
+  let person = Person::read(pool, banned_person_id).await?;
   if let Some(avatar) = person.avatar {
     purge_image_from_pictrs(&avatar, context).await.ok();
   }
@@ -881,9 +873,7 @@ pub async fn remove_or_restore_user_data_in_community(
 pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
   let pool = &mut context.pool();
 
-  let person = Person::read(pool, person_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?;
+  let person = Person::read(pool, person_id).await?;
 
   // Delete their local images, if they're a local user
   delete_local_user_images(person_id, context).await.ok();
@@ -913,7 +903,7 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
   CommunityModerator::leave_all_communities(pool, person_id).await?;
 
   // Delete the oauth accounts linked to the local user
-  if let Ok(Some(local_user)) = LocalUserView::read_person(pool, person_id).await {
+  if let Ok(local_user) = LocalUserView::read_person(pool, person_id).await {
     OAuthAccount::delete_user_accounts(pool, local_user.local_user.id).await?;
   }
 
@@ -996,6 +986,18 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
     Ok(None)
   } else {
     Ok(Some(expires))
+  }
+}
+
+#[tracing::instrument(skip_all)]
+pub fn check_conflicting_like_filters(
+  liked_only: Option<bool>,
+  disliked_only: Option<bool>,
+) -> LemmyResult<()> {
+  if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
+    Err(LemmyErrorType::ContradictingFilters)?
+  } else {
+    Ok(())
   }
 }
 

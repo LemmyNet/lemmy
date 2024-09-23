@@ -135,7 +135,7 @@ fn queries<'a>(
 }
 
 impl PersonView {
-  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Option<Self>, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     queries().read(pool, person_id).await
   }
 
@@ -178,7 +178,7 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -243,8 +243,8 @@ mod tests {
     )
     .await?;
 
-    let read = PersonView::read(pool, data.alice.id).await?;
-    assert!(read.is_none());
+    let read = PersonView::read(pool, data.alice.id).await;
+    assert!(read.is_err());
 
     let list = PersonQuery {
       sort: Some(PostSortType::New),
@@ -303,16 +303,10 @@ mod tests {
     assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
 
-    let is_admin = PersonView::read(pool, data.alice.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?
-      .is_admin;
+    let is_admin = PersonView::read(pool, data.alice.id).await?.is_admin;
     assert!(is_admin);
 
-    let is_admin = PersonView::read(pool, data.bob.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?
-      .is_admin;
+    let is_admin = PersonView::read(pool, data.bob.id).await?.is_admin;
     assert!(!is_admin);
 
     cleanup(data, pool).await

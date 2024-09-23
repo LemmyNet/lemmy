@@ -12,10 +12,7 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  LemmyErrorType,
-};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Deserialize;
 use url::Url;
 
@@ -97,15 +94,9 @@ impl InCommunity for PostOrComment {
       PostOrComment::Comment(c) => {
         Post::read(&mut context.pool(), c.post_id)
           .await?
-          .ok_or(LemmyErrorType::CouldntFindPost)?
           .community_id
       }
     };
-    Ok(
-      Community::read(&mut context.pool(), cid)
-        .await?
-        .ok_or(LemmyErrorType::CouldntFindCommunity)?
-        .into(),
-    )
+    Ok(Community::read(&mut context.pool(), cid).await?.into())
   }
 }

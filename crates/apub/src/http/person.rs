@@ -32,7 +32,7 @@ pub(crate) async fn get_apub_person_http(
   // TODO: this needs to be able to read deleted persons, so that it can send tombstones
   let person: ApubPerson = Person::read_from_name(&mut context.pool(), &user_name, true)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?
+    .ok_or(LemmyErrorType::NotFound)?
     .into();
 
   if !person.deleted {
@@ -63,7 +63,7 @@ pub(crate) async fn get_apub_person_outbox(
 ) -> LemmyResult<HttpResponse> {
   let person = Person::read_from_name(&mut context.pool(), &info.user_name, false)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    .ok_or(LemmyErrorType::NotFound)?;
   let outbox_id = generate_outbox_url(&person.actor_id)?.into();
   let outbox = EmptyOutbox::new(outbox_id)?;
   create_apub_response(&outbox)

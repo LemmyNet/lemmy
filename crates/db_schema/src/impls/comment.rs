@@ -333,10 +333,7 @@ mod tests {
       .await
       .unwrap();
 
-    let read_comment = Comment::read(pool, inserted_comment.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let read_comment = Comment::read(pool, inserted_comment.id).await.unwrap();
     let like_removed = CommentLike::remove(pool, inserted_person.id, inserted_comment.id)
       .await
       .unwrap();

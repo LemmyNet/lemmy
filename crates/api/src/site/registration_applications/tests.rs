@@ -54,9 +54,7 @@ async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(Instance
   )
   .await?;
 
-  let admin_local_user_view = LocalUserView::read_person(pool, admin_person.id)
-    .await?
-    .unwrap();
+  let admin_local_user_view = LocalUserView::read_person(pool, admin_person.id).await?;
 
   let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
   let site = Site::create(pool, &site_form).await.unwrap();

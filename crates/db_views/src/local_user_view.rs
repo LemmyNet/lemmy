@@ -96,37 +96,28 @@ fn queries<'a>(
 }
 
 impl LocalUserView {
-  pub async fn read(
-    pool: &mut DbPool<'_>,
-    local_user_id: LocalUserId,
-  ) -> Result<Option<Self>, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<Self, Error> {
     queries().read(pool, ReadBy::Id(local_user_id)).await
   }
 
-  pub async fn read_person(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-  ) -> Result<Option<Self>, Error> {
+  pub async fn read_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     queries().read(pool, ReadBy::Person(person_id)).await
   }
 
-  pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> Result<Option<Self>, Error> {
+  pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> Result<Self, Error> {
     queries().read(pool, ReadBy::Name(name)).await
   }
 
   pub async fn find_by_email_or_name(
     pool: &mut DbPool<'_>,
     name_or_email: &str,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries()
       .read(pool, ReadBy::NameOrEmail(name_or_email))
       .await
   }
 
-  pub async fn find_by_email(
-    pool: &mut DbPool<'_>,
-    from_email: &str,
-  ) -> Result<Option<Self>, Error> {
+  pub async fn find_by_email(pool: &mut DbPool<'_>, from_email: &str) -> Result<Self, Error> {
     queries().read(pool, ReadBy::Email(from_email)).await
   }
 
@@ -134,7 +125,7 @@ impl LocalUserView {
     pool: &mut DbPool<'_>,
     oauth_provider_id: OAuthProviderId,
     oauth_user_id: &str,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries()
       .read(pool, ReadBy::OAuthID(oauth_provider_id, oauth_user_id))
       .await

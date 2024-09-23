@@ -35,7 +35,7 @@ pub(crate) async fn get_apub_community_http(
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, true)
       .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?
+      .ok_or(LemmyErrorType::NotFound)?
       .into();
 
   if community.deleted || community.removed {
@@ -67,7 +67,7 @@ pub(crate) async fn get_apub_community_followers(
 ) -> LemmyResult<HttpResponse> {
   let community = Community::read_from_name(&mut context.pool(), &info.community_name, false)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+    .ok_or(LemmyErrorType::NotFound)?;
   check_community_public(&community)?;
   let followers = ApubCommunityFollower::read_local(&community.into(), &context).await?;
   create_apub_response(&followers)
@@ -82,7 +82,7 @@ pub(crate) async fn get_apub_community_outbox(
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?
+      .ok_or(LemmyErrorType::NotFound)?
       .into();
   check_community_public(&community)?;
   let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
@@ -97,7 +97,7 @@ pub(crate) async fn get_apub_community_moderators(
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?
+      .ok_or(LemmyErrorType::NotFound)?
       .into();
   check_community_public(&community)?;
   let moderators = ApubCommunityModerators::read_local(&community, &context).await?;
@@ -112,7 +112,7 @@ pub(crate) async fn get_apub_community_featured(
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?
+      .ok_or(LemmyErrorType::NotFound)?
       .into();
   check_community_public(&community)?;
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;

@@ -73,20 +73,16 @@ impl Object for ApubPrivateMessage {
 
   async fn delete(self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     // do nothing, because pm can't be fetched over http
-    Err(LemmyErrorType::CouldntFindPrivateMessage.into())
+    Err(LemmyErrorType::NotFound.into())
   }
 
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<ChatMessage> {
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut context.pool(), creator_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    let creator = Person::read(&mut context.pool(), creator_id).await?;
 
     let recipient_id = self.recipient_id;
-    let recipient = Person::read(&mut context.pool(), recipient_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    let recipient = Person::read(&mut context.pool(), recipient_id).await?;
 
     let note = ChatMessage {
       r#type: ChatMessageType::ChatMessage,

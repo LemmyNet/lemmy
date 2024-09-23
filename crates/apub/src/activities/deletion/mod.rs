@@ -39,7 +39,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 use url::Url;
 
@@ -87,7 +87,6 @@ pub(crate) async fn send_apub_delete_private_message(
   let recipient_id = pm.recipient_id;
   let recipient: ApubPerson = Person::read(&mut context.pool(), recipient_id)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?
     .into();
 
   let deletable = DeletableObjects::PrivateMessage(pm.into());

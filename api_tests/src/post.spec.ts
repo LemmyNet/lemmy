@@ -125,12 +125,12 @@ test("Create a post", async () => {
   // Delta only follows beta, so it should not see an alpha ap_id
   await expect(
     resolvePost(delta, postRes.post_view.post),
-  ).rejects.toStrictEqual(Error("couldnt_find_object"));
+  ).rejects.toStrictEqual(Error("not_found"));
 
   // Epsilon has alpha blocked, it should not see the alpha post
   await expect(
     resolvePost(epsilon, postRes.post_view.post),
-  ).rejects.toStrictEqual(Error("couldnt_find_object"));
+  ).rejects.toStrictEqual(Error("not_found"));
 
   // remove added allow/blocklists
   editSiteForm.allowed_instances = [];
@@ -140,9 +140,7 @@ test("Create a post", async () => {
 });
 
 test("Create a post in a non-existent community", async () => {
-  await expect(createPost(alpha, -2)).rejects.toStrictEqual(
-    Error("couldnt_find_community"),
-  );
+  await expect(createPost(alpha, -2)).rejects.toStrictEqual(Error("not_found"));
 });
 
 test("Unlike a post", async () => {

@@ -85,9 +85,7 @@ pub async fn update_post(
   }
 
   let post_id = data.post_id;
-  let orig_post = Post::read(&mut context.pool(), post_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+  let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
   check_community_user_action(
     &local_user_view.person,
