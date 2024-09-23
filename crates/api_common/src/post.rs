@@ -152,7 +152,7 @@ pub struct RemovePost {
 #[cfg_attr(feature = "full", ts(export))]
 /// Mark a post as read.
 pub struct MarkPostAsRead {
-  pub post_ids: Vec<PostId>,
+  pub post_id: PostId,
   pub read: bool,
 }
 
@@ -162,7 +162,7 @@ pub struct MarkPostAsRead {
 #[cfg_attr(feature = "full", ts(export))]
 /// Hide a post from list views
 pub struct HidePost {
-  pub post_ids: Vec<PostId>,
+  pub post_id: PostId,
   pub hide: bool,
 }
 
