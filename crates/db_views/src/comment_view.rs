@@ -417,6 +417,7 @@ impl<'a> CommentQuery<'a> {
 
 #[cfg(test)]
 #[allow(clippy::indexing_slicing)]
+#[allow(clippy::unwrap_used)]
 mod tests {
 
   use crate::{
@@ -461,7 +462,7 @@ mod tests {
     CommunityVisibility,
     SubscribedType,
   };
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -556,7 +557,7 @@ mod tests {
 
     let polish_id = Language::read_id_from_code(pool, Some("pl"))
       .await?
-      .ok_or(LemmyErrorType::LanguageNotAllowed)?;
+      .unwrap();
     let comment_form_4 = CommentInsertForm::builder()
       .content("Comment 4".into())
       .creator_id(inserted_timmy_person.id)
@@ -817,7 +818,7 @@ mod tests {
     // change user lang to finnish, should only show one post in finnish and one undetermined
     let finnish_id = Language::read_id_from_code(pool, Some("fi"))
       .await?
-      .ok_or(LemmyErrorType::LanguageNotAllowed)?;
+      .unwrap();
     LocalUserLanguage::update(
       pool,
       vec![finnish_id],
