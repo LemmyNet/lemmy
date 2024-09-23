@@ -57,21 +57,20 @@ mod tests {
 
     let another_inserted_person = Person::create(pool, &another_person).await.unwrap();
 
-    let new_community = CommunityInsertForm::builder()
-      .name("TIL_site_agg".into())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "TIL_site_agg".into(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
 
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post".into())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
     let post_like = PostLikeForm {
@@ -79,15 +78,13 @@ mod tests {
       person_id: inserted_person.id,
       score: 1,
     };
-
     let _inserted_post_like = PostLike::like(pool, &post_like).await.unwrap();
 
-    let comment_form = CommentInsertForm::builder()
-      .content("A test comment".into())
-      .creator_id(inserted_person.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
     let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
 
     let mut comment_like = CommentLikeForm {
@@ -99,12 +96,11 @@ mod tests {
 
     let _inserted_comment_like = CommentLike::like(pool, &comment_like).await.unwrap();
 
-    let child_comment_form = CommentInsertForm::builder()
-      .content("A test comment".into())
-      .creator_id(inserted_person.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let child_comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
     let inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path))
         .await

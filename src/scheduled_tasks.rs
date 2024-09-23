@@ -493,10 +493,10 @@ async fn build_update_instance_form(
   // not every Fediverse instance has a valid Nodeinfo endpoint (its not required for
   // Activitypub). That's why we always need to mark instances as updated if they are
   // alive.
-  let mut instance_form = InstanceForm::builder()
-    .domain(domain.to_string())
-    .updated(Some(naive_now()))
-    .build();
+  let mut instance_form = InstanceForm {
+    updated: Some(naive_now()),
+    ..InstanceForm::new(domain.to_string())
+  };
 
   // First, fetch their /.well-known/nodeinfo, then extract the correct nodeinfo link from it
   let well_known_url = format!("https://{}/.well-known/nodeinfo", domain);

@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -51,24 +50,28 @@ pub struct Comment {
   pub language_id: LanguageId,
 }
 
-#[derive(Debug, Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Debug, Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 pub struct CommentInsertForm {
-  #[builder(!default)]
   pub creator_id: PersonId,
-  #[builder(!default)]
   pub post_id: PostId,
-  #[builder(!default)]
   pub content: String,
+  #[new(default)]
   pub removed: Option<bool>,
+  #[new(default)]
   pub published: Option<DateTime<Utc>>,
+  #[new(default)]
   pub updated: Option<DateTime<Utc>>,
+  #[new(default)]
   pub deleted: Option<bool>,
+  #[new(default)]
   pub ap_id: Option<DbUrl>,
+  #[new(default)]
   pub local: Option<bool>,
+  #[new(default)]
   pub distinguished: Option<bool>,
+  #[new(default)]
   pub language_id: Option<LanguageId>,
 }
 

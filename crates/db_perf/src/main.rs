@@ -79,11 +79,12 @@ async fn try_main() -> LemmyResult<()> {
   println!("🌍 creating {} communities", args.communities);
   let mut community_ids = vec![];
   for i in 0..args.communities.get() {
-    let form = CommunityInsertForm::builder()
-      .name(format!("c{i}"))
-      .title(i.to_string())
-      .instance_id(instance.id)
-      .build();
+    let form = CommunityInsertForm::new(
+      instance.id,
+      format!("c{i}"),
+      i.to_string(),
+      "pubkey".to_string(),
+    );
     community_ids.push(Community::create(&mut conn.into(), &form).await?.id);
   }
 

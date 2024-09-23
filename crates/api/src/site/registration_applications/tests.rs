@@ -56,28 +56,23 @@ async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(Instance
 
   let admin_local_user_view = LocalUserView::read_person(pool, admin_person.id).await?;
 
-  let site_form = SiteInsertForm::builder()
-    .name("test site".to_string())
-    .instance_id(inserted_instance.id)
-    .build();
+  let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
   let site = Site::create(pool, &site_form).await.unwrap();
 
   // Create a local site, since this is necessary for determining if email verification is
   // required
-  let local_site_form = LocalSiteInsertForm::builder()
-    .site_id(site.id)
-    .require_email_verification(Some(true))
-    .application_question(Some(".".to_string()))
-    .registration_mode(Some(RegistrationMode::RequireApplication))
-    .site_setup(Some(true))
-    .build();
+  let local_site_form = LocalSiteInsertForm {
+    require_email_verification: Some(true),
+    application_question: Some(".".to_string()),
+    registration_mode: Some(RegistrationMode::RequireApplication),
+    site_setup: Some(true),
+    ..LocalSiteInsertForm::new(site.id)
+  };
   let local_site = LocalSite::create(pool, &local_site_form).await.unwrap();
 
   // Required to have a working local SiteView when updating the site to change email verification
   // requirement or registration mode
-  let rate_limit_form = LocalSiteRateLimitInsertForm::builder()
-    .local_site_id(local_site.id)
-    .build();
+  let rate_limit_form = LocalSiteRateLimitInsertForm::new(local_site.id);
   LocalSiteRateLimit::create(pool, &rate_limit_form)
     .await
     .unwrap();
