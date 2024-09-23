@@ -27,7 +27,7 @@ pub async fn get_random_community(
 
   let random_community_id = Community::get_random_local_community(&mut context.pool())
     .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?
+    .ok_or(LemmyErrorType::NotFound)?
     .id;
 
   let is_mod_or_admin = is_mod_or_admin_opt(
@@ -44,8 +44,7 @@ pub async fn get_random_community(
     local_user,
     is_mod_or_admin,
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  .await?;
 
   let discussion_languages =
     CommunityLanguage::read(&mut context.pool(), random_community_id).await?;
