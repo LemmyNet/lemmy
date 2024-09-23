@@ -226,7 +226,7 @@ impl InCommunity for Page {
               break c;
             }
           } else {
-            Err(LemmyErrorType::CouldntFindCommunity)?;
+            Err(LemmyErrorType::NotFound)?;
           }
         }
       }
@@ -234,7 +234,7 @@ impl InCommunity for Page {
         p.iter()
           .find(|a| a.kind == PersonOrGroupType::Group)
           .map(|a| ObjectId::<ApubCommunity>::from(a.id.clone().into_inner()))
-          .ok_or(LemmyErrorType::CouldntFindCommunity)?
+          .ok_or(LemmyErrorType::NotFound)?
           .dereference(context)
           .await?
       }

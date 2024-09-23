@@ -19,7 +19,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn purge_community(
@@ -31,9 +31,7 @@ pub async fn purge_community(
   is_admin(&local_user_view)?;
 
   // Read the community to get its images
-  let community = Community::read(&mut context.pool(), data.community_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  let community = Community::read(&mut context.pool(), data.community_id).await?;
 
   // Also check that you're a higher admin than all the mods
   let community_mod_person_ids =

@@ -28,9 +28,8 @@ pub async fn resolve_pm_report(
       .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
   }
 
-  let private_message_report_view = PrivateMessageReportView::read(&mut context.pool(), report_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPrivateMessageReport)?;
+  let private_message_report_view =
+    PrivateMessageReportView::read(&mut context.pool(), report_id).await?;
 
   Ok(Json(PrivateMessageReportResponse {
     private_message_report_view,

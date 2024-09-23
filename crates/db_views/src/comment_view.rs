@@ -364,21 +364,18 @@ impl CommentView {
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
     my_local_user: Option<&'a LocalUser>,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     // If a person is given, then my_vote (res.9), if None, should be 0, not null
     // Necessary to differentiate between other person's votes
-    if let Ok(res) = queries().read(pool, (comment_id, my_local_user)).await {
-      let mut new_view = res.clone();
-      if my_local_user.is_some() && res.my_vote.is_none() {
-        new_view.my_vote = Some(0);
-      }
-      if res.comment.deleted || res.comment.removed {
-        new_view.comment.content = String::new();
-      }
-      Ok(Some(new_view))
-    } else {
-      Ok(None)
+    let res = queries().read(pool, (comment_id, my_local_user)).await?;
+    let mut new_view = res.clone();
+    if my_local_user.is_some() && res.my_vote.is_none() {
+      new_view.my_vote = Some(0);
     }
+    if res.comment.deleted || res.comment.removed {
+      new_view.comment.content = String::new();
+    }
+    Ok(new_view)
   }
 }
 
@@ -642,9 +639,7 @@ mod tests {
 
     assert_eq!(
       &expected_comment_view_no_person,
-      read_comment_views_no_person
-        .first()
-        .ok_or(LemmyErrorType::CouldntFindComment)?
+      read_comment_views_no_person.first().unwrap()
     );
 
     let read_comment_views_with_person = CommentQuery {
@@ -669,8 +664,7 @@ mod tests {
       data.inserted_comment_1.id,
       Some(&data.timmy_local_user_view.local_user),
     )
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+    .await?;
 
     // Make sure block set the creator blocked
     assert!(read_comment_from_blocked_person.creator_blocked);
@@ -843,10 +837,7 @@ mod tests {
     assert!(finnish_comment.is_some());
     assert_eq!(
       data.inserted_comment_2.content,
-      finnish_comment
-        .ok_or(LemmyErrorType::CouldntFindComment)?
-        .comment
-        .content
+      finnish_comment.unwrap().comment.content
     );
 
     // now show all comments with undetermined language (which is the default value)
@@ -1009,9 +1000,7 @@ mod tests {
   }
 
   async fn expected_comment_view(data: &Data, pool: &mut DbPool<'_>) -> LemmyResult<CommentView> {
-    let agg = CommentAggregates::read(pool, data.inserted_comment_0.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindComment)?;
+    let agg = CommentAggregates::read(pool, data.inserted_comment_0.id).await?;
     Ok(CommentView {
       creator_banned_from_community: false,
       banned_from_community: false,
@@ -1156,8 +1145,8 @@ mod tests {
     .await?;
     assert_eq!(5, authenticated_query.len());
 
-    let unauthenticated_comment = CommentView::read(pool, data.inserted_comment_0.id, None).await?;
-    assert!(unauthenticated_comment.is_none());
+    let unauthenticated_comment = CommentView::read(pool, data.inserted_comment_0.id, None).await;
+    assert!(unauthenticated_comment.is_err());
 
     let authenticated_comment = CommentView::read(
       pool,
@@ -1204,8 +1193,7 @@ mod tests {
       data.inserted_comment_0.id,
       Some(&inserted_banned_from_comm_local_user),
     )
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+    .await?;
 
     assert!(comment_view.banned_from_community);
 
@@ -1225,8 +1213,7 @@ mod tests {
       data.inserted_comment_0.id,
       Some(&data.timmy_local_user_view.local_user),
     )
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+    .await?;
 
     assert!(!comment_view.banned_from_community);
 

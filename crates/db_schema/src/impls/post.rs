@@ -502,7 +502,7 @@ mod tests {
     .unwrap();
     assert_eq!(2, marked_as_read);
 
-    let read_post = Post::read(pool, inserted_post.id).await.unwrap().unwrap();
+    let read_post = Post::read(pool, inserted_post.id).await.unwrap();
 
     let new_post_update = PostUpdateForm {
       name: Some("A test post".into()),

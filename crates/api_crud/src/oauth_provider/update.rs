@@ -7,7 +7,7 @@ use lemmy_db_schema::{
   utils::{diesel_required_string_update, diesel_required_url_update, naive_now},
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{error::LemmyError, LemmyErrorType};
+use lemmy_utils::error::LemmyError;
 
 #[tracing::instrument(skip(context))]
 pub async fn update_oauth_provider(
@@ -37,8 +37,6 @@ pub async fn update_oauth_provider(
 
   let update_result =
     OAuthProvider::update(&mut context.pool(), data.id, &oauth_provider_form).await?;
-  let oauth_provider = OAuthProvider::read(&mut context.pool(), update_result.id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindOauthProvider)?;
+  let oauth_provider = OAuthProvider::read(&mut context.pool(), update_result.id).await?;
   Ok(Json(oauth_provider))
 }

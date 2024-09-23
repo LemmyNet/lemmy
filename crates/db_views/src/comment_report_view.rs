@@ -382,7 +382,6 @@ mod tests {
 
     let agg = CommentAggregates::read(pool, inserted_comment.id)
       .await
-      .unwrap()
       .unwrap();
 
     let read_jessica_report_view =

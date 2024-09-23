@@ -43,19 +43,6 @@ pub enum LemmyErrorType {
   SiteBan,
   Deleted,
   BannedFromCommunity,
-  CouldntFindCommunity,
-  CouldntFindPerson,
-  CouldntFindComment,
-  CouldntFindCommentReport,
-  CouldntFindPostReport,
-  CouldntFindPrivateMessageReport,
-  CouldntFindLocalUser,
-  CouldntFindPersonMention,
-  CouldntFindRegistrationApplication,
-  CouldntFindCommentReply,
-  CouldntFindPrivateMessage,
-  CouldntFindActivity,
-  CouldntFindOauthProvider,
   PersonIsBlocked,
   CommunityIsBlocked,
   InstanceIsBlocked,
@@ -132,7 +119,6 @@ pub enum LemmyErrorType {
   CouldntUpdateCommunityHiddenStatus,
   PersonBlockAlreadyExists,
   UserAlreadyExists,
-  TokenNotFound,
   CouldntLikePost,
   CouldntSavePost,
   CouldntMarkPostAsRead,
@@ -154,7 +140,6 @@ pub enum LemmyErrorType {
   InvalidUrl,
   EmailSendFailed,
   Slurs,
-  CouldntFindObject,
   RegistrationDenied(Option<String>),
   FederationDisabled,
   DomainBlocked(String),
@@ -330,7 +315,7 @@ cfg_if! {
       #[test]
       fn test_convert_diesel_errors() {
         let not_found_error = LemmyError::from(diesel::NotFound);
-        assert_eq!(LemmyErrorType::CouldntFindPost, not_found_error.error_type);
+        assert_eq!(LemmyErrorType::NotFound, not_found_error.error_type);
         assert_eq!(404, not_found_error.status_code());
 
         let other_error = LemmyError::from(diesel::result::Error::NotInTransaction);

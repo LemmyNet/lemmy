@@ -322,7 +322,7 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use lemmy_db_views::structs::LocalUserView;
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -389,9 +389,7 @@ mod tests {
       published: inserted_reply.published,
     };
 
-    let read_reply = CommentReply::read(pool, inserted_reply.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindComment)?;
+    let read_reply = CommentReply::read(pool, inserted_reply.id).await?;
 
     let comment_reply_update_form = CommentReplyUpdateForm { read: Some(false) };
     let updated_reply =

@@ -57,8 +57,7 @@ pub async fn create_comment(
     Some(&local_user_view.local_user),
     true,
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindPost)?;
+  .await?;
 
   let post = post_view.post;
   let community_id = post_view.community.id;
@@ -79,8 +78,7 @@ pub async fn create_comment(
     Comment::read(&mut context.pool(), parent_id).await.ok()
   } else {
     None
-  }
-  .flatten();
+  };
 
   // If there's a parent_id, check to make sure that comment is in that post
   // Strange issue where sometimes the post ID of the parent comment is incorrect

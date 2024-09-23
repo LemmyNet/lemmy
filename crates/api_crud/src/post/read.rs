@@ -33,10 +33,9 @@ pub async fn get_post(
   } else if let Some(comment_id) = data.comment_id {
     Comment::read(&mut context.pool(), comment_id)
       .await?
-      .ok_or(LemmyErrorType::CouldntFindComment)?
       .post_id
   } else {
-    Err(LemmyErrorType::CouldntFindPost)?
+    Err(LemmyErrorType::NotFound)?
   };
 
   // Check to see if the person is a mod or admin, to show deleted / removed
@@ -59,8 +58,7 @@ pub async fn get_post(
     local_user.as_ref(),
     is_mod_or_admin,
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindPost)?;
+  .await?;
 
   let post_id = post_view.post.id;
   if let Some(person_id) = person_id {
@@ -82,8 +80,7 @@ pub async fn get_post(
     local_user.as_ref(),
     is_mod_or_admin,
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  .await?;
 
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 

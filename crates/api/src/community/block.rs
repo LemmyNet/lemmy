@@ -56,8 +56,7 @@ pub async fn block_community(
     Some(&local_user_view.local_user),
     false,
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  .await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::FollowCommunity(

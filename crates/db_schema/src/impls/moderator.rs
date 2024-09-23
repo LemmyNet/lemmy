@@ -560,7 +560,6 @@ mod tests {
       .unwrap();
     let read_mod_remove_post = ModRemovePost::read(pool, inserted_mod_remove_post.id)
       .await
-      .unwrap()
       .unwrap();
     let expected_mod_remove_post = ModRemovePost {
       id: inserted_mod_remove_post.id,
@@ -583,7 +582,6 @@ mod tests {
       .unwrap();
     let read_mod_lock_post = ModLockPost::read(pool, inserted_mod_lock_post.id)
       .await
-      .unwrap()
       .unwrap();
     let expected_mod_lock_post = ModLockPost {
       id: inserted_mod_lock_post.id,
@@ -606,7 +604,6 @@ mod tests {
       .unwrap();
     let read_mod_feature_post = ModFeaturePost::read(pool, inserted_mod_feature_post.id)
       .await
-      .unwrap()
       .unwrap();
     let expected_mod_feature_post = ModFeaturePost {
       id: inserted_mod_feature_post.id,
@@ -630,7 +627,6 @@ mod tests {
       .unwrap();
     let read_mod_remove_comment = ModRemoveComment::read(pool, inserted_mod_remove_comment.id)
       .await
-      .unwrap()
       .unwrap();
     let expected_mod_remove_comment = ModRemoveComment {
       id: inserted_mod_remove_comment.id,
@@ -656,7 +652,6 @@ mod tests {
     let read_mod_remove_community =
       ModRemoveCommunity::read(pool, inserted_mod_remove_community.id)
         .await
-        .unwrap()
         .unwrap();
     let expected_mod_remove_community = ModRemoveCommunity {
       id: inserted_mod_remove_community.id,
@@ -684,7 +679,6 @@ mod tests {
     let read_mod_ban_from_community =
       ModBanFromCommunity::read(pool, inserted_mod_ban_from_community.id)
         .await
-        .unwrap()
         .unwrap();
     let expected_mod_ban_from_community = ModBanFromCommunity {
       id: inserted_mod_ban_from_community.id,
@@ -707,10 +701,7 @@ mod tests {
       expires: None,
     };
     let inserted_mod_ban = ModBan::create(pool, &mod_ban_form).await.unwrap();
-    let read_mod_ban = ModBan::read(pool, inserted_mod_ban.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let read_mod_ban = ModBan::read(pool, inserted_mod_ban.id).await.unwrap();
     let expected_mod_ban = ModBan {
       id: inserted_mod_ban.id,
       mod_person_id: inserted_mod.id,
@@ -734,7 +725,6 @@ mod tests {
       .unwrap();
     let read_mod_add_community = ModAddCommunity::read(pool, inserted_mod_add_community.id)
       .await
-      .unwrap()
       .unwrap();
     let expected_mod_add_community = ModAddCommunity {
       id: inserted_mod_add_community.id,
@@ -753,10 +743,7 @@ mod tests {
       removed: None,
     };
     let inserted_mod_add = ModAdd::create(pool, &mod_add_form).await.unwrap();
-    let read_mod_add = ModAdd::read(pool, inserted_mod_add.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let read_mod_add = ModAdd::read(pool, inserted_mod_add.id).await.unwrap();
     let expected_mod_add = ModAdd {
       id: inserted_mod_add.id,
       mod_person_id: inserted_mod.id,

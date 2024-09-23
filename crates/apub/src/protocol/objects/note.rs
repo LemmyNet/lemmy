@@ -20,7 +20,7 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::ops::Deref;
@@ -64,9 +64,7 @@ impl Note {
       PostOrComment::Post(p) => Ok((p.clone(), None)),
       PostOrComment::Comment(c) => {
         let post_id = c.post_id;
-        let post = Post::read(&mut context.pool(), post_id)
-          .await?
-          .ok_or(LemmyErrorType::CouldntFindPost)?;
+        let post = Post::read(&mut context.pool(), post_id).await?;
         Ok((post.into(), Some(c.clone())))
       }
     }
@@ -77,9 +75,7 @@ impl Note {
 impl InCommunity for Note {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let (post, _) = self.get_parents(context).await?;
-    let community = Community::read(&mut context.pool(), post.community_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+    let community = Community::read(&mut context.pool(), post.community_id).await?;
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }

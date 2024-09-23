@@ -38,7 +38,7 @@ impl Report {
       .summary
       .clone()
       .or(self.content.clone())
-      .ok_or(LemmyErrorType::CouldntFindObject.into())
+      .ok_or(LemmyErrorType::NotFound.into())
   }
 }
 
@@ -63,7 +63,7 @@ impl ReportObject {
             return deref;
           }
         }
-        Err(LemmyErrorType::CouldntFindObject.into())
+        Err(LemmyErrorType::NotFound.into())
       }
     }
   }

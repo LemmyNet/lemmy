@@ -1,5 +1,4 @@
 use crate::{
-  diesel::OptionalExtension,
   newtypes::{CommunityId, DbUrl, PersonId},
   utils::{get_conn, DbPool},
 };
@@ -43,10 +42,10 @@ where
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>;
 
-  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Option<Self>, Error> {
+  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error> {
     let query: Find<Self> = Self::table().find(id);
     let conn = &mut *get_conn(pool).await?;
-    query.first(conn).await.optional()
+    query.first(conn).await
   }
 
   /// when you want to null out a column, you have to send Some(None)), since sending None means you

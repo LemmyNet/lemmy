@@ -593,8 +593,7 @@ impl PaginationCursor {
           .ok_or_else(err_msg)?,
       ),
     )
-    .await?
-    .ok_or_else(err_msg)?;
+    .await?;
 
     Ok(PaginationCursorData(token))
   }
@@ -735,6 +734,7 @@ impl<'a> PostQuery<'a> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
   use crate::{
     post_view::{PaginationCursorData, PostQuery, PostView},
@@ -774,7 +774,7 @@ mod tests {
     PostSortType,
     SubscribedType,
   };
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::{collections::HashSet, time::Duration};
@@ -1701,9 +1701,7 @@ mod tests {
       &data.inserted_community,
       &data.inserted_post,
     );
-    let agg = PostAggregates::read(pool, inserted_post.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPost)?;
+    let agg = PostAggregates::read(pool, inserted_post.id).await?;
 
     Ok(PostView {
       post: Post {

@@ -122,7 +122,7 @@ fn check_community_public(community: &Community) -> LemmyResult<()> {
     Err(LemmyErrorType::Deleted)?
   }
   if community.visibility != CommunityVisibility::Public {
-    return Err(LemmyErrorType::CouldntFindCommunity.into());
+    return Err(LemmyErrorType::NotFound.into());
   }
   Ok(())
 }

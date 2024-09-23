@@ -13,7 +13,7 @@ use lemmy_db_views::{
   structs::{LocalUserView, SiteView},
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
-use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn read_person(
@@ -35,20 +35,17 @@ pub async fn read_person(
     None => {
       if let Some(username) = &data.username {
         resolve_actor_identifier::<ApubPerson, Person>(username, &context, &local_user_view, true)
-          .await
-          .with_lemmy_type(LemmyErrorType::CouldntFindPerson)?
+          .await?
           .id
       } else {
-        Err(LemmyErrorType::CouldntFindPerson)?
+        Err(LemmyErrorType::NotFound)?
       }
     }
   };
 
   // You don't need to return settings for the user, since this comes back with GetSite
   // `my_user`
-  let person_view = PersonView::read(&mut context.pool(), person_details_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?;
+  let person_view = PersonView::read(&mut context.pool(), person_details_id).await?;
 
   let sort = data.sort;
   let page = data.page;
