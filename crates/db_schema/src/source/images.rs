@@ -51,13 +51,6 @@ pub struct RemoteImage {
   pub published: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = remote_image))]
-pub struct RemoteImageForm {
-  pub link: DbUrl,
-}
-
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
