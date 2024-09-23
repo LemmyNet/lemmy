@@ -765,10 +765,20 @@ mod tests {
       local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
-      post::{Post, PostHide, PostInsertForm, PostLike, PostLikeForm, PostRead, PostUpdateForm},
+      post::{
+        Post,
+        PostHide,
+        PostInsertForm,
+        PostLike,
+        PostLikeForm,
+        PostRead,
+        PostSaved,
+        PostSavedForm,
+        PostUpdateForm,
+      },
       site::Site,
     },
-    traits::{Bannable, Blockable, Crud, Joinable, Likeable},
+    traits::{Bannable, Blockable, Crud, Joinable, Likeable, Saveable},
     utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
     CommunityVisibility,
     PostSortType,
@@ -1215,6 +1225,36 @@ mod tests {
 
     // Should be no posts
     assert_eq!(read_disliked_post_listing, vec![]);
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_saved_only() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Save only the bot post
+    // The saved_only should only show the bot post
+    let post_save_form = PostSavedForm {
+      post_id: data.inserted_bot_post.id,
+      person_id: data.local_user_view.person.id,
+    };
+    PostSaved::save(pool, &post_save_form).await?;
+
+    // Read the saved only
+    let read_saved_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      saved_only: Some(true),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    // This should only include the bot post, not the one you created
+    assert_eq!(vec![POST_BY_BOT], names(&read_saved_post_listing));
 
     cleanup(data, pool).await
   }
