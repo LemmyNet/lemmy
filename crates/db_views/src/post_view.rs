@@ -850,12 +850,14 @@ mod tests {
     )
     .await?;
 
-    let mut post_from_blocked_person = PostInsertForm::new(
-      POST_BY_BLOCKED_PERSON.to_string(),
-      inserted_blocked_person.id,
-      inserted_community.id,
-    );
-    post_from_blocked_person.language_id = Some(LanguageId(1));
+    let post_from_blocked_person = PostInsertForm {
+      language_id: Some(LanguageId(1)),
+      ..PostInsertForm::new(
+        POST_BY_BLOCKED_PERSON.to_string(),
+        inserted_blocked_person.id,
+        inserted_community.id,
+      )
+    };
     Post::create(pool, &post_from_blocked_person).await?;
 
     // block that person
@@ -867,9 +869,10 @@ mod tests {
     PersonBlock::block(pool, &person_block).await?;
 
     // A sample post
-    let mut new_post =
-      PostInsertForm::new(POST.to_string(), inserted_person.id, inserted_community.id);
-    new_post.language_id = Some(LanguageId(47));
+    let new_post = PostInsertForm {
+      language_id: Some(LanguageId(47)),
+      ..PostInsertForm::new(POST.to_string(), inserted_person.id, inserted_community.id)
+    };
     let inserted_post = Post::create(pool, &new_post).await?;
 
     let new_bot_post = PostInsertForm::new(
@@ -1031,13 +1034,15 @@ mod tests {
     let data = init_data(pool).await?;
 
     // A post which contains the search them 'Post' not in the title (but in the body)
-    let mut new_post = PostInsertForm::new(
-      POST_WITH_ANOTHER_TITLE.to_string(),
-      data.local_user_view.person.id,
-      data.inserted_community.id,
-    );
-    new_post.language_id = Some(LanguageId(47));
-    new_post.body = Some("Post".to_string());
+    let new_post = PostInsertForm {
+      language_id: Some(LanguageId(47)),
+      body: Some("Post".to_string()),
+      ..PostInsertForm::new(
+        POST_WITH_ANOTHER_TITLE.to_string(),
+        data.local_user_view.person.id,
+        data.inserted_community.id,
+      )
+    };
 
     let inserted_post = Post::create(pool, &new_post).await?;
 
@@ -1267,12 +1272,14 @@ mod tests {
       .await?
       .expect("french should exist");
 
-    let mut post_spanish = PostInsertForm::new(
-      EL_POSTO.to_string(),
-      data.local_user_view.person.id,
-      data.inserted_community.id,
-    );
-    post_spanish.language_id = Some(spanish_id);
+    let post_spanish = PostInsertForm {
+      language_id: Some(spanish_id),
+      ..PostInsertForm::new(
+        EL_POSTO.to_string(),
+        data.local_user_view.person.id,
+        data.inserted_community.id,
+      )
+    };
     Post::create(pool, &post_spanish).await?;
 
     let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
@@ -1408,12 +1415,14 @@ mod tests {
     );
     let inserted_community = Community::create(pool, &community_form).await?;
 
-    let mut post_form = PostInsertForm::new(
-      POST_FROM_BLOCKED_INSTANCE.to_string(),
-      data.inserted_bot.id,
-      inserted_community.id,
-    );
-    post_form.language_id = Some(LanguageId(1));
+    let post_form = PostInsertForm {
+      language_id: Some(LanguageId(1)),
+      ..PostInsertForm::new(
+        POST_FROM_BLOCKED_INSTANCE.to_string(),
+        data.inserted_bot.id,
+        inserted_community.id,
+      )
+    };
     let post_from_blocked_instance = Post::create(pool, &post_form).await?;
 
     // no instance block, should return all posts
@@ -1471,14 +1480,16 @@ mod tests {
     // and featured
     for comments in 0..10 {
       for _ in 0..15 {
-        let mut post_form = PostInsertForm::new(
-          "keep Christ in Christmas".to_owned(),
-          data.local_user_view.person.id,
-          inserted_community.id,
-        );
-        post_form.featured_local = Some((comments % 2) == 0);
-        post_form.featured_community = Some((comments % 2) == 0);
-        post_form.published = Some(Utc::now() - Duration::from_secs(comments % 3));
+        let post_form = PostInsertForm {
+          featured_local: Some((comments % 2) == 0),
+          featured_community: Some((comments % 2) == 0),
+          published: Some(Utc::now() - Duration::from_secs(comments % 3)),
+          ..PostInsertForm::new(
+            "keep Christ in Christmas".to_owned(),
+            data.local_user_view.person.id,
+            inserted_community.id,
+          )
+        };
         let inserted_post = Post::create(pool, &post_form).await?;
         inserted_post_ids.push(inserted_post.id);
 

@@ -151,28 +151,30 @@ impl Object for ApubCommunity {
     let icon = proxy_image_link_opt_apub(group.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.map(|i| i.url), context).await?;
 
-    let mut form = CommunityInsertForm::new(
-      instance_id,
-      group.preferred_username.clone(),
-      group.name.unwrap_or(group.preferred_username.clone()),
-      group.public_key.public_key_pem,
-    );
-    form.published = group.published;
-    form.updated = group.updated;
-    form.deleted = Some(false);
-    form.nsfw = Some(group.sensitive.unwrap_or(false));
-    form.actor_id = Some(group.id.into());
-    form.local = Some(false);
-    form.last_refreshed_at = Some(naive_now());
-    form.icon = icon;
-    form.banner = banner;
-    form.description = description;
-    form.followers_url = group.followers.clone().map(Into::into);
-    form.inbox_url = Some(group.inbox.into());
-    form.shared_inbox_url = group.endpoints.map(|e| e.shared_inbox.into());
-    form.moderators_url = group.attributed_to.clone().map(Into::into);
-    form.posting_restricted_to_mods = group.posting_restricted_to_mods;
-    form.featured_url = group.featured.clone().map(Into::into);
+    let form = CommunityInsertForm {
+      published: group.published,
+      updated: group.updated,
+      deleted: Some(false),
+      nsfw: Some(group.sensitive.unwrap_or(false)),
+      actor_id: Some(group.id.into()),
+      local: Some(false),
+      last_refreshed_at: Some(naive_now()),
+      icon,
+      banner,
+      description,
+      followers_url: group.followers.clone().map(Into::into),
+      inbox_url: Some(group.inbox.into()),
+      shared_inbox_url: group.endpoints.map(|e| e.shared_inbox.into()),
+      moderators_url: group.attributed_to.clone().map(Into::into),
+      posting_restricted_to_mods: group.posting_restricted_to_mods,
+      featured_url: group.featured.clone().map(Into::into),
+      ..CommunityInsertForm::new(
+        instance_id,
+        group.preferred_username.clone(),
+        group.name.unwrap_or(group.preferred_username.clone()),
+        group.public_key.public_key_pem,
+      )
+    };
     let languages =
       LanguageTag::to_language_id_multiple(group.language, &mut context.pool()).await?;
 
