@@ -299,7 +299,7 @@ impl PostRead {
     pool: &mut DbPool<'_>,
     post_id: PostId,
     person_id: PersonId,
-  ) -> Result<Self, Error> {
+  ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
 
     let form = PostReadForm { post_id, person_id };
@@ -307,7 +307,7 @@ impl PostRead {
     insert_into(post_read::table)
       .values(form)
       .on_conflict_do_nothing()
-      .get_result::<Self>(conn)
+      .execute(conn)
       .await
   }
 
@@ -331,14 +331,14 @@ impl PostHide {
     pool: &mut DbPool<'_>,
     post_id: PostId,
     person_id: PersonId,
-  ) -> Result<Self, Error> {
+  ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
 
     let form = PostHideForm { post_id, person_id };
     insert_into(post_hide::table)
       .values(form)
       .on_conflict_do_nothing()
-      .get_result::<Self>(conn)
+      .execute(conn)
       .await
   }
 
