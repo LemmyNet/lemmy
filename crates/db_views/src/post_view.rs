@@ -568,7 +568,7 @@ impl PostView {
     post_id: PostId,
     my_local_user: Option<&'a LocalUser>,
     is_mod_or_admin: bool,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries()
       .read(pool, (post_id, my_local_user, is_mod_or_admin))
       .await
@@ -593,8 +593,7 @@ impl PaginationCursor {
           .ok_or_else(err_msg)?,
       ),
     )
-    .await?
-    .ok_or_else(err_msg)?;
+    .await?;
 
     Ok(PaginationCursorData(token))
   }
@@ -735,6 +734,7 @@ impl<'a> PostQuery<'a> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
   use crate::{
     post_view::{PaginationCursorData, PostQuery, PostView},
@@ -774,7 +774,7 @@ mod tests {
     PostSortType,
     SubscribedType,
   };
-  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::{collections::HashSet, time::Duration};
@@ -952,8 +952,7 @@ mod tests {
       Some(&data.local_user_view.local_user),
       false,
     )
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+    .await?;
 
     let expected_post_listing_with_user = expected_post_view(&data, pool).await?;
 
@@ -1002,9 +1001,7 @@ mod tests {
     .await?;
 
     let read_post_listing_single_no_person =
-      PostView::read(pool, data.inserted_post.id, None, false)
-        .await?
-        .ok_or(LemmyErrorType::CouldntFindPost)?;
+      PostView::read(pool, data.inserted_post.id, None, false).await?;
 
     let expected_post_listing_no_person = expected_post_view(&data, pool).await?;
 
@@ -1140,8 +1137,7 @@ mod tests {
       Some(&data.local_user_view.local_user),
       false,
     )
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+    .await?;
 
     let mut expected_post_with_upvote = expected_post_view(&data, pool).await?;
     expected_post_with_upvote.my_vote = Some(1);
@@ -1649,12 +1645,7 @@ mod tests {
     assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_hidden));
 
     // Make sure that hidden field is true.
-    assert!(
-      &post_listings_show_hidden
-        .first()
-        .ok_or(LemmyErrorType::CouldntFindPost)?
-        .hidden
-    );
+    assert!(&post_listings_show_hidden.first().unwrap().hidden);
 
     cleanup(data, pool).await
   }
@@ -1690,13 +1681,7 @@ mod tests {
     assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_nsfw));
 
     // Make sure that nsfw field is true.
-    assert!(
-      &post_listings_show_nsfw
-        .first()
-        .ok_or(LemmyErrorType::CouldntFindPost)?
-        .post
-        .nsfw
-    );
+    assert!(&post_listings_show_nsfw.first().unwrap().post.nsfw);
 
     cleanup(data, pool).await
   }
@@ -1719,9 +1704,7 @@ mod tests {
       &data.inserted_community,
       &data.inserted_post,
     );
-    let agg = PostAggregates::read(pool, inserted_post.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPost)?;
+    let agg = PostAggregates::read(pool, inserted_post.id).await?;
 
     Ok(PostView {
       post: Post {
@@ -1865,8 +1848,8 @@ mod tests {
     .await?;
     assert_eq!(2, authenticated_query.len());
 
-    let unauthenticated_post = PostView::read(pool, data.inserted_post.id, None, false).await?;
-    assert!(unauthenticated_post.is_none());
+    let unauthenticated_post = PostView::read(pool, data.inserted_post.id, None, false).await;
+    assert!(unauthenticated_post.is_err());
 
     let authenticated_post = PostView::read(
       pool,
@@ -1916,8 +1899,7 @@ mod tests {
       Some(&inserted_banned_from_comm_local_user),
       false,
     )
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+    .await?;
 
     assert!(post_view.banned_from_community);
 
@@ -1938,8 +1920,7 @@ mod tests {
       Some(&data.local_user_view.local_user),
       false,
     )
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+    .await?;
 
     assert!(!post_view.banned_from_community);
 

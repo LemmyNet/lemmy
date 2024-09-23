@@ -20,7 +20,7 @@ impl Crud for Site {
   type IdType = SiteId;
 
   /// Use SiteView::read_local, or Site::read_from_apub_id instead
-  async fn read(_pool: &mut DbPool<'_>, _site_id: SiteId) -> Result<Option<Self>, Error> {
+  async fn read(_pool: &mut DbPool<'_>, _site_id: SiteId) -> Result<Self, Error> {
     Err(Error::NotFound)
   }
 

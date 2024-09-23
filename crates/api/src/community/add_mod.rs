@@ -46,9 +46,7 @@ pub async fn add_mod_to_community(
     .await?;
   }
 
-  let community = Community::read(&mut context.pool(), community_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  let community = Community::read(&mut context.pool(), community_id).await?;
 
   // If user is admin and community is remote, explicitly check that he is a
   // moderator. This is necessary because otherwise the action would be rejected

@@ -111,9 +111,7 @@ pub async fn ban_from_community(
 
   ModBanFromCommunity::create(&mut context.pool(), &form).await?;
 
-  let person_view = PersonView::read(&mut context.pool(), data.person_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?;
+  let person_view = PersonView::read(&mut context.pool(), data.person_id).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::BanFromCommunity {

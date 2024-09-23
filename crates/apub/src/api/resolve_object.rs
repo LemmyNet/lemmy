@@ -34,11 +34,11 @@ pub async fn resolve_object(
     // user isn't authenticated only allow a local search.
     search_query_to_object_id_local(&data.q, &context).await
   }
-  .with_lemmy_type(LemmyErrorType::CouldntFindObject)?;
+  .with_lemmy_type(LemmyErrorType::NotFound)?;
 
   convert_response(res, local_user_view, &mut context.pool())
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntFindObject)
+    .with_lemmy_type(LemmyErrorType::NotFound)
 }
 
 async fn convert_response(
@@ -54,36 +54,20 @@ async fn convert_response(
   match object {
     Post(p) => {
       removed_or_deleted = p.deleted || p.removed;
-      res.post = Some(
-        PostView::read(pool, p.id, local_user.as_ref(), false)
-          .await?
-          .ok_or(LemmyErrorType::CouldntFindPost)?,
-      )
+      res.post = Some(PostView::read(pool, p.id, local_user.as_ref(), false).await?)
     }
     Comment(c) => {
       removed_or_deleted = c.deleted || c.removed;
-      res.comment = Some(
-        CommentView::read(pool, c.id, local_user.as_ref())
-          .await?
-          .ok_or(LemmyErrorType::CouldntFindComment)?,
-      )
+      res.comment = Some(CommentView::read(pool, c.id, local_user.as_ref()).await?)
     }
     PersonOrCommunity(p) => match *p {
       UserOrCommunity::User(u) => {
         removed_or_deleted = u.deleted;
-        res.person = Some(
-          PersonView::read(pool, u.id)
-            .await?
-            .ok_or(LemmyErrorType::CouldntFindPerson)?,
-        )
+        res.person = Some(PersonView::read(pool, u.id).await?)
       }
       UserOrCommunity::Community(c) => {
         removed_or_deleted = c.deleted || c.removed;
-        res.community = Some(
-          CommunityView::read(pool, c.id, local_user.as_ref(), false)
-            .await?
-            .ok_or(LemmyErrorType::CouldntFindCommunity)?,
-        )
+        res.community = Some(CommunityView::read(pool, c.id, local_user.as_ref(), false).await?)
       }
     },
   };

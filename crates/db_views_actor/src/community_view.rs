@@ -179,7 +179,7 @@ impl CommunityView {
     community_id: CommunityId,
     my_local_user: Option<&'a LocalUser>,
     is_mod_or_admin: bool,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries()
       .read(pool, (community_id, my_local_user, is_mod_or_admin))
       .await
@@ -194,7 +194,7 @@ impl CommunityView {
       CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await?;
     if is_mod {
       Ok(true)
-    } else if let Ok(Some(person_view)) = PersonView::read(pool, person_id).await {
+    } else if let Ok(person_view) = PersonView::read(pool, person_id).await {
       Ok(person_view.is_admin)
     } else {
       Ok(false)
@@ -210,7 +210,7 @@ impl CommunityView {
       CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await?;
     if is_mod_of_any {
       Ok(true)
-    } else if let Ok(Some(person_view)) = PersonView::read(pool, person_id).await {
+    } else if let Ok(person_view) = PersonView::read(pool, person_id).await {
       Ok(person_view.is_admin)
     } else {
       Ok(false)
@@ -363,10 +363,8 @@ mod tests {
     assert_eq!(1, authenticated_query.len());
 
     let unauthenticated_community =
-      CommunityView::read(pool, data.inserted_community.id, None, false)
-        .await
-        .unwrap();
-    assert!(unauthenticated_community.is_none());
+      CommunityView::read(pool, data.inserted_community.id, None, false).await;
+    assert!(unauthenticated_community.is_err());
 
     let authenticated_community = CommunityView::read(
       pool,

@@ -220,7 +220,7 @@ async fn can_accept_activity_in_community(
     }
     // Local only community can't federate
     if community.visibility != CommunityVisibility::Public {
-      return Err(LemmyErrorType::CouldntFindCommunity.into());
+      return Err(LemmyErrorType::NotFound.into());
     }
   }
   Ok(())

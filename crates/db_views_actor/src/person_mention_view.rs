@@ -241,7 +241,7 @@ impl PersonMentionView {
     pool: &mut DbPool<'_>,
     person_mention_id: PersonMentionId,
     my_person_id: Option<PersonId>,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries()
       .read(pool, (person_mention_id, my_person_id))
       .await
@@ -322,7 +322,7 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use lemmy_db_views::structs::LocalUserView;
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -384,9 +384,7 @@ mod tests {
       published: inserted_mention.published,
     };
 
-    let read_mention = PersonMention::read(pool, inserted_mention.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindComment)?;
+    let read_mention = PersonMention::read(pool, inserted_mention.id).await?;
 
     let person_mention_update_form = PersonMentionUpdateForm { read: Some(false) };
     let updated_mention =
@@ -442,9 +440,7 @@ mod tests {
       &recipient_local_user_update_form,
     )
     .await?;
-    let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
+    let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id).await?;
 
     let unread_mentions_after_hide_bots =
       PersonMentionView::get_unread_mentions(pool, &recipient_local_user_view.local_user).await?;

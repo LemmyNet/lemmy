@@ -563,11 +563,8 @@ mod tests {
     let client = ClientBuilder::new(client_builder(&Settings::default()).build()?).build();
     let form = build_update_instance_form("lemmy.ml", &client)
       .await
-      .ok_or(LemmyErrorType::CouldntFindObject)?;
-    assert_eq!(
-      form.software.ok_or(LemmyErrorType::CouldntFindObject)?,
-      "lemmy"
-    );
+      .ok_or(LemmyErrorType::NotFound)?;
+    assert_eq!(form.software.ok_or(LemmyErrorType::NotFound)?, "lemmy");
     Ok(())
   }
 
@@ -577,11 +574,8 @@ mod tests {
     let client = ClientBuilder::new(client_builder(&Settings::default()).build()?).build();
     let form = build_update_instance_form("mastodon.social", &client)
       .await
-      .ok_or(LemmyErrorType::CouldntFindObject)?;
-    assert_eq!(
-      form.software.ok_or(LemmyErrorType::CouldntFindObject)?,
-      "mastodon"
-    );
+      .ok_or(LemmyErrorType::NotFound)?;
+    assert_eq!(form.software.ok_or(LemmyErrorType::NotFound)?, "mastodon");
     Ok(())
   }
 }

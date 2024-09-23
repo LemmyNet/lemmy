@@ -348,11 +348,7 @@ mod tests {
     let user_form = LocalUserInsertForm::test_form(person.id);
     let local_user = LocalUser::create(&mut context.pool(), &user_form, vec![]).await?;
 
-    Ok(
-      LocalUserView::read(&mut context.pool(), local_user.id)
-        .await?
-        .ok_or(LemmyErrorType::CouldntFindLocalUser)?,
-    )
+    Ok(LocalUserView::read(&mut context.pool(), local_user.id).await?)
   }
 
   #[tokio::test]
@@ -386,9 +382,8 @@ mod tests {
     // wait for background task to finish
     sleep(Duration::from_millis(1000)).await;
 
-    let import_user_updated = LocalUserView::read(&mut context.pool(), import_user.local_user.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
+    let import_user_updated =
+      LocalUserView::read(&mut context.pool(), import_user.local_user.id).await?;
 
     assert_eq!(
       export_user.person.display_name,
