@@ -2538,6 +2538,7 @@ dependencies = [
  "actix-web",
  "anyhow",
  "bcrypt",
+ "chrono",
  "futures",
  "lemmy_api_common",
  "lemmy_db_schema",

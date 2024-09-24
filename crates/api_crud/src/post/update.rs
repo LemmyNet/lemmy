@@ -1,3 +1,4 @@
+use super::{convert_published_time, create::send_webmention};
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
@@ -16,6 +17,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
+    community::Community,
     local_site::LocalSite,
     post::{Post, PostUpdateForm},
   },
@@ -107,6 +109,21 @@ pub async fn update_post(
   )
   .await?;
 
+  // handle changes to scheduled_publish_time
+  let scheduled_publish_time = match (
+    orig_post.scheduled_publish_time,
+    data.scheduled_publish_time,
+  ) {
+    // schedule time can be changed if post is still scheduled (and not published yet)
+    (Some(_), Some(_)) => {
+      Some(convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?)
+    }
+    // post was scheduled, gets changed to publish immediately
+    (Some(_), None) => Some(None),
+    // unchanged
+    (_, _) => None,
+  };
+
   let post_form = PostUpdateForm {
     name: data.name.clone(),
     url,
@@ -115,6 +132,7 @@ pub async fn update_post(
     nsfw: data.nsfw,
     language_id: data.language_id,
     updated: Some(Some(naive_now())),
+    scheduled_publish_time,
     ..Default::default()
   };
 
@@ -123,13 +141,36 @@ pub async fn update_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
 
-  generate_post_link_metadata(
-    updated_post.clone(),
-    custom_thumbnail.flatten().map(Into::into),
-    |post| Some(SendActivityData::UpdatePost(post)),
-    context.reset_request_count(),
-  )
-  .await?;
+  // send out federation/webmention if necessary
+  match (
+    orig_post.scheduled_publish_time,
+    data.scheduled_publish_time,
+  ) {
+    // schedule was removed, send create activity and webmention
+    (Some(_), None) => {
+      let community = Community::read(&mut context.pool(), orig_post.community_id).await?;
+      send_webmention(updated_post.clone(), community);
+      generate_post_link_metadata(
+        updated_post.clone(),
+        custom_thumbnail.flatten().map(Into::into),
+        |post| Some(SendActivityData::CreatePost(post)),
+        context.reset_request_count(),
+      )
+      .await?;
+    }
+    // post was already public, send update
+    (None, _) => {
+      generate_post_link_metadata(
+        updated_post.clone(),
+        custom_thumbnail.flatten().map(Into::into),
+        |post| Some(SendActivityData::UpdatePost(post)),
+        context.reset_request_count(),
+      )
+      .await?
+    }
+    // schedule was changed, do nothing
+    (Some(_), Some(_)) => {}
+  };
 
   build_post_response(
     context.deref(),
