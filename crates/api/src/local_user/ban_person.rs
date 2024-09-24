@@ -67,9 +67,9 @@ pub async fn ban_from_site(
   // Remove their data if that's desired
   if data.remove_or_restore_data.unwrap_or(false) {
     if data.ban {
-      remove_user_data(person.id, &context).await?;
+      remove_user_data(local_user_view.person.id, person.id, &data.reason, &context).await?;
     } else {
-      restore_user_data(person.id, &context).await?;
+      restore_user_data(local_user_view.person.id, person.id, &data.reason, &context).await?;
     }
   };
 
