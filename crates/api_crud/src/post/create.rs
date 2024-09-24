@@ -93,20 +93,15 @@ pub async fn create_post(
   .await?;
 
   let community_id = data.community_id;
-  let community = Community::read(&mut context.pool(), community_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  let community = Community::read(&mut context.pool(), community_id).await?;
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;
-    let is_mod = CommunityModeratorView::is_community_moderator(
+    CommunityModeratorView::check_is_community_moderator(
       &mut context.pool(),
       community_id,
       local_user_view.local_user.person_id,
     )
     .await?;
-    if !is_mod {
-      Err(LemmyErrorType::OnlyModsCanPostInCommunity)?
-    }
   }
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
@@ -133,17 +128,19 @@ pub async fn create_post(
 
   let scheduled_publish_time =
     convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?;
-  let post_form = PostInsertForm::builder()
-    .name(data.name.trim().to_string())
-    .url(url.map(Into::into))
-    .body(body)
-    .alt_text(data.alt_text.clone())
-    .community_id(data.community_id)
-    .creator_id(local_user_view.person.id)
-    .nsfw(data.nsfw)
-    .language_id(language_id)
-    .scheduled_publish_time(scheduled_publish_time)
-    .build();
+  let post_form = PostInsertForm {
+    url: url.map(Into::into),
+    body,
+    alt_text: data.alt_text.clone(),
+    nsfw: data.nsfw,
+    language_id,
+    scheduled_publish_time,
+    ..PostInsertForm::new(
+      data.name.trim().to_string(),
+      local_user_view.person.id,
+      data.community_id,
+    )
+  };
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)
     .await

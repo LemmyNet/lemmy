@@ -1,6 +1,5 @@
 use crate::{
   aggregates::structs::CommentAggregates,
-  diesel::OptionalExtension,
   newtypes::CommentId,
   schema::comment_aggregates,
   utils::{functions::hot_rank, get_conn, DbPool},
@@ -9,13 +8,9 @@ use diesel::{result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl CommentAggregates {
-  pub async fn read(pool: &mut DbPool<'_>, comment_id: CommentId) -> Result<Option<Self>, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, comment_id: CommentId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    comment_aggregates::table
-      .find(comment_id)
-      .first(conn)
-      .await
-      .optional()
+    comment_aggregates::table.find(comment_id).first(conn).await
   }
 
   pub async fn update_hot_rank(
@@ -72,37 +67,33 @@ mod tests {
 
     let another_inserted_person = Person::create(pool, &another_person).await.unwrap();
 
-    let new_community = CommunityInsertForm::builder()
-      .name("TIL_comment_agg".into())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "TIL_comment_agg".into(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post".into())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
-    let comment_form = CommentInsertForm::builder()
-      .content("A test comment".into())
-      .creator_id(inserted_person.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
     let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
 
-    let child_comment_form = CommentInsertForm::builder()
-      .content("A test comment".into())
-      .creator_id(inserted_person.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let child_comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
     let _inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path))
         .await
@@ -119,7 +110,6 @@ mod tests {
 
     let comment_aggs_before_delete = CommentAggregates::read(pool, inserted_comment.id)
       .await
-      .unwrap()
       .unwrap();
 
     assert_eq!(1, comment_aggs_before_delete.score);
@@ -138,7 +128,6 @@ mod tests {
 
     let comment_aggs_after_dislike = CommentAggregates::read(pool, inserted_comment.id)
       .await
-      .unwrap()
       .unwrap();
 
     assert_eq!(0, comment_aggs_after_dislike.score);
@@ -151,7 +140,6 @@ mod tests {
       .unwrap();
     let after_like_remove = CommentAggregates::read(pool, inserted_comment.id)
       .await
-      .unwrap()
       .unwrap();
     assert_eq!(-1, after_like_remove.score);
     assert_eq!(0, after_like_remove.upvotes);
@@ -161,10 +149,8 @@ mod tests {
     Post::delete(pool, inserted_post.id).await.unwrap();
 
     // Should be none found, since the post was deleted
-    let after_delete = CommentAggregates::read(pool, inserted_comment.id)
-      .await
-      .unwrap();
-    assert!(after_delete.is_none());
+    let after_delete = CommentAggregates::read(pool, inserted_comment.id).await;
+    assert!(after_delete.is_err());
 
     // This should delete all the associated rows, and fire triggers
     Person::delete(pool, another_inserted_person.id)

@@ -446,14 +446,11 @@ mod tests {
       .await
       .unwrap();
 
-    let site_form = SiteInsertForm::builder()
-      .name("test site".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
     let site = Site::create(pool, &site_form).await.unwrap();
 
     // Create a local site, since this is necessary for local languages
-    let local_site_form = LocalSiteInsertForm::builder().site_id(site.id).build();
+    let local_site_form = LocalSiteInsertForm::new(site.id);
     LocalSite::create(pool, &local_site_form).await.unwrap();
 
     (site, inserted_instance)
@@ -576,12 +573,12 @@ mod tests {
     let read_local_site_langs = SiteLanguage::read_local_raw(pool).await.unwrap();
     assert_eq!(test_langs, read_local_site_langs);
 
-    let community_form = CommunityInsertForm::builder()
-      .name("test community".to_string())
-      .title("test community".to_string())
-      .public_key("pubkey".to_string())
-      .instance_id(instance.id)
-      .build();
+    let community_form = CommunityInsertForm::new(
+      instance.id,
+      "test community".to_string(),
+      "test community".to_string(),
+      "pubkey".to_string(),
+    );
     let community = Community::create(pool, &community_form).await.unwrap();
     let community_langs1 = CommunityLanguage::read(pool, community.id).await.unwrap();
 
@@ -629,12 +626,12 @@ mod tests {
     let test_langs = test_langs1(pool).await;
     let test_langs2 = test_langs2(pool).await;
 
-    let community_form = CommunityInsertForm::builder()
-      .name("test community".to_string())
-      .title("test community".to_string())
-      .public_key("pubkey".to_string())
-      .instance_id(instance.id)
-      .build();
+    let community_form = CommunityInsertForm::new(
+      instance.id,
+      "test community".to_string(),
+      "test community".to_string(),
+      "pubkey".to_string(),
+    );
     let community = Community::create(pool, &community_form).await.unwrap();
     CommunityLanguage::update(pool, test_langs, community.id)
       .await

@@ -125,12 +125,12 @@ test("Create a post", async () => {
   // Delta only follows beta, so it should not see an alpha ap_id
   await expect(
     resolvePost(delta, postRes.post_view.post),
-  ).rejects.toStrictEqual(Error("couldnt_find_object"));
+  ).rejects.toStrictEqual(Error("not_found"));
 
   // Epsilon has alpha blocked, it should not see the alpha post
   await expect(
     resolvePost(epsilon, postRes.post_view.post),
-  ).rejects.toStrictEqual(Error("couldnt_find_object"));
+  ).rejects.toStrictEqual(Error("not_found"));
 
   // remove added allow/blocklists
   editSiteForm.allowed_instances = [];
@@ -140,9 +140,7 @@ test("Create a post", async () => {
 });
 
 test("Create a post in a non-existent community", async () => {
-  await expect(createPost(alpha, -2)).rejects.toStrictEqual(
-    Error("couldnt_find_community"),
-  );
+  await expect(createPost(alpha, -2)).rejects.toStrictEqual(Error("not_found"));
 });
 
 test("Unlike a post", async () => {
@@ -502,9 +500,16 @@ test("Enforce site ban federation for local user", async () => {
     alpha,
     alphaPerson.person.id,
     false,
-    false,
+    true,
   );
   expect(unBanAlpha.banned).toBe(false);
+
+  // existing alpha post should be restored on beta
+  betaBanRes = await waitUntil(
+    () => getPost(beta, searchBeta1.post.id),
+    s => !s.post_view.post.removed,
+  );
+  expect(betaBanRes.post_view.post.removed).toBe(false);
 
   // Login gets invalidated by ban, need to login again
   if (!alphaUserPerson) {
@@ -623,7 +628,7 @@ test("Enforce community ban for federated user", async () => {
   // Alpha tries to make post on beta, but it fails because of ban
   await expect(
     createPost(alpha, betaCommunity.community.id),
-  ).rejects.toStrictEqual(Error("banned_from_community"));
+  ).rejects.toStrictEqual(Error("person_is_banned_from_community"));
 
   // Unban alpha
   let unBanAlpha = await banPersonFromCommunity(

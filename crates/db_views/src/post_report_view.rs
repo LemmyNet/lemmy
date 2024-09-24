@@ -220,7 +220,7 @@ impl PostReportView {
     pool: &mut DbPool<'_>,
     report_id: PostReportId,
     my_person_id: PersonId,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries().read(pool, (report_id, my_person_id)).await
   }
 
@@ -343,13 +343,12 @@ mod tests {
 
     let inserted_jessica = Person::create(pool, &new_person_3).await.unwrap();
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community prv".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community prv".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
     // Make timmy a mod
@@ -362,12 +361,11 @@ mod tests {
       .await
       .unwrap();
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post crv".into())
-      .creator_id(inserted_timmy.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post crv".into(),
+      inserted_timmy.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
     // sara reports
@@ -382,12 +380,11 @@ mod tests {
 
     PostReport::report(pool, &sara_report_form).await.unwrap();
 
-    let new_post_2 = PostInsertForm::builder()
-      .name("A test post crv 2".into())
-      .creator_id(inserted_timmy.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post_2 = PostInsertForm::new(
+      "A test post crv 2".into(),
+      inserted_timmy.id,
+      inserted_community.id,
+    );
     let inserted_post_2 = Post::create(pool, &new_post_2).await.unwrap();
 
     // jessica reports
@@ -407,7 +404,6 @@ mod tests {
     let read_jessica_report_view =
       PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
         .await
-        .unwrap()
         .unwrap();
 
     assert_eq!(
@@ -445,7 +441,6 @@ mod tests {
     let read_jessica_report_view_after_resolve =
       PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
         .await
-        .unwrap()
         .unwrap();
     assert!(read_jessica_report_view_after_resolve.post_report.resolved);
     assert_eq!(

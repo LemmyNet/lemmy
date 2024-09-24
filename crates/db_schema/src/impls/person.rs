@@ -29,14 +29,13 @@ impl Crud for Person {
   type IdType = PersonId;
 
   // Override this, so that you don't get back deleted
-  async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Option<Self>, Error> {
+  async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     person::table
       .filter(person::deleted.eq(false))
       .find(person_id)
       .first(conn)
       .await
-      .optional()
   }
 
   async fn create(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
@@ -120,6 +119,18 @@ impl Person {
       )
       .load::<CommunityId>(conn)
       .await
+  }
+
+  pub async fn is_username_taken(pool: &mut DbPool<'_>, username: &str) -> Result<bool, Error> {
+    use diesel::dsl::{exists, select};
+    let conn = &mut get_conn(pool).await?;
+    select(exists(
+      person::table
+        .filter(lower(person::name).eq(username.to_lowercase()))
+        .filter(person::local.eq(true)),
+    ))
+    .get_result(conn)
+    .await
   }
 }
 
@@ -232,7 +243,7 @@ mod tests {
     traits::{Crud, Followable},
     utils::build_db_pool_for_tests,
   };
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -272,9 +283,7 @@ mod tests {
       instance_id: inserted_instance.id,
     };
 
-    let read_person = Person::read(pool, inserted_person.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    let read_person = Person::read(pool, inserted_person.id).await?;
 
     let update_person_form = PersonUpdateForm {
       actor_id: Some(inserted_person.actor_id.clone()),

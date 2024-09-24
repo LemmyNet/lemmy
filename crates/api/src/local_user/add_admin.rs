@@ -36,8 +36,8 @@ pub async fn add_admin(
 
   // Make sure that the person_id added is local
   let added_local_user = LocalUserView::read_person(&mut context.pool(), data.person_id)
-    .await?
-    .ok_or(LemmyErrorType::ObjectNotLocal)?;
+    .await
+    .map_err(|_| LemmyErrorType::ObjectNotLocal)?;
 
   LocalUser::update(
     &mut context.pool(),

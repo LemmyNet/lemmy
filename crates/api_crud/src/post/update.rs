@@ -87,9 +87,7 @@ pub async fn update_post(
   }
 
   let post_id = data.post_id;
-  let orig_post = Post::read(&mut context.pool(), post_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+  let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -151,8 +149,7 @@ pub async fn update_post(
     // schedule was removed, send create activity and webmention
     (Some(_), None) => {
       let community = Community::read(&mut context.pool(), orig_post.community_id)
-        .await?
-        .ok_or(LemmyErrorType::CouldntFindPost)?;
+        .await?;
       send_webmention(updated_post.clone(), community);
       generate_post_link_metadata(
         updated_post.clone(),

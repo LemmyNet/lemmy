@@ -9,26 +9,29 @@ use crate::{
   utils::{get_conn, DbPool},
 };
 use diesel::{
-  dsl::{exists, insert_into},
+  dsl::{exists, insert_into, not},
   result::Error,
   select,
   ExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 impl CommunityBlock {
   pub async fn read(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
     for_community_id: CommunityId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(
+    select(not(exists(
       community_block::table.find((for_person_id, for_community_id)),
-    ))
-    .get_result(conn)
-    .await
+    )))
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::CommunityIsBlocked.into())
   }
 
   pub async fn for_person(

@@ -26,8 +26,7 @@ pub async fn delete_comment(
     comment_id,
     Some(&local_user_view.local_user),
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindComment)?;
+  .await?;
 
   // Dont delete it if its already been deleted.
   if orig_comment.comment.deleted == data.deleted {

@@ -63,9 +63,7 @@ pub async fn save_user_settings(
     let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();
     // if email was changed, check that it is not taken and send verification mail
     if previous_email.deref() != email {
-      if LocalUser::is_email_taken(&mut context.pool(), email).await? {
-        return Err(LemmyErrorType::EmailAlreadyExists)?;
-      }
+      LocalUser::check_is_email_taken(&mut context.pool(), email).await?;
       send_verification_email(
         &local_user_view,
         email,
@@ -102,7 +100,8 @@ pub async fn save_user_settings(
   let local_user_id = local_user_view.local_user.id;
   let person_id = local_user_view.person.id;
   let default_listing_type = data.default_listing_type;
-  let default_sort_type = data.default_sort_type;
+  let default_post_sort_type = data.default_post_sort_type;
+  let default_comment_sort_type = data.default_comment_sort_type;
 
   let person_form = PersonUpdateForm {
     display_name,
@@ -133,7 +132,8 @@ pub async fn save_user_settings(
     blur_nsfw: data.blur_nsfw,
     auto_expand: data.auto_expand,
     show_bot_accounts: data.show_bot_accounts,
-    default_sort_type,
+    default_post_sort_type,
+    default_comment_sort_type,
     default_listing_type,
     theme: data.theme.clone(),
     interface_language: data.interface_language.clone(),

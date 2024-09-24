@@ -35,9 +35,7 @@ pub async fn create_post_report(
 
   let person_id = local_user_view.person.id;
   let post_id = data.post_id;
-  let post_view = PostView::read(&mut context.pool(), post_id, None, false)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+  let post_view = PostView::read(&mut context.pool(), post_id, None, false).await?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -61,9 +59,7 @@ pub async fn create_post_report(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
 
-  let post_report_view = PostReportView::read(&mut context.pool(), report.id, person_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPostReport)?;
+  let post_report_view = PostReportView::read(&mut context.pool(), report.id, person_id).await?;
 
   // Email the admins
   if local_site.reports_email_admins {

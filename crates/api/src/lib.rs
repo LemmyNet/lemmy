@@ -172,7 +172,7 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
   target: &Person,
   ban: bool,
   reason: &Option<String>,
-  remove_data: &Option<bool>,
+  remove_or_restore_data: &Option<bool>,
   expires: &Option<i64>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
@@ -230,7 +230,7 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
         person_id: target.id,
         ban,
         reason: reason.clone(),
-        remove_data: *remove_data,
+        remove_or_restore_data: *remove_or_restore_data,
         expires: *expires,
       };
 
@@ -258,9 +258,7 @@ pub async fn local_user_view_from_jwt(
   let local_user_id = Claims::validate(jwt, context)
     .await
     .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
-  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
+  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
   check_user_valid(&local_user_view.person)?;
 
   Ok(local_user_view)

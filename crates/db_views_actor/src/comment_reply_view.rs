@@ -242,7 +242,7 @@ impl CommentReplyView {
     pool: &mut DbPool<'_>,
     comment_reply_id: CommentReplyId,
     my_person_id: Option<PersonId>,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries().read(pool, (comment_reply_id, my_person_id)).await
   }
 
@@ -322,7 +322,7 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use lemmy_db_views::structs::LocalUserView;
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -348,29 +348,23 @@ mod tests {
     let recipient_local_user =
       LocalUser::create(pool, &LocalUserInsertForm::test_form(recipient_id), vec![]).await?;
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community lake".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community lake".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await?;
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post".into())
-      .creator_id(inserted_terry.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post".into(),
+      inserted_terry.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let comment_form = CommentInsertForm::builder()
-      .content("A test comment".into())
-      .creator_id(inserted_terry.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let comment_form =
+      CommentInsertForm::new(inserted_terry.id, inserted_post.id, "A test comment".into());
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     let comment_reply_form = CommentReplyInsertForm {
@@ -389,9 +383,7 @@ mod tests {
       published: inserted_reply.published,
     };
 
-    let read_reply = CommentReply::read(pool, inserted_reply.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindComment)?;
+    let read_reply = CommentReply::read(pool, inserted_reply.id).await?;
 
     let comment_reply_update_form = CommentReplyUpdateForm { read: Some(false) };
     let updated_reply =
@@ -446,9 +438,7 @@ mod tests {
       &recipient_local_user_update_form,
     )
     .await?;
-    let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
+    let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id).await?;
 
     let unread_replies_after_hide_bots =
       CommentReplyView::get_unread_replies(pool, &recipient_local_user_view.local_user).await?;

@@ -51,10 +51,10 @@ impl Instance {
       Some(i) => Ok(i),
       None => {
         // Instance not in database yet, insert it
-        let form = InstanceForm::builder()
-          .domain(domain_)
-          .updated(Some(naive_now()))
-          .build();
+        let form = InstanceForm {
+          updated: Some(naive_now()),
+          ..InstanceForm::new(domain_)
+        };
         insert_into(instance::table)
           .values(&form)
           // Necessary because this method may be called concurrently for the same domain. This

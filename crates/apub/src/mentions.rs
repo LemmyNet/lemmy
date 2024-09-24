@@ -99,21 +99,12 @@ async fn get_comment_parent_creator(
   comment: &Comment,
 ) -> LemmyResult<ApubPerson> {
   let parent_creator_id = if let Some(parent_comment_id) = comment.parent_comment_id() {
-    let parent_comment = Comment::read(pool, parent_comment_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindComment)?;
+    let parent_comment = Comment::read(pool, parent_comment_id).await?;
     parent_comment.creator_id
   } else {
     let parent_post_id = comment.post_id;
-    let parent_post = Post::read(pool, parent_post_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPost)?;
+    let parent_post = Post::read(pool, parent_post_id).await?;
     parent_post.creator_id
   };
-  Ok(
-    Person::read(pool, parent_creator_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?
-      .into(),
-  )
+  Ok(Person::read(pool, parent_creator_id).await?.into())
 }

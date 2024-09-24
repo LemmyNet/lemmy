@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Default, Serialize, Deserialize)]
@@ -28,16 +27,18 @@ pub struct LocalUserVoteDisplayMode {
   pub upvote_percentage: bool,
 }
 
-#[derive(Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user_vote_display_mode))]
 pub struct LocalUserVoteDisplayModeInsertForm {
-  #[builder(!default)]
   pub local_user_id: LocalUserId,
+  #[new(default)]
   pub score: Option<bool>,
+  #[new(default)]
   pub upvotes: Option<bool>,
+  #[new(default)]
   pub downvotes: Option<bool>,
+  #[new(default)]
   pub upvote_percentage: Option<bool>,
 }
 
