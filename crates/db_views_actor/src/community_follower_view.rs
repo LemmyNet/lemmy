@@ -4,13 +4,14 @@ use diesel::{
   dsl::{count_star, not},
   result::Error,
   ExpressionMethods,
+  JoinOnDsl,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
-  schema::{community, community_follower, person},
-  utils::{functions::coalesce, get_conn, DbPool},
+  schema::{community, community_follower, inbox, person},
+  utils::{get_conn, DbPool},
 };
 
 impl CommunityFollowerView {
@@ -32,15 +33,13 @@ impl CommunityFollowerView {
     community_follower::table
       .inner_join(community::table)
       .inner_join(person::table)
+      .inner_join(inbox::table.on(person::inbox_id.eq(inbox::id)))
       .filter(person::instance_id.eq(instance_id))
       .filter(community::local) // this should be a no-op since community_followers table only has
       // local-person+remote-community or remote-person+local-community
       .filter(not(person::local))
       .filter(community_follower::published.gt(published_since.naive_utc()))
-      .select((
-        community::id,
-        coalesce(person::shared_inbox_url, person::inbox_url),
-      ))
+      .select((community::id, inbox::url))
       .distinct() // only need each community_id, inbox combination once
       .load::<(CommunityId, DbUrl)>(conn)
       .await
@@ -51,10 +50,11 @@ impl CommunityFollowerView {
   ) -> Result<Vec<DbUrl>, Error> {
     let conn = &mut get_conn(pool).await?;
     let res = community_follower::table
+      .inner_join(person::table)
+      .inner_join(inbox::table.on(person::inbox_id.eq(inbox::id)))
       .filter(community_follower::community_id.eq(community_id))
       .filter(not(person::local))
-      .inner_join(person::table)
-      .select(coalesce(person::shared_inbox_url, person::inbox_url))
+      .select(inbox::url)
       .distinct()
       .load::<DbUrl>(conn)
       .await?;

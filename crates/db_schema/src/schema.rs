@@ -322,6 +322,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    inbox (id) {
+        id -> Int4,
+        #[max_length = 255]
+        url -> Varchar,
+    }
+}
+
+diesel::table! {
     instance (id) {
         id -> Int4,
         #[max_length = 255]
@@ -678,14 +686,11 @@ diesel::table! {
         last_refreshed_at -> Timestamptz,
         banner -> Nullable<Text>,
         deleted -> Bool,
-        #[max_length = 255]
-        inbox_url -> Varchar,
-        #[max_length = 255]
-        shared_inbox_url -> Nullable<Varchar>,
         matrix_user_id -> Nullable<Text>,
         bot_account -> Bool,
         ban_expires -> Nullable<Timestamptz>,
         instance_id -> Int4,
+        inbox_id -> Int4,
     }
 }
 
@@ -770,7 +775,7 @@ diesel::table! {
         featured_local -> Bool,
         url_content_type -> Nullable<Text>,
         alt_text -> Nullable<Text>,
-        scheduled_publish_time -> Nullable<Timestamptz>
+        scheduled_publish_time -> Nullable<Timestamptz>,
     }
 }
 
@@ -1043,6 +1048,7 @@ diesel::joinable!(mod_transfer_community -> community (community_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));
 diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
+diesel::joinable!(person -> inbox (inbox_id));
 diesel::joinable!(person -> instance (instance_id));
 diesel::joinable!(person_aggregates -> person (person_id));
 diesel::joinable!(person_ban -> person (person_id));
@@ -1100,6 +1106,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     federation_blocklist,
     federation_queue_state,
     image_details,
+    inbox,
     instance,
     instance_block,
     language,
