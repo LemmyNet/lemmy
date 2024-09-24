@@ -85,7 +85,7 @@ pub async fn read_person(
     creator_id,
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(&local_site.site, &mut context.pool())
   .await?;
 
   let moderates = CommunityModeratorView::for_person(

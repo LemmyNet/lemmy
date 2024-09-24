@@ -127,7 +127,9 @@ pub async fn search(
         .await?;
     }
     SearchType::Comments => {
-      comments = comment_query.list(&mut context.pool()).await?;
+      comments = comment_query
+        .list(&local_site.site, &mut context.pool())
+        .await?;
     }
     SearchType::Communities => {
       communities = community_query
@@ -146,7 +148,9 @@ pub async fn search(
         .list(&local_site.site, &mut context.pool())
         .await?;
 
-      comments = comment_query.list(&mut context.pool()).await?;
+      comments = comment_query
+        .list(&local_site.site, &mut context.pool())
+        .await?;
 
       communities = if community_or_creator_included {
         vec![]
