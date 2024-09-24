@@ -1,5 +1,4 @@
 use crate::{
-  activity_lists::GroupInboxActivities,
   collections::{
     community_featured::ApubCommunityFeatured,
     community_follower::ApubCommunityFollower,
@@ -7,15 +6,13 @@ use crate::{
     community_outbox::ApubCommunityOutbox,
   },
   http::{check_community_public, create_apub_response, create_apub_tombstone_response},
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::community::ApubCommunity,
 };
 use activitypub_federation::{
-  actix_web::inbox::receive_activity,
   config::Data,
-  protocol::context::WithContext,
   traits::{Collection, Object},
 };
-use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
+use actix_web::{web, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_utils::{error::LemmyResult, LemmyErrorType};
@@ -45,19 +42,6 @@ pub(crate) async fn get_apub_community_http(
 
   let apub = community.into_json(&context).await?;
   create_apub_response(&apub)
-}
-
-/// Handler for all incoming receive to community inboxes.
-#[tracing::instrument(skip_all)]
-pub async fn community_inbox(
-  request: HttpRequest,
-  body: Bytes,
-  data: Data<LemmyContext>,
-) -> LemmyResult<HttpResponse> {
-  receive_activity::<WithContext<GroupInboxActivities>, ApubPerson, LemmyContext>(
-    request, body, &data,
-  )
-  .await
 }
 
 /// Returns an empty followers collection, only populating the size (for privacy).
