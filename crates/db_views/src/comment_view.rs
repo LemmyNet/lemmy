@@ -422,8 +422,8 @@ impl<'a> CommentQuery<'a> {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{

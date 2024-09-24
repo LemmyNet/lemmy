@@ -61,8 +61,7 @@ pub(crate) fn slurs_vec_to_str(slurs: &[&str]) -> String {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod test {
 
   use crate::utils::slurs::{remove_slurs, slur_check, slurs_vec_to_str};

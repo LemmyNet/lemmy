@@ -120,8 +120,7 @@ pub(crate) async fn get_apub_community_featured(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 pub(crate) mod tests {
 
   use super::*;
