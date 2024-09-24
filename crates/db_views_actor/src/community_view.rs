@@ -26,6 +26,7 @@ use lemmy_db_schema::{
   ListingType,
   PostSortType,
 };
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommunityView, (CommunityId, Option<&'a LocalUser>, bool)>,
@@ -185,35 +186,39 @@ impl CommunityView {
       .await
   }
 
-  pub async fn is_mod_or_admin(
+  pub async fn check_is_mod_or_admin(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     community_id: CommunityId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let is_mod =
-      CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await?;
-    if is_mod {
-      Ok(true)
-    } else if let Ok(person_view) = PersonView::read(pool, person_id).await {
-      Ok(person_view.is_admin)
+      CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id).await;
+    if is_mod.is_ok()
+      || PersonView::read(pool, person_id)
+        .await
+        .is_ok_and(|t| t.is_admin)
+    {
+      Ok(())
     } else {
-      Ok(false)
+      Err(LemmyErrorType::NotAModOrAdmin)?
     }
   }
 
   /// Checks if a person is an admin, or moderator of any community.
-  pub async fn is_mod_of_any_or_admin(
+  pub async fn check_is_mod_of_any_or_admin(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let is_mod_of_any =
-      CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await?;
-    if is_mod_of_any {
-      Ok(true)
-    } else if let Ok(person_view) = PersonView::read(pool, person_id).await {
-      Ok(person_view.is_admin)
+      CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await;
+    if is_mod_of_any.is_ok()
+      || PersonView::read(pool, person_id)
+        .await
+        .is_ok_and(|t| t.is_admin)
+    {
+      Ok(())
     } else {
-      Ok(false)
+      Err(LemmyErrorType::NotAModOrAdmin)?
     }
   }
 }

@@ -13,6 +13,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 impl CaptchaAnswer {
   pub async fn insert(pool: &mut DbPool<'_>, captcha: &CaptchaAnswerForm) -> Result<Self, Error> {
@@ -27,7 +28,7 @@ impl CaptchaAnswer {
   pub async fn check_captcha(
     pool: &mut DbPool<'_>,
     to_check: CheckCaptchaAnswer,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
 
     // fetch requested captcha
@@ -43,7 +44,9 @@ impl CaptchaAnswer {
       .execute(conn)
       .await?;
 
-    Ok(captcha_exists)
+    captcha_exists
+      .then_some(())
+      .ok_or(LemmyErrorType::CaptchaIncorrect.into())
   }
 }
 
@@ -83,7 +86,6 @@ mod tests {
     .await;
 
     assert!(result.is_ok());
-    assert!(result.unwrap());
   }
 
   #[tokio::test]
@@ -119,7 +121,6 @@ mod tests {
     )
     .await;
 
-    assert!(result_repeat.is_ok());
-    assert!(!result_repeat.unwrap());
+    assert!(result_repeat.is_err());
   }
 }
