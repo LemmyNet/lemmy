@@ -34,8 +34,7 @@ pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::indexing_slicing)]
 mod test {
 
   use crate::utils::mention::scrape_text_for_mentions;

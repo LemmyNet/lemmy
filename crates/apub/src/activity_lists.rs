@@ -123,7 +123,6 @@ impl InCommunity for AnnouncableActivities {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{

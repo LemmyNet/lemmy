@@ -34,7 +34,7 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{error::LemmyResult, LemmyErrorType, CACHE_DURATION_API};
 use serial_test::serial;
 
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used)]
 async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(Instance, LocalUserView)> {
   let pool = &mut context.pool();
 
@@ -109,7 +109,7 @@ async fn signup(
   Ok((local_user, application))
 }
 
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used)]
 async fn get_application_statuses(
   context: &Data<LemmyContext>,
   admin: LocalUserView,
@@ -138,10 +138,9 @@ async fn get_application_statuses(
   Ok((application_count, unread_applications, all_applications))
 }
 
-#[allow(clippy::indexing_slicing)]
-#[allow(clippy::unwrap_used)]
-#[tokio::test]
 #[serial]
+#[tokio::test]
+#[expect(clippy::indexing_slicing)]
 async fn test_application_approval() -> LemmyResult<()> {
   let context = LemmyContext::init_test_context().await;
   let pool = &mut context.pool();

@@ -369,7 +369,6 @@ pub struct UserBackupLists {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
   use crate::{
     source::{
