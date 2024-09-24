@@ -21,6 +21,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 #[async_trait]
 impl Crud for Person {
@@ -29,14 +30,13 @@ impl Crud for Person {
   type IdType = PersonId;
 
   // Override this, so that you don't get back deleted
-  async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Option<Self>, Error> {
+  async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     person::table
       .filter(person::deleted.eq(false))
       .find(person_id)
       .first(conn)
       .await
-      .optional()
   }
 
   async fn create(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
@@ -122,16 +122,18 @@ impl Person {
       .await
   }
 
-  pub async fn is_username_taken(pool: &mut DbPool<'_>, username: &str) -> Result<bool, Error> {
+  pub async fn check_username_taken(pool: &mut DbPool<'_>, username: &str) -> LemmyResult<()> {
     use diesel::dsl::{exists, select};
     let conn = &mut get_conn(pool).await?;
-    select(exists(
+    select(not(exists(
       person::table
         .filter(lower(person::name).eq(username.to_lowercase()))
         .filter(person::local.eq(true)),
-    ))
-    .get_result(conn)
-    .await
+    )))
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::UsernameAlreadyExists.into())
   }
 }
 
@@ -233,7 +235,6 @@ impl PersonFollower {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{
@@ -244,7 +245,7 @@ mod tests {
     traits::{Crud, Followable},
     utils::build_db_pool_for_tests,
   };
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -284,9 +285,7 @@ mod tests {
       instance_id: inserted_instance.id,
     };
 
-    let read_person = Person::read(pool, inserted_person.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    let read_person = Person::read(pool, inserted_person.id).await?;
 
     let update_person_form = PersonUpdateForm {
       actor_id: Some(inserted_person.actor_id.clone()),

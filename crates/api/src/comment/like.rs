@@ -40,8 +40,7 @@ pub async fn like_comment(
     comment_id,
     Some(&local_user_view.local_user),
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindComment)?;
+  .await?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -54,8 +53,7 @@ pub async fn like_comment(
   let comment_reply = CommentReply::read_by_comment(&mut context.pool(), comment_id).await;
   if let Ok(Some(reply)) = comment_reply {
     let recipient_id = reply.recipient_id;
-    if let Ok(Some(local_recipient)) =
-      LocalUserView::read_person(&mut context.pool(), recipient_id).await
+    if let Ok(local_recipient) = LocalUserView::read_person(&mut context.pool(), recipient_id).await
     {
       recipient_ids.push(local_recipient.local_user.id);
     }

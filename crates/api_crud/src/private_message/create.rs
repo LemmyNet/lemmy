@@ -5,7 +5,6 @@ use lemmy_api_common::{
   private_message::{CreatePrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_person_block,
     get_interface_language,
     get_url_blocklist,
     local_site_to_slur_regex,
@@ -16,6 +15,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     local_site::LocalSite,
+    person_block::PersonBlock,
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
   traits::Crud,
@@ -39,10 +39,10 @@ pub async fn create_private_message(
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&content, false)?;
 
-  check_person_block(
-    local_user_view.person.id,
-    data.recipient_id,
+  PersonBlock::read(
     &mut context.pool(),
+    data.recipient_id,
+    local_user_view.person.id,
   )
   .await?;
 
@@ -56,16 +56,12 @@ pub async fn create_private_message(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePrivateMessage)?;
 
-  let view = PrivateMessageView::read(&mut context.pool(), inserted_private_message.id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPrivateMessage)?;
+  let view = PrivateMessageView::read(&mut context.pool(), inserted_private_message.id).await?;
 
   // Send email to the local recipient, if one exists
   if view.recipient.local {
     let recipient_id = data.recipient_id;
-    let local_recipient = LocalUserView::read_person(&mut context.pool(), recipient_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    let local_recipient = LocalUserView::read_person(&mut context.pool(), recipient_id).await?;
     let lang = get_interface_language(&local_recipient);
     let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
     let sender_name = &local_user_view.person.name;

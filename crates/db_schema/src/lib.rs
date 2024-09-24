@@ -27,7 +27,6 @@ pub mod newtypes;
 pub mod sensitive;
 #[cfg(feature = "full")]
 #[rustfmt::skip]
-#[allow(clippy::wildcard_imports)]
 pub mod schema;
 #[cfg(feature = "full")]
 pub mod aliases {
@@ -182,7 +181,6 @@ pub enum SearchType {
   Posts,
   Communities,
   Users,
-  Url,
 }
 
 #[derive(EnumString, Display, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, Hash)]

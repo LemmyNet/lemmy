@@ -78,7 +78,7 @@ impl PrivateMessageReportView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     report_id: PrivateMessageReportId,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries().read(pool, report_id).await
   }
 
@@ -111,8 +111,8 @@ impl PrivateMessageReportQuery {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
+#[expect(clippy::indexing_slicing)]
 mod tests {
 
   use crate::private_message_report_view::PrivateMessageReportQuery;

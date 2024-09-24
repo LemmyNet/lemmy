@@ -351,7 +351,6 @@ pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{

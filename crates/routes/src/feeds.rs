@@ -260,7 +260,7 @@ async fn get_feed_user(
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let person = Person::read_from_name(&mut context.pool(), user_name, false)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    .ok_or(LemmyErrorType::NotFound)?;
 
   check_private_instance(&None, &site_view.local_site)?;
 
@@ -298,9 +298,9 @@ async fn get_feed_community(
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let community = Community::read_from_name(&mut context.pool(), community_name, false)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+    .ok_or(LemmyErrorType::NotFound)?;
   if community.visibility != CommunityVisibility::Public {
-    return Err(LemmyErrorType::CouldntFindCommunity.into());
+    return Err(LemmyErrorType::NotFound.into());
   }
 
   check_private_instance(&None, &site_view.local_site)?;

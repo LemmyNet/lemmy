@@ -17,7 +17,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityModerator, CommunityUpdateForm},
     community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
-    images::RemoteImage,
+    images::{ImageDetails, RemoteImage},
     instance::Instance,
     instance_block::InstanceBlock,
     local_site::LocalSite,
@@ -73,13 +73,7 @@ pub async fn is_mod_or_admin(
   community_id: CommunityId,
 ) -> LemmyResult<()> {
   check_user_valid(person)?;
-
-  let is_mod_or_admin = CommunityView::is_mod_or_admin(pool, person.id, community_id).await?;
-  if !is_mod_or_admin {
-    Err(LemmyErrorType::NotAModOrAdmin)?
-  } else {
-    Ok(())
-  }
+  CommunityView::check_is_mod_or_admin(pool, person.id, community_id).await
 }
 
 #[tracing::instrument(skip_all)]
@@ -110,13 +104,7 @@ pub async fn check_community_mod_of_any_or_admin_action(
   let person = &local_user_view.person;
 
   check_user_valid(person)?;
-
-  let is_mod_of_any_or_admin = CommunityView::is_mod_of_any_or_admin(pool, person.id).await?;
-  if !is_mod_of_any_or_admin {
-    Err(LemmyErrorType::NotAModOrAdmin)?
-  } else {
-    Ok(())
-  }
+  CommunityView::check_is_mod_of_any_or_admin(pool, person.id).await
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
@@ -175,9 +163,7 @@ pub async fn update_read_comments(
     ..PersonPostAggregatesForm::default()
   };
 
-  PersonPostAggregates::upsert(pool, &person_post_agg_form)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntFindPost)?;
+  PersonPostAggregates::upsert(pool, &person_post_agg_form).await?;
 
   Ok(())
 }
@@ -223,9 +209,7 @@ pub async fn check_registration_application(
     // Fetch the registration application. If no admin id is present its still pending. Otherwise it
     // was processed (either accepted or denied).
     let local_user_id = local_user_view.local_user.id;
-    let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindRegistrationApplication)?;
+    let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id).await?;
     if registration.admin_id.is_some() {
       Err(LemmyErrorType::RegistrationDenied(registration.deny_reason))?
     } else {
@@ -246,7 +230,7 @@ pub async fn check_community_user_action(
 ) -> LemmyResult<()> {
   check_user_valid(person)?;
   check_community_deleted_removed(community_id, pool).await?;
-  check_community_ban(person, community_id, pool).await?;
+  CommunityPersonBanView::check(pool, person.id, community_id).await?;
   Ok(())
 }
 
@@ -254,24 +238,9 @@ async fn check_community_deleted_removed(
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let community = Community::read(pool, community_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  let community = Community::read(pool, community_id).await?;
   if community.deleted || community.removed {
     Err(LemmyErrorType::Deleted)?
-  }
-  Ok(())
-}
-
-async fn check_community_ban(
-  person: &Person,
-  community_id: CommunityId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  // check if user was banned from site or community
-  let is_banned = CommunityPersonBanView::get(pool, person.id, community_id).await?;
-  if is_banned {
-    Err(LemmyErrorType::BannedFromCommunity)?
   }
   Ok(())
 }
@@ -287,7 +256,7 @@ pub async fn check_community_mod_action(
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   is_mod_or_admin(pool, person, community_id).await?;
-  check_community_ban(person, community_id, pool).await?;
+  CommunityPersonBanView::check(pool, person.id, community_id).await?;
 
   // it must be possible to restore deleted community
   if !allow_deleted {
@@ -313,51 +282,6 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   }
 }
 
-/// Throws an error if a recipient has blocked a person.
-#[tracing::instrument(skip_all)]
-pub async fn check_person_block(
-  my_id: PersonId,
-  potential_blocker_id: PersonId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id).await?;
-  if is_blocked {
-    Err(LemmyErrorType::PersonIsBlocked)?
-  } else {
-    Ok(())
-  }
-}
-
-/// Throws an error if a recipient has blocked a community.
-#[tracing::instrument(skip_all)]
-async fn check_community_block(
-  community_id: CommunityId,
-  person_id: PersonId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  let is_blocked = CommunityBlock::read(pool, person_id, community_id).await?;
-  if is_blocked {
-    Err(LemmyErrorType::CommunityIsBlocked)?
-  } else {
-    Ok(())
-  }
-}
-
-/// Throws an error if a recipient has blocked an instance.
-#[tracing::instrument(skip_all)]
-async fn check_instance_block(
-  instance_id: InstanceId,
-  person_id: PersonId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  let is_blocked = InstanceBlock::read(pool, person_id, instance_id).await?;
-  if is_blocked {
-    Err(LemmyErrorType::InstanceIsBlocked)?
-  } else {
-    Ok(())
-  }
-}
-
 #[tracing::instrument(skip_all)]
 pub async fn check_person_instance_community_block(
   my_id: PersonId,
@@ -366,9 +290,9 @@ pub async fn check_person_instance_community_block(
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  check_person_block(my_id, potential_blocker_id, pool).await?;
-  check_instance_block(community_instance_id, potential_blocker_id, pool).await?;
-  check_community_block(community_id, potential_blocker_id, pool).await?;
+  PersonBlock::read(pool, potential_blocker_id, my_id).await?;
+  InstanceBlock::read(pool, potential_blocker_id, community_instance_id).await?;
+  CommunityBlock::read(pool, potential_blocker_id, community_id).await?;
   Ok(())
 }
 
@@ -704,7 +628,7 @@ pub async fn purge_image_posts_for_person(
 
 /// Delete a local_user's images
 async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
-  if let Ok(Some(local_user)) = LocalUserView::read_person(&mut context.pool(), person_id).await {
+  if let Ok(local_user) = LocalUserView::read_person(&mut context.pool(), person_id).await {
     let pictrs_uploads =
       LocalImageView::get_all_by_local_user_id(&mut context.pool(), local_user.local_user.id)
         .await?;
@@ -749,9 +673,7 @@ pub async fn remove_user_data(
 ) -> LemmyResult<()> {
   let pool = &mut context.pool();
   // Purge user images
-  let person = Person::read(pool, banned_person_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?;
+  let person = Person::read(pool, banned_person_id).await?;
   if let Some(avatar) = person.avatar {
     purge_image_from_pictrs(&avatar, context).await.ok();
   }
@@ -854,12 +776,13 @@ pub async fn remove_or_restore_user_data_in_community(
 
   // Comments
   // TODO Diesel doesn't allow updates with joins, so this has to be a loop
+  let site = Site::read_local(pool).await?;
   let comments = CommentQuery {
     creator_id: Some(banned_person_id),
     community_id: Some(community_id),
     ..Default::default()
   }
-  .list(pool)
+  .list(&site, pool)
   .await?;
 
   for comment_view in &comments {
@@ -881,9 +804,7 @@ pub async fn remove_or_restore_user_data_in_community(
 pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> LemmyResult<()> {
   let pool = &mut context.pool();
 
-  let person = Person::read(pool, person_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?;
+  let person = Person::read(pool, person_id).await?;
 
   // Delete their local images, if they're a local user
   delete_local_user_images(person_id, context).await.ok();
@@ -913,7 +834,7 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
   CommunityModerator::leave_all_communities(pool, person_id).await?;
 
   // Delete the oauth accounts linked to the local user
-  if let Ok(Some(local_user)) = LocalUserView::read_person(pool, person_id).await {
+  if let Ok(local_user) = LocalUserView::read_person(pool, person_id).await {
     OAuthAccount::delete_user_accounts(pool, local_user.local_user.id).await?;
   }
 
@@ -999,6 +920,18 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
   }
 }
 
+#[tracing::instrument(skip_all)]
+pub fn check_conflicting_like_filters(
+  liked_only: Option<bool>,
+  disliked_only: Option<bool>,
+) -> LemmyResult<()> {
+  if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
+    Err(LemmyErrorType::ContradictingFilters)?
+  } else {
+    Ok(())
+  }
+}
+
 pub async fn process_markdown(
   text: &str,
   slur_regex: &Option<Regex>,
@@ -1012,6 +945,7 @@ pub async fn process_markdown(
 
   if context.settings().pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
+    RemoteImage::create(&mut context.pool(), links.clone()).await?;
 
     // Create images and image detail rows
     for link in links {
@@ -1021,7 +955,7 @@ pub async fn process_markdown(
         let proxied =
           build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
         let details_form = details.build_image_details_form(&proxied);
-        RemoteImage::create(&mut context.pool(), &details_form).await?;
+        ImageDetails::create(&mut context.pool(), &details_form).await?;
       }
     }
     Ok(text)
@@ -1057,13 +991,15 @@ async fn proxy_image_link_internal(
   if link.domain() == Some(&context.settings().hostname) {
     Ok(link.into())
   } else if image_mode == PictrsImageMode::ProxyAllImages {
+    RemoteImage::create(&mut context.pool(), vec![link.clone()]).await?;
+
     let proxied = build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
     // This should fail softly, since pictrs might not even be running
     let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
 
     if let Ok(details) = details_res {
       let details_form = details.build_image_details_form(&proxied);
-      RemoteImage::create(&mut context.pool(), &details_form).await?;
+      ImageDetails::create(&mut context.pool(), &details_form).await?;
     };
 
     Ok(proxied.into())
@@ -1131,8 +1067,7 @@ fn build_proxied_image_url(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::*;
@@ -1209,7 +1144,7 @@ mod tests {
     assert!(
       RemoteImage::validate(&mut context.pool(), remote_image.into())
         .await
-        .is_err()
+        .is_ok()
     );
   }
 }

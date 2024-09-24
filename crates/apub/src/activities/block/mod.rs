@@ -22,10 +22,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  LemmyErrorType,
-};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Deserialize;
 use url::Url;
 
@@ -182,7 +179,6 @@ pub(crate) async fn send_ban_from_community(
 ) -> LemmyResult<()> {
   let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?
     .into();
   let expires = check_expire_time(data.expires)?;
 

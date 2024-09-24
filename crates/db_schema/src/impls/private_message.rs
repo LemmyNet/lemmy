@@ -85,8 +85,7 @@ impl PrivateMessage {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{
@@ -150,7 +149,6 @@ mod tests {
 
     let read_private_message = PrivateMessage::read(pool, inserted_private_message.id)
       .await
-      .unwrap()
       .unwrap();
 
     let private_message_update_form = PrivateMessageUpdateForm {

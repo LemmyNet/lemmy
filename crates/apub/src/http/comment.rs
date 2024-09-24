@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   source::{comment::Comment, community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::LemmyResult;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -31,16 +31,9 @@ pub(crate) async fn get_apub_comment(
 ) -> LemmyResult<HttpResponse> {
   let id = CommentId(info.comment_id.parse::<i32>()?);
   // Can't use CommentView here because it excludes deleted/removed/local-only items
-  let comment: ApubComment = Comment::read(&mut context.pool(), id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?
-    .into();
-  let post = Post::read(&mut context.pool(), comment.post_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
-  let community = Community::read(&mut context.pool(), post.community_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  let comment: ApubComment = Comment::read(&mut context.pool(), id).await?.into();
+  let post = Post::read(&mut context.pool(), comment.post_id).await?;
+  let community = Community::read(&mut context.pool(), post.community_id).await?;
   check_community_public(&community)?;
 
   if !comment.local {

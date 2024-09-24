@@ -461,7 +461,6 @@ diesel::table! {
         totp_2fa_secret -> Nullable<Text>,
         open_links_in_new_tab -> Bool,
         blur_nsfw -> Bool,
-        auto_expand -> Bool,
         infinite_scroll_enabled -> Bool,
         admin -> Bool,
         post_listing_mode -> PostListingModeEnum,
@@ -772,6 +771,7 @@ diesel::table! {
         featured_local -> Bool,
         url_content_type -> Nullable<Text>,
         alt_text -> Nullable<Text>,
+        scheduled_publish_time -> Nullable<Timestamptz>
     }
 }
 

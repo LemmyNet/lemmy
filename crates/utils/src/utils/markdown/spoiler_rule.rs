@@ -134,8 +134,6 @@ pub fn add(markdown_parser: &mut MarkdownIt) {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::utils::markdown::spoiler_rule::add;

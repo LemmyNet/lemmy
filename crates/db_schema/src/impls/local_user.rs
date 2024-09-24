@@ -136,14 +136,16 @@ impl LocalUser {
     diesel::delete(persons).execute(conn).await
   }
 
-  pub async fn is_email_taken(pool: &mut DbPool<'_>, email: &str) -> Result<bool, Error> {
+  pub async fn check_is_email_taken(pool: &mut DbPool<'_>, email: &str) -> LemmyResult<()> {
     use diesel::dsl::{exists, select};
     let conn = &mut get_conn(pool).await?;
-    select(exists(local_user::table.filter(
+    select(not(exists(local_user::table.filter(
       lower(coalesce(local_user::email, "")).eq(email.to_lowercase()),
-    )))
-    .get_result(conn)
-    .await
+    ))))
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::EmailAlreadyExists.into())
   }
 
   // TODO: maybe move this and pass in LocalUserView
@@ -367,7 +369,6 @@ pub struct UserBackupLists {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
   use crate::{
     source::{
@@ -416,6 +417,34 @@ mod tests {
     assert!(delores_higher_check.is_err());
 
     Instance::delete(pool, inserted_instance.id).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_email_taken() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+
+    let darwin_email = "charles.darwin@gmail.com";
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let darwin_person = PersonInsertForm::test_form(inserted_instance.id, "darwin");
+    let inserted_darwin_person = Person::create(pool, &darwin_person).await?;
+
+    let mut darwin_local_user_form =
+      LocalUserInsertForm::test_form_admin(inserted_darwin_person.id);
+    darwin_local_user_form.email = Some(darwin_email.into());
+    let _inserted_darwin_local_user =
+      LocalUser::create(pool, &darwin_local_user_form, vec![]).await?;
+
+    let check = LocalUser::check_is_email_taken(pool, darwin_email).await;
+    assert!(check.is_err());
+
+    let passed_check = LocalUser::check_is_email_taken(pool, "not_charles@gmail.com").await;
+    assert!(passed_check.is_ok());
 
     Ok(())
   }

@@ -51,9 +51,7 @@ pub async fn update_community(
     is_valid_body_field(desc, false)?;
   }
 
-  let old_community = Community::read(&mut context.pool(), data.community_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  let old_community = Community::read(&mut context.pool(), data.community_id).await?;
 
   let icon = diesel_url_update(data.icon.as_deref())?;
   replace_image(&icon, &old_community.icon, &context).await?;

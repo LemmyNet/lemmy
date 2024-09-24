@@ -196,8 +196,7 @@ impl Saveable for CommentSaved {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{
@@ -333,10 +332,7 @@ mod tests {
       .await
       .unwrap();
 
-    let read_comment = Comment::read(pool, inserted_comment.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let read_comment = Comment::read(pool, inserted_comment.id).await.unwrap();
     let like_removed = CommentLike::remove(pool, inserted_person.id, inserted_comment.id)
       .await
       .unwrap();
