@@ -619,10 +619,7 @@ mod tests {
       person: inserted_timmy_person.clone(),
       counts: Default::default(),
     };
-    let site_form = SiteInsertForm::builder()
-      .name("test site".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
     let site = Site::create(pool, &site_form).await?;
     Ok(Data {
       inserted_instance,
@@ -1093,6 +1090,7 @@ mod tests {
         featured_community: false,
         featured_local: false,
         url_content_type: None,
+        scheduled_publish_time: None,
       },
       community: Community {
         id: data.inserted_community.id,

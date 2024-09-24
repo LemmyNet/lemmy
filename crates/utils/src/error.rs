@@ -172,6 +172,8 @@ pub enum LemmyErrorType {
   Unknown(String),
   CantDeleteSite,
   UrlLengthOverflow,
+  PostScheduleTimeMustBeInFuture,
+  TooManyScheduledPosts,
   NotFound,
 }
 
