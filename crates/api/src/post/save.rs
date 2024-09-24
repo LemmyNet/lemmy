@@ -40,8 +40,7 @@ pub async fn save_post(
     Some(&local_user_view.local_user),
     false,
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindPost)?;
+  .await?;
 
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 

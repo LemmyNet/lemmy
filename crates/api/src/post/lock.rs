@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn lock_post(
@@ -24,9 +24,7 @@ pub async fn lock_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let post_id = data.post_id;
-  let orig_post = Post::read(&mut context.pool(), post_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+  let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
   check_community_mod_action(
     &local_user_view.person,

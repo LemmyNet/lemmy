@@ -1,4 +1,4 @@
-use crate::{newtypes::DbUrl, CommentSortType, SortType};
+use crate::{newtypes::DbUrl, CommentSortType, PostSortType};
 use chrono::{DateTime, TimeDelta, Utc};
 use deadpool::Runtime;
 use diesel::{
@@ -13,7 +13,6 @@ use diesel::{
   },
   sql_types::{self, Timestamptz},
   IntoSql,
-  OptionalExtension,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -481,23 +480,15 @@ pub fn naive_now() -> DateTime<Utc> {
   Utc::now()
 }
 
-pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
+pub fn post_to_comment_sort_type(sort: PostSortType) -> CommentSortType {
+  use PostSortType::*;
   match sort {
-    SortType::Active | SortType::Hot | SortType::Scaled => CommentSortType::Hot,
-    SortType::New | SortType::NewComments | SortType::MostComments => CommentSortType::New,
-    SortType::Old => CommentSortType::Old,
-    SortType::Controversial => CommentSortType::Controversial,
-    SortType::TopHour
-    | SortType::TopSixHour
-    | SortType::TopTwelveHour
-    | SortType::TopDay
-    | SortType::TopAll
-    | SortType::TopWeek
-    | SortType::TopYear
-    | SortType::TopMonth
-    | SortType::TopThreeMonths
-    | SortType::TopSixMonths
-    | SortType::TopNineMonths => CommentSortType::Top,
+    Active | Hot | Scaled => CommentSortType::Hot,
+    New | NewComments | MostComments => CommentSortType::New,
+    Old => CommentSortType::Old,
+    Controversial => CommentSortType::Controversial,
+    TopHour | TopSixHour | TopTwelveHour | TopDay | TopAll | TopWeek | TopYear | TopMonth
+    | TopThreeMonths | TopSixMonths | TopNineMonths => CommentSortType::Top,
   }
 }
 
@@ -582,12 +573,12 @@ impl<RF, LF> Queries<RF, LF> {
     self,
     pool: &'a mut DbPool<'_>,
     args: Args,
-  ) -> Result<Option<T>, DieselError>
+  ) -> Result<T, DieselError>
   where
     RF: ReadFn<'a, T, Args>,
   {
     let conn = get_conn(pool).await?;
-    (self.read_fn)(conn, args).await.optional()
+    (self.read_fn)(conn, args).await
   }
 
   pub async fn list<'a, T, Args>(

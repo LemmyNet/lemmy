@@ -1,3 +1,4 @@
+use super::comment_sort_type_with_default;
 use crate::{
   api::listing_type_with_default,
   fetcher::resolve_actor_identifier,
@@ -35,7 +36,12 @@ pub async fn list_comments(
   } else {
     data.community_id
   };
-  let sort = data.sort;
+  let local_user_ref = local_user_view.as_ref().map(|u| &u.local_user);
+  let sort = Some(comment_sort_type_with_default(
+    data.sort,
+    local_user_ref,
+    &local_site,
+  ));
   let max_depth = data.max_depth;
   let saved_only = data.saved_only;
 
@@ -58,12 +64,7 @@ pub async fn list_comments(
 
   // If a parent_id is given, fetch the comment to get the path
   let parent_path = if let Some(parent_id) = parent_id {
-    Some(
-      Comment::read(&mut context.pool(), parent_id)
-        .await?
-        .ok_or(LemmyErrorType::CouldntFindComment)?
-        .path,
-    )
+    Some(Comment::read(&mut context.pool(), parent_id).await?.path)
   } else {
     None
   };

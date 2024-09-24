@@ -6,6 +6,10 @@ pub mod sql_types {
     pub struct ActorTypeEnum;
 
     #[derive(diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "comment_sort_type_enum"))]
+    pub struct CommentSortTypeEnum;
+
+    #[derive(diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "community_visibility"))]
     pub struct CommunityVisibility;
 
@@ -22,12 +26,12 @@ pub mod sql_types {
     pub struct PostListingModeEnum;
 
     #[derive(diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "registration_mode_enum"))]
-    pub struct RegistrationModeEnum;
+    #[diesel(postgres_type(name = "post_sort_type_enum"))]
+    pub struct PostSortTypeEnum;
 
     #[derive(diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "sort_type_enum"))]
-    pub struct SortTypeEnum;
+    #[diesel(postgres_type(name = "registration_mode_enum"))]
+    pub struct RegistrationModeEnum;
 }
 
 diesel::table! {
@@ -254,7 +258,6 @@ diesel::table! {
 diesel::table! {
     custom_emoji (id) {
         id -> Int4,
-        local_site_id -> Int4,
         #[max_length = 128]
         shortcode -> Varchar,
         image_url -> Text,
@@ -363,7 +366,8 @@ diesel::table! {
     use super::sql_types::ListingTypeEnum;
     use super::sql_types::RegistrationModeEnum;
     use super::sql_types::PostListingModeEnum;
-    use super::sql_types::SortTypeEnum;
+    use super::sql_types::PostSortTypeEnum;
+    use super::sql_types::CommentSortTypeEnum;
 
     local_site (id) {
         id -> Int4,
@@ -391,7 +395,8 @@ diesel::table! {
         reports_email_admins -> Bool,
         federation_signed_fetch -> Bool,
         default_post_listing_mode -> PostListingModeEnum,
-        default_sort_type -> SortTypeEnum,
+        default_post_sort_type -> PostSortTypeEnum,
+        default_comment_sort_type -> CommentSortTypeEnum,
         oauth_registration -> Bool,
     }
 }
@@ -429,9 +434,10 @@ diesel::table! {
 
 diesel::table! {
     use diesel::sql_types::*;
-    use super::sql_types::SortTypeEnum;
+    use super::sql_types::PostSortTypeEnum;
     use super::sql_types::ListingTypeEnum;
     use super::sql_types::PostListingModeEnum;
+    use super::sql_types::CommentSortTypeEnum;
 
     local_user (id) {
         id -> Int4,
@@ -440,7 +446,7 @@ diesel::table! {
         email -> Nullable<Text>,
         show_nsfw -> Bool,
         theme -> Text,
-        default_sort_type -> SortTypeEnum,
+        default_post_sort_type -> PostSortTypeEnum,
         default_listing_type -> ListingTypeEnum,
         #[max_length = 20]
         interface_language -> Varchar,
@@ -461,6 +467,7 @@ diesel::table! {
         enable_keyboard_navigation -> Bool,
         enable_animated_images -> Bool,
         collapse_bot_comments -> Bool,
+        default_comment_sort_type -> CommentSortTypeEnum,
     }
 }
 
@@ -966,7 +973,6 @@ diesel::table! {
 diesel::table! {
     tagline (id) {
         id -> Int4,
-        local_site_id -> Int4,
         content -> Text,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
@@ -1003,7 +1009,6 @@ diesel::joinable!(community_moderator -> community (community_id));
 diesel::joinable!(community_moderator -> person (person_id));
 diesel::joinable!(community_person_ban -> community (community_id));
 diesel::joinable!(community_person_ban -> person (person_id));
-diesel::joinable!(custom_emoji -> local_site (local_site_id));
 diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
@@ -1067,7 +1072,6 @@ diesel::joinable!(site -> instance (instance_id));
 diesel::joinable!(site_aggregates -> site (site_id));
 diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
-diesel::joinable!(tagline -> local_site (local_site_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     admin_purge_comment,

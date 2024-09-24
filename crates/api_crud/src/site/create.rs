@@ -1,3 +1,4 @@
+use super::not_zero;
 use crate::site::{application_question_check, site_default_post_listing_type_check};
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::web::Json;
@@ -20,7 +21,6 @@ use lemmy_db_schema::{
     local_site::{LocalSite, LocalSiteUpdateForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
     site::{Site, SiteUpdateForm},
-    tagline::Tagline,
   },
   traits::Crud,
   utils::{diesel_string_update, diesel_url_create, naive_now},
@@ -98,7 +98,8 @@ pub async fn create_site(
     private_instance: data.private_instance,
     default_theme: data.default_theme.clone(),
     default_post_listing_type: data.default_post_listing_type,
-    default_sort_type: data.default_sort_type,
+    default_post_sort_type: data.default_post_sort_type,
+    default_comment_sort_type: data.default_comment_sort_type,
     legal_information: diesel_string_update(data.legal_information.as_deref()),
     application_email_admins: data.application_email_admins,
     hide_modlog_mod_names: data.hide_modlog_mod_names,
@@ -116,17 +117,17 @@ pub async fn create_site(
 
   let local_site_rate_limit_form = LocalSiteRateLimitUpdateForm {
     message: data.rate_limit_message,
-    message_per_second: data.rate_limit_message_per_second,
+    message_per_second: not_zero(data.rate_limit_message_per_second),
     post: data.rate_limit_post,
-    post_per_second: data.rate_limit_post_per_second,
+    post_per_second: not_zero(data.rate_limit_post_per_second),
     register: data.rate_limit_register,
-    register_per_second: data.rate_limit_register_per_second,
+    register_per_second: not_zero(data.rate_limit_register_per_second),
     image: data.rate_limit_image,
-    image_per_second: data.rate_limit_image_per_second,
+    image_per_second: not_zero(data.rate_limit_image_per_second),
     comment: data.rate_limit_comment,
-    comment_per_second: data.rate_limit_comment_per_second,
+    comment_per_second: not_zero(data.rate_limit_comment_per_second),
     search: data.rate_limit_search,
-    search_per_second: data.rate_limit_search_per_second,
+    search_per_second: not_zero(data.rate_limit_search_per_second),
     ..Default::default()
   };
 
@@ -134,17 +135,11 @@ pub async fn create_site(
 
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-  let new_taglines = data.taglines.clone();
-  let taglines = Tagline::replace(&mut context.pool(), local_site.id, new_taglines).await?;
-
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
   context.rate_limit_cell().set_config(rate_limit_config);
 
-  Ok(Json(SiteResponse {
-    site_view,
-    taglines,
-  }))
+  Ok(Json(SiteResponse { site_view }))
 }
 
 fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> LemmyResult<()> {
@@ -200,7 +195,12 @@ mod tests {
 
   use crate::site::create::validate_create_payload;
   use lemmy_api_common::site::CreateSite;
-  use lemmy_db_schema::{source::local_site::LocalSite, ListingType, RegistrationMode, SortType};
+  use lemmy_db_schema::{
+    source::local_site::LocalSite,
+    ListingType,
+    PostSortType,
+    RegistrationMode,
+  };
   use lemmy_utils::error::LemmyErrorType;
 
   #[test]
@@ -209,170 +209,114 @@ mod tests {
       (
         "CreateSite attempted on set up LocalSite",
         LemmyErrorType::SiteAlreadyExists,
-        &generate_local_site(
-          true,
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_create_site(
-          String::from("site_name"),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<SortType>,
-          None::<String>,
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          None::<RegistrationMode>,
-        ),
+        &LocalSite {
+          site_setup: true,
+          private_instance: true,
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &CreateSite {
+          name: String::from("site_name"),
+          ..Default::default()
+        },
       ),
       (
         "CreateSite name matches LocalSite slur filter",
         LemmyErrorType::Slurs,
-        &generate_local_site(
-          false,
-          Some(String::from("(foo|bar)")),
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_create_site(
-          String::from("foo site_name"),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<SortType>,
-          None::<String>,
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          None::<RegistrationMode>,
-        ),
+        &LocalSite {
+          site_setup: false,
+          private_instance: true,
+          slur_filter_regex: Some(String::from("(foo|bar)")),
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &CreateSite {
+          name: String::from("foo site_name"),
+          ..Default::default()
+        },
       ),
       (
         "CreateSite name matches new slur filter",
         LemmyErrorType::Slurs,
-        &generate_local_site(
-          false,
-          Some(String::from("(foo|bar)")),
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_create_site(
-          String::from("zeta site_name"),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<SortType>,
-          Some(String::from("(zeta|alpha)")),
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          None::<RegistrationMode>,
-        ),
+        &LocalSite {
+          site_setup: false,
+          private_instance: true,
+          slur_filter_regex: Some(String::from("(foo|bar)")),
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &CreateSite {
+          name: String::from("zeta site_name"),
+          slur_filter_regex: Some(String::from("(zeta|alpha)")),
+          ..Default::default()
+        },
       ),
       (
         "CreateSite listing type is Subscribed, which is invalid",
         LemmyErrorType::InvalidDefaultPostListingType,
-        &generate_local_site(
-          false,
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_create_site(
-          String::from("site_name"),
-          None::<String>,
-          None::<String>,
-          Some(ListingType::Subscribed),
-          None::<SortType>,
-          None::<String>,
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          None::<RegistrationMode>,
-        ),
+        &LocalSite {
+          site_setup: false,
+          private_instance: true,
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &CreateSite {
+          name: String::from("site_name"),
+          default_post_listing_type: Some(ListingType::Subscribed),
+          ..Default::default()
+        },
       ),
       (
         "CreateSite is both private and federated",
         LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-        &generate_local_site(
-          false,
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_create_site(
-          String::from("site_name"),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<SortType>,
-          None::<String>,
-          Some(true),
-          Some(true),
-          None::<String>,
-          None::<RegistrationMode>,
-        ),
+        &LocalSite {
+          site_setup: false,
+          private_instance: true,
+          federation_enabled: false,
+          ..Default::default()
+        },
+        &CreateSite {
+          name: String::from("site_name"),
+          private_instance: Some(true),
+          federation_enabled: Some(true),
+          ..Default::default()
+        },
       ),
       (
         "LocalSite is private, but CreateSite also makes it federated",
         LemmyErrorType::CantEnablePrivateInstanceAndFederationTogether,
-        &generate_local_site(
-          false,
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_create_site(
-          String::from("site_name"),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<SortType>,
-          None::<String>,
-          None::<bool>,
-          Some(true),
-          None::<String>,
-          None::<RegistrationMode>,
-        ),
+        &LocalSite {
+          site_setup: false,
+          private_instance: true,
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &CreateSite {
+          name: String::from("site_name"),
+          federation_enabled: Some(true),
+          ..Default::default()
+        },
       ),
       (
         "CreateSite requires application, but neither it nor LocalSite has an application question",
         LemmyErrorType::ApplicationQuestionRequired,
-        &generate_local_site(
-          false,
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_create_site(
-          String::from("site_name"),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<SortType>,
-          None::<String>,
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          Some(RegistrationMode::RequireApplication),
-        ),
+        &LocalSite {
+          site_setup: false,
+          private_instance: true,
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &CreateSite {
+          name: String::from("site_name"),
+          registration_mode: Some(RegistrationMode::RequireApplication),
+          ..Default::default()
+        },
       ),
     ];
 
@@ -411,95 +355,72 @@ mod tests {
     let valid_payloads = [
       (
         "No changes between LocalSite and CreateSite",
-        &generate_local_site(
-          false,
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_create_site(
-          String::from("site_name"),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<SortType>,
-          None::<String>,
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          None::<RegistrationMode>,
-        ),
+        &LocalSite {
+          site_setup: false,
+          private_instance: true,
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &CreateSite {
+          name: String::from("site_name"),
+          ..Default::default()
+        },
       ),
       (
         "CreateSite allows clearing and changing values",
-        &generate_local_site(
-          false,
-          None::<String>,
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_create_site(
-          String::from("site_name"),
-          Some(String::new()),
-          Some(String::new()),
-          Some(ListingType::All),
-          Some(SortType::Active),
-          Some(String::new()),
-          Some(false),
-          Some(true),
-          Some(String::new()),
-          Some(RegistrationMode::Open),
-        ),
+        &LocalSite {
+          site_setup: false,
+          private_instance: true,
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &CreateSite {
+          name: String::from("site_name"),
+          sidebar: Some(String::new()),
+          description: Some(String::new()),
+          application_question: Some(String::new()),
+          private_instance: Some(false),
+          default_post_listing_type: Some(ListingType::All),
+          default_post_sort_type: Some(PostSortType::Active),
+          slur_filter_regex: Some(String::new()),
+          federation_enabled: Some(true),
+          registration_mode: Some(RegistrationMode::Open),
+          ..Default::default()
+        },
       ),
       (
         "CreateSite clears existing slur filter regex",
-        &generate_local_site(
-          false,
-          Some(String::from("(foo|bar)")),
-          true,
-          false,
-          None::<String>,
-          RegistrationMode::Open,
-        ),
-        &generate_create_site(
-          String::from("foo site_name"),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<SortType>,
-          Some(String::new()),
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          None::<RegistrationMode>,
-        ),
+        &LocalSite {
+          site_setup: false,
+          private_instance: true,
+          slur_filter_regex: Some(String::from("(foo|bar)")),
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &CreateSite {
+          name: String::from("foo site_name"),
+          slur_filter_regex: Some(String::new()),
+          ..Default::default()
+        },
       ),
       (
         "LocalSite has application question and CreateSite now requires applications,",
-        &generate_local_site(
-          false,
-          None::<String>,
-          true,
-          false,
-          Some(String::from("question")),
-          RegistrationMode::Open,
-        ),
-        &generate_create_site(
-          String::from("site_name"),
-          None::<String>,
-          None::<String>,
-          None::<ListingType>,
-          None::<SortType>,
-          None::<String>,
-          None::<bool>,
-          None::<bool>,
-          None::<String>,
-          Some(RegistrationMode::RequireApplication),
-        ),
+        &LocalSite {
+          site_setup: false,
+          application_question: Some(String::from("question")),
+          private_instance: true,
+          federation_enabled: false,
+          registration_mode: RegistrationMode::Open,
+          ..Default::default()
+        },
+        &CreateSite {
+          name: String::from("site_name"),
+          registration_mode: Some(RegistrationMode::RequireApplication),
+          ..Default::default()
+        },
       ),
     ];
 
@@ -514,86 +435,5 @@ mod tests {
           idx
         );
       })
-  }
-
-  fn generate_local_site(
-    site_setup: bool,
-    site_slur_filter_regex: Option<String>,
-    site_is_private: bool,
-    site_is_federated: bool,
-    site_application_question: Option<String>,
-    site_registration_mode: RegistrationMode,
-  ) -> LocalSite {
-    LocalSite {
-      site_setup,
-      application_question: site_application_question,
-      private_instance: site_is_private,
-      slur_filter_regex: site_slur_filter_regex,
-      federation_enabled: site_is_federated,
-      registration_mode: site_registration_mode,
-      ..Default::default()
-    }
-  }
-
-  // Allow the test helper function to have too many arguments.
-  // It's either this or generate the entire struct each time for testing.
-  #[allow(clippy::too_many_arguments)]
-  fn generate_create_site(
-    site_name: String,
-    site_description: Option<String>,
-    site_sidebar: Option<String>,
-    site_listing_type: Option<ListingType>,
-    site_sort_type: Option<SortType>,
-    site_slur_filter_regex: Option<String>,
-    site_is_private: Option<bool>,
-    site_is_federated: Option<bool>,
-    site_application_question: Option<String>,
-    site_registration_mode: Option<RegistrationMode>,
-  ) -> CreateSite {
-    CreateSite {
-      name: site_name,
-      sidebar: site_sidebar,
-      description: site_description,
-      icon: None,
-      banner: None,
-      enable_downvotes: None,
-      enable_nsfw: None,
-      community_creation_admin_only: None,
-      require_email_verification: None,
-      application_question: site_application_question,
-      private_instance: site_is_private,
-      default_theme: None,
-      default_post_listing_type: site_listing_type,
-      default_sort_type: site_sort_type,
-      legal_information: None,
-      application_email_admins: None,
-      hide_modlog_mod_names: None,
-      discussion_languages: None,
-      slur_filter_regex: site_slur_filter_regex,
-      actor_name_max_length: None,
-      rate_limit_message: None,
-      rate_limit_message_per_second: None,
-      rate_limit_post: None,
-      rate_limit_post_per_second: None,
-      rate_limit_register: None,
-      rate_limit_register_per_second: None,
-      rate_limit_image: None,
-      rate_limit_image_per_second: None,
-      rate_limit_comment: None,
-      rate_limit_comment_per_second: None,
-      rate_limit_search: None,
-      rate_limit_search_per_second: None,
-      federation_enabled: site_is_federated,
-      federation_debug: None,
-      captcha_enabled: None,
-      captcha_difficulty: None,
-      allowed_instances: None,
-      blocked_instances: None,
-      taglines: None,
-      registration_mode: site_registration_mode,
-      oauth_registration: None,
-      content_warning: None,
-      default_post_listing_mode: None,
-    }
   }
 }

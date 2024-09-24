@@ -14,10 +14,7 @@ use lemmy_db_schema::{
   utils::{diesel_string_update, get_conn},
 };
 use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView};
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  LemmyErrorType,
-};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 
 pub async fn approve_registration_application(
   data: Json<ApproveRegistrationApplication>,
@@ -61,9 +58,8 @@ pub async fn approve_registration_application(
     .await?;
 
   if data.approve {
-    let approved_local_user_view = LocalUserView::read(&mut context.pool(), approved_user_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
+    let approved_local_user_view =
+      LocalUserView::read(&mut context.pool(), approved_user_id).await?;
     if approved_local_user_view.local_user.email.is_some() {
       // Email sending may fail, but this won't revert the application approval
       send_application_approved_email(&approved_local_user_view, context.settings()).await?;
@@ -71,9 +67,8 @@ pub async fn approve_registration_application(
   };
 
   // Read the view
-  let registration_application = RegistrationApplicationView::read(&mut context.pool(), app_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindRegistrationApplication)?;
+  let registration_application =
+    RegistrationApplicationView::read(&mut context.pool(), app_id).await?;
 
   Ok(Json(RegistrationApplicationResponse {
     registration_application,

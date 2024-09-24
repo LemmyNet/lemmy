@@ -2,10 +2,10 @@ use crate::structs::CustomEmojiView;
 use diesel::{result::Error, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  newtypes::{CustomEmojiId, LocalSiteId},
+  newtypes::CustomEmojiId,
   schema::{custom_emoji, custom_emoji_keyword},
   source::{custom_emoji::CustomEmoji, custom_emoji_keyword::CustomEmojiKeyword},
-  utils::{get_conn, DbPool},
+  utils::{get_conn, limit_and_offset, DbPool},
 };
 use std::collections::HashMap;
 
@@ -35,18 +35,34 @@ impl CustomEmojiView {
     }
   }
 
-  pub async fn get_all(
+  pub async fn list(
     pool: &mut DbPool<'_>,
-    for_local_site_id: LocalSiteId,
+    category: &Option<String>,
+    page: Option<i64>,
+    limit: Option<i64>,
+    ignore_page_limits: bool,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let emojis = custom_emoji::table
-      .filter(custom_emoji::local_site_id.eq(for_local_site_id))
+
+    let mut query = custom_emoji::table
       .left_join(
         custom_emoji_keyword::table.on(custom_emoji_keyword::custom_emoji_id.eq(custom_emoji::id)),
       )
       .order(custom_emoji::category)
-      .then_order_by(custom_emoji::id)
+      .into_boxed();
+
+    if !ignore_page_limits {
+      let (limit, offset) = limit_and_offset(page, limit)?;
+      query = query.limit(limit).offset(offset);
+    }
+
+    if let Some(category) = category {
+      query = query.filter(custom_emoji::category.eq(category))
+    }
+
+    query = query.then_order_by(custom_emoji::id);
+
+    let emojis = query
       .select((
         custom_emoji::all_columns,
         custom_emoji_keyword::all_columns.nullable(), // (or all the columns if you want)

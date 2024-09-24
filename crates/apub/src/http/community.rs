@@ -35,7 +35,7 @@ pub(crate) async fn get_apub_community_http(
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, true)
       .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?
+      .ok_or(LemmyErrorType::NotFound)?
       .into();
 
   if community.deleted || community.removed {
@@ -67,7 +67,7 @@ pub(crate) async fn get_apub_community_followers(
 ) -> LemmyResult<HttpResponse> {
   let community = Community::read_from_name(&mut context.pool(), &info.community_name, false)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+    .ok_or(LemmyErrorType::NotFound)?;
   check_community_public(&community)?;
   let followers = ApubCommunityFollower::read_local(&community.into(), &context).await?;
   create_apub_response(&followers)
@@ -82,7 +82,7 @@ pub(crate) async fn get_apub_community_outbox(
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?
+      .ok_or(LemmyErrorType::NotFound)?
       .into();
   check_community_public(&community)?;
   let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
@@ -97,7 +97,7 @@ pub(crate) async fn get_apub_community_moderators(
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?
+      .ok_or(LemmyErrorType::NotFound)?
       .into();
   check_community_public(&community)?;
   let moderators = ApubCommunityModerators::read_local(&community, &context).await?;
@@ -112,7 +112,7 @@ pub(crate) async fn get_apub_community_featured(
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?
+      .ok_or(LemmyErrorType::NotFound)?
       .into();
   check_community_public(&community)?;
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;
@@ -151,14 +151,16 @@ pub(crate) mod tests {
       Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;
     create_local_site(context, instance.id).await?;
 
-    let community_form = CommunityInsertForm::builder()
-      .name("testcom6".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(instance.id)
-      .deleted(Some(deleted))
-      .visibility(Some(visibility))
-      .build();
+    let community_form = CommunityInsertForm {
+      deleted: Some(deleted),
+      visibility: Some(visibility),
+      ..CommunityInsertForm::new(
+        instance.id,
+        "testcom6".to_string(),
+        "nada".to_owned(),
+        "pubkey".to_string(),
+      )
+    };
     let community = Community::create(&mut context.pool(), &community_form).await?;
     Ok((instance, community))
   }
@@ -169,18 +171,13 @@ pub(crate) mod tests {
     instance_id: InstanceId,
   ) -> LemmyResult<()> {
     // Create a local site, since this is necessary for community fetching.
-    let site_form = SiteInsertForm::builder()
-      .name("test site".to_string())
-      .instance_id(instance_id)
-      .build();
+    let site_form = SiteInsertForm::new("test site".to_string(), instance_id);
     let site = Site::create(&mut context.pool(), &site_form).await?;
 
-    let local_site_form = LocalSiteInsertForm::builder().site_id(site.id).build();
+    let local_site_form = LocalSiteInsertForm::new(site.id);
     let local_site = LocalSite::create(&mut context.pool(), &local_site_form).await?;
-    let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::builder()
-      .local_site_id(local_site.id)
-      .build();
 
+    let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::new(local_site.id);
     LocalSiteRateLimit::create(&mut context.pool(), &local_site_rate_limit_form).await?;
     Ok(())
   }

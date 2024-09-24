@@ -42,19 +42,7 @@ pub enum LemmyErrorType {
   NotHigherAdmin,
   SiteBan,
   Deleted,
-  CouldntFindCommunity,
-  CouldntFindPerson,
-  CouldntFindComment,
-  CouldntFindCommentReport,
-  CouldntFindPostReport,
-  CouldntFindPrivateMessageReport,
-  CouldntFindLocalUser,
-  CouldntFindPersonMention,
-  CouldntFindRegistrationApplication,
-  CouldntFindCommentReply,
-  CouldntFindPrivateMessage,
-  CouldntFindActivity,
-  CouldntFindOauthProvider,
+  BannedFromCommunity,
   PersonIsBlocked,
   CommunityIsBlocked,
   InstanceIsBlocked,
@@ -76,7 +64,6 @@ pub enum LemmyErrorType {
   OnlyModsCanPostInCommunity,
   CouldntUpdatePost,
   NoPostEditAllowed,
-  CouldntFindPost,
   EditPrivateMessageNotAllowed,
   SiteAlreadyExists,
   ApplicationQuestionRequired,
@@ -132,7 +119,6 @@ pub enum LemmyErrorType {
   CouldntUpdateCommunityHiddenStatus,
   PersonBlockAlreadyExists,
   UserAlreadyExists,
-  TokenNotFound,
   CouldntLikePost,
   CouldntSavePost,
   CouldntMarkPostAsRead,
@@ -154,7 +140,6 @@ pub enum LemmyErrorType {
   InvalidUrl,
   EmailSendFailed,
   Slurs,
-  CouldntFindObject,
   RegistrationDenied(Option<String>),
   FederationDisabled,
   DomainBlocked(String),
@@ -187,6 +172,7 @@ pub enum LemmyErrorType {
   Unknown(String),
   CantDeleteSite,
   UrlLengthOverflow,
+  NotFound,
 }
 
 cfg_if! {
@@ -210,8 +196,12 @@ cfg_if! {
     {
       fn from(t: T) -> Self {
         let cause = t.into();
+        let error_type = match cause.downcast_ref::<diesel::result::Error>() {
+          Some(&diesel::NotFound) => LemmyErrorType::NotFound,
+          _ => LemmyErrorType::Unknown(format!("{}", &cause))
+      };
         LemmyError {
-          error_type: LemmyErrorType::Unknown(format!("{}", &cause)),
+          error_type,
           inner: cause,
           context: Backtrace::capture(),
         }
@@ -320,6 +310,17 @@ cfg_if! {
           &json,
           "{\"error\":\"person_is_banned_from_site\",\"message\":\"reason\"}"
         )
+      }
+
+      #[test]
+      fn test_convert_diesel_errors() {
+        let not_found_error = LemmyError::from(diesel::NotFound);
+        assert_eq!(LemmyErrorType::NotFound, not_found_error.error_type);
+        assert_eq!(404, not_found_error.status_code());
+
+        let other_error = LemmyError::from(diesel::result::Error::NotInTransaction);
+        assert!(matches!(other_error.error_type, LemmyErrorType::Unknown{..}));
+        assert_eq!(400, other_error.status_code());
       }
 
       /// Check if errors match translations. Disabled because many are not translated at all.

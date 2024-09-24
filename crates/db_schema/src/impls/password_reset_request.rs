@@ -1,5 +1,4 @@
 use crate::{
-  diesel::OptionalExtension,
   newtypes::LocalUserId,
   schema::password_reset_request::dsl::{password_reset_request, published, token},
   source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
@@ -32,14 +31,13 @@ impl PasswordResetRequest {
       .await
   }
 
-  pub async fn read_and_delete(pool: &mut DbPool<'_>, token_: &str) -> Result<Option<Self>, Error> {
+  pub async fn read_and_delete(pool: &mut DbPool<'_>, token_: &str) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     delete(password_reset_request)
       .filter(token.eq(token_))
       .filter(published.gt(now.into_sql::<Timestamptz>() - 1.days()))
       .get_result(conn)
       .await
-      .optional()
   }
 }
 
@@ -81,9 +79,7 @@ mod tests {
       PasswordResetRequest::create(pool, inserted_local_user.id, token.to_string()).await?;
 
     // Read it and verify
-    let read_password_reset_request = PasswordResetRequest::read_and_delete(pool, token)
-      .await?
-      .unwrap();
+    let read_password_reset_request = PasswordResetRequest::read_and_delete(pool, token).await?;
     assert_eq!(
       inserted_password_reset_request.id,
       read_password_reset_request.id
@@ -102,8 +98,8 @@ mod tests {
     );
 
     // Cannot reuse same token again
-    let read_password_reset_request = PasswordResetRequest::read_and_delete(pool, token).await?;
-    assert!(read_password_reset_request.is_none());
+    let read_password_reset_request = PasswordResetRequest::read_and_delete(pool, token).await;
+    assert!(read_password_reset_request.is_err());
 
     // Cleanup
     let num_deleted = Person::delete(pool, inserted_person.id).await?;

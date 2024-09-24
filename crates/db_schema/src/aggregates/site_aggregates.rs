@@ -46,19 +46,15 @@ mod tests {
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
-    let site_form = SiteInsertForm::builder()
-      .name("test_site".into())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let site_form = SiteInsertForm::new("test_site".into(), inserted_instance.id);
     let inserted_site = Site::create(pool, &site_form).await.unwrap();
 
-    let new_community = CommunityInsertForm::builder()
-      .name("TIL_site_agg".into())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "TIL_site_agg".into(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
 
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
     (
@@ -78,31 +74,30 @@ mod tests {
     let (inserted_instance, inserted_person, inserted_site, inserted_community) =
       prepare_site_with_community(pool).await;
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post".into())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .build();
+    let new_post = PostInsertForm::new(
+      "A test post".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
 
     // Insert two of those posts
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
     let _inserted_post_again = Post::create(pool, &new_post).await.unwrap();
 
-    let comment_form = CommentInsertForm::builder()
-      .content("A test comment".into())
-      .creator_id(inserted_person.id)
-      .post_id(inserted_post.id)
-      .build();
+    let comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
 
     // Insert two of those comments
     let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
 
-    let child_comment_form = CommentInsertForm::builder()
-      .content("A test comment".into())
-      .creator_id(inserted_person.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let child_comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
     let _inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path))
         .await

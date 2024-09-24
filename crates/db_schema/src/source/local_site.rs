@@ -2,17 +2,17 @@
 use crate::schema::local_site;
 use crate::{
   newtypes::{LocalSiteId, SiteId},
+  CommentSortType,
   ListingType,
   PostListingMode,
+  PostSortType,
   RegistrationMode,
-  SortType,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize, Default)]
@@ -66,41 +66,65 @@ pub struct LocalSite {
   pub federation_signed_fetch: bool,
   /// Default value for [LocalSite.post_listing_mode]
   pub default_post_listing_mode: PostListingMode,
-  /// Default value for [LocalUser.post_listing_mode]
-  pub default_sort_type: SortType,
+  /// Default value for [LocalUser.post_sort_type]
+  pub default_post_sort_type: PostSortType,
+  /// Default value for [LocalUser.comment_sort_type]
+  pub default_comment_sort_type: CommentSortType,
   /// Whether or not external auth methods can auto-register users.
   pub oauth_registration: bool,
 }
 
-#[derive(Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site))]
 pub struct LocalSiteInsertForm {
-  #[builder(!default)]
   pub site_id: SiteId,
+  #[new(default)]
   pub site_setup: Option<bool>,
+  #[new(default)]
   pub enable_downvotes: Option<bool>,
+  #[new(default)]
   pub community_creation_admin_only: Option<bool>,
+  #[new(default)]
   pub require_email_verification: Option<bool>,
+  #[new(default)]
   pub application_question: Option<String>,
+  #[new(default)]
   pub private_instance: Option<bool>,
+  #[new(default)]
   pub default_theme: Option<String>,
+  #[new(default)]
   pub default_post_listing_type: Option<ListingType>,
+  #[new(default)]
   pub legal_information: Option<String>,
+  #[new(default)]
   pub hide_modlog_mod_names: Option<bool>,
+  #[new(default)]
   pub application_email_admins: Option<bool>,
+  #[new(default)]
   pub slur_filter_regex: Option<String>,
+  #[new(default)]
   pub actor_name_max_length: Option<i32>,
+  #[new(default)]
   pub federation_enabled: Option<bool>,
+  #[new(default)]
   pub captcha_enabled: Option<bool>,
+  #[new(default)]
   pub captcha_difficulty: Option<String>,
+  #[new(default)]
   pub registration_mode: Option<RegistrationMode>,
+  #[new(default)]
   pub oauth_registration: Option<bool>,
+  #[new(default)]
   pub reports_email_admins: Option<bool>,
+  #[new(default)]
   pub federation_signed_fetch: Option<bool>,
+  #[new(default)]
   pub default_post_listing_mode: Option<PostListingMode>,
-  pub default_sort_type: Option<SortType>,
+  #[new(default)]
+  pub default_post_sort_type: Option<PostSortType>,
+  #[new(default)]
+  pub default_comment_sort_type: Option<CommentSortType>,
 }
 
 #[derive(Clone, Default)]
@@ -129,5 +153,6 @@ pub struct LocalSiteUpdateForm {
   pub updated: Option<Option<DateTime<Utc>>>,
   pub federation_signed_fetch: Option<bool>,
   pub default_post_listing_mode: Option<PostListingMode>,
-  pub default_sort_type: Option<SortType>,
+  pub default_post_sort_type: Option<PostSortType>,
+  pub default_comment_sort_type: Option<CommentSortType>,
 }

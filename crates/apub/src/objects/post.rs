@@ -39,7 +39,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyResult},
   spawn_try_task,
   utils::{
     markdown::markdown_to_html,
@@ -107,13 +107,9 @@ impl Object for ApubPost {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Page> {
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut context.pool(), creator_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    let creator = Person::read(&mut context.pool(), creator_id).await?;
     let community_id = self.community_id;
-    let community = Community::read(&mut context.pool(), community_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+    let community = Community::read(&mut context.pool(), community_id).await?;
     let language = LanguageTag::new_single(self.language_id, &mut context.pool()).await?;
 
     let attachment = self
@@ -244,21 +240,19 @@ impl Object for ApubPost {
     let language_id =
       LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 
-    let form = PostInsertForm::builder()
-      .name(name)
-      .url(url.map(Into::into))
-      .body(body)
-      .alt_text(alt_text)
-      .creator_id(creator.id)
-      .community_id(community.id)
-      .published(page.published.map(Into::into))
-      .updated(page.updated.map(Into::into))
-      .deleted(Some(false))
-      .nsfw(page.sensitive)
-      .ap_id(Some(page.id.clone().into()))
-      .local(Some(false))
-      .language_id(language_id)
-      .build();
+    let form = PostInsertForm {
+      url: url.map(Into::into),
+      body,
+      alt_text,
+      published: page.published.map(Into::into),
+      updated: page.updated.map(Into::into),
+      deleted: Some(false),
+      nsfw: page.sensitive,
+      ap_id: Some(page.id.clone().into()),
+      local: Some(false),
+      language_id,
+      ..PostInsertForm::new(name, creator.id, community.id)
+    };
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(naive_now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;

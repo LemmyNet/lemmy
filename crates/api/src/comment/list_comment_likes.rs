@@ -5,7 +5,7 @@ use lemmy_api_common::{
   utils::is_mod_or_admin,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView, VoteView};
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::LemmyResult;
 
 /// Lists likes for a comment
 #[tracing::instrument(skip(context))]
@@ -19,8 +19,7 @@ pub async fn list_comment_likes(
     data.comment_id,
     Some(&local_user_view.local_user),
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindComment)?;
+  .await?;
 
   is_mod_or_admin(
     &mut context.pool(),

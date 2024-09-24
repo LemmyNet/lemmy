@@ -215,7 +215,7 @@ async fn can_accept_activity_in_community(
   if let Some(community) = community {
     // Local only community can't federate
     if community.visibility != CommunityVisibility::Public {
-      return Err(LemmyErrorType::CouldntFindCommunity.into());
+      return Err(LemmyErrorType::NotFound.into());
     }
     if !community.local {
       CommunityFollower::check_has_local_followers(&mut context.pool(), community.id).await?

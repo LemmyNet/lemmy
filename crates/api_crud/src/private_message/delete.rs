@@ -20,9 +20,7 @@ pub async fn delete_private_message(
 ) -> LemmyResult<Json<PrivateMessageResponse>> {
   // Checking permissions
   let private_message_id = data.private_message_id;
-  let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPrivateMessage)?;
+  let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
   if local_user_view.person.id != orig_private_message.creator_id {
     Err(LemmyErrorType::EditPrivateMessageNotAllowed)?
   }
@@ -47,9 +45,7 @@ pub async fn delete_private_message(
   )
   .await?;
 
-  let view = PrivateMessageView::read(&mut context.pool(), private_message_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPrivateMessage)?;
+  let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
   Ok(Json(PrivateMessageResponse {
     private_message_view: view,
   }))
