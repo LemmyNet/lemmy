@@ -24,6 +24,7 @@ pub struct CreateOAuthProvider {
   pub enabled: bool,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]

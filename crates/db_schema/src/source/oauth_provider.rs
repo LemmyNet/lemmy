@@ -86,7 +86,7 @@ impl Serialize for PublicOAuthProvider {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = oauth_provider))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -109,7 +109,8 @@ pub struct OAuthProviderInsertForm {
   pub enabled: bool,
 }
 
-#[derive(Debug, Clone)]
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = oauth_provider))]
 #[cfg_attr(feature = "full", ts(export))]
