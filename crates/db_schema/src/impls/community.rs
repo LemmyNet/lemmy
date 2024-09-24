@@ -194,7 +194,7 @@ impl Community {
     Ok(())
   }
 
-  pub async fn get_random_local_community(pool: &mut DbPool<'_>) -> Result<Option<Self>, Error> {
+  pub async fn get_random_local_community(pool: &mut DbPool<'_>) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     sql_function!(fn random() -> Text);
     community::table
@@ -205,7 +205,6 @@ impl Community {
       .limit(1)
       .first::<Self>(conn)
       .await
-      .optional()
   }
 }
 
@@ -333,16 +332,18 @@ impl CommunityFollower {
 
   /// Check if a remote instance has any followers on local instance. For this it is enough to check
   /// if any follow relation is stored. Dont use this for local community.
-  pub async fn has_local_followers(
+  pub async fn check_has_local_followers(
     pool: &mut DbPool<'_>,
     remote_community_id: CommunityId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     select(exists(community_follower::table.filter(
       community_follower::community_id.eq(remote_community_id),
     )))
-    .get_result(conn)
-    .await
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::CommunityHasNoFollowers.into())
   }
 }
 
@@ -443,7 +444,6 @@ impl ApubActor for Community {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
   use crate::{
     source::{

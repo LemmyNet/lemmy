@@ -92,36 +92,25 @@ pub async fn register(
   }
 
   if local_site.site_setup && local_site.captcha_enabled {
-    if let Some(captcha_uuid) = &data.captcha_uuid {
-      let uuid = uuid::Uuid::parse_str(captcha_uuid)?;
-      let check = CaptchaAnswer::check_captcha(
-        &mut context.pool(),
-        CheckCaptchaAnswer {
-          uuid,
-          answer: data.captcha_answer.clone().unwrap_or_default(),
-        },
-      )
-      .await?;
-      if !check {
-        Err(LemmyErrorType::CaptchaIncorrect)?
-      }
-    } else {
-      Err(LemmyErrorType::CaptchaIncorrect)?
-    }
+    let uuid = uuid::Uuid::parse_str(&data.captcha_uuid.clone().unwrap_or_default())?;
+    CaptchaAnswer::check_captcha(
+      &mut context.pool(),
+      CheckCaptchaAnswer {
+        uuid,
+        answer: data.captcha_answer.clone().unwrap_or_default(),
+      },
+    )
+    .await?;
   }
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   check_slurs(&data.username, &slur_regex)?;
   check_slurs_opt(&data.answer, &slur_regex)?;
 
-  if Person::is_username_taken(&mut context.pool(), &data.username).await? {
-    return Err(LemmyErrorType::UsernameAlreadyExists)?;
-  }
+  Person::check_username_taken(&mut context.pool(), &data.username).await?;
 
   if let Some(email) = &data.email {
-    if LocalUser::is_email_taken(&mut context.pool(), email).await? {
-      Err(LemmyErrorType::EmailAlreadyExists)?
-    }
+    LocalUser::check_is_email_taken(&mut context.pool(), email).await?;
   }
 
   // We have to create both a person, and local_user
@@ -338,9 +327,7 @@ pub async fn authenticate_with_oauth(
       check_slurs(username, &slur_regex)?;
       check_slurs_opt(&data.answer, &slur_regex)?;
 
-      if Person::is_username_taken(&mut context.pool(), username).await? {
-        return Err(LemmyErrorType::UsernameAlreadyExists)?;
-      }
+      Person::check_username_taken(&mut context.pool(), username).await?;
 
       // We have to create a person, a local_user, and an oauth_account
       person = create_person(

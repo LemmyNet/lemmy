@@ -303,7 +303,6 @@ impl CommentReplyQuery {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{comment_reply_view::CommentReplyQuery, structs::CommentReplyView};

@@ -29,12 +29,8 @@ impl Claims {
     let claims =
       decode::<Claims>(jwt, &key, &validation).with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
     let user_id = LocalUserId(claims.claims.sub.parse()?);
-    let is_valid = LoginToken::validate(&mut context.pool(), user_id, jwt).await?;
-    if !is_valid {
-      Err(LemmyErrorType::NotLoggedIn)?
-    } else {
-      Ok(user_id)
-    }
+    LoginToken::validate(&mut context.pool(), user_id, jwt).await?;
+    Ok(user_id)
   }
 
   pub async fn generate(
@@ -73,8 +69,7 @@ impl Claims {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{claims::Claims, context::LemmyContext};

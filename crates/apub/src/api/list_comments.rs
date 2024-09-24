@@ -12,10 +12,13 @@ use lemmy_api_common::{
   utils::check_private_instance,
 };
 use lemmy_db_schema::{
-  source::{comment::Comment, community::Community, local_site::LocalSite},
+  source::{comment::Comment, community::Community},
   traits::Crud,
 };
-use lemmy_db_views::{comment_view::CommentQuery, structs::LocalUserView};
+use lemmy_db_views::{
+  comment_view::CommentQuery,
+  structs::{LocalUserView, SiteView},
+};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
@@ -24,8 +27,8 @@ pub async fn list_comments(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetCommentsResponse>> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-  check_private_instance(&local_user_view, &local_site)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  check_private_instance(&local_user_view, &site_view.local_site)?;
 
   let community_id = if let Some(name) = &data.community_name {
     Some(
@@ -40,7 +43,7 @@ pub async fn list_comments(
   let sort = Some(comment_sort_type_with_default(
     data.sort,
     local_user_ref,
-    &local_site,
+    &site_view.local_site,
   ));
   let max_depth = data.max_depth;
   let saved_only = data.saved_only;
@@ -58,7 +61,7 @@ pub async fn list_comments(
   let listing_type = Some(listing_type_with_default(
     data.type_,
     local_user_view.as_ref().map(|u| &u.local_user),
-    &local_site,
+    &site_view.local_site,
     community_id,
   ));
 
@@ -88,7 +91,7 @@ pub async fn list_comments(
     limit,
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(&site_view.site, &mut context.pool())
   .await
   .with_lemmy_type(LemmyErrorType::CouldntGetComments)?;
 

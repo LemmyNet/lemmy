@@ -26,6 +26,7 @@ use lemmy_db_schema::{
   ListingType,
   PostSortType,
 };
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommunityView, (CommunityId, Option<&'a LocalUser>, bool)>,
@@ -111,9 +112,14 @@ fn queries<'a>() -> Queries<
 
     if let Some(search_term) = options.search_term {
       let searcher = fuzzy_search(&search_term);
-      query = query
-        .filter(community::name.ilike(searcher.clone()))
-        .or_filter(community::title.ilike(searcher))
+      let name_filter = community::name.ilike(searcher.clone());
+      let title_filter = community::title.ilike(searcher.clone());
+      let description_filter = community::description.ilike(searcher.clone());
+      query = if options.title_only.unwrap_or_default() {
+        query.filter(name_filter.or(title_filter))
+      } else {
+        query.filter(name_filter.or(title_filter.or(description_filter)))
+      }
     }
 
     // Hide deleted and removed for non-admins or mods
@@ -185,35 +191,39 @@ impl CommunityView {
       .await
   }
 
-  pub async fn is_mod_or_admin(
+  pub async fn check_is_mod_or_admin(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     community_id: CommunityId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let is_mod =
-      CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await?;
-    if is_mod {
-      Ok(true)
-    } else if let Ok(person_view) = PersonView::read(pool, person_id).await {
-      Ok(person_view.is_admin)
+      CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id).await;
+    if is_mod.is_ok()
+      || PersonView::read(pool, person_id)
+        .await
+        .is_ok_and(|t| t.is_admin)
+    {
+      Ok(())
     } else {
-      Ok(false)
+      Err(LemmyErrorType::NotAModOrAdmin)?
     }
   }
 
   /// Checks if a person is an admin, or moderator of any community.
-  pub async fn is_mod_of_any_or_admin(
+  pub async fn check_is_mod_of_any_or_admin(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let is_mod_of_any =
-      CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await?;
-    if is_mod_of_any {
-      Ok(true)
-    } else if let Ok(person_view) = PersonView::read(pool, person_id).await {
-      Ok(person_view.is_admin)
+      CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await;
+    if is_mod_of_any.is_ok()
+      || PersonView::read(pool, person_id)
+        .await
+        .is_ok_and(|t| t.is_admin)
+    {
+      Ok(())
     } else {
-      Ok(false)
+      Err(LemmyErrorType::NotAModOrAdmin)?
     }
   }
 }
@@ -224,6 +234,7 @@ pub struct CommunityQuery<'a> {
   pub sort: Option<PostSortType>,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
+  pub title_only: Option<bool>,
   pub is_mod_or_admin: bool,
   pub show_nsfw: bool,
   pub page: Option<i64>,
@@ -237,8 +248,7 @@ impl<'a> CommunityQuery<'a> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{community_view::CommunityQuery, structs::CommunityView};

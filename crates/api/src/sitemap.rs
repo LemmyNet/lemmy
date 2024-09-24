@@ -42,7 +42,7 @@ pub async fn get_sitemap(context: Data<LemmyContext>) -> LemmyResult<HttpRespons
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used)]
 pub(crate) mod tests {
 
   use crate::sitemap::generate_urlset;

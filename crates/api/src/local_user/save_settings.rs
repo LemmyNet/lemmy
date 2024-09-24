@@ -63,9 +63,7 @@ pub async fn save_user_settings(
     let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();
     // if email was changed, check that it is not taken and send verification mail
     if previous_email.deref() != email {
-      if LocalUser::is_email_taken(&mut context.pool(), email).await? {
-        return Err(LemmyErrorType::EmailAlreadyExists)?;
-      }
+      LocalUser::check_is_email_taken(&mut context.pool(), email).await?;
       send_verification_email(
         &local_user_view,
         email,
@@ -132,7 +130,6 @@ pub async fn save_user_settings(
     send_notifications_to_email: data.send_notifications_to_email,
     show_nsfw: data.show_nsfw,
     blur_nsfw: data.blur_nsfw,
-    auto_expand: data.auto_expand,
     show_bot_accounts: data.show_bot_accounts,
     default_post_sort_type,
     default_comment_sort_type,

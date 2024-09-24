@@ -48,8 +48,6 @@ fn not_zero(val: Option<i32>) -> Option<i32> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::site::{application_question_check, not_zero, site_default_post_listing_type_check};

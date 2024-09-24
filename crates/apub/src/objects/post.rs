@@ -39,7 +39,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyResult},
   spawn_try_task,
   utils::{
     markdown::markdown_to_html,
@@ -180,15 +180,12 @@ impl Object for ApubPost {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
-      let is_mod = CommunityModeratorView::is_community_moderator(
+      CommunityModeratorView::check_is_community_moderator(
         &mut context.pool(),
         community.id,
         creator.id,
       )
       .await?;
-      if !is_mod {
-        Err(LemmyErrorType::OnlyModsCanPostInCommunity)?
-      }
     }
     let mut name = page
       .name

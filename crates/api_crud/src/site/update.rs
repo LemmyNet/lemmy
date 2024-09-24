@@ -241,8 +241,6 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::site::update::validate_update_payload;
