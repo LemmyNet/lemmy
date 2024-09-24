@@ -189,8 +189,6 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::site::create::validate_create_payload;

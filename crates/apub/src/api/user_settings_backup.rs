@@ -308,8 +308,9 @@ where
   });
   Ok(failed_items.into_iter().join(","))
 }
+
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::indexing_slicing)]
 mod tests {
 
   use crate::api::user_settings_backup::{export_settings, import_settings, UserSettingsBackup};

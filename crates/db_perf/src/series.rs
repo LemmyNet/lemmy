@@ -75,7 +75,7 @@ impl<S: ValidGrouping<(), IsAggregate = is_aggregate::No>> ValidGrouping<()>
   type IsAggregate = is_aggregate::No;
 }
 
-#[allow(non_camel_case_types)]
+#[expect(non_camel_case_types)]
 #[derive(QueryId, Clone, Copy, Debug)]
 pub struct current_value;
 
