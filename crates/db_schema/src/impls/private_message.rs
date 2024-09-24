@@ -150,7 +150,6 @@ mod tests {
 
     let read_private_message = PrivateMessage::read(pool, inserted_private_message.id)
       .await
-      .unwrap()
       .unwrap();
 
     let private_message_update_form = PrivateMessageUpdateForm {

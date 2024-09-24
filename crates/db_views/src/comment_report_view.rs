@@ -192,7 +192,7 @@ impl CommentReportView {
     pool: &mut DbPool<'_>,
     report_id: CommentReportId,
     my_person_id: PersonId,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries().read(pool, (report_id, my_person_id)).await
   }
 
@@ -380,13 +380,11 @@ mod tests {
 
     let agg = CommentAggregates::read(pool, inserted_comment.id)
       .await
-      .unwrap()
       .unwrap();
 
     let read_jessica_report_view =
       CommentReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
         .await
-        .unwrap()
         .unwrap();
     let expected_jessica_report_view = CommentReportView {
       comment_report: inserted_jessica_report.clone(),
@@ -540,7 +538,6 @@ mod tests {
     let read_jessica_report_view_after_resolve =
       CommentReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
         .await
-        .unwrap()
         .unwrap();
 
     let mut expected_jessica_report_view_after_resolve = expected_jessica_report_view;

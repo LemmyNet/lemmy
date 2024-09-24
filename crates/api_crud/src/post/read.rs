@@ -33,16 +33,14 @@ pub async fn get_post(
   } else if let Some(comment_id) = data.comment_id {
     Comment::read(&mut context.pool(), comment_id)
       .await?
-      .ok_or(LemmyErrorType::CouldntFindComment)?
       .post_id
   } else {
-    Err(LemmyErrorType::CouldntFindPost)?
+    Err(LemmyErrorType::NotFound)?
   };
 
   // Check to see if the person is a mod or admin, to show deleted / removed
-  let community_id = Post::read(&mut context.pool(), post_id)
+  let community_id = Post::read_xx(&mut context.pool(), post_id)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?
     .community_id;
 
   let is_mod_or_admin = is_mod_or_admin_opt(
@@ -60,8 +58,7 @@ pub async fn get_post(
     local_user.as_ref(),
     is_mod_or_admin,
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindPost)?;
+  .await?;
 
   let post_id = post_view.post.id;
   if let Some(person_id) = person_id {
@@ -83,15 +80,15 @@ pub async fn get_post(
     local_user.as_ref(),
     is_mod_or_admin,
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  .await?;
 
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
   // Fetch the cross_posts
   let cross_posts = if let Some(url) = &post_view.post.url {
     let mut x_posts = PostQuery {
-      url_search: Some(url.inner().as_str().into()),
+      url_only: Some(true),
+      search_term: Some(url.inner().as_str().into()),
       local_user: local_user.as_ref(),
       ..Default::default()
     }

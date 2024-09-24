@@ -92,22 +92,15 @@ pub async fn register(
   }
 
   if local_site.site_setup && local_site.captcha_enabled {
-    if let Some(captcha_uuid) = &data.captcha_uuid {
-      let uuid = uuid::Uuid::parse_str(captcha_uuid)?;
-      let check = CaptchaAnswer::check_captcha(
-        &mut context.pool(),
-        CheckCaptchaAnswer {
-          uuid,
-          answer: data.captcha_answer.clone().unwrap_or_default(),
-        },
-      )
-      .await?;
-      if !check {
-        Err(LemmyErrorType::CaptchaIncorrect)?
-      }
-    } else {
-      Err(LemmyErrorType::CaptchaIncorrect)?
-    }
+    let uuid = uuid::Uuid::parse_str(&data.captcha_uuid.clone().unwrap_or_default())?;
+    CaptchaAnswer::check_captcha(
+      &mut context.pool(),
+      CheckCaptchaAnswer {
+        uuid,
+        answer: data.captcha_answer.clone().unwrap_or_default(),
+      },
+    )
+    .await?;
   }
 
   let slur_regex = local_site_to_slur_regex(&local_site);
@@ -119,9 +112,7 @@ pub async fn register(
   }
 
   if let Some(email) = &data.email {
-    if LocalUser::is_email_taken(&mut context.pool(), email).await? {
-      Err(LemmyErrorType::EmailAlreadyExists)?
-    }
+    LocalUser::check_is_email_taken(&mut context.pool(), email).await?;
   }
 
   // We have to create both a person, and local_user
@@ -234,7 +225,6 @@ pub async fn authenticate_with_oauth(
   let oauth_provider = OAuthProvider::read(&mut context.pool(), oauth_provider_id)
     .await
     .ok()
-    .flatten()
     .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?;
 
   if !oauth_provider.enabled {
@@ -262,10 +252,10 @@ pub async fn authenticate_with_oauth(
 
   // Lookup user by oauth_user_id
   let mut local_user_view =
-    LocalUserView::find_by_oauth_id(&mut context.pool(), oauth_provider.id, &oauth_user_id).await?;
+    LocalUserView::find_by_oauth_id(&mut context.pool(), oauth_provider.id, &oauth_user_id).await;
 
   let local_user: LocalUser;
-  if let Some(user_view) = local_user_view {
+  if let Ok(user_view) = local_user_view {
     // user found by oauth_user_id => Login user
     local_user = user_view.clone().local_user;
 
@@ -292,10 +282,10 @@ pub async fn authenticate_with_oauth(
       local_site.registration_mode == RegistrationMode::RequireApplication;
 
     // Lookup user by OAUTH email and link accounts
-    local_user_view = LocalUserView::find_by_email(&mut context.pool(), &email).await?;
+    local_user_view = LocalUserView::find_by_email(&mut context.pool(), &email).await;
 
     let person;
-    if let Some(user_view) = local_user_view {
+    if let Ok(user_view) = local_user_view {
       // user found by email => link and login if linking is allowed
 
       // we only allow linking by email when email_verification is required otherwise emails cannot

@@ -87,12 +87,7 @@ pub(crate) async fn verify_person_in_community(
   }
   let person_id = person.id;
   let community_id = community.id;
-  let is_banned = CommunityPersonBanView::get(&mut context.pool(), person_id, community_id).await?;
-  if is_banned {
-    Err(LemmyErrorType::PersonIsBannedFromCommunity)?
-  } else {
-    Ok(())
-  }
+  CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await
 }
 
 /// Verify that mod action in community was performed by a moderator.
@@ -106,14 +101,6 @@ pub(crate) async fn verify_mod_action(
   community: &Community,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let mod_ = mod_id.dereference(context).await?;
-
-  let is_mod_or_admin =
-    CommunityView::is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await?;
-  if is_mod_or_admin {
-    return Ok(());
-  }
-
   // mod action comes from the same instance as the community, so it was presumably done
   // by an instance admin.
   // TODO: federate instance admin status and check it here
@@ -121,7 +108,8 @@ pub(crate) async fn verify_mod_action(
     return Ok(());
   }
 
-  Err(LemmyErrorType::NotAModerator)?
+  let mod_ = mod_id.dereference(context).await?;
+  CommunityView::check_is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await
 }
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
@@ -245,9 +233,7 @@ pub async fn match_outgoing_activities(
         CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Update, context).await
       }
       DeletePost(post, person, data) => {
-        let community = Community::read(&mut context.pool(), post.community_id)
-          .await?
-          .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+        let community = Community::read(&mut context.pool(), post.community_id).await?;
         send_apub_delete_in_community(
           person,
           community,
@@ -264,9 +250,7 @@ pub async fn match_outgoing_activities(
         reason,
         removed,
       } => {
-        let community = Community::read(&mut context.pool(), post.community_id)
-          .await?
-          .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+        let community = Community::read(&mut context.pool(), post.community_id).await?;
         send_apub_delete_in_community(
           moderator,
           community,

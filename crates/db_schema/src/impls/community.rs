@@ -35,8 +35,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{
   deserialize,
-  dsl,
-  dsl::{exists, insert_into},
+  dsl::{self, exists, insert_into},
   pg::Pg,
   result::Error,
   select,
@@ -152,26 +151,24 @@ impl Community {
   pub async fn get_by_collection_url(
     pool: &mut DbPool<'_>,
     url: &DbUrl,
-  ) -> Result<Option<(Community, CollectionType)>, Error> {
+  ) -> LemmyResult<(Community, CollectionType)> {
     let conn = &mut get_conn(pool).await?;
     let res = community::table
       .filter(community::moderators_url.eq(url))
       .first(conn)
-      .await
-      .optional()?;
+      .await;
 
-    if let Some(c) = res {
-      Ok(Some((c, CollectionType::Moderators)))
+    if let Ok(c) = res {
+      Ok((c, CollectionType::Moderators))
     } else {
       let res = community::table
         .filter(community::featured_url.eq(url))
         .first(conn)
-        .await
-        .optional()?;
-      if let Some(c) = res {
-        Ok(Some((c, CollectionType::Featured)))
+        .await;
+      if let Ok(c) = res {
+        Ok((c, CollectionType::Featured))
       } else {
-        Ok(None)
+        Err(LemmyErrorType::NotFound.into())
       }
     }
   }
@@ -322,16 +319,18 @@ impl CommunityFollower {
 
   /// Check if a remote instance has any followers on local instance. For this it is enough to check
   /// if any follow relation is stored. Dont use this for local community.
-  pub async fn has_local_followers(
+  pub async fn check_has_local_followers(
     pool: &mut DbPool<'_>,
     remote_community_id: CommunityId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     select(exists(community_follower::table.filter(
       community_follower::community_id.eq(remote_community_id),
     )))
-    .get_result(conn)
-    .await
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::CommunityHasNoFollowers.into())
   }
 }
 
@@ -455,7 +454,7 @@ mod tests {
     utils::build_db_pool_for_tests,
     CommunityVisibility,
   };
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -594,9 +593,7 @@ mod tests {
       expires: None,
     };
 
-    let read_community = Community::read(pool, inserted_community.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+    let read_community = Community::read(pool, inserted_community.id).await?;
 
     let update_community_form = CommunityUpdateForm {
       title: Some("nada".to_owned()),

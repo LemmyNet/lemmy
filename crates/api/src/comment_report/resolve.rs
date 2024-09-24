@@ -17,9 +17,7 @@ pub async fn resolve_comment_report(
 ) -> LemmyResult<Json<CommentReportResponse>> {
   let report_id = data.report_id;
   let person_id = local_user_view.person.id;
-  let report = CommentReportView::read(&mut context.pool(), report_id, person_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindCommentReport)?;
+  let report = CommentReportView::read(&mut context.pool(), report_id, person_id).await?;
 
   let person_id = local_user_view.person.id;
   check_community_mod_action(
@@ -41,9 +39,8 @@ pub async fn resolve_comment_report(
   }
 
   let report_id = data.report_id;
-  let comment_report_view = CommentReportView::read(&mut context.pool(), report_id, person_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindCommentReport)?;
+  let comment_report_view =
+    CommentReportView::read(&mut context.pool(), report_id, person_id).await?;
 
   Ok(Json(CommentReportResponse {
     comment_report_view,

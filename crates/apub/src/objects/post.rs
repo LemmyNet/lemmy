@@ -39,7 +39,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyResult},
   spawn_try_task,
   utils::{
     markdown::markdown_to_html,
@@ -107,13 +107,9 @@ impl Object for ApubPost {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Page> {
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut context.pool(), creator_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    let creator = Person::read(&mut context.pool(), creator_id).await?;
     let community_id = self.community_id;
-    let community = Community::read(&mut context.pool(), community_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+    let community = Community::read(&mut context.pool(), community_id).await?;
     let language = LanguageTag::new_single(self.language_id, &mut context.pool()).await?;
 
     let attachment = self
@@ -184,15 +180,12 @@ impl Object for ApubPost {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
-      let is_mod = CommunityModeratorView::is_community_moderator(
+      CommunityModeratorView::check_is_community_moderator(
         &mut context.pool(),
         community.id,
         creator.id,
       )
       .await?;
-      if !is_mod {
-        Err(LemmyErrorType::OnlyModsCanPostInCommunity)?
-      }
     }
     let mut name = page
       .name

@@ -10,7 +10,7 @@ use lemmy_db_schema::source::{
   local_user::{LocalUser, LocalUserUpdateForm},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn verify_email(
   data: Json<VerifyEmail>,
@@ -18,9 +18,7 @@ pub async fn verify_email(
 ) -> LemmyResult<Json<SuccessResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let token = data.token.clone();
-  let verification = EmailVerification::read_for_token(&mut context.pool(), &token)
-    .await?
-    .ok_or(LemmyErrorType::TokenNotFound)?;
+  let verification = EmailVerification::read_for_token(&mut context.pool(), &token).await?;
 
   let form = LocalUserUpdateForm {
     // necessary in case this is a new signup
@@ -37,9 +35,7 @@ pub async fn verify_email(
 
   // send out notification about registration application to admins if enabled
   if site_view.local_site.application_email_admins {
-    let local_user = LocalUserView::read(&mut context.pool(), local_user_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    let local_user = LocalUserView::read(&mut context.pool(), local_user_id).await?;
 
     send_new_applicant_email_to_admins(
       &local_user.person.name,

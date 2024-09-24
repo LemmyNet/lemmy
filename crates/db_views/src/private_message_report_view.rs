@@ -78,7 +78,7 @@ impl PrivateMessageReportView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     report_id: PrivateMessageReportId,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries().read(pool, report_id).await
   }
 

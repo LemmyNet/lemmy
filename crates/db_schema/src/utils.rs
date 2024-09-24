@@ -13,7 +13,6 @@ use diesel::{
   },
   sql_types::{self, Timestamptz},
   IntoSql,
-  OptionalExtension,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -574,12 +573,12 @@ impl<RF, LF> Queries<RF, LF> {
     self,
     pool: &'a mut DbPool<'_>,
     args: Args,
-  ) -> Result<Option<T>, DieselError>
+  ) -> Result<T, DieselError>
   where
     RF: ReadFn<'a, T, Args>,
   {
     let conn = get_conn(pool).await?;
-    (self.read_fn)(conn, args).await.optional()
+    (self.read_fn)(conn, args).await
   }
 
   pub async fn list<'a, T, Args>(
