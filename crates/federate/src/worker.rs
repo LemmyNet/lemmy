@@ -439,8 +439,8 @@ impl InstanceWorker {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
+#[expect(clippy::indexing_slicing)]
 mod test {
 
   use super::*;

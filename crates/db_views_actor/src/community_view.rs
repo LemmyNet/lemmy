@@ -248,8 +248,7 @@ impl<'a> CommunityQuery<'a> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{community_view::CommunityQuery, structs::CommunityView};
