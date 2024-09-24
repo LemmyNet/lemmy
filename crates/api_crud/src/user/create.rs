@@ -107,9 +107,7 @@ pub async fn register(
   check_slurs(&data.username, &slur_regex)?;
   check_slurs_opt(&data.answer, &slur_regex)?;
 
-  if Person::is_username_taken(&mut context.pool(), &data.username).await? {
-    return Err(LemmyErrorType::UsernameAlreadyExists)?;
-  }
+  Person::check_username_taken(&mut context.pool(), &data.username).await?;
 
   if let Some(email) = &data.email {
     LocalUser::check_is_email_taken(&mut context.pool(), email).await?;
@@ -329,9 +327,7 @@ pub async fn authenticate_with_oauth(
       check_slurs(username, &slur_regex)?;
       check_slurs_opt(&data.answer, &slur_regex)?;
 
-      if Person::is_username_taken(&mut context.pool(), username).await? {
-        return Err(LemmyErrorType::UsernameAlreadyExists)?;
-      }
+      Person::check_username_taken(&mut context.pool(), username).await?;
 
       // We have to create a person, a local_user, and an oauth_account
       person = create_person(
