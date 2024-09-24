@@ -86,6 +86,7 @@ impl Serialize for PublicOAuthProvider {
   }
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = oauth_provider))]
@@ -104,9 +105,9 @@ pub struct OAuthProviderInsertForm {
   pub client_id: String,
   pub client_secret: String,
   pub scopes: String,
-  pub auto_verify_email: bool,
-  pub account_linking_enabled: bool,
-  pub enabled: bool,
+  pub auto_verify_email: Option<bool>,
+  pub account_linking_enabled: Option<bool>,
+  pub enabled: Option<bool>,
 }
 
 #[skip_serializing_none]

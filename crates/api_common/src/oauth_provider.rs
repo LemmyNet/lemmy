@@ -19,9 +19,9 @@ pub struct CreateOAuthProvider {
   pub client_id: String,
   pub client_secret: String,
   pub scopes: String,
-  pub auto_verify_email: bool,
-  pub account_linking_enabled: bool,
-  pub enabled: bool,
+  pub auto_verify_email: Option<bool>,
+  pub account_linking_enabled: Option<bool>,
+  pub enabled: Option<bool>,
 }
 
 #[skip_serializing_none]
