@@ -84,8 +84,8 @@ pub struct CaptchaResponse {
 pub struct SaveUserSettings {
   /// Show nsfw posts.
   pub show_nsfw: Option<bool>,
+  /// Blur nsfw posts.
   pub blur_nsfw: Option<bool>,
-  pub auto_expand: Option<bool>,
   /// Your user's theme.
   pub theme: Option<String>,
   /// The default post listing type, usually "local"
