@@ -112,9 +112,14 @@ fn queries<'a>() -> Queries<
 
     if let Some(search_term) = options.search_term {
       let searcher = fuzzy_search(&search_term);
-      query = query
-        .filter(community::name.ilike(searcher.clone()))
-        .or_filter(community::title.ilike(searcher))
+      let name_filter = community::name.ilike(searcher.clone());
+      let title_filter = community::title.ilike(searcher.clone());
+      let description_filter = community::description.ilike(searcher.clone());
+      query = if options.title_only.unwrap_or_default() {
+        query.filter(name_filter.or(title_filter))
+      } else {
+        query.filter(name_filter.or(title_filter.or(description_filter)))
+      }
     }
 
     // Hide deleted and removed for non-admins or mods
@@ -229,6 +234,7 @@ pub struct CommunityQuery<'a> {
   pub sort: Option<PostSortType>,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
+  pub title_only: Option<bool>,
   pub is_mod_or_admin: bool,
   pub show_nsfw: bool,
   pub page: Option<i64>,
