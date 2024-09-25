@@ -595,7 +595,6 @@ impl<RF, LF> Queries<RF, LF> {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use super::*;

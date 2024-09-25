@@ -1,7 +1,7 @@
 use crate::{
-  diesel::OptionalExtension,
+  diesel::{BoolExpressionMethods, OptionalExtension},
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::{post, post_hide, post_like, post_read, post_saved},
+  schema::{community, person, post, post_hide, post_like, post_read, post_saved},
   source::post::{
     Post,
     PostHide,
@@ -20,6 +20,7 @@ use crate::{
     functions::coalesce,
     get_conn,
     naive_now,
+    now,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
@@ -30,7 +31,7 @@ use crate::{
 use ::url::Url;
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::insert_into,
+  dsl::{count, insert_into, not},
   result::Error,
   DecoratableTarget,
   ExpressionMethods,
@@ -173,6 +174,7 @@ impl Post {
     let object_id: DbUrl = object_id.into();
     post::table
       .filter(post::ap_id.eq(object_id))
+      .filter(post::scheduled_publish_time.is_null())
       .first(conn)
       .await
       .optional()
@@ -245,6 +247,28 @@ impl Post {
     ))
     .get_results::<Self>(conn)
     .await
+  }
+
+  pub async fn user_scheduled_post_count(
+    person_id: PersonId,
+    pool: &mut DbPool<'_>,
+  ) -> Result<i64, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    post::table
+      .inner_join(person::table)
+      .inner_join(community::table)
+      // find all posts which have scheduled_publish_time that is in the  past
+      .filter(post::scheduled_publish_time.is_not_null())
+      .filter(coalesce(post::scheduled_publish_time, now()).lt(now()))
+      // make sure the post and community are still around
+      .filter(not(post::deleted.or(post::removed)))
+      .filter(not(community::removed.or(community::deleted)))
+      // only posts by specified user
+      .filter(post::creator_id.eq(person_id))
+      .select(count(post::id))
+      .first::<i64>(conn)
+      .await
   }
 }
 
@@ -368,8 +392,7 @@ impl PostHide {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{
@@ -459,6 +482,7 @@ mod tests {
       featured_community: false,
       featured_local: false,
       url_content_type: None,
+      scheduled_publish_time: None,
     };
 
     // Post Like

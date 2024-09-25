@@ -157,11 +157,6 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     rate_limit_cell.clone(),
   );
 
-  let scheduled_tasks = (!args.disable_scheduled_tasks).then(|| {
-    // Schedules various cleanup tasks for the DB
-    tokio::task::spawn(scheduled_tasks::setup(context.clone()))
-  });
-
   if let Some(prometheus) = SETTINGS.prometheus.clone() {
     serve_prometheus(prometheus, context.clone())?;
   }
@@ -187,7 +182,14 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     }))
     .expect("set function pointer");
   let request_data = federation_config.to_request_data();
-  let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(request_data));
+  let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(
+    request_data.reset_request_count(),
+  ));
+
+  let scheduled_tasks = (!args.disable_scheduled_tasks).then(|| {
+    // Schedules various cleanup tasks for the DB
+    tokio::task::spawn(scheduled_tasks::setup(request_data.reset_request_count()))
+  });
 
   let server = if !args.disable_http_server {
     if let Some(startup_server_handle) = startup_server_handle {

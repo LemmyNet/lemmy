@@ -776,12 +776,13 @@ pub async fn remove_or_restore_user_data_in_community(
 
   // Comments
   // TODO Diesel doesn't allow updates with joins, so this has to be a loop
+  let site = Site::read_local(pool).await?;
   let comments = CommentQuery {
     creator_id: Some(banned_person_id),
     community_id: Some(community_id),
     ..Default::default()
   }
-  .list(pool)
+  .list(&site, pool)
   .await?;
 
   for comment_view in &comments {
@@ -1066,8 +1067,7 @@ fn build_proxied_image_url(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::*;

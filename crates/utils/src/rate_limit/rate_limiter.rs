@@ -136,7 +136,6 @@ impl<K: Eq + Hash, C: MapLevel> MapLevel for Map<K, C> {
       .entry(addr_part)
       .or_insert(RateLimitedGroup::new(now, adjusted_configs));
 
-    #[allow(clippy::indexing_slicing)]
     let total_passes = group.check_total(action_type, now, adjusted_configs[action_type]);
 
     let children_pass = group.children.check(
@@ -161,7 +160,6 @@ impl<K: Eq + Hash, C: MapLevel> MapLevel for Map<K, C> {
       // Evaluated if `some_children_remaining` is false
       let total_has_refill_in_future = || {
         group.total.into_iter().any(|(action_type, bucket)| {
-          #[allow(clippy::indexing_slicing)]
           let config = configs[action_type];
           bucket.update(now, config).tokens != config.capacity
         })
@@ -214,7 +212,6 @@ impl<C: Default> RateLimitedGroup<C> {
     now: InstantSecs,
     config: BucketConfig,
   ) -> bool {
-    #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` function
     let bucket = &mut self.total[action_type];
 
     let new_bucket = bucket.update(now, config);
@@ -311,8 +308,7 @@ fn split_ipv6(ip: Ipv6Addr) -> ([u8; 6], u8, u8) {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::{ActionType, BucketConfig, InstantSecs, RateLimitState, RateLimitedGroup};
@@ -361,7 +357,6 @@ mod tests {
       assert!(post_passed);
     }
 
-    #[allow(clippy::indexing_slicing)]
     let expected_buckets = |factor: u32, tokens_consumed: u32| {
       let adjusted_configs = bucket_configs.map(|_, config| BucketConfig {
         capacity: config.capacity.saturating_mul(factor),

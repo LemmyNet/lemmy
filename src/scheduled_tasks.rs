@@ -1,20 +1,27 @@
+use activitypub_federation::config::Data;
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
-  dsl::IntervalDsl,
+  dsl::{exists, not, IntervalDsl},
   sql_query,
   sql_types::{Integer, Timestamptz},
+  BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
   QueryableByName,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{
+  context::LemmyContext,
+  send_activity::{ActivityChannel, SendActivityData},
+};
+use lemmy_api_crud::post::create::send_webmention;
 use lemmy_db_schema::{
   schema::{
     captcha_answer,
     comment,
+    community,
     community_person_ban,
     instance,
     person,
@@ -23,10 +30,13 @@ use lemmy_db_schema::{
     sent_activity,
   },
   source::{
+    community::Community,
     instance::{Instance, InstanceForm},
     local_user::LocalUser,
+    post::{Post, PostUpdateForm},
   },
-  utils::{get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
+  traits::Crud,
+  utils::{functions::coalesce, get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use lemmy_utils::error::LemmyResult;
@@ -35,13 +45,13 @@ use std::time::Duration;
 use tracing::{error, info, warn};
 
 /// Schedules various cleanup tasks for lemmy in a background thread
-pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
+pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // Setup the connections
   let mut scheduler = AsyncScheduler::new();
   startup_jobs(&mut context.pool()).await;
 
   let context_1 = context.clone();
-  // Update active counts every hour
+  // Update active counts expired bans and unpublished posts every hour
   scheduler.every(CTimeUnits::hour(1)).run(move || {
     let context = context_1.clone();
 
@@ -51,23 +61,15 @@ pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
     }
   });
 
-  let context_1 = context.clone();
-  // Update hot ranks every 15 minutes
+  let context_1 = context.reset_request_count();
+  // Every 10 minutes update hot ranks, delete expired captchas and publish scheduled posts
   scheduler.every(CTimeUnits::minutes(10)).run(move || {
-    let context = context_1.clone();
+    let context = context_1.reset_request_count();
 
     async move {
       update_hot_ranks(&mut context.pool()).await;
-    }
-  });
-
-  let context_1 = context.clone();
-  // Delete any captcha answers older than ten minutes, every ten minutes
-  scheduler.every(CTimeUnits::minutes(10)).run(move || {
-    let context = context_1.clone();
-
-    async move {
       delete_expired_captcha_answers(&mut context.pool()).await;
+      publish_scheduled_posts(&context).await;
     }
   });
 
@@ -94,7 +96,7 @@ pub async fn setup(context: LemmyContext) -> LemmyResult<()> {
       delete_old_denied_users(&mut context.pool()).await;
       update_instance_software(&mut context.pool(), context.client())
         .await
-        .map_err(|e| warn!("Failed to update instance software: {e}"))
+        .inspect_err(|e| warn!("Failed to update instance software: {e}"))
         .ok();
     }
   });
@@ -279,7 +281,7 @@ async fn delete_expired_captcha_answers(pool: &mut DbPool<'_>) {
       .map(|_| {
         info!("Done.");
       })
-      .map_err(|e| error!("Failed to clear old captcha answers: {e}"))
+      .inspect_err(|e| error!("Failed to clear old captcha answers: {e}"))
       .ok();
     }
     Err(e) => {
@@ -300,7 +302,7 @@ async fn clear_old_activities(pool: &mut DbPool<'_>) {
       )
       .execute(&mut conn)
       .await
-      .map_err(|e| error!("Failed to clear old sent activities: {e}"))
+      .inspect_err(|e| error!("Failed to clear old sent activities: {e}"))
       .ok();
 
       diesel::delete(
@@ -310,7 +312,7 @@ async fn clear_old_activities(pool: &mut DbPool<'_>) {
       .execute(&mut conn)
       .await
       .map(|_| info!("Done."))
-      .map_err(|e| error!("Failed to clear old received activities: {e}"))
+      .inspect_err(|e| error!("Failed to clear old received activities: {e}"))
       .ok();
     }
     Err(e) => {
@@ -325,7 +327,7 @@ async fn delete_old_denied_users(pool: &mut DbPool<'_>) {
     .map(|_| {
       info!("Done.");
     })
-    .map_err(|e| error!("Failed to deleted old denied users: {e}"))
+    .inspect_err(|e| error!("Failed to deleted old denied users: {e}"))
     .ok();
 }
 
@@ -351,7 +353,7 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) {
       .map(|_| {
         info!("Done.");
       })
-      .map_err(|e| error!("Failed to overwrite deleted posts: {e}"))
+      .inspect_err(|e| error!("Failed to overwrite deleted posts: {e}"))
       .ok();
 
       info!("Overwriting deleted comments...");
@@ -367,7 +369,7 @@ async fn overwrite_deleted_posts_and_comments(pool: &mut DbPool<'_>) {
       .map(|_| {
         info!("Done.");
       })
-      .map_err(|e| error!("Failed to overwrite deleted comments: {e}"))
+      .inspect_err(|e| error!("Failed to overwrite deleted comments: {e}"))
       .ok();
     }
     Err(e) => {
@@ -399,14 +401,14 @@ async fn active_counts(pool: &mut DbPool<'_>) {
         sql_query(update_site_stmt)
           .execute(&mut conn)
           .await
-          .map_err(|e| error!("Failed to update site stats: {e}"))
+          .inspect_err(|e| error!("Failed to update site stats: {e}"))
           .ok();
 
         let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", i.1, i.0);
         sql_query(update_community_stmt)
           .execute(&mut conn)
           .await
-          .map_err(|e| error!("Failed to update community stats: {e}"))
+          .inspect_err(|e| error!("Failed to update community stats: {e}"))
           .ok();
       }
 
@@ -433,7 +435,7 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) {
       .set(person::banned.eq(false))
       .execute(&mut conn)
       .await
-      .map_err(|e| error!("Failed to update person.banned when expires: {e}"))
+      .inspect_err(|e| error!("Failed to update person.banned when expires: {e}"))
       .ok();
 
       diesel::delete(
@@ -441,8 +443,64 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) {
       )
       .execute(&mut conn)
       .await
-      .map_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
+      .inspect_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
       .ok();
+    }
+    Err(e) => {
+      error!("Failed to get connection from pool: {e}");
+    }
+  }
+}
+
+/// Find all unpublished posts with scheduled date in the future, and publish them.
+async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
+  let pool = &mut context.pool();
+  let conn = get_conn(pool).await;
+
+  match conn {
+    Ok(mut conn) => {
+      let scheduled_posts: Vec<_> = post::table
+        .inner_join(community::table)
+        .inner_join(person::table)
+        // find all posts which have scheduled_publish_time that is in the  past
+        .filter(post::scheduled_publish_time.is_not_null())
+        .filter(coalesce(post::scheduled_publish_time, now()).lt(now()))
+        // make sure the post, person and community are still around
+        .filter(not(post::deleted.or(post::removed)))
+        .filter(not(person::banned.or(person::deleted)))
+        .filter(not(community::removed.or(community::deleted)))
+        // ensure that user isnt banned from community
+        .filter(not(exists(
+          community_person_ban::table
+            .filter(community_person_ban::community_id.eq(community::id))
+            .filter(community_person_ban::person_id.eq(person::id)),
+        )))
+        .select((post::all_columns, community::all_columns))
+        .get_results::<(Post, Community)>(&mut conn)
+        .await
+        .inspect_err(|e| error!("Failed to read unpublished posts: {e}"))
+        .ok()
+        .unwrap_or_default();
+
+      for (post, community) in scheduled_posts {
+        // mark post as published in db
+        let form = PostUpdateForm {
+          scheduled_publish_time: Some(None),
+          ..Default::default()
+        };
+        Post::update(&mut context.pool(), post.id, &form)
+          .await
+          .inspect_err(|e| error!("Failed update scheduled post: {e}"))
+          .ok();
+
+        // send out post via federation and webmention
+        let send_activity = SendActivityData::CreatePost(post.clone());
+        ActivityChannel::submit_activity(send_activity, context)
+          .await
+          .inspect_err(|e| error!("Failed federate scheduled post: {e}"))
+          .ok();
+        send_webmention(post, community);
+      }
     }
     Err(e) => {
       error!("Failed to get connection from pool: {e}");
@@ -547,7 +605,6 @@ async fn build_update_instance_form(
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::scheduled_tasks::build_update_instance_form;
