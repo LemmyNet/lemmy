@@ -3,7 +3,7 @@ use markdown_it::MarkdownIt;
 use regex::RegexSet;
 use std::sync::LazyLock;
 
-mod image_links;
+pub mod image_links;
 mod link_rule;
 mod spoiler_rule;
 

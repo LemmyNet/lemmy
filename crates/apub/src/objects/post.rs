@@ -3,6 +3,7 @@ use crate::{
   check_apub_id_valid_with_strictness,
   local_site_data_cached,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
+  post_links::markdown_rewrite_remote_post_links_opt,
   protocol::{
     objects::{
       page::{Attachment, AttributedTo, Hashtag, HashtagType, Page, PageType},
@@ -237,6 +238,7 @@ impl Object for ApubPost {
 
     let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
     let body = process_markdown_opt(&body, slur_regex, &url_blocklist, context).await?;
+    let body = markdown_rewrite_remote_post_links_opt(body, context).await;
     let language_id =
       LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 

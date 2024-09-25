@@ -26,6 +26,7 @@ pub mod fetcher;
 pub mod http;
 pub(crate) mod mentions;
 pub mod objects;
+mod post_links;
 pub mod protocol;
 
 /// Maximum number of outgoing HTTP requests to fetch a single object. Needs to be high enough
