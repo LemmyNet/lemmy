@@ -106,7 +106,7 @@ pub async fn search(
   };
 
   let community_query = CommunityQuery {
-    sort: sort.map(|s| CommunitySortType::from(s)),
+    sort: sort.map(CommunitySortType::from),
     listing_type,
     search_term: Some(q.clone()),
     title_only,
