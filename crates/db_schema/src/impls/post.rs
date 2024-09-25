@@ -543,7 +543,7 @@ mod tests {
       .unwrap();
 
     // Scheduled post count
-    let scheduled_post_count = Post::user_scheduled_post_count(pool, inserted_person.id)
+    let scheduled_post_count = Post::user_scheduled_post_count(inserted_person.id, pool)
       .await
       .unwrap();
     assert_eq!(1, scheduled_post_count);
