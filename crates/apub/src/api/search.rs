@@ -14,7 +14,8 @@ use lemmy_db_views::{
 };
 use lemmy_db_views_actor::{
   structs::CommunitySortType,
-  community_view::CommunityQuery, person_view::PersonQuery,
+  community_view::CommunityQuery,
+  person_view::PersonQuery,
 };
 use lemmy_utils::error::LemmyResult;
 

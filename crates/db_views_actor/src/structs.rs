@@ -88,7 +88,6 @@ pub enum CommunitySortType {
   NameDesc,
 }
 
-
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
