@@ -57,6 +57,43 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::CommunitySortTypeEnum"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "full", ts(export))]
+// TODO add the controversial and scaled rankings to the doc below
+/// The community sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
+pub enum CommunitySortType {
+  #[default]
+  Active,
+  Hot,
+  New,
+  Old,
+  TopDay,
+  TopWeek,
+  TopMonth,
+  TopYear,
+  TopAll,
+  MostComments,
+  NewComments,
+  TopHour,
+  TopSixHour,
+  TopTwelveHour,
+  TopThreeMonths,
+  TopSixMonths,
+  TopNineMonths,
+  Controversial,
+  Scaled,
+  NameAsc,
+  NameDesc,
+}
+
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
+)]
+#[cfg_attr(feature = "full", derive(DbEnum, TS))]
+#[cfg_attr(
+  feature = "full",
   ExistingTypePath = "crate::schema::sql_types::PostSortTypeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
