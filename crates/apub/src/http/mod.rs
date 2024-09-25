@@ -48,7 +48,10 @@ pub async fn shared_inbox(
   match res {
     // Ignore NotFound error, usually means that the sending actor was deleted and sent a delete
     // activity: https://github.com/LemmyNet/lemmy/issues/2240
-    Ok(Err(LemmyError {error_type: LemmyErrorType::NotFound, ..})) => Ok(HttpResponse::Ok().finish()),
+    Ok(Err(LemmyError {
+      error_type: LemmyErrorType::NotFound,
+      ..
+    })) => Ok(HttpResponse::Ok().finish()),
     // Top-level error means we hit the send timeout
     Err(_) => Err(LemmyErrorType::InboxTimeout.into()),
     Ok(other) => other,

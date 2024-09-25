@@ -47,7 +47,7 @@ full = [
   "dep:uuid",
   "dep:itertools",
   "dep:markdown-it",
-  "dep:activitypub_federation"
+  "dep:activitypub_federation",
 ]
 
 [dependencies]
