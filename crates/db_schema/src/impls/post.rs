@@ -463,7 +463,7 @@ mod tests {
         "beans".into(),
         inserted_person.id,
         inserted_community.id,
-      );
+      )
     };
     let inserted_scheduled_post = Post::create(pool, &new_scheduled_post).await.unwrap();
 
