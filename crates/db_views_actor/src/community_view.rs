@@ -1,4 +1,4 @@
-use crate::structs::{CommunityModeratorView, CommunityView, PersonView};
+use crate::structs::{CommunityModeratorView, CommunitySortType, CommunityView, PersonView};
 use diesel::{
   pg::Pg,
   result::Error,
@@ -103,7 +103,7 @@ fn queries<'a>() -> Queries<
   };
 
   let list = move |mut conn: DbConn<'a>, (options, site): (CommunityQuery<'a>, &'a Site)| async move {
-    use PostSortType::*;
+    use CommunitySortType::*;
 
     // The left join below will return None in this case
     let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
@@ -148,6 +148,8 @@ fn queries<'a>() -> Queries<
       }
       TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
       TopWeek => query = query.order_by(community_aggregates::users_active_week.desc()),
+      NameAsc => query = query.order_by(community::name.asc()),
+      NameDesc => query = query.order_by(community::name.desc()),
     };
 
     if let Some(listing_type) = options.listing_type {
@@ -228,10 +230,36 @@ impl CommunityView {
   }
 }
 
+impl From<PostSortType> for CommunitySortType {
+  fn from(value: PostSortType) -> Self {
+    match value {
+      PostSortType::Active => Self::Active,
+      PostSortType::Hot => Self::Hot,
+      PostSortType::New => Self::New,
+      PostSortType::Old => Self::Old,
+      PostSortType::TopDay => Self::TopDay,
+      PostSortType::TopWeek => Self::TopWeek,
+      PostSortType::TopMonth => Self::TopMonth,
+      PostSortType::TopYear => Self::TopYear,
+      PostSortType::TopAll => Self::TopAll,
+      PostSortType::MostComments => Self::MostComments,
+      PostSortType::NewComments => Self::NewComments,
+      PostSortType::TopHour => Self::TopHour,
+      PostSortType::TopSixHour => Self::TopSixHour,
+      PostSortType::TopTwelveHour => Self::TopTwelveHour,
+      PostSortType::TopThreeMonths => Self::TopThreeMonths,
+      PostSortType::TopSixMonths => Self::TopSixMonths,
+      PostSortType::TopNineMonths => Self::TopNineMonths,
+      PostSortType::Controversial => Self::Controversial,
+      PostSortType::Scaled => Self::Scaled,
+    }
+  }
+}
+
 #[derive(Default)]
 pub struct CommunityQuery<'a> {
   pub listing_type: Option<ListingType>,
-  pub sort: Option<PostSortType>,
+  pub sort: Option<CommunitySortType>,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
   pub title_only: Option<bool>,

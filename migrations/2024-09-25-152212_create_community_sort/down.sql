@@ -1,1 +1,0 @@
-DROP TYPE community_sort_type_enum;

@@ -3,9 +3,8 @@ use lemmy_db_schema::{
   source::site::Site,
   CommunityVisibility,
   ListingType,
-  CommunitySortType,
 };
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
+use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunitySortType, CommunityView, PersonView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
