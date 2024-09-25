@@ -47,6 +47,7 @@ full = [
   "dep:uuid",
   "dep:itertools",
   "dep:markdown-it",
+  "dep:activitypub_federation"
 ]
 
 [dependencies]
@@ -80,6 +81,7 @@ lettre = { version = "0.11.8", default-features = false, features = [
 markdown-it = { version = "0.6.1", optional = true }
 ts-rs = { workspace = true, optional = true }
 enum-map = { workspace = true, optional = true }
+activitypub_federation = { workspace = true, optional = true }
 cfg-if = "1"
 clearurls = { version = "0.0.4", features = ["linkify"] }
 

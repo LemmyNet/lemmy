@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   source::{activity::SentActivity, community::Community},
   CommunityVisibility,
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::{ops::Deref, time::Duration};
 use tokio::time::timeout;
@@ -43,9 +43,16 @@ pub async fn shared_inbox(
   // avoid taking a long time to process an incoming activity when a required data fetch times out.
   // In this case our own instance would timeout and be marked as dead by the sender. Better to
   // consider the activity broken and move on.
-  timeout(INCOMING_ACTIVITY_TIMEOUT, receive_fut)
-    .await
-    .map_err(|_| LemmyErrorType::InboxTimeout)?
+  let res = timeout(INCOMING_ACTIVITY_TIMEOUT, receive_fut).await;
+
+  match res {
+    // Ignore NotFound error, usually means that the sending actor was deleted and sent a delete
+    // activity: https://github.com/LemmyNet/lemmy/issues/2240
+    Ok(Err(LemmyError {error_type: LemmyErrorType::NotFound, ..})) => Ok(HttpResponse::Ok().finish()),
+    // Top-level error means we hit the send timeout
+    Err(_) => Err(LemmyErrorType::InboxTimeout.into()),
+    Ok(other) => other,
+  }
 }
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub

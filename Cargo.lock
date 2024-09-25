@@ -2795,6 +2795,7 @@ dependencies = [
 name = "lemmy_utils"
 version = "0.19.6-beta.7"
 dependencies = [
+ "activitypub_federation",
  "actix-web",
  "anyhow",
  "cfg-if",

@@ -198,10 +198,14 @@ cfg_if! {
     {
       fn from(t: T) -> Self {
         let cause = t.into();
-        let error_type = match cause.downcast_ref::<diesel::result::Error>() {
-          Some(&diesel::NotFound) => LemmyErrorType::NotFound,
-          _ => LemmyErrorType::Unknown(format!("{}", &cause))
-      };
+        let error_type = if let Some(&diesel::NotFound) = cause.downcast_ref::<diesel::result::Error>() {
+          LemmyErrorType::NotFound
+        } else if let Some(activitypub_federation::error::Error::NotFound) = cause.downcast_ref::<activitypub_federation::error::Error>() {
+          LemmyErrorType::NotFound
+        }
+        else {
+          LemmyErrorType::Unknown(format!("{}", &cause))
+        };
         LemmyError {
           error_type,
           inner: cause,
@@ -231,11 +235,15 @@ cfg_if! {
     impl actix_web::error::ResponseError for LemmyError {
       fn status_code(&self) -> actix_web::http::StatusCode {
         if self.error_type == LemmyErrorType::IncorrectLogin {
-          return actix_web::http::StatusCode::UNAUTHORIZED;
+          actix_web::http::StatusCode::UNAUTHORIZED
         }
-        match self.inner.downcast_ref::<diesel::result::Error>() {
-          Some(diesel::result::Error::NotFound) => actix_web::http::StatusCode::NOT_FOUND,
-          _ => actix_web::http::StatusCode::BAD_REQUEST,
+        else if let Some(&diesel::NotFound) = self.inner.downcast_ref::<diesel::result::Error>() {
+          actix_web::http::StatusCode::NOT_FOUND
+        } else if let Some(activitypub_federation::error::Error::NotFound) = self.inner.downcast_ref::<activitypub_federation::error::Error>() {
+          actix_web::http::StatusCode::NOT_FOUND
+        }
+        else {
+          actix_web::http::StatusCode::BAD_REQUEST
         }
       }
 
@@ -319,6 +327,10 @@ cfg_if! {
         let not_found_error = LemmyError::from(diesel::NotFound);
         assert_eq!(LemmyErrorType::NotFound, not_found_error.error_type);
         assert_eq!(404, not_found_error.status_code());
+
+        let apub_not_found_error = LemmyError::from(activitypub_federation::error::Error::NotFound);
+        assert_eq!(LemmyErrorType::NotFound, apub_not_found_error.error_type);
+        assert_eq!(404, apub_not_found_error.status_code());
 
         let other_error = LemmyError::from(diesel::result::Error::NotInTransaction);
         assert!(matches!(other_error.error_type, LemmyErrorType::Unknown{..}));
