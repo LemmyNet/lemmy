@@ -5,9 +5,9 @@ use lemmy_db_schema::{
   ListingType,
 };
 use lemmy_db_views_actor::structs::{
-  CommunityModeratorView, 
-  CommunitySortType, 
-  CommunityView, 
+  CommunityModeratorView,
+  CommunitySortType,
+  CommunityView,
   PersonView,
 };
 use serde::{Deserialize, Serialize};

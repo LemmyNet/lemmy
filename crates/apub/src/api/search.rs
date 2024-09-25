@@ -13,9 +13,9 @@ use lemmy_db_views::{
   structs::{LocalUserView, SiteView},
 };
 use lemmy_db_views_actor::{
-  structs::CommunitySortType,
   community_view::CommunityQuery,
   person_view::PersonQuery,
+  structs::CommunitySortType,
 };
 use lemmy_utils::error::LemmyResult;
 
