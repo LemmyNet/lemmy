@@ -5,7 +5,7 @@ use lemmy_api_common::{
   comment::{CommentResponse, CreateCommentLike},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_bot_account, check_community_user_action, check_downvotes_enabled},
+  utils::{check_bot_account, check_community_user_action, check_local_vote_mode, VoteItem},
 };
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -30,8 +30,7 @@ pub async fn like_comment(
 
   let mut recipient_ids = Vec::<LocalUserId>::new();
 
-  // Don't do a downvote if site has downvotes disabled
-  check_downvotes_enabled(data.score, &local_site)?;
+  check_local_vote_mode(data.score, VoteItem::Comment, &local_site)?;
   check_bot_account(&local_user_view.person)?;
 
   let comment_id = data.comment_id;

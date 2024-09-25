@@ -99,7 +99,6 @@ pub async fn update_site(
     .ok();
 
   let local_site_form = LocalSiteUpdateForm {
-    enable_downvotes: data.enable_downvotes,
     registration_mode: data.registration_mode,
     community_creation_admin_only: data.community_creation_admin_only,
     require_email_verification: data.require_email_verification,
@@ -121,8 +120,10 @@ pub async fn update_site(
     reports_email_admins: data.reports_email_admins,
     default_post_listing_mode: data.default_post_listing_mode,
     oauth_registration: data.oauth_registration,
-    reject_federated_upvotes: data.reject_federated_upvotes,
-    reject_federated_downvotes: data.reject_federated_downvotes,
+    post_upvotes: data.post_upvotes,
+    post_downvotes: data.post_downvotes,
+    comment_upvotes: data.comment_upvotes,
+    comment_downvotes: data.comment_downvotes,
     ..Default::default()
   };
 

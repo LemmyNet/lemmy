@@ -90,7 +90,6 @@ pub async fn create_site(
   let local_site_form = LocalSiteUpdateForm {
     // Set the site setup to true
     site_setup: Some(true),
-    enable_downvotes: data.enable_downvotes,
     registration_mode: data.registration_mode,
     community_creation_admin_only: data.community_creation_admin_only,
     require_email_verification: data.require_email_verification,
@@ -110,8 +109,10 @@ pub async fn create_site(
     captcha_enabled: data.captcha_enabled,
     captcha_difficulty: data.captcha_difficulty.clone(),
     default_post_listing_mode: data.default_post_listing_mode,
-    reject_federated_upvotes: data.reject_federated_upvotes,
-    reject_federated_downvotes: data.reject_federated_downvotes,
+    post_upvotes: data.post_upvotes,
+    post_downvotes: data.post_downvotes,
+    comment_upvotes: data.comment_upvotes,
+    comment_downvotes: data.comment_downvotes,
     ..Default::default()
   };
 

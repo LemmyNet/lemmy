@@ -33,6 +33,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
   utils::DbPool,
+  FederationMode,
   RegistrationMode,
 };
 use lemmy_db_views::{
@@ -296,10 +297,28 @@ pub async fn check_person_instance_community_block(
   Ok(())
 }
 
+/// A vote item type used to check the vote mode.
+pub enum VoteItem {
+  Post,
+  Comment,
+}
+
 #[tracing::instrument(skip_all)]
-pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> LemmyResult<()> {
-  if score == -1 && !local_site.enable_downvotes {
-    Err(LemmyErrorType::DownvotesAreDisabled)?
+pub fn check_local_vote_mode(
+  score: i16,
+  vote_item: VoteItem,
+  local_site: &LocalSite,
+) -> LemmyResult<()> {
+  let (downvote_setting, upvote_setting) = match vote_item {
+    VoteItem::Post => (local_site.post_downvotes, local_site.post_upvotes),
+    VoteItem::Comment => (local_site.comment_downvotes, local_site.comment_upvotes),
+  };
+
+  let downvote_fail = score == -1 && downvote_setting == FederationMode::Disable;
+  let upvote_fail = score == 1 && upvote_setting == FederationMode::Disable;
+
+  if downvote_fail || upvote_fail {
+    Err(LemmyErrorType::VoteNotAllowed)?
   } else {
     Ok(())
   }
