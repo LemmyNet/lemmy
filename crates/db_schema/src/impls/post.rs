@@ -258,9 +258,9 @@ impl Post {
     post::table
       .inner_join(person::table)
       .inner_join(community::table)
-      // find all posts which have scheduled_publish_time that is in the  past
+      // find all posts which have scheduled_publish_time that is in the  future
       .filter(post::scheduled_publish_time.is_not_null())
-      .filter(coalesce(post::scheduled_publish_time, now()).lt(now()))
+      .filter(coalesce(post::scheduled_publish_time, now()).gt(now()))
       // make sure the post and community are still around
       .filter(not(post::deleted.or(post::removed)))
       .filter(not(community::removed.or(community::deleted)))
