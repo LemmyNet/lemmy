@@ -86,20 +86,14 @@ impl Serialize for PublicOAuthProvider {
   }
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset, TS))]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = oauth_provider))]
-#[cfg_attr(feature = "full", ts(export))]
 pub struct OAuthProviderInsertForm {
   pub display_name: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub issuer: DbUrl,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub authorization_endpoint: DbUrl,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub token_endpoint: DbUrl,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub userinfo_endpoint: DbUrl,
   pub id_claim: String,
   pub client_id: String,
@@ -110,18 +104,13 @@ pub struct OAuthProviderInsertForm {
   pub enabled: Option<bool>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset, TS))]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = oauth_provider))]
-#[cfg_attr(feature = "full", ts(export))]
 pub struct OAuthProviderUpdateForm {
   pub display_name: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub authorization_endpoint: Option<DbUrl>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub token_endpoint: Option<DbUrl>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub userinfo_endpoint: Option<DbUrl>,
   pub id_claim: Option<String>,
   pub client_secret: Option<String>,
