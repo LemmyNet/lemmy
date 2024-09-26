@@ -76,5 +76,7 @@ pub async fn leave_admin(
     admin_oauth_providers: None,
     blocked_urls,
     tagline,
+    taglines: vec![],
+    custom_emojis: vec![],
   }))
 }
