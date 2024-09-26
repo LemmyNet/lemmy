@@ -5,6 +5,7 @@ use serde_with::skip_serializing_none;
 use ts_rs::TS;
 use url::Url;
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]

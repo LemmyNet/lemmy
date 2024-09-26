@@ -769,7 +769,7 @@ diesel::table! {
         featured_local -> Bool,
         url_content_type -> Nullable<Text>,
         alt_text -> Nullable<Text>,
-        scheduled_publish_time -> Nullable<Timestamptz>
+        scheduled_publish_time -> Nullable<Timestamptz>,
     }
 }
 
