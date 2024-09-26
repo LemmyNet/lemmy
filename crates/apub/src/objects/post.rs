@@ -1,7 +1,7 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_apub_id_valid_with_strictness,
-  fetcher::post_links::markdown_rewrite_remote_post_links_opt,
+  fetcher::post_links::{markdown_rewrite_remote_post_links_opt, to_local_url},
   local_site_data_cached,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
@@ -216,7 +216,7 @@ impl Object for ApubPost {
     let first_attachment = page.attachment.first();
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
 
-    let url = if let Some(attachment) = first_attachment.cloned() {
+    let mut url = if let Some(attachment) = first_attachment.cloned() {
       Some(attachment.url())
     } else if page.kind == PageType::Video {
       // we cant display videos directly, so insert a link to external video page
@@ -227,9 +227,12 @@ impl Object for ApubPost {
 
     let url_blocklist = get_url_blocklist(context).await?;
 
-    if let Some(url) = &url {
-      is_url_blocked(url, &url_blocklist)?;
-      is_valid_url(url)?;
+    if let Some(ref mut url) = url {
+      is_url_blocked(&url, &url_blocklist)?;
+      is_valid_url(&url)?;
+      if let Some(local_url) = to_local_url(url.as_str(), context).await {
+        *url = local_url;
+      }
     }
 
     let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);

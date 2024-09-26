@@ -4,10 +4,8 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{generate_local_apub_endpoint, EndpointType},
 };
-use lemmy_utils::{
-  error::LemmyResult,
-  utils::markdown::image_links::{markdown_find_links, markdown_handle_title},
-};
+use lemmy_utils::utils::markdown::image_links::{markdown_find_links, markdown_handle_title};
+use url::Url;
 
 pub async fn markdown_rewrite_remote_post_links_opt(
   src: Option<String>,
@@ -19,52 +17,54 @@ pub async fn markdown_rewrite_remote_post_links_opt(
   }
 }
 
+// TODO: call this logic for comment.text etc
 /// TODO: as it uses ObjectId::dereference, it can currently only be used in apub crate
 pub async fn markdown_rewrite_remote_post_links(
   mut src: String,
   context: &Data<LemmyContext>,
 ) -> String {
   let links_offsets = markdown_find_links(&src);
-  let domain = &context.settings().get_protocol_and_hostname();
 
   // Go through the collected links in reverse order
   for (start, end) in links_offsets.into_iter().rev() {
     let (url, extra) = markdown_handle_title(&src, start, end);
 
-    // TODO: call this logic for post.url, comment.text etc
     // TODO: needs cleanup
-    // TODO: also resolve user and community links
-    if let Ok(parsed) = ObjectId::<PostOrComment>::parse(url) {
-      if parsed.inner().domain() != Some(&context.settings().hostname) {
-        let dereferenced = parsed.dereference(context).await;
 
-        if let Some(mut local_url) = to_local_url(dereferenced, &domain) {
-          // restore title
-          if let Some(extra) = extra {
-            local_url = format!("{local_url} {extra}");
-          }
-          src.replace_range(start..end, local_url.as_str());
-        }
+    if let Some(local_url) = to_local_url(&url, &context).await {
+      let mut local_url = local_url.to_string();
+      // restore title
+      if let Some(extra) = extra {
+        local_url = format!("{local_url} {extra}");
       }
+      src.replace_range(start..end, local_url.as_str());
     }
   }
 
   src
 }
 
-fn to_local_url(dereferenced: LemmyResult<PostOrComment>, domain: &str) -> Option<String> {
+// TODO: also resolve user and community links
+pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Option<Url> {
+  let local_domain = &context.settings().get_protocol_and_hostname();
+  let object_id = ObjectId::<PostOrComment>::parse(url).ok()?;
+  if object_id.inner().domain() == Some(local_domain) {
+    return None;
+  }
+  let dereferenced = object_id.dereference(context).await;
   dereferenced
     .map(|d| match d {
       PostOrComment::Post(post) => {
-        generate_local_apub_endpoint(EndpointType::Post, &post.id.to_string(), domain).ok()
+        generate_local_apub_endpoint(EndpointType::Post, &post.id.to_string(), local_domain).ok()
       }
       PostOrComment::Comment(comment) => {
-        generate_local_apub_endpoint(EndpointType::Comment, &comment.id.to_string(), domain).ok()
+        generate_local_apub_endpoint(EndpointType::Comment, &comment.id.to_string(), local_domain)
+          .ok()
       }
     })
     .ok()
     .flatten()
-    .map(|e| e.to_string())
+    .map(|u| u.into())
 }
 
 #[cfg(test)]
