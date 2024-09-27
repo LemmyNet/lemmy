@@ -258,9 +258,9 @@ impl Post {
     post::table
       .inner_join(person::table)
       .inner_join(community::table)
-      // find all posts which have scheduled_publish_time that is in the  past
+      // find all posts which have scheduled_publish_time that is in the  future
       .filter(post::scheduled_publish_time.is_not_null())
-      .filter(coalesce(post::scheduled_publish_time, now()).lt(now()))
+      .filter(coalesce(post::scheduled_publish_time, now()).gt(now()))
       // make sure the post and community are still around
       .filter(not(post::deleted.or(post::removed)))
       .filter(not(community::removed.or(community::deleted)))
@@ -414,6 +414,7 @@ mod tests {
     traits::{Crud, Likeable, Saveable},
     utils::build_db_pool_for_tests,
   };
+  use chrono::DateTime;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::collections::HashSet;
@@ -455,6 +456,12 @@ mod tests {
       inserted_community.id,
     );
     let inserted_post2 = Post::create(pool, &new_post2).await.unwrap();
+
+    let new_scheduled_post = PostInsertForm {
+      scheduled_publish_time: Some(DateTime::from_timestamp_nanos(i64::MAX)),
+      ..PostInsertForm::new("beans".into(), inserted_person.id, inserted_community.id)
+    };
+    let inserted_scheduled_post = Post::create(pool, &new_scheduled_post).await.unwrap();
 
     let expected_post = Post {
       id: inserted_post.id,
@@ -535,6 +542,12 @@ mod tests {
       .await
       .unwrap();
 
+    // Scheduled post count
+    let scheduled_post_count = Post::user_scheduled_post_count(inserted_person.id, pool)
+      .await
+      .unwrap();
+    assert_eq!(1, scheduled_post_count);
+
     let like_removed = PostLike::remove(pool, inserted_person.id, inserted_post.id)
       .await
       .unwrap();
@@ -551,8 +564,11 @@ mod tests {
     assert_eq!(2, read_removed);
 
     let num_deleted = Post::delete(pool, inserted_post.id).await.unwrap()
-      + Post::delete(pool, inserted_post2.id).await.unwrap();
-    assert_eq!(2, num_deleted);
+      + Post::delete(pool, inserted_post2.id).await.unwrap()
+      + Post::delete(pool, inserted_scheduled_post.id)
+        .await
+        .unwrap();
+    assert_eq!(3, num_deleted);
     Community::delete(pool, inserted_community.id)
       .await
       .unwrap();
