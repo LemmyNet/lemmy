@@ -493,7 +493,6 @@ impl Crud for AdminPurgeComment {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{
