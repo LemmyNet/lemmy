@@ -104,7 +104,7 @@ async fn format_actor_url(
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::api::user_settings_backup::tests::create_user;
+  use crate::api::test::TestUser;
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityInsertForm},
@@ -130,7 +130,7 @@ mod tests {
       ),
     )
     .await?;
-    let user = create_user("john".to_string(), None, &context).await?;
+    let user = TestUser::default().create(&mut context.pool()).await?;
 
     // insert a remote post which is already fetched
     let post_form = PostInsertForm {
