@@ -73,13 +73,7 @@ pub async fn is_mod_or_admin(
   community_id: CommunityId,
 ) -> LemmyResult<()> {
   check_user_valid(person)?;
-
-  let is_mod_or_admin = CommunityView::is_mod_or_admin(pool, person.id, community_id).await?;
-  if !is_mod_or_admin {
-    Err(LemmyErrorType::NotAModOrAdmin)?
-  } else {
-    Ok(())
-  }
+  CommunityView::check_is_mod_or_admin(pool, person.id, community_id).await
 }
 
 #[tracing::instrument(skip_all)]
@@ -110,13 +104,7 @@ pub async fn check_community_mod_of_any_or_admin_action(
   let person = &local_user_view.person;
 
   check_user_valid(person)?;
-
-  let is_mod_of_any_or_admin = CommunityView::is_mod_of_any_or_admin(pool, person.id).await?;
-  if !is_mod_of_any_or_admin {
-    Err(LemmyErrorType::NotAModOrAdmin)?
-  } else {
-    Ok(())
-  }
+  CommunityView::check_is_mod_of_any_or_admin(pool, person.id).await
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
@@ -242,7 +230,7 @@ pub async fn check_community_user_action(
 ) -> LemmyResult<()> {
   check_user_valid(person)?;
   check_community_deleted_removed(community_id, pool).await?;
-  check_community_ban(person, community_id, pool).await?;
+  CommunityPersonBanView::check(pool, person.id, community_id).await?;
   Ok(())
 }
 
@@ -253,19 +241,6 @@ async fn check_community_deleted_removed(
   let community = Community::read(pool, community_id).await?;
   if community.deleted || community.removed {
     Err(LemmyErrorType::Deleted)?
-  }
-  Ok(())
-}
-
-async fn check_community_ban(
-  person: &Person,
-  community_id: CommunityId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  // check if user was banned from site or community
-  let is_banned = CommunityPersonBanView::get(pool, person.id, community_id).await?;
-  if is_banned {
-    Err(LemmyErrorType::BannedFromCommunity)?
   }
   Ok(())
 }
@@ -281,7 +256,7 @@ pub async fn check_community_mod_action(
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   is_mod_or_admin(pool, person, community_id).await?;
-  check_community_ban(person, community_id, pool).await?;
+  CommunityPersonBanView::check(pool, person.id, community_id).await?;
 
   // it must be possible to restore deleted community
   if !allow_deleted {
@@ -307,51 +282,6 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   }
 }
 
-/// Throws an error if a recipient has blocked a person.
-#[tracing::instrument(skip_all)]
-pub async fn check_person_block(
-  my_id: PersonId,
-  potential_blocker_id: PersonId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  let is_blocked = PersonBlock::read(pool, potential_blocker_id, my_id).await?;
-  if is_blocked {
-    Err(LemmyErrorType::PersonIsBlocked)?
-  } else {
-    Ok(())
-  }
-}
-
-/// Throws an error if a recipient has blocked a community.
-#[tracing::instrument(skip_all)]
-async fn check_community_block(
-  community_id: CommunityId,
-  person_id: PersonId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  let is_blocked = CommunityBlock::read(pool, person_id, community_id).await?;
-  if is_blocked {
-    Err(LemmyErrorType::CommunityIsBlocked)?
-  } else {
-    Ok(())
-  }
-}
-
-/// Throws an error if a recipient has blocked an instance.
-#[tracing::instrument(skip_all)]
-async fn check_instance_block(
-  instance_id: InstanceId,
-  person_id: PersonId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  let is_blocked = InstanceBlock::read(pool, person_id, instance_id).await?;
-  if is_blocked {
-    Err(LemmyErrorType::InstanceIsBlocked)?
-  } else {
-    Ok(())
-  }
-}
-
 #[tracing::instrument(skip_all)]
 pub async fn check_person_instance_community_block(
   my_id: PersonId,
@@ -360,9 +290,9 @@ pub async fn check_person_instance_community_block(
   community_id: CommunityId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  check_person_block(my_id, potential_blocker_id, pool).await?;
-  check_instance_block(community_instance_id, potential_blocker_id, pool).await?;
-  check_community_block(community_id, potential_blocker_id, pool).await?;
+  PersonBlock::read(pool, potential_blocker_id, my_id).await?;
+  InstanceBlock::read(pool, potential_blocker_id, community_instance_id).await?;
+  CommunityBlock::read(pool, potential_blocker_id, community_id).await?;
   Ok(())
 }
 
@@ -846,12 +776,13 @@ pub async fn remove_or_restore_user_data_in_community(
 
   // Comments
   // TODO Diesel doesn't allow updates with joins, so this has to be a loop
+  let site = Site::read_local(pool).await?;
   let comments = CommentQuery {
     creator_id: Some(banned_person_id),
     community_id: Some(community_id),
     ..Default::default()
   }
-  .list(pool)
+  .list(&site, pool)
   .await?;
 
   for comment_view in &comments {
@@ -1136,8 +1067,7 @@ fn build_proxied_image_url(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::*;

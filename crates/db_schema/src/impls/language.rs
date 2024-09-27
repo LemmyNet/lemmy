@@ -41,8 +41,8 @@ impl Language {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
+#[expect(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{source::language::Language, utils::build_db_pool_for_tests};

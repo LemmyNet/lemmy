@@ -318,11 +318,18 @@ fn queries<'a>() -> Queries<
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
 
-    // only show deleted posts to creator
+    // only creator can see deleted posts and unpublished scheduled posts
     if let Some(person_id) = options.local_user.person_id() {
       query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
+      query = query.filter(
+        post::scheduled_publish_time
+          .is_null()
+          .or(post::creator_id.eq(person_id)),
+      );
     } else {
-      query = query.filter(post::deleted.eq(false));
+      query = query
+        .filter(post::deleted.eq(false))
+        .filter(post::scheduled_publish_time.is_null());
     }
 
     // only show removed posts to admin when viewing user profile
@@ -387,14 +394,12 @@ fn queries<'a>() -> Queries<
         query = query.filter(post::url.eq(search_term));
       } else {
         let searcher = fuzzy_search(search_term);
+        let name_filter = post::name.ilike(searcher.clone());
+        let body_filter = post::body.ilike(searcher.clone());
         query = if options.title_only.unwrap_or_default() {
-          query.filter(post::name.ilike(searcher))
+          query.filter(name_filter)
         } else {
-          query.filter(
-            post::name
-              .ilike(searcher.clone())
-              .or(post::body.ilike(searcher)),
-          )
+          query.filter(name_filter.or(body_filter))
         }
         .filter(not(post::removed.or(post::deleted)));
       }
@@ -734,7 +739,7 @@ impl<'a> PostQuery<'a> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used)]
 mod tests {
   use crate::{
     post_view::{PaginationCursorData, PostQuery, PostView},
@@ -1771,6 +1776,7 @@ mod tests {
         featured_community: false,
         featured_local: false,
         url_content_type: None,
+        scheduled_publish_time: None,
       },
       my_vote: None,
       unread_comments: 0,

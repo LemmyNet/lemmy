@@ -47,7 +47,7 @@ pub async fn search(
     listing_type,
     page,
     limit,
-    post_title_only,
+    title_only,
     post_url_only,
     saved_only,
     liked_only,
@@ -78,7 +78,7 @@ pub async fn search(
     search_term: Some(q.clone()),
     page,
     limit,
-    title_only: post_title_only,
+    title_only,
     url_only: post_url_only,
     liked_only,
     disliked_only,
@@ -105,6 +105,7 @@ pub async fn search(
     sort,
     listing_type,
     search_term: Some(q.clone()),
+    title_only,
     local_user,
     is_mod_or_admin: is_admin,
     page,
@@ -127,7 +128,9 @@ pub async fn search(
         .await?;
     }
     SearchType::Comments => {
-      comments = comment_query.list(&mut context.pool()).await?;
+      comments = comment_query
+        .list(&local_site.site, &mut context.pool())
+        .await?;
     }
     SearchType::Communities => {
       communities = community_query
@@ -146,7 +149,9 @@ pub async fn search(
         .list(&local_site.site, &mut context.pool())
         .await?;
 
-      comments = comment_query.list(&mut context.pool()).await?;
+      comments = comment_query
+        .list(&local_site.site, &mut context.pool())
+        .await?;
 
       communities = if community_or_creator_included {
         vec![]

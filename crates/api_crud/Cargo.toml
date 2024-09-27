@@ -27,6 +27,7 @@ futures.workspace = true
 uuid = { workspace = true }
 moka.workspace = true
 anyhow.workspace = true
+chrono.workspace = true
 webmention = "0.6.0"
 accept-language = "3.1.0"
 serde_json = { workspace = true }

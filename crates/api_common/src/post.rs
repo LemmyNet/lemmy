@@ -30,6 +30,8 @@ pub struct CreatePost {
   pub language_id: Option<LanguageId>,
   /// Instead of fetching a thumbnail, use a custom one.
   pub custom_thumbnail: Option<String>,
+  /// Time when this post should be scheduled. Null means publish immediately.
+  pub scheduled_publish_time: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -124,6 +126,8 @@ pub struct EditPost {
   pub language_id: Option<LanguageId>,
   /// Instead of fetching a thumbnail, use a custom one.
   pub custom_thumbnail: Option<String>,
+  /// Time when this post should be scheduled. Null means publish immediately.
+  pub scheduled_publish_time: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
