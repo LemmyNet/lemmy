@@ -158,16 +158,16 @@ test("Delete a comment", async () => {
   expect(deleteCommentRes.comment_view.comment.deleted).toBe(true);
   expect(deleteCommentRes.comment_view.comment.content).toBe("");
 
-  // Make sure that comment is undefined on beta
+  // Make sure that comment is deleted on beta
   await waitUntil(
-    () => resolveComment(beta, commentRes.comment_view.comment).catch(e => e),
-    e => e.message == "not_found",
+    () => resolveComment(beta, commentRes.comment_view.comment),
+    c => c.comment?.comment.deleted === true,
   );
 
-  // Make sure that comment is undefined on gamma after delete
+  // Make sure that comment is deleted on gamma after delete
   await waitUntil(
-    () => resolveComment(gamma, commentRes.comment_view.comment).catch(e => e),
-    e => e.message === "not_found",
+    () => resolveComment(gamma, commentRes.comment_view.comment),
+    c => c.comment?.comment.deleted === true,
   );
 
   // Test undeleting the comment
@@ -181,11 +181,10 @@ test("Delete a comment", async () => {
   // Make sure that comment is undeleted on beta
   let betaComment2 = (
     await waitUntil(
-      () => resolveComment(beta, commentRes.comment_view.comment).catch(e => e),
-      e => e.message !== "not_found",
+      () => resolveComment(beta, commentRes.comment_view.comment),
+      c => c.comment?.comment.deleted === false,
     )
   ).comment;
-  expect(betaComment2?.comment.deleted).toBe(false);
   assertCommentFederation(betaComment2, undeleteCommentRes.comment_view);
 });
 
