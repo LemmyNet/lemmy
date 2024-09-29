@@ -1067,7 +1067,6 @@ fn build_proxied_image_url(
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::*;
@@ -1092,48 +1091,42 @@ mod tests {
   }
 
   #[test]
-  fn test_limit_ban_term() {
+  fn test_limit_ban_term() -> LemmyResult<()> {
     // Ban expires in past, should throw error
     assert!(limit_expire_time(Utc::now() - Days::new(5)).is_err());
 
     // Legitimate ban term, return same value
     let fourteen_days = Utc::now() + Days::new(14);
-    assert_eq!(
-      limit_expire_time(fourteen_days).unwrap(),
-      Some(fourteen_days)
-    );
+    assert_eq!(limit_expire_time(fourteen_days)?, Some(fourteen_days));
     let nine_years = Utc::now() + Days::new(365 * 9);
-    assert_eq!(limit_expire_time(nine_years).unwrap(), Some(nine_years));
+    assert_eq!(limit_expire_time(nine_years)?, Some(nine_years));
 
     // Too long ban term, changes to None (permanent ban)
-    assert_eq!(
-      limit_expire_time(Utc::now() + Days::new(365 * 11)).unwrap(),
-      None
-    );
+    assert_eq!(limit_expire_time(Utc::now() + Days::new(365 * 11))?, None);
+
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_proxy_image_link() {
+  async fn test_proxy_image_link() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
 
     // image from local domain is unchanged
-    let local_url = Url::parse("http://lemmy-alpha/image.png").unwrap();
+    let local_url = Url::parse("http://lemmy-alpha/image.png")?;
     let proxied =
       proxy_image_link_internal(local_url.clone(), PictrsImageMode::ProxyAllImages, &context)
-        .await
-        .unwrap();
+        .await?;
     assert_eq!(&local_url, proxied.inner());
 
     // image from remote domain is proxied
-    let remote_image = Url::parse("http://lemmy-beta/image.png").unwrap();
+    let remote_image = Url::parse("http://lemmy-beta/image.png")?;
     let proxied = proxy_image_link_internal(
       remote_image.clone(),
       PictrsImageMode::ProxyAllImages,
       &context,
     )
-    .await
-    .unwrap();
+    .await?;
     assert_eq!(
       "https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
       proxied.as_str()
@@ -1146,5 +1139,7 @@ mod tests {
         .await
         .is_ok()
     );
+
+    Ok(())
   }
 }
