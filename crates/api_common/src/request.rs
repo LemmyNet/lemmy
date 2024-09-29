@@ -471,13 +471,13 @@ pub async fn replace_image(
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{
     context::LemmyContext,
     request::{extract_opengraph_data, fetch_link_metadata},
   };
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use url::Url;
@@ -485,10 +485,10 @@ mod tests {
   // These helped with testing
   #[tokio::test]
   #[serial]
-  async fn test_link_metadata() {
+  async fn test_link_metadata() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
-    let sample_res = fetch_link_metadata(&sample_url, &context).await.unwrap();
+    let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ")?;
+    let sample_res = fetch_link_metadata(&sample_url, &context).await?;
     assert_eq!(
       Some("FAQ · Wiki · IzzyOnDroid / repo · GitLab".to_string()),
       sample_res.opengraph_data.title
@@ -499,8 +499,7 @@ mod tests {
     );
     assert_eq!(
       Some(
-        Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")
-          .unwrap()
+        Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")?
           .into()
       ),
       sample_res.opengraph_data.image
@@ -510,19 +509,21 @@ mod tests {
       Some(mime::TEXT_HTML_UTF_8.to_string()),
       sample_res.content_type
     );
+
+    Ok(())
   }
 
   #[test]
-  fn test_resolve_image_url() {
+  fn test_resolve_image_url() -> LemmyResult<()> {
     // url that lists the opengraph fields
-    let url = Url::parse("https://example.com/one/two.html").unwrap();
+    let url = Url::parse("https://example.com/one/two.html")?;
 
     // root relative url
     let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='/image.jpg'></head><body></body></html>";
     let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
     assert_eq!(
       metadata.image,
-      Some(Url::parse("https://example.com/image.jpg").unwrap().into())
+      Some(Url::parse("https://example.com/image.jpg")?.into())
     );
 
     // base relative url
@@ -530,11 +531,7 @@ mod tests {
     let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
     assert_eq!(
       metadata.image,
-      Some(
-        Url::parse("https://example.com/one/image.jpg")
-          .unwrap()
-          .into()
-      )
+      Some(Url::parse("https://example.com/one/image.jpg")?.into())
     );
 
     // absolute url
@@ -542,7 +539,7 @@ mod tests {
     let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
     assert_eq!(
       metadata.image,
-      Some(Url::parse("https://cdn.host.com/image.jpg").unwrap().into())
+      Some(Url::parse("https://cdn.host.com/image.jpg")?.into())
     );
 
     // protocol relative url
@@ -550,7 +547,9 @@ mod tests {
     let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
     assert_eq!(
       metadata.image,
-      Some(Url::parse("https://example.com/image.jpg").unwrap().into())
+      Some(Url::parse("https://example.com/image.jpg")?.into())
     );
+
+    Ok(())
   }
 }
