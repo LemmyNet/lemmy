@@ -248,7 +248,6 @@ impl<'a> CommunityQuery<'a> {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{community_view::CommunityQuery, structs::CommunityView};
@@ -264,6 +263,7 @@ mod tests {
     utils::{build_db_pool_for_tests, DbPool},
     CommunityVisibility,
   };
+  use lemmy_utils::error::LemmyResult;
   use serial_test::serial;
   use url::Url;
 
@@ -274,21 +274,17 @@ mod tests {
     site: Site,
   }
 
-  async fn init_data(pool: &mut DbPool<'_>) -> Data {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+  async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let person_name = "tegan".to_string();
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, &person_name);
 
-    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+    let inserted_person = Person::create(pool, &new_person).await?;
 
     let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
-    let local_user = LocalUser::create(pool, &local_user_form, vec![])
-      .await
-      .unwrap();
+    let local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
 
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
@@ -296,9 +292,9 @@ mod tests {
       "nada".to_owned(),
       "pubkey".to_string(),
     );
-    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+    let inserted_community = Community::create(pool, &new_community).await?;
 
-    let url = Url::parse("http://example.com").unwrap();
+    let url = Url::parse("http://example.com")?;
     let site = Site {
       id: Default::default(),
       name: String::new(),
@@ -317,32 +313,28 @@ mod tests {
       content_warning: None,
     };
 
-    Data {
+    Ok(Data {
       inserted_instance,
       local_user,
       inserted_community,
       site,
-    }
+    })
   }
 
-  async fn cleanup(data: Data, pool: &mut DbPool<'_>) {
-    Community::delete(pool, data.inserted_community.id)
-      .await
-      .unwrap();
-    Person::delete(pool, data.local_user.person_id)
-      .await
-      .unwrap();
-    Instance::delete(pool, data.inserted_instance.id)
-      .await
-      .unwrap();
+  async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    Community::delete(pool, data.inserted_community.id).await?;
+    Person::delete(pool, data.local_user.person_id).await?;
+    Instance::delete(pool, data.inserted_instance.id).await?;
+
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn local_only_community() {
+  async fn local_only_community() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
-    let data = init_data(pool).await;
+    let data = init_data(pool).await?;
 
     Community::update(
       pool,
@@ -352,15 +344,13 @@ mod tests {
         ..Default::default()
       },
     )
-    .await
-    .unwrap();
+    .await?;
 
     let unauthenticated_query = CommunityQuery {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await
-    .unwrap();
+    .await?;
     assert_eq!(0, unauthenticated_query.len());
 
     let authenticated_query = CommunityQuery {
@@ -368,8 +358,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await
-    .unwrap();
+    .await?;
     assert_eq!(1, authenticated_query.len());
 
     let unauthenticated_community =
@@ -385,6 +374,6 @@ mod tests {
     .await;
     assert!(authenticated_community.is_ok());
 
-    cleanup(data, pool).await;
+    cleanup(data, pool).await
   }
 }
