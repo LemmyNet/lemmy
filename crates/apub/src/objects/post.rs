@@ -228,8 +228,8 @@ impl Object for ApubPost {
     let url_blocklist = get_url_blocklist(context).await?;
 
     if let Some(ref mut url) = url {
-      is_url_blocked(&url, &url_blocklist)?;
-      is_valid_url(&url)?;
+      is_url_blocked(url, &url_blocklist)?;
+      is_valid_url(url)?;
       if let Some(local_url) = to_local_url(url.as_str(), context).await {
         *url = local_url;
       }

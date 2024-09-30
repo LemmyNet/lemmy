@@ -39,7 +39,7 @@ pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
   (src, links)
 }
 
-pub fn markdown_handle_title(src: &String, start: usize, end: usize) -> (&str, Option<&str>) {
+pub fn markdown_handle_title(src: &str, start: usize, end: usize) -> (&str, Option<&str>) {
   let content = src.get(start..end).unwrap_or_default();
   // necessary for custom emojis which look like `![name](url "title")`
   let (url, extra) = if content.contains(' ') {
@@ -95,7 +95,6 @@ impl UrlAndTitle for Link {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::*;

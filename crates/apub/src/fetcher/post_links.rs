@@ -31,7 +31,7 @@ pub async fn markdown_rewrite_remote_post_links(
 
     // TODO: needs cleanup
 
-    if let Some(local_url) = to_local_url(&url, &context).await {
+    if let Some(local_url) = to_local_url(url, context).await {
       let mut local_url = local_url.to_string();
       // restore title
       if let Some(extra) = extra {
@@ -64,11 +64,10 @@ pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Opt
     })
     .ok()
     .flatten()
-    .map(|u| u.into())
+    .map(std::convert::Into::into)
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::*;
