@@ -98,26 +98,25 @@ mod tests {
     traits::{Bannable, Crud, Likeable},
     utils::build_db_pool_for_tests,
   };
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn post_and_comment_vote_views() {
+  async fn post_and_comment_vote_views() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "timmy_vv");
 
-    let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
+    let inserted_timmy = Person::create(pool, &new_person).await?;
 
     let new_person_2 = PersonInsertForm::test_form(inserted_instance.id, "sara_vv");
 
-    let inserted_sara = Person::create(pool, &new_person_2).await.unwrap();
+    let inserted_sara = Person::create(pool, &new_person_2).await?;
 
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
@@ -125,21 +124,21 @@ mod tests {
       "nada".to_owned(),
       "pubkey".to_string(),
     );
-    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+    let inserted_community = Community::create(pool, &new_community).await?;
 
     let new_post = PostInsertForm::new(
       "A test post vv".into(),
       inserted_timmy.id,
       inserted_community.id,
     );
-    let inserted_post = Post::create(pool, &new_post).await.unwrap();
+    let inserted_post = Post::create(pool, &new_post).await?;
 
     let comment_form = CommentInsertForm::new(
       inserted_timmy.id,
       inserted_post.id,
       "A test comment vv".into(),
     );
-    let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
+    let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     // Timmy upvotes his own post
     let timmy_post_vote_form = PostLikeForm {
@@ -147,7 +146,7 @@ mod tests {
       person_id: inserted_timmy.id,
       score: 1,
     };
-    PostLike::like(pool, &timmy_post_vote_form).await.unwrap();
+    PostLike::like(pool, &timmy_post_vote_form).await?;
 
     // Sara downvotes timmy's post
     let sara_post_vote_form = PostLikeForm {
@@ -155,7 +154,7 @@ mod tests {
       person_id: inserted_sara.id,
       score: -1,
     };
-    PostLike::like(pool, &sara_post_vote_form).await.unwrap();
+    PostLike::like(pool, &sara_post_vote_form).await?;
 
     let expected_post_vote_views = [
       VoteView {
@@ -170,9 +169,7 @@ mod tests {
       },
     ];
 
-    let read_post_vote_views = VoteView::list_for_post(pool, inserted_post.id, None, None)
-      .await
-      .unwrap();
+    let read_post_vote_views = VoteView::list_for_post(pool, inserted_post.id, None, None).await?;
     assert_eq!(read_post_vote_views, expected_post_vote_views);
 
     // Timothy votes down his own comment
@@ -182,9 +179,7 @@ mod tests {
       person_id: inserted_timmy.id,
       score: -1,
     };
-    CommentLike::like(pool, &timmy_comment_vote_form)
-      .await
-      .unwrap();
+    CommentLike::like(pool, &timmy_comment_vote_form).await?;
 
     // Sara upvotes timmy's comment
     let sara_comment_vote_form = CommentLikeForm {
@@ -193,9 +188,7 @@ mod tests {
       person_id: inserted_sara.id,
       score: 1,
     };
-    CommentLike::like(pool, &sara_comment_vote_form)
-      .await
-      .unwrap();
+    CommentLike::like(pool, &sara_comment_vote_form).await?;
 
     let expected_comment_vote_views = [
       VoteView {
@@ -210,9 +203,8 @@ mod tests {
       },
     ];
 
-    let read_comment_vote_views = VoteView::list_for_comment(pool, inserted_comment.id, None, None)
-      .await
-      .unwrap();
+    let read_comment_vote_views =
+      VoteView::list_for_comment(pool, inserted_comment.id, None, None).await?;
     assert_eq!(read_comment_vote_views, expected_comment_vote_views);
 
     // Ban timmy from that community
@@ -221,15 +213,11 @@ mod tests {
       person_id: inserted_timmy.id,
       expires: None,
     };
-    CommunityPersonBan::ban(pool, &ban_timmy_form)
-      .await
-      .unwrap();
+    CommunityPersonBan::ban(pool, &ban_timmy_form).await?;
 
     // Make sure creator_banned_from_community is true
     let read_comment_vote_views_after_ban =
-      VoteView::list_for_comment(pool, inserted_comment.id, None, None)
-        .await
-        .unwrap();
+      VoteView::list_for_comment(pool, inserted_comment.id, None, None).await?;
 
     assert!(
       read_comment_vote_views_after_ban
@@ -239,9 +227,7 @@ mod tests {
     );
 
     let read_post_vote_views_after_ban =
-      VoteView::list_for_post(pool, inserted_post.id, None, None)
-        .await
-        .unwrap();
+      VoteView::list_for_post(pool, inserted_post.id, None, None).await?;
 
     assert!(
       read_post_vote_views_after_ban
@@ -251,6 +237,8 @@ mod tests {
     );
 
     // Cleanup
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    Ok(())
   }
 }
