@@ -120,6 +120,7 @@ pub(crate) async fn get_apub_community_featured(
 }
 
 #[cfg(test)]
+#[expect(clippy::unwrap_used)]
 pub(crate) mod tests {
 
   use super::*;
@@ -181,9 +182,7 @@ pub(crate) mod tests {
   }
 
   async fn decode_response<T: DeserializeOwned>(res: HttpResponse) -> LemmyResult<T> {
-    let body = to_bytes(res.into_body())
-      .await
-      .expect("Couldn't turn response body into bytes");
+    let body = to_bytes(res.into_body()).await.unwrap();
     let body = std::str::from_utf8(&body)?;
     Ok(serde_json::from_str(body)?)
   }

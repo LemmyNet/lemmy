@@ -69,6 +69,7 @@ impl Claims {
 }
 
 #[cfg(test)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{claims::Claims, context::LemmyContext};
@@ -94,9 +95,7 @@ mod tests {
   async fn test_should_not_validate_user_token_after_password_change() -> LemmyResult<()> {
     let pool_ = build_db_pool_for_tests().await;
     let pool = &mut (&pool_).into();
-    let secret = Secret::init(pool)
-      .await?
-      .expect("Couldn't initialize secrets");
+    let secret = Secret::init(pool).await?.unwrap();
     let context = LemmyContext::create(
       pool_.clone(),
       ClientBuilder::new(Client::default()).build(),
