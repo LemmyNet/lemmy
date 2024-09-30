@@ -1,10 +1,15 @@
+use super::{search::SearchableObjects, user_or_community::UserOrCommunity};
 use crate::fetcher::post_or_comment::PostOrComment;
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use lemmy_api_common::{
   context::LemmyContext,
   utils::{generate_local_apub_endpoint, EndpointType},
 };
-use lemmy_utils::utils::markdown::image_links::{markdown_find_links, markdown_handle_title};
+use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
+use lemmy_utils::{
+  error::LemmyResult,
+  utils::markdown::image_links::{markdown_find_links, markdown_handle_title},
+};
 use url::Url;
 
 pub async fn markdown_rewrite_remote_post_links_opt(
@@ -44,27 +49,54 @@ pub async fn markdown_rewrite_remote_post_links(
   src
 }
 
-// TODO: also resolve user and community links
 pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Option<Url> {
   let local_domain = &context.settings().get_protocol_and_hostname();
-  let object_id = ObjectId::<PostOrComment>::parse(url).ok()?;
+  let object_id = ObjectId::<SearchableObjects>::parse(url).ok()?;
   if object_id.inner().domain() == Some(local_domain) {
     return None;
   }
-  let dereferenced = object_id.dereference(context).await;
-  dereferenced
-    .map(|d| match d {
+  let dereferenced = object_id.dereference(context).await.ok()?;
+  match dereferenced {
+    SearchableObjects::PostOrComment(pc) => match *pc {
       PostOrComment::Post(post) => {
-        generate_local_apub_endpoint(EndpointType::Post, &post.id.to_string(), local_domain).ok()
+        generate_local_apub_endpoint(EndpointType::Post, &post.id.to_string(), local_domain)
       }
       PostOrComment::Comment(comment) => {
         generate_local_apub_endpoint(EndpointType::Comment, &comment.id.to_string(), local_domain)
-          .ok()
       }
-    })
+    }
     .ok()
-    .flatten()
-    .map(std::convert::Into::into)
+    .map(Into::into),
+    SearchableObjects::PersonOrCommunity(pc) => match *pc {
+      UserOrCommunity::User(user) => {
+        format_actor_url(&user.name, "u", user.instance_id, context).await
+      }
+      UserOrCommunity::Community(community) => {
+        format_actor_url(&community.name, "c", community.instance_id, context).await
+      }
+    }
+    .ok(),
+  }
+}
+
+async fn format_actor_url(
+  name: &str,
+  kind: &str,
+  instance_id: InstanceId,
+  context: &LemmyContext,
+) -> LemmyResult<Url> {
+  let local_protocol_and_hostname = context.settings().get_protocol_and_hostname();
+  let local_hostname = &context.settings().hostname;
+  let instance = Instance::read(&mut context.pool(), instance_id).await?;
+  let url = if dbg!(&instance.domain) != dbg!(local_hostname) {
+    format!(
+      "{local_protocol_and_hostname}/{kind}/{name}@{}",
+      instance.domain
+    )
+  } else {
+    format!("{local_protocol_and_hostname}/{kind}/{name}")
+  };
+  Ok(Url::parse(&url)?)
 }
 
 #[cfg(test)]
@@ -82,9 +114,19 @@ mod tests {
         "[link](https://lemmy-alpha/post/1)",
       ),
       (
-        "dont rewrite local link",
+        "rewrite community link",
+        "[link](https://feddit.org/c/dach)",
+        "[link](https://lemmy-alpha/c/dach@feddit.org)",
+      ),
+      (
+        "dont rewrite local post link",
         "[link](https://lemmy-alpha/post/2)",
         "[link](https://lemmy-alpha/post/2)",
+      ),
+      (
+        "dont rewrite local community link",
+        "[link](https://lemmy-alpha/c/test)",
+        "[link](https://lemmy-alpha/c/test)",
       ),
       (
         "dont rewrite non-fediverse link",
