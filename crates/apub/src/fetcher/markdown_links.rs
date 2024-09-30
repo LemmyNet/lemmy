@@ -92,7 +92,7 @@ async fn format_actor_url(
   let local_protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let local_hostname = &context.settings().hostname;
   let instance = Instance::read(&mut context.pool(), instance_id).await?;
-  let url = if dbg!(&instance.domain) != dbg!(local_hostname) {
+  let url = if &instance.domain != local_hostname {
     format!(
       "{local_protocol_and_hostname}/{kind}/{name}@{}",
       instance.domain
@@ -130,13 +130,12 @@ mod tests {
       ),
     )
     .await?;
-    dbg!(&community.actor_id);
     let user = create_user("john".to_string(), None, &context).await?;
     let post_form = PostInsertForm {
       ..PostInsertForm::new("My post".to_string(), user.person.id, community.id)
     };
     let post = Post::create(&mut context.pool(), &post_form).await?;
-    dbg!(&post.ap_id);
+
     let tests: Vec<_> = vec![
       (
         "rewrite remote link",
