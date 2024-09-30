@@ -76,7 +76,7 @@ impl LemmyContext {
       .app_data(context)
       .debug(true)
       // Dont allow any network fetches
-      .http_fetch_limit(10)
+      .http_fetch_limit(0)
       .build()
       .await
       .expect("build federation config")

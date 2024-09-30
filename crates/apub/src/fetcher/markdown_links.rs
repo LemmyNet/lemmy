@@ -105,54 +105,81 @@ async fn format_actor_url(
 
 #[cfg(test)]
 mod tests {
-
   use super::*;
+  use crate::api::user_settings_backup::tests::create_user;
+  use lemmy_db_schema::{
+    source::{
+      community::{Community, CommunityInsertForm},
+      post::{Post, PostInsertForm},
+    },
+    traits::Crud,
+  };
   use pretty_assertions::assert_eq;
 
   #[tokio::test]
-  async fn test_markdown_rewrite_remote_post_links() {
+  async fn test_markdown_rewrite_remote_links() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let instance = Instance::read_or_create(&mut context.pool(), "example.com".to_string()).await?;
+    let community = Community::create(
+      &mut context.pool(),
+      &CommunityInsertForm::new(
+        instance.id,
+        "my_community".to_string(),
+        "My Community".to_string(),
+        "pubkey".to_string(),
+      ),
+    )
+    .await?;
+    dbg!(&community.actor_id);
+    let user = create_user("john".to_string(), None, &context).await?;
+    let post_form = PostInsertForm {
+      ..PostInsertForm::new("My post".to_string(), user.person.id, community.id)
+    };
+    let post = Post::create(&mut context.pool(), &post_form).await?;
+    dbg!(&post.ap_id);
     let tests: Vec<_> = vec![
       (
         "rewrite remote link",
-        "[link](https://feddit.org/post/3172593)",
+        format!("[link]({})", post.ap_id),
         "[link](https://lemmy-alpha/post/1)",
       ),
       (
         "rewrite community link",
-        "[link](https://feddit.org/c/dach)",
-        "[link](https://lemmy-alpha/c/dach@feddit.org)",
+        format!("[link]({})", community.actor_id),
+        "[link](https://lemmy-alpha/c/my_community@example.com)",
       ),
       (
         "dont rewrite local post link",
-        "[link](https://lemmy-alpha/post/2)",
+        "[link](https://lemmy-alpha/post/2)".to_string(),
         "[link](https://lemmy-alpha/post/2)",
       ),
       (
         "dont rewrite local community link",
-        "[link](https://lemmy-alpha/c/test)",
+        "[link](https://lemmy-alpha/c/test)".to_string(),
         "[link](https://lemmy-alpha/c/test)",
       ),
       (
         "dont rewrite non-fediverse link",
-        "[link](https://example.com/)",
+        "[link](https://example.com/)".to_string(),
         "[link](https://example.com/)",
       ),
       (
         "dont rewrite invalid url",
-        "[link](example-com)",
+        "[link](example-com)".to_string(),
         "[link](example-com)",
       ),
     ];
 
     let context = LemmyContext::init_test_context().await;
-    for &(msg, input, expected) in &tests {
+    for (msg, input, expected) in &tests {
       let result = markdown_rewrite_remote_links(input.to_string(), &context).await;
 
       assert_eq!(
-        result, expected,
+        &result, expected,
         "Testing {}, with original input '{}'",
         msg, input
       );
     }
+    Ok(())
   }
 }

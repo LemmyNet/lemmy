@@ -310,7 +310,7 @@ where
 
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
-mod tests {
+pub(crate) mod tests {
 
   use crate::api::user_settings_backup::{export_settings, import_settings, UserSettingsBackup};
   use activitypub_federation::config::Data;
@@ -332,7 +332,7 @@ mod tests {
   use std::time::Duration;
   use tokio::time::sleep;
 
-  async fn create_user(
+  pub(crate) async fn create_user(
     name: String,
     bio: Option<String>,
     context: &Data<LemmyContext>,
