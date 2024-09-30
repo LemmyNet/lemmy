@@ -419,13 +419,13 @@ export async function banPersonFromSite(
   api: LemmyHttp,
   person_id: number,
   ban: boolean,
-  remove_data: boolean,
+  remove_or_restore_data: boolean,
 ): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
     person_id,
     ban,
-    remove_data,
+    remove_or_restore_data,
   };
   return api.banPerson(form);
 }
@@ -434,13 +434,13 @@ export async function banPersonFromCommunity(
   api: LemmyHttp,
   person_id: number,
   community_id: number,
-  remove_data: boolean,
+  remove_or_restore_data: boolean,
   ban: boolean,
 ): Promise<BanFromCommunityResponse> {
   let form: BanFromCommunity = {
     person_id,
     community_id,
-    remove_data: remove_data,
+    remove_or_restore_data,
     ban,
   };
   return api.banFromCommunity(form);
@@ -690,7 +690,7 @@ export async function saveUserSettingsBio(
     blur_nsfw: false,
     auto_expand: true,
     theme: "darkly",
-    default_sort_type: "Active",
+    default_post_sort_type: "Active",
     default_listing_type: "All",
     interface_language: "en",
     show_avatars: true,
@@ -710,7 +710,7 @@ export async function saveUserSettingsFederated(
     show_nsfw: false,
     blur_nsfw: true,
     auto_expand: false,
-    default_sort_type: "Hot",
+    default_post_sort_type: "Hot",
     default_listing_type: "All",
     interface_language: "",
     avatar,

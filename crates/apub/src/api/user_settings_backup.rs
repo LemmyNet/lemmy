@@ -114,7 +114,8 @@ pub async fn import_settings(
   let local_user_form = LocalUserUpdateForm {
     show_nsfw: data.settings.as_ref().map(|s| s.show_nsfw),
     theme: data.settings.clone().map(|s| s.theme.clone()),
-    default_sort_type: data.settings.as_ref().map(|s| s.default_sort_type),
+    default_post_sort_type: data.settings.as_ref().map(|s| s.default_post_sort_type),
+    default_comment_sort_type: data.settings.as_ref().map(|s| s.default_comment_sort_type),
     default_listing_type: data.settings.as_ref().map(|s| s.default_listing_type),
     interface_language: data.settings.clone().map(|s| s.interface_language),
     show_avatars: data.settings.as_ref().map(|s| s.show_avatars),
@@ -126,7 +127,6 @@ pub async fn import_settings(
     show_read_posts: data.settings.as_ref().map(|s| s.show_read_posts),
     open_links_in_new_tab: data.settings.as_ref().map(|s| s.open_links_in_new_tab),
     blur_nsfw: data.settings.as_ref().map(|s| s.blur_nsfw),
-    auto_expand: data.settings.as_ref().map(|s| s.auto_expand),
     infinite_scroll_enabled: data.settings.as_ref().map(|s| s.infinite_scroll_enabled),
     post_listing_mode: data.settings.as_ref().map(|s| s.post_listing_mode),
     ..Default::default()
@@ -307,8 +307,9 @@ where
   });
   Ok(failed_items.into_iter().join(","))
 }
+
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::indexing_slicing)]
 mod tests {
 
   use crate::api::user_settings_backup::{export_settings, import_settings, UserSettingsBackup};
@@ -347,11 +348,7 @@ mod tests {
     let user_form = LocalUserInsertForm::test_form(person.id);
     let local_user = LocalUser::create(&mut context.pool(), &user_form, vec![]).await?;
 
-    Ok(
-      LocalUserView::read(&mut context.pool(), local_user.id)
-        .await?
-        .ok_or(LemmyErrorType::CouldntFindLocalUser)?,
-    )
+    Ok(LocalUserView::read(&mut context.pool(), local_user.id).await?)
   }
 
   #[tokio::test]
@@ -362,11 +359,12 @@ mod tests {
     let export_user =
       create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
 
-    let community_form = CommunityInsertForm::builder()
-      .name("testcom".to_string())
-      .title("testcom".to_string())
-      .instance_id(export_user.person.instance_id)
-      .build();
+    let community_form = CommunityInsertForm::new(
+      export_user.person.instance_id,
+      "testcom".to_string(),
+      "testcom".to_string(),
+      "pubkey".to_string(),
+    );
     let community = Community::create(&mut context.pool(), &community_form).await?;
     let follower_form = CommunityFollowerForm {
       community_id: community.id,
@@ -384,9 +382,8 @@ mod tests {
     // wait for background task to finish
     sleep(Duration::from_millis(1000)).await;
 
-    let import_user_updated = LocalUserView::read(&mut context.pool(), import_user.local_user.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
+    let import_user_updated =
+      LocalUserView::read(&mut context.pool(), import_user.local_user.id).await?;
 
     assert_eq!(
       export_user.person.display_name,
@@ -412,11 +409,12 @@ mod tests {
     let export_user =
       create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
 
-    let community_form = CommunityInsertForm::builder()
-      .name("testcom".to_string())
-      .title("testcom".to_string())
-      .instance_id(export_user.person.instance_id)
-      .build();
+    let community_form = CommunityInsertForm::new(
+      export_user.person.instance_id,
+      "testcom".to_string(),
+      "testcom".to_string(),
+      "pubkey".to_string(),
+    );
     let community = Community::create(&mut context.pool(), &community_form).await?;
     let follower_form = CommunityFollowerForm {
       community_id: community.id,

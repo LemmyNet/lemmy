@@ -241,7 +241,7 @@ impl PersonMentionView {
     pool: &mut DbPool<'_>,
     person_mention_id: PersonMentionId,
     my_person_id: Option<PersonId>,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries()
       .read(pool, (person_mention_id, my_person_id))
       .await
@@ -303,7 +303,6 @@ impl PersonMentionQuery {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{person_mention_view::PersonMentionQuery, structs::PersonMentionView};
@@ -322,7 +321,7 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use lemmy_db_views::structs::LocalUserView;
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -346,29 +345,26 @@ mod tests {
     let recipient_local_user =
       LocalUser::create(pool, &LocalUserInsertForm::test_form(recipient_id), vec![]).await?;
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community lake".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community lake".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await?;
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post".into())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let comment_form = CommentInsertForm::builder()
-      .content("A test comment".into())
-      .creator_id(inserted_person.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     let person_mention_form = PersonMentionInsertForm {
@@ -387,9 +383,7 @@ mod tests {
       published: inserted_mention.published,
     };
 
-    let read_mention = PersonMention::read(pool, inserted_mention.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindComment)?;
+    let read_mention = PersonMention::read(pool, inserted_mention.id).await?;
 
     let person_mention_update_form = PersonMentionUpdateForm { read: Some(false) };
     let updated_mention =
@@ -445,9 +439,7 @@ mod tests {
       &recipient_local_user_update_form,
     )
     .await?;
-    let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
+    let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id).await?;
 
     let unread_mentions_after_hide_bots =
       PersonMentionView::get_unread_mentions(pool, &recipient_local_user_view.local_user).await?;

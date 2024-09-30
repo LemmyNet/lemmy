@@ -465,8 +465,7 @@ impl Crud for AdminPurgeComment {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{
@@ -521,29 +520,27 @@ mod tests {
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
-    let new_community = CommunityInsertForm::builder()
-      .name("mod_community".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "mod_community".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
 
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post thweep".into())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post thweep".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
-    let comment_form = CommentInsertForm::builder()
-      .content("A test comment".into())
-      .creator_id(inserted_person.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
     let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
 
     // Now the actual tests
@@ -560,7 +557,6 @@ mod tests {
       .unwrap();
     let read_mod_remove_post = ModRemovePost::read(pool, inserted_mod_remove_post.id)
       .await
-      .unwrap()
       .unwrap();
     let expected_mod_remove_post = ModRemovePost {
       id: inserted_mod_remove_post.id,
@@ -583,7 +579,6 @@ mod tests {
       .unwrap();
     let read_mod_lock_post = ModLockPost::read(pool, inserted_mod_lock_post.id)
       .await
-      .unwrap()
       .unwrap();
     let expected_mod_lock_post = ModLockPost {
       id: inserted_mod_lock_post.id,
@@ -606,7 +601,6 @@ mod tests {
       .unwrap();
     let read_mod_feature_post = ModFeaturePost::read(pool, inserted_mod_feature_post.id)
       .await
-      .unwrap()
       .unwrap();
     let expected_mod_feature_post = ModFeaturePost {
       id: inserted_mod_feature_post.id,
@@ -630,7 +624,6 @@ mod tests {
       .unwrap();
     let read_mod_remove_comment = ModRemoveComment::read(pool, inserted_mod_remove_comment.id)
       .await
-      .unwrap()
       .unwrap();
     let expected_mod_remove_comment = ModRemoveComment {
       id: inserted_mod_remove_comment.id,
@@ -656,7 +649,6 @@ mod tests {
     let read_mod_remove_community =
       ModRemoveCommunity::read(pool, inserted_mod_remove_community.id)
         .await
-        .unwrap()
         .unwrap();
     let expected_mod_remove_community = ModRemoveCommunity {
       id: inserted_mod_remove_community.id,
@@ -684,7 +676,6 @@ mod tests {
     let read_mod_ban_from_community =
       ModBanFromCommunity::read(pool, inserted_mod_ban_from_community.id)
         .await
-        .unwrap()
         .unwrap();
     let expected_mod_ban_from_community = ModBanFromCommunity {
       id: inserted_mod_ban_from_community.id,
@@ -707,10 +698,7 @@ mod tests {
       expires: None,
     };
     let inserted_mod_ban = ModBan::create(pool, &mod_ban_form).await.unwrap();
-    let read_mod_ban = ModBan::read(pool, inserted_mod_ban.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let read_mod_ban = ModBan::read(pool, inserted_mod_ban.id).await.unwrap();
     let expected_mod_ban = ModBan {
       id: inserted_mod_ban.id,
       mod_person_id: inserted_mod.id,
@@ -734,7 +722,6 @@ mod tests {
       .unwrap();
     let read_mod_add_community = ModAddCommunity::read(pool, inserted_mod_add_community.id)
       .await
-      .unwrap()
       .unwrap();
     let expected_mod_add_community = ModAddCommunity {
       id: inserted_mod_add_community.id,
@@ -753,10 +740,7 @@ mod tests {
       removed: None,
     };
     let inserted_mod_add = ModAdd::create(pool, &mod_add_form).await.unwrap();
-    let read_mod_add = ModAdd::read(pool, inserted_mod_add.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let read_mod_add = ModAdd::read(pool, inserted_mod_add.id).await.unwrap();
     let expected_mod_add = ModAdd {
       id: inserted_mod_add.id,
       mod_person_id: inserted_mod.id,

@@ -113,7 +113,7 @@ impl PrivateMessageView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     private_message_id: PrivateMessageId,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries().read(pool, private_message_id).await
   }
 
@@ -173,8 +173,8 @@ impl PrivateMessageQuery {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
+#[expect(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{private_message_view::PrivateMessageQuery, structs::PrivateMessageView};
@@ -221,38 +221,26 @@ mod tests {
 
     let jess = Person::create(pool, &jess_form).await.unwrap();
 
-    let sara_timmy_message_form = PrivateMessageInsertForm::builder()
-      .creator_id(sara.id)
-      .recipient_id(timmy.id)
-      .content(message_content.clone())
-      .build();
+    let sara_timmy_message_form =
+      PrivateMessageInsertForm::new(sara.id, timmy.id, message_content.clone());
     PrivateMessage::create(pool, &sara_timmy_message_form)
       .await
       .unwrap();
 
-    let sara_jess_message_form = PrivateMessageInsertForm::builder()
-      .creator_id(sara.id)
-      .recipient_id(jess.id)
-      .content(message_content.clone())
-      .build();
+    let sara_jess_message_form =
+      PrivateMessageInsertForm::new(sara.id, jess.id, message_content.clone());
     PrivateMessage::create(pool, &sara_jess_message_form)
       .await
       .unwrap();
 
-    let timmy_sara_message_form = PrivateMessageInsertForm::builder()
-      .creator_id(timmy.id)
-      .recipient_id(sara.id)
-      .content(message_content.clone())
-      .build();
+    let timmy_sara_message_form =
+      PrivateMessageInsertForm::new(timmy.id, sara.id, message_content.clone());
     PrivateMessage::create(pool, &timmy_sara_message_form)
       .await
       .unwrap();
 
-    let jess_timmy_message_form = PrivateMessageInsertForm::builder()
-      .creator_id(jess.id)
-      .recipient_id(timmy.id)
-      .content(message_content.clone())
-      .build();
+    let jess_timmy_message_form =
+      PrivateMessageInsertForm::new(jess.id, timmy.id, message_content.clone());
     PrivateMessage::create(pool, &jess_timmy_message_form)
       .await
       .unwrap();

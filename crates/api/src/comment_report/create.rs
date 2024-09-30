@@ -40,8 +40,7 @@ pub async fn create_comment_report(
     comment_id,
     Some(&local_user_view.local_user),
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindComment)?;
+  .await?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -64,9 +63,8 @@ pub async fn create_comment_report(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
 
-  let comment_report_view = CommentReportView::read(&mut context.pool(), report.id, person_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindCommentReport)?;
+  let comment_report_view =
+    CommentReportView::read(&mut context.pool(), report.id, person_id).await?;
 
   // Email the admins
   if local_site.reports_email_admins {

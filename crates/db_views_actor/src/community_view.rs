@@ -24,8 +24,9 @@ use lemmy_db_schema::{
   source::{community::CommunityFollower, local_user::LocalUser, site::Site},
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
-  SortType,
+  PostSortType,
 };
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommunityView, (CommunityId, Option<&'a LocalUser>, bool)>,
@@ -102,7 +103,7 @@ fn queries<'a>() -> Queries<
   };
 
   let list = move |mut conn: DbConn<'a>, (options, site): (CommunityQuery<'a>, &'a Site)| async move {
-    use SortType::*;
+    use PostSortType::*;
 
     // The left join below will return None in this case
     let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
@@ -111,9 +112,14 @@ fn queries<'a>() -> Queries<
 
     if let Some(search_term) = options.search_term {
       let searcher = fuzzy_search(&search_term);
-      query = query
-        .filter(community::name.ilike(searcher.clone()))
-        .or_filter(community::title.ilike(searcher))
+      let name_filter = community::name.ilike(searcher.clone());
+      let title_filter = community::title.ilike(searcher.clone());
+      let description_filter = community::description.ilike(searcher.clone());
+      query = if options.title_only.unwrap_or_default() {
+        query.filter(name_filter.or(title_filter))
+      } else {
+        query.filter(name_filter.or(title_filter.or(description_filter)))
+      }
     }
 
     // Hide deleted and removed for non-admins or mods
@@ -179,41 +185,45 @@ impl CommunityView {
     community_id: CommunityId,
     my_local_user: Option<&'a LocalUser>,
     is_mod_or_admin: bool,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries()
       .read(pool, (community_id, my_local_user, is_mod_or_admin))
       .await
   }
 
-  pub async fn is_mod_or_admin(
+  pub async fn check_is_mod_or_admin(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     community_id: CommunityId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let is_mod =
-      CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await?;
-    if is_mod {
-      Ok(true)
-    } else if let Ok(Some(person_view)) = PersonView::read(pool, person_id).await {
-      Ok(person_view.is_admin)
+      CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id).await;
+    if is_mod.is_ok()
+      || PersonView::read(pool, person_id)
+        .await
+        .is_ok_and(|t| t.is_admin)
+    {
+      Ok(())
     } else {
-      Ok(false)
+      Err(LemmyErrorType::NotAModOrAdmin)?
     }
   }
 
   /// Checks if a person is an admin, or moderator of any community.
-  pub async fn is_mod_of_any_or_admin(
+  pub async fn check_is_mod_of_any_or_admin(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let is_mod_of_any =
-      CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await?;
-    if is_mod_of_any {
-      Ok(true)
-    } else if let Ok(Some(person_view)) = PersonView::read(pool, person_id).await {
-      Ok(person_view.is_admin)
+      CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await;
+    if is_mod_of_any.is_ok()
+      || PersonView::read(pool, person_id)
+        .await
+        .is_ok_and(|t| t.is_admin)
+    {
+      Ok(())
     } else {
-      Ok(false)
+      Err(LemmyErrorType::NotAModOrAdmin)?
     }
   }
 }
@@ -221,9 +231,10 @@ impl CommunityView {
 #[derive(Default)]
 pub struct CommunityQuery<'a> {
   pub listing_type: Option<ListingType>,
-  pub sort: Option<SortType>,
+  pub sort: Option<PostSortType>,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
+  pub title_only: Option<bool>,
   pub is_mod_or_admin: bool,
   pub show_nsfw: bool,
   pub page: Option<i64>,
@@ -237,8 +248,7 @@ impl<'a> CommunityQuery<'a> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{community_view::CommunityQuery, structs::CommunityView};
@@ -280,13 +290,12 @@ mod tests {
       .await
       .unwrap();
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test_community_3".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test_community_3".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
     let url = Url::parse("http://example.com").unwrap();
@@ -364,10 +373,8 @@ mod tests {
     assert_eq!(1, authenticated_query.len());
 
     let unauthenticated_community =
-      CommunityView::read(pool, data.inserted_community.id, None, false)
-        .await
-        .unwrap();
-    assert!(unauthenticated_community.is_none());
+      CommunityView::read(pool, data.inserted_community.id, None, false).await;
+    assert!(unauthenticated_community.is_err());
 
     let authenticated_community = CommunityView::read(
       pool,

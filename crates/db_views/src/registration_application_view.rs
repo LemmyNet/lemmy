@@ -81,17 +81,11 @@ fn queries<'a>() -> Queries<
 }
 
 impl RegistrationApplicationView {
-  pub async fn read(
-    pool: &mut DbPool<'_>,
-    id: RegistrationApplicationId,
-  ) -> Result<Option<Self>, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, id: RegistrationApplicationId) -> Result<Self, Error> {
     queries().read(pool, ReadBy::Id(id)).await
   }
 
-  pub async fn read_by_person(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-  ) -> Result<Option<Self>, Error> {
+  pub async fn read_by_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     queries().read(pool, ReadBy::Person(person_id)).await
   }
   /// Returns the current unread registration_application count
@@ -141,8 +135,7 @@ impl RegistrationApplicationQuery {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::registration_application_view::{
@@ -208,7 +201,6 @@ mod tests {
 
     let read_sara_app_view = RegistrationApplicationView::read(pool, sara_app.id)
       .await
-      .unwrap()
       .unwrap();
 
     let jess_person_form = PersonInsertForm::test_form(inserted_instance.id, "jess_rav");
@@ -233,7 +225,6 @@ mod tests {
 
     let read_jess_app_view = RegistrationApplicationView::read(pool, jess_app.id)
       .await
-      .unwrap()
       .unwrap();
 
     let mut expected_sara_app_view = RegistrationApplicationView {
@@ -243,10 +234,10 @@ mod tests {
         person_id: inserted_sara_local_user.person_id,
         email: inserted_sara_local_user.email,
         show_nsfw: inserted_sara_local_user.show_nsfw,
-        auto_expand: inserted_sara_local_user.auto_expand,
         blur_nsfw: inserted_sara_local_user.blur_nsfw,
         theme: inserted_sara_local_user.theme,
-        default_sort_type: inserted_sara_local_user.default_sort_type,
+        default_post_sort_type: inserted_sara_local_user.default_post_sort_type,
+        default_comment_sort_type: inserted_sara_local_user.default_comment_sort_type,
         default_listing_type: inserted_sara_local_user.default_listing_type,
         interface_language: inserted_sara_local_user.interface_language,
         show_avatars: inserted_sara_local_user.show_avatars,
@@ -336,7 +327,6 @@ mod tests {
 
     let read_sara_app_view_after_approve = RegistrationApplicationView::read(pool, sara_app.id)
       .await
-      .unwrap()
       .unwrap();
 
     // Make sure the columns changed

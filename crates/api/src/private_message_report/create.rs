@@ -29,9 +29,7 @@ pub async fn create_pm_report(
 
   let person_id = local_user_view.person.id;
   let private_message_id = data.private_message_id;
-  let private_message = PrivateMessage::read(&mut context.pool(), private_message_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPrivateMessage)?;
+  let private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
 
   // Make sure that only the recipient of the private message can create a report
   if person_id != private_message.recipient_id {
@@ -49,9 +47,8 @@ pub async fn create_pm_report(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
 
-  let private_message_report_view = PrivateMessageReportView::read(&mut context.pool(), report.id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPrivateMessageReport)?;
+  let private_message_report_view =
+    PrivateMessageReportView::read(&mut context.pool(), report.id).await?;
 
   // Email the admins
   if local_site.reports_email_admins {

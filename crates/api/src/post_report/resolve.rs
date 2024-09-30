@@ -17,9 +17,7 @@ pub async fn resolve_post_report(
 ) -> LemmyResult<Json<PostReportResponse>> {
   let report_id = data.report_id;
   let person_id = local_user_view.person.id;
-  let report = PostReportView::read(&mut context.pool(), report_id, person_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPostReport)?;
+  let report = PostReportView::read(&mut context.pool(), report_id, person_id).await?;
 
   let person_id = local_user_view.person.id;
   check_community_mod_action(
@@ -40,9 +38,7 @@ pub async fn resolve_post_report(
       .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
   }
 
-  let post_report_view = PostReportView::read(&mut context.pool(), report_id, person_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPostReport)?;
+  let post_report_view = PostReportView::read(&mut context.pool(), report_id, person_id).await?;
 
   Ok(Json(PostReportResponse { post_report_view }))
 }

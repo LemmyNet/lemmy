@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   CommentSortType,
   CommunityVisibility,
   ListingType,
-  SortType,
+  PostSortType,
 };
 use lemmy_db_views::{
   post_view::PostQuery,
@@ -27,6 +27,7 @@ use lemmy_utils::{
 };
 use rss::{
   extension::{dublincore::DublinCoreExtension, ExtensionBuilder, ExtensionMap},
+  Category,
   Channel,
   EnclosureBuilder,
   Guid,
@@ -45,12 +46,12 @@ struct Params {
 }
 
 impl Params {
-  fn sort_type(&self) -> Result<SortType, Error> {
+  fn sort_type(&self) -> Result<PostSortType, Error> {
     let sort_query = self
       .sort
       .clone()
-      .unwrap_or_else(|| SortType::Hot.to_string());
-    SortType::from_str(&sort_query).map_err(ErrorBadRequest)
+      .unwrap_or_else(|| PostSortType::Hot.to_string());
+    PostSortType::from_str(&sort_query).map_err(ErrorBadRequest)
   }
   fn get_limit(&self) -> i64 {
     self.limit.unwrap_or(RSS_FETCH_LIMIT)
@@ -147,13 +148,11 @@ async fn get_local_feed(
 async fn get_feed_data(
   context: &LemmyContext,
   listing_type: ListingType,
-  sort_type: SortType,
+  sort_type: PostSortType,
   limit: i64,
   page: i64,
 ) -> LemmyResult<HttpResponse> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   check_private_instance(&None, &site_view.local_site)?;
 
@@ -253,17 +252,15 @@ async fn get_feed(
 #[tracing::instrument(skip_all)]
 async fn get_feed_user(
   context: &LemmyContext,
-  sort_type: &SortType,
+  sort_type: &PostSortType,
   limit: &i64,
   page: &i64,
   user_name: &str,
 ) -> LemmyResult<Channel> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   let person = Person::read_from_name(&mut context.pool(), user_name, false)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    .ok_or(LemmyErrorType::NotFound)?;
 
   check_private_instance(&None, &site_view.local_site)?;
 
@@ -293,19 +290,17 @@ async fn get_feed_user(
 #[tracing::instrument(skip_all)]
 async fn get_feed_community(
   context: &LemmyContext,
-  sort_type: &SortType,
+  sort_type: &PostSortType,
   limit: &i64,
   page: &i64,
   community_name: &str,
 ) -> LemmyResult<Channel> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   let community = Community::read_from_name(&mut context.pool(), community_name, false)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+    .ok_or(LemmyErrorType::NotFound)?;
   if community.visibility != CommunityVisibility::Public {
-    return Err(LemmyErrorType::CouldntFindCommunity.into());
+    return Err(LemmyErrorType::NotFound.into());
   }
 
   check_private_instance(&None, &site_view.local_site)?;
@@ -340,14 +335,12 @@ async fn get_feed_community(
 #[tracing::instrument(skip_all)]
 async fn get_feed_front(
   context: &LemmyContext,
-  sort_type: &SortType,
+  sort_type: &PostSortType,
   limit: &i64,
   page: &i64,
   jwt: &str,
 ) -> LemmyResult<Channel> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_user = local_user_view_from_jwt(jwt, context).await?;
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
@@ -382,9 +375,7 @@ async fn get_feed_front(
 
 #[tracing::instrument(skip_all)]
 async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channel> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_user = local_user_view_from_jwt(jwt, context).await?;
   let person_id = local_user.local_user.person_id;
   let show_bot_accounts = local_user.local_user.show_bot_accounts;
@@ -569,6 +560,10 @@ fn create_post_items(posts: Vec<PostView>, protocol_and_hostname: &str) -> Lemmy
         BTreeMap::from([("content".to_string(), vec![thumbnail_ext.build()])]),
       );
     }
+    let category = Category {
+      name: p.community.title,
+      domain: Some(p.community.actor_id.to_string()),
+    };
 
     let i = Item {
       title: Some(sanitize_html(sanitize_xml(p.post.name).as_str())),
@@ -580,6 +575,7 @@ fn create_post_items(posts: Vec<PostView>, protocol_and_hostname: &str) -> Lemmy
       link: Some(post_url.clone()),
       extensions,
       enclosure: enclosure_opt,
+      categories: vec![category],
       ..Default::default()
     };
 

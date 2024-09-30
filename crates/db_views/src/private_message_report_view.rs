@@ -78,7 +78,7 @@ impl PrivateMessageReportView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     report_id: PrivateMessageReportId,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries().read(pool, report_id).await
   }
 
@@ -111,8 +111,8 @@ impl PrivateMessageReportQuery {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
+#[expect(clippy::indexing_slicing)]
 mod tests {
 
   use crate::private_message_report_view::PrivateMessageReportQuery;
@@ -147,11 +147,11 @@ mod tests {
     let inserted_jessica = Person::create(pool, &new_person_2).await.unwrap();
 
     // timmy sends private message to jessica
-    let pm_form = PrivateMessageInsertForm::builder()
-      .creator_id(inserted_timmy.id)
-      .recipient_id(inserted_jessica.id)
-      .content("something offensive".to_string())
-      .build();
+    let pm_form = PrivateMessageInsertForm::new(
+      inserted_timmy.id,
+      inserted_jessica.id,
+      "something offensive".to_string(),
+    );
     let pm = PrivateMessage::create(pool, &pm_form).await.unwrap();
 
     // jessica reports private message

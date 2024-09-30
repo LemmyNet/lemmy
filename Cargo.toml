@@ -36,7 +36,6 @@ opt-level = "z" # Optimize for size.
 debug = 0
 
 [features]
-embed-pictrs = ["pict-rs"]
 json-log = ["tracing-subscriber/json"]
 default = []
 
@@ -132,7 +131,6 @@ anyhow = { version = "1.0.86", features = [
   "backtrace",
 ] } # backtrace is on by default on nightly, but not stable rust
 diesel_ltree = "0.3.1"
-typed-builder = "0.19.1"
 serial_test = "3.1.1"
 tokio = { version = "1.39.2", features = ["full"] }
 regex = "1.10.5"
@@ -182,7 +180,6 @@ reqwest-middleware = { workspace = true }
 reqwest-tracing = { workspace = true }
 clokwerk = { workspace = true }
 serde_json = { workspace = true }
-pict-rs = { version = "0.5.16", optional = true }
 rustls = { workspace = true }
 tokio.workspace = true
 actix-cors = "0.7.0"

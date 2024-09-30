@@ -91,23 +91,15 @@ impl Object for ApubComment {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Note> {
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut context.pool(), creator_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    let creator = Person::read(&mut context.pool(), creator_id).await?;
 
     let post_id = self.post_id;
-    let post = Post::read(&mut context.pool(), post_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPost)?;
+    let post = Post::read(&mut context.pool(), post_id).await?;
     let community_id = post.community_id;
-    let community = Community::read(&mut context.pool(), community_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+    let community = Community::read(&mut context.pool(), community_id).await?;
 
     let in_reply_to = if let Some(comment_id) = self.parent_comment_id() {
-      let parent_comment = Comment::read(&mut context.pool(), comment_id)
-        .await?
-        .ok_or(LemmyErrorType::CouldntFindComment)?;
+      let parent_comment = Comment::read(&mut context.pool(), comment_id).await?;
       parent_comment.ap_id.into()
     } else {
       post.ap_id.into()

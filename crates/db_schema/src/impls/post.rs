@@ -1,7 +1,7 @@
 use crate::{
-  diesel::OptionalExtension,
+  diesel::{BoolExpressionMethods, OptionalExtension},
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::{post, post_hide, post_like, post_read, post_saved},
+  schema::{community, person, post, post_hide, post_like, post_read, post_saved},
   source::post::{
     Post,
     PostHide,
@@ -20,6 +20,7 @@ use crate::{
     functions::coalesce,
     get_conn,
     naive_now,
+    now,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
@@ -30,7 +31,7 @@ use crate::{
 use ::url::Url;
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::insert_into,
+  dsl::{count, insert_into, not},
   result::Error,
   DecoratableTarget,
   ExpressionMethods,
@@ -68,6 +69,10 @@ impl Crud for Post {
 }
 
 impl Post {
+  pub async fn read_xx(pool: &mut DbPool<'_>, id: PostId) -> Result<Self, Error> {
+    let conn = &mut *get_conn(pool).await?;
+    post::table.find(id).first(conn).await
+  }
   pub async fn insert_apub(
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,
@@ -169,6 +174,7 @@ impl Post {
     let object_id: DbUrl = object_id.into();
     post::table
       .filter(post::ap_id.eq(object_id))
+      .filter(post::scheduled_publish_time.is_null())
       .first(conn)
       .await
       .optional()
@@ -241,6 +247,28 @@ impl Post {
     ))
     .get_results::<Self>(conn)
     .await
+  }
+
+  pub async fn user_scheduled_post_count(
+    person_id: PersonId,
+    pool: &mut DbPool<'_>,
+  ) -> Result<i64, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    post::table
+      .inner_join(person::table)
+      .inner_join(community::table)
+      // find all posts which have scheduled_publish_time that is in the  future
+      .filter(post::scheduled_publish_time.is_not_null())
+      .filter(coalesce(post::scheduled_publish_time, now()).gt(now()))
+      // make sure the post and community are still around
+      .filter(not(post::deleted.or(post::removed)))
+      .filter(not(community::removed.or(community::deleted)))
+      // only posts by specified user
+      .filter(post::creator_id.eq(person_id))
+      .select(count(post::id))
+      .first::<i64>(conn)
+      .await
   }
 }
 
@@ -364,8 +392,7 @@ impl PostHide {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{
@@ -387,6 +414,7 @@ mod tests {
     traits::{Crud, Likeable, Saveable},
     utils::build_db_pool_for_tests,
   };
+  use chrono::DateTime;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::collections::HashSet;
@@ -406,29 +434,34 @@ mod tests {
 
     let inserted_person = Person::create(pool, &new_person).await.unwrap();
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community_3".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community_3".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
 
     let inserted_community = Community::create(pool, &new_community).await.unwrap();
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post".into())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await.unwrap();
 
-    let new_post2 = PostInsertForm::builder()
-      .name("A test post 2".into())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .build();
+    let new_post2 = PostInsertForm::new(
+      "A test post 2".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
     let inserted_post2 = Post::create(pool, &new_post2).await.unwrap();
+
+    let new_scheduled_post = PostInsertForm {
+      scheduled_publish_time: Some(DateTime::from_timestamp_nanos(i64::MAX)),
+      ..PostInsertForm::new("beans".into(), inserted_person.id, inserted_community.id)
+    };
+    let inserted_scheduled_post = Post::create(pool, &new_scheduled_post).await.unwrap();
 
     let expected_post = Post {
       id: inserted_post.id,
@@ -456,6 +489,7 @@ mod tests {
       featured_community: false,
       featured_local: false,
       url_content_type: None,
+      scheduled_publish_time: None,
     };
 
     // Post Like
@@ -498,7 +532,7 @@ mod tests {
     .unwrap();
     assert_eq!(2, marked_as_read);
 
-    let read_post = Post::read(pool, inserted_post.id).await.unwrap().unwrap();
+    let read_post = Post::read(pool, inserted_post.id).await.unwrap();
 
     let new_post_update = PostUpdateForm {
       name: Some("A test post".into()),
@@ -507,6 +541,12 @@ mod tests {
     let updated_post = Post::update(pool, inserted_post.id, &new_post_update)
       .await
       .unwrap();
+
+    // Scheduled post count
+    let scheduled_post_count = Post::user_scheduled_post_count(inserted_person.id, pool)
+      .await
+      .unwrap();
+    assert_eq!(1, scheduled_post_count);
 
     let like_removed = PostLike::remove(pool, inserted_person.id, inserted_post.id)
       .await
@@ -524,8 +564,11 @@ mod tests {
     assert_eq!(2, read_removed);
 
     let num_deleted = Post::delete(pool, inserted_post.id).await.unwrap()
-      + Post::delete(pool, inserted_post2.id).await.unwrap();
-    assert_eq!(2, num_deleted);
+      + Post::delete(pool, inserted_post2.id).await.unwrap()
+      + Post::delete(pool, inserted_scheduled_post.id)
+        .await
+        .unwrap();
+    assert_eq!(3, num_deleted);
     Community::delete(pool, inserted_community.id)
       .await
       .unwrap();

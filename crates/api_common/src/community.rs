@@ -3,7 +3,7 @@ use lemmy_db_schema::{
   source::site::Site,
   CommunityVisibility,
   ListingType,
-  SortType,
+  PostSortType,
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
 use serde::{Deserialize, Serialize};
@@ -74,7 +74,7 @@ pub struct CommunityResponse {
 /// Fetches a list of communities.
 pub struct ListCommunities {
   pub type_: Option<ListingType>,
-  pub sort: Option<SortType>,
+  pub sort: Option<PostSortType>,
   pub show_nsfw: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -97,7 +97,9 @@ pub struct BanFromCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub ban: bool,
-  pub remove_data: Option<bool>,
+  /// Optionally remove or restore all their data. Useful for new troll accounts.
+  /// If ban is true, then this means remove. If ban is false, it means restore.
+  pub remove_or_restore_data: Option<bool>,
   pub reason: Option<String>,
   /// A time that the ban will expire, in unix epoch seconds.
   ///
