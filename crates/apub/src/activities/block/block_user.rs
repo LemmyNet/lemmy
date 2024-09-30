@@ -23,7 +23,7 @@ use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{remove_or_restore_user_data_in_community, remove_user_data},
+  utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
 };
 use lemmy_db_schema::{
   source::{
@@ -174,7 +174,8 @@ impl ActivityHandler for BlockUser {
         )
         .await?;
         if self.remove_data.unwrap_or(false) {
-          remove_user_data(mod_person.id, blocked_person.id, &reason, context).await?;
+          remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
+            .await?;
         }
 
         // write mod log
