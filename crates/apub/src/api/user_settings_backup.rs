@@ -315,7 +315,7 @@ where
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::api::user_settings_backup::{export_settings, import_settings, UserSettingsBackup};
+  use crate::api::user_settings_backup::{export_settings, import_settings};
   use activitypub_federation::config::Data;
   use actix_web::web::Json;
   use lemmy_api_common::context::LemmyContext;
