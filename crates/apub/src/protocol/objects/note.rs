@@ -65,7 +65,6 @@ impl Note {
     // some cases we have to fetch user profiles too, and reach the limit after only 25 comments
     // or so.
     // A cleaner solution would be converting the recursion into a loop, but that is tricky.
-    // Use a lower request limit here. Otherwise we can run into stack overflow due to recursion.
     if context.request_count() > MAX_COMMENT_DEPTH_LIMIT as u32 {
       Err(LemmyErrorType::MaxCommentDepthReached)?;
     }
