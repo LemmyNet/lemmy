@@ -41,25 +41,27 @@ impl Language {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{source::language::Language, utils::build_db_pool_for_tests};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_languages() {
+  async fn test_languages() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let all = Language::read_all(pool).await.unwrap();
+    let all = Language::read_all(pool).await?;
 
     assert_eq!(184, all.len());
     assert_eq!("ak", all[5].code);
     assert_eq!("lv", all[99].code);
     assert_eq!("yi", all[179].code);
+
+    Ok(())
   }
 }
