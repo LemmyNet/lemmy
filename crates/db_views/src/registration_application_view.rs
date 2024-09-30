@@ -135,7 +135,6 @@ impl RegistrationApplicationQuery {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::registration_application_view::{
@@ -156,38 +155,34 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_crud() {
+  async fn test_crud() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let timmy_person_form = PersonInsertForm::test_form(inserted_instance.id, "timmy_rav");
 
-    let inserted_timmy_person = Person::create(pool, &timmy_person_form).await.unwrap();
+    let inserted_timmy_person = Person::create(pool, &timmy_person_form).await?;
 
     let timmy_local_user_form = LocalUserInsertForm::test_form_admin(inserted_timmy_person.id);
 
-    let _inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![])
-      .await
-      .unwrap();
+    let _inserted_timmy_local_user =
+      LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
 
     let sara_person_form = PersonInsertForm::test_form(inserted_instance.id, "sara_rav");
 
-    let inserted_sara_person = Person::create(pool, &sara_person_form).await.unwrap();
+    let inserted_sara_person = Person::create(pool, &sara_person_form).await?;
 
     let sara_local_user_form = LocalUserInsertForm::test_form(inserted_sara_person.id);
 
-    let inserted_sara_local_user = LocalUser::create(pool, &sara_local_user_form, vec![])
-      .await
-      .unwrap();
+    let inserted_sara_local_user = LocalUser::create(pool, &sara_local_user_form, vec![]).await?;
 
     // Sara creates an application
     let sara_app_form = RegistrationApplicationInsertForm {
@@ -195,23 +190,17 @@ mod tests {
       answer: "LET ME IIIIINN".to_string(),
     };
 
-    let sara_app = RegistrationApplication::create(pool, &sara_app_form)
-      .await
-      .unwrap();
+    let sara_app = RegistrationApplication::create(pool, &sara_app_form).await?;
 
-    let read_sara_app_view = RegistrationApplicationView::read(pool, sara_app.id)
-      .await
-      .unwrap();
+    let read_sara_app_view = RegistrationApplicationView::read(pool, sara_app.id).await?;
 
     let jess_person_form = PersonInsertForm::test_form(inserted_instance.id, "jess_rav");
 
-    let inserted_jess_person = Person::create(pool, &jess_person_form).await.unwrap();
+    let inserted_jess_person = Person::create(pool, &jess_person_form).await?;
 
     let jess_local_user_form = LocalUserInsertForm::test_form(inserted_jess_person.id);
 
-    let inserted_jess_local_user = LocalUser::create(pool, &jess_local_user_form, vec![])
-      .await
-      .unwrap();
+    let inserted_jess_local_user = LocalUser::create(pool, &jess_local_user_form, vec![]).await?;
 
     // Sara creates an application
     let jess_app_form = RegistrationApplicationInsertForm {
@@ -219,13 +208,9 @@ mod tests {
       answer: "LET ME IIIIINN".to_string(),
     };
 
-    let jess_app = RegistrationApplication::create(pool, &jess_app_form)
-      .await
-      .unwrap();
+    let jess_app = RegistrationApplication::create(pool, &jess_app_form).await?;
 
-    let read_jess_app_view = RegistrationApplicationView::read(pool, jess_app.id)
-      .await
-      .unwrap();
+    let read_jess_app_view = RegistrationApplicationView::read(pool, jess_app.id).await?;
 
     let mut expected_sara_app_view = RegistrationApplicationView {
       registration_application: sara_app.clone(),
@@ -291,8 +276,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
 
     assert_eq!(
       apps,
@@ -300,9 +284,7 @@ mod tests {
     );
 
     // Make sure the counts are correct
-    let unread_count = RegistrationApplicationView::get_unread_count(pool, false)
-      .await
-      .unwrap();
+    let unread_count = RegistrationApplicationView::get_unread_count(pool, false).await?;
     assert_eq!(unread_count, 2);
 
     // Approve the application
@@ -311,9 +293,7 @@ mod tests {
       deny_reason: None,
     };
 
-    RegistrationApplication::update(pool, sara_app.id, &approve_form)
-      .await
-      .unwrap();
+    RegistrationApplication::update(pool, sara_app.id, &approve_form).await?;
 
     // Update the local_user row
     let approve_local_user_form = LocalUserUpdateForm {
@@ -321,13 +301,10 @@ mod tests {
       ..Default::default()
     };
 
-    LocalUser::update(pool, inserted_sara_local_user.id, &approve_local_user_form)
-      .await
-      .unwrap();
+    LocalUser::update(pool, inserted_sara_local_user.id, &approve_local_user_form).await?;
 
-    let read_sara_app_view_after_approve = RegistrationApplicationView::read(pool, sara_app.id)
-      .await
-      .unwrap();
+    let read_sara_app_view_after_approve =
+      RegistrationApplicationView::read(pool, sara_app.id).await?;
 
     // Make sure the columns changed
     expected_sara_app_view
@@ -367,28 +344,23 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
     assert_eq!(apps_after_resolve, vec![read_jess_app_view]);
 
     // Make sure the counts are correct
-    let unread_count_after_approve = RegistrationApplicationView::get_unread_count(pool, false)
-      .await
-      .unwrap();
+    let unread_count_after_approve =
+      RegistrationApplicationView::get_unread_count(pool, false).await?;
     assert_eq!(unread_count_after_approve, 1);
 
     // Make sure the not undenied_only has all the apps
-    let all_apps = RegistrationApplicationQuery::default()
-      .list(pool)
-      .await
-      .unwrap();
+    let all_apps = RegistrationApplicationQuery::default().list(pool).await?;
     assert_eq!(all_apps.len(), 2);
 
-    Person::delete(pool, inserted_timmy_person.id)
-      .await
-      .unwrap();
-    Person::delete(pool, inserted_sara_person.id).await.unwrap();
-    Person::delete(pool, inserted_jess_person.id).await.unwrap();
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    Person::delete(pool, inserted_timmy_person.id).await?;
+    Person::delete(pool, inserted_sara_person.id).await?;
+    Person::delete(pool, inserted_jess_person.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    Ok(())
   }
 }
