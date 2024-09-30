@@ -162,4 +162,4 @@ When working on an issue or pull request, you can comment with any questions you
 
 ## Credits
 
-Logo made by Andy Cuccaro (@andycuccaro) unde the CC-BY-SA 4.0 license.
+Logo made by Andy Cuccaro (@andycuccaro) under the CC-BY-SA 4.0 license.
