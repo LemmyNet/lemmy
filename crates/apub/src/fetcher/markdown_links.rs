@@ -12,19 +12,23 @@ use lemmy_utils::{
 };
 use url::Url;
 
-pub async fn markdown_rewrite_remote_post_links_opt(
+pub async fn markdown_rewrite_remote_links_opt(
   src: Option<String>,
   context: &Data<LemmyContext>,
 ) -> Option<String> {
   match src {
-    Some(t) => Some(markdown_rewrite_remote_post_links(t, context).await),
+    Some(t) => Some(markdown_rewrite_remote_links(t, context).await),
     None => None,
   }
 }
 
-// TODO: call this logic for comment.text etc
-/// TODO: as it uses ObjectId::dereference, it can currently only be used in apub crate
-pub async fn markdown_rewrite_remote_post_links(
+/// Goes through all remote markdown links and attempts to resolve them as Activitypub objects.
+/// If successful, the link is rewritten to a local link, so it can be viewed without leaving the
+/// local instance.
+///
+/// As it relies on ObjectId::dereference, it can only be used for incoming federated objects, not
+/// for the API.
+pub async fn markdown_rewrite_remote_links(
   mut src: String,
   context: &Data<LemmyContext>,
 ) -> String {
@@ -142,7 +146,7 @@ mod tests {
 
     let context = LemmyContext::init_test_context().await;
     for &(msg, input, expected) in &tests {
-      let result = markdown_rewrite_remote_post_links(input.to_string(), &context).await;
+      let result = markdown_rewrite_remote_links(input.to_string(), &context).await;
 
       assert_eq!(
         result, expected,

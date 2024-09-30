@@ -1,7 +1,7 @@
 use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_apub_id_valid_with_strictness,
-  fetcher::post_links::{markdown_rewrite_remote_post_links_opt, to_local_url},
+  fetcher::markdown_links::{markdown_rewrite_remote_links_opt, to_local_url},
   local_site_data_cached,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
@@ -241,7 +241,7 @@ impl Object for ApubPost {
 
     let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
     let body = process_markdown_opt(&body, slur_regex, &url_blocklist, context).await?;
-    let body = markdown_rewrite_remote_post_links_opt(body, context).await;
+    let body = markdown_rewrite_remote_links_opt(body, context).await;
     let language_id =
       LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
 

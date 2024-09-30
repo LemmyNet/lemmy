@@ -2,6 +2,7 @@ use super::verify_is_remote_object;
 use crate::{
   activities::GetActorType,
   check_apub_id_valid_with_strictness,
+  fetcher::markdown_links::markdown_rewrite_remote_links_opt,
   local_site_data_cached,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
@@ -156,6 +157,7 @@ impl Object for ApubPerson {
     let url_blocklist = get_url_blocklist(context).await?;
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
     let bio = process_markdown_opt(&bio, slur_regex, &url_blocklist, context).await?;
+    let bio = markdown_rewrite_remote_links_opt(bio, context).await;
     let avatar = proxy_image_link_opt_apub(person.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(person.image.map(|i| i.url), context).await?;
 
