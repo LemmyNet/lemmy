@@ -258,9 +258,9 @@ impl Post {
     post::table
       .inner_join(person::table)
       .inner_join(community::table)
-      // find all posts which have scheduled_publish_time that is in the  past
+      // find all posts which have scheduled_publish_time that is in the  future
       .filter(post::scheduled_publish_time.is_not_null())
-      .filter(coalesce(post::scheduled_publish_time, now()).lt(now()))
+      .filter(coalesce(post::scheduled_publish_time, now()).gt(now()))
       // make sure the post and community are still around
       .filter(not(post::deleted.or(post::removed)))
       .filter(not(community::removed.or(community::deleted)))
@@ -413,6 +413,7 @@ mod tests {
     traits::{Crud, Likeable, Saveable},
     utils::build_db_pool_for_tests,
   };
+  use chrono::DateTime;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -453,6 +454,12 @@ mod tests {
       inserted_community.id,
     );
     let inserted_post2 = Post::create(pool, &new_post2).await?;
+
+    let new_scheduled_post = PostInsertForm {
+      scheduled_publish_time: Some(DateTime::from_timestamp_nanos(i64::MAX)),
+      ..PostInsertForm::new("beans".into(), inserted_person.id, inserted_community.id)
+    };
+    let inserted_scheduled_post = Post::create(pool, &new_scheduled_post).await?;
 
     let expected_post = Post {
       id: inserted_post.id,
@@ -528,6 +535,10 @@ mod tests {
     };
     let updated_post = Post::update(pool, inserted_post.id, &new_post_update).await?;
 
+    // Scheduled post count
+    let scheduled_post_count = Post::user_scheduled_post_count(inserted_person.id, pool).await?;
+    assert_eq!(1, scheduled_post_count);
+
     let like_removed = PostLike::remove(pool, inserted_person.id, inserted_post.id).await?;
     assert_eq!(1, like_removed);
     let saved_removed = PostSaved::unsave(pool, &post_saved_form).await?;
@@ -540,9 +551,10 @@ mod tests {
     .await?;
     assert_eq!(2, read_removed);
 
-    let num_deleted =
-      Post::delete(pool, inserted_post.id).await? + Post::delete(pool, inserted_post2.id).await?;
-    assert_eq!(2, num_deleted);
+    let num_deleted = Post::delete(pool, inserted_post.id).await?
+      + Post::delete(pool, inserted_post2.id).await?
+      + Post::delete(pool, inserted_scheduled_post.id).await?;
+    assert_eq!(3, num_deleted);
     Community::delete(pool, inserted_community.id).await?;
     Person::delete(pool, inserted_person.id).await?;
     Instance::delete(pool, inserted_instance.id).await?;
