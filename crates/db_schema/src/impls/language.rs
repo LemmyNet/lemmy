@@ -1,3 +1,4 @@
+use super::actor_language::UNDETERMINED_ID;
 use crate::{
   diesel::ExpressionMethods,
   newtypes::LanguageId,
@@ -19,24 +20,17 @@ impl Language {
     language::table.find(id_).first(conn).await
   }
 
-  /// Attempts to find the given language code and return its ID. If not found, returns none.
-  pub async fn read_id_from_code(
-    pool: &mut DbPool<'_>,
-    code_: Option<&str>,
-  ) -> Result<Option<LanguageId>, Error> {
-    if let Some(code_) = code_ {
-      let conn = &mut get_conn(pool).await?;
-      Ok(
-        language::table
-          .filter(language::code.eq(code_))
-          .first::<Self>(conn)
-          .await
-          .map(|l| l.id)
-          .ok(),
-      )
-    } else {
-      Ok(None)
-    }
+  /// Attempts to find the given language code and return its ID.
+  pub async fn read_id_from_code(pool: &mut DbPool<'_>, code_: &str) -> Result<LanguageId, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let res = language::table
+      .filter(language::code.eq(code_))
+      .first::<Self>(conn)
+      .await
+      .map(|l| l.id);
+
+    // Return undetermined by default
+    Ok(res.unwrap_or(UNDETERMINED_ID))
   }
 }
 

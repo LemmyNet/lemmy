@@ -222,7 +222,6 @@ impl<T: DataSource> CommunityInboxCollector<T> {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
   use super::*;
@@ -334,8 +333,14 @@ mod tests {
       .expect_get_instance_followed_community_inboxes()
       .return_once(move |_, _| {
         Ok(vec![
-          (community_id, Url::parse(url1).unwrap().into()),
-          (community_id, Url::parse(url2).unwrap().into()),
+          (
+            community_id,
+            Url::parse(url1).map_err(|_| diesel::NotFound)?.into(),
+          ),
+          (
+            community_id,
+            Url::parse(url2).map_err(|_| diesel::NotFound)?.into(),
+          ),
         ])
       });
 
@@ -432,7 +437,9 @@ mod tests {
       .return_once(move |_, _| {
         Ok(vec![(
           community_id,
-          Url::parse(subdomain_inbox).unwrap().into(),
+          Url::parse(subdomain_inbox)
+            .map_err(|_| diesel::NotFound)?
+            .into(),
         )])
       });
 
@@ -486,13 +493,25 @@ mod tests {
       .returning(move |_, last_fetch| {
         if last_fetch == Utc.timestamp_nanos(0) {
           Ok(vec![
-            (community_id1, Url::parse(user1_inbox_str).unwrap().into()),
-            (community_id2, Url::parse(user2_inbox_str).unwrap().into()),
+            (
+              community_id1,
+              Url::parse(user1_inbox_str)
+                .map_err(|_| diesel::NotFound)?
+                .into(),
+            ),
+            (
+              community_id2,
+              Url::parse(user2_inbox_str)
+                .map_err(|_| diesel::NotFound)?
+                .into(),
+            ),
           ])
         } else {
           Ok(vec![(
             community_id3,
-            Url::parse(user3_inbox_str).unwrap().into(),
+            Url::parse(user3_inbox_str)
+              .map_err(|_| diesel::NotFound)?
+              .into(),
           )])
         }
       });

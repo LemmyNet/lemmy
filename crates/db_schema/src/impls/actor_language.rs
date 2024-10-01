@@ -199,26 +199,22 @@ impl CommunityLanguage {
   /// Returns true if the given language is one of configured languages for given community
   pub async fn is_allowed_community_language(
     pool: &mut DbPool<'_>,
-    for_language_id: Option<LanguageId>,
+    for_language_id: LanguageId,
     for_community_id: CommunityId,
   ) -> LemmyResult<()> {
     use crate::schema::community_language::dsl::community_language;
     let conn = &mut get_conn(pool).await?;
 
-    if let Some(for_language_id) = for_language_id {
-      let is_allowed = select(exists(
-        community_language.find((for_community_id, for_language_id)),
-      ))
-      .get_result(conn)
-      .await?;
+    let is_allowed = select(exists(
+      community_language.find((for_community_id, for_language_id)),
+    ))
+    .get_result(conn)
+    .await?;
 
-      if is_allowed {
-        Ok(())
-      } else {
-        Err(LemmyErrorType::LanguageNotAllowed)?
-      }
-    } else {
+    if is_allowed {
       Ok(())
+    } else {
+      Err(LemmyErrorType::LanguageNotAllowed)?
     }
   }
 
@@ -327,7 +323,7 @@ pub async fn default_post_language(
   pool: &mut DbPool<'_>,
   community_id: CommunityId,
   local_user_id: LocalUserId,
-) -> Result<Option<LanguageId>, Error> {
+) -> Result<LanguageId, Error> {
   use crate::schema::{community_language::dsl as cl, local_user_language::dsl as ul};
   let conn = &mut get_conn(pool).await?;
   let mut intersection = ul::local_user_language
@@ -339,12 +335,12 @@ pub async fn default_post_language(
     .await?;
 
   if intersection.len() == 1 {
-    Ok(intersection.pop())
+    Ok(intersection.pop().unwrap_or(UNDETERMINED_ID))
   } else if intersection.len() == 2 && intersection.contains(&UNDETERMINED_ID) {
     intersection.retain(|i| i != &UNDETERMINED_ID);
-    Ok(intersection.pop())
+    Ok(intersection.pop().unwrap_or(UNDETERMINED_ID))
   } else {
-    Ok(None)
+    Ok(UNDETERMINED_ID)
   }
 }
 
@@ -392,7 +388,6 @@ async fn convert_read_languages(
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
@@ -415,25 +410,15 @@ mod tests {
 
   async fn test_langs1(pool: &mut DbPool<'_>) -> Result<Vec<LanguageId>, Error> {
     Ok(vec![
-      Language::read_id_from_code(pool, Some("en"))
-        .await?
-        .unwrap(),
-      Language::read_id_from_code(pool, Some("fr"))
-        .await?
-        .unwrap(),
-      Language::read_id_from_code(pool, Some("ru"))
-        .await?
-        .unwrap(),
+      Language::read_id_from_code(pool, "en").await?,
+      Language::read_id_from_code(pool, "fr").await?,
+      Language::read_id_from_code(pool, "ru").await?,
     ])
   }
   async fn test_langs2(pool: &mut DbPool<'_>) -> Result<Vec<LanguageId>, Error> {
     Ok(vec![
-      Language::read_id_from_code(pool, Some("fi"))
-        .await?
-        .unwrap(),
-      Language::read_id_from_code(pool, Some("se"))
-        .await?
-        .unwrap(),
+      Language::read_id_from_code(pool, "fi").await?,
+      Language::read_id_from_code(pool, "se").await?,
     ])
   }
 
@@ -576,14 +561,12 @@ mod tests {
     assert_eq!(test_langs, community_langs1);
 
     let allowed_lang1 =
-      CommunityLanguage::is_allowed_community_language(pool, Some(test_langs[0]), community.id)
-        .await;
+      CommunityLanguage::is_allowed_community_language(pool, test_langs[0], community.id).await;
     assert!(allowed_lang1.is_ok());
 
     let test_langs2 = test_langs2(pool).await?;
     let allowed_lang2 =
-      CommunityLanguage::is_allowed_community_language(pool, Some(test_langs2[0]), community.id)
-        .await;
+      CommunityLanguage::is_allowed_community_language(pool, test_langs2[0], community.id).await;
     assert!(allowed_lang2.is_err());
 
     // limit site languages to en, fi. after this, community languages should be updated to
@@ -631,26 +614,20 @@ mod tests {
 
     // no overlap in user/community languages, so defaults to undetermined
     let def1 = default_post_language(pool, community.id, local_user.id).await?;
-    assert_eq!(None, def1);
+    assert_eq!(UNDETERMINED_ID, def1);
 
-    let ru = Language::read_id_from_code(pool, Some("ru"))
-      .await?
-      .unwrap();
+    let ru = Language::read_id_from_code(pool, "ru").await?;
     let test_langs3 = vec![
       ru,
-      Language::read_id_from_code(pool, Some("fi"))
-        .await?
-        .unwrap(),
-      Language::read_id_from_code(pool, Some("se"))
-        .await?
-        .unwrap(),
+      Language::read_id_from_code(pool, "fi").await?,
+      Language::read_id_from_code(pool, "se").await?,
       UNDETERMINED_ID,
     ];
     LocalUserLanguage::update(pool, test_langs3, local_user.id).await?;
 
     // this time, both have ru as common lang
     let def2 = default_post_language(pool, community.id, local_user.id).await?;
-    assert_eq!(Some(ru), def2);
+    assert_eq!(ru, def2);
 
     Person::delete(pool, person.id).await?;
     Community::delete(pool, community.id).await?;

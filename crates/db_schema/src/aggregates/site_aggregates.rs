@@ -1,6 +1,5 @@
 use crate::{
   aggregates::structs::SiteAggregates,
-  diesel::OptionalExtension,
   schema::site_aggregates,
   utils::{get_conn, DbPool},
 };
@@ -8,15 +7,13 @@ use diesel::result::Error;
 use diesel_async::RunQueryDsl;
 
 impl SiteAggregates {
-  pub async fn read(pool: &mut DbPool<'_>) -> Result<Option<Self>, Error> {
+  pub async fn read(pool: &mut DbPool<'_>) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    site_aggregates::table.first(conn).await.optional()
+    site_aggregates::table.first(conn).await
   }
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
-
 mod tests {
 
   use crate::{
@@ -101,7 +98,7 @@ mod tests {
     let _inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let site_aggregates_before_delete = SiteAggregates::read(pool).await?.unwrap();
+    let site_aggregates_before_delete = SiteAggregates::read(pool).await?;
 
     // TODO: this is unstable, sometimes it returns 0 users, sometimes 1
     //assert_eq!(0, site_aggregates_before_delete.users);
@@ -111,7 +108,7 @@ mod tests {
 
     // Try a post delete
     Post::delete(pool, inserted_post.id).await?;
-    let site_aggregates_after_post_delete = SiteAggregates::read(pool).await?.unwrap();
+    let site_aggregates_after_post_delete = SiteAggregates::read(pool).await?;
     assert_eq!(1, site_aggregates_after_post_delete.posts);
     assert_eq!(0, site_aggregates_after_post_delete.comments);
 
@@ -128,8 +125,8 @@ mod tests {
     assert!(after_delete_creator.is_ok());
 
     Site::delete(pool, inserted_site.id).await?;
-    let after_delete_site = SiteAggregates::read(pool).await?;
-    assert!(after_delete_site.is_none());
+    let after_delete_site = SiteAggregates::read(pool).await;
+    assert!(after_delete_site.is_err());
 
     Instance::delete(pool, inserted_instance.id).await?;
 
@@ -145,7 +142,7 @@ mod tests {
     let (inserted_instance, inserted_person, inserted_site, inserted_community) =
       prepare_site_with_community(pool).await?;
 
-    let site_aggregates_before = SiteAggregates::read(pool).await?.unwrap();
+    let site_aggregates_before = SiteAggregates::read(pool).await?;
     assert_eq!(1, site_aggregates_before.communities);
 
     Community::update(
@@ -158,7 +155,7 @@ mod tests {
     )
     .await?;
 
-    let site_aggregates_after_delete = SiteAggregates::read(pool).await?.unwrap();
+    let site_aggregates_after_delete = SiteAggregates::read(pool).await?;
     assert_eq!(0, site_aggregates_after_delete.communities);
 
     Community::update(
@@ -181,7 +178,7 @@ mod tests {
     )
     .await?;
 
-    let site_aggregates_after_remove = SiteAggregates::read(pool).await?.unwrap();
+    let site_aggregates_after_remove = SiteAggregates::read(pool).await?;
     assert_eq!(0, site_aggregates_after_remove.communities);
 
     Community::update(
@@ -194,7 +191,7 @@ mod tests {
     )
     .await?;
 
-    let site_aggregates_after_remove_delete = SiteAggregates::read(pool).await?.unwrap();
+    let site_aggregates_after_remove_delete = SiteAggregates::read(pool).await?;
     assert_eq!(0, site_aggregates_after_remove_delete.communities);
 
     Community::delete(pool, inserted_community.id).await?;

@@ -88,16 +88,9 @@ pub async fn create_comment(
     check_comment_depth(parent)?;
   }
 
-  CommunityLanguage::is_allowed_community_language(
-    &mut context.pool(),
-    data.language_id,
-    community_id,
-  )
-  .await?;
-
   // attempt to set default language if none was provided
   let language_id = match data.language_id {
-    Some(lid) => Some(lid),
+    Some(lid) => lid,
     None => {
       default_post_language(
         &mut context.pool(),
@@ -108,8 +101,11 @@ pub async fn create_comment(
     }
   };
 
+  CommunityLanguage::is_allowed_community_language(&mut context.pool(), language_id, community_id)
+    .await?;
+
   let comment_form = CommentInsertForm {
-    language_id,
+    language_id: Some(language_id),
     ..CommentInsertForm::new(local_user_view.person.id, data.post_id, content.clone())
   };
 

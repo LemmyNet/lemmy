@@ -111,7 +111,6 @@ impl PrivateMessageReportQuery {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
@@ -186,8 +185,8 @@ mod tests {
     assert!(reports[0].private_message_report.resolved);
     assert!(reports[0].resolver.is_some());
     assert_eq!(
-      inserted_admin.name,
-      reports[0].resolver.as_ref().unwrap().name
+      Some(&inserted_admin.name),
+      reports[0].resolver.as_ref().map(|r| &r.name)
     );
 
     Instance::delete(pool, inserted_instance.id).await?;

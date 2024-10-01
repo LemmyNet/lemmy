@@ -97,7 +97,6 @@ where
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::*;
@@ -129,7 +128,7 @@ mod tests {
     let pool_ = build_db_pool_for_tests().await;
     let pool = &mut (&pool_).into();
 
-    let secret = Secret::init(pool).await?.unwrap();
+    let secret = Secret::init(pool).await?;
 
     let context = LemmyContext::create(
       pool_.clone(),

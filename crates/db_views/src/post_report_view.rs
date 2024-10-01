@@ -284,7 +284,6 @@ impl PostReportQuery {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
@@ -434,8 +433,10 @@ mod tests {
       Some(inserted_timmy.id)
     );
     assert_eq!(
-      read_jessica_report_view_after_resolve.resolver.unwrap().id,
-      inserted_timmy.id
+      read_jessica_report_view_after_resolve
+        .resolver
+        .map(|r| r.id),
+      Some(inserted_timmy.id)
     );
 
     // Do a batch read of timmys reports

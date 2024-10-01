@@ -42,14 +42,13 @@ pub async fn get_sitemap(context: Data<LemmyContext>) -> LemmyResult<HttpRespons
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 pub(crate) mod tests {
 
   use crate::sitemap::generate_urlset;
   use chrono::{DateTime, NaiveDate, Utc};
   use elementtree::Element;
   use lemmy_db_schema::newtypes::DbUrl;
-  use lemmy_utils::error::LemmyResult;
+  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
   use pretty_assertions::assert_eq;
   use url::Url;
 
@@ -59,17 +58,17 @@ pub(crate) mod tests {
       (
         Url::parse("https://example.com")?.into(),
         NaiveDate::from_ymd_opt(2022, 12, 1)
-          .unwrap()
+          .unwrap_or_default()
           .and_hms_opt(9, 10, 11)
-          .unwrap()
+          .unwrap_or_default()
           .and_utc(),
       ),
       (
         Url::parse("https://lemmy.ml")?.into(),
         NaiveDate::from_ymd_opt(2023, 1, 1)
-          .unwrap()
+          .unwrap_or_default()
           .and_hms_opt(1, 2, 3)
-          .unwrap()
+          .unwrap_or_default()
           .and_utc(),
       ),
     ];
@@ -96,10 +95,10 @@ pub(crate) mod tests {
       root
         .children()
         .next()
-        .unwrap()
+        .ok_or(LemmyErrorType::NotFound)?
         .children()
         .find(|element| element.tag().name() == "loc")
-        .unwrap()
+        .ok_or(LemmyErrorType::NotFound)?
         .text(),
       "https://example.com/"
     );
@@ -107,10 +106,10 @@ pub(crate) mod tests {
       root
         .children()
         .next()
-        .unwrap()
+        .ok_or(LemmyErrorType::NotFound)?
         .children()
         .find(|element| element.tag().name() == "lastmod")
-        .unwrap()
+        .ok_or(LemmyErrorType::NotFound)?
         .text(),
       "2022-12-01T09:10:11+00:00"
     );
@@ -118,10 +117,10 @@ pub(crate) mod tests {
       root
         .children()
         .nth(1)
-        .unwrap()
+        .ok_or(LemmyErrorType::NotFound)?
         .children()
         .find(|element| element.tag().name() == "loc")
-        .unwrap()
+        .ok_or(LemmyErrorType::NotFound)?
         .text(),
       "https://lemmy.ml/"
     );
@@ -129,10 +128,10 @@ pub(crate) mod tests {
       root
         .children()
         .nth(1)
-        .unwrap()
+        .ok_or(LemmyErrorType::NotFound)?
         .children()
         .find(|element| element.tag().name() == "lastmod")
-        .unwrap()
+        .ok_or(LemmyErrorType::NotFound)?
         .text(),
       "2023-01-01T01:02:03+00:00"
     );

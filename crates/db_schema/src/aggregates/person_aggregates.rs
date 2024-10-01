@@ -1,4 +1,3 @@
-pub(crate) use crate::diesel::OptionalExtension;
 use crate::{
   aggregates::structs::PersonAggregates,
   newtypes::PersonId,
@@ -9,18 +8,13 @@ use diesel::{result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl PersonAggregates {
-  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Option<Self>, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    person_aggregates::table
-      .find(person_id)
-      .first(conn)
-      .await
-      .optional()
+    person_aggregates::table.find(person_id).first(conn).await
   }
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{
@@ -111,9 +105,7 @@ mod tests {
 
     let _inserted_child_comment_like = CommentLike::like(pool, &child_comment_like).await?;
 
-    let person_aggregates_before_delete = PersonAggregates::read(pool, inserted_person.id)
-      .await?
-      .unwrap();
+    let person_aggregates_before_delete = PersonAggregates::read(pool, inserted_person.id).await?;
 
     assert_eq!(1, person_aggregates_before_delete.post_count);
     assert_eq!(1, person_aggregates_before_delete.post_score);
@@ -122,9 +114,7 @@ mod tests {
 
     // Remove a post like
     PostLike::remove(pool, inserted_person.id, inserted_post.id).await?;
-    let after_post_like_remove = PersonAggregates::read(pool, inserted_person.id)
-      .await?
-      .unwrap();
+    let after_post_like_remove = PersonAggregates::read(pool, inserted_person.id).await?;
     assert_eq!(0, after_post_like_remove.post_score);
 
     Comment::update(
@@ -146,9 +136,7 @@ mod tests {
     )
     .await?;
 
-    let after_parent_comment_removed = PersonAggregates::read(pool, inserted_person.id)
-      .await?
-      .unwrap();
+    let after_parent_comment_removed = PersonAggregates::read(pool, inserted_person.id).await?;
     assert_eq!(0, after_parent_comment_removed.comment_count);
     // TODO: fix person aggregate comment score calculation
     // assert_eq!(0, after_parent_comment_removed.comment_score);
@@ -156,9 +144,7 @@ mod tests {
     // Remove a parent comment (the scores should also be removed)
     Comment::delete(pool, inserted_comment.id).await?;
     Comment::delete(pool, inserted_child_comment.id).await?;
-    let after_parent_comment_delete = PersonAggregates::read(pool, inserted_person.id)
-      .await?
-      .unwrap();
+    let after_parent_comment_delete = PersonAggregates::read(pool, inserted_person.id).await?;
     assert_eq!(0, after_parent_comment_delete.comment_count);
     // TODO: fix person aggregate comment score calculation
     // assert_eq!(0, after_parent_comment_delete.comment_score);
@@ -169,17 +155,13 @@ mod tests {
       Comment::create(pool, &child_comment_form, Some(&new_parent_comment.path)).await?;
     comment_like.comment_id = new_parent_comment.id;
     CommentLike::like(pool, &comment_like).await?;
-    let after_comment_add = PersonAggregates::read(pool, inserted_person.id)
-      .await?
-      .unwrap();
+    let after_comment_add = PersonAggregates::read(pool, inserted_person.id).await?;
     assert_eq!(2, after_comment_add.comment_count);
     // TODO: fix person aggregate comment score calculation
     // assert_eq!(1, after_comment_add.comment_score);
 
     Post::delete(pool, inserted_post.id).await?;
-    let after_post_delete = PersonAggregates::read(pool, inserted_person.id)
-      .await?
-      .unwrap();
+    let after_post_delete = PersonAggregates::read(pool, inserted_person.id).await?;
     // TODO: fix person aggregate comment score calculation
     // assert_eq!(0, after_post_delete.comment_score);
     assert_eq!(0, after_post_delete.comment_count);
@@ -196,8 +178,8 @@ mod tests {
     assert_eq!(1, community_num_deleted);
 
     // Should be none found
-    let after_delete = PersonAggregates::read(pool, inserted_person.id).await?;
-    assert!(after_delete.is_none());
+    let after_delete = PersonAggregates::read(pool, inserted_person.id).await;
+    assert!(after_delete.is_err());
 
     Instance::delete(pool, inserted_instance.id).await?;
 
