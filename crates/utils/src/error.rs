@@ -288,7 +288,6 @@ cfg_if! {
 
     #[cfg(test)]
     mod tests {
-      #![allow(clippy::unwrap_used)]
       #![allow(clippy::indexing_slicing)]
       use super::*;
       use actix_web::{body::MessageBody, ResponseError};
@@ -299,7 +298,7 @@ cfg_if! {
       #[test]
       fn deserializes_no_message() -> LemmyResult<()> {
         let err = LemmyError::from(LemmyErrorType::Banned).error_response();
-        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec())?;
+        let json = String::from_utf8(err.into_body().try_into_bytes().map_err(|e| LemmyErrorType::Unknown(format!("{e:?}")))?.to_vec())?;
         assert_eq!(&json, "{\"error\":\"banned\"}");
 
         Ok(())
@@ -309,7 +308,7 @@ cfg_if! {
       fn deserializes_with_message() -> LemmyResult<()> {
         let reg_banned = LemmyErrorType::PersonIsBannedFromSite(String::from("reason"));
         let err = LemmyError::from(reg_banned).error_response();
-        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec())?;
+        let json = String::from_utf8(err.into_body().try_into_bytes().map_err(|e| LemmyErrorType::Unknown(format!("{e:?}")))?.to_vec())?;
         assert_eq!(
           &json,
           "{\"error\":\"person_is_banned_from_site\",\"message\":\"reason\"}"
@@ -339,12 +338,13 @@ cfg_if! {
         }
 
         let translations = read_to_string("translations/translations/en.json")?;
-        LemmyErrorType::iter().for_each(|e| {
-          let msg = serde_json::to_string(&e).unwrap();
-          let msg: Err = serde_json::from_str(&msg).unwrap();
+
+        for e in LemmyErrorType::iter() {
+          let msg = serde_json::to_string(&e)?;
+          let msg: Err = serde_json::from_str(&msg)?;
           let msg = msg.error;
           assert!(translations.contains(&format!("\"{msg}\"")), "{msg}");
-        });
+        }
 
         Ok(())
       }
