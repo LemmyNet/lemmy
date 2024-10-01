@@ -1,7 +1,7 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Query};
 use lemmy_api_common::{
-  community::CommunityResponse,
+  community::{CommunityResponse, GetRandomCommunity},
   context::LemmyContext,
   utils::{check_private_instance, is_mod_or_admin_opt},
 };
@@ -16,6 +16,7 @@ use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_random_community(
+  data: Query<GetRandomCommunity>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<CommunityResponse>> {
@@ -25,9 +26,8 @@ pub async fn get_random_community(
 
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
 
-  let random_community_id = Community::get_random_local_community(&mut context.pool())
-    .await?
-    .id;
+  let random_community_id =
+    Community::get_random_community_id(&mut context.pool(), &data.type_).await?;
 
   let is_mod_or_admin = is_mod_or_admin_opt(
     &mut context.pool(),

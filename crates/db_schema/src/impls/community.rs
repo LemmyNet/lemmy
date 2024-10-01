@@ -30,6 +30,7 @@ use crate::{
     get_conn,
     DbPool,
   },
+  ListingType,
   SubscribedType,
 };
 use chrono::{DateTime, Utc};
@@ -194,16 +195,30 @@ impl Community {
     Ok(())
   }
 
-  pub async fn get_random_local_community(pool: &mut DbPool<'_>) -> Result<Self, Error> {
+  pub async fn get_random_community_id(
+    pool: &mut DbPool<'_>,
+    type_: &Option<ListingType>,
+  ) -> Result<CommunityId, Error> {
     let conn = &mut get_conn(pool).await?;
     sql_function!(fn random() -> Text);
-    community::table
-      .filter(community::local)
+
+    let mut query = community::table
       .filter(not(community::deleted))
       .filter(not(community::removed))
+      .into_boxed();
+
+    if let Some(type_) = type_ {
+      query = match type_ {
+        ListingType::Local => query.filter(community::local),
+        _ => query,
+      };
+    };
+
+    query
+      .select(community::id)
       .order(random())
       .limit(1)
-      .first::<Self>(conn)
+      .first::<CommunityId>(conn)
       .await
   }
 }
