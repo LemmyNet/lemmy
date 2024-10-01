@@ -93,10 +93,10 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
-  use lemmy_utils::error::LemmyResult;
+  use diesel::result::Error;
   use serial_test::serial;
 
-  async fn init(pool: &mut DbPool<'_>) -> LemmyResult<(Person, PostReport)> {
+  async fn init(pool: &mut DbPool<'_>) -> Result<(Person, PostReport), Error> {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
     let person_form = PersonInsertForm::test_form(inserted_instance.id, "jim");
     let person = Person::create(pool, &person_form).await?;
@@ -125,7 +125,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_resolve_post_report() -> LemmyResult<()> {
+  async fn test_resolve_post_report() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
@@ -145,7 +145,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_resolve_all_post_reports() -> LemmyResult<()> {
+  async fn test_resolve_all_post_reports() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 

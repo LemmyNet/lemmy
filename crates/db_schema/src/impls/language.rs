@@ -45,13 +45,13 @@ impl Language {
 mod tests {
 
   use crate::{source::language::Language, utils::build_db_pool_for_tests};
-  use lemmy_utils::error::LemmyResult;
+  use diesel::result::Error;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_languages() -> LemmyResult<()> {
+  async fn test_languages() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 

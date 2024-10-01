@@ -409,10 +409,11 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
+  use diesel::result::Error;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
-  async fn test_langs1(pool: &mut DbPool<'_>) -> LemmyResult<Vec<LanguageId>> {
+  async fn test_langs1(pool: &mut DbPool<'_>) -> Result<Vec<LanguageId>, Error> {
     Ok(vec![
       Language::read_id_from_code(pool, Some("en"))
         .await?
@@ -425,7 +426,7 @@ mod tests {
         .unwrap(),
     ])
   }
-  async fn test_langs2(pool: &mut DbPool<'_>) -> LemmyResult<Vec<LanguageId>> {
+  async fn test_langs2(pool: &mut DbPool<'_>) -> Result<Vec<LanguageId>, Error> {
     Ok(vec![
       Language::read_id_from_code(pool, Some("fi"))
         .await?
@@ -436,7 +437,7 @@ mod tests {
     ])
   }
 
-  async fn create_test_site(pool: &mut DbPool<'_>) -> LemmyResult<(Site, Instance)> {
+  async fn create_test_site(pool: &mut DbPool<'_>) -> Result<(Site, Instance), Error> {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
@@ -451,7 +452,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_convert_update_languages() -> LemmyResult<()> {
+  async fn test_convert_update_languages() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
@@ -469,7 +470,7 @@ mod tests {
   }
   #[tokio::test]
   #[serial]
-  async fn test_convert_read_languages() -> LemmyResult<()> {
+  async fn test_convert_read_languages() -> Result<(), Error> {
     use crate::schema::language::dsl::{id, language};
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -490,7 +491,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_site_languages() -> LemmyResult<()> {
+  async fn test_site_languages() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
@@ -515,7 +516,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_user_languages() -> LemmyResult<()> {
+  async fn test_user_languages() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
@@ -548,7 +549,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_community_languages() -> LemmyResult<()> {
+  async fn test_community_languages() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let (site, instance) = create_test_site(pool).await?;
@@ -606,7 +607,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_default_post_language() -> LemmyResult<()> {
+  async fn test_default_post_language() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let (site, instance) = create_test_site(pool).await?;

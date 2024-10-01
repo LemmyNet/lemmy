@@ -54,13 +54,13 @@ mod tests {
     source::{federation_allowlist::FederationAllowList, instance::Instance},
     utils::build_db_pool_for_tests,
   };
-  use lemmy_utils::error::LemmyResult;
+  use diesel::result::Error;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_allowlist_insert_and_clear() -> LemmyResult<()> {
+  async fn test_allowlist_insert_and_clear() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let domains = vec![
