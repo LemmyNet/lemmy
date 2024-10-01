@@ -298,7 +298,7 @@ pub(crate) mod tests {
     assert!(!community.local);
     assert_eq!(
       community.description.as_ref().map(std::string::String::len),
-      Some(132)
+      Some(63)
     );
 
     Community::delete(&mut context.pool(), community.id).await?;

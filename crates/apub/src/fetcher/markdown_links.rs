@@ -38,8 +38,6 @@ pub async fn markdown_rewrite_remote_links(
   for (start, end) in links_offsets.into_iter().rev() {
     let (url, extra) = markdown_handle_title(&src, start, end);
 
-    // TODO: needs cleanup
-
     if let Some(local_url) = to_local_url(url, context).await {
       let mut local_url = local_url.to_string();
       // restore title
@@ -131,9 +129,7 @@ mod tests {
     )
     .await?;
     let user = create_user("john".to_string(), None, &context).await?;
-    let post_form = PostInsertForm {
-      ..PostInsertForm::new("My post".to_string(), user.person.id, community.id)
-    };
+    let post_form = PostInsertForm::new("My post".to_string(), user.person.id, community.id);
     let post = Post::create(&mut context.pool(), &post_form).await?;
 
     let tests: Vec<_> = vec![
@@ -179,6 +175,9 @@ mod tests {
         msg, input
       );
     }
+
+    Instance::delete(&mut context.pool(), instance.id).await?;
+
     Ok(())
   }
 }

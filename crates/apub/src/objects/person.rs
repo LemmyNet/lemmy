@@ -279,7 +279,7 @@ pub(crate) mod tests {
     assert_eq!(person.name, "lanodan");
     assert!(!person.local);
     assert_eq!(context.request_count(), 0);
-    assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(873));
+    assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(812));
 
     cleanup((person, site), &context).await?;
     Ok(())

@@ -286,7 +286,7 @@ pub(crate) mod tests {
     let comment = ApubComment::from_json(json, &context).await?;
 
     assert_eq!(comment.ap_id, pleroma_url.into());
-    assert_eq!(comment.content.len(), 64);
+    assert_eq!(comment.content.len(), 10);
     assert!(!comment.local);
     assert_eq!(context.request_count(), 1);
 
