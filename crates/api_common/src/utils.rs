@@ -1144,7 +1144,7 @@ fn build_proxied_image_url(
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::indexing_slicing)]
 mod tests {
 
   use super::*;
