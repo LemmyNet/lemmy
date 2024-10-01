@@ -59,6 +59,8 @@ pub async fn get_site(
         tagline,
         oauth_providers: Some(oauth_providers),
         admin_oauth_providers: Some(admin_oauth_providers),
+        taglines: vec![],
+        custom_emojis: vec![],
       })
     })
     .await

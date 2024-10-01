@@ -11,7 +11,7 @@ use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
-  newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
@@ -23,6 +23,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    moderator::{ModRemoveComment, ModRemoveCommentForm, ModRemovePost, ModRemovePostForm},
     oauth_account::OAuthAccount,
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
@@ -667,112 +668,179 @@ pub async fn purge_image_posts_for_community(
   Ok(())
 }
 
-pub async fn remove_user_data(
+/// Removes or restores user data.
+pub async fn remove_or_restore_user_data(
+  mod_person_id: PersonId,
   banned_person_id: PersonId,
+  removed: bool,
+  reason: &Option<String>,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
   let pool = &mut context.pool();
-  // Purge user images
-  let person = Person::read(pool, banned_person_id).await?;
-  if let Some(avatar) = person.avatar {
-    purge_image_from_pictrs(&avatar, context).await.ok();
-  }
-  if let Some(banner) = person.banner {
-    purge_image_from_pictrs(&banner, context).await.ok();
+
+  // Only these actions are possible when removing, not restoring
+  if removed {
+    // Purge user images
+    let person = Person::read(pool, banned_person_id).await?;
+    if let Some(avatar) = person.avatar {
+      purge_image_from_pictrs(&avatar, context).await.ok();
+    }
+    if let Some(banner) = person.banner {
+      purge_image_from_pictrs(&banner, context).await.ok();
+    }
+
+    // Update the fields to None
+    Person::update(
+      pool,
+      banned_person_id,
+      &PersonUpdateForm {
+        avatar: Some(None),
+        banner: Some(None),
+        bio: Some(None),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    // Purge image posts
+    purge_image_posts_for_person(banned_person_id, context).await?;
+
+    // Communities
+    // Remove all communities where they're the top mod
+    // for now, remove the communities manually
+    let first_mod_communities = CommunityModeratorView::get_community_first_mods(pool).await?;
+
+    // Filter to only this banned users top communities
+    let banned_user_first_communities: Vec<CommunityModeratorView> = first_mod_communities
+      .into_iter()
+      .filter(|fmc| fmc.moderator.id == banned_person_id)
+      .collect();
+
+    for first_mod_community in banned_user_first_communities {
+      let community_id = first_mod_community.community.id;
+      Community::update(
+        pool,
+        community_id,
+        &CommunityUpdateForm {
+          removed: Some(removed),
+          ..Default::default()
+        },
+      )
+      .await?;
+
+      // Delete the community images
+      if let Some(icon) = first_mod_community.community.icon {
+        purge_image_from_pictrs(&icon, context).await.ok();
+      }
+      if let Some(banner) = first_mod_community.community.banner {
+        purge_image_from_pictrs(&banner, context).await.ok();
+      }
+      // Update the fields to None
+      Community::update(
+        pool,
+        community_id,
+        &CommunityUpdateForm {
+          icon: Some(None),
+          banner: Some(None),
+          ..Default::default()
+        },
+      )
+      .await?;
+    }
   }
 
-  // Update the fields to None
-  Person::update(
+  // Posts
+  let removed_or_restored_posts =
+    Post::update_removed_for_creator(pool, banned_person_id, None, removed).await?;
+  create_modlog_entries_for_removed_or_restored_posts(
     pool,
-    banned_person_id,
-    &PersonUpdateForm {
-      avatar: Some(None),
-      banner: Some(None),
-      bio: Some(None),
-      ..Default::default()
-    },
+    mod_person_id,
+    removed_or_restored_posts.iter().map(|r| r.id).collect(),
+    removed,
+    reason,
   )
   .await?;
 
-  // Posts
-  Post::update_removed_for_creator(pool, banned_person_id, None, true).await?;
-
-  // Purge image posts
-  purge_image_posts_for_person(banned_person_id, context).await?;
-
-  // Communities
-  // Remove all communities where they're the top mod
-  // for now, remove the communities manually
-  let first_mod_communities = CommunityModeratorView::get_community_first_mods(pool).await?;
-
-  // Filter to only this banned users top communities
-  let banned_user_first_communities: Vec<CommunityModeratorView> = first_mod_communities
-    .into_iter()
-    .filter(|fmc| fmc.moderator.id == banned_person_id)
-    .collect();
-
-  for first_mod_community in banned_user_first_communities {
-    let community_id = first_mod_community.community.id;
-    Community::update(
-      pool,
-      community_id,
-      &CommunityUpdateForm {
-        removed: Some(true),
-        ..Default::default()
-      },
-    )
-    .await?;
-
-    // Delete the community images
-    if let Some(icon) = first_mod_community.community.icon {
-      purge_image_from_pictrs(&icon, context).await.ok();
-    }
-    if let Some(banner) = first_mod_community.community.banner {
-      purge_image_from_pictrs(&banner, context).await.ok();
-    }
-    // Update the fields to None
-    Community::update(
-      pool,
-      community_id,
-      &CommunityUpdateForm {
-        icon: Some(None),
-        banner: Some(None),
-        ..Default::default()
-      },
-    )
-    .await?;
-  }
-
   // Comments
-  Comment::update_removed_for_creator(pool, banned_person_id, true).await?;
+  let removed_or_restored_comments =
+    Comment::update_removed_for_creator(pool, banned_person_id, removed).await?;
+  create_modlog_entries_for_removed_or_restored_comments(
+    pool,
+    mod_person_id,
+    removed_or_restored_comments.iter().map(|r| r.id).collect(),
+    removed,
+    reason,
+  )
+  .await?;
 
   Ok(())
 }
 
-/// We can't restore their images, but we can unremove their posts and comments
-pub async fn restore_user_data(
-  banned_person_id: PersonId,
-  context: &LemmyContext,
+async fn create_modlog_entries_for_removed_or_restored_posts(
+  pool: &mut DbPool<'_>,
+  mod_person_id: PersonId,
+  post_ids: Vec<PostId>,
+  removed: bool,
+  reason: &Option<String>,
 ) -> LemmyResult<()> {
-  let pool = &mut context.pool();
+  // Build the forms
+  let forms = post_ids
+    .iter()
+    .map(|&post_id| ModRemovePostForm {
+      mod_person_id,
+      post_id,
+      removed: Some(removed),
+      reason: reason.clone(),
+    })
+    .collect();
 
-  // Posts
-  Post::update_removed_for_creator(pool, banned_person_id, None, false).await?;
+  ModRemovePost::create_multiple(pool, &forms).await?;
 
-  // Comments
-  Comment::update_removed_for_creator(pool, banned_person_id, false).await?;
+  Ok(())
+}
+
+async fn create_modlog_entries_for_removed_or_restored_comments(
+  pool: &mut DbPool<'_>,
+  mod_person_id: PersonId,
+  comment_ids: Vec<CommentId>,
+  removed: bool,
+  reason: &Option<String>,
+) -> LemmyResult<()> {
+  // Build the forms
+  let forms = comment_ids
+    .iter()
+    .map(|&comment_id| ModRemoveCommentForm {
+      mod_person_id,
+      comment_id,
+      removed: Some(removed),
+      reason: reason.clone(),
+    })
+    .collect();
+
+  ModRemoveComment::create_multiple(pool, &forms).await?;
 
   Ok(())
 }
 
 pub async fn remove_or_restore_user_data_in_community(
   community_id: CommunityId,
+  mod_person_id: PersonId,
   banned_person_id: PersonId,
   remove: bool,
+  reason: &Option<String>,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   // Posts
-  Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), remove).await?;
+  let posts =
+    Post::update_removed_for_creator(pool, banned_person_id, Some(community_id), remove).await?;
+  create_modlog_entries_for_removed_or_restored_posts(
+    pool,
+    mod_person_id,
+    posts.iter().map(|r| r.id).collect(),
+    remove,
+    reason,
+  )
+  .await?;
 
   // Comments
   // TODO Diesel doesn't allow updates with joins, so this has to be a loop
@@ -797,6 +865,15 @@ pub async fn remove_or_restore_user_data_in_community(
     )
     .await?;
   }
+
+  create_modlog_entries_for_removed_or_restored_comments(
+    pool,
+    mod_person_id,
+    comments.iter().map(|r| r.comment.id).collect(),
+    remove,
+    reason,
+  )
+  .await?;
 
   Ok(())
 }
@@ -1067,10 +1144,20 @@ fn build_proxied_image_url(
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::*;
+  use lemmy_db_schema::source::{
+    comment::CommentInsertForm,
+    community::CommunityInsertForm,
+    person::PersonInsertForm,
+    post::PostInsertForm,
+  };
+  use lemmy_db_views_moderator::structs::{
+    ModRemoveCommentView,
+    ModRemovePostView,
+    ModlogListParams,
+  };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -1092,48 +1179,42 @@ mod tests {
   }
 
   #[test]
-  fn test_limit_ban_term() {
+  fn test_limit_ban_term() -> LemmyResult<()> {
     // Ban expires in past, should throw error
     assert!(limit_expire_time(Utc::now() - Days::new(5)).is_err());
 
     // Legitimate ban term, return same value
     let fourteen_days = Utc::now() + Days::new(14);
-    assert_eq!(
-      limit_expire_time(fourteen_days).unwrap(),
-      Some(fourteen_days)
-    );
+    assert_eq!(limit_expire_time(fourteen_days)?, Some(fourteen_days));
     let nine_years = Utc::now() + Days::new(365 * 9);
-    assert_eq!(limit_expire_time(nine_years).unwrap(), Some(nine_years));
+    assert_eq!(limit_expire_time(nine_years)?, Some(nine_years));
 
     // Too long ban term, changes to None (permanent ban)
-    assert_eq!(
-      limit_expire_time(Utc::now() + Days::new(365 * 11)).unwrap(),
-      None
-    );
+    assert_eq!(limit_expire_time(Utc::now() + Days::new(365 * 11))?, None);
+
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_proxy_image_link() {
+  async fn test_proxy_image_link() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
 
     // image from local domain is unchanged
-    let local_url = Url::parse("http://lemmy-alpha/image.png").unwrap();
+    let local_url = Url::parse("http://lemmy-alpha/image.png")?;
     let proxied =
       proxy_image_link_internal(local_url.clone(), PictrsImageMode::ProxyAllImages, &context)
-        .await
-        .unwrap();
+        .await?;
     assert_eq!(&local_url, proxied.inner());
 
     // image from remote domain is proxied
-    let remote_image = Url::parse("http://lemmy-beta/image.png").unwrap();
+    let remote_image = Url::parse("http://lemmy-beta/image.png")?;
     let proxied = proxy_image_link_internal(
       remote_image.clone(),
       PictrsImageMode::ProxyAllImages,
       &context,
     )
-    .await
-    .unwrap();
+    .await?;
     assert_eq!(
       "https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
       proxied.as_str()
@@ -1146,5 +1227,159 @@ mod tests {
         .await
         .is_ok()
     );
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_mod_remove_or_restore_data() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let new_mod = PersonInsertForm::test_form(inserted_instance.id, "modder");
+    let inserted_mod = Person::create(pool, &new_mod).await?;
+
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "chrimbus");
+    let inserted_person = Person::create(pool, &new_person).await?;
+
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "mod_community crepes".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let inserted_community = Community::create(pool, &new_community).await?;
+
+    let post_form_1 = PostInsertForm::new(
+      "A test post tubular".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
+    let inserted_post_1 = Post::create(pool, &post_form_1).await?;
+
+    let post_form_2 = PostInsertForm::new(
+      "A test post radical".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
+    let inserted_post_2 = Post::create(pool, &post_form_2).await?;
+
+    let comment_form_1 = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post_1.id,
+      "A test comment tubular".into(),
+    );
+    let _inserted_comment_1 = Comment::create(pool, &comment_form_1, None).await?;
+
+    let comment_form_2 = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post_2.id,
+      "A test comment radical".into(),
+    );
+    let _inserted_comment_2 = Comment::create(pool, &comment_form_2, None).await?;
+
+    // Remove the user data
+    remove_or_restore_user_data(
+      inserted_mod.id,
+      inserted_person.id,
+      true,
+      &Some("a remove reason".to_string()),
+      &context,
+    )
+    .await?;
+
+    // Verify that their posts and comments are removed.
+    let params = ModlogListParams {
+      community_id: None,
+      mod_person_id: None,
+      other_person_id: None,
+      post_id: None,
+      comment_id: None,
+      page: None,
+      limit: None,
+      hide_modlog_names: false,
+    };
+
+    // Posts
+    let post_modlog = ModRemovePostView::list(pool, params).await?;
+    assert_eq!(2, post_modlog.len());
+
+    let mod_removed_posts = post_modlog
+      .iter()
+      .map(|p| p.mod_remove_post.removed)
+      .collect::<Vec<bool>>();
+    assert_eq!(vec![true, true], mod_removed_posts);
+
+    let removed_posts = post_modlog
+      .iter()
+      .map(|p| p.post.removed)
+      .collect::<Vec<bool>>();
+    assert_eq!(vec![true, true], removed_posts);
+
+    // Comments
+    let comment_modlog = ModRemoveCommentView::list(pool, params).await?;
+    assert_eq!(2, comment_modlog.len());
+
+    let mod_removed_comments = comment_modlog
+      .iter()
+      .map(|p| p.mod_remove_comment.removed)
+      .collect::<Vec<bool>>();
+    assert_eq!(vec![true, true], mod_removed_comments);
+
+    let removed_comments = comment_modlog
+      .iter()
+      .map(|p| p.comment.removed)
+      .collect::<Vec<bool>>();
+    assert_eq!(vec![true, true], removed_comments);
+
+    // Now restore the content, and make sure it got appended
+    remove_or_restore_user_data(
+      inserted_mod.id,
+      inserted_person.id,
+      false,
+      &Some("a restore reason".to_string()),
+      &context,
+    )
+    .await?;
+
+    // Posts
+    let post_modlog = ModRemovePostView::list(pool, params).await?;
+    assert_eq!(4, post_modlog.len());
+
+    let mod_restored_posts = post_modlog
+      .iter()
+      .map(|p| p.mod_remove_post.removed)
+      .collect::<Vec<bool>>();
+    assert_eq!(vec![false, false, true, true], mod_restored_posts);
+
+    let restored_posts = post_modlog
+      .iter()
+      .map(|p| p.post.removed)
+      .collect::<Vec<bool>>();
+    // All of these will be false, cause its the current state of the post
+    assert_eq!(vec![false, false, false, false], restored_posts);
+
+    // Comments
+    let comment_modlog = ModRemoveCommentView::list(pool, params).await?;
+    assert_eq!(4, comment_modlog.len());
+
+    let mod_restored_comments = comment_modlog
+      .iter()
+      .map(|p| p.mod_remove_comment.removed)
+      .collect::<Vec<bool>>();
+    assert_eq!(vec![false, false, true, true], mod_restored_comments);
+
+    let restored_comments = comment_modlog
+      .iter()
+      .map(|p| p.comment.removed)
+      .collect::<Vec<bool>>();
+    assert_eq!(vec![false, false, false, false], restored_comments);
+
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    Ok(())
   }
 }
