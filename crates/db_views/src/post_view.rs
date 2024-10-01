@@ -792,7 +792,7 @@ mod tests {
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
-  use std::{collections::HashSet, time::Duration};
+  use std::time::Duration;
   use url::Url;
 
   const POST_WITH_ANOTHER_TITLE: &str = "Another title";
@@ -1627,7 +1627,7 @@ mod tests {
     // Mark a post as read
     PostRead::mark_as_read(
       pool,
-      HashSet::from([data.inserted_bot_post.id]),
+      data.inserted_bot_post.id,
       data.local_user_view.person.id,
     )
     .await?;
@@ -1669,7 +1669,7 @@ mod tests {
     // Mark a post as hidden
     PostHide::hide(
       pool,
-      HashSet::from([data.inserted_bot_post.id]),
+      data.inserted_bot_post.id,
       data.local_user_view.person.id,
     )
     .await?;

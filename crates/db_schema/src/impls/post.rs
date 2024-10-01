@@ -39,7 +39,6 @@ use diesel::{
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
-use std::collections::HashSet;
 
 #[async_trait]
 impl Crud for Post {
@@ -322,17 +321,15 @@ impl Saveable for PostSaved {
 impl PostRead {
   pub async fn mark_as_read(
     pool: &mut DbPool<'_>,
-    post_ids: HashSet<PostId>,
+    post_id: PostId,
     person_id: PersonId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let forms = post_ids
-      .into_iter()
-      .map(|post_id| PostReadForm { post_id, person_id })
-      .collect::<Vec<PostReadForm>>();
+    let form = PostReadForm { post_id, person_id };
+
     insert_into(post_read::table)
-      .values(forms)
+      .values(form)
       .on_conflict_do_nothing()
       .execute(conn)
       .await
@@ -340,35 +337,30 @@ impl PostRead {
 
   pub async fn mark_as_unread(
     pool: &mut DbPool<'_>,
-    post_id_: HashSet<PostId>,
+    post_id_: PostId,
     person_id_: PersonId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel::delete(
-      post_read::table
-        .filter(post_read::post_id.eq_any(post_id_))
-        .filter(post_read::person_id.eq(person_id_)),
-    )
-    .execute(conn)
-    .await
+    let read_post = post_read::table
+      .filter(post_read::post_id.eq(post_id_))
+      .filter(post_read::person_id.eq(person_id_));
+
+    diesel::delete(read_post).execute(conn).await
   }
 }
 
 impl PostHide {
   pub async fn hide(
     pool: &mut DbPool<'_>,
-    post_ids: HashSet<PostId>,
+    post_id: PostId,
     person_id: PersonId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let forms = post_ids
-      .into_iter()
-      .map(|post_id| PostHideForm { post_id, person_id })
-      .collect::<Vec<PostHideForm>>();
+    let form = PostHideForm { post_id, person_id };
     insert_into(post_hide::table)
-      .values(forms)
+      .values(form)
       .on_conflict_do_nothing()
       .execute(conn)
       .await
@@ -376,23 +368,21 @@ impl PostHide {
 
   pub async fn unhide(
     pool: &mut DbPool<'_>,
-    post_id_: HashSet<PostId>,
+    post_id_: PostId,
     person_id_: PersonId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    diesel::delete(
-      post_hide::table
-        .filter(post_hide::post_id.eq_any(post_id_))
-        .filter(post_hide::person_id.eq(person_id_)),
-    )
-    .execute(conn)
-    .await
+    let hidden_post = post_hide::table
+      .filter(post_hide::post_id.eq(post_id_))
+      .filter(post_hide::person_id.eq(person_id_));
+
+    diesel::delete(hidden_post).execute(conn).await
   }
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
+#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{
@@ -415,24 +405,22 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use chrono::DateTime;
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
-  use std::collections::HashSet;
   use url::Url;
 
   #[tokio::test]
   #[serial]
-  async fn test_crud() {
+  async fn test_crud() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "jim");
 
-    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+    let inserted_person = Person::create(pool, &new_person).await?;
 
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
@@ -441,27 +429,27 @@ mod tests {
       "pubkey".to_string(),
     );
 
-    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+    let inserted_community = Community::create(pool, &new_community).await?;
 
     let new_post = PostInsertForm::new(
       "A test post".into(),
       inserted_person.id,
       inserted_community.id,
     );
-    let inserted_post = Post::create(pool, &new_post).await.unwrap();
+    let inserted_post = Post::create(pool, &new_post).await?;
 
     let new_post2 = PostInsertForm::new(
       "A test post 2".into(),
       inserted_person.id,
       inserted_community.id,
     );
-    let inserted_post2 = Post::create(pool, &new_post2).await.unwrap();
+    let inserted_post2 = Post::create(pool, &new_post2).await?;
 
     let new_scheduled_post = PostInsertForm {
       scheduled_publish_time: Some(DateTime::from_timestamp_nanos(i64::MAX)),
       ..PostInsertForm::new("beans".into(), inserted_person.id, inserted_community.id)
     };
-    let inserted_scheduled_post = Post::create(pool, &new_scheduled_post).await.unwrap();
+    let inserted_scheduled_post = Post::create(pool, &new_scheduled_post).await?;
 
     let expected_post = Post {
       id: inserted_post.id,
@@ -481,9 +469,7 @@ mod tests {
       embed_description: None,
       embed_video_url: None,
       thumbnail_url: None,
-      ap_id: Url::parse(&format!("https://lemmy-alpha/post/{}", inserted_post.id))
-        .unwrap()
-        .into(),
+      ap_id: Url::parse(&format!("https://lemmy-alpha/post/{}", inserted_post.id))?.into(),
       local: true,
       language_id: Default::default(),
       featured_community: false,
@@ -499,7 +485,7 @@ mod tests {
       score: 1,
     };
 
-    let inserted_post_like = PostLike::like(pool, &post_like_form).await.unwrap();
+    let inserted_post_like = PostLike::like(pool, &post_like_form).await?;
 
     let expected_post_like = PostLike {
       post_id: inserted_post.id,
@@ -514,7 +500,7 @@ mod tests {
       person_id: inserted_person.id,
     };
 
-    let inserted_post_saved = PostSaved::save(pool, &post_saved_form).await.unwrap();
+    let inserted_post_saved = PostSaved::save(pool, &post_saved_form).await?;
 
     let expected_post_saved = PostSaved {
       post_id: inserted_post.id,
@@ -522,63 +508,51 @@ mod tests {
       published: inserted_post_saved.published,
     };
 
-    // Post Read
-    let marked_as_read = PostRead::mark_as_read(
-      pool,
-      HashSet::from([inserted_post.id, inserted_post2.id]),
-      inserted_person.id,
-    )
-    .await
-    .unwrap();
-    assert_eq!(2, marked_as_read);
+    // Mark 2 posts as read
+    PostRead::mark_as_read(pool, inserted_post.id, inserted_person.id).await?;
+    PostRead::mark_as_read(pool, inserted_post2.id, inserted_person.id).await?;
 
-    let read_post = Post::read(pool, inserted_post.id).await.unwrap();
+    let read_post = Post::read(pool, inserted_post.id).await?;
 
     let new_post_update = PostUpdateForm {
       name: Some("A test post".into()),
       ..Default::default()
     };
-    let updated_post = Post::update(pool, inserted_post.id, &new_post_update)
-      .await
-      .unwrap();
+    let updated_post = Post::update(pool, inserted_post.id, &new_post_update).await?;
 
     // Scheduled post count
-    let scheduled_post_count = Post::user_scheduled_post_count(inserted_person.id, pool)
-      .await
-      .unwrap();
+    let scheduled_post_count = Post::user_scheduled_post_count(inserted_person.id, pool).await?;
     assert_eq!(1, scheduled_post_count);
 
-    let like_removed = PostLike::remove(pool, inserted_person.id, inserted_post.id)
-      .await
-      .unwrap();
+    let like_removed = PostLike::remove(pool, inserted_person.id, inserted_post.id).await?;
     assert_eq!(1, like_removed);
-    let saved_removed = PostSaved::unsave(pool, &post_saved_form).await.unwrap();
+    let saved_removed = PostSaved::unsave(pool, &post_saved_form).await?;
     assert_eq!(1, saved_removed);
-    let read_removed = PostRead::mark_as_unread(
-      pool,
-      HashSet::from([inserted_post.id, inserted_post2.id]),
-      inserted_person.id,
-    )
-    .await
-    .unwrap();
-    assert_eq!(2, read_removed);
 
-    let num_deleted = Post::delete(pool, inserted_post.id).await.unwrap()
-      + Post::delete(pool, inserted_post2.id).await.unwrap()
-      + Post::delete(pool, inserted_scheduled_post.id)
-        .await
-        .unwrap();
+    // mark some posts as unread
+    let read_removed_1 =
+      PostRead::mark_as_unread(pool, inserted_post.id, inserted_person.id).await?;
+    assert_eq!(1, read_removed_1);
+    let read_removed_2 =
+      PostRead::mark_as_unread(pool, inserted_post2.id, inserted_person.id).await?;
+    assert_eq!(1, read_removed_2);
+
+    let num_deleted = Post::delete(pool, inserted_post.id).await?
+      + Post::delete(pool, inserted_post2.id).await?
+      + Post::delete(pool, inserted_scheduled_post.id).await?;
+
     assert_eq!(3, num_deleted);
-    Community::delete(pool, inserted_community.id)
-      .await
-      .unwrap();
-    Person::delete(pool, inserted_person.id).await.unwrap();
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    Community::delete(pool, inserted_community.id).await?;
+
+    Person::delete(pool, inserted_person.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
 
     assert_eq!(expected_post, read_post);
     assert_eq!(expected_post, inserted_post);
     assert_eq!(expected_post, updated_post);
     assert_eq!(expected_post_like, inserted_post_like);
     assert_eq!(expected_post_saved, inserted_post_saved);
+
+    Ok(())
   }
 }
