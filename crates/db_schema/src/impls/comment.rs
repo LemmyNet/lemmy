@@ -40,12 +40,12 @@ impl Comment {
   pub async fn update_removed_for_creator(
     pool: &mut DbPool<'_>,
     for_creator_id: PersonId,
-    new_removed: bool,
+    removed: bool,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(comment::table.filter(comment::creator_id.eq(for_creator_id)))
       .set((
-        comment::removed.eq(new_removed),
+        comment::removed.eq(removed),
         comment::updated.eq(naive_now()),
       ))
       .get_results::<Self>(conn)

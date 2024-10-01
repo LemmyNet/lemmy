@@ -20,10 +20,9 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType, MAX_COMMENT_DEPTH_LIMIT};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use std::ops::Deref;
 use url::Url;
 
 #[skip_serializing_none]
@@ -58,9 +57,19 @@ impl Note {
     &self,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<(ApubPost, Option<ApubComment>)> {
-    // Fetch parent comment chain in a box, otherwise it can cause a stack overflow.
-    let parent = Box::pin(self.in_reply_to.dereference(context).await?);
-    match parent.deref() {
+    // We use recursion here to fetch the entire comment chain up to the top-level parent. This is
+    // necessary because we need to know the post and parent comment in order to insert a new
+    // comment. However it can also lead to stack overflow when fetching many comments recursively.
+    // To avoid this we check the request count against max comment depth, which based on testing
+    // can be handled without risking stack overflow. This is not a perfect solution, because in
+    // some cases we have to fetch user profiles too, and reach the limit after only 25 comments
+    // or so.
+    // A cleaner solution would be converting the recursion into a loop, but that is tricky.
+    if context.request_count() > MAX_COMMENT_DEPTH_LIMIT as u32 {
+      Err(LemmyErrorType::MaxCommentDepthReached)?;
+    }
+    let parent = self.in_reply_to.dereference(context).await?;
+    match parent {
       PostOrComment::Post(p) => Ok((p.clone(), None)),
       PostOrComment::Comment(c) => {
         let post_id = c.post_id;

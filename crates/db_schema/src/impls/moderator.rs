@@ -66,6 +66,20 @@ impl Crud for ModRemovePost {
   }
 }
 
+impl ModRemovePost {
+  pub async fn create_multiple(
+    pool: &mut DbPool<'_>,
+    forms: &Vec<ModRemovePostForm>,
+  ) -> Result<usize, Error> {
+    use crate::schema::mod_remove_post::dsl::mod_remove_post;
+    let conn = &mut get_conn(pool).await?;
+    insert_into(mod_remove_post)
+      .values(forms)
+      .execute(conn)
+      .await
+  }
+}
+
 #[async_trait]
 impl Crud for ModLockPost {
   type InsertForm = ModLockPostForm;
@@ -149,6 +163,20 @@ impl Crud for ModRemoveComment {
     diesel::update(mod_remove_comment.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
+      .await
+  }
+}
+
+impl ModRemoveComment {
+  pub async fn create_multiple(
+    pool: &mut DbPool<'_>,
+    forms: &Vec<ModRemoveCommentForm>,
+  ) -> Result<usize, Error> {
+    use crate::schema::mod_remove_comment::dsl::mod_remove_comment;
+    let conn = &mut get_conn(pool).await?;
+    insert_into(mod_remove_comment)
+      .values(forms)
+      .execute(conn)
       .await
   }
 }
