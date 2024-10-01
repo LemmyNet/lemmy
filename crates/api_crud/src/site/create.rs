@@ -139,7 +139,10 @@ pub async fn create_site(
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
   context.rate_limit_cell().set_config(rate_limit_config);
 
-  Ok(Json(SiteResponse { site_view }))
+  Ok(Json(SiteResponse {
+    site_view,
+    taglines: vec![],
+  }))
 }
 
 fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> LemmyResult<()> {
