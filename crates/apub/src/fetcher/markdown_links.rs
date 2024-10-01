@@ -131,14 +131,20 @@ mod tests {
     )
     .await?;
     let user = create_user("john".to_string(), None, &context).await?;
-    let post_form = PostInsertForm::new("My post".to_string(), user.person.id, community.id);
+
+    // insert a remote post which is already fetched
+    let post_form = PostInsertForm {
+      ap_id: Some(Url::parse("https://example.com/post/123")?.into()),
+      ..PostInsertForm::new("My post".to_string(), user.person.id, community.id)
+    };
     let post = Post::create(&mut context.pool(), &post_form).await?;
+    let markdown_local_post_url = format!("[link](https://lemmy-alpha/post/{})", post.id);
 
     let tests: Vec<_> = vec![
       (
-        "rewrite remote link",
+        "rewrite remote post link",
         format!("[link]({})", post.ap_id),
-        "[link](https://lemmy-alpha/post/1)",
+        markdown_local_post_url.as_ref(),
       ),
       (
         "rewrite community link",
