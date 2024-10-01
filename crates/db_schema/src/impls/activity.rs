@@ -58,7 +58,6 @@ impl ReceivedActivity {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::*;
@@ -78,7 +77,8 @@ mod tests {
 
     // inserting activity should only work once
     ReceivedActivity::create(pool, &ap_id).await?;
-    ReceivedActivity::create(pool, &ap_id).await.unwrap_err();
+    let second = ReceivedActivity::create(pool, &ap_id).await;
+    assert!(second.is_err());
 
     Ok(())
   }
