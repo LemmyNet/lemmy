@@ -79,10 +79,8 @@ impl ActivityHandler for Vote {
     };
 
     // Don't allow dislikes for either disabled, or local only votes
-    let downvote_fail = self.kind == VoteType::Dislike
-      && [FederationMode::Disable, FederationMode::Local].contains(&downvote_setting);
-    let upvote_fail = self.kind == VoteType::Like
-      && [FederationMode::Disable, FederationMode::Local].contains(&upvote_setting);
+    let downvote_fail = self.kind == VoteType::Dislike && downvote_setting != FederationMode::All;
+    let upvote_fail = self.kind == VoteType::Like && upvote_setting != FederationMode::All;
 
     if downvote_fail || upvote_fail {
       // If this is a rejection, undo the vote
