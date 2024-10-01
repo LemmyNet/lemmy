@@ -27,13 +27,20 @@ pub async fn like_comment(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
+  let comment_id = data.comment_id;
 
   let mut recipient_ids = Vec::<LocalUserId>::new();
 
-  check_local_vote_mode(data.score, VoteItem::Comment, &local_site)?;
+  check_local_vote_mode(
+    data.score,
+    VoteItem::Comment(comment_id),
+    &local_site,
+    local_user_view.person.id,
+    &mut context.pool(),
+  )
+  .await?;
   check_bot_account(&local_user_view.person)?;
 
-  let comment_id = data.comment_id;
   let orig_comment = CommentView::read(
     &mut context.pool(),
     comment_id,
