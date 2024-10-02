@@ -437,7 +437,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn community_sort() -> LemmyResult<()> {
+  async fn community_sort_name() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -451,7 +451,7 @@ mod tests {
       assert!(c
         .community
         .title
-        .cmp(&communities[i - 1].community.title)
+        .cmp(&communities.get(i - 1)?.community.title)
         .is_ge());
     }
 
@@ -464,7 +464,7 @@ mod tests {
       assert!(c
         .community
         .title
-        .cmp(&communities[i - 1].community.title)
+        .cmp(&communities.get(i - 1)?.community.title)
         .is_le());
     }
 
