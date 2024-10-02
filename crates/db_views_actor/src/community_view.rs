@@ -409,7 +409,10 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(data.inserted_communities.len() - 1, unauthenticated_query.len());
+    assert_eq!(
+      data.inserted_communities.len() - 1,
+      unauthenticated_query.len()
+    );
 
     let authenticated_query = CommunityQuery {
       local_user: Some(&data.local_user),
