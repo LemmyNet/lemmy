@@ -280,10 +280,7 @@ mod tests {
 
   use crate::{
     community_view::CommunityQuery,
-    structs::{
-      CommunitySortType,
-      CommunityView,
-    },
+    structs::{CommunitySortType, CommunityView},
   };
   use lemmy_db_schema::{
     source::{
@@ -329,7 +326,8 @@ mod tests {
           "nada1".to_owned(),
           "pubkey".to_string(),
         ),
-      ).await?,
+      )
+      .await?,
       Community::create(
         pool,
         &CommunityInsertForm::new(
@@ -338,7 +336,8 @@ mod tests {
           "nada2".to_owned(),
           "pubkey".to_string(),
         ),
-      ).await?,
+      )
+      .await?,
       Community::create(
         pool,
         &CommunityInsertForm::new(
@@ -347,7 +346,8 @@ mod tests {
           "nada3".to_owned(),
           "pubkey".to_string(),
         ),
-      ).await?,
+      )
+      .await?,
     ];
 
     let url = Url::parse("http://example.com")?;
@@ -448,7 +448,12 @@ mod tests {
     };
     let communities = query.list(&data.site, pool).await?;
     for (i, c) in communities.iter().enumerate().skip(1) {
-      assert!(c.community.title.cmp(&communities[i-1].community.title).is_ge());
+      assert!(c
+        .community
+        .title
+        .cmp(&communities[i-1].community.title)
+        .is_ge(),
+      );
     }
 
     let query = CommunityQuery {
@@ -457,7 +462,12 @@ mod tests {
     };
     let communities = query.list(&data.site, pool).await?;
     for (i, c) in communities.iter().enumerate().skip(1) {
-      assert!(c.community.title.cmp(&communities[i-1].community.title).is_le());
+      assert!(c
+        .community
+        .title
+        .cmp(&communities[i-1].community.title)
+        .is_le(),
+      );
     }
 
     cleanup(data, pool).await
