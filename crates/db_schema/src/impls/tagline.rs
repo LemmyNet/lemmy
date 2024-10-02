@@ -5,7 +5,7 @@ use crate::{
   traits::Crud,
   utils::{get_conn, limit_and_offset, DbPool},
 };
-use diesel::{insert_into, result::Error, ExpressionMethods, OptionalExtension, QueryDsl};
+use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 #[async_trait]
@@ -51,14 +51,9 @@ impl Tagline {
       .await
   }
 
-  pub async fn get_random(pool: &mut DbPool<'_>) -> Result<Option<Self>, Error> {
+  pub async fn get_random(pool: &mut DbPool<'_>) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     sql_function!(fn random() -> Text);
-    tagline
-      .order(random())
-      .limit(1)
-      .first::<Self>(conn)
-      .await
-      .optional()
+    tagline.order(random()).limit(1).first::<Self>(conn).await
   }
 }

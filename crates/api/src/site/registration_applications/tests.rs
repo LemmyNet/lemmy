@@ -34,13 +34,10 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{error::LemmyResult, LemmyErrorType, CACHE_DURATION_API};
 use serial_test::serial;
 
-#[expect(clippy::unwrap_used)]
 async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(Instance, LocalUserView)> {
   let pool = &mut context.pool();
 
-  let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-    .await
-    .expect("Create test instance");
+  let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
   let admin_person = Person::create(
     pool,
@@ -57,7 +54,7 @@ async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(Instance
   let admin_local_user_view = LocalUserView::read_person(pool, admin_person.id).await?;
 
   let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
-  let site = Site::create(pool, &site_form).await.unwrap();
+  let site = Site::create(pool, &site_form).await?;
 
   // Create a local site, since this is necessary for determining if email verification is
   // required
@@ -68,14 +65,12 @@ async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(Instance
     site_setup: Some(true),
     ..LocalSiteInsertForm::new(site.id)
   };
-  let local_site = LocalSite::create(pool, &local_site_form).await.unwrap();
+  let local_site = LocalSite::create(pool, &local_site_form).await?;
 
   // Required to have a working local SiteView when updating the site to change email verification
   // requirement or registration mode
   let rate_limit_form = LocalSiteRateLimitInsertForm::new(local_site.id);
-  LocalSiteRateLimit::create(pool, &rate_limit_form)
-    .await
-    .unwrap();
+  LocalSiteRateLimit::create(pool, &rate_limit_form).await?;
 
   Ok((inserted_instance, admin_local_user_view))
 }
@@ -109,7 +104,6 @@ async fn signup(
   Ok((local_user, application))
 }
 
-#[expect(clippy::unwrap_used)]
 async fn get_application_statuses(
   context: &Data<LemmyContext>,
   admin: LocalUserView,
@@ -122,14 +116,14 @@ async fn get_application_statuses(
     get_unread_registration_application_count(context.reset_request_count(), admin.clone()).await?;
 
   let unread_applications = list_registration_applications(
-    Query::from_query("unread_only=true").unwrap(),
+    Query::from_query("unread_only=true")?,
     context.reset_request_count(),
     admin.clone(),
   )
   .await?;
 
   let all_applications = list_registration_applications(
-    Query::from_query("unread_only=false").unwrap(),
+    Query::from_query("unread_only=false")?,
     context.reset_request_count(),
     admin,
   )

@@ -251,6 +251,27 @@ pub enum CommunityVisibility {
   LocalOnly,
 }
 
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
+)]
+#[cfg_attr(feature = "full", derive(DbEnum, TS))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::FederationModeEnum"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "full", ts(export))]
+/// The federation mode for an item
+pub enum FederationMode {
+  #[default]
+  /// Allows all
+  All,
+  /// Allows only local
+  Local,
+  /// Disables
+  Disable,
+}
+
 /// Wrapper for assert_eq! macro. Checks that vec matches the given length, and prints the
 /// vec on failure.
 #[macro_export]

@@ -739,7 +739,6 @@ impl<'a> PostQuery<'a> {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
   use crate::{
     post_view::{PaginationCursorData, PostQuery, PostView},
@@ -1305,13 +1304,9 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let spanish_id = Language::read_id_from_code(pool, Some("es"))
-      .await?
-      .expect("spanish should exist");
+    let spanish_id = Language::read_id_from_code(pool, "es").await?;
 
-    let french_id = Language::read_id_from_code(pool, Some("fr"))
-      .await?
-      .expect("french should exist");
+    let french_id = Language::read_id_from_code(pool, "fr").await?;
 
     let post_spanish = PostInsertForm {
       language_id: Some(spanish_id),
@@ -1690,7 +1685,7 @@ mod tests {
     assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_hidden));
 
     // Make sure that hidden field is true.
-    assert!(&post_listings_show_hidden.first().unwrap().hidden);
+    assert!(&post_listings_show_hidden.first().is_some_and(|p| p.hidden));
 
     cleanup(data, pool).await
   }
@@ -1726,7 +1721,7 @@ mod tests {
     assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_nsfw));
 
     // Make sure that nsfw field is true.
-    assert!(&post_listings_show_nsfw.first().unwrap().post.nsfw);
+    assert!(&post_listings_show_nsfw.first().is_some_and(|p| p.post.nsfw));
 
     cleanup(data, pool).await
   }

@@ -423,7 +423,6 @@ impl<'a> CommentQuery<'a> {
 
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{
@@ -511,7 +510,7 @@ mod tests {
       inserted_community.id,
     );
     let inserted_post = Post::create(pool, &new_post).await?;
-    let english_id = Language::read_id_from_code(pool, Some("en")).await?;
+    let english_id = Language::read_id_from_code(pool, "en").await?;
 
     // Create a comment tree with this hierarchy
     //       0
@@ -522,7 +521,7 @@ mod tests {
     //     \
     //     5
     let comment_form_0 = CommentInsertForm {
-      language_id: english_id,
+      language_id: Some(english_id),
       ..CommentInsertForm::new(
         inserted_timmy_person.id,
         inserted_post.id,
@@ -533,7 +532,7 @@ mod tests {
     let inserted_comment_0 = Comment::create(pool, &comment_form_0, None).await?;
 
     let comment_form_1 = CommentInsertForm {
-      language_id: english_id,
+      language_id: Some(english_id),
       ..CommentInsertForm::new(
         inserted_sara_person.id,
         inserted_post.id,
@@ -543,9 +542,9 @@ mod tests {
     let inserted_comment_1 =
       Comment::create(pool, &comment_form_1, Some(&inserted_comment_0.path)).await?;
 
-    let finnish_id = Language::read_id_from_code(pool, Some("fi")).await?;
+    let finnish_id = Language::read_id_from_code(pool, "fi").await?;
     let comment_form_2 = CommentInsertForm {
-      language_id: finnish_id,
+      language_id: Some(finnish_id),
       ..CommentInsertForm::new(
         inserted_timmy_person.id,
         inserted_post.id,
@@ -557,7 +556,7 @@ mod tests {
       Comment::create(pool, &comment_form_2, Some(&inserted_comment_0.path)).await?;
 
     let comment_form_3 = CommentInsertForm {
-      language_id: english_id,
+      language_id: Some(english_id),
       ..CommentInsertForm::new(
         inserted_timmy_person.id,
         inserted_post.id,
@@ -567,9 +566,7 @@ mod tests {
     let _inserted_comment_3 =
       Comment::create(pool, &comment_form_3, Some(&inserted_comment_1.path)).await?;
 
-    let polish_id = Language::read_id_from_code(pool, Some("pl"))
-      .await?
-      .unwrap();
+    let polish_id = Language::read_id_from_code(pool, "pl").await?;
     let comment_form_4 = CommentInsertForm {
       language_id: Some(polish_id),
       ..CommentInsertForm::new(
@@ -655,8 +652,8 @@ mod tests {
     .await?;
 
     assert_eq!(
-      &expected_comment_view_no_person,
-      read_comment_views_no_person.first().unwrap()
+      Some(&expected_comment_view_no_person),
+      read_comment_views_no_person.first()
     );
 
     let read_comment_views_with_person = CommentQuery {
@@ -832,9 +829,7 @@ mod tests {
     assert_length!(5, all_languages);
 
     // change user lang to finnish, should only show one post in finnish and one undetermined
-    let finnish_id = Language::read_id_from_code(pool, Some("fi"))
-      .await?
-      .unwrap();
+    let finnish_id = Language::read_id_from_code(pool, "fi").await?;
     LocalUserLanguage::update(
       pool,
       vec![finnish_id],
@@ -853,8 +848,8 @@ mod tests {
       .find(|c| c.comment.language_id == finnish_id);
     assert!(finnish_comment.is_some());
     assert_eq!(
-      data.inserted_comment_2.content,
-      finnish_comment.unwrap().comment.content
+      Some(&data.inserted_comment_2.content),
+      finnish_comment.map(|c| &c.comment.content)
     );
 
     // now show all comments with undetermined language (which is the default value)

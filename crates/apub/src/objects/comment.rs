@@ -104,7 +104,7 @@ impl Object for ApubComment {
     } else {
       post.ap_id.into()
     };
-    let language = LanguageTag::new_single(self.language_id, &mut context.pool()).await?;
+    let language = Some(LanguageTag::new_single(self.language_id, &mut context.pool()).await?);
     let maa = collect_non_local_mentions(&self, community.actor_id.clone().into(), context).await?;
 
     let note = Note {
@@ -128,6 +128,8 @@ impl Object for ApubComment {
     Ok(note)
   }
 
+  /// Recursively fetches all parent comments. This can lead to a stack overflow so we need to
+  /// Box::pin all large futures on the heap.
   #[tracing::instrument(skip_all)]
   async fn verify(
     note: &Note,
@@ -137,14 +139,24 @@ impl Object for ApubComment {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
     verify_is_public(&note.to, &note.cc)?;
-    let community = note.community(context).await?;
+    let community = Box::pin(note.community(context)).await?;
 
-    check_apub_id_valid_with_strictness(note.id.inner(), community.local, context).await?;
+    Box::pin(check_apub_id_valid_with_strictness(
+      note.id.inner(),
+      community.local,
+      context,
+    ))
+    .await?;
     verify_is_remote_object(&note.id, context)?;
-    verify_person_in_community(&note.attributed_to, &community, context).await?;
+    Box::pin(verify_person_in_community(
+      &note.attributed_to,
+      &community,
+      context,
+    ))
+    .await?;
 
-    let (post, _) = note.get_parents(context).await?;
-    let creator = note.attributed_to.dereference(context).await?;
+    let (post, _) = Box::pin(note.get_parents(context)).await?;
+    let creator = Box::pin(note.attributed_to.dereference(context)).await?;
     let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &creator, community.id)
       .await
       .is_ok();
@@ -169,8 +181,10 @@ impl Object for ApubComment {
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let url_blocklist = get_url_blocklist(context).await?;
     let content = process_markdown(&content, slur_regex, &url_blocklist, context).await?;
-    let language_id =
-      LanguageTag::to_language_id_single(note.language, &mut context.pool()).await?;
+    let language_id = Some(
+      LanguageTag::to_language_id_single(note.language.unwrap_or_default(), &mut context.pool())
+        .await?,
+    );
 
     let form = CommentInsertForm {
       creator_id: creator.id,

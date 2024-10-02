@@ -42,7 +42,7 @@ dependencies = [
  "pin-project-lite",
  "rand",
  "regex",
- "reqwest 0.12.7",
+ "reqwest 0.12.8",
  "reqwest-middleware",
  "rsa",
  "serde",
@@ -490,9 +490,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.82"
+version = "0.1.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a27b8a3a6e1a44fa4c8baf1f653e4172e81486d4941f2237e20dc2d0cf4ddff1"
+checksum = "721cae7de5c34fbb2acd27e21e6d2cf7b886dce0c27388d46c4e6c47ea4318dd"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -839,9 +839,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.17"
+version = "4.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e5a21b8495e732f1b3c364c9949b201ca7bae518c502c80256c96ad79eaf6ac"
+checksum = "b0956a43b323ac1afaffc053ed5c4b7c1f1800bacd1683c353aabbb752515dd3"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -849,9 +849,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.17"
+version = "4.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cf2dd12af7a047ad9d6da2b6b249759a22a7abc0f474c1dae1777afa4b21a73"
+checksum = "4d72166dd41634086d5803a47eb71ae740e61d84709c36f3c34110173db3961b"
 dependencies = [
  "anstream",
  "anstyle",
@@ -861,9 +861,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.5.13"
+version = "4.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "501d359d5f3dcaf6ecdeee48833ae73ec6e42723a1e52419c79abf9507eec0a0"
+checksum = "4ac6a0c7b1a9e9a5186361f67dfa1b88213572f427fb9ab038efb2bd8c582dab"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
@@ -1989,7 +1989,7 @@ dependencies = [
  "base64 0.22.1",
  "http-signature-normalization",
  "httpdate",
- "reqwest 0.12.7",
+ "reqwest 0.12.8",
  "reqwest-middleware",
  "sha2",
  "thiserror",
@@ -2514,7 +2514,7 @@ dependencies = [
  "moka",
  "pretty_assertions",
  "regex",
- "reqwest 0.12.7",
+ "reqwest 0.12.8",
  "reqwest-middleware",
  "rosetta-i18n",
  "serde",
@@ -2579,7 +2579,7 @@ dependencies = [
  "lemmy_utils",
  "moka",
  "pretty_assertions",
- "reqwest 0.12.7",
+ "reqwest 0.12.8",
  "serde",
  "serde_json",
  "serde_with",
@@ -2718,7 +2718,7 @@ dependencies = [
  "lemmy_utils",
  "mockall",
  "moka",
- "reqwest 0.12.7",
+ "reqwest 0.12.8",
  "serde_json",
  "serial_test",
  "test-context",
@@ -2745,7 +2745,7 @@ dependencies = [
  "lemmy_db_views",
  "lemmy_db_views_actor",
  "lemmy_utils",
- "reqwest 0.12.7",
+ "reqwest 0.12.8",
  "reqwest-middleware",
  "rss",
  "serde",
@@ -2778,7 +2778,7 @@ dependencies = [
  "lemmy_utils",
  "pretty_assertions",
  "prometheus",
- "reqwest 0.12.7",
+ "reqwest 0.12.8",
  "reqwest-middleware",
  "reqwest-tracing",
  "rustls 0.23.13",
@@ -2811,7 +2811,7 @@ dependencies = [
  "markdown-it",
  "pretty_assertions",
  "regex",
- "reqwest 0.12.7",
+ "reqwest 0.12.8",
  "reqwest-middleware",
  "rosetta-build",
  "rosetta-i18n",
@@ -3197,9 +3197,9 @@ dependencies = [
 
 [[package]]
 name = "mutually_exclusive_features"
-version = "0.0.3"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d02c0b00610773bb7fc61d85e13d86c7858cbdf00e1a120bfc41bc055dbaa0e"
+checksum = "e94e1e6445d314f972ff7395df2de295fe51b71821694f0b0e1e79c4f12c8577"
 
 [[package]]
 name = "never"
@@ -3966,9 +3966,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.12.7"
+version = "0.12.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8f4955649ef5c38cc7f9e8aa41761d48fb9677197daea9984dc54f56aad5e63"
+checksum = "f713147fbe92361e52392c73b8c9e48c04c6625bce969ef54dc901e58e042a7b"
 dependencies = [
  "async-compression",
  "base64 0.22.1",
@@ -4019,7 +4019,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "http 1.1.0",
- "reqwest 0.12.7",
+ "reqwest 0.12.8",
  "serde",
  "thiserror",
  "tower-service",
@@ -4036,7 +4036,7 @@ dependencies = [
  "getrandom",
  "http 1.1.0",
  "matchit",
- "reqwest 0.12.7",
+ "reqwest 0.12.8",
  "reqwest-middleware",
  "tracing",
 ]
@@ -4508,9 +4508,9 @@ checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 
 [[package]]
 name = "sitemap-rs"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88cc73a9aac975541c9054e74ceae8d8ee85edc89a322404c275c1d100fffa51"
+checksum = "3c4c6ab96128064ba085256d34e205153555b3803094d76e24d406c76f85a2c9"
 dependencies = [
  "chrono",
  "xml-builder",
@@ -5106,9 +5106,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-actix-web"
-version = "0.7.12"
+version = "0.7.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "284586dc201db407be8c9d721abad1b3a6dacbbce5cccecd4fd15a37db95ab0d"
+checksum = "15bc0cd5f72e837e310f4d978a90abf202a7f7d8ef3272246bae381d0086d3bf"
 dependencies = [
  "actix-web",
  "mutually_exclusive_features",
@@ -5579,7 +5579,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

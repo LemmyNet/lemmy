@@ -30,12 +30,13 @@ use crate::{
     get_conn,
     DbPool,
   },
+  ListingType,
   SubscribedType,
 };
 use chrono::{DateTime, Utc};
 use diesel::{
   deserialize,
-  dsl::{self, exists, insert_into},
+  dsl::{self, exists, insert_into, not},
   pg::Pg,
   result::Error,
   select,
@@ -192,6 +193,30 @@ impl Community {
       .execute(conn)
       .await?;
     Ok(())
+  }
+
+  pub async fn get_random_community_id(
+    pool: &mut DbPool<'_>,
+    type_: &Option<ListingType>,
+  ) -> Result<CommunityId, Error> {
+    let conn = &mut get_conn(pool).await?;
+    sql_function!(fn random() -> Text);
+
+    let mut query = community::table
+      .filter(not(community::deleted))
+      .filter(not(community::removed))
+      .into_boxed();
+
+    if let Some(ListingType::Local) = type_ {
+      query = query.filter(community::local);
+    }
+
+    query
+      .select(community::id)
+      .order(random())
+      .limit(1)
+      .first::<CommunityId>(conn)
+      .await
   }
 }
 

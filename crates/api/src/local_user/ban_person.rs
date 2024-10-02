@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_expire_time, is_admin, remove_user_data, restore_user_data},
+  utils::{check_expire_time, is_admin, remove_or_restore_user_data},
 };
 use lemmy_db_schema::{
   source::{
@@ -66,11 +66,15 @@ pub async fn ban_from_site(
 
   // Remove their data if that's desired
   if data.remove_or_restore_data.unwrap_or(false) {
-    if data.ban {
-      remove_user_data(person.id, &context).await?;
-    } else {
-      restore_user_data(person.id, &context).await?;
-    }
+    let removed = data.ban;
+    remove_or_restore_user_data(
+      local_user_view.person.id,
+      person.id,
+      removed,
+      &data.reason,
+      &context,
+    )
+    .await?;
   };
 
   // Mod tables

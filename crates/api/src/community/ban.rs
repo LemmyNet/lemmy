@@ -92,8 +92,10 @@ pub async fn ban_from_community(
     let remove_data = data.ban;
     remove_or_restore_user_data_in_community(
       data.community_id,
+      local_user_view.person.id,
       banned_person_id,
       remove_data,
+      &data.reason,
       &mut context.pool(),
     )
     .await?;
