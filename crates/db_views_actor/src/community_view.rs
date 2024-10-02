@@ -449,11 +449,7 @@ mod tests {
     let communities = query.list(&data.site, pool).await?;
     for (i, c) in communities.iter().enumerate().skip(1) {
       let prev = communities.get(i - 1).expect("No previous community?");
-      assert!(c
-        .community
-        .title
-        .cmp(&prev.community.title)
-        .is_ge());
+      assert!(c.community.title.cmp(&prev.community.title).is_ge());
     }
 
     let query = CommunityQuery {
@@ -463,11 +459,7 @@ mod tests {
     let communities = query.list(&data.site, pool).await?;
     for (i, c) in communities.iter().enumerate().skip(1) {
       let prev = communities.get(i - 1).expect("No previous community?");
-      assert!(c
-        .community
-        .title
-        .cmp(&prev.community.title)
-        .is_le());
+      assert!(c.community.title.cmp(&prev.community.title).is_le());
     }
 
     cleanup(data, pool).await
