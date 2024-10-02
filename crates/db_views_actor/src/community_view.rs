@@ -301,7 +301,7 @@ mod tests {
   struct Data {
     inserted_instance: Instance,
     local_user: LocalUser,
-    inserted_community: Vec<Community>,
+    inserted_communities: [Community; 3],
     site: Site,
   }
 
@@ -317,7 +317,7 @@ mod tests {
     let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
     let local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
 
-    let inserted_community = vec![
+    let inserted_community = [
       Community::create(
         pool,
         &CommunityInsertForm::new(
@@ -372,13 +372,13 @@ mod tests {
     Ok(Data {
       inserted_instance,
       local_user,
-      inserted_community,
+      inserted_communities: inserted_community,
       site,
     })
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    for Community { id, .. } in data.inserted_community {
+    for Community { id, .. } in data.inserted_communities {
       Community::delete(pool, id).await?;
     }
     Person::delete(pool, data.local_user.person_id).await?;
@@ -396,7 +396,7 @@ mod tests {
 
     Community::update(
       pool,
-      data.inserted_community[0].id,
+      data.inserted_communities[0].id,
       &CommunityUpdateForm {
         visibility: Some(CommunityVisibility::LocalOnly),
         ..Default::default()
@@ -420,12 +420,12 @@ mod tests {
     assert_eq!(1, authenticated_query.len());
 
     let unauthenticated_community =
-      CommunityView::read(pool, data.inserted_community[0].id, None, false).await;
+      CommunityView::read(pool, data.inserted_communities[0].id, None, false).await;
     assert!(unauthenticated_community.is_err());
 
     let authenticated_community = CommunityView::read(
       pool,
-      data.inserted_community[0].id,
+      data.inserted_communities[0].id,
       Some(&data.local_user),
       false,
     )
@@ -448,10 +448,11 @@ mod tests {
     };
     let communities = query.list(&data.site, pool).await?;
     for (i, c) in communities.iter().enumerate().skip(1) {
+      let prev = communities.get(i - 1).expect("No previous community?");
       assert!(c
         .community
         .title
-        .cmp(&communities.get(i - 1).unwrap().community.title)
+        .cmp(&prev.community.title)
         .is_ge());
     }
 
@@ -461,10 +462,11 @@ mod tests {
     };
     let communities = query.list(&data.site, pool).await?;
     for (i, c) in communities.iter().enumerate().skip(1) {
+      let prev = communities.get(i - 1).expect("No previous community?");
       assert!(c
         .community
         .title
-        .cmp(&communities.get(i - 1).unwrap().community.title)
+        .cmp(&prev.community.title)
         .is_le());
     }
 
