@@ -451,7 +451,7 @@ mod tests {
       assert!(c
         .community
         .title
-        .cmp(&communities.get(i - 1)?.community.title)
+        .cmp(&communities.get(i - 1).unwrap().community.title)
         .is_ge());
     }
 
@@ -464,7 +464,7 @@ mod tests {
       assert!(c
         .community
         .title
-        .cmp(&communities.get(i - 1)?.community.title)
+        .cmp(&communities.get(i - 1).unwrap().community.title)
         .is_le());
     }
 
