@@ -17,6 +17,7 @@ use lemmy_api::{
     block::block_community,
     follow::follow_community,
     hide::hide_community,
+    random::get_random_community,
     transfer::transfer_community,
   },
   local_user::{
@@ -193,6 +194,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.message())
           .route("", web::get().to(get_community))
           .route("", web::put().to(update_community))
+          .route("/random", web::get().to(get_random_community))
           .route("/hide", web::put().to(hide_community))
           .route("/list", web::get().to(list_communities))
           .route("/follow", web::post().to(follow_community))

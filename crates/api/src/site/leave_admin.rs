@@ -63,7 +63,7 @@ pub async fn leave_admin(
   let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
   let oauth_providers = OAuthProvider::get_all_public(&mut context.pool()).await?;
   let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
-  let tagline = Tagline::get_random(&mut context.pool()).await?;
+  let tagline = Tagline::get_random(&mut context.pool()).await.ok();
 
   Ok(Json(GetSiteResponse {
     site_view,

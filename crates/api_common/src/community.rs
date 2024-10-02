@@ -225,3 +225,12 @@ pub struct TransferCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
 }
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Fetches a random community
+pub struct GetRandomCommunity {
+  pub type_: Option<ListingType>,
+}
