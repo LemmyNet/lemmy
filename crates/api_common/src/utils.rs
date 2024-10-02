@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
   newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId},
   source::{
-    comment::{Comment, CommentUpdateForm},
+    comment::{Comment, CommentLike, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
     community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
@@ -28,12 +28,13 @@ use lemmy_db_schema::{
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
-    post::{Post, PostRead},
+    post::{Post, PostLike, PostRead},
     registration_application::RegistrationApplication,
     site::Site,
   },
-  traits::Crud,
+  traits::{Crud, Likeable},
   utils::DbPool,
+  FederationMode,
   RegistrationMode,
 };
 use lemmy_db_views::{
@@ -297,13 +298,36 @@ pub async fn check_person_instance_community_block(
   Ok(())
 }
 
+/// A vote item type used to check the vote mode.
+pub enum VoteItem {
+  Post(PostId),
+  Comment(CommentId),
+}
+
 #[tracing::instrument(skip_all)]
-pub fn check_downvotes_enabled(score: i16, local_site: &LocalSite) -> LemmyResult<()> {
-  if score == -1 && !local_site.enable_downvotes {
-    Err(LemmyErrorType::DownvotesAreDisabled)?
-  } else {
-    Ok(())
+pub async fn check_local_vote_mode(
+  score: i16,
+  vote_item: VoteItem,
+  local_site: &LocalSite,
+  person_id: PersonId,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
+  let (downvote_setting, upvote_setting) = match vote_item {
+    VoteItem::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
+    VoteItem::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
+  };
+
+  let downvote_fail = score == -1 && downvote_setting == FederationMode::Disable;
+  let upvote_fail = score == 1 && upvote_setting == FederationMode::Disable;
+
+  // Undo previous vote for item if new vote fails
+  if downvote_fail || upvote_fail {
+    match vote_item {
+      VoteItem::Post(post_id) => PostLike::remove(pool, person_id, post_id).await?,
+      VoteItem::Comment(comment_id) => CommentLike::remove(pool, person_id, comment_id).await?,
+    };
   }
+  Ok(())
 }
 
 /// Dont allow bots to do certain actions, like voting

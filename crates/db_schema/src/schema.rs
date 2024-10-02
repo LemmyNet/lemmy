@@ -14,6 +14,10 @@ pub mod sql_types {
     pub struct CommunityVisibility;
 
     #[derive(diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "federation_mode_enum"))]
+    pub struct FederationModeEnum;
+
+    #[derive(diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "listing_type_enum"))]
     pub struct ListingTypeEnum;
 
@@ -368,12 +372,12 @@ diesel::table! {
     use super::sql_types::PostListingModeEnum;
     use super::sql_types::PostSortTypeEnum;
     use super::sql_types::CommentSortTypeEnum;
+    use super::sql_types::FederationModeEnum;
 
     local_site (id) {
         id -> Int4,
         site_id -> Int4,
         site_setup -> Bool,
-        enable_downvotes -> Bool,
         community_creation_admin_only -> Bool,
         require_email_verification -> Bool,
         application_question -> Nullable<Text>,
@@ -398,6 +402,10 @@ diesel::table! {
         default_post_sort_type -> PostSortTypeEnum,
         default_comment_sort_type -> CommentSortTypeEnum,
         oauth_registration -> Bool,
+        post_upvotes -> FederationModeEnum,
+        post_downvotes -> FederationModeEnum,
+        comment_upvotes -> FederationModeEnum,
+        comment_downvotes -> FederationModeEnum,
     }
 }
 
