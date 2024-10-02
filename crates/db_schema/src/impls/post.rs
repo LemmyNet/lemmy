@@ -392,7 +392,6 @@ impl PostHide {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{
@@ -415,6 +414,7 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use chrono::DateTime;
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::collections::HashSet;
@@ -422,17 +422,15 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_crud() {
+  async fn test_crud() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "jim");
 
-    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+    let inserted_person = Person::create(pool, &new_person).await?;
 
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
@@ -441,27 +439,27 @@ mod tests {
       "pubkey".to_string(),
     );
 
-    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+    let inserted_community = Community::create(pool, &new_community).await?;
 
     let new_post = PostInsertForm::new(
       "A test post".into(),
       inserted_person.id,
       inserted_community.id,
     );
-    let inserted_post = Post::create(pool, &new_post).await.unwrap();
+    let inserted_post = Post::create(pool, &new_post).await?;
 
     let new_post2 = PostInsertForm::new(
       "A test post 2".into(),
       inserted_person.id,
       inserted_community.id,
     );
-    let inserted_post2 = Post::create(pool, &new_post2).await.unwrap();
+    let inserted_post2 = Post::create(pool, &new_post2).await?;
 
     let new_scheduled_post = PostInsertForm {
       scheduled_publish_time: Some(DateTime::from_timestamp_nanos(i64::MAX)),
       ..PostInsertForm::new("beans".into(), inserted_person.id, inserted_community.id)
     };
-    let inserted_scheduled_post = Post::create(pool, &new_scheduled_post).await.unwrap();
+    let inserted_scheduled_post = Post::create(pool, &new_scheduled_post).await?;
 
     let expected_post = Post {
       id: inserted_post.id,
@@ -481,9 +479,7 @@ mod tests {
       embed_description: None,
       embed_video_url: None,
       thumbnail_url: None,
-      ap_id: Url::parse(&format!("https://lemmy-alpha/post/{}", inserted_post.id))
-        .unwrap()
-        .into(),
+      ap_id: Url::parse(&format!("https://lemmy-alpha/post/{}", inserted_post.id))?.into(),
       local: true,
       language_id: Default::default(),
       featured_community: false,
@@ -499,7 +495,7 @@ mod tests {
       score: 1,
     };
 
-    let inserted_post_like = PostLike::like(pool, &post_like_form).await.unwrap();
+    let inserted_post_like = PostLike::like(pool, &post_like_form).await?;
 
     let expected_post_like = PostLike {
       post_id: inserted_post.id,
@@ -514,7 +510,7 @@ mod tests {
       person_id: inserted_person.id,
     };
 
-    let inserted_post_saved = PostSaved::save(pool, &post_saved_form).await.unwrap();
+    let inserted_post_saved = PostSaved::save(pool, &post_saved_form).await?;
 
     let expected_post_saved = PostSaved {
       post_id: inserted_post.id,
@@ -528,57 +524,47 @@ mod tests {
       HashSet::from([inserted_post.id, inserted_post2.id]),
       inserted_person.id,
     )
-    .await
-    .unwrap();
+    .await?;
     assert_eq!(2, marked_as_read);
 
-    let read_post = Post::read(pool, inserted_post.id).await.unwrap();
+    let read_post = Post::read(pool, inserted_post.id).await?;
 
     let new_post_update = PostUpdateForm {
       name: Some("A test post".into()),
       ..Default::default()
     };
-    let updated_post = Post::update(pool, inserted_post.id, &new_post_update)
-      .await
-      .unwrap();
+    let updated_post = Post::update(pool, inserted_post.id, &new_post_update).await?;
 
     // Scheduled post count
-    let scheduled_post_count = Post::user_scheduled_post_count(inserted_person.id, pool)
-      .await
-      .unwrap();
+    let scheduled_post_count = Post::user_scheduled_post_count(inserted_person.id, pool).await?;
     assert_eq!(1, scheduled_post_count);
 
-    let like_removed = PostLike::remove(pool, inserted_person.id, inserted_post.id)
-      .await
-      .unwrap();
+    let like_removed = PostLike::remove(pool, inserted_person.id, inserted_post.id).await?;
     assert_eq!(1, like_removed);
-    let saved_removed = PostSaved::unsave(pool, &post_saved_form).await.unwrap();
+    let saved_removed = PostSaved::unsave(pool, &post_saved_form).await?;
     assert_eq!(1, saved_removed);
     let read_removed = PostRead::mark_as_unread(
       pool,
       HashSet::from([inserted_post.id, inserted_post2.id]),
       inserted_person.id,
     )
-    .await
-    .unwrap();
+    .await?;
     assert_eq!(2, read_removed);
 
-    let num_deleted = Post::delete(pool, inserted_post.id).await.unwrap()
-      + Post::delete(pool, inserted_post2.id).await.unwrap()
-      + Post::delete(pool, inserted_scheduled_post.id)
-        .await
-        .unwrap();
+    let num_deleted = Post::delete(pool, inserted_post.id).await?
+      + Post::delete(pool, inserted_post2.id).await?
+      + Post::delete(pool, inserted_scheduled_post.id).await?;
     assert_eq!(3, num_deleted);
-    Community::delete(pool, inserted_community.id)
-      .await
-      .unwrap();
-    Person::delete(pool, inserted_person.id).await.unwrap();
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    Community::delete(pool, inserted_community.id).await?;
+    Person::delete(pool, inserted_person.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
 
     assert_eq!(expected_post, read_post);
     assert_eq!(expected_post, inserted_post);
     assert_eq!(expected_post, updated_post);
     assert_eq!(expected_post_like, inserted_post_like);
     assert_eq!(expected_post_saved, inserted_post_saved);
+
+    Ok(())
   }
 }

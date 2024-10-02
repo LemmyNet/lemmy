@@ -110,7 +110,7 @@ impl Object for ApubPost {
     let creator = Person::read(&mut context.pool(), creator_id).await?;
     let community_id = self.community_id;
     let community = Community::read(&mut context.pool(), community_id).await?;
-    let language = LanguageTag::new_single(self.language_id, &mut context.pool()).await?;
+    let language = Some(LanguageTag::new_single(self.language_id, &mut context.pool()).await?);
 
     let attachment = self
       .url
@@ -237,8 +237,10 @@ impl Object for ApubPost {
 
     let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
     let body = process_markdown_opt(&body, slur_regex, &url_blocklist, context).await?;
-    let language_id =
-      LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
+    let language_id = Some(
+      LanguageTag::to_language_id_single(page.language.unwrap_or_default(), &mut context.pool())
+        .await?,
+    );
 
     let form = PostInsertForm {
       url: url.map(Into::into),

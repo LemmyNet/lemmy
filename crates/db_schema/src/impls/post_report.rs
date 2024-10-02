@@ -80,7 +80,6 @@ impl Reportable for PostReport {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::*;
@@ -94,14 +93,13 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
+  use diesel::result::Error;
   use serial_test::serial;
 
-  async fn init(pool: &mut DbPool<'_>) -> (Person, PostReport) {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+  async fn init(pool: &mut DbPool<'_>) -> Result<(Person, PostReport), Error> {
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
     let person_form = PersonInsertForm::test_form(inserted_instance.id, "jim");
-    let person = Person::create(pool, &person_form).await.unwrap();
+    let person = Person::create(pool, &person_form).await?;
 
     let community_form = CommunityInsertForm::new(
       inserted_instance.id,
@@ -109,10 +107,10 @@ mod tests {
       "nada".to_owned(),
       "pubkey".to_string(),
     );
-    let community = Community::create(pool, &community_form).await.unwrap();
+    let community = Community::create(pool, &community_form).await?;
 
     let form = PostInsertForm::new("A test post".into(), person.id, community.id);
-    let post = Post::create(pool, &form).await.unwrap();
+    let post = Post::create(pool, &form).await?;
 
     let report_form = PostReportForm {
       post_id: post.id,
@@ -120,46 +118,46 @@ mod tests {
       reason: "my reason".to_string(),
       ..Default::default()
     };
-    let report = PostReport::report(pool, &report_form).await.unwrap();
-    (person, report)
+    let report = PostReport::report(pool, &report_form).await?;
+
+    Ok((person, report))
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_resolve_post_report() {
+  async fn test_resolve_post_report() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let (person, report) = init(pool).await;
+    let (person, report) = init(pool).await?;
 
-    let resolved_count = PostReport::resolve(pool, report.id, person.id)
-      .await
-      .unwrap();
+    let resolved_count = PostReport::resolve(pool, report.id, person.id).await?;
     assert_eq!(resolved_count, 1);
 
-    let unresolved_count = PostReport::unresolve(pool, report.id, person.id)
-      .await
-      .unwrap();
+    let unresolved_count = PostReport::unresolve(pool, report.id, person.id).await?;
     assert_eq!(unresolved_count, 1);
 
-    Person::delete(pool, person.id).await.unwrap();
-    Post::delete(pool, report.post_id).await.unwrap();
+    Person::delete(pool, person.id).await?;
+    Post::delete(pool, report.post_id).await?;
+
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_resolve_all_post_reports() {
+  async fn test_resolve_all_post_reports() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let (person, report) = init(pool).await;
+    let (person, report) = init(pool).await?;
 
-    let resolved_count = PostReport::resolve_all_for_object(pool, report.post_id, person.id)
-      .await
-      .unwrap();
+    let resolved_count =
+      PostReport::resolve_all_for_object(pool, report.post_id, person.id).await?;
     assert_eq!(resolved_count, 1);
 
-    Person::delete(pool, person.id).await.unwrap();
-    Post::delete(pool, report.post_id).await.unwrap();
+    Person::delete(pool, person.id).await?;
+    Post::delete(pool, report.post_id).await?;
+
+    Ok(())
   }
 }

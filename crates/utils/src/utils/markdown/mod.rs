@@ -107,7 +107,6 @@ pub fn markdown_check_for_blocked_urls(text: &str, blocklist: &RegexSet) -> Lemm
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::*;
@@ -245,8 +244,8 @@ mod tests {
   }
 
   #[test]
-  fn test_url_blocking() {
-    let set = RegexSet::new(vec![r"(https://)?example\.com/?"]).unwrap();
+  fn test_url_blocking() -> LemmyResult<()> {
+    let set = RegexSet::new(vec![r"(https://)?example\.com/?"])?;
 
     assert!(
       markdown_check_for_blocked_urls(&String::from("[](https://example.com)"), &set).is_err()
@@ -274,7 +273,7 @@ mod tests {
     )
     .is_err());
 
-    let set = RegexSet::new(vec![r"(https://)?example\.com/spam\.jpg"]).unwrap();
+    let set = RegexSet::new(vec![r"(https://)?example\.com/spam\.jpg"])?;
     assert!(markdown_check_for_blocked_urls(
       &String::from("![](https://example.com/spam.jpg)"),
       &set
@@ -285,8 +284,7 @@ mod tests {
       r"(https://)?quo\.example\.com/?",
       r"(https://)?foo\.example\.com/?",
       r"(https://)?bar\.example\.com/?",
-    ])
-    .unwrap();
+    ])?;
 
     assert!(
       markdown_check_for_blocked_urls(&String::from("https://baz.example.com"), &set).is_ok()
@@ -296,15 +294,17 @@ mod tests {
       markdown_check_for_blocked_urls(&String::from("https://bar.example.com"), &set).is_err()
     );
 
-    let set = RegexSet::new(vec![r"(https://)?example\.com/banned_page"]).unwrap();
+    let set = RegexSet::new(vec![r"(https://)?example\.com/banned_page"])?;
 
     assert!(
       markdown_check_for_blocked_urls(&String::from("https://example.com/page"), &set).is_ok()
     );
 
-    let set = RegexSet::new(vec![r"(https://)?ex\.mple\.com/?"]).unwrap();
+    let set = RegexSet::new(vec![r"(https://)?ex\.mple\.com/?"])?;
 
     assert!(markdown_check_for_blocked_urls("example.com", &set).is_ok());
+
+    Ok(())
   }
 
   #[test]

@@ -196,7 +196,6 @@ impl Saveable for CommentSaved {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{
@@ -220,23 +219,22 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use diesel_ltree::Ltree;
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use url::Url;
 
   #[tokio::test]
   #[serial]
-  async fn test_crud() {
+  async fn test_crud() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "terry");
 
-    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+    let inserted_person = Person::create(pool, &new_person).await?;
 
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
@@ -244,21 +242,21 @@ mod tests {
       "nada".to_owned(),
       "pubkey".to_string(),
     );
-    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+    let inserted_community = Community::create(pool, &new_community).await?;
 
     let new_post = PostInsertForm::new(
       "A test post".into(),
       inserted_person.id,
       inserted_community.id,
     );
-    let inserted_post = Post::create(pool, &new_post).await.unwrap();
+    let inserted_post = Post::create(pool, &new_post).await?;
 
     let comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
       "A test comment".into(),
     );
-    let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
+    let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     let expected_comment = Comment {
       id: inserted_comment.id,
@@ -273,8 +271,7 @@ mod tests {
       ap_id: Url::parse(&format!(
         "https://lemmy-alpha/comment/{}",
         inserted_comment.id
-      ))
-      .unwrap()
+      ))?
       .into(),
       distinguished: false,
       local: true,
@@ -287,9 +284,7 @@ mod tests {
       "A child comment".into(),
     );
     let inserted_child_comment =
-      Comment::create(pool, &child_comment_form, Some(&inserted_comment.path))
-        .await
-        .unwrap();
+      Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
     // Comment Like
     let comment_like_form = CommentLikeForm {
@@ -299,7 +294,7 @@ mod tests {
       score: 1,
     };
 
-    let inserted_comment_like = CommentLike::like(pool, &comment_like_form).await.unwrap();
+    let inserted_comment_like = CommentLike::like(pool, &comment_like_form).await?;
 
     let expected_comment_like = CommentLike {
       comment_id: inserted_comment.id,
@@ -315,7 +310,7 @@ mod tests {
       person_id: inserted_person.id,
     };
 
-    let inserted_comment_saved = CommentSaved::save(pool, &comment_saved_form).await.unwrap();
+    let inserted_comment_saved = CommentSaved::save(pool, &comment_saved_form).await?;
 
     let expected_comment_saved = CommentSaved {
       comment_id: inserted_comment.id,
@@ -328,27 +323,17 @@ mod tests {
       ..Default::default()
     };
 
-    let updated_comment = Comment::update(pool, inserted_comment.id, &comment_update_form)
-      .await
-      .unwrap();
+    let updated_comment = Comment::update(pool, inserted_comment.id, &comment_update_form).await?;
 
-    let read_comment = Comment::read(pool, inserted_comment.id).await.unwrap();
-    let like_removed = CommentLike::remove(pool, inserted_person.id, inserted_comment.id)
-      .await
-      .unwrap();
-    let saved_removed = CommentSaved::unsave(pool, &comment_saved_form)
-      .await
-      .unwrap();
-    let num_deleted = Comment::delete(pool, inserted_comment.id).await.unwrap();
-    Comment::delete(pool, inserted_child_comment.id)
-      .await
-      .unwrap();
-    Post::delete(pool, inserted_post.id).await.unwrap();
-    Community::delete(pool, inserted_community.id)
-      .await
-      .unwrap();
-    Person::delete(pool, inserted_person.id).await.unwrap();
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    let read_comment = Comment::read(pool, inserted_comment.id).await?;
+    let like_removed = CommentLike::remove(pool, inserted_person.id, inserted_comment.id).await?;
+    let saved_removed = CommentSaved::unsave(pool, &comment_saved_form).await?;
+    let num_deleted = Comment::delete(pool, inserted_comment.id).await?;
+    Comment::delete(pool, inserted_child_comment.id).await?;
+    Post::delete(pool, inserted_post.id).await?;
+    Community::delete(pool, inserted_community.id).await?;
+    Person::delete(pool, inserted_person.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
 
     assert_eq!(expected_comment, read_comment);
     assert_eq!(expected_comment, inserted_comment);
@@ -362,5 +347,7 @@ mod tests {
     assert_eq!(1, like_removed);
     assert_eq!(1, saved_removed);
     assert_eq!(1, num_deleted);
+
+    Ok(())
   }
 }

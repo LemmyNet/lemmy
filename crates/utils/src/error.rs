@@ -288,7 +288,6 @@ cfg_if! {
 
     #[cfg(test)]
     mod tests {
-      #![allow(clippy::unwrap_used)]
       #![allow(clippy::indexing_slicing)]
       use super::*;
       use actix_web::{body::MessageBody, ResponseError};
@@ -297,21 +296,25 @@ cfg_if! {
       use strum::IntoEnumIterator;
 
       #[test]
-      fn deserializes_no_message() {
+      fn deserializes_no_message() -> LemmyResult<()> {
         let err = LemmyError::from(LemmyErrorType::Banned).error_response();
-        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
-        assert_eq!(&json, "{\"error\":\"banned\"}")
+        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
+        assert_eq!(&json, "{\"error\":\"banned\"}");
+
+        Ok(())
       }
 
       #[test]
-      fn deserializes_with_message() {
+      fn deserializes_with_message() -> LemmyResult<()> {
         let reg_banned = LemmyErrorType::PersonIsBannedFromSite(String::from("reason"));
         let err = LemmyError::from(reg_banned).error_response();
-        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
+        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
         assert_eq!(
           &json,
           "{\"error\":\"person_is_banned_from_site\",\"message\":\"reason\"}"
-        )
+        );
+
+        Ok(())
       }
 
       #[test]
@@ -328,19 +331,22 @@ cfg_if! {
       /// Check if errors match translations. Disabled because many are not translated at all.
       #[test]
       #[ignore]
-      fn test_translations_match() {
+      fn test_translations_match() -> LemmyResult<()> {
         #[derive(Deserialize)]
         struct Err {
           error: String,
         }
 
-        let translations = read_to_string("translations/translations/en.json").unwrap();
-        LemmyErrorType::iter().for_each(|e| {
-          let msg = serde_json::to_string(&e).unwrap();
-          let msg: Err = serde_json::from_str(&msg).unwrap();
+        let translations = read_to_string("translations/translations/en.json")?;
+
+        for e in LemmyErrorType::iter() {
+          let msg = serde_json::to_string(&e)?;
+          let msg: Err = serde_json::from_str(&msg)?;
           let msg = msg.error;
           assert!(translations.contains(&format!("\"{msg}\"")), "{msg}");
-        });
+        }
+
+        Ok(())
       }
     }
   }

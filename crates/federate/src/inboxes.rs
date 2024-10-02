@@ -222,7 +222,6 @@ impl<T: DataSource> CommunityInboxCollector<T> {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
   use super::*;
@@ -230,6 +229,7 @@ mod tests {
     newtypes::{ActivityId, CommunityId, InstanceId, SiteId},
     source::activity::{ActorType, SentActivity},
   };
+  use lemmy_utils::error::LemmyResult;
   use mockall::{mock, predicate::*};
   use serde_json::json;
   mock! {
@@ -253,13 +253,11 @@ mod tests {
   }
 
   #[tokio::test]
-  async fn test_get_inbox_urls_empty() {
+  async fn test_get_inbox_urls_empty() -> LemmyResult<()> {
     let mut collector = setup_collector();
     let activity = SentActivity {
       id: ActivityId(1),
-      ap_id: Url::parse("https://example.com/activities/1")
-        .unwrap()
-        .into(),
+      ap_id: Url::parse("https://example.com/activities/1")?.into(),
       data: json!({}),
       sensitive: false,
       published: Utc::now(),
@@ -270,14 +268,16 @@ mod tests {
       actor_apub_id: None,
     };
 
-    let result = collector.get_inbox_urls(&activity).await.unwrap();
+    let result = collector.get_inbox_urls(&activity).await?;
     assert!(result.is_empty());
+
+    Ok(())
   }
 
   #[tokio::test]
-  async fn test_get_inbox_urls_send_all_instances() {
+  async fn test_get_inbox_urls_send_all_instances() -> LemmyResult<()> {
     let mut collector = setup_collector();
-    let site_inbox = Url::parse("https://example.com/inbox").unwrap();
+    let site_inbox = Url::parse("https://example.com/inbox")?;
     let site = Site {
       id: SiteId(1),
       name: "Test Site".to_string(),
@@ -287,7 +287,7 @@ mod tests {
       icon: None,
       banner: None,
       description: None,
-      actor_id: Url::parse("https://example.com/site").unwrap().into(),
+      actor_id: Url::parse("https://example.com/site")?.into(),
       last_refreshed_at: Utc::now(),
       inbox_url: site_inbox.clone().into(),
       private_key: None,
@@ -303,9 +303,7 @@ mod tests {
 
     let activity = SentActivity {
       id: ActivityId(1),
-      ap_id: Url::parse("https://example.com/activities/1")
-        .unwrap()
-        .into(),
+      ap_id: Url::parse("https://example.com/activities/1")?.into(),
       data: json!({}),
       sensitive: false,
       published: Utc::now(),
@@ -316,13 +314,15 @@ mod tests {
       actor_apub_id: None,
     };
 
-    let result = collector.get_inbox_urls(&activity).await.unwrap();
+    let result = collector.get_inbox_urls(&activity).await?;
     assert_eq!(result.len(), 1);
     assert_eq!(result[0], site_inbox);
+
+    Ok(())
   }
 
   #[tokio::test]
-  async fn test_get_inbox_urls_community_followers() {
+  async fn test_get_inbox_urls_community_followers() -> LemmyResult<()> {
     let mut collector = setup_collector();
     let community_id = CommunityId(1);
     let url1 = "https://follower1.example.com/inbox";
@@ -333,18 +333,22 @@ mod tests {
       .expect_get_instance_followed_community_inboxes()
       .return_once(move |_, _| {
         Ok(vec![
-          (community_id, Url::parse(url1).unwrap().into()),
-          (community_id, Url::parse(url2).unwrap().into()),
+          (
+            community_id,
+            Url::parse(url1).map_err(|_| diesel::NotFound)?.into(),
+          ),
+          (
+            community_id,
+            Url::parse(url2).map_err(|_| diesel::NotFound)?.into(),
+          ),
         ])
       });
 
-    collector.update_communities().await.unwrap();
+    collector.update_communities().await?;
 
     let activity = SentActivity {
       id: ActivityId(1),
-      ap_id: Url::parse("https://example.com/activities/1")
-        .unwrap()
-        .into(),
+      ap_id: Url::parse("https://example.com/activities/1")?.into(),
       data: json!({}),
       sensitive: false,
       published: Utc::now(),
@@ -355,24 +359,24 @@ mod tests {
       actor_apub_id: None,
     };
 
-    let result = collector.get_inbox_urls(&activity).await.unwrap();
+    let result = collector.get_inbox_urls(&activity).await?;
     assert_eq!(result.len(), 2);
-    assert!(result.contains(&Url::parse(url1).unwrap()));
-    assert!(result.contains(&Url::parse(url2).unwrap()));
+    assert!(result.contains(&Url::parse(url1)?));
+    assert!(result.contains(&Url::parse(url2)?));
+
+    Ok(())
   }
 
   #[tokio::test]
-  async fn test_get_inbox_urls_send_inboxes() {
+  async fn test_get_inbox_urls_send_inboxes() -> LemmyResult<()> {
     let mut collector = setup_collector();
     collector.domain = "example.com".to_string();
-    let inbox_user_1 = Url::parse("https://example.com/user1/inbox").unwrap();
-    let inbox_user_2 = Url::parse("https://example.com/user2/inbox").unwrap();
-    let other_domain_inbox = Url::parse("https://other-domain.com/user3/inbox").unwrap();
+    let inbox_user_1 = Url::parse("https://example.com/user1/inbox")?;
+    let inbox_user_2 = Url::parse("https://example.com/user2/inbox")?;
+    let other_domain_inbox = Url::parse("https://other-domain.com/user3/inbox")?;
     let activity = SentActivity {
       id: ActivityId(1),
-      ap_id: Url::parse("https://example.com/activities/1")
-        .unwrap()
-        .into(),
+      ap_id: Url::parse("https://example.com/activities/1")?.into(),
       data: json!({}),
       sensitive: false,
       published: Utc::now(),
@@ -387,20 +391,22 @@ mod tests {
       actor_apub_id: None,
     };
 
-    let result = collector.get_inbox_urls(&activity).await.unwrap();
+    let result = collector.get_inbox_urls(&activity).await?;
     assert_eq!(result.len(), 2);
     assert!(result.contains(&inbox_user_1));
     assert!(result.contains(&inbox_user_2));
     assert!(!result.contains(&other_domain_inbox));
+
+    Ok(())
   }
 
   #[tokio::test]
-  async fn test_get_inbox_urls_combined() {
+  async fn test_get_inbox_urls_combined() -> LemmyResult<()> {
     let mut collector = setup_collector();
     collector.domain = "example.com".to_string();
     let community_id = CommunityId(1);
 
-    let site_inbox = Url::parse("https://example.com/site_inbox").unwrap();
+    let site_inbox = Url::parse("https://example.com/site_inbox")?;
     let site = Site {
       id: SiteId(1),
       name: "Test Site".to_string(),
@@ -410,7 +416,7 @@ mod tests {
       icon: None,
       banner: None,
       description: None,
-      actor_id: Url::parse("https://example.com/site").unwrap().into(),
+      actor_id: Url::parse("https://example.com/site")?.into(),
       last_refreshed_at: Utc::now(),
       inbox_url: site_inbox.clone().into(),
       private_key: None,
@@ -431,18 +437,18 @@ mod tests {
       .return_once(move |_, _| {
         Ok(vec![(
           community_id,
-          Url::parse(subdomain_inbox).unwrap().into(),
+          Url::parse(subdomain_inbox)
+            .map_err(|_| diesel::NotFound)?
+            .into(),
         )])
       });
 
-    collector.update_communities().await.unwrap();
-    let user1_inbox = Url::parse("https://example.com/user1/inbox").unwrap();
-    let user2_inbox = Url::parse("https://other-domain.com/user2/inbox").unwrap();
+    collector.update_communities().await?;
+    let user1_inbox = Url::parse("https://example.com/user1/inbox")?;
+    let user2_inbox = Url::parse("https://other-domain.com/user2/inbox")?;
     let activity = SentActivity {
       id: ActivityId(1),
-      ap_id: Url::parse("https://example.com/activities/1")
-        .unwrap()
-        .into(),
+      ap_id: Url::parse("https://example.com/activities/1")?.into(),
       data: json!({}),
       sensitive: false,
       published: Utc::now(),
@@ -456,27 +462,29 @@ mod tests {
       actor_apub_id: None,
     };
 
-    let result = collector.get_inbox_urls(&activity).await.unwrap();
+    let result = collector.get_inbox_urls(&activity).await?;
     assert_eq!(result.len(), 3);
     assert!(result.contains(&site_inbox));
-    assert!(result.contains(&Url::parse(subdomain_inbox).unwrap()));
+    assert!(result.contains(&Url::parse(subdomain_inbox)?));
     assert!(result.contains(&user1_inbox));
     assert!(!result.contains(&user2_inbox));
+
+    Ok(())
   }
 
   #[tokio::test]
-  async fn test_update_communities() {
+  async fn test_update_communities() -> LemmyResult<()> {
     let mut collector = setup_collector();
     let community_id1 = CommunityId(1);
     let community_id2 = CommunityId(2);
     let community_id3 = CommunityId(3);
 
     let user1_inbox_str = "https://follower1.example.com/inbox";
-    let user1_inbox = Url::parse(user1_inbox_str).unwrap();
+    let user1_inbox = Url::parse(user1_inbox_str)?;
     let user2_inbox_str = "https://follower2.example.com/inbox";
-    let user2_inbox = Url::parse(user2_inbox_str).unwrap();
+    let user2_inbox = Url::parse(user2_inbox_str)?;
     let user3_inbox_str = "https://follower3.example.com/inbox";
-    let user3_inbox = Url::parse(user3_inbox_str).unwrap();
+    let user3_inbox = Url::parse(user3_inbox_str)?;
 
     collector
       .data_source
@@ -485,42 +493,57 @@ mod tests {
       .returning(move |_, last_fetch| {
         if last_fetch == Utc.timestamp_nanos(0) {
           Ok(vec![
-            (community_id1, Url::parse(user1_inbox_str).unwrap().into()),
-            (community_id2, Url::parse(user2_inbox_str).unwrap().into()),
+            (
+              community_id1,
+              Url::parse(user1_inbox_str)
+                .map_err(|_| diesel::NotFound)?
+                .into(),
+            ),
+            (
+              community_id2,
+              Url::parse(user2_inbox_str)
+                .map_err(|_| diesel::NotFound)?
+                .into(),
+            ),
           ])
         } else {
           Ok(vec![(
             community_id3,
-            Url::parse(user3_inbox_str).unwrap().into(),
+            Url::parse(user3_inbox_str)
+              .map_err(|_| diesel::NotFound)?
+              .into(),
           )])
         }
       });
 
     // First update
-    collector.update_communities().await.unwrap();
+    collector.update_communities().await?;
     assert_eq!(collector.followed_communities.len(), 2);
     assert!(collector.followed_communities[&community_id1].contains(&user1_inbox));
     assert!(collector.followed_communities[&community_id2].contains(&user2_inbox));
 
     // Simulate time passing
-    collector.last_full_communities_fetch = Utc::now() - chrono::TimeDelta::try_minutes(3).unwrap();
+    collector.last_full_communities_fetch =
+      Utc::now() - chrono::TimeDelta::try_minutes(3).expect("TimeDelta out of bounds");
     collector.last_incremental_communities_fetch =
-      Utc::now() - chrono::TimeDelta::try_minutes(3).unwrap();
+      Utc::now() - chrono::TimeDelta::try_minutes(3).expect("TimeDelta out of bounds");
 
     // Second update (incremental)
-    collector.update_communities().await.unwrap();
+    collector.update_communities().await?;
     assert_eq!(collector.followed_communities.len(), 3);
     assert!(collector.followed_communities[&community_id1].contains(&user1_inbox));
     assert!(collector.followed_communities[&community_id3].contains(&user3_inbox));
     assert!(collector.followed_communities[&community_id2].contains(&user2_inbox));
+
+    Ok(())
   }
 
   #[tokio::test]
-  async fn test_get_inbox_urls_no_duplicates() {
+  async fn test_get_inbox_urls_no_duplicates() -> LemmyResult<()> {
     let mut collector = setup_collector();
     collector.domain = "example.com".to_string();
     let community_id = CommunityId(1);
-    let site_inbox = Url::parse("https://example.com/site_inbox").unwrap();
+    let site_inbox = Url::parse("https://example.com/site_inbox")?;
     let site_inbox_clone = site_inbox.clone();
     let site = Site {
       id: SiteId(1),
@@ -531,7 +554,7 @@ mod tests {
       icon: None,
       banner: None,
       description: None,
-      actor_id: Url::parse("https://example.com/site").unwrap().into(),
+      actor_id: Url::parse("https://example.com/site")?.into(),
       last_refreshed_at: Utc::now(),
       inbox_url: site_inbox.clone().into(),
       private_key: None,
@@ -550,13 +573,11 @@ mod tests {
       .expect_get_instance_followed_community_inboxes()
       .return_once(move |_, _| Ok(vec![(community_id, site_inbox_clone.into())]));
 
-    collector.update_communities().await.unwrap();
+    collector.update_communities().await?;
 
     let activity = SentActivity {
       id: ActivityId(1),
-      ap_id: Url::parse("https://example.com/activities/1")
-        .unwrap()
-        .into(),
+      ap_id: Url::parse("https://example.com/activities/1")?.into(),
       data: json!({}),
       sensitive: false,
       published: Utc::now(),
@@ -567,8 +588,10 @@ mod tests {
       actor_apub_id: None,
     };
 
-    let result = collector.get_inbox_urls(&activity).await.unwrap();
+    let result = collector.get_inbox_urls(&activity).await?;
     assert_eq!(result.len(), 1);
-    assert!(result.contains(&Url::parse("https://example.com/site_inbox").unwrap()));
+    assert!(result.contains(&Url::parse("https://example.com/site_inbox")?));
+
+    Ok(())
   }
 }
