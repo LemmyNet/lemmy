@@ -279,7 +279,13 @@ impl<'a> CommunityQuery<'a> {
 #[expect(clippy::unwrap_used)]
 mod tests {
 
-  use crate::{community_view::CommunityQuery, structs::CommunityView};
+  use crate::{
+    community_view::CommunityQuery,
+    structs::{
+      CommunitySortType,
+      CommunityView,
+    },
+  };
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityInsertForm, CommunityUpdateForm},
@@ -295,10 +301,10 @@ mod tests {
   use serial_test::serial;
   use url::Url;
 
-  struct Data {
+  struct Data<'a> {
     inserted_instance: Instance,
     local_user: LocalUser,
-    inserted_community: Community,
+    inserted_community: Vec<Community>,
     site: Site,
   }
 
@@ -318,13 +324,35 @@ mod tests {
       .await
       .unwrap();
 
-    let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
-      "test_community_3".to_string(),
-      "nada".to_owned(),
-      "pubkey".to_string(),
-    );
-    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+    let inserted_community = vec![
+      Community::create(
+        pool,
+        &CommunityInsertForm::new(
+          inserted_instance.id,
+          "test_community_1".to_string(),
+          "nada1".to_owned(),
+          "pubkey".to_string(),
+        ),
+      ).await.unwrap(),
+      Community::create(
+        pool,
+        &CommunityInsertForm::new(
+          inserted_instance.id,
+          "test_community_2".to_string(),
+          "nada2".to_owned(),
+          "pubkey".to_string(),
+        ),
+      ).await.unwrap(),
+      Community::create(
+        pool,
+        &CommunityInsertForm::new(
+          inserted_instance.id,
+          "test_community_3".to_string(),
+          "nada3".to_owned(),
+          "pubkey".to_string(),
+        ),
+      ).await.unwrap(),
+    ];
 
     let url = Url::parse("http://example.com").unwrap();
     let site = Site {
@@ -354,9 +382,11 @@ mod tests {
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) {
-    Community::delete(pool, data.inserted_community.id)
-      .await
-      .unwrap();
+    for Community { id, .. } in data.inserted_community.into_iter() {
+      Community::delete(pool, data.inserted_community.id)
+        .await
+        .unwrap();
+    }
     Person::delete(pool, data.local_user.person_id)
       .await
       .unwrap();
@@ -374,7 +404,7 @@ mod tests {
 
     Community::update(
       pool,
-      data.inserted_community.id,
+      data.inserted_community[0].id,
       &CommunityUpdateForm {
         visibility: Some(CommunityVisibility::LocalOnly),
         ..Default::default()
@@ -401,17 +431,45 @@ mod tests {
     assert_eq!(1, authenticated_query.len());
 
     let unauthenticated_community =
-      CommunityView::read(pool, data.inserted_community.id, None, false).await;
+      CommunityView::read(pool, data.inserted_community[0].id, None, false).await;
     assert!(unauthenticated_community.is_err());
 
     let authenticated_community = CommunityView::read(
       pool,
-      data.inserted_community.id,
+      data.inserted_community[0].id,
       Some(&data.local_user),
       false,
     )
     .await;
     assert!(authenticated_community.is_ok());
+
+    cleanup(data, pool).await;
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn community_sort() {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await;
+
+    let query = CommunityQuery {
+      sort: Some(CommunitySortType::NameAsc),
+      ..Default::default()
+    };
+    let communities = query.list(&data.site, pool).await.unwrap();
+    for (i, c) in communities.iter().enumerate().skip(1) {
+      assert!(c.community.title.cmp(&communities[i-1].community.title).is_ge());
+    }
+
+    let query = CommunityQuery {
+      sort: Some(CommunitySortType::NameDesc),
+      ..Default::default()
+    };
+    let communities = query.list(&data.site, pool).await.unwrap();
+    for (i, c) in communities.iter().enumerate().skip(1) {
+      assert!(c.community.title.cmp(&communities[i-1].community.title).is_le());
+    }
 
     cleanup(data, pool).await;
   }
