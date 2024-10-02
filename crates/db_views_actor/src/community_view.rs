@@ -452,8 +452,7 @@ mod tests {
         .community
         .title
         .cmp(&communities[i-1].community.title)
-        .is_ge(),
-      );
+        .is_ge());
     }
 
     let query = CommunityQuery {
@@ -466,8 +465,7 @@ mod tests {
         .community
         .title
         .cmp(&communities[i-1].community.title)
-        .is_le(),
-      );
+        .is_le());
     }
 
     cleanup(data, pool).await
