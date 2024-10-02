@@ -298,7 +298,7 @@ mod tests {
   use serial_test::serial;
   use url::Url;
 
-  struct Data<'a> {
+  struct Data {
     inserted_instance: Instance,
     local_user: LocalUser,
     inserted_community: Vec<Community>,
