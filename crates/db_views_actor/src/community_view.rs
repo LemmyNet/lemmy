@@ -409,7 +409,7 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(0, unauthenticated_query.len());
+    assert_eq!(data.inserted_communities.len() - 1, unauthenticated_query.len());
 
     let authenticated_query = CommunityQuery {
       local_user: Some(&data.local_user),
@@ -417,7 +417,7 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(1, authenticated_query.len());
+    assert_eq!(data.inserted_communities.len(), authenticated_query.len());
 
     let unauthenticated_community =
       CommunityView::read(pool, data.inserted_communities[0].id, None, false).await;
