@@ -48,7 +48,7 @@ pub(crate) mod tests {
   use chrono::{DateTime, NaiveDate, Utc};
   use elementtree::Element;
   use lemmy_db_schema::newtypes::DbUrl;
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use url::Url;
 
@@ -95,44 +95,40 @@ pub(crate) mod tests {
       root
         .children()
         .next()
-        .ok_or(LemmyErrorType::NotFound)?
-        .children()
-        .find(|element| element.tag().name() == "loc")
-        .ok_or(LemmyErrorType::NotFound)?
-        .text(),
+        .and_then(|n| n.children().find(|element| element.tag().name() == "loc"))
+        .map(Element::text)
+        .unwrap_or_default(),
       "https://example.com/"
     );
     assert_eq!(
       root
         .children()
         .next()
-        .ok_or(LemmyErrorType::NotFound)?
-        .children()
-        .find(|element| element.tag().name() == "lastmod")
-        .ok_or(LemmyErrorType::NotFound)?
-        .text(),
+        .and_then(|n| n
+          .children()
+          .find(|element| element.tag().name() == "lastmod"))
+        .map(Element::text)
+        .unwrap_or_default(),
       "2022-12-01T09:10:11+00:00"
     );
     assert_eq!(
       root
         .children()
         .nth(1)
-        .ok_or(LemmyErrorType::NotFound)?
-        .children()
-        .find(|element| element.tag().name() == "loc")
-        .ok_or(LemmyErrorType::NotFound)?
-        .text(),
+        .and_then(|n| n.children().find(|element| element.tag().name() == "loc"))
+        .map(Element::text)
+        .unwrap_or_default(),
       "https://lemmy.ml/"
     );
     assert_eq!(
       root
         .children()
         .nth(1)
-        .ok_or(LemmyErrorType::NotFound)?
-        .children()
-        .find(|element| element.tag().name() == "lastmod")
-        .ok_or(LemmyErrorType::NotFound)?
-        .text(),
+        .and_then(|n| n
+          .children()
+          .find(|element| element.tag().name() == "lastmod"))
+        .map(Element::text)
+        .unwrap_or_default(),
       "2023-01-01T01:02:03+00:00"
     );
 
