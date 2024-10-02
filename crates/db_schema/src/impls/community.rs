@@ -207,12 +207,9 @@ impl Community {
       .filter(not(community::removed))
       .into_boxed();
 
-    if let Some(type_) = type_ {
-      query = match type_ {
-        ListingType::Local => query.filter(community::local),
-        _ => query,
-      };
-    };
+    if let Some(ListingType::Local) = type_ {
+      query = query.filter(community::local);
+    }
 
     query
       .select(community::id)
