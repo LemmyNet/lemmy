@@ -319,7 +319,7 @@ pub async fn check_local_vote_mode(
   let downvote_fail = score == -1 && downvote_setting == FederationMode::Disable;
   let upvote_fail = score == 1 && upvote_setting == FederationMode::Disable;
 
-  // Undo the vote if it fails
+  // Undo previous vote for item if new vote fails
   if downvote_fail || upvote_fail {
     match vote_item {
       VoteItem::Post(post_id) => PostLike::remove(pool, person_id, post_id).await?,
