@@ -308,10 +308,10 @@ fn split_ipv6(ip: Ipv6Addr) -> ([u8; 6], u8, u8) {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::{ActionType, BucketConfig, InstantSecs, RateLimitState, RateLimitedGroup};
+  use crate::error::LemmyResult;
   use pretty_assertions::assert_eq;
 
   #[test]
@@ -326,7 +326,7 @@ mod tests {
   }
 
   #[test]
-  fn test_rate_limiter() {
+  fn test_rate_limiter() -> LemmyResult<()> {
     let bucket_configs = enum_map::enum_map! {
       ActionType::Message => BucketConfig {
         capacity: 2,
@@ -350,7 +350,7 @@ mod tests {
       "1:2:3:0405:6::",
     ];
     for ip in ips {
-      let ip = ip.parse().unwrap();
+      let ip = ip.parse()?;
       let message_passed = rate_limiter.check(ActionType::Message, ip, now);
       let post_passed = rate_limiter.check(ActionType::Post, ip, now);
       assert!(message_passed);
@@ -407,7 +407,7 @@ mod tests {
 
     // Do 2 `Message` actions for 1 IP address and expect only the 2nd one to fail
     for expected_to_pass in [true, false] {
-      let ip = "1:2:3:0400::".parse().unwrap();
+      let ip = "1:2:3:0400::".parse()?;
       let passed = rate_limiter.check(ActionType::Message, ip, now);
       assert_eq!(passed, expected_to_pass);
     }
@@ -419,7 +419,7 @@ mod tests {
     assert!(rate_limiter.ipv6_buckets.is_empty());
 
     // `remove full buckets` should not remove empty buckets
-    let ip = "1.1.1.1".parse().unwrap();
+    let ip = "1.1.1.1".parse()?;
     // empty the bucket with 2 requests
     assert!(rate_limiter.check(ActionType::Post, ip, now));
     assert!(rate_limiter.check(ActionType::Post, ip, now));
@@ -429,11 +429,13 @@ mod tests {
 
     // `remove full buckets` should not remove partial buckets
     now.secs += 2;
-    let ip = "1.1.1.1".parse().unwrap();
+    let ip = "1.1.1.1".parse()?;
     // Only make one request, so bucket still has 1 token
     assert!(rate_limiter.check(ActionType::Post, ip, now));
 
     rate_limiter.remove_full_buckets(now);
     assert!(!rate_limiter.ipv4_buckets.is_empty());
+
+    Ok(())
   }
 }

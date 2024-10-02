@@ -1,6 +1,5 @@
 use crate::{
   aggregates::structs::SiteAggregates,
-  diesel::OptionalExtension,
   schema::site_aggregates,
   utils::{get_conn, DbPool},
 };
@@ -8,15 +7,13 @@ use diesel::result::Error;
 use diesel_async::RunQueryDsl;
 
 impl SiteAggregates {
-  pub async fn read(pool: &mut DbPool<'_>) -> Result<Option<Self>, Error> {
+  pub async fn read(pool: &mut DbPool<'_>) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    site_aggregates::table.first(conn).await.optional()
+    site_aggregates::table.first(conn).await
   }
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
-
 mod tests {
 
   use crate::{
@@ -32,22 +29,21 @@ mod tests {
     traits::Crud,
     utils::{build_db_pool_for_tests, DbPool},
   };
+  use diesel::result::Error;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   async fn prepare_site_with_community(
     pool: &mut DbPool<'_>,
-  ) -> (Instance, Person, Site, Community) {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+  ) -> Result<(Instance, Person, Site, Community), Error> {
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_site_agg");
 
-    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+    let inserted_person = Person::create(pool, &new_person).await?;
 
     let site_form = SiteInsertForm::new("test_site".into(), inserted_instance.id);
-    let inserted_site = Site::create(pool, &site_form).await.unwrap();
+    let inserted_site = Site::create(pool, &site_form).await?;
 
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
@@ -56,23 +52,24 @@ mod tests {
       "pubkey".to_string(),
     );
 
-    let inserted_community = Community::create(pool, &new_community).await.unwrap();
-    (
+    let inserted_community = Community::create(pool, &new_community).await?;
+
+    Ok((
       inserted_instance,
       inserted_person,
       inserted_site,
       inserted_community,
-    )
+    ))
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_crud() {
+  async fn test_crud() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let (inserted_instance, inserted_person, inserted_site, inserted_community) =
-      prepare_site_with_community(pool).await;
+      prepare_site_with_community(pool).await?;
 
     let new_post = PostInsertForm::new(
       "A test post".into(),
@@ -81,8 +78,8 @@ mod tests {
     );
 
     // Insert two of those posts
-    let inserted_post = Post::create(pool, &new_post).await.unwrap();
-    let _inserted_post_again = Post::create(pool, &new_post).await.unwrap();
+    let inserted_post = Post::create(pool, &new_post).await?;
+    let _inserted_post_again = Post::create(pool, &new_post).await?;
 
     let comment_form = CommentInsertForm::new(
       inserted_person.id,
@@ -91,7 +88,7 @@ mod tests {
     );
 
     // Insert two of those comments
-    let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
+    let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     let child_comment_form = CommentInsertForm::new(
       inserted_person.id,
@@ -99,11 +96,9 @@ mod tests {
       "A test comment".into(),
     );
     let _inserted_child_comment =
-      Comment::create(pool, &child_comment_form, Some(&inserted_comment.path))
-        .await
-        .unwrap();
+      Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let site_aggregates_before_delete = SiteAggregates::read(pool).await.unwrap().unwrap();
+    let site_aggregates_before_delete = SiteAggregates::read(pool).await?;
 
     // TODO: this is unstable, sometimes it returns 0 users, sometimes 1
     //assert_eq!(0, site_aggregates_before_delete.users);
@@ -112,42 +107,42 @@ mod tests {
     assert_eq!(2, site_aggregates_before_delete.comments);
 
     // Try a post delete
-    Post::delete(pool, inserted_post.id).await.unwrap();
-    let site_aggregates_after_post_delete = SiteAggregates::read(pool).await.unwrap().unwrap();
+    Post::delete(pool, inserted_post.id).await?;
+    let site_aggregates_after_post_delete = SiteAggregates::read(pool).await?;
     assert_eq!(1, site_aggregates_after_post_delete.posts);
     assert_eq!(0, site_aggregates_after_post_delete.comments);
 
     // This shouuld delete all the associated rows, and fire triggers
-    let person_num_deleted = Person::delete(pool, inserted_person.id).await.unwrap();
+    let person_num_deleted = Person::delete(pool, inserted_person.id).await?;
     assert_eq!(1, person_num_deleted);
 
     // Delete the community
-    let community_num_deleted = Community::delete(pool, inserted_community.id)
-      .await
-      .unwrap();
+    let community_num_deleted = Community::delete(pool, inserted_community.id).await?;
     assert_eq!(1, community_num_deleted);
 
     // Site should still exist, it can without a site creator.
     let after_delete_creator = SiteAggregates::read(pool).await;
     assert!(after_delete_creator.is_ok());
 
-    Site::delete(pool, inserted_site.id).await.unwrap();
-    let after_delete_site = SiteAggregates::read(pool).await.unwrap();
-    assert!(after_delete_site.is_none());
+    Site::delete(pool, inserted_site.id).await?;
+    let after_delete_site = SiteAggregates::read(pool).await;
+    assert!(after_delete_site.is_err());
 
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_soft_delete() {
+  async fn test_soft_delete() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let (inserted_instance, inserted_person, inserted_site, inserted_community) =
-      prepare_site_with_community(pool).await;
+      prepare_site_with_community(pool).await?;
 
-    let site_aggregates_before = SiteAggregates::read(pool).await.unwrap().unwrap();
+    let site_aggregates_before = SiteAggregates::read(pool).await?;
     assert_eq!(1, site_aggregates_before.communities);
 
     Community::update(
@@ -158,10 +153,9 @@ mod tests {
         ..Default::default()
       },
     )
-    .await
-    .unwrap();
+    .await?;
 
-    let site_aggregates_after_delete = SiteAggregates::read(pool).await.unwrap().unwrap();
+    let site_aggregates_after_delete = SiteAggregates::read(pool).await?;
     assert_eq!(0, site_aggregates_after_delete.communities);
 
     Community::update(
@@ -172,8 +166,7 @@ mod tests {
         ..Default::default()
       },
     )
-    .await
-    .unwrap();
+    .await?;
 
     Community::update(
       pool,
@@ -183,10 +176,9 @@ mod tests {
         ..Default::default()
       },
     )
-    .await
-    .unwrap();
+    .await?;
 
-    let site_aggregates_after_remove = SiteAggregates::read(pool).await.unwrap().unwrap();
+    let site_aggregates_after_remove = SiteAggregates::read(pool).await?;
     assert_eq!(0, site_aggregates_after_remove.communities);
 
     Community::update(
@@ -197,17 +189,16 @@ mod tests {
         ..Default::default()
       },
     )
-    .await
-    .unwrap();
+    .await?;
 
-    let site_aggregates_after_remove_delete = SiteAggregates::read(pool).await.unwrap().unwrap();
+    let site_aggregates_after_remove_delete = SiteAggregates::read(pool).await?;
     assert_eq!(0, site_aggregates_after_remove_delete.communities);
 
-    Community::delete(pool, inserted_community.id)
-      .await
-      .unwrap();
-    Site::delete(pool, inserted_site.id).await.unwrap();
-    Person::delete(pool, inserted_person.id).await.unwrap();
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    Community::delete(pool, inserted_community.id).await?;
+    Site::delete(pool, inserted_site.id).await?;
+    Person::delete(pool, inserted_person.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    Ok(())
   }
 }

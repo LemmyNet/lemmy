@@ -23,7 +23,7 @@ use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{remove_or_restore_user_data_in_community, remove_user_data},
+  utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
 };
 use lemmy_db_schema::{
   source::{
@@ -160,6 +160,7 @@ impl ActivityHandler for BlockUser {
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;
+    let reason = self.summary;
     match target {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = Person::update(
@@ -173,14 +174,15 @@ impl ActivityHandler for BlockUser {
         )
         .await?;
         if self.remove_data.unwrap_or(false) {
-          remove_user_data(blocked_person.id, context).await?;
+          remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
+            .await?;
         }
 
         // write mod log
         let form = ModBanForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
-          reason: self.summary,
+          reason,
           banned: Some(true),
           expires,
         };
@@ -207,8 +209,10 @@ impl ActivityHandler for BlockUser {
         if self.remove_data.unwrap_or(false) {
           remove_or_restore_user_data_in_community(
             community.id,
+            mod_person.id,
             blocked_person.id,
             true,
+            &reason,
             &mut context.pool(),
           )
           .await?;
@@ -219,7 +223,7 @@ impl ActivityHandler for BlockUser {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
           community_id: community.id,
-          reason: self.summary,
+          reason,
           banned: Some(true),
           expires,
         };

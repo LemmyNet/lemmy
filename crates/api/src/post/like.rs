@@ -8,8 +8,9 @@ use lemmy_api_common::{
   utils::{
     check_bot_account,
     check_community_user_action,
-    check_downvotes_enabled,
+    check_local_vote_mode,
     mark_post_as_read,
+    VoteItem,
   },
 };
 use lemmy_db_schema::{
@@ -31,13 +32,19 @@ pub async fn like_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
+  let post_id = data.post_id;
 
-  // Don't do a downvote if site has downvotes disabled
-  check_downvotes_enabled(data.score, &local_site)?;
+  check_local_vote_mode(
+    data.score,
+    VoteItem::Post(post_id),
+    &local_site,
+    local_user_view.person.id,
+    &mut context.pool(),
+  )
+  .await?;
   check_bot_account(&local_user_view.person)?;
 
   // Check for a community ban
-  let post_id = data.post_id;
   let post = Post::read(&mut context.pool(), post_id).await?;
 
   check_community_user_action(

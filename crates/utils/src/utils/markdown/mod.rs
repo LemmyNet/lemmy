@@ -42,10 +42,10 @@ pub fn markdown_check_for_blocked_urls(text: &str, blocklist: &RegexSet) -> Lemm
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::*;
+  use image_links::markdown_rewrite_image_links;
   use pretty_assertions::assert_eq;
 
   #[test]
@@ -123,8 +123,65 @@ mod tests {
   }
 
   #[test]
-  fn test_url_blocking() {
-    let set = RegexSet::new(vec![r"(https://)?example\.com/?"]).unwrap();
+  fn test_markdown_proxy_images() {
+    let tests: Vec<_> =
+      vec![
+        (
+          "remote image proxied",
+          "![link](http://example.com/image.jpg)",
+          "![link](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)",
+        ),
+        (
+          "local image unproxied",
+          "![link](http://lemmy-alpha/image.jpg)",
+          "![link](http://lemmy-alpha/image.jpg)",
+        ),
+        (
+          "multiple image links",
+          "![link](http://example.com/image1.jpg) ![link](http://example.com/image2.jpg)",
+          "![link](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage1.jpg) ![link](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage2.jpg)",
+        ),
+        (
+          "empty link handled",
+          "![image]()",
+          "![image]()"
+        ),
+        (
+          "empty label handled",
+          "![](http://example.com/image.jpg)",
+          "![](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
+        ),
+        (
+          "invalid image link removed",
+          "![image](http-not-a-link)",
+          "![image]()"
+        ),
+        (
+          "label with nested markdown handled",
+          "![a *b* c](http://example.com/image.jpg)",
+          "![a *b* c](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
+        ),
+        (
+          "custom emoji support",
+          r#"![party-blob](https://www.hexbear.net/pictrs/image/83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#,
+          r#"![party-blob](https://lemmy-alpha/api/v3/image_proxy?url=https%3A%2F%2Fwww.hexbear.net%2Fpictrs%2Fimage%2F83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#
+        )
+      ];
+
+    tests.iter().for_each(|&(msg, input, expected)| {
+      let result = markdown_rewrite_image_links(input.to_string());
+
+      assert_eq!(
+        result.0, expected,
+        "Testing {}, with original input '{}'",
+        msg, input
+      );
+    });
+  }
+
+  #[test]
+  fn test_url_blocking() -> LemmyResult<()> {
+    let set = RegexSet::new(vec![r"(https://)?example\.com/?"])?;
 
     assert!(
       markdown_check_for_blocked_urls(&String::from("[](https://example.com)"), &set).is_err()
@@ -152,7 +209,7 @@ mod tests {
     )
     .is_err());
 
-    let set = RegexSet::new(vec![r"(https://)?example\.com/spam\.jpg"]).unwrap();
+    let set = RegexSet::new(vec![r"(https://)?example\.com/spam\.jpg"])?;
     assert!(markdown_check_for_blocked_urls(
       &String::from("![](https://example.com/spam.jpg)"),
       &set
@@ -163,8 +220,7 @@ mod tests {
       r"(https://)?quo\.example\.com/?",
       r"(https://)?foo\.example\.com/?",
       r"(https://)?bar\.example\.com/?",
-    ])
-    .unwrap();
+    ])?;
 
     assert!(
       markdown_check_for_blocked_urls(&String::from("https://baz.example.com"), &set).is_ok()
@@ -174,15 +230,17 @@ mod tests {
       markdown_check_for_blocked_urls(&String::from("https://bar.example.com"), &set).is_err()
     );
 
-    let set = RegexSet::new(vec![r"(https://)?example\.com/banned_page"]).unwrap();
+    let set = RegexSet::new(vec![r"(https://)?example\.com/banned_page"])?;
 
     assert!(
       markdown_check_for_blocked_urls(&String::from("https://example.com/page"), &set).is_ok()
     );
 
-    let set = RegexSet::new(vec![r"(https://)?ex\.mple\.com/?"]).unwrap();
+    let set = RegexSet::new(vec![r"(https://)?ex\.mple\.com/?"])?;
 
     assert!(markdown_check_for_blocked_urls("example.com", &set).is_ok());
+
+    Ok(())
   }
 
   #[test]

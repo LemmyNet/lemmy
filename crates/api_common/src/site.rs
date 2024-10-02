@@ -21,6 +21,7 @@ use lemmy_db_schema::{
     tagline::Tagline,
   },
   CommentSortType,
+  FederationMode,
   ListingType,
   ModlogActionType,
   PostListingMode,
@@ -170,7 +171,6 @@ pub struct CreateSite {
   pub description: Option<String>,
   pub icon: Option<String>,
   pub banner: Option<String>,
-  pub enable_downvotes: Option<bool>,
   pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
@@ -208,6 +208,10 @@ pub struct CreateSite {
   pub registration_mode: Option<RegistrationMode>,
   pub oauth_registration: Option<bool>,
   pub content_warning: Option<String>,
+  pub post_upvotes: Option<FederationMode>,
+  pub post_downvotes: Option<FederationMode>,
+  pub comment_upvotes: Option<FederationMode>,
+  pub comment_downvotes: Option<FederationMode>,
 }
 
 #[skip_serializing_none]
@@ -224,8 +228,6 @@ pub struct EditSite {
   pub icon: Option<String>,
   /// A url for your site's banner.
   pub banner: Option<String>,
-  /// Whether to enable downvotes.
-  pub enable_downvotes: Option<bool>,
   /// Whether to enable NSFW.
   pub enable_nsfw: Option<bool>,
   /// Limits community creation to admins only.
@@ -291,13 +293,21 @@ pub struct EditSite {
   /// A list of blocked URLs
   pub blocked_urls: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
-  /// Whether or not external auth methods can auto-register users.
-  pub oauth_registration: Option<bool>,
   /// Whether to email admins for new reports.
   pub reports_email_admins: Option<bool>,
   /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
   /// when the site is first opened by a user.
   pub content_warning: Option<String>,
+  /// Whether or not external auth methods can auto-register users.
+  pub oauth_registration: Option<bool>,
+  /// What kind of post upvotes your site allows.
+  pub post_upvotes: Option<FederationMode>,
+  /// What kind of post downvotes your site allows.
+  pub post_downvotes: Option<FederationMode>,
+  /// What kind of comment upvotes your site allows.
+  pub comment_upvotes: Option<FederationMode>,
+  /// What kind of comment downvotes your site allows.
+  pub comment_downvotes: Option<FederationMode>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -306,6 +316,8 @@ pub struct EditSite {
 /// The response for a site.
 pub struct SiteResponse {
   pub site_view: SiteView,
+  /// deprecated, use field `tagline` or /api/v3/tagline/list
+  pub taglines: Vec<()>,
 }
 
 #[skip_serializing_none]
@@ -320,6 +332,10 @@ pub struct GetSiteResponse {
   pub my_user: Option<MyUserInfo>,
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
+  /// deprecated, use field `tagline` or /api/v3/tagline/list
+  pub taglines: Vec<()>,
+  /// deprecated, use /api/v3/custom_emoji/list
+  pub custom_emojis: Vec<()>,
   /// If the site has any taglines, a random one is included here for displaying
   pub tagline: Option<Tagline>,
   /// A list of external auth methods your site supports.
