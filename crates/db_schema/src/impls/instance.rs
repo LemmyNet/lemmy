@@ -67,6 +67,11 @@ impl Instance {
       }
     }
   }
+  pub async fn read(pool: &mut DbPool<'_>, instance_id: InstanceId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    instance::table.find(instance_id).first(conn).await
+  }
+
   pub async fn update(
     pool: &mut DbPool<'_>,
     instance_id: InstanceId,

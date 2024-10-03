@@ -1,6 +1,7 @@
 use super::verify_is_remote_object;
 use crate::{
   check_apub_id_valid_with_strictness,
+  fetcher::markdown_links::markdown_rewrite_remote_links,
   objects::read_from_string_or_source,
   protocol::{
     objects::chat_message::{ChatMessage, ChatMessageType},
@@ -134,6 +135,7 @@ impl Object for ApubPrivateMessage {
     let url_blocklist = get_url_blocklist(context).await?;
     let content = read_from_string_or_source(&note.content, &None, &note.source);
     let content = process_markdown(&content, slur_regex, &url_blocklist, context).await?;
+    let content = markdown_rewrite_remote_links(content, context).await;
 
     let form = PrivateMessageInsertForm {
       creator_id: creator.id,
