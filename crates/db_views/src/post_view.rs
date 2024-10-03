@@ -57,6 +57,7 @@ use lemmy_db_schema::{
     ReadFn,
     ReverseTimestampKey,
   },
+  CommunityVisibility,
   ListingType,
   PostSortType,
 };
@@ -291,6 +292,22 @@ fn queries<'a>() -> Queries<
           post::deleted
             .eq(false)
             .or(post::creator_id.eq(person_id_join)),
+        )
+        // private communities can only by browsed by accepted followers
+        .filter(
+          community::visibility
+            .ne(CommunityVisibility::Private)
+            .or(exists(
+              community_follower::table.filter(
+                post_aggregates::community_id
+                  .eq(community_follower::community_id)
+                  .and(
+                    community_follower::person_id
+                      .eq(my_local_user.map(|l| l.person_id).unwrap_or_default())
+                      .and(community_follower::pending.eq(false)),
+                  ),
+              ),
+            )),
         );
     }
 
@@ -319,17 +336,32 @@ fn queries<'a>() -> Queries<
     query = query.filter(community::deleted.eq(false));
 
     // only creator can see deleted posts and unpublished scheduled posts
-    if let Some(person_id) = options.local_user.person_id() {
+    if let Some(person_id) = dbg!(options.local_user.person_id()) {
       query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
       query = query.filter(
         post::scheduled_publish_time
           .is_null()
           .or(post::creator_id.eq(person_id)),
       );
+      if dbg!(!options.local_user.is_admin()) {
+        query = query.filter(
+          community::visibility
+            .ne(CommunityVisibility::Private)
+            .or(exists(
+              community_follower::table.filter(
+                post_aggregates::community_id
+                  .eq(community_follower::community_id)
+                  .and(community_follower::person_id.eq(person_id))
+                  .and(community_follower::pending.eq(false)),
+              ),
+            )),
+        );
+      }
     } else {
       query = query
         .filter(post::deleted.eq(false))
-        .filter(post::scheduled_publish_time.is_null());
+        .filter(post::scheduled_publish_time.is_null())
+        .filter(community::visibility.ne(CommunityVisibility::Private));
     }
 
     // only show removed posts to admin when viewing user profile
@@ -754,6 +786,8 @@ mod tests {
       comment::{Comment, CommentInsertForm},
       community::{
         Community,
+        CommunityFollower,
+        CommunityFollowerForm,
         CommunityInsertForm,
         CommunityModerator,
         CommunityModeratorForm,
@@ -782,7 +816,7 @@ mod tests {
       },
       site::Site,
     },
-    traits::{Bannable, Blockable, Crud, Joinable, Likeable, Saveable},
+    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable, Saveable},
     utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
     CommunityVisibility,
     PostSortType,
@@ -1964,6 +1998,106 @@ mod tests {
     .await?;
 
     assert!(!post_view.banned_from_community);
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_private_community() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let mut data = init_data(pool).await?;
+
+    // Mark community as private
+    Community::update(
+      pool,
+      data.inserted_community.id,
+      &CommunityUpdateForm {
+        visibility: Some(CommunityVisibility::Private),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    // No posts returned without auth
+    let read_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: None,
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(0, read_post_listing.len());
+    let post_view = PostView::read(pool, data.inserted_post.id, None, false).await;
+    assert!(post_view.is_err());
+
+    // No posts returned for non-follower who is not admin
+    data.local_user_view.local_user.admin = false;
+    let read_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.local_user_view.local_user),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(0, read_post_listing.len());
+    let post_view = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(&data.local_user_view.local_user),
+      false,
+    )
+    .await;
+    assert!(post_view.is_err());
+
+    // Admin can view content without following
+    data.local_user_view.local_user.admin = true;
+    let read_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.local_user_view.local_user),
+
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(2, read_post_listing.len());
+    let post_view = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(&data.local_user_view.local_user),
+      true,
+    )
+    .await;
+    assert!(post_view.is_ok());
+    data.local_user_view.local_user.admin = false;
+
+    // User can view after following
+    CommunityFollower::follow(
+      pool,
+      &CommunityFollowerForm {
+        community_id: data.inserted_community.id,
+        person_id: data.local_user_view.person.id,
+        pending: false,
+      },
+    )
+    .await?;
+    let read_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.local_user_view.local_user),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(2, read_post_listing.len());
+    let post_view = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(&data.local_user_view.local_user),
+      true,
+    )
+    .await;
+    assert!(post_view.is_ok());
 
     cleanup(data, pool).await
   }
