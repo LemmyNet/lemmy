@@ -331,6 +331,7 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
       .unwrap_or(site.content_warning.is_some())
   }
 
+  // TODO: use this function for private community checks, but the generics get extremely confusing
   fn visible_communities_only<Q>(&self, query: Q) -> Q
   where
     Q: diesel::query_dsl::methods::FilterDsl<

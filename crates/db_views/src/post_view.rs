@@ -336,32 +336,17 @@ fn queries<'a>() -> Queries<
     query = query.filter(community::deleted.eq(false));
 
     // only creator can see deleted posts and unpublished scheduled posts
-    if let Some(person_id) = dbg!(options.local_user.person_id()) {
+    if let Some(person_id) = options.local_user.person_id() {
       query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
       query = query.filter(
         post::scheduled_publish_time
           .is_null()
           .or(post::creator_id.eq(person_id)),
       );
-      if dbg!(!options.local_user.is_admin()) {
-        query = query.filter(
-          community::visibility
-            .ne(CommunityVisibility::Private)
-            .or(exists(
-              community_follower::table.filter(
-                post_aggregates::community_id
-                  .eq(community_follower::community_id)
-                  .and(community_follower::person_id.eq(person_id))
-                  .and(community_follower::pending.eq(false)),
-              ),
-            )),
-        );
-      }
     } else {
       query = query
         .filter(post::deleted.eq(false))
-        .filter(post::scheduled_publish_time.is_null())
-        .filter(community::visibility.ne(CommunityVisibility::Private));
+        .filter(post::scheduled_publish_time.is_null());
     }
 
     // only show removed posts to admin when viewing user profile
@@ -486,6 +471,21 @@ fn queries<'a>() -> Queries<
     };
 
     query = options.local_user.visible_communities_only(query);
+
+    if !options.local_user.is_admin() {
+      query = query.filter(
+        community::visibility
+          .ne(CommunityVisibility::Private)
+          .or(exists(
+            community_follower::table.filter(
+              post_aggregates::community_id
+                .eq(community_follower::community_id)
+                .and(community_follower::person_id.eq(person_id_join))
+                .and(community_follower::pending.eq(false)),
+            ),
+          )),
+      );
+    }
 
     // Dont filter blocks or missing languages for moderator view type
     if let (Some(person_id), false) = (
@@ -2023,8 +2023,7 @@ mod tests {
     // No posts returned without auth
     let read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
-      local_user: None,
-      ..data.default_post_query()
+      ..Default::default()
     }
     .list(&data.site, pool)
     .await?;
@@ -2037,7 +2036,7 @@ mod tests {
     let read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       local_user: Some(&data.local_user_view.local_user),
-      ..data.default_post_query()
+      ..Default::default()
     }
     .list(&data.site, pool)
     .await?;
@@ -2056,8 +2055,7 @@ mod tests {
     let read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       local_user: Some(&data.local_user_view.local_user),
-
-      ..data.default_post_query()
+      ..Default::default()
     }
     .list(&data.site, pool)
     .await?;
@@ -2085,7 +2083,7 @@ mod tests {
     let read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       local_user: Some(&data.local_user_view.local_user),
-      ..data.default_post_query()
+      ..Default::default()
     }
     .list(&data.site, pool)
     .await?;
