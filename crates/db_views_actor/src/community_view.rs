@@ -317,7 +317,7 @@ mod tests {
     let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
     let local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
 
-    let inserted_community = [
+    let inserted_communities = [
       Community::create(
         pool,
         &CommunityInsertForm::new(
@@ -372,7 +372,7 @@ mod tests {
     Ok(Data {
       inserted_instance,
       local_user,
-      inserted_communities: inserted_community,
+      inserted_communities,
       site,
     })
   }
