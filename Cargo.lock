@@ -4508,9 +4508,9 @@ checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 
 [[package]]
 name = "sitemap-rs"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88cc73a9aac975541c9054e74ceae8d8ee85edc89a322404c275c1d100fffa51"
+checksum = "3c4c6ab96128064ba085256d34e205153555b3803094d76e24d406c76f85a2c9"
 dependencies = [
  "chrono",
  "xml-builder",
