@@ -109,9 +109,8 @@ impl ActivityHandler for Follow {
           return Err(LemmyErrorType::NotFound.into());
         }
         let form = CommunityFollowerForm {
-          community_id: c.id,
-          person_id: actor.id,
           state: Some(CommunityFollowerState::Accepted),
+          ..CommunityFollowerForm::new(c.id, actor.id)
         };
         CommunityFollower::follow(&mut context.pool(), &form).await?;
       }

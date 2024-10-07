@@ -90,11 +90,7 @@ impl ActivityHandler for UndoFollow {
         PersonFollower::unfollow(&mut context.pool(), &form).await?;
       }
       UserOrCommunity::Community(c) => {
-        let form = CommunityFollowerForm {
-          community_id: c.id,
-          person_id: person.id,
-          state: None,
-        };
+        let form = CommunityFollowerForm::new(c.id, person.id);
         CommunityFollower::unfollow(&mut context.pool(), &form).await?;
       }
     }

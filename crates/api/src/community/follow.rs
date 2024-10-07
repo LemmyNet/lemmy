@@ -25,11 +25,9 @@ pub async fn follow_community(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
   let community = Community::read(&mut context.pool(), data.community_id).await?;
-  let mut community_follower_form = CommunityFollowerForm {
-    community_id: community.id,
-    person_id: local_user_view.person.id,
-    state: Some(CommunityFollowerState::Accepted),
-  };
+  let mut community_follower_form =
+    CommunityFollowerForm::new(community.id, local_user_view.person.id);
+  community_follower_form.state = Some(CommunityFollowerState::Accepted);
 
   if community.visibility == CommunityVisibility::Private {
     // TODO: either insert data into PrivateCommunityApplication,

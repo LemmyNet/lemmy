@@ -35,12 +35,7 @@ pub async fn block_community(
       .with_lemmy_type(LemmyErrorType::CommunityBlockAlreadyExists)?;
 
     // Also, unfollow the community, and send a federated unfollow
-    let community_follower_form = CommunityFollowerForm {
-      community_id: data.community_id,
-      person_id,
-      state: None,
-    };
-
+    let community_follower_form = CommunityFollowerForm::new(data.community_id, person_id);
     CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
       .await
       .ok();

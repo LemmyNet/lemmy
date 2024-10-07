@@ -2083,9 +2083,8 @@ mod tests {
     CommunityFollower::follow(
       pool,
       &CommunityFollowerForm {
-        community_id: data.inserted_community.id,
-        person_id: data.local_user_view.person.id,
         state: Some(CommunityFollowerState::Accepted),
+        ..CommunityFollowerForm::new(data.inserted_community.id, data.local_user_view.person.id)
       },
     )
     .await?;

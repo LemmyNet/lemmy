@@ -1,3 +1,4 @@
 [print_schema]
 file = "crates/db_schema/src/schema.rs"
 patch_file = "crates/db_schema/src/diesel_ltree.patch"
+custom_type_derives = ["diesel::query_builder::QueryId"]

@@ -5,6 +5,7 @@ use lemmy_api_common::{
   utils::is_mod_or_admin,
   SuccessResponse,
 };
+use lemmy_db_schema::source::community::CommunityFollower;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
@@ -19,6 +20,13 @@ pub async fn post_pending_follows_approve(
     data.community_id,
   )
   .await?;
-  todo!();
+  CommunityFollower::approve(
+    &mut context.pool(),
+    data.community_id,
+    data.follower_id,
+    local_user_view.person.id,
+  )
+  .await?;
+
   Ok(Json(SuccessResponse::default()))
 }

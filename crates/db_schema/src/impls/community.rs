@@ -344,6 +344,23 @@ impl CommunityFollower {
     .then_some(())
     .ok_or(LemmyErrorType::CommunityHasNoFollowers.into())
   }
+
+  pub async fn approve(
+    pool: &mut DbPool<'_>,
+    community_id: CommunityId,
+    follower_id: PersonId,
+    approved_by_id: PersonId,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(community_follower::table.find((follower_id, community_id)))
+      .set((
+        community_follower::state.eq(CommunityFollowerState::Accepted),
+        community_follower::approved_by.eq(approved_by_id),
+      ))
+      .get_result::<Self>(conn)
+      .await?;
+    Ok(())
+  }
 }
 
 impl Queryable<sql_types::Nullable<crate::schema::sql_types::CommunityFollowerState>, Pg>
@@ -528,6 +545,7 @@ mod tests {
       community_id: inserted_community.id,
       person_id: inserted_bobby.id,
       state: Some(CommunityFollowerState::Accepted),
+      approved_by: None,
     };
 
     let inserted_community_follower =
@@ -538,6 +556,7 @@ mod tests {
       person_id: inserted_bobby.id,
       state: CommunityFollowerState::Accepted,
       published: inserted_community_follower.published,
+      approved_by: None,
     };
 
     let bobby_moderator_form = CommunityModeratorForm {

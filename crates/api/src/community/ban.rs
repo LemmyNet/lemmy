@@ -72,12 +72,7 @@ pub async fn ban_from_community(
       .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)?;
 
     // Also unsubscribe them from the community, if they are subscribed
-    let community_follower_form = CommunityFollowerForm {
-      community_id: data.community_id,
-      person_id: banned_person_id,
-      state: None,
-    };
-
+    let community_follower_form = CommunityFollowerForm::new(data.community_id, banned_person_id);
     CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
       .await
       .ok();

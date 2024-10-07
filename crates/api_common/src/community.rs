@@ -1,6 +1,6 @@
 use lemmy_db_schema::{
   newtypes::{CommunityId, LanguageId, PersonId},
-  source::site::Site,
+  source::{person::Person, site::Site},
   CommunityVisibility,
   ListingType,
   PostSortType,
@@ -240,6 +240,8 @@ pub struct GetRandomCommunity {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct GetCommunityPendingFollows {
   pub community_id: CommunityId,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -253,7 +255,7 @@ pub struct CommunityPendingFollowsCountResponse {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct CommunityPendingFollowsListResponse {
-  pub count: i32,
+  pub items: Vec<Person>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -261,5 +263,5 @@ pub struct CommunityPendingFollowsListResponse {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct CommunityPendingFollowsApprove {
   pub community_id: CommunityId,
-  pub follow_id: i32,
+  pub follower_id: PersonId,
 }

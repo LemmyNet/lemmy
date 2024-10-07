@@ -5,6 +5,7 @@ use lemmy_api_common::{
   utils::is_mod_or_admin,
 };
 use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_pending_follows_list(
@@ -18,5 +19,12 @@ pub async fn get_pending_follows_list(
     data.community_id,
   )
   .await?;
-  todo!()
+  let items = CommunityFollowerView::list_approval_required(
+    &mut context.pool(),
+    data.community_id,
+    data.page,
+    data.limit,
+  )
+  .await?;
+  Ok(Json(CommunityPendingFollowsListResponse { items }))
 }

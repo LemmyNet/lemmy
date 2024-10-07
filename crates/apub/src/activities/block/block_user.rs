@@ -31,7 +31,6 @@ use lemmy_db_schema::{
     community::{
       CommunityFollower,
       CommunityFollowerForm,
-      CommunityFollowerState,
       CommunityPersonBan,
       CommunityPersonBanForm,
     },
@@ -198,11 +197,7 @@ impl ActivityHandler for BlockUser {
         CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form).await?;
 
         // Also unsubscribe them from the community, if they are subscribed
-        let community_follower_form = CommunityFollowerForm {
-          community_id: community.id,
-          person_id: blocked_person.id,
-          state: None,
-        };
+        let community_follower_form = CommunityFollowerForm::new(community.id, blocked_person.id);
         CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
           .await
           .ok();

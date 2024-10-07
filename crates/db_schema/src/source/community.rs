@@ -234,13 +234,17 @@ pub struct CommunityFollower {
   pub person_id: PersonId,
   pub published: DateTime<Utc>,
   pub state: CommunityFollowerState,
+  pub approved_by: Option<PersonId>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = community_follower))]
 pub struct CommunityFollowerForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
+  #[new(default)]
   pub state: Option<CommunityFollowerState>,
+  #[new(default)]
+  pub approved_by: Option<PersonId>,
 }
