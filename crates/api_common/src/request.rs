@@ -354,9 +354,10 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
   // fetch remote non-pictrs images for persistent thumbnail link
   // TODO: should limit size once supported by pictrs
   let fetch_url = format!(
-    "{}image/download?url={}",
+    "{}image/download?url={}&resize={}",
     pictrs_config.url,
-    encode(image_url.as_str())
+    encode(image_url.as_str()),
+    context.settings().pictrs_config()?.max_thumbnail_size
   );
 
   let res = context
