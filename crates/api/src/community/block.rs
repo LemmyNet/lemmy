@@ -38,7 +38,7 @@ pub async fn block_community(
     let community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
       person_id,
-      pending: false,
+      state: None,
     };
 
     CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)

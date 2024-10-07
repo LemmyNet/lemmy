@@ -9,9 +9,10 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
-    community::{Community, CommunityFollower, CommunityFollowerForm},
+    community::{Community, CommunityFollower, CommunityFollowerForm, CommunityFollowerState},
   },
   traits::{Crud, Followable},
+  CommunityVisibility,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
@@ -27,8 +28,16 @@ pub async fn follow_community(
   let mut community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     person_id: local_user_view.person.id,
-    pending: false,
+    state: Some(CommunityFollowerState::Accepted),
   };
+
+  if community.visibility == CommunityVisibility::Private {
+    // TODO: either insert data into PrivateCommunityApplication,
+    //       or store it in CommunityFollowerForm, eg:
+    //           `enum State { Following, Pending, NeedsApproval }`
+    //       then do we need to store who approved it?
+    todo!();
+  }
 
   if data.follow {
     if community.local {
@@ -40,7 +49,7 @@ pub async fn follow_community(
         .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
     } else {
       // Mark as pending, the actual federation activity is sent via `SendActivity` handler
-      community_follower_form.pending = true;
+      community_follower_form.state = Some(CommunityFollowerState::Pending);
       CommunityFollower::follow(&mut context.pool(), &community_follower_form)
         .await
         .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;

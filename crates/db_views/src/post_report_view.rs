@@ -29,6 +29,7 @@ use lemmy_db_schema::{
     post_report,
     post_saved,
   },
+  source::community::CommunityFollower,
   utils::{
     functions::coalesce,
     get_conn,
@@ -143,7 +144,7 @@ fn queries<'a>() -> Queries<
           .nullable()
           .is_not_null(),
         local_user::admin.nullable().is_not_null(),
-        community_follower::pending.nullable(),
+        CommunityFollower::select_subscribed_type(),
         post_saved::post_id.nullable().is_not_null(),
         post_read::post_id.nullable().is_not_null(),
         post_hide::post_id.nullable().is_not_null(),

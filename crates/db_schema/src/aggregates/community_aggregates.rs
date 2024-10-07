@@ -37,7 +37,13 @@ mod tests {
     aggregates::community_aggregates::CommunityAggregates,
     source::{
       comment::{Comment, CommentInsertForm},
-      community::{Community, CommunityFollower, CommunityFollowerForm, CommunityInsertForm},
+      community::{
+        Community,
+        CommunityFollower,
+        CommunityFollowerForm,
+        CommunityFollowerState,
+        CommunityInsertForm,
+      },
       instance::Instance,
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
@@ -84,7 +90,7 @@ mod tests {
     let first_person_follow = CommunityFollowerForm {
       community_id: inserted_community.id,
       person_id: inserted_person.id,
-      pending: false,
+      state: Some(CommunityFollowerState::Accepted),
     };
 
     CommunityFollower::follow(pool, &first_person_follow).await?;
@@ -92,7 +98,7 @@ mod tests {
     let second_person_follow = CommunityFollowerForm {
       community_id: inserted_community.id,
       person_id: another_inserted_person.id,
-      pending: false,
+      state: Some(CommunityFollowerState::Accepted),
     };
 
     CommunityFollower::follow(pool, &second_person_follow).await?;
@@ -100,7 +106,7 @@ mod tests {
     let another_community_follow = CommunityFollowerForm {
       community_id: another_inserted_community.id,
       person_id: inserted_person.id,
-      pending: false,
+      state: Some(CommunityFollowerState::Accepted),
     };
 
     CommunityFollower::follow(pool, &another_community_follow).await?;

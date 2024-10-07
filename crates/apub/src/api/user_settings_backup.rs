@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
     comment::{CommentSaved, CommentSavedForm},
-    community::{CommunityFollower, CommunityFollowerForm},
+    community::{CommunityFollower, CommunityFollowerForm, CommunityFollowerState},
     community_block::{CommunityBlock, CommunityBlockForm},
     instance::Instance,
     instance_block::{InstanceBlock, InstanceBlockForm},
@@ -188,7 +188,7 @@ pub async fn import_settings(
         let form = CommunityFollowerForm {
           person_id,
           community_id: community.id,
-          pending: true,
+          state: Some(CommunityFollowerState::Pending),
         };
         CommunityFollower::follow(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
@@ -314,14 +314,20 @@ where
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
-
+  use super::*;
   use crate::api::user_settings_backup::{export_settings, import_settings};
   use activitypub_federation::config::Data;
   use actix_web::web::Json;
   use lemmy_api_common::context::LemmyContext;
   use lemmy_db_schema::{
     source::{
-      community::{Community, CommunityFollower, CommunityFollowerForm, CommunityInsertForm},
+      community::{
+        Community,
+        CommunityFollower,
+        CommunityFollowerForm,
+        CommunityFollowerState,
+        CommunityInsertForm,
+      },
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
@@ -373,7 +379,7 @@ mod tests {
     let follower_form = CommunityFollowerForm {
       community_id: community.id,
       person_id: export_user.person.id,
-      pending: false,
+      state: Some(CommunityFollowerState::Accepted),
     };
     CommunityFollower::follow(&mut context.pool(), &follower_form).await?;
 

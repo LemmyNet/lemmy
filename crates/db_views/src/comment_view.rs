@@ -35,7 +35,11 @@ use lemmy_db_schema::{
     person_block,
     post,
   },
-  source::{local_user::LocalUser, site::Site},
+  source::{
+    community::{CommunityFollower, CommunityFollowerState},
+    local_user::LocalUser,
+    site::Site,
+  },
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
   CommunityVisibility,
@@ -71,7 +75,7 @@ fn queries<'a>() -> Queries<
           .eq(community_follower::community_id)
           .and(community_follower::person_id.eq(person_id)),
       )
-      .select(community_follower::pending.nullable())
+      .select(CommunityFollower::select_subscribed_type())
       .single_value()
   };
 
@@ -130,11 +134,15 @@ fn queries<'a>() -> Queries<
     };
 
     let subscribed_type_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>,
+      dyn BoxableExpression<
+        _,
+        Pg,
+        SqlType = sql_types::Nullable<lemmy_db_schema::schema::sql_types::CommunityFollowerState>,
+      >,
     > = if let Some(person_id) = my_person_id {
       Box::new(is_community_followed(person_id))
     } else {
-      Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
+      Box::new(None::<CommunityFollowerState>.into_sql::<sql_types::Nullable<lemmy_db_schema::schema::sql_types::CommunityFollowerState>>())
     };
 
     let is_creator_blocked_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
@@ -189,7 +197,7 @@ fn queries<'a>() -> Queries<
               post::community_id.eq(community_follower::community_id).and(
                 community_follower::person_id
                   .eq(my_local_user.map(|l| l.person_id).unwrap_or_default())
-                  .and(community_follower::pending.eq(false)),
+                  .and(community_follower::state.eq(CommunityFollowerState::Accepted)),
               ),
             ),
           )),
@@ -328,7 +336,7 @@ fn queries<'a>() -> Queries<
               post::community_id.eq(community_follower::community_id).and(
                 community_follower::person_id
                   .eq(person_id_join)
-                  .and(community_follower::pending.eq(false)),
+                  .and(community_follower::state.eq(CommunityFollowerState::Accepted)),
               ),
             ),
           )),
@@ -481,6 +489,7 @@ mod tests {
         Community,
         CommunityFollower,
         CommunityFollowerForm,
+        CommunityFollowerState,
         CommunityInsertForm,
         CommunityModerator,
         CommunityModeratorForm,
@@ -1364,7 +1373,7 @@ mod tests {
       &CommunityFollowerForm {
         community_id: data.inserted_community.id,
         person_id: data.timmy_local_user_view.person.id,
-        pending: false,
+        state: Some(CommunityFollowerState::Accepted),
       },
     )
     .await?;

@@ -24,6 +24,7 @@ use lemmy_db_schema::{
       Community,
       CommunityFollower,
       CommunityFollowerForm,
+      CommunityFollowerState,
       CommunityInsertForm,
       CommunityModerator,
       CommunityModeratorForm,
@@ -126,7 +127,7 @@ pub async fn create_community(
   let community_follower_form = CommunityFollowerForm {
     community_id: inserted_community.id,
     person_id: local_user_view.person.id,
-    pending: false,
+    state: Some(CommunityFollowerState::Accepted),
   };
 
   CommunityFollower::follow(&mut context.pool(), &community_follower_form)

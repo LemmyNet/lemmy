@@ -10,6 +10,10 @@ pub mod sql_types {
     pub struct CommentSortTypeEnum;
 
     #[derive(diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "community_follower_state"))]
+    pub struct CommunityFollowerState;
+
+    #[derive(diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "community_visibility"))]
     pub struct CommunityVisibility;
 
@@ -227,11 +231,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::CommunityFollowerState;
+
     community_follower (person_id, community_id) {
         community_id -> Int4,
         person_id -> Int4,
         published -> Timestamptz,
-        pending -> Bool,
+        state -> CommunityFollowerState,
     }
 }
 

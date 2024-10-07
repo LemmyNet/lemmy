@@ -234,3 +234,32 @@ pub struct TransferCommunity {
 pub struct GetRandomCommunity {
   pub type_: Option<ListingType>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct GetCommunityPendingFollows {
+  pub community_id: CommunityId,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct CommunityPendingFollowsCountResponse {
+  pub count: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct CommunityPendingFollowsListResponse {
+  pub count: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct CommunityPendingFollowsApprove {
+  pub community_id: CommunityId,
+  pub follow_id: i32,
+}

@@ -75,7 +75,7 @@ pub async fn ban_from_community(
     let community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
       person_id: banned_person_id,
-      pending: false,
+      state: None,
     };
 
     CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)

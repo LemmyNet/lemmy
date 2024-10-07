@@ -20,7 +20,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    community::{CommunityFollower, CommunityFollowerForm},
+    community::{CommunityFollower, CommunityFollowerForm, CommunityFollowerState},
     person::{PersonFollower, PersonFollowerForm},
   },
   traits::Followable,
@@ -111,7 +111,7 @@ impl ActivityHandler for Follow {
         let form = CommunityFollowerForm {
           community_id: c.id,
           person_id: actor.id,
-          pending: false,
+          state: Some(CommunityFollowerState::Accepted),
         };
         CommunityFollower::follow(&mut context.pool(), &form).await?;
       }

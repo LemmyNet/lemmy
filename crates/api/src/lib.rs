@@ -15,6 +15,7 @@ use lemmy_db_schema::{
     community::{
       CommunityFollower,
       CommunityFollowerForm,
+      CommunityFollowerState,
       CommunityPersonBan,
       CommunityPersonBanForm,
     },
@@ -200,7 +201,7 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
         let community_follower_form = CommunityFollowerForm {
           community_id,
           person_id: target.id,
-          pending: false,
+          state: None,
         };
 
         CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
