@@ -2,16 +2,32 @@ ALTER TYPE community_visibility
     ADD value 'Private';
 
 -- Change `community_follower.pending` to `state` enum
-create type community_follower_state as enum ('Accepted','Pending','ApprovalRequired');
-alter table community_follower alter column pending drop default;
-create or replace function convert_follower_state(b bool)
-returns community_follower_state language sql as $$
-    select case
-    when b = true then 'Pending'::community_follower_state
-    else 'Accepted'::community_follower_state
-    end
+CREATE TYPE community_follower_state AS enum (
+    'Accepted',
+    'Pending',
+    'ApprovalRequired'
+);
+
+ALTER TABLE community_follower
+    ALTER COLUMN pending DROP DEFAULT;
+
+CREATE OR REPLACE FUNCTION convert_follower_state (b bool)
+    RETURNS community_follower_state
+    LANGUAGE sql
+    AS $$
+    SELECT
+        CASE WHEN b = TRUE THEN
+            'Pending'::community_follower_state
+        ELSE
+            'Accepted'::community_follower_state
+        END
 $$;
-alter table community_follower alter column pending type community_follower_state 
-    using convert_follower_state(pending);
-drop function convert_follower_state;
-alter table community_follower rename column pending to state;
+
+ALTER TABLE community_follower
+    ALTER COLUMN pending TYPE community_follower_state
+    USING convert_follower_state (pending);
+
+DROP FUNCTION convert_follower_state;
+
+ALTER TABLE community_follower RENAME COLUMN pending TO state;
+
