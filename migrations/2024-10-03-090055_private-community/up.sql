@@ -33,5 +33,6 @@ ALTER TABLE community_follower RENAME COLUMN pending TO state;
 
 -- Add column for mod who approved the private community follower
 -- Dont use foreign key here, otherwise joining to person table doesnt work easily
-ALTER TABLE community_follower add column approved_by int;
+ALTER TABLE community_follower
+    ADD COLUMN approved_by int;
 

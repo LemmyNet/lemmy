@@ -240,6 +240,8 @@ pub struct GetRandomCommunity {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct GetCommunityPendingFollows {
   pub community_id: CommunityId,
+  /// Only shows the unapproved applications
+  pub pending_only: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
@@ -248,7 +250,7 @@ pub struct GetCommunityPendingFollows {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct CommunityPendingFollowsCountResponse {
-  pub count: i32,
+  pub count: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

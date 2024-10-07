@@ -44,5 +44,6 @@ ALTER TABLE community_follower RENAME COLUMN state TO pending;
 
 DROP TYPE community_follower_state;
 
-alter table community_follower drop column approved_by;
+ALTER TABLE community_follower
+    DROP COLUMN approved_by;
 

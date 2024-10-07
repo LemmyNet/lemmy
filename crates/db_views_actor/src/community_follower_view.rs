@@ -1,7 +1,7 @@
 use crate::structs::CommunityFollowerView;
 use chrono::Utc;
 use diesel::{
-  dsl::{count_star, not},
+  dsl::{count, count_star, not},
   result::Error,
   ExpressionMethods,
   QueryDsl,
@@ -93,20 +93,38 @@ impl CommunityFollowerView {
   pub async fn list_approval_required(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
+    pending_only: bool,
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Person>, Error> {
     let conn = &mut get_conn(pool).await?;
     let (limit, offset) = limit_and_offset(page, limit)?;
-    community_follower::table
+    let mut query = community_follower::table
       .inner_join(person::table)
       .filter(community_follower::community_id.eq(community_id))
-      .filter(community_follower::state.eq(CommunityFollowerState::ApprovalRequired))
+      .into_boxed();
+    if pending_only {
+      query = query.filter(community_follower::state.eq(CommunityFollowerState::ApprovalRequired));
+    }
+    query
       .order_by(community_follower::published.asc())
       .limit(limit)
       .offset(offset)
       .select(person::all_columns)
       .load::<Person>(conn)
+      .await
+  }
+  pub async fn count_approval_required(
+    pool: &mut DbPool<'_>,
+    community_id: CommunityId,
+  ) -> Result<i64, Error> {
+    let conn = &mut get_conn(pool).await?;
+    community_follower::table
+      .inner_join(person::table)
+      .filter(community_follower::community_id.eq(community_id))
+      .filter(community_follower::state.eq(CommunityFollowerState::ApprovalRequired))
+      .select(count(community_follower::community_id))
+      .first::<i64>(conn)
       .await
   }
 }
