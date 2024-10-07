@@ -325,19 +325,6 @@ impl Bannable for CommunityPersonBan {
 }
 
 impl CommunityFollower {
-  /* TODO: unused?
-  pub fn to_subscribed_type(follower: &Option<Self>) -> SubscribedType {
-    use CommunityFollowerState::*;
-    follower.as_ref().map(|f| match f.state {
-        Accepted => SubscribedType::Subscribed,
-        Pending => SubscribedType::Pending,
-        ApprovalRequired => SubscribedType::Pending
-      })
-    // If the row doesn't exist, the person isn't a follower.
-    .unwrap_or(SubscribedType::NotSubscribed)
-  }
-  */
-
   pub fn select_subscribed_type() -> dsl::Nullable<community_follower::state> {
     community_follower::state.nullable()
   }
