@@ -303,7 +303,7 @@ steps:
 services:
   database:
     # 15-alpine image necessary because of diesel tests
-    image: pgautoupgrade/pgautoupgrade:15-alpine
+    image: pgautoupgrade/pgautoupgrade:17-alpine
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password
