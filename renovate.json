@@ -1,6 +1,18 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
-  "schedule": ["every weekend"],
-  "automerge": true
+  "schedule": ["every three months on the weekend"],
+  "automerge": true,
+  "ignoreDeps": ["lemmy-js-client"],
+  "rebaseWhen": "conflicted",
+  "packageRules": [
+    {
+      "groupName": "docker",
+      "matchDatasources": ["docker"]
+    },
+    {
+      "groupName": "npm",
+      "matchDatasources": ["npm"]
+    }
+  ]
 }
