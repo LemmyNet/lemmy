@@ -238,7 +238,7 @@ pub struct GetRandomCommunity {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct GetCommunityPendingFollows {
+pub struct ListCommunityPendingFollows {
   pub community_id: CommunityId,
   /// Only shows the unapproved applications
   pub pending_only: Option<bool>,
@@ -249,21 +249,28 @@ pub struct GetCommunityPendingFollows {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct CommunityPendingFollowsCountResponse {
+pub struct GetCommunityPendingFollowsCount {
+  pub community_id: CommunityId,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct GetCommunityPendingFollowsCountResponse {
   pub count: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct CommunityPendingFollowsListResponse {
+pub struct ListCommunityPendingFollowsResponse {
   pub items: Vec<Person>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct CommunityPendingFollowsApprove {
+pub struct ApproveCommunityPendingFollows {
   pub community_id: CommunityId,
   pub follower_id: PersonId,
 }

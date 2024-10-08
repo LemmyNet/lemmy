@@ -1,6 +1,6 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
-  community::{CommunityPendingFollowsListResponse, GetCommunityPendingFollows},
+  community::{ListCommunityPendingFollows, ListCommunityPendingFollowsResponse},
   context::LemmyContext,
   utils::is_mod_or_admin,
 };
@@ -9,10 +9,10 @@ use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_pending_follows_list(
-  data: Query<GetCommunityPendingFollows>,
+  data: Query<ListCommunityPendingFollows>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> LemmyResult<Json<CommunityPendingFollowsListResponse>> {
+) -> LemmyResult<Json<ListCommunityPendingFollowsResponse>> {
   is_mod_or_admin(
     &mut context.pool(),
     &local_user_view.person,
@@ -27,5 +27,5 @@ pub async fn get_pending_follows_list(
     data.limit,
   )
   .await?;
-  Ok(Json(CommunityPendingFollowsListResponse { items }))
+  Ok(Json(ListCommunityPendingFollowsResponse { items }))
 }
