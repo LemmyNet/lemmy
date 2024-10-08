@@ -9,6 +9,7 @@ use lemmy_api_common::{
   utils::{
     check_community_mod_action,
     get_url_blocklist,
+    is_admin,
     local_site_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_api,
@@ -49,6 +50,10 @@ pub async fn update_community(
 
   if let Some(Some(desc)) = &description {
     is_valid_body_field(desc, false)?;
+  }
+
+  if data.visibility == Some(lemmy_db_schema::CommunityVisibility::Private) {
+    is_admin(&local_user_view)?;
   }
 
   let old_community = Community::read(&mut context.pool(), data.community_id).await?;

@@ -74,6 +74,10 @@ pub async fn create_community(
     is_valid_body_field(desc, false)?;
   }
 
+  if data.visibility == Some(lemmy_db_schema::CommunityVisibility::Private) {
+    is_admin(&local_user_view)?;
+  }
+
   // Double check for duplicate community actor_ids
   let community_actor_id = generate_local_apub_endpoint(
     EndpointType::Community,
