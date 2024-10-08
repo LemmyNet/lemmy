@@ -1,17 +1,13 @@
 jest.setTimeout(120000);
 
-import { EditCommunity, FollowCommunity } from "lemmy-js-client";
+import { CommunityId, FollowCommunity, LemmyHttp } from "lemmy-js-client";
 import {
   alpha,
-  beta,
   setupLogins,
-  resolveCommunity,
   createCommunity,
   unfollows,
-  editCommunity,
   registerUser,
   alphaUrl,
-  followCommunity,
   listCommunityPendingFollows,
   getCommunity,
   getCommunityPendingFollowsCount,
@@ -26,6 +22,22 @@ import {
 
 beforeAll(setupLogins);
 afterAll(unfollows);
+
+async function follow_and_approve(user: LemmyHttp, community_id: CommunityId) {
+  // follow the community and approve
+  const follow_form: FollowCommunity = {
+    community_id,
+    follow: true,
+  };
+  await user.followCommunity(follow_form);
+  const pendingFollows = await listCommunityPendingFollows(alpha, community_id);
+  const approve = await approveCommunityPendingFollow(
+    alpha,
+    community_id,
+    pendingFollows.items[0].id,
+  );
+  expect(approve.success).toBe(true);
+}
 
 test("Follow a private community", async () => {
   // create private community
@@ -115,18 +127,7 @@ test("Posts and comments in private community can only be seen by followers", as
   expect(posts1.posts.length).toBe(0);
 
   // follow the community and approve
-  const follow_form: FollowCommunity = {
-    community_id,
-    follow: true,
-  };
-  await user.followCommunity(follow_form);
-  const pendingFollows = await listCommunityPendingFollows(alpha, community_id);
-  const approve = await approveCommunityPendingFollow(
-    alpha,
-    community_id,
-    pendingFollows.items[0].id,
-  );
-  expect(approve.success).toBe(true);
+  await follow_and_approve(user, community_id);
 
   // now user can view posts and comments in community
   const post2 = await getPost(user, post_id);
@@ -144,8 +145,8 @@ test("Only followers can post/comment in private community", async () => {
   const community = await createCommunity(alpha, randomString(10), "Private");
   expect(community.community_view.community.visibility).toBe("Private");
   const community_id = community.community_view.community.id;
-  const post = await createPost(alpha, community_id);
-  const post_id = post.post_view.post.id;
+  const post0 = await createPost(alpha, community_id);
+  const post_id = post0.post_view.post.id;
   expect(post_id).toBeDefined();
 
   // user is not following the community and cannot post in it
@@ -163,5 +164,14 @@ test("Only followers can post/comment in private community", async () => {
   const comments1 = await getComments(user, post_id);
   expect(comments1.comments.length).toBe(0);
 
-  // TODO: follow community and then posts are successful
+  // follow the community, now user can post
+  await follow_and_approve(user, community_id);
+  const post2 = await createPost(user, community_id);
+  expect(post2.post_view.post.id).toBeDefined();
+  const comment2 = await createComment(user, post_id);
+  expect(comment2.comment_view.comment.id).toBeDefined();
+  const posts2 = await getPosts(alpha, "All", community_id);
+  expect(posts2.posts.length).toBe(2);
+  const comments2 = await getComments(user, post_id);
+  expect(comments2.comments.length).toBe(1);
 });

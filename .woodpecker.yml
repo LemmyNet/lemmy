@@ -42,14 +42,14 @@ steps:
       - event: [pull_request, tag]
 
   prettier_check:
-    image: tmknom/prettier:3.0.0
+    image: tmknom/prettier:3.2.5
     commands:
       - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
     when:
       - event: pull_request
 
   toml_fmt:
-    image: tamasfe/taplo:0.8.1
+    image: tamasfe/taplo:0.9.3
     commands:
       - taplo format --check
     when:

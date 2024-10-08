@@ -312,19 +312,35 @@ where
 
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
-mod tests {
-  use super::*;
-  use lemmy_db_schema::source::{
-    community::{Community, CommunityInsertForm},
-    local_user::LocalUserInsertForm,
-    person::PersonInsertForm,
+pub(crate) mod tests {
+
+  use crate::api::user_settings_backup::{export_settings, import_settings};
+  use activitypub_federation::config::Data;
+  use actix_web::web::Json;
+  use lemmy_api_common::context::LemmyContext;
+  use lemmy_db_schema::{
+    source::{
+      community::{
+        Community,
+        CommunityFollower,
+        CommunityFollowerForm,
+        CommunityFollowerState,
+        CommunityInsertForm,
+      },
+      instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
+      person::{Person, PersonInsertForm},
+    },
+    traits::{Crud, Followable},
   };
+  use lemmy_db_views::structs::LocalUserView;
   use lemmy_db_views_actor::structs::CommunityFollowerView;
+  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
   use serial_test::serial;
   use std::time::Duration;
   use tokio::time::sleep;
 
-  async fn create_user(
+  pub(crate) async fn create_user(
     name: String,
     bio: Option<String>,
     context: &Data<LemmyContext>,
