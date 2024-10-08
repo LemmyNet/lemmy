@@ -59,6 +59,35 @@ pub struct CommunityView {
   pub banned_from_community: bool,
 }
 
+/// The community sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub enum CommunitySortType {
+  #[default]
+  Active,
+  Hot,
+  New,
+  Old,
+  TopDay,
+  TopWeek,
+  TopMonth,
+  TopYear,
+  TopAll,
+  MostComments,
+  NewComments,
+  TopHour,
+  TopSixHour,
+  TopTwelveHour,
+  TopThreeMonths,
+  TopSixMonths,
+  TopNineMonths,
+  Controversial,
+  Scaled,
+  NameAsc,
+  NameDesc,
+}
+
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
