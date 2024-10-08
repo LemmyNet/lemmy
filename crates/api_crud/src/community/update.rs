@@ -69,7 +69,7 @@ pub async fn update_community(
   // Verify its a mod (only mods can edit it)
   check_community_mod_action(
     &local_user_view.person,
-    data.community_id,
+    &old_community,
     false,
     &mut context.pool(),
   )

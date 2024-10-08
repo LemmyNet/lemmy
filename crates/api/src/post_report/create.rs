@@ -39,7 +39,7 @@ pub async fn create_post_report(
 
   check_community_user_action(
     &local_user_view.person,
-    post_view.community.id,
+    &post_view.community,
     &mut context.pool(),
   )
   .await?;

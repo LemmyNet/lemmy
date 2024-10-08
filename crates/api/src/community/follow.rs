@@ -4,7 +4,7 @@ use lemmy_api_common::{
   community::{CommunityResponse, FollowCommunity},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_community_user_action,
+  utils::{check_community_deleted_removed, check_user_valid},
 };
 use lemmy_db_schema::{
   source::{
@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   CommunityVisibility,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::CommunityView;
+use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
@@ -25,39 +25,38 @@ pub async fn follow_community(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
   let community = Community::read(&mut context.pool(), data.community_id).await?;
-  let mut community_follower_form =
-    CommunityFollowerForm::new(community.id, local_user_view.person.id);
-  community_follower_form.state = Some(CommunityFollowerState::Accepted);
-
-  if community.visibility == CommunityVisibility::Private {
-    // TODO: either insert data into PrivateCommunityApplication,
-    //       or store it in CommunityFollowerForm, eg:
-    //           `enum State { Following, Pending, NeedsApproval }`
-    //       then do we need to store who approved it?
-    todo!();
-  }
+  let mut form = CommunityFollowerForm::new(community.id, local_user_view.person.id);
 
   if data.follow {
-    if community.local {
-      check_community_user_action(&local_user_view.person, community.id, &mut context.pool())
-        .await?;
+    // Same checks as check_community_user_action(), except don't check for private community
+    check_user_valid(&local_user_view.person)?;
+    check_community_deleted_removed(&community).await?;
+    CommunityPersonBanView::check(&mut context.pool(), local_user_view.person.id, community.id)
+      .await?;
 
-      CommunityFollower::follow(&mut context.pool(), &community_follower_form)
-        .await
-        .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
+    // Local follow is accepted immediately, remote follow needs to be federated first
+    form.state = if community.local {
+      Some(CommunityFollowerState::Accepted)
     } else {
-      // Mark as pending, the actual federation activity is sent via `SendActivity` handler
-      community_follower_form.state = Some(CommunityFollowerState::Pending);
-      CommunityFollower::follow(&mut context.pool(), &community_follower_form)
-        .await
-        .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
+      Some(CommunityFollowerState::Pending)
+    };
+
+    // Private communities require manual approval
+    if community.visibility == CommunityVisibility::Private {
+      form.state = Some(CommunityFollowerState::ApprovalRequired);
     }
+
+    // Write to db
+    CommunityFollower::follow(&mut context.pool(), &form)
+      .await
+      .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
   } else {
-    CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
+    CommunityFollower::unfollow(&mut context.pool(), &form)
       .await
       .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
   }
 
+  // Send the federated follow
   if !community.local {
     ActivityChannel::submit_activity(
       SendActivityData::FollowCommunity(community, local_user_view.person.clone(), data.follow),

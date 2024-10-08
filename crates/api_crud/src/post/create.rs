@@ -85,12 +85,8 @@ pub async fn create_post(
     is_valid_body_field(body, true)?;
   }
 
-  check_community_user_action(
-    &local_user_view.person,
-    data.community_id,
-    &mut context.pool(),
-  )
-  .await?;
+  let community = Community::read(&mut context.pool(), data.community_id).await?;
+  check_community_user_action(&local_user_view.person, &community, &mut context.pool()).await?;
 
   let community_id = data.community_id;
   let community = Community::read(&mut context.pool(), community_id).await?;

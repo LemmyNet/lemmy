@@ -9,6 +9,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    community::Community,
     moderator::{ModLockPost, ModLockPostForm},
     post::{Post, PostUpdateForm},
   },
@@ -26,9 +27,10 @@ pub async fn lock_post(
   let post_id = data.post_id;
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
+  let community = Community::read(&mut context.pool(), orig_post.community_id).await?;
   check_community_mod_action(
     &local_user_view.person,
-    orig_post.community_id,
+    &community,
     false,
     &mut context.pool(),
   )
