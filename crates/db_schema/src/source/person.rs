@@ -3,7 +3,6 @@ use crate::schema::{person, person_follower};
 use crate::{
   newtypes::{DbUrl, InstanceId, PersonId},
   sensitive::SensitiveString,
-  source::placeholder_apub_url,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -45,11 +44,6 @@ pub struct Person {
   pub banner: Option<DbUrl>,
   /// Whether the person is deleted.
   pub deleted: bool,
-  #[cfg_attr(feature = "full", ts(skip))]
-  #[serde(skip, default = "placeholder_apub_url")]
-  pub inbox_url: DbUrl,
-  #[serde(skip)]
-  pub shared_inbox_url: Option<DbUrl>,
   /// A matrix id, usually given an @person:matrix.org
   pub matrix_user_id: Option<String>,
   /// Whether the person is a bot account.
@@ -57,6 +51,9 @@ pub struct Person {
   /// When their ban, if it exists, expires, if at all.
   pub ban_expires: Option<DateTime<Utc>>,
   pub instance_id: InstanceId,
+  #[cfg_attr(feature = "full", ts(skip))]
+  #[serde(skip, default)]
+  pub inbox_id: i32,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -91,9 +88,7 @@ pub struct PersonInsertForm {
   #[new(default)]
   pub deleted: Option<bool>,
   #[new(default)]
-  pub inbox_url: Option<DbUrl>,
-  #[new(default)]
-  pub shared_inbox_url: Option<DbUrl>,
+  pub inbox_id: Option<i32>,
   #[new(default)]
   pub matrix_user_id: Option<String>,
   #[new(default)]
@@ -118,8 +113,7 @@ pub struct PersonUpdateForm {
   pub last_refreshed_at: Option<DateTime<Utc>>,
   pub banner: Option<Option<DbUrl>>,
   pub deleted: Option<bool>,
-  pub inbox_url: Option<DbUrl>,
-  pub shared_inbox_url: Option<Option<DbUrl>>,
+  pub inbox_id: Option<i32>,
   pub matrix_user_id: Option<Option<String>>,
   pub bot_account: Option<bool>,
   pub ban_expires: Option<Option<DateTime<Utc>>>,
