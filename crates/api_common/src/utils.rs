@@ -52,7 +52,7 @@ use lemmy_utils::{
   rate_limit::{ActionType, BucketConfig},
   settings::structs::{PictrsImageMode, Settings},
   utils::{
-    markdown::{markdown_check_for_blocked_urls, markdown_rewrite_image_links},
+    markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
     slurs::{build_slur_regex, remove_slurs},
     validation::clean_urls_in_text,
   },

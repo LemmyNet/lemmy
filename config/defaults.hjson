@@ -75,6 +75,8 @@
       "ProxyAllImages"
     # Timeout for uploading images to pictrs (in seconds)
     upload_timeout: 30
+    # Resize post thumbnails to this maximum width/height.
+    max_thumbnail_size: 256
   }
   # Email sending configuration. All options except login/password are mandatory
   email: {

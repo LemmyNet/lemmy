@@ -3,9 +3,9 @@
   "type": "Group",
   "preferredUsername": "tenforward",
   "name": "Ten Forward",
-  "summary": "<p>Lounge and recreation facility</p>\n<hr />\n<p>Welcome to the <a href=\"https://memory-alpha.fandom.com/wiki/USS_Enterprise_(NCC-1701-D)\">Enterprise</a>!.</p>\n",
+  "summary": "<p>Lounge and recreation facility</p>\n<hr />\n<p>Welcome to the Enterprise!.</p>\n",
   "source": {
-    "content": "Lounge and recreation facility\n\n---\n\nWelcome to the [Enterprise](https://memory-alpha.fandom.com/wiki/USS_Enterprise_(NCC-1701-D))!.",
+    "content": "Lounge and recreation facility\n\n---\n\nWelcome to the Enterprise!",
     "mediaType": "text/markdown"
   },
   "sensitive": false,
