@@ -117,12 +117,24 @@ pub(crate) async fn get_activity(
 }
 
 /// Ensure that the community is public and not removed/deleted.
-fn check_community_public(community: &Community) -> LemmyResult<()> {
-  if community.deleted || community.removed {
-    Err(LemmyErrorType::Deleted)?
+fn check_community_fetchable(community: &Community) -> LemmyResult<()> {
+  check_community_removed_or_deleted(community)?;
+  if community.visibility == CommunityVisibility::LocalOnly {
+    return Err(LemmyErrorType::NotFound.into());
   }
+  Ok(())
+}
+fn check_community_content_fetchable(community: &Community) -> LemmyResult<()> {
+  check_community_removed_or_deleted(community)?;
   if community.visibility != CommunityVisibility::Public {
     return Err(LemmyErrorType::NotFound.into());
+  }
+  Ok(())
+}
+
+fn check_community_removed_or_deleted(community: &Community) -> LemmyResult<()> {
+  if community.deleted || community.removed {
+    Err(LemmyErrorType::Deleted)?
   }
   Ok(())
 }

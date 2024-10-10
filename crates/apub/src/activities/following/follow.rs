@@ -104,12 +104,14 @@ impl ActivityHandler for Follow {
         PersonFollower::follow(&mut context.pool(), &form).await?;
       }
       UserOrCommunity::Community(c) => {
-        // Dont allow following local-only community via federation.
-        if c.visibility != CommunityVisibility::Public {
-          return Err(LemmyErrorType::NotFound.into());
-        }
+        let state = Some(match c.visibility {
+          CommunityVisibility::Public => CommunityFollowerState::Accepted,
+          CommunityVisibility::Private => CommunityFollowerState::ApprovalRequired,
+          // Dont allow following local-only community via federation.
+          CommunityVisibility::LocalOnly => return Err(LemmyErrorType::NotFound.into()),
+        });
         let form = CommunityFollowerForm {
-          state: Some(CommunityFollowerState::Accepted),
+          state,
           ..CommunityFollowerForm::new(c.id, actor.id)
         };
         CommunityFollower::follow(&mut context.pool(), &form).await?;

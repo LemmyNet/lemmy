@@ -6,7 +6,7 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
-  http::{check_community_public, create_apub_response, create_apub_tombstone_response},
+  http::{check_community_fetchable, create_apub_response, create_apub_tombstone_response},
   objects::{community::ApubCommunity, person::ApubPerson},
 };
 use activitypub_federation::{
@@ -41,7 +41,7 @@ pub(crate) async fn get_apub_community_http(
   if community.deleted || community.removed {
     return create_apub_tombstone_response(community.actor_id.clone());
   }
-  check_community_public(&community)?;
+  check_community_fetchable(&community)?;
 
   let apub = community.into_json(&context).await?;
   create_apub_response(&apub)
@@ -68,7 +68,7 @@ pub(crate) async fn get_apub_community_followers(
   let community = Community::read_from_name(&mut context.pool(), &info.community_name, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
-  check_community_public(&community)?;
+  check_community_fetchable(&community)?;
   let followers = ApubCommunityFollower::read_local(&community.into(), &context).await?;
   create_apub_response(&followers)
 }
@@ -84,7 +84,7 @@ pub(crate) async fn get_apub_community_outbox(
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
-  check_community_public(&community)?;
+  check_community_fetchable(&community)?;
   let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
   create_apub_response(&outbox)
 }
@@ -99,7 +99,7 @@ pub(crate) async fn get_apub_community_moderators(
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
-  check_community_public(&community)?;
+  check_community_fetchable(&community)?;
   let moderators = ApubCommunityModerators::read_local(&community, &context).await?;
   create_apub_response(&moderators)
 }
@@ -114,7 +114,7 @@ pub(crate) async fn get_apub_community_featured(
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
-  check_community_public(&community)?;
+  check_community_fetchable(&community)?;
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;
   create_apub_response(&featured)
 }

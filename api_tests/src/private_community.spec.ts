@@ -18,6 +18,11 @@ import {
   getPost,
   getComments,
   getPosts,
+  beta,
+  resolveCommunity,
+  betaUrl,
+  longDelay,
+  delay,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -39,7 +44,7 @@ async function follow_and_approve(user: LemmyHttp, community_id: CommunityId) {
   expect(approve.success).toBe(true);
 }
 
-test("Follow a private community", async () => {
+test("Follow a local private community", async () => {
   // create private community
   const community = await createCommunity(alpha, randomString(10), "Private");
   expect(community.community_view.community.visibility).toBe("Private");
@@ -164,8 +169,10 @@ test("Only followers can post/comment in private community", async () => {
   const comments1 = await getComments(user, post_id);
   expect(comments1.comments.length).toBe(0);
 
-  // follow the community, now user can post
+  // follow the community
   await follow_and_approve(user, community_id);
+
+  // now user can post successfully
   const post2 = await createPost(user, community_id);
   expect(post2.post_view.post.id).toBeDefined();
   const comment2 = await createComment(user, post_id);
@@ -174,4 +181,75 @@ test("Only followers can post/comment in private community", async () => {
   expect(posts2.posts.length).toBe(2);
   const comments2 = await getComments(user, post_id);
   expect(comments2.comments.length).toBe(1);
+});
+
+test("Follow a remote private community", async () => {
+  // create private community
+  const community = await createCommunity(alpha, randomString(10), "Private");
+  expect(community.community_view.community.visibility).toBe("Private");
+  const alphaCommunityId = community.community_view.community.id;
+
+  // No pending follows yet
+  const pendingFollows0 = await listCommunityPendingFollows(
+    alpha,
+    alphaCommunityId,
+  );
+  expect(pendingFollows0.items.length).toBe(0);
+  const pendingFollowsCount0 = await getCommunityPendingFollowsCount(
+    alpha,
+    alphaCommunityId,
+  );
+  expect(pendingFollowsCount0.count).toBe(0);
+
+  // follow as new user
+  const user = await registerUser(beta, betaUrl);
+  const betaCommunity = (
+    await resolveCommunity(user, community.community_view.community.actor_id)
+  ).community;
+  expect(betaCommunity).toBeDefined();
+  const betaCommunityId = betaCommunity!.community.id;
+  const follow_form: FollowCommunity = {
+    community_id: betaCommunityId,
+    follow: true,
+  };
+  await user.followCommunity(follow_form);
+
+  // Follow listed as pending
+  const follow1 = getCommunity(user, betaCommunityId);
+  expect((await follow1).community_view.subscribed).toBe("Pending");
+
+  // Wait for follow to federate, shown as pending
+  await delay(1000);
+  const pendingFollows1 = await listCommunityPendingFollows(
+    alpha,
+    alphaCommunityId,
+  );
+  expect(pendingFollows1.items.length).toBe(1);
+  const pendingFollowsCount1 = await getCommunityPendingFollowsCount(
+    alpha,
+    alphaCommunityId,
+  );
+  expect(pendingFollowsCount1.count).toBe(1);
+
+  // Approve the follow
+  const approve = await approveCommunityPendingFollow(
+    alpha,
+    alphaCommunityId,
+    pendingFollows1.items[0].id,
+  );
+  expect(approve.success).toBe(true);
+
+  // Follow is confirmed
+  const follow2 = getCommunity(user, betaCommunityId);
+  expect((await follow2).community_view.subscribed).toBe("Subscribed");
+  const pendingFollows2 = await listCommunityPendingFollows(
+    alpha,
+    alphaCommunityId,
+  );
+  expect(pendingFollows2.items.length).toBe(0);
+  const pendingFollowsCount2 = await getCommunityPendingFollowsCount(
+    alpha,
+    alphaCommunityId,
+  );
+  expect(pendingFollowsCount2.count).toBe(0);
 });
