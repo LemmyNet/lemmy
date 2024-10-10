@@ -21,7 +21,11 @@ use lemmy_db_schema::{
     community_person_ban,
     instance_block,
   },
-  source::{community::CommunityFollower, local_user::LocalUser, site::Site},
+  source::{
+    community::{CommunityFollower, CommunityFollowerState},
+    local_user::LocalUser,
+    site::Site,
+  },
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   ListingType,
   PostSortType,
@@ -152,7 +156,9 @@ fn queries<'a>() -> Queries<
 
     if let Some(listing_type) = options.listing_type {
       query = match listing_type {
-        ListingType::Subscribed => query.filter(community_follower::pending.is_not_null()), /* TODO could be this: and(community_follower::person_id.eq(person_id_join)), */
+        ListingType::Subscribed => {
+          query.filter(community_follower::state.eq(CommunityFollowerState::Accepted))
+        }
         ListingType::Local => query.filter(community::local.eq(true)),
         _ => query,
       };

@@ -1,8 +1,9 @@
 use crate::structs::CommunityFollowerView;
 use chrono::Utc;
 use diesel::{
-  dsl::{count_star, not},
+  dsl::{count, count_star, exists, not},
   result::Error,
+  select,
   ExpressionMethods,
   QueryDsl,
 };
@@ -10,8 +11,14 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
   schema::{community, community_follower, person},
-  utils::{functions::coalesce, get_conn, DbPool},
+  source::{
+    community::{Community, CommunityFollowerState},
+    person::Person,
+  },
+  utils::{functions::coalesce, get_conn, limit_and_offset, DbPool},
+  CommunityVisibility,
 };
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 impl CommunityFollowerView {
   /// return a list of local community ids and remote inboxes that at least one user of the given
@@ -87,5 +94,64 @@ impl CommunityFollowerView {
       .order_by(community::title)
       .load::<CommunityFollowerView>(conn)
       .await
+  }
+
+  pub async fn list_approval_required(
+    pool: &mut DbPool<'_>,
+    community_id: CommunityId,
+    pending_only: bool,
+    page: Option<i64>,
+    limit: Option<i64>,
+  ) -> Result<Vec<Person>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let (limit, offset) = limit_and_offset(page, limit)?;
+    let mut query = community_follower::table
+      .inner_join(person::table)
+      .filter(community_follower::community_id.eq(community_id))
+      .into_boxed();
+    if pending_only {
+      query = query.filter(community_follower::state.eq(CommunityFollowerState::ApprovalRequired));
+    }
+    query
+      .order_by(community_follower::published.asc())
+      .limit(limit)
+      .offset(offset)
+      .select(person::all_columns)
+      .load::<Person>(conn)
+      .await
+  }
+
+  pub async fn count_approval_required(
+    pool: &mut DbPool<'_>,
+    community_id: CommunityId,
+  ) -> Result<i64, Error> {
+    let conn = &mut get_conn(pool).await?;
+    community_follower::table
+      .inner_join(person::table)
+      .filter(community_follower::community_id.eq(community_id))
+      .filter(community_follower::state.eq(CommunityFollowerState::ApprovalRequired))
+      .select(count(community_follower::community_id))
+      .first::<i64>(conn)
+      .await
+  }
+  pub async fn check_private_community_action(
+    pool: &mut DbPool<'_>,
+    from_person_id: PersonId,
+    community: &Community,
+  ) -> LemmyResult<()> {
+    if community.visibility != CommunityVisibility::Private {
+      return Ok(());
+    }
+    let conn = &mut get_conn(pool).await?;
+    select(exists(
+      community_follower::table
+        .filter(community_follower::community_id.eq(community.id))
+        .filter(community_follower::person_id.eq(from_person_id))
+        .filter(community_follower::state.eq(CommunityFollowerState::Accepted)),
+    ))
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::PrivateCommunity.into())
   }
 }

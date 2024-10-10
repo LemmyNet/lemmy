@@ -35,9 +35,14 @@ use lemmy_db_schema::{
     person_block,
     post,
   },
-  source::{local_user::LocalUser, site::Site},
+  source::{
+    community::{CommunityFollower, CommunityFollowerState},
+    local_user::LocalUser,
+    site::Site,
+  },
   utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
+  CommunityVisibility,
   ListingType,
 };
 
@@ -70,7 +75,7 @@ fn queries<'a>() -> Queries<
           .eq(community_follower::community_id)
           .and(community_follower::person_id.eq(person_id)),
       )
-      .select(community_follower::pending.nullable())
+      .select(CommunityFollower::select_subscribed_type())
       .single_value()
   };
 
@@ -129,11 +134,15 @@ fn queries<'a>() -> Queries<
     };
 
     let subscribed_type_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>,
+      dyn BoxableExpression<
+        _,
+        Pg,
+        SqlType = sql_types::Nullable<lemmy_db_schema::schema::sql_types::CommunityFollowerState>,
+      >,
     > = if let Some(person_id) = my_person_id {
       Box::new(is_community_followed(person_id))
     } else {
-      Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
+      Box::new(None::<CommunityFollowerState>.into_sql::<sql_types::Nullable<lemmy_db_schema::schema::sql_types::CommunityFollowerState>>())
     };
 
     let is_creator_blocked_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
@@ -179,6 +188,21 @@ fn queries<'a>() -> Queries<
       my_local_user.person_id(),
     );
     query = my_local_user.visible_communities_only(query);
+    if !my_local_user.is_admin() {
+      query = query.filter(
+        community::visibility
+          .ne(CommunityVisibility::Private)
+          .or(exists(
+            community_follower::table.filter(
+              post::community_id.eq(community_follower::community_id).and(
+                community_follower::person_id
+                  .eq(my_local_user.map(|l| l.person_id).unwrap_or_default())
+                  .and(community_follower::state.eq(CommunityFollowerState::Accepted)),
+              ),
+            ),
+          )),
+      );
+    }
     query.first(&mut conn).await
   };
 
@@ -300,6 +324,22 @@ fn queries<'a>() -> Queries<
     };
 
     query = options.local_user.visible_communities_only(query);
+
+    if !options.local_user.is_admin() {
+      query = query.filter(
+        community::visibility
+          .ne(CommunityVisibility::Private)
+          .or(exists(
+            community_follower::table.filter(
+              post::community_id.eq(community_follower::community_id).and(
+                community_follower::person_id
+                  .eq(person_id_join)
+                  .and(community_follower::state.eq(CommunityFollowerState::Accepted)),
+              ),
+            ),
+          )),
+      );
+    }
 
     // A Max depth given means its a tree fetch
     let (limit, offset) = if let Some(max_depth) = options.max_depth {
@@ -445,6 +485,9 @@ mod tests {
       },
       community::{
         Community,
+        CommunityFollower,
+        CommunityFollowerForm,
+        CommunityFollowerState,
         CommunityInsertForm,
         CommunityModerator,
         CommunityModeratorForm,
@@ -461,7 +504,7 @@ mod tests {
       post::{Post, PostInsertForm, PostUpdateForm},
       site::{Site, SiteInsertForm},
     },
-    traits::{Bannable, Blockable, Crud, Joinable, Likeable, Saveable},
+    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable, Saveable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
     CommunityVisibility,
     SubscribedType,
@@ -1257,6 +1300,98 @@ mod tests {
     // Now comments of nsfw post are returned
     let comments = CommentQuery::default().list(&site, pool).await?;
     assert_eq!(6, comments.len());
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn comment_listing_private_community() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let mut data = init_data(pool).await?;
+
+    // Mark community as private
+    Community::update(
+      pool,
+      data.inserted_community.id,
+      &CommunityUpdateForm {
+        visibility: Some(CommunityVisibility::Private),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    // No comments returned without auth
+    let read_comment_listing = CommentQuery::default().list(&data.site, pool).await?;
+    assert_eq!(0, read_comment_listing.len());
+    let comment_view = CommentView::read(pool, data.inserted_comment_0.id, None).await;
+    assert!(comment_view.is_err());
+
+    // No comments returned for non-follower who is not admin
+    data.timmy_local_user_view.local_user.admin = false;
+    let read_comment_listing = CommentQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(0, read_comment_listing.len());
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(&data.timmy_local_user_view.local_user),
+    )
+    .await;
+    assert!(comment_view.is_err());
+
+    // Admin can view content without following
+    data.timmy_local_user_view.local_user.admin = true;
+    let read_comment_listing = CommentQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(5, read_comment_listing.len());
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(&data.timmy_local_user_view.local_user),
+    )
+    .await;
+    assert!(comment_view.is_ok());
+    data.timmy_local_user_view.local_user.admin = false;
+
+    // User can view after following
+    CommunityFollower::follow(
+      pool,
+      &CommunityFollowerForm {
+        state: Some(CommunityFollowerState::Accepted),
+        ..CommunityFollowerForm::new(
+          data.inserted_community.id,
+          data.timmy_local_user_view.person.id,
+        )
+      },
+    )
+    .await?;
+    let read_comment_listing = CommentQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(5, read_comment_listing.len());
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(&data.timmy_local_user_view.local_user),
+    )
+    .await;
+    assert!(comment_view.is_ok());
 
     cleanup(data, pool).await
   }

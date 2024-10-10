@@ -44,7 +44,7 @@ pub async fn create_comment_report(
 
   check_community_user_action(
     &local_user_view.person,
-    comment_view.community.id,
+    &comment_view.community,
     &mut context.pool(),
   )
   .await?;

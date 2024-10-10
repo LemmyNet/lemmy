@@ -1,17 +1,24 @@
 import {
+  ApproveCommunityPendingFollows,
   BlockCommunity,
   BlockCommunityResponse,
   BlockInstance,
   BlockInstanceResponse,
   CommunityId,
+  CommunityVisibility,
   CreatePrivateMessageReport,
   DeleteImage,
   EditCommunity,
+  GetCommunityPendingFollowsCount,
+  GetCommunityPendingFollowsCountResponse,
   GetReplies,
   GetRepliesResponse,
   GetUnreadCountResponse,
   InstanceId,
   LemmyHttp,
+  ListCommunityPendingFollows,
+  ListCommunityPendingFollowsResponse,
+  PersonId,
   PostView,
   PrivateMessageReportResponse,
   SuccessResponse,
@@ -198,7 +205,7 @@ export async function setupLogins() {
     // only needed the first time so do in this try
     await delay(10_000);
   } catch {
-    console.log("Communities already exist");
+    //console.log("Communities already exist");
   }
 }
 
@@ -554,12 +561,14 @@ export async function likeComment(
 export async function createCommunity(
   api: LemmyHttp,
   name_: string = randomString(10),
+  visibility: CommunityVisibility = "Public",
 ): Promise<CommunityResponse> {
   let description = "a sample description";
   let form: CreateCommunity = {
     name: name_,
     title: name_,
     description,
+    visibility,
   };
   return api.createCommunity(form);
 }
@@ -688,7 +697,6 @@ export async function saveUserSettingsBio(
   let form: SaveUserSettings = {
     show_nsfw: true,
     blur_nsfw: false,
-    auto_expand: true,
     theme: "darkly",
     default_post_sort_type: "Active",
     default_listing_type: "All",
@@ -709,7 +717,6 @@ export async function saveUserSettingsFederated(
   let form: SaveUserSettings = {
     show_nsfw: false,
     blur_nsfw: true,
-    auto_expand: false,
     default_post_sort_type: "Hot",
     default_listing_type: "All",
     interface_language: "",
@@ -870,6 +877,38 @@ export function blockCommunity(
     block,
   };
   return api.blockCommunity(form);
+}
+
+export function listCommunityPendingFollows(
+  api: LemmyHttp,
+  community_id: CommunityId,
+): Promise<ListCommunityPendingFollowsResponse> {
+  let form: ListCommunityPendingFollows = {
+    community_id,
+    pending_only: true,
+    page: 1,
+    limit: 50,
+  };
+  return api.listCommunityPendingFollows(form);
+}
+
+export function getCommunityPendingFollowsCount(
+  api: LemmyHttp,
+  community_id: CommunityId,
+): Promise<GetCommunityPendingFollowsCountResponse> {
+  return api.getCommunityPendingFollowsCount(community_id);
+}
+
+export function approveCommunityPendingFollow(
+  api: LemmyHttp,
+  community_id: CommunityId,
+  follower_id: PersonId,
+): Promise<SuccessResponse> {
+  let form: ApproveCommunityPendingFollows = {
+    community_id,
+    follower_id,
+  };
+  return api.approveCommunityPendingFollow(form);
 }
 
 export function delay(millis = 500) {
