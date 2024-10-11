@@ -4,7 +4,7 @@ use crate::{
   objects::post::ApubPost,
 };
 use activitypub_federation::{config::Data, traits::Object};
-use actix_web::{web, HttpResponse};
+use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::PostId,
@@ -24,12 +24,14 @@ pub(crate) struct PostQuery {
 pub(crate) async fn get_apub_post(
   info: web::Path<PostQuery>,
   context: Data<LemmyContext>,
+  request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
   let id = PostId(info.post_id.parse::<i32>()?);
   // Can't use PostView here because it excludes deleted/removed/local-only items
   let post: ApubPost = Post::read(&mut context.pool(), id).await?.into();
   let community = Community::read(&mut context.pool(), post.community_id).await?;
-  check_community_content_fetchable(&community)?;
+
+  check_community_content_fetchable(&community, &request, &context).await?;
 
   if !post.local {
     Ok(redirect_remote_object(&post.ap_id))

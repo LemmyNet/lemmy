@@ -21,8 +21,9 @@ import {
   beta,
   resolveCommunity,
   betaUrl,
-  longDelay,
   delay,
+  resolvePost,
+  resolveComment,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -107,7 +108,7 @@ test("Follow a local private community", async () => {
   expect(pendingFollowsCount2.count).toBe(0);
 });
 
-test("Posts and comments in private community can only be seen by followers", async () => {
+test("Posts and comments in local private community can only be seen by followers", async () => {
   // create private community
   const community = await createCommunity(alpha, randomString(10), "Private");
   expect(community.community_view.community.visibility).toBe("Private");
@@ -145,7 +146,7 @@ test("Posts and comments in private community can only be seen by followers", as
   expect(posts2.posts[0].post.id).toBe(post_id);
 });
 
-test("Only followers can post/comment in private community", async () => {
+test("Only followers can post/comment in local private community", async () => {
   // create private community and post
   const community = await createCommunity(alpha, randomString(10), "Private");
   expect(community.community_view.community.visibility).toBe("Private");
@@ -252,4 +253,60 @@ test("Follow a remote private community", async () => {
     alphaCommunityId,
   );
   expect(pendingFollowsCount2.count).toBe(0);
+});
+
+test("Posts and comments in remote private community can only be seen by followers", async () => {
+  // create private community
+  const community = await createCommunity(alpha, randomString(10), "Private");
+  expect(community.community_view.community.visibility).toBe("Private");
+  const alphaCommunityId = community.community_view.community.id;
+
+  // create post and comment
+  const post0 = await createPost(alpha, alphaCommunityId);
+  const post_id = post0.post_view.post.id;
+  expect(post_id).toBeDefined();
+  const comment = await createComment(alpha, post_id);
+  const comment_id = comment.comment_view.comment.id;
+  expect(comment_id).toBeDefined();
+
+  // user is not following the community and cannot view its posts
+  const user = await registerUser(beta, betaUrl);
+  await expect(resolvePost(user, post0.post_view.post)).rejects.toStrictEqual(
+    Error("not_found"),
+  );
+  await expect(
+    resolveComment(user, comment.comment_view.comment),
+  ).rejects.toStrictEqual(Error("not_found"));
+
+  // follow the community and approve
+  const betaCommunity = (
+    await resolveCommunity(user, community.community_view.community.actor_id)
+  ).community;
+  expect(betaCommunity).toBeDefined();
+  const betaCommunityId = betaCommunity!.community.id;
+  const follow_form: FollowCommunity = {
+    community_id: betaCommunityId,
+    follow: true,
+  };
+  await user.followCommunity(follow_form);
+  await delay(1000);
+  const pendingFollows1 = await listCommunityPendingFollows(
+    alpha,
+    alphaCommunityId,
+  );
+  expect(pendingFollows1.items.length).toBe(1);
+  const approve = await approveCommunityPendingFollow(
+    alpha,
+    alphaCommunityId,
+    pendingFollows1.items[0].id,
+  );
+  expect(approve.success).toBe(true);
+
+  // now user can fetch posts and comments in community (using signed fetch)
+  const resolvedPost = (await resolvePost(user, post0.post_view.post)).post;
+  expect(resolvedPost?.post.id).toBeDefined();
+  const resolvedComment = (
+    await resolveComment(user, comment.comment_view.comment)
+  ).comment;
+  expect(resolvedComment?.comment.id).toBeDefined();
 });

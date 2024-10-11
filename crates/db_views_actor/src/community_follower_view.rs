@@ -152,6 +152,104 @@ impl CommunityFollowerView {
     .get_result::<bool>(conn)
     .await?
     .then_some(())
-    .ok_or(LemmyErrorType::PrivateCommunity.into())
+    .ok_or(LemmyErrorType::NotFound.into())
+  }
+  pub async fn check_has_followers_from_instance(
+    community_id: CommunityId,
+    instance_id: InstanceId,
+    pool: &mut DbPool<'_>,
+  ) -> Result<(), Error> {
+    let conn = &mut get_conn(pool).await?;
+    select(exists(
+      community_follower::table
+        .inner_join(person::table)
+        .filter(community_follower::community_id.eq(community_id))
+        .filter(person::instance_id.eq(instance_id))
+        .filter(community_follower::state.eq(CommunityFollowerState::Accepted)),
+    ))
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(diesel::NotFound)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use lemmy_db_schema::{
+    source::{
+      community::{CommunityFollower, CommunityFollowerForm, CommunityInsertForm},
+      instance::Instance,
+      person::PersonInsertForm,
+    },
+    traits::{Crud, Followable},
+    utils::build_db_pool_for_tests,
+  };
+  use serial_test::serial;
+
+  #[tokio::test]
+  #[serial]
+  async fn test_has_followers_from_instance() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+
+    // insert local community
+    let local_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let community_form = CommunityInsertForm::new(
+      local_instance.id,
+      "test_community_3".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let community = Community::create(pool, &community_form).await?;
+
+    // insert remote user
+    let remote_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let person_form =
+      PersonInsertForm::new("name".to_string(), "pubkey".to_string(), remote_instance.id);
+    let person = Person::create(pool, &person_form).await?;
+
+    // community has no follower from remote instance, returns error
+    let has_followers = CommunityFollowerView::check_has_followers_from_instance(
+      community.id,
+      remote_instance.id,
+      pool,
+    )
+    .await;
+    assert!(has_followers.is_err());
+
+    // insert unapproved follower
+    let mut follower_form = CommunityFollowerForm {
+      state: Some(CommunityFollowerState::ApprovalRequired),
+      ..CommunityFollowerForm::new(community.id, person.id)
+    };
+    CommunityFollower::follow(pool, &follower_form).await?;
+
+    // still returns error
+    let has_followers = CommunityFollowerView::check_has_followers_from_instance(
+      community.id,
+      remote_instance.id,
+      pool,
+    )
+    .await;
+    assert!(has_followers.is_err());
+
+    // mark follower as accepted
+    follower_form.state = Some(CommunityFollowerState::Accepted);
+    CommunityFollower::follow(pool, &follower_form).await?;
+
+    // now returns ok
+    let has_followers = CommunityFollowerView::check_has_followers_from_instance(
+      community.id,
+      remote_instance.id,
+      pool,
+    )
+    .await;
+    assert!(has_followers.is_ok());
+
+    Instance::delete(pool, local_instance.id).await?;
+    Instance::delete(pool, remote_instance.id).await?;
+    Ok(())
   }
 }

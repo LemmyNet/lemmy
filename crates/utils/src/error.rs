@@ -175,7 +175,6 @@ pub enum LemmyErrorType {
   PostScheduleTimeMustBeInFuture,
   TooManyScheduledPosts,
   NotFound,
-  PrivateCommunity,
 }
 
 cfg_if! {

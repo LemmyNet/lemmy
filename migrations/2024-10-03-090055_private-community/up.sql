@@ -36,3 +36,12 @@ ALTER TABLE community_follower RENAME COLUMN pending TO state;
 ALTER TABLE community_follower
     ADD COLUMN approved_by int;
 
+-- Enable signed fetch, necessary to fetch content in private communities
+ALTER TABLE ONLY local_site
+    ALTER COLUMN federation_signed_fetch SET DEFAULT TRUE;
+
+UPDATE
+    local_site
+SET
+    federation_signed_fetch = TRUE;
+
