@@ -234,7 +234,8 @@ pub async fn check_community_user_action(
   check_user_valid(person)?;
   check_community_deleted_removed(community).await?;
   CommunityPersonBanView::check(pool, person.id, community.id).await?;
-  CommunityFollowerView::check_private_community_action(pool, person.id, community).await?;
+  dbg!(&community.visibility);
+  dbg!(CommunityFollowerView::check_private_community_action(pool, person.id, community).await)?;
   Ok(())
 }
 

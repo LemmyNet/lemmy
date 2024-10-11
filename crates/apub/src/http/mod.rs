@@ -132,8 +132,8 @@ async fn check_community_content_fetchable(
   request: &HttpRequest,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  check_community_removed_or_deleted(community)?;
   use CommunityVisibility::*;
+  check_community_removed_or_deleted(community)?;
   match community.visibility {
     // content in public community can always be fetched
     Public => Ok(()),

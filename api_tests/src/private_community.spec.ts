@@ -269,23 +269,24 @@ test("Posts and comments in remote private community can only be seen by followe
   const comment_id = comment.comment_view.comment.id;
   expect(comment_id).toBeDefined();
 
-  // user is not following the community and cannot view its posts
+  // user is not following the community and cannot view nor create posts
   const user = await registerUser(beta, betaUrl);
+  const betaCommunity = (
+    await resolveCommunity(user, community.community_view.community.actor_id)
+  ).community!.community;
   await expect(resolvePost(user, post0.post_view.post)).rejects.toStrictEqual(
     Error("not_found"),
   );
   await expect(
     resolveComment(user, comment.comment_view.comment),
   ).rejects.toStrictEqual(Error("not_found"));
+  await expect(createPost(user, betaCommunity.id)).rejects.toStrictEqual(
+    Error("not_found"),
+  );
 
   // follow the community and approve
-  const betaCommunity = (
-    await resolveCommunity(user, community.community_view.community.actor_id)
-  ).community;
-  expect(betaCommunity).toBeDefined();
-  const betaCommunityId = betaCommunity!.community.id;
   const follow_form: FollowCommunity = {
-    community_id: betaCommunityId,
+    community_id: betaCommunity.id,
     follow: true,
   };
   await user.followCommunity(follow_form);
@@ -302,11 +303,13 @@ test("Posts and comments in remote private community can only be seen by followe
   );
   expect(approve.success).toBe(true);
 
-  // now user can fetch posts and comments in community (using signed fetch)
+  // now user can fetch posts and comments in community (using signed fetch), and create posts
   const resolvedPost = (await resolvePost(user, post0.post_view.post)).post;
   expect(resolvedPost?.post.id).toBeDefined();
   const resolvedComment = (
     await resolveComment(user, comment.comment_view.comment)
   ).comment;
   expect(resolvedComment?.comment.id).toBeDefined();
+  const post1 = await createPost(user, betaCommunity.id);
+  expect(post1.post_view).toBeDefined();
 });
