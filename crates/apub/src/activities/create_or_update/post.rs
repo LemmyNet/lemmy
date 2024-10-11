@@ -3,8 +3,9 @@ use crate::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     generate_activity_id,
-    verify_is_public,
     verify_person_in_community,
+    verify_visibility,
+    with_public,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -16,7 +17,6 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  kinds::public,
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
@@ -49,7 +49,7 @@ impl CreateOrUpdatePage {
     )?;
     Ok(CreateOrUpdatePage {
       actor: actor.id().into(),
-      to: vec![public()],
+      to: with_public(vec![], community),
       object: post.into_json(context).await?,
       cc: vec![community.id()],
       kind,
@@ -102,8 +102,8 @@ impl ActivityHandler for CreateOrUpdatePage {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
+    verify_visibility(&self.to, &self.cc, &community)?;
     verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;

@@ -84,7 +84,7 @@ impl Delete {
   pub(in crate::activities::deletion) fn new(
     actor: &ApubPerson,
     object: DeletableObjects,
-    to: Url,
+    to: Vec<Url>,
     community: Option<&Community>,
     summary: Option<String>,
     context: &Data<LemmyContext>,
@@ -96,7 +96,7 @@ impl Delete {
     let cc: Option<Url> = community.map(|c| c.actor_id.clone().into());
     Ok(Delete {
       actor: actor.actor_id.clone().into(),
-      to: vec![to],
+      to,
       object: IdOrNestedObject::Id(object.id()),
       cc: cc.into_iter().collect(),
       kind: DeleteType::Delete,

@@ -24,6 +24,7 @@ import {
   delay,
   resolvePost,
   resolveComment,
+  likeComment,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -158,10 +159,10 @@ test("Only followers can post/comment in local private community", async () => {
   // user is not following the community and cannot post in it
   const user = await registerUser(alpha, alphaUrl);
   await expect(createPost(user, community_id)).rejects.toStrictEqual(
-    Error("private_community"),
+    Error("not_found"),
   );
   await expect(createComment(user, post_id)).rejects.toStrictEqual(
-    Error("private_community"),
+    Error("not_found"),
   );
 
   // make sure post and comment really were not created
@@ -255,7 +256,7 @@ test("Follow a remote private community", async () => {
   expect(pendingFollowsCount2.count).toBe(0);
 });
 
-test("Posts and comments in remote private community can only be seen by followers", async () => {
+test.only("Only followers can view and interact with private community content", async () => {
   // create private community
   const community = await createCommunity(alpha, randomString(10), "Private");
   expect(community.community_view.community.visibility).toBe("Private");
@@ -310,6 +311,9 @@ test("Posts and comments in remote private community can only be seen by followe
     await resolveComment(user, comment.comment_view.comment)
   ).comment;
   expect(resolvedComment?.comment.id).toBeDefined();
+
   const post1 = await createPost(user, betaCommunity.id);
   expect(post1.post_view).toBeDefined();
+  const like = await likeComment(user, 1, resolvedComment!.comment);
+  expect(like.comment_view.my_vote).toBe(1);
 });

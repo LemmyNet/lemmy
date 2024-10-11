@@ -142,7 +142,7 @@ async fn check_community_content_fetchable(
     // for private community check http signature of request, if there is any approved follower
     // from the fetching instance then fetching is allowed
     Private => {
-      let signing_actor = signing_actor::<SiteOrCommunityOrUser>(request, None, &context).await?;
+      let signing_actor = signing_actor::<SiteOrCommunityOrUser>(request, None, context).await?;
       Ok(
         CommunityFollowerView::check_has_followers_from_instance(
           community.id,

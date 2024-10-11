@@ -1,3 +1,4 @@
+use super::with_public;
 use crate::{
   objects::{community::ApubCommunity, instance::ApubSite},
   protocol::{
@@ -8,6 +9,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
+  kinds::public,
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
@@ -203,5 +205,13 @@ pub(crate) async fn send_ban_from_community(
       &context,
     )
     .await
+  }
+}
+
+fn to_and_audience(target: &SiteOrCommunity) -> (Vec<Url>, Option<ObjectId<ApubCommunity>>) {
+  if let SiteOrCommunity::Community(c) = target {
+    (with_public(vec![], c), Some(c.id().into()))
+  } else {
+    (vec![public()], None)
   }
 }

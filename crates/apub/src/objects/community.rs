@@ -154,13 +154,11 @@ impl Object for ApubCommunity {
     let description = markdown_rewrite_remote_links_opt(description, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.map(|i| i.url), context).await?;
-    dbg!(group.manually_approves_followers);
     let visibility = Some(if group.manually_approves_followers.unwrap_or_default() {
       CommunityVisibility::Private
     } else {
       CommunityVisibility::Public
     });
-    dbg!(&visibility);
     let form = CommunityInsertForm {
       published: group.published,
       updated: group.updated,

@@ -40,6 +40,7 @@ use lemmy_db_schema::{
     community::Community,
   },
   traits::Crud,
+  CommunityVisibility,
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -118,6 +119,27 @@ pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
   } else {
     Ok(())
   }
+}
+
+/// Returns an error if object visibility doesnt match community visibility
+/// (ie content in private community must also be private).
+pub(crate) fn verify_visibility(to: &[Url], cc: &[Url], community: &Community) -> LemmyResult<()> {
+  use CommunityVisibility::*;
+  let object_is_public = [to, cc].iter().any(|set| set.contains(&public()));
+  match community.visibility {
+    Public if !object_is_public => Err(LemmyErrorType::ObjectIsNotPublic)?,
+    Private if object_is_public => Err(LemmyErrorType::ObjectIsNotPrivate)?,
+    LocalOnly => Err(LemmyErrorType::NotFound.into()),
+    _ => Ok(()),
+  }
+}
+
+/// Marks object as public only if the community is public
+pub(crate) fn with_public(mut items: Vec<Url>, community: &Community) -> Vec<Url> {
+  if community.visibility == CommunityVisibility::Public {
+    items.push(public());
+  }
+  items
 }
 
 pub(crate) fn verify_community_matches<T>(a: &ObjectId<ApubCommunity>, b: T) -> LemmyResult<()>
