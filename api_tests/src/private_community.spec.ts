@@ -74,7 +74,7 @@ test("Follow a local private community", async () => {
 
   // Follow listed as pending
   const follow1 = getCommunity(user, community_id);
-  expect((await follow1).community_view.subscribed).toBe("Pending");
+  expect((await follow1).community_view.subscribed).toBe("ApprovalRequired");
   const pendingFollows1 = await listCommunityPendingFollows(
     alpha,
     community_id,
@@ -218,7 +218,7 @@ test("Follow a remote private community", async () => {
 
   // Follow listed as pending
   const follow1 = getCommunity(user, betaCommunityId);
-  expect((await follow1).community_view.subscribed).toBe("Pending");
+  expect((await follow1).community_view.subscribed).toBe("ApprovalRequired");
 
   // Wait for follow to federate, shown as pending
   await delay(1000);
@@ -256,7 +256,7 @@ test("Follow a remote private community", async () => {
   expect(pendingFollowsCount2.count).toBe(0);
 });
 
-test.only("Only followers can view and interact with private community content", async () => {
+test("Only followers can view and interact with private community content", async () => {
   // create private community
   const community = await createCommunity(alpha, randomString(10), "Private");
   expect(community.community_view.community.visibility).toBe("Private");

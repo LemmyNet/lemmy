@@ -369,10 +369,9 @@ impl Queryable<sql_types::Nullable<crate::schema::sql_types::CommunityFollowerSt
   type Row = Option<CommunityFollowerState>;
   fn build(row: Self::Row) -> deserialize::Result<Self> {
     Ok(match row {
-      Some(CommunityFollowerState::Pending) | Some(CommunityFollowerState::ApprovalRequired) => {
-        SubscribedType::Pending
-      }
+      Some(CommunityFollowerState::Pending) => SubscribedType::Pending,
       Some(CommunityFollowerState::Accepted) => SubscribedType::Subscribed,
+      Some(CommunityFollowerState::ApprovalRequired) => SubscribedType::ApprovalRequired,
       None => SubscribedType::NotSubscribed,
     })
   }

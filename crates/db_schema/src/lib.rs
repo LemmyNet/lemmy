@@ -191,6 +191,7 @@ pub enum SubscribedType {
   Subscribed,
   NotSubscribed,
   Pending,
+  ApprovalRequired,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
