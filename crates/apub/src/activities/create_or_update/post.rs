@@ -3,9 +3,9 @@ use crate::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     generate_activity_id,
+    generate_to,
     verify_person_in_community,
     verify_visibility,
-    with_public,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -49,7 +49,7 @@ impl CreateOrUpdatePage {
     )?;
     Ok(CreateOrUpdatePage {
       actor: actor.id().into(),
-      to: with_public(vec![], community),
+      to: vec![generate_to(community)?],
       object: post.into_json(context).await?,
       cc: vec![community.id()],
       kind,

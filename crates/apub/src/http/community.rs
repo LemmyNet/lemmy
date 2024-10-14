@@ -127,7 +127,7 @@ pub(crate) mod tests {
 
   use super::*;
   use crate::protocol::objects::{group::Group, tombstone::Tombstone};
-  use actix_web::body::to_bytes;
+  use actix_web::{body::to_bytes, test::TestRequest};
   use lemmy_db_schema::{
     newtypes::InstanceId,
     source::{
@@ -194,6 +194,7 @@ pub(crate) mod tests {
   async fn test_get_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (instance, community) = init(false, CommunityVisibility::Public, &context).await?;
+    let request = TestRequest::default().to_http_request();
 
     // fetch invalid community
     let query = CommunityQuery {
@@ -213,8 +214,12 @@ pub(crate) mod tests {
     let group = community.clone().into_json(&context).await?;
     assert_eq!(group, res_group);
 
-    let res =
-      get_apub_community_featured(query.clone().into(), context.reset_request_count()).await?;
+    let res = get_apub_community_featured(
+      query.clone().into(),
+      context.reset_request_count(),
+      request.clone(),
+    )
+    .await?;
     assert_eq!(200, res.status());
     let res =
       get_apub_community_followers(query.clone().into(), context.reset_request_count()).await?;
@@ -222,7 +227,8 @@ pub(crate) mod tests {
     let res =
       get_apub_community_moderators(query.clone().into(), context.reset_request_count()).await?;
     assert_eq!(200, res.status());
-    let res = get_apub_community_outbox(query.into(), context.reset_request_count()).await?;
+    let res =
+      get_apub_community_outbox(query.into(), context.reset_request_count(), request).await?;
     assert_eq!(200, res.status());
 
     Instance::delete(&mut context.pool(), instance.id).await?;
@@ -234,6 +240,7 @@ pub(crate) mod tests {
   async fn test_get_deleted_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (instance, community) = init(true, CommunityVisibility::LocalOnly, &context).await?;
+    let request = TestRequest::default().to_http_request();
 
     // should return tombstone
     let query = CommunityQuery {
@@ -244,8 +251,12 @@ pub(crate) mod tests {
     let res_tombstone = decode_response::<Tombstone>(res).await;
     assert!(res_tombstone.is_ok());
 
-    let res =
-      get_apub_community_featured(query.clone().into(), context.reset_request_count()).await;
+    let res = get_apub_community_featured(
+      query.clone().into(),
+      context.reset_request_count(),
+      request.clone(),
+    )
+    .await;
     assert!(res.is_err());
     let res =
       get_apub_community_followers(query.clone().into(), context.reset_request_count()).await;
@@ -253,7 +264,7 @@ pub(crate) mod tests {
     let res =
       get_apub_community_moderators(query.clone().into(), context.reset_request_count()).await;
     assert!(res.is_err());
-    let res = get_apub_community_outbox(query.into(), context.reset_request_count()).await;
+    let res = get_apub_community_outbox(query.into(), context.reset_request_count(), request).await;
     assert!(res.is_err());
 
     //Community::delete(&mut context.pool(), community.id).await?;
@@ -266,14 +277,19 @@ pub(crate) mod tests {
   async fn test_get_local_only_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (instance, community) = init(false, CommunityVisibility::LocalOnly, &context).await?;
+    let request = TestRequest::default().to_http_request();
 
     let query = CommunityQuery {
       community_name: community.name.clone(),
     };
     let res = get_apub_community_http(query.clone().into(), context.reset_request_count()).await;
     assert!(res.is_err());
-    let res =
-      get_apub_community_featured(query.clone().into(), context.reset_request_count()).await;
+    let res = get_apub_community_featured(
+      query.clone().into(),
+      context.reset_request_count(),
+      request.clone(),
+    )
+    .await;
     assert!(res.is_err());
     let res =
       get_apub_community_followers(query.clone().into(), context.reset_request_count()).await;
@@ -281,7 +297,7 @@ pub(crate) mod tests {
     let res =
       get_apub_community_moderators(query.clone().into(), context.reset_request_count()).await;
     assert!(res.is_err());
-    let res = get_apub_community_outbox(query.into(), context.reset_request_count()).await;
+    let res = get_apub_community_outbox(query.into(), context.reset_request_count(), request).await;
     assert!(res.is_err());
 
     Instance::delete(&mut context.pool(), instance.id).await?;

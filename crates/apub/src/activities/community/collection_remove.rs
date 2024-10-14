@@ -2,10 +2,10 @@ use crate::{
   activities::{
     community::send_activity_in_community,
     generate_activity_id,
+    generate_to,
     verify_mod_action,
     verify_person_in_community,
     verify_visibility,
-    with_public,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -49,7 +49,7 @@ impl CollectionRemove {
     )?;
     let remove = CollectionRemove {
       actor: actor.id().into(),
-      to: with_public(vec![], community),
+      to: vec![generate_to(community)?],
       object: removed_mod.id(),
       target: generate_moderators_url(&community.actor_id)?.into(),
       id: id.clone(),
@@ -75,7 +75,7 @@ impl CollectionRemove {
     )?;
     let remove = CollectionRemove {
       actor: actor.id().into(),
-      to: with_public(vec![], community),
+      to: vec![generate_to(community)?],
       object: featured_post.ap_id.clone().into(),
       target: generate_featured_url(&community.actor_id)?.into(),
       cc: vec![community.id()],

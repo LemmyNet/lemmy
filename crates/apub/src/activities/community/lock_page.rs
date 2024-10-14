@@ -3,10 +3,10 @@ use crate::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     generate_activity_id,
+    generate_to,
     verify_mod_action,
     verify_person_in_community,
     verify_visibility,
-    with_public,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -138,7 +138,7 @@ pub(crate) async fn send_lock_post(
   let community_id = community.actor_id.inner().clone();
   let lock = LockPage {
     actor: actor.actor_id.clone().into(),
-    to: with_public(vec![], &community),
+    to: vec![generate_to(&community)?],
     object: ObjectId::from(post.ap_id),
     cc: vec![community_id.clone()],
     kind: LockType::Lock,
@@ -154,7 +154,7 @@ pub(crate) async fn send_lock_post(
     )?;
     let undo = UndoLockPage {
       actor: lock.actor.clone(),
-      to: with_public(vec![], &community),
+      to: vec![generate_to(&community)?],
       cc: lock.cc.clone(),
       kind: UndoType::Undo,
       id,

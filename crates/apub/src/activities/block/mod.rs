@@ -1,4 +1,4 @@
-use super::with_public;
+use super::generate_to;
 use crate::{
   objects::{community::ApubCommunity, instance::ApubSite},
   protocol::{
@@ -208,10 +208,12 @@ pub(crate) async fn send_ban_from_community(
   }
 }
 
-fn to_and_audience(target: &SiteOrCommunity) -> (Vec<Url>, Option<ObjectId<ApubCommunity>>) {
-  if let SiteOrCommunity::Community(c) = target {
-    (with_public(vec![], c), Some(c.id().into()))
+fn to_and_audience(
+  target: &SiteOrCommunity,
+) -> LemmyResult<(Vec<Url>, Option<ObjectId<ApubCommunity>>)> {
+  Ok(if let SiteOrCommunity::Community(c) = target {
+    (vec![generate_to(c)?], Some(c.id().into()))
   } else {
     (vec![public()], None)
-  }
+  })
 }

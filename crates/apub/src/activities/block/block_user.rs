@@ -57,7 +57,7 @@ impl BlockUser {
     expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<BlockUser> {
-    let (to, audience) = to_and_audience(target);
+    let (to, audience) = to_and_audience(target)?;
     Ok(BlockUser {
       actor: mod_.id().into(),
       to,

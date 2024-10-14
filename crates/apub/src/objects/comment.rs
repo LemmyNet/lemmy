@@ -1,5 +1,5 @@
 use crate::{
-  activities::{verify_person_in_community, verify_visibility, with_public},
+  activities::{generate_to, verify_person_in_community, verify_visibility},
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links,
   mentions::collect_non_local_mentions,
@@ -112,7 +112,7 @@ impl Object for ApubComment {
       r#type: NoteType::Note,
       id: self.ap_id.clone().into(),
       attributed_to: creator.actor_id.into(),
-      to: with_public(vec![], &community),
+      to: vec![generate_to(&community)?],
       cc: maa.ccs,
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),

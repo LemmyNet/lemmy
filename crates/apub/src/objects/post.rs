@@ -1,5 +1,5 @@
 use crate::{
-  activities::{verify_person_in_community, verify_visibility, with_public},
+  activities::{generate_to, verify_person_in_community, verify_visibility},
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::{markdown_rewrite_remote_links_opt, to_local_url},
   local_site_data_cached,
@@ -134,7 +134,7 @@ impl Object for ApubPost {
       kind: PageType::Page,
       id: self.ap_id.clone().into(),
       attributed_to: AttributedTo::Lemmy(creator.actor_id.into()),
-      to: with_public(vec![community.actor_id.clone().into()], &community),
+      to: vec![generate_to(&community)?],
       cc: vec![],
       name: Some(self.name.clone()),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),

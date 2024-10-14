@@ -135,11 +135,12 @@ pub(crate) fn verify_visibility(to: &[Url], cc: &[Url], community: &Community) -
 }
 
 /// Marks object as public only if the community is public
-pub(crate) fn with_public(mut items: Vec<Url>, community: &Community) -> Vec<Url> {
+pub(crate) fn generate_to(community: &Community) -> LemmyResult<Url> {
   if community.visibility == CommunityVisibility::Public {
-    items.push(public());
+    Ok(public())
+  } else {
+    Ok(Url::parse(&format!("{}/followers", community.actor_id))?)
   }
-  items
 }
 
 pub(crate) fn verify_community_matches<T>(a: &ObjectId<ApubCommunity>, b: T) -> LemmyResult<()>

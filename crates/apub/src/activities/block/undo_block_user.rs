@@ -46,7 +46,7 @@ impl UndoBlockUser {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
-    let (to, audience) = to_and_audience(target);
+    let (to, audience) = to_and_audience(target)?;
 
     let id = generate_activity_id(
       UndoType::Undo,

@@ -2,10 +2,10 @@ use crate::{
   activities::{
     community::send_activity_in_community,
     generate_activity_id,
+    generate_to,
     verify_mod_action,
     verify_person_in_community,
     verify_visibility,
-    with_public,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -43,7 +43,7 @@ pub(crate) async fn send_update_community(
   )?;
   let update = UpdateCommunity {
     actor: actor.id().into(),
-    to: with_public(vec![], &community),
+    to: vec![generate_to(&community)?],
     object: Box::new(community.clone().into_json(&context).await?),
     cc: vec![community.id()],
     kind: UpdateType::Update,

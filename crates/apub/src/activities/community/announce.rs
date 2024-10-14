@@ -2,10 +2,10 @@ use crate::{
   activities::{
     generate_activity_id,
     generate_announce_activity_id,
+    generate_to,
     send_lemmy_activity,
     verify_person_in_community,
     verify_visibility,
-    with_public,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -93,7 +93,7 @@ impl AnnounceActivity {
       generate_announce_activity_id(inner_kind, &context.settings().get_protocol_and_hostname())?;
     Ok(AnnounceActivity {
       actor: community.id().into(),
-      to: with_public(vec![], community),
+      to: vec![generate_to(community)?],
       object: IdOrNestedObject::NestedObject(object),
       cc: community
         .followers_url
