@@ -17,7 +17,12 @@ use crate::{
         page::CreateOrUpdatePage,
       },
       deletion::{delete::Delete, undo_delete::UndoDelete},
-      following::{accept::AcceptFollow, follow::Follow, undo_follow::UndoFollow},
+      following::{
+        accept::AcceptFollow,
+        follow::Follow,
+        reject::RejectFollow,
+        undo_follow::UndoFollow,
+      },
       voting::{undo_vote::UndoVote, vote::Vote},
     },
     objects::page::Page,
@@ -41,6 +46,7 @@ use url::Url;
 pub enum SharedInboxActivities {
   Follow(Follow),
   AcceptFollow(AcceptFollow),
+  RejectFollow(RejectFollow),
   UndoFollow(UndoFollow),
   CreateOrUpdatePrivateMessage(CreateOrUpdateChatMessage),
   Report(Report),
@@ -68,6 +74,7 @@ pub enum GroupInboxActivities {
 pub enum PersonInboxActivities {
   Follow(Follow),
   AcceptFollow(AcceptFollow),
+  RejectFollow(RejectFollow),
   UndoFollow(UndoFollow),
   CreateOrUpdatePrivateMessage(CreateOrUpdateChatMessage),
   Delete(Delete),

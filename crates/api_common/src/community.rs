@@ -270,7 +270,8 @@ pub struct ListCommunityPendingFollowsResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct ApproveCommunityPendingFollows {
+pub struct ApproveCommunityPendingFollower {
   pub community_id: CommunityId,
   pub follower_id: PersonId,
+  pub approve: bool,
 }

@@ -30,6 +30,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
+use following::send_accept_or_reject_follow;
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
@@ -390,6 +391,12 @@ pub async fn match_outgoing_activities(
         community,
         reason,
       } => Report::send(ObjectId::from(object_id), actor, community, reason, context).await,
+      AcceptFollower(community_id, person_id) => {
+        send_accept_or_reject_follow(community_id, person_id, true, &context).await
+      }
+      RejectFollower(community_id, person_id) => {
+        send_accept_or_reject_follow(community_id, person_id, false, &context).await
+      }
     }
   };
   fed_task.await?;

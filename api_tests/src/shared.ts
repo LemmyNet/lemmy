@@ -1,5 +1,5 @@
 import {
-  ApproveCommunityPendingFollows,
+  ApproveCommunityPendingFollower,
   BlockCommunity,
   BlockCommunityResponse,
   BlockInstance,
@@ -903,10 +903,12 @@ export function approveCommunityPendingFollow(
   api: LemmyHttp,
   community_id: CommunityId,
   follower_id: PersonId,
+  approve: boolean = true,
 ): Promise<SuccessResponse> {
-  let form: ApproveCommunityPendingFollows = {
+  let form: ApproveCommunityPendingFollower = {
     community_id,
     follower_id,
+    approve,
   };
   return api.approveCommunityPendingFollow(form);
 }

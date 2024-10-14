@@ -317,3 +317,46 @@ test("Only followers can view and interact with private community content", asyn
   const like = await likeComment(user, 1, resolvedComment!.comment);
   expect(like.comment_view.my_vote).toBe(1);
 });
+
+test.only("Reject follower", async () => {
+  // create private community
+  const community = await createCommunity(alpha, randomString(10), "Private");
+  expect(community.community_view.community.visibility).toBe("Private");
+  const alphaCommunityId = community.community_view.community.id;
+
+  // user is not following the community and cannot view nor create posts
+  const user = await registerUser(beta, betaUrl);
+  const betaCommunity1 = (
+    await resolveCommunity(user, community.community_view.community.actor_id)
+  ).community!.community;
+
+  // follow the community and reject
+  const follow_form: FollowCommunity = {
+    community_id: betaCommunity1.id,
+    follow: true,
+  };
+  const follow = await user.followCommunity(follow_form);
+  expect(follow.community_view.subscribed).toBe("ApprovalRequired");
+  await delay(1000);
+
+  const betaCommunity3 = await getCommunity(user, betaCommunity1.id);
+  expect(betaCommunity3.community_view.subscribed).toBe("ApprovalRequired");
+
+  const pendingFollows1 = await listCommunityPendingFollows(
+    alpha,
+    alphaCommunityId,
+  );
+  expect(pendingFollows1.items.length).toBe(1);
+  /*
+  const approve = await approveCommunityPendingFollow(
+    alpha,
+    alphaCommunityId,
+    pendingFollows1.items[0].id,false
+  );
+  expect(approve.success).toBe(true);
+  */
+  await delay(10000);
+
+  const betaCommunity2 = await getCommunity(user, betaCommunity1.id);
+  expect(betaCommunity2.community_view.subscribed).toBe("NotSubscribed");
+});
