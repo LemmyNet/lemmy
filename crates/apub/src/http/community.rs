@@ -1,3 +1,4 @@
+use super::check_community_content_fetchable;
 use crate::{
   activity_lists::GroupInboxActivities,
   collections::{
@@ -78,13 +79,14 @@ pub(crate) async fn get_apub_community_followers(
 pub(crate) async fn get_apub_community_outbox(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
+  request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
-  check_community_fetchable(&community)?;
+  check_community_content_fetchable(&community, &request, &context).await?;
   let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
   create_apub_response(&outbox)
 }
@@ -108,13 +110,14 @@ pub(crate) async fn get_apub_community_moderators(
 pub(crate) async fn get_apub_community_featured(
   info: web::Path<CommunityQuery>,
   context: Data<LemmyContext>,
+  request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
     Community::read_from_name(&mut context.pool(), &info.community_name, false)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
-  check_community_fetchable(&community)?;
+  check_community_content_fetchable(&community, &request, &context).await?;
   let featured = ApubCommunityFeatured::read_local(&community, &context).await?;
   create_apub_response(&featured)
 }
