@@ -233,6 +233,10 @@ test("Follow a remote private community", async () => {
   );
   expect(pendingFollowsCount1.count).toBe(1);
 
+  // user still sees approval required at this point
+  const betaCommunity2 = await getCommunity(user, betaCommunityId);
+  expect(betaCommunity2.community_view.subscribed).toBe("ApprovalRequired");
+
   // Approve the follow
   const approve = await approveCommunityPendingFollow(
     alpha,
@@ -242,6 +246,7 @@ test("Follow a remote private community", async () => {
   expect(approve.success).toBe(true);
 
   // Follow is confirmed
+  await delay(1000);
   const follow2 = getCommunity(user, betaCommunityId);
   expect((await follow2).community_view.subscribed).toBe("Subscribed");
   const pendingFollows2 = await listCommunityPendingFollows(
@@ -305,6 +310,7 @@ test("Only followers can view and interact with private community content", asyn
   expect(approve.success).toBe(true);
 
   // now user can fetch posts and comments in community (using signed fetch), and create posts
+  await delay(1000);
   const resolvedPost = (await resolvePost(user, post0.post_view.post)).post;
   expect(resolvedPost?.post.id).toBeDefined();
   const resolvedComment = (
@@ -318,7 +324,7 @@ test("Only followers can view and interact with private community content", asyn
   expect(like.comment_view.my_vote).toBe(1);
 });
 
-test.only("Reject follower", async () => {
+test("Reject follower", async () => {
   // create private community
   const community = await createCommunity(alpha, randomString(10), "Private");
   expect(community.community_view.community.visibility).toBe("Private");
@@ -337,25 +343,21 @@ test.only("Reject follower", async () => {
   };
   const follow = await user.followCommunity(follow_form);
   expect(follow.community_view.subscribed).toBe("ApprovalRequired");
+
   await delay(1000);
-
-  const betaCommunity3 = await getCommunity(user, betaCommunity1.id);
-  expect(betaCommunity3.community_view.subscribed).toBe("ApprovalRequired");
-
   const pendingFollows1 = await listCommunityPendingFollows(
     alpha,
     alphaCommunityId,
   );
   expect(pendingFollows1.items.length).toBe(1);
-  /*
   const approve = await approveCommunityPendingFollow(
     alpha,
     alphaCommunityId,
-    pendingFollows1.items[0].id,false
+    pendingFollows1.items[0].id,
+    false,
   );
   expect(approve.success).toBe(true);
-  */
-  await delay(10000);
+  await delay(1000);
 
   const betaCommunity2 = await getCommunity(user, betaCommunity1.id);
   expect(betaCommunity2.community_view.subscribed).toBe("NotSubscribed");

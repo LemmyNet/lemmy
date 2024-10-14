@@ -26,7 +26,6 @@ pub async fn post_pending_follows_approve(
   )
   .await?;
 
-  dbg!(&data.approve);
   let activity_data = if data.approve {
     CommunityFollower::approve(
       &mut context.pool(),

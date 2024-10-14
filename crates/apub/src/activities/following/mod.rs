@@ -47,8 +47,8 @@ pub async fn send_accept_or_reject_follow(
   let person = Person::read(&mut context.pool(), person_id).await?;
 
   let follow = Follow {
-    actor: community.actor_id.clone().into(),
-    to: Some([person.actor_id.into()]),
+    actor: person.actor_id.into(),
+    to: Some([community.actor_id.clone().into()]),
     object: community.actor_id.into(),
     kind: FollowType::Follow,
     id: generate_activity_id(
@@ -56,9 +56,9 @@ pub async fn send_accept_or_reject_follow(
       &context.settings().get_protocol_and_hostname(),
     )?,
   };
-  if dbg!(accepted) {
-    AcceptFollow::send(follow, &context).await
+  if accepted {
+    AcceptFollow::send(follow, context).await
   } else {
-    RejectFollow::send(follow, &context).await
+    RejectFollow::send(follow, context).await
   }
 }

@@ -102,6 +102,7 @@ impl ActivityHandler for Follow {
           pending: false,
         };
         PersonFollower::follow(&mut context.pool(), &form).await?;
+        AcceptFollow::send(self, context).await?;
       }
       UserOrCommunity::Community(c) => {
         let state = Some(match c.visibility {
@@ -115,9 +116,11 @@ impl ActivityHandler for Follow {
           ..CommunityFollowerForm::new(c.id, actor.id)
         };
         CommunityFollower::follow(&mut context.pool(), &form).await?;
+        if c.visibility == CommunityVisibility::Public {
+          AcceptFollow::send(self, context).await?;
+        }
       }
     }
-
-    AcceptFollow::send(self, context).await
+    Ok(())
   }
 }
