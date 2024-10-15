@@ -4,13 +4,15 @@ use diesel::{
   dsl::{count, count_star, exists, not},
   result::Error,
   select,
+  BoolExpressionMethods,
   ExpressionMethods,
+  JoinOnDsl,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
-  schema::{community, community_follower, person},
+  schema::{community, community_follower, instance, person},
   source::{
     community::{Community, CommunityFollowerState},
     person::Person,
@@ -105,8 +107,23 @@ impl CommunityFollowerView {
   ) -> Result<Vec<PendingFollow>, Error> {
     let conn = &mut get_conn(pool).await?;
     let (limit, offset) = limit_and_offset(page, limit)?;
+    let person_alias_1 = diesel::alias!(person as person1);
+
+    // check if the community already has an accepted follower from the same instance
+    let is_new_instance = not(exists(
+      community_follower::table.filter(
+        community_follower::person_id
+          .eq(person_alias_1.field(person::id))
+          .and(person::instance_id.eq(person_alias_1.field(person::instance_id)))
+          .and(community_follower::state.eq(CommunityFollowerState::Accepted)),
+      ),
+    ));
+    
     let mut query = community_follower::table
       .inner_join(person::table)
+      .inner_join(
+        person_alias_1.on(community_follower::person_id.eq(person_alias_1.field(person::id))),
+      )
       .filter(community_follower::community_id.eq(community_id))
       .into_boxed();
     if pending_only {
@@ -116,25 +133,18 @@ impl CommunityFollowerView {
       .order_by(community_follower::published.asc())
       .limit(limit)
       .offset(offset)
-      .select(person::all_columns)
-      .load::<Person>(conn)
+      .select((person::all_columns, is_new_instance))
+      .load::<(Person, bool)>(conn)
       .await?;
-    let mut res2 = vec![];
-    for person in res.into_iter() {
-      // TODO: convert to single query
-      let is_new_instance = !CommunityFollowerView::check_has_followers_from_instance(
-        community_id,
-        person.instance_id,
-        pool,
-      )
-      .await
-      .is_ok();
-      res2.push(PendingFollow {
-        person,
-        is_new_instance,
-      });
-    }
-    Ok(res2)
+    Ok(
+      res
+        .into_iter()
+        .map(|(person, is_new_instance)| PendingFollow {
+          person,
+          is_new_instance,
+        })
+        .collect(),
+    )
   }
 
   pub async fn count_approval_required(
