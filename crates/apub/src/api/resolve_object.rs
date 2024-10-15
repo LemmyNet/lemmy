@@ -1,4 +1,5 @@
 use crate::fetcher::{
+  post_or_comment::PostOrComment,
   search::{search_query_to_object_id, search_query_to_object_id_local, SearchableObjects},
   user_or_community::UserOrCommunity,
 };
@@ -46,21 +47,22 @@ async fn convert_response(
   local_user_view: Option<LocalUserView>,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<Json<ResolveObjectResponse>> {
-  use SearchableObjects::*;
   let removed_or_deleted;
   let mut res = ResolveObjectResponse::default();
   let local_user = local_user_view.map(|l| l.local_user);
 
   match object {
-    Post(p) => {
-      removed_or_deleted = p.deleted || p.removed;
-      res.post = Some(PostView::read(pool, p.id, local_user.as_ref(), false).await?)
-    }
-    Comment(c) => {
-      removed_or_deleted = c.deleted || c.removed;
-      res.comment = Some(CommentView::read(pool, c.id, local_user.as_ref()).await?)
-    }
-    PersonOrCommunity(p) => match *p {
+    SearchableObjects::PostOrComment(pc) => match *pc {
+      PostOrComment::Post(p) => {
+        removed_or_deleted = p.deleted || p.removed;
+        res.post = Some(PostView::read(pool, p.id, local_user.as_ref(), false).await?)
+      }
+      PostOrComment::Comment(c) => {
+        removed_or_deleted = c.deleted || c.removed;
+        res.comment = Some(CommentView::read(pool, c.id, local_user.as_ref()).await?)
+      }
+    },
+    SearchableObjects::PersonOrCommunity(pc) => match *pc {
       UserOrCommunity::User(u) => {
         removed_or_deleted = u.deleted;
         res.person = Some(PersonView::read(pool, u.id).await?)

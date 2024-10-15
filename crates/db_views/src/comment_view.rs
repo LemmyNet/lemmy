@@ -216,32 +216,30 @@ fn queries<'a>() -> Queries<
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    if let Some(listing_type) = options.listing_type {
-      let is_subscribed = exists(
-        community_follower::table.filter(
-          post::community_id
-            .eq(community_follower::community_id)
-            .and(community_follower::person_id.eq(person_id_join)),
-        ),
-      );
+    let is_subscribed = exists(
+      community_follower::table.filter(
+        post::community_id
+          .eq(community_follower::community_id)
+          .and(community_follower::person_id.eq(person_id_join)),
+      ),
+    );
 
-      match listing_type {
-        ListingType::Subscribed => query = query.filter(is_subscribed), /* TODO could be this: and(community_follower::person_id.eq(person_id_join)), */
-        ListingType::Local => {
-          query = query
-            .filter(community::local.eq(true))
-            .filter(community::hidden.eq(false).or(is_subscribed))
-        }
-        ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
-        ListingType::ModeratorView => {
-          query = query.filter(exists(
-            community_moderator::table.filter(
-              post::community_id
-                .eq(community_moderator::community_id)
-                .and(community_moderator::person_id.eq(person_id_join)),
-            ),
-          ));
-        }
+    match options.listing_type.unwrap_or_default() {
+      ListingType::Subscribed => query = query.filter(is_subscribed), /* TODO could be this: and(community_follower::person_id.eq(person_id_join)), */
+      ListingType::Local => {
+        query = query
+          .filter(community::local.eq(true))
+          .filter(community::hidden.eq(false).or(is_subscribed))
+      }
+      ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
+      ListingType::ModeratorView => {
+        query = query.filter(exists(
+          community_moderator::table.filter(
+            post::community_id
+              .eq(community_moderator::community_id)
+              .and(community_moderator::person_id.eq(person_id_join)),
+          ),
+        ));
       }
     }
 
