@@ -22,7 +22,16 @@ use lemmy_db_schema::{
     instance_block,
   },
   source::{community::CommunityFollower, local_user::LocalUser, site::Site},
-  utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{
+    functions::lower,
+    fuzzy_search,
+    limit_and_offset,
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+  },
   ListingType,
   PostSortType,
 };
@@ -148,8 +157,8 @@ fn queries<'a>() -> Queries<
       }
       TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
       TopWeek => query = query.order_by(community_aggregates::users_active_week.desc()),
-      NameAsc => query = query.order_by(community::name.asc()),
-      NameDesc => query = query.order_by(community::name.desc()),
+      NameAsc => query = query.order_by(lower(community::name).asc()),
+      NameDesc => query = query.order_by(lower(community::name).desc()),
     };
 
     if let Some(listing_type) = options.listing_type {
