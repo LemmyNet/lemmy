@@ -1,4 +1,4 @@
-use crate::structs::CommunityFollowerView;
+use crate::structs::{CommunityFollowerView, PendingFollow};
 use chrono::Utc;
 use diesel::{
   dsl::{count, count_star, exists, not},
@@ -102,7 +102,7 @@ impl CommunityFollowerView {
     pending_only: bool,
     page: Option<i64>,
     limit: Option<i64>,
-  ) -> Result<Vec<Person>, Error> {
+  ) -> Result<Vec<PendingFollow>, Error> {
     let conn = &mut get_conn(pool).await?;
     let (limit, offset) = limit_and_offset(page, limit)?;
     let mut query = community_follower::table
@@ -112,13 +112,29 @@ impl CommunityFollowerView {
     if pending_only {
       query = query.filter(community_follower::state.eq(CommunityFollowerState::ApprovalRequired));
     }
-    query
+    let res = query
       .order_by(community_follower::published.asc())
       .limit(limit)
       .offset(offset)
       .select(person::all_columns)
       .load::<Person>(conn)
+      .await?;
+    let mut res2 = vec![];
+    for person in res.into_iter() {
+      // TODO: convert to single query
+      let is_new_instance = !CommunityFollowerView::check_has_followers_from_instance(
+        community_id,
+        person.instance_id,
+        pool,
+      )
       .await
+      .is_ok();
+      res2.push(PendingFollow {
+        person,
+        is_new_instance,
+      });
+    }
+    Ok(res2)
   }
 
   pub async fn count_approval_required(

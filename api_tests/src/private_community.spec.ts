@@ -66,6 +66,7 @@ test("Follow a private community", async () => {
     () => listCommunityPendingFollows(alpha, alphaCommunityId),
     f => f.items.length == 1,
   );
+  expect(pendingFollows1.items[0].is_new_instance).toBe(true);
   const pendingFollowsCount1 = await getCommunityPendingFollowsCount(
     alpha,
     alphaCommunityId,
@@ -80,7 +81,7 @@ test("Follow a private community", async () => {
   const approve = await approveCommunityPendingFollow(
     alpha,
     alphaCommunityId,
-    pendingFollows1.items[0].id,
+    pendingFollows1.items[0].person.id,
   );
   expect(approve.success).toBe(true);
 
@@ -99,6 +100,17 @@ test("Follow a private community", async () => {
     alphaCommunityId,
   );
   expect(pendingFollowsCount2.count).toBe(0);
+
+  // follow with another user from that instance, is_new_instance should be false now
+  const user2 = await registerUser(beta, betaUrl);
+  await user2.followCommunity(follow_form);
+
+  // Wait for follow to federate, shown as pending
+  let pendingFollows3 = await waitUntil(
+    () => listCommunityPendingFollows(alpha, alphaCommunityId),
+    f => f.items.length == 1,
+  );
+  expect(pendingFollows3.items[0].is_new_instance).toBe(false);
 });
 
 test("Only followers can view and interact with private community content", async () => {
@@ -143,7 +155,7 @@ test("Only followers can view and interact with private community content", asyn
   const approve = await approveCommunityPendingFollow(
     alpha,
     alphaCommunityId,
-    pendingFollows1.items[0].id,
+    pendingFollows1.items[0].person.id,
   );
   expect(approve.success).toBe(true);
 
@@ -190,7 +202,7 @@ test("Reject follower", async () => {
   const approve = await approveCommunityPendingFollow(
     alpha,
     alphaCommunityId,
-    pendingFollows1.items[0].id,
+    pendingFollows1.items[0].person.id,
     false,
   );
   expect(approve.success).toBe(true);

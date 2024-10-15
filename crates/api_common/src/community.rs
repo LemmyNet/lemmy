@@ -1,11 +1,16 @@
 use lemmy_db_schema::{
   newtypes::{CommunityId, LanguageId, PersonId},
-  source::{person::Person, site::Site},
+  source::site::Site,
   CommunityVisibility,
   ListingType,
   PostSortType,
 };
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
+use lemmy_db_views_actor::structs::{
+  CommunityModeratorView,
+  CommunityView,
+  PendingFollow,
+  PersonView,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -264,7 +269,7 @@ pub struct GetCommunityPendingFollowsCountResponse {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ListCommunityPendingFollowsResponse {
-  pub items: Vec<Person>,
+  pub items: Vec<PendingFollow>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
