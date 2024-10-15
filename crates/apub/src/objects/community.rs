@@ -1,6 +1,7 @@
 use crate::{
   activities::GetActorType,
   check_apub_id_valid,
+  fetcher::markdown_links::markdown_rewrite_remote_links_opt,
   local_site_data_cached,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
@@ -148,31 +149,33 @@ impl Object for ApubCommunity {
     let description = read_from_string_or_source_opt(&group.summary, &None, &group.source);
     let description =
       process_markdown_opt(&description, slur_regex, &url_blocklist, context).await?;
+    let description = markdown_rewrite_remote_links_opt(description, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.map(|i| i.url), context).await?;
 
     let form = CommunityInsertForm {
-      name: group.preferred_username.clone(),
-      title: group.name.unwrap_or(group.preferred_username.clone()),
-      description,
       published: group.published,
       updated: group.updated,
       deleted: Some(false),
       nsfw: Some(group.sensitive.unwrap_or(false)),
       actor_id: Some(group.id.into()),
       local: Some(false),
-      public_key: group.public_key.public_key_pem,
       last_refreshed_at: Some(naive_now()),
       icon,
       banner,
+      description,
       followers_url: group.followers.clone().map(Into::into),
       inbox_url: Some(group.inbox.into()),
       shared_inbox_url: group.endpoints.map(|e| e.shared_inbox.into()),
       moderators_url: group.attributed_to.clone().map(Into::into),
       posting_restricted_to_mods: group.posting_restricted_to_mods,
-      instance_id,
       featured_url: group.featured.clone().map(Into::into),
-      ..Default::default()
+      ..CommunityInsertForm::new(
+        instance_id,
+        group.preferred_username.clone(),
+        group.name.unwrap_or(group.preferred_username.clone()),
+        group.public_key.public_key_pem,
+      )
     };
     let languages =
       LanguageTag::to_language_id_multiple(group.language, &mut context.pool()).await?;
@@ -295,7 +298,7 @@ pub(crate) mod tests {
     assert!(!community.local);
     assert_eq!(
       community.description.as_ref().map(std::string::String::len),
-      Some(132)
+      Some(63)
     );
 
     Community::delete(&mut context.pool(), community.id).await?;

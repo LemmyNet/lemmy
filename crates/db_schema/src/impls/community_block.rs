@@ -1,12 +1,15 @@
 use crate::{
   newtypes::{CommunityId, PersonId},
   schema::community_actions,
-  source::community_block::{CommunityBlock, CommunityBlockForm},
+  source::{
+    community::Community,
+    community_block::{CommunityBlock, CommunityBlockForm},
+  },
   traits::Blockable,
   utils::{find_action, get_conn, now, uplete, DbPool},
 };
 use diesel::{
-  dsl::{exists, insert_into},
+  dsl::{exists, insert_into, not},
   expression::SelectableHelper,
   result::Error,
   select,
@@ -15,20 +18,38 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 impl CommunityBlock {
   pub async fn read(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
     for_community_id: CommunityId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(find_action(
-      community_actions::blocked,
-      (for_person_id, for_community_id),
+    select(not(exists(
+      find_action(commmunity_actions::blocked, (for_person_id, for_community_id)),
     )))
-    .get_result(conn)
-    .await
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::CommunityIsBlocked.into())
+  }
+
+  pub async fn for_person(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+  ) -> Result<Vec<Community>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    action_query(community_actions::block)
+      .inner_join(community::table)
+      .select(community::all_columns)
+      .filter(community_block::person_id.eq(person_id))
+      .filter(community::deleted.eq(false))
+      .filter(community::removed.eq(false))
+      .order_by(community_block::published)
+      .load::<Community>(conn)
+      .await
   }
 }
 

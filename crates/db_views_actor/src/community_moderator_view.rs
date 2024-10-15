@@ -8,33 +8,38 @@ use lemmy_db_schema::{
   source::local_user::LocalUser,
   utils::{action_query, find_action, get_conn, DbPool},
 };
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 impl CommunityModeratorView {
-  pub async fn is_community_moderator(
+  pub async fn check_is_community_moderator(
     pool: &mut DbPool<'_>,
     find_community_id: CommunityId,
     find_person_id: PersonId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     select(exists(find_action(
       community_actions::became_moderator,
       (find_person_id, find_community_id),
     )))
     .get_result::<bool>(conn)
-    .await
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::NotAModerator.into())
   }
 
   pub(crate) async fn is_community_moderator_of_any(
     pool: &mut DbPool<'_>,
     find_person_id: PersonId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     select(exists(
       action_query(community_actions::became_moderator)
         .filter(community_actions::person_id.eq(find_person_id)),
     ))
     .get_result::<bool>(conn)
-    .await
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::NotAModerator.into())
   }
 
   pub async fn for_community(

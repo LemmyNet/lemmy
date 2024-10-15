@@ -290,10 +290,10 @@ impl InstanceWorker {
     if updated.add(Days::new(1)) < Utc::now() {
       self.instance.updated = Some(Utc::now());
 
-      let form = InstanceForm::builder()
-        .domain(self.instance.domain.clone())
-        .updated(Some(naive_now()))
-        .build();
+      let form = InstanceForm {
+        updated: Some(naive_now()),
+        ..InstanceForm::new(self.instance.domain.clone())
+      };
       Instance::update(&mut self.pool(), self.instance.id, form).await?;
     }
     Ok(())
@@ -439,8 +439,8 @@ impl InstanceWorker {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
+#[expect(clippy::indexing_slicing)]
 mod test {
 
   use super::*;
@@ -459,7 +459,6 @@ mod test {
     traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
-  use reqwest::StatusCode;
   use serde_json::{json, Value};
   use serial_test::serial;
   use test_context::{test_context, AsyncTestContext};
@@ -659,10 +658,7 @@ mod test {
   #[tokio::test]
   #[serial]
   async fn test_update_instance(data: &mut Data) -> LemmyResult<()> {
-    let form = InstanceForm::builder()
-      .domain(data.instance.domain.clone())
-      .updated(None)
-      .build();
+    let form = InstanceForm::new(data.instance.domain.clone());
     Instance::update(&mut data.context.pool(), data.instance.id, form).await?;
 
     send_activity(data.person.actor_id.clone(), &data.context, true).await?;
@@ -688,7 +684,7 @@ mod test {
             |inbox_sender: actix_web::web::Data<UnboundedSender<String>>, body: String| async move {
               tracing::debug!("received activity: {:?}", body);
               inbox_sender.send(body.clone()).unwrap();
-              HttpResponse::new(StatusCode::OK)
+              HttpResponse::new(actix_web::http::StatusCode::OK)
             },
           ),
         )

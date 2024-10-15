@@ -192,8 +192,8 @@ impl SendManager {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
+#[expect(clippy::indexing_slicing)]
 mod test {
 
   use super::*;
@@ -354,10 +354,10 @@ mod test {
     let mut data = TestData::init(1, 1).await?;
 
     let instance = &data.instances[0];
-    let form = InstanceForm::builder()
-      .domain(instance.domain.clone())
-      .updated(DateTime::from_timestamp(0, 0))
-      .build();
+    let form = InstanceForm {
+      updated: DateTime::from_timestamp(0, 0),
+      ..InstanceForm::new(instance.domain.clone())
+    };
     Instance::update(&mut data.context.pool(), instance.id, form).await?;
 
     data.run().await?;

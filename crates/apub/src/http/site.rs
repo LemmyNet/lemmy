@@ -6,16 +6,12 @@ use crate::{
 use activitypub_federation::{config::Data, traits::Object};
 use actix_web::HttpResponse;
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_db_schema::source::site::Site;
+use lemmy_utils::error::LemmyResult;
 use url::Url;
 
 pub(crate) async fn get_apub_site_http(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
-  let site: ApubSite = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?
-    .site
-    .into();
+  let site: ApubSite = Site::read_local(&mut context.pool()).await?.into();
 
   let apub = site.into_json(&context).await?;
   create_apub_response(&apub)

@@ -3,8 +3,8 @@ use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
 use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  newtypes::{LocalUserId, PersonId},
-  schema::{local_user, local_user_vote_display_mode, person, person_aggregates},
+  newtypes::{LocalUserId, OAuthProviderId, PersonId},
+  schema::{local_user, local_user_vote_display_mode, oauth_account, person, person_aggregates},
   utils::{
     functions::{coalesce, lower},
     DbConn,
@@ -23,6 +23,7 @@ enum ReadBy<'a> {
   Name(&'a str),
   NameOrEmail(&'a str),
   Email(&'a str),
+  OAuthID(OAuthProviderId, &'a str),
 }
 
 enum ListMode {
@@ -58,12 +59,21 @@ fn queries<'a>(
       ),
       _ => query,
     };
-    query
+    let query = query
       .inner_join(local_user_vote_display_mode::table)
-      .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
-      .select(selection)
-      .first(&mut conn)
-      .await
+      .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)));
+
+    if let ReadBy::OAuthID(oauth_provider_id, oauth_user_id) = search {
+      query
+        .inner_join(oauth_account::table)
+        .filter(oauth_account::oauth_provider_id.eq(oauth_provider_id))
+        .filter(oauth_account::oauth_user_id.eq(oauth_user_id))
+        .select(selection)
+        .first(&mut conn)
+        .await
+    } else {
+      query.select(selection).first(&mut conn).await
+    }
   };
 
   let list = move |mut conn: DbConn<'a>, mode: ListMode| async move {
@@ -86,38 +96,39 @@ fn queries<'a>(
 }
 
 impl LocalUserView {
-  pub async fn read(
-    pool: &mut DbPool<'_>,
-    local_user_id: LocalUserId,
-  ) -> Result<Option<Self>, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<Self, Error> {
     queries().read(pool, ReadBy::Id(local_user_id)).await
   }
 
-  pub async fn read_person(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-  ) -> Result<Option<Self>, Error> {
+  pub async fn read_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     queries().read(pool, ReadBy::Person(person_id)).await
   }
 
-  pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> Result<Option<Self>, Error> {
+  pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> Result<Self, Error> {
     queries().read(pool, ReadBy::Name(name)).await
   }
 
   pub async fn find_by_email_or_name(
     pool: &mut DbPool<'_>,
     name_or_email: &str,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries()
       .read(pool, ReadBy::NameOrEmail(name_or_email))
       .await
   }
 
-  pub async fn find_by_email(
-    pool: &mut DbPool<'_>,
-    from_email: &str,
-  ) -> Result<Option<Self>, Error> {
+  pub async fn find_by_email(pool: &mut DbPool<'_>, from_email: &str) -> Result<Self, Error> {
     queries().read(pool, ReadBy::Email(from_email)).await
+  }
+
+  pub async fn find_by_oauth_id(
+    pool: &mut DbPool<'_>,
+    oauth_provider_id: OAuthProviderId,
+    oauth_user_id: &str,
+  ) -> Result<Self, Error> {
+    queries()
+      .read(pool, ReadBy::OAuthID(oauth_provider_id, oauth_user_id))
+      .await
   }
 
   pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {

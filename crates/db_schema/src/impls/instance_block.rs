@@ -1,12 +1,15 @@
 use crate::{
   newtypes::{InstanceId, PersonId},
   schema::instance_actions,
-  source::instance_block::{InstanceBlock, InstanceBlockForm},
+  source::{
+    instance::Instance,
+    instance_block::{InstanceBlock, InstanceBlockForm},
+  },
   traits::Blockable,
   utils::{find_action, get_conn, now, uplete, DbPool},
 };
 use diesel::{
-  dsl::{exists, insert_into},
+  dsl::{exists, insert_into, not},
   expression::SelectableHelper,
   result::Error,
   select,
@@ -15,20 +18,39 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 impl InstanceBlock {
   pub async fn read(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
     for_instance_id: InstanceId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(find_action(
-      instance_actions::blocked,
-      (for_person_id, for_instance_id),
+    select(not(exists(
+      find_action(
+        instance_actions::blocked,
+        (for_person_id, for_instance_id),
+      )
     )))
-    .get_result(conn)
-    .await
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::InstanceIsBlocked.into())
+  }
+
+  pub async fn for_person(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+  ) -> Result<Vec<Instance>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    action_query(instance_actions::block)
+      .inner_join(instance::table)
+      .select(instance::all_columns)
+      .filter(instance_block::person_id.eq(person_id))
+      .order_by(instance_block::published)
+      .load::<Instance>(conn)
+      .await
   }
 }
 

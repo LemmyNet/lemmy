@@ -16,7 +16,6 @@ use diesel::{
   sql_types::Timestamptz,
   ExpressionMethods,
   IntoSql,
-  OptionalExtension,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -30,14 +29,13 @@ impl EmailVerification {
       .await
   }
 
-  pub async fn read_for_token(pool: &mut DbPool<'_>, token: &str) -> Result<Option<Self>, Error> {
+  pub async fn read_for_token(pool: &mut DbPool<'_>, token: &str) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     email_verification
       .filter(verification_token.eq(token))
       .filter(published.gt(now.into_sql::<Timestamptz>() - 7.days()))
       .first(conn)
       .await
-      .optional()
   }
   pub async fn delete_old_tokens_for_local_user(
     pool: &mut DbPool<'_>,

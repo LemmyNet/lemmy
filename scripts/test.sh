@@ -3,7 +3,7 @@ set -e
 
 CWD="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
-cd $CWD/../
+cd "$CWD/../"
 
 PACKAGE="$1"
 TEST="$2"

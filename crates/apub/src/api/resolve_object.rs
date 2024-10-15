@@ -1,4 +1,5 @@
 use crate::fetcher::{
+  post_or_comment::PostOrComment,
   search::{search_query_to_object_id, search_query_to_object_id_local, SearchableObjects},
   user_or_community::UserOrCommunity,
 };
@@ -27,18 +28,18 @@ pub async fn resolve_object(
   // if there's no personId then the JWT was missing or invalid.
   let is_authenticated = local_user_view.is_some();
 
-  let res = if is_authenticated {
+  let res = if is_authenticated || cfg!(debug_assertions) {
     // user is fully authenticated; allow remote lookups as well.
     search_query_to_object_id(data.q.clone(), &context).await
   } else {
     // user isn't authenticated only allow a local search.
     search_query_to_object_id_local(&data.q, &context).await
   }
-  .with_lemmy_type(LemmyErrorType::CouldntFindObject)?;
+  .with_lemmy_type(LemmyErrorType::NotFound)?;
 
   convert_response(res, local_user_view, &mut context.pool())
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntFindObject)
+    .with_lemmy_type(LemmyErrorType::NotFound)
 }
 
 async fn convert_response(
@@ -46,44 +47,29 @@ async fn convert_response(
   local_user_view: Option<LocalUserView>,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<Json<ResolveObjectResponse>> {
-  use SearchableObjects::*;
   let removed_or_deleted;
   let mut res = ResolveObjectResponse::default();
   let local_user = local_user_view.map(|l| l.local_user);
 
   match object {
-    Post(p) => {
-      removed_or_deleted = p.deleted || p.removed;
-      res.post = Some(
-        PostView::read(pool, p.id, local_user.as_ref(), false)
-          .await?
-          .ok_or(LemmyErrorType::CouldntFindPost)?,
-      )
-    }
-    Comment(c) => {
-      removed_or_deleted = c.deleted || c.removed;
-      res.comment = Some(
-        CommentView::read(pool, c.id, local_user.as_ref())
-          .await?
-          .ok_or(LemmyErrorType::CouldntFindComment)?,
-      )
-    }
-    PersonOrCommunity(p) => match *p {
+    SearchableObjects::PostOrComment(pc) => match *pc {
+      PostOrComment::Post(p) => {
+        removed_or_deleted = p.deleted || p.removed;
+        res.post = Some(PostView::read(pool, p.id, local_user.as_ref(), false).await?)
+      }
+      PostOrComment::Comment(c) => {
+        removed_or_deleted = c.deleted || c.removed;
+        res.comment = Some(CommentView::read(pool, c.id, local_user.as_ref()).await?)
+      }
+    },
+    SearchableObjects::PersonOrCommunity(pc) => match *pc {
       UserOrCommunity::User(u) => {
         removed_or_deleted = u.deleted;
-        res.person = Some(
-          PersonView::read(pool, u.id)
-            .await?
-            .ok_or(LemmyErrorType::CouldntFindPerson)?,
-        )
+        res.person = Some(PersonView::read(pool, u.id).await?)
       }
       UserOrCommunity::Community(c) => {
         removed_or_deleted = c.deleted || c.removed;
-        res.community = Some(
-          CommunityView::read(pool, c.id, local_user.as_ref(), false)
-            .await?
-            .ok_or(LemmyErrorType::CouldntFindCommunity)?,
-        )
+        res.community = Some(CommunityView::read(pool, c.id, local_user.as_ref(), false).await?)
       }
     },
   };

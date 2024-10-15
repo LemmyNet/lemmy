@@ -47,9 +47,7 @@ pub async fn create_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
 
   if local_site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
@@ -90,23 +88,25 @@ pub async fn create_community(
   // When you create a community, make sure the user becomes a moderator and a follower
   let keypair = generate_actor_keypair()?;
 
-  let community_form = CommunityInsertForm::builder()
-    .name(data.name.clone())
-    .title(data.title.clone())
-    .description(description)
-    .icon(icon)
-    .banner(banner)
-    .nsfw(data.nsfw)
-    .actor_id(Some(community_actor_id.clone()))
-    .private_key(Some(keypair.private_key))
-    .public_key(keypair.public_key)
-    .followers_url(Some(generate_followers_url(&community_actor_id)?))
-    .inbox_url(Some(generate_inbox_url(&community_actor_id)?))
-    .shared_inbox_url(Some(generate_shared_inbox_url(context.settings())?))
-    .posting_restricted_to_mods(data.posting_restricted_to_mods)
-    .instance_id(site_view.site.instance_id)
-    .visibility(data.visibility)
-    .build();
+  let community_form = CommunityInsertForm {
+    description,
+    icon,
+    banner,
+    nsfw: data.nsfw,
+    actor_id: Some(community_actor_id.clone()),
+    private_key: Some(keypair.private_key),
+    followers_url: Some(generate_followers_url(&community_actor_id)?),
+    inbox_url: Some(generate_inbox_url(&community_actor_id)?),
+    shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
+    posting_restricted_to_mods: data.posting_restricted_to_mods,
+    visibility: data.visibility,
+    ..CommunityInsertForm::new(
+      site_view.site.instance_id,
+      data.name.clone(),
+      data.title.clone(),
+      keypair.public_key,
+    )
+  };
 
   let inserted_community = Community::create(&mut context.pool(), &community_form)
     .await

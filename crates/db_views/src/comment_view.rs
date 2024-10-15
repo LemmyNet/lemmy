@@ -29,7 +29,7 @@ use lemmy_db_schema::{
     person_actions,
     post,
   },
-  source::{community::CommunityFollower, local_user::LocalUser},
+  source::{community::CommunityFollower, local_user::LocalUser, site::Site},
   utils::{
     actions,
     actions_alias,
@@ -47,7 +47,7 @@ use lemmy_db_schema::{
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommentView, (CommentId, Option<&'a LocalUser>)>,
-  impl ListFn<'a, CommentView, CommentQuery<'a>>,
+  impl ListFn<'a, CommentView, (CommentQuery<'a>, &'a Site)>,
 > {
   let creator_is_admin = exists(
     local_user::table.filter(
@@ -121,7 +121,7 @@ fn queries<'a>() -> Queries<
     query.first(&mut conn).await
   };
 
-  let list = move |mut conn: DbConn<'a>, options: CommentQuery<'a>| async move {
+  let list = move |mut conn: DbConn<'a>, (options, site): (CommentQuery<'a>, &'a Site)| async move {
     // The left join below will return None in this case
     let local_user_id_join = options
       .local_user
@@ -154,10 +154,11 @@ fn queries<'a>() -> Queries<
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    if let Some(listing_type) = options.listing_type {
-      let is_subscribed = community_actions::followed.is_not_null();
+    let is_subscribed = community_actions::followed.is_not_null();
 
-      match listing_type {
+
+
+      match listing_type.unwrap_or_default() {
         ListingType::Subscribed => query = query.filter(is_subscribed), /* TODO could be this: and(community_follower::person_id.eq(person_id_join)), */
         ListingType::Local => {
           query = query
@@ -169,7 +170,7 @@ fn queries<'a>() -> Queries<
           query = query.filter(community_actions::became_moderator.is_not_null());
         }
       }
-    }
+    
 
     // If its saved only, then filter, and order by the saved time, not the comment creation time.
     if options.saved_only.unwrap_or_default() {
@@ -212,6 +213,12 @@ fn queries<'a>() -> Queries<
         .filter(instance_actions::blocked.is_null())
         .filter(community_actions::blocked.is_null())
         .filter(person_actions::blocked.is_null());
+    };
+
+    if !options.local_user.show_nsfw(site) {
+      query = query
+        .filter(post::nsfw.eq(false))
+        .filter(community::nsfw.eq(false));
     };
 
     query = options.local_user.visible_communities_only(query);
@@ -283,21 +290,18 @@ impl CommentView {
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
     my_local_user: Option<&'a LocalUser>,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     // If a person is given, then my_vote (res.9), if None, should be 0, not null
     // Necessary to differentiate between other person's votes
-    if let Ok(Some(res)) = queries().read(pool, (comment_id, my_local_user)).await {
-      let mut new_view = res.clone();
-      if my_local_user.is_some() && res.my_vote.is_none() {
-        new_view.my_vote = Some(0);
-      }
-      if res.comment.deleted || res.comment.removed {
-        new_view.comment.content = String::new();
-      }
-      Ok(Some(new_view))
-    } else {
-      Ok(None)
+    let res = queries().read(pool, (comment_id, my_local_user)).await?;
+    let mut new_view = res.clone();
+    if my_local_user.is_some() && res.my_vote.is_none() {
+      new_view.my_vote = Some(0);
     }
+    if res.comment.deleted || res.comment.removed {
+      new_view.comment.content = String::new();
+    }
+    Ok(new_view)
   }
 }
 
@@ -320,10 +324,10 @@ pub struct CommentQuery<'a> {
 }
 
 impl<'a> CommentQuery<'a> {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
     Ok(
       queries()
-        .list(pool, self)
+        .list(pool, (self, site))
         .await?
         .into_iter()
         .map(|mut c| {
@@ -338,7 +342,7 @@ impl<'a> CommentQuery<'a> {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{
@@ -376,14 +380,15 @@ mod tests {
       local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       person_block::{PersonBlock, PersonBlockForm},
-      post::{Post, PostInsertForm},
+      post::{Post, PostInsertForm, PostUpdateForm},
+      site::{Site, SiteInsertForm},
     },
     traits::{Bannable, Blockable, Crud, Joinable, Likeable, Saveable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
     CommunityVisibility,
     SubscribedType,
   };
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -396,6 +401,7 @@ mod tests {
     timmy_local_user_view: LocalUserView,
     inserted_sara_person: Person,
     inserted_community: Community,
+    site: Site,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
@@ -410,23 +416,21 @@ mod tests {
     let sara_person_form = PersonInsertForm::test_form(inserted_instance.id, "sara");
     let inserted_sara_person = Person::create(pool, &sara_person_form).await?;
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community 5".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community 5".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
     let inserted_community = Community::create(pool, &new_community).await?;
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post 2".into())
-      .creator_id(inserted_timmy_person.id)
-      .community_id(inserted_community.id)
-      .build();
-
+    let new_post = PostInsertForm::new(
+      "A test post 2".into(),
+      inserted_timmy_person.id,
+      inserted_community.id,
+    );
     let inserted_post = Post::create(pool, &new_post).await?;
-    let english_id = Language::read_id_from_code(pool, Some("en")).await?;
+    let english_id = Language::read_id_from_code(pool, "en").await?;
 
     // Create a comment tree with this hierarchy
     //       0
@@ -436,65 +440,70 @@ mod tests {
     //  3  4
     //     \
     //     5
-    let comment_form_0 = CommentInsertForm::builder()
-      .content("Comment 0".into())
-      .creator_id(inserted_timmy_person.id)
-      .post_id(inserted_post.id)
-      .language_id(english_id)
-      .build();
+    let comment_form_0 = CommentInsertForm {
+      language_id: Some(english_id),
+      ..CommentInsertForm::new(
+        inserted_timmy_person.id,
+        inserted_post.id,
+        "Comment 0".into(),
+      )
+    };
 
     let inserted_comment_0 = Comment::create(pool, &comment_form_0, None).await?;
 
-    let comment_form_1 = CommentInsertForm::builder()
-      .content("Comment 1, A test blocked comment".into())
-      .creator_id(inserted_sara_person.id)
-      .post_id(inserted_post.id)
-      .language_id(english_id)
-      .build();
-
+    let comment_form_1 = CommentInsertForm {
+      language_id: Some(english_id),
+      ..CommentInsertForm::new(
+        inserted_sara_person.id,
+        inserted_post.id,
+        "Comment 1, A test blocked comment".into(),
+      )
+    };
     let inserted_comment_1 =
       Comment::create(pool, &comment_form_1, Some(&inserted_comment_0.path)).await?;
 
-    let finnish_id = Language::read_id_from_code(pool, Some("fi")).await?;
-    let comment_form_2 = CommentInsertForm::builder()
-      .content("Comment 2".into())
-      .creator_id(inserted_timmy_person.id)
-      .post_id(inserted_post.id)
-      .language_id(finnish_id)
-      .build();
+    let finnish_id = Language::read_id_from_code(pool, "fi").await?;
+    let comment_form_2 = CommentInsertForm {
+      language_id: Some(finnish_id),
+      ..CommentInsertForm::new(
+        inserted_timmy_person.id,
+        inserted_post.id,
+        "Comment 2".into(),
+      )
+    };
 
     let inserted_comment_2 =
       Comment::create(pool, &comment_form_2, Some(&inserted_comment_0.path)).await?;
 
-    let comment_form_3 = CommentInsertForm::builder()
-      .content("Comment 3".into())
-      .creator_id(inserted_timmy_person.id)
-      .post_id(inserted_post.id)
-      .language_id(english_id)
-      .build();
-
+    let comment_form_3 = CommentInsertForm {
+      language_id: Some(english_id),
+      ..CommentInsertForm::new(
+        inserted_timmy_person.id,
+        inserted_post.id,
+        "Comment 3".into(),
+      )
+    };
     let _inserted_comment_3 =
       Comment::create(pool, &comment_form_3, Some(&inserted_comment_1.path)).await?;
 
-    let polish_id = Language::read_id_from_code(pool, Some("pl"))
-      .await?
-      .ok_or(LemmyErrorType::LanguageNotAllowed)?;
-    let comment_form_4 = CommentInsertForm::builder()
-      .content("Comment 4".into())
-      .creator_id(inserted_timmy_person.id)
-      .post_id(inserted_post.id)
-      .language_id(Some(polish_id))
-      .build();
+    let polish_id = Language::read_id_from_code(pool, "pl").await?;
+    let comment_form_4 = CommentInsertForm {
+      language_id: Some(polish_id),
+      ..CommentInsertForm::new(
+        inserted_timmy_person.id,
+        inserted_post.id,
+        "Comment 4".into(),
+      )
+    };
 
     let inserted_comment_4 =
       Comment::create(pool, &comment_form_4, Some(&inserted_comment_1.path)).await?;
 
-    let comment_form_5 = CommentInsertForm::builder()
-      .content("Comment 5".into())
-      .creator_id(inserted_timmy_person.id)
-      .post_id(inserted_post.id)
-      .build();
-
+    let comment_form_5 = CommentInsertForm::new(
+      inserted_timmy_person.id,
+      inserted_post.id,
+      "Comment 5".into(),
+    );
     let _inserted_comment_5 =
       Comment::create(pool, &comment_form_5, Some(&inserted_comment_4.path)).await?;
 
@@ -527,6 +536,8 @@ mod tests {
       person: inserted_timmy_person.clone(),
       counts: Default::default(),
     };
+    let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
+    let site = Site::create(pool, &site_form).await?;
     Ok(Data {
       inserted_instance,
       inserted_comment_0,
@@ -536,6 +547,7 @@ mod tests {
       timmy_local_user_view,
       inserted_sara_person,
       inserted_community,
+      site,
     })
   }
 
@@ -556,14 +568,12 @@ mod tests {
       post_id: (Some(data.inserted_post.id)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     assert_eq!(
-      &expected_comment_view_no_person,
-      read_comment_views_no_person
-        .first()
-        .ok_or(LemmyErrorType::CouldntFindComment)?
+      Some(&expected_comment_view_no_person),
+      read_comment_views_no_person.first()
     );
 
     let read_comment_views_with_person = CommentQuery {
@@ -572,7 +582,7 @@ mod tests {
       local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     assert_eq!(
@@ -588,8 +598,7 @@ mod tests {
       data.inserted_comment_1.id,
       Some(&data.timmy_local_user_view.local_user),
     )
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+    .await?;
 
     // Make sure block set the creator blocked
     assert!(read_comment_from_blocked_person.creator_blocked);
@@ -625,7 +634,7 @@ mod tests {
       liked_only: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?
     .into_iter()
     .map(|c| c.comment.content)
@@ -641,7 +650,7 @@ mod tests {
       disliked_only: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     assert!(read_disliked_comment_views.is_empty());
@@ -662,7 +671,7 @@ mod tests {
       parent_path: (Some(top_path)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     let child_path = data.inserted_comment_1.path.clone();
@@ -671,7 +680,7 @@ mod tests {
       parent_path: (Some(child_path)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     // Make sure the comment parent-limited fetch is correct
@@ -691,7 +700,7 @@ mod tests {
       max_depth: (Some(1)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     // Make sure a depth limited one only has the top comment
@@ -709,7 +718,7 @@ mod tests {
       sort: (Some(CommentSortType::New)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     // Make sure a depth limited one, and given child comment 1, has 3
@@ -735,14 +744,12 @@ mod tests {
       local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_length!(5, all_languages);
 
     // change user lang to finnish, should only show one post in finnish and one undetermined
-    let finnish_id = Language::read_id_from_code(pool, Some("fi"))
-      .await?
-      .ok_or(LemmyErrorType::LanguageNotAllowed)?;
+    let finnish_id = Language::read_id_from_code(pool, "fi").await?;
     LocalUserLanguage::update(
       pool,
       vec![finnish_id],
@@ -753,7 +760,7 @@ mod tests {
       local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_length!(2, finnish_comments);
     let finnish_comment = finnish_comments
@@ -761,11 +768,8 @@ mod tests {
       .find(|c| c.comment.language_id == finnish_id);
     assert!(finnish_comment.is_some());
     assert_eq!(
-      data.inserted_comment_2.content,
-      finnish_comment
-        .ok_or(LemmyErrorType::CouldntFindComment)?
-        .comment
-        .content
+      Some(&data.inserted_comment_2.content),
+      finnish_comment.map(|c| &c.comment.content)
     );
 
     // now show all comments with undetermined language (which is the default value)
@@ -779,7 +783,7 @@ mod tests {
       local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_length!(1, undetermined_comment);
 
@@ -803,7 +807,7 @@ mod tests {
       post_id: Some(data.inserted_comment_2.post_id),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_eq!(comments[0].comment.id, data.inserted_comment_2.id);
     assert!(comments[0].comment.distinguished);
@@ -832,7 +836,7 @@ mod tests {
       sort: (Some(CommentSortType::Old)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     assert_eq!(comments[1].creator.name, "sara");
@@ -853,7 +857,7 @@ mod tests {
       sort: (Some(CommentSortType::Old)),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     // Timmy is an admin, and make sure that field is true
@@ -893,7 +897,7 @@ mod tests {
       saved_only: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
 
     // There should only be two comments
@@ -923,14 +927,13 @@ mod tests {
     LocalUser::delete(pool, data.timmy_local_user_view.local_user.id).await?;
     Person::delete(pool, data.inserted_sara_person.id).await?;
     Instance::delete(pool, data.inserted_instance.id).await?;
+    Site::delete(pool, data.site.id).await?;
 
     Ok(())
   }
 
   async fn expected_comment_view(data: &Data, pool: &mut DbPool<'_>) -> LemmyResult<CommentView> {
-    let agg = CommentAggregates::read(pool, data.inserted_comment_0.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindComment)?;
+    let agg = CommentAggregates::read(pool, data.inserted_comment_0.id).await?;
     Ok(CommentView {
       creator_banned_from_community: false,
       banned_from_community: false,
@@ -1002,6 +1005,7 @@ mod tests {
         featured_community: false,
         featured_local: false,
         url_content_type: None,
+        scheduled_publish_time: None,
       },
       community: Community {
         id: data.inserted_community.id,
@@ -1063,7 +1067,7 @@ mod tests {
     let unauthenticated_query = CommentQuery {
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_eq!(0, unauthenticated_query.len());
 
@@ -1071,12 +1075,12 @@ mod tests {
       local_user: Some(&data.timmy_local_user_view.local_user),
       ..Default::default()
     }
-    .list(pool)
+    .list(&data.site, pool)
     .await?;
     assert_eq!(5, authenticated_query.len());
 
-    let unauthenticated_comment = CommentView::read(pool, data.inserted_comment_0.id, None).await?;
-    assert!(unauthenticated_comment.is_none());
+    let unauthenticated_comment = CommentView::read(pool, data.inserted_comment_0.id, None).await;
+    assert!(unauthenticated_comment.is_err());
 
     let authenticated_comment = CommentView::read(
       pool,
@@ -1123,8 +1127,7 @@ mod tests {
       data.inserted_comment_0.id,
       Some(&inserted_banned_from_comm_local_user),
     )
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+    .await?;
 
     assert!(comment_view.banned_from_community);
 
@@ -1144,10 +1147,38 @@ mod tests {
       data.inserted_comment_0.id,
       Some(&data.timmy_local_user_view.local_user),
     )
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+    .await?;
 
     assert!(!comment_view.banned_from_community);
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn comment_listings_hide_nsfw() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Mark a post as nsfw
+    let update_form = PostUpdateForm {
+      nsfw: Some(true),
+      ..Default::default()
+    };
+    Post::update(pool, data.inserted_post.id, &update_form).await?;
+
+    // Make sure comments of this post are not returned
+    let comments = CommentQuery::default().list(&data.site, pool).await?;
+    assert_eq!(0, comments.len());
+
+    // Mark site as nsfw
+    let mut site = data.site.clone();
+    site.content_warning = Some("nsfw".to_string());
+
+    // Now comments of nsfw post are returned
+    let comments = CommentQuery::default().list(&site, pool).await?;
+    assert_eq!(6, comments.len());
 
     cleanup(data, pool).await
   }

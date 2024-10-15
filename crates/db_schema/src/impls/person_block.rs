@@ -1,34 +1,60 @@
 use crate::{
   newtypes::PersonId,
   schema::person_actions,
-  source::person_block::{PersonBlock, PersonBlockForm},
+  source::{
+    person::Person,
+    person_block::{PersonBlock, PersonBlockForm},
+  },
   traits::Blockable,
   utils::{find_action, get_conn, now, uplete, DbPool},
 };
 use diesel::{
-  dsl::{exists, insert_into},
+  dsl::{exists, insert_into, not},
   expression::SelectableHelper,
   result::Error,
   select,
   ExpressionMethods,
   NullableExpressionMethods,
+  JoinOnDsl,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 impl PersonBlock {
   pub async fn read(
     pool: &mut DbPool<'_>,
     for_person_id: PersonId,
     for_recipient_id: PersonId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(find_action(
-      person_actions::blocked,
-      (for_person_id, for_recipient_id),
+    select(not(exists(
+      person_block::table.find((for_person_id, for_recipient_id)),
     )))
-    .get_result(conn)
-    .await
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::PersonIsBlocked.into())
+  }
+
+  pub async fn for_person(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+  ) -> Result<Vec<Person>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let target_person_alias = diesel::alias!(person as person1);
+
+    action_query(person_actions::block)
+      .inner_join(person::table.on(person_actions::person_id.eq(person::id)))
+      .inner_join(
+        target_person_alias.on(person_actions::target_id.eq(target_person_alias.field(person::id))),
+      )
+      .select(target_person_alias.fields(person::all_columns))
+      .filter(person_actions::person_id.eq(person_id))
+      .filter(target_person_alias.field(person::deleted).eq(false))
+      .order_by(person_actions::published)
+      .load::<Person>(conn)
+      .await
   }
 }
 

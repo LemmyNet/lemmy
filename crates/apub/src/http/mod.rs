@@ -11,7 +11,6 @@ use activitypub_federation::{
   FEDERATION_CONTENT_TYPE,
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
-use http::{header::LOCATION, StatusCode};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::DbUrl,
@@ -76,14 +75,14 @@ fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> LemmyResult<HttpRespon
   Ok(
     HttpResponse::Gone()
       .content_type(FEDERATION_CONTENT_TYPE)
-      .status(StatusCode::GONE)
+      .status(actix_web::http::StatusCode::GONE)
       .body(json),
   )
 }
 
 fn redirect_remote_object(url: &DbUrl) -> HttpResponse {
   let mut res = HttpResponse::PermanentRedirect();
-  res.insert_header((LOCATION, url.as_str()));
+  res.insert_header((actix_web::http::header::LOCATION, url.as_str()));
   res.finish()
 }
 
@@ -107,9 +106,7 @@ pub(crate) async fn get_activity(
     info.id
   ))?
   .into();
-  let activity = SentActivity::read_from_apub_id(&mut context.pool(), &activity_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindActivity)?;
+  let activity = SentActivity::read_from_apub_id(&mut context.pool(), &activity_id).await?;
 
   let sensitive = activity.sensitive;
   if sensitive {
@@ -125,7 +122,7 @@ fn check_community_public(community: &Community) -> LemmyResult<()> {
     Err(LemmyErrorType::Deleted)?
   }
   if community.visibility != CommunityVisibility::Public {
-    return Err(LemmyErrorType::CouldntFindCommunity.into());
+    return Err(LemmyErrorType::NotFound.into());
   }
   Ok(())
 }

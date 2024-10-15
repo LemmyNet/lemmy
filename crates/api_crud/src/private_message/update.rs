@@ -30,9 +30,7 @@ pub async fn update_private_message(
 
   // Checking permissions
   let private_message_id = data.private_message_id;
-  let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPrivateMessage)?;
+  let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
   if local_user_view.person.id != orig_private_message.creator_id {
     Err(LemmyErrorType::EditPrivateMessageNotAllowed)?
   }
@@ -56,9 +54,7 @@ pub async fn update_private_message(
   .await
   .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
 
-  let view = PrivateMessageView::read(&mut context.pool(), private_message_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPrivateMessage)?;
+  let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::UpdatePrivateMessage(view.clone()),

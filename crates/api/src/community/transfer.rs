@@ -82,13 +82,10 @@ pub async fn transfer_community(
     Some(&local_user_view.local_user),
     false,
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  .await?;
 
   let community_id = data.community_id;
-  let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
+  let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
   // Return the jwt
   Ok(Json(GetCommunityResponse {

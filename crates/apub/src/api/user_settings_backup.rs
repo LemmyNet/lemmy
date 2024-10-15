@@ -103,18 +103,22 @@ pub async fn import_settings(
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {
   let person_form = PersonUpdateForm {
-    display_name: Some(data.display_name.clone()),
-    bio: Some(data.bio.clone()),
-    matrix_user_id: Some(data.matrix_id.clone()),
+    display_name: data.display_name.clone().map(Some),
+    bio: data.bio.clone().map(Some),
+    matrix_user_id: data.bio.clone().map(Some),
     bot_account: data.bot_account,
     ..Default::default()
   };
-  Person::update(&mut context.pool(), local_user_view.person.id, &person_form).await?;
+  // ignore error in case form is empty
+  Person::update(&mut context.pool(), local_user_view.person.id, &person_form)
+    .await
+    .ok();
 
   let local_user_form = LocalUserUpdateForm {
     show_nsfw: data.settings.as_ref().map(|s| s.show_nsfw),
     theme: data.settings.clone().map(|s| s.theme.clone()),
-    default_sort_type: data.settings.as_ref().map(|s| s.default_sort_type),
+    default_post_sort_type: data.settings.as_ref().map(|s| s.default_post_sort_type),
+    default_comment_sort_type: data.settings.as_ref().map(|s| s.default_comment_sort_type),
     default_listing_type: data.settings.as_ref().map(|s| s.default_listing_type),
     interface_language: data.settings.clone().map(|s| s.interface_language),
     show_avatars: data.settings.as_ref().map(|s| s.show_avatars),
@@ -122,12 +126,10 @@ pub async fn import_settings(
       .settings
       .as_ref()
       .map(|s| s.send_notifications_to_email),
-    show_scores: data.settings.as_ref().map(|s| s.show_scores),
     show_bot_accounts: data.settings.as_ref().map(|s| s.show_bot_accounts),
     show_read_posts: data.settings.as_ref().map(|s| s.show_read_posts),
     open_links_in_new_tab: data.settings.as_ref().map(|s| s.open_links_in_new_tab),
     blur_nsfw: data.settings.as_ref().map(|s| s.blur_nsfw),
-    auto_expand: data.settings.as_ref().map(|s| s.auto_expand),
     infinite_scroll_enabled: data.settings.as_ref().map(|s| s.infinite_scroll_enabled),
     post_listing_mode: data.settings.as_ref().map(|s| s.post_listing_mode),
     ..Default::default()
@@ -308,12 +310,14 @@ where
   });
   Ok(failed_items.into_iter().join(","))
 }
-#[cfg(test)]
-#[allow(clippy::indexing_slicing)]
-mod tests {
 
-  use crate::api::user_settings_backup::{export_settings, import_settings, UserSettingsBackup};
+#[cfg(test)]
+#[expect(clippy::indexing_slicing)]
+pub(crate) mod tests {
+
+  use crate::api::user_settings_backup::{export_settings, import_settings};
   use activitypub_federation::config::Data;
+  use actix_web::web::Json;
   use lemmy_api_common::context::LemmyContext;
   use lemmy_db_schema::{
     source::{
@@ -332,7 +336,7 @@ mod tests {
   use std::time::Duration;
   use tokio::time::sleep;
 
-  async fn create_user(
+  pub(crate) async fn create_user(
     name: String,
     bio: Option<String>,
     context: &Data<LemmyContext>,
@@ -348,11 +352,7 @@ mod tests {
     let user_form = LocalUserInsertForm::test_form(person.id);
     let local_user = LocalUser::create(&mut context.pool(), &user_form, vec![]).await?;
 
-    Ok(
-      LocalUserView::read(&mut context.pool(), local_user.id)
-        .await?
-        .ok_or(LemmyErrorType::CouldntFindLocalUser)?,
-    )
+    Ok(LocalUserView::read(&mut context.pool(), local_user.id).await?)
   }
 
   #[tokio::test]
@@ -363,11 +363,12 @@ mod tests {
     let export_user =
       create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
 
-    let community_form = CommunityInsertForm::builder()
-      .name("testcom".to_string())
-      .title("testcom".to_string())
-      .instance_id(export_user.person.instance_id)
-      .build();
+    let community_form = CommunityInsertForm::new(
+      export_user.person.instance_id,
+      "testcom".to_string(),
+      "testcom".to_string(),
+      "pubkey".to_string(),
+    );
     let community = Community::create(&mut context.pool(), &community_form).await?;
     let follower_form = CommunityFollowerForm {
       community_id: community.id,
@@ -385,9 +386,8 @@ mod tests {
     // wait for background task to finish
     sleep(Duration::from_millis(1000)).await;
 
-    let import_user_updated = LocalUserView::read(&mut context.pool(), import_user.local_user.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
+    let import_user_updated =
+      LocalUserView::read(&mut context.pool(), import_user.local_user.id).await?;
 
     assert_eq!(
       export_user.person.display_name,
@@ -402,44 +402,6 @@ mod tests {
 
     LocalUser::delete(&mut context.pool(), export_user.local_user.id).await?;
     LocalUser::delete(&mut context.pool(), import_user.local_user.id).await?;
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_settings_partial_import() -> LemmyResult<()> {
-    let context = LemmyContext::init_test_context().await;
-
-    let export_user =
-      create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
-
-    let community_form = CommunityInsertForm::builder()
-      .name("testcom".to_string())
-      .title("testcom".to_string())
-      .instance_id(export_user.person.instance_id)
-      .build();
-    let community = Community::create(&mut context.pool(), &community_form).await?;
-    let follower_form = CommunityFollowerForm {
-      community_id: community.id,
-      person_id: export_user.person.id,
-      pending: false,
-    };
-    CommunityFollower::follow(&mut context.pool(), &follower_form).await?;
-
-    let backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
-
-    let import_user = create_user("charles".to_string(), None, &context).await?;
-
-    let backup2 = UserSettingsBackup {
-      followed_communities: backup.followed_communities.clone(),
-      ..Default::default()
-    };
-    import_settings(
-      actix_web::web::Json(backup2),
-      import_user.clone(),
-      context.reset_request_count(),
-    )
-    .await?;
     Ok(())
   }
 
@@ -476,6 +438,35 @@ mod tests {
 
     LocalUser::delete(&mut context.pool(), export_user.local_user.id).await?;
     LocalUser::delete(&mut context.pool(), import_user.local_user.id).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn import_partial_backup() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+
+    let import_user =
+      create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
+
+    let backup =
+      serde_json::from_str("{\"bot_account\": true, \"settings\": {\"theme\": \"my_theme\"}}")?;
+    import_settings(
+      Json(backup),
+      import_user.clone(),
+      context.reset_request_count(),
+    )
+    .await?;
+
+    let import_user_updated =
+      LocalUserView::read(&mut context.pool(), import_user.local_user.id).await?;
+    // mark as bot account
+    assert!(import_user_updated.person.bot_account);
+    // dont remove existing bio
+    assert_eq!(import_user.person.bio, import_user_updated.person.bio);
+    // local_user can be deserialized without id/person_id fields
+    assert_eq!("my_theme", import_user_updated.local_user.theme);
+
     Ok(())
   }
 }

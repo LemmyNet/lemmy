@@ -22,8 +22,7 @@ pub async fn distinguish_comment(
     data.comment_id,
     Some(&local_user_view.local_user),
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindComment)?;
+  .await?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -60,8 +59,7 @@ pub async fn distinguish_comment(
     data.comment_id,
     Some(&local_user_view.local_user),
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindComment)?;
+  .await?;
 
   Ok(Json(CommentResponse {
     comment_view,
