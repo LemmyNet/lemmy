@@ -36,7 +36,15 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::{functions::coalesce, get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{
+    find_action,
+    functions::coalesce,
+    get_conn,
+    naive_now,
+    now,
+    DbPool,
+    DELETED_REPLACEMENT_TEXT,
+  },
 };
 use lemmy_routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use lemmy_utils::error::LemmyResult;
@@ -470,11 +478,10 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
         .filter(not(person::banned.or(person::deleted)))
         .filter(not(community::removed.or(community::deleted)))
         // ensure that user isnt banned from community
-        .filter(not(exists(
-          community_person_ban::table
-            .filter(community_person_ban::community_id.eq(community::id))
-            .filter(community_person_ban::person_id.eq(person::id)),
-        )))
+        .filter(not(exists(find_action(
+          community_actions::received_ban,
+          (person::id, community::id),
+        ))))
         .select((post::all_columns, community::all_columns))
         .get_results::<(Post, Community)>(&mut conn)
         .await

@@ -1,12 +1,12 @@
 use crate::{
   newtypes::{InstanceId, PersonId},
-  schema::instance_actions,
+  schema::{instance, instance_actions},
   source::{
     instance::Instance,
     instance_block::{InstanceBlock, InstanceBlockForm},
   },
   traits::Blockable,
-  utils::{find_action, get_conn, now, uplete, DbPool},
+  utils::{action_query, find_action, get_conn, now, uplete, DbPool},
 };
 use diesel::{
   dsl::{exists, insert_into, not},
@@ -27,12 +27,10 @@ impl InstanceBlock {
     for_instance_id: InstanceId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    select(not(exists(
-      find_action(
-        instance_actions::blocked,
-        (for_person_id, for_instance_id),
-      )
-    )))
+    select(not(exists(find_action(
+      instance_actions::blocked,
+      (for_person_id, for_instance_id),
+    ))))
     .get_result::<bool>(conn)
     .await?
     .then_some(())
@@ -44,11 +42,11 @@ impl InstanceBlock {
     person_id: PersonId,
   ) -> Result<Vec<Instance>, Error> {
     let conn = &mut get_conn(pool).await?;
-    action_query(instance_actions::block)
+    action_query(instance_actions::blocked)
       .inner_join(instance::table)
       .select(instance::all_columns)
-      .filter(instance_block::person_id.eq(person_id))
-      .order_by(instance_block::published)
+      .filter(instance_actions::person_id.eq(person_id))
+      .order_by(instance_actions::blocked)
       .load::<Instance>(conn)
       .await
   }

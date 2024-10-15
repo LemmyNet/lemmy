@@ -1,12 +1,12 @@
 use crate::{
   newtypes::{CommunityId, PersonId},
-  schema::community_actions,
+  schema::{community, community_actions},
   source::{
     community::Community,
     community_block::{CommunityBlock, CommunityBlockForm},
   },
   traits::Blockable,
-  utils::{find_action, get_conn, now, uplete, DbPool},
+  utils::{action_query, find_action, get_conn, now, uplete, DbPool},
 };
 use diesel::{
   dsl::{exists, insert_into, not},
@@ -27,9 +27,10 @@ impl CommunityBlock {
     for_community_id: CommunityId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    select(not(exists(
-      find_action(commmunity_actions::blocked, (for_person_id, for_community_id)),
-    )))
+    select(not(exists(find_action(
+      community_actions::blocked,
+      (for_person_id, for_community_id),
+    ))))
     .get_result::<bool>(conn)
     .await?
     .then_some(())
@@ -41,13 +42,13 @@ impl CommunityBlock {
     person_id: PersonId,
   ) -> Result<Vec<Community>, Error> {
     let conn = &mut get_conn(pool).await?;
-    action_query(community_actions::block)
+    action_query(community_actions::blocked)
       .inner_join(community::table)
       .select(community::all_columns)
-      .filter(community_block::person_id.eq(person_id))
+      .filter(community_actions::person_id.eq(person_id))
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
-      .order_by(community_block::published)
+      .order_by(community_actions::blocked)
       .load::<Community>(conn)
       .await
   }

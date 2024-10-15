@@ -1,12 +1,12 @@
 use crate::{
   newtypes::PersonId,
-  schema::person_actions,
+  schema::{person, person_actions},
   source::{
     person::Person,
     person_block::{PersonBlock, PersonBlockForm},
   },
   traits::Blockable,
-  utils::{find_action, get_conn, now, uplete, DbPool},
+  utils::{action_query, find_action, get_conn, now, uplete, DbPool},
 };
 use diesel::{
   dsl::{exists, insert_into, not},
@@ -14,8 +14,8 @@ use diesel::{
   result::Error,
   select,
   ExpressionMethods,
-  NullableExpressionMethods,
   JoinOnDsl,
+  NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -28,9 +28,10 @@ impl PersonBlock {
     for_recipient_id: PersonId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    select(not(exists(
-      person_block::table.find((for_person_id, for_recipient_id)),
-    )))
+    select(not(exists(find_action(
+      person_actions::blocked,
+      (for_person_id, for_recipient_id),
+    ))))
     .get_result::<bool>(conn)
     .await?
     .then_some(())
@@ -44,7 +45,7 @@ impl PersonBlock {
     let conn = &mut get_conn(pool).await?;
     let target_person_alias = diesel::alias!(person as person1);
 
-    action_query(person_actions::block)
+    action_query(person_actions::blocked)
       .inner_join(person::table.on(person_actions::person_id.eq(person::id)))
       .inner_join(
         target_person_alias.on(person_actions::target_id.eq(target_person_alias.field(person::id))),
@@ -52,7 +53,7 @@ impl PersonBlock {
       .select(target_person_alias.fields(person::all_columns))
       .filter(person_actions::person_id.eq(person_id))
       .filter(target_person_alias.field(person::deleted).eq(false))
-      .order_by(person_actions::published)
+      .order_by(person_actions::blocked)
       .load::<Person>(conn)
       .await
   }

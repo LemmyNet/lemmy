@@ -156,21 +156,18 @@ fn queries<'a>() -> Queries<
 
     let is_subscribed = community_actions::followed.is_not_null();
 
-
-
-      match listing_type.unwrap_or_default() {
-        ListingType::Subscribed => query = query.filter(is_subscribed), /* TODO could be this: and(community_follower::person_id.eq(person_id_join)), */
-        ListingType::Local => {
-          query = query
-            .filter(community::local.eq(true))
-            .filter(community::hidden.eq(false).or(is_subscribed))
-        }
-        ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
-        ListingType::ModeratorView => {
-          query = query.filter(community_actions::became_moderator.is_not_null());
-        }
+    match options.listing_type.unwrap_or_default() {
+      ListingType::Subscribed => query = query.filter(is_subscribed), /* TODO could be this: and(community_follower::person_id.eq(person_id_join)), */
+      ListingType::Local => {
+        query = query
+          .filter(community::local.eq(true))
+          .filter(community::hidden.eq(false).or(is_subscribed))
       }
-    
+      ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
+      ListingType::ModeratorView => {
+        query = query.filter(community_actions::became_moderator.is_not_null());
+      }
+    }
 
     // If its saved only, then filter, and order by the saved time, not the comment creation time.
     if options.saved_only.unwrap_or_default() {

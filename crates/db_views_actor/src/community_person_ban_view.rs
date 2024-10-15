@@ -18,12 +18,10 @@ impl CommunityPersonBanView {
     from_community_id: CommunityId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    select(not(exists(
-      find_action(
-        community_actions::received_ban,
-        (from_person_id, from_community_id),
-      )
-    )))
+    select(not(exists(find_action(
+      community_actions::received_ban,
+      (from_person_id, from_community_id),
+    ))))
     .get_result::<bool>(conn)
     .await?
     .then_some(())
