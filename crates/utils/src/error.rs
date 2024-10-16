@@ -76,6 +76,7 @@ pub enum LemmyErrorType {
   FederationForbiddenByStrictAllowList,
   PersonIsBannedFromCommunity,
   ObjectIsNotPublic,
+  ObjectIsNotPrivate,
   InvalidCommunity,
   CannotCreatePostOrCommentInDeletedOrRemovedCommunity,
   CannotReceivePage,

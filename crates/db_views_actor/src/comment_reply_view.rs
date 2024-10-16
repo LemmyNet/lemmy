@@ -31,7 +31,10 @@ use lemmy_db_schema::{
     person_block,
     post,
   },
-  source::local_user::LocalUser,
+  source::{
+    community::{CommunityFollower, CommunityFollowerState},
+    local_user::LocalUser,
+  },
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
   CommentSortType,
 };
@@ -75,7 +78,7 @@ fn queries<'a>() -> Queries<
           .eq(community_follower::community_id)
           .and(community_follower::person_id.eq(person_id)),
       )
-      .select(community_follower::pending.nullable())
+      .select(CommunityFollower::select_subscribed_type())
       .single_value()
   };
 
@@ -135,11 +138,15 @@ fn queries<'a>() -> Queries<
     };
 
     let subscribed_type_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>,
+      dyn BoxableExpression<
+        _,
+        Pg,
+        SqlType = sql_types::Nullable<lemmy_db_schema::schema::sql_types::CommunityFollowerState>,
+      >,
     > = if let Some(person_id) = my_person_id {
       Box::new(is_community_followed(person_id))
     } else {
-      Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
+      Box::new(None::<CommunityFollowerState>.into_sql::<sql_types::Nullable<lemmy_db_schema::schema::sql_types::CommunityFollowerState>>())
     };
 
     let is_saved_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =

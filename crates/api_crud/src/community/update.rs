@@ -9,6 +9,7 @@ use lemmy_api_common::{
   utils::{
     check_community_mod_action,
     get_url_blocklist,
+    is_admin,
     local_site_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_api,
@@ -51,6 +52,10 @@ pub async fn update_community(
     is_valid_body_field(desc, false)?;
   }
 
+  if data.visibility == Some(lemmy_db_schema::CommunityVisibility::Private) {
+    is_admin(&local_user_view)?;
+  }
+
   let old_community = Community::read(&mut context.pool(), data.community_id).await?;
 
   let icon = diesel_url_update(data.icon.as_deref())?;
@@ -64,7 +69,7 @@ pub async fn update_community(
   // Verify its a mod (only mods can edit it)
   check_community_mod_action(
     &local_user_view.person,
-    data.community_id,
+    &old_community,
     false,
     &mut context.pool(),
   )

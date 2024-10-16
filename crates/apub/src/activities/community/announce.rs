@@ -2,9 +2,10 @@ use crate::{
   activities::{
     generate_activity_id,
     generate_announce_activity_id,
+    generate_to,
     send_lemmy_activity,
-    verify_is_public,
     verify_person_in_community,
+    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -18,7 +19,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  kinds::{activity::AnnounceType, public},
+  kinds::activity::AnnounceType,
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
@@ -92,7 +93,7 @@ impl AnnounceActivity {
       generate_announce_activity_id(inner_kind, &context.settings().get_protocol_and_hostname())?;
     Ok(AnnounceActivity {
       actor: community.id().into(),
-      to: vec![public()],
+      to: vec![generate_to(community)?],
       object: IdOrNestedObject::NestedObject(object),
       cc: community
         .followers_url
@@ -154,7 +155,6 @@ impl ActivityHandler for AnnounceActivity {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
-    verify_is_public(&self.to, &self.cc)?;
     Ok(())
   }
 
@@ -169,6 +169,7 @@ impl ActivityHandler for AnnounceActivity {
     }
 
     let community = object.community(context).await?;
+    verify_visibility(&self.to, &self.cc, &community)?;
     can_accept_activity_in_community(&Some(community), context).await?;
 
     // verify here in order to avoid fetching the object twice over http

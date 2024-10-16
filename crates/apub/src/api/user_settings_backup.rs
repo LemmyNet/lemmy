@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
     comment::{CommentSaved, CommentSavedForm},
-    community::{CommunityFollower, CommunityFollowerForm},
+    community::{CommunityFollower, CommunityFollowerForm, CommunityFollowerState},
     community_block::{CommunityBlock, CommunityBlockForm},
     instance::Instance,
     instance_block::{InstanceBlock, InstanceBlockForm},
@@ -186,9 +186,8 @@ pub async fn import_settings(
       |(followed, context)| async move {
         let community = followed.dereference(&context).await?;
         let form = CommunityFollowerForm {
-          person_id,
-          community_id: community.id,
-          pending: true,
+          state: Some(CommunityFollowerState::Pending),
+          ..CommunityFollowerForm::new(community.id, person_id)
         };
         CommunityFollower::follow(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
@@ -321,7 +320,13 @@ pub(crate) mod tests {
   use lemmy_api_common::context::LemmyContext;
   use lemmy_db_schema::{
     source::{
-      community::{Community, CommunityFollower, CommunityFollowerForm, CommunityInsertForm},
+      community::{
+        Community,
+        CommunityFollower,
+        CommunityFollowerForm,
+        CommunityFollowerState,
+        CommunityInsertForm,
+      },
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
@@ -330,8 +335,7 @@ pub(crate) mod tests {
   };
   use lemmy_db_views::structs::LocalUserView;
   use lemmy_db_views_actor::structs::CommunityFollowerView;
-  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
-  use pretty_assertions::assert_eq;
+  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
   use serial_test::serial;
   use std::time::Duration;
   use tokio::time::sleep;
@@ -371,9 +375,8 @@ pub(crate) mod tests {
     );
     let community = Community::create(&mut context.pool(), &community_form).await?;
     let follower_form = CommunityFollowerForm {
-      community_id: community.id,
-      person_id: export_user.person.id,
-      pending: false,
+      state: Some(CommunityFollowerState::Accepted),
+      ..CommunityFollowerForm::new(community.id, export_user.person.id)
     };
     CommunityFollower::follow(&mut context.pool(), &follower_form).await?;
 

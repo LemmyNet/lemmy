@@ -8,6 +8,7 @@ use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
   CommunitySortType,
   CommunityView,
+  PendingFollow,
   PersonView,
 };
 use serde::{Deserialize, Serialize};
@@ -237,4 +238,45 @@ pub struct TransferCommunity {
 /// Fetches a random community
 pub struct GetRandomCommunity {
   pub type_: Option<ListingType>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ListCommunityPendingFollows {
+  pub community_id: CommunityId,
+  /// Only shows the unapproved applications
+  pub pending_only: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct GetCommunityPendingFollowsCount {
+  pub community_id: CommunityId,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct GetCommunityPendingFollowsCountResponse {
+  pub count: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ListCommunityPendingFollowsResponse {
+  pub items: Vec<PendingFollow>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ApproveCommunityPendingFollower {
+  pub community_id: CommunityId,
+  pub follower_id: PersonId,
+  pub approve: bool,
 }
