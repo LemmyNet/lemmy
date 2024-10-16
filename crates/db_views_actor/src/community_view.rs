@@ -123,6 +123,8 @@ fn queries<'a>() -> Queries<
       let searcher = fuzzy_search(&search_term);
       let name_filter = community::name.ilike(searcher.clone());
       let title_filter = community::title.ilike(searcher.clone());
+      // TODO this currently filters the new short description column, but should it also check the
+      // sidebar too now?
       let description_filter = community::description.ilike(searcher.clone());
       query = if options.title_only.unwrap_or_default() {
         query.filter(name_filter.or(title_filter))

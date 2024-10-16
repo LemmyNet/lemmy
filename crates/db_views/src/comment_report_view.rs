@@ -391,6 +391,7 @@ mod tests {
         actor_id: inserted_community.actor_id.clone(),
         local: true,
         title: inserted_community.title,
+        sidebar: None,
         description: None,
         updated: None,
         banner: None,

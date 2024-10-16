@@ -171,7 +171,7 @@ diesel::table! {
         name -> Varchar,
         #[max_length = 255]
         title -> Varchar,
-        description -> Nullable<Text>,
+        sidebar -> Nullable<Text>,
         removed -> Bool,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
@@ -199,6 +199,8 @@ diesel::table! {
         #[max_length = 255]
         featured_url -> Nullable<Varchar>,
         visibility -> CommunityVisibility,
+        #[max_length = 150]
+        description -> Nullable<Varchar>,
     }
 }
 
