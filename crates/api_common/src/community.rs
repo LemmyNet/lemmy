@@ -3,10 +3,10 @@ use lemmy_db_schema::{
   source::site::Site,
   CommunityVisibility,
   ListingType,
-  PostSortType,
 };
 use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
+  CommunitySortType,
   CommunityView,
   PendingFollow,
   PersonView,
@@ -79,7 +79,7 @@ pub struct CommunityResponse {
 /// Fetches a list of communities.
 pub struct ListCommunities {
   pub type_: Option<ListingType>,
-  pub sort: Option<PostSortType>,
+  pub sort: Option<CommunitySortType>,
   pub show_nsfw: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,

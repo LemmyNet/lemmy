@@ -118,7 +118,7 @@ impl CommunityFollowerView {
           .and(community_follower::state.eq(CommunityFollowerState::Accepted)),
       ),
     ));
-    
+
     let mut query = community_follower::table
       .inner_join(person::table)
       .inner_join(
