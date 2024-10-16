@@ -390,7 +390,6 @@ mod tests {
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::collections::HashSet;
-  use url::Url;
 
   #[tokio::test]
   #[serial]
@@ -448,9 +447,7 @@ mod tests {
       embed_description: None,
       embed_video_url: None,
       thumbnail_url: None,
-      ap_id: Url::parse(&format!("https://lemmy-alpha/post/{}", inserted_post.id))
-        .unwrap()
-        .into(),
+      ap_id: inserted_post.ap_id.clone(),
       local: true,
       language_id: Default::default(),
       featured_community: false,

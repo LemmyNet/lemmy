@@ -8,18 +8,20 @@ use lemmy_api_common::{
   utils::{
     check_community_user_action,
     check_post_deleted_or_removed,
+    generate_local_apub_endpoint,
     get_url_blocklist,
     is_mod_or_admin,
     local_site_to_slur_regex,
     process_markdown,
     update_read_comments,
+    EndpointType,
   },
 };
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
   source::{
     actor_language::CommunityLanguage,
-    comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
+    comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
     comment_reply::{CommentReply, CommentReplyUpdateForm},
     local_site::LocalSite,
     person_mention::{PersonMention, PersonMentionUpdateForm},
@@ -123,7 +125,25 @@ pub async fn create_comment(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
 
+  // Necessary to update the ap_id
   let inserted_comment_id = inserted_comment.id;
+  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+
+  let apub_id = generate_local_apub_endpoint(
+    EndpointType::Comment,
+    &inserted_comment_id.to_string(),
+    &protocol_and_hostname,
+  )?;
+  let updated_comment = Comment::update(
+    &mut context.pool(),
+    inserted_comment_id,
+    &CommentUpdateForm {
+      ap_id: Some(apub_id),
+      ..Default::default()
+    },
+  )
+  .await
+  .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
 
   // Scan the comment for user mentions, add those rows
   let mentions = scrape_text_for_mentions(&content);
@@ -150,7 +170,7 @@ pub async fn create_comment(
     .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::CreateComment(inserted_comment.clone()),
+    SendActivityData::CreateComment(updated_comment.clone()),
     &context,
   )
   .await?;
