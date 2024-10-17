@@ -104,7 +104,6 @@ pub struct CommentLike {
   pub comment_id: CommentId,
   pub post_id: PostId, // TODO this is redundant
   pub score: i16,
-  pub published: DateTime<Utc>,
 }
 
 #[derive(Clone)]

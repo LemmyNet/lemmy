@@ -125,7 +125,6 @@ diesel::table! {
         comment_id -> Int4,
         post_id -> Int4,
         score -> Int2,
-        published -> Timestamptz,
     }
 }
 
@@ -816,7 +815,6 @@ diesel::table! {
         post_id -> Int4,
         person_id -> Int4,
         score -> Int2,
-        published -> Timestamptz,
     }
 }
 

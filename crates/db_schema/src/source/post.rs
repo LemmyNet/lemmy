@@ -150,7 +150,6 @@ pub struct PostLike {
   pub post_id: PostId,
   pub person_id: PersonId,
   pub score: i16,
-  pub published: DateTime<Utc>,
 }
 
 #[derive(Clone)]

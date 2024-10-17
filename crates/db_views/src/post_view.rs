@@ -1125,7 +1125,6 @@ mod tests {
     let expected_post_like = PostLike {
       post_id: data.inserted_post.id,
       person_id: data.local_user_view.person.id,
-      published: inserted_post_like.published,
       score: 1,
     };
     assert_eq!(expected_post_like, inserted_post_like);
