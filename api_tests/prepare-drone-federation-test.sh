@@ -23,7 +23,7 @@ fi
   --danger-dummy-mode \
   --api-key "my-pictrs-key" \
   filesystem -p /tmp/pictrs/files \
-  sled -p /tmp/pictrs/sled-repo &
+  sled -p /tmp/pictrs/sled-repo 2>&1 &
 
 for INSTANCE in lemmy_alpha lemmy_beta lemmy_gamma lemmy_delta lemmy_epsilon; do
   echo "DB URL: ${LEMMY_DATABASE_URL} INSTANCE: $INSTANCE"
