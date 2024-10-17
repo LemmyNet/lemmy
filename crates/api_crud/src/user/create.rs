@@ -9,9 +9,8 @@ use lemmy_api_common::{
     check_email_verified,
     check_registration_application,
     check_user_valid,
-    generate_inbox_url,
+    generate_inbox,
     generate_local_apub_endpoint,
-    generate_shared_inbox_url,
     honeypot_check,
     local_site_to_slur_regex,
     password_length_check,
@@ -418,8 +417,7 @@ async fn create_person(
   // Register the new person
   let person_form = PersonInsertForm {
     actor_id: Some(actor_id.clone()),
-    inbox_url: Some(generate_inbox_url(&actor_id)?),
-    shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
+    inbox_id: Some(generate_inbox(&context).await?.id),
     private_key: Some(actor_keypair.private_key),
     ..PersonInsertForm::new(username.clone(), actor_keypair.public_key, instance_id)
   };

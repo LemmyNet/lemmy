@@ -17,6 +17,7 @@ pub mod federation_allowlist;
 pub mod federation_blocklist;
 pub mod federation_queue_state;
 pub mod images;
+pub mod inbox;
 pub mod instance;
 pub mod instance_block;
 pub mod language;

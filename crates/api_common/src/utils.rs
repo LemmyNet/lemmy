@@ -18,6 +18,7 @@ use lemmy_db_schema::{
     community_block::CommunityBlock,
     email_verification::{EmailVerification, EmailVerificationForm},
     images::{ImageDetails, RemoteImage},
+    inbox::Inbox,
     instance::Instance,
     instance_block::InstanceBlock,
     local_site::LocalSite,
@@ -971,6 +972,12 @@ pub fn generate_local_apub_endpoint(
 
 pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{actor_id}/followers"))?.into())
+}
+
+pub async fn generate_inbox(context: &LemmyContext) -> Result<Inbox, LemmyError> {
+  let url = format!("{}/inbox", context.settings().get_protocol_and_hostname());
+  let parsed = Url::parse(&url)?.into();
+  Ok(Inbox::read_or_create(&mut context.pool(), &parsed).await?)
 }
 
 pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {

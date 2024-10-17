@@ -166,6 +166,11 @@ pub struct RegistrationApplicationId(i32);
 /// The oauth provider id.
 pub struct OAuthProviderId(pub i32);
 
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct InboxId(pub i32);
+
 #[cfg(feature = "full")]
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "Ltree")]

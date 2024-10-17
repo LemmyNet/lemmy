@@ -6,10 +6,7 @@ use crate::{
   local_site_data_cached,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
-    objects::{
-      person::{Person, UserTypes},
-      Endpoints,
-    },
+    objects::person::{Person, UserTypes},
     ImageObject,
     Source,
   },
@@ -34,6 +31,7 @@ use lemmy_db_schema::{
   sensitive::SensitiveString,
   source::{
     activity::ActorType,
+    inbox::Inbox,
     local_site::LocalSite,
     person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
   },
@@ -99,7 +97,7 @@ impl Object for ApubPerson {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn into_json(self, _context: &Data<Self::DataType>) -> LemmyResult<Person> {
+  async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Person> {
     let kind = if self.bot_account {
       UserTypes::Service
     } else {
@@ -118,12 +116,13 @@ impl Object for ApubPerson {
       matrix_user_id: self.matrix_user_id.clone(),
       published: Some(self.published),
       outbox: generate_outbox_url(&self.actor_id)?.into(),
-      endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
-        shared_inbox: s.into(),
-      }),
+      endpoints: None,
       public_key: self.public_key(),
       updated: self.updated,
-      inbox: self.inbox_url.clone().into(),
+      inbox: Inbox::read(&mut context.pool(), self.inbox_id)
+        .await?
+        .url
+        .into(),
     };
     Ok(person)
   }
@@ -160,6 +159,7 @@ impl Object for ApubPerson {
     let bio = markdown_rewrite_remote_links_opt(bio, context).await;
     let avatar = proxy_image_link_opt_apub(person.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(person.image.map(|i| i.url), context).await?;
+    let inbox = Inbox::read_or_create(&mut context.pool(), &person.inbox.into()).await?;
 
     // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
     // https://github.com/mastodon/mastodon/issues/25233
@@ -182,8 +182,7 @@ impl Object for ApubPerson {
       private_key: None,
       public_key: person.public_key.public_key_pem,
       last_refreshed_at: Some(naive_now()),
-      inbox_url: Some(person.inbox.into()),
-      shared_inbox_url: person.endpoints.map(|e| e.shared_inbox.into()),
+      inbox_id: Some(inbox.id),
       matrix_user_id: person.matrix_user_id,
       instance_id,
     };
@@ -208,10 +207,6 @@ impl Actor for ApubPerson {
 
   fn inbox(&self) -> Url {
     self.inbox_url.clone().into()
-  }
-
-  fn shared_inbox(&self) -> Option<Url> {
-    self.shared_inbox_url.clone().map(Into::into)
   }
 }
 

@@ -1,7 +1,7 @@
 #[cfg(feature = "full")]
 use crate::schema::{person, person_follower};
 use crate::{
-  newtypes::{DbUrl, InstanceId, PersonId},
+  newtypes::{DbUrl, InboxId, InstanceId, PersonId},
   sensitive::SensitiveString,
 };
 use chrono::{DateTime, Utc};
@@ -53,7 +53,7 @@ pub struct Person {
   pub instance_id: InstanceId,
   #[cfg_attr(feature = "full", ts(skip))]
   #[serde(skip, default)]
-  pub inbox_id: i32,
+  pub inbox_id: InboxId,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -88,7 +88,7 @@ pub struct PersonInsertForm {
   #[new(default)]
   pub deleted: Option<bool>,
   #[new(default)]
-  pub inbox_id: Option<i32>,
+  pub inbox_id: Option<InboxId>,
   #[new(default)]
   pub matrix_user_id: Option<String>,
   #[new(default)]

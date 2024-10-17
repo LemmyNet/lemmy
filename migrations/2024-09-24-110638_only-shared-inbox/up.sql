@@ -4,7 +4,7 @@
 -- TODO: add trigger which removes unused inbox items
 CREATE TABLE inbox (
     id serial PRIMARY KEY,
-    url varchar(255) NOT NULL
+    url varchar(255) NOT NULL UNIQUE
 );
 
 -- Move existing inbox values to inbox table, and replace with foreign key
