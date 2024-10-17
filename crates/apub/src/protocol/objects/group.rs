@@ -7,7 +7,7 @@ use crate::{
     community_outbox::ApubCommunityOutbox,
   },
   local_site_data_cached,
-  objects::{community::ApubCommunity, read_from_string_or_source_opt},
+  objects::community::ApubCommunity,
   protocol::{
     objects::{Endpoints, LanguageTag},
     ImageObject,
@@ -21,6 +21,7 @@ use activitypub_federation::{
   protocol::{
     helpers::deserialize_skip_error,
     public_key::PublicKey,
+    values::MediaTypeHtml,
     verification::verify_domains_match,
   },
 };
@@ -50,9 +51,13 @@ pub struct Group {
 
   /// title
   pub(crate) name: Option<String>,
-  pub(crate) summary: Option<String>,
+  // sidebar
+  pub(crate) content: Option<String>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
+  pub(crate) media_type: Option<MediaTypeHtml>,
+  // short instance description
+  pub(crate) summary: Option<String>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) icon: Option<ImageObject>,
   /// banner
@@ -86,8 +91,7 @@ impl Group {
 
     check_slurs(&self.preferred_username, slur_regex)?;
     check_slurs_opt(&self.name, slur_regex)?;
-    let description = read_from_string_or_source_opt(&self.summary, &None, &self.source);
-    check_slurs_opt(&description, slur_regex)?;
+    check_slurs_opt(&self.summary, slur_regex)?;
     Ok(())
   }
 }
