@@ -1,7 +1,6 @@
 use crate::http::{
   comment::get_apub_comment,
   community::{
-    community_inbox,
     get_apub_community_featured,
     get_apub_community_followers,
     get_apub_community_http,
@@ -9,7 +8,7 @@ use crate::http::{
     get_apub_community_outbox,
   },
   get_activity,
-  person::{get_apub_person_http, get_apub_person_outbox, person_inbox},
+  person::{get_apub_person_http, get_apub_person_outbox},
   post::get_apub_post,
   shared_inbox,
   site::{get_apub_site_http, get_apub_site_outbox},
@@ -56,8 +55,6 @@ pub fn config(cfg: &mut web::ServiceConfig) {
   cfg.service(
     web::scope("")
       .guard(InboxRequestGuard)
-      .route("/c/{community_name}/inbox", web::post().to(community_inbox))
-      .route("/u/{user_name}/inbox", web::post().to(person_inbox))
       .route("/inbox", web::post().to(shared_inbox)),
   );
 }
