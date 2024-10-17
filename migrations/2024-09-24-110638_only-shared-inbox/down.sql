@@ -6,6 +6,9 @@ ALTER TABLE person
 
 DROP TABLE inbox;
 
-ALTER TABLE person add COLUMN inbox_url character varying(255)  not null default generate_unique_changeme();
-ALTER TABLE person add COLUMN shared_inbox_url character varying(255)  not null default generate_unique_changeme();
+ALTER TABLE person
+    ADD COLUMN inbox_url character varying(255) NOT NULL DEFAULT generate_unique_changeme ();
+
+ALTER TABLE person
+    ADD COLUMN shared_inbox_url character varying(255) NOT NULL DEFAULT generate_unique_changeme ();
 

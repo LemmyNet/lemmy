@@ -26,7 +26,8 @@ INSERT INTO inbox (url)
         inboxes
     ON CONFLICT
         DO NOTHING
-    RETURNING id,
+    RETURNING
+        id,
         url)
 UPDATE
     person
@@ -40,13 +41,16 @@ WHERE
     AND inserted.url = inboxes.url;
 
 ALTER TABLE person
-    ADD CONSTRAINT person_inbox_id_fkey FOREIGN KEY (inbox_id) REFERENCES inbox(id) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD CONSTRAINT person_inbox_id_fkey FOREIGN KEY (inbox_id) REFERENCES inbox (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE person
     ALTER COLUMN inbox_id SET NOT NULL;
 
 -- Drop old columns and rename new one
-ALTER TABLE person DROP COLUMN inbox_url;
-ALTER TABLE person DROP COLUMN shared_inbox_url;
+ALTER TABLE person
+    DROP COLUMN inbox_url;
+
+ALTER TABLE person
+    DROP COLUMN shared_inbox_url;
 
 -- TODO: same thing for community and site
