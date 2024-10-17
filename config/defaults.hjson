@@ -35,6 +35,9 @@
     database: "string"
     # Maximum number of active sql connections
     pool_size: 30
+    # Set true to store the time when votes were cast. Requires more storage space but can be
+    # used to detect vote manipulation.
+    store_vote_timestamps: false
   }
   # Pictrs image server configuration.
   pictrs: {

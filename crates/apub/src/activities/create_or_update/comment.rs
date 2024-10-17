@@ -32,7 +32,7 @@ use lemmy_db_schema::{
   newtypes::PersonId,
   source::{
     activity::ActivitySendTargets,
-    comment::{Comment, CommentLike, CommentLikeForm},
+    comment::{Comment, CommentLike},
     community::Community,
     person::Person,
     post::Post,
@@ -151,12 +151,14 @@ impl ActivityHandler for CreateOrUpdateNote {
     let comment = ApubComment::from_json(self.object, context).await?;
 
     // author likes their own comment by default
-    let like_form = CommentLikeForm {
-      comment_id: comment.id,
-      person_id: comment.creator_id,
-      score: 1,
-    };
-    CommentLike::like(&mut context.pool(), &like_form).await?;
+    CommentLike::like(
+      &mut context.pool(),
+      comment.creator_id,
+      comment.id,
+      1,
+      context.settings(),
+    )
+    .await?;
 
     // Calculate initial hot_rank
     CommentAggregates::update_hot_rank(&mut context.pool(), comment.id).await?;

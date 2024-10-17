@@ -18,6 +18,7 @@ use chrono::{DateTime, Utc};
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
+use lemmy_utils::settings::structs::Settings;
 use url::Url;
 
 impl Comment {
@@ -138,16 +139,32 @@ impl Crud for Comment {
 
 #[async_trait]
 impl Likeable for CommentLike {
-  type Form = CommentLikeForm;
   type IdType = CommentId;
-  async fn like(pool: &mut DbPool<'_>, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
-    use crate::schema::comment_like::dsl::{comment_id, comment_like, person_id};
+  async fn like(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    comment_id: Self::IdType,
+    score: i16,
+    settings: &Settings,
+  ) -> Result<Self, Error> {
+    use crate::schema::comment_like;
     let conn = &mut get_conn(pool).await?;
-    insert_into(comment_like)
-      .values(comment_like_form)
-      .on_conflict((comment_id, person_id))
+    let published = if settings.database.store_vote_timestamps {
+      Some(Utc::now())
+    } else {
+      None
+    };
+    let form = CommentLikeForm {
+      person_id,
+      comment_id,
+      score,
+      published,
+    };
+    insert_into(comment_like::table)
+      .values(&form)
+      .on_conflict((comment_like::comment_id, comment_like::person_id))
       .do_update()
-      .set(comment_like_form)
+      .set(&form)
       .get_result::<Self>(conn)
       .await
   }
@@ -205,7 +222,6 @@ mod tests {
         Comment,
         CommentInsertForm,
         CommentLike,
-        CommentLikeForm,
         CommentSaved,
         CommentSavedForm,
         CommentUpdateForm,
@@ -219,7 +235,7 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use diesel_ltree::Ltree;
-  use lemmy_utils::error::LemmyResult;
+  use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use url::Url;
@@ -287,18 +303,15 @@ mod tests {
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
     // Comment Like
-    let comment_like_form = CommentLikeForm {
-      comment_id: inserted_comment.id,
-      person_id: inserted_person.id,
-      score: 1,
-    };
-
-    let inserted_comment_like = CommentLike::like(pool, &comment_like_form).await?;
+    let settings = Settings::default();
+    let inserted_comment_like =
+      CommentLike::like(pool, inserted_person.id, inserted_comment.id, 1, &settings).await?;
 
     let expected_comment_like = CommentLike {
       comment_id: inserted_comment.id,
       person_id: inserted_person.id,
       score: 1,
+      published: None,
     };
 
     // Comment Saved

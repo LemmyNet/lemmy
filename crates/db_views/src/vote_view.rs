@@ -40,6 +40,7 @@ impl VoteView {
         person::all_columns,
         community_person_ban::community_id.nullable().is_not_null(),
         post_like::score,
+        post_like::published,
       ))
       .order_by(post_like::score)
       .limit(limit)
@@ -74,6 +75,7 @@ impl VoteView {
         person::all_columns,
         community_person_ban::community_id.nullable().is_not_null(),
         comment_like::score,
+        comment_like::published,
       ))
       .order_by(comment_like::score)
       .limit(limit)
@@ -89,16 +91,16 @@ mod tests {
   use crate::structs::VoteView;
   use lemmy_db_schema::{
     source::{
-      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
+      comment::{Comment, CommentInsertForm, CommentLike},
       community::{Community, CommunityInsertForm, CommunityPersonBan, CommunityPersonBanForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm, PostLike, PostLikeForm},
+      post::{Post, PostInsertForm, PostLike},
     },
     traits::{Bannable, Crud, Likeable},
     utils::build_db_pool_for_tests,
   };
-  use lemmy_utils::error::LemmyResult;
+  use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -141,31 +143,24 @@ mod tests {
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     // Timmy upvotes his own post
-    let timmy_post_vote_form = PostLikeForm {
-      post_id: inserted_post.id,
-      person_id: inserted_timmy.id,
-      score: 1,
-    };
-    PostLike::like(pool, &timmy_post_vote_form).await?;
+    let settings = Settings::default();
+    PostLike::like(pool, inserted_timmy.id, inserted_post.id, 1, &settings).await?;
 
     // Sara downvotes timmy's post
-    let sara_post_vote_form = PostLikeForm {
-      post_id: inserted_post.id,
-      person_id: inserted_sara.id,
-      score: -1,
-    };
-    PostLike::like(pool, &sara_post_vote_form).await?;
+    PostLike::like(pool, inserted_sara.id, inserted_post.id, -1, &settings).await?;
 
     let expected_post_vote_views = [
       VoteView {
         creator: inserted_sara.clone(),
         creator_banned_from_community: false,
         score: -1,
+        published: None,
       },
       VoteView {
         creator: inserted_timmy.clone(),
         creator_banned_from_community: false,
         score: 1,
+        published: None,
       },
     ];
 
@@ -173,31 +168,23 @@ mod tests {
     assert_eq!(read_post_vote_views, expected_post_vote_views);
 
     // Timothy votes down his own comment
-    let timmy_comment_vote_form = CommentLikeForm {
-      comment_id: inserted_comment.id,
-      person_id: inserted_timmy.id,
-      score: -1,
-    };
-    CommentLike::like(pool, &timmy_comment_vote_form).await?;
+    CommentLike::like(pool, inserted_timmy.id, inserted_comment.id, -1, &settings).await?;
 
     // Sara upvotes timmy's comment
-    let sara_comment_vote_form = CommentLikeForm {
-      comment_id: inserted_comment.id,
-      person_id: inserted_sara.id,
-      score: 1,
-    };
-    CommentLike::like(pool, &sara_comment_vote_form).await?;
+    CommentLike::like(pool, inserted_sara.id, inserted_comment.id, 1, &settings).await?;
 
     let expected_comment_vote_views = [
       VoteView {
         creator: inserted_timmy.clone(),
         creator_banned_from_community: false,
         score: -1,
+        published: None,
       },
       VoteView {
         creator: inserted_sara.clone(),
         creator_banned_from_community: false,
         score: 1,
+        published: None,
       },
     ];
 

@@ -759,7 +759,6 @@ mod tests {
         PostHide,
         PostInsertForm,
         PostLike,
-        PostLikeForm,
         PostRead,
         PostSaved,
         PostSavedForm,
@@ -773,7 +772,7 @@ mod tests {
     PostSortType,
     SubscribedType,
   };
-  use lemmy_utils::error::LemmyResult;
+  use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::{collections::HashSet, time::Duration};
@@ -1114,18 +1113,21 @@ mod tests {
     let pool = &mut pool.into();
     let mut data = init_data(pool).await?;
 
-    let post_like_form = PostLikeForm {
-      post_id: data.inserted_post.id,
-      person_id: data.local_user_view.person.id,
-      score: 1,
-    };
-
-    let inserted_post_like = PostLike::like(pool, &post_like_form).await?;
+    let settings = Settings::default();
+    let inserted_post_like = PostLike::like(
+      pool,
+      data.local_user_view.person.id,
+      data.inserted_post.id,
+      1,
+      &settings,
+    )
+    .await?;
 
     let expected_post_like = PostLike {
       post_id: data.inserted_post.id,
       person_id: data.local_user_view.person.id,
       score: 1,
+      published: None,
     };
     assert_eq!(expected_post_like, inserted_post_like);
 
@@ -1173,19 +1175,24 @@ mod tests {
 
     // Like both the bot post, and your own
     // The liked_only should not show your own post
-    let post_like_form = PostLikeForm {
-      post_id: data.inserted_post.id,
-      person_id: data.local_user_view.person.id,
-      score: 1,
-    };
-    PostLike::like(pool, &post_like_form).await?;
+    let settings = Settings::default();
+    PostLike::like(
+      pool,
+      data.local_user_view.person.id,
+      data.inserted_post.id,
+      1,
+      &settings,
+    )
+    .await?;
 
-    let bot_post_like_form = PostLikeForm {
-      post_id: data.inserted_bot_post.id,
-      person_id: data.local_user_view.person.id,
-      score: 1,
-    };
-    PostLike::like(pool, &bot_post_like_form).await?;
+    PostLike::like(
+      pool,
+      data.local_user_view.person.id,
+      data.inserted_bot_post.id,
+      1,
+      &settings,
+    )
+    .await?;
 
     // Read the liked only
     let read_liked_post_listing = PostQuery {

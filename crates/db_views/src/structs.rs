@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel::Queryable;
 use lemmy_db_schema::{
@@ -216,6 +217,7 @@ pub struct VoteView {
   pub creator: Person,
   pub creator_banned_from_community: bool,
   pub score: i16,
+  pub published: Option<DateTime<Utc>>,
 }
 
 #[skip_serializing_none]

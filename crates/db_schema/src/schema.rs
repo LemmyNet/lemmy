@@ -124,6 +124,7 @@ diesel::table! {
         person_id -> Int4,
         comment_id -> Int4,
         score -> Int2,
+        published -> Nullable<Timestamptz>,
     }
 }
 
@@ -814,6 +815,7 @@ diesel::table! {
         post_id -> Int4,
         person_id -> Int4,
         score -> Int2,
+        published -> Nullable<Timestamptz>,
     }
 }
 

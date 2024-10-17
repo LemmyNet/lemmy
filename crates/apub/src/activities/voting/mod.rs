@@ -14,10 +14,10 @@ use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
     activity::ActivitySendTargets,
-    comment::{CommentLike, CommentLikeForm},
+    comment::CommentLike,
     community::Community,
     person::Person,
-    post::{PostLike, PostLikeForm},
+    post::PostLike,
   },
   traits::Likeable,
 };
@@ -59,15 +59,15 @@ async fn vote_comment(
   comment: &ApubComment,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let comment_id = comment.id;
-  let like_form = CommentLikeForm {
-    comment_id,
-    person_id: actor.id,
-    score: vote_type.into(),
-  };
-  let person_id = actor.id;
-  CommentLike::remove(&mut context.pool(), person_id, comment_id).await?;
-  CommentLike::like(&mut context.pool(), &like_form).await?;
+  CommentLike::remove(&mut context.pool(), actor.id, comment.id).await?;
+  CommentLike::like(
+    &mut context.pool(),
+    actor.id,
+    comment.id,
+    vote_type.into(),
+    context.settings(),
+  )
+  .await?;
   Ok(())
 }
 
@@ -78,15 +78,15 @@ async fn vote_post(
   post: &ApubPost,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let post_id = post.id;
-  let like_form = PostLikeForm {
-    post_id: post.id,
-    person_id: actor.id,
-    score: vote_type.into(),
-  };
-  let person_id = actor.id;
-  PostLike::remove(&mut context.pool(), person_id, post_id).await?;
-  PostLike::like(&mut context.pool(), &like_form).await?;
+  PostLike::remove(&mut context.pool(), actor.id, post.id).await?;
+  PostLike::like(
+    &mut context.pool(),
+    actor.id,
+    post.id,
+    vote_type.into(),
+    context.settings(),
+  )
+  .await?;
   Ok(())
 }
 

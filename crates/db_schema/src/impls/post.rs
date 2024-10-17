@@ -39,6 +39,7 @@ use diesel::{
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::settings::structs::Settings;
 use std::collections::HashSet;
 
 #[async_trait]
@@ -274,15 +275,31 @@ impl Post {
 
 #[async_trait]
 impl Likeable for PostLike {
-  type Form = PostLikeForm;
   type IdType = PostId;
-  async fn like(pool: &mut DbPool<'_>, post_like_form: &PostLikeForm) -> Result<Self, Error> {
+  async fn like(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    post_id: Self::IdType,
+    score: i16,
+    settings: &Settings,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
+    let published = if settings.database.store_vote_timestamps {
+      Some(Utc::now())
+    } else {
+      None
+    };
+    let form = PostLikeForm {
+      person_id,
+      post_id,
+      score,
+      published,
+    };
     insert_into(post_like::table)
-      .values(post_like_form)
+      .values(&form)
       .on_conflict((post_like::post_id, post_like::person_id))
       .do_update()
-      .set(post_like_form)
+      .set(&form)
       .get_result::<Self>(conn)
       .await
   }
@@ -399,22 +416,13 @@ mod tests {
       community::{Community, CommunityInsertForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
-      post::{
-        Post,
-        PostInsertForm,
-        PostLike,
-        PostLikeForm,
-        PostRead,
-        PostSaved,
-        PostSavedForm,
-        PostUpdateForm,
-      },
+      post::{Post, PostInsertForm, PostLike, PostRead, PostSaved, PostSavedForm, PostUpdateForm},
     },
     traits::{Crud, Likeable, Saveable},
     utils::build_db_pool_for_tests,
   };
   use chrono::DateTime;
-  use lemmy_utils::error::LemmyResult;
+  use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::collections::HashSet;
@@ -489,18 +497,15 @@ mod tests {
     };
 
     // Post Like
-    let post_like_form = PostLikeForm {
-      post_id: inserted_post.id,
-      person_id: inserted_person.id,
-      score: 1,
-    };
-
-    let inserted_post_like = PostLike::like(pool, &post_like_form).await?;
+    let settings = Settings::default();
+    let inserted_post_like =
+      PostLike::like(pool, inserted_person.id, inserted_post.id, 1, &settings).await?;
 
     let expected_post_like = PostLike {
       post_id: inserted_post.id,
       person_id: inserted_person.id,
       score: 1,
+      published: None,
     };
 
     // Post Save

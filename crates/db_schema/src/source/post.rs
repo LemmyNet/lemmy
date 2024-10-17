@@ -150,15 +150,17 @@ pub struct PostLike {
   pub post_id: PostId,
   pub person_id: PersonId,
   pub score: i16,
+  pub published: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_like))]
-pub struct PostLikeForm {
+pub(crate) struct PostLikeForm {
   pub post_id: PostId,
   pub person_id: PersonId,
   pub score: i16,
+  pub published: Option<DateTime<Utc>>,
 }
 
 #[derive(PartialEq, Eq, Debug)]

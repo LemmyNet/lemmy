@@ -9,11 +9,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   newtypes::LocalUserId,
-  source::{
-    comment::{CommentLike, CommentLikeForm},
-    comment_reply::CommentReply,
-    local_site::LocalSite,
-  },
+  source::{comment::CommentLike, comment_reply::CommentReply, local_site::LocalSite},
   traits::Likeable,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
@@ -65,23 +61,23 @@ pub async fn like_comment(
     }
   }
 
-  let like_form = CommentLikeForm {
-    comment_id: data.comment_id,
-    person_id: local_user_view.person.id,
-    score: data.score,
-  };
-
   // Remove any likes first
   let person_id = local_user_view.person.id;
 
   CommentLike::remove(&mut context.pool(), person_id, comment_id).await?;
 
   // Only add the like if the score isnt 0
-  let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
+  let do_add = data.score != 0 && (data.score == 1 || data.score == -1);
   if do_add {
-    CommentLike::like(&mut context.pool(), &like_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
+    CommentLike::like(
+      &mut context.pool(),
+      person_id,
+      data.comment_id,
+      data.score,
+      context.settings(),
+    )
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
   }
 
   ActivityChannel::submit_activity(

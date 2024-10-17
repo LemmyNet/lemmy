@@ -438,7 +438,6 @@ mod tests {
         Comment,
         CommentInsertForm,
         CommentLike,
-        CommentLikeForm,
         CommentSaved,
         CommentSavedForm,
         CommentUpdateForm,
@@ -466,7 +465,7 @@ mod tests {
     CommunityVisibility,
     SubscribedType,
   };
-  use lemmy_utils::error::LemmyResult;
+  use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -599,13 +598,15 @@ mod tests {
     };
     assert_eq!(expected_block, inserted_block);
 
-    let comment_like_form = CommentLikeForm {
-      comment_id: inserted_comment_0.id,
-      person_id: inserted_timmy_person.id,
-      score: 1,
-    };
-
-    let _inserted_comment_like = CommentLike::like(pool, &comment_like_form).await?;
+    let settings = Settings::default();
+    CommentLike::like(
+      pool,
+      inserted_timmy_person.id,
+      inserted_comment_0.id,
+      1,
+      &settings,
+    )
+    .await?;
 
     let timmy_local_user_view = LocalUserView {
       local_user: inserted_timmy_local_user.clone(),
@@ -698,12 +699,15 @@ mod tests {
     PersonBlock::unblock(pool, &timmy_unblocks_sara_form).await?;
 
     // Like a new comment
-    let comment_like_form = CommentLikeForm {
-      comment_id: data.inserted_comment_1.id,
-      person_id: data.timmy_local_user_view.person.id,
-      score: 1,
-    };
-    CommentLike::like(pool, &comment_like_form).await?;
+    let settings = Settings::default();
+    CommentLike::like(
+      pool,
+      data.timmy_local_user_view.person.id,
+      data.inserted_comment_1.id,
+      1,
+      &settings,
+    )
+    .await?;
 
     let read_liked_comment_views = CommentQuery {
       local_user: Some(&data.timmy_local_user_view.local_user),

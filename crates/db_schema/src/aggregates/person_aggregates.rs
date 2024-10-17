@@ -20,16 +20,17 @@ mod tests {
   use crate::{
     aggregates::person_aggregates::PersonAggregates,
     source::{
-      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
+      comment::{Comment, CommentInsertForm, CommentLike, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm, PostLike, PostLikeForm},
+      post::{Post, PostInsertForm, PostLike},
     },
     traits::{Crud, Likeable},
     utils::build_db_pool_for_tests,
   };
   use diesel::result::Error;
+  use lemmy_utils::settings::structs::Settings;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -65,12 +66,8 @@ mod tests {
     );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let post_like = PostLikeForm {
-      post_id: inserted_post.id,
-      person_id: inserted_person.id,
-      score: 1,
-    };
-    let _inserted_post_like = PostLike::like(pool, &post_like).await?;
+    let settings = Settings::default();
+    PostLike::like(pool, inserted_person.id, inserted_post.id, 1, &settings).await?;
 
     let comment_form = CommentInsertForm::new(
       inserted_person.id,
@@ -79,13 +76,7 @@ mod tests {
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
-    let mut comment_like = CommentLikeForm {
-      comment_id: inserted_comment.id,
-      person_id: inserted_person.id,
-      score: 1,
-    };
-
-    let _inserted_comment_like = CommentLike::like(pool, &comment_like).await?;
+    CommentLike::like(pool, inserted_person.id, inserted_comment.id, 1, &settings).await?;
 
     let child_comment_form = CommentInsertForm::new(
       inserted_person.id,
@@ -95,13 +86,14 @@ mod tests {
     let inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let child_comment_like = CommentLikeForm {
-      comment_id: inserted_child_comment.id,
-      person_id: another_inserted_person.id,
-      score: 1,
-    };
-
-    let _inserted_child_comment_like = CommentLike::like(pool, &child_comment_like).await?;
+    CommentLike::like(
+      pool,
+      another_inserted_person.id,
+      inserted_child_comment.id,
+      1,
+      &settings,
+    )
+    .await?;
 
     let person_aggregates_before_delete = PersonAggregates::read(pool, inserted_person.id).await?;
 
@@ -151,8 +143,14 @@ mod tests {
     let new_parent_comment = Comment::create(pool, &comment_form, None).await?;
     let _new_child_comment =
       Comment::create(pool, &child_comment_form, Some(&new_parent_comment.path)).await?;
-    comment_like.comment_id = new_parent_comment.id;
-    CommentLike::like(pool, &comment_like).await?;
+    CommentLike::like(
+      pool,
+      inserted_person.id,
+      new_parent_comment.id,
+      1,
+      &settings,
+    )
+    .await?;
     let after_comment_add = PersonAggregates::read(pool, inserted_person.id).await?;
     assert_eq!(2, after_comment_add.comment_count);
     // TODO: fix person aggregate comment score calculation

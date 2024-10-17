@@ -15,6 +15,7 @@ use diesel_async::{
   AsyncPgConnection,
   RunQueryDsl,
 };
+use lemmy_utils::settings::structs::Settings;
 
 /// Returned by `diesel::delete`
 pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
@@ -94,9 +95,14 @@ pub trait Joinable {
 
 #[async_trait]
 pub trait Likeable {
-  type Form;
   type IdType;
-  async fn like(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
+  async fn like(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    item_id: Self::IdType,
+    score: i16,
+    settings: &Settings,
+  ) -> Result<Self, Error>
   where
     Self: Sized;
   async fn remove(

@@ -58,12 +58,13 @@ mod tests {
       community::{Community, CommunityInsertForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm, PostLike, PostLikeForm},
+      post::{Post, PostInsertForm, PostLike},
     },
     traits::{Crud, Likeable},
     utils::build_db_pool_for_tests,
   };
   use diesel::result::Error;
+  use lemmy_utils::settings::structs::Settings;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -113,13 +114,8 @@ mod tests {
     let inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let post_like = PostLikeForm {
-      post_id: inserted_post.id,
-      person_id: inserted_person.id,
-      score: 1,
-    };
-
-    PostLike::like(pool, &post_like).await?;
+    let settings = Settings::default();
+    PostLike::like(pool, inserted_person.id, inserted_post.id, 1, &settings).await?;
 
     let post_aggs_before_delete = PostAggregates::read(pool, inserted_post.id).await?;
 
@@ -129,13 +125,14 @@ mod tests {
     assert_eq!(0, post_aggs_before_delete.downvotes);
 
     // Add a post dislike from the other person
-    let post_dislike = PostLikeForm {
-      post_id: inserted_post.id,
-      person_id: another_inserted_person.id,
-      score: -1,
-    };
-
-    PostLike::like(pool, &post_dislike).await?;
+    PostLike::like(
+      pool,
+      another_inserted_person.id,
+      inserted_post.id,
+      -1,
+      &settings,
+    )
+    .await?;
 
     let post_aggs_after_dislike = PostAggregates::read(pool, inserted_post.id).await?;
 
