@@ -12,8 +12,6 @@ pub mod read_community;
 pub mod read_person;
 pub mod resolve_object;
 pub mod search;
-#[cfg(test)]
-pub(crate) mod test;
 pub mod user_settings_backup;
 
 /// Returns default listing type, depending if the query is for frontpage or community.
