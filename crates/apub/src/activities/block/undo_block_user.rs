@@ -19,7 +19,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{remove_or_restore_user_data_in_community, restore_user_data},
+  utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
 };
 use lemmy_db_schema::{
   source::{
@@ -120,7 +120,8 @@ impl ActivityHandler for UndoBlockUser {
         .await?;
 
         if self.restore_data.unwrap_or(false) {
-          restore_user_data(blocked_person.id, context).await?;
+          remove_or_restore_user_data(mod_person.id, blocked_person.id, false, &None, context)
+            .await?;
         }
 
         // write mod log
@@ -144,8 +145,10 @@ impl ActivityHandler for UndoBlockUser {
         if self.restore_data.unwrap_or(false) {
           remove_or_restore_user_data_in_community(
             community.id,
+            mod_person.id,
             blocked_person.id,
             false,
+            &None,
             &mut context.pool(),
           )
           .await?;

@@ -3,6 +3,7 @@ use crate::schema::local_site;
 use crate::{
   newtypes::{LocalSiteId, SiteId},
   CommentSortType,
+  FederationMode,
   ListingType,
   PostListingMode,
   PostSortType,
@@ -27,8 +28,6 @@ pub struct LocalSite {
   pub site_id: SiteId,
   /// True if the site is set up.
   pub site_setup: bool,
-  /// Whether downvotes are enabled.
-  pub enable_downvotes: bool,
   /// Whether only admins can create communities.
   pub community_creation_admin_only: bool,
   /// Whether emails are required.
@@ -72,6 +71,14 @@ pub struct LocalSite {
   pub default_comment_sort_type: CommentSortType,
   /// Whether or not external auth methods can auto-register users.
   pub oauth_registration: bool,
+  /// What kind of post upvotes your site allows.
+  pub post_upvotes: FederationMode,
+  /// What kind of post downvotes your site allows.
+  pub post_downvotes: FederationMode,
+  /// What kind of comment upvotes your site allows.
+  pub comment_upvotes: FederationMode,
+  /// What kind of comment downvotes your site allows.
+  pub comment_downvotes: FederationMode,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -81,8 +88,6 @@ pub struct LocalSiteInsertForm {
   pub site_id: SiteId,
   #[new(default)]
   pub site_setup: Option<bool>,
-  #[new(default)]
-  pub enable_downvotes: Option<bool>,
   #[new(default)]
   pub community_creation_admin_only: Option<bool>,
   #[new(default)]
@@ -114,8 +119,6 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub registration_mode: Option<RegistrationMode>,
   #[new(default)]
-  pub oauth_registration: Option<bool>,
-  #[new(default)]
   pub reports_email_admins: Option<bool>,
   #[new(default)]
   pub federation_signed_fetch: Option<bool>,
@@ -125,6 +128,16 @@ pub struct LocalSiteInsertForm {
   pub default_post_sort_type: Option<PostSortType>,
   #[new(default)]
   pub default_comment_sort_type: Option<CommentSortType>,
+  #[new(default)]
+  pub oauth_registration: Option<bool>,
+  #[new(default)]
+  pub post_upvotes: Option<FederationMode>,
+  #[new(default)]
+  pub post_downvotes: Option<FederationMode>,
+  #[new(default)]
+  pub comment_upvotes: Option<FederationMode>,
+  #[new(default)]
+  pub comment_downvotes: Option<FederationMode>,
 }
 
 #[derive(Clone, Default)]
@@ -132,7 +145,6 @@ pub struct LocalSiteInsertForm {
 #[cfg_attr(feature = "full", diesel(table_name = local_site))]
 pub struct LocalSiteUpdateForm {
   pub site_setup: Option<bool>,
-  pub enable_downvotes: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
   pub application_question: Option<Option<String>>,
@@ -148,11 +160,15 @@ pub struct LocalSiteUpdateForm {
   pub captcha_enabled: Option<bool>,
   pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
-  pub oauth_registration: Option<bool>,
   pub reports_email_admins: Option<bool>,
   pub updated: Option<Option<DateTime<Utc>>>,
   pub federation_signed_fetch: Option<bool>,
   pub default_post_listing_mode: Option<PostListingMode>,
   pub default_post_sort_type: Option<PostSortType>,
   pub default_comment_sort_type: Option<CommentSortType>,
+  pub oauth_registration: Option<bool>,
+  pub post_upvotes: Option<FederationMode>,
+  pub post_downvotes: Option<FederationMode>,
+  pub comment_upvotes: Option<FederationMode>,
+  pub comment_downvotes: Option<FederationMode>,
 }

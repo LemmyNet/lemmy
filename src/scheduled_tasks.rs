@@ -605,7 +605,6 @@ async fn build_update_instance_form(
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::scheduled_tasks::build_update_instance_form;

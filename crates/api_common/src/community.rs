@@ -3,9 +3,13 @@ use lemmy_db_schema::{
   source::site::Site,
   CommunityVisibility,
   ListingType,
-  PostSortType,
 };
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
+use lemmy_db_views_actor::structs::{
+  CommunityModeratorView,
+  CommunitySortType,
+  CommunityView,
+  PersonView,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -74,7 +78,7 @@ pub struct CommunityResponse {
 /// Fetches a list of communities.
 pub struct ListCommunities {
   pub type_: Option<ListingType>,
-  pub sort: Option<PostSortType>,
+  pub sort: Option<CommunitySortType>,
   pub show_nsfw: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -224,4 +228,13 @@ pub struct BlockCommunityResponse {
 pub struct TransferCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Fetches a random community
+pub struct GetRandomCommunity {
+  pub type_: Option<ListingType>,
 }

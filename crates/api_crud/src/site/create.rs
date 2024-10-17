@@ -90,7 +90,6 @@ pub async fn create_site(
   let local_site_form = LocalSiteUpdateForm {
     // Set the site setup to true
     site_setup: Some(true),
-    enable_downvotes: data.enable_downvotes,
     registration_mode: data.registration_mode,
     community_creation_admin_only: data.community_creation_admin_only,
     require_email_verification: data.require_email_verification,
@@ -110,6 +109,10 @@ pub async fn create_site(
     captcha_enabled: data.captcha_enabled,
     captcha_difficulty: data.captcha_difficulty.clone(),
     default_post_listing_mode: data.default_post_listing_mode,
+    post_upvotes: data.post_upvotes,
+    post_downvotes: data.post_downvotes,
+    comment_upvotes: data.comment_upvotes,
+    comment_downvotes: data.comment_downvotes,
     ..Default::default()
   };
 
@@ -139,7 +142,10 @@ pub async fn create_site(
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
   context.rate_limit_cell().set_config(rate_limit_config);
 
-  Ok(Json(SiteResponse { site_view }))
+  Ok(Json(SiteResponse {
+    site_view,
+    taglines: vec![],
+  }))
 }
 
 fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> LemmyResult<()> {
@@ -189,8 +195,6 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::site::create::validate_create_payload;

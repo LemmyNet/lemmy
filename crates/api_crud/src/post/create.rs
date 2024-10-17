@@ -104,18 +104,9 @@ pub async fn create_post(
     .await?;
   }
 
-  // Only need to check if language is allowed in case user set it explicitly. When using default
-  // language, it already only returns allowed languages.
-  CommunityLanguage::is_allowed_community_language(
-    &mut context.pool(),
-    data.language_id,
-    community_id,
-  )
-  .await?;
-
   // attempt to set default language if none was provided
   let language_id = match data.language_id {
-    Some(lid) => Some(lid),
+    Some(lid) => lid,
     None => {
       default_post_language(
         &mut context.pool(),
@@ -126,6 +117,11 @@ pub async fn create_post(
     }
   };
 
+  // Only need to check if language is allowed in case user set it explicitly. When using default
+  // language, it already only returns allowed languages.
+  CommunityLanguage::is_allowed_community_language(&mut context.pool(), language_id, community_id)
+    .await?;
+
   let scheduled_publish_time =
     convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?;
   let post_form = PostInsertForm {
@@ -133,7 +129,7 @@ pub async fn create_post(
     body,
     alt_text: data.alt_text.clone(),
     nsfw: data.nsfw,
-    language_id,
+    language_id: Some(language_id),
     scheduled_publish_time,
     ..PostInsertForm::new(
       data.name.trim().to_string(),

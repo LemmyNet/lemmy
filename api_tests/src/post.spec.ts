@@ -794,3 +794,29 @@ test("Fetch post with redirect", async () => {
   let gammaPost2 = await gamma.resolveObject(form);
   expect(gammaPost2.post).toBeDefined();
 });
+
+test("Rewrite markdown links", async () => {
+  const community = (await resolveBetaCommunity(beta)).community!;
+
+  // create a post
+  let postRes1 = await createPost(beta, community.community.id);
+
+  // link to this post in markdown
+  let postRes2 = await createPost(
+    beta,
+    community.community.id,
+    "https://example.com/",
+    `[link](${postRes1.post_view.post.ap_id})`,
+  );
+  console.log(postRes2.post_view.post.body);
+  expect(postRes2.post_view.post).toBeDefined();
+
+  // fetch both posts from another instance
+  const alphaPost1 = await resolvePost(alpha, postRes1.post_view.post);
+  const alphaPost2 = await resolvePost(alpha, postRes2.post_view.post);
+
+  // remote markdown link is replaced with local link
+  expect(alphaPost2.post?.post.body).toBe(
+    `[link](http://lemmy-alpha:8541/post/${alphaPost1.post?.post.id})`,
+  );
+});

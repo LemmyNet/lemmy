@@ -346,47 +346,30 @@ fn queries<'a>() -> Queries<
       query = query.filter(post_aggregates::creator_id.eq(creator_id));
     }
 
-    if let Some(listing_type) = options.listing_type {
-      if let Some(person_id) = options.local_user.person_id() {
-        let is_subscribed = exists(
-          community_follower::table.filter(
-            post_aggregates::community_id
-              .eq(community_follower::community_id)
-              .and(community_follower::person_id.eq(person_id)),
+    let is_subscribed = exists(
+      community_follower::table.filter(
+        post_aggregates::community_id
+          .eq(community_follower::community_id)
+          .and(community_follower::person_id.eq(person_id_join)),
+      ),
+    );
+    match options.listing_type.unwrap_or_default() {
+      ListingType::Subscribed => query = query.filter(is_subscribed),
+      ListingType::Local => {
+        query = query
+          .filter(community::local.eq(true))
+          .filter(community::hidden.eq(false).or(is_subscribed));
+      }
+      ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
+      ListingType::ModeratorView => {
+        query = query.filter(exists(
+          community_moderator::table.filter(
+            post::community_id
+              .eq(community_moderator::community_id)
+              .and(community_moderator::person_id.eq(person_id_join)),
           ),
-        );
-        match listing_type {
-          ListingType::Subscribed => query = query.filter(is_subscribed),
-          ListingType::Local => {
-            query = query
-              .filter(community::local.eq(true))
-              .filter(community::hidden.eq(false).or(is_subscribed));
-          }
-          ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
-          ListingType::ModeratorView => {
-            query = query.filter(exists(
-              community_moderator::table.filter(
-                post::community_id
-                  .eq(community_moderator::community_id)
-                  .and(community_moderator::person_id.eq(person_id)),
-              ),
-            ));
-          }
-        }
+        ));
       }
-      // If your person_id is missing, only show local
-      else {
-        match listing_type {
-          ListingType::Local => {
-            query = query
-              .filter(community::local.eq(true))
-              .filter(community::hidden.eq(false));
-          }
-          _ => query = query.filter(community::hidden.eq(false)),
-        }
-      }
-    } else {
-      query = query.filter(community::hidden.eq(false));
     }
 
     if let Some(search_term) = &options.search_term {
@@ -394,14 +377,12 @@ fn queries<'a>() -> Queries<
         query = query.filter(post::url.eq(search_term));
       } else {
         let searcher = fuzzy_search(search_term);
+        let name_filter = post::name.ilike(searcher.clone());
+        let body_filter = post::body.ilike(searcher.clone());
         query = if options.title_only.unwrap_or_default() {
-          query.filter(post::name.ilike(searcher))
+          query.filter(name_filter)
         } else {
-          query.filter(
-            post::name
-              .ilike(searcher.clone())
-              .or(post::body.ilike(searcher)),
-          )
+          query.filter(name_filter.or(body_filter))
         }
         .filter(not(post::removed.or(post::deleted)));
       }
@@ -741,7 +722,6 @@ impl<'a> PostQuery<'a> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
   use crate::{
     post_view::{PaginationCursorData, PostQuery, PostView},
@@ -757,6 +737,8 @@ mod tests {
       comment::{Comment, CommentInsertForm},
       community::{
         Community,
+        CommunityFollower,
+        CommunityFollowerForm,
         CommunityInsertForm,
         CommunityModerator,
         CommunityModeratorForm,
@@ -785,7 +767,7 @@ mod tests {
       },
       site::Site,
     },
-    traits::{Bannable, Blockable, Crud, Joinable, Likeable, Saveable},
+    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable, Saveable},
     utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
     CommunityVisibility,
     PostSortType,
@@ -1307,13 +1289,9 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let spanish_id = Language::read_id_from_code(pool, Some("es"))
-      .await?
-      .expect("spanish should exist");
+    let spanish_id = Language::read_id_from_code(pool, "es").await?;
 
-    let french_id = Language::read_id_from_code(pool, Some("fr"))
-      .await?
-      .expect("french should exist");
+    let french_id = Language::read_id_from_code(pool, "fr").await?;
 
     let post_spanish = PostInsertForm {
       language_id: Some(spanish_id),
@@ -1435,6 +1413,43 @@ mod tests {
 
       assert_eq!(expect_contains_deleted, contains_deleted);
     }
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listings_hidden_community() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    Community::update(
+      pool,
+      data.inserted_community.id,
+      &CommunityUpdateForm {
+        hidden: Some(true),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    let posts = PostQuery::default().list(&data.site, pool).await?;
+    assert!(posts.is_empty());
+
+    let posts = data.default_post_query().list(&data.site, pool).await?;
+    assert!(posts.is_empty());
+
+    // Follow the community
+    let form = CommunityFollowerForm {
+      community_id: data.inserted_community.id,
+      person_id: data.local_user_view.person.id,
+      pending: false,
+    };
+    CommunityFollower::follow(pool, &form).await?;
+
+    let posts = data.default_post_query().list(&data.site, pool).await?;
+    assert!(!posts.is_empty());
 
     cleanup(data, pool).await
   }
@@ -1692,7 +1707,7 @@ mod tests {
     assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_hidden));
 
     // Make sure that hidden field is true.
-    assert!(&post_listings_show_hidden.first().unwrap().hidden);
+    assert!(&post_listings_show_hidden.first().is_some_and(|p| p.hidden));
 
     cleanup(data, pool).await
   }
@@ -1728,7 +1743,7 @@ mod tests {
     assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_nsfw));
 
     // Make sure that nsfw field is true.
-    assert!(&post_listings_show_nsfw.first().unwrap().post.nsfw);
+    assert!(&post_listings_show_nsfw.first().is_some_and(|p| p.post.nsfw));
 
     cleanup(data, pool).await
   }

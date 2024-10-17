@@ -14,11 +14,12 @@ use serde_with::skip_serializing_none;
 use ts_rs::TS;
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
+#[serde(default)]
 /// A local user.
 pub struct LocalUser {
   pub id: LocalUserId,
@@ -49,7 +50,6 @@ pub struct LocalUser {
   /// Open links in a new tab.
   pub open_links_in_new_tab: bool,
   pub blur_nsfw: bool,
-  pub auto_expand: bool,
   /// Whether infinite scroll is enabled.
   pub infinite_scroll_enabled: bool,
   /// Whether the person is an admin.
@@ -104,8 +104,6 @@ pub struct LocalUserInsertForm {
   #[new(default)]
   pub blur_nsfw: Option<bool>,
   #[new(default)]
-  pub auto_expand: Option<bool>,
-  #[new(default)]
   pub infinite_scroll_enabled: Option<bool>,
   #[new(default)]
   pub admin: Option<bool>,
@@ -143,7 +141,6 @@ pub struct LocalUserUpdateForm {
   pub totp_2fa_secret: Option<Option<String>>,
   pub open_links_in_new_tab: Option<bool>,
   pub blur_nsfw: Option<bool>,
-  pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
   pub admin: Option<bool>,
   pub post_listing_mode: Option<PostListingMode>,

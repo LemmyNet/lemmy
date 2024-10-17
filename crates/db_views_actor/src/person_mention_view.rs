@@ -303,7 +303,6 @@ impl PersonMentionQuery {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{person_mention_view::PersonMentionQuery, structs::PersonMentionView};

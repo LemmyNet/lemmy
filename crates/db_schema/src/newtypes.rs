@@ -191,13 +191,13 @@ impl Display for DbUrl {
 }
 
 // the project doesn't compile with From
-#[allow(clippy::from_over_into)]
+#[expect(clippy::from_over_into)]
 impl Into<DbUrl> for Url {
   fn into(self) -> DbUrl {
     DbUrl(Box::new(self))
   }
 }
-#[allow(clippy::from_over_into)]
+#[expect(clippy::from_over_into)]
 impl Into<Url> for DbUrl {
   fn into(self) -> Url {
     *self.0

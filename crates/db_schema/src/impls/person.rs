@@ -21,6 +21,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 #[async_trait]
 impl Crud for Person {
@@ -121,16 +122,18 @@ impl Person {
       .await
   }
 
-  pub async fn is_username_taken(pool: &mut DbPool<'_>, username: &str) -> Result<bool, Error> {
+  pub async fn check_username_taken(pool: &mut DbPool<'_>, username: &str) -> LemmyResult<()> {
     use diesel::dsl::{exists, select};
     let conn = &mut get_conn(pool).await?;
-    select(exists(
+    select(not(exists(
       person::table
         .filter(lower(person::name).eq(username.to_lowercase()))
         .filter(person::local.eq(true)),
-    ))
-    .get_result(conn)
-    .await
+    )))
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::UsernameAlreadyExists.into())
   }
 }
 
@@ -232,7 +235,6 @@ impl PersonFollower {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{

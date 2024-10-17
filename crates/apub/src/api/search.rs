@@ -12,7 +12,11 @@ use lemmy_db_views::{
   post_view::PostQuery,
   structs::{LocalUserView, SiteView},
 };
-use lemmy_db_views_actor::{community_view::CommunityQuery, person_view::PersonQuery};
+use lemmy_db_views_actor::{
+  community_view::CommunityQuery,
+  person_view::PersonQuery,
+  structs::CommunitySortType,
+};
 use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
@@ -47,7 +51,7 @@ pub async fn search(
     listing_type,
     page,
     limit,
-    post_title_only,
+    title_only,
     post_url_only,
     saved_only,
     liked_only,
@@ -78,7 +82,7 @@ pub async fn search(
     search_term: Some(q.clone()),
     page,
     limit,
-    title_only: post_title_only,
+    title_only,
     url_only: post_url_only,
     liked_only,
     disliked_only,
@@ -102,9 +106,10 @@ pub async fn search(
   };
 
   let community_query = CommunityQuery {
-    sort,
+    sort: sort.map(CommunitySortType::from),
     listing_type,
     search_term: Some(q.clone()),
+    title_only,
     local_user,
     is_mod_or_admin: is_admin,
     page,

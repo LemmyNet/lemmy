@@ -30,9 +30,8 @@ use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
+  MAX_COMMENT_DEPTH_LIMIT,
 };
-
-const MAX_COMMENT_DEPTH_LIMIT: usize = 100;
 
 #[tracing::instrument(skip(context))]
 pub async fn create_comment(
@@ -89,16 +88,9 @@ pub async fn create_comment(
     check_comment_depth(parent)?;
   }
 
-  CommunityLanguage::is_allowed_community_language(
-    &mut context.pool(),
-    data.language_id,
-    community_id,
-  )
-  .await?;
-
   // attempt to set default language if none was provided
   let language_id = match data.language_id {
-    Some(lid) => Some(lid),
+    Some(lid) => lid,
     None => {
       default_post_language(
         &mut context.pool(),
@@ -109,8 +101,11 @@ pub async fn create_comment(
     }
   };
 
+  CommunityLanguage::is_allowed_community_language(&mut context.pool(), language_id, community_id)
+    .await?;
+
   let comment_form = CommentInsertForm {
-    language_id,
+    language_id: Some(language_id),
     ..CommentInsertForm::new(local_user_view.person.id, data.post_id, content.clone())
   };
 
