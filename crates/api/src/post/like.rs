@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     local_site::LocalSite,
-    post::{Post, PostLike, PostLikeForm},
+    post::{Post, PostLike},
   },
   traits::{Crud, Likeable},
 };
@@ -54,23 +54,23 @@ pub async fn like_post(
   )
   .await?;
 
-  let like_form = PostLikeForm {
-    post_id: data.post_id,
-    person_id: local_user_view.person.id,
-    score: data.score,
-  };
-
   // Remove any likes first
   let person_id = local_user_view.person.id;
 
   PostLike::remove(&mut context.pool(), person_id, post_id).await?;
 
   // Only add the like if the score isnt 0
-  let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
+  let do_add = data.score != 0 && (data.score == 1 || data.score == -1);
   if do_add {
-    PostLike::like(&mut context.pool(), &like_form)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
+    PostLike::like(
+      &mut context.pool(),
+      person_id,
+      post_id,
+      data.score,
+      context.settings(),
+    )
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
   }
 
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;

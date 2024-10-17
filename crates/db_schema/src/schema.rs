@@ -123,9 +123,8 @@ diesel::table! {
     comment_like (person_id, comment_id) {
         person_id -> Int4,
         comment_id -> Int4,
-        post_id -> Int4,
         score -> Int2,
-        published -> Timestamptz,
+        published -> Nullable<Timestamptz>,
     }
 }
 
@@ -816,7 +815,7 @@ diesel::table! {
         post_id -> Int4,
         person_id -> Int4,
         score -> Int2,
-        published -> Timestamptz,
+        published -> Nullable<Timestamptz>,
     }
 }
 
@@ -999,7 +998,6 @@ diesel::joinable!(comment -> post (post_id));
 diesel::joinable!(comment_aggregates -> comment (comment_id));
 diesel::joinable!(comment_like -> comment (comment_id));
 diesel::joinable!(comment_like -> person (person_id));
-diesel::joinable!(comment_like -> post (post_id));
 diesel::joinable!(comment_reply -> comment (comment_id));
 diesel::joinable!(comment_reply -> person (recipient_id));
 diesel::joinable!(comment_report -> comment (comment_id));

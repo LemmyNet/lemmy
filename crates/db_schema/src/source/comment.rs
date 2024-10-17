@@ -102,19 +102,18 @@ pub struct CommentUpdateForm {
 pub struct CommentLike {
   pub person_id: PersonId,
   pub comment_id: CommentId,
-  pub post_id: PostId, // TODO this is redundant
   pub score: i16,
-  pub published: DateTime<Utc>,
+  pub published: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_like))]
-pub struct CommentLikeForm {
+pub(crate) struct CommentLikeForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,
-  pub post_id: PostId, // TODO this is redundant
   pub score: i16,
+  pub published: Option<DateTime<Utc>>,
 }
 
 #[derive(PartialEq, Eq, Debug)]

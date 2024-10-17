@@ -128,6 +128,11 @@ pub struct DatabaseConfig {
   /// Maximum number of active sql connections
   #[default(30)]
   pub pool_size: usize,
+
+  /// Set true to store the time when votes were cast. Requires more storage space but can be
+  /// used to detect vote manipulation.
+  #[default(false)]
+  pub store_vote_timestamps: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
