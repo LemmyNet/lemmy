@@ -1,2 +1,6 @@
-alter table post_like add column published timestamptz not null default now();
-alter table comment_like add column published timestamptz not null default now();
+ALTER TABLE post_like
+    ADD COLUMN published timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE comment_like
+    ADD COLUMN published timestamptz NOT NULL DEFAULT now();
+

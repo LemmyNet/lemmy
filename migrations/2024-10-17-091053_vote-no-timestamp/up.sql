@@ -1,2 +1,6 @@
-alter table post_like drop published;
-alter table comment_like drop published;
+ALTER TABLE post_like
+    DROP published;
+
+ALTER TABLE comment_like
+    DROP published;
+
