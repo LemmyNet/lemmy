@@ -27,10 +27,7 @@ impl AcceptFollow {
       to: Some([person.id().into()]),
       object: follow,
       kind: AcceptType::Accept,
-      id: generate_activity_id(
-        AcceptType::Accept,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(AcceptType::Accept)?,
     };
     let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
     send_lemmy_activity(context, accept, &user_or_community, inbox, true).await

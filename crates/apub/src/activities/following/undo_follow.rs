@@ -30,16 +30,13 @@ impl UndoFollow {
     community: &ApubCommunity,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let object = Follow::new(actor, community, context)?;
+    let object = Follow::new(actor, community)?;
     let undo = UndoFollow {
       actor: actor.id().into(),
       to: Some([community.id().into()]),
       object,
       kind: UndoType::Undo,
-      id: generate_activity_id(
-        UndoType::Undo,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(UndoType::Undo)?,
     };
     let inbox = if community.local {
       ActivitySendTargets::empty()

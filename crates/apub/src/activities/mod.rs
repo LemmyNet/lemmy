@@ -42,7 +42,10 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::SETTINGS,
+};
 use serde::Serialize;
 use tracing::info;
 use url::{ParseError, Url};
@@ -142,10 +145,11 @@ pub(crate) fn check_community_deleted_or_removed(community: &Community) -> Lemmy
 
 /// Generate a unique ID for an activity, in the format:
 /// `http(s)://example.com/receive/create/202daf0a-1489-45df-8d2e-c8a3173fed36`
-fn generate_activity_id<T>(kind: T, protocol_and_hostname: &str) -> Result<Url, ParseError>
+fn generate_activity_id<T>(kind: T) -> Result<Url, ParseError>
 where
   T: ToString,
 {
+  let protocol_and_hostname = &SETTINGS.get_protocol_and_hostname();
   let id = format!(
     "{}/activities/{}/{}",
     protocol_and_hostname,
@@ -156,10 +160,8 @@ where
 }
 
 /// like generate_activity_id but also add the inner kind for easier debugging
-fn generate_announce_activity_id(
-  inner_kind: &str,
-  protocol_and_hostname: &str,
-) -> Result<Url, ParseError> {
+fn generate_announce_activity_id(inner_kind: &str) -> Result<Url, ParseError> {
+  let protocol_and_hostname = &SETTINGS.get_protocol_and_hostname();
   let id = format!(
     "{}/activities/{}/{}/{}",
     protocol_and_hostname,

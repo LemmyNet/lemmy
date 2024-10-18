@@ -37,12 +37,7 @@ pub async fn verify_email(
   if site_view.local_site.application_email_admins {
     let local_user = LocalUserView::read(&mut context.pool(), local_user_id).await?;
 
-    send_new_applicant_email_to_admins(
-      &local_user.person.name,
-      &mut context.pool(),
-      context.settings(),
-    )
-    .await?;
+    send_new_applicant_email_to_admins(&local_user.person.name, &mut context.pool()).await?;
   }
 
   Ok(Json(SuccessResponse::default()))

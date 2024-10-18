@@ -161,8 +161,7 @@ pub async fn register(
 
   // Email the admins, only if email verification is not required
   if local_site.application_email_admins && !local_site.require_email_verification {
-    send_new_applicant_email_to_admins(&data.username, &mut context.pool(), context.settings())
-      .await?;
+    send_new_applicant_email_to_admins(&data.username, &mut context.pool()).await?;
   }
 
   let mut login_response = LoginResponse {
@@ -409,17 +408,13 @@ async fn create_person(
 ) -> Result<Person, LemmyError> {
   let actor_keypair = generate_actor_keypair()?;
   is_valid_actor_name(&username, local_site.actor_name_max_length as usize)?;
-  let actor_id = generate_local_apub_endpoint(
-    EndpointType::Person,
-    &username,
-    &context.settings().get_protocol_and_hostname(),
-  )?;
+  let actor_id = generate_local_apub_endpoint(EndpointType::Person, &username)?;
 
   // Register the new person
   let person_form = PersonInsertForm {
     actor_id: Some(actor_id.clone()),
     inbox_url: Some(generate_inbox_url(&actor_id)?),
-    shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
+    shared_inbox_url: Some(generate_shared_inbox_url()?),
     private_key: Some(actor_keypair.private_key),
     ..PersonInsertForm::new(username.clone(), actor_keypair.public_key, instance_id)
   };
@@ -487,7 +482,6 @@ async fn send_verification_email_if_required(
         .clone()
         .expect("invalid verification email"),
       &mut context.pool(),
-      context.settings(),
     )
     .await?;
 

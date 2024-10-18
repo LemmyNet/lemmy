@@ -1,3 +1,4 @@
+use crate::settings::SETTINGS;
 use itertools::Itertools;
 use regex::Regex;
 use std::sync::LazyLock;
@@ -13,8 +14,8 @@ pub struct MentionData {
 }
 
 impl MentionData {
-  pub fn is_local(&self, hostname: &str) -> bool {
-    hostname.eq(&self.domain)
+  pub fn is_local(&self) -> bool {
+    SETTINGS.hostname.eq(&self.domain)
   }
   pub fn full_name(&self) -> String {
     format!("@{}@{}", &self.name, &self.domain)

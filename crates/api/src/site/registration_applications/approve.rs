@@ -62,7 +62,7 @@ pub async fn approve_registration_application(
       LocalUserView::read(&mut context.pool(), approved_user_id).await?;
     if approved_local_user_view.local_user.email.is_some() {
       // Email sending may fail, but this won't revert the application approval
-      send_application_approved_email(&approved_local_user_view, context.settings()).await?;
+      send_application_approved_email(&approved_local_user_view).await?;
     }
   };
 

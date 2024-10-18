@@ -67,7 +67,7 @@ pub async fn collect_non_local_mentions(
   let mentions = scrape_text_for_mentions(&comment.content)
     .into_iter()
     // Filter only the non-local ones
-    .filter(|m| !m.is_local(&context.settings().hostname));
+    .filter(|m| !m.is_local());
 
   for mention in mentions {
     let identifier = format!("{}@{}", mention.name, mention.domain);

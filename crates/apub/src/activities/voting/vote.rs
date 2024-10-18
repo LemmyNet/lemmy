@@ -28,13 +28,12 @@ impl Vote {
     actor: &ApubPerson,
     community: &ApubCommunity,
     kind: VoteType,
-    context: &Data<LemmyContext>,
   ) -> LemmyResult<Vote> {
     Ok(Vote {
       actor: actor.id().into(),
       object: object_id,
       kind: kind.clone(),
-      id: generate_activity_id(kind, &context.settings().get_protocol_and_hostname())?,
+      id: generate_activity_id(kind)?,
       audience: Some(community.id().into()),
     })
   }

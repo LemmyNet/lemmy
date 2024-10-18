@@ -74,11 +74,7 @@ pub async fn create_community(
   }
 
   // Double check for duplicate community actor_ids
-  let community_actor_id = generate_local_apub_endpoint(
-    EndpointType::Community,
-    &data.name,
-    &context.settings().get_protocol_and_hostname(),
-  )?;
+  let community_actor_id = generate_local_apub_endpoint(EndpointType::Community, &data.name)?;
   let community_dupe =
     Community::read_from_apub_id(&mut context.pool(), &community_actor_id).await?;
   if community_dupe.is_some() {
@@ -97,7 +93,7 @@ pub async fn create_community(
     private_key: Some(keypair.private_key),
     followers_url: Some(generate_followers_url(&community_actor_id)?),
     inbox_url: Some(generate_inbox_url(&community_actor_id)?),
-    shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
+    shared_inbox_url: Some(generate_shared_inbox_url()?),
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
     ..CommunityInsertForm::new(

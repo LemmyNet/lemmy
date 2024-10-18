@@ -64,13 +64,7 @@ pub async fn save_user_settings(
     // if email was changed, check that it is not taken and send verification mail
     if previous_email.deref() != email {
       LocalUser::check_is_email_taken(&mut context.pool(), email).await?;
-      send_verification_email(
-        &local_user_view,
-        email,
-        &mut context.pool(),
-        context.settings(),
-      )
-      .await?;
+      send_verification_email(&local_user_view, email, &mut context.pool()).await?;
     }
   }
 

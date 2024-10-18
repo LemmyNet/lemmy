@@ -81,15 +81,13 @@ impl AnnounceActivity {
   pub(crate) fn new(
     object: RawAnnouncableActivities,
     community: &ApubCommunity,
-    context: &Data<LemmyContext>,
   ) -> LemmyResult<AnnounceActivity> {
     let inner_kind = object
       .other
       .get("type")
       .and_then(serde_json::Value::as_str)
       .unwrap_or("other");
-    let id =
-      generate_announce_activity_id(inner_kind, &context.settings().get_protocol_and_hostname())?;
+    let id = generate_announce_activity_id(inner_kind)?;
     Ok(AnnounceActivity {
       actor: community.id().into(),
       to: vec![public()],
@@ -111,7 +109,7 @@ impl AnnounceActivity {
     community: &ApubCommunity,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let announce = AnnounceActivity::new(object.clone(), community, context)?;
+    let announce = AnnounceActivity::new(object.clone(), community)?;
     let inboxes = ActivitySendTargets::to_local_community_followers(community.id);
     send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
 
@@ -122,17 +120,14 @@ impl AnnounceActivity {
       // Hack: need to convert Page into a format which can be sent as activity, which requires
       //       adding actor field.
       let announcable_page = RawAnnouncableActivities {
-        id: generate_activity_id(
-          AnnounceType::Announce,
-          &context.settings().get_protocol_and_hostname(),
-        )?,
+        id: generate_activity_id(AnnounceType::Announce)?,
         actor: c.actor.clone().into_inner(),
         other: serde_json::to_value(c.object)?
           .as_object()
           .expect("is object")
           .clone(),
       };
-      let announce_compat = AnnounceActivity::new(announcable_page, community, context)?;
+      let announce_compat = AnnounceActivity::new(announcable_page, community)?;
       send_lemmy_activity(context, announce_compat, community, inboxes, false).await?;
     }
     Ok(())

@@ -7,7 +7,10 @@ use lemmy_db_schema::{
   sensitive::SensitiveString,
   source::login_token::{LoginToken, LoginTokenCreateForm},
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::SETTINGS,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
@@ -38,7 +41,7 @@ impl Claims {
     req: HttpRequest,
     context: &LemmyContext,
   ) -> LemmyResult<SensitiveString> {
-    let hostname = context.settings().hostname.clone();
+    let hostname = SETTINGS.hostname.clone();
     let my_claims = Claims {
       sub: user_id.0.to_string(),
       iss: hostname,

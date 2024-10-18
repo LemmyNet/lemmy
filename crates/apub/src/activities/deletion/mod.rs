@@ -60,10 +60,10 @@ pub(crate) async fn send_apub_delete_in_community(
   let actor = ApubPerson::from(actor);
   let is_mod_action = reason.is_some();
   let activity = if deleted {
-    let delete = Delete::new(&actor, object, public(), Some(&community), reason, context)?;
+    let delete = Delete::new(&actor, object, public(), Some(&community), reason)?;
     AnnouncableActivities::Delete(delete)
   } else {
-    let undo = UndoDelete::new(&actor, object, public(), Some(&community), reason, context)?;
+    let undo = UndoDelete::new(&actor, object, public(), Some(&community), reason)?;
     AnnouncableActivities::UndoDelete(undo)
   };
   send_activity_in_community(
@@ -92,10 +92,10 @@ pub(crate) async fn send_apub_delete_private_message(
   let deletable = DeletableObjects::PrivateMessage(pm.into());
   let inbox = ActivitySendTargets::to_inbox(recipient.shared_inbox_or_inbox());
   if deleted {
-    let delete: Delete = Delete::new(actor, deletable, recipient.id(), None, None, &context)?;
+    let delete: Delete = Delete::new(actor, deletable, recipient.id(), None, None)?;
     send_lemmy_activity(&context, delete, actor, inbox, true).await?;
   } else {
-    let undo = UndoDelete::new(actor, deletable, recipient.id(), None, None, &context)?;
+    let undo = UndoDelete::new(actor, deletable, recipient.id(), None, None)?;
     send_lemmy_activity(&context, undo, actor, inbox, true).await?;
   };
   Ok(())
@@ -109,7 +109,7 @@ pub async fn send_apub_delete_user(
   let person: ApubPerson = person.into();
 
   let deletable = DeletableObjects::Person(person.clone());
-  let mut delete: Delete = Delete::new(&person, deletable, public(), None, None, &context)?;
+  let mut delete: Delete = Delete::new(&person, deletable, public(), None, None)?;
   delete.remove_data = Some(remove_data);
 
   let inboxes = ActivitySendTargets::to_all_instances();

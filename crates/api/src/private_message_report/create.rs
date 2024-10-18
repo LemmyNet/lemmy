@@ -56,7 +56,6 @@ pub async fn create_pm_report(
       &private_message_report_view.creator.name,
       &private_message_report_view.private_message_creator.name,
       &mut context.pool(),
-      context.settings(),
     )
     .await?;
   }

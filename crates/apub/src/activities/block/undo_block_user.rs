@@ -50,10 +50,7 @@ impl UndoBlockUser {
       None
     };
 
-    let id = generate_activity_id(
-      UndoType::Undo,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(UndoType::Undo)?;
     let undo = UndoBlockUser {
       actor: mod_.id().into(),
       to: vec![public()],

@@ -44,10 +44,7 @@ impl Report {
     let actor: ApubPerson = actor.into();
     let community: ApubCommunity = community.into();
     let kind = FlagType::Flag;
-    let id = generate_activity_id(
-      kind.clone(),
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(kind.clone())?;
     let report = Report {
       actor: actor.id().into(),
       to: [community.id().into()],

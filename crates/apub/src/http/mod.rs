@@ -17,7 +17,10 @@ use lemmy_db_schema::{
   source::{activity::SentActivity, community::Community},
   CommunityVisibility,
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  settings::SETTINGS,
+};
 use serde::{Deserialize, Serialize};
 use std::{ops::Deref, time::Duration};
 use tokio::time::timeout;
@@ -98,10 +101,9 @@ pub(crate) async fn get_activity(
   info: web::Path<ActivityQuery>,
   context: web::Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let settings = context.settings();
   let activity_id = Url::parse(&format!(
     "{}/activities/{}/{}",
-    settings.get_protocol_and_hostname(),
+    SETTINGS.get_protocol_and_hostname(),
     info.type_,
     info.id
   ))?

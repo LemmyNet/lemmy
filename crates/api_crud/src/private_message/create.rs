@@ -23,6 +23,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::SETTINGS,
   utils::{markdown::markdown_to_html, validation::is_valid_body_field},
 };
 
@@ -63,14 +64,13 @@ pub async fn create_private_message(
     let recipient_id = data.recipient_id;
     let local_recipient = LocalUserView::read_person(&mut context.pool(), recipient_id).await?;
     let lang = get_interface_language(&local_recipient);
-    let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
+    let inbox_link = format!("{}/inbox", SETTINGS.get_protocol_and_hostname());
     let sender_name = &local_user_view.person.name;
     let content = markdown_to_html(&content);
     send_email_to_user(
       &local_recipient,
       &lang.notification_private_message_subject(sender_name),
       &lang.notification_private_message_body(inbox_link, &content, sender_name),
-      context.settings(),
     )
     .await;
   }

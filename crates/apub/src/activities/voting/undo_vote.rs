@@ -27,16 +27,12 @@ impl UndoVote {
     vote: Vote,
     actor: &ApubPerson,
     community: &ApubCommunity,
-    context: &Data<LemmyContext>,
   ) -> LemmyResult<Self> {
     Ok(UndoVote {
       actor: actor.id().into(),
       object: vote,
       kind: UndoType::Undo,
-      id: generate_activity_id(
-        UndoType::Undo,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(UndoType::Undo)?,
       audience: Some(community.id().into()),
     })
   }

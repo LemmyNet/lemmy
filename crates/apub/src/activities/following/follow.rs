@@ -33,17 +33,13 @@ impl Follow {
   pub(in crate::activities::following) fn new(
     actor: &ApubPerson,
     community: &ApubCommunity,
-    context: &Data<LemmyContext>,
   ) -> LemmyResult<Follow> {
     Ok(Follow {
       actor: actor.id().into(),
       object: community.id().into(),
       to: Some([community.id().into()]),
       kind: FollowType::Follow,
-      id: generate_activity_id(
-        FollowType::Follow,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(FollowType::Follow)?,
     })
   }
 
@@ -53,7 +49,7 @@ impl Follow {
     community: &ApubCommunity,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let follow = Follow::new(actor, community, context)?;
+    let follow = Follow::new(actor, community)?;
     let inbox = if community.local {
       ActivitySendTargets::empty()
     } else {

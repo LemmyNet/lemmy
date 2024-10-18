@@ -26,6 +26,7 @@ use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};
 use lemmy_db_views_actor::structs::CommunityView;
 use lemmy_utils::{
   error::LemmyResult,
+  settings::SETTINGS,
   utils::{markdown::markdown_to_html, mention::MentionData},
 };
 
@@ -99,7 +100,7 @@ pub async fn send_local_notifs(
   local_user_view: Option<&LocalUserView>,
 ) -> LemmyResult<Vec<LocalUserId>> {
   let mut recipient_ids = Vec::new();
-  let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
+  let inbox_link = format!("{}/inbox", SETTINGS.get_protocol_and_hostname());
 
   // let person = my_local_user.person;
   // Read the comment view to get extra info
@@ -116,7 +117,7 @@ pub async fn send_local_notifs(
   // Send the local mentions
   for mention in mentions
     .iter()
-    .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&person.name))
+    .filter(|m| m.is_local() && m.name.ne(&person.name))
   {
     let mention_name = mention.name.clone();
     let user_view = LocalUserView::read_from_name(&mut context.pool(), &mention_name).await;
@@ -147,7 +148,6 @@ pub async fn send_local_notifs(
           &mention_user_view,
           &lang.notification_mentioned_by_subject(&person.name),
           &lang.notification_mentioned_by_body(&content, &inbox_link, &person.name),
-          context.settings(),
         )
         .await
       }
@@ -199,7 +199,6 @@ pub async fn send_local_notifs(
               &parent_user_view,
               &lang.notification_comment_reply_subject(&person.name),
               &lang.notification_comment_reply_body(&content, &inbox_link, &person.name),
-              context.settings(),
             )
             .await
           }
@@ -245,7 +244,6 @@ pub async fn send_local_notifs(
               &parent_user_view,
               &lang.notification_post_reply_subject(&person.name),
               &lang.notification_post_reply_body(&content, &inbox_link, &person.name),
-              context.settings(),
             )
             .await
           }

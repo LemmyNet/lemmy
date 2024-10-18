@@ -17,7 +17,12 @@ use lemmy_db_schema::source::{
   local_site::LocalSite,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{error::LemmyResult, rate_limit::RateLimitCell, REQWEST_TIMEOUT};
+use lemmy_utils::{
+  error::LemmyResult,
+  rate_limit::RateLimitCell,
+  settings::SETTINGS,
+  REQWEST_TIMEOUT,
+};
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 use serde::Deserialize;
@@ -135,7 +140,7 @@ async fn upload(
   context: web::Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   // TODO: check rate limit here
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = SETTINGS.pictrs_config()?;
   let image_url = format!("{}image", pictrs_config.url);
 
   let mut client_req = adapt_request(&req, &client, image_url);
@@ -159,7 +164,7 @@ async fn upload(
         pictrs_delete_token: image.delete_token.to_string(),
       };
 
-      let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+      let protocol_and_hostname = SETTINGS.get_protocol_and_hostname();
       let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
 
       // Also store the details for the image
@@ -187,7 +192,7 @@ async fn full_res(
   let name = &filename.into_inner();
 
   // If there are no query params, the URL is original
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = SETTINGS.pictrs_config()?;
 
   let processed_url = params.process_url(name, &pictrs_config.url);
 
@@ -234,7 +239,7 @@ async fn delete(
 ) -> LemmyResult<HttpResponse> {
   let (token, file) = components.into_inner();
 
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = SETTINGS.pictrs_config()?;
   let url = format!("{}image/delete/{}/{}", pictrs_config.url, &token, &file);
 
   let mut client_req = adapt_request(&req, &client, url);
@@ -262,7 +267,7 @@ pub async fn image_proxy(
   // for arbitrary purposes.
   RemoteImage::validate(&mut context.pool(), url.clone().into()).await?;
 
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = SETTINGS.pictrs_config()?;
 
   let processed_url = params.process_url(&params.url, &pictrs_config.url);
 

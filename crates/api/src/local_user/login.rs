@@ -11,7 +11,10 @@ use lemmy_api_common::{
   utils::{check_email_verified, check_registration_application, check_user_valid},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  settings::SETTINGS,
+};
 
 #[tracing::instrument(skip(context))]
 pub async fn login(
@@ -44,11 +47,7 @@ pub async fn login(
 
   // Check the totp if enabled
   if local_user_view.local_user.totp_2fa_enabled {
-    check_totp_2fa_valid(
-      &local_user_view,
-      &data.totp_2fa_token,
-      &context.settings().hostname,
-    )?;
+    check_totp_2fa_valid(&local_user_view, &data.totp_2fa_token, &SETTINGS.hostname)?;
   }
 
   let jwt = Claims::generate(local_user_view.local_user.id, req, &context).await?;

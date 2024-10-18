@@ -8,6 +8,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
 use lemmy_utils::{
   error::LemmyResult,
+  settings::SETTINGS,
   utils::markdown::image_links::{markdown_find_links, markdown_handle_title},
 };
 use url::Url;
@@ -52,7 +53,7 @@ pub async fn markdown_rewrite_remote_links(
 }
 
 pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Option<Url> {
-  let local_domain = &context.settings().get_protocol_and_hostname();
+  let local_domain = &SETTINGS.get_protocol_and_hostname();
   let object_id = ObjectId::<SearchableObjects>::parse(url).ok()?;
   if object_id.inner().domain() == Some(local_domain) {
     return None;
@@ -61,10 +62,10 @@ pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Opt
   match dereferenced {
     SearchableObjects::PostOrComment(pc) => match *pc {
       PostOrComment::Post(post) => {
-        generate_local_apub_endpoint(EndpointType::Post, &post.id.to_string(), local_domain)
+        generate_local_apub_endpoint(EndpointType::Post, &post.id.to_string())
       }
       PostOrComment::Comment(comment) => {
-        generate_local_apub_endpoint(EndpointType::Comment, &comment.id.to_string(), local_domain)
+        generate_local_apub_endpoint(EndpointType::Comment, &comment.id.to_string())
       }
     }
     .ok()
@@ -87,8 +88,8 @@ async fn format_actor_url(
   instance_id: InstanceId,
   context: &LemmyContext,
 ) -> LemmyResult<Url> {
-  let local_protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let local_hostname = &context.settings().hostname;
+  let local_protocol_and_hostname = SETTINGS.get_protocol_and_hostname();
+  let local_hostname = &SETTINGS.hostname;
   let instance = Instance::read(&mut context.pool(), instance_id).await?;
   let url = if &instance.domain != local_hostname {
     format!(
