@@ -68,7 +68,7 @@ impl UndoDelete {
   pub(in crate::activities::deletion) fn new(
     actor: &ApubPerson,
     object: DeletableObjects,
-    to: Url,
+    to: Vec<Url>,
     community: Option<&Community>,
     summary: Option<String>,
     context: &Data<LemmyContext>,
@@ -82,7 +82,7 @@ impl UndoDelete {
     let cc: Option<Url> = community.map(|c| c.actor_id.clone().into());
     Ok(UndoDelete {
       actor: actor.actor_id.clone().into(),
-      to: vec![to],
+      to,
       object,
       cc: cc.into_iter().collect(),
       kind: UndoType::Undo,

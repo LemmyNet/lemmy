@@ -7,7 +7,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    community::{CommunityModerator, CommunityModeratorForm},
+    community::{Community, CommunityModerator, CommunityModeratorForm},
     moderator::{ModTransferCommunity, ModTransferCommunityForm},
   },
   traits::{Crud, Joinable},
@@ -27,11 +27,11 @@ pub async fn transfer_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<GetCommunityResponse>> {
-  let community_id = data.community_id;
+  let community = Community::read(&mut context.pool(), data.community_id).await?;
   let mut community_mods =
-    CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
+    CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
 
-  check_community_user_action(&local_user_view.person, community_id, &mut context.pool()).await?;
+  check_community_user_action(&local_user_view.person, &community, &mut context.pool()).await?;
 
   // Make sure transferrer is either the top community mod, or an admin
   if !(is_top_mod(&local_user_view, &community_mods).is_ok() || is_admin(&local_user_view).is_ok())

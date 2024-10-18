@@ -2,9 +2,10 @@ use crate::{
   activities::{
     community::send_activity_in_community,
     generate_activity_id,
-    verify_is_public,
+    generate_to,
     verify_mod_action,
     verify_person_in_community,
+    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -13,7 +14,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  kinds::{activity::UpdateType, public},
+  kinds::activity::UpdateType,
   traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::context::LemmyContext;
@@ -42,7 +43,7 @@ pub(crate) async fn send_update_community(
   )?;
   let update = UpdateCommunity {
     actor: actor.id().into(),
-    to: vec![public()],
+    to: vec![generate_to(&community)?],
     object: Box::new(community.clone().into_json(&context).await?),
     cc: vec![community.id()],
     kind: UpdateType::Update,
@@ -77,8 +78,8 @@ impl ActivityHandler for UpdateCommunity {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
+    verify_visibility(&self.to, &self.cc, &community)?;
     verify_person_in_community(&self.actor, &community, context).await?;
     verify_mod_action(&self.actor, &community, context).await?;
     ApubCommunity::verify(&self.object, &community.actor_id.clone().into(), context).await?;

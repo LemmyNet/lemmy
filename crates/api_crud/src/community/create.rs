@@ -24,6 +24,7 @@ use lemmy_db_schema::{
       Community,
       CommunityFollower,
       CommunityFollowerForm,
+      CommunityFollowerState,
       CommunityInsertForm,
       CommunityModerator,
       CommunityModeratorForm,
@@ -71,6 +72,10 @@ pub async fn create_community(
 
   if let Some(desc) = &data.description {
     is_valid_body_field(desc, false)?;
+  }
+
+  if data.visibility == Some(lemmy_db_schema::CommunityVisibility::Private) {
+    is_admin(&local_user_view)?;
   }
 
   // Double check for duplicate community actor_ids
@@ -126,7 +131,8 @@ pub async fn create_community(
   let community_follower_form = CommunityFollowerForm {
     community_id: inserted_community.id,
     person_id: local_user_view.person.id,
-    pending: false,
+    state: Some(CommunityFollowerState::Accepted),
+    approved_by: None,
   };
 
   CommunityFollower::follow(&mut context.pool(), &community_follower_form)

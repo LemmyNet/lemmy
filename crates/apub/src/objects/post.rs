@@ -1,5 +1,5 @@
 use crate::{
-  activities::{verify_is_public, verify_person_in_community},
+  activities::{generate_to, verify_person_in_community, verify_visibility},
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::{markdown_rewrite_remote_links_opt, to_local_url},
   local_site_data_cached,
@@ -16,7 +16,6 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  kinds::public,
   protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::Object,
 };
@@ -135,7 +134,7 @@ impl Object for ApubPost {
       kind: PageType::Page,
       id: self.ap_id.clone().into(),
       attributed_to: AttributedTo::Lemmy(creator.actor_id.into()),
-      to: vec![community.actor_id.clone().into(), public()],
+      to: vec![generate_to(&community)?],
       cc: vec![],
       name: Some(self.name.clone()),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
@@ -172,7 +171,7 @@ impl Object for ApubPost {
     check_slurs_opt(&page.name, slur_regex)?;
 
     verify_domains_match(page.creator()?.inner(), page.id.inner())?;
-    verify_is_public(&page.to, &page.cc)?;
+    verify_visibility(&page.to, &page.cc, &community)?;
     Ok(())
   }
 
