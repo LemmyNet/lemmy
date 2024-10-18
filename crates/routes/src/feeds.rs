@@ -23,6 +23,7 @@ use lemmy_db_views_actor::{
 use lemmy_utils::{
   cache_header::cache_1hour,
   error::{LemmyError, LemmyErrorType, LemmyResult},
+  settings::SETTINGS,
   utils::markdown::{markdown_to_html, sanitize_html},
 };
 use rss::{
@@ -166,12 +167,12 @@ async fn get_feed_data(
   .list(&site_view.site, &mut context.pool())
   .await?;
 
-  let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
+  let items = create_post_items(posts)?;
 
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
     title: format!("{} - {}", site_view.site.name, listing_type),
-    link: context.settings().get_protocol_and_hostname(),
+    link: SETTINGS.get_protocol_and_hostname(),
     items,
     ..Default::default()
   };
@@ -275,7 +276,7 @@ async fn get_feed_user(
   .list(&site_view.site, &mut context.pool())
   .await?;
 
-  let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
+  let items = create_post_items(posts)?;
   let channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
     title: format!("{} - {}", sanitize_xml(site_view.site.name), person.name),
@@ -315,7 +316,7 @@ async fn get_feed_community(
   .list(&site_view.site, &mut context.pool())
   .await?;
 
-  let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
+  let items = create_post_items(posts)?;
 
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
@@ -356,8 +357,8 @@ async fn get_feed_front(
   .list(&site_view.site, &mut context.pool())
   .await?;
 
-  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let items = create_post_items(posts, &protocol_and_hostname)?;
+  let protocol_and_hostname = SETTINGS.get_protocol_and_hostname();
+  let items = create_post_items(posts)?;
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
     title: format!("{} - Subscribed", sanitize_xml(site_view.site.name)),
@@ -406,7 +407,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
   .list(&mut context.pool())
   .await?;
 
-  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+  let protocol_and_hostname = SETTINGS.get_protocol_and_hostname();
   let items = create_reply_and_mention_items(replies, mentions, &protocol_and_hostname)?;
 
   let mut channel = Channel {
@@ -493,7 +494,8 @@ fn build_item(
 }
 
 #[tracing::instrument(skip_all)]
-fn create_post_items(posts: Vec<PostView>, protocol_and_hostname: &str) -> LemmyResult<Vec<Item>> {
+fn create_post_items(posts: Vec<PostView>) -> LemmyResult<Vec<Item>> {
+  let protocol_and_hostname = &SETTINGS.get_protocol_and_hostname();
   let mut items: Vec<Item> = Vec::new();
 
   for p in posts {

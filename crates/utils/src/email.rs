@@ -1,6 +1,6 @@
 use crate::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  settings::structs::Settings,
+  settings::SETTINGS,
 };
 use html2text;
 use lettre::{
@@ -24,10 +24,9 @@ pub async fn send_email(
   to_email: &str,
   to_username: &str,
   html: &str,
-  settings: &Settings,
 ) -> LemmyResult<()> {
-  let email_config = settings.email.clone().ok_or(LemmyErrorType::NoEmailSetup)?;
-  let domain = settings.hostname.clone();
+  let email_config = SETTINGS.email.clone().ok_or(LemmyErrorType::NoEmailSetup)?;
+  let domain = SETTINGS.hostname.clone();
 
   let (smtp_server, smtp_port) = {
     let email_and_port = email_config.smtp_server.split(':').collect::<Vec<&str>>();
@@ -56,7 +55,7 @@ pub async fn send_email(
       Some(to_username.to_string()),
       Address::from_str(to_email).expect("email to address isn't valid"),
     ))
-    .message_id(Some(format!("<{}@{}>", Uuid::new_v4(), settings.hostname)))
+    .message_id(Some(format!("<{}@{}>", Uuid::new_v4(), SETTINGS.hostname)))
     .subject(subject)
     .multipart(MultiPart::alternative_plain_html(
       plain_text,

@@ -67,7 +67,6 @@ pub async fn create_post_report(
       &post_report_view.creator.name,
       &post_report_view.post_creator.name,
       &mut context.pool(),
-      context.settings(),
     )
     .await?;
   }

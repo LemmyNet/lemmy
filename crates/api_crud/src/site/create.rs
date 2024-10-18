@@ -28,6 +28,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
+  settings::SETTINGS,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{
@@ -54,8 +55,8 @@ pub async fn create_site(
 
   validate_create_payload(&local_site, &data)?;
 
-  let actor_id: DbUrl = Url::parse(&context.settings().get_protocol_and_hostname())?.into();
-  let inbox_url = Some(generate_shared_inbox_url(context.settings())?);
+  let actor_id: DbUrl = Url::parse(&SETTINGS.get_protocol_and_hostname())?.into();
+  let inbox_url = Some(generate_shared_inbox_url()?);
   let keypair = generate_actor_keypair()?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);

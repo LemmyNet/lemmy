@@ -87,12 +87,8 @@ impl Delete {
     to: Url,
     community: Option<&Community>,
     summary: Option<String>,
-    context: &Data<LemmyContext>,
   ) -> LemmyResult<Delete> {
-    let id = generate_activity_id(
-      DeleteType::Delete,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(DeleteType::Delete)?;
     let cc: Option<Url> = community.map(|c| c.actor_id.clone().into());
     Ok(Delete {
       actor: actor.actor_id.clone().into(),

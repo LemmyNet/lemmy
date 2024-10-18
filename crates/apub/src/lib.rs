@@ -11,6 +11,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
+  settings::SETTINGS,
   CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
@@ -166,8 +167,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
     .domain()
     .ok_or(LemmyErrorType::UrlWithoutDomain)?
     .to_string();
-  let local_instance = context
-    .settings()
+  let local_instance = SETTINGS
     .get_hostname_without_port()
     .expect("local hostname is valid");
   if domain == local_instance {
@@ -186,8 +186,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
       .iter()
       .map(|i| i.domain.clone())
       .collect::<Vec<String>>();
-    let local_instance = context
-      .settings()
+    let local_instance = SETTINGS
       .get_hostname_without_port()
       .expect("local hostname is valid");
     allowed_and_local.push(local_instance);

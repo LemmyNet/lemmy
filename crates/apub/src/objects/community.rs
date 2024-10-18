@@ -42,6 +42,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
+  settings::SETTINGS,
   spawn_try_task,
   utils::markdown::markdown_to_html,
 };
@@ -247,7 +248,7 @@ impl ApubCommunity {
     let inboxes: Vec<Url> = follows
       .into_iter()
       .map(Into::into)
-      .filter(|inbox: &Url| inbox.host_str() != Some(&context.settings().hostname))
+      .filter(|inbox: &Url| inbox.host_str() != Some(&SETTINGS.hostname))
       // Don't send to blocked instances
       .filter(|inbox| check_apub_id_valid(inbox, &local_site_data).is_ok())
       .collect();

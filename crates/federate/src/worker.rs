@@ -492,7 +492,7 @@ mod test {
         actor_id: Some(actor_id.clone()),
         private_key: (Some(actor_keypair.private_key)),
         inbox_url: Some(generate_inbox_url(&actor_id)?),
-        shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
+        shared_inbox_url: Some(generate_shared_inbox_url()?),
         ..PersonInsertForm::new("alice".to_string(), actor_keypair.public_key, instance.id)
       };
       let person = Person::create(&mut context.pool(), &person_form).await?;

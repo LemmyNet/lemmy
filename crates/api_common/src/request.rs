@@ -19,7 +19,10 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
-  settings::structs::{PictrsImageMode, Settings},
+  settings::{
+    structs::{PictrsImageMode, Settings},
+    SETTINGS,
+  },
   REQWEST_TIMEOUT,
   VERSION,
 };
@@ -296,7 +299,7 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
     .next_back()
     .ok_or(LemmyErrorType::ImageUrlMissingLastPathSegment)?;
 
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = SETTINGS.pictrs_config()?;
   let purge_url = format!("{}internal/purge?alias={}", pictrs_config.url, alias);
 
   let pictrs_api_key = pictrs_config
@@ -323,7 +326,7 @@ pub async fn delete_image_from_pictrs(
   delete_token: &str,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = SETTINGS.pictrs_config()?;
   let url = format!(
     "{}image/delete/{}/{}",
     pictrs_config.url, &delete_token, &alias
@@ -341,7 +344,7 @@ pub async fn delete_image_from_pictrs(
 /// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
 #[tracing::instrument(skip_all)]
 async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> LemmyResult<Url> {
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = SETTINGS.pictrs_config()?;
 
   match pictrs_config.image_mode() {
     PictrsImageMode::None => return Ok(image_url.clone()),
@@ -357,7 +360,7 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     "{}image/download?url={}&resize={}",
     pictrs_config.url,
     encode(image_url.as_str()),
-    context.settings().pictrs_config()?.max_thumbnail_size
+    SETTINGS.pictrs_config()?.max_thumbnail_size
   );
 
   let res = context
@@ -382,7 +385,7 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     pictrs_alias: image.file.clone(),
     pictrs_delete_token: image.delete_token.clone(),
   };
-  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+  let protocol_and_hostname = SETTINGS.get_protocol_and_hostname();
   let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
 
   // Also store the details for the image
@@ -400,7 +403,7 @@ pub async fn fetch_pictrs_proxied_image_details(
   image_url: &Url,
   context: &LemmyContext,
 ) -> LemmyResult<PictrsFileDetails> {
-  let pictrs_url = context.settings().pictrs_config()?.url;
+  let pictrs_url = SETTINGS.pictrs_config()?.url;
   let encoded_image_url = encode(image_url.as_str());
 
   // Pictrs needs you to fetch the proxied image before you can fetch the details

@@ -71,14 +71,10 @@ impl UndoDelete {
     to: Url,
     community: Option<&Community>,
     summary: Option<String>,
-    context: &Data<LemmyContext>,
   ) -> LemmyResult<UndoDelete> {
-    let object = Delete::new(actor, object, to.clone(), community, summary, context)?;
+    let object = Delete::new(actor, object, to.clone(), community, summary)?;
 
-    let id = generate_activity_id(
-      UndoType::Undo,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let id = generate_activity_id(UndoType::Undo)?;
     let cc: Option<Url> = community.map(|c| c.actor_id.clone().into());
     Ok(UndoDelete {
       actor: actor.actor_id.clone().into(),

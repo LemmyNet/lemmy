@@ -41,6 +41,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
+  settings::SETTINGS,
   LemmyErrorType,
 };
 use url::Url;
@@ -69,10 +70,7 @@ impl BlockUser {
       kind: BlockType::Block,
       remove_data,
       summary: reason,
-      id: generate_activity_id(
-        BlockType::Block,
-        &context.settings().get_protocol_and_hostname(),
-      )?,
+      id: generate_activity_id(BlockType::Block)?,
       audience,
       end_time: expires,
     })
@@ -136,7 +134,7 @@ impl ActivityHandler for BlockUser {
           .inner()
           .domain()
           .ok_or(LemmyErrorType::UrlWithoutDomain)?;
-        if context.settings().hostname == domain {
+        if SETTINGS.hostname == domain {
           return Err(
             anyhow!("Site bans from remote instance can't affect user's home instance").into(),
           );

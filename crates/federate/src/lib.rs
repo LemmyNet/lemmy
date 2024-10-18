@@ -5,7 +5,7 @@ use lemmy_api_common::{
   lemmy_utils::settings::structs::FederationWorkerConfig,
 };
 use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 use stats::receive_print_stats;
 use std::{collections::HashMap, time::Duration};
 use tokio::{
@@ -105,7 +105,7 @@ impl SendManager {
       "Starting federation workers for process count {} and index {}",
       self.opts.process_count, process_index
     );
-    let local_domain = self.context.settings().get_hostname_without_port()?;
+    let local_domain = SETTINGS.get_hostname_without_port()?;
     let mut pool = self.context.pool();
     loop {
       let mut total_count = 0;

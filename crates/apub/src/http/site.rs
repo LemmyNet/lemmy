@@ -7,7 +7,7 @@ use activitypub_federation::{config::Data, traits::Object};
 use actix_web::HttpResponse;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::site::Site;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 use url::Url;
 
 pub(crate) async fn get_apub_site_http(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
@@ -18,11 +18,8 @@ pub(crate) async fn get_apub_site_http(context: Data<LemmyContext>) -> LemmyResu
 }
 
 #[tracing::instrument(skip_all)]
-pub(crate) async fn get_apub_site_outbox(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
-  let outbox_id = format!(
-    "{}/site_outbox",
-    context.settings().get_protocol_and_hostname()
-  );
+pub(crate) async fn get_apub_site_outbox() -> LemmyResult<HttpResponse> {
+  let outbox_id = format!("{}/site_outbox", SETTINGS.get_protocol_and_hostname());
   let outbox = EmptyOutbox::new(Url::parse(&outbox_id)?)?;
   create_apub_response(&outbox)
 }

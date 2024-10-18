@@ -23,6 +23,6 @@ pub async fn reset_password(
   check_email_verified(&local_user_view, &site_view)?;
 
   // Email the pure token to the user.
-  send_password_reset_email(&local_user_view, &mut context.pool(), context.settings()).await?;
+  send_password_reset_email(&local_user_view, &mut context.pool()).await?;
   Ok(Json(SuccessResponse::default()))
 }

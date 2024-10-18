@@ -72,7 +72,6 @@ pub async fn create_comment_report(
       &comment_report_view.creator.name,
       &comment_report_view.comment_creator.name,
       &mut context.pool(),
-      context.settings(),
     )
     .await?;
   }

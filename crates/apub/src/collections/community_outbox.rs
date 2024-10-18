@@ -57,7 +57,7 @@ impl Collection for ApubCommunityOutbox {
       )
       .await?;
       let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
-      let announce = AnnounceActivity::new(announcable.try_into()?, owner, data)?;
+      let announce = AnnounceActivity::new(announcable.try_into()?, owner)?;
       ordered_items.push(announce);
     }
 

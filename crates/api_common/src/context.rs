@@ -4,10 +4,7 @@ use lemmy_db_schema::{
   source::secret::Secret,
   utils::{build_db_pool_for_tests, ActualDbPool, DbPool},
 };
-use lemmy_utils::{
-  rate_limit::RateLimitCell,
-  settings::{structs::Settings, SETTINGS},
-};
+use lemmy_utils::{rate_limit::RateLimitCell, settings::SETTINGS};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use std::sync::Arc;
 
@@ -42,9 +39,6 @@ impl LemmyContext {
   pub fn client(&self) -> &ClientWithMiddleware {
     &self.client
   }
-  pub fn settings(&self) -> &'static Settings {
-    &SETTINGS
-  }
   pub fn secret(&self) -> &Secret {
     &self.secret
   }
@@ -72,7 +66,7 @@ impl LemmyContext {
     let context = LemmyContext::create(pool, client, secret, rate_limit_cell.clone());
 
     FederationConfig::builder()
-      .domain(context.settings().hostname.clone())
+      .domain(SETTINGS.hostname.clone())
       .app_data(context)
       .debug(true)
       // Dont allow any network fetches

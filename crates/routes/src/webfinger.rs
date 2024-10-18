@@ -9,7 +9,7 @@ use lemmy_db_schema::{
   traits::ApubActor,
   CommunityVisibility,
 };
-use lemmy_utils::{cache_header::cache_3days, error::LemmyResult};
+use lemmy_utils::{cache_header::cache_3days, error::LemmyResult, settings::SETTINGS};
 use serde::Deserialize;
 use std::collections::HashMap;
 use url::Url;
@@ -38,10 +38,10 @@ async fn get_webfinger_response(
 ) -> LemmyResult<HttpResponse> {
   let name = extract_webfinger_name(&info.resource, &context)?;
 
-  let links = if name == context.settings().hostname {
+  let links = if name == SETTINGS.hostname {
     // webfinger response for instance actor (required for mastodon authorized fetch)
-    let url = Url::parse(&context.settings().get_protocol_and_hostname())?;
-    vec![webfinger_link_for_actor(Some(url), "none", &context)]
+    let url = Url::parse(&SETTINGS.get_protocol_and_hostname())?;
+    vec![webfinger_link_for_actor(Some(url), "none")]
   } else {
     // webfinger response for user/community
     let user_id: Option<Url> = Person::read_from_name(&mut context.pool(), name, false)
@@ -65,8 +65,8 @@ async fn get_webfinger_response(
     // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
     // community last so that it gets prioritized. For Lemmy the order doesn't matter.
     vec![
-      webfinger_link_for_actor(user_id, "Person", &context),
-      webfinger_link_for_actor(community_id, "Group", &context),
+      webfinger_link_for_actor(user_id, "Person"),
+      webfinger_link_for_actor(community_id, "Group"),
     ]
   }
   .into_iter()
@@ -90,11 +90,7 @@ async fn get_webfinger_response(
   }
 }
 
-fn webfinger_link_for_actor(
-  url: Option<Url>,
-  kind: &str,
-  context: &LemmyContext,
-) -> Vec<WebfingerLink> {
+fn webfinger_link_for_actor(url: Option<Url>, kind: &str) -> Vec<WebfingerLink> {
   if let Some(url) = url {
     let type_key = "https://www.w3.org/ns/activitystreams#type"
       .parse()
@@ -120,7 +116,7 @@ fn webfinger_link_for_actor(
     if kind == "Person" {
       let template = format!(
         "{}/activitypub/externalInteraction?uri={{uri}}",
-        context.settings().get_protocol_and_hostname()
+        SETTINGS.get_protocol_and_hostname()
       );
       vec.push(WebfingerLink {
         rel: Some("http://ostatus.org/schema/1.0/subscribe".into()),

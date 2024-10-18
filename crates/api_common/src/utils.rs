@@ -50,7 +50,7 @@ use lemmy_utils::{
   email::{send_email, translations::Lang},
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
-  settings::structs::{PictrsImageMode, Settings},
+  settings::{structs::PictrsImageMode, SETTINGS},
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
     slurs::{build_slur_regex, remove_slurs},
@@ -409,26 +409,13 @@ pub fn honeypot_check(honeypot: &Option<String>) -> LemmyResult<()> {
   }
 }
 
-pub async fn send_email_to_user(
-  local_user_view: &LocalUserView,
-  subject: &str,
-  body: &str,
-  settings: &Settings,
-) {
+pub async fn send_email_to_user(local_user_view: &LocalUserView, subject: &str, body: &str) {
   if local_user_view.person.banned || !local_user_view.local_user.send_notifications_to_email {
     return;
   }
 
   if let Some(user_email) = &local_user_view.local_user.email {
-    match send_email(
-      subject,
-      user_email,
-      &local_user_view.person.name,
-      body,
-      settings,
-    )
-    .await
-    {
+    match send_email(subject, user_email, &local_user_view.person.name, body).await {
       Ok(_o) => _o,
       Err(e) => warn!("{}", e),
     };
@@ -438,7 +425,6 @@ pub async fn send_email_to_user(
 pub async fn send_password_reset_email(
   user: &LocalUserView,
   pool: &mut DbPool<'_>,
-  settings: &Settings,
 ) -> LemmyResult<()> {
   // Generate a random token
   let token = uuid::Uuid::new_v4().to_string();
@@ -446,10 +432,10 @@ pub async fn send_password_reset_email(
   let email = &user.local_user.email.clone().expect("email");
   let lang = get_interface_language(user);
   let subject = &lang.password_reset_subject(&user.person.name);
-  let protocol_and_hostname = settings.get_protocol_and_hostname();
+  let protocol_and_hostname = SETTINGS.get_protocol_and_hostname();
   let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
   let body = &lang.password_reset_body(reset_link, &user.person.name);
-  send_email(subject, email, &user.person.name, body, settings).await?;
+  send_email(subject, email, &user.person.name, body).await?;
 
   // Insert the row after successful send, to avoid using daily reset limit while
   // email sending is broken.
@@ -463,7 +449,6 @@ pub async fn send_verification_email(
   user: &LocalUserView,
   new_email: &str,
   pool: &mut DbPool<'_>,
-  settings: &Settings,
 ) -> LemmyResult<()> {
   let form = EmailVerificationForm {
     local_user_id: user.local_user.id,
@@ -472,15 +457,15 @@ pub async fn send_verification_email(
   };
   let verify_link = format!(
     "{}/verify_email/{}",
-    settings.get_protocol_and_hostname(),
+    SETTINGS.get_protocol_and_hostname(),
     &form.verification_token
   );
   EmailVerification::create(pool, &form).await?;
 
   let lang = get_interface_language(user);
-  let subject = lang.verify_email_subject(&settings.hostname);
-  let body = lang.verify_email_body(&settings.hostname, &user.person.name, verify_link);
-  send_email(&subject, new_email, &user.person.name, &body, settings).await?;
+  let subject = lang.verify_email_subject(&SETTINGS.hostname);
+  let body = lang.verify_email_body(&SETTINGS.hostname, &user.person.name, verify_link);
+  send_email(&subject, new_email, &user.person.name, &body).await?;
 
   Ok(())
 }
@@ -554,37 +539,33 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
   )
 }
 
-pub async fn send_application_approved_email(
-  user: &LocalUserView,
-  settings: &Settings,
-) -> LemmyResult<()> {
+pub async fn send_application_approved_email(user: &LocalUserView) -> LemmyResult<()> {
   let email = &user.local_user.email.clone().expect("email");
   let lang = get_interface_language(user);
   let subject = lang.registration_approved_subject(&user.person.actor_id);
-  let body = lang.registration_approved_body(&settings.hostname);
-  send_email(&subject, email, &user.person.name, &body, settings).await
+  let body = lang.registration_approved_body(&SETTINGS.hostname);
+  send_email(&subject, email, &user.person.name, &body).await
 }
 
 /// Send a new applicant email notification to all admins
 pub async fn send_new_applicant_email_to_admins(
   applicant_username: &str,
   pool: &mut DbPool<'_>,
-  settings: &Settings,
 ) -> LemmyResult<()> {
   // Collect the admins with emails
   let admins = LocalUserView::list_admins_with_emails(pool).await?;
 
   let applications_link = &format!(
     "{}/registration_applications",
-    settings.get_protocol_and_hostname(),
+    SETTINGS.get_protocol_and_hostname(),
   );
 
   for admin in &admins {
     let email = &admin.local_user.email.clone().expect("email");
     let lang = get_interface_language_from_settings(admin);
-    let subject = lang.new_application_subject(&settings.hostname, applicant_username);
+    let subject = lang.new_application_subject(&SETTINGS.hostname, applicant_username);
     let body = lang.new_application_body(applications_link);
-    send_email(&subject, email, &admin.person.name, &body, settings).await?;
+    send_email(&subject, email, &admin.person.name, &body).await?;
   }
   Ok(())
 }
@@ -594,19 +575,18 @@ pub async fn send_new_report_email_to_admins(
   reporter_username: &str,
   reported_username: &str,
   pool: &mut DbPool<'_>,
-  settings: &Settings,
 ) -> LemmyResult<()> {
   // Collect the admins with emails
   let admins = LocalUserView::list_admins_with_emails(pool).await?;
 
-  let reports_link = &format!("{}/reports", settings.get_protocol_and_hostname(),);
+  let reports_link = &format!("{}/reports", SETTINGS.get_protocol_and_hostname(),);
 
   for admin in &admins {
     let email = &admin.local_user.email.clone().expect("email");
     let lang = get_interface_language_from_settings(admin);
-    let subject = lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
+    let subject = lang.new_report_subject(&SETTINGS.hostname, reported_username, reporter_username);
     let body = lang.new_report_body(reports_link);
-    send_email(&subject, email, &admin.person.name, &body, settings).await?;
+    send_email(&subject, email, &admin.person.name, &body).await?;
   }
   Ok(())
 }
@@ -956,7 +936,6 @@ pub enum EndpointType {
 pub fn generate_local_apub_endpoint(
   endpoint_type: EndpointType,
   name: &str,
-  domain: &str,
 ) -> Result<DbUrl, ParseError> {
   let point = match endpoint_type {
     EndpointType::Community => "c",
@@ -966,6 +945,7 @@ pub fn generate_local_apub_endpoint(
     EndpointType::PrivateMessage => "private_message",
   };
 
+  let domain = &SETTINGS.get_protocol_and_hostname();
   Ok(Url::parse(&format!("{domain}/{point}/{name}"))?.into())
 }
 
@@ -977,8 +957,8 @@ pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{actor_id}/inbox"))?.into())
 }
 
-pub fn generate_shared_inbox_url(settings: &Settings) -> LemmyResult<DbUrl> {
-  let url = format!("{}/inbox", settings.get_protocol_and_hostname());
+pub fn generate_shared_inbox_url() -> LemmyResult<DbUrl> {
+  let url = format!("{}/inbox", SETTINGS.get_protocol_and_hostname());
   Ok(Url::parse(&url)?.into())
 }
 
@@ -1044,7 +1024,7 @@ pub async fn process_markdown(
 
   markdown_check_for_blocked_urls(&text, url_blocklist)?;
 
-  if context.settings().pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
+  if SETTINGS.pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
     RemoteImage::create(&mut context.pool(), links.clone()).await?;
 
@@ -1053,8 +1033,7 @@ pub async fn process_markdown(
       // Insert image details for the remote image
       let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
       if let Ok(details) = details_res {
-        let proxied =
-          build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
+        let proxied = build_proxied_image_url(&link, &SETTINGS.get_protocol_and_hostname())?;
         let details_form = details.build_image_details_form(&proxied);
         ImageDetails::create(&mut context.pool(), &details_form).await?;
       }
@@ -1089,12 +1068,12 @@ async fn proxy_image_link_internal(
   context: &LemmyContext,
 ) -> LemmyResult<DbUrl> {
   // Dont rewrite links pointing to local domain.
-  if link.domain() == Some(&context.settings().hostname) {
+  if link.domain() == Some(&SETTINGS.hostname) {
     Ok(link.into())
   } else if image_mode == PictrsImageMode::ProxyAllImages {
     RemoteImage::create(&mut context.pool(), vec![link.clone()]).await?;
 
-    let proxied = build_proxied_image_url(&link, &context.settings().get_protocol_and_hostname())?;
+    let proxied = build_proxied_image_url(&link, &SETTINGS.get_protocol_and_hostname())?;
     // This should fail softly, since pictrs might not even be running
     let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
 
@@ -1112,12 +1091,7 @@ async fn proxy_image_link_internal(
 /// Rewrite a link to go through `/api/v3/image_proxy` endpoint. This is only for remote urls and
 /// if image_proxy setting is enabled.
 pub(crate) async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
-  proxy_image_link_internal(
-    link,
-    context.settings().pictrs_config()?.image_mode(),
-    context,
-  )
-  .await
+  proxy_image_link_internal(link, SETTINGS.pictrs_config()?.image_mode(), context).await
 }
 
 pub async fn proxy_image_link_opt_api(
