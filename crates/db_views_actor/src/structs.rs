@@ -154,4 +154,5 @@ pub struct PersonView {
 pub struct PendingFollow {
   pub person: Person,
   pub is_new_instance: bool,
+  pub subscribed: SubscribedType,
 }

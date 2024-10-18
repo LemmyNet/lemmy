@@ -12,13 +12,14 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
-  schema::{community, community_follower, instance, person},
+  schema::{community, community_follower, person},
   source::{
-    community::{Community, CommunityFollowerState},
+    community::{Community, CommunityFollower, CommunityFollowerState},
     person::Person,
   },
   utils::{functions::coalesce, get_conn, limit_and_offset, DbPool},
   CommunityVisibility,
+  SubscribedType,
 };
 use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
@@ -133,15 +134,20 @@ impl CommunityFollowerView {
       .order_by(community_follower::published.asc())
       .limit(limit)
       .offset(offset)
-      .select((person::all_columns, is_new_instance))
-      .load::<(Person, bool)>(conn)
+      .select((
+        person::all_columns,
+        is_new_instance,
+        CommunityFollower::select_subscribed_type(),
+      ))
+      .load::<(Person, bool, SubscribedType)>(conn)
       .await?;
     Ok(
       res
         .into_iter()
-        .map(|(person, is_new_instance)| PendingFollow {
+        .map(|(person, is_new_instance, subscribed)| PendingFollow {
           person,
           is_new_instance,
+          subscribed: subscribed.into(),
         })
         .collect(),
     )
