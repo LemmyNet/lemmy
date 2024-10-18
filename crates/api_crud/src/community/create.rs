@@ -6,8 +6,8 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{
     generate_followers_url,
-    generate_local_apub_endpoint,
     generate_inbox_url,
+    generate_local_apub_endpoint,
     get_url_blocklist,
     is_admin,
     local_site_to_slur_regex,

@@ -10,12 +10,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_api_common::{
   lemmy_db_views::structs::SiteView,
-  utils::{
-    generate_followers_url,
-    generate_local_apub_endpoint,
-    generate_inbox_url,
-    EndpointType,
-  },
+  utils::{generate_followers_url, generate_inbox_url, generate_local_apub_endpoint, EndpointType},
 };
 use lemmy_db_schema::{
   source::{
