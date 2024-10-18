@@ -189,8 +189,6 @@ diesel::table! {
         followers_url -> Nullable<Varchar>,
         #[max_length = 255]
         inbox_url -> Varchar,
-        #[max_length = 255]
-        shared_inbox_url -> Nullable<Varchar>,
         hidden -> Bool,
         posting_restricted_to_mods -> Bool,
         instance_id -> Int4,
@@ -687,8 +685,6 @@ diesel::table! {
         deleted -> Bool,
         #[max_length = 255]
         inbox_url -> Varchar,
-        #[max_length = 255]
-        shared_inbox_url -> Nullable<Varchar>,
         matrix_user_id -> Nullable<Text>,
         bot_account -> Bool,
         ban_expires -> Nullable<Timestamptz>,

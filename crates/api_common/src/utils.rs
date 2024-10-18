@@ -50,7 +50,10 @@ use lemmy_utils::{
   email::{send_email, translations::Lang},
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
-  settings::structs::{PictrsImageMode, Settings},
+  settings::{
+    structs::{PictrsImageMode, Settings},
+    SETTINGS,
+  },
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
     slurs::{build_slur_regex, remove_slurs},
@@ -973,12 +976,8 @@ pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{actor_id}/followers"))?.into())
 }
 
-pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{actor_id}/inbox"))?.into())
-}
-
-pub fn generate_shared_inbox_url(settings: &Settings) -> LemmyResult<DbUrl> {
-  let url = format!("{}/inbox", settings.get_protocol_and_hostname());
+pub fn generate_inbox_url() -> LemmyResult<DbUrl> {
+  let url = format!("{}/inbox", SETTINGS.get_protocol_and_hostname());
   Ok(Url::parse(&url)?.into())
 }
 
