@@ -279,7 +279,6 @@ mod tests {
       public_key: "pubkey".to_owned(),
       last_refreshed_at: inserted_person.published,
       inbox_url: inserted_person.inbox_url.clone(),
-      shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
       instance_id: inserted_instance.id,

@@ -523,7 +523,6 @@ mod tests {
       banner: None,
       followers_url: inserted_community.followers_url.clone(),
       inbox_url: inserted_community.inbox_url.clone(),
-      shared_inbox_url: None,
       moderators_url: None,
       featured_url: None,
       hidden: false,

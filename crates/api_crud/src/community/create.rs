@@ -8,7 +8,6 @@ use lemmy_api_common::{
     generate_followers_url,
     generate_inbox_url,
     generate_local_apub_endpoint,
-    generate_shared_inbox_url,
     get_url_blocklist,
     is_admin,
     local_site_to_slur_regex,
@@ -96,8 +95,7 @@ pub async fn create_community(
     actor_id: Some(community_actor_id.clone()),
     private_key: Some(keypair.private_key),
     followers_url: Some(generate_followers_url(&community_actor_id)?),
-    inbox_url: Some(generate_inbox_url(&community_actor_id)?),
-    shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
+    inbox_url: Some(generate_inbox_url()?),
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
     ..CommunityInsertForm::new(

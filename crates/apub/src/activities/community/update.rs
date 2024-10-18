@@ -106,8 +106,14 @@ impl ActivityHandler for UpdateCommunity {
       icon: Some(self.object.icon.map(|i| i.url.into())),
       banner: Some(self.object.image.map(|i| i.url.into())),
       followers_url: self.object.followers.map(Into::into),
-      inbox_url: Some(self.object.inbox.into()),
-      shared_inbox_url: Some(self.object.endpoints.map(|e| e.shared_inbox.into())),
+      inbox_url: Some(
+        self
+          .object
+          .endpoints
+          .map(|e| e.shared_inbox)
+          .unwrap_or(self.object.inbox)
+          .into(),
+      ),
       moderators_url: self.object.attributed_to.map(Into::into),
       posting_restricted_to_mods: self.object.posting_restricted_to_mods,
       featured_url: self.object.featured.map(Into::into),
