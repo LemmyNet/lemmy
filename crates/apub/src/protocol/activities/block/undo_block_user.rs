@@ -29,10 +29,6 @@ pub struct UndoBlockUser {
   pub(crate) kind: UndoType,
   pub(crate) id: Url,
   pub(crate) audience: Option<ObjectId<ApubCommunity>>,
-
-  /// Quick and dirty solution.
-  /// TODO: send a separate Delete activity instead
-  pub(crate) restore_data: Option<bool>,
 }
 
 #[async_trait::async_trait]
