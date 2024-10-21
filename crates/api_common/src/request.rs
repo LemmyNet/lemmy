@@ -61,7 +61,8 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
     // server may ignore this and still respond with the full response
     .header(RANGE, format!("bytes=0-{}", bytes_to_fetch - 1)) /* -1 because inclusive */
     .send()
-    .await?;
+    .await?
+    .error_for_status()?;
 
   let content_type: Option<Mime> = response
     .headers()
