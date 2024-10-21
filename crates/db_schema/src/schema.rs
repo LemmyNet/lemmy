@@ -711,7 +711,7 @@ diesel::table! {
         id -> Int4,
         #[max_length = 200]
         name -> Varchar,
-        #[max_length = 2000]
+        #[max_length = 512]
         url -> Nullable<Varchar>,
         body -> Nullable<Text>,
         creator_id -> Int4,
