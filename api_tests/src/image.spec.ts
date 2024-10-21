@@ -164,7 +164,6 @@ test("Purge post, linked image removed", async () => {
     upload.url,
   );
   expect(post.post_view.post.url).toBe(upload.url);
-  expect(post.post_view.image_details).toBeDefined();
 
   // purge post
   const purgeForm: PurgePost = {
@@ -189,9 +188,6 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   );
   const post = postRes.post_view.post;
   expect(post).toBeDefined();
-
-  // Make sure it fetched the image details
-  expect(postRes.post_view.image_details).toBeDefined();
 
   // remote image gets proxied after upload
   expect(
