@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019 Lemmy Developers
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,

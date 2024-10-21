@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019 Lemmy Developers
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::read_auth_token;
 use activitypub_federation::config::Data;
 use actix_web::{cookie::Cookie, HttpRequest, HttpResponse};

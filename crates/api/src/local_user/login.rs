@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019 Lemmy Developers
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::check_totp_2fa_valid;
 use actix_web::{
   web::{Data, Json},

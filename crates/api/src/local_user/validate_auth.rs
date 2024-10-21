@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019 Lemmy Developers
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::{local_user_view_from_jwt, read_auth_token};
 use actix_web::{
   web::{Data, Json},

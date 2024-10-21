@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019 Lemmy Developers
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::{build_totp_2fa, generate_totp_2fa_secret};
 use activitypub_federation::config::Data;
 use actix_web::web::Json;

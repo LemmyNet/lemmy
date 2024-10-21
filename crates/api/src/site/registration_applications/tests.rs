@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2019 Lemmy Developers
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use crate::site::registration_applications::{
   approve::approve_registration_application,
   list::list_registration_applications,
