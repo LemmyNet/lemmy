@@ -104,8 +104,6 @@ test("Follow a private community", async () => {
   // follow with another user from that instance, is_new_instance should be false now
   const user2 = await registerUser(beta, betaUrl);
   await user2.followCommunity(follow_form);
-
-  // Wait for follow to federate, shown as pending
   let pendingFollows3 = await waitUntil(
     () => listCommunityPendingFollows(alpha, alphaCommunityId),
     f => f.items.length == 1,

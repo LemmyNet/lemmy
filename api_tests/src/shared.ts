@@ -1003,8 +1003,12 @@ export async function waitUntil<T>(
   let retry = 0;
   let result;
   while (retry++ < retries) {
-    result = await fetcher();
-    if (checker(result)) return result;
+    try {
+      result = await fetcher();
+      if (checker(result)) return result;
+    } catch (error) {
+      //console.error(error);
+    }
     await delay(
       delaySeconds[Math.min(retry - 1, delaySeconds.length - 1)] * 1000,
     );
