@@ -321,26 +321,32 @@ impl CommunityLanguage {
 
 pub async fn default_post_language(
   pool: &mut DbPool<'_>,
+  language_id: Option<LanguageId>,
   community_id: CommunityId,
   local_user_id: LocalUserId,
 ) -> Result<LanguageId, Error> {
   use crate::schema::{community_language::dsl as cl, local_user_language::dsl as ul};
   let conn = &mut get_conn(pool).await?;
-  let mut intersection = ul::local_user_language
-    .inner_join(cl::community_language.on(ul::language_id.eq(cl::language_id)))
-    .filter(ul::local_user_id.eq(local_user_id))
-    .filter(cl::community_id.eq(community_id))
-    .select(cl::language_id)
-    .get_results::<LanguageId>(conn)
-    .await?;
+  match language_id {
+    None | Some(LanguageId(0)) => {
+      let mut intersection = ul::local_user_language
+        .inner_join(cl::community_language.on(ul::language_id.eq(cl::language_id)))
+        .filter(ul::local_user_id.eq(local_user_id))
+        .filter(cl::community_id.eq(community_id))
+        .select(cl::language_id)
+        .get_results::<LanguageId>(conn)
+        .await?;
 
-  if intersection.len() == 1 {
-    Ok(intersection.pop().unwrap_or(UNDETERMINED_ID))
-  } else if intersection.len() == 2 && intersection.contains(&UNDETERMINED_ID) {
-    intersection.retain(|i| i != &UNDETERMINED_ID);
-    Ok(intersection.pop().unwrap_or(UNDETERMINED_ID))
-  } else {
-    Ok(UNDETERMINED_ID)
+      if intersection.len() == 1 {
+        Ok(intersection.pop().unwrap_or(UNDETERMINED_ID))
+      } else if intersection.len() == 2 && intersection.contains(&UNDETERMINED_ID) {
+        intersection.retain(|i| i != &UNDETERMINED_ID);
+        Ok(intersection.pop().unwrap_or(UNDETERMINED_ID))
+      } else {
+        Ok(UNDETERMINED_ID)
+      }
+    }
+    Some(lid) => Ok(lid),
   }
 }
 
