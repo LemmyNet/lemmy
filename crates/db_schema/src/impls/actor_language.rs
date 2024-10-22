@@ -197,7 +197,7 @@ impl SiteLanguage {
 
 impl CommunityLanguage {
   /// Returns true if the given language is one of configured languages for given community
-  pub async fn is_allowed_community_language(
+  async fn is_allowed_community_language(
     pool: &mut DbPool<'_>,
     for_language_id: LanguageId,
     for_community_id: CommunityId,
@@ -324,10 +324,10 @@ pub async fn default_post_language(
   language_id: Option<LanguageId>,
   community_id: CommunityId,
   local_user_id: LocalUserId,
-) -> Result<LanguageId, Error> {
+) -> LemmyResult<LanguageId> {
   use crate::schema::{community_language::dsl as cl, local_user_language::dsl as ul};
   let conn = &mut get_conn(pool).await?;
-  match language_id {
+  let language_id = match language_id {
     None | Some(LanguageId(0)) => {
       let mut intersection = ul::local_user_language
         .inner_join(cl::community_language.on(ul::language_id.eq(cl::language_id)))
@@ -338,16 +338,19 @@ pub async fn default_post_language(
         .await?;
 
       if intersection.len() == 1 {
-        Ok(intersection.pop().unwrap_or(UNDETERMINED_ID))
+        intersection.pop().unwrap_or(UNDETERMINED_ID)
       } else if intersection.len() == 2 && intersection.contains(&UNDETERMINED_ID) {
         intersection.retain(|i| i != &UNDETERMINED_ID);
-        Ok(intersection.pop().unwrap_or(UNDETERMINED_ID))
+        intersection.pop().unwrap_or(UNDETERMINED_ID)
       } else {
-        Ok(UNDETERMINED_ID)
+        UNDETERMINED_ID
       }
     }
-    Some(lid) => Ok(lid),
-  }
+    Some(lid) => lid,
+  };
+
+  CommunityLanguage::is_allowed_community_language(pool, language_id, community_id).await?;
+  Ok(language_id)
 }
 
 /// If no language is given, set all languages
@@ -596,7 +599,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_default_post_language() -> Result<(), Error> {
+  async fn test_default_post_language() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let (site, instance) = create_test_site(pool).await?;
@@ -619,7 +622,7 @@ mod tests {
     LocalUserLanguage::update(pool, test_langs2, local_user.id).await?;
 
     // no overlap in user/community languages, so defaults to undetermined
-    let def1 = default_post_language(pool, community.id, local_user.id).await?;
+    let def1 = default_post_language(pool, None, community.id, local_user.id).await?;
     assert_eq!(UNDETERMINED_ID, def1);
 
     let ru = Language::read_id_from_code(pool, "ru").await?;
@@ -632,7 +635,7 @@ mod tests {
     LocalUserLanguage::update(pool, test_langs3, local_user.id).await?;
 
     // this time, both have ru as common lang
-    let def2 = default_post_language(pool, community.id, local_user.id).await?;
+    let def2 = default_post_language(pool, None,community.id, local_user.id).await?;
     assert_eq!(ru, def2);
 
     Person::delete(pool, person.id).await?;

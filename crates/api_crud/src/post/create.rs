@@ -19,7 +19,6 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
   source::{
-    actor_language::CommunityLanguage,
     community::Community,
     local_site::LocalSite,
     post::{Post, PostInsertForm, PostLike, PostLikeForm},
@@ -104,7 +103,6 @@ pub async fn create_post(
     .await?;
   }
 
-  // attempt to set default language if none was provided
   let language_id = default_post_language(
     &mut context.pool(),
     data.language_id,
@@ -112,11 +110,6 @@ pub async fn create_post(
     local_user_view.local_user.id,
   )
   .await?;
-
-  // Only need to check if language is allowed in case user set it explicitly. When using default
-  // language, it already only returns allowed languages.
-  CommunityLanguage::is_allowed_community_language(&mut context.pool(), language_id, community_id)
-    .await?;
 
   let scheduled_publish_time =
     convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?;

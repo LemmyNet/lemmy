@@ -18,7 +18,6 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
   source::{
-    actor_language::CommunityLanguage,
     comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
     comment_reply::{CommentReply, CommentReplyUpdateForm},
     local_site::LocalSite,
@@ -88,7 +87,6 @@ pub async fn create_comment(
     check_comment_depth(parent)?;
   }
 
-  // attempt to set default language if none was provided
   let language_id = default_post_language(
     &mut context.pool(),
     data.language_id,
@@ -96,9 +94,6 @@ pub async fn create_comment(
     local_user_view.local_user.id,
   )
   .await?;
-
-  CommunityLanguage::is_allowed_community_language(&mut context.pool(), language_id, community_id)
-    .await?;
 
   let comment_form = CommentInsertForm {
     language_id: Some(language_id),
