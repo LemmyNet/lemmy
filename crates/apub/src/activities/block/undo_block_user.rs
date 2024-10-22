@@ -1,3 +1,4 @@
+use super::to_and_audience;
 use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
@@ -5,6 +6,7 @@ use crate::{
     generate_activity_id,
     send_lemmy_activity,
     verify_is_public,
+    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -13,7 +15,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  kinds::{activity::UndoType, public},
+  kinds::activity::UndoType,
   protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
 };
@@ -44,11 +46,7 @@ impl UndoBlockUser {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
-    let audience = if let SiteOrCommunity::Community(c) = target {
-      Some(c.id().into())
-    } else {
-      None
-    };
+    let (to, audience) = to_and_audience(target)?;
 
     let id = generate_activity_id(
       UndoType::Undo,
@@ -56,7 +54,7 @@ impl UndoBlockUser {
     )?;
     let undo = UndoBlockUser {
       actor: mod_.id().into(),
-      to: vec![public()],
+      to,
       object: block,
       cc: generate_cc(target, &mut context.pool()).await?,
       kind: UndoType::Undo,
@@ -94,7 +92,6 @@ impl ActivityHandler for UndoBlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    verify_is_public(&self.to, &self.cc)?;
     verify_domains_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context).await?;
     Ok(())
@@ -108,6 +105,7 @@ impl ActivityHandler for UndoBlockUser {
     let blocked_person = self.object.object.dereference(context).await?;
     match self.object.target.dereference(context).await? {
       SiteOrCommunity::Site(_site) => {
+        verify_is_public(&self.to, &self.cc)?;
         let blocked_person = Person::update(
           &mut context.pool(),
           blocked_person.id,
@@ -135,6 +133,7 @@ impl ActivityHandler for UndoBlockUser {
         ModBan::create(&mut context.pool(), &form).await?;
       }
       SiteOrCommunity::Community(community) => {
+        verify_visibility(&self.to, &self.cc, &community)?;
         let community_user_ban_form = CommunityPersonBanForm {
           community_id: community.id,
           person_id: blocked_person.id,

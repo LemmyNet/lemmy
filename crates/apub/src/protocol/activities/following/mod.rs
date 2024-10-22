@@ -1,5 +1,6 @@
 pub(crate) mod accept;
 pub mod follow;
+pub(crate) mod reject;
 pub mod undo_follow;
 
 #[cfg(test)]

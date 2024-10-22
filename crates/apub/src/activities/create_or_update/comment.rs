@@ -3,8 +3,9 @@ use crate::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     generate_activity_id,
-    verify_is_public,
+    generate_to,
     verify_person_in_community,
+    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -18,7 +19,6 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
-  kinds::public,
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
@@ -70,7 +70,7 @@ impl CreateOrUpdateNote {
 
     let create_or_update = CreateOrUpdateNote {
       actor: person.id().into(),
-      to: vec![public()],
+      to: vec![generate_to(&community)?],
       cc: note.cc.clone(),
       tag: note.tag.clone(),
       object: note,
@@ -118,9 +118,9 @@ impl ActivityHandler for CreateOrUpdateNote {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    verify_is_public(&self.to, &self.cc)?;
     let post = self.object.get_parents(context).await?.0;
     let community = self.community(context).await?;
+    verify_visibility(&self.to, &self.cc, &community)?;
 
     verify_person_in_community(&self.actor, &community, context).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
