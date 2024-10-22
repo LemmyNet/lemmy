@@ -72,7 +72,7 @@ async fn convert_response(
 
 #[cfg(test)]
 mod tests {
-  use crate::api::{resolve_object::resolve_object, test::TestUser};
+  use crate::api::resolve_object::resolve_object;
   use actix_web::web::Query;
   use lemmy_api_common::{context::LemmyContext, site::ResolveObject};
   use lemmy_db_schema::{
@@ -85,6 +85,7 @@ mod tests {
     },
     traits::Crud,
   };
+  use lemmy_db_views::structs::LocalUserView;
   use lemmy_utils::{error::LemmyResult, LemmyErrorType};
   use serial_test::serial;
 
@@ -95,14 +96,12 @@ mod tests {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
 
-    let creator = TestUser::default().create(pool).await?;
-    let regular_user = TestUser::default().create(pool).await?;
-    let admin_user = TestUser {
-      admin: true,
-      ..Default::default()
-    }
-    .create(pool)
-    .await?;
+    let name = "test_local_user_name";
+    let bio = "test_local_user_bio";
+
+    let creator = LocalUserView::create_test_user(pool, name, bio, false).await?;
+    let regular_user = LocalUserView::create_test_user(pool, name, bio, false).await?;
+    let admin_user = LocalUserView::create_test_user(pool, name, bio, true).await?;
 
     let instance_id = creator.person.instance_id;
     let site_form = SiteInsertForm::new("test site".to_string(), instance_id);

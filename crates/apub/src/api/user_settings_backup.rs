@@ -314,10 +314,7 @@ where
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 pub(crate) mod tests {
-  use crate::api::{
-    test::TestUser,
-    user_settings_backup::{export_settings, import_settings},
-  };
+  use crate::api::user_settings_backup::{export_settings, import_settings};
   use actix_web::web::Json;
   use lemmy_api_common::context::LemmyContext;
   use lemmy_db_schema::{
@@ -341,13 +338,7 @@ pub(crate) mod tests {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
 
-    let export_user = TestUser {
-      name: "hanna".into(),
-      bio: "my bio".into(),
-      ..Default::default()
-    }
-    .create(pool)
-    .await?;
+    let export_user = LocalUserView::create_test_user(pool, "hanna", "my bio", false).await?;
 
     let community_form = CommunityInsertForm::new(
       export_user.person.instance_id,
@@ -365,12 +356,8 @@ pub(crate) mod tests {
 
     let backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
 
-    let import_user = TestUser {
-      name: "charles".into(),
-      ..Default::default()
-    }
-    .create(pool)
-    .await?;
+    let import_user =
+      LocalUserView::create_test_user(pool, "charles", "charles bio", false).await?;
 
     import_settings(backup, import_user.clone(), context.reset_request_count()).await?;
 
@@ -400,12 +387,7 @@ pub(crate) mod tests {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
 
-    let export_user = TestUser {
-      bio: "my bio".into(),
-      ..Default::default()
-    }
-    .create(pool)
-    .await?;
+    let export_user = LocalUserView::create_test_user(pool, "harry", "harry bio", false).await?;
 
     let mut backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
 
@@ -420,7 +402,7 @@ pub(crate) mod tests {
       backup.saved_comments.push("http://example4.com".parse()?);
     }
 
-    let import_user = TestUser::default().create(pool).await?;
+    let import_user = LocalUserView::create_test_user(pool, "sally", "sally bio", false).await?;
 
     let imported =
       import_settings(backup, import_user.clone(), context.reset_request_count()).await;
@@ -441,12 +423,7 @@ pub(crate) mod tests {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
 
-    let import_user = TestUser {
-      bio: "my bio".into(),
-      ..Default::default()
-    }
-    .create(pool)
-    .await?;
+    let import_user = LocalUserView::create_test_user(pool, "larry", "larry bio", false).await?;
 
     let backup =
       serde_json::from_str("{\"bot_account\": true, \"settings\": {\"theme\": \"my_theme\"}}")?;
