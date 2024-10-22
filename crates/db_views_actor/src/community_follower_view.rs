@@ -118,9 +118,9 @@ impl CommunityFollowerView {
         person::instance_id
           .eq(person_alias.field(person::instance_id))
           .and(
-            person_alias
-              .field(person::id)
-              .eq(community_follower_alias.field(community_follower::person_id)),
+            community_follower_alias
+              .field(community_follower::community_id)
+              .eq(community_id),
           )
           .and(
             community_follower_alias
