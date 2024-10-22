@@ -101,14 +101,19 @@ pub async fn update_post(
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
-  if let Some(language_id) = data.language_id {
+    let language_id = default_post_language(
+      &mut context.pool(),
+      data.language_id,
+      community_id,
+      local_user_view.local_user.id,
+    )
+    .await?;
     CommunityLanguage::is_allowed_community_language(
       &mut context.pool(),
       language_id,
       orig_post.community_id,
     )
     .await?;
-  }
 
   // handle changes to scheduled_publish_time
   let scheduled_publish_time = match (

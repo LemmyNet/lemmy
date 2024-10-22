@@ -105,17 +105,13 @@ pub async fn create_post(
   }
 
   // attempt to set default language if none was provided
-  let language_id = match data.language_id {
-    Some(lid) => lid,
-    None => {
-      default_post_language(
-        &mut context.pool(),
-        community_id,
-        local_user_view.local_user.id,
-      )
-      .await?
-    }
-  };
+  let language_id = default_post_language(
+    &mut context.pool(),
+    data.language_id,
+    community_id,
+    local_user_view.local_user.id,
+  )
+  .await?;
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
