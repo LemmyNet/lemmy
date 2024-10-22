@@ -314,17 +314,13 @@ where
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 pub(crate) mod tests {
-
   use crate::api::user_settings_backup::{export_settings, import_settings};
-  use activitypub_federation::config::Data;
   use actix_web::web::Json;
   use lemmy_api_common::context::LemmyContext;
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityFollower, CommunityFollowerForm, CommunityInsertForm},
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm},
-      person::{Person, PersonInsertForm},
+      local_user::LocalUser,
     },
     traits::{Crud, Followable},
   };
@@ -336,32 +332,13 @@ pub(crate) mod tests {
   use std::time::Duration;
   use tokio::time::sleep;
 
-  pub(crate) async fn create_user(
-    name: String,
-    bio: Option<String>,
-    context: &Data<LemmyContext>,
-  ) -> LemmyResult<LocalUserView> {
-    let instance = Instance::read_or_create(&mut context.pool(), "example.com".to_string()).await?;
-    let person_form = PersonInsertForm {
-      display_name: Some(name.clone()),
-      bio,
-      ..PersonInsertForm::test_form(instance.id, &name)
-    };
-    let person = Person::create(&mut context.pool(), &person_form).await?;
-
-    let user_form = LocalUserInsertForm::test_form(person.id);
-    let local_user = LocalUser::create(&mut context.pool(), &user_form, vec![]).await?;
-
-    Ok(LocalUserView::read(&mut context.pool(), local_user.id).await?)
-  }
-
   #[tokio::test]
   #[serial]
   async fn test_settings_export_import() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
 
-    let export_user =
-      create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
+    let export_user = LocalUserView::create_test_user(pool, "hanna", "my bio", false).await?;
 
     let community_form = CommunityInsertForm::new(
       export_user.person.instance_id,
@@ -369,25 +346,25 @@ pub(crate) mod tests {
       "testcom".to_string(),
       "pubkey".to_string(),
     );
-    let community = Community::create(&mut context.pool(), &community_form).await?;
+    let community = Community::create(pool, &community_form).await?;
     let follower_form = CommunityFollowerForm {
       community_id: community.id,
       person_id: export_user.person.id,
       pending: false,
     };
-    CommunityFollower::follow(&mut context.pool(), &follower_form).await?;
+    CommunityFollower::follow(pool, &follower_form).await?;
 
     let backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
 
-    let import_user = create_user("charles".to_string(), None, &context).await?;
+    let import_user =
+      LocalUserView::create_test_user(pool, "charles", "charles bio", false).await?;
 
     import_settings(backup, import_user.clone(), context.reset_request_count()).await?;
 
     // wait for background task to finish
     sleep(Duration::from_millis(1000)).await;
 
-    let import_user_updated =
-      LocalUserView::read(&mut context.pool(), import_user.local_user.id).await?;
+    let import_user_updated = LocalUserView::read(pool, import_user.local_user.id).await?;
 
     assert_eq!(
       export_user.person.display_name,
@@ -395,13 +372,12 @@ pub(crate) mod tests {
     );
     assert_eq!(export_user.person.bio, import_user_updated.person.bio);
 
-    let follows =
-      CommunityFollowerView::for_person(&mut context.pool(), import_user.person.id).await?;
+    let follows = CommunityFollowerView::for_person(pool, import_user.person.id).await?;
     assert_eq!(follows.len(), 1);
     assert_eq!(follows[0].community.actor_id, community.actor_id);
 
-    LocalUser::delete(&mut context.pool(), export_user.local_user.id).await?;
-    LocalUser::delete(&mut context.pool(), import_user.local_user.id).await?;
+    LocalUser::delete(pool, export_user.local_user.id).await?;
+    LocalUser::delete(pool, import_user.local_user.id).await?;
     Ok(())
   }
 
@@ -409,9 +385,9 @@ pub(crate) mod tests {
   #[serial]
   async fn disallow_large_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
 
-    let export_user =
-      create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
+    let export_user = LocalUserView::create_test_user(pool, "harry", "harry bio", false).await?;
 
     let mut backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
 
@@ -426,7 +402,7 @@ pub(crate) mod tests {
       backup.saved_comments.push("http://example4.com".parse()?);
     }
 
-    let import_user = create_user("charles".to_string(), None, &context).await?;
+    let import_user = LocalUserView::create_test_user(pool, "sally", "sally bio", false).await?;
 
     let imported =
       import_settings(backup, import_user.clone(), context.reset_request_count()).await;
@@ -436,8 +412,8 @@ pub(crate) mod tests {
       Some(LemmyErrorType::TooManyItems)
     );
 
-    LocalUser::delete(&mut context.pool(), export_user.local_user.id).await?;
-    LocalUser::delete(&mut context.pool(), import_user.local_user.id).await?;
+    LocalUser::delete(pool, export_user.local_user.id).await?;
+    LocalUser::delete(pool, import_user.local_user.id).await?;
     Ok(())
   }
 
@@ -445,9 +421,9 @@ pub(crate) mod tests {
   #[serial]
   async fn import_partial_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
 
-    let import_user =
-      create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
+    let import_user = LocalUserView::create_test_user(pool, "larry", "larry bio", false).await?;
 
     let backup =
       serde_json::from_str("{\"bot_account\": true, \"settings\": {\"theme\": \"my_theme\"}}")?;
@@ -458,8 +434,7 @@ pub(crate) mod tests {
     )
     .await?;
 
-    let import_user_updated =
-      LocalUserView::read(&mut context.pool(), import_user.local_user.id).await?;
+    let import_user_updated = LocalUserView::read(pool, import_user.local_user.id).await?;
     // mark as bot account
     assert!(import_user_updated.person.bot_account);
     // dont remove existing bio

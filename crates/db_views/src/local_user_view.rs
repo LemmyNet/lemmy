@@ -5,6 +5,12 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{LocalUserId, OAuthProviderId, PersonId},
   schema::{local_user, local_user_vote_display_mode, oauth_account, person, person_aggregates},
+  source::{
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm},
+    person::{Person, PersonInsertForm},
+  },
+  traits::Crud,
   utils::{
     functions::{coalesce, lower},
     DbConn,
@@ -133,6 +139,31 @@ impl LocalUserView {
 
   pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     queries().list(pool, ListMode::AdminsWithEmails).await
+  }
+
+  pub async fn create_test_user(
+    pool: &mut DbPool<'_>,
+    name: &str,
+    bio: &str,
+    admin: bool,
+  ) -> Result<Self, Error> {
+    let instance_id = Instance::read_or_create(pool, "example.com".to_string())
+      .await?
+      .id;
+    let person_form = PersonInsertForm {
+      display_name: Some(name.to_owned()),
+      bio: Some(bio.to_owned()),
+      ..PersonInsertForm::test_form(instance_id, name)
+    };
+    let person = Person::create(pool, &person_form).await?;
+
+    let user_form = match admin {
+      true => LocalUserInsertForm::test_form_admin(person.id),
+      false => LocalUserInsertForm::test_form(person.id),
+    };
+    let local_user = LocalUser::create(pool, &user_form, vec![]).await?;
+
+    LocalUserView::read(pool, local_user.id).await
   }
 }
 
