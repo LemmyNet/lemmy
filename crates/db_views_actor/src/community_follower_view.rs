@@ -6,7 +6,6 @@ use diesel::{
   select,
   BoolExpressionMethods,
   ExpressionMethods,
-  JoinOnDsl,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -108,23 +107,31 @@ impl CommunityFollowerView {
   ) -> Result<Vec<PendingFollow>, Error> {
     let conn = &mut get_conn(pool).await?;
     let (limit, offset) = limit_and_offset(page, limit)?;
-    let person_alias_1 = diesel::alias!(person as person1);
+    let (person_alias, community_follower_alias) = diesel::alias!(
+      person as person_alias,
+      community_follower as community_follower_alias
+    );
 
     // check if the community already has an accepted follower from the same instance
     let is_new_instance = not(exists(
-      community_follower::table.filter(
-        community_follower::person_id
-          .eq(person_alias_1.field(person::id))
-          .and(person::instance_id.eq(person_alias_1.field(person::instance_id)))
-          .and(community_follower::state.eq(CommunityFollowerState::Accepted)),
+      person_alias.inner_join(community_follower_alias).filter(
+        person::instance_id
+          .eq(person_alias.field(person::instance_id))
+          .and(
+            person_alias
+              .field(person::id)
+              .eq(community_follower_alias.field(community_follower::person_id)),
+          )
+          .and(
+            community_follower_alias
+              .field(community_follower::state)
+              .eq(CommunityFollowerState::Accepted),
+          ),
       ),
     ));
 
     let mut query = community_follower::table
       .inner_join(person::table)
-      .inner_join(
-        person_alias_1.on(community_follower::person_id.eq(person_alias_1.field(person::id))),
-      )
       .filter(community_follower::community_id.eq(community_id))
       .into_boxed();
     if pending_only {
