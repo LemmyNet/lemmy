@@ -154,7 +154,7 @@ impl CommunityFollowerView {
         .map(|(person, is_new_instance, subscribed)| PendingFollow {
           person,
           is_new_instance,
-          subscribed: subscribed.into(),
+          subscribed,
         })
         .collect(),
     )
