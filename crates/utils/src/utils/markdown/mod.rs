@@ -5,13 +5,12 @@ use std::sync::LazyLock;
 
 pub mod image_links;
 mod link_rule;
-mod spoiler_rule;
 
 static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
   let mut parser = MarkdownIt::new();
   markdown_it::plugins::cmark::add(&mut parser);
   markdown_it::plugins::extra::add(&mut parser);
-  spoiler_rule::add(&mut parser);
+  markdown_it_block_spoiler::add(&mut parser);
   link_rule::add(&mut parser);
 
   parser
