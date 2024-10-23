@@ -2809,6 +2809,10 @@ dependencies = [
  "itertools 0.13.0",
  "lettre",
  "markdown-it",
+ "markdown-it-block-spoiler",
+ "markdown-it-ruby",
+ "markdown-it-sub",
+ "markdown-it-sup",
  "pretty_assertions",
  "regex",
  "reqwest 0.12.8",
@@ -2978,6 +2982,44 @@ dependencies = [
  "stacker",
  "syntect",
  "unicode-general-category",
+]
+
+[[package]]
+name = "markdown-it-block-spoiler"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "008a8e4184fd08b5dca0f2b5b2ef8f126c1e83ca797c44ee41f8d7765951360c"
+dependencies = [
+ "itertools 0.13.0",
+ "markdown-it",
+]
+
+[[package]]
+name = "markdown-it-ruby"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3505f4ada7c372e7f5eb4b07850bf5921193bc0bd43cb18991233999c9134d4"
+dependencies = [
+ "itertools 0.13.0",
+ "markdown-it",
+]
+
+[[package]]
+name = "markdown-it-sub"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8abe3aa8927af2314644b3aae37393241a229e869ff9c95ac640749e08357d2a"
+dependencies = [
+ "markdown-it",
+]
+
+[[package]]
+name = "markdown-it-sup"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ae949e78c7a615f88a47019d51b65962bfc5c4cbc65fa81eae8b9b2506d1cb1"
+dependencies = [
+ "markdown-it",
 ]
 
 [[package]]
@@ -5579,7 +5621,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
