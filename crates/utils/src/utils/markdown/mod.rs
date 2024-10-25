@@ -104,7 +104,7 @@ mod tests {
       (
         "basic spoiler",
         "::: spoiler click to see more\nhow spicy!\n:::\n",
-        "<details><summary>click to see more</summary><p>how spicy!\n</p></details>\n"
+        "<details><summary>click to see more</summary>how spicy!\n</details>\n"
       ),
       (
         "escape html special chars",
