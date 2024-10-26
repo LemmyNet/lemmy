@@ -48,8 +48,6 @@ pub struct Person {
   #[cfg_attr(feature = "full", ts(skip))]
   #[serde(skip, default = "placeholder_apub_url")]
   pub inbox_url: DbUrl,
-  #[serde(skip)]
-  pub shared_inbox_url: Option<DbUrl>,
   /// A matrix id, usually given an @person:matrix.org
   pub matrix_user_id: Option<String>,
   /// Whether the person is a bot account.
@@ -93,8 +91,6 @@ pub struct PersonInsertForm {
   #[new(default)]
   pub inbox_url: Option<DbUrl>,
   #[new(default)]
-  pub shared_inbox_url: Option<DbUrl>,
-  #[new(default)]
   pub matrix_user_id: Option<String>,
   #[new(default)]
   pub bot_account: Option<bool>,
@@ -119,7 +115,6 @@ pub struct PersonUpdateForm {
   pub banner: Option<Option<DbUrl>>,
   pub deleted: Option<bool>,
   pub inbox_url: Option<DbUrl>,
-  pub shared_inbox_url: Option<Option<DbUrl>>,
   pub matrix_user_id: Option<Option<String>>,
   pub bot_account: Option<bool>,
   pub ban_expires: Option<Option<DateTime<Utc>>>,

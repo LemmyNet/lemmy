@@ -1,17 +1,10 @@
 use crate::{
-  activity_lists::PersonInboxActivities,
-  fetcher::user_or_community::UserOrCommunity,
   http::{create_apub_response, create_apub_tombstone_response},
   objects::person::ApubPerson,
   protocol::collections::empty_outbox::EmptyOutbox,
 };
-use activitypub_federation::{
-  actix_web::inbox::receive_activity,
-  config::Data,
-  protocol::context::WithContext,
-  traits::Object,
-};
-use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
+use activitypub_federation::{config::Data, traits::Object};
+use actix_web::{web, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_db_schema::{source::person::Person, traits::ApubActor};
 use lemmy_utils::{error::LemmyResult, LemmyErrorType};
@@ -42,18 +35,6 @@ pub(crate) async fn get_apub_person_http(
   } else {
     create_apub_tombstone_response(person.actor_id.clone())
   }
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn person_inbox(
-  request: HttpRequest,
-  body: Bytes,
-  data: Data<LemmyContext>,
-) -> LemmyResult<HttpResponse> {
-  receive_activity::<WithContext<PersonInboxActivities>, UserOrCommunity, LemmyContext>(
-    request, body, &data,
-  )
-  .await
 }
 
 #[tracing::instrument(skip_all)]
