@@ -32,7 +32,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CreateOrUpdatePage {
@@ -66,13 +66,9 @@ impl CreateOrUpdatePage {
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let community_id = post.community_id;
-    let person: ApubPerson = Person::read(&mut context.pool(), person_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?
-      .into();
+    let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
     let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
       .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?
       .into();
 
     let create_or_update =

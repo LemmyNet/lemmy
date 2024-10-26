@@ -2,13 +2,11 @@ use super::verify_is_remote_object;
 use crate::{
   activities::GetActorType,
   check_apub_id_valid_with_strictness,
+  fetcher::markdown_links::markdown_rewrite_remote_links_opt,
   local_site_data_cached,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
-    objects::{
-      person::{Person, UserTypes},
-      Endpoints,
-    },
+    objects::person::{Person, UserTypes},
     ImageObject,
     Source,
   },
@@ -117,9 +115,7 @@ impl Object for ApubPerson {
       matrix_user_id: self.matrix_user_id.clone(),
       published: Some(self.published),
       outbox: generate_outbox_url(&self.actor_id)?.into(),
-      endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
-        shared_inbox: s.into(),
-      }),
+      endpoints: None,
       public_key: self.public_key(),
       updated: self.updated,
       inbox: self.inbox_url.clone().into(),
@@ -156,6 +152,7 @@ impl Object for ApubPerson {
     let url_blocklist = get_url_blocklist(context).await?;
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
     let bio = process_markdown_opt(&bio, slur_regex, &url_blocklist, context).await?;
+    let bio = markdown_rewrite_remote_links_opt(bio, context).await;
     let avatar = proxy_image_link_opt_apub(person.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(person.image.map(|i| i.url), context).await?;
 
@@ -180,8 +177,13 @@ impl Object for ApubPerson {
       private_key: None,
       public_key: person.public_key.public_key_pem,
       last_refreshed_at: Some(naive_now()),
-      inbox_url: Some(person.inbox.into()),
-      shared_inbox_url: person.endpoints.map(|e| e.shared_inbox.into()),
+      inbox_url: Some(
+        person
+          .endpoints
+          .map(|e| e.shared_inbox)
+          .unwrap_or(person.inbox)
+          .into(),
+      ),
       matrix_user_id: person.matrix_user_id,
       instance_id,
     };
@@ -209,7 +211,7 @@ impl Actor for ApubPerson {
   }
 
   fn shared_inbox(&self) -> Option<Url> {
-    self.shared_inbox_url.clone().map(Into::into)
+    None
   }
 }
 
@@ -277,7 +279,7 @@ pub(crate) mod tests {
     assert_eq!(person.name, "lanodan");
     assert!(!person.local);
     assert_eq!(context.request_count(), 0);
-    assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(873));
+    assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(812));
 
     cleanup((person, site), &context).await?;
     Ok(())

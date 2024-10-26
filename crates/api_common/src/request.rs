@@ -3,7 +3,7 @@ use crate::{
   lemmy_db_schema::traits::Crud,
   post::{LinkMetadata, OpenGraphData},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{local_site_opt_to_sensitive, proxy_image_link},
+  utils::proxy_image_link,
 };
 use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
@@ -13,8 +13,8 @@ use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
     images::{ImageDetailsForm, LocalImage, LocalImageForm},
-    local_site::LocalSite,
     post::{Post, PostUpdateForm},
+    site::Site,
   },
 };
 use lemmy_utils::{
@@ -44,6 +44,7 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
     .user_agent(user_agent.clone())
     .timeout(REQWEST_TIMEOUT)
     .connect_timeout(REQWEST_TIMEOUT)
+    .use_rustls_tls()
 }
 
 /// Fetches metadata for the given link and optionally generates thumbnail.
@@ -130,7 +131,6 @@ pub async fn generate_post_link_metadata(
   post: Post,
   custom_thumbnail: Option<Url>,
   send_activity: impl FnOnce(Post) -> Option<SendActivityData> + Send + 'static,
-  local_site: Option<LocalSite>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let metadata = match &post.url {
@@ -144,7 +144,8 @@ pub async fn generate_post_link_metadata(
     .is_some_and(|content_type| content_type.starts_with("image"));
 
   // Decide if we are allowed to generate local thumbnail
-  let allow_sensitive = local_site_opt_to_sensitive(&local_site);
+  let site = Site::read_local(&mut context.pool()).await?;
+  let allow_sensitive = site.content_warning.is_some();
   let allow_generate_thumbnail = allow_sensitive || !post.nsfw;
 
   let image_url = if is_image_post {
@@ -353,9 +354,10 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
   // fetch remote non-pictrs images for persistent thumbnail link
   // TODO: should limit size once supported by pictrs
   let fetch_url = format!(
-    "{}image/download?url={}",
+    "{}image/download?url={}&resize={}",
     pictrs_config.url,
-    encode(image_url.as_str())
+    encode(image_url.as_str()),
+    context.settings().pictrs_config()?.max_thumbnail_size
   );
 
   let res = context
@@ -470,14 +472,13 @@ pub async fn replace_image(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{
     context::LemmyContext,
     request::{extract_opengraph_data, fetch_link_metadata},
   };
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use url::Url;
@@ -485,10 +486,10 @@ mod tests {
   // These helped with testing
   #[tokio::test]
   #[serial]
-  async fn test_link_metadata() {
+  async fn test_link_metadata() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
-    let sample_res = fetch_link_metadata(&sample_url, &context).await.unwrap();
+    let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ")?;
+    let sample_res = fetch_link_metadata(&sample_url, &context).await?;
     assert_eq!(
       Some("FAQ · Wiki · IzzyOnDroid / repo · GitLab".to_string()),
       sample_res.opengraph_data.title
@@ -499,8 +500,7 @@ mod tests {
     );
     assert_eq!(
       Some(
-        Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")
-          .unwrap()
+        Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")?
           .into()
       ),
       sample_res.opengraph_data.image
@@ -510,19 +510,21 @@ mod tests {
       Some(mime::TEXT_HTML_UTF_8.to_string()),
       sample_res.content_type
     );
+
+    Ok(())
   }
 
   #[test]
-  fn test_resolve_image_url() {
+  fn test_resolve_image_url() -> LemmyResult<()> {
     // url that lists the opengraph fields
-    let url = Url::parse("https://example.com/one/two.html").unwrap();
+    let url = Url::parse("https://example.com/one/two.html")?;
 
     // root relative url
     let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='/image.jpg'></head><body></body></html>";
     let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
     assert_eq!(
       metadata.image,
-      Some(Url::parse("https://example.com/image.jpg").unwrap().into())
+      Some(Url::parse("https://example.com/image.jpg")?.into())
     );
 
     // base relative url
@@ -530,11 +532,7 @@ mod tests {
     let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
     assert_eq!(
       metadata.image,
-      Some(
-        Url::parse("https://example.com/one/image.jpg")
-          .unwrap()
-          .into()
-      )
+      Some(Url::parse("https://example.com/one/image.jpg")?.into())
     );
 
     // absolute url
@@ -542,7 +540,7 @@ mod tests {
     let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
     assert_eq!(
       metadata.image,
-      Some(Url::parse("https://cdn.host.com/image.jpg").unwrap().into())
+      Some(Url::parse("https://cdn.host.com/image.jpg")?.into())
     );
 
     // protocol relative url
@@ -550,7 +548,9 @@ mod tests {
     let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
     assert_eq!(
       metadata.image,
-      Some(Url::parse("https://example.com/image.jpg").unwrap().into())
+      Some(Url::parse("https://example.com/image.jpg")?.into())
     );
+
+    Ok(())
   }
 }

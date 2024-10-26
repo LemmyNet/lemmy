@@ -32,10 +32,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  LemmyErrorType,
-};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 #[async_trait::async_trait]
@@ -132,7 +129,6 @@ pub(crate) async fn send_lock_post(
 ) -> LemmyResult<()> {
   let community: ApubCommunity = Community::read(&mut context.pool(), post.community_id)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?
     .into();
   let id = generate_activity_id(
     LockType::Lock,

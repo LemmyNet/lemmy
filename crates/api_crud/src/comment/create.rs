@@ -30,9 +30,8 @@ use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
+  MAX_COMMENT_DEPTH_LIMIT,
 };
-
-const MAX_COMMENT_DEPTH_LIMIT: usize = 100;
 
 #[tracing::instrument(skip(context))]
 pub async fn create_comment(
@@ -57,8 +56,7 @@ pub async fn create_comment(
     Some(&local_user_view.local_user),
     true,
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindPost)?;
+  .await?;
 
   let post = post_view.post;
   let community_id = post_view.community.id;
@@ -79,8 +77,7 @@ pub async fn create_comment(
     Comment::read(&mut context.pool(), parent_id).await.ok()
   } else {
     None
-  }
-  .flatten();
+  };
 
   // If there's a parent_id, check to make sure that comment is in that post
   // Strange issue where sometimes the post ID of the parent comment is incorrect
@@ -91,16 +88,9 @@ pub async fn create_comment(
     check_comment_depth(parent)?;
   }
 
-  CommunityLanguage::is_allowed_community_language(
-    &mut context.pool(),
-    data.language_id,
-    community_id,
-  )
-  .await?;
-
   // attempt to set default language if none was provided
   let language_id = match data.language_id {
-    Some(lid) => Some(lid),
+    Some(lid) => lid,
     None => {
       default_post_language(
         &mut context.pool(),
@@ -111,12 +101,13 @@ pub async fn create_comment(
     }
   };
 
-  let comment_form = CommentInsertForm::builder()
-    .content(content.clone())
-    .post_id(data.post_id)
-    .creator_id(local_user_view.person.id)
-    .language_id(language_id)
-    .build();
+  CommunityLanguage::is_allowed_community_language(&mut context.pool(), language_id, community_id)
+    .await?;
+
+  let comment_form = CommentInsertForm {
+    language_id: Some(language_id),
+    ..CommentInsertForm::new(local_user_view.person.id, data.post_id, content.clone())
+  };
 
   // Create the comment
   let parent_path = parent_opt.clone().map(|t| t.path);
@@ -141,7 +132,6 @@ pub async fn create_comment(
   // You like your own comment by default
   let like_form = CommentLikeForm {
     comment_id: inserted_comment.id,
-    post_id: post.id,
     person_id: local_user_view.person.id,
     score: 1,
   };

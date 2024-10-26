@@ -1,4 +1,4 @@
-use crate::structs::{CommunityModeratorView, CommunityView, PersonView};
+use crate::structs::{CommunityModeratorView, CommunitySortType, CommunityView, PersonView};
 use diesel::{
   pg::Pg,
   result::Error,
@@ -22,10 +22,20 @@ use lemmy_db_schema::{
     instance_block,
   },
   source::{community::CommunityFollower, local_user::LocalUser, site::Site},
-  utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{
+    functions::lower,
+    fuzzy_search,
+    limit_and_offset,
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+  },
   ListingType,
-  SortType,
+  PostSortType,
 };
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommunityView, (CommunityId, Option<&'a LocalUser>, bool)>,
@@ -102,7 +112,7 @@ fn queries<'a>() -> Queries<
   };
 
   let list = move |mut conn: DbConn<'a>, (options, site): (CommunityQuery<'a>, &'a Site)| async move {
-    use SortType::*;
+    use CommunitySortType::*;
 
     // The left join below will return None in this case
     let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
@@ -111,9 +121,14 @@ fn queries<'a>() -> Queries<
 
     if let Some(search_term) = options.search_term {
       let searcher = fuzzy_search(&search_term);
-      query = query
-        .filter(community::name.ilike(searcher.clone()))
-        .or_filter(community::title.ilike(searcher))
+      let name_filter = community::name.ilike(searcher.clone());
+      let title_filter = community::title.ilike(searcher.clone());
+      let description_filter = community::description.ilike(searcher.clone());
+      query = if options.title_only.unwrap_or_default() {
+        query.filter(name_filter.or(title_filter))
+      } else {
+        query.filter(name_filter.or(title_filter.or(description_filter)))
+      }
     }
 
     // Hide deleted and removed for non-admins or mods
@@ -142,6 +157,8 @@ fn queries<'a>() -> Queries<
       }
       TopMonth => query = query.order_by(community_aggregates::users_active_month.desc()),
       TopWeek => query = query.order_by(community_aggregates::users_active_week.desc()),
+      NameAsc => query = query.order_by(lower(community::name).asc()),
+      NameDesc => query = query.order_by(lower(community::name).desc()),
     };
 
     if let Some(listing_type) = options.listing_type {
@@ -179,41 +196,71 @@ impl CommunityView {
     community_id: CommunityId,
     my_local_user: Option<&'a LocalUser>,
     is_mod_or_admin: bool,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries()
       .read(pool, (community_id, my_local_user, is_mod_or_admin))
       .await
   }
 
-  pub async fn is_mod_or_admin(
+  pub async fn check_is_mod_or_admin(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     community_id: CommunityId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let is_mod =
-      CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await?;
-    if is_mod {
-      Ok(true)
-    } else if let Ok(Some(person_view)) = PersonView::read(pool, person_id).await {
-      Ok(person_view.is_admin)
+      CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id).await;
+    if is_mod.is_ok()
+      || PersonView::read(pool, person_id)
+        .await
+        .is_ok_and(|t| t.is_admin)
+    {
+      Ok(())
     } else {
-      Ok(false)
+      Err(LemmyErrorType::NotAModOrAdmin)?
     }
   }
 
   /// Checks if a person is an admin, or moderator of any community.
-  pub async fn is_mod_of_any_or_admin(
+  pub async fn check_is_mod_of_any_or_admin(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let is_mod_of_any =
-      CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await?;
-    if is_mod_of_any {
-      Ok(true)
-    } else if let Ok(Some(person_view)) = PersonView::read(pool, person_id).await {
-      Ok(person_view.is_admin)
+      CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await;
+    if is_mod_of_any.is_ok()
+      || PersonView::read(pool, person_id)
+        .await
+        .is_ok_and(|t| t.is_admin)
+    {
+      Ok(())
     } else {
-      Ok(false)
+      Err(LemmyErrorType::NotAModOrAdmin)?
+    }
+  }
+}
+
+impl From<PostSortType> for CommunitySortType {
+  fn from(value: PostSortType) -> Self {
+    match value {
+      PostSortType::Active => Self::Active,
+      PostSortType::Hot => Self::Hot,
+      PostSortType::New => Self::New,
+      PostSortType::Old => Self::Old,
+      PostSortType::TopDay => Self::TopDay,
+      PostSortType::TopWeek => Self::TopWeek,
+      PostSortType::TopMonth => Self::TopMonth,
+      PostSortType::TopYear => Self::TopYear,
+      PostSortType::TopAll => Self::TopAll,
+      PostSortType::MostComments => Self::MostComments,
+      PostSortType::NewComments => Self::NewComments,
+      PostSortType::TopHour => Self::TopHour,
+      PostSortType::TopSixHour => Self::TopSixHour,
+      PostSortType::TopTwelveHour => Self::TopTwelveHour,
+      PostSortType::TopThreeMonths => Self::TopThreeMonths,
+      PostSortType::TopSixMonths => Self::TopSixMonths,
+      PostSortType::TopNineMonths => Self::TopNineMonths,
+      PostSortType::Controversial => Self::Controversial,
+      PostSortType::Scaled => Self::Scaled,
     }
   }
 }
@@ -221,9 +268,10 @@ impl CommunityView {
 #[derive(Default)]
 pub struct CommunityQuery<'a> {
   pub listing_type: Option<ListingType>,
-  pub sort: Option<SortType>,
+  pub sort: Option<CommunitySortType>,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
+  pub title_only: Option<bool>,
   pub is_mod_or_admin: bool,
   pub show_nsfw: bool,
   pub page: Option<i64>,
@@ -237,11 +285,12 @@ impl<'a> CommunityQuery<'a> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{community_view::CommunityQuery, structs::CommunityView};
+  use crate::{
+    community_view::CommunityQuery,
+    structs::{CommunitySortType, CommunityView},
+  };
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityInsertForm, CommunityUpdateForm},
@@ -254,42 +303,63 @@ mod tests {
     utils::{build_db_pool_for_tests, DbPool},
     CommunityVisibility,
   };
+  use lemmy_utils::error::LemmyResult;
   use serial_test::serial;
   use url::Url;
 
   struct Data {
     inserted_instance: Instance,
     local_user: LocalUser,
-    inserted_community: Community,
+    inserted_communities: [Community; 3],
     site: Site,
   }
 
-  async fn init_data(pool: &mut DbPool<'_>) -> Data {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+  async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let person_name = "tegan".to_string();
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, &person_name);
 
-    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+    let inserted_person = Person::create(pool, &new_person).await?;
 
     let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
-    let local_user = LocalUser::create(pool, &local_user_form, vec![])
-      .await
-      .unwrap();
+    let local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test_community_3".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let inserted_communities = [
+      Community::create(
+        pool,
+        &CommunityInsertForm::new(
+          inserted_instance.id,
+          "test_community_1".to_string(),
+          "nada1".to_owned(),
+          "pubkey".to_string(),
+        ),
+      )
+      .await?,
+      Community::create(
+        pool,
+        &CommunityInsertForm::new(
+          inserted_instance.id,
+          "test_community_2".to_string(),
+          "nada2".to_owned(),
+          "pubkey".to_string(),
+        ),
+      )
+      .await?,
+      Community::create(
+        pool,
+        &CommunityInsertForm::new(
+          inserted_instance.id,
+          "test_community_3".to_string(),
+          "nada3".to_owned(),
+          "pubkey".to_string(),
+        ),
+      )
+      .await?,
+    ];
 
-    let inserted_community = Community::create(pool, &new_community).await.unwrap();
-
-    let url = Url::parse("http://example.com").unwrap();
+    let url = Url::parse("http://example.com")?;
     let site = Site {
       id: Default::default(),
       name: String::new(),
@@ -308,76 +378,102 @@ mod tests {
       content_warning: None,
     };
 
-    Data {
+    Ok(Data {
       inserted_instance,
       local_user,
-      inserted_community,
+      inserted_communities,
       site,
-    }
+    })
   }
 
-  async fn cleanup(data: Data, pool: &mut DbPool<'_>) {
-    Community::delete(pool, data.inserted_community.id)
-      .await
-      .unwrap();
-    Person::delete(pool, data.local_user.person_id)
-      .await
-      .unwrap();
-    Instance::delete(pool, data.inserted_instance.id)
-      .await
-      .unwrap();
+  async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    for Community { id, .. } in data.inserted_communities {
+      Community::delete(pool, id).await?;
+    }
+    Person::delete(pool, data.local_user.person_id).await?;
+    Instance::delete(pool, data.inserted_instance.id).await?;
+
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn local_only_community() {
+  async fn local_only_community() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
-    let data = init_data(pool).await;
+    let data = init_data(pool).await?;
 
     Community::update(
       pool,
-      data.inserted_community.id,
+      data.inserted_communities[0].id,
       &CommunityUpdateForm {
         visibility: Some(CommunityVisibility::LocalOnly),
         ..Default::default()
       },
     )
-    .await
-    .unwrap();
+    .await?;
 
     let unauthenticated_query = CommunityQuery {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await
-    .unwrap();
-    assert_eq!(0, unauthenticated_query.len());
+    .await?;
+    assert_eq!(
+      data.inserted_communities.len() - 1,
+      unauthenticated_query.len()
+    );
 
     let authenticated_query = CommunityQuery {
       local_user: Some(&data.local_user),
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await
-    .unwrap();
-    assert_eq!(1, authenticated_query.len());
+    .await?;
+    assert_eq!(data.inserted_communities.len(), authenticated_query.len());
 
     let unauthenticated_community =
-      CommunityView::read(pool, data.inserted_community.id, None, false)
-        .await
-        .unwrap();
-    assert!(unauthenticated_community.is_none());
+      CommunityView::read(pool, data.inserted_communities[0].id, None, false).await;
+    assert!(unauthenticated_community.is_err());
 
     let authenticated_community = CommunityView::read(
       pool,
-      data.inserted_community.id,
+      data.inserted_communities[0].id,
       Some(&data.local_user),
       false,
     )
     .await;
     assert!(authenticated_community.is_ok());
 
-    cleanup(data, pool).await;
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn community_sort_name() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let query = CommunityQuery {
+      sort: Some(CommunitySortType::NameAsc),
+      ..Default::default()
+    };
+    let communities = query.list(&data.site, pool).await?;
+    for (i, c) in communities.iter().enumerate().skip(1) {
+      let prev = communities.get(i - 1).expect("No previous community?");
+      assert!(c.community.title.cmp(&prev.community.title).is_ge());
+    }
+
+    let query = CommunityQuery {
+      sort: Some(CommunitySortType::NameDesc),
+      ..Default::default()
+    };
+    let communities = query.list(&data.site, pool).await?;
+    for (i, c) in communities.iter().enumerate().skip(1) {
+      let prev = communities.get(i - 1).expect("No previous community?");
+      assert!(c.community.title.cmp(&prev.community.title).is_le());
+    }
+
+    cleanup(data, pool).await
   }
 }

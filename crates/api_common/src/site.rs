@@ -16,19 +16,21 @@ use lemmy_db_schema::{
     instance::Instance,
     language::Language,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    oauth_provider::{OAuthProvider, PublicOAuthProvider},
     person::Person,
     tagline::Tagline,
   },
+  CommentSortType,
+  FederationMode,
   ListingType,
   ModlogActionType,
   PostListingMode,
+  PostSortType,
   RegistrationMode,
   SearchType,
-  SortType,
 };
 use lemmy_db_views::structs::{
   CommentView,
-  CustomEmojiView,
   LocalUserView,
   PostView,
   RegistrationApplicationView,
@@ -73,10 +75,15 @@ pub struct Search {
   pub community_name: Option<String>,
   pub creator_id: Option<PersonId>,
   pub type_: Option<SearchType>,
-  pub sort: Option<SortType>,
+  pub sort: Option<PostSortType>,
   pub listing_type: Option<ListingType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
+  pub title_only: Option<bool>,
+  pub post_url_only: Option<bool>,
+  pub saved_only: Option<bool>,
+  pub liked_only: Option<bool>,
+  pub disliked_only: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -164,7 +171,6 @@ pub struct CreateSite {
   pub description: Option<String>,
   pub icon: Option<String>,
   pub banner: Option<String>,
-  pub enable_downvotes: Option<bool>,
   pub enable_nsfw: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
@@ -172,7 +178,9 @@ pub struct CreateSite {
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
   pub default_post_listing_type: Option<ListingType>,
-  pub default_sort_type: Option<SortType>,
+  pub default_post_listing_mode: Option<PostListingMode>,
+  pub default_post_sort_type: Option<PostSortType>,
+  pub default_comment_sort_type: Option<CommentSortType>,
   pub legal_information: Option<String>,
   pub application_email_admins: Option<bool>,
   pub hide_modlog_mod_names: Option<bool>,
@@ -197,10 +205,13 @@ pub struct CreateSite {
   pub captcha_difficulty: Option<String>,
   pub allowed_instances: Option<Vec<String>>,
   pub blocked_instances: Option<Vec<String>>,
-  pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
+  pub oauth_registration: Option<bool>,
   pub content_warning: Option<String>,
-  pub default_post_listing_mode: Option<PostListingMode>,
+  pub post_upvotes: Option<FederationMode>,
+  pub post_downvotes: Option<FederationMode>,
+  pub comment_upvotes: Option<FederationMode>,
+  pub comment_downvotes: Option<FederationMode>,
 }
 
 #[skip_serializing_none]
@@ -217,8 +228,6 @@ pub struct EditSite {
   pub icon: Option<String>,
   /// A url for your site's banner.
   pub banner: Option<String>,
-  /// Whether to enable downvotes.
-  pub enable_downvotes: Option<bool>,
   /// Whether to enable NSFW.
   pub enable_nsfw: Option<bool>,
   /// Limits community creation to admins only.
@@ -231,9 +240,14 @@ pub struct EditSite {
   pub private_instance: Option<bool>,
   /// The default theme. Usually "browser"
   pub default_theme: Option<String>,
+  /// The default post listing type, usually "local"
   pub default_post_listing_type: Option<ListingType>,
-  /// The default sort, usually "active"
-  pub default_sort_type: Option<SortType>,
+  /// Default value for listing mode, usually "list"
+  pub default_post_listing_mode: Option<PostListingMode>,
+  /// The default post sort, usually "active"
+  pub default_post_sort_type: Option<PostSortType>,
+  /// The default comment sort, usually "hot"
+  pub default_comment_sort_type: Option<CommentSortType>,
   /// An optional page of legal information
   pub legal_information: Option<String>,
   /// Whether to email admins when receiving a new application.
@@ -278,16 +292,22 @@ pub struct EditSite {
   pub blocked_instances: Option<Vec<String>>,
   /// A list of blocked URLs
   pub blocked_urls: Option<Vec<String>>,
-  /// A list of taglines shown at the top of the front page.
-  pub taglines: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
   /// Whether to email admins for new reports.
   pub reports_email_admins: Option<bool>,
   /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
   /// when the site is first opened by a user.
   pub content_warning: Option<String>,
-  /// Default value for [LocalUser.post_listing_mode]
-  pub default_post_listing_mode: Option<PostListingMode>,
+  /// Whether or not external auth methods can auto-register users.
+  pub oauth_registration: Option<bool>,
+  /// What kind of post upvotes your site allows.
+  pub post_upvotes: Option<FederationMode>,
+  /// What kind of post downvotes your site allows.
+  pub post_downvotes: Option<FederationMode>,
+  /// What kind of comment upvotes your site allows.
+  pub comment_upvotes: Option<FederationMode>,
+  /// What kind of comment downvotes your site allows.
+  pub comment_downvotes: Option<FederationMode>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -296,7 +316,8 @@ pub struct EditSite {
 /// The response for a site.
 pub struct SiteResponse {
   pub site_view: SiteView,
-  pub taglines: Vec<Tagline>,
+  /// deprecated, use field `tagline` or /api/v3/tagline/list
+  pub taglines: Vec<()>,
 }
 
 #[skip_serializing_none]
@@ -311,10 +332,15 @@ pub struct GetSiteResponse {
   pub my_user: Option<MyUserInfo>,
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
-  /// A list of taglines shown at the top of the front page.
-  pub taglines: Vec<Tagline>,
-  /// A list of custom emojis your site supports.
-  pub custom_emojis: Vec<CustomEmojiView>,
+  /// deprecated, use field `tagline` or /api/v3/tagline/list
+  pub taglines: Vec<()>,
+  /// deprecated, use /api/v3/custom_emoji/list
+  pub custom_emojis: Vec<()>,
+  /// If the site has any taglines, a random one is included here for displaying
+  pub tagline: Option<Tagline>,
+  /// A list of external auth methods your site supports.
+  pub oauth_providers: Option<Vec<PublicOAuthProvider>>,
+  pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
 }
 

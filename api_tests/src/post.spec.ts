@@ -125,12 +125,12 @@ test("Create a post", async () => {
   // Delta only follows beta, so it should not see an alpha ap_id
   await expect(
     resolvePost(delta, postRes.post_view.post),
-  ).rejects.toStrictEqual(Error("couldnt_find_object"));
+  ).rejects.toStrictEqual(Error("not_found"));
 
   // Epsilon has alpha blocked, it should not see the alpha post
   await expect(
     resolvePost(epsilon, postRes.post_view.post),
-  ).rejects.toStrictEqual(Error("couldnt_find_object"));
+  ).rejects.toStrictEqual(Error("not_found"));
 
   // remove added allow/blocklists
   editSiteForm.allowed_instances = [];
@@ -140,9 +140,7 @@ test("Create a post", async () => {
 });
 
 test("Create a post in a non-existent community", async () => {
-  await expect(createPost(alpha, -2)).rejects.toStrictEqual(
-    Error("couldnt_find_community"),
-  );
+  await expect(createPost(alpha, -2)).rejects.toStrictEqual(Error("not_found"));
 });
 
 test("Unlike a post", async () => {
@@ -502,9 +500,16 @@ test("Enforce site ban federation for local user", async () => {
     alpha,
     alphaPerson.person.id,
     false,
-    false,
+    true,
   );
   expect(unBanAlpha.banned).toBe(false);
+
+  // existing alpha post should be restored on beta
+  betaBanRes = await waitUntil(
+    () => getPost(beta, searchBeta1.post.id),
+    s => !s.post_view.post.removed,
+  );
+  expect(betaBanRes.post_view.post.removed).toBe(false);
 
   // Login gets invalidated by ban, need to login again
   if (!alphaUserPerson) {
@@ -623,7 +628,7 @@ test("Enforce community ban for federated user", async () => {
   // Alpha tries to make post on beta, but it fails because of ban
   await expect(
     createPost(alpha, betaCommunity.community.id),
-  ).rejects.toStrictEqual(Error("banned_from_community"));
+  ).rejects.toStrictEqual(Error("person_is_banned_from_community"));
 
   // Unban alpha
   let unBanAlpha = await banPersonFromCommunity(
@@ -788,4 +793,30 @@ test("Fetch post with redirect", async () => {
   };
   let gammaPost2 = await gamma.resolveObject(form);
   expect(gammaPost2.post).toBeDefined();
+});
+
+test("Rewrite markdown links", async () => {
+  const community = (await resolveBetaCommunity(beta)).community!;
+
+  // create a post
+  let postRes1 = await createPost(beta, community.community.id);
+
+  // link to this post in markdown
+  let postRes2 = await createPost(
+    beta,
+    community.community.id,
+    "https://example.com/",
+    `[link](${postRes1.post_view.post.ap_id})`,
+  );
+  console.log(postRes2.post_view.post.body);
+  expect(postRes2.post_view.post).toBeDefined();
+
+  // fetch both posts from another instance
+  const alphaPost1 = await resolvePost(alpha, postRes1.post_view.post);
+  const alphaPost2 = await resolvePost(alpha, postRes2.post_view.post);
+
+  // remote markdown link is replaced with local link
+  expect(alphaPost2.post?.post.body).toBe(
+    `[link](http://lemmy-alpha:8541/post/${alphaPost1.post?.post.id})`,
+  );
 });

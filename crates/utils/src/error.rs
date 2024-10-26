@@ -39,21 +39,10 @@ pub enum LemmyErrorType {
   SiteBan,
   Deleted,
   BannedFromCommunity,
-  CouldntFindCommunity,
-  CouldntFindPerson,
-  CouldntFindComment,
-  CouldntFindCommentReport,
-  CouldntFindPostReport,
-  CouldntFindPrivateMessageReport,
-  CouldntFindLocalUser,
-  CouldntFindPersonMention,
-  CouldntFindRegistrationApplication,
-  CouldntFindCommentReply,
-  CouldntFindPrivateMessage,
   PersonIsBlocked,
   CommunityIsBlocked,
   InstanceIsBlocked,
-  DownvotesAreDisabled,
+  VoteNotAllowed,
   InstanceIsPrivate,
   /// Password must be between 10 and 60 characters
   InvalidPassword,
@@ -71,14 +60,17 @@ pub enum LemmyErrorType {
   OnlyModsCanPostInCommunity,
   CouldntUpdatePost,
   NoPostEditAllowed,
-  CouldntFindPost,
   EditPrivateMessageNotAllowed,
   SiteAlreadyExists,
   ApplicationQuestionRequired,
   InvalidDefaultPostListingType,
   RegistrationClosed,
   RegistrationApplicationAnswerRequired,
+  RegistrationUsernameRequired,
   EmailAlreadyExists,
+  UsernameAlreadyExists,
+  PersonIsBannedFromCommunity,
+  NewPostCannotBeLocked,
   NoIdGiven,
   IncorrectLogin,
   ObjectNotLocal,
@@ -111,7 +103,6 @@ pub enum LemmyErrorType {
   CouldntUpdateCommunityHiddenStatus,
   PersonBlockAlreadyExists,
   UserAlreadyExists,
-  TokenNotFound,
   CouldntLikePost,
   CouldntSavePost,
   CouldntMarkPostAsRead,
@@ -132,7 +123,6 @@ pub enum LemmyErrorType {
   InvalidUrl,
   EmailSendFailed,
   Slurs,
-  CouldntFindObject,
   RegistrationDenied(Option<String>),
   SiteNameRequired,
   SiteNameLengthOverflow,
@@ -153,6 +143,14 @@ pub enum LemmyErrorType {
   CantBlockLocalInstance,
   Unknown(String),
   UrlLengthOverflow,
+  OauthAuthorizationInvalid,
+  OauthLoginFailed,
+  OauthRegistrationClosed,
+  CouldntDeleteOauthProvider,
+  NotFound,
+  CommunityHasNoFollowers,
+  PostScheduleTimeMustBeInFuture,
+  TooManyScheduledPosts,
   FederationError(Option<FederationError>),
 }
 
@@ -164,7 +162,6 @@ pub enum LemmyErrorType {
 pub enum FederationError {
   // TODO: merge into a single NotFound error
   CouldntFindActivity,
-  PersonIsBannedFromCommunity,
   InvalidCommunity,
   CannotCreatePostOrCommentInDeletedOrRemovedCommunity,
   CannotReceivePage,
@@ -181,7 +178,6 @@ pub enum FederationError {
   DomainNotInAllowList(String),
   FederationDisabledByStrictAllowList,
   ContradictingFilters,
-  CommunityHasNoFollowers,
   UrlWithoutDomain,
   InboxTimeout,
   CantDeleteSite,
@@ -209,8 +205,12 @@ cfg_if! {
     {
       fn from(t: T) -> Self {
         let cause = t.into();
+        let error_type = match cause.downcast_ref::<diesel::result::Error>() {
+          Some(&diesel::NotFound) => LemmyErrorType::NotFound,
+          _ => LemmyErrorType::Unknown(format!("{}", &cause))
+      };
         LemmyError {
-          error_type: LemmyErrorType::Unknown(format!("{}", &cause)),
+          error_type,
           inner: cause,
           context: Backtrace::capture(),
         }
@@ -306,7 +306,6 @@ cfg_if! {
 
     #[cfg(test)]
     mod tests {
-      #![allow(clippy::unwrap_used)]
       #![allow(clippy::indexing_slicing)]
       use super::*;
       use actix_web::{body::MessageBody, ResponseError};
@@ -315,39 +314,57 @@ cfg_if! {
       use strum::IntoEnumIterator;
 
       #[test]
-      fn deserializes_no_message() {
+      fn deserializes_no_message() -> LemmyResult<()> {
         let err = LemmyError::from(LemmyErrorType::Banned).error_response();
-        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
-        assert_eq!(&json, "{\"error\":\"banned\"}")
+        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
+        assert_eq!(&json, "{\"error\":\"banned\"}");
+
+        Ok(())
       }
 
       #[test]
-      fn deserializes_with_message() {
+      fn deserializes_with_message() -> LemmyResult<()> {
         let reg_banned = LemmyErrorType::PictrsResponseError(String::from("reason"));
         let err = LemmyError::from(reg_banned).error_response();
-        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
+        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
         assert_eq!(
           &json,
           "{\"error\":\"pictrs_response_error\",\"message\":\"reason\"}"
-        )
+        );
+
+        Ok(())
+      }
+
+      #[test]
+      fn test_convert_diesel_errors() {
+        let not_found_error = LemmyError::from(diesel::NotFound);
+        assert_eq!(LemmyErrorType::NotFound, not_found_error.error_type);
+        assert_eq!(404, not_found_error.status_code());
+
+        let other_error = LemmyError::from(diesel::result::Error::NotInTransaction);
+        assert!(matches!(other_error.error_type, LemmyErrorType::Unknown{..}));
+        assert_eq!(400, other_error.status_code());
       }
 
       /// Check if errors match translations. Disabled because many are not translated at all.
       #[test]
       #[ignore]
-      fn test_translations_match() {
+      fn test_translations_match() -> LemmyResult<()> {
         #[derive(Deserialize)]
         struct Err {
           error: String,
         }
 
-        let translations = read_to_string("translations/translations/en.json").unwrap();
-        LemmyErrorType::iter().for_each(|e| {
-          let msg = serde_json::to_string(&e).unwrap();
-          let msg: Err = serde_json::from_str(&msg).unwrap();
+        let translations = read_to_string("translations/translations/en.json")?;
+
+        for e in LemmyErrorType::iter() {
+          let msg = serde_json::to_string(&e)?;
+          let msg: Err = serde_json::from_str(&msg)?;
           let msg = msg.error;
           assert!(translations.contains(&format!("\"{msg}\"")), "{msg}");
-        });
+        }
+
+        Ok(())
       }
     }
   }
