@@ -1,8 +1,5 @@
-use crate::{
-  fetcher::user_or_community::{PersonOrGroup, UserOrCommunity},
-  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::objects::{note::Note, page::Page},
-};
+use super::post_or_comment::{PageOrNote, PostOrComment};
+use crate::fetcher::user_or_community::{PersonOrGroup, UserOrCommunity};
 use activitypub_federation::{
   config::Data,
   fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
@@ -54,16 +51,14 @@ pub(crate) async fn search_query_to_object_id_local(
 /// The types of ActivityPub objects that can be fetched directly by searching for their ID.
 #[derive(Debug)]
 pub(crate) enum SearchableObjects {
-  Post(ApubPost),
-  Comment(ApubComment),
+  PostOrComment(Box<PostOrComment>),
   PersonOrCommunity(Box<UserOrCommunity>),
 }
 
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub(crate) enum SearchableKinds {
-  Page(Box<Page>),
-  Note(Note),
+  PageOrNote(Box<PageOrNote>),
   PersonOrGroup(Box<PersonOrGroup>),
 }
 
@@ -75,8 +70,7 @@ impl Object for SearchableObjects {
 
   fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     match self {
-      SearchableObjects::Post(p) => p.last_refreshed_at(),
-      SearchableObjects::Comment(c) => c.last_refreshed_at(),
+      SearchableObjects::PostOrComment(p) => p.last_refreshed_at(),
       SearchableObjects::PersonOrCommunity(p) => p.last_refreshed_at(),
     }
   }
@@ -95,13 +89,9 @@ impl Object for SearchableObjects {
     if let Some(uc) = uc {
       return Ok(Some(SearchableObjects::PersonOrCommunity(Box::new(uc))));
     }
-    let p = ApubPost::read_from_id(object_id.clone(), context).await?;
-    if let Some(p) = p {
-      return Ok(Some(SearchableObjects::Post(p)));
-    }
-    let c = ApubComment::read_from_id(object_id, context).await?;
-    if let Some(c) = c {
-      return Ok(Some(SearchableObjects::Comment(c)));
+    let pc = PostOrComment::read_from_id(object_id.clone(), context).await?;
+    if let Some(pc) = pc {
+      return Ok(Some(SearchableObjects::PostOrComment(Box::new(pc))));
     }
     Ok(None)
   }
@@ -109,25 +99,16 @@ impl Object for SearchableObjects {
   #[tracing::instrument(skip_all)]
   async fn delete(self, data: &Data<Self::DataType>) -> LemmyResult<()> {
     match self {
-      SearchableObjects::Post(p) => p.delete(data).await,
-      SearchableObjects::Comment(c) => c.delete(data).await,
-      SearchableObjects::PersonOrCommunity(pc) => match *pc {
-        UserOrCommunity::User(p) => p.delete(data).await,
-        UserOrCommunity::Community(c) => c.delete(data).await,
-      },
+      SearchableObjects::PostOrComment(pc) => pc.delete(data).await,
+      SearchableObjects::PersonOrCommunity(pc) => pc.delete(data).await,
     }
   }
 
   async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
+    use SearchableObjects::*;
     Ok(match self {
-      SearchableObjects::Post(p) => SearchableKinds::Page(Box::new(p.into_json(data).await?)),
-      SearchableObjects::Comment(c) => SearchableKinds::Note(c.into_json(data).await?),
-      SearchableObjects::PersonOrCommunity(pc) => {
-        SearchableKinds::PersonOrGroup(Box::new(match *pc {
-          UserOrCommunity::User(p) => PersonOrGroup::Person(p.into_json(data).await?),
-          UserOrCommunity::Community(c) => PersonOrGroup::Group(c.into_json(data).await?),
-        }))
-      }
+      PostOrComment(pc) => SearchableKinds::PageOrNote(Box::new(pc.into_json(data).await?)),
+      PersonOrCommunity(pc) => SearchableKinds::PersonOrGroup(Box::new(pc.into_json(data).await?)),
     })
   }
 
@@ -137,24 +118,20 @@ impl Object for SearchableObjects {
     expected_domain: &Url,
     data: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
+    use SearchableKinds::*;
     match apub {
-      SearchableKinds::Page(a) => ApubPost::verify(a, expected_domain, data).await,
-      SearchableKinds::Note(a) => ApubComment::verify(a, expected_domain, data).await,
-      SearchableKinds::PersonOrGroup(pg) => match pg.as_ref() {
-        PersonOrGroup::Person(a) => ApubPerson::verify(a, expected_domain, data).await,
-        PersonOrGroup::Group(a) => ApubCommunity::verify(a, expected_domain, data).await,
-      },
+      PageOrNote(pn) => PostOrComment::verify(pn, expected_domain, data).await,
+      PersonOrGroup(pg) => UserOrCommunity::verify(pg, expected_domain, data).await,
     }
   }
 
   #[tracing::instrument(skip_all)]
   async fn from_json(apub: Self::Kind, context: &Data<LemmyContext>) -> LemmyResult<Self> {
-    use SearchableKinds as SAT;
+    use SearchableKinds::*;
     use SearchableObjects as SO;
     Ok(match apub {
-      SAT::Page(p) => SO::Post(ApubPost::from_json(*p, context).await?),
-      SAT::Note(n) => SO::Comment(ApubComment::from_json(n, context).await?),
-      SAT::PersonOrGroup(pg) => {
+      PageOrNote(pg) => SO::PostOrComment(Box::new(PostOrComment::from_json(*pg, context).await?)),
+      PersonOrGroup(pg) => {
         SO::PersonOrCommunity(Box::new(UserOrCommunity::from_json(*pg, context).await?))
       }
     })

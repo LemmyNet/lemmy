@@ -14,7 +14,6 @@ use lemmy_db_schema::{
 use lemmy_utils::{
   error::{FederationError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
-  LemmyErrorType,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -103,21 +102,12 @@ async fn get_comment_parent_creator(
   comment: &Comment,
 ) -> LemmyResult<ApubPerson> {
   let parent_creator_id = if let Some(parent_comment_id) = comment.parent_comment_id() {
-    let parent_comment = Comment::read(pool, parent_comment_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindComment)?;
+    let parent_comment = Comment::read(pool, parent_comment_id).await?;
     parent_comment.creator_id
   } else {
     let parent_post_id = comment.post_id;
-    let parent_post = Post::read(pool, parent_post_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPost)?;
+    let parent_post = Post::read(pool, parent_post_id).await?;
     parent_post.creator_id
   };
-  Ok(
-    Person::read(pool, parent_creator_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?
-      .into(),
-  )
+  Ok(Person::read(pool, parent_creator_id).await?.into())
 }

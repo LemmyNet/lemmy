@@ -107,8 +107,8 @@ pub(crate) async fn get_activity(
   ))?
   .into();
   let activity = SentActivity::read_from_apub_id(&mut context.pool(), &activity_id)
-    .await?
-    .ok_or(FederationError::CouldntFindActivity)?;
+    .await
+    .map_err(|_| FederationError::CouldntFindActivity)?;
 
   let sensitive = activity.sensitive;
   if sensitive {
@@ -124,7 +124,7 @@ fn check_community_public(community: &Community) -> LemmyResult<()> {
     Err(LemmyErrorType::Deleted)?
   }
   if community.visibility != CommunityVisibility::Public {
-    return Err(LemmyErrorType::CouldntFindCommunity.into());
+    return Err(LemmyErrorType::NotFound.into());
   }
   Ok(())
 }
