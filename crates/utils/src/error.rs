@@ -42,7 +42,6 @@ pub enum LemmyErrorType {
   PersonIsBlocked,
   CommunityIsBlocked,
   InstanceIsBlocked,
-  VoteNotAllowed,
   InstanceIsPrivate,
   /// Password must be between 10 and 60 characters
   InvalidPassword,
@@ -57,7 +56,6 @@ pub enum LemmyErrorType {
   OnlyAdminsCanCreateCommunities,
   CommunityAlreadyExists,
   LanguageNotAllowed,
-  OnlyModsCanPostInCommunity,
   CouldntUpdatePost,
   NoPostEditAllowed,
   EditPrivateMessageNotAllowed,
@@ -70,7 +68,6 @@ pub enum LemmyErrorType {
   EmailAlreadyExists,
   UsernameAlreadyExists,
   PersonIsBannedFromCommunity,
-  NewPostCannotBeLocked,
   NoIdGiven,
   IncorrectLogin,
   ObjectNotLocal,
