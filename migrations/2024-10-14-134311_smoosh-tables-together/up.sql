@@ -299,7 +299,7 @@ WHERE
 
 CREATE INDEX idx_post_actions_read_comments_not_null ON post_actions (person_id, post_id)
 WHERE
-    read_comments IS NOT NULL OR read_comments IS NOT NULL;
+    read_comments IS NOT NULL OR read_comments_amount IS NOT NULL;
 
 CREATE INDEX idx_post_actions_saved_not_null ON post_actions (person_id, post_id)
 WHERE
