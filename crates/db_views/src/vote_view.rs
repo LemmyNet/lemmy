@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
   newtypes::{CommentId, PostId},
-  schema::{comment_actions, community_actions, person, post, post_actions},
+  schema::{comment, comment_actions, community_actions, person, post, post_actions},
   utils::{action_query, actions_alias, get_conn, limit_and_offset, DbPool},
 };
 
@@ -53,7 +53,8 @@ impl VoteView {
 
     action_query(comment_actions::like_score)
       .inner_join(person::table)
-      .inner_join(post::table)
+      .inner_join(comment::table)
+      .inner_join(post::table.on(comment::post_id.eq(post::id)))
       .left_join(actions_alias(
         creator_community_actions,
         comment_actions::person_id,
@@ -167,7 +168,6 @@ mod tests {
 
     // Timothy votes down his own comment
     let timmy_comment_vote_form = CommentLikeForm {
-      post_id: inserted_post.id,
       comment_id: inserted_comment.id,
       person_id: inserted_timmy.id,
       score: -1,
@@ -176,7 +176,6 @@ mod tests {
 
     // Sara upvotes timmy's comment
     let sara_comment_vote_form = CommentLikeForm {
-      post_id: inserted_post.id,
       comment_id: inserted_comment.id,
       person_id: inserted_sara.id,
       score: 1,

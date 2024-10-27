@@ -209,7 +209,6 @@ ALTER TABLE comment_like
     ALTER COLUMN published SET NOT NULL,
     ALTER COLUMN published SET DEFAULT now(),
     ALTER COLUMN score SET NOT NULL,
-    ALTER COLUMN post_id SET NOT NULL,
     DROP COLUMN saved;
 
 ALTER TABLE community_follower

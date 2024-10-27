@@ -316,7 +316,6 @@ mod tests {
     // Comment Like
     let comment_like_form = CommentLikeForm {
       comment_id: inserted_comment.id,
-      post_id: inserted_post.id,
       person_id: inserted_person.id,
       score: 1,
     };
@@ -325,7 +324,6 @@ mod tests {
 
     let expected_comment_like = CommentLike {
       comment_id: inserted_comment.id,
-      post_id: inserted_post.id,
       person_id: inserted_person.id,
       published: inserted_comment_like.published,
       score: 1,
