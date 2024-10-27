@@ -75,6 +75,9 @@ getrandom = { version = "0.2.15", features = ["js"] }
 [package.metadata.cargo-machete]
 ignored = ["getrandom"]
 
+[package.metadata.cargo-shear]
+ignored = ["getrandom"]
+
 [dev-dependencies]
 serial_test = { workspace = true }
 reqwest-middleware = { workspace = true }

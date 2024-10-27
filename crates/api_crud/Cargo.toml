@@ -23,7 +23,6 @@ bcrypt = { workspace = true }
 actix-web = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
-futures.workspace = true
 uuid = { workspace = true }
 moka.workspace = true
 anyhow.workspace = true
