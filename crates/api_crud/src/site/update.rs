@@ -40,8 +40,8 @@ use lemmy_utils::{
       check_site_visibility_valid,
       check_urls_are_valid,
       is_valid_body_field,
-      site_description_length_check,
       site_name_length_check,
+      site_or_community_description_length_check,
     },
   },
 };
@@ -219,7 +219,7 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
   }
 
   if let Some(desc) = &edit_site.description {
-    site_description_length_check(desc)?;
+    site_or_community_description_length_check(desc)?;
     check_slurs_opt(&edit_site.description, &slur_regex)?;
   }
 

@@ -508,6 +508,7 @@ mod tests {
       id: inserted_community.id,
       name: "TIL".into(),
       title: "nada".to_owned(),
+      sidebar: None,
       description: None,
       nsfw: false,
       removed: false,

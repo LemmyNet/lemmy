@@ -13,6 +13,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::actor::GroupType,
+  protocol::values::MediaTypeHtml,
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
@@ -107,8 +108,10 @@ impl Object for ApubCommunity {
       id: self.id().into(),
       preferred_username: self.name.clone(),
       name: Some(self.title.clone()),
-      summary: self.description.as_ref().map(|b| markdown_to_html(b)),
-      source: self.description.clone().map(Source::new),
+      content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
+      source: self.sidebar.clone().map(Source::new),
+      summary: self.description.clone(),
+      media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       sensitive: Some(self.nsfw),
@@ -144,10 +147,9 @@ impl Object for ApubCommunity {
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let url_blocklist = get_url_blocklist(context).await?;
-    let description = read_from_string_or_source_opt(&group.summary, &None, &group.source);
-    let description =
-      process_markdown_opt(&description, slur_regex, &url_blocklist, context).await?;
-    let description = markdown_rewrite_remote_links_opt(description, context).await;
+    let sidebar = read_from_string_or_source_opt(&group.content, &None, &group.source);
+    let sidebar = process_markdown_opt(&sidebar, slur_regex, &url_blocklist, context).await?;
+    let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.map(|i| i.url), context).await?;
 
@@ -161,7 +163,8 @@ impl Object for ApubCommunity {
       last_refreshed_at: Some(naive_now()),
       icon,
       banner,
-      description,
+      sidebar,
+      description: group.summary,
       followers_url: group.followers.clone().map(Into::into),
       inbox_url: Some(
         group
@@ -299,9 +302,15 @@ pub(crate) mod tests {
 
     assert_eq!(community.title, "Ten Forward");
     assert!(!community.local);
+
+    // Test the sidebar and description
     assert_eq!(
-      community.description.as_ref().map(std::string::String::len),
+      community.sidebar.as_ref().map(std::string::String::len),
       Some(63)
+    );
+    assert_eq!(
+      community.description,
+      Some("A description of ten forward.".into())
     );
 
     Community::delete(&mut context.pool(), community.id).await?;

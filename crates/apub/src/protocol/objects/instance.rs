@@ -32,9 +32,9 @@ pub struct Instance {
   pub(crate) content: Option<String>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
+  pub(crate) media_type: Option<MediaTypeHtml>,
   // short instance description
   pub(crate) summary: Option<String>,
-  pub(crate) media_type: Option<MediaTypeHtml>,
   /// instance icon
   pub(crate) icon: Option<ImageObject>,
   /// instance banner
