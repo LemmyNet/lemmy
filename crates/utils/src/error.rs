@@ -38,7 +38,6 @@ pub enum LemmyErrorType {
   NotHigherAdmin,
   SiteBan,
   Deleted,
-  BannedFromCommunity,
   PersonIsBlocked,
   CommunityIsBlocked,
   InstanceIsBlocked,
