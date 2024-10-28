@@ -36,7 +36,11 @@ use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs,
-    validation::{is_valid_actor_name, is_valid_body_field, site_description_length_check},
+    validation::{
+      is_valid_actor_name,
+      is_valid_body_field,
+      site_or_community_description_length_check,
+    },
   },
 };
 
@@ -66,7 +70,7 @@ pub async fn create_community(
 
   let description = data.description.clone();
   if let Some(desc) = &description {
-    site_description_length_check(desc)?;
+    site_or_community_description_length_check(desc)?;
     check_slurs(desc, &slur_regex)?;
   }
 
