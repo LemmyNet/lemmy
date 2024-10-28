@@ -33,7 +33,7 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{FederationError, LemmyError, LemmyResult},
   utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
@@ -162,7 +162,7 @@ impl Object for ApubComment {
       .await
       .is_ok();
     if post.locked && !is_mod_or_admin {
-      Err(LemmyErrorType::PostIsLocked)?
+      Err(FederationError::PostIsLocked)?
     } else {
       Ok(())
     }

@@ -1687,6 +1687,7 @@ mod tests {
         actor_id: inserted_community.actor_id.clone(),
         local: true,
         title: "nada".to_owned(),
+        sidebar: None,
         description: None,
         updated: None,
         banner: None,
