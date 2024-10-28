@@ -93,6 +93,7 @@ pub(crate) struct Document {
   #[serde(rename = "type")]
   kind: DocumentType,
   url: Url,
+  media_type: Option<String>,
   /// Used for alt_text
   name: Option<String>,
 }
@@ -122,6 +123,40 @@ impl Attachment {
       Attachment::Image(i) => i.name,
       Attachment::Document(d) => d.name,
       _ => None,
+    }
+  }
+
+  pub(crate) fn as_markdown(&self) -> String {
+    match self {
+      Attachment::Image(i) => {
+        format!(
+          "![{}]({})",
+          i.name.as_ref().unwrap_or(&String::default()),
+          i.url
+        )
+      }
+      Attachment::Document(d) => {
+        if let Some(media) = &d.media_type {
+          if ["video/", "image/"].iter().any(|s| media.starts_with(s)) {
+            return format!(
+              "![{}]({})",
+              d.name.as_ref().unwrap_or(&String::default()),
+              d.url
+            );
+          }
+        }
+
+        d.url.to_string()
+      }
+      Attachment::Link(l) => {
+        if let Some(media) = &l.media_type {
+          if ["video/", "image/"].iter().any(|s| media.starts_with(s)) {
+            return format!("![]({})", l.href);
+          }
+        }
+
+        l.href.to_string()
+      }
     }
   }
 }

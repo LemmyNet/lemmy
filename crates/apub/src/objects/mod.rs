@@ -1,4 +1,4 @@
-use crate::protocol::Source;
+use crate::protocol::{objects::page::Attachment, Source};
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -44,6 +44,15 @@ pub(crate) fn read_from_string_or_source_opt(
   content
     .as_ref()
     .map(|content| read_from_string_or_source(content, media_type, source))
+}
+
+pub(crate) fn append_attachments_to_comment(
+  content: String,
+  attachments: &[Attachment],
+) -> String {
+  attachments.iter().fold(content, |content, attachment| {
+    content + "  " + &attachment.as_markdown()
+  })
 }
 
 /// When for example a Post is made in a remote community, the community will send it back,
