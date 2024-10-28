@@ -28,7 +28,7 @@ workspace = true
 debug = 0
 lto = "thin"
 strip = true      # Automatically strip symbols from the binary.
-opt-level = "z"   # Optimize for size.
+opt-level = 3     # Optimize for speed, not size.
 codegen-units = 1 # Reduce parallel code generation.
 
 # This profile significantly speeds up build time. If debug info is needed you can comment the line
