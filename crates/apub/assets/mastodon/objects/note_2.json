@@ -23,9 +23,7 @@
   "published": "2024-10-14T16:57:15Z",
   "url": "https://floss.social/@kde/113306831140126616",
   "attributedTo": "https://floss.social/users/kde",
-  "to": [
-    "https://www.w3.org/ns/activitystreams#Public"
-  ],
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
   "cc": [
     "https://floss.social/users/kde/followers",
     "https://lemmy.kde.social/c/kde",
@@ -46,10 +44,7 @@
       "url": "https://cdn.masto.host/floss/media_attachments/files/113/306/826/682/985/891/original/c8d906a2f2ab2334.jpg",
       "name": "The KDE dragons Katie and Konqi stand on either side of a pot filling up with gold coins. Donate!",
       "blurhash": "USQv:h-W-qI-^,W;RPs=^-R%NZxbo#sDobSc",
-      "focalPoint": [
-        0.0,
-        0.0
-      ],
+      "focalPoint": [0.0, 0.0],
       "width": 1500,
       "height": 1095
     }

@@ -46,10 +46,7 @@ pub(crate) fn read_from_string_or_source_opt(
     .map(|content| read_from_string_or_source(content, media_type, source))
 }
 
-pub(crate) fn append_attachments_to_comment(
-  content: String,
-  attachments: &[Attachment],
-) -> String {
+pub(crate) fn append_attachments_to_comment(content: String, attachments: &[Attachment]) -> String {
   attachments.iter().fold(content, |content, attachment| {
     content + "  " + &attachment.as_markdown()
   })
