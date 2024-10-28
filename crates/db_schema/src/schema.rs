@@ -123,7 +123,6 @@ diesel::table! {
     comment_like (person_id, comment_id) {
         person_id -> Int4,
         comment_id -> Int4,
-        post_id -> Int4,
         score -> Int2,
         published -> Timestamptz,
     }
@@ -189,8 +188,6 @@ diesel::table! {
         followers_url -> Nullable<Varchar>,
         #[max_length = 255]
         inbox_url -> Varchar,
-        #[max_length = 255]
-        shared_inbox_url -> Nullable<Varchar>,
         hidden -> Bool,
         posting_restricted_to_mods -> Bool,
         instance_id -> Int4,
@@ -689,8 +686,6 @@ diesel::table! {
         deleted -> Bool,
         #[max_length = 255]
         inbox_url -> Varchar,
-        #[max_length = 255]
-        shared_inbox_url -> Nullable<Varchar>,
         matrix_user_id -> Nullable<Text>,
         bot_account -> Bool,
         ban_expires -> Nullable<Timestamptz>,
@@ -1001,7 +996,6 @@ diesel::joinable!(comment -> post (post_id));
 diesel::joinable!(comment_aggregates -> comment (comment_id));
 diesel::joinable!(comment_like -> comment (comment_id));
 diesel::joinable!(comment_like -> person (person_id));
-diesel::joinable!(comment_like -> post (post_id));
 diesel::joinable!(comment_reply -> comment (comment_id));
 diesel::joinable!(comment_reply -> person (recipient_id));
 diesel::joinable!(comment_report -> comment (comment_id));
