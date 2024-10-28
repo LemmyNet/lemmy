@@ -85,7 +85,6 @@ impl PrivateMessage {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{
@@ -97,27 +96,26 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use url::Url;
 
   #[tokio::test]
   #[serial]
-  async fn test_crud() {
+  async fn test_crud() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let creator_form = PersonInsertForm::test_form(inserted_instance.id, "creator_pm");
 
-    let inserted_creator = Person::create(pool, &creator_form).await.unwrap();
+    let inserted_creator = Person::create(pool, &creator_form).await?;
 
     let recipient_form = PersonInsertForm::test_form(inserted_instance.id, "recipient_pm");
 
-    let inserted_recipient = Person::create(pool, &recipient_form).await.unwrap();
+    let inserted_recipient = Person::create(pool, &recipient_form).await?;
 
     let private_message_form = PrivateMessageInsertForm::new(
       inserted_creator.id,
@@ -125,9 +123,7 @@ mod tests {
       "A test private message".into(),
     );
 
-    let inserted_private_message = PrivateMessage::create(pool, &private_message_form)
-      .await
-      .unwrap();
+    let inserted_private_message = PrivateMessage::create(pool, &private_message_form).await?;
 
     let expected_private_message = PrivateMessage {
       id: inserted_private_message.id,
@@ -141,15 +137,12 @@ mod tests {
       ap_id: Url::parse(&format!(
         "https://lemmy-alpha/private_message/{}",
         inserted_private_message.id
-      ))
-      .unwrap()
+      ))?
       .into(),
       local: true,
     };
 
-    let read_private_message = PrivateMessage::read(pool, inserted_private_message.id)
-      .await
-      .unwrap();
+    let read_private_message = PrivateMessage::read(pool, inserted_private_message.id).await?;
 
     let private_message_update_form = PrivateMessageUpdateForm {
       content: Some("A test private message".into()),
@@ -160,8 +153,7 @@ mod tests {
       inserted_private_message.id,
       &private_message_update_form,
     )
-    .await
-    .unwrap();
+    .await?;
 
     let deleted_private_message = PrivateMessage::update(
       pool,
@@ -171,8 +163,7 @@ mod tests {
         ..Default::default()
       },
     )
-    .await
-    .unwrap();
+    .await?;
     let marked_read_private_message = PrivateMessage::update(
       pool,
       inserted_private_message.id,
@@ -181,16 +172,17 @@ mod tests {
         ..Default::default()
       },
     )
-    .await
-    .unwrap();
-    Person::delete(pool, inserted_creator.id).await.unwrap();
-    Person::delete(pool, inserted_recipient.id).await.unwrap();
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    .await?;
+    Person::delete(pool, inserted_creator.id).await?;
+    Person::delete(pool, inserted_recipient.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
 
     assert_eq!(expected_private_message, read_private_message);
     assert_eq!(expected_private_message, updated_private_message);
     assert_eq!(expected_private_message, inserted_private_message);
     assert!(deleted_private_message.deleted);
     assert!(marked_read_private_message.read);
+
+    Ok(())
   }
 }

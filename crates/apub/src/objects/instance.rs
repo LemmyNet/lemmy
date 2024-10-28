@@ -2,6 +2,7 @@ use super::verify_is_remote_object;
 use crate::{
   activities::GetActorType,
   check_apub_id_valid_with_strictness,
+  fetcher::markdown_links::markdown_rewrite_remote_links_opt,
   local_site_data_cached,
   objects::read_from_string_or_source_opt,
   protocol::{
@@ -151,6 +152,7 @@ impl Object for ApubSite {
     let url_blocklist = get_url_blocklist(context).await?;
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
     let sidebar = process_markdown_opt(&sidebar, slur_regex, &url_blocklist, context).await?;
+    let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(apub.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), context).await?;
 

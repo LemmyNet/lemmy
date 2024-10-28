@@ -144,7 +144,7 @@ impl Post {
     pool: &mut DbPool<'_>,
     for_creator_id: PersonId,
     for_community_id: Option<CommunityId>,
-    new_removed: bool,
+    removed: bool,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
 
@@ -156,7 +156,7 @@ impl Post {
     }
 
     update
-      .set((post::removed.eq(new_removed), post::updated.eq(naive_now())))
+      .set((post::removed.eq(removed), post::updated.eq(naive_now())))
       .get_results::<Self>(conn)
       .await
   }
@@ -543,7 +543,6 @@ mod tests {
 
     assert_eq!(3, num_deleted);
     Community::delete(pool, inserted_community.id).await?;
-
     Person::delete(pool, inserted_person.id).await?;
     Instance::delete(pool, inserted_instance.id).await?;
 

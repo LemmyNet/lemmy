@@ -1,18 +1,19 @@
-use crate::{error::LemmyResult, settings::SETTINGS, LemmyErrorType};
-use markdown_it::{plugins::cmark::inline::image::Image, MarkdownIt};
+use crate::{error::LemmyResult, LemmyErrorType};
+use markdown_it::MarkdownIt;
 use regex::RegexSet;
 use std::sync::LazyLock;
-use url::Url;
-use urlencoding::encode;
 
+pub mod image_links;
 mod link_rule;
-mod spoiler_rule;
 
 static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
   let mut parser = MarkdownIt::new();
   markdown_it::plugins::cmark::add(&mut parser);
   markdown_it::plugins::extra::add(&mut parser);
-  spoiler_rule::add(&mut parser);
+  markdown_it_block_spoiler::add(&mut parser);
+  markdown_it_sub::add(&mut parser);
+  markdown_it_sup::add(&mut parser);
+  markdown_it_ruby::add(&mut parser);
   link_rule::add(&mut parser);
 
   parser
@@ -35,70 +36,6 @@ pub fn markdown_to_html(text: &str) -> String {
   MARKDOWN_PARSER.parse(text).xrender()
 }
 
-/// Rewrites all links to remote domains in markdown, so they go through `/api/v3/image_proxy`.
-pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
-  let ast = MARKDOWN_PARSER.parse(&src);
-  let mut links_offsets = vec![];
-
-  // Walk the syntax tree to find positions of image links
-  ast.walk(|node, _depth| {
-    if let Some(image) = node.cast::<Image>() {
-      // srcmap is always present for image
-      // https://github.com/markdown-it-rust/markdown-it/issues/36#issuecomment-1777844387
-      let node_offsets = node.srcmap.expect("srcmap is none").get_byte_offsets();
-      // necessary for custom emojis which look like `![name](url "title")`
-      let start_offset = node_offsets.1
-        - image.url.len()
-        - 1
-        - image
-          .title
-          .as_ref()
-          .map(|t| t.len() + 3)
-          .unwrap_or_default();
-      let end_offset = node_offsets.1 - 1;
-
-      links_offsets.push((start_offset, end_offset));
-    }
-  });
-
-  let mut links = vec![];
-  // Go through the collected links in reverse order
-  while let Some((start, end)) = links_offsets.pop() {
-    let content = src.get(start..end).unwrap_or_default();
-    // necessary for custom emojis which look like `![name](url "title")`
-    let (url, extra) = if content.contains(' ') {
-      let split = content.split_once(' ').expect("split is valid");
-      (split.0, Some(split.1))
-    } else {
-      (content, None)
-    };
-    match Url::parse(url) {
-      Ok(parsed) => {
-        links.push(parsed.clone());
-        // If link points to remote domain, replace with proxied link
-        if parsed.domain() != Some(&SETTINGS.hostname) {
-          let mut proxied = format!(
-            "{}/api/v3/image_proxy?url={}",
-            SETTINGS.get_protocol_and_hostname(),
-            encode(url),
-          );
-          // restore custom emoji format
-          if let Some(extra) = extra {
-            proxied = format!("{proxied} {extra}");
-          }
-          src.replace_range(start..end, &proxied);
-        }
-      }
-      Err(_) => {
-        // If its not a valid url, replace with empty text
-        src.replace_range(start..end, "");
-      }
-    }
-  }
-
-  (src, links)
-}
-
 pub fn markdown_check_for_blocked_urls(text: &str, blocklist: &RegexSet) -> LemmyResult<()> {
   if blocklist.is_match(text) {
     Err(LemmyErrorType::BlockedUrl)?
@@ -107,10 +44,10 @@ pub fn markdown_check_for_blocked_urls(text: &str, blocklist: &RegexSet) -> Lemm
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use super::*;
+  use image_links::markdown_rewrite_image_links;
   use pretty_assertions::assert_eq;
 
   #[test]
@@ -167,12 +104,22 @@ mod tests {
       (
         "basic spoiler",
         "::: spoiler click to see more\nhow spicy!\n:::\n",
-        "<details><summary>click to see more</summary><p>how spicy!\n</p></details>\n"
+        "<details><summary>click to see more</summary>how spicy!\n</details>\n"
       ),
       (
         "escape html special chars",
         "<script>alert('xss');</script> hello &\"",
         "<p>&lt;script&gt;alert(‘xss’);&lt;/script&gt; hello &amp;&quot;</p>\n"
+      ),("subscript","log~2~(a)","<p>log<sub>2</sub>(a)</p>\n"),
+      (
+        "superscript",
+        "Markdown^TM^",
+        "<p>Markdown<sup>TM</sup></p>\n"
+      ),
+      (
+        "ruby text",
+        "{漢|Kan}{字|ji}",
+        "<p><ruby>漢<rp>(</rp><rt>Kan</rt><rp>)</rp></ruby><ruby>字<rp>(</rp><rt>ji</rt><rp>)</rp></ruby></p>\n"
       )
     ];
 
@@ -245,8 +192,8 @@ mod tests {
   }
 
   #[test]
-  fn test_url_blocking() {
-    let set = RegexSet::new(vec![r"(https://)?example\.com/?"]).unwrap();
+  fn test_url_blocking() -> LemmyResult<()> {
+    let set = RegexSet::new(vec![r"(https://)?example\.com/?"])?;
 
     assert!(
       markdown_check_for_blocked_urls(&String::from("[](https://example.com)"), &set).is_err()
@@ -274,7 +221,7 @@ mod tests {
     )
     .is_err());
 
-    let set = RegexSet::new(vec![r"(https://)?example\.com/spam\.jpg"]).unwrap();
+    let set = RegexSet::new(vec![r"(https://)?example\.com/spam\.jpg"])?;
     assert!(markdown_check_for_blocked_urls(
       &String::from("![](https://example.com/spam.jpg)"),
       &set
@@ -285,8 +232,7 @@ mod tests {
       r"(https://)?quo\.example\.com/?",
       r"(https://)?foo\.example\.com/?",
       r"(https://)?bar\.example\.com/?",
-    ])
-    .unwrap();
+    ])?;
 
     assert!(
       markdown_check_for_blocked_urls(&String::from("https://baz.example.com"), &set).is_ok()
@@ -296,15 +242,17 @@ mod tests {
       markdown_check_for_blocked_urls(&String::from("https://bar.example.com"), &set).is_err()
     );
 
-    let set = RegexSet::new(vec![r"(https://)?example\.com/banned_page"]).unwrap();
+    let set = RegexSet::new(vec![r"(https://)?example\.com/banned_page"])?;
 
     assert!(
       markdown_check_for_blocked_urls(&String::from("https://example.com/page"), &set).is_ok()
     );
 
-    let set = RegexSet::new(vec![r"(https://)?ex\.mple\.com/?"]).unwrap();
+    let set = RegexSet::new(vec![r"(https://)?ex\.mple\.com/?"])?;
 
     assert!(markdown_check_for_blocked_urls("example.com", &set).is_ok());
+
+    Ok(())
   }
 
   #[test]

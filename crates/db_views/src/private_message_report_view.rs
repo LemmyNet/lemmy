@@ -111,7 +111,6 @@ impl PrivateMessageReportQuery {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
@@ -127,24 +126,23 @@ mod tests {
     traits::{Crud, Reportable},
     utils::build_db_pool_for_tests,
   };
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_crud() {
+  async fn test_crud() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let new_person_1 = PersonInsertForm::test_form(inserted_instance.id, "timmy_mrv");
-    let inserted_timmy = Person::create(pool, &new_person_1).await.unwrap();
+    let inserted_timmy = Person::create(pool, &new_person_1).await?;
 
     let new_person_2 = PersonInsertForm::test_form(inserted_instance.id, "jessica_mrv");
-    let inserted_jessica = Person::create(pool, &new_person_2).await.unwrap();
+    let inserted_jessica = Person::create(pool, &new_person_2).await?;
 
     // timmy sends private message to jessica
     let pm_form = PrivateMessageInsertForm::new(
@@ -152,7 +150,7 @@ mod tests {
       inserted_jessica.id,
       "something offensive".to_string(),
     );
-    let pm = PrivateMessage::create(pool, &pm_form).await.unwrap();
+    let pm = PrivateMessage::create(pool, &pm_form).await?;
 
     // jessica reports private message
     let pm_report_form = PrivateMessageReportForm {
@@ -161,14 +159,9 @@ mod tests {
       private_message_id: pm.id,
       reason: "its offensive".to_string(),
     };
-    let pm_report = PrivateMessageReport::report(pool, &pm_report_form)
-      .await
-      .unwrap();
+    let pm_report = PrivateMessageReport::report(pool, &pm_report_form).await?;
 
-    let reports = PrivateMessageReportQuery::default()
-      .list(pool)
-      .await
-      .unwrap();
+    let reports = PrivateMessageReportQuery::default().list(pool).await?;
     assert_length!(1, reports);
     assert!(!reports[0].private_message_report.resolved);
     assert_eq!(inserted_timmy.name, reports[0].private_message_creator.name);
@@ -177,28 +170,27 @@ mod tests {
     assert_eq!(pm.content, reports[0].private_message.content);
 
     let new_person_3 = PersonInsertForm::test_form(inserted_instance.id, "admin_mrv");
-    let inserted_admin = Person::create(pool, &new_person_3).await.unwrap();
+    let inserted_admin = Person::create(pool, &new_person_3).await?;
 
     // admin resolves the report (after taking appropriate action)
-    PrivateMessageReport::resolve(pool, pm_report.id, inserted_admin.id)
-      .await
-      .unwrap();
+    PrivateMessageReport::resolve(pool, pm_report.id, inserted_admin.id).await?;
 
     let reports = PrivateMessageReportQuery {
       unresolved_only: (false),
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
     assert_length!(1, reports);
     assert!(reports[0].private_message_report.resolved);
     assert!(reports[0].resolver.is_some());
     assert_eq!(
-      inserted_admin.name,
-      reports[0].resolver.as_ref().unwrap().name
+      Some(&inserted_admin.name),
+      reports[0].resolver.as_ref().map(|r| &r.name)
     );
 
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    Ok(())
   }
 }

@@ -48,19 +48,19 @@ impl FederationAllowList {
   }
 }
 #[cfg(test)]
-#[expect(clippy::unwrap_used)]
 mod tests {
 
   use crate::{
     source::{federation_allowlist::FederationAllowList, instance::Instance},
     utils::build_db_pool_for_tests,
   };
+  use diesel::result::Error;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_allowlist_insert_and_clear() {
+  async fn test_allowlist_insert_and_clear() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let domains = vec![
@@ -71,9 +71,9 @@ mod tests {
 
     let allowed = Some(domains.clone());
 
-    FederationAllowList::replace(pool, allowed).await.unwrap();
+    FederationAllowList::replace(pool, allowed).await?;
 
-    let allows = Instance::allowlist(pool).await.unwrap();
+    let allows = Instance::allowlist(pool).await?;
     let allows_domains = allows
       .iter()
       .map(|i| i.domain.clone())
@@ -85,13 +85,13 @@ mod tests {
     // Now test clearing them via Some(empty vec)
     let clear_allows = Some(Vec::new());
 
-    FederationAllowList::replace(pool, clear_allows)
-      .await
-      .unwrap();
-    let allows = Instance::allowlist(pool).await.unwrap();
+    FederationAllowList::replace(pool, clear_allows).await?;
+    let allows = Instance::allowlist(pool).await?;
 
     assert_eq!(0, allows.len());
 
-    Instance::delete_all(pool).await.unwrap();
+    Instance::delete_all(pool).await?;
+
+    Ok(())
   }
 }

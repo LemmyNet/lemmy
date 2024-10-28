@@ -90,6 +90,10 @@ pub struct PictrsConfig {
   /// Timeout for uploading images to pictrs (in seconds)
   #[default(30)]
   pub upload_timeout: u64,
+
+  /// Resize post thumbnails to this maximum width/height.
+  #[default(256)]
+  pub max_thumbnail_size: u32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document, PartialEq)]

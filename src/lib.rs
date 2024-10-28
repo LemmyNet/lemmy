@@ -122,9 +122,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   run_advanced_migrations(&mut (&pool).into(), &SETTINGS).await?;
 
   // Initialize the secrets
-  let secret = Secret::init(&mut (&pool).into())
-    .await?
-    .expect("Couldn't initialize secrets.");
+  let secret = Secret::init(&mut (&pool).into()).await?;
 
   // Make sure the local site is set up.
   let site_view = SiteView::read_local(&mut (&pool).into()).await?;
