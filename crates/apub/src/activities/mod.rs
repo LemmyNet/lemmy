@@ -42,7 +42,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::Serialize;
 use tracing::info;
 use url::{ParseError, Url};
@@ -81,7 +81,7 @@ pub(crate) async fn verify_person_in_community(
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    Err(LemmyErrorType::PersonIsBannedFromSite(
+    Err(FederationError::PersonIsBannedFromSite(
       person.actor_id.to_string(),
     ))?
   }
@@ -114,7 +114,7 @@ pub(crate) async fn verify_mod_action(
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
-    Err(LemmyErrorType::ObjectIsNotPublic)?
+    Err(FederationError::ObjectIsNotPublic)?
   } else {
     Ok(())
   }
@@ -126,7 +126,7 @@ where
 {
   let b: ObjectId<ApubCommunity> = b.into();
   if a != &b {
-    Err(LemmyErrorType::InvalidCommunity)?
+    Err(FederationError::InvalidCommunity)?
   } else {
     Ok(())
   }
@@ -134,7 +134,7 @@ where
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
-    Err(LemmyErrorType::CannotCreatePostOrCommentInDeletedOrRemovedCommunity)?
+    Err(FederationError::CannotCreatePostOrCommentInDeletedOrRemovedCommunity)?
   } else {
     Ok(())
   }
