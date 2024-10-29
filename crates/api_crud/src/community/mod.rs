@@ -16,7 +16,7 @@ fn check_set_community_private(
   local_user_view: &LocalUserView,
 ) -> LemmyResult<()> {
   if visibility == Some(lemmy_db_schema::CommunityVisibility::Private) {
-    is_admin(&local_user_view)?;
+    is_admin(local_user_view)?;
   }
   Ok(())
 }
