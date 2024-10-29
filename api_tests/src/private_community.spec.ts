@@ -21,6 +21,8 @@ import {
   resolveComment,
   likeComment,
   waitUntil,
+  alphaUrl,
+  deleteCommunity,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -109,6 +111,14 @@ test("Follow a private community", async () => {
     f => f.items.length == 1,
   );
   expect(pendingFollows3.items[0].is_new_instance).toBe(false);
+
+  // cleanup pending follow
+  const approve2 = await approveCommunityPendingFollow(
+    alpha,
+    alphaCommunityId,
+    pendingFollows3.items[0].person.id,
+  );
+  expect(approve2.success).toBe(true);
 });
 
 test("Only followers can view and interact with private community content", async () => {

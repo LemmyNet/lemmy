@@ -11,7 +11,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
-  schema::{community, community_follower, person},
+  schema::{community, community_follower, community_moderator, person},
   source::{
     community::{Community, CommunityFollower, CommunityFollowerState},
     person::Person,
@@ -97,7 +97,10 @@ impl CommunityFollowerView {
 
   pub async fn list_approval_required(
     pool: &mut DbPool<'_>,
-    community_id: CommunityId,
+    person_id: PersonId,
+    // TODO: if this is true dont check for community mod, but only check for local community
+    //       also need to check is_admin()
+    all_communities: bool,
     pending_only: bool,
     page: Option<i64>,
     limit: Option<i64>,
@@ -117,7 +120,7 @@ impl CommunityFollowerView {
           .and(
             community_follower_alias
               .field(community_follower::community_id)
-              .eq(community_id),
+              .eq(community_follower::community_id),
           )
           .and(
             community_follower_alias
@@ -129,8 +132,18 @@ impl CommunityFollowerView {
 
     let mut query = community_follower::table
       .inner_join(person::table)
-      .filter(community_follower::community_id.eq(community_id))
+      .inner_join(community::table)
       .into_boxed();
+    if all_communities {
+      // if param is false, only return items for communities where user is a mod
+      query = query.filter(exists(
+        community_moderator::table.filter(
+          community_follower::community_id
+            .eq(community_moderator::community_id)
+            .and(community_moderator::person_id.eq(person_id)),
+        ),
+      ));
+    }
     if pending_only {
       query = query.filter(community_follower::state.eq(CommunityFollowerState::ApprovalRequired));
     }
@@ -140,19 +153,23 @@ impl CommunityFollowerView {
       .offset(offset)
       .select((
         person::all_columns,
+        community::all_columns,
         is_new_instance,
         CommunityFollower::select_subscribed_type(),
       ))
-      .load::<(Person, bool, SubscribedType)>(conn)
+      .load::<(Person, Community, bool, SubscribedType)>(conn)
       .await?;
     Ok(
       res
         .into_iter()
-        .map(|(person, is_new_instance, subscribed)| PendingFollow {
-          person,
-          is_new_instance,
-          subscribed,
-        })
+        .map(
+          |(person, community, is_new_instance, subscribed)| PendingFollow {
+            person,
+            community,
+            is_new_instance,
+            subscribed,
+          },
+        )
         .collect(),
     )
   }
@@ -241,7 +258,7 @@ mod tests {
     let community = Community::create(pool, &community_form).await?;
 
     // insert remote user
-    let remote_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let remote_instance = Instance::read_or_create(pool, "other_domain.tld".to_string()).await?;
     let person_form =
       PersonInsertForm::new("name".to_string(), "pubkey".to_string(), remote_instance.id);
     let person = Person::create(pool, &person_form).await?;

@@ -248,9 +248,10 @@ pub struct GetRandomCommunity {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ListCommunityPendingFollows {
-  pub community_id: CommunityId,
   /// Only shows the unapproved applications
   pub pending_only: Option<bool>,
+  // Only for admins, show pending follows for communities which you dont moderate
+  pub all_communities: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
