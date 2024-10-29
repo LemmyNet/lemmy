@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   utils::{ActualDbPool, DbPool},
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{FederationError, LemmyError, LemmyErrorType, LemmyResult},
   CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
@@ -51,17 +51,18 @@ impl UrlVerifier for VerifyUrlData {
     let local_site_data = local_site_data_cached(&mut (&self.0).into())
       .await
       .expect("read local site data");
+    use FederationError::*;
     check_apub_id_valid(url, &local_site_data).map_err(|err| match err {
       LemmyError {
-        error_type: LemmyErrorType::FederationDisabled,
+        error_type: LemmyErrorType::FederationError(Some(FederationDisabled)),
         ..
       } => ActivityPubError::Other("Federation disabled".into()),
       LemmyError {
-        error_type: LemmyErrorType::DomainBlocked(domain),
+        error_type: LemmyErrorType::FederationError(Some(DomainBlocked(domain))),
         ..
       } => ActivityPubError::Other(format!("Domain {domain:?} is blocked")),
       LemmyError {
-        error_type: LemmyErrorType::DomainNotInAllowList(domain),
+        error_type: LemmyErrorType::FederationError(Some(DomainNotInAllowList(domain))),
         ..
       } => ActivityPubError::Other(format!("Domain {domain:?} is not in allowlist")),
       _ => ActivityPubError::Other("Failed validating apub id".into()),
@@ -81,7 +82,7 @@ impl UrlVerifier for VerifyUrlData {
 fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> LemmyResult<()> {
   let domain = apub_id
     .domain()
-    .ok_or(LemmyErrorType::UrlWithoutDomain)?
+    .ok_or(FederationError::UrlWithoutDomain)?
     .to_string();
 
   if !local_site_data
@@ -90,7 +91,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> LemmyR
     .map(|l| l.federation_enabled)
     .unwrap_or(true)
   {
-    Err(LemmyErrorType::FederationDisabled)?
+    Err(FederationError::FederationDisabled)?
   }
 
   if local_site_data
@@ -98,7 +99,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> LemmyR
     .iter()
     .any(|i| domain.to_lowercase().eq(&i.domain.to_lowercase()))
   {
-    Err(LemmyErrorType::DomainBlocked(domain.clone()))?
+    Err(FederationError::DomainBlocked(domain.clone()))?
   }
 
   // Only check this if there are instances in the allowlist
@@ -108,7 +109,7 @@ fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> LemmyR
       .iter()
       .any(|i| domain.to_lowercase().eq(&i.domain.to_lowercase()))
   {
-    Err(LemmyErrorType::DomainNotInAllowList(domain))?
+    Err(FederationError::DomainNotInAllowList(domain))?
   }
 
   Ok(())
@@ -164,7 +165,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
 ) -> LemmyResult<()> {
   let domain = apub_id
     .domain()
-    .ok_or(LemmyErrorType::UrlWithoutDomain)?
+    .ok_or(FederationError::UrlWithoutDomain)?
     .to_string();
   let local_instance = context
     .settings()
@@ -194,10 +195,10 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
 
     let domain = apub_id
       .domain()
-      .ok_or(LemmyErrorType::UrlWithoutDomain)?
+      .ok_or(FederationError::UrlWithoutDomain)?
       .to_string();
     if !allowed_and_local.contains(&domain) {
-      Err(LemmyErrorType::FederationDisabledByStrictAllowList)?
+      Err(FederationError::FederationDisabledByStrictAllowList)?
     }
   }
   Ok(())

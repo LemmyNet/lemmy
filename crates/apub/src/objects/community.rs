@@ -5,7 +5,7 @@ use crate::{
   local_site_data_cached,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
-    objects::{group::Group, Endpoints, LanguageTag},
+    objects::{group::Group, LanguageTag},
     ImageObject,
     Source,
   },
@@ -13,6 +13,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::actor::GroupType,
+  protocol::values::MediaTypeHtml,
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
@@ -108,8 +109,10 @@ impl Object for ApubCommunity {
       id: self.id().into(),
       preferred_username: self.name.clone(),
       name: Some(self.title.clone()),
-      summary: self.description.as_ref().map(|b| markdown_to_html(b)),
-      source: self.description.clone().map(Source::new),
+      content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
+      source: self.sidebar.clone().map(Source::new),
+      summary: self.description.clone(),
+      media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       sensitive: Some(self.nsfw),
@@ -117,9 +120,7 @@ impl Object for ApubCommunity {
       inbox: self.inbox_url.clone().into(),
       outbox: generate_outbox_url(&self.actor_id)?.into(),
       followers: self.followers_url.clone().map(Into::into),
-      endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
-        shared_inbox: s.into(),
-      }),
+      endpoints: None,
       public_key: self.public_key(),
       language,
       published: Some(self.published),
@@ -148,10 +149,9 @@ impl Object for ApubCommunity {
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let url_blocklist = get_url_blocklist(context).await?;
-    let description = read_from_string_or_source_opt(&group.summary, &None, &group.source);
-    let description =
-      process_markdown_opt(&description, slur_regex, &url_blocklist, context).await?;
-    let description = markdown_rewrite_remote_links_opt(description, context).await;
+    let sidebar = read_from_string_or_source_opt(&group.content, &None, &group.source);
+    let sidebar = process_markdown_opt(&sidebar, slur_regex, &url_blocklist, context).await?;
+    let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.map(|i| i.url), context).await?;
     let visibility = Some(if group.manually_approves_followers.unwrap_or_default() {
@@ -169,10 +169,16 @@ impl Object for ApubCommunity {
       last_refreshed_at: Some(naive_now()),
       icon,
       banner,
-      description,
+      sidebar,
+      description: group.summary,
       followers_url: group.followers.clone().map(Into::into),
-      inbox_url: Some(group.inbox.into()),
-      shared_inbox_url: group.endpoints.map(|e| e.shared_inbox.into()),
+      inbox_url: Some(
+        group
+          .endpoints
+          .map(|e| e.shared_inbox)
+          .unwrap_or(group.inbox)
+          .into(),
+      ),
       moderators_url: group.attributed_to.clone().map(Into::into),
       posting_restricted_to_mods: group.posting_restricted_to_mods,
       featured_url: group.featured.clone().map(Into::into),
@@ -232,7 +238,7 @@ impl Actor for ApubCommunity {
   }
 
   fn shared_inbox(&self) -> Option<Url> {
-    self.shared_inbox_url.clone().map(Into::into)
+    None
   }
 }
 
@@ -303,9 +309,15 @@ pub(crate) mod tests {
 
     assert_eq!(community.title, "Ten Forward");
     assert!(!community.local);
+
+    // Test the sidebar and description
     assert_eq!(
-      community.description.as_ref().map(std::string::String::len),
+      community.sidebar.as_ref().map(std::string::String::len),
       Some(63)
+    );
+    assert_eq!(
+      community.description,
+      Some("A description of ten forward.".into())
     );
 
     Community::delete(&mut context.pool(), community.id).await?;

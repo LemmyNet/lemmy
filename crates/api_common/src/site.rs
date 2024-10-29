@@ -221,6 +221,7 @@ pub struct CreateSite {
 /// Edits a site.
 pub struct EditSite {
   pub name: Option<String>,
+  /// A sidebar for the site, in markdown.
   pub sidebar: Option<String>,
   /// A shorter, one line description of your site.
   pub description: Option<String>,

@@ -644,7 +644,6 @@ mod tests {
 
     let comment_like_form = CommentLikeForm {
       comment_id: inserted_comment_0.id,
-      post_id: inserted_post.id,
       person_id: inserted_timmy_person.id,
       score: 1,
     };
@@ -744,7 +743,6 @@ mod tests {
     // Like a new comment
     let comment_like_form = CommentLikeForm {
       comment_id: data.inserted_comment_1.id,
-      post_id: data.inserted_post.id,
       person_id: data.timmy_local_user_view.person.id,
       score: 1,
     };
@@ -1094,7 +1092,6 @@ mod tests {
         banner: None,
         updated: None,
         inbox_url: data.timmy_local_user_view.person.inbox_url.clone(),
-        shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
         instance_id: data.inserted_instance.id,
@@ -1138,6 +1135,7 @@ mod tests {
         actor_id: data.inserted_community.actor_id.clone(),
         local: true,
         title: "nada".to_owned(),
+        sidebar: None,
         description: None,
         updated: None,
         banner: None,
@@ -1150,7 +1148,6 @@ mod tests {
         last_refreshed_at: data.inserted_community.last_refreshed_at,
         followers_url: data.inserted_community.followers_url.clone(),
         inbox_url: data.inserted_community.inbox_url.clone(),
-        shared_inbox_url: data.inserted_community.shared_inbox_url.clone(),
         moderators_url: data.inserted_community.moderators_url.clone(),
         featured_url: data.inserted_community.featured_url.clone(),
         visibility: CommunityVisibility::Public,

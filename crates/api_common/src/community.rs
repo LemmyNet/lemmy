@@ -49,7 +49,9 @@ pub struct CreateCommunity {
   pub name: String,
   /// A longer title.
   pub title: String,
-  /// A longer sidebar, or description of your community, in markdown.
+  /// A sidebar for the community in markdown.
+  pub sidebar: Option<String>,
+  /// A shorter, one line description of your community.
   pub description: Option<String>,
   /// An icon URL.
   pub icon: Option<String>,
@@ -148,7 +150,9 @@ pub struct EditCommunity {
   pub community_id: CommunityId,
   /// A longer title.
   pub title: Option<String>,
-  /// A longer sidebar, or description of your community, in markdown.
+  /// A sidebar for the community in markdown.
+  pub sidebar: Option<String>,
+  /// A shorter, one line description of your community.
   pub description: Option<String>,
   /// An icon URL.
   pub icon: Option<String>,

@@ -16,7 +16,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityFollower, CommunityFollowerState},
     person::Person,
   },
-  utils::{functions::coalesce, get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, limit_and_offset, DbPool},
   CommunityVisibility,
   SubscribedType,
 };
@@ -46,10 +46,7 @@ impl CommunityFollowerView {
       // local-person+remote-community or remote-person+local-community
       .filter(not(person::local))
       .filter(community_follower::published.gt(published_since.naive_utc()))
-      .select((
-        community::id,
-        coalesce(person::shared_inbox_url, person::inbox_url),
-      ))
+      .select((community::id, person::inbox_url))
       .distinct() // only need each community_id, inbox combination once
       .load::<(CommunityId, DbUrl)>(conn)
       .await
@@ -63,7 +60,7 @@ impl CommunityFollowerView {
       .filter(community_follower::community_id.eq(community_id))
       .filter(not(person::local))
       .inner_join(person::table)
-      .select(coalesce(person::shared_inbox_url, person::inbox_url))
+      .select(person::inbox_url)
       .distinct()
       .load::<DbUrl>(conn)
       .await?;

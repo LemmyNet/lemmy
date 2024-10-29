@@ -5,13 +5,15 @@ use std::sync::LazyLock;
 
 pub mod image_links;
 mod link_rule;
-mod spoiler_rule;
 
 static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
   let mut parser = MarkdownIt::new();
   markdown_it::plugins::cmark::add(&mut parser);
   markdown_it::plugins::extra::add(&mut parser);
-  spoiler_rule::add(&mut parser);
+  markdown_it_block_spoiler::add(&mut parser);
+  markdown_it_sub::add(&mut parser);
+  markdown_it_sup::add(&mut parser);
+  markdown_it_ruby::add(&mut parser);
   link_rule::add(&mut parser);
 
   parser
@@ -102,12 +104,22 @@ mod tests {
       (
         "basic spoiler",
         "::: spoiler click to see more\nhow spicy!\n:::\n",
-        "<details><summary>click to see more</summary><p>how spicy!\n</p></details>\n"
+        "<details><summary>click to see more</summary>how spicy!\n</details>\n"
       ),
       (
         "escape html special chars",
         "<script>alert('xss');</script> hello &\"",
         "<p>&lt;script&gt;alert(‘xss’);&lt;/script&gt; hello &amp;&quot;</p>\n"
+      ),("subscript","log~2~(a)","<p>log<sub>2</sub>(a)</p>\n"),
+      (
+        "superscript",
+        "Markdown^TM^",
+        "<p>Markdown<sup>TM</sup></p>\n"
+      ),
+      (
+        "ruby text",
+        "{漢|Kan}{字|ji}",
+        "<p><ruby>漢<rp>(</rp><rt>Kan</rt><rp>)</rp></ruby><ruby>字<rp>(</rp><rt>ji</rt><rp>)</rp></ruby></p>\n"
       )
     ];
 
