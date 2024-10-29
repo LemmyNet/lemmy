@@ -91,7 +91,7 @@ mod tests {
       community_id: inserted_community.id,
       person_id: inserted_person.id,
       state: Some(CommunityFollowerState::Accepted),
-      approved_by: None,
+      approver_id: None,
     };
 
     CommunityFollower::follow(pool, &first_person_follow).await?;
@@ -100,7 +100,7 @@ mod tests {
       community_id: inserted_community.id,
       person_id: another_inserted_person.id,
       state: Some(CommunityFollowerState::Accepted),
-      approved_by: None,
+      approver_id: None,
     };
 
     CommunityFollower::follow(pool, &second_person_follow).await?;
@@ -109,7 +109,7 @@ mod tests {
       community_id: another_inserted_community.id,
       person_id: inserted_person.id,
       state: Some(CommunityFollowerState::Accepted),
-      approved_by: None,
+      approver_id: None,
     };
 
     CommunityFollower::follow(pool, &another_community_follow).await?;

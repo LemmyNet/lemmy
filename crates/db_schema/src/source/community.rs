@@ -234,7 +234,7 @@ pub struct CommunityFollower {
   pub person_id: PersonId,
   pub published: DateTime<Utc>,
   pub state: CommunityFollowerState,
-  pub approved_by: Option<PersonId>,
+  pub approver_id: Option<PersonId>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -246,5 +246,5 @@ pub struct CommunityFollowerForm {
   #[new(default)]
   pub state: Option<CommunityFollowerState>,
   #[new(default)]
-  pub approved_by: Option<PersonId>,
+  pub approver_id: Option<PersonId>,
 }

@@ -145,7 +145,7 @@ pub async fn create_community(
     community_id: inserted_community.id,
     person_id: local_user_view.person.id,
     state: Some(CommunityFollowerState::Accepted),
-    approved_by: None,
+    approver_id: None,
   };
 
   CommunityFollower::follow(&mut context.pool(), &community_follower_form)

@@ -238,7 +238,7 @@ diesel::table! {
         person_id -> Int4,
         published -> Timestamptz,
         state -> CommunityFollowerState,
-        approved_by -> Nullable<Int4>,
+        approver_id -> Nullable<Int4>,
     }
 }
 
