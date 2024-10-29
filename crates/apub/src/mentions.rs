@@ -11,7 +11,10 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_utils::{error::LemmyResult, utils::mention::scrape_text_for_mentions, LemmyErrorType};
+use lemmy_utils::{
+  error::{FederationError, LemmyResult},
+  utils::mention::scrape_text_for_mentions,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
@@ -57,7 +60,7 @@ pub async fn collect_non_local_mentions(
       &parent_creator
         .id()
         .domain()
-        .ok_or(LemmyErrorType::UrlWithoutDomain)?
+        .ok_or(FederationError::UrlWithoutDomain)?
     )),
     kind: MentionType::Mention,
   };

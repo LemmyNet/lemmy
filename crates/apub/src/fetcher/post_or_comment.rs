@@ -26,7 +26,7 @@ pub enum PostOrComment {
 #[serde(untagged)]
 pub enum PageOrNote {
   Page(Box<Page>),
-  Note(Note),
+  Note(Box<Note>),
 }
 
 #[async_trait::async_trait]
@@ -61,7 +61,7 @@ impl Object for PostOrComment {
   async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     Ok(match self {
       PostOrComment::Post(p) => PageOrNote::Page(Box::new(p.into_json(data).await?)),
-      PostOrComment::Comment(c) => PageOrNote::Note(c.into_json(data).await?),
+      PostOrComment::Comment(c) => PageOrNote::Note(Box::new(c.into_json(data).await?)),
     })
   }
 
@@ -81,7 +81,7 @@ impl Object for PostOrComment {
   async fn from_json(apub: PageOrNote, context: &Data<LemmyContext>) -> LemmyResult<Self> {
     Ok(match apub {
       PageOrNote::Page(p) => PostOrComment::Post(ApubPost::from_json(*p, context).await?),
-      PageOrNote::Note(n) => PostOrComment::Comment(ApubComment::from_json(n, context).await?),
+      PageOrNote::Note(n) => PostOrComment::Comment(ApubComment::from_json(*n, context).await?),
     })
   }
 }

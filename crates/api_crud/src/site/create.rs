@@ -29,13 +29,13 @@ use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
-    slurs::{check_slurs, check_slurs_opt},
+    slurs::check_slurs,
     validation::{
       build_and_check_regex,
       check_site_visibility_valid,
       is_valid_body_field,
-      site_description_length_check,
       site_name_length_check,
+      site_or_community_description_length_check,
     },
   },
 };
@@ -167,8 +167,8 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
   check_slurs(&create_site.name, &slur_regex)?;
 
   if let Some(desc) = &create_site.description {
-    site_description_length_check(desc)?;
-    check_slurs_opt(&create_site.description, &slur_regex)?;
+    site_or_community_description_length_check(desc)?;
+    check_slurs(desc, &slur_regex)?;
   }
 
   site_default_post_listing_type_check(&create_site.default_post_listing_type)?;

@@ -29,7 +29,7 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{FederationError, LemmyError, LemmyErrorType, LemmyResult},
   utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
@@ -113,7 +113,7 @@ impl Object for ApubPrivateMessage {
     check_apub_id_valid_with_strictness(note.id.inner(), false, context).await?;
     let person = note.attributed_to.dereference(context).await?;
     if person.banned {
-      Err(LemmyErrorType::PersonIsBannedFromSite(
+      Err(FederationError::PersonIsBannedFromSite(
         person.actor_id.to_string(),
       ))?
     } else {

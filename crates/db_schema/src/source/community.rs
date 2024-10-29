@@ -24,8 +24,8 @@ pub struct Community {
   pub name: String,
   /// A longer title, that can contain other characters, and doesn't have to be unique.
   pub title: String,
-  /// A sidebar / markdown description.
-  pub description: Option<String>,
+  /// A sidebar for the community in markdown.
+  pub sidebar: Option<String>,
   /// Whether the community is removed by a mod.
   pub removed: bool,
   pub published: DateTime<Utc>,
@@ -66,6 +66,8 @@ pub struct Community {
   #[serde(skip)]
   pub featured_url: Option<DbUrl>,
   pub visibility: CommunityVisibility,
+  /// A shorter, one-line description of the site.
+  pub description: Option<String>,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
@@ -77,7 +79,7 @@ pub struct CommunityInsertForm {
   pub title: String,
   pub public_key: String,
   #[new(default)]
-  pub description: Option<String>,
+  pub sidebar: Option<String>,
   #[new(default)]
   pub removed: Option<bool>,
   #[new(default)]
@@ -114,6 +116,8 @@ pub struct CommunityInsertForm {
   pub posting_restricted_to_mods: Option<bool>,
   #[new(default)]
   pub visibility: Option<CommunityVisibility>,
+  #[new(default)]
+  pub description: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -121,7 +125,7 @@ pub struct CommunityInsertForm {
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 pub struct CommunityUpdateForm {
   pub title: Option<String>,
-  pub description: Option<Option<String>>,
+  pub sidebar: Option<Option<String>>,
   pub removed: Option<bool>,
   pub published: Option<DateTime<Utc>>,
   pub updated: Option<Option<DateTime<Utc>>>,
@@ -141,6 +145,7 @@ pub struct CommunityUpdateForm {
   pub hidden: Option<bool>,
   pub posting_restricted_to_mods: Option<bool>,
   pub visibility: Option<CommunityVisibility>,
+  pub description: Option<Option<String>>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
