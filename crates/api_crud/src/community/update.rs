@@ -1,3 +1,4 @@
+use super::check_set_community_private;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
@@ -9,7 +10,6 @@ use lemmy_api_common::{
   utils::{
     check_community_mod_action,
     get_url_blocklist,
-    is_admin,
     local_site_to_slur_regex,
     process_markdown_opt,
     proxy_image_link_opt_api,
@@ -52,9 +52,7 @@ pub async fn update_community(
     is_valid_body_field(sidebar, false)?;
   }
 
-  if data.visibility == Some(lemmy_db_schema::CommunityVisibility::Private) {
-    is_admin(&local_user_view)?;
-  }
+  check_set_community_private(data.visibility, &local_user_view)?;
   let description = diesel_string_update(data.description.as_deref());
 
   let old_community = Community::read(&mut context.pool(), data.community_id).await?;
