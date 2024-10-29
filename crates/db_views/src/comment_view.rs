@@ -188,6 +188,11 @@ fn queries<'a>() -> Queries<
       my_local_user.person_id(),
     );
     query = my_local_user.visible_communities_only(query);
+
+    // Check permissions to view private community content.
+    // Specifically, if the community is private then only accepted followers may view its
+    // content, otherwise it is filtered out. Admins can view private community content
+    // without restriction.
     if !my_local_user.is_admin() {
       query = query.filter(
         community::visibility
