@@ -238,8 +238,7 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
           data: ban_from_community,
         },
         context,
-      )
-      .await?;
+      )?;
     }
   }
 

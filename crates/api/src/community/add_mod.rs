@@ -95,8 +95,7 @@ pub async fn add_mod_to_community(
       added: data.added,
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(AddModToCommunityResponse { moderators }))
 }

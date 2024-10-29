@@ -120,8 +120,7 @@ pub async fn ban_from_community(
       data: data.0.clone(),
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(BanFromCommunityResponse {
     person_view,

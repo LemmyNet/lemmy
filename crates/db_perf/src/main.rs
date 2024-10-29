@@ -54,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
 
 async fn try_main() -> LemmyResult<()> {
   let args = CmdArgs::parse();
-  let pool = &build_db_pool().await?;
+  let pool = &build_db_pool()?;
   let pool = &mut pool.into();
   let conn = &mut get_conn(pool).await?;
 

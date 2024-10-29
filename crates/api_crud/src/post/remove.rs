@@ -79,8 +79,7 @@ pub async fn remove_post(
       removed: data.removed,
     },
     &context,
-  )
-  .await?;
+  )?;
 
   build_post_response(&context, orig_post.community_id, local_user_view, post_id).await
 }

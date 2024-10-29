@@ -148,8 +148,7 @@ pub async fn create_comment(
   ActivityChannel::submit_activity(
     SendActivityData::CreateComment(inserted_comment.clone()),
     &context,
-  )
-  .await?;
+  )?;
 
   // Update the read comments, so your own new comment doesn't appear as a +1 unread
   update_read_comments(

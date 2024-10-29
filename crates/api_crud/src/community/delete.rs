@@ -54,8 +54,7 @@ pub async fn delete_community(
   ActivityChannel::submit_activity(
     SendActivityData::DeleteCommunity(local_user_view.person.clone(), community, data.deleted),
     &context,
-  )
-  .await?;
+  )?;
 
   build_community_response(&context, local_user_view, community_id).await
 }

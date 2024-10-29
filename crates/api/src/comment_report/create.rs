@@ -85,8 +85,7 @@ pub async fn create_comment_report(
       reason: data.reason.clone(),
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(CommentReportResponse {
     comment_report_view,

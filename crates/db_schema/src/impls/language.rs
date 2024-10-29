@@ -46,7 +46,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_languages() -> Result<(), Error> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let all = Language::read_all(pool).await?;

@@ -40,7 +40,7 @@ pub async fn post_pending_follows_approve(
     CommunityFollower::unfollow(&mut context.pool(), &form).await?;
     SendActivityData::RejectFollower(data.community_id, data.follower_id)
   };
-  ActivityChannel::submit_activity(activity_data, &context).await?;
+  ActivityChannel::submit_activity(activity_data, &context)?;
 
   Ok(Json(SuccessResponse::default()))
 }

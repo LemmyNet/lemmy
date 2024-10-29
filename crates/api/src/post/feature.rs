@@ -69,8 +69,7 @@ pub async fn feature_post(
   ActivityChannel::submit_activity(
     SendActivityData::FeaturePost(post, local_user_view.person.clone(), data.featured),
     &context,
-  )
-  .await?;
+  )?;
 
   build_post_response(&context, orig_post.community_id, local_user_view, post_id).await
 }

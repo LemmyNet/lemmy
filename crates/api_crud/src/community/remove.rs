@@ -66,8 +66,7 @@ pub async fn remove_community(
       removed: data.removed,
     },
     &context,
-  )
-  .await?;
+  )?;
 
   build_community_response(&context, local_user_view, community_id).await
 }

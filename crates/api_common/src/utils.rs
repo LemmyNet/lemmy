@@ -235,13 +235,13 @@ pub async fn check_community_user_action(
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   check_user_valid(person)?;
-  check_community_deleted_removed(community).await?;
+  check_community_deleted_removed(community)?;
   CommunityPersonBanView::check(pool, person.id, community.id).await?;
   CommunityFollowerView::check_private_community_action(pool, person.id, community).await?;
   Ok(())
 }
 
-pub async fn check_community_deleted_removed(community: &Community) -> LemmyResult<()> {
+pub fn check_community_deleted_removed(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
     Err(LemmyErrorType::Deleted)?
   }
@@ -263,7 +263,7 @@ pub async fn check_community_mod_action(
 
   // it must be possible to restore deleted community
   if !allow_deleted {
-    check_community_deleted_removed(community).await?;
+    check_community_deleted_removed(community)?;
   }
   Ok(())
 }

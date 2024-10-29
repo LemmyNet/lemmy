@@ -125,10 +125,7 @@ impl ActivityChannel {
     lock.recv().await
   }
 
-  pub async fn submit_activity(
-    data: SendActivityData,
-    _context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+  pub fn submit_activity(data: SendActivityData, _context: &Data<LemmyContext>) -> LemmyResult<()> {
     // could do `ACTIVITY_CHANNEL.keepalive_sender.lock()` instead and get rid of weak_sender,
     // not sure which way is more efficient
     if let Some(sender) = ACTIVITY_CHANNEL.weak_sender.upgrade() {

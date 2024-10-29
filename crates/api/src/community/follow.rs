@@ -33,7 +33,7 @@ pub async fn follow_community(
     // state may be outdated. Can't use check_community_user_action() here as it only allows
     // actions from existing followers for private community (so following would be impossible).
     if community.local {
-      check_community_deleted_removed(&community).await?;
+      check_community_deleted_removed(&community)?;
       CommunityPersonBanView::check(&mut context.pool(), local_user_view.person.id, community.id)
         .await?;
     }
@@ -65,8 +65,7 @@ pub async fn follow_community(
     ActivityChannel::submit_activity(
       SendActivityData::FollowCommunity(community, local_user_view.person.clone(), data.follow),
       &context,
-    )
-    .await?;
+    )?;
   }
 
   let community_id = data.community_id;

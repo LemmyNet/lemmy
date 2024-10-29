@@ -48,8 +48,7 @@ pub async fn hide_community(
   ActivityChannel::submit_activity(
     SendActivityData::UpdateCommunity(local_user_view.person.clone(), community),
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(SuccessResponse::default()))
 }

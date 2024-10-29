@@ -81,8 +81,7 @@ pub async fn like_post(
       score: data.score,
     },
     &context,
-  )
-  .await?;
+  )?;
 
   build_post_response(context.deref(), post.community_id, local_user_view, post_id).await
 }

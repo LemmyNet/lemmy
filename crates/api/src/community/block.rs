@@ -60,8 +60,7 @@ pub async fn block_community(
       false,
     ),
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(BlockCommunityResponse {
     blocked: data.block,

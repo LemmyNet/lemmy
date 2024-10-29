@@ -413,7 +413,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn subscribe_state() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
     let community = &data.communities[0];
@@ -473,7 +473,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn local_only_community() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -516,7 +516,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn community_sort_name() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 

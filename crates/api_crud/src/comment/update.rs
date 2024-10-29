@@ -98,8 +98,7 @@ pub async fn update_comment(
   ActivityChannel::submit_activity(
     SendActivityData::UpdateComment(updated_comment.clone()),
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(
     build_comment_response(

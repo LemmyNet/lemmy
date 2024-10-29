@@ -99,8 +99,7 @@ pub async fn remove_comment(
       reason: data.reason.clone(),
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(
     build_comment_response(

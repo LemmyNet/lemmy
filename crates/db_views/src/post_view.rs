@@ -968,7 +968,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_with_person() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let mut data = init_data(pool).await?;
 
@@ -1028,7 +1028,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_no_person() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1066,7 +1066,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_title_only() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1125,7 +1125,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_block_community() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1151,7 +1151,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_like() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let mut data = init_data(pool).await?;
 
@@ -1209,7 +1209,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_liked_only() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1258,7 +1258,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_saved_only() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1288,7 +1288,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn creator_info() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1326,7 +1326,7 @@ mod tests {
   async fn post_listing_person_language() -> LemmyResult<()> {
     const EL_POSTO: &str = "el posto";
 
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1387,7 +1387,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_removed() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let mut data = init_data(pool).await?;
 
@@ -1422,7 +1422,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_deleted() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1461,7 +1461,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_hidden_community() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1499,7 +1499,7 @@ mod tests {
   async fn post_listing_instance_block() -> LemmyResult<()> {
     const POST_FROM_BLOCKED_INSTANCE: &str = "post on blocked instance";
 
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1559,7 +1559,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn pagination_includes_each_post_once() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1669,7 +1669,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_hide_read() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let mut data = init_data(pool).await?;
 
@@ -1719,7 +1719,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_hide_hidden() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1755,7 +1755,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_hide_nsfw() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1921,7 +1921,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn local_only_instance() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1969,7 +1969,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_local_user_banned_from_community() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -2012,7 +2012,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_local_user_not_banned_from_community() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -2032,7 +2032,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_private_community() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let mut data = init_data(pool).await?;
 

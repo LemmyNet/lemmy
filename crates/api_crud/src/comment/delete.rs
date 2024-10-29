@@ -76,8 +76,7 @@ pub async fn delete_comment(
       orig_comment.community,
     ),
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(
     build_comment_response(

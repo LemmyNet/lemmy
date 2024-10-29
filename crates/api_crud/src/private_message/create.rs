@@ -78,8 +78,7 @@ pub async fn create_private_message(
   ActivityChannel::submit_activity(
     SendActivityData::CreatePrivateMessage(view.clone()),
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(PrivateMessageResponse {
     private_message_view: view,

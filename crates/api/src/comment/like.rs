@@ -92,8 +92,7 @@ pub async fn like_comment(
       score: data.score,
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(
     build_comment_response(

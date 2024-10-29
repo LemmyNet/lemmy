@@ -80,8 +80,7 @@ pub async fn create_post_report(
       reason: data.reason.clone(),
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(PostReportResponse { post_report_view }))
 }

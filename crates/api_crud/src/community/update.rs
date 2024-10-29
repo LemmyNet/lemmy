@@ -109,8 +109,7 @@ pub async fn update_community(
   ActivityChannel::submit_activity(
     SendActivityData::UpdateCommunity(local_user_view.person.clone(), community),
     &context,
-  )
-  .await?;
+  )?;
 
   build_community_response(&context, local_user_view, community_id).await
 }
