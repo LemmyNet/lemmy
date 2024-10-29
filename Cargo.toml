@@ -26,7 +26,7 @@ workspace = true
 
 [profile.release]
 debug = 0
-lto = "thin"
+lto = "fat"
 strip = true      # Automatically strip symbols from the binary.
 opt-level = 3     # Optimize for speed, not size.
 codegen-units = 1 # Reduce parallel code generation.
