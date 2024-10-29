@@ -26,7 +26,7 @@ pub async fn follow_community(
 ) -> LemmyResult<Json<CommunityResponse>> {
   check_user_valid(&local_user_view.person)?;
   let community = Community::read(&mut context.pool(), data.community_id).await?;
-  let mut form = CommunityFollowerForm::new(community.id, local_user_view.person.id);
+  let form = CommunityFollowerForm::new(community.id, local_user_view.person.id);
 
   if data.follow {
     // Only run these checks for local community, in case of remote community the local
@@ -38,17 +38,21 @@ pub async fn follow_community(
         .await?;
     }
 
-    // Local follow is accepted immediately, remote follow needs to be federated first
-    form.state = if community.local {
+    let state = if community.local {
+      // Local follow is accepted immediately
       Some(CommunityFollowerState::Accepted)
+    } else if community.visibility == CommunityVisibility::Private {
+      // Private communities require manual approval
+      Some(CommunityFollowerState::ApprovalRequired)
     } else {
+      // remote follow needs to be federated first
       Some(CommunityFollowerState::Pending)
     };
 
-    // Private communities require manual approval
-    if community.visibility == CommunityVisibility::Private {
-      form.state = Some(CommunityFollowerState::ApprovalRequired);
-    }
+    let form = CommunityFollowerForm {
+      state,
+      ..CommunityFollowerForm::new(community.id, local_user_view.person.id)
+    };
 
     // Write to db
     CommunityFollower::follow(&mut context.pool(), &form)
