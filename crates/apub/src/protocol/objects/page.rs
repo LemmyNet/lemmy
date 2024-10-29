@@ -19,7 +19,7 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::proxy_image_link_opt_apub};
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
@@ -126,37 +126,34 @@ impl Attachment {
     }
   }
 
-  pub(crate) fn as_markdown(&self) -> String {
-    match self {
-      Attachment::Image(i) => {
-        format!(
-          "![{}]({})",
-          i.name.as_ref().unwrap_or(&String::default()),
-          i.url
-        )
-      }
+  pub(crate) async fn as_markdown(&self, context: &Data<LemmyContext>) -> LemmyResult<String> {
+    let (url, name, is_image) = match self {
+      Attachment::Image(i) => (i.url.clone(), i.name.clone(), true),
       Attachment::Document(d) => {
-        if let Some(media) = &d.media_type {
-          if ["video/", "image/"].iter().any(|s| media.starts_with(s)) {
-            return format!(
-              "![{}]({})",
-              d.name.as_ref().unwrap_or(&String::default()),
-              d.url
-            );
-          }
-        }
+        let is_image = d
+          .media_type
+          .as_ref()
+          .is_some_and(|media| media.starts_with("video") || media.starts_with("image"));
 
-        d.url.to_string()
+        (d.url.clone(), d.name.clone(), is_image)
       }
       Attachment::Link(l) => {
-        if let Some(media) = &l.media_type {
-          if ["video/", "image/"].iter().any(|s| media.starts_with(s)) {
-            return format!("![]({})", l.href);
-          }
-        }
+        let is_image = l
+          .media_type
+          .as_ref()
+          .is_some_and(|media| media.starts_with("video") || media.starts_with("image"));
 
-        l.href.to_string()
+        (l.href.clone(), None, is_image)
       }
+    };
+
+    if is_image {
+      let url = proxy_image_link_opt_apub(Some(url), context)
+        .await?
+        .expect("No url");
+      Ok(format!("![{}]({url})", name.unwrap_or_default()))
+    } else {
+      Ok(url.to_string())
     }
   }
 }

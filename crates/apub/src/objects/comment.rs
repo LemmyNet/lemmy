@@ -182,7 +182,7 @@ impl Object for ApubComment {
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let url_blocklist = get_url_blocklist(context).await?;
-    let content = append_attachments_to_comment(content, &note.attachment);
+    let content = append_attachments_to_comment(content, &note.attachment, context).await?;
     let content = process_markdown(&content, slur_regex, &url_blocklist, context).await?;
     let content = markdown_rewrite_remote_links(content, context).await;
     let language_id = Some(
