@@ -9,7 +9,6 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    community::Community,
     local_user::LocalUser,
     moderator::{ModRemovePost, ModRemovePostForm},
     post::{Post, PostUpdateForm},
@@ -17,7 +16,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Reportable},
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
@@ -27,12 +26,11 @@ pub async fn remove_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let post_id = data.post_id;
-  let orig_post = Post::read(&mut context.pool(), post_id).await?;
+  let orig_post = PostView::read(&mut context.pool(), post_id, None, false).await?;
 
-  let community = Community::read(&mut context.pool(), orig_post.community_id).await?;
   check_community_mod_action(
     &local_user_view.person,
-    &community,
+    &orig_post.community,
     false,
     &mut context.pool(),
   )
@@ -40,9 +38,9 @@ pub async fn remove_post(
 
   LocalUser::is_higher_mod_or_admin_check(
     &mut context.pool(),
-    orig_post.community_id,
+    orig_post.community.id,
     local_user_view.person.id,
-    vec![orig_post.creator_id],
+    vec![orig_post.post.creator_id],
   )
   .await?;
 
@@ -81,5 +79,5 @@ pub async fn remove_post(
     &context,
   )?;
 
-  build_post_response(&context, orig_post.community_id, local_user_view, post_id).await
+  build_post_response(&context, orig_post.community.id, local_user_view, post_id).await
 }
