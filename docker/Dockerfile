@@ -38,6 +38,12 @@ RUN --mount=type=cache,target=/lemmy/target set -ex; \
         cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
         mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
+        #
+        # Compress the binary with upx
+        wget https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.xz; \
+        tar -xvf upx-4.2.4-amd64_linux.tar.xz; \
+        cp upx-4.2.4-amd64_linux/upx /usr/bin; \
+        upx --best --lzma lemmy_server; \
     fi
 
 # ARM64 builder
@@ -71,8 +77,13 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
         cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
         mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
+        #
+        # Compress the binary with upx
+        wget https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-arm64_linux.tar.xz; \
+        tar -xvf upx-4.2.4-arm64_linux.tar.xz; \
+        cp upx-4.2.4-arm64_linux/upx /usr/bin; \
+        upx --best --lzma /home/lemmy/lemmy_server; \
     fi
-
 
 # amd64 base runner
 FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
