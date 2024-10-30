@@ -513,7 +513,7 @@ static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 pub mod functions {
-  use diesel::sql_types::{BigInt, Bool, Text, Timestamptz};
+  use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
     #[sql_name = "r.hot_rank"]
