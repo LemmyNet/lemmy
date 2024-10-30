@@ -133,8 +133,8 @@ impl Attachment {
       Attachment::Link(l) => (l.href.clone(), None, l.media_type.clone()),
     };
 
-    let is_image = media_type
-      .is_some_and(|media| media.starts_with("video") || media.starts_with("image"));
+    let is_image =
+      media_type.is_some_and(|media| media.starts_with("video") || media.starts_with("image"));
 
     if is_image {
       let url = proxy_image_link_opt_apub(Some(url), context)
