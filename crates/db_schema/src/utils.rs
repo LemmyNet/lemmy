@@ -51,6 +51,7 @@ use std::{
 };
 use tracing::error;
 use url::Url;
+use urlencoding::encode;
 
 const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
@@ -364,7 +365,7 @@ fn build_config_options_uri_segment() -> String {
   let options_segments = "&options=".to_owned()
     + &options
       .iter()
-      .map(|o| "-c ".to_owned() + o)
+      .map(|o| "-c ".to_owned() + &encode(&o))
       .collect::<Vec<String>>()
       .join(" ");
 
