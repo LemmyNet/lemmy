@@ -127,25 +127,14 @@ impl Attachment {
   }
 
   pub(crate) async fn as_markdown(&self, context: &Data<LemmyContext>) -> LemmyResult<String> {
-    let (url, name, is_image) = match self {
-      Attachment::Image(i) => (i.url.clone(), i.name.clone(), true),
-      Attachment::Document(d) => {
-        let is_image = d
-          .media_type
-          .as_ref()
-          .is_some_and(|media| media.starts_with("video") || media.starts_with("image"));
-
-        (d.url.clone(), d.name.clone(), is_image)
-      }
-      Attachment::Link(l) => {
-        let is_image = l
-          .media_type
-          .as_ref()
-          .is_some_and(|media| media.starts_with("video") || media.starts_with("image"));
-
-        (l.href.clone(), None, is_image)
-      }
+    let (url, name, media_type) = match self {
+      Attachment::Image(i) => (i.url.clone(), i.name.clone(), Some(String::from("image"))),
+      Attachment::Document(d) => (d.url.clone(), d.name.clone(), d.media_type.clone()),
+      Attachment::Link(l) => (l.href.clone(), None, l.media_type.clone()),
     };
+
+    let is_image = media_type
+      .is_some_and(|media| media.starts_with("video") || media.starts_with("image"));
 
     if is_image {
       let url = proxy_image_link_opt_apub(Some(url), context)
@@ -153,7 +142,7 @@ impl Attachment {
         .expect("No url");
       Ok(format!("![{}]({url})", name.unwrap_or_default()))
     } else {
-      Ok(url.to_string())
+      Ok(format!("[{url}]({url})"))
     }
   }
 }
