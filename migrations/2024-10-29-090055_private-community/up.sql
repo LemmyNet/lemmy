@@ -34,7 +34,7 @@ ALTER TABLE community_follower RENAME COLUMN pending TO state;
 -- Add column for mod who approved the private community follower
 -- Dont use foreign key here, otherwise joining to person table doesnt work easily
 ALTER TABLE community_follower
-    ADD COLUMN approver_id int;
+    ADD COLUMN approver_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE;
 
 -- Enable signed fetch, necessary to fetch content in private communities
 ALTER TABLE ONLY local_site
