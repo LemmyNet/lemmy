@@ -21,8 +21,6 @@ import {
   resolveComment,
   likeComment,
   waitUntil,
-  alphaUrl,
-  deleteCommunity,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -35,10 +33,7 @@ test("Follow a private community", async () => {
   const alphaCommunityId = community.community_view.community.id;
 
   // No pending follows yet
-  const pendingFollows0 = await listCommunityPendingFollows(
-    alpha,
-    alphaCommunityId,
-  );
+  const pendingFollows0 = await listCommunityPendingFollows(alpha);
   expect(pendingFollows0.items.length).toBe(0);
   const pendingFollowsCount0 = await getCommunityPendingFollowsCount(
     alpha,
@@ -65,7 +60,7 @@ test("Follow a private community", async () => {
 
   // Wait for follow to federate, shown as pending
   let pendingFollows1 = await waitUntil(
-    () => listCommunityPendingFollows(alpha, alphaCommunityId),
+    () => listCommunityPendingFollows(alpha),
     f => f.items.length == 1,
   );
   expect(pendingFollows1.items[0].is_new_instance).toBe(true);
@@ -92,10 +87,7 @@ test("Follow a private community", async () => {
     () => getCommunity(user, betaCommunityId),
     c => c.community_view.subscribed == "Subscribed",
   );
-  const pendingFollows2 = await listCommunityPendingFollows(
-    alpha,
-    alphaCommunityId,
-  );
+  const pendingFollows2 = await listCommunityPendingFollows(alpha);
   expect(pendingFollows2.items.length).toBe(0);
   const pendingFollowsCount2 = await getCommunityPendingFollowsCount(
     alpha,
@@ -107,7 +99,7 @@ test("Follow a private community", async () => {
   const user2 = await registerUser(beta, betaUrl);
   await user2.followCommunity(follow_form);
   let pendingFollows3 = await waitUntil(
-    () => listCommunityPendingFollows(alpha, alphaCommunityId),
+    () => listCommunityPendingFollows(alpha),
     f => f.items.length == 1,
   );
   expect(pendingFollows3.items[0].is_new_instance).toBe(false);
@@ -157,7 +149,7 @@ test("Only followers can view and interact with private community content", asyn
   };
   await user.followCommunity(follow_form);
   const pendingFollows1 = await waitUntil(
-    () => listCommunityPendingFollows(alpha, alphaCommunityId),
+    () => listCommunityPendingFollows(alpha),
     f => f.items.length == 1,
   );
   const approve = await approveCommunityPendingFollow(
@@ -204,7 +196,7 @@ test("Reject follower", async () => {
   expect(follow.community_view.subscribed).toBe("ApprovalRequired");
 
   const pendingFollows1 = await waitUntil(
-    () => listCommunityPendingFollows(alpha, alphaCommunityId),
+    () => listCommunityPendingFollows(alpha),
     f => f.items.length == 1,
   );
   const approve = await approveCommunityPendingFollow(

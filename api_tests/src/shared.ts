@@ -881,11 +881,10 @@ export function blockCommunity(
 
 export function listCommunityPendingFollows(
   api: LemmyHttp,
-  community_id: CommunityId,
 ): Promise<ListCommunityPendingFollowsResponse> {
   let form: ListCommunityPendingFollows = {
-    community_id,
     pending_only: true,
+    all_communities: false,
     page: 1,
     limit: 50,
   };
