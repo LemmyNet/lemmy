@@ -776,7 +776,10 @@ mod tests {
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
-  use std::{collections::HashSet, time::Duration};
+  use std::{
+    collections::HashSet,
+    time::{Duration, Instant},
+  };
   use url::Url;
 
   const POST_WITH_ANOTHER_TITLE: &str = "Another title";
@@ -1985,6 +1988,56 @@ mod tests {
     .await?;
 
     assert!(!post_view.banned_from_community);
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn speed_check() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Make sure the post_view query is less than this time
+    let duration_max = Duration::from_millis(40);
+
+    // Create some dummy posts
+    let num_posts = 1000;
+    for x in 1..num_posts {
+      let name = format!("post_{x}");
+      let url = Some(Url::parse(&format!("https://google.com/{name}"))?.into());
+
+      let post_form = PostInsertForm {
+        url,
+        ..PostInsertForm::new(
+          name,
+          data.local_user_view.person.id,
+          data.inserted_community.id,
+        )
+      };
+      Post::create(pool, &post_form).await?;
+    }
+
+    // Time how fast the query took
+    let now = Instant::now();
+    PostQuery {
+      sort: Some(PostSortType::Active),
+      local_user: Some(&data.local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    let elapsed = now.elapsed();
+    println!("Elapsed: {:.0?}", elapsed);
+
+    assert!(
+      elapsed.lt(&duration_max),
+      "Query took {:.0?}, longer than the max of {:.0?}",
+      elapsed,
+      duration_max
+    );
 
     cleanup(data, pool).await
   }
