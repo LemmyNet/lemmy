@@ -359,7 +359,6 @@ fn build_config_options_uri_segment() -> String {
     "lemmy.protocol_and_hostname=".to_owned() + &SETTINGS.get_protocol_and_hostname();
   let mut options = CONNECTION_OPTIONS.to_vec();
   options.push(&lemmy_protocol_and_hostname_option);
-  // let options = vec![lemmy_protocol_and_hostname_option];
 
   // Create the connection uri portion
   let options_segments = "&options=".to_owned()
@@ -378,10 +377,6 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
 
     // We only support TLS with sslmode=require currently
     let conn = if config.contains("sslmode=require") {
-      rustls::crypto::ring::default_provider()
-        .install_default()
-        .expect("Failed to install rustls crypto provider");
-
       let rustls_config = DangerousClientConfigBuilder {
         cfg: ClientConfig::builder(),
       }
