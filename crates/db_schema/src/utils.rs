@@ -22,7 +22,6 @@ use diesel_async::{
     ManagerConfig,
   },
   AsyncConnection,
-  RunQueryDsl,
 };
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
@@ -59,6 +58,14 @@ pub const SITEMAP_LIMIT: i64 = 50000;
 pub const SITEMAP_DAYS: Option<TimeDelta> = TimeDelta::try_days(31);
 pub const RANK_DEFAULT: f64 = 0.0001;
 
+/// Change collapse limits from 8 to 11 so the query planner can find a better table join
+/// order for more complicated queries
+const CONNECTION_OPTIONS: [&str; 1] = [
+  "geqo_threshold=12",
+  // TODO these two config options cause really slow queries, not sure why they were added.
+  // "from_collapse_limit=11",
+  // "join_collapse_limit=11",
+];
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
 /// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
@@ -345,10 +352,36 @@ pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
   }
 }
 
+/// Sets a few additional config options necessary for starting lemmy
+fn build_config_options_uri_segment() -> String {
+  // Set `lemmy.protocol_and_hostname` so triggers can use it
+  let lemmy_protocol_and_hostname_option =
+    "lemmy.protocol_and_hostname=".to_owned() + &SETTINGS.get_protocol_and_hostname();
+  let mut options = CONNECTION_OPTIONS.to_vec();
+  options.push(&lemmy_protocol_and_hostname_option);
+  // let options = vec![lemmy_protocol_and_hostname_option];
+
+  // Create the connection uri portion
+  let options_segments = "&options=".to_owned()
+    + &options
+      .iter()
+      .map(|o| "-c ".to_owned() + o)
+      .collect::<Vec<String>>()
+      .join(" ");
+
+  options_segments
+}
+
 fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
   let fut = async {
+    let config = config.to_owned() + &build_config_options_uri_segment();
+
     // We only support TLS with sslmode=require currently
-    let mut conn = if config.contains("sslmode=require") {
+    let conn = if config.contains("sslmode=require") {
+      rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
       let rustls_config = DangerousClientConfigBuilder {
         cfg: ClientConfig::builder(),
       }
@@ -356,7 +389,7 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
       .with_no_client_auth();
 
       let tls = tokio_postgres_rustls::MakeRustlsConnect::new(rustls_config);
-      let (client, conn) = tokio_postgres::connect(config, tls)
+      let (client, conn) = tokio_postgres::connect(&config, tls)
         .await
         .map_err(|e| ConnectionError::BadConnection(e.to_string()))?;
       tokio::spawn(async move {
@@ -366,27 +399,9 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
       });
       AsyncPgConnection::try_from(client).await?
     } else {
-      AsyncPgConnection::establish(config).await?
+      AsyncPgConnection::establish(&config).await?
     };
 
-    diesel::select((
-      // Change geqo_threshold back to default value if it was changed, so it's higher than the
-      // collapse limits
-      functions::set_config("geqo_threshold", "12", false),
-      // Change collapse limits from 8 to 11 so the query planner can find a better table join
-      // order for more complicated queries
-      functions::set_config("from_collapse_limit", "11", false),
-      functions::set_config("join_collapse_limit", "11", false),
-      // Set `lemmy.protocol_and_hostname` so triggers can use it
-      functions::set_config(
-        "lemmy.protocol_and_hostname",
-        SETTINGS.get_protocol_and_hostname(),
-        false,
-      ),
-    ))
-    .execute(&mut conn)
-    .await
-    .map_err(ConnectionError::CouldntSetupConfiguration)?;
     Ok(conn)
   };
   fut.boxed()
