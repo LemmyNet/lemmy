@@ -728,6 +728,7 @@ mod tests {
     structs::LocalUserView,
   };
   use chrono::Utc;
+  use diesel_async::SimpleAsyncConnection;
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
     impls::actor_language::UNDETERMINED_ID,
@@ -768,7 +769,7 @@ mod tests {
       site::Site,
     },
     traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable, Saveable},
-    utils::{build_db_pool, build_db_pool_for_tests, DbPool, RANK_DEFAULT},
+    utils::{build_db_pool, build_db_pool_for_tests, get_conn, DbPool, RANK_DEFAULT},
     CommunityVisibility,
     PostSortType,
     SubscribedType,
@@ -2018,6 +2019,12 @@ mod tests {
       };
       Post::create(pool, &post_form).await?;
     }
+
+    // Manually trigger and wait for a statistics update to ensure consistent and high amount of
+    // accuracy in the statistics used for query planning
+    println!("🧮 updating database statistics");
+    let conn = &mut get_conn(pool).await?;
+    conn.batch_execute("ANALYZE;").await?;
 
     // Time how fast the query took
     let now = Instant::now();
