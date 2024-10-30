@@ -18,7 +18,7 @@ export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queu
 
 if [ -n "$PACKAGE" ];
 then
-  cargo test -p $PACKAGE --all-features --no-fail-fast $TEST -- --nocapture
+  cargo test -p $PACKAGE --all-features --no-fail-fast $TEST
 else
   cargo test --workspace --no-fail-fast
   # Testing lemmy utils all features in particular (for ts-rs bindings)
