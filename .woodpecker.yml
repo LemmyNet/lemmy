@@ -134,8 +134,8 @@ steps:
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
       - <<: *install_diesel_cli
+      - cp crates/db_schema/src/schema.rs tmp.schema
       - diesel migration run
-      - diesel print-schema --config-file=diesel.toml > tmp.schema
       - diff tmp.schema crates/db_schema/src/schema.rs
     when: *slow_check_paths
 
@@ -156,7 +156,6 @@ steps:
     environment:
       CARGO_HOME: .cargo_home
     commands:
-      - git diff
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets -- -D warnings
     when: *slow_check_paths
