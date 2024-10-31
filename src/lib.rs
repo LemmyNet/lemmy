@@ -50,9 +50,9 @@ use lemmy_utils::{
   settings::{structs::Settings, SETTINGS},
   VERSION,
 };
+use mimalloc::MiMalloc;
 use prometheus::default_registry;
 use prometheus_metrics::serve_prometheus;
-use mimalloc::MiMalloc;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
 use serde_json::json;

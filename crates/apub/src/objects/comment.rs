@@ -2,7 +2,7 @@ use crate::{
   activities::{verify_is_public, verify_person_in_community},
   check_apub_id_valid_with_strictness,
   mentions::collect_non_local_mentions,
-  objects::{read_from_string_or_source, verify_is_remote_object},
+  objects::{append_attachments_to_comment, read_from_string_or_source, verify_is_remote_object},
   protocol::{
     objects::{note::Note, LanguageTag},
     InCommunity,
@@ -131,6 +131,7 @@ impl Object for ApubComment {
       distinguished: Some(self.distinguished),
       language,
       audience: Some(community.actor_id.into()),
+      attachment: vec![],
     };
 
     Ok(note)
@@ -188,6 +189,7 @@ impl Object for ApubComment {
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let url_blocklist = get_url_blocklist(context).await?;
+    let content = append_attachments_to_comment(content, &note.attachment, context).await?;
     let content = process_markdown(&content, slur_regex, &url_blocklist, context).await?;
     let language_id =
       LanguageTag::to_language_id_single(note.language, &mut context.pool()).await?;
