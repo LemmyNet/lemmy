@@ -247,13 +247,13 @@ pub(crate) mod tests {
   }
 
   async fn cleanup(
-    data: (ApubPerson, ApubCommunity, ApubPost, ApubSite),
+    (person, community, post, site): (ApubPerson, ApubCommunity, ApubPost, ApubSite),
     context: &LemmyContext,
   ) -> LemmyResult<()> {
-    Post::delete(&mut context.pool(), data.2.id).await?;
-    Community::delete(&mut context.pool(), data.1.id).await?;
-    Person::delete(&mut context.pool(), data.0.id).await?;
-    Site::delete(&mut context.pool(), data.3.id).await?;
+    Post::delete(&mut context.pool(), post.id).await?;
+    Community::delete(&mut context.pool(), community.id).await?;
+    Person::delete(&mut context.pool(), person.id).await?;
+    Site::delete(&mut context.pool(), site.id).await?;
     LocalSite::delete(&mut context.pool()).await?;
     Ok(())
   }
