@@ -42,13 +42,10 @@ pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
 pub fn markdown_handle_title(src: &str, start: usize, end: usize) -> (&str, Option<&str>) {
   let content = src.get(start..end).unwrap_or_default();
   // necessary for custom emojis which look like `![name](url "title")`
-  let (url, extra) = if content.contains(' ') {
-    let split = content.split_once(' ').expect("split is valid");
-    (split.0, Some(split.1))
-  } else {
-    (content, None)
-  };
-  (url, extra)
+  match content.split_once(' ') {
+    Some((a, b)) => (a, Some(b)),
+    _ => (content, None),
+  }
 }
 
 pub fn markdown_find_links(src: &str) -> Vec<(usize, usize)> {
@@ -61,9 +58,9 @@ fn find_urls<T: NodeValue + UrlAndTitle>(src: &str) -> Vec<(usize, usize)> {
   let mut links_offsets = vec![];
   ast.walk(|node, _depth| {
     if let Some(image) = node.cast::<T>() {
-      let node_offsets = node.srcmap.expect("srcmap is none").get_byte_offsets();
-      let start_offset = node_offsets.1 - image.url_len() - 1 - image.title_len();
-      let end_offset = node_offsets.1 - 1;
+      let (_, node_offset) = node.srcmap.expect("srcmap is none").get_byte_offsets();
+      let start_offset = node_offset - image.url_len() - 1 - image.title_len();
+      let end_offset = node_offset - 1;
 
       links_offsets.push((start_offset, end_offset));
     }
