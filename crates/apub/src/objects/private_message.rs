@@ -186,12 +186,12 @@ mod tests {
   }
 
   async fn cleanup(
-    data: (ApubPerson, ApubPerson, ApubSite),
+    (person1, person2, site): (ApubPerson, ApubPerson, ApubSite),
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    Person::delete(&mut context.pool(), data.0.id).await?;
-    Person::delete(&mut context.pool(), data.1.id).await?;
-    Site::delete(&mut context.pool(), data.2.id).await?;
+    Person::delete(&mut context.pool(), person1.id).await?;
+    Person::delete(&mut context.pool(), person2.id).await?;
+    Site::delete(&mut context.pool(), site.id).await?;
     Ok(())
   }
 
