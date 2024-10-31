@@ -179,9 +179,6 @@ impl Likeable for CommentLike {
     uplete::new(comment_actions::table.find((person_id, comment_id)))
       .set_null(comment_actions::like_score)
       .set_null(comment_actions::liked)
-      // Deleting empty `comment_actions` rows would not work without setting `post_id` to
-      // null, because it's not part of the primary key
-      .set_null(comment_actions::post_id)
       .get_result(conn)
       .await
   }
