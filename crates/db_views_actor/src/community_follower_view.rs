@@ -6,6 +6,7 @@ use diesel::{
   select,
   BoolExpressionMethods,
   ExpressionMethods,
+  JoinOnDsl,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -40,7 +41,7 @@ impl CommunityFollowerView {
 
     community_follower::table
       .inner_join(community::table)
-      .inner_join(person::table)
+      .inner_join(person::table.on(community_follower::person_id.eq(person::id)))
       .filter(person::instance_id.eq(instance_id))
       .filter(community::local) // this should be a no-op since community_followers table only has
       // local-person+remote-community or remote-person+local-community
@@ -59,7 +60,7 @@ impl CommunityFollowerView {
     let res = community_follower::table
       .filter(community_follower::community_id.eq(community_id))
       .filter(not(person::local))
-      .inner_join(person::table)
+      .inner_join(person::table.on(community_follower::person_id.eq(person::id)))
       .select(person::inbox_url)
       .distinct()
       .load::<DbUrl>(conn)
@@ -85,7 +86,7 @@ impl CommunityFollowerView {
     let conn = &mut get_conn(pool).await?;
     community_follower::table
       .inner_join(community::table)
-      .inner_join(person::table)
+      .inner_join(person::table.on(community_follower::person_id.eq(person::id)))
       .select((community::all_columns, person::all_columns))
       .filter(community_follower::person_id.eq(person_id))
       .filter(community::deleted.eq(false))
@@ -114,24 +115,32 @@ impl CommunityFollowerView {
 
     // check if the community already has an accepted follower from the same instance
     let is_new_instance = not(exists(
-      person_alias.inner_join(community_follower_alias).filter(
-        person::instance_id
-          .eq(person_alias.field(person::instance_id))
-          .and(
-            community_follower_alias
-              .field(community_follower::community_id)
-              .eq(community_follower::community_id),
-          )
-          .and(
-            community_follower_alias
-              .field(community_follower::state)
-              .eq(CommunityFollowerState::Accepted),
+      person_alias
+        .inner_join(
+          community_follower_alias.on(
+            person_alias
+              .field(person::id)
+              .eq(community_follower_alias.field(community_follower::person_id)),
           ),
-      ),
+        )
+        .filter(
+          person::instance_id
+            .eq(person_alias.field(person::instance_id))
+            .and(
+              community_follower_alias
+                .field(community_follower::community_id)
+                .eq(community_follower::community_id),
+            )
+            .and(
+              community_follower_alias
+                .field(community_follower::state)
+                .eq(CommunityFollowerState::Accepted),
+            ),
+        ),
     ));
 
     let mut query = community_follower::table
-      .inner_join(person::table)
+      .inner_join(person::table.on(community_follower::person_id.eq(person::id)))
       .inner_join(community::table)
       .into_boxed();
     if all_communities {
@@ -180,7 +189,7 @@ impl CommunityFollowerView {
   ) -> Result<i64, Error> {
     let conn = &mut get_conn(pool).await?;
     community_follower::table
-      .inner_join(person::table)
+      .inner_join(person::table.on(community_follower::person_id.eq(person::id)))
       .filter(community_follower::community_id.eq(community_id))
       .filter(community_follower::state.eq(CommunityFollowerState::ApprovalRequired))
       .select(count(community_follower::community_id))
@@ -215,7 +224,7 @@ impl CommunityFollowerView {
     let conn = &mut get_conn(pool).await?;
     select(exists(
       community_follower::table
-        .inner_join(person::table)
+        .inner_join(person::table.on(community_follower::person_id.eq(person::id)))
         .filter(community_follower::community_id.eq(community_id))
         .filter(person::instance_id.eq(instance_id))
         .filter(community_follower::state.eq(CommunityFollowerState::Accepted)),

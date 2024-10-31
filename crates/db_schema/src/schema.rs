@@ -1014,7 +1014,6 @@ diesel::joinable!(community_aggregates -> community (community_id));
 diesel::joinable!(community_block -> community (community_id));
 diesel::joinable!(community_block -> person (person_id));
 diesel::joinable!(community_follower -> community (community_id));
-diesel::joinable!(community_follower -> person (person_id));
 diesel::joinable!(community_language -> community (community_id));
 diesel::joinable!(community_language -> language (language_id));
 diesel::joinable!(community_moderator -> community (community_id));
