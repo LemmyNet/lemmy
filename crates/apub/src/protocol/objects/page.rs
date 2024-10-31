@@ -19,7 +19,7 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
-use lemmy_api_common::{context::LemmyContext, utils::proxy_image_link_opt_apub};
+use lemmy_api_common::{context::LemmyContext, utils::proxy_image_link};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
@@ -137,9 +137,7 @@ impl Attachment {
       media_type.is_some_and(|media| media.starts_with("video") || media.starts_with("image"));
 
     if is_image {
-      let url = proxy_image_link_opt_apub(Some(url), context)
-        .await?
-        .expect("No url");
+      let url = proxy_image_link(url, context).await?;
       Ok(format!("![{}]({url})", name.unwrap_or_default()))
     } else {
       Ok(format!("[{url}]({url})"))
