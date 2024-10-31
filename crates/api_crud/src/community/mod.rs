@@ -11,7 +11,7 @@ pub mod update;
 
 /// For now only admins can make communities private, in order to prevent abuse.
 /// Need to implement admin approval for new communities to get rid of this.
-fn check_set_community_private(
+fn check_community_visibility_allowed(
   visibility: Option<CommunityVisibility>,
   local_user_view: &LocalUserView,
 ) -> LemmyResult<()> {
