@@ -3,7 +3,11 @@ use crate::{
   fetcher::post_or_comment::PostOrComment,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{objects::LanguageTag, InCommunity, Source},
+  protocol::{
+    objects::{page::Attachment, LanguageTag},
+    InCommunity,
+    Source,
+  },
 };
 use activitypub_federation::{
   config::Data,
@@ -50,6 +54,8 @@ pub struct Note {
   pub(crate) distinguished: Option<bool>,
   pub(crate) language: Option<LanguageTag>,
   pub(crate) audience: Option<ObjectId<ApubCommunity>>,
+  #[serde(default)]
+  pub(crate) attachment: Vec<Attachment>,
 }
 
 impl Note {
