@@ -156,6 +156,7 @@ steps:
     environment:
       CARGO_HOME: .cargo_home
     commands:
+      - git diff
       - rustup component add clippy
       - cargo clippy --workspace --tests --all-targets -- -D warnings
     when: *slow_check_paths
