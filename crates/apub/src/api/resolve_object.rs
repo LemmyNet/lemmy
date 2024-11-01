@@ -86,7 +86,7 @@ mod tests {
     traits::Crud,
   };
   use lemmy_db_views::structs::LocalUserView;
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
 
   #[tokio::test]
