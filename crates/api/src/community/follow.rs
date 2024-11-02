@@ -15,14 +15,14 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn follow_community(
   data: Json<FollowCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommunityResponse>, LemmyError> {
+) -> LemmyResult<Json<CommunityResponse>> {
   let community = Community::read(&mut context.pool(), data.community_id).await?;
   let mut community_follower_form = CommunityFollowerForm {
     community_id: community.id,
@@ -45,23 +45,29 @@ pub async fn follow_community(
         .await
         .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
     }
-  }
-  if !data.follow {
+  } else {
     CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
       .await
       .with_lemmy_type(LemmyErrorType::CommunityFollowerAlreadyExists)?;
   }
 
-  ActivityChannel::submit_activity(
-    SendActivityData::FollowCommunity(community, local_user_view.person.clone(), data.follow),
-    &context,
+  if !community.local {
+    ActivityChannel::submit_activity(
+      SendActivityData::FollowCommunity(community, local_user_view.person.clone(), data.follow),
+      &context,
+    )
+    .await?;
+  }
+
+  let community_id = data.community_id;
+  let community_view = CommunityView::read(
+    &mut context.pool(),
+    community_id,
+    Some(&local_user_view.local_user),
+    false,
   )
   .await?;
 
-  let community_id = data.community_id;
-  let person_id = local_user_view.person.id;
-  let community_view =
-    CommunityView::read(&mut context.pool(), community_id, Some(person_id), false).await?;
   let discussion_languages = CommunityLanguage::read(&mut context.pool(), community_id).await?;
 
   Ok(Json(CommunityResponse {

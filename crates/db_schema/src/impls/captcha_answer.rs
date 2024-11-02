@@ -1,5 +1,5 @@
 use crate::{
-  schema::captcha_answer::dsl::{answer, captcha_answer, uuid},
+  schema::captcha_answer::dsl::{answer, captcha_answer},
   source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer},
   utils::{functions::lower, get_conn, DbPool},
 };
@@ -13,6 +13,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 impl CaptchaAnswer {
   pub async fn insert(pool: &mut DbPool<'_>, captcha: &CaptchaAnswerForm) -> Result<Self, Error> {
@@ -27,31 +28,30 @@ impl CaptchaAnswer {
   pub async fn check_captcha(
     pool: &mut DbPool<'_>,
     to_check: CheckCaptchaAnswer,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
 
     // fetch requested captcha
-    let captcha_exists = select(exists(
-      captcha_answer
-        .filter((uuid).eq(to_check.uuid))
-        .filter(lower(answer).eq(to_check.answer.to_lowercase().clone())),
-    ))
-    .get_result::<bool>(conn)
-    .await?;
+    let captcha_exists =
+      select(exists(captcha_answer.find(to_check.uuid).filter(
+        lower(answer).eq(to_check.answer.to_lowercase().clone()),
+      )))
+      .get_result::<bool>(conn)
+      .await?;
 
     // delete checked captcha
-    delete(captcha_answer.filter(uuid.eq(to_check.uuid)))
+    delete(captcha_answer.find(to_check.uuid))
       .execute(conn)
       .await?;
 
-    Ok(captcha_exists)
+    captcha_exists
+      .then_some(())
+      .ok_or(LemmyErrorType::CaptchaIncorrect.into())
   }
 }
 
 #[cfg(test)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer},
@@ -84,7 +84,6 @@ mod tests {
     .await;
 
     assert!(result.is_ok());
-    assert!(result.unwrap());
   }
 
   #[tokio::test]
@@ -120,7 +119,6 @@ mod tests {
     )
     .await;
 
-    assert!(result_repeat.is_ok());
-    assert!(!result_repeat.unwrap());
+    assert!(result_repeat.is_err());
   }
 }

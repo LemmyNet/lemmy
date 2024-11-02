@@ -1,4 +1,4 @@
-use crate::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use regex::{Regex, RegexBuilder};
 
 pub fn remove_slurs(test: &str, slur_regex: &Option<Regex>) -> String {
@@ -39,7 +39,7 @@ pub fn build_slur_regex(regex_str: Option<&str>) -> Option<Regex> {
   })
 }
 
-pub fn check_slurs(text: &str, slur_regex: &Option<Regex>) -> Result<(), LemmyError> {
+pub fn check_slurs(text: &str, slur_regex: &Option<Regex>) -> LemmyResult<()> {
   if let Err(slurs) = slur_check(text, slur_regex) {
     Err(anyhow::anyhow!("{}", slurs_vec_to_str(&slurs))).with_lemmy_type(LemmyErrorType::Slurs)
   } else {
@@ -47,10 +47,7 @@ pub fn check_slurs(text: &str, slur_regex: &Option<Regex>) -> Result<(), LemmyEr
   }
 }
 
-pub fn check_slurs_opt(
-  text: &Option<String>,
-  slur_regex: &Option<Regex>,
-) -> Result<(), LemmyError> {
+pub fn check_slurs_opt(text: &Option<String>, slur_regex: &Option<Regex>) -> LemmyResult<()> {
   match text {
     Some(t) => check_slurs(t, slur_regex),
     None => Ok(()),
@@ -65,15 +62,17 @@ pub(crate) fn slurs_vec_to_str(slurs: &[&str]) -> String {
 
 #[cfg(test)]
 mod test {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
-  use crate::utils::slurs::{remove_slurs, slur_check, slurs_vec_to_str};
+  use crate::{
+    error::LemmyResult,
+    utils::slurs::{remove_slurs, slur_check, slurs_vec_to_str},
+  };
+  use pretty_assertions::assert_eq;
   use regex::RegexBuilder;
 
   #[test]
-  fn test_slur_filter() {
-    let slur_regex = Some(RegexBuilder::new(r"(fag(g|got|tard)?\b|cock\s?sucker(s|ing)?|ni((g{2,}|q)+|[gq]{2,})[e3r]+(s|z)?|mudslime?s?|kikes?|\bspi(c|k)s?\b|\bchinks?|gooks?|bitch(es|ing|y)?|whor(es?|ing)|\btr(a|@)nn?(y|ies?)|\b(b|re|r)tard(ed)?s?)").case_insensitive(true).build().unwrap());
+  fn test_slur_filter() -> LemmyResult<()> {
+    let slur_regex = Some(RegexBuilder::new(r"(fag(g|got|tard)?\b|cock\s?sucker(s|ing)?|ni((g{2,}|q)+|[gq]{2,})[e3r]+(s|z)?|mudslime?s?|kikes?|\bspi(c|k)s?\b|\bchinks?|gooks?|bitch(es|ing|y)?|whor(es?|ing)|\btr(a|@)nn?(y|ies?)|\b(b|re|r)tard(ed)?s?)").case_insensitive(true).build()?);
     let test =
       "faggot test kike tranny cocksucker retardeds. Capitalized Niggerz. This is a bunch of other safe text.";
     let slur_free = "No slurs here";
@@ -98,12 +97,14 @@ mod test {
     if let Err(slur_vec) = slur_check(test, &slur_regex) {
       assert_eq!(&slurs_vec_to_str(&slur_vec), has_slurs_err_str);
     }
+
+    Ok(())
   }
 
   // These helped with testing
   // #[test]
   // fn test_send_email() {
-  //  let result =  send_email("not a subject", "test_email@gmail.com", "ur user", "<h1>HI there</h1>");
-  //   assert!(result.is_ok());
+  //  let result =  send_email("not a subject", "test_email@gmail.com", "ur user", "<h1>HI
+  // there</h1>");   assert!(result.is_ok());
   // }
 }

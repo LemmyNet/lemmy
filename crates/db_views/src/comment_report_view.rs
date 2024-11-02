@@ -12,16 +12,20 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
-  newtypes::{CommentReportId, CommunityId, PersonId},
+  newtypes::{CommentId, CommentReportId, CommunityId, PersonId},
   schema::{
     comment,
     comment_aggregates,
     comment_like,
     comment_report,
+    comment_saved,
     community,
+    community_follower,
     community_moderator,
     community_person_ban,
+    local_user,
     person,
+    person_block,
     post,
   },
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
@@ -52,41 +56,6 @@ fn queries<'a>() -> Queries<
         aliases::person2
           .on(comment_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
       )
-  };
-
-  let selection = (
-    comment_report::all_columns,
-    comment::all_columns,
-    post::all_columns,
-    community::all_columns,
-    person::all_columns,
-    aliases::person1.fields(person::all_columns),
-    comment_aggregates::all_columns,
-    community_person_ban::id.nullable().is_not_null(),
-    comment_like::score.nullable(),
-    aliases::person2.fields(person::all_columns).nullable(),
-  );
-
-  let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (CommentReportId, PersonId)| async move {
-    all_joins(
-      comment_report::table.find(report_id).into_boxed(),
-      my_person_id,
-    )
-    .left_join(
-      community_person_ban::table.on(
-        community::id
-          .eq(community_person_ban::community_id)
-          .and(community_person_ban::person_id.eq(comment::creator_id)),
-      ),
-    )
-    .select(selection)
-    .first::<CommentReportView>(&mut conn)
-    .await
-  };
-
-  let list = move |mut conn: DbConn<'a>,
-                   (options, user): (CommentReportQuery, &'a LocalUserView)| async move {
-    let mut query = all_joins(comment_report::table.into_boxed(), user.person.id)
       .left_join(
         community_person_ban::table.on(
           community::id
@@ -99,22 +68,101 @@ fn queries<'a>() -> Queries<
             ),
         ),
       )
-      .select(selection);
+      .left_join(
+        aliases::community_moderator1.on(
+          community::id
+            .eq(aliases::community_moderator1.field(community_moderator::community_id))
+            .and(
+              aliases::community_moderator1
+                .field(community_moderator::person_id)
+                .eq(comment::creator_id),
+            ),
+        ),
+      )
+      .left_join(
+        local_user::table.on(
+          comment::creator_id
+            .eq(local_user::person_id)
+            .and(local_user::admin.eq(true)),
+        ),
+      )
+      .left_join(
+        person_block::table.on(
+          comment::creator_id
+            .eq(person_block::target_id)
+            .and(person_block::person_id.eq(my_person_id)),
+        ),
+      )
+      .left_join(
+        community_follower::table.on(
+          post::community_id
+            .eq(community_follower::community_id)
+            .and(community_follower::person_id.eq(my_person_id)),
+        ),
+      )
+      .left_join(
+        comment_saved::table.on(
+          comment::id
+            .eq(comment_saved::comment_id)
+            .and(comment_saved::person_id.eq(my_person_id)),
+        ),
+      )
+      .select((
+        comment_report::all_columns,
+        comment::all_columns,
+        post::all_columns,
+        community::all_columns,
+        person::all_columns,
+        aliases::person1.fields(person::all_columns),
+        comment_aggregates::all_columns,
+        community_person_ban::community_id.nullable().is_not_null(),
+        aliases::community_moderator1
+          .field(community_moderator::community_id)
+          .nullable()
+          .is_not_null(),
+        local_user::admin.nullable().is_not_null(),
+        person_block::target_id.nullable().is_not_null(),
+        community_follower::pending.nullable(),
+        comment_saved::published.nullable().is_not_null(),
+        comment_like::score.nullable(),
+        aliases::person2.fields(person::all_columns).nullable(),
+      ))
+  };
+
+  let read = move |mut conn: DbConn<'a>, (report_id, my_person_id): (CommentReportId, PersonId)| async move {
+    all_joins(
+      comment_report::table.find(report_id).into_boxed(),
+      my_person_id,
+    )
+    .first(&mut conn)
+    .await
+  };
+
+  let list = move |mut conn: DbConn<'a>,
+                   (options, user): (CommentReportQuery, &'a LocalUserView)| async move {
+    let mut query = all_joins(comment_report::table.into_boxed(), user.person.id);
 
     if let Some(community_id) = options.community_id {
       query = query.filter(post::community_id.eq(community_id));
     }
 
+    if let Some(comment_id) = options.comment_id {
+      query = query.filter(comment_report::comment_id.eq(comment_id));
+    }
+
+    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
+    // first (FIFO)
     if options.unresolved_only {
-      query = query.filter(comment_report::resolved.eq(false));
+      query = query
+        .filter(comment_report::resolved.eq(false))
+        .order_by(comment_report::published.asc());
+    } else {
+      query = query.order_by(comment_report::published.desc());
     }
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
-    query = query
-      .order_by(comment_report::published.desc())
-      .limit(limit)
-      .offset(offset);
+    query = query.limit(limit).offset(offset);
 
     // If its not an admin, get only the ones you mod
     if !user.local_user.admin {
@@ -148,7 +196,7 @@ impl CommentReportView {
     queries().read(pool, (report_id, my_person_id)).await
   }
 
-  /// Returns the current unresolved post report count for the communities you mod
+  /// Returns the current unresolved comment report count for the communities you mod
   pub async fn get_report_count(
     pool: &mut DbPool<'_>,
     my_person_id: PersonId,
@@ -194,6 +242,7 @@ impl CommentReportView {
 #[derive(Default)]
 pub struct CommentReportQuery {
   pub community_id: Option<CommunityId>,
+  pub comment_id: Option<CommentId>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unresolved_only: bool,
@@ -210,9 +259,8 @@ impl CommentReportQuery {
 }
 
 #[cfg(test)]
+#[expect(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use crate::{
     comment_report_view::{CommentReportQuery, CommentReportView},
@@ -226,68 +274,56 @@ mod tests {
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
+      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Joinable, Reportable},
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, RANK_DEFAULT},
+    CommunityVisibility,
+    SubscribedType,
   };
+  use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_crud() {
+  async fn test_crud() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-    let new_person = PersonInsertForm::builder()
-      .name("timmy_crv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "timmy_crv");
 
-    let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
+    let inserted_timmy = Person::create(pool, &new_person).await?;
 
-    let new_local_user = LocalUserInsertForm::builder()
-      .person_id(inserted_timmy.id)
-      .password_encrypted("123".to_string())
-      .build();
-    let timmy_local_user = LocalUser::create(pool, &new_local_user).await.unwrap();
+    let new_local_user = LocalUserInsertForm::test_form(inserted_timmy.id);
+    let timmy_local_user = LocalUser::create(pool, &new_local_user, vec![]).await?;
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
+      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
       person: inserted_timmy.clone(),
       counts: Default::default(),
     };
 
-    let new_person_2 = PersonInsertForm::builder()
-      .name("sara_crv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_2 = PersonInsertForm::test_form(inserted_instance.id, "sara_crv");
 
-    let inserted_sara = Person::create(pool, &new_person_2).await.unwrap();
+    let inserted_sara = Person::create(pool, &new_person_2).await?;
 
     // Add a third person, since new ppl can only report something once.
-    let new_person_3 = PersonInsertForm::builder()
-      .name("jessica_crv".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person_3 = PersonInsertForm::test_form(inserted_instance.id, "jessica_crv");
 
-    let inserted_jessica = Person::create(pool, &new_person_3).await.unwrap();
+    let inserted_jessica = Person::create(pool, &new_person_3).await?;
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community crv".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
-    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community crv".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let inserted_community = Community::create(pool, &new_community).await?;
 
     // Make timmy a mod
     let timmy_moderator_form = CommunityModeratorForm {
@@ -295,25 +331,22 @@ mod tests {
       person_id: inserted_timmy.id,
     };
 
-    let _inserted_moderator = CommunityModerator::join(pool, &timmy_moderator_form)
-      .await
-      .unwrap();
+    let _inserted_moderator = CommunityModerator::join(pool, &timmy_moderator_form).await?;
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post crv".into())
-      .creator_id(inserted_timmy.id)
-      .community_id(inserted_community.id)
-      .build();
+    let new_post = PostInsertForm::new(
+      "A test post crv".into(),
+      inserted_timmy.id,
+      inserted_community.id,
+    );
 
-    let inserted_post = Post::create(pool, &new_post).await.unwrap();
+    let inserted_post = Post::create(pool, &new_post).await?;
 
-    let comment_form = CommentInsertForm::builder()
-      .content("A test comment 32".into())
-      .creator_id(inserted_timmy.id)
-      .post_id(inserted_post.id)
-      .build();
-
-    let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
+    let comment_form = CommentInsertForm::new(
+      inserted_timmy.id,
+      inserted_post.id,
+      "A test comment 32".into(),
+    );
+    let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     // sara reports
     let sara_report_form = CommentReportForm {
@@ -323,9 +356,7 @@ mod tests {
       reason: "from sara".into(),
     };
 
-    let inserted_sara_report = CommentReport::report(pool, &sara_report_form)
-      .await
-      .unwrap();
+    let inserted_sara_report = CommentReport::report(pool, &sara_report_form).await?;
 
     // jessica reports
     let jessica_report_form = CommentReportForm {
@@ -335,22 +366,21 @@ mod tests {
       reason: "from jessica".into(),
     };
 
-    let inserted_jessica_report = CommentReport::report(pool, &jessica_report_form)
-      .await
-      .unwrap();
+    let inserted_jessica_report = CommentReport::report(pool, &jessica_report_form).await?;
 
-    let agg = CommentAggregates::read(pool, inserted_comment.id)
-      .await
-      .unwrap();
+    let agg = CommentAggregates::read(pool, inserted_comment.id).await?;
 
     let read_jessica_report_view =
-      CommentReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
-        .await
-        .unwrap();
+      CommentReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id).await?;
     let expected_jessica_report_view = CommentReportView {
       comment_report: inserted_jessica_report.clone(),
       comment: inserted_comment.clone(),
       post: inserted_post,
+      creator_is_moderator: true,
+      creator_is_admin: false,
+      creator_blocked: false,
+      subscribed: SubscribedType::NotSubscribed,
+      saved: false,
       community: Community {
         id: inserted_community.id,
         name: inserted_community.name,
@@ -361,6 +391,7 @@ mod tests {
         actor_id: inserted_community.actor_id.clone(),
         local: true,
         title: inserted_community.title,
+        sidebar: None,
         description: None,
         updated: None,
         banner: None,
@@ -372,10 +403,10 @@ mod tests {
         last_refreshed_at: inserted_community.last_refreshed_at,
         followers_url: inserted_community.followers_url,
         inbox_url: inserted_community.inbox_url,
-        shared_inbox_url: inserted_community.shared_inbox_url,
         moderators_url: inserted_community.moderators_url,
         featured_url: inserted_community.featured_url,
         instance_id: inserted_instance.id,
+        visibility: CommunityVisibility::Public,
       },
       creator: Person {
         id: inserted_jessica.id,
@@ -392,7 +423,6 @@ mod tests {
         banner: None,
         updated: None,
         inbox_url: inserted_jessica.inbox_url.clone(),
-        shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
         instance_id: inserted_instance.id,
@@ -415,7 +445,6 @@ mod tests {
         banner: None,
         updated: None,
         inbox_url: inserted_timmy.inbox_url.clone(),
-        shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
         instance_id: inserted_instance.id,
@@ -425,14 +454,13 @@ mod tests {
       },
       creator_banned_from_community: false,
       counts: CommentAggregates {
-        id: agg.id,
         comment_id: inserted_comment.id,
         score: 0,
         upvotes: 0,
         downvotes: 0,
         published: agg.published,
         child_count: 0,
-        hot_rank: 0.1728,
+        hot_rank: RANK_DEFAULT,
         controversy_rank: 0.0,
       },
       my_vote: None,
@@ -458,7 +486,6 @@ mod tests {
       banner: None,
       updated: None,
       inbox_url: inserted_sara.inbox_url.clone(),
-      shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
       instance_id: inserted_instance.id,
@@ -470,31 +497,25 @@ mod tests {
     // Do a batch read of timmys reports
     let reports = CommentReportQuery::default()
       .list(pool, &timmy_view)
-      .await
-      .unwrap();
+      .await?;
 
     assert_eq!(
       reports,
       [
         expected_jessica_report_view.clone(),
-        expected_sara_report_view.clone()
+        expected_sara_report_view.clone(),
       ]
     );
 
     // Make sure the counts are correct
-    let report_count = CommentReportView::get_report_count(pool, inserted_timmy.id, false, None)
-      .await
-      .unwrap();
+    let report_count =
+      CommentReportView::get_report_count(pool, inserted_timmy.id, false, None).await?;
     assert_eq!(2, report_count);
 
     // Try to resolve the report
-    CommentReport::resolve(pool, inserted_jessica_report.id, inserted_timmy.id)
-      .await
-      .unwrap();
+    CommentReport::resolve(pool, inserted_jessica_report.id, inserted_timmy.id).await?;
     let read_jessica_report_view_after_resolve =
-      CommentReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
-        .await
-        .unwrap();
+      CommentReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id).await?;
 
     let mut expected_jessica_report_view_after_resolve = expected_jessica_report_view;
     expected_jessica_report_view_after_resolve
@@ -526,7 +547,6 @@ mod tests {
       private_key: inserted_timmy.private_key.clone(),
       public_key: inserted_timmy.public_key.clone(),
       last_refreshed_at: inserted_timmy.last_refreshed_at,
-      shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
       instance_id: inserted_instance.id,
@@ -544,24 +564,21 @@ mod tests {
       ..Default::default()
     }
     .list(pool, &timmy_view)
-    .await
-    .unwrap();
+    .await?;
     assert_eq!(reports_after_resolve[0], expected_sara_report_view);
     assert_eq!(reports_after_resolve.len(), 1);
 
     // Make sure the counts are correct
     let report_count_after_resolved =
-      CommentReportView::get_report_count(pool, inserted_timmy.id, false, None)
-        .await
-        .unwrap();
+      CommentReportView::get_report_count(pool, inserted_timmy.id, false, None).await?;
     assert_eq!(1, report_count_after_resolved);
 
-    Person::delete(pool, inserted_timmy.id).await.unwrap();
-    Person::delete(pool, inserted_sara.id).await.unwrap();
-    Person::delete(pool, inserted_jessica.id).await.unwrap();
-    Community::delete(pool, inserted_community.id)
-      .await
-      .unwrap();
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    Person::delete(pool, inserted_timmy.id).await?;
+    Person::delete(pool, inserted_sara.id).await?;
+    Person::delete(pool, inserted_jessica.id).await?;
+    Community::delete(pool, inserted_community.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    Ok(())
   }
 }

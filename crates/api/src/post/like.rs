@@ -5,7 +5,13 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostLike, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_user_action, check_downvotes_enabled, mark_post_as_read},
+  utils::{
+    check_bot_account,
+    check_community_user_action,
+    check_local_vote_mode,
+    mark_post_as_read,
+    VoteItem,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -16,7 +22,7 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::ops::Deref;
 
 #[tracing::instrument(skip(context))]
@@ -24,14 +30,21 @@ pub async fn like_post(
   data: Json<CreatePostLike>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PostResponse>, LemmyError> {
+) -> LemmyResult<Json<PostResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
+  let post_id = data.post_id;
 
-  // Don't do a downvote if site has downvotes disabled
-  check_downvotes_enabled(data.score, &local_site)?;
+  check_local_vote_mode(
+    data.score,
+    VoteItem::Post(post_id),
+    &local_site,
+    local_user_view.person.id,
+    &mut context.pool(),
+  )
+  .await?;
+  check_bot_account(&local_user_view.person)?;
 
   // Check for a community ban
-  let post_id = data.post_id;
   let post = Post::read(&mut context.pool(), post_id).await?;
 
   check_community_user_action(
@@ -60,25 +73,20 @@ pub async fn like_post(
       .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
   }
 
-  // Mark the post as read
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
+  let community = Community::read(&mut context.pool(), post.community_id).await?;
+
   ActivityChannel::submit_activity(
-    SendActivityData::LikePostOrComment(
-      post.ap_id,
-      local_user_view.person.clone(),
-      Community::read(&mut context.pool(), post.community_id).await?,
-      data.score,
-    ),
+    SendActivityData::LikePostOrComment {
+      object_id: post.ap_id,
+      actor: local_user_view.person.clone(),
+      community,
+      score: data.score,
+    },
     &context,
   )
   .await?;
 
-  build_post_response(
-    context.deref(),
-    post.community_id,
-    &local_user_view.person,
-    post_id,
-  )
-  .await
+  build_post_response(context.deref(), post.community_id, local_user_view, post_id).await
 }

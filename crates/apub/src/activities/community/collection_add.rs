@@ -36,7 +36,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Joinable},
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CollectionAdd {
@@ -46,7 +46,7 @@ impl CollectionAdd {
     added_mod: &ApubPerson,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     let id = generate_activity_id(
       AddType::Add,
       &context.settings().get_protocol_and_hostname(),
@@ -72,7 +72,7 @@ impl CollectionAdd {
     featured_post: &ApubPost,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     let id = generate_activity_id(
       AddType::Add,
       &context.settings().get_protocol_and_hostname(),
@@ -114,8 +114,7 @@ impl ActivityHandler for CollectionAdd {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_received_activity(&self.id, context).await?;
+  async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
@@ -124,7 +123,8 @@ impl ActivityHandler for CollectionAdd {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
+    insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =
       Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
     match collection_type {
@@ -133,8 +133,8 @@ impl ActivityHandler for CollectionAdd {
           .dereference(context)
           .await?;
 
-        // If we had to refetch the community while parsing the activity, then the new mod has already
-        // been added. Skip it here as it would result in a duplicate key error.
+        // If we had to refetch the community while parsing the activity, then the new mod has
+        // already been added. Skip it here as it would result in a duplicate key error.
         let new_mod_id = new_mod.id;
         let moderated_communities =
           CommunityModerator::get_person_moderated_communities(&mut context.pool(), new_mod_id)
@@ -179,7 +179,7 @@ pub(crate) async fn send_add_mod_to_community(
   updated_mod_id: PersonId,
   added: bool,
   context: Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let actor: ApubPerson = actor.into();
   let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
     .await?
@@ -199,7 +199,7 @@ pub(crate) async fn send_feature_post(
   actor: Person,
   featured: bool,
   context: Data<LemmyContext>,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let actor: ApubPerson = actor.into();
   let post: ApubPost = post.into();
   let community = Community::read(&mut context.pool(), post.community_id)

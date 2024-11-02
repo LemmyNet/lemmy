@@ -11,6 +11,9 @@ repository.workspace = true
 [lib]
 doctest = false
 
+[lints]
+workspace = true
+
 [features]
 full = [
   "lemmy_utils",
@@ -20,6 +23,8 @@ full = [
   "tracing",
   "ts-rs",
   "actix-web",
+  "i-love-jesus",
+  "lemmy_db_schema/full",
 ]
 
 [dependencies]
@@ -33,7 +38,11 @@ serde_with = { workspace = true }
 tracing = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
+i-love-jesus = { workspace = true, optional = true }
+chrono = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
 tokio = { workspace = true }
+pretty_assertions = { workspace = true }
+url = { workspace = true }

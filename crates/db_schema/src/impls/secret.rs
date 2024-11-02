@@ -13,8 +13,8 @@ impl Secret {
     Self::read_secrets(pool).await
   }
 
-  async fn read_secrets(pool: &mut DbPool<'_>) -> Result<Secret, Error> {
+  async fn read_secrets(pool: &mut DbPool<'_>) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    secret.first::<Secret>(conn).await
+    secret.first(conn).await
   }
 }

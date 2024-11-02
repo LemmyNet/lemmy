@@ -12,14 +12,14 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn delete_post(
   data: Json<DeletePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PostResponse>, LemmyError> {
+) -> LemmyResult<Json<PostResponse>> {
   let post_id = data.post_id;
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
@@ -52,7 +52,7 @@ pub async fn delete_post(
   .await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::DeletePost(post, local_user_view.person.clone(), data.0.clone()),
+    SendActivityData::DeletePost(post, local_user_view.person.clone(), data.0),
     &context,
   )
   .await?;
@@ -60,7 +60,7 @@ pub async fn delete_post(
   build_post_response(
     &context,
     orig_post.community_id,
-    &local_user_view.person,
+    local_user_view,
     data.post_id,
   )
   .await

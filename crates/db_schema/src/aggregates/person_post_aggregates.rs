@@ -1,11 +1,11 @@
 use crate::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
-  diesel::BoolExpressionMethods,
+  diesel::OptionalExtension,
   newtypes::{PersonId, PostId},
   schema::person_post_aggregates::dsl::{person_id, person_post_aggregates, post_id},
   utils::{get_conn, DbPool},
 };
-use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
 
 impl PersonPostAggregates {
@@ -26,11 +26,12 @@ impl PersonPostAggregates {
     pool: &mut DbPool<'_>,
     person_id_: PersonId,
     post_id_: PostId,
-  ) -> Result<Self, Error> {
+  ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     person_post_aggregates
-      .filter(post_id.eq(post_id_).and(person_id.eq(person_id_)))
-      .first::<Self>(conn)
+      .find((person_id_, post_id_))
+      .first(conn)
       .await
+      .optional()
   }
 }

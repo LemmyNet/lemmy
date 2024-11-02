@@ -3,3 +3,5 @@ edition = "2021"
 imports_layout = "HorizontalVertical"
 imports_granularity = "Crate"
 group_imports = "One"
+wrap_comments = true
+comment_width = 100

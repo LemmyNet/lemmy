@@ -1,5 +1,5 @@
 use crate::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
 use html2text;
@@ -25,7 +25,7 @@ pub async fn send_email(
   to_username: &str,
   html: &str,
   settings: &Settings,
-) -> Result<(), LemmyError> {
+) -> LemmyResult<()> {
   let email_config = settings.email.clone().ok_or(LemmyErrorType::NoEmailSetup)?;
   let domain = settings.hostname.clone();
 
@@ -75,10 +75,7 @@ pub async fn send_email(
   };
 
   // Set the creds if they exist
-  let smtp_password = std::env::var("LEMMY_SMTP_PASSWORD")
-    .ok()
-    .or(email_config.smtp_password);
-
+  let smtp_password = email_config.smtp_password();
   if let (Some(username), Some(password)) = (email_config.smtp_login, smtp_password) {
     builder = builder.credentials(Credentials::new(username, password));
   }

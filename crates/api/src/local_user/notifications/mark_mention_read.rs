@@ -9,14 +9,14 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonMentionView;
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn mark_person_mention_as_read(
   data: Json<MarkPersonMentionAsRead>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PersonMentionResponse>, LemmyError> {
+) -> LemmyResult<Json<PersonMentionResponse>> {
   let person_mention_id = data.person_mention_id;
   let read_person_mention = PersonMention::read(&mut context.pool(), person_mention_id).await?;
 

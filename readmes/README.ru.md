@@ -45,9 +45,9 @@
 
 ## О проекте
 
-| Десктоп                                                                                                    | Мобильный                                                                                                   |
-| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_img.webp) | ![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp) |
+| Десктоп                                                                                                         | Мобильный                                                                                                   |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_screen_2.webp) | ![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp) |
 
 [Lemmy](https://github.com/LemmyNet/lemmy) это аналог таких сайтов как [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), или [Hacker News](https://news.ycombinator.com/): вы подписываетесь на форумы, которые вас интересуют , размещаете ссылки и дискутируете, затем голосуете и комментируете их. Однако за кулисами всё совсем по-другому; любой может легко запустить сервер, и все эти серверы объединены (например электронная почта) и подключены к одной вселенной, именуемой [Федиверс](https://ru.wikipedia.org/wiki/Fediverse).
 

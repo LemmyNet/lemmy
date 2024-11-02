@@ -10,14 +10,17 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Associations, Identifiable, TS))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Associations, Identifiable, TS)
+)]
 #[cfg_attr(feature = "full", ts(export))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A comment.
 pub struct Comment {
   pub id: CommentId,
@@ -37,7 +40,8 @@ pub struct Comment {
   #[cfg(feature = "full")]
   #[cfg_attr(feature = "full", serde(with = "LtreeDef"))]
   #[cfg_attr(feature = "full", ts(type = "string"))]
-  /// The path / tree location of a comment, separated by dots, ending with the comment's id. Ex: 0.24.27
+  /// The path / tree location of a comment, separated by dots, ending with the comment's id. Ex:
+  /// 0.24.27
   pub path: Ltree,
   #[cfg(not(feature = "full"))]
   pub path: String,
@@ -46,24 +50,28 @@ pub struct Comment {
   pub language_id: LanguageId,
 }
 
-#[derive(Debug, Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Debug, Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 pub struct CommentInsertForm {
-  #[builder(!default)]
   pub creator_id: PersonId,
-  #[builder(!default)]
   pub post_id: PostId,
-  #[builder(!default)]
   pub content: String,
+  #[new(default)]
   pub removed: Option<bool>,
+  #[new(default)]
   pub published: Option<DateTime<Utc>>,
+  #[new(default)]
   pub updated: Option<DateTime<Utc>>,
+  #[new(default)]
   pub deleted: Option<bool>,
+  #[new(default)]
   pub ap_id: Option<DbUrl>,
+  #[new(default)]
   pub local: Option<bool>,
+  #[new(default)]
   pub distinguished: Option<bool>,
+  #[new(default)]
   pub language_id: Option<LanguageId>,
 }
 
@@ -83,14 +91,17 @@ pub struct CommentUpdateForm {
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_like))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct CommentLike {
-  pub id: i32,
   pub person_id: PersonId,
   pub comment_id: CommentId,
-  pub post_id: PostId, // TODO this is redundant
   pub score: i16,
   pub published: DateTime<Utc>,
 }
@@ -101,16 +112,19 @@ pub struct CommentLike {
 pub struct CommentLikeForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,
-  pub post_id: PostId, // TODO this is redundant
   pub score: i16,
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_saved))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct CommentSaved {
-  pub id: i32,
   pub comment_id: CommentId,
   pub person_id: PersonId,
   pub published: DateTime<Utc>,

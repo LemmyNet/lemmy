@@ -2,6 +2,7 @@
 use crate::schema::{person, person_follower};
 use crate::{
   newtypes::{DbUrl, InstanceId, PersonId},
+  sensitive::SensitiveString,
   source::placeholder_apub_url,
 };
 use chrono::{DateTime, Utc};
@@ -9,12 +10,12 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A person.
 pub struct Person {
@@ -35,7 +36,7 @@ pub struct Person {
   /// Whether the person is local to our site.
   pub local: bool,
   #[serde(skip)]
-  pub private_key: Option<String>,
+  pub private_key: Option<SensitiveString>,
   #[serde(skip)]
   pub public_key: String,
   #[serde(skip)]
@@ -47,8 +48,6 @@ pub struct Person {
   #[cfg_attr(feature = "full", ts(skip))]
   #[serde(skip, default = "placeholder_apub_url")]
   pub inbox_url: DbUrl,
-  #[serde(skip)]
-  pub shared_inbox_url: Option<DbUrl>,
   /// A matrix id, usually given an @person:matrix.org
   pub matrix_user_id: Option<String>,
   /// Whether the person is a bot account.
@@ -58,33 +57,44 @@ pub struct Person {
   pub instance_id: InstanceId,
 }
 
-#[derive(Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
 pub struct PersonInsertForm {
-  #[builder(!default)]
   pub name: String,
-  #[builder(!default)]
   pub public_key: String,
-  #[builder(!default)]
   pub instance_id: InstanceId,
+  #[new(default)]
   pub display_name: Option<String>,
+  #[new(default)]
   pub avatar: Option<DbUrl>,
+  #[new(default)]
   pub banned: Option<bool>,
+  #[new(default)]
   pub published: Option<DateTime<Utc>>,
+  #[new(default)]
   pub updated: Option<DateTime<Utc>>,
+  #[new(default)]
   pub actor_id: Option<DbUrl>,
+  #[new(default)]
   pub bio: Option<String>,
+  #[new(default)]
   pub local: Option<bool>,
+  #[new(default)]
   pub private_key: Option<String>,
+  #[new(default)]
   pub last_refreshed_at: Option<DateTime<Utc>>,
+  #[new(default)]
   pub banner: Option<DbUrl>,
+  #[new(default)]
   pub deleted: Option<bool>,
+  #[new(default)]
   pub inbox_url: Option<DbUrl>,
-  pub shared_inbox_url: Option<DbUrl>,
+  #[new(default)]
   pub matrix_user_id: Option<String>,
+  #[new(default)]
   pub bot_account: Option<bool>,
+  #[new(default)]
   pub ban_expires: Option<DateTime<Utc>>,
 }
 
@@ -105,18 +115,21 @@ pub struct PersonUpdateForm {
   pub banner: Option<Option<DbUrl>>,
   pub deleted: Option<bool>,
   pub inbox_url: Option<DbUrl>,
-  pub shared_inbox_url: Option<Option<DbUrl>>,
   pub matrix_user_id: Option<Option<String>>,
   pub bot_account: Option<bool>,
   pub ban_expires: Option<Option<DateTime<Utc>>>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
 #[cfg_attr(feature = "full", diesel(table_name = person_follower))]
+#[cfg_attr(feature = "full", diesel(primary_key(follower_id, person_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct PersonFollower {
-  pub id: i32,
   pub person_id: PersonId,
   pub follower_id: PersonId,
   pub published: DateTime<Utc>,

@@ -1,6 +1,11 @@
 use actix_web::{guard, web};
 use lemmy_api::{
-  comment::{distinguish::distinguish_comment, like::like_comment, save::save_comment},
+  comment::{
+    distinguish::distinguish_comment,
+    like::like_comment,
+    list_comment_likes::list_comment_likes,
+    save::save_comment,
+  },
   comment_report::{
     create::create_comment_report,
     list::list_comment_reports,
@@ -12,6 +17,7 @@ use lemmy_api::{
     block::block_community,
     follow::follow_community,
     hide::hide_community,
+    random::get_random_community,
     transfer::transfer_community,
   },
   local_user::{
@@ -24,6 +30,7 @@ use lemmy_api::{
     get_captcha::get_captcha,
     list_banned::list_banned_users,
     list_logins::list_logins,
+    list_media::list_media,
     login::login,
     logout::logout,
     notifications::{
@@ -44,7 +51,9 @@ use lemmy_api::{
   post::{
     feature::feature_post,
     get_link_metadata::get_link_metadata,
+    hide::hide_post,
     like::like_post,
+    list_post_likes::list_post_likes,
     lock::lock_post,
     mark_read::mark_post_as_read,
     save::save_post,
@@ -64,6 +73,7 @@ use lemmy_api::{
     block::block_instance,
     federated_instances::get_federated_instances,
     leave_admin::leave_admin,
+    list_all_media::list_all_media,
     mod_log::get_mod_log,
     purge::{
       comment::purge_comment,
@@ -73,6 +83,7 @@ use lemmy_api::{
     },
     registration_applications::{
       approve::approve_registration_application,
+      get::get_registration_application,
       list::list_registration_applications,
       unread_count::get_unread_registration_application_count,
     },
@@ -97,7 +108,13 @@ use lemmy_api_crud::{
   custom_emoji::{
     create::create_custom_emoji,
     delete::delete_custom_emoji,
+    list::list_custom_emojis,
     update::update_custom_emoji,
+  },
+  oauth_provider::{
+    create::create_oauth_provider,
+    delete::delete_oauth_provider,
+    update::update_oauth_provider,
   },
   post::{
     create::create_post,
@@ -113,7 +130,16 @@ use lemmy_api_crud::{
     update::update_private_message,
   },
   site::{create::create_site, read::get_site, update::update_site},
-  user::{create::register, delete::delete_account},
+  tagline::{
+    create::create_tagline,
+    delete::delete_tagline,
+    list::list_taglines,
+    update::update_tagline,
+  },
+  user::{
+    create::{authenticate_with_oauth, register},
+    delete::delete_account,
+  },
 };
 use lemmy_apub::api::{
   list_comments::list_comments,
@@ -124,11 +150,13 @@ use lemmy_apub::api::{
   search::search,
   user_settings_backup::{export_settings, import_settings},
 };
+use lemmy_routes::images::image_proxy;
 use lemmy_utils::rate_limit::RateLimitCell;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
     web::scope("/api/v3")
+      .route("/image_proxy", web::get().to(image_proxy))
       // Site
       .service(
         web::scope("/site")
@@ -166,6 +194,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.message())
           .route("", web::get().to(get_community))
           .route("", web::put().to(update_community))
+          .route("/random", web::get().to(get_random_community))
           .route("/hide", web::put().to(hide_community))
           .route("/list", web::get().to(list_communities))
           .route("/follow", web::post().to(follow_community))
@@ -198,10 +227,12 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/delete", web::post().to(delete_post))
           .route("/remove", web::post().to(remove_post))
           .route("/mark_as_read", web::post().to(mark_post_as_read))
+          .route("/hide", web::post().to(hide_post))
           .route("/lock", web::post().to(lock_post))
           .route("/feature", web::post().to(feature_post))
           .route("/list", web::get().to(list_posts))
           .route("/like", web::post().to(like_post))
+          .route("/like/list", web::get().to(list_post_likes))
           .route("/save", web::put().to(save_post))
           .route("/report", web::post().to(create_post_report))
           .route("/report/resolve", web::put().to(resolve_post_report))
@@ -226,6 +257,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/mark_as_read", web::post().to(mark_reply_as_read))
           .route("/distinguish", web::post().to(distinguish_comment))
           .route("/like", web::post().to(like_comment))
+          .route("/like/list", web::get().to(list_comment_likes))
           .route("/save", web::put().to(save_comment))
           .route("/list", web::get().to(list_comments))
           .route("/report", web::post().to(create_comment_report))
@@ -248,17 +280,49 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       // User
       .service(
         // Account action, I don't like that it's in /user maybe /accounts
-        // Handle /user/register separately to add the register() rate limitter
+        // Handle /user/register separately to add the register() rate limiter
         web::resource("/user/register")
           .guard(guard::Post())
           .wrap(rate_limit.register())
           .route(web::post().to(register)),
+      )
+      // User
+      .service(
+        // Handle /user/login separately to add the register() rate limiter
+        // TODO: pretty annoying way to apply rate limits for register and login, we should
+        //       group them under a common path so that rate limit is only applied once (eg under
+        // /account).
+        web::resource("/user/login")
+          .guard(guard::Post())
+          .wrap(rate_limit.register())
+          .route(web::post().to(login)),
+      )
+      .service(
+        web::resource("/user/password_reset")
+          .wrap(rate_limit.register())
+          .route(web::post().to(reset_password)),
       )
       .service(
         // Handle captcha separately
         web::resource("/user/get_captcha")
           .wrap(rate_limit.post())
           .route(web::get().to(get_captcha)),
+      )
+      .service(
+        web::resource("/user/export_settings")
+          .wrap(rate_limit.import_user_settings())
+          .route(web::get().to(export_settings)),
+      )
+      .service(
+        web::resource("/user/import_settings")
+          .wrap(rate_limit.import_user_settings())
+          .route(web::post().to(import_settings)),
+      )
+      // TODO, all the current account related actions under /user need to get moved here eventually
+      .service(
+        web::scope("/account")
+          .wrap(rate_limit.message())
+          .route("/list_media", web::get().to(list_media)),
       )
       // User actions
       .service(
@@ -276,10 +340,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/banned", web::get().to(list_banned_users))
           .route("/block", web::post().to(block_person))
           // TODO Account actions. I don't like that they're in /user maybe /accounts
-          .route("/login", web::post().to(login))
           .route("/logout", web::post().to(logout))
           .route("/delete_account", web::post().to(delete_account))
-          .route("/password_reset", web::post().to(reset_password))
           .route(
             "/password_change",
             web::post().to(change_password_after_reset),
@@ -300,12 +362,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/list_logins", web::get().to(list_logins))
           .route("/validate_auth", web::get().to(validate_auth)),
       )
-      .service(
-        web::scope("/user")
-          .wrap(rate_limit.import_user_settings())
-          .route("/export_settings", web::get().to(export_settings))
-          .route("/import_settings", web::post().to(import_settings)),
-      )
       // Admin Actions
       .service(
         web::scope("/admin")
@@ -323,12 +379,25 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
             "/registration_application/approve",
             web::put().to(approve_registration_application),
           )
+          .route(
+            "/registration_application",
+            web::get().to(get_registration_application),
+          )
+          .route("/list_all_media", web::get().to(list_all_media))
           .service(
             web::scope("/purge")
               .route("/person", web::post().to(purge_person))
               .route("/community", web::post().to(purge_community))
               .route("/post", web::post().to(purge_post))
               .route("/comment", web::post().to(purge_comment)),
+          )
+          .service(
+            web::scope("/tagline")
+              .wrap(rate_limit.message())
+              .route("", web::post().to(create_tagline))
+              .route("", web::put().to(update_tagline))
+              .route("/delete", web::post().to(delete_tagline))
+              .route("/list", web::get().to(list_taglines)),
           ),
       )
       .service(
@@ -336,7 +405,20 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.message())
           .route("", web::post().to(create_custom_emoji))
           .route("", web::put().to(update_custom_emoji))
-          .route("/delete", web::post().to(delete_custom_emoji)),
+          .route("/delete", web::post().to(delete_custom_emoji))
+          .route("/list", web::get().to(list_custom_emojis)),
+      )
+      .service(
+        web::scope("/oauth_provider")
+          .wrap(rate_limit.message())
+          .route("", web::post().to(create_oauth_provider))
+          .route("", web::put().to(update_oauth_provider))
+          .route("/delete", web::post().to(delete_oauth_provider)),
+      )
+      .service(
+        web::scope("/oauth")
+          .wrap(rate_limit.register())
+          .route("/authenticate", web::post().to(authenticate_with_oauth)),
       ),
   );
   cfg.service(

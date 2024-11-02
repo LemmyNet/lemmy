@@ -7,7 +7,7 @@
 [![Translation status](http://weblate.join-lemmy.org/widgets/lemmy/-/lemmy/svg-badge.svg)](http://weblate.join-lemmy.org/engage/lemmy/)
 [![License](https://img.shields.io/github/license/LemmyNet/lemmy.svg)](LICENSE)
 ![GitHub stars](https://img.shields.io/github/stars/LemmyNet/lemmy?style=social)
-[![Delightful Humane Tech](https://codeberg.org/teaserbot-labs/delightful-humane-design/raw/branch/main/humane-tech-badge.svg)](https://codeberg.org/teaserbot-labs/delightful-humane-design)
+<a href="https://endsoftwarepatents.org/innovating-without-patents"><img style="height: 20px;" src="https://static.fsf.org/nosvn/esp/logos/patent-free.svg"></a>
 
 </div>
 
@@ -47,9 +47,9 @@
 
 ## About The Project
 
-| Desktop                                                                                                    | Mobile                                                                                                      |
-| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_img.webp) | ![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp) |
+| Desktop                                                                                                         | Mobile                                                                                                      |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_screen_2.webp) | ![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp) |
 
 [Lemmy](https://github.com/LemmyNet/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
@@ -107,7 +107,6 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 - NSFW post / community support.
 - High performance.
   - Server is written in rust.
-  - Front end is `~80kB` gzipped.
   - Supports arm64 / Raspberry Pi.
 
 ## Installation
@@ -122,6 +121,8 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
 
+Lemmy is made possible by a generous grant from the [NLnet foundation](https://nlnet.nl/).
+
 - [Support on Liberapay](https://liberapay.com/Lemmy).
 - [Support on Patreon](https://www.patreon.com/dessalines).
 - [Support on OpenCollective](https://opencollective.com/lemmy).
@@ -132,21 +133,25 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 - bitcoin: `1Hefs7miXS5ff5Ck5xvmjKjXf5242KzRtK`
 - ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
 - monero: `41taVyY6e1xApqKyMVDRVxJ76sPkfZhALLTjRvVKpaAh2pBd4wv9RgYj1tSPrx8wc6iE1uWUfjtQdTmTy2FGMeChGVKPQuV`
-- cardano: `addr1q858t89l2ym6xmrugjs0af9cslfwvnvsh2xxp6x4dcez7pf5tushkp4wl7zxfhm2djp6gq60dk4cmc7seaza5p3slx0sakjutm`
 
 ## Contributing
+
+Read the following documentation to setup the development environment and start coding:
 
 - [Contributing instructions](https://join-lemmy.org/docs/contributors/01-overview.html)
 - [Docker Development](https://join-lemmy.org/docs/contributors/03-docker-development.html)
 - [Local Development](https://join-lemmy.org/docs/contributors/02-local-development.html)
 
+When working on an issue or pull request, you can comment with any questions you may have so that maintainers can answer them. You can also join the [Matrix Development Chat](https://matrix.to/#/#lemmydev:matrix.org) for general assistance.
+
 ### Translations
 
 - If you want to help with translating, take a look at [Weblate](https://weblate.join-lemmy.org/projects/lemmy/). You can also help by [translating the documentation](https://github.com/LemmyNet/lemmy-docs#adding-a-new-language).
 
-## Contact
+## Community
 
-- [Mastodon](https://mastodon.social/@LemmyDev)
+- [Matrix Space](https://matrix.to/#/#lemmy-space:matrix.org)
+- [Lemmy Forum](https://lemmy.ml/c/lemmy)
 - [Lemmy Support Forum](https://lemmy.ml/c/lemmy_support)
 
 ## Code Mirrors

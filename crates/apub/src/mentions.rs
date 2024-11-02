@@ -11,7 +11,10 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
+use lemmy_utils::{
+  error::{FederationError, LemmyResult},
+  utils::mention::scrape_text_for_mentions,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
@@ -44,7 +47,7 @@ pub async fn collect_non_local_mentions(
   comment: &ApubComment,
   community_id: ObjectId<ApubCommunity>,
   context: &Data<LemmyContext>,
-) -> Result<MentionsAndAddresses, LemmyError> {
+) -> LemmyResult<MentionsAndAddresses> {
   let parent_creator = get_comment_parent_creator(&mut context.pool(), comment).await?;
   let mut addressed_ccs: Vec<Url> = vec![community_id.into(), parent_creator.id()];
 
@@ -54,7 +57,10 @@ pub async fn collect_non_local_mentions(
     name: Some(format!(
       "@{}@{}",
       &parent_creator.name,
-      &parent_creator.id().domain().expect("has domain")
+      &parent_creator
+        .id()
+        .domain()
+        .ok_or(FederationError::UrlWithoutDomain)?
     )),
     kind: MentionType::Mention,
   };
@@ -94,7 +100,7 @@ pub async fn collect_non_local_mentions(
 async fn get_comment_parent_creator(
   pool: &mut DbPool<'_>,
   comment: &Comment,
-) -> Result<ApubPerson, LemmyError> {
+) -> LemmyResult<ApubPerson> {
   let parent_creator_id = if let Some(parent_comment_id) = comment.parent_comment_id() {
     let parent_comment = Comment::read(pool, parent_comment_id).await?;
     parent_comment.creator_id

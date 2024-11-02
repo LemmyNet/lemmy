@@ -6,10 +6,9 @@ use crate::{
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
-use strum_macros::Display;
+use strum::Display;
 use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -36,7 +35,7 @@ impl TryFrom<i16> for VoteType {
     match value {
       1 => Ok(VoteType::Like),
       -1 => Ok(VoteType::Dislike),
-      _ => Err(LemmyErrorType::InvalidVoteValue.into()),
+      _ => Err(FederationError::InvalidVoteValue.into()),
     }
   }
 }
@@ -52,7 +51,7 @@ impl From<&VoteType> for i16 {
 
 #[async_trait::async_trait]
 impl InCommunity for Vote {
-  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = self
       .object
       .dereference(context)

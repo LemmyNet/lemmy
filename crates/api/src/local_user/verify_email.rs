@@ -5,17 +5,12 @@ use lemmy_api_common::{
   utils::send_new_applicant_email_to_admins,
   SuccessResponse,
 };
-use lemmy_db_schema::{
-  source::{
-    email_verification::EmailVerification,
-    local_user::{LocalUser, LocalUserUpdateForm},
-    person::Person,
-  },
-  traits::Crud,
-  RegistrationMode,
+use lemmy_db_schema::source::{
+  email_verification::EmailVerification,
+  local_user::{LocalUser, LocalUserUpdateForm},
 };
-use lemmy_db_views::structs::SiteView;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_views::structs::{LocalUserView, SiteView};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn verify_email(
   data: Json<VerifyEmail>,
@@ -23,9 +18,7 @@ pub async fn verify_email(
 ) -> LemmyResult<Json<SuccessResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let token = data.token.clone();
-  let verification = EmailVerification::read_for_token(&mut context.pool(), &token)
-    .await
-    .with_lemmy_type(LemmyErrorType::TokenNotFound)?;
+  let verification = EmailVerification::read_for_token(&mut context.pool(), &token).await?;
 
   let form = LocalUserUpdateForm {
     // necessary in case this is a new signup
@@ -36,17 +29,20 @@ pub async fn verify_email(
   };
   let local_user_id = verification.local_user_id;
 
-  let local_user = LocalUser::update(&mut context.pool(), local_user_id, &form).await?;
+  LocalUser::update(&mut context.pool(), local_user_id, &form).await?;
 
   EmailVerification::delete_old_tokens_for_local_user(&mut context.pool(), local_user_id).await?;
 
   // send out notification about registration application to admins if enabled
-  if site_view.local_site.registration_mode == RegistrationMode::RequireApplication
-    && site_view.local_site.application_email_admins
-  {
-    let person = Person::read(&mut context.pool(), local_user.person_id).await?;
-    send_new_applicant_email_to_admins(&person.name, &mut context.pool(), context.settings())
-      .await?;
+  if site_view.local_site.application_email_admins {
+    let local_user = LocalUserView::read(&mut context.pool(), local_user_id).await?;
+
+    send_new_applicant_email_to_admins(
+      &local_user.person.name,
+      &mut context.pool(),
+      context.settings(),
+    )
+    .await?;
   }
 
   Ok(Json(SuccessResponse::default()))

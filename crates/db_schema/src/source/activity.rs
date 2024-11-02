@@ -1,6 +1,6 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl},
-  schema::sent_activity,
+  newtypes::{ActivityId, CommunityId, DbUrl},
+  schema::{received_activity, sent_activity},
 };
 use chrono::{DateTime, Utc};
 use diesel::{sql_types::Nullable, Queryable};
@@ -51,10 +51,12 @@ impl ActivitySendTargets {
   }
 }
 
-#[derive(PartialEq, Eq, Debug, Queryable)]
-#[diesel(table_name = sent_activity)]
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", diesel(table_name = sent_activity))]
 pub struct SentActivity {
-  pub id: i64,
+  pub id: ActivityId,
   pub ap_id: DbUrl,
   pub data: Value,
   pub sensitive: bool,
@@ -66,8 +68,8 @@ pub struct SentActivity {
   pub actor_apub_id: Option<DbUrl>,
 }
 
-#[derive(Insertable)]
-#[diesel(table_name = sent_activity)]
+#[cfg_attr(feature = "full", derive(Insertable))]
+#[cfg_attr(feature = "full", diesel(table_name = sent_activity))]
 pub struct SentActivityForm {
   pub ap_id: DbUrl,
   pub data: Value,
@@ -87,10 +89,12 @@ pub enum ActorType {
   Person,
 }
 
-#[derive(PartialEq, Eq, Debug, Queryable)]
-#[diesel(table_name = received_activity)]
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[cfg_attr(feature = "full", diesel(primary_key(ap_id)))]
+#[cfg_attr(feature = "full", diesel(table_name = received_activity))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct ReceivedActivity {
-  pub id: i64,
   pub ap_id: DbUrl,
   pub published: DateTime<Utc>,
 }

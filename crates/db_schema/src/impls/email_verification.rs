@@ -25,7 +25,7 @@ impl EmailVerification {
     let conn = &mut get_conn(pool).await?;
     insert_into(email_verification)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_result(conn)
       .await
   }
 
@@ -34,7 +34,7 @@ impl EmailVerification {
     email_verification
       .filter(verification_token.eq(token))
       .filter(published.gt(now.into_sql::<Timestamptz>() - 7.days()))
-      .first::<Self>(conn)
+      .first(conn)
       .await
   }
   pub async fn delete_old_tokens_for_local_user(

@@ -24,8 +24,8 @@ pub type Find<T> = dsl::Find<<T as HasTable>::Table, <T as Crud>::IdType>;
 
 pub type PrimaryKey<T> = <<T as HasTable>::Table as Table>::PrimaryKey;
 
-// Trying to create default implementations for `create` and `update` results in a lifetime mess and weird compile errors.
-// https://github.com/rust-lang/rust/issues/102211
+// Trying to create default implementations for `create` and `update` results in a lifetime mess and
+// weird compile errors. https://github.com/rust-lang/rust/issues/102211
 #[async_trait]
 pub trait Crud: HasTable + Sized
 where
@@ -45,10 +45,11 @@ where
   async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error> {
     let query: Find<Self> = Self::table().find(id);
     let conn = &mut *get_conn(pool).await?;
-    query.first::<Self>(conn).await
+    query.first(conn).await
   }
 
-  /// when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
+  /// when you want to null out a column, you have to send Some(None)), since sending None means you
+  /// just don't want to update that column.
   async fn update(
     pool: &mut DbPool<'_>,
     id: Self::IdType,
@@ -144,6 +145,7 @@ pub trait Blockable {
 pub trait Reportable {
   type Form;
   type IdType;
+  type ObjectIdType;
   async fn report(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
@@ -151,6 +153,13 @@ pub trait Reportable {
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
     resolver_id: PersonId,
+  ) -> Result<usize, Error>
+  where
+    Self: Sized;
+  async fn resolve_all_for_object(
+    pool: &mut DbPool<'_>,
+    comment_id_: Self::ObjectIdType,
+    by_resolver_id: PersonId,
   ) -> Result<usize, Error>
   where
     Self: Sized;
@@ -177,14 +186,14 @@ pub trait ApubActor {
     pool: &mut DbPool<'_>,
     actor_name: &str,
     include_deleted: bool,
-  ) -> Result<Self, Error>
+  ) -> Result<Option<Self>, Error>
   where
     Self: Sized;
   async fn read_from_name_and_domain(
     pool: &mut DbPool<'_>,
     actor_name: &str,
     protocol_domain: &str,
-  ) -> Result<Self, Error>
+  ) -> Result<Option<Self>, Error>
   where
     Self: Sized;
 }

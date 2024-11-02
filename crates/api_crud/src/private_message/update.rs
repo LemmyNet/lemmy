@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   private_message::{EditPrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::local_site_to_slur_regex,
+  utils::{get_url_blocklist, local_site_to_slur_regex, process_markdown},
 };
 use lemmy_db_schema::{
   source::{
@@ -16,8 +16,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
-  utils::{slurs::remove_slurs, validation::is_valid_body_field},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  utils::validation::is_valid_body_field,
 };
 
 #[tracing::instrument(skip(context))]
@@ -25,7 +25,7 @@ pub async fn update_private_message(
   data: Json<EditPrivateMessage>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PrivateMessageResponse>, LemmyError> {
+) -> LemmyResult<Json<PrivateMessageResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   // Checking permissions
@@ -36,8 +36,10 @@ pub async fn update_private_message(
   }
 
   // Doing the update
-  let content = remove_slurs(&data.content, &local_site_to_slur_regex(&local_site));
-  is_valid_body_field(&Some(content.clone()), false)?;
+  let slur_regex = local_site_to_slur_regex(&local_site);
+  let url_blocklist = get_url_blocklist(&context).await?;
+  let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
+  is_valid_body_field(&content, false)?;
 
   let private_message_id = data.private_message_id;
   PrivateMessage::update(

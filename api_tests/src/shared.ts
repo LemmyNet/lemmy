@@ -1,12 +1,20 @@
 import {
+  BlockCommunity,
+  BlockCommunityResponse,
   BlockInstance,
   BlockInstanceResponse,
+  CommunityId,
+  CreatePrivateMessageReport,
+  DeleteImage,
+  EditCommunity,
   GetReplies,
   GetRepliesResponse,
   GetUnreadCountResponse,
   InstanceId,
   LemmyHttp,
   PostView,
+  PrivateMessageReportResponse,
+  SuccessResponse,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -55,7 +63,6 @@ import { Register } from "lemmy-js-client/dist/types/Register";
 import { SaveUserSettings } from "lemmy-js-client/dist/types/SaveUserSettings";
 import { DeleteAccount } from "lemmy-js-client/dist/types/DeleteAccount";
 import { GetSiteResponse } from "lemmy-js-client/dist/types/GetSiteResponse";
-import { DeleteAccountResponse } from "lemmy-js-client/dist/types/DeleteAccountResponse";
 import { PrivateMessagesResponse } from "lemmy-js-client/dist/types/PrivateMessagesResponse";
 import { GetPrivateMessages } from "lemmy-js-client/dist/types/GetPrivateMessages";
 import { PostReportResponse } from "lemmy-js-client/dist/types/PostReportResponse";
@@ -72,19 +79,26 @@ import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDe
 import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 import { ListingType } from "lemmy-js-client/dist/types/ListingType";
 
-export let alphaUrl = "http://127.0.0.1:8541";
-export let betaUrl = "http://127.0.0.1:8551";
-export let gammaUrl = "http://127.0.0.1:8561";
-export let deltaUrl = "http://127.0.0.1:8571";
-export let epsilonUrl = "http://127.0.0.1:8581";
+export const fetchFunction = fetch;
+export const imageFetchLimit = 50;
+export const sampleImage =
+  "https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg";
+export const sampleSite = "https://yahoo.com";
 
-export let alpha = new LemmyHttp(alphaUrl);
-export let beta = new LemmyHttp(betaUrl);
-export let gamma = new LemmyHttp(gammaUrl);
-export let delta = new LemmyHttp(deltaUrl);
-export let epsilon = new LemmyHttp(epsilonUrl);
+export const alphaUrl = "http://127.0.0.1:8541";
+export const betaUrl = "http://127.0.0.1:8551";
+export const gammaUrl = "http://127.0.0.1:8561";
+export const deltaUrl = "http://127.0.0.1:8571";
+export const epsilonUrl = "http://127.0.0.1:8581";
 
-export let betaAllowedInstances = [
+export const alpha = new LemmyHttp(alphaUrl, { fetchFunction });
+export const alphaImage = new LemmyHttp(alphaUrl);
+export const beta = new LemmyHttp(betaUrl, { fetchFunction });
+export const gamma = new LemmyHttp(gammaUrl, { fetchFunction });
+export const delta = new LemmyHttp(deltaUrl, { fetchFunction });
+export const epsilon = new LemmyHttp(epsilonUrl, { fetchFunction });
+
+export const betaAllowedInstances = [
   "lemmy-alpha",
   "lemmy-gamma",
   "lemmy-delta",
@@ -132,6 +146,7 @@ export async function setupLogins() {
     resEpsilon,
   ]);
   alpha.setHeaders({ Authorization: `Bearer ${res[0].jwt ?? ""}` });
+  alphaImage.setHeaders({ Authorization: `Bearer ${res[0].jwt ?? ""}` });
   beta.setHeaders({ Authorization: `Bearer ${res[1].jwt ?? ""}` });
   gamma.setHeaders({ Authorization: `Bearer ${res[2].jwt ?? ""}` });
   delta.setHeaders({ Authorization: `Bearer ${res[3].jwt ?? ""}` });
@@ -168,12 +183,9 @@ export async function setupLogins() {
   ];
   await gamma.editSite(editSiteForm);
 
+  // Setup delta allowed instance
   editSiteForm.allowed_instances = ["lemmy-beta"];
   await delta.editSite(editSiteForm);
-
-  editSiteForm.allowed_instances = [];
-  editSiteForm.blocked_instances = ["lemmy-alpha"];
-  await epsilon.editSite(editSiteForm);
 
   // Create the main alpha/beta communities
   // Ignore thrown errors of duplicates
@@ -185,7 +197,7 @@ export async function setupLogins() {
     // (because last_successful_id is set to current id when federation to an instance is first started)
     // only needed the first time so do in this try
     await delay(10_000);
-  } catch (_) {
+  } catch {
     console.log("Communities already exist");
   }
 }
@@ -193,17 +205,20 @@ export async function setupLogins() {
 export async function createPost(
   api: LemmyHttp,
   community_id: number,
+  url: string = "https://example.com/",
+  body = randomString(10),
+  // use example.com for consistent title and embed description
+  name: string = randomString(5),
+  alt_text = randomString(10),
+  custom_thumbnail: string | undefined = undefined,
 ): Promise<PostResponse> {
-  let name = randomString(5);
-  let body = randomString(10);
-  // switch from google.com to example.com for consistent title (embed_title and embed_description)
-  // google switches description when a google doodle appears
-  let url = "https://example.com/";
   let form: CreatePost = {
     name,
     url,
     body,
+    alt_text,
     community_id,
+    custom_thumbnail,
   };
   return api.createPost(form);
 }
@@ -218,6 +233,21 @@ export async function editPost(
     post_id: post.id,
   };
   return api.editPost(form);
+}
+
+export async function createPostWithThumbnail(
+  api: LemmyHttp,
+  community_id: number,
+  url: string,
+  custom_thumbnail: string,
+): Promise<PostResponse> {
+  let form: CreatePost = {
+    name: randomString(10),
+    url,
+    community_id,
+    custom_thumbnail,
+  };
+  return api.createPost(form);
 }
 
 export async function deletePost(
@@ -287,6 +317,7 @@ export async function searchPostLocal(
     q: post.name,
     type_: "Posts",
     sort: "TopAll",
+    listing_type: "All",
   };
   return api.search(form);
 }
@@ -322,6 +353,7 @@ export async function getComments(
     post_id: post_id,
     type_: listingType,
     sort: "New",
+    limit: 50,
   };
   return api.getComments(form);
 }
@@ -332,10 +364,13 @@ export async function getUnreadCount(
   return api.getUnreadCount();
 }
 
-export async function getReplies(api: LemmyHttp): Promise<GetRepliesResponse> {
+export async function getReplies(
+  api: LemmyHttp,
+  unread_only: boolean = false,
+): Promise<GetRepliesResponse> {
   let form: GetReplies = {
     sort: "New",
-    unread_only: false,
+    unread_only,
   };
   return api.getReplies(form);
 }
@@ -384,13 +419,13 @@ export async function banPersonFromSite(
   api: LemmyHttp,
   person_id: number,
   ban: boolean,
-  remove_data: boolean,
+  remove_or_restore_data: boolean,
 ): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
     person_id,
     ban,
-    remove_data: remove_data,
+    remove_or_restore_data,
   };
   return api.banPerson(form);
 }
@@ -399,13 +434,13 @@ export async function banPersonFromCommunity(
   api: LemmyHttp,
   person_id: number,
   community_id: number,
-  remove_data: boolean,
+  remove_or_restore_data: boolean,
   ban: boolean,
 ): Promise<BanFromCommunityResponse> {
   let form: BanFromCommunity = {
     person_id,
     community_id,
-    remove_data: remove_data,
+    remove_or_restore_data,
     ban,
   };
   return api.banFromCommunity(form);
@@ -422,8 +457,9 @@ export async function followCommunity(
   };
   const res = await api.followCommunity(form);
   await waitUntil(
-    () => resolveCommunity(api, res.community_view.community.actor_id),
-    g => g.community?.subscribed === (follow ? "Subscribed" : "NotSubscribed"),
+    () => getCommunity(api, res.community_view.community.id),
+    g =>
+      g.community_view.subscribed === (follow ? "Subscribed" : "NotSubscribed"),
   );
   // wait FOLLOW_ADDITIONS_RECHECK_DELAY (there's no API to wait for this currently)
   await delay(2000);
@@ -517,7 +553,7 @@ export async function likeComment(
 
 export async function createCommunity(
   api: LemmyHttp,
-  name_: string = randomString(5),
+  name_: string = randomString(10),
 ): Promise<CommunityResponse> {
   let description = "a sample description";
   let form: CreateCommunity = {
@@ -526,6 +562,13 @@ export async function createCommunity(
     description,
   };
   return api.createCommunity(form);
+}
+
+export async function editCommunity(
+  api: LemmyHttp,
+  form: EditCommunity,
+): Promise<CommunityResponse> {
+  return api.editCommunity(form);
 }
 
 export async function getCommunity(
@@ -610,15 +653,22 @@ export async function deletePrivateMessage(
 
 export async function registerUser(
   api: LemmyHttp,
+  url: string,
   username: string = randomString(5),
-): Promise<LoginResponse> {
+): Promise<LemmyHttp> {
   let form: Register = {
     username,
     password,
     password_verify: password,
     show_nsfw: true,
   };
-  return api.register(form);
+  let login_response = await api.register(form);
+
+  expect(login_response.jwt).toBeDefined();
+  let lemmy_http = new LemmyHttp(url, {
+    headers: { Authorization: `Bearer ${login_response.jwt ?? ""}` },
+  });
+  return lemmy_http;
 }
 
 export async function loginUser(
@@ -634,13 +684,13 @@ export async function loginUser(
 
 export async function saveUserSettingsBio(
   api: LemmyHttp,
-): Promise<LoginResponse> {
+): Promise<SuccessResponse> {
   let form: SaveUserSettings = {
     show_nsfw: true,
     blur_nsfw: false,
     auto_expand: true,
     theme: "darkly",
-    default_sort_type: "Active",
+    default_post_sort_type: "Active",
     default_listing_type: "All",
     interface_language: "en",
     show_avatars: true,
@@ -652,15 +702,15 @@ export async function saveUserSettingsBio(
 
 export async function saveUserSettingsFederated(
   api: LemmyHttp,
-): Promise<LoginResponse> {
-  let avatar = "https://image.flaticon.com/icons/png/512/35/35896.png";
-  let banner = "https://image.flaticon.com/icons/png/512/36/35896.png";
+): Promise<SuccessResponse> {
+  let avatar = sampleImage;
+  let banner = sampleImage;
   let bio = "a changed bio";
   let form: SaveUserSettings = {
     show_nsfw: false,
     blur_nsfw: true,
     auto_expand: false,
-    default_sort_type: "Hot",
+    default_post_sort_type: "Hot",
     default_listing_type: "All",
     interface_language: "",
     avatar,
@@ -676,7 +726,7 @@ export async function saveUserSettingsFederated(
 export async function saveUserSettings(
   api: LemmyHttp,
   form: SaveUserSettings,
-): Promise<LoginResponse> {
+): Promise<SuccessResponse> {
   return api.saveUserSettings(form);
 }
 export async function getPersonDetails(
@@ -689,9 +739,7 @@ export async function getPersonDetails(
   return api.getPersonDetails(form);
 }
 
-export async function deleteUser(
-  api: LemmyHttp,
-): Promise<DeleteAccountResponse> {
+export async function deleteUser(api: LemmyHttp): Promise<SuccessResponse> {
   let form: DeleteAccount = {
     delete_content: true,
     password,
@@ -722,6 +770,7 @@ export async function unfollowRemotes(
   await Promise.all(
     remoteFollowed.map(cu => followCommunity(api, false, cu.community.id)),
   );
+
   let siteRes = await getSite(api);
   return siteRes;
 }
@@ -767,6 +816,18 @@ export async function reportComment(
   return api.createCommentReport(form);
 }
 
+export async function reportPrivateMessage(
+  api: LemmyHttp,
+  private_message_id: number,
+  reason: string,
+): Promise<PrivateMessageReportResponse> {
+  let form: CreatePrivateMessageReport = {
+    private_message_id,
+    reason,
+  };
+  return api.createPrivateMessageReport(form);
+}
+
 export async function listCommentReports(
   api: LemmyHttp,
 ): Promise<ListCommentReportsResponse> {
@@ -777,9 +838,12 @@ export async function listCommentReports(
 export function getPosts(
   api: LemmyHttp,
   listingType?: ListingType,
+  community_id?: number,
 ): Promise<GetPostsResponse> {
   let form: GetPosts = {
     type_: listingType,
+    limit: 50,
+    community_id,
   };
   return api.getPosts(form);
 }
@@ -794,6 +858,18 @@ export function blockInstance(
     block,
   };
   return api.blockInstance(form);
+}
+
+export function blockCommunity(
+  api: LemmyHttp,
+  community_id: CommunityId,
+  block: boolean,
+): Promise<BlockCommunityResponse> {
+  let form: BlockCommunity = {
+    community_id,
+    block,
+  };
+  return api.blockCommunity(form);
 }
 
 export function delay(millis = 500) {
@@ -819,13 +895,49 @@ export function randomString(length: number): string {
   return result;
 }
 
+export async function deleteAllImages(api: LemmyHttp) {
+  const imagesRes = await api.listAllMedia({
+    limit: imageFetchLimit,
+  });
+  Promise.all(
+    imagesRes.images
+      .map(image => {
+        const form: DeleteImage = {
+          token: image.local_image.pictrs_delete_token,
+          filename: image.local_image.pictrs_alias,
+        };
+        return form;
+      })
+      .map(form => api.deleteImage(form)),
+  );
+}
+
 export async function unfollows() {
   await Promise.all([
     unfollowRemotes(alpha),
+    unfollowRemotes(beta),
     unfollowRemotes(gamma),
     unfollowRemotes(delta),
     unfollowRemotes(epsilon),
   ]);
+  await Promise.all([
+    purgeAllPosts(alpha),
+    purgeAllPosts(beta),
+    purgeAllPosts(gamma),
+    purgeAllPosts(delta),
+    purgeAllPosts(epsilon),
+  ]);
+}
+
+export async function purgeAllPosts(api: LemmyHttp) {
+  // The best way to get all federated items, is to find the posts
+  let res = await api.getPosts({ type_: "All", limit: 50 });
+  await Promise.all(
+    Array.from(new Set(res.posts.map(p => p.post.id)))
+      .map(post_id => api.purgePost({ post_id }))
+      // Ignore errors
+      .map(p => p.catch(e => e)),
+  );
 }
 
 export function getCommentParentId(comment: Comment): number | undefined {
@@ -836,6 +948,7 @@ export function getCommentParentId(comment: Comment): number | undefined {
   if (split.length > 1) {
     return Number(split[split.length - 2]);
   } else {
+    console.log(`Failed to extract comment parent id from ${comment.path}`);
     return undefined;
   }
 }

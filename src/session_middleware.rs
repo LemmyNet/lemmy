@@ -1,7 +1,7 @@
 use actix_web::{
   body::MessageBody,
   dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-  http::header::CACHE_CONTROL,
+  http::header::{HeaderValue, CACHE_CONTROL},
   Error,
   HttpMessage,
 };
@@ -9,7 +9,6 @@ use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
 use lemmy_api::{local_user_view_from_jwt, read_auth_token};
 use lemmy_api_common::context::LemmyContext;
-use reqwest::header::HeaderValue;
 use std::{future::ready, rc::Rc};
 
 #[derive(Clone)]
@@ -79,16 +78,19 @@ where
 
       let mut res = svc.call(req).await?;
 
-      // Add cache-control header. If user is authenticated, mark as private. Otherwise cache
-      // up to one minute.
-      let cache_value = if jwt.is_some() {
-        "private"
-      } else {
-        "public, max-age=60"
-      };
-      res
-        .headers_mut()
-        .insert(CACHE_CONTROL, HeaderValue::from_static(cache_value));
+      // Add cache-control header if none is present
+      if !res.headers().contains_key(CACHE_CONTROL) {
+        // If user is authenticated, mark as private. Otherwise cache
+        // up to one minute.
+        let cache_value = if jwt.is_some() {
+          "private"
+        } else {
+          "public, max-age=60"
+        };
+        res
+          .headers_mut()
+          .insert(CACHE_CONTROL, HeaderValue::from_static(cache_value));
+      }
       Ok(res)
     })
   }
@@ -96,8 +98,6 @@ where
 
 #[cfg(test)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
   use actix_web::test::TestRequest;
@@ -112,7 +112,8 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
-  use lemmy_utils::rate_limit::RateLimitCell;
+  use lemmy_utils::{error::LemmyResult, rate_limit::RateLimitCell};
+  use pretty_assertions::assert_eq;
   use reqwest::Client;
   use reqwest_middleware::ClientBuilder;
   use serial_test::serial;
@@ -120,13 +121,15 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_session_auth() {
+  async fn test_session_auth() -> LemmyResult<()> {
     // hack, necessary so that config file can be loaded from hardcoded, relative path
-    set_current_dir("crates/utils").unwrap();
+    set_current_dir("crates/utils")?;
 
     let pool_ = build_db_pool_for_tests().await;
     let pool = &mut (&pool_).into();
-    let secret = Secret::init(pool).await.unwrap();
+
+    let secret = Secret::init(pool).await?;
+
     let context = LemmyContext::create(
       pool_.clone(),
       ClientBuilder::new(Client::default()).build(),
@@ -134,34 +137,25 @@ mod tests {
       RateLimitCell::with_test_config(),
     );
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-    let new_person = PersonInsertForm::builder()
-      .name("Gerry9812".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "Gerry9812");
 
-    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+    let inserted_person = Person::create(pool, &new_person).await?;
 
-    let local_user_form = LocalUserInsertForm::builder()
-      .person_id(inserted_person.id)
-      .password_encrypted("123456".to_string())
-      .build();
+    let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
 
-    let inserted_local_user = LocalUser::create(pool, &local_user_form).await.unwrap();
+    let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
 
     let req = TestRequest::default().to_http_request();
-    let jwt = Claims::generate(inserted_local_user.id, req, &context)
-      .await
-      .unwrap();
+    let jwt = Claims::generate(inserted_local_user.id, req, &context).await?;
 
     let valid = Claims::validate(&jwt, &context).await;
     assert!(valid.is_ok());
 
-    let num_deleted = Person::delete(pool, inserted_person.id).await.unwrap();
+    let num_deleted = Person::delete(pool, inserted_person.id).await?;
     assert_eq!(1, num_deleted);
+
+    Ok(())
   }
 }

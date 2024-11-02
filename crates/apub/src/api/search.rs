@@ -4,26 +4,30 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   site::{Search, SearchResponse},
-  utils::{check_private_instance, is_admin},
+  utils::{check_conflicting_like_filters, check_private_instance, is_admin},
 };
-use lemmy_db_schema::{
-  source::{community::Community, local_site::LocalSite},
-  utils::post_to_comment_sort_type,
-  SearchType,
+use lemmy_db_schema::{source::community::Community, utils::post_to_comment_sort_type, SearchType};
+use lemmy_db_views::{
+  comment_view::CommentQuery,
+  post_view::PostQuery,
+  structs::{LocalUserView, SiteView},
 };
-use lemmy_db_views::{comment_view::CommentQuery, post_view::PostQuery, structs::LocalUserView};
-use lemmy_db_views_actor::{community_view::CommunityQuery, person_view::PersonQuery};
-use lemmy_utils::error::LemmyError;
+use lemmy_db_views_actor::{
+  community_view::CommunityQuery,
+  person_view::PersonQuery,
+  structs::CommunitySortType,
+};
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn search(
   data: Query<Search>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> Result<Json<SearchResponse>, LemmyError> {
-  let local_site = LocalSite::read(&mut context.pool()).await?;
+) -> LemmyResult<Json<SearchResponse>> {
+  let local_site = SiteView::read_local(&mut context.pool()).await?;
 
-  check_private_instance(&local_user_view, &local_site)?;
+  check_private_instance(&local_user_view, &local_site.local_site)?;
 
   let is_admin = local_user_view
     .as_ref()
@@ -37,162 +41,135 @@ pub async fn search(
 
   // TODO no clean / non-nsfw searching rn
 
-  let q = data.q.clone();
-  let page = data.page;
-  let limit = data.limit;
-  let sort = data.sort;
-  let listing_type = data.listing_type;
-  let search_type = data.type_.unwrap_or(SearchType::All);
-  let community_id = if let Some(name) = &data.community_name {
+  let Query(Search {
+    q,
+    community_id,
+    community_name,
+    creator_id,
+    type_,
+    sort,
+    listing_type,
+    page,
+    limit,
+    title_only,
+    post_url_only,
+    saved_only,
+    liked_only,
+    disliked_only,
+  }) = data;
+
+  let q = q.clone();
+  let search_type = type_.unwrap_or(SearchType::All);
+  let community_id = if let Some(name) = &community_name {
     Some(
       resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, false)
         .await?,
     )
     .map(|c| c.id)
   } else {
-    data.community_id
+    community_id
   };
-  let creator_id = data.creator_id;
-  let local_user = local_user_view.as_ref().map(|l| l.local_user.clone());
+  let local_user = local_user_view.as_ref().map(|l| &l.local_user);
+
+  check_conflicting_like_filters(liked_only, disliked_only)?;
+
+  let posts_query = PostQuery {
+    sort,
+    listing_type,
+    community_id,
+    creator_id,
+    local_user,
+    search_term: Some(q.clone()),
+    page,
+    limit,
+    title_only,
+    url_only: post_url_only,
+    liked_only,
+    disliked_only,
+    saved_only,
+    ..Default::default()
+  };
+
+  let comment_query = CommentQuery {
+    sort: sort.map(post_to_comment_sort_type),
+    listing_type,
+    search_term: Some(q.clone()),
+    community_id,
+    creator_id,
+    local_user,
+    page,
+    limit,
+    liked_only,
+    disliked_only,
+    saved_only,
+    ..Default::default()
+  };
+
+  let community_query = CommunityQuery {
+    sort: sort.map(CommunitySortType::from),
+    listing_type,
+    search_term: Some(q.clone()),
+    title_only,
+    local_user,
+    is_mod_or_admin: is_admin,
+    page,
+    limit,
+    ..Default::default()
+  };
+
+  let person_query = PersonQuery {
+    sort,
+    search_term: Some(q.clone()),
+    listing_type,
+    page,
+    limit,
+  };
+
   match search_type {
     SearchType::Posts => {
-      posts = PostQuery {
-        sort: (sort),
-        listing_type: (listing_type),
-        community_id: (community_id),
-        creator_id: (creator_id),
-        local_user: (local_user_view.as_ref()),
-        search_term: (Some(q)),
-        page: (page),
-        limit: (limit),
-        ..Default::default()
-      }
-      .list(&mut context.pool())
-      .await?;
+      posts = posts_query
+        .list(&local_site.site, &mut context.pool())
+        .await?;
     }
     SearchType::Comments => {
-      comments = CommentQuery {
-        sort: (sort.map(post_to_comment_sort_type)),
-        listing_type: (listing_type),
-        search_term: (Some(q)),
-        community_id: (community_id),
-        creator_id: (creator_id),
-        local_user: (local_user_view.as_ref()),
-        page: (page),
-        limit: (limit),
-        ..Default::default()
-      }
-      .list(&mut context.pool())
-      .await?;
+      comments = comment_query
+        .list(&local_site.site, &mut context.pool())
+        .await?;
     }
     SearchType::Communities => {
-      communities = CommunityQuery {
-        sort: (sort),
-        listing_type: (listing_type),
-        search_term: (Some(q)),
-        local_user: (local_user.as_ref()),
-        is_mod_or_admin: (is_admin),
-        page: (page),
-        limit: (limit),
-        ..Default::default()
-      }
-      .list(&mut context.pool())
-      .await?;
+      communities = community_query
+        .list(&local_site.site, &mut context.pool())
+        .await?;
     }
     SearchType::Users => {
-      users = PersonQuery {
-        sort,
-        search_term: (Some(q)),
-        page: (page),
-        limit: (limit),
-      }
-      .list(&mut context.pool())
-      .await?;
+      users = person_query.list(&mut context.pool()).await?;
     }
     SearchType::All => {
       // If the community or creator is included, dont search communities or users
       let community_or_creator_included =
-        data.community_id.is_some() || data.community_name.is_some() || data.creator_id.is_some();
+        community_id.is_some() || community_name.is_some() || creator_id.is_some();
 
-      let q = data.q.clone();
+      posts = posts_query
+        .list(&local_site.site, &mut context.pool())
+        .await?;
 
-      posts = PostQuery {
-        sort: (sort),
-        listing_type: (listing_type),
-        community_id: (community_id),
-        creator_id: (creator_id),
-        local_user: (local_user_view.as_ref()),
-        search_term: (Some(q)),
-        page: (page),
-        limit: (limit),
-        ..Default::default()
-      }
-      .list(&mut context.pool())
-      .await?;
-
-      let q = data.q.clone();
-
-      comments = CommentQuery {
-        sort: (sort.map(post_to_comment_sort_type)),
-        listing_type: (listing_type),
-        search_term: (Some(q)),
-        community_id: (community_id),
-        creator_id: (creator_id),
-        local_user: (local_user_view.as_ref()),
-        page: (page),
-        limit: (limit),
-        ..Default::default()
-      }
-      .list(&mut context.pool())
-      .await?;
-
-      let q = data.q.clone();
+      comments = comment_query
+        .list(&local_site.site, &mut context.pool())
+        .await?;
 
       communities = if community_or_creator_included {
         vec![]
       } else {
-        CommunityQuery {
-          sort: (sort),
-          listing_type: (listing_type),
-          search_term: (Some(q)),
-          local_user: (local_user.as_ref()),
-          is_mod_or_admin: (is_admin),
-          page: (page),
-          limit: (limit),
-          ..Default::default()
-        }
-        .list(&mut context.pool())
-        .await?
+        community_query
+          .list(&local_site.site, &mut context.pool())
+          .await?
       };
-
-      let q = data.q.clone();
 
       users = if community_or_creator_included {
         vec![]
       } else {
-        PersonQuery {
-          sort,
-          search_term: (Some(q)),
-          page: (page),
-          limit: (limit),
-        }
-        .list(&mut context.pool())
-        .await?
+        person_query.list(&mut context.pool()).await?
       };
-    }
-    SearchType::Url => {
-      posts = PostQuery {
-        sort: (sort),
-        listing_type: (listing_type),
-        community_id: (community_id),
-        creator_id: (creator_id),
-        url_search: (Some(q)),
-        page: (page),
-        limit: (limit),
-        ..Default::default()
-      }
-      .list(&mut context.pool())
-      .await?;
     }
   };
 

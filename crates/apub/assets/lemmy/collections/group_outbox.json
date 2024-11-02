@@ -22,7 +22,6 @@
           ],
           "name": "another outbox test",
           "mediaType": "text/html",
-          "commentsEnabled": true,
           "sensitive": false,
           "stickied": false,
           "published": "2021-11-18T17:19:45.895163Z"
@@ -51,7 +50,6 @@
           ],
           "name": "outbox test",
           "mediaType": "text/html",
-          "commentsEnabled": true,
           "sensitive": false,
           "stickied": false,
           "published": "2021-11-18T17:19:05.763109Z"

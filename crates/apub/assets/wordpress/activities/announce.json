@@ -1,0 +1,49 @@
+{
+  "@context": ["https://www.w3.org/ns/activitystreams"],
+  "id": "https://pfefferle.org/lemmy-part-4/#activity#activity",
+  "type": "Announce",
+  "audience": "https://pfefferle.org/@pfefferle.org",
+  "published": "2024-05-03T12:32:29Z",
+  "updated": "2024-05-06T08:20:33Z",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public",
+    "https://pfefferle.org/wp-json/activitypub/1.0/actors/1/followers"
+  ],
+  "cc": [],
+  "object": {
+    "id": "https://pfefferle.org/lemmy-part-4/#activity",
+    "type": "Update",
+    "audience": "https://pfefferle.org/@pfefferle.org",
+    "published": "2024-05-03T12:32:29Z",
+    "updated": "2024-05-06T08:20:33Z",
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public",
+      "https://pfefferle.org/wp-json/activitypub/1.0/actors/1/followers"
+    ],
+    "cc": [],
+    "object": {
+      "id": "https://pfefferle.org/lemmy-part-4/",
+      "type": "Article",
+      "attachment": [],
+      "attributedTo": "https://pfefferle.org/author/pfefferle/",
+      "audience": "https://pfefferle.org/@pfefferle.org",
+      "content": "\u003Cp\u003EIdentifies one or more entities that represent the total population of entities for which the object can considered to be relevant. Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant.Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant.Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant.Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant.Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant.Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant.          \u003C/p\u003E",
+      "contentMap": {
+        "en": "\u003Cp\u003EIdentifies one or more entities that represent the total population of entities for which the object can considered to be relevant. Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant.Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant.Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant.Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant.Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant.Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant.          \u003C/p\u003E"
+      },
+      "name": "Lemmy (Part 4)",
+      "published": "2024-05-03T12:32:29Z",
+      "summary": "Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant. Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant.Identifies one or more entities that represent the total population of entities for which the object can considered to be relevant.Identifies one or more entities that represent the total population of entities for which the object [...]",
+      "tag": [],
+      "updated": "2024-05-06T08:20:33Z",
+      "url": "https://pfefferle.org/lemmy-part-4/",
+      "to": [
+        "https://www.w3.org/ns/activitystreams#Public",
+        "https://pfefferle.org/wp-json/activitypub/1.0/actors/1/followers"
+      ],
+      "cc": []
+    },
+    "actor": "https://pfefferle.org/author/pfefferle/"
+  },
+  "actor": "https://pfefferle.org/@pfefferle.org"
+}

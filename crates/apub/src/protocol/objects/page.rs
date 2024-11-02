@@ -19,9 +19,8 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
-use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::newtypes::DbUrl;
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_api_common::{context::LemmyContext, utils::proxy_image_link};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -43,7 +42,7 @@ pub struct Page {
   pub(crate) kind: PageType,
   pub(crate) id: ObjectId<ApubPost>,
   pub(crate) attributed_to: AttributedTo,
-  #[serde(deserialize_with = "deserialize_one_or_many")]
+  #[serde(deserialize_with = "deserialize_one_or_many", default)]
   pub(crate) to: Vec<Url>,
   // If there is inReplyTo field this is actually a comment and must not be parsed
   #[serde(deserialize_with = "deserialize_not_present", default)]
@@ -61,35 +60,42 @@ pub struct Page {
   #[serde(default)]
   pub(crate) attachment: Vec<Attachment>,
   pub(crate) image: Option<ImageObject>,
-  pub(crate) comments_enabled: Option<bool>,
   pub(crate) sensitive: Option<bool>,
   pub(crate) published: Option<DateTime<Utc>>,
   pub(crate) updated: Option<DateTime<Utc>>,
   pub(crate) language: Option<LanguageTag>,
   pub(crate) audience: Option<ObjectId<ApubCommunity>>,
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
+  pub(crate) tag: Vec<Hashtag>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Link {
-  pub(crate) href: Url,
-  pub(crate) r#type: LinkType,
+  href: Url,
+  media_type: Option<String>,
+  r#type: LinkType,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Image {
   #[serde(rename = "type")]
-  pub(crate) kind: ImageType,
-  pub(crate) url: Url,
+  kind: ImageType,
+  url: Url,
+  /// Used for alt_text
+  name: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Document {
   #[serde(rename = "type")]
-  pub(crate) kind: DocumentType,
-  pub(crate) url: Url,
+  kind: DocumentType,
+  url: Url,
+  media_type: Option<String>,
+  /// Used for alt_text
+  name: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -111,6 +117,32 @@ impl Attachment {
       Attachment::Document(d) => d.url,
     }
   }
+
+  pub(crate) fn alt_text(self) -> Option<String> {
+    match self {
+      Attachment::Image(i) => i.name,
+      Attachment::Document(d) => d.name,
+      _ => None,
+    }
+  }
+
+  pub(crate) async fn as_markdown(&self, context: &Data<LemmyContext>) -> LemmyResult<String> {
+    let (url, name, media_type) = match self {
+      Attachment::Image(i) => (i.url.clone(), i.name.clone(), Some(String::from("image"))),
+      Attachment::Document(d) => (d.url.clone(), d.name.clone(), d.media_type.clone()),
+      Attachment::Link(l) => (l.href.clone(), None, l.media_type.clone()),
+    };
+
+    let is_image =
+      media_type.is_some_and(|media| media.starts_with("video") || media.starts_with("image"));
+
+    if is_image {
+      let url = proxy_image_link(url, context).await?;
+      Ok(format!("![{}]({url})", name.unwrap_or_default()))
+    } else {
+      Ok(format!("[{url}]({url})"))
+    }
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -128,50 +160,49 @@ pub(crate) struct AttributedToPeertube {
   pub id: ObjectId<UserOrCommunity>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Hashtag {
+  pub(crate) href: Url,
+  pub(crate) name: String,
+  #[serde(rename = "type")]
+  pub(crate) kind: HashtagType,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum HashtagType {
+  Hashtag,
+}
+
 impl Page {
-  /// Only mods can change the post's locked status. So if it is changed from the default value,
-  /// it is a mod action and needs to be verified as such.
-  ///
-  /// Locked needs to be false on a newly created post (verified in [[CreatePost]].
-  pub(crate) async fn is_mod_action(
-    &self,
-    context: &Data<LemmyContext>,
-  ) -> Result<bool, LemmyError> {
-    let old_post = self.id.clone().dereference_local(context).await;
-    Ok(Page::is_locked_changed(&old_post, &self.comments_enabled))
-  }
-
-  pub(crate) fn is_locked_changed<E>(
-    old_post: &Result<ApubPost, E>,
-    new_comments_enabled: &Option<bool>,
-  ) -> bool {
-    if let Some(new_comments_enabled) = new_comments_enabled {
-      if let Ok(old_post) = old_post {
-        return new_comments_enabled != &!old_post.locked;
-      }
-    }
-
-    false
-  }
-
-  pub(crate) fn creator(&self) -> Result<ObjectId<ApubPerson>, LemmyError> {
+  pub(crate) fn creator(&self) -> LemmyResult<ObjectId<ApubPerson>> {
     match &self.attributed_to {
       AttributedTo::Lemmy(l) => Ok(l.clone()),
       AttributedTo::Peertube(p) => p
         .iter()
         .find(|a| a.kind == PersonOrGroupType::Person)
         .map(|a| ObjectId::<ApubPerson>::from(a.id.clone().into_inner()))
-        .ok_or_else(|| LemmyErrorType::PageDoesNotSpecifyCreator.into()),
+        .ok_or_else(|| FederationError::PageDoesNotSpecifyCreator.into()),
     }
   }
 }
 
 impl Attachment {
-  pub(crate) fn new(url: DbUrl) -> Attachment {
-    Attachment::Link(Link {
-      href: url.into(),
-      r#type: Default::default(),
-    })
+  /// Creates new attachment for a given link and mime type.
+  pub(crate) fn new(url: Url, media_type: Option<String>, alt_text: Option<String>) -> Attachment {
+    let is_image = media_type.clone().unwrap_or_default().starts_with("image");
+    if is_image {
+      Attachment::Image(Image {
+        kind: Default::default(),
+        url,
+        name: alt_text,
+      })
+    } else {
+      Attachment::Link(Link {
+        href: url,
+        media_type,
+        r#type: Default::default(),
+      })
+    }
   }
 }
 
@@ -181,15 +212,17 @@ impl ActivityHandler for Page {
   type DataType = LemmyContext;
   type Error = LemmyError;
   fn id(&self) -> &Url {
-    unimplemented!()
+    self.id.inner()
   }
+
   fn actor(&self) -> &Url {
-    unimplemented!()
+    debug_assert!(false);
+    self.id.inner()
   }
-  async fn verify(&self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn verify(&self, data: &Data<Self::DataType>) -> LemmyResult<()> {
     ApubPost::verify(self, self.id.inner(), data).await
   }
-  async fn receive(self, data: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, data: &Data<Self::DataType>) -> LemmyResult<()> {
     ApubPost::from_json(self, data).await?;
     Ok(())
   }
@@ -197,7 +230,11 @@ impl ActivityHandler for Page {
 
 #[async_trait::async_trait]
 impl InCommunity for Page {
-  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    if let Some(audience) = &self.audience {
+      return audience.dereference(context).await;
+    }
+
     let community = match &self.attributed_to {
       AttributedTo::Lemmy(_) => {
         let mut iter = self.to.iter().merge(self.cc.iter());
@@ -208,7 +245,7 @@ impl InCommunity for Page {
               break c;
             }
           } else {
-            Err(LemmyErrorType::NoCommunityFoundInCc)?
+            Err(LemmyErrorType::NotFound)?;
           }
         }
       }
@@ -216,11 +253,12 @@ impl InCommunity for Page {
         p.iter()
           .find(|a| a.kind == PersonOrGroupType::Group)
           .map(|a| ObjectId::<ApubCommunity>::from(a.id.clone().into_inner()))
-          .ok_or(LemmyErrorType::PageDoesNotSpecifyGroup)?
+          .ok_or(LemmyErrorType::NotFound)?
           .dereference(context)
           .await?
       }
     };
+
     if let Some(audience) = &self.audience {
       verify_community_matches(audience, community.actor_id.clone())?;
     }
@@ -242,9 +280,6 @@ where
 
 #[cfg(test)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
-
   use crate::protocol::{objects::page::Page, tests::test_parse_lemmy_item};
 
   #[test]

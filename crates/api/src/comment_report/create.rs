@@ -5,7 +5,11 @@ use lemmy_api_common::{
   comment::{CommentReportResponse, CreateCommentReport},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_user_action, send_new_report_email_to_admins},
+  utils::{
+    check_comment_deleted_or_removed,
+    check_community_user_action,
+    send_new_report_email_to_admins,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -15,7 +19,7 @@ use lemmy_db_schema::{
   traits::Reportable,
 };
 use lemmy_db_views::structs::{CommentReportView, CommentView, LocalUserView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 /// Creates a comment report and notifies the moderators of the community
 #[tracing::instrument(skip(context))]
@@ -23,7 +27,7 @@ pub async fn create_comment_report(
   data: Json<CreateCommentReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<CommentReportResponse>, LemmyError> {
+) -> LemmyResult<Json<CommentReportResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let reason = data.reason.trim().to_string();
@@ -31,7 +35,12 @@ pub async fn create_comment_report(
 
   let person_id = local_user_view.person.id;
   let comment_id = data.comment_id;
-  let comment_view = CommentView::read(&mut context.pool(), comment_id, None).await?;
+  let comment_view = CommentView::read(
+    &mut context.pool(),
+    comment_id,
+    Some(&local_user_view.local_user),
+  )
+  .await?;
 
   check_community_user_action(
     &local_user_view.person,
@@ -39,6 +48,9 @@ pub async fn create_comment_report(
     &mut context.pool(),
   )
   .await?;
+
+  // Don't allow creating reports for removed / deleted comments
+  check_comment_deleted_or_removed(&comment_view.comment)?;
 
   let report_form = CommentReportForm {
     creator_id: person_id,
@@ -66,12 +78,12 @@ pub async fn create_comment_report(
   }
 
   ActivityChannel::submit_activity(
-    SendActivityData::CreateReport(
-      comment_view.comment.ap_id.inner().clone(),
-      local_user_view.person,
-      comment_view.community,
-      data.reason.clone(),
-    ),
+    SendActivityData::CreateReport {
+      object_id: comment_view.comment.ap_id.inner().clone(),
+      actor: local_user_view.person,
+      community: comment_view.community,
+      reason: data.reason.clone(),
+    },
     &context,
   )
   .await?;

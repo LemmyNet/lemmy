@@ -47,9 +47,9 @@
 
 ## プロジェクトについて
 
-| デスクトップ                                                                                               | モバイル                                                                                                    |
-| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_img.webp) | ![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp) |
+| デスクトップ                                                                                                    | モバイル                                                                                                    |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| ![desktop](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/main_screen_2.webp) | ![mobile](https://raw.githubusercontent.com/LemmyNet/joinlemmy-site/main/src/assets/images/mobile_pic.webp) |
 
 [Lemmy](https://github.com/LemmyNet/lemmy) は、[Reddit](https://reddit.com)、[Lobste.rs](https://lobste.rs)、[Hacker News](https://news.ycombinator.com/) といったサイトに似ています。興味のあるフォーラムを購読してリンクや議論を掲載し、投票したり、コメントしたりしています。誰でも簡単にサーバーを運営することができ、これらのサーバーはすべて連合しており（電子メールを考えてください）、[Fediverse](https://en.wikipedia.org/wiki/Fediverse) と呼ばれる同じ宇宙に接続されています。
 
@@ -150,7 +150,6 @@ Lemmy はフリーでオープンソースのソフトウェアです。つま�
 - bitcoin: `1Hefs7miXS5ff5Ck5xvmjKjXf5242KzRtK`
 - ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
 - monero: `41taVyY6e1xApqKyMVDRVxJ76sPkfZhALLTjRvVKpaAh2pBd4wv9RgYj1tSPrx8wc6iE1uWUfjtQdTmTy2FGMeChGVKPQuV`
-- cardano: `addr1q858t89l2ym6xmrugjs0af9cslfwvnvsh2xxp6x4dcez7pf5tushkp4wl7zxfhm2djp6gq60dk4cmc7seaza5p3slx0sakjutm`
 
 ## コントリビュート
 

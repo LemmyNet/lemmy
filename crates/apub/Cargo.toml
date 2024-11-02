@@ -1,5 +1,6 @@
 [package]
 name = "lemmy_apub"
+publish = false
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -13,8 +14,11 @@ name = "lemmy_apub"
 path = "src/lib.rs"
 doctest = false
 
+[lints]
+workspace = true
+
 [dependencies]
-lemmy_utils = { workspace = true }
+lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_views = { workspace = true, features = ["full"] }
 lemmy_db_views_actor = { workspace = true, features = ["full"] }
@@ -27,25 +31,22 @@ serde = { workspace = true }
 actix-web = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-strum_macros = { workspace = true }
+strum = { workspace = true }
 url = { workspace = true }
-http = { workspace = true }
 futures = { workspace = true }
 itertools = { workspace = true }
 uuid = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }
 reqwest = { workspace = true }
-once_cell = { workspace = true }
+moka.workspace = true
+serde_with.workspace = true
 html2md = "0.2.14"
-html2text = "0.6.0"
+html2text = "0.12.5"
 stringreader = "0.1.1"
-serde_with = { workspace = true }
 enum_delegate = "0.2.0"
-moka = { version = "0.11", features = ["future"] }
 
 [dev-dependencies]
 serial_test = { workspace = true }
-reqwest-middleware = { workspace = true }
-task-local-extensions = "0.1.4"
 assert-json-diff = "2.0.2"
+pretty_assertions = { workspace = true }

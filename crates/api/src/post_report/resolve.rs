@@ -6,7 +6,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
 use lemmy_db_views::structs::{LocalUserView, PostReportView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 /// Resolves or unresolves a post report and notifies the moderators of the community
 #[tracing::instrument(skip(context))]
@@ -14,7 +14,7 @@ pub async fn resolve_post_report(
   data: Json<ResolvePostReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PostReportResponse>, LemmyError> {
+) -> LemmyResult<Json<PostReportResponse>> {
   let report_id = data.report_id;
   let person_id = local_user_view.person.id;
   let report = PostReportView::read(&mut context.pool(), report_id, person_id).await?;
@@ -23,7 +23,7 @@ pub async fn resolve_post_report(
   check_community_mod_action(
     &local_user_view.person,
     report.community.id,
-    false,
+    true,
     &mut context.pool(),
   )
   .await?;

@@ -4,7 +4,11 @@ use lemmy_api_common::{
   community::{BanFromCommunity, BanFromCommunityResponse},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, check_expire_time, remove_user_data_in_community},
+  utils::{
+    check_community_mod_action,
+    check_expire_time,
+    remove_or_restore_user_data_in_community,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -14,6 +18,7 @@ use lemmy_db_schema::{
       CommunityPersonBan,
       CommunityPersonBanForm,
     },
+    local_user::LocalUser,
     moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
   },
   traits::{Bannable, Crud, Followable},
@@ -21,7 +26,7 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::validation::is_valid_body_field,
 };
 
@@ -30,9 +35,8 @@ pub async fn ban_from_community(
   data: Json<BanFromCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<BanFromCommunityResponse>, LemmyError> {
+) -> LemmyResult<Json<BanFromCommunityResponse>> {
   let banned_person_id = data.person_id;
-  let remove_data = data.remove_data.unwrap_or(false);
   let expires = check_expire_time(data.expires)?;
 
   // Verify that only mods or admins can ban
@@ -43,7 +47,18 @@ pub async fn ban_from_community(
     &mut context.pool(),
   )
   .await?;
-  is_valid_body_field(&data.reason, false)?;
+
+  LocalUser::is_higher_mod_or_admin_check(
+    &mut context.pool(),
+    data.community_id,
+    local_user_view.person.id,
+    vec![data.person_id],
+  )
+  .await?;
+
+  if let Some(reason) = &data.reason {
+    is_valid_body_field(reason, false)?;
+  }
 
   let community_user_ban_form = CommunityPersonBanForm {
     community_id: data.community_id,
@@ -73,9 +88,18 @@ pub async fn ban_from_community(
   }
 
   // Remove/Restore their data if that's desired
-  if remove_data {
-    remove_user_data_in_community(data.community_id, banned_person_id, &mut context.pool()).await?;
-  }
+  if data.remove_or_restore_data.unwrap_or(false) {
+    let remove_data = data.ban;
+    remove_or_restore_user_data_in_community(
+      data.community_id,
+      local_user_view.person.id,
+      banned_person_id,
+      remove_data,
+      &data.reason,
+      &mut context.pool(),
+    )
+    .await?;
+  };
 
   // Mod tables
   let form = ModBanFromCommunityForm {
@@ -92,12 +116,12 @@ pub async fn ban_from_community(
   let person_view = PersonView::read(&mut context.pool(), data.person_id).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::BanFromCommunity(
-      local_user_view.person,
-      data.community_id,
-      person_view.person.clone(),
-      data.0.clone(),
-    ),
+    SendActivityData::BanFromCommunity {
+      moderator: local_user_view.person,
+      community_id: data.community_id,
+      target: person_view.person.clone(),
+      data: data.0.clone(),
+    },
     &context,
   )
   .await?;

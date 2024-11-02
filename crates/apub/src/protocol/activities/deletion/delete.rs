@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -40,11 +40,14 @@ pub struct Delete {
   /// If summary is present, this is a mod action (Remove in Lemmy terms). Otherwise, its a user
   /// deleting their own content.
   pub(crate) summary: Option<String>,
+  /// Nonstandard field, only valid if object refers to a Person. If present, all content from the
+  /// user should be deleted along with the account
+  pub(crate) remove_data: Option<bool>,
 }
 
 #[async_trait::async_trait]
 impl InCommunity for Delete {
-  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community_id = match DeletableObjects::read_from_db(self.object.id(), context).await? {
       DeletableObjects::Community(c) => c.id,
       DeletableObjects::Comment(c) => {
@@ -52,6 +55,7 @@ impl InCommunity for Delete {
         post.community_id
       }
       DeletableObjects::Post(p) => p.community_id,
+      DeletableObjects::Person(_) => return Err(anyhow!("Person is not part of community").into()),
       DeletableObjects::PrivateMessage(_) => {
         return Err(anyhow!("Private message is not part of community").into())
       }

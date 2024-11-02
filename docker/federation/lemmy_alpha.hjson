@@ -10,4 +10,7 @@
   database: {
     host: postgres_alpha
   }
+  pictrs: {
+    api_key: "my-pictrs-key"
+  }
 }

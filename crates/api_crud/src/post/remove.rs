@@ -9,20 +9,22 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    local_user::LocalUser,
     moderator::{ModRemovePost, ModRemovePostForm},
     post::{Post, PostUpdateForm},
+    post_report::PostReport,
   },
-  traits::Crud,
+  traits::{Crud, Reportable},
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn remove_post(
   data: Json<RemovePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<PostResponse>, LemmyError> {
+) -> LemmyResult<Json<PostResponse>> {
   let post_id = data.post_id;
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
@@ -31,6 +33,14 @@ pub async fn remove_post(
     orig_post.community_id,
     false,
     &mut context.pool(),
+  )
+  .await?;
+
+  LocalUser::is_higher_mod_or_admin_check(
+    &mut context.pool(),
+    orig_post.community_id,
+    local_user_view.person.id,
+    vec![orig_post.creator_id],
   )
   .await?;
 
@@ -47,6 +57,9 @@ pub async fn remove_post(
   )
   .await?;
 
+  PostReport::resolve_all_for_object(&mut context.pool(), post_id, local_user_view.person.id)
+    .await?;
+
   // Mod tables
   let form = ModRemovePostForm {
     mod_person_id: local_user_view.person.id,
@@ -57,16 +70,15 @@ pub async fn remove_post(
   ModRemovePost::create(&mut context.pool(), &form).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::RemovePost(post, local_user_view.person.clone(), data.0),
+    SendActivityData::RemovePost {
+      post,
+      moderator: local_user_view.person.clone(),
+      reason: data.reason.clone(),
+      removed: data.removed,
+    },
     &context,
   )
   .await?;
 
-  build_post_response(
-    &context,
-    orig_post.community_id,
-    &local_user_view.person,
-    post_id,
-  )
-  .await
+  build_post_response(&context, orig_post.community_id, local_user_view, post_id).await
 }

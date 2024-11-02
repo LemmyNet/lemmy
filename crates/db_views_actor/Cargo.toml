@@ -11,8 +11,17 @@ repository.workspace = true
 [lib]
 doctest = false
 
+[lints]
+workspace = true
+
 [features]
-full = ["lemmy_db_schema/full", "diesel", "diesel-async", "ts-rs"]
+full = [
+  "lemmy_db_schema/full",
+  "lemmy_utils/full",
+  "diesel",
+  "diesel-async",
+  "ts-rs",
+]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
@@ -30,8 +39,12 @@ serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }
 chrono.workspace = true
 strum = { workspace = true }
-strum_macros = { workspace = true }
+lemmy_utils = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
 tokio = { workspace = true }
+pretty_assertions = { workspace = true }
+url.workspace = true
+lemmy_db_views.workspace = true
+lemmy_utils.workspace = true

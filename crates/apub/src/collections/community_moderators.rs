@@ -15,11 +15,11 @@ use lemmy_db_schema::{
   traits::Joinable,
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 #[derive(Clone, Debug)]
-pub(crate) struct ApubCommunityModerators(pub(crate) Vec<CommunityModeratorView>);
+pub(crate) struct ApubCommunityModerators(());
 
 #[async_trait::async_trait]
 impl Collection for ApubCommunityModerators {
@@ -29,10 +29,7 @@ impl Collection for ApubCommunityModerators {
   type Error = LemmyError;
 
   #[tracing::instrument(skip_all)]
-  async fn read_local(
-    owner: &Self::Owner,
-    data: &Data<Self::DataType>,
-  ) -> Result<Self::Kind, LemmyError> {
+  async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     let moderators = CommunityModeratorView::for_community(&mut data.pool(), owner.id).await?;
     let ordered_items = moderators
       .into_iter()
@@ -50,7 +47,7 @@ impl Collection for ApubCommunityModerators {
     group_moderators: &GroupModerators,
     expected_domain: &Url,
     _data: &Data<Self::DataType>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     verify_domains_match(&group_moderators.id, expected_domain)?;
     Ok(())
   }
@@ -60,7 +57,7 @@ impl Collection for ApubCommunityModerators {
     apub: Self::Kind,
     owner: &Self::Owner,
     data: &Data<Self::DataType>,
-  ) -> Result<Self, LemmyError> {
+  ) -> LemmyResult<Self> {
     let community_id = owner.id;
     let current_moderators =
       CommunityModeratorView::for_community(&mut data.pool(), community_id).await?;
@@ -96,22 +93,17 @@ impl Collection for ApubCommunityModerators {
     }
 
     // This return value is unused, so just set an empty vec
-    Ok(ApubCommunityModerators(Vec::new()))
+    Ok(ApubCommunityModerators(()))
   }
 }
 
 #[cfg(test)]
+#[expect(clippy::indexing_slicing)]
 mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
 
   use super::*;
   use crate::{
-    objects::{
-      community::tests::parse_lemmy_community,
-      person::tests::parse_lemmy_person,
-      tests::init_context,
-    },
+    objects::{community::tests::parse_lemmy_community, person::tests::parse_lemmy_person},
     protocol::tests::file_to_json_object,
   };
   use lemmy_db_schema::{
@@ -123,70 +115,50 @@ mod tests {
     },
     traits::Crud,
   };
+  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_parse_lemmy_community_moderators() {
-    let context = init_context().await;
-    let (new_mod, site) = parse_lemmy_person(&context).await;
-    let community = parse_lemmy_community(&context).await;
+  async fn test_parse_lemmy_community_moderators() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let (new_mod, site) = parse_lemmy_person(&context).await?;
+    let community = parse_lemmy_community(&context).await?;
     let community_id = community.id;
 
     let inserted_instance =
-      Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string())
-        .await
-        .unwrap();
+      Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;
 
-    let old_mod = PersonInsertForm::builder()
-      .name("holly".into())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let old_mod = PersonInsertForm::test_form(inserted_instance.id, "holly");
 
-    let old_mod = Person::create(&mut context.pool(), &old_mod).await.unwrap();
+    let old_mod = Person::create(&mut context.pool(), &old_mod).await?;
     let community_moderator_form = CommunityModeratorForm {
       community_id: community.id,
       person_id: old_mod.id,
     };
 
-    CommunityModerator::join(&mut context.pool(), &community_moderator_form)
-      .await
-      .unwrap();
+    CommunityModerator::join(&mut context.pool(), &community_moderator_form).await?;
 
     assert_eq!(site.actor_id.to_string(), "https://enterprise.lemmy.ml/");
 
     let json: GroupModerators =
-      file_to_json_object("assets/lemmy/collections/group_moderators.json").unwrap();
-    let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward").unwrap();
-    ApubCommunityModerators::verify(&json, &url, &context)
-      .await
-      .unwrap();
-    ApubCommunityModerators::from_json(json, &community, &context)
-      .await
-      .unwrap();
+      file_to_json_object("assets/lemmy/collections/group_moderators.json")?;
+    let url = Url::parse("https://enterprise.lemmy.ml/c/tenforward")?;
+    ApubCommunityModerators::verify(&json, &url, &context).await?;
+    ApubCommunityModerators::from_json(json, &community, &context).await?;
     assert_eq!(context.request_count(), 0);
 
     let current_moderators =
-      CommunityModeratorView::for_community(&mut context.pool(), community_id)
-        .await
-        .unwrap();
+      CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
     assert_eq!(current_moderators.len(), 1);
     assert_eq!(current_moderators[0].moderator.id, new_mod.id);
 
-    Person::delete(&mut context.pool(), old_mod.id)
-      .await
-      .unwrap();
-    Person::delete(&mut context.pool(), new_mod.id)
-      .await
-      .unwrap();
-    Community::delete(&mut context.pool(), community.id)
-      .await
-      .unwrap();
-    Site::delete(&mut context.pool(), site.id).await.unwrap();
-    Instance::delete(&mut context.pool(), inserted_instance.id)
-      .await
-      .unwrap();
+    Person::delete(&mut context.pool(), old_mod.id).await?;
+    Person::delete(&mut context.pool(), new_mod.id).await?;
+    Community::delete(&mut context.pool(), community.id).await?;
+    Site::delete(&mut context.pool(), site.id).await?;
+    Instance::delete(&mut context.pool(), inserted_instance.id).await?;
+    Ok(())
   }
 }

@@ -37,6 +37,7 @@ mod tests {
   use crate::error::{LemmyError, LemmyErrorType};
   use actix_web::{
     error::ErrorInternalServerError,
+    http::StatusCode,
     middleware::ErrorHandlers,
     test,
     web,
@@ -45,7 +46,7 @@ mod tests {
     Handler,
     Responder,
   };
-  use http::StatusCode;
+  use pretty_assertions::assert_eq;
 
   #[actix_web::test]
   async fn test_non_error_responses_are_not_modified() {

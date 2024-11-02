@@ -1,12 +1,13 @@
 use crate::{
   diesel::{ExpressionMethods, QueryDsl},
   newtypes::LocalUserId,
-  schema::login_token::{dsl::login_token, token, user_id},
+  schema::login_token::{dsl::login_token, user_id},
   source::login_token::{LoginToken, LoginTokenCreateForm},
   utils::{get_conn, DbPool},
 };
 use diesel::{delete, dsl::exists, insert_into, result::Error, select};
 use diesel_async::RunQueryDsl;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 
 impl LoginToken {
   pub async fn create(pool: &mut DbPool<'_>, form: LoginTokenCreateForm) -> Result<Self, Error> {
@@ -22,15 +23,15 @@ impl LoginToken {
     pool: &mut DbPool<'_>,
     user_id_: LocalUserId,
     token_: &str,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     select(exists(
-      login_token
-        .filter(user_id.eq(user_id_))
-        .filter(token.eq(token_)),
+      login_token.find(token_).filter(user_id.eq(user_id_)),
     ))
-    .get_result(conn)
-    .await
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::NotLoggedIn.into())
   }
 
   pub async fn list(
@@ -48,9 +49,7 @@ impl LoginToken {
   /// Invalidate specific token on user logout.
   pub async fn invalidate(pool: &mut DbPool<'_>, token_: &str) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    delete(login_token.filter(token.eq(token_)))
-      .execute(conn)
-      .await
+    delete(login_token.find(token_)).execute(conn).await
   }
 
   /// Invalidate all logins of given user on password reset/change, account deletion or site ban.

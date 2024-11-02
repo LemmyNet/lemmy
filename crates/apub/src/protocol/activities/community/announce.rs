@@ -23,7 +23,7 @@ pub struct AnnounceActivity {
 }
 
 /// Use this to receive community inbox activities, and then announce them if valid. This
-/// ensures that all json fields are kept, even if Lemmy doesnt understand them.
+/// ensures that all json fields are kept, even if Lemmy doesn't understand them.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RawAnnouncableActivities {
   pub(crate) id: Url,

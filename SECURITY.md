@@ -2,4 +2,4 @@
 
 ## Reporting a Vulnerability
 
-Message contact at join-lemmy.org for any security-related issues.
+Use [Github's security advisory issue system](https://github.com/LemmyNet/lemmy/security/advisories/new).

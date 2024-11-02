@@ -38,6 +38,7 @@ pub struct Person {
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
   /// user avatar
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) icon: Option<ImageObject>,
   /// user banner
   pub(crate) image: Option<ImageObject>,

@@ -12,7 +12,7 @@ use activitypub_federation::{
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -38,12 +38,12 @@ pub struct BlockUser {
   pub(crate) remove_data: Option<bool>,
   /// block reason, written to mod log
   pub(crate) summary: Option<String>,
-  pub(crate) expires: Option<DateTime<Utc>>,
+  pub(crate) end_time: Option<DateTime<Utc>>,
 }
 
 #[async_trait::async_trait]
 impl InCommunity for BlockUser {
-  async fn community(&self, context: &Data<LemmyContext>) -> Result<ApubCommunity, LemmyError> {
+  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let target = self.target.dereference(context).await?;
     let community = match target {
       SiteOrCommunity::Community(c) => c,

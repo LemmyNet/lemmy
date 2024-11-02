@@ -8,6 +8,8 @@ pub mod comment_view;
 #[cfg(feature = "full")]
 pub mod custom_emoji_view;
 #[cfg(feature = "full")]
+pub mod local_image_view;
+#[cfg(feature = "full")]
 pub mod local_user_view;
 #[cfg(feature = "full")]
 pub mod post_report_view;
@@ -22,3 +24,5 @@ pub mod registration_application_view;
 #[cfg(feature = "full")]
 pub mod site_view;
 pub mod structs;
+#[cfg(feature = "full")]
+pub mod vote_view;

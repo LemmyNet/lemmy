@@ -19,7 +19,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::public,
-  protocol::verification::verify_domains_match,
+  protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
 use lemmy_api_common::{
@@ -39,7 +39,10 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_utils::{error::LemmyError, utils::mention::scrape_text_for_mentions};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  utils::mention::scrape_text_for_mentions,
+};
 use url::Url;
 
 impl CreateOrUpdateNote {
@@ -49,7 +52,7 @@ impl CreateOrUpdateNote {
     person_id: PersonId,
     kind: CreateOrUpdateType,
     context: Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
     let post = Post::read(&mut context.pool(), post_id).await?;
@@ -114,8 +117,7 @@ impl ActivityHandler for CreateOrUpdateNote {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
-    insert_received_activity(&self.id, context).await?;
+  async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     verify_is_public(&self.to, &self.cc)?;
     let post = self.object.get_parents(context).await?.0;
     let community = self.community(context).await?;
@@ -124,13 +126,15 @@ impl ActivityHandler for CreateOrUpdateNote {
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     check_community_deleted_or_removed(&community)?;
     check_post_deleted_or_removed(&post)?;
+    verify_urls_match(self.actor.inner(), self.object.attributed_to.inner())?;
 
     ApubComment::verify(&self.object, self.actor.inner(), context).await?;
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), LemmyError> {
+  async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
+    insert_received_activity(&self.id, context).await?;
     // Need to do this check here instead of Note::from_json because we need the person who
     // send the activity, not the comment author.
     let existing_comment = self.object.id.dereference_local(context).await.ok();
@@ -149,7 +153,6 @@ impl ActivityHandler for CreateOrUpdateNote {
     // author likes their own comment by default
     let like_form = CommentLikeForm {
       comment_id: comment.id,
-      post_id: comment.post_id,
       person_id: comment.creator_id,
       score: 1,
     };
@@ -159,17 +162,16 @@ impl ActivityHandler for CreateOrUpdateNote {
     CommentAggregates::update_hot_rank(&mut context.pool(), comment.id).await?;
 
     let do_send_email = self.kind == CreateOrUpdateType::Create;
-    let post_id = comment.post_id;
-    let post = Post::read(&mut context.pool(), post_id).await?;
     let actor = self.actor.dereference(context).await?;
 
     // Note:
     // Although mentions could be gotten from the post tags (they are included there), or the ccs,
     // Its much easier to scrape them from the comment body, since the API has to do that
     // anyway.
-    // TODO: for compatibility with other projects, it would be much better to read this from cc or tags
+    // TODO: for compatibility with other projects, it would be much better to read this from cc or
+    // tags
     let mentions = scrape_text_for_mentions(&comment.content);
-    send_local_notifs(mentions, &comment.0, &actor, &post, do_send_email, context).await?;
+    send_local_notifs(mentions, comment.id, &actor, do_send_email, context, None).await?;
     Ok(())
   }
 }

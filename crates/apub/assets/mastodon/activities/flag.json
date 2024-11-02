@@ -1,0 +1,13 @@
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "id": "https://mastodon.example/ccb4f39a-506a-490e-9a8c-71831c7713a4",
+  "type": "Flag",
+  "actor": "https://mastodon.example/actor",
+  "content": "Please take a look at this user and their posts",
+  "object": [
+    "https://example.com/users/1",
+    "https://example.com/posts/380590",
+    "https://example.com/posts/380591"
+  ],
+  "to": "https://example.com/users/1"
+}

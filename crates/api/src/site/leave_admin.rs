@@ -4,24 +4,26 @@ use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
     language::Language,
+    local_site_url_blocklist::LocalSiteUrlBlocklist,
     local_user::{LocalUser, LocalUserUpdateForm},
     moderator::{ModAdd, ModAddForm},
+    oauth_provider::OAuthProvider,
     tagline::Tagline,
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType},
-  version,
+  error::{LemmyErrorType, LemmyResult},
+  VERSION,
 };
 
 #[tracing::instrument(skip(context))]
 pub async fn leave_admin(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<GetSiteResponse>, LemmyError> {
+) -> LemmyResult<Json<GetSiteResponse>> {
   is_admin(&local_user_view)?;
 
   // Make sure there isn't just one admin (so if one leaves, there will still be one left)
@@ -35,6 +37,9 @@ pub async fn leave_admin(
     local_user_view.local_user.id,
     &LocalUserUpdateForm {
       admin: Some(false),
+      // Necessary because admins can bypass the registration applications (if they're turned on)
+      // but then won't be able to log in because they haven't been approved.
+      accepted_application: Some(true),
       ..Default::default()
     },
   )
@@ -56,18 +61,22 @@ pub async fn leave_admin(
 
   let all_languages = Language::read_all(&mut context.pool()).await?;
   let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
-  let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
-  let custom_emojis =
-    CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
+  let oauth_providers = OAuthProvider::get_all_public(&mut context.pool()).await?;
+  let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
+  let tagline = Tagline::get_random(&mut context.pool()).await.ok();
 
   Ok(Json(GetSiteResponse {
     site_view,
     admins,
-    version: version::VERSION.to_string(),
+    version: VERSION.to_string(),
     my_user: None,
     all_languages,
     discussion_languages,
-    taglines,
-    custom_emojis,
+    oauth_providers: Some(oauth_providers),
+    admin_oauth_providers: None,
+    blocked_urls,
+    tagline,
+    taglines: vec![],
+    custom_emojis: vec![],
   }))
 }

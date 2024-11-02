@@ -1,7 +1,7 @@
 use crate::read_auth_token;
 use activitypub_federation::config::Data;
 use actix_web::{cookie::Cookie, HttpRequest, HttpResponse};
-use lemmy_api_common::{context::LemmyContext, utils::AUTH_COOKIE_NAME};
+use lemmy_api_common::{context::LemmyContext, utils::AUTH_COOKIE_NAME, SuccessResponse};
 use lemmy_db_schema::source::login_token::LoginToken;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -16,7 +16,7 @@ pub async fn logout(
   let jwt = read_auth_token(&req)?.ok_or(LemmyErrorType::NotLoggedIn)?;
   LoginToken::invalidate(&mut context.pool(), &jwt).await?;
 
-  let mut res = HttpResponse::Ok().finish();
+  let mut res = HttpResponse::Ok().json(SuccessResponse::default());
   let cookie = Cookie::new(AUTH_COOKIE_NAME, "");
   res.add_removal_cookie(&cookie)?;
   Ok(res)

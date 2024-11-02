@@ -14,9 +14,9 @@ async fn generate_urlset(
 ) -> LemmyResult<UrlSet> {
   let urls = posts
     .into_iter()
-    .map_while(|post| {
-      Url::builder(post.0.to_string())
-        .last_modified(post.1.into())
+    .map_while(|(url, date_time)| {
+      Url::builder(url.to_string())
+        .last_modified(date_time.into())
         .build()
         .ok()
     })
@@ -26,7 +26,7 @@ async fn generate_urlset(
 }
 
 pub async fn get_sitemap(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
-  info!("Generating sitemap with posts from last {} hours...", 24);
+  info!("Generating sitemap...",);
   let posts = Post::list_for_sitemap(&mut context.pool()).await?;
   info!("Loaded latest {} posts", posts.len());
 
@@ -36,49 +36,46 @@ pub async fn get_sitemap(context: Data<LemmyContext>) -> LemmyResult<HttpRespons
   Ok(
     HttpResponse::Ok()
       .content_type("application/xml")
-      .insert_header(header::CacheControl(vec![CacheDirective::MaxAge(86_400)])) // 24 h
+      .insert_header(header::CacheControl(vec![CacheDirective::MaxAge(3_600)])) // 1 h
       .body(buf),
   )
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
-  #![allow(clippy::unwrap_used)]
 
   use crate::sitemap::generate_urlset;
   use chrono::{DateTime, NaiveDate, Utc};
   use elementtree::Element;
   use lemmy_db_schema::newtypes::DbUrl;
+  use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
   use url::Url;
 
   #[tokio::test]
-  async fn test_generate_urlset() {
+  async fn test_generate_urlset() -> LemmyResult<()> {
     let posts: Vec<(DbUrl, DateTime<Utc>)> = vec![
       (
-        Url::parse("https://example.com").unwrap().into(),
+        Url::parse("https://example.com")?.into(),
         NaiveDate::from_ymd_opt(2022, 12, 1)
-          .unwrap()
+          .unwrap_or_default()
           .and_hms_opt(9, 10, 11)
-          .unwrap()
+          .unwrap_or_default()
           .and_utc(),
       ),
       (
-        Url::parse("https://lemmy.ml").unwrap().into(),
+        Url::parse("https://lemmy.ml")?.into(),
         NaiveDate::from_ymd_opt(2023, 1, 1)
-          .unwrap()
+          .unwrap_or_default()
           .and_hms_opt(1, 2, 3)
-          .unwrap()
+          .unwrap_or_default()
           .and_utc(),
       ),
     ];
 
     let mut buf = Vec::<u8>::new();
-    generate_urlset(posts)
-      .await
-      .unwrap()
-      .write(&mut buf)
-      .unwrap();
-    let root = Element::from_reader(buf.as_slice()).unwrap();
+    generate_urlset(posts).await?.write(&mut buf)?;
+    let root = Element::from_reader(buf.as_slice())?;
 
     assert_eq!(root.tag().name(), "urlset");
     assert_eq!(root.child_count(), 2);
@@ -98,45 +95,43 @@ pub(crate) mod tests {
       root
         .children()
         .next()
-        .unwrap()
-        .children()
-        .find(|element| element.tag().name() == "loc")
-        .unwrap()
-        .text(),
+        .and_then(|n| n.children().find(|element| element.tag().name() == "loc"))
+        .map(Element::text)
+        .unwrap_or_default(),
       "https://example.com/"
     );
     assert_eq!(
       root
         .children()
         .next()
-        .unwrap()
-        .children()
-        .find(|element| element.tag().name() == "lastmod")
-        .unwrap()
-        .text(),
+        .and_then(|n| n
+          .children()
+          .find(|element| element.tag().name() == "lastmod"))
+        .map(Element::text)
+        .unwrap_or_default(),
       "2022-12-01T09:10:11+00:00"
     );
     assert_eq!(
       root
         .children()
         .nth(1)
-        .unwrap()
-        .children()
-        .find(|element| element.tag().name() == "loc")
-        .unwrap()
-        .text(),
+        .and_then(|n| n.children().find(|element| element.tag().name() == "loc"))
+        .map(Element::text)
+        .unwrap_or_default(),
       "https://lemmy.ml/"
     );
     assert_eq!(
       root
         .children()
         .nth(1)
-        .unwrap()
-        .children()
-        .find(|element| element.tag().name() == "lastmod")
-        .unwrap()
-        .text(),
+        .and_then(|n| n
+          .children()
+          .find(|element| element.tag().name() == "lastmod"))
+        .map(Element::text)
+        .unwrap_or_default(),
       "2023-01-01T01:02:03+00:00"
     );
+
+    Ok(())
   }
 }

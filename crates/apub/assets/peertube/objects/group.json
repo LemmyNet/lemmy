@@ -1,30 +1,4 @@
 {
-  "type": "Group",
-  "id": "https://framatube.org/video-channels/joinpeertube",
-  "following": "https://framatube.org/video-channels/joinpeertube/following",
-  "followers": "https://framatube.org/video-channels/joinpeertube/followers",
-  "playlists": "https://framatube.org/video-channels/joinpeertube/playlists",
-  "inbox": "https://framatube.org/video-channels/joinpeertube/inbox",
-  "outbox": "https://framatube.org/video-channels/joinpeertube/outbox",
-  "preferredUsername": "joinpeertube",
-  "url": "https://framatube.org/video-channels/joinpeertube",
-  "name": "A propos de PeerTube",
-  "endpoints": {
-    "sharedInbox": "https://framatube.org/inbox"
-  },
-  "publicKey": {
-    "id": "https://framatube.org/video-channels/joinpeertube#main-key",
-    "owner": "https://framatube.org/video-channels/joinpeertube",
-    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsJCIZJga+4Kumb9Wrmpy\ntyV7kWdINImoXBiFkGG+6OHreHN2C3UPwTu9IkX/e20NaX6Ly6c0busieW7yh//q\nomHl2U8zz2Z5xQHUN/2ljQjUNO+89OV6cFIGyEvcwc6QhuqGvrcxonjrEkux7xSv\nxQM4kZ3YW1Sii4piFpGGIm1pcUkOxFab8PWVB5Hzpg/df2/XOmH8UECT5vaMRPE6\ns6hNiQNE34z9QmPiG6nUlaWb/WDcMYbma3sUVWW3DI008ukLlwLaLIm30ax8CEYt\nHEv2jOQb1E1sXtBPe1FI+dXRgTIk40KF50KLqcgwJH1y5ck7c8IEeooj+tYGVqPr\npQIDAQAB\n-----END PUBLIC KEY-----"
-  },
-  "published": "2021-08-09T14:26:09.514Z",
-  "icon": {
-    "type": "Image",
-    "mediaType": "image/png",
-    "height": 120,
-    "width": 120,
-    "url": "https://framatube.org/lazy-static/avatars/a2c2ff10-9da6-4c6c-9b25-2e557fa74b66.png"
-  },
   "@context": [
     "https://www.w3.org/ns/activitystreams",
     "https://w3id.org/security/v1",
@@ -33,99 +7,66 @@
     },
     {
       "pt": "https://joinpeertube.org/ns#",
-      "sc": "http://schema.org#",
-      "Hashtag": "as:Hashtag",
-      "uuid": "sc:identifier",
-      "category": "sc:category",
-      "licence": "sc:license",
-      "subtitleLanguage": "sc:subtitleLanguage",
-      "sensitive": "as:sensitive",
-      "language": "sc:inLanguage",
-      "isLiveBroadcast": "sc:isLiveBroadcast",
-      "liveSaveReplay": {
-        "@type": "sc:Boolean",
-        "@id": "pt:liveSaveReplay"
-      },
-      "permanentLive": {
-        "@type": "sc:Boolean",
-        "@id": "pt:permanentLive"
-      },
-      "Infohash": "pt:Infohash",
-      "Playlist": "pt:Playlist",
-      "PlaylistElement": "pt:PlaylistElement",
-      "originallyPublishedAt": "sc:datePublished",
-      "views": {
-        "@type": "sc:Number",
-        "@id": "pt:views"
-      },
-      "state": {
-        "@type": "sc:Number",
-        "@id": "pt:state"
-      },
-      "size": {
-        "@type": "sc:Number",
-        "@id": "pt:size"
-      },
-      "fps": {
-        "@type": "sc:Number",
-        "@id": "pt:fps"
-      },
-      "startTimestamp": {
-        "@type": "sc:Number",
-        "@id": "pt:startTimestamp"
-      },
-      "stopTimestamp": {
-        "@type": "sc:Number",
-        "@id": "pt:stopTimestamp"
-      },
-      "position": {
-        "@type": "sc:Number",
-        "@id": "pt:position"
-      },
-      "commentsEnabled": {
-        "@type": "sc:Boolean",
-        "@id": "pt:commentsEnabled"
-      },
-      "downloadEnabled": {
-        "@type": "sc:Boolean",
-        "@id": "pt:downloadEnabled"
-      },
-      "waitTranscoding": {
-        "@type": "sc:Boolean",
-        "@id": "pt:waitTranscoding"
+      "sc": "http://schema.org/",
+      "playlists": {
+        "@id": "pt:playlists",
+        "@type": "@id"
       },
       "support": {
         "@type": "sc:Text",
         "@id": "pt:support"
       },
-      "likes": {
-        "@id": "as:likes",
-        "@type": "@id"
-      },
-      "dislikes": {
-        "@id": "as:dislikes",
-        "@type": "@id"
-      },
-      "playlists": {
-        "@id": "pt:playlists",
-        "@type": "@id"
-      },
-      "shares": {
-        "@id": "as:shares",
-        "@type": "@id"
-      },
-      "comments": {
-        "@id": "as:comments",
-        "@type": "@id"
-      }
+      "icons": "as:icon"
     }
   ],
-  "summary": "Un logiciel libre pour reprendre le contrôle de vos vidéos",
-  "support": null,
+  "type": "Group",
+  "id": "https://peertube.stream/video-channels/vu",
+  "following": "https://peertube.stream/video-channels/vu/following",
+  "followers": "https://peertube.stream/video-channels/vu/followers",
+  "playlists": "https://peertube.stream/video-channels/vu/playlists",
+  "inbox": "https://peertube.stream/video-channels/vu/inbox",
+  "outbox": "https://peertube.stream/video-channels/vu/outbox",
+  "preferredUsername": "vu",
+  "url": "https://peertube.stream/video-channels/vu",
+  "name": "VU",
+  "endpoints": {
+    "sharedInbox": "https://peertube.stream/inbox"
+  },
+  "publicKey": {
+    "id": "https://peertube.stream/video-channels/vu#main-key",
+    "owner": "https://peertube.stream/video-channels/vu",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtcWpN7efQx5C7ecWkw3r\nX4ViPy/bl3d3iyVLyP6z/3+WAUKJxqR+QKlNzxM7NglzB0B48NYu2cg4iuwKkSK9\ntrfMC/Ze0H10Wo/5kUH5YQKzLo4syHOuuM+1rbZFBbzVFwk4k0qqLFTXQ+Y6WNSS\nG9OlFYZNpRaUkgF8Q/KCsngn68qsZ0gLly9FJb+6+j3IppLJNXrBpFB5qulWibL+\neN+3XMnaTm6ge6X+rFti5r6dh10grL0KU/eZKmGyadgdwYdvR/LLtBWwFIwSJShk\nuIPhcz2zbkwrV3AixLe76TLGXX5M9qczfsVYLupyU7TwPlFM2ENDtDdfp41sWaZa\nxQIDAQAB\n-----END PUBLIC KEY-----"
+  },
+  "published": "2020-12-10T16:07:08.406Z",
+  "icon": [
+    {
+      "type": "Image",
+      "mediaType": "image/jpeg",
+      "height": 48,
+      "width": 48,
+      "url": "https://peertube.stream/lazy-static/avatars/45ec87d5-c8ec-4fcf-948f-d5a928b56496.jpg"
+    },
+    {
+      "type": "Image",
+      "mediaType": "image/jpeg",
+      "height": 120,
+      "width": 120,
+      "url": "https://peertube.stream/lazy-static/avatars/3296c098-abbb-4fda-a67a-ab88e447ca19.jpg"
+    }
+  ],
+  "image": {
+    "type": "Image",
+    "mediaType": "image/jpeg",
+    "height": 317,
+    "width": 1920,
+    "url": "https://peertube.stream/lazy-static/banners/550c0541-3021-4d4b-8654-54d0c4cda96d.jpg"
+  },
+  "summary": "VU c'est du lundi au samedi sur France 5 à 20h00 \nRetrouvez les meilleurs moments de la télévision, en 6 minutes.\n\nChaîne PeerTube non-officielle.",
+  "support": "Suivre VU :\n- Twitter : https://twitter.com/vufrancetv\n- Facebook :https://www.facebook.com/vufrancetv/\n- Site : https://www.france.tv/france-5/vu/",
   "attributedTo": [
     {
       "type": "Person",
-      "id": "https://framatube.org/accounts/framasoft"
+      "id": "https://peertube.stream/accounts/createurs"
     }
   ]
 }

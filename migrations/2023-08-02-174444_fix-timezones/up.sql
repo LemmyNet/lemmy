@@ -1,3 +1,5 @@
+DROP FUNCTION IF EXISTS hot_rank CASCADE;
+
 SET timezone = 'UTC';
 
 --  Allow ALTER TABLE ... SET DATA TYPE changing between timestamp and timestamptz to avoid a table rewrite when the session time zone is UTC (Noah Misch)

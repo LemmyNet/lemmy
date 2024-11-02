@@ -1,9 +1,16 @@
-use crate::protocol::Source;
-use activitypub_federation::protocol::values::MediaTypeMarkdownOrHtml;
+use crate::protocol::{objects::page::Attachment, Source};
+use activitypub_federation::{
+  config::Data,
+  fetch::object_id::ObjectId,
+  protocol::values::MediaTypeMarkdownOrHtml,
+  traits::Object,
+};
 use anyhow::anyhow;
 use html2md::parse_html;
-use lemmy_utils::{error::LemmyError, settings::structs::Settings};
-use url::Url;
+use lemmy_api_common::context::LemmyContext;
+use lemmy_utils::error::LemmyResult;
+use serde::Deserialize;
+use std::fmt::Debug;
 
 pub mod comment;
 pub mod community;
@@ -39,70 +46,38 @@ pub(crate) fn read_from_string_or_source_opt(
     .map(|content| read_from_string_or_source(content, media_type, source))
 }
 
+pub(crate) async fn append_attachments_to_comment(
+  content: String,
+  attachments: &[Attachment],
+  context: &Data<LemmyContext>,
+) -> LemmyResult<String> {
+  let mut content = content;
+  // Don't modify comments with no attachments
+  if !attachments.is_empty() {
+    content += "\n";
+    for attachment in attachments {
+      content = content + "\n" + &attachment.as_markdown(context).await?;
+    }
+  }
+
+  Ok(content)
+}
+
 /// When for example a Post is made in a remote community, the community will send it back,
 /// wrapped in Announce. If we simply receive this like any other federated object, overwrite the
 /// existing, local Post. In particular, it will set the field local = false, so that the object
 /// can't be fetched from the Activitypub HTTP endpoint anymore (which only serves local objects).
-pub(crate) fn verify_is_remote_object(id: &Url, settings: &Settings) -> Result<(), LemmyError> {
-  let local_domain = settings.get_hostname_without_port()?;
-  if id.domain() == Some(&local_domain) {
+pub(crate) fn verify_is_remote_object<T>(
+  id: &ObjectId<T>,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()>
+where
+  T: Object<DataType = LemmyContext> + Debug + Send + 'static,
+  for<'de2> <T as Object>::Kind: Deserialize<'de2>,
+{
+  if id.is_local(context) {
     Err(anyhow!("cant accept local object from remote instance").into())
   } else {
     Ok(())
-  }
-}
-
-#[cfg(test)]
-pub(crate) mod tests {
-  #![allow(clippy::unwrap_used)]
-  #![allow(clippy::indexing_slicing)]
-
-  use activitypub_federation::config::{Data, FederationConfig};
-  use anyhow::anyhow;
-  use lemmy_api_common::{context::LemmyContext, request::client_builder};
-  use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool_for_tests};
-  use lemmy_utils::{rate_limit::RateLimitCell, settings::SETTINGS};
-  use reqwest::{Request, Response};
-  use reqwest_middleware::{ClientBuilder, Middleware, Next};
-  use task_local_extensions::Extensions;
-
-  struct BlockedMiddleware;
-
-  /// A reqwest middleware which blocks all requests
-  #[async_trait::async_trait]
-  impl Middleware for BlockedMiddleware {
-    async fn handle(
-      &self,
-      _req: Request,
-      _extensions: &mut Extensions,
-      _next: Next<'_>,
-    ) -> reqwest_middleware::Result<Response> {
-      Err(anyhow!("Network requests not allowed").into())
-    }
-  }
-
-  // TODO: would be nice if we didnt have to use a full context for tests.
-  pub(crate) async fn init_context() -> Data<LemmyContext> {
-    // call this to run migrations
-    let pool = build_db_pool_for_tests().await;
-
-    let client = client_builder(&SETTINGS).build().unwrap();
-
-    let client = ClientBuilder::new(client).with(BlockedMiddleware).build();
-    let secret = Secret {
-      id: 0,
-      jwt_secret: String::new(),
-    };
-
-    let rate_limit_cell = RateLimitCell::with_test_config();
-
-    let context = LemmyContext::create(pool, client, secret, rate_limit_cell.clone());
-    let config = FederationConfig::builder()
-      .domain("example.com")
-      .app_data(context)
-      .build()
-      .await
-      .unwrap();
-    config.to_request_data()
   }
 }

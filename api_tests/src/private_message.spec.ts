@@ -8,8 +8,9 @@ import {
   editPrivateMessage,
   listPrivateMessages,
   deletePrivateMessage,
-  unfollowRemotes,
   waitUntil,
+  reportPrivateMessage,
+  unfollows,
 } from "./shared";
 
 let recipient_id: number;
@@ -20,9 +21,7 @@ beforeAll(async () => {
   recipient_id = 3;
 });
 
-afterAll(async () => {
-  await unfollowRemotes(alpha);
-});
+afterAll(unfollows);
 
 test("Create a private message", async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
@@ -107,5 +106,44 @@ test("Delete a private message", async () => {
   );
   expect(betaPms3.private_messages.length).toBe(
     betaPms1.private_messages.length,
+  );
+});
+
+test("Create a private message report", async () => {
+  let pmRes = await createPrivateMessage(alpha, recipient_id);
+  let betaPms1 = await waitUntil(
+    () => listPrivateMessages(beta),
+    m =>
+      !!m.private_messages.find(
+        e =>
+          e.private_message.ap_id ===
+          pmRes.private_message_view.private_message.ap_id,
+      ),
+  );
+  let betaPm = betaPms1.private_messages[0];
+  expect(betaPm).toBeDefined();
+
+  // Make sure that only the recipient can report it, so this should fail
+  await expect(
+    reportPrivateMessage(
+      alpha,
+      pmRes.private_message_view.private_message.id,
+      "a reason",
+    ),
+  ).rejects.toStrictEqual(Error("couldnt_create_report"));
+
+  // This one should pass
+  let reason = "another reason";
+  let report = await reportPrivateMessage(
+    beta,
+    betaPm.private_message.id,
+    reason,
+  );
+
+  expect(report.private_message_report_view.private_message.id).toBe(
+    betaPm.private_message.id,
+  );
+  expect(report.private_message_report_view.private_message_report.reason).toBe(
+    reason,
   );
 });

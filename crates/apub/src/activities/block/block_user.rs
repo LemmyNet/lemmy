@@ -23,7 +23,7 @@ use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{remove_user_data, remove_user_data_in_community},
+  utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
 };
 use lemmy_db_schema::{
   source::{
@@ -39,7 +39,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_utils::error::LemmyError;
+use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use url::Url;
 
 impl BlockUser {
@@ -51,7 +51,7 @@ impl BlockUser {
     reason: Option<String>,
     expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
-  ) -> Result<BlockUser, LemmyError> {
+  ) -> LemmyResult<BlockUser> {
     let audience = if let SiteOrCommunity::Community(c) = target {
       Some(c.id().into())
     } else {
@@ -71,7 +71,7 @@ impl BlockUser {
         &context.settings().get_protocol_and_hostname(),
       )?,
       audience,
-      expires,
+      end_time: expires,
     })
   }
 
@@ -84,7 +84,7 @@ impl BlockUser {
     reason: Option<String>,
     expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
-  ) -> Result<(), LemmyError> {
+  ) -> LemmyResult<()> {
     let block = BlockUser::new(
       target,
       user,
@@ -124,12 +124,15 @@ impl ActivityHandler for BlockUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    insert_received_activity(&self.id, context).await?;
+  async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     verify_is_public(&self.to, &self.cc)?;
     match self.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
-        let domain = self.object.inner().domain().expect("url needs domain");
+        let domain = self
+          .object
+          .inner()
+          .domain()
+          .ok_or(FederationError::UrlWithoutDomain)?;
         if context.settings().hostname == domain {
           return Err(
             anyhow!("Site bans from remote instance can't affect user's home instance").into(),
@@ -148,11 +151,13 @@ impl ActivityHandler for BlockUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn receive(self, context: &Data<LemmyContext>) -> Result<(), LemmyError> {
-    let expires = self.expires.map(Into::into);
+  async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
+    insert_received_activity(&self.id, context).await?;
+    let expires = self.end_time.map(Into::into);
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;
+    let reason = self.summary;
     match target {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = Person::update(
@@ -166,14 +171,15 @@ impl ActivityHandler for BlockUser {
         )
         .await?;
         if self.remove_data.unwrap_or(false) {
-          remove_user_data(blocked_person.id, context).await?;
+          remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
+            .await?;
         }
 
         // write mod log
         let form = ModBanForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
-          reason: self.summary,
+          reason,
           banned: Some(true),
           expires,
         };
@@ -198,8 +204,15 @@ impl ActivityHandler for BlockUser {
           .ok();
 
         if self.remove_data.unwrap_or(false) {
-          remove_user_data_in_community(community.id, blocked_person.id, &mut context.pool())
-            .await?;
+          remove_or_restore_user_data_in_community(
+            community.id,
+            mod_person.id,
+            blocked_person.id,
+            true,
+            &reason,
+            &mut context.pool(),
+          )
+          .await?;
         }
 
         // write to mod log
@@ -207,7 +220,7 @@ impl ActivityHandler for BlockUser {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
           community_id: community.id,
-          reason: self.summary,
+          reason,
           banned: Some(true),
           expires,
         };

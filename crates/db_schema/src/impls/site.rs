@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{DbUrl, InstanceId, SiteId},
-  schema::site::dsl::{actor_id, id, instance_id, site},
+  schema::{local_site, site},
   source::{
     actor_language::SiteLanguage,
     site::{Site, SiteInsertForm, SiteUpdateForm},
@@ -10,6 +10,7 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_utils::{error::LemmyResult, LemmyErrorType};
 use url::Url;
 
 #[async_trait]
@@ -20,7 +21,7 @@ impl Crud for Site {
 
   /// Use SiteView::read_local, or Site::read_from_apub_id instead
   async fn read(_pool: &mut DbPool<'_>, _site_id: SiteId) -> Result<Self, Error> {
-    unimplemented!()
+    Err(Error::NotFound)
   }
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
@@ -31,9 +32,9 @@ impl Crud for Site {
     let conn = &mut get_conn(pool).await?;
 
     // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
-    let site_ = insert_into(site)
+    let site_ = insert_into(site::table)
       .values(form)
-      .on_conflict(actor_id)
+      .on_conflict(site::actor_id)
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
@@ -53,7 +54,7 @@ impl Crud for Site {
     new_site: &Self::UpdateForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(site.find(site_id))
+    diesel::update(site::table.find(site_id))
       .set(new_site)
       .get_result::<Self>(conn)
       .await
@@ -66,9 +67,9 @@ impl Site {
     _instance_id: InstanceId,
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    site
-      .filter(instance_id.eq(_instance_id))
-      .get_result(conn)
+    site::table
+      .filter(site::instance_id.eq(_instance_id))
+      .first(conn)
       .await
       .optional()
   }
@@ -78,17 +79,20 @@ impl Site {
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    site
-      .filter(actor_id.eq(object_id))
-      .first::<Site>(conn)
+    site::table
+      .filter(site::actor_id.eq(object_id))
+      .first(conn)
       .await
       .optional()
-      .map(Into::into)
   }
 
   pub async fn read_remote_sites(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    site.order_by(id).offset(1).get_results::<Self>(conn).await
+    site::table
+      .order_by(site::id)
+      .offset(1)
+      .get_results::<Self>(conn)
+      .await
   }
 
   /// Instance actor is at the root path, so we simply need to clear the path and other unnecessary
@@ -98,5 +102,19 @@ impl Site {
     url.set_path("");
     url.set_query(None);
     url
+  }
+
+  pub async fn read_local(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+
+    Ok(
+      site::table
+        .inner_join(local_site::table)
+        .select(site::all_columns)
+        .first(conn)
+        .await
+        .optional()?
+        .ok_or(LemmyErrorType::LocalSiteNotSetup)?,
+    )
   }
 }

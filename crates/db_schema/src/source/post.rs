@@ -1,18 +1,18 @@
 use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
-use crate::schema::{post, post_like, post_read, post_saved};
+use crate::schema::{post, post_hide, post_like, post_read, post_saved};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Identifiable, TS))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 #[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A post.
 pub struct Post {
   pub id: PostId,
@@ -54,36 +54,60 @@ pub struct Post {
   pub featured_community: bool,
   /// Whether the post is featured to its site.
   pub featured_local: bool,
+  pub url_content_type: Option<String>,
+  /// An optional alt_text, usable for image posts.
+  pub alt_text: Option<String>,
+  /// Time at which the post will be published. None means publish immediately.
+  pub scheduled_publish_time: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Debug, Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostInsertForm {
-  #[builder(!default)]
   pub name: String,
-  #[builder(!default)]
   pub creator_id: PersonId,
-  #[builder(!default)]
   pub community_id: CommunityId,
+  #[new(default)]
   pub nsfw: Option<bool>,
+  #[new(default)]
   pub url: Option<DbUrl>,
+  #[new(default)]
   pub body: Option<String>,
+  #[new(default)]
   pub removed: Option<bool>,
+  #[new(default)]
   pub locked: Option<bool>,
+  #[new(default)]
   pub updated: Option<DateTime<Utc>>,
+  #[new(default)]
   pub published: Option<DateTime<Utc>>,
+  #[new(default)]
   pub deleted: Option<bool>,
+  #[new(default)]
   pub embed_title: Option<String>,
+  #[new(default)]
   pub embed_description: Option<String>,
+  #[new(default)]
   pub embed_video_url: Option<DbUrl>,
+  #[new(default)]
   pub thumbnail_url: Option<DbUrl>,
+  #[new(default)]
   pub ap_id: Option<DbUrl>,
+  #[new(default)]
   pub local: Option<bool>,
+  #[new(default)]
   pub language_id: Option<LanguageId>,
+  #[new(default)]
   pub featured_community: Option<bool>,
+  #[new(default)]
   pub featured_local: Option<bool>,
+  #[new(default)]
+  pub url_content_type: Option<String>,
+  #[new(default)]
+  pub alt_text: Option<String>,
+  #[new(default)]
+  pub scheduled_publish_time: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -108,14 +132,21 @@ pub struct PostUpdateForm {
   pub language_id: Option<LanguageId>,
   pub featured_community: Option<bool>,
   pub featured_local: Option<bool>,
+  pub url_content_type: Option<Option<String>>,
+  pub alt_text: Option<Option<String>>,
+  pub scheduled_publish_time: Option<Option<DateTime<Utc>>>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = post_like))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct PostLike {
-  pub id: i32,
   pub post_id: PostId,
   pub person_id: PersonId,
   pub score: i16,
@@ -132,11 +163,15 @@ pub struct PostLikeForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = post_saved))]
+#[cfg_attr(feature = "full", diesel(primary_key(post_id, person_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct PostSaved {
-  pub id: i32,
   pub post_id: PostId,
   pub person_id: PersonId,
   pub published: DateTime<Utc>,
@@ -150,11 +185,15 @@ pub struct PostSavedForm {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "full", derive(Identifiable, Queryable, Associations))]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = post_read))]
+#[cfg_attr(feature = "full", diesel(primary_key(post_id, person_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct PostRead {
-  pub id: i32,
   pub post_id: PostId,
   pub person_id: PersonId,
   pub published: DateTime<Utc>,
@@ -163,6 +202,28 @@ pub struct PostRead {
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_read))]
 pub(crate) struct PostReadForm {
+  pub post_id: PostId,
+  pub person_id: PersonId,
+}
+
+#[derive(PartialEq, Eq, Debug)]
+#[cfg_attr(
+  feature = "full",
+  derive(Identifiable, Queryable, Selectable, Associations)
+)]
+#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
+#[cfg_attr(feature = "full", diesel(table_name = post_hide))]
+#[cfg_attr(feature = "full", diesel(primary_key(post_id, person_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+pub struct PostHide {
+  pub post_id: PostId,
+  pub person_id: PersonId,
+  pub published: DateTime<Utc>,
+}
+
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = post_hide))]
+pub(crate) struct PostHideForm {
   pub post_id: PostId,
   pub person_id: PersonId,
 }

@@ -15,7 +15,7 @@ use lemmy_utils::error::LemmyError;
 use url::Url;
 
 #[derive(Clone, Debug)]
-pub(crate) struct ApubCommunityFollower(Vec<()>);
+pub(crate) struct ApubCommunityFollower(());
 
 #[async_trait::async_trait]
 impl Collection for ApubCommunityFollower {
@@ -61,6 +61,6 @@ impl Collection for ApubCommunityFollower {
     )
     .await?;
 
-    Ok(ApubCommunityFollower(Vec::new()))
+    Ok(ApubCommunityFollower(()))
   }
 }

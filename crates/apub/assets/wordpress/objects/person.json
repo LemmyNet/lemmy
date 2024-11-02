@@ -1,0 +1,74 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    "https://purl.archive.org/socialweb/webfinger",
+    {
+      "schema": "http://schema.org#",
+      "toot": "http://joinmastodon.org/ns#",
+      "webfinger": "https://webfinger.net/#",
+      "lemmy": "https://join-lemmy.org/ns#",
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "PropertyValue": "schema:PropertyValue",
+      "value": "schema:value",
+      "Hashtag": "as:Hashtag",
+      "featured": {
+        "@id": "toot:featured",
+        "@type": "@id"
+      },
+      "featuredTags": {
+        "@id": "toot:featuredTags",
+        "@type": "@id"
+      },
+      "moderators": {
+        "@id": "lemmy:moderators",
+        "@type": "@id"
+      },
+      "postingRestrictedToMods": "lemmy:postingRestrictedToMods",
+      "discoverable": "toot:discoverable",
+      "indexable": "toot:indexable",
+      "resource": "webfinger:resource"
+    }
+  ],
+  "id": "https://pfefferle.org/author/pfefferle/",
+  "type": "Person",
+  "attachment": [
+    {
+      "type": "PropertyValue",
+      "name": "Blog",
+      "value": "<a rel=\"me\" title=\"https://pfefferle.org/\" target=\"_blank\" href=\"https://pfefferle.org/\">pfefferle.org</a>"
+    },
+    {
+      "type": "PropertyValue",
+      "name": "Profile",
+      "value": "<a rel=\"me\" title=\"https://pfefferle.org/author/pfefferle/\" target=\"_blank\" href=\"https://pfefferle.org/author/pfefferle/\">pfefferle.org</a>"
+    }
+  ],
+  "name": "Matthias Pfefferle",
+  "icon": {
+    "type": "Image",
+    "url": "https://secure.gravatar.com/avatar/a2bdca7870e859658cece96c044b3be5?s=120&#038;d=mm&#038;r=g"
+  },
+  "published": "2014-02-10T15:23:08Z",
+  "summary": "<p>Ich arbeite als Open Web Lead für Automattic.</p>\n",
+  "tag": [],
+  "url": "https://pfefferle.org/author/pfefferle/",
+  "inbox": "https://pfefferle.org/wp-json/activitypub/1.0/users/1/inbox",
+  "outbox": "https://pfefferle.org/wp-json/activitypub/1.0/users/1/outbox",
+  "following": "https://pfefferle.org/wp-json/activitypub/1.0/users/1/following",
+  "followers": "https://pfefferle.org/wp-json/activitypub/1.0/users/1/followers",
+  "preferredUsername": "matthias",
+  "endpoints": {
+    "sharedInbox": "https://pfefferle.org/wp-json/activitypub/1.0/inbox"
+  },
+  "publicKey": {
+    "id": "https://pfefferle.org/author/pfefferle/#main-key",
+    "owner": "https://pfefferle.org/author/pfefferle/",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvTA5RA40nOsso04RSwyX\nHXTojRPUMlIlArDcSy3M5GUJp9/xbxSUOdBjqd31KKB1GIi3vrLmD1Qi/ZqS95Qy\nw2Zd3xOsCg+o9bsyOG+O6Y8Lu+HEB5JKLUbNHdiSviakJ8wGadH9Wm4WIiN20y+q\n/u6lgxgiWfZ2CFCN6SOc28fUKi9NmKvXK+M12BhFfy1tC5KWXKDm0UbfI1+dmqhR\n3Ffe6vEsCI/YIVVdWxQ9kouOd0XSHOGdslktkepRO7IP9i9TdwyeCa0WWRoeO5Wa\ntVpc1Y0WuNbTM2ksIXTg0G+rO1/6KO/hrHnGu3RCfb/ZIHK5L/aWYb9B3PG3LyKV\n+wIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "manuallyApprovesFollowers": false,
+  "featured": "https://pfefferle.org/wp-json/activitypub/1.0/users/1/collections/featured",
+  "discoverable": true,
+  "indexable": true,
+  "webfinger": "matthias@pfefferle.org"
+}
