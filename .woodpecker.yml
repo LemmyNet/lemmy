@@ -142,7 +142,6 @@ steps:
     image: *rust_image
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      LEMMY_CONFIG_LOCATION: ./config/config.hjson
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
     commands:

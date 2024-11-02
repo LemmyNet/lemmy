@@ -51,7 +51,6 @@ use std::{
 };
 use tracing::error;
 use url::Url;
-use urlencoding::encode;
 
 const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
@@ -354,27 +353,28 @@ pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
 }
 
 /// Sets a few additional config options necessary for starting lemmy
-fn build_config_options_uri_segment() -> String {
+fn build_config_options_uri_segment(config: &str) -> String {
   // Set `lemmy.protocol_and_hostname` so triggers can use it
   let lemmy_protocol_and_hostname_option =
     "lemmy.protocol_and_hostname=".to_owned() + &SETTINGS.get_protocol_and_hostname();
   let mut options = CONNECTION_OPTIONS.to_vec();
   options.push(&lemmy_protocol_and_hostname_option);
 
-  // Create the connection uri portion
-  let options_segments = "&options=".to_owned()
-    + &options
-      .iter()
-      .map(|o| "-c ".to_owned() + &encode(&o))
-      .collect::<Vec<String>>()
-      .join(" ");
+  let path_character = if config.contains('?') { '&' } else { '?' };
 
-  options_segments
+  // Create the connection uri portion
+  let options_segments = &options
+    .iter()
+    .map(|o| "-c ".to_owned() + o)
+    .collect::<Vec<String>>()
+    .join(" ");
+
+  format!("{config}{path_character}options={options_segments}")
 }
 
 fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
   let fut = async {
-    let config = config.to_owned() + &build_config_options_uri_segment();
+    let config = &build_config_options_uri_segment(config);
 
     // We only support TLS with sslmode=require currently
     let conn = if config.contains("sslmode=require") {
@@ -385,7 +385,7 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
       .with_no_client_auth();
 
       let tls = tokio_postgres_rustls::MakeRustlsConnect::new(rustls_config);
-      let (client, conn) = tokio_postgres::connect(&config, tls)
+      let (client, conn) = tokio_postgres::connect(config, tls)
         .await
         .map_err(|e| ConnectionError::BadConnection(e.to_string()))?;
       tokio::spawn(async move {
@@ -395,7 +395,7 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
       });
       AsyncPgConnection::try_from(client).await?
     } else {
-      AsyncPgConnection::establish(&config).await?
+      AsyncPgConnection::establish(config).await?
     };
 
     Ok(conn)

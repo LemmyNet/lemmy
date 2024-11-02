@@ -78,7 +78,6 @@ i-love-jesus = { workspace = true, optional = true }
 anyhow = { workspace = true }
 moka.workspace = true
 derive-new.workspace = true
-urlencoding = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
