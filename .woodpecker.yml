@@ -215,7 +215,7 @@ steps:
     when: *slow_check_paths
 
   run_federation_tests:
-    image: node:20-bookworm-slim
+    image: node:22-bookworm-slim
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
       DO_WRITE_HOSTS_FILE: "1"
