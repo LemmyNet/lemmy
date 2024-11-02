@@ -247,7 +247,7 @@ impl CommentReplyView {
   }
 
   /// Gets the number of unread replies
-  pub async fn get_unread_replies(
+  pub async fn get_unread_count(
     pool: &mut DbPool<'_>,
     local_user: &LocalUser,
   ) -> Result<i64, Error> {
@@ -389,7 +389,7 @@ mod tests {
       CommentReply::update(pool, inserted_reply.id, &comment_reply_update_form).await?;
 
     // Test to make sure counts and blocks work correctly
-    let unread_replies = CommentReplyView::get_unread_replies(pool, &recipient_local_user).await?;
+    let unread_replies = CommentReplyView::get_unread_count(pool, &recipient_local_user).await?;
 
     let query = CommentReplyQuery {
       recipient_id: Some(recipient_id),
@@ -412,7 +412,7 @@ mod tests {
     PersonBlock::block(pool, &block_form).await?;
 
     let unread_replies_after_block =
-      CommentReplyView::get_unread_replies(pool, &recipient_local_user).await?;
+      CommentReplyView::get_unread_count(pool, &recipient_local_user).await?;
     let replies_after_block = query.clone().list(pool).await?;
     assert_eq!(0, unread_replies_after_block);
     assert_eq!(0, replies_after_block.len());
@@ -440,7 +440,7 @@ mod tests {
     let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id).await?;
 
     let unread_replies_after_hide_bots =
-      CommentReplyView::get_unread_replies(pool, &recipient_local_user_view.local_user).await?;
+      CommentReplyView::get_unread_count(pool, &recipient_local_user_view.local_user).await?;
 
     let mut query_without_bots = query.clone();
     query_without_bots.show_bot_accounts = false;

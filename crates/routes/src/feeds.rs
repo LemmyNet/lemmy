@@ -17,8 +17,8 @@ use lemmy_db_views::{
 };
 use lemmy_db_views_actor::{
   comment_reply_view::CommentReplyQuery,
-  person_mention_view::PersonMentionQuery,
-  structs::{CommentReplyView, PersonMentionView},
+  person_comment_mention_view::PersonCommentMentionQuery,
+  structs::{CommentReplyView, PersonCommentMentionView},
 };
 use lemmy_utils::{
   cache_header::cache_1hour,
@@ -395,7 +395,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
   .list(&mut context.pool())
   .await?;
 
-  let mentions = PersonMentionQuery {
+  let comment_mentions = PersonCommentMentionQuery {
     recipient_id: (Some(person_id)),
     my_person_id: (Some(person_id)),
     show_bot_accounts: (show_bot_accounts),
@@ -407,7 +407,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let items = create_reply_and_mention_items(replies, mentions, &protocol_and_hostname)?;
+  let items = create_reply_and_mention_items(replies, comment_mentions, &protocol_and_hostname)?;
 
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
@@ -427,7 +427,7 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
 #[tracing::instrument(skip_all)]
 fn create_reply_and_mention_items(
   replies: Vec<CommentReplyView>,
-  mentions: Vec<PersonMentionView>,
+  comment_mentions: Vec<PersonCommentMentionView>,
   protocol_and_hostname: &str,
 ) -> LemmyResult<Vec<Item>> {
   let mut reply_items: Vec<Item> = replies
@@ -444,7 +444,7 @@ fn create_reply_and_mention_items(
     })
     .collect::<LemmyResult<Vec<Item>>>()?;
 
-  let mut mention_items: Vec<Item> = mentions
+  let mut comment_mention_items: Vec<Item> = comment_mentions
     .iter()
     .map(|m| {
       let mention_url = format!("{}/comment/{}", protocol_and_hostname, m.comment.id);
@@ -458,7 +458,7 @@ fn create_reply_and_mention_items(
     })
     .collect::<LemmyResult<Vec<Item>>>()?;
 
-  reply_items.append(&mut mention_items);
+  reply_items.append(&mut comment_mention_items);
   Ok(reply_items)
 }
 

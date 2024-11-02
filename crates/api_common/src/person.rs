@@ -1,5 +1,5 @@
 use lemmy_db_schema::{
-  newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
+  newtypes::{CommentReplyId, CommunityId, LanguageId, PersonCommentMentionId, PersonId},
   sensitive::SensitiveString,
   source::{login_token::LoginToken, site::Site},
   CommentSortType,
@@ -11,7 +11,7 @@ use lemmy_db_views::structs::{CommentView, LocalImageView, PostView};
 use lemmy_db_views_actor::structs::{
   CommentReplyView,
   CommunityModeratorView,
-  PersonMentionView,
+  PersonCommentMentionView,
   PersonView,
 };
 use serde::{Deserialize, Serialize};
@@ -293,7 +293,7 @@ pub struct GetRepliesResponse {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Get mentions for your user.
-pub struct GetPersonMentions {
+pub struct GetPersonCommentMentions {
   pub sort: Option<CommentSortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -304,16 +304,16 @@ pub struct GetPersonMentions {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The response of mentions for your user.
-pub struct GetPersonMentionsResponse {
-  pub mentions: Vec<PersonMentionView>,
+pub struct GetPersonCommentMentionsResponse {
+  pub comment_mentions: Vec<PersonCommentMentionView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Mark a person mention as read.
-pub struct MarkPersonMentionAsRead {
-  pub person_mention_id: PersonMentionId,
+pub struct MarkPersonCommentMentionAsRead {
+  pub person_comment_mention_id: PersonCommentMentionId,
   pub read: bool,
 }
 
@@ -321,8 +321,8 @@ pub struct MarkPersonMentionAsRead {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The response for a person mention action.
-pub struct PersonMentionResponse {
-  pub person_mention_view: PersonMentionView,
+pub struct PersonCommentMentionResponse {
+  pub person_comment_mention_view: PersonCommentMentionView,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

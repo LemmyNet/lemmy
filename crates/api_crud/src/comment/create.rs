@@ -22,7 +22,7 @@ use lemmy_db_schema::{
     comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
     comment_reply::{CommentReply, CommentReplyUpdateForm},
     local_site::LocalSite,
-    person_mention::{PersonMention, PersonMentionUpdateForm},
+    person_comment_mention::{PersonCommentMention, PersonCommentMentionUpdateForm},
   },
   traits::{Crud, Likeable},
 };
@@ -174,17 +174,18 @@ pub async fn create_comment(
       .with_lemmy_type(LemmyErrorType::CouldntUpdateReplies)?;
     }
 
-    // If the parent has PersonMentions mark them as read too
-    let person_mention =
-      PersonMention::read_by_comment_and_person(&mut context.pool(), parent_id, person_id).await;
-    if let Ok(Some(mention)) = person_mention {
-      PersonMention::update(
+    // If the parent has PersonCommentMentions mark them as read too
+    let person_comment_mention =
+      PersonCommentMention::read_by_comment_and_person(&mut context.pool(), parent_id, person_id)
+        .await;
+    if let Ok(Some(mention)) = person_comment_mention {
+      PersonCommentMention::update(
         &mut context.pool(),
         mention.id,
-        &PersonMentionUpdateForm { read: Some(true) },
+        &PersonCommentMentionUpdateForm { read: Some(true) },
       )
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePersonMentions)?;
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePersonCommentMentions)?;
     }
   }
 

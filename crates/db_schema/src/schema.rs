@@ -719,16 +719,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_follower (follower_id, person_id) {
-        person_id -> Int4,
-        follower_id -> Int4,
-        published -> Timestamptz,
-        pending -> Bool,
-    }
-}
-
-diesel::table! {
-    person_mention (id) {
+    person_comment_mention (id) {
         id -> Int4,
         recipient_id -> Int4,
         comment_id -> Int4,
@@ -738,11 +729,30 @@ diesel::table! {
 }
 
 diesel::table! {
+    person_follower (follower_id, person_id) {
+        person_id -> Int4,
+        follower_id -> Int4,
+        published -> Timestamptz,
+        pending -> Bool,
+    }
+}
+
+diesel::table! {
     person_post_aggregates (person_id, post_id) {
         person_id -> Int4,
         post_id -> Int4,
         read_comments -> Int8,
         published -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    person_post_mention (id) {
+        id -> Int4,
+        recipient_id -> Int4,
+        post_id -> Int4,
+        read -> Bool,
+        published -> Timestamp,
     }
 }
 
@@ -1049,10 +1059,12 @@ diesel::joinable!(password_reset_request -> local_user (local_user_id));
 diesel::joinable!(person -> instance (instance_id));
 diesel::joinable!(person_aggregates -> person (person_id));
 diesel::joinable!(person_ban -> person (person_id));
-diesel::joinable!(person_mention -> comment (comment_id));
-diesel::joinable!(person_mention -> person (recipient_id));
+diesel::joinable!(person_comment_mention -> comment (comment_id));
+diesel::joinable!(person_comment_mention -> person (recipient_id));
 diesel::joinable!(person_post_aggregates -> person (person_id));
 diesel::joinable!(person_post_aggregates -> post (post_id));
+diesel::joinable!(person_post_mention -> person (recipient_id));
+diesel::joinable!(person_post_mention -> post (post_id));
 diesel::joinable!(post -> community (community_id));
 diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
@@ -1132,9 +1144,10 @@ diesel::allow_tables_to_appear_in_same_query!(
     person_aggregates,
     person_ban,
     person_block,
+    person_comment_mention,
     person_follower,
-    person_mention,
     person_post_aggregates,
+    person_post_mention,
     post,
     post_aggregates,
     post_hide,

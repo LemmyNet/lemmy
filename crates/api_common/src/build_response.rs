@@ -18,7 +18,7 @@ use lemmy_db_schema::{
     comment::Comment,
     comment_reply::{CommentReply, CommentReplyInsertForm},
     person::Person,
-    person_mention::{PersonMention, PersonMentionInsertForm},
+    person_comment_mention::{PersonCommentMention, PersonCommentMentionInsertForm},
   },
   traits::Crud,
 };
@@ -127,7 +127,7 @@ pub async fn send_local_notifs(
       // below by checking recipient ids
       recipient_ids.push(mention_user_view.local_user.id);
 
-      let user_mention_form = PersonMentionInsertForm {
+      let person_comment_mention_form = PersonCommentMentionInsertForm {
         recipient_id: mention_user_view.person.id,
         comment_id,
         read: None,
@@ -135,7 +135,7 @@ pub async fn send_local_notifs(
 
       // Allow this to fail softly, since comment edits might re-update or replace it
       // Let the uniqueness handle this fail
-      PersonMention::create(&mut context.pool(), &user_mention_form)
+      PersonCommentMention::create(&mut context.pool(), &person_comment_mention_form)
         .await
         .ok();
 
