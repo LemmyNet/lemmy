@@ -142,6 +142,7 @@ pub async fn save_user_settings(
     enable_keyboard_navigation: data.enable_keyboard_navigation,
     enable_animated_images: data.enable_animated_images,
     collapse_bot_comments: data.collapse_bot_comments,
+    auto_mark_fetched_posts_as_read: data.auto_mark_fetched_posts_as_read,
     ..Default::default()
   };
 

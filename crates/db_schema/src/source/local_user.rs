@@ -65,6 +65,8 @@ pub struct LocalUser {
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: bool,
   pub default_comment_sort_type: CommentSortType,
+  /// Whether to automatically mark fetched posts as read.
+  pub auto_mark_fetched_posts_as_read: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -119,6 +121,8 @@ pub struct LocalUserInsertForm {
   pub collapse_bot_comments: Option<bool>,
   #[new(default)]
   pub default_comment_sort_type: Option<CommentSortType>,
+  #[new(default)]
+  pub auto_mark_fetched_posts_as_read: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -149,4 +153,5 @@ pub struct LocalUserUpdateForm {
   pub enable_animated_images: Option<bool>,
   pub collapse_bot_comments: Option<bool>,
   pub default_comment_sort_type: Option<CommentSortType>,
+  pub auto_mark_fetched_posts_as_read: Option<bool>,
 }

@@ -474,6 +474,7 @@ diesel::table! {
         enable_animated_images -> Bool,
         collapse_bot_comments -> Bool,
         default_comment_sort_type -> CommentSortTypeEnum,
+        auto_mark_fetched_posts_as_read -> Bool,
     }
 }
 

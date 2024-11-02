@@ -10,7 +10,10 @@ use lemmy_api_common::{
   post::{GetPosts, GetPostsResponse},
   utils::{check_conflicting_like_filters, check_private_instance},
 };
-use lemmy_db_schema::source::community::Community;
+use lemmy_db_schema::{
+  newtypes::PostId,
+  source::{community::Community, post::PostRead},
+};
 use lemmy_db_views::{
   post_view::PostQuery,
   structs::{LocalUserView, PaginationCursor, SiteView},
@@ -87,6 +90,14 @@ pub async fn list_posts(
   .list(&local_site.site, &mut context.pool())
   .await
   .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
+
+  // If in their user settings, auto-mark fetched posts as read
+  if let Some(local_user) = local_user {
+    if local_user.auto_mark_fetched_posts_as_read {
+      let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
+      PostRead::mark_as_read(&mut context.pool(), &post_ids, local_user.person_id).await?;
+    }
+  }
 
   // if this page wasn't empty, then there is a next page after the last post on this page
   let next_page = posts.last().map(PaginationCursor::after_post);

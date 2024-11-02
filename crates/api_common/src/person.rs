@@ -138,6 +138,8 @@ pub struct SaveUserSettings {
   pub show_upvotes: Option<bool>,
   pub show_downvotes: Option<bool>,
   pub show_upvote_percentage: Option<bool>,
+  /// Whether to automatically mark fetched posts as read.
+  pub auto_mark_fetched_posts_as_read: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

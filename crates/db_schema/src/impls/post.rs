@@ -39,6 +39,10 @@ use diesel::{
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::{
+  error::{LemmyErrorExt, LemmyResult},
+  LemmyErrorType,
+};
 use std::collections::HashSet;
 
 #[async_trait]
@@ -322,36 +326,41 @@ impl Saveable for PostSaved {
 impl PostRead {
   pub async fn mark_as_read(
     pool: &mut DbPool<'_>,
-    post_ids: HashSet<PostId>,
+    post_ids: &[PostId],
     person_id: PersonId,
-  ) -> Result<usize, Error> {
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
 
     let forms = post_ids
-      .into_iter()
-      .map(|post_id| PostReadForm { post_id, person_id })
+      .iter()
+      .map(|post_id| PostReadForm {
+        post_id: *post_id,
+        person_id,
+      })
       .collect::<Vec<PostReadForm>>();
     insert_into(post_read::table)
       .values(forms)
       .on_conflict_do_nothing()
       .execute(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
   }
 
   pub async fn mark_as_unread(
     pool: &mut DbPool<'_>,
-    post_id_: HashSet<PostId>,
+    post_ids: &[PostId],
     person_id_: PersonId,
-  ) -> Result<usize, Error> {
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
 
     diesel::delete(
       post_read::table
-        .filter(post_read::post_id.eq_any(post_id_))
+        .filter(post_read::post_id.eq_any(post_ids))
         .filter(post_read::person_id.eq(person_id_)),
     )
     .execute(conn)
     .await
+    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
   }
 }
 
@@ -417,7 +426,6 @@ mod tests {
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
-  use std::collections::HashSet;
   use url::Url;
 
   #[tokio::test]
@@ -521,7 +529,7 @@ mod tests {
     // Post Read
     let marked_as_read = PostRead::mark_as_read(
       pool,
-      HashSet::from([inserted_post.id, inserted_post2.id]),
+      &[inserted_post.id, inserted_post2.id],
       inserted_person.id,
     )
     .await?;
@@ -545,7 +553,7 @@ mod tests {
     assert_eq!(1, saved_removed);
     let read_removed = PostRead::mark_as_unread(
       pool,
-      HashSet::from([inserted_post.id, inserted_post2.id]),
+      &[inserted_post.id, inserted_post2.id],
       inserted_person.id,
     )
     .await?;
