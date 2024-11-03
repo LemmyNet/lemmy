@@ -29,6 +29,7 @@ pub struct PrivateMessage {
   pub deleted: bool,
   pub read: bool,
   pub published: DateTime<Utc>,
+  #[ts(optional)]
   pub updated: Option<DateTime<Utc>>,
   pub ap_id: DbUrl,
   pub local: bool,

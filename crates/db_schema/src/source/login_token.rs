@@ -24,7 +24,9 @@ pub struct LoginToken {
   pub published: DateTime<Utc>,
   /// IP address where login was made from, allows invalidating logins by IP address.
   /// Could be stored in truncated format, or store derived information for better privacy.
+  #[ts(optional)]
   pub ip: Option<String>,
+  #[ts(optional)]
   pub user_agent: Option<String>,
 }
 

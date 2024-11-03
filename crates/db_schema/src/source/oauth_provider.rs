@@ -60,6 +60,7 @@ pub struct OAuthProvider {
   /// switch to enable or disable an oauth provider
   pub enabled: bool,
   pub published: DateTime<Utc>,
+  #[ts(optional)]
   pub updated: Option<DateTime<Utc>>,
 }
 

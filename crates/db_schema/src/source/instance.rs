@@ -19,8 +19,11 @@ pub struct Instance {
   pub id: InstanceId,
   pub domain: String,
   pub published: DateTime<Utc>,
+  #[ts(optional)]
   pub updated: Option<DateTime<Utc>>,
+  #[ts(optional)]
   pub software: Option<String>,
+  #[ts(optional)]
   pub version: Option<String>,
 }
 

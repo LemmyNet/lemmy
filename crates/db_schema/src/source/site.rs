@@ -21,14 +21,19 @@ pub struct Site {
   pub id: SiteId,
   pub name: String,
   /// A sidebar for the site in markdown.
+  #[ts(optional)]
   pub sidebar: Option<String>,
   pub published: DateTime<Utc>,
+  #[ts(optional)]
   pub updated: Option<DateTime<Utc>>,
   /// An icon URL.
+  #[ts(optional)]
   pub icon: Option<DbUrl>,
   /// A banner url.
+  #[ts(optional)]
   pub banner: Option<DbUrl>,
   /// A shorter, one-line description of the site.
+  #[ts(optional)]
   pub description: Option<String>,
   /// The federated actor_id.
   pub actor_id: DbUrl,
@@ -43,6 +48,7 @@ pub struct Site {
   pub instance_id: InstanceId,
   /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
   /// when the site is first opened by a user.
+  #[ts(optional)]
   pub content_warning: Option<String>,
 }
 

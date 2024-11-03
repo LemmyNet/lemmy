@@ -17,6 +17,7 @@ pub struct Tagline {
   pub id: i32,
   pub content: String,
   pub published: DateTime<Utc>,
+  #[ts(optional)]
   pub updated: Option<DateTime<Utc>>,
 }
 

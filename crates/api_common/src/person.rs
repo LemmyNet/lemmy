@@ -28,6 +28,7 @@ pub struct Login {
   pub username_or_email: SensitiveString,
   pub password: SensitiveString,
   /// May be required, if totp is enabled for their account.
+  #[ts(optional)]
   pub totp_2fa_token: Option<String>,
 }
 
@@ -40,16 +41,22 @@ pub struct Register {
   pub username: String,
   pub password: SensitiveString,
   pub password_verify: SensitiveString,
+  #[ts(optional)]
   pub show_nsfw: Option<bool>,
   /// email is mandatory if email verification is enabled on the server
+  #[ts(optional)]
   pub email: Option<SensitiveString>,
   /// The UUID of the captcha item.
+  #[ts(optional)]
   pub captcha_uuid: Option<String>,
   /// Your captcha answer.
+  #[ts(optional)]
   pub captcha_answer: Option<String>,
   /// A form field to trick signup bots. Should be None.
+  #[ts(optional)]
   pub honeypot: Option<String>,
   /// An answer is mandatory if require application is enabled on the server
+  #[ts(optional)]
   pub answer: Option<String>,
 }
 
@@ -60,6 +67,7 @@ pub struct Register {
 /// A wrapper for the captcha response.
 pub struct GetCaptchaResponse {
   /// Will be None if captchas are disabled.
+  #[ts(optional)]
   pub ok: Option<CaptchaResponse>,
 }
 
@@ -83,60 +91,89 @@ pub struct CaptchaResponse {
 /// Saves settings for your user.
 pub struct SaveUserSettings {
   /// Show nsfw posts.
+  #[ts(optional)]
   pub show_nsfw: Option<bool>,
   /// Blur nsfw posts.
+  #[ts(optional)]
   pub blur_nsfw: Option<bool>,
   /// Your user's theme.
+  #[ts(optional)]
   pub theme: Option<String>,
   /// The default post listing type, usually "local"
+  #[ts(optional)]
   pub default_listing_type: Option<ListingType>,
   /// A post-view mode that changes how multiple post listings look.
+  #[ts(optional)]
   pub post_listing_mode: Option<PostListingMode>,
   /// The default post sort, usually "active"
+  #[ts(optional)]
   pub default_post_sort_type: Option<PostSortType>,
   /// The default comment sort, usually "hot"
+  #[ts(optional)]
   pub default_comment_sort_type: Option<CommentSortType>,
   /// The language of the lemmy interface
+  #[ts(optional)]
   pub interface_language: Option<String>,
   /// A URL for your avatar.
+  #[ts(optional)]
   pub avatar: Option<String>,
   /// A URL for your banner.
+  #[ts(optional)]
   pub banner: Option<String>,
   /// Your display name, which can contain strange characters, and does not need to be unique.
+  #[ts(optional)]
   pub display_name: Option<String>,
   /// Your email.
+  #[ts(optional)]
   pub email: Option<SensitiveString>,
   /// Your bio / info, in markdown.
+  #[ts(optional)]
   pub bio: Option<String>,
   /// Your matrix user id. Ex: @my_user:matrix.org
+  #[ts(optional)]
   pub matrix_user_id: Option<String>,
   /// Whether to show or hide avatars.
+  #[ts(optional)]
   pub show_avatars: Option<bool>,
   /// Sends notifications to your email.
+  #[ts(optional)]
   pub send_notifications_to_email: Option<bool>,
   /// Whether this account is a bot account. Users can hide these accounts easily if they wish.
+  #[ts(optional)]
   pub bot_account: Option<bool>,
   /// Whether to show bot accounts.
+  #[ts(optional)]
   pub show_bot_accounts: Option<bool>,
   /// Whether to show read posts.
+  #[ts(optional)]
   pub show_read_posts: Option<bool>,
   /// A list of languages you are able to see discussion in.
+  #[ts(optional)]
   pub discussion_languages: Option<Vec<LanguageId>>,
   /// Open links in a new tab
+  #[ts(optional)]
   pub open_links_in_new_tab: Option<bool>,
   /// Enable infinite scroll
+  #[ts(optional)]
   pub infinite_scroll_enabled: Option<bool>,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
+  #[ts(optional)]
   pub enable_keyboard_navigation: Option<bool>,
   /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or
   /// should be paused
+  #[ts(optional)]
   pub enable_animated_images: Option<bool>,
   /// Whether to auto-collapse bot comments.
+  #[ts(optional)]
   pub collapse_bot_comments: Option<bool>,
   /// Some vote display mode settings
+  #[ts(optional)]
   pub show_scores: Option<bool>,
+  #[ts(optional)]
   pub show_upvotes: Option<bool>,
+  #[ts(optional)]
   pub show_downvotes: Option<bool>,
+  #[ts(optional)]
   pub show_upvote_percentage: Option<bool>,
 }
 
@@ -158,6 +195,7 @@ pub struct ChangePassword {
 pub struct LoginResponse {
   /// This is None in response to `Register` if email verification is enabled, or the server
   /// requires registration applications.
+  #[ts(optional)]
   pub jwt: Option<SensitiveString>,
   /// If registration applications are required, this will return true for a signup response.
   pub registration_created: bool,
@@ -173,13 +211,20 @@ pub struct LoginResponse {
 ///
 /// Either person_id, or username are required.
 pub struct GetPersonDetails {
+  #[ts(optional)]
   pub person_id: Option<PersonId>,
   /// Example: dessalines , or dessalines@xyz.tld
+  #[ts(optional)]
   pub username: Option<String>,
+  #[ts(optional)]
   pub sort: Option<PostSortType>,
+  #[ts(optional)]
   pub page: Option<i64>,
+  #[ts(optional)]
   pub limit: Option<i64>,
+  #[ts(optional)]
   pub community_id: Option<CommunityId>,
+  #[ts(optional)]
   pub saved_only: Option<bool>,
 }
 
@@ -190,6 +235,7 @@ pub struct GetPersonDetails {
 /// A person's details response.
 pub struct GetPersonDetailsResponse {
   pub person_view: PersonView,
+  #[ts(optional)]
   pub site: Option<Site>,
   pub comments: Vec<CommentView>,
   pub posts: Vec<PostView>,
@@ -223,11 +269,14 @@ pub struct BanPerson {
   pub ban: bool,
   /// Optionally remove or restore all their data. Useful for new troll accounts.
   /// If ban is true, then this means remove. If ban is false, it means restore.
+  #[ts(optional)]
   pub remove_or_restore_data: Option<bool>,
+  #[ts(optional)]
   pub reason: Option<String>,
   /// A time that the ban will expire, in unix epoch seconds.
   ///
   /// An i64 unix timestamp is used for a simpler API client implementation.
+  #[ts(optional)]
   pub expires: Option<i64>,
 }
 
@@ -273,9 +322,13 @@ pub struct BlockPersonResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Get comment replies.
 pub struct GetReplies {
+  #[ts(optional)]
   pub sort: Option<CommentSortType>,
+  #[ts(optional)]
   pub page: Option<i64>,
+  #[ts(optional)]
   pub limit: Option<i64>,
+  #[ts(optional)]
   pub unread_only: Option<bool>,
 }
 
@@ -294,9 +347,13 @@ pub struct GetRepliesResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Get mentions for your user.
 pub struct GetPersonMentions {
+  #[ts(optional)]
   pub sort: Option<CommentSortType>,
+  #[ts(optional)]
   pub page: Option<i64>,
+  #[ts(optional)]
   pub limit: Option<i64>,
+  #[ts(optional)]
   pub unread_only: Option<bool>,
 }
 
@@ -375,6 +432,7 @@ pub struct PasswordChangeAfterReset {
 #[cfg_attr(feature = "full", ts(export))]
 /// Get a count of the number of reports.
 pub struct GetReportCount {
+  #[ts(optional)]
   pub community_id: Option<CommunityId>,
 }
 
@@ -384,9 +442,11 @@ pub struct GetReportCount {
 #[cfg_attr(feature = "full", ts(export))]
 /// A response for the number of reports.
 pub struct GetReportCountResponse {
+  #[ts(optional)]
   pub community_id: Option<CommunityId>,
   pub comment_reports: i64,
   pub post_reports: i64,
+  #[ts(optional)]
   pub private_message_reports: Option<i64>,
 }
 
@@ -436,7 +496,9 @@ pub struct UpdateTotpResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Get your user's image / media uploads.
 pub struct ListMedia {
+  #[ts(optional)]
   pub page: Option<i64>,
+  #[ts(optional)]
   pub limit: Option<i64>,
 }
 

@@ -18,7 +18,9 @@ pub struct RegistrationApplication {
   pub id: RegistrationApplicationId,
   pub local_user_id: LocalUserId,
   pub answer: String,
+  #[ts(optional)]
   pub admin_id: Option<PersonId>,
+  #[ts(optional)]
   pub deny_reason: Option<String>,
   pub published: DateTime<Utc>,
 }

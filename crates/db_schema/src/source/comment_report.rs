@@ -25,8 +25,10 @@ pub struct CommentReport {
   pub original_comment_text: String,
   pub reason: String,
   pub resolved: bool,
+  #[ts(optional)]
   pub resolver_id: Option<PersonId>,
   pub published: DateTime<Utc>,
+  #[ts(optional)]
   pub updated: Option<DateTime<Utc>>,
 }
 
