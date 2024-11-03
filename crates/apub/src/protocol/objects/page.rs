@@ -19,7 +19,7 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::proxy_image_link};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
@@ -93,6 +93,7 @@ pub(crate) struct Document {
   #[serde(rename = "type")]
   kind: DocumentType,
   url: Url,
+  media_type: Option<String>,
   /// Used for alt_text
   name: Option<String>,
 }
@@ -122,6 +123,24 @@ impl Attachment {
       Attachment::Image(i) => i.name,
       Attachment::Document(d) => d.name,
       _ => None,
+    }
+  }
+
+  pub(crate) async fn as_markdown(&self, context: &Data<LemmyContext>) -> LemmyResult<String> {
+    let (url, name, media_type) = match self {
+      Attachment::Image(i) => (i.url.clone(), i.name.clone(), Some(String::from("image"))),
+      Attachment::Document(d) => (d.url.clone(), d.name.clone(), d.media_type.clone()),
+      Attachment::Link(l) => (l.href.clone(), None, l.media_type.clone()),
+    };
+
+    let is_image =
+      media_type.is_some_and(|media| media.starts_with("video") || media.starts_with("image"));
+
+    if is_image {
+      let url = proxy_image_link(url, context).await?;
+      Ok(format!("![{}]({url})", name.unwrap_or_default()))
+    } else {
+      Ok(format!("[{url}]({url})"))
     }
   }
 }
