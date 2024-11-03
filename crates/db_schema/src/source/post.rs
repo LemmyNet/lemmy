@@ -18,10 +18,10 @@ pub struct Post {
   pub id: PostId,
   pub name: String,
   /// An optional link / url for the post.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub url: Option<DbUrl>,
   /// An optional post body, in markdown.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub body: Option<String>,
   pub creator_id: PersonId,
   pub community_id: CommunityId,
@@ -30,40 +30,40 @@ pub struct Post {
   /// Whether the post is locked.
   pub locked: bool,
   pub published: DateTime<Utc>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
   /// Whether the post is deleted.
   pub deleted: bool,
   /// Whether the post is NSFW.
   pub nsfw: bool,
   /// A title for the link.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub embed_title: Option<String>,
   /// A description for the link.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub embed_description: Option<String>,
   /// A thumbnail picture url.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub thumbnail_url: Option<DbUrl>,
   /// The federated activity id / ap_id.
   pub ap_id: DbUrl,
   /// Whether the post is local.
   pub local: bool,
   /// A video url for the link.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub embed_video_url: Option<DbUrl>,
   pub language_id: LanguageId,
   /// Whether the post is featured to its community.
   pub featured_community: bool,
   /// Whether the post is featured to its site.
   pub featured_local: bool,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub url_content_type: Option<String>,
   /// An optional alt_text, usable for image posts.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub alt_text: Option<String>,
   /// Time at which the post will be published. None means publish immediately.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<DateTime<Utc>>,
 }
 

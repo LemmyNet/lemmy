@@ -16,7 +16,7 @@ pub struct LocalSiteUrlBlocklist {
   pub id: i32,
   pub url: String,
   pub published: DateTime<Utc>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
 }
 

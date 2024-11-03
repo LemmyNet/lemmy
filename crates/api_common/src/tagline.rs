@@ -50,8 +50,8 @@ pub struct ListTaglinesResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Fetches a list of taglines.
 pub struct ListTaglines {
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }

@@ -21,7 +21,7 @@ pub struct CustomEmoji {
   pub alt_text: String,
   pub category: String,
   pub published: DateTime<Utc>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
 }
 

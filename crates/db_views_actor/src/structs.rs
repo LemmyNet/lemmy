@@ -109,7 +109,7 @@ pub struct PersonMentionView {
   pub subscribed: SubscribedType,
   pub saved: bool,
   pub creator_blocked: bool,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
 }
 
@@ -134,7 +134,7 @@ pub struct CommentReplyView {
   pub subscribed: SubscribedType,
   pub saved: bool,
   pub creator_blocked: bool,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
 }
 

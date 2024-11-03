@@ -120,7 +120,7 @@ pub enum LemmyErrorType {
   EmailSendFailed,
   Slurs,
   RegistrationDenied {
-    #[ts(optional)]
+    #[cfg_attr(feature = "full", ts(optional))]
     reason: Option<String>,
   },
   SiteNameRequired,
@@ -151,7 +151,7 @@ pub enum LemmyErrorType {
   PostScheduleTimeMustBeInFuture,
   TooManyScheduledPosts,
   FederationError {
-    #[ts(optional)]
+    #[cfg_attr(feature = "full", ts(optional))]
     error: Option<FederationError>,
   },
 }

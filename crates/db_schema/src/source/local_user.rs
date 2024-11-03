@@ -27,7 +27,7 @@ pub struct LocalUser {
   pub person_id: PersonId,
   #[serde(skip)]
   pub password_encrypted: Option<SensitiveString>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub email: Option<SensitiveString>,
   /// Whether to show NSFW content.
   pub show_nsfw: bool,

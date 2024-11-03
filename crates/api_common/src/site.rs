@@ -71,31 +71,31 @@ use ts_rs::TS;
 /// Searches the site, given a query string, and some optional filters.
 pub struct Search {
   pub q: String,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community_name: Option<String>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_id: Option<PersonId>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<SearchType>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub sort: Option<PostSortType>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub listing_type: Option<ListingType>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub title_only: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub post_url_only: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub saved_only: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub liked_only: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
 }
 
@@ -128,13 +128,13 @@ pub struct ResolveObject {
 // TODO Change this to an enum
 /// The response of an apub object fetch.
 pub struct ResolveObjectResponse {
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub comment: Option<CommentView>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub post: Option<PostView>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community: Option<CommunityView>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub person: Option<PersonView>,
 }
 
@@ -144,21 +144,21 @@ pub struct ResolveObjectResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Fetches the modlog.
 pub struct GetModlog {
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub mod_person_id: Option<PersonId>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ModlogActionType>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub other_person_id: Option<PersonId>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub post_id: Option<PostId>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub comment_id: Option<CommentId>,
 }
 
@@ -192,95 +192,95 @@ pub struct GetModlogResponse {
 /// Creates a site. Should be done after first running lemmy.
 pub struct CreateSite {
   pub name: String,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub sidebar: Option<String>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub icon: Option<String>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<String>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub enable_nsfw: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub require_email_verification: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub application_question: Option<String>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub private_instance: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub default_theme: Option<String>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub default_post_listing_type: Option<ListingType>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub default_post_listing_mode: Option<PostListingMode>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub default_post_sort_type: Option<PostSortType>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub default_comment_sort_type: Option<CommentSortType>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub legal_information: Option<String>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub application_email_admins: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub hide_modlog_mod_names: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub discussion_languages: Option<Vec<LanguageId>>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub slur_filter_regex: Option<String>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub actor_name_max_length: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_message: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_message_per_second: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_post: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_post_per_second: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_register: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_register_per_second: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_image: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_image_per_second: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_comment: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_comment_per_second: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_search: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_search_per_second: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub federation_enabled: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub federation_debug: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_enabled: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_difficulty: Option<String>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub allowed_instances: Option<Vec<String>>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub blocked_instances: Option<Vec<String>>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub registration_mode: Option<RegistrationMode>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub oauth_registration: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub content_warning: Option<String>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub post_upvotes: Option<FederationMode>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub post_downvotes: Option<FederationMode>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub comment_upvotes: Option<FederationMode>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub comment_downvotes: Option<FederationMode>,
 }
 
@@ -290,142 +290,142 @@ pub struct CreateSite {
 #[cfg_attr(feature = "full", ts(export))]
 /// Edits a site.
 pub struct EditSite {
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub name: Option<String>,
   /// A sidebar for the site, in markdown.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub sidebar: Option<String>,
   /// A shorter, one line description of your site.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
   /// A url for your site's icon.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub icon: Option<String>,
   /// A url for your site's banner.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<String>,
   /// Whether to enable NSFW.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub enable_nsfw: Option<bool>,
   /// Limits community creation to admins only.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
   /// Whether to require email verification.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub require_email_verification: Option<bool>,
   /// Your application question form. This is in markdown, and can be many questions.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub application_question: Option<String>,
   /// Whether your instance is public, or private.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub private_instance: Option<bool>,
   /// The default theme. Usually "browser"
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub default_theme: Option<String>,
   /// The default post listing type, usually "local"
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub default_post_listing_type: Option<ListingType>,
   /// Default value for listing mode, usually "list"
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub default_post_listing_mode: Option<PostListingMode>,
   /// The default post sort, usually "active"
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub default_post_sort_type: Option<PostSortType>,
   /// The default comment sort, usually "hot"
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub default_comment_sort_type: Option<CommentSortType>,
   /// An optional page of legal information
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub legal_information: Option<String>,
   /// Whether to email admins when receiving a new application.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub application_email_admins: Option<bool>,
   /// Whether to hide moderator names from the modlog.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub hide_modlog_mod_names: Option<bool>,
   /// A list of allowed discussion languages.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub discussion_languages: Option<Vec<LanguageId>>,
   /// A regex string of items to filter.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub slur_filter_regex: Option<String>,
   /// The max length of actor names.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub actor_name_max_length: Option<i32>,
   /// The number of messages allowed in a given time frame.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_message: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_message_per_second: Option<i32>,
   /// The number of posts allowed in a given time frame.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_post: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_post_per_second: Option<i32>,
   /// The number of registrations allowed in a given time frame.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_register: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_register_per_second: Option<i32>,
   /// The number of image uploads allowed in a given time frame.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_image: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_image_per_second: Option<i32>,
   /// The number of comments allowed in a given time frame.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_comment: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_comment_per_second: Option<i32>,
   /// The number of searches allowed in a given time frame.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_search: Option<i32>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub rate_limit_search_per_second: Option<i32>,
   /// Whether to enable federation.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub federation_enabled: Option<bool>,
   /// Enables federation debugging.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub federation_debug: Option<bool>,
   /// Whether to enable captchas for signups.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_enabled: Option<bool>,
   /// The captcha difficulty. Can be easy, medium, or hard
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_difficulty: Option<String>,
   /// A list of allowed instances. If none are set, federation is open.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub allowed_instances: Option<Vec<String>>,
   /// A list of blocked instances.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub blocked_instances: Option<Vec<String>>,
   /// A list of blocked URLs
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub blocked_urls: Option<Vec<String>>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub registration_mode: Option<RegistrationMode>,
   /// Whether to email admins for new reports.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reports_email_admins: Option<bool>,
   /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
   /// when the site is first opened by a user.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub content_warning: Option<String>,
   /// Whether or not external auth methods can auto-register users.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub oauth_registration: Option<bool>,
   /// What kind of post upvotes your site allows.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub post_upvotes: Option<FederationMode>,
   /// What kind of post downvotes your site allows.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub post_downvotes: Option<FederationMode>,
   /// What kind of comment upvotes your site allows.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub comment_upvotes: Option<FederationMode>,
   /// What kind of comment downvotes your site allows.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub comment_downvotes: Option<FederationMode>,
 }
 
@@ -448,7 +448,7 @@ pub struct GetSiteResponse {
   pub site_view: SiteView,
   pub admins: Vec<PersonView>,
   pub version: String,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub my_user: Option<MyUserInfo>,
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
@@ -457,12 +457,12 @@ pub struct GetSiteResponse {
   /// deprecated, use /api/v3/custom_emoji/list
   pub custom_emojis: Vec<()>,
   /// If the site has any taglines, a random one is included here for displaying
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub tagline: Option<Tagline>,
   /// A list of external auth methods your site supports.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub oauth_providers: Option<Vec<PublicOAuthProvider>>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
 }
@@ -474,7 +474,7 @@ pub struct GetSiteResponse {
 /// A response of federated instances.
 pub struct GetFederatedInstancesResponse {
   /// Optional, because federation may be disabled.
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub federated_instances: Option<FederatedInstances>,
 }
 
@@ -510,7 +510,7 @@ pub struct ReadableFederationState {
   #[serde(flatten)]
   internal_state: FederationQueueState,
   /// timestamp of the next retry attempt (null if fail count is 0)
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   next_retry: Option<DateTime<Utc>>,
 }
 
@@ -535,7 +535,7 @@ pub struct InstanceWithFederationState {
   pub instance: Instance,
   /// if federation to this instance is or was active, show state of outgoing federation to this
   /// instance
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub federation_state: Option<ReadableFederationState>,
 }
 
@@ -546,7 +546,7 @@ pub struct InstanceWithFederationState {
 /// Purges a person from the database. This will delete all content attached to that person.
 pub struct PurgePerson {
   pub person_id: PersonId,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
 }
 
@@ -557,7 +557,7 @@ pub struct PurgePerson {
 /// Purges a community from the database. This will delete all content attached to that community.
 pub struct PurgeCommunity {
   pub community_id: CommunityId,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
 }
 
@@ -568,7 +568,7 @@ pub struct PurgeCommunity {
 /// Purges a post from the database. This will delete all content attached to that post.
 pub struct PurgePost {
   pub post_id: PostId,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
 }
 
@@ -579,7 +579,7 @@ pub struct PurgePost {
 /// Purges a comment from the database. This will delete all content attached to that comment.
 pub struct PurgeComment {
   pub comment_id: CommentId,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
 }
 
@@ -590,11 +590,11 @@ pub struct PurgeComment {
 /// Fetches a list of registration applications.
 pub struct ListRegistrationApplications {
   /// Only shows the unread applications (IE those without an admin actor)
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub unread_only: Option<bool>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
 
@@ -623,7 +623,7 @@ pub struct GetRegistrationApplication {
 pub struct ApproveRegistrationApplication {
   pub id: RegistrationApplicationId,
   pub approve: bool,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub deny_reason: Option<String>,
 }
 

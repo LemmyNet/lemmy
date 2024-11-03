@@ -19,7 +19,7 @@ pub struct OAuthAccount {
   pub oauth_provider_id: OAuthProviderId,
   pub oauth_user_id: String,
   pub published: DateTime<Utc>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
 }
 

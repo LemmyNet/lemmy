@@ -29,10 +29,10 @@ pub struct PrivateMessageReport {
   pub original_pm_text: String,
   pub reason: String,
   pub resolved: bool,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub resolver_id: Option<PersonId>,
   pub published: DateTime<Utc>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
 }
 

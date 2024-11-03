@@ -62,12 +62,12 @@ pub struct ListCustomEmojisResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Fetches a list of custom emojis.
 pub struct ListCustomEmojis {
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub category: Option<String>,
-  #[ts(optional)]
+  #[cfg_attr(feature = "full", ts(optional))]
   pub ignore_page_limits: Option<bool>,
 }
