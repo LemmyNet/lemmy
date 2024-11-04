@@ -111,7 +111,7 @@ pub fn is_valid_community_name(name: &str, actor_name_max_length: usize) -> Lemm
 }
 
 fn is_valid_actor_name(name: &str, actor_name_max_length: usize, r: &Regex) -> LemmyResult<()> {
-  if name.len() <= actor_name_max_length && !has_newline(name) && r.is_match(name) {
+  if name.len() <= actor_name_max_length && r.is_match(name) {
     Ok(())
   } else {
     Err(LemmyErrorType::InvalidName.into())
@@ -366,25 +366,11 @@ mod tests {
   use crate::{
     error::{LemmyErrorType, LemmyResult},
     utils::validation::{
-      build_and_check_regex,
-      check_site_visibility_valid,
-      check_urls_are_valid,
-      clean_url,
-      clean_urls_in_text,
-      is_url_blocked,
-      is_valid_bio_field,
-      is_valid_community_name,
-      is_valid_display_name,
-      is_valid_matrix_id,
-      is_valid_post_title,
-      is_valid_url,
-      is_valid_username,
-      site_name_length_check,
-      site_or_community_description_length_check,
-      BIO_MAX_LENGTH,
-      SITE_DESCRIPTION_MAX_LENGTH,
-      SITE_NAME_MAX_LENGTH,
-      URL_MAX_LENGTH,
+      build_and_check_regex, check_site_visibility_valid, check_urls_are_valid, clean_url,
+      clean_urls_in_text, is_url_blocked, is_valid_bio_field, is_valid_community_name,
+      is_valid_display_name, is_valid_matrix_id, is_valid_post_title, is_valid_url,
+      is_valid_username, site_name_length_check, site_or_community_description_length_check,
+      BIO_MAX_LENGTH, SITE_DESCRIPTION_MAX_LENGTH, SITE_NAME_MAX_LENGTH, URL_MAX_LENGTH,
     },
   };
   use pretty_assertions::assert_eq;
@@ -449,6 +435,14 @@ mod tests {
     assert!(is_valid_username("a", actor_name_max_length).is_err());
     // empty
     assert!(is_valid_username("", actor_name_max_length).is_err());
+    // newline
+    assert!(is_valid_username(
+      r"Line1
+
+Line3",
+      actor_name_max_length
+    )
+    .is_err());
   }
 
   #[test]
@@ -472,6 +466,14 @@ mod tests {
     assert!(is_valid_community_name("a", actor_name_max_length).is_err());
     // empty
     assert!(is_valid_community_name("", actor_name_max_length).is_err());
+    // newline
+    assert!(is_valid_community_name(
+      r"Line1
+    
+Line3",
+      actor_name_max_length
+    )
+    .is_err());
   }
 
   #[test]
