@@ -39,10 +39,7 @@ use diesel::{
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyResult},
-  LemmyErrorType,
-};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::HashSet;
 
 #[async_trait]
