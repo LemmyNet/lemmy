@@ -7,7 +7,7 @@ use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{web, HttpResponse};
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_db_schema::{source::person::Person, traits::ApubActor};
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::Deserialize;
 
 #[derive(Deserialize)]

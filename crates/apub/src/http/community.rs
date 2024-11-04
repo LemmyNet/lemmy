@@ -15,7 +15,7 @@ use activitypub_federation::{
 use actix_web::{web, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::Deserialize;
 
 #[derive(Deserialize, Clone)]

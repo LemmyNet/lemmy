@@ -1,4 +1,4 @@
-use lemmy_utils::LemmyErrorType;
+use lemmy_utils::error::LemmyErrorType;
 use std::{env::current_dir, process::Command};
 use strum::IntoEnumIterator;
 
