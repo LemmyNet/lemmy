@@ -5,7 +5,7 @@ use lemmy_db_schema::{
   schema::{local_site, local_site_rate_limit, site, site_aggregates},
   utils::{get_conn, DbPool},
 };
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl SiteView {
   pub async fn read_local(pool: &mut DbPool<'_>) -> LemmyResult<Self> {

@@ -1,4 +1,4 @@
-use crate::{error::LemmyResult, LemmyErrorType};
+use crate::error::{LemmyErrorType, LemmyResult};
 use markdown_it::MarkdownIt;
 use regex::RegexSet;
 use std::sync::LazyLock;

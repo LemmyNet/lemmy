@@ -10,7 +10,7 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use url::Url;
 
 #[async_trait]
