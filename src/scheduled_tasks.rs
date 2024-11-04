@@ -609,7 +609,10 @@ mod tests {
 
   use crate::scheduled_tasks::build_update_instance_form;
   use lemmy_api_common::request::client_builder;
-  use lemmy_utils::{error::LemmyResult, settings::structs::Settings, LemmyErrorType};
+  use lemmy_utils::{
+    error::{LemmyErrorType, LemmyResult},
+    settings::structs::Settings,
+  };
   use pretty_assertions::assert_eq;
   use reqwest_middleware::ClientBuilder;
   use serial_test::serial;

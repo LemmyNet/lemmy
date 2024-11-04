@@ -8,7 +8,7 @@ use lemmy_db_schema::{
   source::local_user::LocalUser,
   utils::{get_conn, DbPool},
 };
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl CommunityModeratorView {
   pub async fn check_is_community_moderator(

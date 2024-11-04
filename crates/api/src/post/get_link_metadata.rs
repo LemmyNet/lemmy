@@ -5,10 +5,7 @@ use lemmy_api_common::{
   request::fetch_link_metadata,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyResult},
-  LemmyErrorType,
-};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;
 
 #[tracing::instrument(skip(context))]
