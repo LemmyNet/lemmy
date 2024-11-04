@@ -457,6 +457,7 @@ Line3",
       actor_name_max_length
     )
     .is_err());
+    assert!(is_valid_username("Line1\nLine3", actor_name_max_length).is_err());
   }
 
   #[test]
@@ -488,6 +489,7 @@ Line3",
       actor_name_max_length
     )
     .is_err());
+    assert!(is_valid_community_name("Line1\nLine3", actor_name_max_length).is_err());
   }
 
   #[test]
