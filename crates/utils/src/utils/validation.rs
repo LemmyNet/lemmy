@@ -483,13 +483,13 @@ Line3",
     assert!(is_valid_community_name("", actor_name_max_length).is_err());
     // newline
     assert!(is_valid_community_name(
-      r"Line1
+      r"line1
     
-Line3",
+line3",
       actor_name_max_length
     )
     .is_err());
-    assert!(is_valid_community_name("Line1\nLine3", actor_name_max_length).is_err());
+    assert!(is_valid_community_name("line1\nline3", actor_name_max_length).is_err());
   }
 
   #[test]
