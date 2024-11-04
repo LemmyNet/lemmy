@@ -6,9 +6,17 @@ use lemmy_api_common::{
   oauth_provider::AuthenticateWithOauth,
   person::{LoginResponse, Register},
   utils::{
-    check_email_verified, check_registration_application, check_user_valid, generate_inbox_url,
-    generate_local_apub_endpoint, honeypot_check, local_site_to_slur_regex, password_length_check,
-    send_new_applicant_email_to_admins, send_verification_email, EndpointType,
+    check_email_verified,
+    check_registration_application,
+    check_user_valid,
+    generate_inbox_url,
+    generate_local_apub_endpoint,
+    honeypot_check,
+    local_site_to_slur_regex,
+    password_length_check,
+    send_new_applicant_email_to_admins,
+    send_verification_email,
+    EndpointType,
   },
 };
 use lemmy_db_schema::{

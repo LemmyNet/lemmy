@@ -5,15 +5,26 @@ use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
   context::LemmyContext,
   utils::{
-    generate_followers_url, generate_inbox_url, generate_local_apub_endpoint, get_url_blocklist,
-    is_admin, local_site_to_slur_regex, process_markdown_opt, proxy_image_link_api, EndpointType,
+    generate_followers_url,
+    generate_inbox_url,
+    generate_local_apub_endpoint,
+    get_url_blocklist,
+    is_admin,
+    local_site_to_slur_regex,
+    process_markdown_opt,
+    proxy_image_link_api,
+    EndpointType,
   },
 };
 use lemmy_db_schema::{
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{
-      Community, CommunityFollower, CommunityFollowerForm, CommunityInsertForm, CommunityModerator,
+      Community,
+      CommunityFollower,
+      CommunityFollowerForm,
+      CommunityInsertForm,
+      CommunityModerator,
       CommunityModeratorForm,
     },
   },
@@ -26,7 +37,9 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs,
     validation::{
-      is_valid_body_field, is_valid_community_name, site_or_community_description_length_check,
+      is_valid_body_field,
+      is_valid_community_name,
+      site_or_community_description_length_check,
     },
   },
 };
