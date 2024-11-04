@@ -91,9 +91,12 @@ pub async fn list_posts(
   .await
   .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
 
-  // If in their user settings, auto-mark fetched posts as read
+  // If in their user settings (or as part of the API request), auto-mark fetched posts as read
   if let Some(local_user) = local_user {
-    if local_user.auto_mark_fetched_posts_as_read {
+    if data
+      .auto_mark_fetched_posts_as_read
+      .unwrap_or(local_user.auto_mark_fetched_posts_as_read)
+    {
       let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
       PostRead::mark_as_read(&mut context.pool(), &post_ids, local_user.person_id).await?;
     }

@@ -85,6 +85,8 @@ pub struct GetPosts {
   pub show_read: Option<bool>,
   /// If true, then show the nsfw posts (even if your user setting is to hide them)
   pub show_nsfw: Option<bool>,
+  /// Whether to automatically mark fetched posts as read.
+  pub auto_mark_fetched_posts_as_read: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
 }
 
