@@ -60,12 +60,7 @@ pub const RANK_DEFAULT: f64 = 0.0001;
 
 /// Change collapse limits from 8 to 11 so the query planner can find a better table join
 /// order for more complicated queries
-const CONNECTION_OPTIONS: [&str; 1] = [
-  "geqo_threshold=12",
-  // TODO these two config options cause really slow queries, not sure why they were added.
-  // "from_collapse_limit=11",
-  // "join_collapse_limit=11",
-];
+const CONNECTION_OPTIONS: [&str; 1] = ["geqo_threshold=12"];
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
 /// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
