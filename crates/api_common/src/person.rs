@@ -1,5 +1,12 @@
 use lemmy_db_schema::{
-  newtypes::{CommentReplyId, CommunityId, LanguageId, PersonCommentMentionId, PersonId},
+  newtypes::{
+    CommentReplyId,
+    CommunityId,
+    LanguageId,
+    PersonCommentMentionId,
+    PersonId,
+    PersonPostMentionId,
+  },
   sensitive::SensitiveString,
   source::{login_token::LoginToken, site::Site},
   CommentSortType,
@@ -12,6 +19,7 @@ use lemmy_db_views_actor::structs::{
   CommentReplyView,
   CommunityModeratorView,
   PersonCommentMentionView,
+  PersonPostMentionView,
   PersonView,
 };
 use serde::{Deserialize, Serialize};
@@ -325,6 +333,43 @@ pub struct PersonCommentMentionResponse {
   pub person_comment_mention_view: PersonCommentMentionView,
 }
 
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Get mentions for your user.
+pub struct GetPersonPostMentions {
+  pub sort: Option<PostSortType>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub unread_only: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The response of mentions for your user.
+pub struct GetPersonPostMentionsResponse {
+  pub post_mentions: Vec<PersonPostMentionView>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Mark a person mention as read.
+pub struct MarkPersonPostMentionAsRead {
+  pub person_post_mention_id: PersonPostMentionId,
+  pub read: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The response for a person mention action.
+pub struct PersonPostMentionResponse {
+  pub person_post_mention_view: PersonPostMentionView,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -396,7 +441,8 @@ pub struct GetReportCountResponse {
 /// A response containing counts for your notifications.
 pub struct GetUnreadCountResponse {
   pub replies: i64,
-  pub mentions: i64,
+  pub comment_mentions: i64,
+  pub post_mentions: i64,
   pub private_messages: i64,
 }
 

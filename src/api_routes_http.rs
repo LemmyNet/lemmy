@@ -35,9 +35,11 @@ use lemmy_api::{
     logout::logout,
     notifications::{
       list_comment_mentions::list_comment_mentions,
+      list_post_mentions::list_post_mentions,
       list_replies::list_replies,
       mark_all_read::mark_all_notifications_read,
       mark_comment_mention_read::mark_comment_mention_as_read,
+      mark_post_mention_read::mark_post_mention_as_read,
       mark_reply_read::mark_reply_as_read,
       unread_count::unread_count,
     },
@@ -333,6 +335,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route(
             "/comment_mention/mark_as_read",
             web::post().to(mark_comment_mention_as_read),
+          )
+          .route("/post_mention", web::get().to(list_post_mentions))
+          .route(
+            "/post_mention/mark_as_read",
+            web::post().to(mark_post_mention_as_read),
           )
           .route("/replies", web::get().to(list_replies))
           // Admin action. I don't like that it's in /user

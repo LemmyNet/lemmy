@@ -1,6 +1,6 @@
-use crate::structs::PersonCommentMentionView;
+use crate::structs::PersonPostMentionView;
 use diesel::{
-  dsl::{exists, not},
+  dsl::{exists, not, IntervalDsl},
   pg::Pg,
   result::Error,
   sql_types,
@@ -15,12 +15,8 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
-  newtypes::{PersonCommentMentionId, PersonId},
+  newtypes::{PersonId, PersonPostMentionId},
   schema::{
-    comment,
-    comment_aggregates,
-    comment_like,
-    comment_saved,
     community,
     community_follower,
     community_moderator,
@@ -28,23 +24,26 @@ use lemmy_db_schema::{
     local_user,
     person,
     person_block,
-    person_comment_mention,
+    person_post_mention,
     post,
+    post_aggregates,
+    post_like,
+    post_saved,
   },
   source::local_user::LocalUser,
-  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
-  CommentSortType,
+  utils::{get_conn, limit_and_offset, now, DbConn, DbPool, ListFn, Queries, ReadFn},
+  PostSortType,
 };
 
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, PersonCommentMentionView, (PersonCommentMentionId, Option<PersonId>)>,
-  impl ListFn<'a, PersonCommentMentionView, PersonCommentMentionQuery>,
+  impl ReadFn<'a, PersonPostMentionView, (PersonPostMentionId, Option<PersonId>)>,
+  impl ListFn<'a, PersonPostMentionView, PersonPostMentionQuery>,
 > {
   let is_creator_banned_from_community = exists(
     community_person_ban::table.filter(
       community::id
         .eq(community_person_ban::community_id)
-        .and(community_person_ban::person_id.eq(comment::creator_id)),
+        .and(community_person_ban::person_id.eq(post::creator_id)),
     ),
   );
 
@@ -60,10 +59,10 @@ fn queries<'a>() -> Queries<
 
   let is_saved = |person_id| {
     exists(
-      comment_saved::table.filter(
-        comment::id
-          .eq(comment_saved::comment_id)
-          .and(comment_saved::person_id.eq(person_id)),
+      post_saved::table.filter(
+        post::id
+          .eq(post_saved::post_id)
+          .and(post_saved::person_id.eq(person_id)),
       ),
     )
   };
@@ -82,7 +81,7 @@ fn queries<'a>() -> Queries<
   let is_creator_blocked = |person_id| {
     exists(
       person_block::table.filter(
-        comment::creator_id
+        post::creator_id
           .eq(person_block::target_id)
           .and(person_block::person_id.eq(person_id)),
       ),
@@ -90,13 +89,13 @@ fn queries<'a>() -> Queries<
   };
 
   let score = |person_id| {
-    comment_like::table
+    post_like::table
       .filter(
-        comment::id
-          .eq(comment_like::comment_id)
-          .and(comment_like::person_id.eq(person_id)),
+        post::id
+          .eq(post_like::post_id)
+          .and(post_like::person_id.eq(person_id)),
       )
-      .select(comment_like::score.nullable())
+      .select(post_like::score.nullable())
       .single_value()
   };
 
@@ -104,19 +103,19 @@ fn queries<'a>() -> Queries<
     community_moderator::table.filter(
       community::id
         .eq(community_moderator::community_id)
-        .and(community_moderator::person_id.eq(comment::creator_id)),
+        .and(community_moderator::person_id.eq(post::creator_id)),
     ),
   );
 
   let creator_is_admin = exists(
     local_user::table.filter(
-      comment::creator_id
+      post::creator_id
         .eq(local_user::person_id)
         .and(local_user::admin.eq(true)),
     ),
   );
 
-  let all_joins = move |query: person_comment_mention::BoxedQuery<'a, Pg>,
+  let all_joins = move |query: person_post_mention::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>| {
     let is_local_user_banned_from_community_selection: Box<
       dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>,
@@ -156,20 +155,18 @@ fn queries<'a>() -> Queries<
       };
 
     query
-      .inner_join(comment::table)
-      .inner_join(person::table.on(comment::creator_id.eq(person::id)))
-      .inner_join(post::table.on(comment::post_id.eq(post::id)))
+      .inner_join(post::table)
+      .inner_join(person::table.on(post::creator_id.eq(person::id)))
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(aliases::person1)
-      .inner_join(comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id)))
+      .inner_join(post_aggregates::table.on(post::id.eq(post_aggregates::post_id)))
       .select((
-        person_comment_mention::all_columns,
-        comment::all_columns,
-        person::all_columns,
+        person_post_mention::all_columns,
         post::all_columns,
+        person::all_columns,
         community::all_columns,
         aliases::person1.fields(person::all_columns),
-        comment_aggregates::all_columns,
+        post_aggregates::all_columns,
         is_creator_banned_from_community,
         is_local_user_banned_from_community_selection,
         creator_is_moderator,
@@ -182,13 +179,13 @@ fn queries<'a>() -> Queries<
   };
 
   let read = move |mut conn: DbConn<'a>,
-                   (person_comment_mention_id, my_person_id): (
-    PersonCommentMentionId,
+                   (person_post_mention_id, my_person_id): (
+    PersonPostMentionId,
     Option<PersonId>,
   )| async move {
     all_joins(
-      person_comment_mention::table
-        .find(person_comment_mention_id)
+      person_post_mention::table
+        .find(person_post_mention_id)
         .into_boxed(),
       my_person_id,
     )
@@ -196,34 +193,68 @@ fn queries<'a>() -> Queries<
     .await
   };
 
-  let list = move |mut conn: DbConn<'a>, options: PersonCommentMentionQuery| async move {
+  let list = move |mut conn: DbConn<'a>, options: PersonPostMentionQuery| async move {
     // These filters need to be kept in sync with the filters in
-    // PersonCommentMentionView::get_unread_mentions()
+    // PersonPostMentionView::get_unread_mentions()
     let mut query = all_joins(
-      person_comment_mention::table.into_boxed(),
+      person_post_mention::table.into_boxed(),
       options.my_person_id,
     );
 
     if let Some(recipient_id) = options.recipient_id {
-      query = query.filter(person_comment_mention::recipient_id.eq(recipient_id));
+      query = query.filter(person_post_mention::recipient_id.eq(recipient_id));
     }
 
     if options.unread_only {
-      query = query.filter(person_comment_mention::read.eq(false));
+      query = query.filter(person_post_mention::read.eq(false));
     }
 
     if !options.show_bot_accounts {
       query = query.filter(not(person::bot_account));
     };
 
-    query = match options.sort.unwrap_or(CommentSortType::New) {
-      CommentSortType::Hot => query.then_order_by(comment_aggregates::hot_rank.desc()),
-      CommentSortType::Controversial => {
-        query.then_order_by(comment_aggregates::controversy_rank.desc())
-      }
-      CommentSortType::New => query.then_order_by(comment::published.desc()),
-      CommentSortType::Old => query.then_order_by(comment::published.asc()),
-      CommentSortType::Top => query.order_by(comment_aggregates::score.desc()),
+    let time = |interval| post_aggregates::published.gt(now() - interval);
+
+    query = match options.sort.unwrap_or(PostSortType::New) {
+      PostSortType::Active => query.then_order_by(post_aggregates::hot_rank_active.desc()),
+      PostSortType::Hot => query.then_order_by(post_aggregates::hot_rank.desc()),
+      PostSortType::Controversial => query.then_order_by(post_aggregates::controversy_rank.desc()),
+      PostSortType::New => query.then_order_by(post_aggregates::published.desc()),
+      PostSortType::Old => query.then_order_by(post_aggregates::published.asc()),
+      PostSortType::TopAll => query.order_by(post_aggregates::score.desc()),
+      PostSortType::Scaled => query.then_order_by(post_aggregates::scaled_rank.desc()),
+      PostSortType::NewComments => query.then_order_by(post_aggregates::newest_comment_time.desc()),
+      PostSortType::MostComments => query.then_order_by(post_aggregates::comments.desc()),
+      PostSortType::TopYear => query
+        .then_order_by(post_aggregates::score.desc())
+        .filter(time(1.years())),
+      PostSortType::TopMonth => query
+        .then_order_by(post_aggregates::score.desc())
+        .filter(time(1.months())),
+      PostSortType::TopWeek => query
+        .then_order_by(post_aggregates::score.desc())
+        .filter(time(1.weeks())),
+      PostSortType::TopDay => query
+        .then_order_by(post_aggregates::score.desc())
+        .filter(time(1.days())),
+      PostSortType::TopHour => query
+        .then_order_by(post_aggregates::score.desc())
+        .filter(time(1.hours())),
+      PostSortType::TopSixHour => query
+        .then_order_by(post_aggregates::score.desc())
+        .filter(time(6.hours())),
+      PostSortType::TopTwelveHour => query
+        .then_order_by(post_aggregates::score.desc())
+        .filter(time(12.hours())),
+      PostSortType::TopThreeMonths => query
+        .then_order_by(post_aggregates::score.desc())
+        .filter(time(3.months())),
+      PostSortType::TopSixMonths => query
+        .then_order_by(post_aggregates::score.desc())
+        .filter(time(6.months())),
+      PostSortType::TopNineMonths => query
+        .then_order_by(post_aggregates::score.desc())
+        .filter(time(9.months())),
     };
 
     // Don't show mentions from blocked persons
@@ -236,21 +267,21 @@ fn queries<'a>() -> Queries<
     query
       .limit(limit)
       .offset(offset)
-      .load::<PersonCommentMentionView>(&mut conn)
+      .load::<PersonPostMentionView>(&mut conn)
       .await
   };
 
   Queries::new(read, list)
 }
 
-impl PersonCommentMentionView {
+impl PersonPostMentionView {
   pub async fn read(
     pool: &mut DbPool<'_>,
-    person_comment_mention_id: PersonCommentMentionId,
+    person_post_mention_id: PersonPostMentionId,
     my_person_id: Option<PersonId>,
   ) -> Result<Self, Error> {
     queries()
-      .read(pool, (person_comment_mention_id, my_person_id))
+      .read(pool, (person_post_mention_id, my_person_id))
       .await
   }
 
@@ -262,16 +293,16 @@ impl PersonCommentMentionView {
     use diesel::dsl::count;
     let conn = &mut get_conn(pool).await?;
 
-    let mut query = person_comment_mention::table
-      .inner_join(comment::table)
+    let mut query = person_post_mention::table
+      .inner_join(post::table)
       .left_join(
         person_block::table.on(
-          comment::creator_id
+          post::creator_id
             .eq(person_block::target_id)
             .and(person_block::person_id.eq(local_user.person_id)),
         ),
       )
-      .inner_join(person::table.on(comment::creator_id.eq(person::id)))
+      .inner_join(person::table.on(post::creator_id.eq(person::id)))
       .into_boxed();
 
     // These filters need to be kept in sync with the filters in queries().list()
@@ -282,29 +313,29 @@ impl PersonCommentMentionView {
     query
       // Don't count replies from blocked users
       .filter(person_block::person_id.is_null())
-      .filter(person_comment_mention::recipient_id.eq(local_user.person_id))
-      .filter(person_comment_mention::read.eq(false))
-      .filter(comment::deleted.eq(false))
-      .filter(comment::removed.eq(false))
-      .select(count(person_comment_mention::id))
+      .filter(person_post_mention::recipient_id.eq(local_user.person_id))
+      .filter(person_post_mention::read.eq(false))
+      .filter(post::deleted.eq(false))
+      .filter(post::removed.eq(false))
+      .select(count(person_post_mention::id))
       .first::<i64>(conn)
       .await
   }
 }
 
 #[derive(Default, Clone)]
-pub struct PersonCommentMentionQuery {
+pub struct PersonPostMentionQuery {
   pub my_person_id: Option<PersonId>,
   pub recipient_id: Option<PersonId>,
-  pub sort: Option<CommentSortType>,
+  pub sort: Option<PostSortType>,
   pub unread_only: bool,
   pub show_bot_accounts: bool,
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
 
-impl PersonCommentMentionQuery {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PersonCommentMentionView>, Error> {
+impl PersonPostMentionQuery {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> Result<Vec<PersonPostMentionView>, Error> {
     queries().list(pool, self).await
   }
 }
@@ -312,22 +343,18 @@ impl PersonCommentMentionQuery {
 #[cfg(test)]
 mod tests {
 
-  use crate::{
-    person_comment_mention_view::PersonCommentMentionQuery,
-    structs::PersonCommentMentionView,
-  };
+  use crate::{person_post_mention_view::PersonPostMentionQuery, structs::PersonPostMentionView};
   use lemmy_db_schema::{
     source::{
-      comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonInsertForm, PersonUpdateForm},
       person_block::{PersonBlock, PersonBlockForm},
-      person_comment_mention::{
-        PersonCommentMention,
-        PersonCommentMentionInsertForm,
-        PersonCommentMentionUpdateForm,
+      person_post_mention::{
+        PersonPostMention,
+        PersonPostMentionInsertForm,
+        PersonPostMentionUpdateForm,
       },
       post::{Post, PostInsertForm},
     },
@@ -374,44 +401,34 @@ mod tests {
     );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let comment_form = CommentInsertForm::new(
-      inserted_person.id,
-      inserted_post.id,
-      "A test comment".into(),
-    );
-    let inserted_comment = Comment::create(pool, &comment_form, None).await?;
-
-    let person_comment_mention_form = PersonCommentMentionInsertForm {
+    let person_post_mention_form = PersonPostMentionInsertForm {
       recipient_id: inserted_recipient.id,
-      comment_id: inserted_comment.id,
+      post_id: inserted_post.id,
       read: None,
     };
 
-    let inserted_mention = PersonCommentMention::create(pool, &person_comment_mention_form).await?;
+    let inserted_mention = PersonPostMention::create(pool, &person_post_mention_form).await?;
 
-    let expected_mention = PersonCommentMention {
+    let expected_mention = PersonPostMention {
       id: inserted_mention.id,
       recipient_id: inserted_mention.recipient_id,
-      comment_id: inserted_mention.comment_id,
+      post_id: inserted_mention.post_id,
       read: false,
       published: inserted_mention.published,
     };
 
-    let read_mention = PersonCommentMention::read(pool, inserted_mention.id).await?;
+    let read_mention = PersonPostMention::read(pool, inserted_mention.id).await?;
 
-    let person_comment_mention_update_form = PersonCommentMentionUpdateForm { read: Some(false) };
-    let updated_mention = PersonCommentMention::update(
-      pool,
-      inserted_mention.id,
-      &person_comment_mention_update_form,
-    )
-    .await?;
+    let person_post_mention_update_form = PersonPostMentionUpdateForm { read: Some(false) };
+    let updated_mention =
+      PersonPostMention::update(pool, inserted_mention.id, &person_post_mention_update_form)
+        .await?;
 
     // Test to make sure counts and blocks work correctly
     let unread_mentions =
-      PersonCommentMentionView::get_unread_count(pool, &recipient_local_user).await?;
+      PersonPostMentionView::get_unread_count(pool, &recipient_local_user).await?;
 
-    let query = PersonCommentMentionQuery {
+    let query = PersonPostMentionQuery {
       recipient_id: Some(recipient_id),
       my_person_id: Some(recipient_id),
       sort: None,
@@ -432,7 +449,7 @@ mod tests {
     PersonBlock::block(pool, &block_form).await?;
 
     let unread_mentions_after_block =
-      PersonCommentMentionView::get_unread_count(pool, &recipient_local_user).await?;
+      PersonPostMentionView::get_unread_count(pool, &recipient_local_user).await?;
     let mentions_after_block = query.clone().list(pool).await?;
     assert_eq!(0, unread_mentions_after_block);
     assert_eq!(0, mentions_after_block.len());
@@ -460,8 +477,7 @@ mod tests {
     let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id).await?;
 
     let unread_mentions_after_hide_bots =
-      PersonCommentMentionView::get_unread_count(pool, &recipient_local_user_view.local_user)
-        .await?;
+      PersonPostMentionView::get_unread_count(pool, &recipient_local_user_view.local_user).await?;
 
     let mut query_without_bots = query.clone();
     query_without_bots.show_bot_accounts = false;
@@ -469,7 +485,7 @@ mod tests {
     assert_eq!(0, unread_mentions_after_hide_bots);
     assert_eq!(0, replies_after_hide_bots.len());
 
-    Comment::delete(pool, inserted_comment.id).await?;
+    Post::delete(pool, inserted_post.id).await?;
     Post::delete(pool, inserted_post.id).await?;
     Community::delete(pool, inserted_community.id).await?;
     Person::delete(pool, inserted_person.id).await?;

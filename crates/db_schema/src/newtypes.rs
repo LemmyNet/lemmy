@@ -55,6 +55,11 @@ impl fmt::Display for CommentId {
   }
 }
 
+pub enum PostOrCommentId {
+  Post(PostId),
+  Comment(CommentId),
+}
+
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]

@@ -10,10 +10,10 @@ use lemmy_api_common::{
     check_community_user_action,
     check_local_vote_mode,
     mark_post_as_read,
-    VoteItem,
   },
 };
 use lemmy_db_schema::{
+  newtypes::PostOrCommentId,
   source::{
     community::Community,
     local_site::LocalSite,
@@ -36,7 +36,7 @@ pub async fn like_post(
 
   check_local_vote_mode(
     data.score,
-    VoteItem::Post(post_id),
+    PostOrCommentId::Post(post_id),
     &local_site,
     local_user_view.person.id,
     &mut context.pool(),

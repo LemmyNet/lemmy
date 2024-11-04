@@ -10,8 +10,8 @@ pub mod community_person_ban_view;
 pub mod community_view;
 #[cfg(feature = "full")]
 pub mod person_comment_mention_view;
-// #[cfg(feature = "full")]
-// pub mod person_post_mention_view;
+#[cfg(feature = "full")]
+pub mod person_post_mention_view;
 #[cfg(feature = "full")]
 pub mod person_view;
 pub mod structs;

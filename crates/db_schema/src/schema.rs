@@ -752,7 +752,7 @@ diesel::table! {
         recipient_id -> Int4,
         post_id -> Int4,
         read -> Bool,
-        published -> Timestamp,
+        published -> Timestamptz,
     }
 }
 

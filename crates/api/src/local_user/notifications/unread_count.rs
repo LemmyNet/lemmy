@@ -1,7 +1,11 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{context::LemmyContext, person::GetUnreadCountResponse};
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
-use lemmy_db_views_actor::structs::{CommentReplyView, PersonCommentMentionView};
+use lemmy_db_views_actor::structs::{
+  CommentReplyView,
+  PersonCommentMentionView,
+  PersonPostMentionView,
+};
 use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
@@ -14,8 +18,12 @@ pub async fn unread_count(
   let replies =
     CommentReplyView::get_unread_count(&mut context.pool(), &local_user_view.local_user).await?;
 
-  let mentions =
+  let comment_mentions =
     PersonCommentMentionView::get_unread_count(&mut context.pool(), &local_user_view.local_user)
+      .await?;
+
+  let post_mentions =
+    PersonPostMentionView::get_unread_count(&mut context.pool(), &local_user_view.local_user)
       .await?;
 
   let private_messages =
@@ -23,7 +31,8 @@ pub async fn unread_count(
 
   Ok(Json(GetUnreadCountResponse {
     replies,
-    mentions,
+    comment_mentions,
+    post_mentions,
     private_messages,
   }))
 }

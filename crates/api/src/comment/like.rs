@@ -5,10 +5,10 @@ use lemmy_api_common::{
   comment::{CommentResponse, CreateCommentLike},
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_bot_account, check_community_user_action, check_local_vote_mode, VoteItem},
+  utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
 };
 use lemmy_db_schema::{
-  newtypes::LocalUserId,
+  newtypes::{LocalUserId, PostOrCommentId},
   source::{
     comment::{CommentLike, CommentLikeForm},
     comment_reply::CommentReply,
@@ -33,7 +33,7 @@ pub async fn like_comment(
 
   check_local_vote_mode(
     data.score,
-    VoteItem::Comment(comment_id),
+    PostOrCommentId::Comment(comment_id),
     &local_site,
     local_user_view.person.id,
     &mut context.pool(),

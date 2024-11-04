@@ -17,6 +17,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
+  newtypes::PostOrCommentId,
   source::{
     actor_language::CommunityLanguage,
     comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
@@ -121,7 +122,7 @@ pub async fn create_comment(
   let mentions = scrape_text_for_mentions(&content);
   let recipient_ids = send_local_notifs(
     mentions,
-    inserted_comment_id,
+    PostOrCommentId::Comment(inserted_comment_id),
     &local_user_view.person,
     true,
     &context,
