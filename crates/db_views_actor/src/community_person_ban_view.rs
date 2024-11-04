@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   schema::community_person_ban,
   utils::{get_conn, DbPool},
 };
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl CommunityPersonBanView {
   pub async fn check(
