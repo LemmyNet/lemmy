@@ -5,26 +5,15 @@ use lemmy_api_common::{
   community::{CommunityResponse, CreateCommunity},
   context::LemmyContext,
   utils::{
-    generate_followers_url,
-    generate_inbox_url,
-    generate_local_apub_endpoint,
-    get_url_blocklist,
-    is_admin,
-    local_site_to_slur_regex,
-    process_markdown_opt,
-    proxy_image_link_api,
-    EndpointType,
+    generate_followers_url, generate_inbox_url, generate_local_apub_endpoint, get_url_blocklist,
+    is_admin, local_site_to_slur_regex, process_markdown_opt, proxy_image_link_api, EndpointType,
   },
 };
 use lemmy_db_schema::{
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{
-      Community,
-      CommunityFollower,
-      CommunityFollowerForm,
-      CommunityInsertForm,
-      CommunityModerator,
+      Community, CommunityFollower, CommunityFollowerForm, CommunityInsertForm, CommunityModerator,
       CommunityModeratorForm,
     },
   },
@@ -37,9 +26,7 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs,
     validation::{
-      is_valid_actor_name,
-      is_valid_body_field,
-      site_or_community_description_length_check,
+      is_valid_body_field, is_valid_community_name, site_or_community_description_length_check,
     },
   },
 };
@@ -80,7 +67,7 @@ pub async fn create_community(
   let banner = diesel_url_create(data.banner.as_deref())?;
   let banner = proxy_image_link_api(banner, &context).await?;
 
-  is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
+  is_valid_community_name(&data.name, local_site.actor_name_max_length as usize)?;
 
   // Double check for duplicate community actor_ids
   let community_actor_id = generate_local_apub_endpoint(

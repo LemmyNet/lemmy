@@ -6,17 +6,9 @@ use lemmy_api_common::{
   oauth_provider::AuthenticateWithOauth,
   person::{LoginResponse, Register},
   utils::{
-    check_email_verified,
-    check_registration_application,
-    check_user_valid,
-    generate_inbox_url,
-    generate_local_apub_endpoint,
-    honeypot_check,
-    local_site_to_slur_regex,
-    password_length_check,
-    send_new_applicant_email_to_admins,
-    send_verification_email,
-    EndpointType,
+    check_email_verified, check_registration_application, check_user_valid, generate_inbox_url,
+    generate_local_apub_endpoint, honeypot_check, local_site_to_slur_regex, password_length_check,
+    send_new_applicant_email_to_admins, send_verification_email, EndpointType,
   },
 };
 use lemmy_db_schema::{
@@ -41,7 +33,7 @@ use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
-    validation::is_valid_actor_name,
+    validation::is_valid_username,
   },
 };
 use serde::{Deserialize, Serialize};
@@ -407,7 +399,7 @@ async fn create_person(
   context: &Data<LemmyContext>,
 ) -> Result<Person, LemmyError> {
   let actor_keypair = generate_actor_keypair()?;
-  is_valid_actor_name(&username, local_site.actor_name_max_length as usize)?;
+  is_valid_username(&username, local_site.actor_name_max_length as usize)?;
   let actor_id = generate_local_apub_endpoint(
     EndpointType::Person,
     &username,
