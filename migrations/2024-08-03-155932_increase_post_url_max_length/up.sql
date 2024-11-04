@@ -3,3 +3,5 @@
 ALTER TABLE post
     ALTER COLUMN url TYPE varchar(2000);
 
+ANALYZE post (url);
+
