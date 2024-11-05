@@ -136,13 +136,11 @@ impl Object for ApubPrivateMessage {
     let recipient = note.to[0].dereference(context).await?;
     PersonBlock::read(&mut context.pool(), recipient.id, creator.id).await?;
 
-    // If its a local user, check that they can receive private messages
-    if recipient.local {
-      if let Ok(recipient_local_user) =
-        LocalUserView::read_person(&mut context.pool(), recipient.id).await
-      {
-        check_private_messages_enabled(&recipient_local_user)?;
-      }
+    // Check that they can receive private messages
+    if let Ok(recipient_local_user) =
+      LocalUserView::read_person(&mut context.pool(), recipient.id).await
+    {
+      check_private_messages_enabled(&recipient_local_user)?;
     }
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
