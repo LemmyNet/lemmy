@@ -109,6 +109,9 @@ pub struct GetPosts {
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_nsfw: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
+  /// If true, then only show posts with no comments
+  pub no_comments_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page_cursor: Option<PaginationCursor>,
 }
 

@@ -31,7 +31,10 @@ use lemmy_db_schema::{
   RegistrationMode,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{error::LemmyResult, LemmyErrorType, CACHE_DURATION_API};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  CACHE_DURATION_API,
+};
 use serial_test::serial;
 
 async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(Instance, LocalUserView)> {
