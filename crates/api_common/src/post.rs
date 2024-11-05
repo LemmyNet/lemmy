@@ -86,7 +86,7 @@ pub struct GetPosts {
   /// If true, then show the nsfw posts (even if your user setting is to hide them)
   pub show_nsfw: Option<bool>,
   /// If true, then only show posts with no comments
-  pub no_comments: Option<bool>,
+  pub no_comments_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
 }
 

@@ -402,7 +402,7 @@ fn queries<'a>() -> Queries<
     };
 
     // Filter to show only posts with no comments
-    if options.no_comments.unwrap_or_default() {
+    if options.no_comments_only.unwrap_or_default() {
       query = query.filter(post_aggregates::comments.eq(0));
     };
 
@@ -622,7 +622,7 @@ pub struct PostQuery<'a> {
   pub show_hidden: Option<bool>,
   pub show_read: Option<bool>,
   pub show_nsfw: Option<bool>,
-  pub no_comments: Option<bool>,
+  pub no_comments_only: Option<bool>,
 }
 
 impl<'a> PostQuery<'a> {
@@ -1997,7 +1997,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn post_listings_no_comments() -> LemmyResult<()> {
+  async fn post_listings_no_comments_only() -> LemmyResult<()> {
     let pool = &build_db_pool().await?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -2013,7 +2013,7 @@ mod tests {
     // Make sure it doesnt come back with the no_comments option
     let post_listings_no_comments = PostQuery {
       sort: Some(PostSortType::New),
-      no_comments: Some(true),
+      no_comments_only: Some(true),
       local_user: Some(&data.local_user_view.local_user),
       ..Default::default()
     }
