@@ -351,22 +351,23 @@ pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
 
 /// Sets a few additional config options necessary for starting lemmy
 fn build_config_options_uri_segment(config: &str) -> String {
+  let mut url = Url::parse(config).expect("Couldn't parse postgres connection URI");
+
   // Set `lemmy.protocol_and_hostname` so triggers can use it
   let lemmy_protocol_and_hostname_option =
     "lemmy.protocol_and_hostname=".to_owned() + &SETTINGS.get_protocol_and_hostname();
   let mut options = CONNECTION_OPTIONS.to_vec();
   options.push(&lemmy_protocol_and_hostname_option);
 
-  let path_character = if config.contains('?') { '&' } else { '?' };
-
   // Create the connection uri portion
-  let options_segments = &options
+  let options_segments = options
     .iter()
     .map(|o| "-c ".to_owned() + o)
     .collect::<Vec<String>>()
     .join(" ");
 
-  format!("{config}{path_character}options={options_segments}")
+  url.set_query(Some(&format!("options={options_segments}")));
+  url.into()
 }
 
 fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
