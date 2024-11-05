@@ -88,7 +88,6 @@ pub async fn create_post(
   let community = Community::read(&mut context.pool(), data.community_id).await?;
   check_community_user_action(&local_user_view.person, &community, &mut context.pool()).await?;
 
-  let community_id = data.community_id;
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;
     CommunityModeratorView::check_is_community_moderator(
@@ -105,7 +104,7 @@ pub async fn create_post(
     None => {
       default_post_language(
         &mut context.pool(),
-        community_id,
+        community.id,
         local_user_view.local_user.id,
       )
       .await?
@@ -114,7 +113,7 @@ pub async fn create_post(
 
   // Only need to check if language is allowed in case user set it explicitly. When using default
   // language, it already only returns allowed languages.
-  CommunityLanguage::is_allowed_community_language(&mut context.pool(), language_id, community_id)
+  CommunityLanguage::is_allowed_community_language(&mut context.pool(), language_id, community.id)
     .await?;
 
   let scheduled_publish_time =
@@ -137,6 +136,7 @@ pub async fn create_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
 
+  let community_id = community.id;
   let federate_post = if scheduled_publish_time.is_none() {
     send_webmention(inserted_post.clone(), community);
     |post| Some(SendActivityData::CreatePost(post))
