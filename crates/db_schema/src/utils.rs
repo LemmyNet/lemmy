@@ -62,7 +62,7 @@ pub const RANK_DEFAULT: f64 = 0.0001;
 const CONNECTION_OPTIONS: [&str; 1] = ["geqo_threshold=12"];
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
-// Use a once_lock to create the postgres connection config, since this config never changes
+/// Use a once_lock to create the postgres connection config, since this config never changes
 static POSTGRES_CONFIG_WITH_OPTIONS: OnceLock<String> = OnceLock::new();
 
 /// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
