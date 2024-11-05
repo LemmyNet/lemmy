@@ -13,7 +13,6 @@ cfg_if! {
 }
 
 pub mod error;
-pub use error::LemmyErrorType;
 use std::time::Duration;
 
 pub type ConnectionId = usize;
