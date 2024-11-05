@@ -35,7 +35,7 @@ use lemmy_db_schema::{
   ListingType,
   PostSortType,
 };
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommunityView, (CommunityId, Option<&'a LocalUser>, bool)>,
