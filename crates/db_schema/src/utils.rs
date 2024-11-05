@@ -46,7 +46,7 @@ use rustls::{
 };
 use std::{
   ops::{Deref, DerefMut},
-  sync::{Arc, LazyLock},
+  sync::{Arc, LazyLock, OnceLock},
   time::Duration,
 };
 use tracing::error;
@@ -58,10 +58,12 @@ pub const SITEMAP_LIMIT: i64 = 50000;
 pub const SITEMAP_DAYS: Option<TimeDelta> = TimeDelta::try_days(31);
 pub const RANK_DEFAULT: f64 = 0.0001;
 
-/// Change collapse limits from 8 to 11 so the query planner can find a better table join
-/// order for more complicated queries
+/// Some connection options to speed up queries
 const CONNECTION_OPTIONS: [&str; 1] = ["geqo_threshold=12"];
 pub type ActualDbPool = Pool<AsyncPgConnection>;
+
+// Use a once_lock to create the postgres connection config, since this config never changes
+static POSTGRES_CONFIG_WITH_OPTIONS: OnceLock<String> = OnceLock::new();
 
 /// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
 /// reborrowing.
@@ -369,7 +371,8 @@ fn build_config_options_uri_segment(config: &str) -> String {
 
 fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
   let fut = async {
-    let config = &build_config_options_uri_segment(config);
+    let config =
+      POSTGRES_CONFIG_WITH_OPTIONS.get_or_init(|| build_config_options_uri_segment(config));
 
     // We only support TLS with sslmode=require currently
     let conn = if config.contains("sslmode=require") {
