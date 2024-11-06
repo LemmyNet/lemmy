@@ -363,15 +363,13 @@ fn build_config_options_uri_segment(config: &str) -> String {
     .collect::<Vec<String>>()
     .join(" ");
 
-  url
-    .query_pairs_mut()
-    .append_pair("options", &options_segments);
+  url.set_query(Some(&format!("options={options_segments}")));
   url.into()
 }
 
 fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
   let fut = async {
-    // Use a once_lock to create the postgres connection config, since this config never changes
+    /// Use a once_lock to create the postgres connection config, since this config never changes
     static POSTGRES_CONFIG_WITH_OPTIONS: OnceLock<String> = OnceLock::new();
 
     let config =
