@@ -24,10 +24,10 @@ doctest = false
 [lints]
 workspace = true
 
+# See https://github.com/johnthagen/min-sized-rust for additional optimizations
 [profile.release]
 debug = 0
 lto = "fat"
-strip = true      # Automatically strip symbols from the binary.
 opt-level = 3     # Optimize for speed, not size.
 codegen-units = 1 # Reduce parallel code generation.
 
