@@ -317,16 +317,34 @@ mod tests {
     Ok(())
   }
 
-  // Unlike the `get_result` method, `debug_query` does not automatically call `as_query`
+  fn expected_sql(check_null: &str, set_null: &str) -> String {
+    let with_queries = {
+      let key = r#""t"."id1", "t"."id2""#;
+      let t = r#""t""#;
+
+      let update_keys = format!("SELECT {key} FROM {t} WHERE  NOT (({check_null})) FOR UPDATE");
+      let delete_keys = format!("SELECT {key} FROM {t} WHERE ({check_null}) FOR UPDATE");
+      let update_result = format!(
+        "UPDATE {t} SET {set_null} WHERE ({key}) = ANY (SELECT * FROM update_keys) RETURNING 1"
+      );
+      let delete_result =
+        format!("DELETE FROM {t} WHERE ({key}) = ANY (SELECT * FROM delete_keys) RETURNING 1");
+
+      format!("update_keys AS ({update_keys}), delete_keys AS ({delete_keys}), update_result AS ({update_result}), delete_result AS ({delete_result})")
+    };
+    let update_count = "SELECT count(*) FROM update_result";
+    let delete_count = "SELECT count(*) FROM delete_result";
+
+    format!(r#"WITH {with_queries} SELECT ({update_count}), ({delete_count}) -- binds: []"#)
+  }
 
   #[test]
-  fn test_generated_sql_setting_one_column_null() -> LemmyResult<()> {
+  fn test_generated_sql() {
+    // Unlike the `get_result` method, `debug_query` does not automatically call `as_query`
     assert_eq!(
       debug_query::<Pg, _>(&super::new(t::table).set_null(t::b).as_query()).to_string(),
-      r#"WITH update_keys AS (SELECT "t"."id1", "t"."id2" FROM "t" WHERE  NOT ((TRUE AND ("a" IS NULL))) FOR UPDATE), delete_keys AS (SELECT "t"."id1", "t"."id2" FROM "t" WHERE (TRUE AND ("a" IS NULL)) FOR UPDATE), update_result AS (UPDATE "t" SET "b" = NULL WHERE ("t"."id1", "t"."id2") = ANY (SELECT * FROM update_keys) RETURNING 1), delete_result AS (DELETE FROM "t" WHERE ("t"."id1", "t"."id2") = ANY (SELECT * FROM delete_keys) RETURNING 1) SELECT (SELECT count(*) FROM update_result), (SELECT count(*) FROM delete_result) -- binds: []"#
+      expected_sql(r#"TRUE AND ("a" IS NULL)"#, r#""b" = NULL"#)
     );
-
-    Ok(())
   }
 
   #[test]
