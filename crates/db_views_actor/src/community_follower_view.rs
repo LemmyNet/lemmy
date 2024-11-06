@@ -21,7 +21,7 @@ use lemmy_db_schema::{
   CommunityVisibility,
   SubscribedType,
 };
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl CommunityFollowerView {
   /// return a list of local community ids and remote inboxes that at least one user of the given
