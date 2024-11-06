@@ -179,6 +179,15 @@ steps:
       - cargo test --workspace --no-fail-fast
     when: *slow_check_paths
 
+  check_ts_bindings:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+    commands:
+      - ./scripts/ts_bindings_check.sh
+    when:
+      - event: pull_request
+
   check_diesel_migration:
     # TODO: use willsquire/diesel-cli image when shared libraries become optional in lemmy_server
     image: *rust_image

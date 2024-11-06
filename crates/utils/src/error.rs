@@ -119,7 +119,10 @@ pub enum LemmyErrorType {
   InvalidUrl,
   EmailSendFailed,
   Slurs,
-  RegistrationDenied(Option<String>),
+  RegistrationDenied {
+    #[cfg_attr(feature = "full", ts(optional))]
+    reason: Option<String>,
+  },
   SiteNameRequired,
   SiteNameLengthOverflow,
   PermissiveRegex,
@@ -147,7 +150,10 @@ pub enum LemmyErrorType {
   CommunityHasNoFollowers,
   PostScheduleTimeMustBeInFuture,
   TooManyScheduledPosts,
-  FederationError(Option<FederationError>),
+  FederationError {
+    #[cfg_attr(feature = "full", ts(optional))]
+    error: Option<FederationError>,
+  },
 }
 
 /// Federation related errors, these dont need to be translated.
@@ -262,7 +268,7 @@ cfg_if! {
       fn from(error_type: FederationError) -> Self {
         let inner = anyhow::anyhow!("{}", error_type);
         LemmyError {
-          error_type: LemmyErrorType::FederationError(Some(error_type)),
+          error_type: LemmyErrorType::FederationError { error: Some(error_type) },
           inner,
           context: Backtrace::capture(),
         }

@@ -25,10 +25,12 @@ pub struct Community {
   /// A longer title, that can contain other characters, and doesn't have to be unique.
   pub title: String,
   /// A sidebar for the community in markdown.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub sidebar: Option<String>,
   /// Whether the community is removed by a mod.
   pub removed: bool,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
   /// Whether the community has been deleted by its creator.
   pub deleted: bool,
@@ -45,8 +47,10 @@ pub struct Community {
   #[serde(skip)]
   pub last_refreshed_at: DateTime<Utc>,
   /// A URL for an icon.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub icon: Option<DbUrl>,
   /// A URL for a banner.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<DbUrl>,
   #[cfg_attr(feature = "full", ts(skip))]
   #[serde(skip)]
@@ -67,6 +71,7 @@ pub struct Community {
   pub featured_url: Option<DbUrl>,
   pub visibility: CommunityVisibility,
   /// A shorter, one-line description of the site.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
 }
 
