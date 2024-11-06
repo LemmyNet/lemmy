@@ -22,7 +22,6 @@ use diesel_async::{
     ManagerConfig,
   },
   AsyncConnection,
-  RunQueryDsl,
 };
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
@@ -47,7 +46,7 @@ use rustls::{
 };
 use std::{
   ops::{Deref, DerefMut},
-  sync::{Arc, LazyLock},
+  sync::{Arc, LazyLock, OnceLock},
   time::Duration,
 };
 use tracing::error;
@@ -59,6 +58,8 @@ pub const SITEMAP_LIMIT: i64 = 50000;
 pub const SITEMAP_DAYS: Option<TimeDelta> = TimeDelta::try_days(31);
 pub const RANK_DEFAULT: f64 = 0.0001;
 
+/// Some connection options to speed up queries
+const CONNECTION_OPTIONS: [&str; 1] = ["geqo_threshold=12"];
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
 /// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
@@ -345,10 +346,37 @@ pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
   }
 }
 
+/// Sets a few additional config options necessary for starting lemmy
+fn build_config_options_uri_segment(config: &str) -> String {
+  let mut url = Url::parse(config).expect("Couldn't parse postgres connection URI");
+
+  // Set `lemmy.protocol_and_hostname` so triggers can use it
+  let lemmy_protocol_and_hostname_option =
+    "lemmy.protocol_and_hostname=".to_owned() + &SETTINGS.get_protocol_and_hostname();
+  let mut options = CONNECTION_OPTIONS.to_vec();
+  options.push(&lemmy_protocol_and_hostname_option);
+
+  // Create the connection uri portion
+  let options_segments = options
+    .iter()
+    .map(|o| "-c ".to_owned() + o)
+    .collect::<Vec<String>>()
+    .join(" ");
+
+  url.set_query(Some(&format!("options={options_segments}")));
+  url.into()
+}
+
 fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
   let fut = async {
+    /// Use a once_lock to create the postgres connection config, since this config never changes
+    static POSTGRES_CONFIG_WITH_OPTIONS: OnceLock<String> = OnceLock::new();
+
+    let config =
+      POSTGRES_CONFIG_WITH_OPTIONS.get_or_init(|| build_config_options_uri_segment(config));
+
     // We only support TLS with sslmode=require currently
-    let mut conn = if config.contains("sslmode=require") {
+    let conn = if config.contains("sslmode=require") {
       let rustls_config = DangerousClientConfigBuilder {
         cfg: ClientConfig::builder(),
       }
@@ -369,24 +397,6 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
       AsyncPgConnection::establish(config).await?
     };
 
-    diesel::select((
-      // Change geqo_threshold back to default value if it was changed, so it's higher than the
-      // collapse limits
-      functions::set_config("geqo_threshold", "12", false),
-      // Change collapse limits from 8 to 11 so the query planner can find a better table join
-      // order for more complicated queries
-      functions::set_config("from_collapse_limit", "11", false),
-      functions::set_config("join_collapse_limit", "11", false),
-      // Set `lemmy.protocol_and_hostname` so triggers can use it
-      functions::set_config(
-        "lemmy.protocol_and_hostname",
-        SETTINGS.get_protocol_and_hostname(),
-        false,
-      ),
-    ))
-    .execute(&mut conn)
-    .await
-    .map_err(ConnectionError::CouldntSetupConfiguration)?;
     Ok(conn)
   };
   fut.boxed()
@@ -498,7 +508,7 @@ static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 pub mod functions {
-  use diesel::sql_types::{BigInt, Bool, Text, Timestamptz};
+  use diesel::sql_types::{BigInt, Text, Timestamptz};
 
   sql_function! {
     #[sql_name = "r.hot_rank"]
@@ -521,8 +531,6 @@ pub mod functions {
 
   // really this function is variadic, this just adds the two-argument version
   sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
-
-  sql_function!(fn set_config(setting_name: Text, new_value: Text, is_local: Bool) -> Text);
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
