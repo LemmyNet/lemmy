@@ -17,10 +17,11 @@ use ts_rs::TS;
 pub struct Post {
   pub id: PostId,
   pub name: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   /// An optional link / url for the post.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub url: Option<DbUrl>,
   /// An optional post body, in markdown.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub body: Option<String>,
   pub creator_id: PersonId,
   pub community_id: CommunityId,
@@ -29,35 +30,40 @@ pub struct Post {
   /// Whether the post is locked.
   pub locked: bool,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
   /// Whether the post is deleted.
   pub deleted: bool,
   /// Whether the post is NSFW.
   pub nsfw: bool,
   /// A title for the link.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub embed_title: Option<String>,
   /// A description for the link.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub embed_description: Option<String>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   /// A thumbnail picture url.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub thumbnail_url: Option<DbUrl>,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   /// The federated activity id / ap_id.
   pub ap_id: DbUrl,
   /// Whether the post is local.
   pub local: bool,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   /// A video url for the link.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub embed_video_url: Option<DbUrl>,
   pub language_id: LanguageId,
   /// Whether the post is featured to its community.
   pub featured_community: bool,
   /// Whether the post is featured to its site.
   pub featured_local: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub url_content_type: Option<String>,
   /// An optional alt_text, usable for image posts.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub alt_text: Option<String>,
   /// Time at which the post will be published. None means publish immediately.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<DateTime<Utc>>,
 }
 

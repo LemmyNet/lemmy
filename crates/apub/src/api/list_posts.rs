@@ -45,6 +45,7 @@ pub async fn list_posts(
   let show_hidden = data.show_hidden;
   let show_read = data.show_read;
   let show_nsfw = data.show_nsfw;
+  let no_comments_only = data.no_comments_only;
 
   let liked_only = data.liked_only;
   let disliked_only = data.disliked_only;
@@ -85,6 +86,7 @@ pub async fn list_posts(
     show_hidden,
     show_read,
     show_nsfw,
+    no_comments_only,
     ..Default::default()
   }
   .list(&local_site.site, &mut context.pool())

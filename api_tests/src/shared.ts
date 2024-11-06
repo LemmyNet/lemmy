@@ -83,7 +83,7 @@ export const fetchFunction = fetch;
 export const imageFetchLimit = 50;
 export const sampleImage =
   "https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg";
-export const sampleSite = "https://yahoo.com";
+export const sampleSite = "https://w3.org";
 
 export const alphaUrl = "http://127.0.0.1:8541";
 export const betaUrl = "http://127.0.0.1:8551";
