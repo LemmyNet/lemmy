@@ -216,7 +216,9 @@ pub async fn check_registration_application(
     let local_user_id = local_user_view.local_user.id;
     let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id).await?;
     if registration.admin_id.is_some() {
-      Err(LemmyErrorType::RegistrationDenied(registration.deny_reason))?
+      Err(LemmyErrorType::RegistrationDenied {
+        reason: registration.deny_reason,
+      })?
     } else {
       Err(LemmyErrorType::RegistrationApplicationIsPending)?
     }

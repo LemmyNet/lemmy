@@ -34,6 +34,7 @@ pub struct ModRemovePost {
   pub id: i32,
   pub mod_person_id: PersonId,
   pub post_id: PostId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   pub removed: bool,
   pub when_: DateTime<Utc>,
@@ -105,6 +106,7 @@ pub struct ModRemoveComment {
   pub id: i32,
   pub mod_person_id: PersonId,
   pub comment_id: CommentId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   pub removed: bool,
   pub when_: DateTime<Utc>,
@@ -130,6 +132,7 @@ pub struct ModRemoveCommunity {
   pub id: i32,
   pub mod_person_id: PersonId,
   pub community_id: CommunityId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   pub removed: bool,
   pub when_: DateTime<Utc>,
@@ -156,8 +159,10 @@ pub struct ModBanFromCommunity {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   pub banned: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub expires: Option<DateTime<Utc>>,
   pub when_: DateTime<Utc>,
 }
@@ -184,8 +189,10 @@ pub struct ModBan {
   pub id: i32,
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   pub banned: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub expires: Option<DateTime<Utc>>,
   pub when_: DateTime<Utc>,
 }
@@ -211,6 +218,7 @@ pub struct ModHideCommunity {
   pub community_id: CommunityId,
   pub mod_person_id: PersonId,
   pub when_: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   pub hidden: bool,
 }
@@ -303,6 +311,7 @@ pub struct ModAddForm {
 pub struct AdminPurgePerson {
   pub id: i32,
   pub admin_person_id: PersonId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   pub when_: DateTime<Utc>,
 }
@@ -324,6 +333,7 @@ pub struct AdminPurgePersonForm {
 pub struct AdminPurgeCommunity {
   pub id: i32,
   pub admin_person_id: PersonId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   pub when_: DateTime<Utc>,
 }
@@ -346,6 +356,7 @@ pub struct AdminPurgePost {
   pub id: i32,
   pub admin_person_id: PersonId,
   pub community_id: CommunityId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   pub when_: DateTime<Utc>,
 }
@@ -369,6 +380,7 @@ pub struct AdminPurgeComment {
   pub id: i32,
   pub admin_person_id: PersonId,
   pub post_id: PostId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   pub when_: DateTime<Utc>,
 }
