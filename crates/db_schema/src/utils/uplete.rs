@@ -161,24 +161,25 @@ impl QueryFragment<Pg> for UpleteQuery {
   }
 }
 
+// Types other than `DynColumn` are only used in tests
 #[derive(Clone)]
-pub struct AllNull(Vec<DynColumn>);
+pub struct AllNull<T = DynColumn>(Vec<T>);
 
-impl Expression for AllNull {
+impl<T> Expression for AllNull<T> {
   type SqlType = sql_types::Bool;
 }
 
-impl ValidGrouping<()> for AllNull {
+impl<T> ValidGrouping<()> for AllNull<T> {
   type IsAggregate = is_aggregate::No;
 }
 
-impl QueryFragment<Pg> for AllNull {
+impl<T: QueryFragment<Pg>> QueryFragment<Pg> for AllNull<T> {
   fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, Pg>) -> Result<(), Error> {
     // Must produce a valid expression even if `self.0` is empty
     out.push_sql("(TRUE");
-    for column in &self.0 {
+    for item in &self.0 {
       out.push_sql(" AND (");
-      out.push_identifier(column.name)?;
+      item.walk_ast(out.reborrow())?;
       out.push_sql(" IS NULL)");
     }
     out.push_sql(")");
@@ -199,6 +200,12 @@ impl<T: Column + 'static> From<T> for DynColumn {
       type_id: TypeId::of::<T>(),
       name: T::NAME,
     }
+  }
+}
+
+impl QueryFragment<Pg> for DynColumn {
+  fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, Pg>) -> Result<(), Error> {
+    out.push_identifier(self.name)
   }
 }
 
@@ -346,7 +353,13 @@ mod tests {
       expected_sql(r#"TRUE AND ("a" IS NULL)"#, r#""b" = NULL"#)
     );
     assert_eq!(
-      debug_query::<Pg, _>(&super::new(t::table).set_null(t::a).set_null(t::b).as_query()).to_string(),
+      debug_query::<Pg, _>(
+        &super::new(t::table)
+          .set_null(t::a)
+          .set_null(t::b)
+          .as_query()
+      )
+      .to_string(),
       expected_sql(r#"TRUE"#, r#""a" = NULL,"b" = NULL"#)
     );
   }
