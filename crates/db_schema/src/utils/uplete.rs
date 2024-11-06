@@ -223,3 +223,127 @@ impl Count {
     }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use crate::utils::{build_db_pool_for_tests, get_conn, DbConn};
+  use diesel::{
+    debug_query,
+    insert_into,
+    pg::Pg,
+    query_builder::AsQuery,
+    ExpressionMethods,
+    QueryDsl,
+  };
+  use diesel_async::{RunQueryDsl, SimpleAsyncConnection};
+  use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
+  use serial_test::serial;
+
+  diesel::table! {
+    t (id1, id2) {
+      // uplete doesn't work for non-tuple primary key
+      id1 -> Int4,
+      id2 -> Int4,
+      a -> Nullable<Int4>,
+      b -> Nullable<Int4>,
+    }
+  }
+
+  async fn expect_rows(
+    conn: &mut DbConn<'_>,
+    expected: &[(Option<i32>, Option<i32>)],
+  ) -> LemmyResult<()> {
+    let rows: Vec<(Option<i32>, Option<i32>)> = t::table
+      .select((t::a, t::b))
+      .order_by(t::id1)
+      .load(conn)
+      .await?;
+    assert_eq!(expected, &rows);
+
+    Ok(())
+  }
+
+  // Main purpose of this test is to check accuracy of the returned `Count`, which other modules'
+  // tests rely on
+  #[tokio::test]
+  #[serial]
+  async fn test_count() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let mut conn = get_conn(pool).await?;
+
+    conn
+      .batch_execute("CREATE TABLE t (id1 serial, id2 int NOT NULL DEFAULT 1, a int, b int, PRIMARY KEY (id1, id2));")
+      .await?;
+    expect_rows(&mut conn, &[]).await?;
+
+    insert_into(t::table)
+      .values(&[
+        (t::a.eq(Some(1)), t::b.eq(Some(2))),
+        (t::a.eq(Some(3)), t::b.eq(None)),
+        (t::a.eq(Some(4)), t::b.eq(Some(5))),
+      ])
+      .execute(&mut conn)
+      .await?;
+    expect_rows(
+      &mut conn,
+      &[(Some(1), Some(2)), (Some(3), None), (Some(4), Some(5))],
+    )
+    .await?;
+
+    let count1 = super::new(t::table)
+      .set_null(t::a)
+      .get_result(&mut conn)
+      .await?;
+    assert_eq!(
+      super::Count {
+        updated: 2,
+        deleted: 1
+      },
+      count1
+    );
+    expect_rows(&mut conn, &[(None, Some(2)), (None, Some(5))]).await?;
+
+    let count2 = super::new(t::table)
+      .set_null(t::b)
+      .get_result(&mut conn)
+      .await?;
+    assert_eq!(super::Count::only_deleted(2), count2);
+    expect_rows(&mut conn, &[]).await?;
+
+    conn.batch_execute("DROP TABLE t;").await?;
+
+    Ok(())
+  }
+
+  // Unlike the `get_result` method, `debug_query` does not automatically call `as_query`
+
+  #[test]
+  fn test_generated_sql_setting_one_column_null() -> LemmyResult<()> {
+    assert_eq!(
+      debug_query::<Pg, _>(&super::new(t::table).set_null(t::b).as_query()).to_string(),
+      r#"WITH update_keys AS (SELECT "t"."id1", "t"."id2" FROM "t" WHERE  NOT ((TRUE AND ("a" IS NULL))) FOR UPDATE), delete_keys AS (SELECT "t"."id1", "t"."id2" FROM "t" WHERE (TRUE AND ("a" IS NULL)) FOR UPDATE), update_result AS (UPDATE "t" SET "b" = NULL WHERE ("t"."id1", "t"."id2") = ANY (SELECT * FROM update_keys) RETURNING 1), delete_result AS (DELETE FROM "t" WHERE ("t"."id1", "t"."id2") = ANY (SELECT * FROM delete_keys) RETURNING 1) SELECT (SELECT count(*) FROM update_result), (SELECT count(*) FROM delete_result) -- binds: []"#
+    );
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_count_methods() {
+    assert_eq!(
+      super::Count::only_updated(1),
+      super::Count {
+        updated: 1,
+        deleted: 0
+      }
+    );
+    assert_eq!(
+      super::Count::only_deleted(1),
+      super::Count {
+        updated: 0,
+        deleted: 1
+      }
+    );
+  }
+}
