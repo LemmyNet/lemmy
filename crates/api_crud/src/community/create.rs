@@ -37,8 +37,8 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs,
     validation::{
+      is_valid_actor_name,
       is_valid_body_field,
-      is_valid_community_name,
       site_or_community_description_length_check,
     },
   },
@@ -80,7 +80,7 @@ pub async fn create_community(
   let banner = diesel_url_create(data.banner.as_deref())?;
   let banner = proxy_image_link_api(banner, &context).await?;
 
-  is_valid_community_name(&data.name, local_site.actor_name_max_length as usize)?;
+  is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
 
   // Double check for duplicate community actor_ids
   let community_actor_id = generate_local_apub_endpoint(

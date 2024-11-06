@@ -41,7 +41,7 @@ use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
     slurs::{check_slurs, check_slurs_opt},
-    validation::is_valid_username,
+    validation::is_valid_actor_name,
   },
 };
 use serde::{Deserialize, Serialize};
@@ -407,7 +407,7 @@ async fn create_person(
   context: &Data<LemmyContext>,
 ) -> Result<Person, LemmyError> {
   let actor_keypair = generate_actor_keypair()?;
-  is_valid_username(&username, local_site.actor_name_max_length as usize)?;
+  is_valid_actor_name(&username, local_site.actor_name_max_length as usize)?;
   let actor_id = generate_local_apub_endpoint(
     EndpointType::Person,
     &username,

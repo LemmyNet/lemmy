@@ -84,34 +84,16 @@ fn has_newline(name: &str) -> bool {
   name.contains('\n')
 }
 
-pub fn is_valid_username(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
+pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
   // Only allow characters from a single alphabet per username. This avoids problems with lookalike
   // characters like `o` which looks identical in Latin and Cyrillic, and can be used to imitate
   // other users. Checks for additional alphabets can be added in the same way.
-  static VALID_USERNAME_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(?:[a-zA-Z0-9_]{3,}|[0-9_\p{Arabic}]{3,}|[0-9_\p{Cyrillic}]{3,})$")
-      .expect("compile regex")
+  static VALID_ACTOR_NAME_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(?:[a-zA-Z0-9_]+|[0-9_\p{Arabic}]+|[0-9_\p{Cyrillic}]+)$").expect("compile regex")
   });
 
-  is_valid_actor_name(name, actor_name_max_length, &VALID_USERNAME_REGEX)
-}
-
-pub fn is_valid_community_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
-  // Only allow characters from a single alphabet per username. This avoids problems with lookalike
-  // characters like `o` which looks identical in Latin and Cyrillic, and can be used to imitate
-  // other users. Checks for additional alphabets can be added in the same way.
-  static VALID_COMMUNITY_NAME_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-      r"^(?:[0-9_a-z]{3,}|[0-9_[\p{Arabic}]&&\P{Lu}&&\P{Lt}]{3,}|[0-9_[\p{Cyrillic}&&\P{Lu}&&\P{Lt}]]{3,})$",
-    )
-    .expect("compile regex")
-  });
-
-  is_valid_actor_name(name, actor_name_max_length, &VALID_COMMUNITY_NAME_REGEX)
-}
-
-fn is_valid_actor_name(name: &str, actor_name_max_length: usize, r: &Regex) -> LemmyResult<()> {
-  if name.len() <= actor_name_max_length && r.is_match(name) {
+  if name.len() <= actor_name_max_length && name.len() >= 3 && VALID_ACTOR_NAME_REGEX.is_match(name)
+  {
     Ok(())
   } else {
     Err(LemmyErrorType::InvalidName.into())
@@ -372,13 +354,12 @@ mod tests {
       clean_url,
       clean_urls_in_text,
       is_url_blocked,
+      is_valid_actor_name,
       is_valid_bio_field,
-      is_valid_community_name,
       is_valid_display_name,
       is_valid_matrix_id,
       is_valid_post_title,
       is_valid_url,
-      is_valid_username,
       site_name_length_check,
       site_or_community_description_length_check,
       BIO_MAX_LENGTH,
@@ -432,64 +413,32 @@ mod tests {
   }
 
   #[test]
-  fn test_valid_username() {
+  fn test_valid_actor_name() {
     let actor_name_max_length = 20;
-    assert!(is_valid_username("Hello_98", actor_name_max_length).is_ok());
-    assert!(is_valid_username("ten", actor_name_max_length).is_ok());
-    assert!(is_valid_username("تجريب", actor_name_max_length).is_ok());
-    assert!(is_valid_username("تجريب_123", actor_name_max_length).is_ok());
-    assert!(is_valid_username("Владимир", actor_name_max_length).is_ok());
+    assert!(is_valid_actor_name("Hello_98", actor_name_max_length).is_ok());
+    assert!(is_valid_actor_name("ten", actor_name_max_length).is_ok());
+    assert!(is_valid_actor_name("تجريب", actor_name_max_length).is_ok());
+    assert!(is_valid_actor_name("تجريب_123", actor_name_max_length).is_ok());
+    assert!(is_valid_actor_name("Владимир", actor_name_max_length).is_ok());
 
     // mixed scripts
-    assert!(is_valid_username("تجريب_abc", actor_name_max_length).is_err());
-    assert!(is_valid_username("Влад_abc", actor_name_max_length).is_err());
+    assert!(is_valid_actor_name("تجريب_abc", actor_name_max_length).is_err());
+    assert!(is_valid_actor_name("Влад_abc", actor_name_max_length).is_err());
     // dash
-    assert!(is_valid_username("Hello-98", actor_name_max_length).is_err());
+    assert!(is_valid_actor_name("Hello-98", actor_name_max_length).is_err());
     // too short
-    assert!(is_valid_username("a", actor_name_max_length).is_err());
+    assert!(is_valid_actor_name("a", actor_name_max_length).is_err());
     // empty
-    assert!(is_valid_username("", actor_name_max_length).is_err());
+    assert!(is_valid_actor_name("", actor_name_max_length).is_err());
     // newline
-    assert!(is_valid_username(
+    assert!(is_valid_actor_name(
       r"Line1
 
 Line3",
       actor_name_max_length
     )
     .is_err());
-    assert!(is_valid_username("Line1\nLine3", actor_name_max_length).is_err());
-  }
-
-  #[test]
-  fn test_valid_community_name() {
-    let actor_name_max_length = 20;
-    assert!(is_valid_community_name("hello_98", actor_name_max_length).is_ok());
-    assert!(is_valid_community_name("ten", actor_name_max_length).is_ok());
-    assert!(is_valid_community_name("تجريب", actor_name_max_length).is_ok());
-    assert!(is_valid_community_name("تجريب_123", actor_name_max_length).is_ok());
-    assert!(is_valid_community_name("владимир", actor_name_max_length).is_ok());
-
-    // uppercase
-    assert!(is_valid_community_name("Ten", actor_name_max_length).is_err());
-    assert!(is_valid_community_name("Владимир", actor_name_max_length).is_err());
-    // mixed scripts
-    assert!(is_valid_community_name("تجريب_abc", actor_name_max_length).is_err());
-    assert!(is_valid_community_name("Влад_abc", actor_name_max_length).is_err());
-    // dash
-    assert!(is_valid_community_name("hello-98", actor_name_max_length).is_err());
-    // too short
-    assert!(is_valid_community_name("a", actor_name_max_length).is_err());
-    // empty
-    assert!(is_valid_community_name("", actor_name_max_length).is_err());
-    // newline
-    assert!(is_valid_community_name(
-      r"line1
-    
-line3",
-      actor_name_max_length
-    )
-    .is_err());
-    assert!(is_valid_community_name("line1\nline3", actor_name_max_length).is_err());
+    assert!(is_valid_actor_name("Line1\nLine3", actor_name_max_length).is_err());
   }
 
   #[test]
