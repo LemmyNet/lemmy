@@ -233,19 +233,34 @@ impl Count {
 
 #[cfg(test)]
 mod tests {
+  use super::AllNull;
   use crate::utils::{build_db_pool_for_tests, get_conn, DbConn};
   use diesel::{
     debug_query,
     insert_into,
     pg::Pg,
-    query_builder::AsQuery,
+    query_builder::{AsQuery, QueryId},
+    select,
+    sql_types,
+    AppearsOnTable,
     ExpressionMethods,
+    IntoSql,
     QueryDsl,
+    SelectableExpression,
   };
   use diesel_async::{RunQueryDsl, SimpleAsyncConnection};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
+
+  impl<T, QS> AppearsOnTable<QS> for AllNull<T> {}
+
+  impl<T, QS> SelectableExpression<QS> for AllNull<T> {}
+
+  impl<T> QueryId for AllNull<T> {
+    type QueryId = ();
+    const HAS_STATIC_QUERY_ID: bool = false;
+  }
 
   diesel::table! {
     t (id1, id2) {
@@ -380,5 +395,29 @@ mod tests {
         deleted: 1
       }
     );
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_all_null() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests().await;
+    let pool = &mut pool.into();
+    let mut conn = get_conn(pool).await?;
+
+    let some = Some(1).into_sql::<sql_types::Nullable<sql_types::Integer>>();
+    let none = None::<i32>.into_sql::<sql_types::Nullable<sql_types::Integer>>();
+
+    // Allows type inference for `vec![]`
+    let mut all_null = |items| select(AllNull(items)).get_result::<bool>(&mut conn);
+
+    assert!(all_null(vec![]).await?);
+    assert!(all_null(vec![none]).await?);
+    assert!(all_null(vec![none, none]).await?);
+    assert!(all_null(vec![none, none, none]).await?);
+    assert!(!all_null(vec![some]).await?);
+    assert!(!all_null(vec![some, none]).await?);
+    assert!(!all_null(vec![none, some, none]).await?);
+
+    Ok(())
   }
 }
