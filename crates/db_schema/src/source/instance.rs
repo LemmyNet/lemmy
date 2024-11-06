@@ -19,8 +19,11 @@ pub struct Instance {
   pub id: InstanceId,
   pub domain: String,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub software: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub version: Option<String>,
 }
 

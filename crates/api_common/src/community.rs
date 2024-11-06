@@ -19,10 +19,13 @@ use ts_rs::TS;
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+// TODO make this into a tagged enum
 /// Get a community. Must provide either an id, or a name.
 pub struct GetCommunity {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub id: Option<CommunityId>,
   /// Example: star_trek , or star_trek@xyz.tld
+  #[cfg_attr(feature = "full", ts(optional))]
   pub name: Option<String>,
 }
 
@@ -33,6 +36,7 @@ pub struct GetCommunity {
 /// The community response.
 pub struct GetCommunityResponse {
   pub community_view: CommunityView,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub site: Option<Site>,
   pub moderators: Vec<CommunityModeratorView>,
   pub discussion_languages: Vec<LanguageId>,
@@ -49,18 +53,26 @@ pub struct CreateCommunity {
   /// A longer title.
   pub title: String,
   /// A sidebar for the community in markdown.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub sidebar: Option<String>,
   /// A shorter, one line description of your community.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
   /// An icon URL.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub icon: Option<String>,
   /// A banner URL.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<String>,
   /// Whether its an NSFW community.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub nsfw: Option<bool>,
   /// Whether to restrict posting only to moderators.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub posting_restricted_to_mods: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub discussion_languages: Option<Vec<LanguageId>>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub visibility: Option<CommunityVisibility>,
 }
 
@@ -79,10 +91,15 @@ pub struct CommunityResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Fetches a list of communities.
 pub struct ListCommunities {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ListingType>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub sort: Option<CommunitySortType>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub show_nsfw: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
 
@@ -105,11 +122,14 @@ pub struct BanFromCommunity {
   pub ban: bool,
   /// Optionally remove or restore all their data. Useful for new troll accounts.
   /// If ban is true, then this means remove. If ban is false, it means restore.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub remove_or_restore_data: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   /// A time that the ban will expire, in unix epoch seconds.
   ///
   /// An i64 unix timestamp is used for a simpler API client implementation.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub expires: Option<i64>,
 }
 
@@ -148,20 +168,29 @@ pub struct AddModToCommunityResponse {
 pub struct EditCommunity {
   pub community_id: CommunityId,
   /// A longer title.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub title: Option<String>,
   /// A sidebar for the community in markdown.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub sidebar: Option<String>,
   /// A shorter, one line description of your community.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
   /// An icon URL.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub icon: Option<String>,
   /// A banner URL.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<String>,
   /// Whether its an NSFW community.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub nsfw: Option<bool>,
   /// Whether to restrict posting only to moderators.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub posting_restricted_to_mods: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub discussion_languages: Option<Vec<LanguageId>>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub visibility: Option<CommunityVisibility>,
 }
 
@@ -173,6 +202,7 @@ pub struct EditCommunity {
 pub struct HideCommunity {
   pub community_id: CommunityId,
   pub hidden: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
 }
 
@@ -194,6 +224,7 @@ pub struct DeleteCommunity {
 pub struct RemoveCommunity {
   pub community_id: CommunityId,
   pub removed: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
 }
 
@@ -240,5 +271,6 @@ pub struct TransferCommunity {
 #[cfg_attr(feature = "full", ts(export))]
 /// Fetches a random community
 pub struct GetRandomCommunity {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ListingType>,
 }
