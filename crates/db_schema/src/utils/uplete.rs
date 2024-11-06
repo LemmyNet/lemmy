@@ -345,6 +345,10 @@ mod tests {
       debug_query::<Pg, _>(&super::new(t::table).set_null(t::b).as_query()).to_string(),
       expected_sql(r#"TRUE AND ("a" IS NULL)"#, r#""b" = NULL"#)
     );
+    assert_eq!(
+      debug_query::<Pg, _>(&super::new(t::table).set_null(t::a).set_null(t::b).as_query()).to_string(),
+      expected_sql(r#"TRUE"#, r#""a" = NULL,"b" = NULL"#)
+    );
   }
 
   #[test]
