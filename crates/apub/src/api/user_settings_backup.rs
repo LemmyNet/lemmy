@@ -331,7 +331,7 @@ pub(crate) mod tests {
   };
   use lemmy_db_views::structs::LocalUserView;
   use lemmy_db_views_actor::structs::CommunityFollowerView;
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use std::time::Duration;
   use tokio::time::sleep;
