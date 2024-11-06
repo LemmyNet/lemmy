@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{context::LemmyContext, person::GetRepliesResponse};
 use lemmy_db_schema::source::{
   comment_reply::CommentReply,
-  person_mention::PersonMention,
+  person_comment_mention::PersonCommentMention,
   private_message::PrivateMessage,
 };
 use lemmy_db_views::structs::LocalUserView;
@@ -20,8 +20,8 @@ pub async fn mark_all_notifications_read(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
-  // Mark all user mentions as read
-  PersonMention::mark_all_as_read(&mut context.pool(), person_id)
+  // Mark all comment mentions as read
+  PersonCommentMention::mark_all_as_read(&mut context.pool(), person_id)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 

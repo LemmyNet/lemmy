@@ -13,6 +13,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
+  newtypes::PostOrCommentId,
   source::{
     actor_language::CommunityLanguage,
     comment::{Comment, CommentUpdateForm},
@@ -87,7 +88,7 @@ pub async fn update_comment(
   let mentions = scrape_text_for_mentions(&updated_comment_content);
   let recipient_ids = send_local_notifs(
     mentions,
-    comment_id,
+    PostOrCommentId::Comment(comment_id),
     &local_user_view.person,
     false,
     &context,

@@ -17,12 +17,13 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   impls::actor_language::default_post_language,
+  newtypes::PostOrCommentId,
   source::{
     actor_language::CommunityLanguage,
     comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},
     comment_reply::{CommentReply, CommentReplyUpdateForm},
     local_site::LocalSite,
-    person_mention::{PersonMention, PersonMentionUpdateForm},
+    person_comment_mention::{PersonCommentMention, PersonCommentMentionUpdateForm},
   },
   traits::{Crud, Likeable},
 };
@@ -121,7 +122,7 @@ pub async fn create_comment(
   let mentions = scrape_text_for_mentions(&content);
   let recipient_ids = send_local_notifs(
     mentions,
-    inserted_comment_id,
+    PostOrCommentId::Comment(inserted_comment_id),
     &local_user_view.person,
     true,
     &context,
@@ -174,17 +175,18 @@ pub async fn create_comment(
       .with_lemmy_type(LemmyErrorType::CouldntUpdateReplies)?;
     }
 
-    // If the parent has PersonMentions mark them as read too
-    let person_mention =
-      PersonMention::read_by_comment_and_person(&mut context.pool(), parent_id, person_id).await;
-    if let Ok(Some(mention)) = person_mention {
-      PersonMention::update(
+    // If the parent has PersonCommentMentions mark them as read too
+    let person_comment_mention =
+      PersonCommentMention::read_by_comment_and_person(&mut context.pool(), parent_id, person_id)
+        .await;
+    if let Ok(Some(mention)) = person_comment_mention {
+      PersonCommentMention::update(
         &mut context.pool(),
         mention.id,
-        &PersonMentionUpdateForm { read: Some(true) },
+        &PersonCommentMentionUpdateForm { read: Some(true) },
       )
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdatePersonMentions)?;
+      .with_lemmy_type(LemmyErrorType::CouldntUpdatePersonCommentMentions)?;
     }
   }
 
