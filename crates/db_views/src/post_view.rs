@@ -401,6 +401,11 @@ fn queries<'a>() -> Queries<
       query = query.filter(person::bot_account.eq(false));
     };
 
+    // Filter to show only posts with no comments
+    if options.no_comments_only.unwrap_or_default() {
+      query = query.filter(post_aggregates::comments.eq(0));
+    };
+
     // If its saved only, then filter, and order by the saved time, not the comment creation time.
     if options.saved_only.unwrap_or_default() {
       query = query
@@ -617,6 +622,7 @@ pub struct PostQuery<'a> {
   pub show_hidden: Option<bool>,
   pub show_read: Option<bool>,
   pub show_nsfw: Option<bool>,
+  pub no_comments_only: Option<bool>,
 }
 
 impl<'a> PostQuery<'a> {
@@ -1985,6 +1991,36 @@ mod tests {
     .await?;
 
     assert!(!post_view.banned_from_community);
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listings_no_comments_only() -> LemmyResult<()> {
+    let pool = &build_db_pool().await?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Create a comment for a post
+    let comment_form = CommentInsertForm::new(
+      data.local_user_view.person.id,
+      data.inserted_post.id,
+      "a comment".to_owned(),
+    );
+    Comment::create(pool, &comment_form, None).await?;
+
+    // Make sure it doesnt come back with the no_comments option
+    let post_listings_no_comments = PostQuery {
+      sort: Some(PostSortType::New),
+      no_comments_only: Some(true),
+      local_user: Some(&data.local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    assert_eq!(vec![POST_BY_BOT], names(&post_listings_no_comments));
 
     cleanup(data, pool).await
   }
