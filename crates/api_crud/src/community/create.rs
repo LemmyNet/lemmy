@@ -36,7 +36,11 @@ use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs,
-    validation::{is_valid_actor_name, is_valid_body_field},
+    validation::{
+      is_valid_actor_name,
+      is_valid_body_field,
+      site_or_community_description_length_check,
+    },
   },
 };
 
@@ -57,8 +61,18 @@ pub async fn create_community(
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
-  let description =
-    process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context).await?;
+  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
+
+  // Ensure that the sidebar has fewer than the max num characters...
+  if let Some(sidebar) = &sidebar {
+    is_valid_body_field(sidebar, false)?;
+  }
+
+  let description = data.description.clone();
+  if let Some(desc) = &description {
+    site_or_community_description_length_check(desc)?;
+    check_slurs(desc, &slur_regex)?;
+  }
 
   let icon = diesel_url_create(data.icon.as_deref())?;
   let icon = proxy_image_link_api(icon, &context).await?;
@@ -67,10 +81,6 @@ pub async fn create_community(
   let banner = proxy_image_link_api(banner, &context).await?;
 
   is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
-
-  if let Some(desc) = &data.description {
-    is_valid_body_field(desc, false)?;
-  }
 
   // Double check for duplicate community actor_ids
   let community_actor_id = generate_local_apub_endpoint(
@@ -88,6 +98,7 @@ pub async fn create_community(
   let keypair = generate_actor_keypair()?;
 
   let community_form = CommunityInsertForm {
+    sidebar,
     description,
     icon,
     banner,

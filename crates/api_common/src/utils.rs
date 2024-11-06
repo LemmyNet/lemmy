@@ -216,7 +216,9 @@ pub async fn check_registration_application(
     let local_user_id = local_user_view.local_user.id;
     let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id).await?;
     if registration.admin_id.is_some() {
-      Err(LemmyErrorType::RegistrationDenied(registration.deny_reason))?
+      Err(LemmyErrorType::RegistrationDenied {
+        reason: registration.deny_reason,
+      })?
     } else {
       Err(LemmyErrorType::RegistrationApplicationIsPending)?
     }
@@ -1110,7 +1112,7 @@ async fn proxy_image_link_internal(
 
 /// Rewrite a link to go through `/api/v3/image_proxy` endpoint. This is only for remote urls and
 /// if image_proxy setting is enabled.
-pub(crate) async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
+pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
   proxy_image_link_internal(
     link,
     context.settings().pictrs_config()?.image_mode(),

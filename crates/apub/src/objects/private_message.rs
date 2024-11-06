@@ -29,7 +29,7 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{FederationError, LemmyError, LemmyErrorType, LemmyResult},
   utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
@@ -113,7 +113,7 @@ impl Object for ApubPrivateMessage {
     check_apub_id_valid_with_strictness(note.id.inner(), false, context).await?;
     let person = note.attributed_to.dereference(context).await?;
     if person.banned {
-      Err(LemmyErrorType::PersonIsBannedFromSite(
+      Err(FederationError::PersonIsBannedFromSite(
         person.actor_id.to_string(),
       ))?
     } else {
@@ -186,12 +186,12 @@ mod tests {
   }
 
   async fn cleanup(
-    data: (ApubPerson, ApubPerson, ApubSite),
+    (person1, person2, site): (ApubPerson, ApubPerson, ApubSite),
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    Person::delete(&mut context.pool(), data.0.id).await?;
-    Person::delete(&mut context.pool(), data.1.id).await?;
-    Site::delete(&mut context.pool(), data.2.id).await?;
+    Person::delete(&mut context.pool(), person1.id).await?;
+    Person::delete(&mut context.pool(), person2.id).await?;
+    Site::delete(&mut context.pool(), site.id).await?;
     Ok(())
   }
 

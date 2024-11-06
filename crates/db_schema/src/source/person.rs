@@ -22,16 +22,20 @@ pub struct Person {
   pub id: PersonId,
   pub name: String,
   /// A shorter display name.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub display_name: Option<String>,
   /// A URL for an avatar.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub avatar: Option<DbUrl>,
   /// Whether the person is banned.
   pub banned: bool,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
   /// The federated actor_id.
   pub actor_id: DbUrl,
   /// An optional bio, in markdown.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub bio: Option<String>,
   /// Whether the person is local to our site.
   pub local: bool,
@@ -42,6 +46,7 @@ pub struct Person {
   #[serde(skip)]
   pub last_refreshed_at: DateTime<Utc>,
   /// A URL for a banner.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<DbUrl>,
   /// Whether the person is deleted.
   pub deleted: bool,
@@ -49,10 +54,12 @@ pub struct Person {
   #[serde(skip, default = "placeholder_apub_url")]
   pub inbox_url: DbUrl,
   /// A matrix id, usually given an @person:matrix.org
+  #[cfg_attr(feature = "full", ts(optional))]
   pub matrix_user_id: Option<String>,
   /// Whether the person is a bot account.
   pub bot_account: bool,
   /// When their ban, if it exists, expires, if at all.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub ban_expires: Option<DateTime<Utc>>,
   pub instance_id: InstanceId,
 }

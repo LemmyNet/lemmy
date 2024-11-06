@@ -14,9 +14,9 @@ async fn generate_urlset(
 ) -> LemmyResult<UrlSet> {
   let urls = posts
     .into_iter()
-    .map_while(|post| {
-      Url::builder(post.0.to_string())
-        .last_modified(post.1.into())
+    .map_while(|(url, date_time)| {
+      Url::builder(url.to_string())
+        .last_modified(date_time.into())
         .build()
         .ok()
     })

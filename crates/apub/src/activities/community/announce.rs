@@ -26,7 +26,7 @@ use lemmy_db_schema::{
   source::{activity::ActivitySendTargets, community::CommunityFollower},
   CommunityVisibility,
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use serde_json::Value;
 use url::Url;
 
@@ -54,7 +54,7 @@ impl ActivityHandler for RawAnnouncableActivities {
 
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = activity {
-      Err(LemmyErrorType::CannotReceivePage)?
+      Err(FederationError::CannotReceivePage)?
     }
 
     // Need to treat community as optional here because `Delete/PrivateMessage` gets routed through
@@ -165,7 +165,7 @@ impl ActivityHandler for AnnounceActivity {
 
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
-      Err(LemmyErrorType::CannotReceivePage)?
+      Err(FederationError::CannotReceivePage)?
     }
 
     let community = object.community(context).await?;

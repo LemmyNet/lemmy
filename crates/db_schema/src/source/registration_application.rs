@@ -18,7 +18,9 @@ pub struct RegistrationApplication {
   pub id: RegistrationApplicationId,
   pub local_user_id: LocalUserId,
   pub answer: String,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub admin_id: Option<PersonId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub deny_reason: Option<String>,
   pub published: DateTime<Utc>,
 }

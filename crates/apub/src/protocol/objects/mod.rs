@@ -145,7 +145,8 @@ mod tests {
   #[test]
   fn test_parse_objects_mastodon() -> LemmyResult<()> {
     test_json::<Person>("assets/mastodon/objects/person.json")?;
-    test_json::<Note>("assets/mastodon/objects/note.json")?;
+    test_json::<Note>("assets/mastodon/objects/note_1.json")?;
+    test_json::<Note>("assets/mastodon/objects/note_2.json")?;
     test_json::<Page>("assets/mastodon/objects/page.json")?;
     Ok(())
   }

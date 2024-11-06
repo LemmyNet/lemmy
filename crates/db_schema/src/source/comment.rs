@@ -30,6 +30,7 @@ pub struct Comment {
   /// Whether the comment has been removed.
   pub removed: bool,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
   /// Whether the comment has been deleted by its creator.
   pub deleted: bool,
