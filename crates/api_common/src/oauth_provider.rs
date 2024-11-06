@@ -20,8 +20,11 @@ pub struct CreateOAuthProvider {
   pub client_id: String,
   pub client_secret: String,
   pub scopes: String,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub auto_verify_email: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub account_linking_enabled: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub enabled: Option<bool>,
 }
 
@@ -32,15 +35,25 @@ pub struct CreateOAuthProvider {
 /// Edit an external auth method.
 pub struct EditOAuthProvider {
   pub id: OAuthProviderId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub display_name: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub authorization_endpoint: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub token_endpoint: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub userinfo_endpoint: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub id_claim: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub client_secret: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub scopes: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub auto_verify_email: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub account_linking_enabled: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub enabled: Option<bool>,
 }
 
@@ -59,13 +72,14 @@ pub struct DeleteOAuthProvider {
 /// Logging in with an OAuth 2.0 authorization
 pub struct AuthenticateWithOauth {
   pub code: String,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub oauth_provider_id: OAuthProviderId,
-  #[cfg_attr(feature = "full", ts(type = "string"))]
   pub redirect_uri: Url,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub show_nsfw: Option<bool>,
   /// Username is mandatory at registration time
+  #[cfg_attr(feature = "full", ts(optional))]
   pub username: Option<String>,
   /// An answer is mandatory if require application is enabled on the server
+  #[cfg_attr(feature = "full", ts(optional))]
   pub answer: Option<String>,
 }
