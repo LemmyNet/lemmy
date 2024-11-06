@@ -62,9 +62,6 @@ pub const RANK_DEFAULT: f64 = 0.0001;
 const CONNECTION_OPTIONS: [&str; 1] = ["geqo_threshold=12"];
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
-/// Use a once_lock to create the postgres connection config, since this config never changes
-static POSTGRES_CONFIG_WITH_OPTIONS: OnceLock<String> = OnceLock::new();
-
 /// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
 /// reborrowing.
 ///
@@ -366,12 +363,17 @@ fn build_config_options_uri_segment(config: &str) -> String {
     .collect::<Vec<String>>()
     .join(" ");
 
-  url.set_query(Some(&format!("options={options_segments}")));
+  url
+    .query_pairs_mut()
+    .append_pair("options", &options_segments);
   url.into()
 }
 
 fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
   let fut = async {
+    // Use a once_lock to create the postgres connection config, since this config never changes
+    static POSTGRES_CONFIG_WITH_OPTIONS: OnceLock<String> = OnceLock::new();
+
     let config =
       POSTGRES_CONFIG_WITH_OPTIONS.get_or_init(|| build_config_options_uri_segment(config));
 
