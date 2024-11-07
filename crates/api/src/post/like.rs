@@ -10,7 +10,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     local_site::LocalSite,
-    post::{Post, PostLike, PostLikeForm, PostRead},
+    post::{PostLike, PostLikeForm, PostRead},
   },
   traits::Likeable,
 };
