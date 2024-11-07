@@ -287,7 +287,9 @@ pub struct ListCommunityPendingFollows {
   // Only for admins, show pending follows for communities which you dont moderate
   #[cfg_attr(feature = "full", ts(optional))]
   pub all_communities: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
 
