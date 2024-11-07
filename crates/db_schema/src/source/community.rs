@@ -9,6 +9,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use strum::{Display, EnumString};
 #[cfg(feature = "full")]
 use ts_rs::TS;
 
@@ -207,6 +208,20 @@ pub struct CommunityPersonBanForm {
   pub expires: Option<Option<DateTime<Utc>>>,
 }
 
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(DbEnum, TS))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::CommunityFollowerState"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "full", ts(export))]
+pub enum CommunityFollowerState {
+  Accepted,
+  Pending,
+  ApprovalRequired,
+}
+
 #[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(
   feature = "full",
@@ -223,14 +238,18 @@ pub struct CommunityFollower {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub published: DateTime<Utc>,
-  pub pending: bool,
+  pub state: CommunityFollowerState,
+  pub approver_id: Option<PersonId>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = community_follower))]
 pub struct CommunityFollowerForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
-  pub pending: bool,
+  #[new(default)]
+  pub state: Option<CommunityFollowerState>,
+  #[new(default)]
+  pub approver_id: Option<PersonId>,
 }

@@ -148,3 +148,14 @@ pub struct PersonView {
   pub counts: PersonAggregates,
   pub is_admin: bool,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct PendingFollow {
+  pub person: Person,
+  pub community: Community,
+  pub is_new_instance: bool,
+  pub subscribed: SubscribedType,
+}

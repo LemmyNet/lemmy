@@ -28,6 +28,7 @@ use lemmy_db_schema::{
     person_block,
     post,
   },
+  source::community::CommunityFollower,
   utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
 };
 
@@ -122,7 +123,7 @@ fn queries<'a>() -> Queries<
           .is_not_null(),
         local_user::admin.nullable().is_not_null(),
         person_block::target_id.nullable().is_not_null(),
-        community_follower::pending.nullable(),
+        CommunityFollower::select_subscribed_type(),
         comment_saved::published.nullable().is_not_null(),
         comment_like::score.nullable(),
         aliases::person2.fields(person::all_columns).nullable(),
@@ -290,7 +291,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;

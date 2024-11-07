@@ -24,7 +24,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{diesel_string_update, diesel_url_update, naive_now},
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
@@ -87,17 +87,17 @@ pub async fn update_post(
   }
 
   let post_id = data.post_id;
-  let orig_post = Post::read(&mut context.pool(), post_id).await?;
+  let orig_post = PostView::read(&mut context.pool(), post_id, None, false).await?;
 
   check_community_user_action(
     &local_user_view.person,
-    orig_post.community_id,
+    &orig_post.community,
     &mut context.pool(),
   )
   .await?;
 
   // Verify that only the creator can edit
-  if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
+  if !Post::is_post_creator(local_user_view.person.id, orig_post.post.creator_id) {
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
@@ -105,14 +105,14 @@ pub async fn update_post(
     CommunityLanguage::is_allowed_community_language(
       &mut context.pool(),
       language_id,
-      orig_post.community_id,
+      orig_post.community.id,
     )
     .await?;
   }
 
   // handle changes to scheduled_publish_time
   let scheduled_publish_time = match (
-    orig_post.scheduled_publish_time,
+    orig_post.post.scheduled_publish_time,
     data.scheduled_publish_time,
   ) {
     // schedule time can be changed if post is still scheduled (and not published yet)
@@ -144,12 +144,12 @@ pub async fn update_post(
 
   // send out federation/webmention if necessary
   match (
-    orig_post.scheduled_publish_time,
+    orig_post.post.scheduled_publish_time,
     data.scheduled_publish_time,
   ) {
     // schedule was removed, send create activity and webmention
     (Some(_), None) => {
-      let community = Community::read(&mut context.pool(), orig_post.community_id).await?;
+      let community = Community::read(&mut context.pool(), orig_post.community.id).await?;
       send_webmention(updated_post.clone(), community);
       generate_post_link_metadata(
         updated_post.clone(),
@@ -175,7 +175,7 @@ pub async fn update_post(
 
   build_post_response(
     context.deref(),
-    orig_post.community_id,
+    orig_post.community.id,
     local_user_view,
     post_id,
   )

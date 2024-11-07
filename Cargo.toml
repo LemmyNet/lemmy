@@ -78,6 +78,7 @@ uninlined_format_args = "allow"
 unused_self = "deny"
 unwrap_used = "deny"
 unimplemented = "deny"
+unused_async = "deny"
 
 [workspace.dependencies]
 lemmy_api = { version = "=0.19.6-beta.7", path = "./crates/api" }

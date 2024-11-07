@@ -42,6 +42,7 @@ use lemmy_db_views::{
   structs::{LocalImageView, LocalUserView, SiteView},
 };
 use lemmy_db_views_actor::structs::{
+  CommunityFollowerView,
   CommunityModeratorView,
   CommunityPersonBanView,
   CommunityView,
@@ -232,20 +233,17 @@ pub async fn check_registration_application(
 /// the user isn't banned.
 pub async fn check_community_user_action(
   person: &Person,
-  community_id: CommunityId,
+  community: &Community,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   check_user_valid(person)?;
-  check_community_deleted_removed(community_id, pool).await?;
-  CommunityPersonBanView::check(pool, person.id, community_id).await?;
+  check_community_deleted_removed(community)?;
+  CommunityPersonBanView::check(pool, person.id, community.id).await?;
+  CommunityFollowerView::check_private_community_action(pool, person.id, community).await?;
   Ok(())
 }
 
-async fn check_community_deleted_removed(
-  community_id: CommunityId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  let community = Community::read(pool, community_id).await?;
+pub fn check_community_deleted_removed(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
     Err(LemmyErrorType::Deleted)?
   }
@@ -258,16 +256,16 @@ async fn check_community_deleted_removed(
 /// removed/deleted.
 pub async fn check_community_mod_action(
   person: &Person,
-  community_id: CommunityId,
+  community: &Community,
   allow_deleted: bool,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  is_mod_or_admin(pool, person, community_id).await?;
-  CommunityPersonBanView::check(pool, person.id, community_id).await?;
+  is_mod_or_admin(pool, person, community.id).await?;
+  CommunityPersonBanView::check(pool, person.id, community.id).await?;
 
   // it must be possible to restore deleted community
   if !allow_deleted {
-    check_community_deleted_removed(community_id, pool).await?;
+    check_community_deleted_removed(community)?;
   }
   Ok(())
 }

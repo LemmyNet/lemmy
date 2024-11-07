@@ -37,7 +37,13 @@ mod tests {
     aggregates::community_aggregates::CommunityAggregates,
     source::{
       comment::{Comment, CommentInsertForm},
-      community::{Community, CommunityFollower, CommunityFollowerForm, CommunityInsertForm},
+      community::{
+        Community,
+        CommunityFollower,
+        CommunityFollowerForm,
+        CommunityFollowerState,
+        CommunityInsertForm,
+      },
       instance::Instance,
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
@@ -52,7 +58,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() -> Result<(), Error> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
@@ -84,7 +90,8 @@ mod tests {
     let first_person_follow = CommunityFollowerForm {
       community_id: inserted_community.id,
       person_id: inserted_person.id,
-      pending: false,
+      state: Some(CommunityFollowerState::Accepted),
+      approver_id: None,
     };
 
     CommunityFollower::follow(pool, &first_person_follow).await?;
@@ -92,7 +99,8 @@ mod tests {
     let second_person_follow = CommunityFollowerForm {
       community_id: inserted_community.id,
       person_id: another_inserted_person.id,
-      pending: false,
+      state: Some(CommunityFollowerState::Accepted),
+      approver_id: None,
     };
 
     CommunityFollower::follow(pool, &second_person_follow).await?;
@@ -100,7 +108,8 @@ mod tests {
     let another_community_follow = CommunityFollowerForm {
       community_id: another_inserted_community.id,
       person_id: inserted_person.id,
-      pending: false,
+      state: Some(CommunityFollowerState::Accepted),
+      approver_id: None,
     };
 
     CommunityFollower::follow(pool, &another_community_follow).await?;

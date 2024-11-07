@@ -453,7 +453,7 @@ impl ServerCertVerifier for NoCertVerifier {
   }
 }
 
-pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
+pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let db_url = SETTINGS.get_database_url();
   // diesel-async does not support any TLS connections out of the box, so we need to manually
   // provide a setup function which handles creating the connection
@@ -482,8 +482,8 @@ pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
   Ok(pool)
 }
 
-pub async fn build_db_pool_for_tests() -> ActualDbPool {
-  build_db_pool().await.expect("db pool missing")
+pub fn build_db_pool_for_tests() -> ActualDbPool {
+  build_db_pool().expect("db pool missing")
 }
 
 pub fn naive_now() -> DateTime<Utc> {
