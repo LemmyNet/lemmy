@@ -122,7 +122,6 @@ steps:
     environment:
       CARGO_HOME: .cargo_home
     commands:
-      - export LEMMY_CONFIG_LOCATION=./config/config.hjson
       - ./scripts/update_config_defaults.sh config/defaults_current.hjson
       - diff config/defaults.hjson config/defaults_current.hjson
     when: *slow_check_paths
@@ -147,7 +146,6 @@ steps:
       CARGO_HOME: .cargo_home
     commands:
       # same as scripts/db_perf.sh but without creating a new database server
-      - export LEMMY_CONFIG_LOCATION=config/config.hjson
       - cargo run --package lemmy_db_perf -- --posts 10 --read-post-pages 1
     when: *slow_check_paths
 
@@ -176,10 +174,19 @@ steps:
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
       LEMMY_TEST_FAST_FEDERATION: "1"
+      LEMMY_CONFIG_LOCATION: ../../config/config.hjson
     commands:
-      - export LEMMY_CONFIG_LOCATION=../../config/config.hjson
       - cargo test --workspace --no-fail-fast
     when: *slow_check_paths
+
+  check_ts_bindings:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+    commands:
+      - ./scripts/ts_bindings_check.sh
+    when:
+      - event: pull_request
 
   check_diesel_migration:
     # TODO: use willsquire/diesel-cli image when shared libraries become optional in lemmy_server

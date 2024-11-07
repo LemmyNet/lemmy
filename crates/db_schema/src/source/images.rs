@@ -23,6 +23,7 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", diesel(primary_key(pictrs_alias)))]
 pub struct LocalImage {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub local_user_id: Option<LocalUserId>,
   pub pictrs_alias: String,
   pub pictrs_delete_token: String,

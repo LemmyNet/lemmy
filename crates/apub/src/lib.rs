@@ -54,15 +54,24 @@ impl UrlVerifier for VerifyUrlData {
     use FederationError::*;
     check_apub_id_valid(url, &local_site_data).map_err(|err| match err {
       LemmyError {
-        error_type: LemmyErrorType::FederationError(Some(FederationDisabled)),
+        error_type:
+          LemmyErrorType::FederationError {
+            error: Some(FederationDisabled),
+          },
         ..
       } => ActivityPubError::Other("Federation disabled".into()),
       LemmyError {
-        error_type: LemmyErrorType::FederationError(Some(DomainBlocked(domain))),
+        error_type:
+          LemmyErrorType::FederationError {
+            error: Some(DomainBlocked(domain)),
+          },
         ..
       } => ActivityPubError::Other(format!("Domain {domain:?} is blocked")),
       LemmyError {
-        error_type: LemmyErrorType::FederationError(Some(DomainNotInAllowList(domain))),
+        error_type:
+          LemmyErrorType::FederationError {
+            error: Some(DomainNotInAllowList(domain)),
+          },
         ..
       } => ActivityPubError::Other(format!("Domain {domain:?} is not in allowlist")),
       _ => ActivityPubError::Other("Failed validating apub id".into()),
