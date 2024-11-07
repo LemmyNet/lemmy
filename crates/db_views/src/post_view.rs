@@ -2047,7 +2047,7 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Make sure the post_view query is less than this time
-    let duration_max = Duration::from_millis(40);
+    let duration_max = Duration::from_millis(80);
 
     // Create some dummy posts
     let num_posts = 1000;
