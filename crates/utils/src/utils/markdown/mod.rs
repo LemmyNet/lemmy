@@ -259,6 +259,11 @@ mod tests {
   fn test_sanitize_html() {
     let sanitized = sanitize_html("<script>alert('xss');</script> hello &\"'");
     let expected = "&lt;script>alert(&#x27;xss&#x27;);&lt;/script> hello &amp;&quot;&#x27;";
-    assert_eq!(expected, sanitized)
+    assert_eq!(expected, sanitized);
+
+    let sanitized =
+      sanitize_html("Polling the group: what do y'all know about the Orion browser from Kagi?");
+    let expected = "Polling the group: what do y&#x27;all know about the Orion browser from Kagi?";
+    assert_eq!(expected, sanitized);
   }
 }
