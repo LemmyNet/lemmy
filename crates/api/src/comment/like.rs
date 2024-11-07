@@ -50,7 +50,7 @@ pub async fn like_comment(
 
   check_community_user_action(
     &local_user_view.person,
-    orig_comment.community.id,
+    &orig_comment.community,
     &mut context.pool(),
   )
   .await?;
@@ -92,8 +92,7 @@ pub async fn like_comment(
       score: data.score,
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(
     build_comment_response(

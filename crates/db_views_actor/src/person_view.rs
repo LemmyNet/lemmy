@@ -229,7 +229,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn exclude_deleted() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -261,7 +261,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn list_banned() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -285,7 +285,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn list_admins() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -315,7 +315,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn listing_type() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 

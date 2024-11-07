@@ -197,11 +197,7 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
           .ok();
 
         // Also unsubscribe them from the community, if they are subscribed
-        let community_follower_form = CommunityFollowerForm {
-          community_id,
-          person_id: target.id,
-          pending: false,
-        };
+        let community_follower_form = CommunityFollowerForm::new(community_id, target.id);
 
         CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
           .await
@@ -242,8 +238,7 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
           data: ban_from_community,
         },
         context,
-      )
-      .await?;
+      )?;
     }
   }
 

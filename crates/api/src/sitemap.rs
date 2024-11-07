@@ -9,9 +9,7 @@ use lemmy_utils::error::LemmyResult;
 use sitemap_rs::{url::Url, url_set::UrlSet};
 use tracing::info;
 
-async fn generate_urlset(
-  posts: Vec<(DbUrl, chrono::DateTime<chrono::Utc>)>,
-) -> LemmyResult<UrlSet> {
+fn generate_urlset(posts: Vec<(DbUrl, chrono::DateTime<chrono::Utc>)>) -> LemmyResult<UrlSet> {
   let urls = posts
     .into_iter()
     .map_while(|(url, date_time)| {
@@ -31,7 +29,7 @@ pub async fn get_sitemap(context: Data<LemmyContext>) -> LemmyResult<HttpRespons
   info!("Loaded latest {} posts", posts.len());
 
   let mut buf = Vec::<u8>::new();
-  generate_urlset(posts).await?.write(&mut buf)?;
+  generate_urlset(posts)?.write(&mut buf)?;
 
   Ok(
     HttpResponse::Ok()
@@ -74,7 +72,7 @@ pub(crate) mod tests {
     ];
 
     let mut buf = Vec::<u8>::new();
-    generate_urlset(posts).await?.write(&mut buf)?;
+    generate_urlset(posts)?.write(&mut buf)?;
     let root = Element::from_reader(buf.as_slice())?;
 
     assert_eq!(root.tag().name(), "urlset");

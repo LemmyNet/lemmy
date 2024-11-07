@@ -184,6 +184,7 @@ pub enum FederationError {
   InboxTimeout,
   CantDeleteSite,
   ObjectIsNotPublic,
+  ObjectIsNotPrivate,
 }
 
 cfg_if! {
