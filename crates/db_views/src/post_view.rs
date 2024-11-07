@@ -2042,7 +2042,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn speed_check() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
