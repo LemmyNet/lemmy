@@ -9,6 +9,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    community::Community,
     local_user::LocalUser,
     moderator::{ModRemovePost, ModRemovePostForm},
     post::{Post, PostUpdateForm},
@@ -26,11 +27,16 @@ pub async fn remove_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let post_id = data.post_id;
+
+  // We cannot use PostView to avoid a database read here, as it doesn't return removed items
+  // by default. So we would have to pass in `is_mod_or_admin`, but that is impossible without
+  // knowing which community the post belongs to.
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
+  let community = Community::read(&mut context.pool(), orig_post.community_id).await?;
 
   check_community_mod_action(
     &local_user_view.person,
-    orig_post.community_id,
+    &community,
     false,
     &mut context.pool(),
   )
@@ -77,8 +83,7 @@ pub async fn remove_post(
       removed: data.removed,
     },
     &context,
-  )
-  .await?;
+  )?;
 
   build_post_response(&context, orig_post.community_id, local_user_view, post_id).await
 }

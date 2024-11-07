@@ -438,7 +438,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_convert_update_languages() -> Result<(), Error> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     // call with empty vec, returns all languages
@@ -457,7 +457,7 @@ mod tests {
   #[serial]
   async fn test_convert_read_languages() -> Result<(), Error> {
     use crate::schema::language::dsl::{id, language};
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     // call with all languages, returns empty vec
@@ -477,7 +477,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_site_languages() -> Result<(), Error> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let (site, instance) = create_test_site(pool).await?;
@@ -502,7 +502,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_user_languages() -> Result<(), Error> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let (site, instance) = create_test_site(pool).await?;
@@ -535,7 +535,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_community_languages() -> Result<(), Error> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let (site, instance) = create_test_site(pool).await?;
     let test_langs = test_langs1(pool).await?;
@@ -591,7 +591,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_default_post_language() -> Result<(), Error> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let (site, instance) = create_test_site(pool).await?;
     let test_langs = test_langs1(pool).await?;
