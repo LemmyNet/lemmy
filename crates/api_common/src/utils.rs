@@ -65,7 +65,7 @@ use lemmy_utils::{
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
 use rosetta_i18n::{Language, LanguageId};
-use std::{collections::HashSet, sync::LazyLock};
+use std::sync::LazyLock;
 use tracing::warn;
 use url::{ParseError, Url};
 use urlencoding::encode;
@@ -148,7 +148,7 @@ pub async fn mark_post_as_read(
   post_id: PostId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  PostRead::mark_as_read(pool, HashSet::from([post_id]), person_id)
+  PostRead::mark_as_read(pool, post_id, person_id)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)?;
   Ok(())
