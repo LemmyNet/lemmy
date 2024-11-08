@@ -480,6 +480,7 @@ diesel::table! {
         totp_2fa_enabled -> Bool,
         enable_keyboard_navigation -> Bool,
         enable_animated_images -> Bool,
+        enable_private_messages -> Bool,
         collapse_bot_comments -> Bool,
         default_comment_sort_type -> CommentSortTypeEnum,
     }
