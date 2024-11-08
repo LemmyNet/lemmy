@@ -7,7 +7,7 @@ use urlencoding::encode;
 
 pub mod structs;
 
-use structs::{DatabaseConnection, PictrsConfig, PictrsImageMode, Settings};
+use structs::{DatabaseConnection, PictrsConfig, Settings};
 
 static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
@@ -112,19 +112,5 @@ impl Settings {
       .pictrs
       .clone()
       .ok_or_else(|| anyhow!("images_disabled").into())
-  }
-}
-
-impl PictrsConfig {
-  pub fn image_mode(&self) -> PictrsImageMode {
-    if let Some(cache_external_link_previews) = self.cache_external_link_previews {
-      if cache_external_link_previews {
-        PictrsImageMode::StoreLinkPreviews
-      } else {
-        PictrsImageMode::None
-      }
-    } else {
-      self.image_mode.clone()
-    }
   }
 }

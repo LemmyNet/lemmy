@@ -76,16 +76,10 @@ pub struct PictrsConfig {
   #[default(None)]
   pub api_key: Option<String>,
 
-  /// Backwards compatibility with 0.18.1. False is equivalent to `image_mode: None`, true is
-  /// equivalent to `image_mode: StoreLinkPreviews`.
-  ///
-  /// To be removed in 0.20
-  pub(super) cache_external_link_previews: Option<bool>,
-
   /// Specifies how to handle remote images, so that users don't have to connect directly to remote
   /// servers.
-  #[default(PictrsImageMode::StoreLinkPreviews)]
-  pub(super) image_mode: PictrsImageMode,
+  #[default(PictrsImageMode::ProxyAllImages)]
+  pub image_mode: PictrsImageMode,
 
   /// Timeout for uploading images to pictrs (in seconds)
   #[default(30)]
@@ -106,8 +100,7 @@ pub enum PictrsImageMode {
   /// ensures that they can be reliably retrieved and can be resized using pict-rs APIs. However
   /// it also increases storage usage.
   ///
-  /// This is the default behaviour, and also matches Lemmy 0.18.
-  #[default]
+  /// This behaviour matches Lemmy 0.18.
   StoreLinkPreviews,
   /// If enabled, all images from remote domains are rewritten to pass through
   /// `/api/v3/image_proxy`, including embedded images in markdown. Images are stored temporarily
@@ -116,6 +109,7 @@ pub enum PictrsImageMode {
   /// local server.
   ///
   /// Requires pict-rs 0.5
+  #[default]
   ProxyAllImages,
 }
 
