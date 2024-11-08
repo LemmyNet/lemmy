@@ -175,7 +175,7 @@ pub async fn generate_post_link_metadata(
   };
   let updated_post = Post::update(&mut context.pool(), post.id, &form).await?;
   if let Some(send_activity) = send_activity(updated_post) {
-    ActivityChannel::submit_activity(send_activity, &context).await?;
+    ActivityChannel::submit_activity(send_activity, &context)?;
   }
   Ok(())
 }

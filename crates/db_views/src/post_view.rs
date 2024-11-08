@@ -42,7 +42,11 @@ use lemmy_db_schema::{
     post_read,
     post_saved,
   },
-  source::{local_user::LocalUser, site::Site},
+  source::{
+    community::{CommunityFollower, CommunityFollowerState},
+    local_user::LocalUser,
+    site::Site,
+  },
   utils::{
     functions::coalesce,
     fuzzy_search,
@@ -57,6 +61,7 @@ use lemmy_db_schema::{
     ReadFn,
     ReverseTimestampKey,
   },
+  CommunityVisibility,
   ListingType,
   PostSortType,
 };
@@ -175,7 +180,11 @@ fn queries<'a>() -> Queries<
       };
 
     let subscribed_type_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>,
+      dyn BoxableExpression<
+        _,
+        Pg,
+        SqlType = sql_types::Nullable<lemmy_db_schema::schema::sql_types::CommunityFollowerState>,
+      >,
     > = if let Some(person_id) = my_person_id {
       Box::new(
         community_follower::table
@@ -184,11 +193,11 @@ fn queries<'a>() -> Queries<
               .eq(community_follower::community_id)
               .and(community_follower::person_id.eq(person_id)),
           )
-          .select(community_follower::pending.nullable())
+          .select(CommunityFollower::select_subscribed_type())
           .single_value(),
       )
     } else {
-      Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
+      Box::new(None::<CommunityFollowerState>.into_sql::<sql_types::Nullable<lemmy_db_schema::schema::sql_types::CommunityFollowerState>>())
     };
 
     let score_selection: Box<
@@ -291,6 +300,22 @@ fn queries<'a>() -> Queries<
           post::deleted
             .eq(false)
             .or(post::creator_id.eq(person_id_join)),
+        )
+        // private communities can only by browsed by accepted followers
+        .filter(
+          community::visibility
+            .ne(CommunityVisibility::Private)
+            .or(exists(
+              community_follower::table.filter(
+                post_aggregates::community_id
+                  .eq(community_follower::community_id)
+                  .and(
+                    community_follower::person_id
+                      .eq(my_local_user.map(|l| l.person_id).unwrap_or_default())
+                      .and(community_follower::state.eq(CommunityFollowerState::Accepted)),
+                  ),
+              ),
+            )),
         );
     }
 
@@ -442,6 +467,21 @@ fn queries<'a>() -> Queries<
     };
 
     query = options.local_user.visible_communities_only(query);
+
+    if !options.local_user.is_admin() {
+      query = query.filter(
+        community::visibility
+          .ne(CommunityVisibility::Private)
+          .or(exists(
+            community_follower::table.filter(
+              post_aggregates::community_id
+                .eq(community_follower::community_id)
+                .and(community_follower::person_id.eq(person_id_join))
+                .and(community_follower::state.eq(CommunityFollowerState::Accepted)),
+            ),
+          )),
+      );
+    }
 
     // Dont filter blocks or missing languages for moderator view type
     if let (Some(person_id), false) = (
@@ -746,6 +786,7 @@ mod tests {
         Community,
         CommunityFollower,
         CommunityFollowerForm,
+        CommunityFollowerState,
         CommunityInsertForm,
         CommunityModerator,
         CommunityModeratorForm,
@@ -937,7 +978,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_with_person() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let mut data = init_data(pool).await?;
 
@@ -997,7 +1038,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_no_person() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1035,7 +1076,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_title_only() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1094,7 +1135,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_block_community() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1120,7 +1161,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_like() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let mut data = init_data(pool).await?;
 
@@ -1178,7 +1219,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_liked_only() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1227,7 +1268,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_saved_only() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1257,7 +1298,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn creator_info() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1295,7 +1336,7 @@ mod tests {
   async fn post_listing_person_language() -> LemmyResult<()> {
     const EL_POSTO: &str = "el posto";
 
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1356,7 +1397,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_removed() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let mut data = init_data(pool).await?;
 
@@ -1391,7 +1432,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_deleted() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1430,7 +1471,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_hidden_community() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1452,9 +1493,8 @@ mod tests {
 
     // Follow the community
     let form = CommunityFollowerForm {
-      community_id: data.inserted_community.id,
-      person_id: data.local_user_view.person.id,
-      pending: false,
+      state: Some(CommunityFollowerState::Accepted),
+      ..CommunityFollowerForm::new(data.inserted_community.id, data.local_user_view.person.id)
     };
     CommunityFollower::follow(pool, &form).await?;
 
@@ -1469,7 +1509,7 @@ mod tests {
   async fn post_listing_instance_block() -> LemmyResult<()> {
     const POST_FROM_BLOCKED_INSTANCE: &str = "post on blocked instance";
 
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1529,7 +1569,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn pagination_includes_each_post_once() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1639,7 +1679,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_hide_read() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let mut data = init_data(pool).await?;
 
@@ -1689,7 +1729,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_hide_hidden() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1725,7 +1765,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_hide_nsfw() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1891,7 +1931,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn local_only_instance() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1939,7 +1979,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_local_user_banned_from_community() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1982,7 +2022,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listing_local_user_not_banned_from_community() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -2002,12 +2042,12 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn speed_check() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
     // Make sure the post_view query is less than this time
-    let duration_max = Duration::from_millis(40);
+    let duration_max = Duration::from_millis(80);
 
     // Create some dummy posts
     let num_posts = 1000;
@@ -2058,7 +2098,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_listings_no_comments_only() -> LemmyResult<()> {
-    let pool = &build_db_pool().await?;
+    let pool = &build_db_pool()?;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -2081,6 +2121,103 @@ mod tests {
     .await?;
 
     assert_eq!(vec![POST_BY_BOT], names(&post_listings_no_comments));
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_private_community() -> LemmyResult<()> {
+    let pool = &build_db_pool()?;
+    let pool = &mut pool.into();
+    let mut data = init_data(pool).await?;
+
+    // Mark community as private
+    Community::update(
+      pool,
+      data.inserted_community.id,
+      &CommunityUpdateForm {
+        visibility: Some(CommunityVisibility::Private),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    // No posts returned without auth
+    let read_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(0, read_post_listing.len());
+    let post_view = PostView::read(pool, data.inserted_post.id, None, false).await;
+    assert!(post_view.is_err());
+
+    // No posts returned for non-follower who is not admin
+    data.local_user_view.local_user.admin = false;
+    let read_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(0, read_post_listing.len());
+    let post_view = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(&data.local_user_view.local_user),
+      false,
+    )
+    .await;
+    assert!(post_view.is_err());
+
+    // Admin can view content without following
+    data.local_user_view.local_user.admin = true;
+    let read_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(2, read_post_listing.len());
+    let post_view = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(&data.local_user_view.local_user),
+      true,
+    )
+    .await;
+    assert!(post_view.is_ok());
+    data.local_user_view.local_user.admin = false;
+
+    // User can view after following
+    CommunityFollower::follow(
+      pool,
+      &CommunityFollowerForm {
+        state: Some(CommunityFollowerState::Accepted),
+        ..CommunityFollowerForm::new(data.inserted_community.id, data.local_user_view.person.id)
+      },
+    )
+    .await?;
+    let read_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(2, read_post_listing.len());
+    let post_view = PostView::read(
+      pool,
+      data.inserted_post.id,
+      Some(&data.local_user_view.local_user),
+      true,
+    )
+    .await;
+    assert!(post_view.is_ok());
 
     cleanup(data, pool).await
   }

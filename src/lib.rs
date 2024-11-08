@@ -116,7 +116,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   }
 
   // Set up the connection pool
-  let pool = build_db_pool().await?;
+  let pool = build_db_pool()?;
 
   // Run the Code-required migrations
   run_advanced_migrations(&mut (&pool).into(), &SETTINGS).await?;

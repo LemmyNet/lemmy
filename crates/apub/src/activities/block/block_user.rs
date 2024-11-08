@@ -1,3 +1,4 @@
+use super::to_and_audience;
 use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
@@ -7,6 +8,7 @@ use crate::{
     verify_is_public,
     verify_mod_action,
     verify_person_in_community,
+    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -15,7 +17,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  kinds::{activity::BlockType, public},
+  kinds::activity::BlockType,
   protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
 };
@@ -52,14 +54,10 @@ impl BlockUser {
     expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<BlockUser> {
-    let audience = if let SiteOrCommunity::Community(c) = target {
-      Some(c.id().into())
-    } else {
-      None
-    };
+    let (to, audience) = to_and_audience(target)?;
     Ok(BlockUser {
       actor: mod_.id().into(),
-      to: vec![public()],
+      to,
       object: user.id().into(),
       cc: generate_cc(target, &mut context.pool()).await?,
       target: target.id(),
@@ -125,9 +123,9 @@ impl ActivityHandler for BlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    verify_is_public(&self.to, &self.cc)?;
     match self.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
+        verify_is_public(&self.to, &self.cc)?;
         let domain = self
           .object
           .inner()
@@ -143,6 +141,7 @@ impl ActivityHandler for BlockUser {
         verify_domains_match(&site.id(), self.object.inner())?;
       }
       SiteOrCommunity::Community(community) => {
+        verify_visibility(&self.to, &self.cc, &community)?;
         verify_person_in_community(&self.actor, &community, context).await?;
         verify_mod_action(&self.actor, &community, context).await?;
       }
@@ -194,11 +193,7 @@ impl ActivityHandler for BlockUser {
         CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form).await?;
 
         // Also unsubscribe them from the community, if they are subscribed
-        let community_follower_form = CommunityFollowerForm {
-          community_id: community.id,
-          person_id: blocked_person.id,
-          pending: false,
-        };
+        let community_follower_form = CommunityFollowerForm::new(community.id, blocked_person.id);
         CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
           .await
           .ok();
