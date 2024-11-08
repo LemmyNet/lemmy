@@ -51,7 +51,9 @@ pub struct CommentReportView {
   pub creator_blocked: bool,
   pub subscribed: SubscribedType,
   pub saved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub resolver: Option<Person>,
 }
 
@@ -74,6 +76,7 @@ pub struct CommentView {
   pub subscribed: SubscribedType,
   pub saved: bool,
   pub creator_blocked: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
 }
 
@@ -109,9 +112,11 @@ pub struct PostReportView {
   pub read: bool,
   pub hidden: bool,
   pub creator_blocked: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
   pub counts: PostAggregates,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub resolver: Option<Person>,
 }
 
@@ -134,6 +139,7 @@ pub struct PostView {
   pub post: Post,
   pub creator: Person,
   pub community: Community,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub image_details: Option<ImageDetails>,
   pub creator_banned_from_community: bool,
   pub banned_from_community: bool,
@@ -145,6 +151,7 @@ pub struct PostView {
   pub read: bool,
   pub hidden: bool,
   pub creator_blocked: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
   pub community_post_tags: PostCommunityPostTags,
@@ -172,6 +179,7 @@ pub struct PrivateMessageReportView {
   pub private_message: PrivateMessage,
   pub private_message_creator: Person,
   pub creator: Person,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub resolver: Option<Person>,
 }
 
@@ -185,6 +193,7 @@ pub struct RegistrationApplicationView {
   pub registration_application: RegistrationApplication,
   pub creator_local_user: LocalUser,
   pub creator: Person,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub admin: Option<Person>,
 }
 

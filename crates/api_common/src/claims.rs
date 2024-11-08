@@ -92,7 +92,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_should_not_validate_user_token_after_password_change() -> LemmyResult<()> {
-    let pool_ = build_db_pool_for_tests().await;
+    let pool_ = build_db_pool_for_tests();
     let pool = &mut (&pool_).into();
     let secret = Secret::init(pool).await?;
     let context = LemmyContext::create(

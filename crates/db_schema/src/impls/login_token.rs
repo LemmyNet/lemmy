@@ -7,7 +7,7 @@ use crate::{
 };
 use diesel::{delete, dsl::exists, insert_into, result::Error, select};
 use diesel_async::RunQueryDsl;
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl LoginToken {
   pub async fn create(pool: &mut DbPool<'_>, form: LoginTokenCreateForm) -> Result<Self, Error> {

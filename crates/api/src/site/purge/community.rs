@@ -75,8 +75,7 @@ pub async fn purge_community(
       removed: true,
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(SuccessResponse::default()))
 }
