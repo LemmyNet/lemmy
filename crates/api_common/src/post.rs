@@ -2,7 +2,7 @@ use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, CommunityPostTagId, DbUrl, LanguageId, PostId, PostReportId},
   ListingType,
   PostFeatureType,
-  SortType,
+  PostSortType,
 };
 use lemmy_db_views::structs::{PaginationCursor, PostReportView, PostView, VoteView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
@@ -31,6 +31,8 @@ pub struct CreatePost {
   /// Instead of fetching a thumbnail, use a custom one.
   pub custom_thumbnail: Option<String>,
   pub community_post_tags: Option<Vec<CommunityPostTagId>>,
+  /// Time when this post should be scheduled. Null means publish immediately.
+  pub scheduled_publish_time: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -70,7 +72,7 @@ pub struct GetPostResponse {
 /// Get a list of posts.
 pub struct GetPosts {
   pub type_: Option<ListingType>,
-  pub sort: Option<SortType>,
+  pub sort: Option<PostSortType>,
   /// DEPRECATED, use page_cursor
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -126,6 +128,8 @@ pub struct EditPost {
   /// Instead of fetching a thumbnail, use a custom one.
   pub custom_thumbnail: Option<String>,
   pub community_post_tags: Option<Vec<CommunityPostTagId>>,
+  /// Time when this post should be scheduled. Null means publish immediately.
+  pub scheduled_publish_time: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

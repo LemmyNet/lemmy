@@ -92,7 +92,7 @@ test("Create a comment", async () => {
 
 test("Create a comment in a non-existent post", async () => {
   await expect(createComment(alpha, -1)).rejects.toStrictEqual(
-    Error("couldnt_find_post"),
+    Error("not_found"),
   );
 });
 
@@ -143,7 +143,7 @@ test("Delete a comment", async () => {
     await waitUntil(
       () =>
         resolveComment(gamma, commentRes.comment_view.comment).catch(e => e),
-      r => r.message !== "couldnt_find_object",
+      r => r.message !== "not_found",
     )
   ).comment;
   if (!gammaComment) {
@@ -158,16 +158,16 @@ test("Delete a comment", async () => {
   expect(deleteCommentRes.comment_view.comment.deleted).toBe(true);
   expect(deleteCommentRes.comment_view.comment.content).toBe("");
 
-  // Make sure that comment is undefined on beta
+  // Make sure that comment is deleted on beta
   await waitUntil(
-    () => resolveComment(beta, commentRes.comment_view.comment).catch(e => e),
-    e => e.message == "couldnt_find_object",
+    () => resolveComment(beta, commentRes.comment_view.comment),
+    c => c.comment?.comment.deleted === true,
   );
 
-  // Make sure that comment is undefined on gamma after delete
+  // Make sure that comment is deleted on gamma after delete
   await waitUntil(
-    () => resolveComment(gamma, commentRes.comment_view.comment).catch(e => e),
-    e => e.message === "couldnt_find_object",
+    () => resolveComment(gamma, commentRes.comment_view.comment),
+    c => c.comment?.comment.deleted === true,
   );
 
   // Test undeleting the comment
@@ -181,11 +181,10 @@ test("Delete a comment", async () => {
   // Make sure that comment is undeleted on beta
   let betaComment2 = (
     await waitUntil(
-      () => resolveComment(beta, commentRes.comment_view.comment).catch(e => e),
-      e => e.message !== "couldnt_find_object",
+      () => resolveComment(beta, commentRes.comment_view.comment),
+      c => c.comment?.comment.deleted === false,
     )
   ).comment;
-  expect(betaComment2?.comment.deleted).toBe(false);
   assertCommentFederation(betaComment2, undeleteCommentRes.comment_view);
 });
 
@@ -857,4 +856,27 @@ test("Dont send a comment reply to a blocked community", async () => {
   // Unblock the community
   blockRes = await blockCommunity(beta, newCommunityId, false);
   expect(blockRes.blocked).toBe(false);
+});
+
+/// Fetching a deeply nested comment can lead to stack overflow as all parent comments are also
+/// fetched recursively. Ensure that it works properly.
+test("Fetch a deeply nested comment", async () => {
+  let lastComment;
+  for (let i = 0; i < 50; i++) {
+    let commentRes = await createComment(
+      alpha,
+      postOnAlphaRes.post_view.post.id,
+      lastComment?.comment_view.comment.id,
+    );
+    expect(commentRes.comment_view.comment).toBeDefined();
+    lastComment = commentRes;
+  }
+
+  let betaComment = await resolveComment(
+    beta,
+    lastComment!.comment_view.comment,
+  );
+
+  expect(betaComment!.comment!.comment).toBeDefined();
+  expect(betaComment?.comment?.post).toBeDefined();
 });

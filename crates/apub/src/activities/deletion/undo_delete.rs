@@ -25,7 +25,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use url::Url;
 
 #[async_trait::async_trait]
@@ -100,7 +100,7 @@ impl UndoDelete {
     match DeletableObjects::read_from_db(object, context).await? {
       DeletableObjects::Community(community) => {
         if community.local {
-          Err(LemmyErrorType::OnlyLocalAdminCanRestoreCommunity)?
+          Err(FederationError::OnlyLocalAdminCanRestoreCommunity)?
         }
         let form = ModRemoveCommunityForm {
           mod_person_id: actor.id,
@@ -156,8 +156,8 @@ impl UndoDelete {
         .await?;
       }
       // TODO these need to be implemented yet, for now, return errors
-      DeletableObjects::PrivateMessage(_) => Err(LemmyErrorType::CouldntFindPrivateMessage)?,
-      DeletableObjects::Person(_) => Err(LemmyErrorType::CouldntFindPerson)?,
+      DeletableObjects::PrivateMessage(_) => Err(LemmyErrorType::NotFound)?,
+      DeletableObjects::Person(_) => Err(LemmyErrorType::NotFound)?,
     }
     Ok(())
   }

@@ -1,10 +1,11 @@
 use crate::{
   activities::GetActorType,
   check_apub_id_valid,
+  fetcher::markdown_links::markdown_rewrite_remote_links_opt,
   local_site_data_cached,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
-    objects::{group::Group, Endpoints, LanguageTag},
+    objects::{group::Group, LanguageTag},
     ImageObject,
     Source,
   },
@@ -12,6 +13,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::actor::GroupType,
+  protocol::values::MediaTypeHtml,
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
@@ -106,8 +108,10 @@ impl Object for ApubCommunity {
       id: self.id().into(),
       preferred_username: self.name.clone(),
       name: Some(self.title.clone()),
-      summary: self.description.as_ref().map(|b| markdown_to_html(b)),
-      source: self.description.clone().map(Source::new),
+      content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
+      source: self.sidebar.clone().map(Source::new),
+      summary: self.description.clone(),
+      media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       sensitive: Some(self.nsfw),
@@ -115,9 +119,7 @@ impl Object for ApubCommunity {
       inbox: self.inbox_url.clone().into(),
       outbox: generate_outbox_url(&self.actor_id)?.into(),
       followers: self.followers_url.clone().map(Into::into),
-      endpoints: self.shared_inbox_url.clone().map(|s| Endpoints {
-        shared_inbox: s.into(),
-      }),
+      endpoints: None,
       public_key: self.public_key(),
       language,
       published: Some(self.published),
@@ -145,34 +147,41 @@ impl Object for ApubCommunity {
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let url_blocklist = get_url_blocklist(context).await?;
-    let description = read_from_string_or_source_opt(&group.summary, &None, &group.source);
-    let description =
-      process_markdown_opt(&description, slur_regex, &url_blocklist, context).await?;
+    let sidebar = read_from_string_or_source_opt(&group.content, &None, &group.source);
+    let sidebar = process_markdown_opt(&sidebar, slur_regex, &url_blocklist, context).await?;
+    let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.map(|i| i.url), context).await?;
 
     let form = CommunityInsertForm {
-      name: group.preferred_username.clone(),
-      title: group.name.unwrap_or(group.preferred_username.clone()),
-      description,
       published: group.published,
       updated: group.updated,
       deleted: Some(false),
       nsfw: Some(group.sensitive.unwrap_or(false)),
       actor_id: Some(group.id.into()),
       local: Some(false),
-      public_key: group.public_key.public_key_pem,
       last_refreshed_at: Some(naive_now()),
       icon,
       banner,
+      sidebar,
+      description: group.summary,
       followers_url: group.followers.clone().map(Into::into),
-      inbox_url: Some(group.inbox.into()),
-      shared_inbox_url: group.endpoints.map(|e| e.shared_inbox.into()),
+      inbox_url: Some(
+        group
+          .endpoints
+          .map(|e| e.shared_inbox)
+          .unwrap_or(group.inbox)
+          .into(),
+      ),
       moderators_url: group.attributed_to.clone().map(Into::into),
       posting_restricted_to_mods: group.posting_restricted_to_mods,
-      instance_id,
       featured_url: group.featured.clone().map(Into::into),
-      ..Default::default()
+      ..CommunityInsertForm::new(
+        instance_id,
+        group.preferred_username.clone(),
+        group.name.unwrap_or(group.preferred_username.clone()),
+        group.public_key.public_key_pem,
+      )
     };
     let languages =
       LanguageTag::to_language_id_multiple(group.language, &mut context.pool()).await?;
@@ -222,7 +231,7 @@ impl Actor for ApubCommunity {
   }
 
   fn shared_inbox(&self) -> Option<Url> {
-    self.shared_inbox_url.clone().map(Into::into)
+    None
   }
 }
 
@@ -293,9 +302,15 @@ pub(crate) mod tests {
 
     assert_eq!(community.title, "Ten Forward");
     assert!(!community.local);
+
+    // Test the sidebar and description
     assert_eq!(
-      community.description.as_ref().map(std::string::String::len),
-      Some(132)
+      community.sidebar.as_ref().map(std::string::String::len),
+      Some(63)
+    );
+    assert_eq!(
+      community.description,
+      Some("A description of ten forward.".into())
     );
 
     Community::delete(&mut context.pool(), community.id).await?;

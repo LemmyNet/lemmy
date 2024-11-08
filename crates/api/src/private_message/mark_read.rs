@@ -18,9 +18,7 @@ pub async fn mark_pm_as_read(
 ) -> LemmyResult<Json<PrivateMessageResponse>> {
   // Checking permissions
   let private_message_id = data.private_message_id;
-  let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPrivateMessage)?;
+  let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
   if local_user_view.person.id != orig_private_message.recipient_id {
     Err(LemmyErrorType::CouldntUpdatePrivateMessage)?
   }
@@ -39,9 +37,7 @@ pub async fn mark_pm_as_read(
   .await
   .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
 
-  let view = PrivateMessageView::read(&mut context.pool(), private_message_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPrivateMessage)?;
+  let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
   Ok(Json(PrivateMessageResponse {
     private_message_view: view,
   }))

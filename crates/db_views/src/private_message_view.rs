@@ -113,7 +113,7 @@ impl PrivateMessageView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     private_message_id: PrivateMessageId,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries().read(pool, private_message_id).await
   }
 
@@ -173,8 +173,7 @@ impl PrivateMessageQuery {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{private_message_view::PrivateMessageQuery, structs::PrivateMessageView};
@@ -205,57 +204,35 @@ mod tests {
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let message_content = String::new();
 
-    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_rav");
 
-    let timmy = Person::create(pool, &timmy_form).await.unwrap();
+    let timmy = Person::create(pool, &timmy_form).await?;
 
     let sara_form = PersonInsertForm::test_form(instance.id, "sara_rav");
 
-    let sara = Person::create(pool, &sara_form).await.unwrap();
+    let sara = Person::create(pool, &sara_form).await?;
 
     let jess_form = PersonInsertForm::test_form(instance.id, "jess_rav");
 
-    let jess = Person::create(pool, &jess_form).await.unwrap();
+    let jess = Person::create(pool, &jess_form).await?;
 
-    let sara_timmy_message_form = PrivateMessageInsertForm::builder()
-      .creator_id(sara.id)
-      .recipient_id(timmy.id)
-      .content(message_content.clone())
-      .build();
-    PrivateMessage::create(pool, &sara_timmy_message_form)
-      .await
-      .unwrap();
+    let sara_timmy_message_form =
+      PrivateMessageInsertForm::new(sara.id, timmy.id, message_content.clone());
+    PrivateMessage::create(pool, &sara_timmy_message_form).await?;
 
-    let sara_jess_message_form = PrivateMessageInsertForm::builder()
-      .creator_id(sara.id)
-      .recipient_id(jess.id)
-      .content(message_content.clone())
-      .build();
-    PrivateMessage::create(pool, &sara_jess_message_form)
-      .await
-      .unwrap();
+    let sara_jess_message_form =
+      PrivateMessageInsertForm::new(sara.id, jess.id, message_content.clone());
+    PrivateMessage::create(pool, &sara_jess_message_form).await?;
 
-    let timmy_sara_message_form = PrivateMessageInsertForm::builder()
-      .creator_id(timmy.id)
-      .recipient_id(sara.id)
-      .content(message_content.clone())
-      .build();
-    PrivateMessage::create(pool, &timmy_sara_message_form)
-      .await
-      .unwrap();
+    let timmy_sara_message_form =
+      PrivateMessageInsertForm::new(timmy.id, sara.id, message_content.clone());
+    PrivateMessage::create(pool, &timmy_sara_message_form).await?;
 
-    let jess_timmy_message_form = PrivateMessageInsertForm::builder()
-      .creator_id(jess.id)
-      .recipient_id(timmy.id)
-      .content(message_content.clone())
-      .build();
-    PrivateMessage::create(pool, &jess_timmy_message_form)
-      .await
-      .unwrap();
+    let jess_timmy_message_form =
+      PrivateMessageInsertForm::new(jess.id, timmy.id, message_content.clone());
+    PrivateMessage::create(pool, &jess_timmy_message_form).await?;
 
     Ok(Data {
       instance,
@@ -267,7 +244,7 @@ mod tests {
 
   async fn cleanup(instance_id: InstanceId, pool: &mut DbPool<'_>) -> LemmyResult<()> {
     // This also deletes all persons and private messages thanks to sql `on delete cascade`
-    Instance::delete(pool, instance_id).await.unwrap();
+    Instance::delete(pool, instance_id).await?;
     Ok(())
   }
 
@@ -289,8 +266,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool, timmy.id)
-    .await
-    .unwrap();
+    .await?;
 
     assert_length!(3, &timmy_messages);
     assert_eq!(timmy_messages[0].creator.id, jess.id);
@@ -306,8 +282,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool, timmy.id)
-    .await
-    .unwrap();
+    .await?;
 
     assert_length!(2, &timmy_unread_messages);
     assert_eq!(timmy_unread_messages[0].creator.id, jess.id);
@@ -321,8 +296,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool, timmy.id)
-    .await
-    .unwrap();
+    .await?;
 
     assert_length!(2, &timmy_sara_messages);
     assert_eq!(timmy_sara_messages[0].creator.id, timmy.id);
@@ -336,8 +310,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool, timmy.id)
-    .await
-    .unwrap();
+    .await?;
 
     assert_length!(1, &timmy_sara_unread_messages);
     assert_eq!(timmy_sara_unread_messages[0].creator.id, sara.id);
@@ -364,9 +337,7 @@ mod tests {
       target_id: sara.id,
     };
 
-    let inserted_block = PersonBlock::block(pool, &timmy_blocks_sara_form)
-      .await
-      .unwrap();
+    let inserted_block = PersonBlock::block(pool, &timmy_blocks_sara_form).await?;
 
     let expected_block = PersonBlock {
       person_id: timmy.id,
@@ -381,14 +352,11 @@ mod tests {
       ..Default::default()
     }
     .list(pool, timmy.id)
-    .await
-    .unwrap();
+    .await?;
 
     assert_length!(1, &timmy_messages);
 
-    let timmy_unread_messages = PrivateMessageView::get_unread_messages(pool, timmy.id)
-      .await
-      .unwrap();
+    let timmy_unread_messages = PrivateMessageView::get_unread_messages(pool, timmy.id).await?;
     assert_eq!(timmy_unread_messages, 1);
 
     cleanup(instance.id, pool).await
@@ -411,9 +379,7 @@ mod tests {
       instance_id: sara.instance_id,
     };
 
-    let inserted_instance_block = InstanceBlock::block(pool, &timmy_blocks_instance_form)
-      .await
-      .unwrap();
+    let inserted_instance_block = InstanceBlock::block(pool, &timmy_blocks_instance_form).await?;
 
     let expected_instance_block = InstanceBlock {
       person_id: timmy.id,
@@ -428,14 +394,11 @@ mod tests {
       ..Default::default()
     }
     .list(pool, timmy.id)
-    .await
-    .unwrap();
+    .await?;
 
     assert_length!(0, &timmy_messages);
 
-    let timmy_unread_messages = PrivateMessageView::get_unread_messages(pool, timmy.id)
-      .await
-      .unwrap();
+    let timmy_unread_messages = PrivateMessageView::get_unread_messages(pool, timmy.id).await?;
     assert_eq!(timmy_unread_messages, 0);
     cleanup(instance.id, pool).await
   }

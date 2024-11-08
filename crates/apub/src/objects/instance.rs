@@ -2,6 +2,7 @@ use super::verify_is_remote_object;
 use crate::{
   activities::GetActorType,
   check_apub_id_valid_with_strictness,
+  fetcher::markdown_links::markdown_rewrite_remote_links_opt,
   local_site_data_cached,
   objects::read_from_string_or_source_opt,
   protocol::{
@@ -41,12 +42,11 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
+  error::{FederationError, LemmyError, LemmyResult},
   utils::{
     markdown::markdown_to_html,
     slurs::{check_slurs, check_slurs_opt},
   },
-  LemmyErrorType,
 };
 use std::ops::Deref;
 use tracing::debug;
@@ -88,7 +88,7 @@ impl Object for ApubSite {
   }
 
   async fn delete(self, _data: &Data<Self::DataType>) -> LemmyResult<()> {
-    Err(LemmyErrorType::CantDeleteSite.into())
+    Err(FederationError::CantDeleteSite.into())
   }
 
   #[tracing::instrument(skip_all)]
@@ -143,7 +143,7 @@ impl Object for ApubSite {
       .id
       .inner()
       .domain()
-      .ok_or(LemmyErrorType::UrlWithoutDomain)?;
+      .ok_or(FederationError::UrlWithoutDomain)?;
     let instance = DbInstance::read_or_create(&mut context.pool(), domain.to_string()).await?;
 
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
@@ -151,6 +151,7 @@ impl Object for ApubSite {
     let url_blocklist = get_url_blocklist(context).await?;
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
     let sidebar = process_markdown_opt(&sidebar, slur_regex, &url_blocklist, context).await?;
+    let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(apub.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), context).await?;
 
@@ -218,7 +219,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
       debug!("Failed to dereference site for {}: {}", &instance_id, e);
       let domain = instance_id
         .domain()
-        .ok_or(LemmyErrorType::UrlWithoutDomain)?;
+        .ok_or(FederationError::UrlWithoutDomain)?;
       Ok(
         DbInstance::read_or_create(&mut context.pool(), domain.to_string())
           .await?

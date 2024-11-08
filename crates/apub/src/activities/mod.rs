@@ -42,7 +42,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::Serialize;
 use tracing::info;
 use url::{ParseError, Url};
@@ -81,18 +81,13 @@ pub(crate) async fn verify_person_in_community(
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    Err(LemmyErrorType::PersonIsBannedFromSite(
+    Err(FederationError::PersonIsBannedFromSite(
       person.actor_id.to_string(),
     ))?
   }
   let person_id = person.id;
   let community_id = community.id;
-  let is_banned = CommunityPersonBanView::get(&mut context.pool(), person_id, community_id).await?;
-  if is_banned {
-    Err(LemmyErrorType::PersonIsBannedFromCommunity)?
-  } else {
-    Ok(())
-  }
+  CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await
 }
 
 /// Verify that mod action in community was performed by a moderator.
@@ -106,14 +101,6 @@ pub(crate) async fn verify_mod_action(
   community: &Community,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let mod_ = mod_id.dereference(context).await?;
-
-  let is_mod_or_admin =
-    CommunityView::is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await?;
-  if is_mod_or_admin {
-    return Ok(());
-  }
-
   // mod action comes from the same instance as the community, so it was presumably done
   // by an instance admin.
   // TODO: federate instance admin status and check it here
@@ -121,12 +108,13 @@ pub(crate) async fn verify_mod_action(
     return Ok(());
   }
 
-  Err(LemmyErrorType::NotAModerator)?
+  let mod_ = mod_id.dereference(context).await?;
+  CommunityView::check_is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await
 }
 
 pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
-    Err(LemmyErrorType::ObjectIsNotPublic)?
+    Err(FederationError::ObjectIsNotPublic)?
   } else {
     Ok(())
   }
@@ -138,7 +126,7 @@ where
 {
   let b: ObjectId<ApubCommunity> = b.into();
   if a != &b {
-    Err(LemmyErrorType::InvalidCommunity)?
+    Err(FederationError::InvalidCommunity)?
   } else {
     Ok(())
   }
@@ -146,7 +134,7 @@ where
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
-    Err(LemmyErrorType::CannotCreatePostOrCommentInDeletedOrRemovedCommunity)?
+    Err(FederationError::CannotCreatePostOrCommentInDeletedOrRemovedCommunity)?
   } else {
     Ok(())
   }
@@ -245,9 +233,7 @@ pub async fn match_outgoing_activities(
         CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Update, context).await
       }
       DeletePost(post, person, data) => {
-        let community = Community::read(&mut context.pool(), post.community_id)
-          .await?
-          .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+        let community = Community::read(&mut context.pool(), post.community_id).await?;
         send_apub_delete_in_community(
           person,
           community,
@@ -264,9 +250,7 @@ pub async fn match_outgoing_activities(
         reason,
         removed,
       } => {
-        let community = Community::read(&mut context.pool(), post.community_id)
-          .await?
-          .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+        let community = Community::read(&mut context.pool(), post.community_id).await?;
         send_apub_delete_in_community(
           moderator,
           community,
@@ -352,7 +336,7 @@ pub async fn match_outgoing_activities(
         moderator,
         banned_user,
         reason,
-        remove_data,
+        remove_or_restore_data,
         ban,
         expires,
       } => {
@@ -360,7 +344,7 @@ pub async fn match_outgoing_activities(
           moderator,
           banned_user,
           reason,
-          remove_data,
+          remove_or_restore_data,
           ban,
           expires,
           context,

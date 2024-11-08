@@ -1,6 +1,7 @@
 use super::verify_is_remote_object;
 use crate::{
   check_apub_id_valid_with_strictness,
+  fetcher::markdown_links::markdown_rewrite_remote_links,
   objects::read_from_string_or_source,
   protocol::{
     objects::chat_message::{ChatMessage, ChatMessageType},
@@ -15,19 +16,20 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{check_person_block, get_url_blocklist, local_site_opt_to_slur_regex, process_markdown},
+  utils::{get_url_blocklist, local_site_opt_to_slur_regex, process_markdown},
 };
 use lemmy_db_schema::{
   source::{
     local_site::LocalSite,
     person::Person,
+    person_block::PersonBlock,
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
   traits::Crud,
   utils::naive_now,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{FederationError, LemmyError, LemmyErrorType, LemmyResult},
   utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
@@ -73,20 +75,16 @@ impl Object for ApubPrivateMessage {
 
   async fn delete(self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     // do nothing, because pm can't be fetched over http
-    Err(LemmyErrorType::CouldntFindPrivateMessage.into())
+    Err(LemmyErrorType::NotFound.into())
   }
 
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<ChatMessage> {
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut context.pool(), creator_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    let creator = Person::read(&mut context.pool(), creator_id).await?;
 
     let recipient_id = self.recipient_id;
-    let recipient = Person::read(&mut context.pool(), recipient_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    let recipient = Person::read(&mut context.pool(), recipient_id).await?;
 
     let note = ChatMessage {
       r#type: ChatMessageType::ChatMessage,
@@ -115,7 +113,7 @@ impl Object for ApubPrivateMessage {
     check_apub_id_valid_with_strictness(note.id.inner(), false, context).await?;
     let person = note.attributed_to.dereference(context).await?;
     if person.banned {
-      Err(LemmyErrorType::PersonIsBannedFromSite(
+      Err(FederationError::PersonIsBannedFromSite(
         person.actor_id.to_string(),
       ))?
     } else {
@@ -130,13 +128,14 @@ impl Object for ApubPrivateMessage {
   ) -> LemmyResult<ApubPrivateMessage> {
     let creator = note.attributed_to.dereference(context).await?;
     let recipient = note.to[0].dereference(context).await?;
-    check_person_block(creator.id, recipient.id, &mut context.pool()).await?;
+    PersonBlock::read(&mut context.pool(), recipient.id, creator.id).await?;
 
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let url_blocklist = get_url_blocklist(context).await?;
     let content = read_from_string_or_source(&note.content, &None, &note.source);
     let content = process_markdown(&content, slur_regex, &url_blocklist, context).await?;
+    let content = markdown_rewrite_remote_links(content, context).await;
 
     let form = PrivateMessageInsertForm {
       creator_id: creator.id,

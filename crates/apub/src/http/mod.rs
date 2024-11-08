@@ -11,14 +11,13 @@ use activitypub_federation::{
   FEDERATION_CONTENT_TYPE,
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
-use http::{header::LOCATION, StatusCode};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{activity::SentActivity, community::Community},
   CommunityVisibility,
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::{ops::Deref, time::Duration};
 use tokio::time::timeout;
@@ -46,7 +45,7 @@ pub async fn shared_inbox(
   // consider the activity broken and move on.
   timeout(INCOMING_ACTIVITY_TIMEOUT, receive_fut)
     .await
-    .map_err(|_| LemmyErrorType::InboxTimeout)?
+    .map_err(|_| FederationError::InboxTimeout)?
 }
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
@@ -76,14 +75,14 @@ fn create_apub_tombstone_response<T: Into<Url>>(id: T) -> LemmyResult<HttpRespon
   Ok(
     HttpResponse::Gone()
       .content_type(FEDERATION_CONTENT_TYPE)
-      .status(StatusCode::GONE)
+      .status(actix_web::http::StatusCode::GONE)
       .body(json),
   )
 }
 
 fn redirect_remote_object(url: &DbUrl) -> HttpResponse {
   let mut res = HttpResponse::PermanentRedirect();
-  res.insert_header((LOCATION, url.as_str()));
+  res.insert_header((actix_web::http::header::LOCATION, url.as_str()));
   res.finish()
 }
 
@@ -108,8 +107,8 @@ pub(crate) async fn get_activity(
   ))?
   .into();
   let activity = SentActivity::read_from_apub_id(&mut context.pool(), &activity_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindActivity)?;
+    .await
+    .map_err(|_| FederationError::CouldntFindActivity)?;
 
   let sensitive = activity.sensitive;
   if sensitive {
@@ -125,7 +124,7 @@ fn check_community_public(community: &Community) -> LemmyResult<()> {
     Err(LemmyErrorType::Deleted)?
   }
   if community.visibility != CommunityVisibility::Public {
-    return Err(LemmyErrorType::CouldntFindCommunity.into());
+    return Err(LemmyErrorType::NotFound.into());
   }
   Ok(())
 }

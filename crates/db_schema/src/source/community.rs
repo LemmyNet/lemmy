@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -25,8 +24,8 @@ pub struct Community {
   pub name: String,
   /// A longer title, that can contain other characters, and doesn't have to be unique.
   pub title: String,
-  /// A sidebar / markdown description.
-  pub description: Option<String>,
+  /// A sidebar for the community in markdown.
+  pub sidebar: Option<String>,
   /// Whether the community is removed by a mod.
   pub removed: bool,
   pub published: DateTime<Utc>,
@@ -55,8 +54,6 @@ pub struct Community {
   #[cfg_attr(feature = "full", ts(skip))]
   #[serde(skip, default = "placeholder_apub_url")]
   pub inbox_url: DbUrl,
-  #[serde(skip)]
-  pub shared_inbox_url: Option<DbUrl>,
   /// Whether the community is hidden.
   pub hidden: bool,
   /// Whether posting is restricted to mods only.
@@ -69,40 +66,58 @@ pub struct Community {
   #[serde(skip)]
   pub featured_url: Option<DbUrl>,
   pub visibility: CommunityVisibility,
+  /// A shorter, one-line description of the site.
+  pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, TypedBuilder, Default)]
-#[builder(field_defaults(default))]
+#[derive(Debug, Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 pub struct CommunityInsertForm {
-  #[builder(!default)]
-  pub name: String,
-  #[builder(!default)]
-  pub title: String,
-  pub description: Option<String>,
-  pub removed: Option<bool>,
-  pub published: Option<DateTime<Utc>>,
-  pub updated: Option<DateTime<Utc>>,
-  pub deleted: Option<bool>,
-  pub nsfw: Option<bool>,
-  pub actor_id: Option<DbUrl>,
-  pub local: Option<bool>,
-  pub private_key: Option<String>,
-  pub public_key: String,
-  pub last_refreshed_at: Option<DateTime<Utc>>,
-  pub icon: Option<DbUrl>,
-  pub banner: Option<DbUrl>,
-  pub followers_url: Option<DbUrl>,
-  pub inbox_url: Option<DbUrl>,
-  pub shared_inbox_url: Option<DbUrl>,
-  pub moderators_url: Option<DbUrl>,
-  pub featured_url: Option<DbUrl>,
-  pub hidden: Option<bool>,
-  pub posting_restricted_to_mods: Option<bool>,
-  #[builder(!default)]
   pub instance_id: InstanceId,
+  pub name: String,
+  pub title: String,
+  pub public_key: String,
+  #[new(default)]
+  pub sidebar: Option<String>,
+  #[new(default)]
+  pub removed: Option<bool>,
+  #[new(default)]
+  pub published: Option<DateTime<Utc>>,
+  #[new(default)]
+  pub updated: Option<DateTime<Utc>>,
+  #[new(default)]
+  pub deleted: Option<bool>,
+  #[new(default)]
+  pub nsfw: Option<bool>,
+  #[new(default)]
+  pub actor_id: Option<DbUrl>,
+  #[new(default)]
+  pub local: Option<bool>,
+  #[new(default)]
+  pub private_key: Option<String>,
+  #[new(default)]
+  pub last_refreshed_at: Option<DateTime<Utc>>,
+  #[new(default)]
+  pub icon: Option<DbUrl>,
+  #[new(default)]
+  pub banner: Option<DbUrl>,
+  #[new(default)]
+  pub followers_url: Option<DbUrl>,
+  #[new(default)]
+  pub inbox_url: Option<DbUrl>,
+  #[new(default)]
+  pub moderators_url: Option<DbUrl>,
+  #[new(default)]
+  pub featured_url: Option<DbUrl>,
+  #[new(default)]
+  pub hidden: Option<bool>,
+  #[new(default)]
+  pub posting_restricted_to_mods: Option<bool>,
+  #[new(default)]
   pub visibility: Option<CommunityVisibility>,
+  #[new(default)]
+  pub description: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -110,7 +125,7 @@ pub struct CommunityInsertForm {
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 pub struct CommunityUpdateForm {
   pub title: Option<String>,
-  pub description: Option<Option<String>>,
+  pub sidebar: Option<Option<String>>,
   pub removed: Option<bool>,
   pub published: Option<DateTime<Utc>>,
   pub updated: Option<Option<DateTime<Utc>>>,
@@ -125,12 +140,12 @@ pub struct CommunityUpdateForm {
   pub banner: Option<Option<DbUrl>>,
   pub followers_url: Option<DbUrl>,
   pub inbox_url: Option<DbUrl>,
-  pub shared_inbox_url: Option<Option<DbUrl>>,
   pub moderators_url: Option<DbUrl>,
   pub featured_url: Option<DbUrl>,
   pub hidden: Option<bool>,
   pub posting_restricted_to_mods: Option<bool>,
   pub visibility: Option<CommunityVisibility>,
+  pub description: Option<Option<String>>,
 }
 
 #[derive(PartialEq, Eq, Debug)]

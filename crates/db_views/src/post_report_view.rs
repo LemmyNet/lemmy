@@ -220,7 +220,7 @@ impl PostReportView {
     pool: &mut DbPool<'_>,
     report_id: PostReportId,
     my_person_id: PersonId,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     queries().read(pool, (report_id, my_person_id)).await
   }
 
@@ -284,8 +284,7 @@ impl PostReportQuery {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{
@@ -306,27 +305,24 @@ mod tests {
     traits::{Crud, Joinable, Reportable},
     utils::build_db_pool_for_tests,
   };
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_crud() {
+  async fn test_crud() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "timmy_prv");
 
-    let inserted_timmy = Person::create(pool, &new_person).await.unwrap();
+    let inserted_timmy = Person::create(pool, &new_person).await?;
 
     let new_local_user = LocalUserInsertForm::test_form(inserted_timmy.id);
-    let timmy_local_user = LocalUser::create(pool, &new_local_user, vec![])
-      .await
-      .unwrap();
+    let timmy_local_user = LocalUser::create(pool, &new_local_user, vec![]).await?;
     let timmy_view = LocalUserView {
       local_user: timmy_local_user,
       local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
@@ -336,21 +332,20 @@ mod tests {
 
     let new_person_2 = PersonInsertForm::test_form(inserted_instance.id, "sara_prv");
 
-    let inserted_sara = Person::create(pool, &new_person_2).await.unwrap();
+    let inserted_sara = Person::create(pool, &new_person_2).await?;
 
     // Add a third person, since new ppl can only report something once.
     let new_person_3 = PersonInsertForm::test_form(inserted_instance.id, "jessica_prv");
 
-    let inserted_jessica = Person::create(pool, &new_person_3).await.unwrap();
+    let inserted_jessica = Person::create(pool, &new_person_3).await?;
 
-    let new_community = CommunityInsertForm::builder()
-      .name("test community prv".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
-
-    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community prv".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let inserted_community = Community::create(pool, &new_community).await?;
 
     // Make timmy a mod
     let timmy_moderator_form = CommunityModeratorForm {
@@ -358,17 +353,14 @@ mod tests {
       person_id: inserted_timmy.id,
     };
 
-    let _inserted_moderator = CommunityModerator::join(pool, &timmy_moderator_form)
-      .await
-      .unwrap();
+    let _inserted_moderator = CommunityModerator::join(pool, &timmy_moderator_form).await?;
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post crv".into())
-      .creator_id(inserted_timmy.id)
-      .community_id(inserted_community.id)
-      .build();
-
-    let inserted_post = Post::create(pool, &new_post).await.unwrap();
+    let new_post = PostInsertForm::new(
+      "A test post crv".into(),
+      inserted_timmy.id,
+      inserted_community.id,
+    );
+    let inserted_post = Post::create(pool, &new_post).await?;
 
     // sara reports
     let sara_report_form = PostReportForm {
@@ -380,15 +372,14 @@ mod tests {
       reason: "from sara".into(),
     };
 
-    PostReport::report(pool, &sara_report_form).await.unwrap();
+    PostReport::report(pool, &sara_report_form).await?;
 
-    let new_post_2 = PostInsertForm::builder()
-      .name("A test post crv 2".into())
-      .creator_id(inserted_timmy.id)
-      .community_id(inserted_community.id)
-      .build();
-
-    let inserted_post_2 = Post::create(pool, &new_post_2).await.unwrap();
+    let new_post_2 = PostInsertForm::new(
+      "A test post crv 2".into(),
+      inserted_timmy.id,
+      inserted_community.id,
+    );
+    let inserted_post_2 = Post::create(pool, &new_post_2).await?;
 
     // jessica reports
     let jessica_report_form = PostReportForm {
@@ -400,15 +391,10 @@ mod tests {
       reason: "from jessica".into(),
     };
 
-    let inserted_jessica_report = PostReport::report(pool, &jessica_report_form)
-      .await
-      .unwrap();
+    let inserted_jessica_report = PostReport::report(pool, &jessica_report_form).await?;
 
     let read_jessica_report_view =
-      PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
-        .await
-        .unwrap()
-        .unwrap();
+      PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id).await?;
 
     assert_eq!(
       read_jessica_report_view.post_report,
@@ -422,31 +408,23 @@ mod tests {
     assert_eq!(read_jessica_report_view.resolver, None);
 
     // Do a batch read of timmys reports
-    let reports = PostReportQuery::default()
-      .list(pool, &timmy_view)
-      .await
-      .unwrap();
+    let reports = PostReportQuery::default().list(pool, &timmy_view).await?;
 
     assert_eq!(reports[1].creator.id, inserted_sara.id);
     assert_eq!(reports[0].creator.id, inserted_jessica.id);
 
     // Make sure the counts are correct
-    let report_count = PostReportView::get_report_count(pool, inserted_timmy.id, false, None)
-      .await
-      .unwrap();
+    let report_count =
+      PostReportView::get_report_count(pool, inserted_timmy.id, false, None).await?;
     assert_eq!(2, report_count);
 
     // Pretend the post was removed, and resolve all reports for that object.
     // This is called manually in the API for post removals
     PostReport::resolve_all_for_object(pool, inserted_jessica_report.post_id, inserted_timmy.id)
-      .await
-      .unwrap();
+      .await?;
 
     let read_jessica_report_view_after_resolve =
-      PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
-        .await
-        .unwrap()
-        .unwrap();
+      PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id).await?;
     assert!(read_jessica_report_view_after_resolve.post_report.resolved);
     assert_eq!(
       read_jessica_report_view_after_resolve
@@ -455,8 +433,10 @@ mod tests {
       Some(inserted_timmy.id)
     );
     assert_eq!(
-      read_jessica_report_view_after_resolve.resolver.unwrap().id,
-      inserted_timmy.id
+      read_jessica_report_view_after_resolve
+        .resolver
+        .map(|r| r.id),
+      Some(inserted_timmy.id)
     );
 
     // Do a batch read of timmys reports
@@ -466,24 +446,21 @@ mod tests {
       ..Default::default()
     }
     .list(pool, &timmy_view)
-    .await
-    .unwrap();
+    .await?;
     assert_length!(1, reports_after_resolve);
     assert_eq!(reports_after_resolve[0].creator.id, inserted_sara.id);
 
     // Make sure the counts are correct
     let report_count_after_resolved =
-      PostReportView::get_report_count(pool, inserted_timmy.id, false, None)
-        .await
-        .unwrap();
+      PostReportView::get_report_count(pool, inserted_timmy.id, false, None).await?;
     assert_eq!(1, report_count_after_resolved);
 
-    Person::delete(pool, inserted_timmy.id).await.unwrap();
-    Person::delete(pool, inserted_sara.id).await.unwrap();
-    Person::delete(pool, inserted_jessica.id).await.unwrap();
-    Community::delete(pool, inserted_community.id)
-      .await
-      .unwrap();
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    Person::delete(pool, inserted_timmy.id).await?;
+    Person::delete(pool, inserted_sara.id).await?;
+    Person::delete(pool, inserted_jessica.id).await?;
+    Community::delete(pool, inserted_community.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    Ok(())
   }
 }

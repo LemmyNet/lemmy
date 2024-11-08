@@ -29,6 +29,8 @@ pub const CACHE_DURATION_FEDERATION: Duration = Duration::from_secs(60);
 
 pub const CACHE_DURATION_API: Duration = Duration::from_secs(1);
 
+pub const MAX_COMMENT_DEPTH_LIMIT: usize = 50;
+
 #[macro_export]
 macro_rules! location_info {
   () => {

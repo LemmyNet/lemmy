@@ -1,4 +1,4 @@
-use crate::{newtypes::DbUrl, CommentSortType, SortType};
+use crate::{newtypes::DbUrl, CommentSortType, PostSortType};
 use chrono::{DateTime, TimeDelta, Utc};
 use deadpool::Runtime;
 use diesel::{
@@ -13,7 +13,6 @@ use diesel::{
   },
   sql_types::{self, Timestamptz},
   IntoSql,
-  OptionalExtension,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -30,7 +29,7 @@ use i_love_jesus::CursorKey;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
-  utils::validation::clean_url_params,
+  utils::validation::clean_url,
 };
 use regex::Regex;
 use rustls::{
@@ -288,12 +287,23 @@ pub fn is_email_regex(test: &str) -> bool {
   EMAIL_REGEX.is_match(test)
 }
 
-/// Takes an API text input, and converts it to an optional diesel DB update.
+/// Takes an API optional text input, and converts it to an optional diesel DB update.
 pub fn diesel_string_update(opt: Option<&str>) -> Option<Option<String>> {
   match opt {
     // An empty string is an erase
     Some("") => Some(None),
     Some(str) => Some(Some(str.into())),
+    None => None,
+  }
+}
+
+/// Takes an API optional text input, and converts it to an optional diesel DB update (for non
+/// nullable properties).
+pub fn diesel_required_string_update(opt: Option<&str>) -> Option<String> {
+  match opt {
+    // An empty string is no change
+    Some("") => None,
+    Some(str) => Some(str.into()),
     None => None,
   }
 }
@@ -305,7 +315,20 @@ pub fn diesel_url_update(opt: Option<&str>) -> LemmyResult<Option<Option<DbUrl>>
     // An empty string is an erase
     Some("") => Ok(Some(None)),
     Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(Some(clean_url_params(&u).into())))
+      .map(|u| Some(Some(clean_url(&u).into())))
+      .with_lemmy_type(LemmyErrorType::InvalidUrl),
+    None => Ok(None),
+  }
+}
+
+/// Takes an optional API URL-type input, and converts it to an optional diesel DB update (for non
+/// nullable properties). Also cleans the url params.
+pub fn diesel_required_url_update(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
+  match opt {
+    // An empty string is no change
+    Some("") => Ok(None),
+    Some(str_url) => Url::parse(str_url)
+      .map(|u| Some(clean_url(&u).into()))
       .with_lemmy_type(LemmyErrorType::InvalidUrl),
     None => Ok(None),
   }
@@ -316,7 +339,7 @@ pub fn diesel_url_update(opt: Option<&str>) -> LemmyResult<Option<Option<DbUrl>>
 pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
   match opt {
     Some(str_url) => Url::parse(str_url)
-      .map(|u| Some(clean_url_params(&u).into()))
+      .map(|u| Some(clean_url(&u).into()))
       .with_lemmy_type(LemmyErrorType::InvalidUrl),
     None => Ok(None),
   }
@@ -457,23 +480,15 @@ pub fn naive_now() -> DateTime<Utc> {
   Utc::now()
 }
 
-pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
+pub fn post_to_comment_sort_type(sort: PostSortType) -> CommentSortType {
+  use PostSortType::*;
   match sort {
-    SortType::Active | SortType::Hot | SortType::Scaled => CommentSortType::Hot,
-    SortType::New | SortType::NewComments | SortType::MostComments => CommentSortType::New,
-    SortType::Old => CommentSortType::Old,
-    SortType::Controversial => CommentSortType::Controversial,
-    SortType::TopHour
-    | SortType::TopSixHour
-    | SortType::TopTwelveHour
-    | SortType::TopDay
-    | SortType::TopAll
-    | SortType::TopWeek
-    | SortType::TopYear
-    | SortType::TopMonth
-    | SortType::TopThreeMonths
-    | SortType::TopSixMonths
-    | SortType::TopNineMonths => CommentSortType::Top,
+    Active | Hot | Scaled => CommentSortType::Hot,
+    New | NewComments | MostComments => CommentSortType::New,
+    Old => CommentSortType::Old,
+    Controversial => CommentSortType::Controversial,
+    TopHour | TopSixHour | TopTwelveHour | TopDay | TopAll | TopWeek | TopYear | TopMonth
+    | TopThreeMonths | TopSixMonths | TopNineMonths => CommentSortType::Top,
   }
 }
 
@@ -563,12 +578,12 @@ impl<RF, LF> Queries<RF, LF> {
     self,
     pool: &'a mut DbPool<'_>,
     args: Args,
-  ) -> Result<Option<T>, DieselError>
+  ) -> Result<T, DieselError>
   where
     RF: ReadFn<'a, T, Args>,
   {
     let conn = get_conn(pool).await?;
-    (self.read_fn)(conn, args).await.optional()
+    (self.read_fn)(conn, args).await
   }
 
   pub async fn list<'a, T, Args>(
@@ -585,7 +600,6 @@ impl<RF, LF> Queries<RF, LF> {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use super::*;

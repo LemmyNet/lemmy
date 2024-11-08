@@ -41,19 +41,19 @@ pub async fn update_community(
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs_opt(&data.title, &slur_regex)?;
 
-  let description = diesel_string_update(
-    process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context)
+  let sidebar = diesel_string_update(
+    process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
       .await?
       .as_deref(),
   );
 
-  if let Some(Some(desc)) = &description {
-    is_valid_body_field(desc, false)?;
+  if let Some(Some(sidebar)) = &sidebar {
+    is_valid_body_field(sidebar, false)?;
   }
 
-  let old_community = Community::read(&mut context.pool(), data.community_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  let description = diesel_string_update(data.description.as_deref());
+
+  let old_community = Community::read(&mut context.pool(), data.community_id).await?;
 
   let icon = diesel_url_update(data.icon.as_deref())?;
   replace_image(&icon, &old_community.icon, &context).await?;
@@ -86,6 +86,7 @@ pub async fn update_community(
 
   let community_form = CommunityUpdateForm {
     title: data.title.clone(),
+    sidebar,
     description,
     icon,
     banner,

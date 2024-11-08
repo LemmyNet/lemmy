@@ -1,11 +1,11 @@
 use lemmy_db_schema::{
   newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
   sensitive::SensitiveString,
-  source::site::Site,
+  source::{login_token::LoginToken, site::Site},
   CommentSortType,
   ListingType,
   PostListingMode,
-  SortType,
+  PostSortType,
 };
 use lemmy_db_views::structs::{CommentView, LocalImageView, PostView};
 use lemmy_db_views_actor::structs::{
@@ -84,12 +84,18 @@ pub struct CaptchaResponse {
 pub struct SaveUserSettings {
   /// Show nsfw posts.
   pub show_nsfw: Option<bool>,
+  /// Blur nsfw posts.
   pub blur_nsfw: Option<bool>,
-  pub auto_expand: Option<bool>,
   /// Your user's theme.
   pub theme: Option<String>,
-  pub default_sort_type: Option<SortType>,
+  /// The default post listing type, usually "local"
   pub default_listing_type: Option<ListingType>,
+  /// A post-view mode that changes how multiple post listings look.
+  pub post_listing_mode: Option<PostListingMode>,
+  /// The default post sort, usually "active"
+  pub default_post_sort_type: Option<PostSortType>,
+  /// The default comment sort, usually "hot"
+  pub default_comment_sort_type: Option<CommentSortType>,
   /// The language of the lemmy interface
   pub interface_language: Option<String>,
   /// A URL for your avatar.
@@ -120,8 +126,6 @@ pub struct SaveUserSettings {
   pub open_links_in_new_tab: Option<bool>,
   /// Enable infinite scroll
   pub infinite_scroll_enabled: Option<bool>,
-  /// A post-view mode that changes how multiple post listings look.
-  pub post_listing_mode: Option<PostListingMode>,
   /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
   pub enable_keyboard_navigation: Option<bool>,
   /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or
@@ -172,7 +176,7 @@ pub struct GetPersonDetails {
   pub person_id: Option<PersonId>,
   /// Example: dessalines , or dessalines@xyz.tld
   pub username: Option<String>,
-  pub sort: Option<SortType>,
+  pub sort: Option<PostSortType>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
@@ -217,8 +221,9 @@ pub struct AddAdminResponse {
 pub struct BanPerson {
   pub person_id: PersonId,
   pub ban: bool,
-  /// Optionally remove all their data. Useful for new troll accounts.
-  pub remove_data: Option<bool>,
+  /// Optionally remove or restore all their data. Useful for new troll accounts.
+  /// If ban is true, then this means remove. If ban is false, it means restore.
+  pub remove_or_restore_data: Option<bool>,
   pub reason: Option<String>,
   /// A time that the ban will expire, in unix epoch seconds.
   ///
@@ -440,4 +445,11 @@ pub struct ListMedia {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ListMediaResponse {
   pub images: Vec<LocalImageView>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ListLoginsResponse {
+  pub logins: Vec<LoginToken>,
 }

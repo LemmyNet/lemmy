@@ -26,7 +26,7 @@ use lemmy_db_schema::{
   source::{activity::ActivitySendTargets, community::CommunityFollower},
   CommunityVisibility,
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use serde_json::Value;
 use url::Url;
 
@@ -54,7 +54,7 @@ impl ActivityHandler for RawAnnouncableActivities {
 
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = activity {
-      Err(LemmyErrorType::CannotReceivePage)?
+      Err(FederationError::CannotReceivePage)?
     }
 
     // Need to treat community as optional here because `Delete/PrivateMessage` gets routed through
@@ -165,7 +165,7 @@ impl ActivityHandler for AnnounceActivity {
 
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
-      Err(LemmyErrorType::CannotReceivePage)?
+      Err(FederationError::CannotReceivePage)?
     }
 
     let community = object.community(context).await?;
@@ -213,14 +213,12 @@ async fn can_accept_activity_in_community(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   if let Some(community) = community {
-    if !community.local
-      && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
-    {
-      Err(LemmyErrorType::CommunityHasNoFollowers)?
-    }
     // Local only community can't federate
     if community.visibility != CommunityVisibility::Public {
-      return Err(LemmyErrorType::CouldntFindCommunity.into());
+      return Err(LemmyErrorType::NotFound.into());
+    }
+    if !community.local {
+      CommunityFollower::check_has_local_followers(&mut context.pool(), community.id).await?
     }
   }
   Ok(())

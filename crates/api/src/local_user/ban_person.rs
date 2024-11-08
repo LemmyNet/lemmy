@@ -5,7 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{BanPerson, BanPersonResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_expire_time, is_admin, remove_user_data},
+  utils::{check_expire_time, is_admin, remove_or_restore_user_data},
 };
 use lemmy_db_schema::{
   source::{
@@ -60,15 +60,22 @@ pub async fn ban_from_site(
 
   // if its a local user, invalidate logins
   let local_user = LocalUserView::read_person(&mut context.pool(), person.id).await;
-  if let Ok(Some(local_user)) = local_user {
+  if let Ok(local_user) = local_user {
     LoginToken::invalidate_all(&mut context.pool(), local_user.local_user.id).await?;
   }
 
   // Remove their data if that's desired
-  let remove_data = data.remove_data.unwrap_or(false);
-  if remove_data {
-    remove_user_data(person.id, &context).await?;
-  }
+  if data.remove_or_restore_data.unwrap_or(false) {
+    let removed = data.ban;
+    remove_or_restore_user_data(
+      local_user_view.person.id,
+      person.id,
+      removed,
+      &data.reason,
+      &context,
+    )
+    .await?;
+  };
 
   // Mod tables
   let form = ModBanForm {
@@ -81,16 +88,14 @@ pub async fn ban_from_site(
 
   ModBan::create(&mut context.pool(), &form).await?;
 
-  let person_view = PersonView::read(&mut context.pool(), person.id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?;
+  let person_view = PersonView::read(&mut context.pool(), person.id).await?;
 
   ban_nonlocal_user_from_local_communities(
     &local_user_view,
     &person,
     data.ban,
     &data.reason,
-    &data.remove_data,
+    &data.remove_or_restore_data,
     &data.expires,
     &context,
   )
@@ -101,7 +106,7 @@ pub async fn ban_from_site(
       moderator: local_user_view.person,
       banned_user: person_view.person.clone(),
       reason: data.reason.clone(),
-      remove_data: data.remove_data,
+      remove_or_restore_data: data.remove_or_restore_data,
       ban: data.ban,
       expires: data.expires,
     },

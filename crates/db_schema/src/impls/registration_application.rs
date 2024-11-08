@@ -1,5 +1,4 @@
 use crate::{
-  diesel::OptionalExtension,
   newtypes::{LocalUserId, RegistrationApplicationId},
   schema::registration_application::dsl::{local_user_id, registration_application},
   source::registration_application::{
@@ -44,12 +43,11 @@ impl RegistrationApplication {
   pub async fn find_by_local_user_id(
     pool: &mut DbPool<'_>,
     local_user_id_: LocalUserId,
-  ) -> Result<Option<Self>, Error> {
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     registration_application
       .filter(local_user_id.eq(local_user_id_))
       .first(conn)
       .await
-      .optional()
   }
 }

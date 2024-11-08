@@ -106,7 +106,7 @@ impl ActivityHandler for Follow {
       UserOrCommunity::Community(c) => {
         // Dont allow following local-only community via federation.
         if c.visibility != CommunityVisibility::Public {
-          return Err(LemmyErrorType::CouldntFindCommunity.into());
+          return Err(LemmyErrorType::NotFound.into());
         }
         let form = CommunityFollowerForm {
           community_id: c.id,

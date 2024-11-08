@@ -3,9 +3,13 @@ use lemmy_db_schema::{
   source::site::Site,
   CommunityVisibility,
   ListingType,
-  SortType,
 };
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView, PersonView};
+use lemmy_db_views_actor::structs::{
+  CommunityModeratorView,
+  CommunitySortType,
+  CommunityView,
+  PersonView,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -44,7 +48,9 @@ pub struct CreateCommunity {
   pub name: String,
   /// A longer title.
   pub title: String,
-  /// A longer sidebar, or description of your community, in markdown.
+  /// A sidebar for the community in markdown.
+  pub sidebar: Option<String>,
+  /// A shorter, one line description of your community.
   pub description: Option<String>,
   /// An icon URL.
   pub icon: Option<String>,
@@ -74,7 +80,7 @@ pub struct CommunityResponse {
 /// Fetches a list of communities.
 pub struct ListCommunities {
   pub type_: Option<ListingType>,
-  pub sort: Option<SortType>,
+  pub sort: Option<CommunitySortType>,
   pub show_nsfw: Option<bool>,
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -97,7 +103,9 @@ pub struct BanFromCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
   pub ban: bool,
-  pub remove_data: Option<bool>,
+  /// Optionally remove or restore all their data. Useful for new troll accounts.
+  /// If ban is true, then this means remove. If ban is false, it means restore.
+  pub remove_or_restore_data: Option<bool>,
   pub reason: Option<String>,
   /// A time that the ban will expire, in unix epoch seconds.
   ///
@@ -141,7 +149,9 @@ pub struct EditCommunity {
   pub community_id: CommunityId,
   /// A longer title.
   pub title: Option<String>,
-  /// A longer sidebar, or description of your community, in markdown.
+  /// A sidebar for the community in markdown.
+  pub sidebar: Option<String>,
+  /// A shorter, one line description of your community.
   pub description: Option<String>,
   /// An icon URL.
   pub icon: Option<String>,
@@ -222,4 +232,13 @@ pub struct BlockCommunityResponse {
 pub struct TransferCommunity {
   pub community_id: CommunityId,
   pub person_id: PersonId,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Fetches a random community
+pub struct GetRandomCommunity {
+  pub type_: Option<ListingType>,
 }

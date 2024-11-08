@@ -290,10 +290,10 @@ impl InstanceWorker {
     if updated.add(Days::new(1)) < Utc::now() {
       self.instance.updated = Some(Utc::now());
 
-      let form = InstanceForm::builder()
-        .domain(self.instance.domain.clone())
-        .updated(Some(naive_now()))
-        .build();
+      let form = InstanceForm {
+        updated: Some(naive_now()),
+        ..InstanceForm::new(self.instance.domain.clone())
+      };
       Instance::update(&mut self.pool(), self.instance.id, form).await?;
     }
     Ok(())
@@ -439,8 +439,8 @@ impl InstanceWorker {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
+#[expect(clippy::indexing_slicing)]
 mod test {
 
   use super::*;
@@ -449,7 +449,7 @@ mod test {
     protocol::context::WithContext,
   };
   use actix_web::{dev::ServerHandle, web, App, HttpResponse, HttpServer};
-  use lemmy_api_common::utils::{generate_inbox_url, generate_shared_inbox_url};
+  use lemmy_api_common::utils::generate_inbox_url;
   use lemmy_db_schema::{
     newtypes::DbUrl,
     source::{
@@ -459,7 +459,6 @@ mod test {
     traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
-  use reqwest::StatusCode;
   use serde_json::{json, Value};
   use serial_test::serial;
   use test_context::{test_context, AsyncTestContext};
@@ -492,8 +491,7 @@ mod test {
       let person_form = PersonInsertForm {
         actor_id: Some(actor_id.clone()),
         private_key: (Some(actor_keypair.private_key)),
-        inbox_url: Some(generate_inbox_url(&actor_id)?),
-        shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
+        inbox_url: Some(generate_inbox_url()?),
         ..PersonInsertForm::new("alice".to_string(), actor_keypair.public_key, instance.id)
       };
       let person = Person::create(&mut context.pool(), &person_form).await?;
@@ -659,10 +657,7 @@ mod test {
   #[tokio::test]
   #[serial]
   async fn test_update_instance(data: &mut Data) -> LemmyResult<()> {
-    let form = InstanceForm::builder()
-      .domain(data.instance.domain.clone())
-      .updated(None)
-      .build();
+    let form = InstanceForm::new(data.instance.domain.clone());
     Instance::update(&mut data.context.pool(), data.instance.id, form).await?;
 
     send_activity(data.person.actor_id.clone(), &data.context, true).await?;
@@ -688,7 +683,7 @@ mod test {
             |inbox_sender: actix_web::web::Data<UnboundedSender<String>>, body: String| async move {
               tracing::debug!("received activity: {:?}", body);
               inbox_sender.send(body.clone()).unwrap();
-              HttpResponse::new(StatusCode::OK)
+              HttpResponse::new(actix_web::http::StatusCode::OK)
             },
           ),
         )
