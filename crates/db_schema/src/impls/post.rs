@@ -348,6 +348,27 @@ impl PostRead {
 
     diesel::delete(read_post).execute(conn).await
   }
+
+  pub async fn mark_many_as_read(
+    pool: &mut DbPool<'_>,
+    post_ids: &[PostId],
+    person_id: PersonId,
+  ) -> Result<usize, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    let forms = post_ids
+      .iter()
+      .map(|post_id| PostReadForm {
+        post_id: *post_id,
+        person_id,
+      })
+      .collect::<Vec<PostReadForm>>();
+    insert_into(post_read::table)
+      .values(forms)
+      .on_conflict_do_nothing()
+      .execute(conn)
+      .await
+  }
 }
 
 impl PostHide {
