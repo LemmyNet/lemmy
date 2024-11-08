@@ -164,6 +164,7 @@ pub struct SaveUserSettings {
   #[cfg_attr(feature = "full", ts(optional))]
   pub enable_animated_images: Option<bool>,
   /// Whether a user can send / receive private messages
+  #[cfg_attr(feature = "full", ts(optional))]
   pub enable_private_messages: Option<bool>,
   /// Whether to auto-collapse bot comments.
   #[cfg_attr(feature = "full", ts(optional))]
