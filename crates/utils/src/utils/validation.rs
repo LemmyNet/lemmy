@@ -379,11 +379,14 @@ mod tests {
   use pretty_assertions::assert_eq;
   use url::Url;
 
+  const URL_WITH_TRACKING: &str = "https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123";
+  const URL_TRACKING_REMOVED: &str = "https://example.com/path/123?user+name=random+user&id=123";
+
   #[test]
   fn test_clean_url_params() -> LemmyResult<()> {
-    let url = Url::parse("https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123")?;
+    let url = Url::parse(URL_WITH_TRACKING)?;
     let cleaned = clean_url(&url);
-    let expected = Url::parse("https://example.com/path/123?user+name=random+user&id=123")?;
+    let expected = Url::parse(URL_TRACKING_REMOVED)?;
     assert_eq!(expected.to_string(), cleaned.to_string());
 
     let url = Url::parse("https://example.com/path/123")?;
@@ -395,9 +398,9 @@ mod tests {
 
   #[test]
   fn test_clean_body() -> LemmyResult<()> {
-    let text = "[a link](https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123)";
-    let cleaned = clean_urls_in_text(text);
-    let expected = "[a link](https://example.com/path/123?user+name=random+user&id=123)";
+    let text = format!("[a link]({URL_WITH_TRACKING})");
+    let cleaned = clean_urls_in_text(&text);
+    let expected = format!("[a link]({URL_TRACKING_REMOVED})");
     assert_eq!(expected.to_string(), cleaned.to_string());
 
     let text = "[a link](https://example.com/path/123)";
