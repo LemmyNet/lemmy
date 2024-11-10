@@ -16,7 +16,12 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{get_url_blocklist, local_site_opt_to_slur_regex, process_markdown},
+  utils::{
+    check_private_messages_enabled,
+    get_url_blocklist,
+    local_site_opt_to_slur_regex,
+    process_markdown,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -28,6 +33,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::naive_now,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorType, LemmyResult},
   utils::markdown::markdown_to_html,
@@ -130,9 +136,16 @@ impl Object for ApubPrivateMessage {
     let recipient = note.to[0].dereference(context).await?;
     PersonBlock::read(&mut context.pool(), recipient.id, creator.id).await?;
 
+    // Check that they can receive private messages
+    if let Ok(recipient_local_user) =
+      LocalUserView::read_person(&mut context.pool(), recipient.id).await
+    {
+      check_private_messages_enabled(&recipient_local_user)?;
+    }
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let url_blocklist = get_url_blocklist(context).await?;
+
     let content = read_from_string_or_source(&note.content, &None, &note.source);
     let content = process_markdown(&content, slur_regex, &url_blocklist, context).await?;
     let content = markdown_rewrite_remote_links(content, context).await;

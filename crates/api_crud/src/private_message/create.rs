@@ -5,6 +5,7 @@ use lemmy_api_common::{
   private_message::{CreatePrivateMessage, PrivateMessageResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
+    check_private_messages_enabled,
     get_interface_language,
     get_url_blocklist,
     local_site_to_slur_regex,
@@ -45,6 +46,16 @@ pub async fn create_private_message(
     local_user_view.person.id,
   )
   .await?;
+
+  check_private_messages_enabled(&local_user_view)?;
+
+  // Don't allow local sends to people who have private messages disabled
+  let recipient_local_user_opt = LocalUserView::read_person(&mut context.pool(), data.recipient_id)
+    .await
+    .ok();
+  if let Some(recipient_local_user) = recipient_local_user_opt {
+    check_private_messages_enabled(&recipient_local_user)?;
+  }
 
   let private_message_form = PrivateMessageInsertForm::new(
     local_user_view.person.id,
