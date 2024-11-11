@@ -57,7 +57,7 @@ impl LemmyContext {
   /// Do not use this in production code.
   pub async fn init_test_federation_config() -> FederationConfig<LemmyContext> {
     // call this to run migrations
-    let pool = build_db_pool_for_tests().await;
+    let pool = build_db_pool_for_tests();
 
     let client = client_builder(&SETTINGS).build().expect("build client");
 

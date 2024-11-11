@@ -243,7 +243,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn read_private_messages() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let Data {
       timmy,
@@ -314,7 +314,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn ensure_person_block() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let Data {
       timmy,
@@ -357,7 +357,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn ensure_instance_block() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let Data {
       timmy,

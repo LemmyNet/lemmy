@@ -29,7 +29,11 @@ use lemmy_db_schema::{
     person_actions,
     post,
   },
-  source::{community::CommunityFollower, local_user::LocalUser, site::Site},
+  source::{
+    community::{CommunityFollower, CommunityFollowerState},
+    local_user::LocalUser,
+    site::Site,
+  },
   utils::{
     actions,
     actions_alias,
@@ -42,6 +46,7 @@ use lemmy_db_schema::{
     ReadFn,
   },
   CommentSortType,
+  CommunityVisibility,
   ListingType,
 };
 
@@ -118,6 +123,18 @@ fn queries<'a>() -> Queries<
       my_local_user.person_id(),
     );
     query = my_local_user.visible_communities_only(query);
+
+    // Check permissions to view private community content.
+    // Specifically, if the community is private then only accepted followers may view its
+    // content, otherwise it is filtered out. Admins can view private community content
+    // without restriction.
+    if !my_local_user.is_admin() {
+      query = query.filter(
+        community::visibility
+          .ne(CommunityVisibility::Private)
+          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+      );
+    }
     query.first(&mut conn).await
   };
 
@@ -219,6 +236,14 @@ fn queries<'a>() -> Queries<
     };
 
     query = options.local_user.visible_communities_only(query);
+
+    if !options.local_user.is_admin() {
+      query = query.filter(
+        community::visibility
+          .ne(CommunityVisibility::Private)
+          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+      );
+    }
 
     // A Max depth given means its a tree fetch
     let (limit, offset) = if let Some(max_depth) = options.max_depth {
@@ -364,6 +389,9 @@ mod tests {
       },
       community::{
         Community,
+        CommunityFollower,
+        CommunityFollowerForm,
+        CommunityFollowerState,
         CommunityInsertForm,
         CommunityModerator,
         CommunityModeratorForm,
@@ -380,7 +408,7 @@ mod tests {
       post::{Post, PostInsertForm, PostUpdateForm},
       site::{Site, SiteInsertForm},
     },
-    traits::{Bannable, Blockable, Crud, Joinable, Likeable, Saveable},
+    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable, Saveable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
     CommunityVisibility,
     SubscribedType,
@@ -550,7 +578,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -605,7 +633,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_liked_only() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -656,7 +684,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_comment_tree() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -729,7 +757,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_languages() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -788,7 +816,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_distinguished_first() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -813,7 +841,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_creator_is_moderator() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -844,7 +872,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_creator_is_admin() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -869,7 +897,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_saved_order() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1044,7 +1072,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn local_only_instance() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1090,7 +1118,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn comment_listing_local_user_banned_from_community() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1132,7 +1160,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn comment_listing_local_user_not_banned_from_community() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1151,7 +1179,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn comment_listings_hide_nsfw() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1173,6 +1201,98 @@ mod tests {
     // Now comments of nsfw post are returned
     let comments = CommentQuery::default().list(&site, pool).await?;
     assert_eq!(6, comments.len());
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn comment_listing_private_community() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let mut data = init_data(pool).await?;
+
+    // Mark community as private
+    Community::update(
+      pool,
+      data.inserted_community.id,
+      &CommunityUpdateForm {
+        visibility: Some(CommunityVisibility::Private),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    // No comments returned without auth
+    let read_comment_listing = CommentQuery::default().list(&data.site, pool).await?;
+    assert_eq!(0, read_comment_listing.len());
+    let comment_view = CommentView::read(pool, data.inserted_comment_0.id, None).await;
+    assert!(comment_view.is_err());
+
+    // No comments returned for non-follower who is not admin
+    data.timmy_local_user_view.local_user.admin = false;
+    let read_comment_listing = CommentQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(0, read_comment_listing.len());
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(&data.timmy_local_user_view.local_user),
+    )
+    .await;
+    assert!(comment_view.is_err());
+
+    // Admin can view content without following
+    data.timmy_local_user_view.local_user.admin = true;
+    let read_comment_listing = CommentQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(5, read_comment_listing.len());
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(&data.timmy_local_user_view.local_user),
+    )
+    .await;
+    assert!(comment_view.is_ok());
+    data.timmy_local_user_view.local_user.admin = false;
+
+    // User can view after following
+    CommunityFollower::follow(
+      pool,
+      &CommunityFollowerForm {
+        state: Some(CommunityFollowerState::Accepted),
+        ..CommunityFollowerForm::new(
+          data.inserted_community.id,
+          data.timmy_local_user_view.person.id,
+        )
+      },
+    )
+    .await?;
+    let read_comment_listing = CommentQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(5, read_comment_listing.len());
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(&data.timmy_local_user_view.local_user),
+    )
+    .await;
+    assert!(comment_view.is_ok());
 
     cleanup(data, pool).await
   }

@@ -13,7 +13,11 @@ use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
   schema::{community, community_actions, community_aggregates, instance_actions},
-  source::{community::CommunityFollower, local_user::LocalUser, site::Site},
+  source::{
+    community::{CommunityFollower, CommunityFollowerState},
+    local_user::LocalUser,
+    site::Site,
+  },
   utils::{
     actions,
     functions::lower,
@@ -28,7 +32,7 @@ use lemmy_db_schema::{
   ListingType,
   PostSortType,
 };
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommunityView, (CommunityId, Option<&'a LocalUser>, bool)>,
@@ -105,7 +109,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(not_removed_or_deleted).filter(
         community::hidden
           .eq(false)
-          .or(community_actions::follow_pending.is_not_null()),
+          .or(community_actions::follow_state.is_not_null()),
       );
     }
 
@@ -132,7 +136,9 @@ fn queries<'a>() -> Queries<
 
     if let Some(listing_type) = options.listing_type {
       query = match listing_type {
-        ListingType::Subscribed => query.filter(community_actions::follow_pending.is_not_null()),
+        ListingType::Subscribed => {
+          query.filter(community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted)))
+        }
         ListingType::Local => query.filter(community::local.eq(true)),
         _ => query,
       };
@@ -262,44 +268,52 @@ mod tests {
   };
   use lemmy_db_schema::{
     source::{
-      community::{Community, CommunityInsertForm, CommunityUpdateForm},
+      community::{
+        Community,
+        CommunityFollower,
+        CommunityFollowerForm,
+        CommunityFollowerState,
+        CommunityInsertForm,
+        CommunityUpdateForm,
+      },
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
       site::Site,
     },
-    traits::Crud,
+    traits::{Crud, Followable},
     utils::{build_db_pool_for_tests, DbPool},
     CommunityVisibility,
+    SubscribedType,
   };
   use lemmy_utils::error::LemmyResult;
   use serial_test::serial;
   use url::Url;
 
   struct Data {
-    inserted_instance: Instance,
+    instance: Instance,
     local_user: LocalUser,
-    inserted_communities: [Community; 3],
+    communities: [Community; 3],
     site: Site,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let person_name = "tegan".to_string();
 
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, &person_name);
+    let new_person = PersonInsertForm::test_form(instance.id, &person_name);
 
     let inserted_person = Person::create(pool, &new_person).await?;
 
     let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
     let local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
 
-    let inserted_communities = [
+    let communities = [
       Community::create(
         pool,
         &CommunityInsertForm::new(
-          inserted_instance.id,
+          instance.id,
           "test_community_1".to_string(),
           "nada1".to_owned(),
           "pubkey".to_string(),
@@ -309,7 +323,7 @@ mod tests {
       Community::create(
         pool,
         &CommunityInsertForm::new(
-          inserted_instance.id,
+          instance.id,
           "test_community_2".to_string(),
           "nada2".to_owned(),
           "pubkey".to_string(),
@@ -319,7 +333,7 @@ mod tests {
       Community::create(
         pool,
         &CommunityInsertForm::new(
-          inserted_instance.id,
+          instance.id,
           "test_community_3".to_string(),
           "nada3".to_owned(),
           "pubkey".to_string(),
@@ -348,33 +362,93 @@ mod tests {
     };
 
     Ok(Data {
-      inserted_instance,
+      instance,
       local_user,
-      inserted_communities,
+      communities,
       site,
     })
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    for Community { id, .. } in data.inserted_communities {
+    for Community { id, .. } in data.communities {
       Community::delete(pool, id).await?;
     }
     Person::delete(pool, data.local_user.person_id).await?;
-    Instance::delete(pool, data.inserted_instance.id).await?;
+    Instance::delete(pool, data.instance.id).await?;
 
     Ok(())
   }
 
   #[tokio::test]
   #[serial]
+  async fn subscribe_state() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+    let community = &data.communities[0];
+
+    let unauthenticated = CommunityView::read(pool, community.id, None, false).await?;
+    assert_eq!(SubscribedType::NotSubscribed, unauthenticated.subscribed);
+
+    let authenticated =
+      CommunityView::read(pool, community.id, Some(&data.local_user), false).await?;
+    assert_eq!(SubscribedType::NotSubscribed, authenticated.subscribed);
+
+    let form = CommunityFollowerForm {
+      state: Some(CommunityFollowerState::Pending),
+      ..CommunityFollowerForm::new(community.id, data.local_user.person_id)
+    };
+    CommunityFollower::follow(pool, &form).await?;
+
+    let with_pending_follow =
+      CommunityView::read(pool, community.id, Some(&data.local_user), false).await?;
+    assert_eq!(SubscribedType::Pending, with_pending_follow.subscribed);
+
+    // mark community private and set follow as approval required
+    Community::update(
+      pool,
+      community.id,
+      &CommunityUpdateForm {
+        visibility: Some(CommunityVisibility::Private),
+        ..Default::default()
+      },
+    )
+    .await?;
+    let form = CommunityFollowerForm {
+      state: Some(CommunityFollowerState::ApprovalRequired),
+      ..CommunityFollowerForm::new(community.id, data.local_user.person_id)
+    };
+    CommunityFollower::follow(pool, &form).await?;
+
+    let with_approval_required_follow =
+      CommunityView::read(pool, community.id, Some(&data.local_user), false).await?;
+    assert_eq!(
+      SubscribedType::ApprovalRequired,
+      with_approval_required_follow.subscribed
+    );
+
+    let form = CommunityFollowerForm {
+      state: Some(CommunityFollowerState::Accepted),
+      ..CommunityFollowerForm::new(community.id, data.local_user.person_id)
+    };
+    CommunityFollower::follow(pool, &form).await?;
+    let with_accepted_follow =
+      CommunityView::read(pool, community.id, Some(&data.local_user), false).await?;
+    assert_eq!(SubscribedType::Subscribed, with_accepted_follow.subscribed);
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
   async fn local_only_community() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
     Community::update(
       pool,
-      data.inserted_communities[0].id,
+      data.communities[0].id,
       &CommunityUpdateForm {
         visibility: Some(CommunityVisibility::LocalOnly),
         ..Default::default()
@@ -387,10 +461,7 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(
-      data.inserted_communities.len() - 1,
-      unauthenticated_query.len()
-    );
+    assert_eq!(data.communities.len() - 1, unauthenticated_query.len());
 
     let authenticated_query = CommunityQuery {
       local_user: Some(&data.local_user),
@@ -398,19 +469,14 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(data.inserted_communities.len(), authenticated_query.len());
+    assert_eq!(data.communities.len(), authenticated_query.len());
 
     let unauthenticated_community =
-      CommunityView::read(pool, data.inserted_communities[0].id, None, false).await;
+      CommunityView::read(pool, data.communities[0].id, None, false).await;
     assert!(unauthenticated_community.is_err());
 
-    let authenticated_community = CommunityView::read(
-      pool,
-      data.inserted_communities[0].id,
-      Some(&data.local_user),
-      false,
-    )
-    .await;
+    let authenticated_community =
+      CommunityView::read(pool, data.communities[0].id, Some(&data.local_user), false).await;
     assert!(authenticated_community.is_ok());
 
     cleanup(data, pool).await
@@ -419,7 +485,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn community_sort_name() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 

@@ -76,16 +76,16 @@ impl CustomEmojiView {
   fn from_tuple_to_vec(items: Vec<CustomEmojiTuple>) -> Vec<Self> {
     let mut result = Vec::new();
     let mut hash: HashMap<CustomEmojiId, Vec<CustomEmojiKeyword>> = HashMap::new();
-    for item in &items {
-      let emoji_id: CustomEmojiId = item.0.id;
+    for (emoji, keyword) in &items {
+      let emoji_id: CustomEmojiId = emoji.id;
       if let std::collections::hash_map::Entry::Vacant(e) = hash.entry(emoji_id) {
         e.insert(Vec::new());
         result.push(CustomEmojiView {
-          custom_emoji: item.0.clone(),
+          custom_emoji: emoji.clone(),
           keywords: Vec::new(),
         })
       }
-      if let Some(item_keyword) = &item.1 {
+      if let Some(item_keyword) = &keyword {
         if let Some(keywords) = hash.get_mut(&emoji_id) {
           keywords.push(item_keyword.clone())
         }

@@ -44,7 +44,7 @@ pub async fn create_comment_report(
 
   check_community_user_action(
     &local_user_view.person,
-    comment_view.community.id,
+    &comment_view.community,
     &mut context.pool(),
   )
   .await?;
@@ -85,8 +85,7 @@ pub async fn create_comment_report(
       reason: data.reason.clone(),
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(CommentReportResponse {
     comment_report_view,

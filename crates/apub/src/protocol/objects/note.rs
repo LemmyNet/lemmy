@@ -3,7 +3,11 @@ use crate::{
   fetcher::post_or_comment::PostOrComment,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::{objects::LanguageTag, InCommunity, Source},
+  protocol::{
+    objects::{page::Attachment, LanguageTag},
+    InCommunity,
+    Source,
+  },
 };
 use activitypub_federation::{
   config::Data,
@@ -20,7 +24,10 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::{error::LemmyResult, LemmyErrorType, MAX_COMMENT_DEPTH_LIMIT};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  MAX_COMMENT_DEPTH_LIMIT,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -50,6 +57,8 @@ pub struct Note {
   pub(crate) distinguished: Option<bool>,
   pub(crate) language: Option<LanguageTag>,
   pub(crate) audience: Option<ObjectId<ApubCommunity>>,
+  #[serde(default)]
+  pub(crate) attachment: Vec<Attachment>,
 }
 
 impl Note {

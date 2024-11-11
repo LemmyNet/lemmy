@@ -8,6 +8,7 @@ use crate::{
       Community,
       CommunityFollower,
       CommunityFollowerForm,
+      CommunityFollowerState,
       CommunityInsertForm,
       CommunityModerator,
       CommunityModeratorForm,
@@ -342,22 +343,8 @@ impl Bannable for CommunityPersonBan {
 }
 
 impl CommunityFollower {
-  pub fn to_subscribed_type(follower: &Option<Self>) -> SubscribedType {
-    match follower {
-      Some(f) => {
-        if f.pending {
-          SubscribedType::Pending
-        } else {
-          SubscribedType::Subscribed
-        }
-      }
-      // If the row doesn't exist, the person isn't a follower.
-      None => SubscribedType::NotSubscribed,
-    }
-  }
-
-  pub fn select_subscribed_type() -> dsl::Nullable<community_actions::follow_pending> {
-    community_actions::follow_pending.nullable()
+  pub fn select_subscribed_type() -> dsl::Nullable<community_actions::follow_state> {
+    community_actions::follow_state.nullable()
   }
 
   /// Check if a remote instance has any followers on local instance. For this it is enough to check
@@ -376,14 +363,37 @@ impl CommunityFollower {
     .then_some(())
     .ok_or(LemmyErrorType::CommunityHasNoFollowers.into())
   }
+
+  pub async fn approve(
+    pool: &mut DbPool<'_>,
+    community_id: CommunityId,
+    follower_id: PersonId,
+    approver_id: PersonId,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(find_action(
+      community_actions::followed,
+      (follower_id, community_id),
+    ))
+    .set((
+      community_actions::follow_state.eq(CommunityFollowerState::Accepted),
+      community_actions::follow_approver_id.eq(approver_id),
+    ))
+    .execute(conn)
+    .await?;
+    Ok(())
+  }
 }
 
-impl Queryable<sql_types::Nullable<sql_types::Bool>, Pg> for SubscribedType {
-  type Row = Option<bool>;
+impl Queryable<sql_types::Nullable<crate::schema::sql_types::CommunityFollowerState>, Pg>
+  for SubscribedType
+{
+  type Row = Option<CommunityFollowerState>;
   fn build(row: Self::Row) -> deserialize::Result<Self> {
     Ok(match row {
-      Some(true) => SubscribedType::Pending,
-      Some(false) => SubscribedType::Subscribed,
+      Some(CommunityFollowerState::Pending) => SubscribedType::Pending,
+      Some(CommunityFollowerState::Accepted) => SubscribedType::Subscribed,
+      Some(CommunityFollowerState::ApprovalRequired) => SubscribedType::ApprovalRequired,
       None => SubscribedType::NotSubscribed,
     })
   }
@@ -414,10 +424,10 @@ impl Followable for CommunityFollower {
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(find_action(
-      community_actions::follow_pending,
+      community_actions::follow_state,
       (person_id, community_id),
     ))
-    .set(community_actions::follow_pending.eq(Some(false)))
+    .set(community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted)))
     .returning(Self::as_select())
     .get_result::<Self>(conn)
     .await
@@ -429,7 +439,8 @@ impl Followable for CommunityFollower {
     let conn = &mut get_conn(pool).await?;
     uplete::new(community_actions::table.find((form.person_id, form.community_id)))
       .set_null(community_actions::followed)
-      .set_null(community_actions::follow_pending)
+      .set_null(community_actions::follow_state)
+      .set_null(community_actions::follow_approver_id)
       .get_result(conn)
       .await
   }
@@ -492,6 +503,7 @@ mod tests {
         Community,
         CommunityFollower,
         CommunityFollowerForm,
+        CommunityFollowerState,
         CommunityInsertForm,
         CommunityModerator,
         CommunityModeratorForm,
@@ -514,7 +526,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
@@ -564,7 +576,8 @@ mod tests {
     let community_follower_form = CommunityFollowerForm {
       community_id: inserted_community.id,
       person_id: inserted_bobby.id,
-      pending: false,
+      state: Some(CommunityFollowerState::Accepted),
+      approver_id: None,
     };
 
     let inserted_community_follower =
@@ -573,8 +586,9 @@ mod tests {
     let expected_community_follower = CommunityFollower {
       community_id: inserted_community.id,
       person_id: inserted_bobby.id,
-      pending: false,
+      state: CommunityFollowerState::Accepted,
       published: inserted_community_follower.published,
+      approver_id: None,
     };
 
     let bobby_moderator_form = CommunityModeratorForm {

@@ -331,6 +331,7 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
       .unwrap_or(site.content_warning.is_some())
   }
 
+  // TODO: use this function for private community checks, but the generics get extremely confusing
   fn visible_communities_only<Q>(&self, query: Q) -> Q
   where
     Q: diesel::query_dsl::methods::FilterDsl<
@@ -385,7 +386,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_admin_higher_check() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
@@ -424,7 +425,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_email_taken() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let darwin_email = "charles.darwin@gmail.com";

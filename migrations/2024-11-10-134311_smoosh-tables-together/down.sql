@@ -190,7 +190,9 @@ ALTER TABLE comment_like RENAME COLUMN like_score TO score;
 
 ALTER TABLE community_follower RENAME COLUMN followed TO published;
 
-ALTER TABLE community_follower RENAME COLUMN follow_pending TO pending;
+ALTER TABLE community_follower RENAME COLUMN follow_state TO state;
+
+ALTER TABLE community_follower RENAME COLUMN follow_approver_id TO approver_id;
 
 ALTER TABLE instance_block RENAME COLUMN blocked TO published;
 
@@ -216,14 +218,11 @@ ALTER TABLE community_follower
     DROP CONSTRAINT community_actions_check_received_ban,
     ALTER COLUMN published SET NOT NULL,
     ALTER COLUMN published SET DEFAULT now(),
-    ALTER COLUMN pending SET NOT NULL,
-    -- This `SET DEFAULT` is done for community follow, but not person follow. It's not a mistake
-    -- in this migration. Believe it or not, `pending` only had a default value in community follow.
-        ALTER COLUMN pending SET DEFAULT FALSE,
-        DROP COLUMN blocked,
-        DROP COLUMN became_moderator,
-        DROP COLUMN received_ban,
-        DROP COLUMN ban_expires;
+    ALTER COLUMN state SET NOT NULL,
+    DROP COLUMN blocked,
+    DROP COLUMN became_moderator,
+    DROP COLUMN received_ban,
+    DROP COLUMN ban_expires;
 
 ALTER TABLE instance_block
     ALTER COLUMN published SET NOT NULL,
@@ -264,6 +263,8 @@ ALTER INDEX idx_community_actions_community RENAME TO idx_community_follower_com
 ALTER TABLE community_follower RENAME CONSTRAINT community_actions_community_id_fkey TO community_follower_community_id_fkey;
 
 ALTER TABLE community_follower RENAME CONSTRAINT community_actions_person_id_fkey TO community_follower_person_id_fkey;
+
+ALTER TABLE community_follower RENAME CONSTRAINT community_actions_follow_approver_id_fkey TO community_follower_approver_id_fkey;
 
 ALTER INDEX instance_actions_pkey RENAME TO instance_block_pkey;
 

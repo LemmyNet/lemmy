@@ -1,9 +1,9 @@
 use crate::{
-  activities::{verify_is_public, verify_person_in_community},
+  activities::{generate_to, verify_person_in_community, verify_visibility},
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links,
   mentions::collect_non_local_mentions,
-  objects::{read_from_string_or_source, verify_is_remote_object},
+  objects::{append_attachments_to_comment, read_from_string_or_source, verify_is_remote_object},
   protocol::{
     objects::{note::Note, LanguageTag},
     InCommunity,
@@ -12,7 +12,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  kinds::{object::NoteType, public},
+  kinds::object::NoteType,
   protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::Object,
 };
@@ -112,7 +112,7 @@ impl Object for ApubComment {
       r#type: NoteType::Note,
       id: self.ap_id.clone().into(),
       attributed_to: creator.actor_id.into(),
-      to: vec![public()],
+      to: vec![generate_to(&community)?],
       cc: maa.ccs,
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
@@ -124,6 +124,7 @@ impl Object for ApubComment {
       distinguished: Some(self.distinguished),
       language,
       audience: Some(community.actor_id.into()),
+      attachment: vec![],
     };
 
     Ok(note)
@@ -139,8 +140,8 @@ impl Object for ApubComment {
   ) -> LemmyResult<()> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
-    verify_is_public(&note.to, &note.cc)?;
     let community = Box::pin(note.community(context)).await?;
+    verify_visibility(&note.to, &note.cc, &community)?;
 
     Box::pin(check_apub_id_valid_with_strictness(
       note.id.inner(),
@@ -181,6 +182,7 @@ impl Object for ApubComment {
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let url_blocklist = get_url_blocklist(context).await?;
+    let content = append_attachments_to_comment(content, &note.attachment, context).await?;
     let content = process_markdown(&content, slur_regex, &url_blocklist, context).await?;
     let content = markdown_rewrite_remote_links(content, context).await;
     let language_id = Some(
@@ -247,13 +249,13 @@ pub(crate) mod tests {
   }
 
   async fn cleanup(
-    data: (ApubPerson, ApubCommunity, ApubPost, ApubSite),
+    (person, community, post, site): (ApubPerson, ApubCommunity, ApubPost, ApubSite),
     context: &LemmyContext,
   ) -> LemmyResult<()> {
-    Post::delete(&mut context.pool(), data.2.id).await?;
-    Community::delete(&mut context.pool(), data.1.id).await?;
-    Person::delete(&mut context.pool(), data.0.id).await?;
-    Site::delete(&mut context.pool(), data.3.id).await?;
+    Post::delete(&mut context.pool(), post.id).await?;
+    Community::delete(&mut context.pool(), community.id).await?;
+    Person::delete(&mut context.pool(), person.id).await?;
+    Site::delete(&mut context.pool(), site.id).await?;
     LocalSite::delete(&mut context.pool()).await?;
     Ok(())
   }

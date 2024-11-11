@@ -1,5 +1,5 @@
 use crate::structs::CommunityModeratorView;
-use diesel::{dsl::exists, result::Error, select, ExpressionMethods, QueryDsl};
+use diesel::{dsl::exists, result::Error, select, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
@@ -8,7 +8,7 @@ use lemmy_db_schema::{
   source::local_user::LocalUser,
   utils::{action_query, find_action, get_conn, DbPool},
 };
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl CommunityModeratorView {
   pub async fn check_is_community_moderator(
@@ -49,7 +49,7 @@ impl CommunityModeratorView {
     let conn = &mut get_conn(pool).await?;
     action_query(community_actions::became_moderator)
       .inner_join(community::table)
-      .inner_join(person::table)
+      .inner_join(person::table.on(person::id.eq(community_actions::person_id)))
       .filter(community_actions::community_id.eq(community_id))
       .select((community::all_columns, person::all_columns))
       .order_by(community_actions::became_moderator)
@@ -65,7 +65,7 @@ impl CommunityModeratorView {
     let conn = &mut get_conn(pool).await?;
     let mut query = action_query(community_actions::became_moderator)
       .inner_join(community::table)
-      .inner_join(person::table)
+      .inner_join(person::table.on(person::id.eq(community_actions::person_id)))
       .filter(community_actions::person_id.eq(person_id))
       .select((community::all_columns, person::all_columns))
       .into_boxed();
@@ -91,7 +91,7 @@ impl CommunityModeratorView {
     let conn = &mut get_conn(pool).await?;
     action_query(community_actions::became_moderator)
       .inner_join(community::table)
-      .inner_join(person::table)
+      .inner_join(person::table.on(person::id.eq(community_actions::person_id)))
       .select((community::all_columns, person::all_columns))
       // A hacky workaround instead of group_bys
       // https://stackoverflow.com/questions/24042359/how-to-join-only-one-row-in-joined-table-with-postgres

@@ -111,8 +111,7 @@ pub async fn ban_from_site(
       expires: data.expires,
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(BanPersonResponse {
     person_view,

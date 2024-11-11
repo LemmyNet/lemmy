@@ -11,6 +11,7 @@ use chrono::{DateTime, Utc};
 use diesel::{dsl, expression_methods::NullableExpressionMethods};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use strum::{Display, EnumString};
 #[cfg(feature = "full")]
 use ts_rs::TS;
 
@@ -27,10 +28,12 @@ pub struct Community {
   /// A longer title, that can contain other characters, and doesn't have to be unique.
   pub title: String,
   /// A sidebar for the community in markdown.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub sidebar: Option<String>,
   /// Whether the community is removed by a mod.
   pub removed: bool,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
   /// Whether the community has been deleted by its creator.
   pub deleted: bool,
@@ -47,8 +50,10 @@ pub struct Community {
   #[serde(skip)]
   pub last_refreshed_at: DateTime<Utc>,
   /// A URL for an icon.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub icon: Option<DbUrl>,
   /// A URL for a banner.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<DbUrl>,
   #[cfg_attr(feature = "full", ts(skip))]
   #[serde(skip)]
@@ -69,6 +74,7 @@ pub struct Community {
   pub featured_url: Option<DbUrl>,
   pub visibility: CommunityVisibility,
   /// A shorter, one-line description of the site.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
 }
 
@@ -210,6 +216,20 @@ pub struct CommunityPersonBanForm {
   pub expires: Option<Option<DateTime<Utc>>>,
 }
 
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(DbEnum, TS))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::CommunityFollowerState"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "full", ts(export))]
+pub enum CommunityFollowerState {
+  Accepted,
+  Pending,
+  ApprovalRequired,
+}
+
 #[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(
   feature = "full",
@@ -228,17 +248,23 @@ pub struct CommunityFollower {
   #[cfg_attr(feature = "full", diesel(select_expression = community_actions::followed.assume_not_null()))]
   #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<community_actions::followed>))]
   pub published: DateTime<Utc>,
-  #[cfg_attr(feature = "full", diesel(select_expression = community_actions::follow_pending.assume_not_null()))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<community_actions::follow_pending>))]
-  pub pending: bool,
+  #[cfg_attr(feature = "full", diesel(select_expression = community_actions::follow_state.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<community_actions::follow_state>))]
+  pub state: CommunityFollowerState,
+  #[cfg_attr(feature = "full", diesel(column_name = follow_approver_id))]
+  pub approver_id: Option<PersonId>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = community_actions))]
 pub struct CommunityFollowerForm {
   pub community_id: CommunityId,
   pub person_id: PersonId,
-  #[cfg_attr(feature = "full", diesel(column_name = follow_pending))]
-  pub pending: bool,
+  #[new(default)]
+  #[cfg_attr(feature = "full", diesel(column_name = follow_state))]
+  pub state: Option<CommunityFollowerState>,
+  #[new(default)]
+  #[cfg_attr(feature = "full", diesel(column_name = follow_approver_id))]
+  pub approver_id: Option<PersonId>,
 }

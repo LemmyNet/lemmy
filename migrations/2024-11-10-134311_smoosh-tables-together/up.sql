@@ -17,7 +17,9 @@ ALTER TABLE comment_actions RENAME COLUMN score TO like_score;
 
 ALTER TABLE community_actions RENAME COLUMN published TO followed;
 
-ALTER TABLE community_actions RENAME COLUMN pending TO follow_pending;
+ALTER TABLE community_actions RENAME COLUMN state TO follow_state;
+
+ALTER TABLE community_actions RENAME COLUMN approver_id TO follow_approver_id;
 
 ALTER TABLE instance_actions RENAME COLUMN published TO blocked;
 
@@ -41,16 +43,13 @@ ALTER TABLE comment_actions
 ALTER TABLE community_actions
     ALTER COLUMN followed DROP NOT NULL,
     ALTER COLUMN followed DROP DEFAULT,
-    ALTER COLUMN follow_pending DROP NOT NULL,
-    -- This `DROP DEFAULT` is done for community follow, but not person follow. It's not a mistake
-    -- in this migration. Believe it or not, `pending` only had a default value in community follow.
-        ALTER COLUMN follow_pending DROP DEFAULT,
-        ADD COLUMN blocked timestamptz,
-        ADD COLUMN became_moderator timestamptz,
-        ADD COLUMN received_ban timestamptz,
-        ADD COLUMN ban_expires timestamptz,
-        ADD CONSTRAINT community_actions_check_followed CHECK ((followed IS NULL) = (follow_pending IS NULL)),
-        ADD CONSTRAINT community_actions_check_received_ban CHECK (NOT (received_ban IS NULL AND ban_expires IS NOT NULL));
+    ALTER COLUMN follow_state DROP NOT NULL,
+    ADD COLUMN blocked timestamptz,
+    ADD COLUMN became_moderator timestamptz,
+    ADD COLUMN received_ban timestamptz,
+    ADD COLUMN ban_expires timestamptz,
+    ADD CONSTRAINT community_actions_check_followed CHECK ((followed IS NULL) = (follow_state IS NULL) AND NOT (followed IS NULL AND follow_approver_id IS NOT NULL)),
+    ADD CONSTRAINT community_actions_check_received_ban CHECK (NOT (received_ban IS NULL AND ban_expires IS NOT NULL));
 
 ALTER TABLE instance_actions
     ALTER COLUMN blocked DROP NOT NULL,
@@ -218,6 +217,8 @@ ALTER TABLE community_actions RENAME CONSTRAINT community_follower_community_id_
 
 ALTER TABLE community_actions RENAME CONSTRAINT community_follower_person_id_fkey TO community_actions_person_id_fkey;
 
+ALTER TABLE community_actions RENAME CONSTRAINT community_follower_approver_id_fkey TO community_actions_follow_approver_id_fkey;
+
 ALTER INDEX instance_block_pkey RENAME TO instance_actions_pkey;
 
 ALTER TABLE instance_actions RENAME CONSTRAINT instance_block_instance_id_fkey TO instance_actions_instance_id_fkey;
@@ -268,7 +269,7 @@ WHERE
 
 CREATE INDEX idx_community_actions_followed_not_null ON community_actions (person_id, community_id)
 WHERE
-    followed IS NOT NULL OR follow_pending IS NOT NULL;
+    followed IS NOT NULL OR follow_state IS NOT NULL;
 
 CREATE INDEX idx_community_actions_blocked_not_null ON community_actions (person_id, community_id)
 WHERE
@@ -323,7 +324,7 @@ WHERE
 CREATE statistics comment_actions_liked_stat ON (liked IS NULL), (like_score IS NULL)
 FROM comment_actions;
 
-CREATE statistics community_actions_followed_stat ON (followed IS NULL), (follow_pending IS NULL)
+CREATE statistics community_actions_followed_stat ON (followed IS NULL), (follow_state IS NULL)
 FROM community_actions;
 
 CREATE statistics person_actions_followed_stat ON (followed IS NULL), (follow_pending IS NULL)

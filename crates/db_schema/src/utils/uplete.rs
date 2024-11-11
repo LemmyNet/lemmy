@@ -291,7 +291,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_count() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let mut conn = get_conn(pool).await?;
 
@@ -400,7 +400,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_all_null() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let mut conn = get_conn(pool).await?;
 

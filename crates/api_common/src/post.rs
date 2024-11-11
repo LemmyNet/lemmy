@@ -19,18 +19,26 @@ use ts_rs::TS;
 pub struct CreatePost {
   pub name: String,
   pub community_id: CommunityId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub url: Option<String>,
   /// An optional body for the post in markdown.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub body: Option<String>,
   /// An optional alt_text, usable for image posts.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub alt_text: Option<String>,
   /// A honeypot to catch bots. Should be None.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub honeypot: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub nsfw: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub language_id: Option<LanguageId>,
   /// Instead of fetching a thumbnail, use a custom one.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub custom_thumbnail: Option<String>,
   /// Time when this post should be scheduled. Null means publish immediately.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<i64>,
 }
 
@@ -45,9 +53,12 @@ pub struct PostResponse {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+// TODO this should be made into a tagged enum
 /// Get a post. Needs either the post id, or comment_id.
 pub struct GetPost {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub id: Option<PostId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub comment_id: Option<CommentId>,
 }
 
@@ -70,21 +81,37 @@ pub struct GetPostResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Get a list of posts.
 pub struct GetPosts {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ListingType>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub sort: Option<PostSortType>,
   /// DEPRECATED, use page_cursor
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community_name: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub saved_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub liked_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub show_hidden: Option<bool>,
   /// If true, then show the read posts (even if your user setting is to hide them)
+  #[cfg_attr(feature = "full", ts(optional))]
   pub show_read: Option<bool>,
   /// If true, then show the nsfw posts (even if your user setting is to hide them)
+  #[cfg_attr(feature = "full", ts(optional))]
   pub show_nsfw: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  /// If true, then only show posts with no comments
+  pub no_comments_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page_cursor: Option<PaginationCursor>,
 }
 
@@ -96,6 +123,7 @@ pub struct GetPosts {
 pub struct GetPostsResponse {
   pub posts: Vec<PostView>,
   /// the pagination cursor to use to fetch the next page
+  #[cfg_attr(feature = "full", ts(optional))]
   pub next_page: Option<PaginationCursor>,
 }
 
@@ -116,17 +144,25 @@ pub struct CreatePostLike {
 /// Edit a post.
 pub struct EditPost {
   pub post_id: PostId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub name: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub url: Option<String>,
   /// An optional body for the post in markdown.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub body: Option<String>,
   /// An optional alt_text, usable for image posts.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub alt_text: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub nsfw: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub language_id: Option<LanguageId>,
   /// Instead of fetching a thumbnail, use a custom one.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub custom_thumbnail: Option<String>,
   /// Time when this post should be scheduled. Null means publish immediately.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<i64>,
 }
 
@@ -147,6 +183,7 @@ pub struct DeletePost {
 pub struct RemovePost {
   pub post_id: PostId,
   pub removed: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
 }
 
@@ -230,12 +267,18 @@ pub struct ResolvePostReport {
 #[cfg_attr(feature = "full", ts(export))]
 /// List post reports.
 pub struct ListPostReports {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
   /// Only shows the unresolved reports
+  #[cfg_attr(feature = "full", ts(optional))]
   pub unresolved_only: Option<bool>,
+  // TODO make into tagged enum at some point
   /// if no community is given, it returns reports for all communities moderated by the auth user
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub post_id: Option<PostId>,
 }
 
@@ -271,6 +314,7 @@ pub struct GetSiteMetadataResponse {
 pub struct LinkMetadata {
   #[serde(flatten)]
   pub opengraph_data: OpenGraphData,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub content_type: Option<String>,
 }
 
@@ -280,9 +324,13 @@ pub struct LinkMetadata {
 #[cfg_attr(feature = "full", ts(export))]
 /// Site metadata, from its opengraph tags.
 pub struct OpenGraphData {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub title: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub(crate) image: Option<DbUrl>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub embed_video_url: Option<DbUrl>,
 }
 
@@ -293,7 +341,9 @@ pub struct OpenGraphData {
 /// List post likes. Admins-only.
 pub struct ListPostLikes {
   pub post_id: PostId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
 

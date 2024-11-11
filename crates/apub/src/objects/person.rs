@@ -285,9 +285,12 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  async fn cleanup(data: (ApubPerson, ApubSite), context: &LemmyContext) -> LemmyResult<()> {
-    DbPerson::delete(&mut context.pool(), data.0.id).await?;
-    Site::delete(&mut context.pool(), data.1.id).await?;
+  async fn cleanup(
+    (person, site): (ApubPerson, ApubSite),
+    context: &LemmyContext,
+  ) -> LemmyResult<()> {
+    DbPerson::delete(&mut context.pool(), person.id).await?;
+    Site::delete(&mut context.pool(), site.id).await?;
     Ok(())
   }
 }

@@ -174,8 +174,9 @@ pub struct LtreeDef(pub String);
 
 #[repr(transparent)]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
-#[cfg_attr(feature = "full", derive(AsExpression, FromSqlRow))]
+#[cfg_attr(feature = "full", derive(AsExpression, FromSqlRow, TS))]
 #[cfg_attr(feature = "full", diesel(sql_type = diesel::sql_types::Text))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct DbUrl(pub(crate) Box<Url>);
 
 impl DbUrl {
@@ -245,19 +246,6 @@ impl Deref for DbUrl {
 
   fn deref(&self) -> &Self::Target {
     &self.0
-  }
-}
-
-#[cfg(feature = "full")]
-impl TS for DbUrl {
-  fn name() -> String {
-    "string".to_string()
-  }
-  fn dependencies() -> Vec<ts_rs::Dependency> {
-    Vec::new()
-  }
-  fn transparent() -> bool {
-    true
   }
 }
 
