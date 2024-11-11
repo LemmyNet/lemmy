@@ -111,6 +111,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    comment_actions (person_id, comment_id) {
+        person_id -> Int4,
+        comment_id -> Int4,
+        like_score -> Nullable<Int2>,
+        liked -> Nullable<Timestamptz>,
+        saved -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     comment_aggregates (comment_id) {
         comment_id -> Int4,
         score -> Int8,
@@ -120,15 +130,6 @@ diesel::table! {
         child_count -> Int4,
         hot_rank -> Float8,
         controversy_rank -> Float8,
-    }
-}
-
-diesel::table! {
-    comment_like (person_id, comment_id) {
-        person_id -> Int4,
-        comment_id -> Int4,
-        score -> Int2,
-        published -> Timestamptz,
     }
 }
 
@@ -153,14 +154,6 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
-    }
-}
-
-diesel::table! {
-    comment_saved (person_id, comment_id) {
-        comment_id -> Int4,
-        person_id -> Int4,
-        published -> Timestamptz,
     }
 }
 
@@ -206,6 +199,23 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::CommunityFollowerState;
+
+    community_actions (person_id, community_id) {
+        community_id -> Int4,
+        person_id -> Int4,
+        followed -> Nullable<Timestamptz>,
+        follow_state -> Nullable<CommunityFollowerState>,
+        follow_approver_id -> Nullable<Int4>,
+        blocked -> Nullable<Timestamptz>,
+        became_moderator -> Nullable<Timestamptz>,
+        received_ban -> Nullable<Timestamptz>,
+        ban_expires -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     community_aggregates (community_id) {
         community_id -> Int4,
         subscribers -> Int8,
@@ -222,47 +232,9 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_block (person_id, community_id) {
-        person_id -> Int4,
-        community_id -> Int4,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    use diesel::sql_types::*;
-    use super::sql_types::CommunityFollowerState;
-
-    community_follower (person_id, community_id) {
-        community_id -> Int4,
-        person_id -> Int4,
-        published -> Timestamptz,
-        state -> CommunityFollowerState,
-        approver_id -> Nullable<Int4>,
-    }
-}
-
-diesel::table! {
     community_language (community_id, language_id) {
         community_id -> Int4,
         language_id -> Int4,
-    }
-}
-
-diesel::table! {
-    community_moderator (person_id, community_id) {
-        community_id -> Int4,
-        person_id -> Int4,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    community_person_ban (person_id, community_id) {
-        community_id -> Int4,
-        person_id -> Int4,
-        published -> Timestamptz,
-        expires -> Nullable<Timestamptz>,
     }
 }
 
@@ -347,10 +319,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    instance_block (person_id, instance_id) {
+    instance_actions (person_id, instance_id) {
         person_id -> Int4,
         instance_id -> Int4,
-        published -> Timestamptz,
+        blocked -> Nullable<Timestamptz>,
     }
 }
 
@@ -703,6 +675,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    person_actions (person_id, target_id) {
+        target_id -> Int4,
+        person_id -> Int4,
+        followed -> Nullable<Timestamptz>,
+        follow_pending -> Nullable<Bool>,
+        blocked -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     person_aggregates (person_id) {
         person_id -> Int4,
         post_count -> Int8,
@@ -720,37 +702,11 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_block (person_id, target_id) {
-        person_id -> Int4,
-        target_id -> Int4,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    person_follower (follower_id, person_id) {
-        person_id -> Int4,
-        follower_id -> Int4,
-        published -> Timestamptz,
-        pending -> Bool,
-    }
-}
-
-diesel::table! {
     person_mention (id) {
         id -> Int4,
         recipient_id -> Int4,
         comment_id -> Int4,
         read -> Bool,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    person_post_aggregates (person_id, post_id) {
-        person_id -> Int4,
-        post_id -> Int4,
-        read_comments -> Int8,
         published -> Timestamptz,
     }
 }
@@ -788,6 +744,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    post_actions (person_id, post_id) {
+        post_id -> Int4,
+        person_id -> Int4,
+        read -> Nullable<Timestamptz>,
+        read_comments -> Nullable<Timestamptz>,
+        read_comments_amount -> Nullable<Int8>,
+        saved -> Nullable<Timestamptz>,
+        liked -> Nullable<Timestamptz>,
+        like_score -> Nullable<Int2>,
+        hidden -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     post_aggregates (post_id) {
         post_id -> Int4,
         comments -> Int8,
@@ -810,31 +780,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    post_hide (person_id, post_id) {
-        post_id -> Int4,
-        person_id -> Int4,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    post_like (person_id, post_id) {
-        post_id -> Int4,
-        person_id -> Int4,
-        score -> Int2,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    post_read (person_id, post_id) {
-        post_id -> Int4,
-        person_id -> Int4,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
     post_report (id) {
         id -> Int4,
         creator_id -> Int4,
@@ -848,14 +793,6 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
-    }
-}
-
-diesel::table! {
-    post_saved (person_id, post_id) {
-        post_id -> Int4,
-        person_id -> Int4,
-        published -> Timestamptz,
     }
 }
 
@@ -1002,32 +939,24 @@ diesel::joinable!(admin_purge_post -> person (admin_person_id));
 diesel::joinable!(comment -> language (language_id));
 diesel::joinable!(comment -> person (creator_id));
 diesel::joinable!(comment -> post (post_id));
+diesel::joinable!(comment_actions -> comment (comment_id));
+diesel::joinable!(comment_actions -> person (person_id));
 diesel::joinable!(comment_aggregates -> comment (comment_id));
-diesel::joinable!(comment_like -> comment (comment_id));
-diesel::joinable!(comment_like -> person (person_id));
 diesel::joinable!(comment_reply -> comment (comment_id));
 diesel::joinable!(comment_reply -> person (recipient_id));
 diesel::joinable!(comment_report -> comment (comment_id));
-diesel::joinable!(comment_saved -> comment (comment_id));
-diesel::joinable!(comment_saved -> person (person_id));
 diesel::joinable!(community -> instance (instance_id));
+diesel::joinable!(community_actions -> community (community_id));
 diesel::joinable!(community_aggregates -> community (community_id));
-diesel::joinable!(community_block -> community (community_id));
-diesel::joinable!(community_block -> person (person_id));
-diesel::joinable!(community_follower -> community (community_id));
 diesel::joinable!(community_language -> community (community_id));
 diesel::joinable!(community_language -> language (language_id));
-diesel::joinable!(community_moderator -> community (community_id));
-diesel::joinable!(community_moderator -> person (person_id));
-diesel::joinable!(community_person_ban -> community (community_id));
-diesel::joinable!(community_person_ban -> person (person_id));
 diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
 diesel::joinable!(federation_queue_state -> instance (instance_id));
-diesel::joinable!(instance_block -> instance (instance_id));
-diesel::joinable!(instance_block -> person (person_id));
+diesel::joinable!(instance_actions -> instance (instance_id));
+diesel::joinable!(instance_actions -> person (person_id));
 diesel::joinable!(local_image -> local_user (local_user_id));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
@@ -1059,24 +988,16 @@ diesel::joinable!(person_aggregates -> person (person_id));
 diesel::joinable!(person_ban -> person (person_id));
 diesel::joinable!(person_mention -> comment (comment_id));
 diesel::joinable!(person_mention -> person (recipient_id));
-diesel::joinable!(person_post_aggregates -> person (person_id));
-diesel::joinable!(person_post_aggregates -> post (post_id));
 diesel::joinable!(post -> community (community_id));
 diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
+diesel::joinable!(post_actions -> person (person_id));
+diesel::joinable!(post_actions -> post (post_id));
 diesel::joinable!(post_aggregates -> community (community_id));
 diesel::joinable!(post_aggregates -> instance (instance_id));
 diesel::joinable!(post_aggregates -> person (creator_id));
 diesel::joinable!(post_aggregates -> post (post_id));
-diesel::joinable!(post_hide -> person (person_id));
-diesel::joinable!(post_hide -> post (post_id));
-diesel::joinable!(post_like -> person (person_id));
-diesel::joinable!(post_like -> post (post_id));
-diesel::joinable!(post_read -> person (person_id));
-diesel::joinable!(post_read -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
-diesel::joinable!(post_saved -> person (person_id));
-diesel::joinable!(post_saved -> post (post_id));
 diesel::joinable!(private_message_report -> private_message (private_message_id));
 diesel::joinable!(registration_application -> local_user (local_user_id));
 diesel::joinable!(registration_application -> person (admin_id));
@@ -1092,18 +1013,14 @@ diesel::allow_tables_to_appear_in_same_query!(
     admin_purge_post,
     captcha_answer,
     comment,
+    comment_actions,
     comment_aggregates,
-    comment_like,
     comment_reply,
     comment_report,
-    comment_saved,
     community,
+    community_actions,
     community_aggregates,
-    community_block,
-    community_follower,
     community_language,
-    community_moderator,
-    community_person_ban,
     custom_emoji,
     custom_emoji_keyword,
     email_verification,
@@ -1112,7 +1029,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     federation_queue_state,
     image_details,
     instance,
-    instance_block,
+    instance_actions,
     language,
     local_image,
     local_site,
@@ -1137,19 +1054,14 @@ diesel::allow_tables_to_appear_in_same_query!(
     oauth_provider,
     password_reset_request,
     person,
+    person_actions,
     person_aggregates,
     person_ban,
-    person_block,
-    person_follower,
     person_mention,
-    person_post_aggregates,
     post,
+    post_actions,
     post_aggregates,
-    post_hide,
-    post_like,
-    post_read,
     post_report,
-    post_saved,
     private_message,
     private_message_report,
     received_activity,

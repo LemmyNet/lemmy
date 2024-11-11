@@ -166,7 +166,6 @@ pub async fn update_read_comments(
     person_id,
     post_id,
     read_comments,
-    ..PersonPostAggregatesForm::default()
   };
 
   PersonPostAggregates::upsert(pool, &person_post_agg_form).await?;
