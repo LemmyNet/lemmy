@@ -15,7 +15,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  impls::actor_language::default_post_language,
+  impls::actor_language::validate_post_language,
   source::{
     community::Community,
     local_site::LocalSite,
@@ -101,7 +101,7 @@ pub async fn update_post(
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
-  let language_id = default_post_language(
+  let language_id = validate_post_language(
     &mut context.pool(),
     data.language_id,
     orig_post.community_id,

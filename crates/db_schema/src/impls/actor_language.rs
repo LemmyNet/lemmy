@@ -319,7 +319,7 @@ impl CommunityLanguage {
   }
 }
 
-pub async fn default_post_language(
+pub async fn validate_post_language(
   pool: &mut DbPool<'_>,
   language_id: Option<LanguageId>,
   community_id: CommunityId,
@@ -622,7 +622,7 @@ mod tests {
     LocalUserLanguage::update(pool, test_langs2, local_user.id).await?;
 
     // no overlap in user/community languages, so defaults to undetermined
-    let def1 = default_post_language(pool, None, community.id, local_user.id).await;
+    let def1 = validate_post_language(pool, None, community.id, local_user.id).await;
     assert_eq!(
       Some(LemmyErrorType::LanguageNotAllowed),
       def1.err().map(|e| e.error_type)
@@ -638,7 +638,7 @@ mod tests {
     LocalUserLanguage::update(pool, test_langs3, local_user.id).await?;
 
     // this time, both have ru as common lang
-    let def2 = default_post_language(pool, None, community.id, local_user.id).await?;
+    let def2 = validate_post_language(pool, None, community.id, local_user.id).await?;
     assert_eq!(ru, def2);
 
     Person::delete(pool, person.id).await?;
