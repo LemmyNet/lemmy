@@ -1,4 +1,3 @@
-
 -- Edit community aggregates to include voters as active users
 CREATE OR REPLACE FUNCTION community_aggregates_activity (i text)
     RETURNS TABLE (
@@ -113,3 +112,4 @@ BEGIN
     RETURN count_;
 END;
 $$;
+
