@@ -195,7 +195,7 @@ impl Object for ApubCommunity {
     // Need to fetch mods synchronously, otherwise fetching a post in community with
     // `posting_restricted_to_mods` can fail if mods havent been fetched yet.
     if let Some(moderators) = group.attributed_to {
-      moderators.dereference(&community, &context).await.ok();
+      moderators.dereference(&community, context).await.ok();
     }
 
     // These collections are not necessary for Lemmy to work, so ignore errors.
