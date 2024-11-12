@@ -1,7 +1,7 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{CommentId, DbUrl, PersonId},
-  schema::comment,
+  schema::{comment, comment_actions},
   source::comment::{
     Comment,
     CommentInsertForm,
@@ -12,10 +12,25 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{functions::coalesce, get_conn, naive_now, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{
+    functions::coalesce,
+    get_conn,
+    naive_now,
+    now,
+    uplete,
+    DbPool,
+    DELETED_REPLACEMENT_TEXT,
+  },
 };
 use chrono::{DateTime, Utc};
-use diesel::{dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::insert_into,
+  expression::SelectableHelper,
+  result::Error,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use diesel_ltree::Ltree;
 use url::Url;
@@ -141,13 +156,17 @@ impl Likeable for CommentLike {
   type Form = CommentLikeForm;
   type IdType = CommentId;
   async fn like(pool: &mut DbPool<'_>, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
-    use crate::schema::comment_like::dsl::{comment_id, comment_like, person_id};
     let conn = &mut get_conn(pool).await?;
-    insert_into(comment_like)
+    let comment_like_form = (
+      comment_like_form,
+      comment_actions::liked.eq(now().nullable()),
+    );
+    insert_into(comment_actions::table)
       .values(comment_like_form)
-      .on_conflict((comment_id, person_id))
+      .on_conflict((comment_actions::comment_id, comment_actions::person_id))
       .do_update()
       .set(comment_like_form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
@@ -155,11 +174,12 @@ impl Likeable for CommentLike {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     comment_id: CommentId,
-  ) -> Result<usize, Error> {
-    use crate::schema::comment_like::dsl::comment_like;
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(comment_like.find((person_id, comment_id)))
-      .execute(conn)
+    uplete::new(comment_actions::table.find((person_id, comment_id)))
+      .set_null(comment_actions::like_score)
+      .set_null(comment_actions::liked)
+      .get_result(conn)
       .await
   }
 }
@@ -171,26 +191,30 @@ impl Saveable for CommentSaved {
     pool: &mut DbPool<'_>,
     comment_saved_form: &CommentSavedForm,
   ) -> Result<Self, Error> {
-    use crate::schema::comment_saved::dsl::{comment_id, comment_saved, person_id};
     let conn = &mut get_conn(pool).await?;
-    insert_into(comment_saved)
+    let comment_saved_form = (
+      comment_saved_form,
+      comment_actions::saved.eq(now().nullable()),
+    );
+    insert_into(comment_actions::table)
       .values(comment_saved_form)
-      .on_conflict((comment_id, person_id))
+      .on_conflict((comment_actions::comment_id, comment_actions::person_id))
       .do_update()
       .set(comment_saved_form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
   async fn unsave(
     pool: &mut DbPool<'_>,
     comment_saved_form: &CommentSavedForm,
-  ) -> Result<usize, Error> {
-    use crate::schema::comment_saved::dsl::comment_saved;
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(
-      comment_saved.find((comment_saved_form.person_id, comment_saved_form.comment_id)),
+    uplete::new(
+      comment_actions::table.find((comment_saved_form.person_id, comment_saved_form.comment_id)),
     )
-    .execute(conn)
+    .set_null(comment_actions::saved)
+    .get_result(conn)
     .await
   }
 }
@@ -216,7 +240,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Likeable, Saveable},
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, uplete},
   };
   use diesel_ltree::Ltree;
   use lemmy_utils::error::LemmyResult;
@@ -342,8 +366,8 @@ mod tests {
       format!("0.{}.{}", expected_comment.id, inserted_child_comment.id),
       inserted_child_comment.path.0,
     );
-    assert_eq!(1, like_removed);
-    assert_eq!(1, saved_removed);
+    assert_eq!(uplete::Count::only_updated(1), like_removed);
+    assert_eq!(uplete::Count::only_deleted(1), saved_removed);
     assert_eq!(1, num_deleted);
 
     Ok(())

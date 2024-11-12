@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, LanguageId, LocalUserId, PersonId},
-  schema::{community, community_moderator, local_user, person, registration_application},
+  schema::{community, community_actions, local_user, person, registration_application},
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
@@ -8,6 +8,7 @@ use crate::{
     site::Site,
   },
   utils::{
+    action_query,
     functions::{coalesce, lower},
     get_conn,
     now,
@@ -155,55 +156,54 @@ impl LocalUser {
   ) -> Result<UserBackupLists, Error> {
     use crate::schema::{
       comment,
-      comment_saved,
+      comment_actions,
       community,
-      community_block,
-      community_follower,
+      community_actions,
       instance,
-      instance_block,
-      person_block,
+      instance_actions,
+      person_actions,
       post,
-      post_saved,
+      post_actions,
     };
     let conn = &mut get_conn(pool).await?;
 
-    let followed_communities = community_follower::dsl::community_follower
-      .filter(community_follower::person_id.eq(person_id_))
-      .inner_join(community::table.on(community_follower::community_id.eq(community::id)))
-      .select(community::actor_id)
-      .get_results(conn)
-      .await?;
-
-    let saved_posts = post_saved::dsl::post_saved
-      .filter(post_saved::person_id.eq(person_id_))
-      .inner_join(post::table.on(post_saved::post_id.eq(post::id)))
-      .select(post::ap_id)
-      .get_results(conn)
-      .await?;
-
-    let saved_comments = comment_saved::dsl::comment_saved
-      .filter(comment_saved::person_id.eq(person_id_))
-      .inner_join(comment::table.on(comment_saved::comment_id.eq(comment::id)))
-      .select(comment::ap_id)
-      .get_results(conn)
-      .await?;
-
-    let blocked_communities = community_block::dsl::community_block
-      .filter(community_block::person_id.eq(person_id_))
+    let followed_communities = action_query(community_actions::followed)
+      .filter(community_actions::person_id.eq(person_id_))
       .inner_join(community::table)
       .select(community::actor_id)
       .get_results(conn)
       .await?;
 
-    let blocked_users = person_block::dsl::person_block
-      .filter(person_block::person_id.eq(person_id_))
-      .inner_join(person::table.on(person_block::target_id.eq(person::id)))
+    let saved_posts = action_query(post_actions::saved)
+      .filter(post_actions::person_id.eq(person_id_))
+      .inner_join(post::table)
+      .select(post::ap_id)
+      .get_results(conn)
+      .await?;
+
+    let saved_comments = action_query(comment_actions::saved)
+      .filter(comment_actions::person_id.eq(person_id_))
+      .inner_join(comment::table)
+      .select(comment::ap_id)
+      .get_results(conn)
+      .await?;
+
+    let blocked_communities = action_query(community_actions::blocked)
+      .filter(community_actions::person_id.eq(person_id_))
+      .inner_join(community::table)
+      .select(community::actor_id)
+      .get_results(conn)
+      .await?;
+
+    let blocked_users = action_query(person_actions::blocked)
+      .filter(person_actions::person_id.eq(person_id_))
+      .inner_join(person::table.on(person_actions::target_id.eq(person::id)))
       .select(person::actor_id)
       .get_results(conn)
       .await?;
 
-    let blocked_instances = instance_block::dsl::instance_block
-      .filter(instance_block::person_id.eq(person_id_))
+    let blocked_instances = action_query(instance_actions::blocked)
+      .filter(instance_actions::person_id.eq(person_id_))
       .inner_join(instance::table)
       .select(instance::domain)
       .get_results(conn)
@@ -270,11 +270,11 @@ impl LocalUser {
       .order_by(local_user::id)
       .select(local_user::person_id);
 
-    let mods = community_moderator::table
-      .filter(community_moderator::community_id.eq(for_community_id))
-      .filter(community_moderator::person_id.eq_any(&persons))
-      .order_by(community_moderator::published)
-      .select(community_moderator::person_id);
+    let mods = action_query(community_actions::became_moderator)
+      .filter(community_actions::community_id.eq(for_community_id))
+      .filter(community_actions::person_id.eq_any(&persons))
+      .order_by(community_actions::became_moderator)
+      .select(community_actions::person_id);
 
     let res = admins.union_all(mods).get_results::<PersonId>(conn).await?;
     let first_person = res.as_slice().first().ok_or(LemmyErrorType::NotHigherMod)?;
