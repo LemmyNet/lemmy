@@ -1,5 +1,5 @@
 use crate::{
-  activities::{verify_is_public, verify_person_in_community},
+  activities::{generate_to, verify_person_in_community, verify_visibility},
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links,
   mentions::collect_non_local_mentions,
@@ -12,7 +12,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  kinds::{object::NoteType, public},
+  kinds::object::NoteType,
   protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::Object,
 };
@@ -112,7 +112,7 @@ impl Object for ApubComment {
       r#type: NoteType::Note,
       id: self.ap_id.clone().into(),
       attributed_to: creator.actor_id.into(),
-      to: vec![public()],
+      to: vec![generate_to(&community)?],
       cc: maa.ccs,
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
@@ -140,8 +140,8 @@ impl Object for ApubComment {
   ) -> LemmyResult<()> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
-    verify_is_public(&note.to, &note.cc)?;
     let community = Box::pin(note.community(context)).await?;
+    verify_visibility(&note.to, &note.cc, &community)?;
 
     Box::pin(check_apub_id_valid_with_strictness(
       note.id.inner(),

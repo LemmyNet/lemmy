@@ -13,6 +13,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     community::{
+      Community,
       CommunityFollower,
       CommunityFollowerForm,
       CommunityPersonBan,
@@ -38,11 +39,12 @@ pub async fn ban_from_community(
 ) -> LemmyResult<Json<BanFromCommunityResponse>> {
   let banned_person_id = data.person_id;
   let expires = check_expire_time(data.expires)?;
+  let community = Community::read(&mut context.pool(), data.community_id).await?;
 
   // Verify that only mods or admins can ban
   check_community_mod_action(
     &local_user_view.person,
-    data.community_id,
+    &community,
     false,
     &mut context.pool(),
   )
@@ -72,12 +74,7 @@ pub async fn ban_from_community(
       .with_lemmy_type(LemmyErrorType::CommunityUserAlreadyBanned)?;
 
     // Also unsubscribe them from the community, if they are subscribed
-    let community_follower_form = CommunityFollowerForm {
-      community_id: data.community_id,
-      person_id: banned_person_id,
-      pending: false,
-    };
-
+    let community_follower_form = CommunityFollowerForm::new(data.community_id, banned_person_id);
     CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
       .await
       .ok();
@@ -123,8 +120,7 @@ pub async fn ban_from_community(
       data: data.0.clone(),
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(BanFromCommunityResponse {
     person_view,

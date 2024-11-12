@@ -42,8 +42,7 @@ pub async fn delete_private_message(
   ActivityChannel::submit_activity(
     SendActivityData::DeletePrivateMessage(local_user_view.person, private_message, data.deleted),
     &context,
-  )
-  .await?;
+  )?;
 
   let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
   Ok(Json(PrivateMessageResponse {

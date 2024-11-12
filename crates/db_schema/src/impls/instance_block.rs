@@ -1,18 +1,20 @@
 use crate::{
   newtypes::{InstanceId, PersonId},
-  schema::{instance, instance_block},
+  schema::{instance, instance_actions},
   source::{
     instance::Instance,
     instance_block::{InstanceBlock, InstanceBlockForm},
   },
   traits::Blockable,
-  utils::{get_conn, DbPool},
+  utils::{action_query, find_action, get_conn, now, uplete, DbPool},
 };
 use diesel::{
   dsl::{exists, insert_into, not},
+  expression::SelectableHelper,
   result::Error,
   select,
   ExpressionMethods,
+  NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -25,9 +27,10 @@ impl InstanceBlock {
     for_instance_id: InstanceId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    select(not(exists(
-      instance_block::table.find((for_person_id, for_instance_id)),
-    )))
+    select(not(exists(find_action(
+      instance_actions::blocked,
+      (for_person_id, for_instance_id),
+    ))))
     .get_result::<bool>(conn)
     .await?
     .then_some(())
@@ -39,11 +42,11 @@ impl InstanceBlock {
     person_id: PersonId,
   ) -> Result<Vec<Instance>, Error> {
     let conn = &mut get_conn(pool).await?;
-    instance_block::table
+    action_query(instance_actions::blocked)
       .inner_join(instance::table)
       .select(instance::all_columns)
-      .filter(instance_block::person_id.eq(person_id))
-      .order_by(instance_block::published)
+      .filter(instance_actions::person_id.eq(person_id))
+      .order_by(instance_actions::blocked)
       .load::<Instance>(conn)
       .await
   }
@@ -54,24 +57,30 @@ impl Blockable for InstanceBlock {
   type Form = InstanceBlockForm;
   async fn block(pool: &mut DbPool<'_>, instance_block_form: &Self::Form) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(instance_block::table)
+    let instance_block_form = (
+      instance_block_form,
+      instance_actions::blocked.eq(now().nullable()),
+    );
+    insert_into(instance_actions::table)
       .values(instance_block_form)
-      .on_conflict((instance_block::person_id, instance_block::instance_id))
+      .on_conflict((instance_actions::person_id, instance_actions::instance_id))
       .do_update()
       .set(instance_block_form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
   async fn unblock(
     pool: &mut DbPool<'_>,
     instance_block_form: &Self::Form,
-  ) -> Result<usize, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(instance_block::table.find((
+    uplete::new(instance_actions::table.find((
       instance_block_form.person_id,
       instance_block_form.instance_id,
     )))
-    .execute(conn)
+    .set_null(instance_actions::blocked)
+    .get_result(conn)
     .await
   }
 }

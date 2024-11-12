@@ -39,6 +39,7 @@ use lemmy_db_schema::{
   },
   traits::{ApubActor, Crud},
   utils::naive_now,
+  CommunityVisibility,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{
@@ -126,6 +127,7 @@ impl Object for ApubCommunity {
       updated: self.updated,
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
       attributed_to: Some(generate_moderators_url(&self.actor_id)?.into()),
+      manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
     };
     Ok(group)
   }
@@ -152,7 +154,11 @@ impl Object for ApubCommunity {
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.map(|i| i.url), context).await?;
-
+    let visibility = Some(if group.manually_approves_followers.unwrap_or_default() {
+      CommunityVisibility::Private
+    } else {
+      CommunityVisibility::Public
+    });
     let form = CommunityInsertForm {
       published: group.published,
       updated: group.updated,
@@ -176,6 +182,7 @@ impl Object for ApubCommunity {
       moderators_url: group.attributed_to.clone().map(Into::into),
       posting_restricted_to_mods: group.posting_restricted_to_mods,
       featured_url: group.featured.clone().map(Into::into),
+      visibility,
       ..CommunityInsertForm::new(
         instance_id,
         group.preferred_username.clone(),

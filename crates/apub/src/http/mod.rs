@@ -1,11 +1,11 @@
 use crate::{
   activity_lists::SharedInboxActivities,
-  fetcher::user_or_community::UserOrCommunity,
+  fetcher::{site_or_community_or_user::SiteOrCommunityOrUser, user_or_community::UserOrCommunity},
   protocol::objects::tombstone::Tombstone,
   FEDERATION_CONTEXT,
 };
 use activitypub_federation::{
-  actix_web::inbox::receive_activity,
+  actix_web::{inbox::receive_activity, signing_actor},
   config::Data,
   protocol::context::WithContext,
   FEDERATION_CONTENT_TYPE,
@@ -17,6 +17,7 @@ use lemmy_db_schema::{
   source::{activity::SentActivity, community::Community},
   CommunityVisibility,
 };
+use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::error::{FederationError, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::{ops::Deref, time::Duration};
@@ -119,12 +120,46 @@ pub(crate) async fn get_activity(
 }
 
 /// Ensure that the community is public and not removed/deleted.
-fn check_community_public(community: &Community) -> LemmyResult<()> {
+fn check_community_fetchable(community: &Community) -> LemmyResult<()> {
+  check_community_removed_or_deleted(community)?;
+  if community.visibility == CommunityVisibility::LocalOnly {
+    return Err(LemmyErrorType::NotFound.into());
+  }
+  Ok(())
+}
+
+/// Check if posts or comments in the community are allowed to be fetched
+async fn check_community_content_fetchable(
+  community: &Community,
+  request: &HttpRequest,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  use CommunityVisibility::*;
+  check_community_removed_or_deleted(community)?;
+  match community.visibility {
+    // content in public community can always be fetched
+    Public => Ok(()),
+    // no federation for local only community
+    LocalOnly => Err(LemmyErrorType::NotFound.into()),
+    // for private community check http signature of request, if there is any approved follower
+    // from the fetching instance then fetching is allowed
+    Private => {
+      let signing_actor = signing_actor::<SiteOrCommunityOrUser>(request, None, context).await?;
+      Ok(
+        CommunityFollowerView::check_has_followers_from_instance(
+          community.id,
+          signing_actor.instance_id(),
+          &mut context.pool(),
+        )
+        .await?,
+      )
+    }
+  }
+}
+
+fn check_community_removed_or_deleted(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
     Err(LemmyErrorType::Deleted)?
-  }
-  if community.visibility != CommunityVisibility::Public {
-    return Err(LemmyErrorType::NotFound.into());
   }
   Ok(())
 }
