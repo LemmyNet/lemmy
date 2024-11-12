@@ -152,7 +152,7 @@ END;
 $a$;
 
 -- Edit community aggregates to include voters as active users
-CREATE OR REPLACE FUNCTION community_aggregates_activity (i text)
+CREATE OR REPLACE FUNCTION r.community_aggregates_activity (i text)
     RETURNS TABLE (
         count_ bigint,
         community_id_ integer)
@@ -213,7 +213,7 @@ END;
 $$;
 
 -- Edit site aggregates to include voters and people who have read posts as active users
-CREATE OR REPLACE FUNCTION site_aggregates_activity (i text)
+CREATE OR REPLACE FUNCTION r.site_aggregates_activity (i text)
     RETURNS integer
     LANGUAGE plpgsql
     AS $$
