@@ -622,8 +622,11 @@ mod tests {
     LocalUserLanguage::update(pool, test_langs2, local_user.id).await?;
 
     // no overlap in user/community languages, so defaults to undetermined
-    let def1 = default_post_language(pool, None, community.id, local_user.id).await?;
-    assert_eq!(UNDETERMINED_ID, def1);
+    let def1 = default_post_language(pool, None, community.id, local_user.id).await;
+    assert_eq!(
+      Some(LemmyErrorType::LanguageNotAllowed),
+      def1.err().map(|e| e.error_type)
+    );
 
     let ru = Language::read_id_from_code(pool, "ru").await?;
     let test_langs3 = vec![
