@@ -15,8 +15,8 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
+  impls::actor_language::validate_post_language,
   source::{
-    actor_language::CommunityLanguage,
     community::Community,
     local_site::LocalSite,
     post::{Post, PostUpdateForm},
@@ -101,14 +101,13 @@ pub async fn update_post(
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
-  if let Some(language_id) = data.language_id {
-    CommunityLanguage::is_allowed_community_language(
-      &mut context.pool(),
-      language_id,
-      orig_post.community.id,
-    )
-    .await?;
-  }
+  let language_id = validate_post_language(
+    &mut context.pool(),
+    data.language_id,
+    orig_post.post.community_id,
+    local_user_view.local_user.id,
+  )
+  .await?;
 
   // handle changes to scheduled_publish_time
   let scheduled_publish_time = match (
@@ -131,7 +130,7 @@ pub async fn update_post(
     body,
     alt_text,
     nsfw: data.nsfw,
-    language_id: data.language_id,
+    language_id: Some(language_id),
     updated: Some(Some(naive_now())),
     scheduled_publish_time,
     ..Default::default()
