@@ -361,7 +361,7 @@ fn cors_config(settings: &Settings) -> Cors {
           .allow_any_method()
           .allow_any_header()
           .expose_any_header()
-          .max_age(3600);
+          .max_age(3600)
       }
     }
     _ => cors_default,
