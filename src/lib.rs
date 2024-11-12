@@ -358,6 +358,10 @@ fn cors_config(settings: &Settings) -> Cors {
         Cors::default()
           .allowed_origin(&origin)
           .allowed_origin(&self_origin)
+          .allow_any_method()
+          .allow_any_header()
+          .expose_any_header()
+          .max_age(3600);
       }
     }
     _ => cors_default,
