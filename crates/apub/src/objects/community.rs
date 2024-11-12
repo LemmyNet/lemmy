@@ -187,7 +187,9 @@ impl Object for ApubCommunity {
       LanguageTag::to_language_id_multiple(group.language, &mut context.pool()).await?;
 
     let timestamp = group.updated.or(group.published).unwrap_or_else(naive_now);
-    let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
+    let community: ApubCommunity = Community::insert_apub(&mut context.pool(), timestamp, &form)
+      .await?
+      .into();
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
     // Need to fetch mods synchronously, otherwise fetching a post in community with
@@ -197,7 +199,7 @@ impl Object for ApubCommunity {
     }
 
     // These collections are not necessary for Lemmy to work, so ignore errors.
-    let community_: ApubCommunity = community.clone().into();
+    let community_ = community.clone();
     let context_ = context.reset_request_count();
     spawn_try_task(async move {
       group.outbox.dereference(&community_, &context_).await.ok();
