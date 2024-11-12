@@ -11,25 +11,33 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  aliases,
+  aliases::{self, creator_community_actions},
   newtypes::{CommentId, CommentReportId, CommunityId, PersonId},
   schema::{
     comment,
+    comment_actions,
     comment_aggregates,
-    comment_like,
     comment_report,
-    comment_saved,
     community,
-    community_follower,
-    community_moderator,
-    community_person_ban,
+    community_actions,
     local_user,
     person,
-    person_block,
+    person_actions,
     post,
   },
   source::community::CommunityFollower,
-  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{
+    actions,
+    actions_alias,
+    functions::coalesce,
+    get_conn,
+    limit_and_offset,
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+  },
 };
 
 fn queries<'a>() -> Queries<
@@ -46,40 +54,20 @@ fn queries<'a>() -> Queries<
       .inner_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
       )
-      .left_join(
-        comment_like::table.on(
-          comment::id
-            .eq(comment_like::comment_id)
-            .and(comment_like::person_id.eq(my_person_id)),
-        ),
-      )
+      .left_join(actions(
+        comment_actions::table,
+        Some(my_person_id),
+        comment_report::comment_id,
+      ))
       .left_join(
         aliases::person2
           .on(comment_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
       )
-      .left_join(
-        community_person_ban::table.on(
-          community::id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment::creator_id))
-            .and(
-              community_person_ban::expires
-                .is_null()
-                .or(community_person_ban::expires.gt(now)),
-            ),
-        ),
-      )
-      .left_join(
-        aliases::community_moderator1.on(
-          community::id
-            .eq(aliases::community_moderator1.field(community_moderator::community_id))
-            .and(
-              aliases::community_moderator1
-                .field(community_moderator::person_id)
-                .eq(comment::creator_id),
-            ),
-        ),
-      )
+      .left_join(actions_alias(
+        creator_community_actions,
+        comment::creator_id,
+        post::community_id,
+      ))
       .left_join(
         local_user::table.on(
           comment::creator_id
@@ -87,27 +75,16 @@ fn queries<'a>() -> Queries<
             .and(local_user::admin.eq(true)),
         ),
       )
-      .left_join(
-        person_block::table.on(
-          comment::creator_id
-            .eq(person_block::target_id)
-            .and(person_block::person_id.eq(my_person_id)),
-        ),
-      )
-      .left_join(
-        community_follower::table.on(
-          post::community_id
-            .eq(community_follower::community_id)
-            .and(community_follower::person_id.eq(my_person_id)),
-        ),
-      )
-      .left_join(
-        comment_saved::table.on(
-          comment::id
-            .eq(comment_saved::comment_id)
-            .and(comment_saved::person_id.eq(my_person_id)),
-        ),
-      )
+      .left_join(actions(
+        person_actions::table,
+        Some(my_person_id),
+        comment::creator_id,
+      ))
+      .left_join(actions(
+        community_actions::table,
+        Some(my_person_id),
+        post::community_id,
+      ))
       .select((
         comment_report::all_columns,
         comment::all_columns,
@@ -116,16 +93,28 @@ fn queries<'a>() -> Queries<
         person::all_columns,
         aliases::person1.fields(person::all_columns),
         comment_aggregates::all_columns,
-        community_person_ban::community_id.nullable().is_not_null(),
-        aliases::community_moderator1
-          .field(community_moderator::community_id)
+        coalesce(
+          creator_community_actions
+            .field(community_actions::received_ban)
+            .nullable()
+            .is_not_null()
+            .or(
+              creator_community_actions
+                .field(community_actions::ban_expires)
+                .nullable()
+                .gt(now),
+            ),
+          false,
+        ),
+        creator_community_actions
+          .field(community_actions::became_moderator)
           .nullable()
           .is_not_null(),
         local_user::admin.nullable().is_not_null(),
-        person_block::target_id.nullable().is_not_null(),
+        person_actions::blocked.nullable().is_not_null(),
         CommunityFollower::select_subscribed_type(),
-        comment_saved::published.nullable().is_not_null(),
-        comment_like::score.nullable(),
+        comment_actions::saved.nullable().is_not_null(),
+        comment_actions::like_score.nullable(),
         aliases::person2.fields(person::all_columns).nullable(),
       ))
   };
@@ -167,19 +156,10 @@ fn queries<'a>() -> Queries<
 
     // If its not an admin, get only the ones you mod
     if !user.local_user.admin {
-      query
-        .inner_join(
-          community_moderator::table.on(
-            community_moderator::community_id
-              .eq(post::community_id)
-              .and(community_moderator::person_id.eq(user.person.id)),
-          ),
-        )
-        .load::<CommentReportView>(&mut conn)
-        .await
-    } else {
-      query.load::<CommentReportView>(&mut conn).await
+      query = query.filter(community_actions::became_moderator.is_not_null());
     }
+
+    query.load::<CommentReportView>(&mut conn).await
   };
 
   Queries::new(read, list)
@@ -222,10 +202,11 @@ impl CommentReportView {
     if !admin {
       query
         .inner_join(
-          community_moderator::table.on(
-            community_moderator::community_id
+          community_actions::table.on(
+            community_actions::community_id
               .eq(post::community_id)
-              .and(community_moderator::person_id.eq(my_person_id)),
+              .and(community_actions::person_id.eq(my_person_id))
+              .and(community_actions::became_moderator.is_not_null()),
           ),
         )
         .select(count(comment_report::id))

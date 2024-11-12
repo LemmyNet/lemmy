@@ -166,7 +166,6 @@ pub async fn update_read_comments(
     person_id,
     post_id,
     read_comments,
-    ..PersonPostAggregatesForm::default()
   };
 
   PersonPostAggregates::upsert(pool, &person_post_agg_form).await?;
@@ -350,6 +349,16 @@ pub fn check_private_instance(
 ) -> LemmyResult<()> {
   if local_user_view.is_none() && local_site.private_instance {
     Err(LemmyErrorType::InstanceIsPrivate)?
+  } else {
+    Ok(())
+  }
+}
+
+/// If private messages are disabled, dont allow them to be sent / received
+#[tracing::instrument(skip_all)]
+pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
+  if !local_user_view.local_user.enable_private_messages {
+    Err(LemmyErrorType::CouldntCreatePrivateMessage)?
   } else {
     Ok(())
   }

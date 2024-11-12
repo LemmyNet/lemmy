@@ -1282,6 +1282,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "diesel-bind-if-some"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ed8ce9db476124d2eaf4c9db45dc6581b8e8c4c4d47d5e0f39de1fb55dfb2a7"
+dependencies = [
+ "diesel",
+]
+
+[[package]]
 name = "diesel-derive-enum"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2613,6 +2622,7 @@ dependencies = [
  "derive-new",
  "diesel",
  "diesel-async",
+ "diesel-bind-if-some",
  "diesel-derive-enum",
  "diesel-derive-newtype",
  "diesel_ltree",
@@ -2634,6 +2644,7 @@ dependencies = [
  "tokio-postgres-rustls",
  "tracing",
  "ts-rs",
+ "tuplex",
  "url",
  "uuid",
 ]
@@ -5271,6 +5282,12 @@ dependencies = [
  "syn 2.0.77",
  "termcolor",
 ]
+
+[[package]]
+name = "tuplex"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "676ac81d5454c4dcf37955d34fa8626ede3490f744b86ca14a7b90168d2a08aa"
 
 [[package]]
 name = "typenum"

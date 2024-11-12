@@ -22,7 +22,7 @@ use lemmy_db_schema::{
     captcha_answer,
     comment,
     community,
-    community_person_ban,
+    community_actions,
     instance,
     person,
     post,
@@ -36,7 +36,15 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::{functions::coalesce, get_conn, naive_now, now, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{
+    find_action,
+    functions::coalesce,
+    get_conn,
+    naive_now,
+    now,
+    DbPool,
+    DELETED_REPLACEMENT_TEXT,
+  },
 };
 use lemmy_routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use lemmy_utils::error::LemmyResult;
@@ -395,7 +403,7 @@ async fn active_counts(pool: &mut DbPool<'_>) {
 
       for (full_form, abbr) in &intervals {
         let update_site_stmt = format!(
-      "update site_aggregates set users_active_{} = (select * from site_aggregates_activity('{}')) where site_id = 1",
+      "update site_aggregates set users_active_{} = (select * from r.site_aggregates_activity('{}')) where site_id = 1",
       abbr, full_form
     );
         sql_query(update_site_stmt)
@@ -404,7 +412,7 @@ async fn active_counts(pool: &mut DbPool<'_>) {
           .inspect_err(|e| error!("Failed to update site stats: {e}"))
           .ok();
 
-        let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", abbr, full_form);
+        let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", abbr, full_form);
         sql_query(update_community_stmt)
           .execute(&mut conn)
           .await
@@ -439,7 +447,7 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) {
       .ok();
 
       diesel::delete(
-        community_person_ban::table.filter(community_person_ban::expires.lt(now().nullable())),
+        community_actions::table.filter(community_actions::ban_expires.lt(now().nullable())),
       )
       .execute(&mut conn)
       .await
@@ -470,11 +478,10 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
         .filter(not(person::banned.or(person::deleted)))
         .filter(not(community::removed.or(community::deleted)))
         // ensure that user isnt banned from community
-        .filter(not(exists(
-          community_person_ban::table
-            .filter(community_person_ban::community_id.eq(community::id))
-            .filter(community_person_ban::person_id.eq(person::id)),
-        )))
+        .filter(not(exists(find_action(
+          community_actions::received_ban,
+          (person::id, community::id),
+        ))))
         .select((post::all_columns, community::all_columns))
         .get_results::<(Post, Community)>(&mut conn)
         .await
