@@ -37,6 +37,8 @@ full = [
   "tokio-postgres-rustls",
   "rustls",
   "i-love-jesus",
+  "tuplex",
+  "diesel-bind-if-some",
 ]
 
 [dependencies]
@@ -64,7 +66,6 @@ diesel-async = { workspace = true, features = [
 ], optional = true }
 regex = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
-typed-builder = { workspace = true }
 async-trait = { workspace = true }
 tracing = { workspace = true }
 deadpool = { version = "0.12.1", features = ["rt_tokio_1"], optional = true }
@@ -77,13 +78,12 @@ rustls = { workspace = true, optional = true }
 uuid = { workspace = true, features = ["v4"] }
 i-love-jesus = { workspace = true, optional = true }
 anyhow = { workspace = true }
+diesel-bind-if-some = { workspace = true, optional = true }
 moka.workspace = true
 derive-new.workspace = true
+tuplex = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
 diff = "0.1.13"
-
-[package.metadata.cargo-machete]
-ignored = ["strum"]

@@ -2,9 +2,10 @@ use crate::{
   activities::{
     community::send_activity_in_community,
     generate_activity_id,
-    verify_is_public,
+    generate_to,
     verify_mod_action,
     verify_person_in_community,
+    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -17,7 +18,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
-  kinds::{activity::AddType, public},
+  kinds::activity::AddType,
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::{
@@ -36,10 +37,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Joinable},
 };
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  LemmyErrorType,
-};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CollectionAdd {
@@ -56,7 +54,7 @@ impl CollectionAdd {
     )?;
     let add = CollectionAdd {
       actor: actor.id().into(),
-      to: vec![public()],
+      to: vec![generate_to(community)?],
       object: added_mod.id(),
       target: generate_moderators_url(&community.actor_id)?.into(),
       cc: vec![community.id()],
@@ -82,7 +80,7 @@ impl CollectionAdd {
     )?;
     let add = CollectionAdd {
       actor: actor.id().into(),
-      to: vec![public()],
+      to: vec![generate_to(community)?],
       object: featured_post.ap_id.clone().into(),
       target: generate_featured_url(&community.actor_id)?.into(),
       cc: vec![community.id()],
@@ -118,8 +116,8 @@ impl ActivityHandler for CollectionAdd {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
+    verify_visibility(&self.to, &self.cc, &community)?;
     verify_person_in_community(&self.actor, &community, context).await?;
     verify_mod_action(&self.actor, &community, context).await?;
     Ok(())
@@ -129,9 +127,7 @@ impl ActivityHandler for CollectionAdd {
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =
-      Community::get_by_collection_url(&mut context.pool(), &self.target.into())
-        .await?
-        .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+      Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
     match collection_type {
       CollectionType::Moderators => {
         let new_mod = ObjectId::<ApubPerson>::from(self.object)
@@ -188,11 +184,9 @@ pub(crate) async fn send_add_mod_to_community(
   let actor: ApubPerson = actor.into();
   let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?
     .into();
   let updated_mod: ApubPerson = Person::read(&mut context.pool(), updated_mod_id)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?
     .into();
   if added {
     CollectionAdd::send_add_mod(&community, &updated_mod, &actor, &context).await
@@ -211,7 +205,6 @@ pub(crate) async fn send_feature_post(
   let post: ApubPost = post.into();
   let community = Community::read(&mut context.pool(), post.community_id)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?
     .into();
   if featured {
     CollectionAdd::send_add_featured_post(&community, &post, &actor, &context).await

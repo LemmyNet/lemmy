@@ -20,7 +20,6 @@ use diesel::{
 use diesel_migrations::MigrationHarness;
 use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 use std::time::Instant;
-use tracing::info;
 
 diesel::table! {
   pg_namespace (nspname) {
@@ -74,7 +73,7 @@ impl<'a> MigrationHarnessWrapper<'a> {
 
     let duration = start_time.elapsed().as_millis();
     let name = migration.name();
-    info!("{duration}ms run {name}");
+    println!("{duration}ms run {name}");
 
     result
   }
@@ -117,7 +116,7 @@ impl<'a> MigrationHarness<Pg> for MigrationHarnessWrapper<'a> {
 
     let duration = start_time.elapsed().as_millis();
     let name = migration.name();
-    info!("{duration}ms revert {name}");
+    println!("{duration}ms revert {name}");
 
     result
   }
@@ -197,9 +196,9 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
 
   // Block concurrent attempts to run migrations until `conn` is closed, and disable the
   // trigger that prevents the Diesel CLI from running migrations
-  info!("Waiting for lock...");
+  println!("Waiting for lock...");
   conn.batch_execute("SELECT pg_advisory_lock(0);")?;
-  info!("Running Database migrations (This may take a long time)...");
+  println!("Running Database migrations (This may take a long time)...");
 
   // Drop `r` schema, so migrations don't need to be made to work both with and without things in
   // it existing
@@ -232,7 +231,7 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
     Branch::ReplaceableSchemaNotRebuilt
   };
 
-  info!("Database migrations complete.");
+  println!("Database migrations complete.");
 
   Ok(output)
 }

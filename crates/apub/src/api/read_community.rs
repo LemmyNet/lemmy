@@ -13,7 +13,7 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn get_community(
@@ -36,8 +36,7 @@ pub async fn get_community(
     None => {
       let name = data.name.clone().unwrap_or_else(|| "main".to_string());
       resolve_actor_identifier::<ApubCommunity, Community>(&name, &context, &local_user_view, true)
-        .await
-        .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?
+        .await?
         .id
     }
   };
@@ -56,12 +55,9 @@ pub async fn get_community(
     local_user,
     is_mod_or_admin,
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  .await?;
 
-  let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntFindCommunity)?;
+  let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
   let site = read_site_for_actor(community_view.community.actor_id.clone(), &context).await?;
 

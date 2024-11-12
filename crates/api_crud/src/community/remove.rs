@@ -23,9 +23,10 @@ pub async fn remove_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
+  let community = Community::read(&mut context.pool(), data.community_id).await?;
   check_community_mod_action(
     &local_user_view.person,
-    data.community_id,
+    &community,
     true,
     &mut context.pool(),
   )
@@ -65,8 +66,7 @@ pub async fn remove_community(
       removed: data.removed,
     },
     &context,
-  )
-  .await?;
+  )?;
 
   build_community_response(&context, local_user_view, community_id).await
 }

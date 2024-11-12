@@ -47,9 +47,13 @@ pub struct MarkPrivateMessageAsRead {
 #[cfg_attr(feature = "full", ts(export))]
 /// Get your private messages.
 pub struct GetPrivateMessages {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub unread_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub creator_id: Option<PersonId>,
 }
 
@@ -102,9 +106,12 @@ pub struct ResolvePrivateMessageReport {
 /// List private message reports.
 // TODO , perhaps GetReports should be a tagged enum list too.
 pub struct ListPrivateMessageReports {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
   /// Only shows the unresolved reports
+  #[cfg_attr(feature = "full", ts(optional))]
   pub unresolved_only: Option<bool>,
 }
 

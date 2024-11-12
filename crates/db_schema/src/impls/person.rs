@@ -1,7 +1,7 @@
 use crate::{
   diesel::OptionalExtension,
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
-  schema::{comment, community, instance, local_user, person, person_follower, post},
+  schema::{comment, community, instance, local_user, person, person_actions, post},
   source::person::{
     Person,
     PersonFollower,
@@ -10,17 +10,20 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Crud, Followable},
-  utils::{functions::lower, get_conn, naive_now, DbPool},
+  utils::{action_query, functions::lower, get_conn, naive_now, now, uplete, DbPool},
 };
 use diesel::{
   dsl::{insert_into, not},
+  expression::SelectableHelper,
   result::Error,
   CombineDsl,
   ExpressionMethods,
   JoinOnDsl,
+  NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[async_trait]
 impl Crud for Person {
@@ -29,14 +32,13 @@ impl Crud for Person {
   type IdType = PersonId;
 
   // Override this, so that you don't get back deleted
-  async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Option<Self>, Error> {
+  async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     person::table
       .filter(person::deleted.eq(false))
       .find(person_id)
       .first(conn)
       .await
-      .optional()
   }
 
   async fn create(pool: &mut DbPool<'_>, form: &PersonInsertForm) -> Result<Self, Error> {
@@ -121,6 +123,20 @@ impl Person {
       .load::<CommunityId>(conn)
       .await
   }
+
+  pub async fn check_username_taken(pool: &mut DbPool<'_>, username: &str) -> LemmyResult<()> {
+    use diesel::dsl::{exists, select};
+    let conn = &mut get_conn(pool).await?;
+    select(not(exists(
+      person::table
+        .filter(lower(person::name).eq(username.to_lowercase()))
+        .filter(person::local.eq(true)),
+    )))
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::UsernameAlreadyExists.into())
+  }
 }
 
 impl PersonInsertForm {
@@ -183,11 +199,13 @@ impl Followable for PersonFollower {
   type Form = PersonFollowerForm;
   async fn follow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(person_follower::table)
+    let form = (form, person_actions::followed.eq(now().nullable()));
+    insert_into(person_actions::table)
       .values(form)
-      .on_conflict((person_follower::follower_id, person_follower::person_id))
+      .on_conflict((person_actions::person_id, person_actions::target_id))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
@@ -197,10 +215,15 @@ impl Followable for PersonFollower {
     Err(Error::NotFound)
   }
 
-  async fn unfollow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<usize, Error> {
+  async fn unfollow(
+    pool: &mut DbPool<'_>,
+    form: &PersonFollowerForm,
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(person_follower::table.find((form.follower_id, form.person_id)))
-      .execute(conn)
+    uplete::new(person_actions::table.find((form.follower_id, form.person_id)))
+      .set_null(person_actions::followed)
+      .set_null(person_actions::follow_pending)
+      .get_result(conn)
       .await
   }
 }
@@ -211,9 +234,9 @@ impl PersonFollower {
     for_person_id: PersonId,
   ) -> Result<Vec<Person>, Error> {
     let conn = &mut get_conn(pool).await?;
-    person_follower::table
-      .inner_join(person::table.on(person_follower::follower_id.eq(person::id)))
-      .filter(person_follower::person_id.eq(for_person_id))
+    action_query(person_actions::followed)
+      .inner_join(person::table.on(person_actions::person_id.eq(person::id)))
+      .filter(person_actions::target_id.eq(for_person_id))
       .select(person::all_columns)
       .load(conn)
       .await
@@ -221,7 +244,6 @@ impl PersonFollower {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{
@@ -230,16 +252,16 @@ mod tests {
       person::{Person, PersonFollower, PersonFollowerForm, PersonInsertForm, PersonUpdateForm},
     },
     traits::{Crud, Followable},
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, uplete},
   };
-  use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
   async fn test_crud() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
@@ -266,15 +288,12 @@ mod tests {
       public_key: "pubkey".to_owned(),
       last_refreshed_at: inserted_person.published,
       inbox_url: inserted_person.inbox_url.clone(),
-      shared_inbox_url: None,
       matrix_user_id: None,
       ban_expires: None,
       instance_id: inserted_instance.id,
     };
 
-    let read_person = Person::read(pool, inserted_person.id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    let read_person = Person::read(pool, inserted_person.id).await?;
 
     let update_person_form = PersonUpdateForm {
       actor_id: Some(inserted_person.actor_id.clone()),
@@ -296,7 +315,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn follow() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
@@ -319,7 +338,7 @@ mod tests {
     assert_eq!(vec![person_2], followers);
 
     let unfollow = PersonFollower::unfollow(pool, &follow_form).await?;
-    assert_eq!(1, unfollow);
+    assert_eq!(uplete::Count::only_deleted(1), unfollow);
 
     Ok(())
   }

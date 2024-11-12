@@ -7,11 +7,12 @@ use lemmy_db_schema::{
     local_site_url_blocklist::LocalSiteUrlBlocklist,
     local_user::{LocalUser, LocalUserUpdateForm},
     moderator::{ModAdd, ModAddForm},
+    oauth_provider::OAuthProvider,
     tagline::Tagline,
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{CustomEmojiView, LocalUserView, SiteView};
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
@@ -55,17 +56,14 @@ pub async fn leave_admin(
   ModAdd::create(&mut context.pool(), &form).await?;
 
   // Reread site and admins
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   let admins = PersonView::admins(&mut context.pool()).await?;
 
   let all_languages = Language::read_all(&mut context.pool()).await?;
   let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
-  let taglines = Tagline::get_all(&mut context.pool(), site_view.local_site.id).await?;
-  let custom_emojis =
-    CustomEmojiView::get_all(&mut context.pool(), site_view.local_site.id).await?;
+  let oauth_providers = OAuthProvider::get_all_public(&mut context.pool()).await?;
   let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
+  let tagline = Tagline::get_random(&mut context.pool()).await.ok();
 
   Ok(Json(GetSiteResponse {
     site_view,
@@ -74,8 +72,11 @@ pub async fn leave_admin(
     my_user: None,
     all_languages,
     discussion_languages,
-    taglines,
-    custom_emojis,
+    oauth_providers: Some(oauth_providers),
+    admin_oauth_providers: None,
     blocked_urls,
+    tagline,
+    taglines: vec![],
+    custom_emojis: vec![],
   }))
 }

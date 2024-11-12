@@ -2,15 +2,16 @@
 use crate::newtypes::LtreeDef;
 use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
-use crate::schema::{comment, comment_like, comment_saved};
+use crate::schema::{comment, comment_actions};
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use diesel::{dsl, expression_methods::NullableExpressionMethods};
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -31,6 +32,7 @@ pub struct Comment {
   /// Whether the comment has been removed.
   pub removed: bool,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
   /// Whether the comment has been deleted by its creator.
   pub deleted: bool,
@@ -51,24 +53,28 @@ pub struct Comment {
   pub language_id: LanguageId,
 }
 
-#[derive(Debug, Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Debug, Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 pub struct CommentInsertForm {
-  #[builder(!default)]
   pub creator_id: PersonId,
-  #[builder(!default)]
   pub post_id: PostId,
-  #[builder(!default)]
   pub content: String,
+  #[new(default)]
   pub removed: Option<bool>,
+  #[new(default)]
   pub published: Option<DateTime<Utc>>,
+  #[new(default)]
   pub updated: Option<DateTime<Utc>>,
+  #[new(default)]
   pub deleted: Option<bool>,
+  #[new(default)]
   pub ap_id: Option<DbUrl>,
+  #[new(default)]
   pub local: Option<bool>,
+  #[new(default)]
   pub distinguished: Option<bool>,
+  #[new(default)]
   pub language_id: Option<LanguageId>,
 }
 
@@ -93,24 +99,27 @@ pub struct CommentUpdateForm {
   derive(Identifiable, Queryable, Selectable, Associations)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
-#[cfg_attr(feature = "full", diesel(table_name = comment_like))]
+#[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct CommentLike {
   pub person_id: PersonId,
   pub comment_id: CommentId,
-  pub post_id: PostId, // TODO this is redundant
+  #[cfg_attr(feature = "full", diesel(select_expression = comment_actions::like_score.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::like_score>))]
   pub score: i16,
+  #[cfg_attr(feature = "full", diesel(select_expression = comment_actions::liked.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::liked>))]
   pub published: DateTime<Utc>,
 }
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = comment_like))]
+#[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 pub struct CommentLikeForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,
-  pub post_id: PostId, // TODO this is redundant
+  #[cfg_attr(feature = "full", diesel(column_name = like_score))]
   pub score: i16,
 }
 
@@ -120,17 +129,19 @@ pub struct CommentLikeForm {
   derive(Identifiable, Queryable, Selectable, Associations)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::comment::Comment)))]
-#[cfg_attr(feature = "full", diesel(table_name = comment_saved))]
+#[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, comment_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct CommentSaved {
   pub comment_id: CommentId,
   pub person_id: PersonId,
+  #[cfg_attr(feature = "full", diesel(select_expression = comment_actions::saved.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<comment_actions::saved>))]
   pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = comment_saved))]
+#[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 pub struct CommentSavedForm {
   pub comment_id: CommentId,
   pub person_id: PersonId,

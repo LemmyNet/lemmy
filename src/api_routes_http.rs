@@ -17,6 +17,12 @@ use lemmy_api::{
     block::block_community,
     follow::follow_community,
     hide::hide_community,
+    pending_follows::{
+      approve::post_pending_follows_approve,
+      count::get_pending_follows_count,
+      list::get_pending_follows_list,
+    },
+    random::get_random_community,
     transfer::transfer_community,
   },
   local_user::{
@@ -107,7 +113,13 @@ use lemmy_api_crud::{
   custom_emoji::{
     create::create_custom_emoji,
     delete::delete_custom_emoji,
+    list::list_custom_emojis,
     update::update_custom_emoji,
+  },
+  oauth_provider::{
+    create::create_oauth_provider,
+    delete::delete_oauth_provider,
+    update::update_oauth_provider,
   },
   post::{
     create::create_post,
@@ -123,7 +135,16 @@ use lemmy_api_crud::{
     update::update_private_message,
   },
   site::{create::create_site, read::get_site, update::update_site},
-  user::{create::register, delete::delete_account},
+  tagline::{
+    create::create_tagline,
+    delete::delete_tagline,
+    list::list_taglines,
+    update::update_tagline,
+  },
+  user::{
+    create::{authenticate_with_oauth, register},
+    delete::delete_account,
+  },
 };
 use lemmy_apub::api::{
   list_comments::list_comments,
@@ -178,6 +199,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.message())
           .route("", web::get().to(get_community))
           .route("", web::put().to(update_community))
+          .route("/random", web::get().to(get_random_community))
           .route("/hide", web::put().to(hide_community))
           .route("/list", web::get().to(list_communities))
           .route("/follow", web::post().to(follow_community))
@@ -187,7 +209,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/remove", web::post().to(remove_community))
           .route("/transfer", web::post().to(transfer_community))
           .route("/ban_user", web::post().to(ban_from_community))
-          .route("/mod", web::post().to(add_mod_to_community)),
+          .route("/mod", web::post().to(add_mod_to_community))
+          .service(
+            web::scope("/pending_follows")
+              .wrap(rate_limit.message())
+              .route("/count", web::get().to(get_pending_follows_count))
+              .route("/list", web::get().to(get_pending_follows_list))
+              .route("/approve", web::post().to(post_pending_follows_approve)),
+          ),
       )
       .service(
         web::scope("/federated_instances")
@@ -373,6 +402,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/community", web::post().to(purge_community))
               .route("/post", web::post().to(purge_post))
               .route("/comment", web::post().to(purge_comment)),
+          )
+          .service(
+            web::scope("/tagline")
+              .wrap(rate_limit.message())
+              .route("", web::post().to(create_tagline))
+              .route("", web::put().to(update_tagline))
+              .route("/delete", web::post().to(delete_tagline))
+              .route("/list", web::get().to(list_taglines)),
           ),
       )
       .service(
@@ -380,7 +417,20 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.message())
           .route("", web::post().to(create_custom_emoji))
           .route("", web::put().to(update_custom_emoji))
-          .route("/delete", web::post().to(delete_custom_emoji)),
+          .route("/delete", web::post().to(delete_custom_emoji))
+          .route("/list", web::get().to(list_custom_emojis)),
+      )
+      .service(
+        web::scope("/oauth_provider")
+          .wrap(rate_limit.message())
+          .route("", web::post().to(create_oauth_provider))
+          .route("", web::put().to(update_oauth_provider))
+          .route("/delete", web::post().to(delete_oauth_provider)),
+      )
+      .service(
+        web::scope("/oauth")
+          .wrap(rate_limit.register())
+          .route("/authenticate", web::post().to(authenticate_with_oauth)),
       ),
   );
   cfg.service(

@@ -36,9 +36,7 @@ pub async fn save_user_settings(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&site_view.local_site);
   let url_blocklist = get_url_blocklist(&context).await?;
@@ -65,9 +63,7 @@ pub async fn save_user_settings(
     let previous_email = local_user_view.local_user.email.clone().unwrap_or_default();
     // if email was changed, check that it is not taken and send verification mail
     if previous_email.deref() != email {
-      if LocalUser::is_email_taken(&mut context.pool(), email).await? {
-        return Err(LemmyErrorType::EmailAlreadyExists)?;
-      }
+      LocalUser::check_is_email_taken(&mut context.pool(), email).await?;
       send_verification_email(
         &local_user_view,
         email,
@@ -104,7 +100,8 @@ pub async fn save_user_settings(
   let local_user_id = local_user_view.local_user.id;
   let person_id = local_user_view.person.id;
   let default_listing_type = data.default_listing_type;
-  let default_sort_type = data.default_sort_type;
+  let default_post_sort_type = data.default_post_sort_type;
+  let default_comment_sort_type = data.default_comment_sort_type;
 
   let person_form = PersonUpdateForm {
     display_name,
@@ -133,10 +130,9 @@ pub async fn save_user_settings(
     send_notifications_to_email: data.send_notifications_to_email,
     show_nsfw: data.show_nsfw,
     blur_nsfw: data.blur_nsfw,
-    auto_expand: data.auto_expand,
     show_bot_accounts: data.show_bot_accounts,
-    show_scores: data.show_scores,
-    default_sort_type,
+    default_post_sort_type,
+    default_comment_sort_type,
     default_listing_type,
     theme: data.theme.clone(),
     interface_language: data.interface_language.clone(),
@@ -145,6 +141,7 @@ pub async fn save_user_settings(
     post_listing_mode: data.post_listing_mode,
     enable_keyboard_navigation: data.enable_keyboard_navigation,
     enable_animated_images: data.enable_animated_images,
+    enable_private_messages: data.enable_private_messages,
     collapse_bot_comments: data.collapse_bot_comments,
     ..Default::default()
   };

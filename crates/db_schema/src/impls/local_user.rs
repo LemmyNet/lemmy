@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, LanguageId, LocalUserId, PersonId},
-  schema::{community, community_moderator, local_user, person, registration_application},
+  schema::{community, community_actions, local_user, person, registration_application},
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
@@ -8,6 +8,7 @@ use crate::{
     site::Site,
   },
   utils::{
+    action_query,
     functions::{coalesce, lower},
     get_conn,
     now,
@@ -35,9 +36,11 @@ impl LocalUser {
   ) -> Result<LocalUser, Error> {
     let conn = &mut get_conn(pool).await?;
     let mut form_with_encrypted_password = form.clone();
-    let password_hash =
-      hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
-    form_with_encrypted_password.password_encrypted = password_hash;
+
+    if let Some(password_encrypted) = &form.password_encrypted {
+      let password_hash = hash(password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
+      form_with_encrypted_password.password_encrypted = Some(password_hash);
+    }
 
     let local_user_ = insert_into(local_user::table)
       .values(form_with_encrypted_password)
@@ -47,9 +50,7 @@ impl LocalUser {
     LocalUserLanguage::update(pool, languages, local_user_.id).await?;
 
     // Create their vote_display_modes
-    let vote_display_mode_form = LocalUserVoteDisplayModeInsertForm::builder()
-      .local_user_id(local_user_.id)
-      .build();
+    let vote_display_mode_form = LocalUserVoteDisplayModeInsertForm::new(local_user_.id);
     LocalUserVoteDisplayMode::create(pool, &vote_display_mode_form).await?;
 
     Ok(local_user_)
@@ -136,14 +137,16 @@ impl LocalUser {
     diesel::delete(persons).execute(conn).await
   }
 
-  pub async fn is_email_taken(pool: &mut DbPool<'_>, email: &str) -> Result<bool, Error> {
+  pub async fn check_is_email_taken(pool: &mut DbPool<'_>, email: &str) -> LemmyResult<()> {
     use diesel::dsl::{exists, select};
     let conn = &mut get_conn(pool).await?;
-    select(exists(local_user::table.filter(
+    select(not(exists(local_user::table.filter(
       lower(coalesce(local_user::email, "")).eq(email.to_lowercase()),
-    )))
-    .get_result(conn)
-    .await
+    ))))
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::EmailAlreadyExists.into())
   }
 
   // TODO: maybe move this and pass in LocalUserView
@@ -153,55 +156,54 @@ impl LocalUser {
   ) -> Result<UserBackupLists, Error> {
     use crate::schema::{
       comment,
-      comment_saved,
+      comment_actions,
       community,
-      community_block,
-      community_follower,
+      community_actions,
       instance,
-      instance_block,
-      person_block,
+      instance_actions,
+      person_actions,
       post,
-      post_saved,
+      post_actions,
     };
     let conn = &mut get_conn(pool).await?;
 
-    let followed_communities = community_follower::dsl::community_follower
-      .filter(community_follower::person_id.eq(person_id_))
-      .inner_join(community::table.on(community_follower::community_id.eq(community::id)))
-      .select(community::actor_id)
-      .get_results(conn)
-      .await?;
-
-    let saved_posts = post_saved::dsl::post_saved
-      .filter(post_saved::person_id.eq(person_id_))
-      .inner_join(post::table.on(post_saved::post_id.eq(post::id)))
-      .select(post::ap_id)
-      .get_results(conn)
-      .await?;
-
-    let saved_comments = comment_saved::dsl::comment_saved
-      .filter(comment_saved::person_id.eq(person_id_))
-      .inner_join(comment::table.on(comment_saved::comment_id.eq(comment::id)))
-      .select(comment::ap_id)
-      .get_results(conn)
-      .await?;
-
-    let blocked_communities = community_block::dsl::community_block
-      .filter(community_block::person_id.eq(person_id_))
+    let followed_communities = action_query(community_actions::followed)
+      .filter(community_actions::person_id.eq(person_id_))
       .inner_join(community::table)
       .select(community::actor_id)
       .get_results(conn)
       .await?;
 
-    let blocked_users = person_block::dsl::person_block
-      .filter(person_block::person_id.eq(person_id_))
-      .inner_join(person::table.on(person_block::target_id.eq(person::id)))
+    let saved_posts = action_query(post_actions::saved)
+      .filter(post_actions::person_id.eq(person_id_))
+      .inner_join(post::table)
+      .select(post::ap_id)
+      .get_results(conn)
+      .await?;
+
+    let saved_comments = action_query(comment_actions::saved)
+      .filter(comment_actions::person_id.eq(person_id_))
+      .inner_join(comment::table)
+      .select(comment::ap_id)
+      .get_results(conn)
+      .await?;
+
+    let blocked_communities = action_query(community_actions::blocked)
+      .filter(community_actions::person_id.eq(person_id_))
+      .inner_join(community::table)
+      .select(community::actor_id)
+      .get_results(conn)
+      .await?;
+
+    let blocked_users = action_query(person_actions::blocked)
+      .filter(person_actions::person_id.eq(person_id_))
+      .inner_join(person::table.on(person_actions::target_id.eq(person::id)))
       .select(person::actor_id)
       .get_results(conn)
       .await?;
 
-    let blocked_instances = instance_block::dsl::instance_block
-      .filter(instance_block::person_id.eq(person_id_))
+    let blocked_instances = action_query(instance_actions::blocked)
+      .filter(instance_actions::person_id.eq(person_id_))
       .inner_join(instance::table)
       .select(instance::domain)
       .get_results(conn)
@@ -268,11 +270,11 @@ impl LocalUser {
       .order_by(local_user::id)
       .select(local_user::person_id);
 
-    let mods = community_moderator::table
-      .filter(community_moderator::community_id.eq(for_community_id))
-      .filter(community_moderator::person_id.eq_any(&persons))
-      .order_by(community_moderator::published)
-      .select(community_moderator::person_id);
+    let mods = action_query(community_actions::became_moderator)
+      .filter(community_actions::community_id.eq(for_community_id))
+      .filter(community_actions::person_id.eq_any(&persons))
+      .order_by(community_actions::became_moderator)
+      .select(community_actions::person_id);
 
     let res = admins.union_all(mods).get_results::<PersonId>(conn).await?;
     let first_person = res.as_slice().first().ok_or(LemmyErrorType::NotHigherMod)?;
@@ -329,6 +331,7 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
       .unwrap_or(site.content_warning.is_some())
   }
 
+  // TODO: use this function for private community checks, but the generics get extremely confusing
   fn visible_communities_only<Q>(&self, query: Q) -> Q
   where
     Q: diesel::query_dsl::methods::FilterDsl<
@@ -346,7 +349,7 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
 
 impl LocalUserInsertForm {
   pub fn test_form(person_id: PersonId) -> Self {
-    Self::new(person_id, String::new())
+    Self::new(person_id, Some(String::new()))
   }
 
   pub fn test_form_admin(person_id: PersonId) -> Self {
@@ -367,7 +370,6 @@ pub struct UserBackupLists {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
   use crate::{
     source::{
@@ -384,7 +386,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_admin_higher_check() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
@@ -416,6 +418,34 @@ mod tests {
     assert!(delores_higher_check.is_err());
 
     Instance::delete(pool, inserted_instance.id).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_email_taken() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+
+    let darwin_email = "charles.darwin@gmail.com";
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let darwin_person = PersonInsertForm::test_form(inserted_instance.id, "darwin");
+    let inserted_darwin_person = Person::create(pool, &darwin_person).await?;
+
+    let mut darwin_local_user_form =
+      LocalUserInsertForm::test_form_admin(inserted_darwin_person.id);
+    darwin_local_user_form.email = Some(darwin_email.into());
+    let _inserted_darwin_local_user =
+      LocalUser::create(pool, &darwin_local_user_form, vec![]).await?;
+
+    let check = LocalUser::check_is_email_taken(pool, darwin_email).await;
+    assert!(check.is_err());
+
+    let passed_check = LocalUser::check_is_email_taken(pool, "not_charles@gmail.com").await;
+    assert!(passed_check.is_ok());
 
     Ok(())
   }

@@ -41,12 +41,11 @@ pub async fn update_comment(
     comment_id,
     Some(&local_user_view.local_user),
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindComment)?;
+  .await?;
 
   check_community_user_action(
     &local_user_view.person,
-    orig_comment.community.id,
+    &orig_comment.community,
     &mut context.pool(),
   )
   .await?;
@@ -56,13 +55,14 @@ pub async fn update_comment(
     Err(LemmyErrorType::NoCommentEditAllowed)?
   }
 
-  let language_id = data.language_id;
-  CommunityLanguage::is_allowed_community_language(
-    &mut context.pool(),
-    language_id,
-    orig_comment.community.id,
-  )
-  .await?;
+  if let Some(language_id) = data.language_id {
+    CommunityLanguage::is_allowed_community_language(
+      &mut context.pool(),
+      language_id,
+      orig_comment.community.id,
+    )
+    .await?;
+  }
 
   let slur_regex = local_site_to_slur_regex(&local_site);
   let url_blocklist = get_url_blocklist(&context).await?;
@@ -98,8 +98,7 @@ pub async fn update_comment(
   ActivityChannel::submit_activity(
     SendActivityData::UpdateComment(updated_comment.clone()),
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(
     build_comment_response(

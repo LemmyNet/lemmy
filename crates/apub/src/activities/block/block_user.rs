@@ -1,3 +1,4 @@
+use super::to_and_audience;
 use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
@@ -7,6 +8,7 @@ use crate::{
     verify_is_public,
     verify_mod_action,
     verify_person_in_community,
+    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -15,7 +17,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  kinds::{activity::BlockType, public},
+  kinds::activity::BlockType,
   protocol::verification::verify_domains_match,
   traits::{ActivityHandler, Actor},
 };
@@ -23,7 +25,7 @@ use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{remove_user_data, remove_user_data_in_community},
+  utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
 };
 use lemmy_db_schema::{
   source::{
@@ -39,10 +41,7 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  LemmyErrorType,
-};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
 use url::Url;
 
 impl BlockUser {
@@ -55,14 +54,10 @@ impl BlockUser {
     expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<BlockUser> {
-    let audience = if let SiteOrCommunity::Community(c) = target {
-      Some(c.id().into())
-    } else {
-      None
-    };
+    let (to, audience) = to_and_audience(target)?;
     Ok(BlockUser {
       actor: mod_.id().into(),
-      to: vec![public()],
+      to,
       object: user.id().into(),
       cc: generate_cc(target, &mut context.pool()).await?,
       target: target.id(),
@@ -74,7 +69,6 @@ impl BlockUser {
         &context.settings().get_protocol_and_hostname(),
       )?,
       audience,
-      expires,
       end_time: expires,
     })
   }
@@ -129,14 +123,14 @@ impl ActivityHandler for BlockUser {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    verify_is_public(&self.to, &self.cc)?;
     match self.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
+        verify_is_public(&self.to, &self.cc)?;
         let domain = self
           .object
           .inner()
           .domain()
-          .ok_or(LemmyErrorType::UrlWithoutDomain)?;
+          .ok_or(FederationError::UrlWithoutDomain)?;
         if context.settings().hostname == domain {
           return Err(
             anyhow!("Site bans from remote instance can't affect user's home instance").into(),
@@ -147,6 +141,7 @@ impl ActivityHandler for BlockUser {
         verify_domains_match(&site.id(), self.object.inner())?;
       }
       SiteOrCommunity::Community(community) => {
+        verify_visibility(&self.to, &self.cc, &community)?;
         verify_person_in_community(&self.actor, &community, context).await?;
         verify_mod_action(&self.actor, &community, context).await?;
       }
@@ -157,10 +152,11 @@ impl ActivityHandler for BlockUser {
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
-    let expires = self.expires.or(self.end_time).map(Into::into);
+    let expires = self.end_time.map(Into::into);
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;
+    let reason = self.summary;
     match target {
       SiteOrCommunity::Site(_site) => {
         let blocked_person = Person::update(
@@ -174,14 +170,15 @@ impl ActivityHandler for BlockUser {
         )
         .await?;
         if self.remove_data.unwrap_or(false) {
-          remove_user_data(blocked_person.id, context).await?;
+          remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
+            .await?;
         }
 
         // write mod log
         let form = ModBanForm {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
-          reason: self.summary,
+          reason,
           banned: Some(true),
           expires,
         };
@@ -196,18 +193,21 @@ impl ActivityHandler for BlockUser {
         CommunityPersonBan::ban(&mut context.pool(), &community_user_ban_form).await?;
 
         // Also unsubscribe them from the community, if they are subscribed
-        let community_follower_form = CommunityFollowerForm {
-          community_id: community.id,
-          person_id: blocked_person.id,
-          pending: false,
-        };
+        let community_follower_form = CommunityFollowerForm::new(community.id, blocked_person.id);
         CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
           .await
           .ok();
 
         if self.remove_data.unwrap_or(false) {
-          remove_user_data_in_community(community.id, blocked_person.id, &mut context.pool())
-            .await?;
+          remove_or_restore_user_data_in_community(
+            community.id,
+            mod_person.id,
+            blocked_person.id,
+            true,
+            &reason,
+            &mut context.pool(),
+          )
+          .await?;
         }
 
         // write to mod log
@@ -215,7 +215,7 @@ impl ActivityHandler for BlockUser {
           mod_person_id: mod_person.id,
           other_person_id: blocked_person.id,
           community_id: community.id,
-          reason: self.summary,
+          reason,
           banned: Some(true),
           expires,
         };

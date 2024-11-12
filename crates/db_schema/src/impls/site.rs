@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{DbUrl, InstanceId, SiteId},
-  schema::site,
+  schema::{local_site, site},
   source::{
     actor_language::SiteLanguage,
     site::{Site, SiteInsertForm, SiteUpdateForm},
@@ -10,6 +10,7 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use url::Url;
 
 #[async_trait]
@@ -19,7 +20,7 @@ impl Crud for Site {
   type IdType = SiteId;
 
   /// Use SiteView::read_local, or Site::read_from_apub_id instead
-  async fn read(_pool: &mut DbPool<'_>, _site_id: SiteId) -> Result<Option<Self>, Error> {
+  async fn read(_pool: &mut DbPool<'_>, _site_id: SiteId) -> Result<Self, Error> {
     Err(Error::NotFound)
   }
 
@@ -101,5 +102,19 @@ impl Site {
     url.set_path("");
     url.set_query(None);
     url
+  }
+
+  pub async fn read_local(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+
+    Ok(
+      site::table
+        .inner_join(local_site::table)
+        .select(site::all_columns)
+        .first(conn)
+        .await
+        .optional()?
+        .ok_or(LemmyErrorType::LocalSiteNotSetup)?,
+    )
   }
 }

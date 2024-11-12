@@ -3,8 +3,9 @@ use crate::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     generate_activity_id,
-    verify_is_public,
+    generate_to,
     verify_person_in_community,
+    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -18,7 +19,6 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
-  kinds::public,
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
@@ -42,7 +42,6 @@ use lemmy_db_schema::{
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
-  LemmyErrorType,
 };
 use url::Url;
 
@@ -56,17 +55,11 @@ impl CreateOrUpdateNote {
   ) -> LemmyResult<()> {
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
-    let post = Post::read(&mut context.pool(), post_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPost)?;
+    let post = Post::read(&mut context.pool(), post_id).await?;
     let community_id = post.community_id;
-    let person: ApubPerson = Person::read(&mut context.pool(), person_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?
-      .into();
+    let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
     let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
       .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?
       .into();
 
     let id = generate_activity_id(
@@ -77,7 +70,7 @@ impl CreateOrUpdateNote {
 
     let create_or_update = CreateOrUpdateNote {
       actor: person.id().into(),
-      to: vec![public()],
+      to: vec![generate_to(&community)?],
       cc: note.cc.clone(),
       tag: note.tag.clone(),
       object: note,
@@ -125,9 +118,9 @@ impl ActivityHandler for CreateOrUpdateNote {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    verify_is_public(&self.to, &self.cc)?;
     let post = self.object.get_parents(context).await?.0;
     let community = self.community(context).await?;
+    verify_visibility(&self.to, &self.cc, &community)?;
 
     verify_person_in_community(&self.actor, &community, context).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
@@ -160,7 +153,6 @@ impl ActivityHandler for CreateOrUpdateNote {
     // author likes their own comment by default
     let like_form = CommentLikeForm {
       comment_id: comment.id,
-      post_id: comment.post_id,
       person_id: comment.creator_id,
       score: 1,
     };

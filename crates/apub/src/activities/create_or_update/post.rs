@@ -3,8 +3,9 @@ use crate::{
     check_community_deleted_or_removed,
     community::send_activity_in_community,
     generate_activity_id,
-    verify_is_public,
+    generate_to,
     verify_person_in_community,
+    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -16,7 +17,6 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  kinds::public,
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
@@ -32,7 +32,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CreateOrUpdatePage {
@@ -49,7 +49,7 @@ impl CreateOrUpdatePage {
     )?;
     Ok(CreateOrUpdatePage {
       actor: actor.id().into(),
-      to: vec![public()],
+      to: vec![generate_to(community)?],
       object: post.into_json(context).await?,
       cc: vec![community.id()],
       kind,
@@ -66,13 +66,9 @@ impl CreateOrUpdatePage {
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let community_id = post.community_id;
-    let person: ApubPerson = Person::read(&mut context.pool(), person_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?
-      .into();
+    let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
     let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
       .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?
       .into();
 
     let create_or_update =
@@ -106,8 +102,8 @@ impl ActivityHandler for CreateOrUpdatePage {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    verify_is_public(&self.to, &self.cc)?;
     let community = self.community(context).await?;
+    verify_visibility(&self.to, &self.cc, &community)?;
     verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;

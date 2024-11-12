@@ -1,4 +1,5 @@
 use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use clearurls::UrlCleaner;
 use itertools::Itertools;
 use regex::{Regex, RegexBuilder, RegexSet};
 use std::sync::LazyLock;
@@ -10,17 +11,13 @@ static VALID_MATRIX_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     .expect("compile regex")
 });
 // taken from https://en.wikipedia.org/wiki/UTM_parameters
-static CLEAN_URL_PARAMS_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(
-    r"^(utm_source|utm_medium|utm_campaign|utm_term|utm_content|gclid|gclsrc|dclid|fbclid)=",
-  )
-  .expect("compile regex")
-});
+static URL_CLEANER: LazyLock<UrlCleaner> =
+  LazyLock::new(|| UrlCleaner::from_embedded_rules().expect("compile clearurls"));
 const ALLOWED_POST_URL_SCHEMES: [&str; 3] = ["http", "https", "magnet"];
 
 const BODY_MAX_LENGTH: usize = 10000;
 const POST_BODY_MAX_LENGTH: usize = 50000;
-const BIO_MAX_LENGTH: usize = 300;
+const BIO_MAX_LENGTH: usize = 1000;
 const URL_MAX_LENGTH: usize = 2000;
 const ALT_TEXT_MAX_LENGTH: usize = 1500;
 const SITE_NAME_MAX_LENGTH: usize = 20;
@@ -194,8 +191,8 @@ pub fn site_name_length_check(name: &str) -> LemmyResult<()> {
   )
 }
 
-/// Checks the site description length, the limit as defined in the DB.
-pub fn site_description_length_check(description: &str) -> LemmyResult<()> {
+/// Checks the site / community description length, the limit as defined in the DB.
+pub fn site_or_community_description_length_check(description: &str) -> LemmyResult<()> {
   max_length_check(
     description,
     SITE_DESCRIPTION_MAX_LENGTH,
@@ -257,16 +254,22 @@ pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Option
   )
 }
 
-pub fn clean_url_params(url: &Url) -> Url {
-  let mut url_out = url.clone();
-  if let Some(query) = url.query() {
-    let new_query = query
-      .split_inclusive('&')
-      .filter(|q| !CLEAN_URL_PARAMS_REGEX.is_match(q))
-      .collect::<String>();
-    url_out.set_query(Some(&new_query));
+/// Cleans a url of tracking parameters.
+pub fn clean_url(url: &Url) -> Url {
+  match URL_CLEANER.clear_single_url(url) {
+    Ok(res) => res.into_owned(),
+    // If there are any errors, just return the original url
+    Err(_) => url.clone(),
   }
-  url_out
+}
+
+/// Cleans all the links in a string of tracking parameters.
+pub fn clean_urls_in_text(text: &str) -> String {
+  match URL_CLEANER.clear_text(text) {
+    Ok(res) => res.into_owned(),
+    // If there are any errors, just return the original text
+    Err(_) => text.to_owned(),
+  }
 }
 
 pub fn check_site_visibility_valid(
@@ -348,7 +351,6 @@ pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{
@@ -357,7 +359,8 @@ mod tests {
       build_and_check_regex,
       check_site_visibility_valid,
       check_urls_are_valid,
-      clean_url_params,
+      clean_url,
+      clean_urls_in_text,
       is_url_blocked,
       is_valid_actor_name,
       is_valid_bio_field,
@@ -365,8 +368,8 @@ mod tests {
       is_valid_matrix_id,
       is_valid_post_title,
       is_valid_url,
-      site_description_length_check,
       site_name_length_check,
+      site_or_community_description_length_check,
       BIO_MAX_LENGTH,
       SITE_DESCRIPTION_MAX_LENGTH,
       SITE_NAME_MAX_LENGTH,
@@ -378,14 +381,28 @@ mod tests {
 
   #[test]
   fn test_clean_url_params() -> LemmyResult<()> {
-    let url = Url::parse("https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user%20&id=123")?;
-    let cleaned = clean_url_params(&url);
-    let expected = Url::parse("https://example.com/path/123?user+name=random+user%20&id=123")?;
+    let url = Url::parse("https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123")?;
+    let cleaned = clean_url(&url);
+    let expected = Url::parse("https://example.com/path/123?user+name=random+user&id=123")?;
     assert_eq!(expected.to_string(), cleaned.to_string());
 
     let url = Url::parse("https://example.com/path/123")?;
-    let cleaned = clean_url_params(&url);
+    let cleaned = clean_url(&url);
     assert_eq!(url.to_string(), cleaned.to_string());
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_clean_body() -> LemmyResult<()> {
+    let text = "[a link](https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123)";
+    let cleaned = clean_urls_in_text(text);
+    let expected = "[a link](https://example.com/path/123?user+name=random+user&id=123)";
+    assert_eq!(expected.to_string(), cleaned.to_string());
+
+    let text = "[a link](https://example.com/path/123)";
+    let cleaned = clean_urls_in_text(text);
+    assert_eq!(text.to_string(), cleaned);
 
     Ok(())
   }
@@ -520,14 +537,14 @@ mod tests {
 
   #[test]
   fn test_valid_site_description() {
-    assert!(site_description_length_check(
+    assert!(site_or_community_description_length_check(
       &(0..SITE_DESCRIPTION_MAX_LENGTH)
         .map(|_| 'A')
         .collect::<String>()
     )
     .is_ok());
 
-    let invalid_result = site_description_length_check(
+    let invalid_result = site_or_community_description_length_check(
       &(0..SITE_DESCRIPTION_MAX_LENGTH + 1)
         .map(|_| 'A')
         .collect::<String>(),

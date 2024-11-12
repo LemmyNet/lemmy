@@ -3,9 +3,10 @@ use crate::schema::local_user;
 use crate::{
   newtypes::{LocalUserId, PersonId},
   sensitive::SensitiveString,
+  CommentSortType,
   ListingType,
   PostListingMode,
-  SortType,
+  PostSortType,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -13,31 +14,30 @@ use serde_with::skip_serializing_none;
 use ts_rs::TS;
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable, TS))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
+#[serde(default)]
 /// A local user.
 pub struct LocalUser {
   pub id: LocalUserId,
   /// The person_id for the local user.
   pub person_id: PersonId,
   #[serde(skip)]
-  pub password_encrypted: SensitiveString,
+  pub password_encrypted: Option<SensitiveString>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub email: Option<SensitiveString>,
   /// Whether to show NSFW content.
   pub show_nsfw: bool,
   pub theme: String,
-  pub default_sort_type: SortType,
+  pub default_post_sort_type: PostSortType,
   pub default_listing_type: ListingType,
   pub interface_language: String,
   /// Whether to show avatars.
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
-  /// Whether to show comment / post scores.
-  // TODO now that there is a vote_display_mode, this can be gotten rid of in future releases.
-  pub show_scores: bool,
   /// Whether to show bot accounts.
   pub show_bot_accounts: bool,
   /// Whether to show read posts.
@@ -51,7 +51,6 @@ pub struct LocalUser {
   /// Open links in a new tab.
   pub open_links_in_new_tab: bool,
   pub blur_nsfw: bool,
-  pub auto_expand: bool,
   /// Whether infinite scroll is enabled.
   pub infinite_scroll_enabled: bool,
   /// Whether the person is an admin.
@@ -64,8 +63,11 @@ pub struct LocalUser {
   /// Whether user avatars and inline images in the UI that are gifs should be allowed to play or
   /// should be paused
   pub enable_animated_images: bool,
+  /// Whether a user can send / receive private messages
+  pub enable_private_messages: bool,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: bool,
+  pub default_comment_sort_type: CommentSortType,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -73,7 +75,7 @@ pub struct LocalUser {
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
 pub struct LocalUserInsertForm {
   pub person_id: PersonId,
-  pub password_encrypted: String,
+  pub password_encrypted: Option<String>,
   #[new(default)]
   pub email: Option<String>,
   #[new(default)]
@@ -81,7 +83,7 @@ pub struct LocalUserInsertForm {
   #[new(default)]
   pub theme: Option<String>,
   #[new(default)]
-  pub default_sort_type: Option<SortType>,
+  pub default_post_sort_type: Option<PostSortType>,
   #[new(default)]
   pub default_listing_type: Option<ListingType>,
   #[new(default)]
@@ -92,8 +94,6 @@ pub struct LocalUserInsertForm {
   pub send_notifications_to_email: Option<bool>,
   #[new(default)]
   pub show_bot_accounts: Option<bool>,
-  #[new(default)]
-  pub show_scores: Option<bool>,
   #[new(default)]
   pub show_read_posts: Option<bool>,
   #[new(default)]
@@ -107,8 +107,6 @@ pub struct LocalUserInsertForm {
   #[new(default)]
   pub blur_nsfw: Option<bool>,
   #[new(default)]
-  pub auto_expand: Option<bool>,
-  #[new(default)]
   pub infinite_scroll_enabled: Option<bool>,
   #[new(default)]
   pub admin: Option<bool>,
@@ -121,7 +119,11 @@ pub struct LocalUserInsertForm {
   #[new(default)]
   pub enable_animated_images: Option<bool>,
   #[new(default)]
+  pub enable_private_messages: Option<bool>,
+  #[new(default)]
   pub collapse_bot_comments: Option<bool>,
+  #[new(default)]
+  pub default_comment_sort_type: Option<CommentSortType>,
 }
 
 #[derive(Clone, Default)]
@@ -132,25 +134,25 @@ pub struct LocalUserUpdateForm {
   pub email: Option<Option<String>>,
   pub show_nsfw: Option<bool>,
   pub theme: Option<String>,
-  pub default_sort_type: Option<SortType>,
+  pub default_post_sort_type: Option<PostSortType>,
   pub default_listing_type: Option<ListingType>,
   pub interface_language: Option<String>,
   pub show_avatars: Option<bool>,
   pub send_notifications_to_email: Option<bool>,
   pub show_bot_accounts: Option<bool>,
-  pub show_scores: Option<bool>,
   pub show_read_posts: Option<bool>,
   pub email_verified: Option<bool>,
   pub accepted_application: Option<bool>,
   pub totp_2fa_secret: Option<Option<String>>,
   pub open_links_in_new_tab: Option<bool>,
   pub blur_nsfw: Option<bool>,
-  pub auto_expand: Option<bool>,
   pub infinite_scroll_enabled: Option<bool>,
   pub admin: Option<bool>,
   pub post_listing_mode: Option<PostListingMode>,
   pub totp_2fa_enabled: Option<bool>,
   pub enable_keyboard_navigation: Option<bool>,
   pub enable_animated_images: Option<bool>,
+  pub enable_private_messages: Option<bool>,
   pub collapse_bot_comments: Option<bool>,
+  pub default_comment_sort_type: Option<CommentSortType>,
 }

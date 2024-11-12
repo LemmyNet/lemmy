@@ -8,19 +8,19 @@ use lemmy_api_common::{
   utils::{
     check_bot_account,
     check_community_user_action,
-    check_downvotes_enabled,
+    check_local_vote_mode,
     mark_post_as_read,
+    VoteItem,
   },
 };
 use lemmy_db_schema::{
   source::{
-    community::Community,
     local_site::LocalSite,
-    post::{Post, PostLike, PostLikeForm},
+    post::{PostLike, PostLikeForm},
   },
-  traits::{Crud, Likeable},
+  traits::Likeable,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::ops::Deref;
 
@@ -31,20 +31,24 @@ pub async fn like_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let local_site = LocalSite::read(&mut context.pool()).await?;
+  let post_id = data.post_id;
 
-  // Don't do a downvote if site has downvotes disabled
-  check_downvotes_enabled(data.score, &local_site)?;
+  check_local_vote_mode(
+    data.score,
+    VoteItem::Post(post_id),
+    &local_site,
+    local_user_view.person.id,
+    &mut context.pool(),
+  )
+  .await?;
   check_bot_account(&local_user_view.person)?;
 
   // Check for a community ban
-  let post_id = data.post_id;
-  let post = Post::read(&mut context.pool(), post_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+  let post = PostView::read(&mut context.pool(), post_id, None, false).await?;
 
   check_community_user_action(
     &local_user_view.person,
-    post.community_id,
+    &post.community,
     &mut context.pool(),
   )
   .await?;
@@ -70,20 +74,15 @@ pub async fn like_post(
 
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
-  let community = Community::read(&mut context.pool(), post.community_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?;
-
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {
-      object_id: post.ap_id,
+      object_id: post.post.ap_id,
       actor: local_user_view.person.clone(),
-      community,
+      community: post.community.clone(),
       score: data.score,
     },
     &context,
-  )
-  .await?;
+  )?;
 
-  build_post_response(context.deref(), post.community_id, local_user_view, post_id).await
+  build_post_response(context.deref(), post.community.id, local_user_view, post_id).await
 }
