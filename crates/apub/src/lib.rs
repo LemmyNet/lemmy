@@ -176,10 +176,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
     .domain()
     .ok_or(FederationError::UrlWithoutDomain)?
     .to_string();
-  let local_instance = context
-    .settings()
-    .get_hostname_without_port()
-    .expect("local hostname is valid");
+  let local_instance = context.settings().get_hostname_without_port()?;
   if domain == local_instance {
     return Ok(());
   }
@@ -196,10 +193,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
       .iter()
       .map(|i| i.domain.clone())
       .collect::<Vec<String>>();
-    let local_instance = context
-      .settings()
-      .get_hostname_without_port()
-      .expect("local hostname is valid");
+    let local_instance = context.settings().get_hostname_without_port()?;
     allowed_and_local.push(local_instance);
 
     let domain = apub_id

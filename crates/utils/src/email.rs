@@ -50,11 +50,11 @@ pub async fn send_email(
       email_config
         .smtp_from_address
         .parse()
-        .expect("email from address isn't valid"),
+        .with_lemmy_type(LemmyErrorType::InvalidEmailFromAddress)?,
     )
     .to(Mailbox::new(
       Some(to_username.to_string()),
-      Address::from_str(to_email).expect("email to address isn't valid"),
+      Address::from_str(to_email).with_lemmy_type(LemmyErrorType::InvalidEmailToAddress)?,
     ))
     .message_id(Some(format!("<{}@{}>", Uuid::new_v4(), settings.hostname)))
     .subject(subject)
@@ -62,7 +62,7 @@ pub async fn send_email(
       plain_text,
       html.to_string(),
     ))
-    .expect("email built incorrectly");
+    .with_lemmy_type(LemmyErrorType::EmailSendFailed)?;
 
   // don't worry about 'dangeous'. it's just that leaving it at the default configuration
   // is bad.

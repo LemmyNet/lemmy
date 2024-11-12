@@ -286,7 +286,7 @@ mod tests {
     CommunityVisibility,
     SubscribedType,
   };
-  use lemmy_utils::error::LemmyResult;
+  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use url::Url;
 
@@ -495,7 +495,7 @@ mod tests {
     };
     let communities = query.list(&data.site, pool).await?;
     for (i, c) in communities.iter().enumerate().skip(1) {
-      let prev = communities.get(i - 1).expect("No previous community?");
+      let prev = communities.get(i - 1).ok_or(LemmyErrorType::NotFound)?;
       assert!(c.community.title.cmp(&prev.community.title).is_ge());
     }
 
@@ -505,7 +505,7 @@ mod tests {
     };
     let communities = query.list(&data.site, pool).await?;
     for (i, c) in communities.iter().enumerate().skip(1) {
-      let prev = communities.get(i - 1).expect("No previous community?");
+      let prev = communities.get(i - 1).ok_or(LemmyErrorType::NotFound)?;
       assert!(c.community.title.cmp(&prev.community.title).is_le());
     }
 

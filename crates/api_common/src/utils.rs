@@ -455,7 +455,11 @@ pub async fn send_password_reset_email(
   // Generate a random token
   let token = uuid::Uuid::new_v4().to_string();
 
-  let email = &user.local_user.email.clone().expect("email");
+  let email = &user
+    .local_user
+    .email
+    .clone()
+    .ok_or(LemmyErrorType::EmailRequired)?;
   let lang = get_interface_language(user);
   let subject = &lang.password_reset_subject(&user.person.name);
   let protocol_and_hostname = settings.get_protocol_and_hostname();
@@ -570,7 +574,11 @@ pub async fn send_application_approved_email(
   user: &LocalUserView,
   settings: &Settings,
 ) -> LemmyResult<()> {
-  let email = &user.local_user.email.clone().expect("email");
+  let email = &user
+    .local_user
+    .email
+    .clone()
+    .ok_or(LemmyErrorType::EmailRequired)?;
   let lang = get_interface_language(user);
   let subject = lang.registration_approved_subject(&user.person.actor_id);
   let body = lang.registration_approved_body(&settings.hostname);
@@ -592,7 +600,11 @@ pub async fn send_new_applicant_email_to_admins(
   );
 
   for admin in &admins {
-    let email = &admin.local_user.email.clone().expect("email");
+    let email = &admin
+      .local_user
+      .email
+      .clone()
+      .ok_or(LemmyErrorType::EmailRequired)?;
     let lang = get_interface_language_from_settings(admin);
     let subject = lang.new_application_subject(&settings.hostname, applicant_username);
     let body = lang.new_application_body(applications_link);
@@ -614,7 +626,11 @@ pub async fn send_new_report_email_to_admins(
   let reports_link = &format!("{}/reports", settings.get_protocol_and_hostname(),);
 
   for admin in &admins {
-    let email = &admin.local_user.email.clone().expect("email");
+    let email = &admin
+      .local_user
+      .email
+      .clone()
+      .ok_or(LemmyErrorType::EmailRequired)?;
     let lang = get_interface_language_from_settings(admin);
     let subject = lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
     let body = lang.new_report_body(reports_link);

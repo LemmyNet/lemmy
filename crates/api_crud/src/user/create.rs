@@ -483,7 +483,7 @@ async fn send_verification_email_if_required(
       &local_user
         .email
         .clone()
-        .expect("invalid verification email"),
+        .ok_or(LemmyErrorType::EmailRequired)?,
       &mut context.pool(),
       context.settings(),
     )

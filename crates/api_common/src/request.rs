@@ -521,7 +521,7 @@ mod tests {
 
     // root relative url
     let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='/image.jpg'></head><body></body></html>";
-    let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
+    let metadata = extract_opengraph_data(html_bytes, &url)?;
     assert_eq!(
       metadata.image,
       Some(Url::parse("https://example.com/image.jpg")?.into())
@@ -529,7 +529,7 @@ mod tests {
 
     // base relative url
     let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='image.jpg'></head><body></body></html>";
-    let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
+    let metadata = extract_opengraph_data(html_bytes, &url)?;
     assert_eq!(
       metadata.image,
       Some(Url::parse("https://example.com/one/image.jpg")?.into())
@@ -537,7 +537,7 @@ mod tests {
 
     // absolute url
     let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='https://cdn.host.com/image.jpg'></head><body></body></html>";
-    let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
+    let metadata = extract_opengraph_data(html_bytes, &url)?;
     assert_eq!(
       metadata.image,
       Some(Url::parse("https://cdn.host.com/image.jpg")?.into())
@@ -545,7 +545,7 @@ mod tests {
 
     // protocol relative url
     let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='//example.com/image.jpg'></head><body></body></html>";
-    let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
+    let metadata = extract_opengraph_data(html_bytes, &url)?;
     assert_eq!(
       metadata.image,
       Some(Url::parse("https://example.com/image.jpg")?.into())
