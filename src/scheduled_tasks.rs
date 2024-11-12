@@ -403,7 +403,7 @@ async fn active_counts(pool: &mut DbPool<'_>) {
 
       for (full_form, abbr) in &intervals {
         let update_site_stmt = format!(
-      "update site_aggregates set users_active_{} = (select * from site_aggregates_activity('{}')) where site_id = 1",
+      "update site_aggregates set users_active_{} = (select * from r.site_aggregates_activity('{}')) where site_id = 1",
       abbr, full_form
     );
         sql_query(update_site_stmt)
@@ -412,7 +412,7 @@ async fn active_counts(pool: &mut DbPool<'_>) {
           .inspect_err(|e| error!("Failed to update site stats: {e}"))
           .ok();
 
-        let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", abbr, full_form);
+        let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", abbr, full_form);
         sql_query(update_community_stmt)
           .execute(&mut conn)
           .await
