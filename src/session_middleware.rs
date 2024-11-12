@@ -125,7 +125,7 @@ mod tests {
     // hack, necessary so that config file can be loaded from hardcoded, relative path
     set_current_dir("crates/utils")?;
 
-    let pool_ = build_db_pool_for_tests().await;
+    let pool_ = build_db_pool_for_tests();
     let pool = &mut (&pool_).into();
 
     let secret = Secret::init(pool).await?;

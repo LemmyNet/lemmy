@@ -65,7 +65,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() -> Result<(), Error> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let (inserted_instance, inserted_person, inserted_site, inserted_community) =
@@ -136,7 +136,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_soft_delete() -> Result<(), Error> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let (inserted_instance, inserted_person, inserted_site, inserted_community) =

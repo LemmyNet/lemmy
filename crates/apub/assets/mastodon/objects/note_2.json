@@ -1,0 +1,79 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "ostatus": "http://ostatus.org#",
+      "atomUri": "ostatus:atomUri",
+      "inReplyToAtomUri": "ostatus:inReplyToAtomUri",
+      "conversation": "ostatus:conversation",
+      "sensitive": "as:sensitive",
+      "toot": "http://joinmastodon.org/ns#",
+      "votersCount": "toot:votersCount",
+      "blurhash": "toot:blurhash",
+      "focalPoint": {
+        "@container": "@list",
+        "@id": "toot:focalPoint"
+      }
+    }
+  ],
+  "id": "https://floss.social/users/kde/statuses/113306831140126616",
+  "type": "Note",
+  "summary": null,
+  "inReplyTo": "https://floss.social/users/kde/statuses/113306824627995724",
+  "published": "2024-10-14T16:57:15Z",
+  "url": "https://floss.social/@kde/113306831140126616",
+  "attributedTo": "https://floss.social/users/kde",
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
+  "cc": [
+    "https://floss.social/users/kde/followers",
+    "https://lemmy.kde.social/c/kde",
+    "https://lemmy.kde.social/c/kde/followers"
+  ],
+  "sensitive": false,
+  "atomUri": "https://floss.social/users/kde/statuses/113306831140126616",
+  "inReplyToAtomUri": "https://floss.social/users/kde/statuses/113306824627995724",
+  "conversation": "tag:floss.social,2024-10-14:objectId=71424279:objectType=Conversation",
+  "content": "<p><span class=\"h-card\" translate=\"no\"><a href=\"https://lemmy.kde.social/c/kde\" class=\"u-url mention\">@<span>kde@lemmy.kde.social</span></a></span> </p><p>We also need funding 💶 to keep the gears turning! Please support us with a donation:</p><p><a href=\"https://kde.org/donate/\" target=\"_blank\" rel=\"nofollow noopener noreferrer\" translate=\"no\"><span class=\"invisible\">https://</span><span class=\"\">kde.org/donate/</span><span class=\"invisible\"></span></a></p><p>[3/3]</p>",
+  "contentMap": {
+    "en": "<p><span class=\"h-card\" translate=\"no\"><a href=\"https://lemmy.kde.social/c/kde\" class=\"u-url mention\">@<span>kde@lemmy.kde.social</span></a></span> </p><p>We also need funding 💶 to keep the gears turning! Please support us with a donation:</p><p><a href=\"https://kde.org/donate/\" target=\"_blank\" rel=\"nofollow noopener noreferrer\" translate=\"no\"><span class=\"invisible\">https://</span><span class=\"\">kde.org/donate/</span><span class=\"invisible\"></span></a></p><p>[3/3]</p>"
+  },
+  "attachment": [
+    {
+      "type": "Document",
+      "mediaType": "image/jpeg",
+      "url": "https://cdn.masto.host/floss/media_attachments/files/113/306/826/682/985/891/original/c8d906a2f2ab2334.jpg",
+      "name": "The KDE dragons Katie and Konqi stand on either side of a pot filling up with gold coins. Donate!",
+      "blurhash": "USQv:h-W-qI-^,W;RPs=^-R%NZxbo#sDobSc",
+      "focalPoint": [0.0, 0.0],
+      "width": 1500,
+      "height": 1095
+    }
+  ],
+  "tag": [
+    {
+      "type": "Mention",
+      "href": "https://lemmy.kde.social/c/kde",
+      "name": "@kde@lemmy.kde.social"
+    }
+  ],
+  "replies": {
+    "id": "https://floss.social/users/kde/statuses/113306831140126616/replies",
+    "type": "Collection",
+    "first": {
+      "type": "CollectionPage",
+      "next": "https://floss.social/users/kde/statuses/113306831140126616/replies?only_other_accounts=true&page=true",
+      "partOf": "https://floss.social/users/kde/statuses/113306831140126616/replies",
+      "items": []
+    }
+  },
+  "likes": {
+    "id": "https://floss.social/users/kde/statuses/113306831140126616/likes",
+    "type": "Collection",
+    "totalItems": 39
+  },
+  "shares": {
+    "id": "https://floss.social/users/kde/statuses/113306831140126616/shares",
+    "type": "Collection",
+    "totalItems": 24
+  }
+}

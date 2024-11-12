@@ -17,7 +17,9 @@ use ts_rs::TS;
 pub struct CreateComment {
   pub content: String,
   pub post_id: PostId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub parent_id: Option<CommentId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub language_id: Option<LanguageId>,
 }
 
@@ -37,7 +39,9 @@ pub struct GetComment {
 /// Edit a comment.
 pub struct EditComment {
   pub comment_id: CommentId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub content: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub language_id: Option<LanguageId>,
 }
 
@@ -69,6 +73,7 @@ pub struct DeleteComment {
 pub struct RemoveComment {
   pub comment_id: CommentId,
   pub removed: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
 }
 
@@ -107,17 +112,29 @@ pub struct CreateCommentLike {
 #[cfg_attr(feature = "full", ts(export))]
 /// Get a list of comments.
 pub struct GetComments {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ListingType>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub sort: Option<CommentSortType>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub max_depth: Option<i32>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community_name: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub post_id: Option<PostId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub parent_id: Option<CommentId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub saved_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub liked_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
 }
 
@@ -161,12 +178,17 @@ pub struct ResolveCommentReport {
 #[cfg_attr(feature = "full", ts(export))]
 /// List comment reports.
 pub struct ListCommentReports {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub comment_id: Option<CommentId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
   /// Only shows the unresolved reports
+  #[cfg_attr(feature = "full", ts(optional))]
   pub unresolved_only: Option<bool>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
 }
 
@@ -185,7 +207,9 @@ pub struct ListCommentReportsResponse {
 /// List comment likes. Admins-only.
 pub struct ListCommentLikes {
   pub comment_id: CommentId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
 

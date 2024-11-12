@@ -47,7 +47,7 @@ pub fn serve_prometheus(config: PrometheusConfig, lemmy_context: LemmyContext) -
 // handler for the /metrics path
 async fn metrics(context: web::Data<Arc<PromContext>>) -> LemmyResult<String> {
   // collect metrics
-  collect_db_pool_metrics(&context).await;
+  collect_db_pool_metrics(&context);
 
   let mut buffer = Vec::new();
   let encoder = TextEncoder::new();
@@ -84,7 +84,7 @@ fn create_db_pool_metrics() -> LemmyResult<DbPoolMetrics> {
   Ok(metrics)
 }
 
-async fn collect_db_pool_metrics(context: &PromContext) {
+fn collect_db_pool_metrics(context: &PromContext) {
   let pool_status = context.lemmy.inner_pool().status();
   context
     .db_pool_metrics

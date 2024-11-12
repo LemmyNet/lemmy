@@ -1,17 +1,11 @@
 use crate::structs::VoteView;
-use diesel::{
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
-};
+use diesel::{result::Error, ExpressionMethods, NullableExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
+  aliases::creator_community_actions,
   newtypes::{CommentId, PostId},
-  schema::{comment_like, community_person_ban, person, post, post_like},
-  utils::{get_conn, limit_and_offset, DbPool},
+  schema::{comment, comment_actions, community_actions, person, post, post_actions},
+  utils::{action_query, actions_alias, get_conn, limit_and_offset, DbPool},
 };
 
 impl VoteView {
@@ -24,24 +18,24 @@ impl VoteView {
     let conn = &mut get_conn(pool).await?;
     let (limit, offset) = limit_and_offset(page, limit)?;
 
-    post_like::table
+    action_query(post_actions::like_score)
       .inner_join(person::table)
       .inner_join(post::table)
-      // Join to community_person_ban to get creator_banned_from_community
-      .left_join(
-        community_person_ban::table.on(
-          post::community_id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(post_like::person_id)),
-        ),
-      )
-      .filter(post_like::post_id.eq(post_id))
+      .left_join(actions_alias(
+        creator_community_actions,
+        post_actions::person_id,
+        post::community_id,
+      ))
+      .filter(post_actions::post_id.eq(post_id))
       .select((
         person::all_columns,
-        community_person_ban::community_id.nullable().is_not_null(),
-        post_like::score,
+        creator_community_actions
+          .field(community_actions::received_ban)
+          .nullable()
+          .is_not_null(),
+        post_actions::like_score.assume_not_null(),
       ))
-      .order_by(post_like::score)
+      .order_by(post_actions::like_score)
       .limit(limit)
       .offset(offset)
       .load::<Self>(conn)
@@ -57,24 +51,24 @@ impl VoteView {
     let conn = &mut get_conn(pool).await?;
     let (limit, offset) = limit_and_offset(page, limit)?;
 
-    comment_like::table
+    action_query(comment_actions::like_score)
       .inner_join(person::table)
-      .inner_join(post::table)
-      // Join to community_person_ban to get creator_banned_from_community
-      .left_join(
-        community_person_ban::table.on(
-          post::community_id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(comment_like::person_id)),
-        ),
-      )
-      .filter(comment_like::comment_id.eq(comment_id))
+      .inner_join(comment::table.inner_join(post::table))
+      .left_join(actions_alias(
+        creator_community_actions,
+        comment_actions::person_id,
+        post::community_id,
+      ))
+      .filter(comment_actions::comment_id.eq(comment_id))
       .select((
         person::all_columns,
-        community_person_ban::community_id.nullable().is_not_null(),
-        comment_like::score,
+        creator_community_actions
+          .field(community_actions::received_ban)
+          .nullable()
+          .is_not_null(),
+        comment_actions::like_score.assume_not_null(),
       ))
-      .order_by(comment_like::score)
+      .order_by(comment_actions::like_score)
       .limit(limit)
       .offset(offset)
       .load::<Self>(conn)
@@ -104,7 +98,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_and_comment_vote_views() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
@@ -173,7 +167,6 @@ mod tests {
 
     // Timothy votes down his own comment
     let timmy_comment_vote_form = CommentLikeForm {
-      post_id: inserted_post.id,
       comment_id: inserted_comment.id,
       person_id: inserted_timmy.id,
       score: -1,
@@ -182,7 +175,6 @@ mod tests {
 
     // Sara upvotes timmy's comment
     let sara_comment_vote_form = CommentLikeForm {
-      post_id: inserted_post.id,
       comment_id: inserted_comment.id,
       person_id: inserted_sara.id,
       score: 1,

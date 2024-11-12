@@ -60,7 +60,12 @@ pub async fn create_comment(
   let post = post_view.post;
   let community_id = post_view.community.id;
 
-  check_community_user_action(&local_user_view.person, community_id, &mut context.pool()).await?;
+  check_community_user_action(
+    &local_user_view.person,
+    &post_view.community,
+    &mut context.pool(),
+  )
+  .await?;
   check_post_deleted_or_removed(&post)?;
 
   // Check if post is locked, no new comments
@@ -123,7 +128,6 @@ pub async fn create_comment(
   // You like your own comment by default
   let like_form = CommentLikeForm {
     comment_id: inserted_comment.id,
-    post_id: post.id,
     person_id: local_user_view.person.id,
     score: 1,
   };
@@ -135,8 +139,7 @@ pub async fn create_comment(
   ActivityChannel::submit_activity(
     SendActivityData::CreateComment(inserted_comment.clone()),
     &context,
-  )
-  .await?;
+  )?;
 
   // Update the read comments, so your own new comment doesn't appear as a +1 unread
   update_read_comments(

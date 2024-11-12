@@ -34,6 +34,7 @@ pub struct LocalSiteRateLimit {
   pub search: i32,
   pub search_per_second: i32,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
   pub import_user_settings: i32,
   pub import_user_settings_per_second: i32,

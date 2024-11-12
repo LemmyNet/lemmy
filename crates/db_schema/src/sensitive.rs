@@ -4,8 +4,9 @@ use std::{fmt::Debug, ops::Deref};
 use ts_rs::TS;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType))]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[serde(transparent)]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct SensitiveString(String);
 
 impl SensitiveString {
@@ -37,21 +38,5 @@ impl Deref for SensitiveString {
 impl From<String> for SensitiveString {
   fn from(t: String) -> Self {
     SensitiveString(t)
-  }
-}
-
-#[cfg(feature = "full")]
-impl TS for SensitiveString {
-  fn name() -> String {
-    "string".to_string()
-  }
-  fn name_with_type_args(_args: Vec<String>) -> String {
-    "string".to_string()
-  }
-  fn dependencies() -> Vec<ts_rs::Dependency> {
-    Vec::new()
-  }
-  fn transparent() -> bool {
-    true
   }
 }
