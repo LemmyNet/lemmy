@@ -1,0 +1,1 @@
+drop function community_aggregates_activity, site_aggregates_activity cascade;
