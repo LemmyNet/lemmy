@@ -1,6 +1,9 @@
-use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
 use crate::schema::{post, post_actions};
+use crate::{
+  newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId},
+  utils::naive_now,
+};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel::{dsl, expression_methods::NullableExpressionMethods};
@@ -165,7 +168,7 @@ pub struct PostLike {
   pub published: DateTime<Utc>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostLikeForm {
@@ -173,6 +176,8 @@ pub struct PostLikeForm {
   pub person_id: PersonId,
   #[cfg_attr(feature = "full", diesel(column_name = like_score))]
   pub score: i16,
+  #[new(value = "naive_now()")]
+  pub liked: DateTime<Utc>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -192,11 +197,14 @@ pub struct PostSaved {
   pub published: DateTime<Utc>,
 }
 
+#[derive(derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostSavedForm {
   pub post_id: PostId,
   pub person_id: PersonId,
+  #[new(value = "naive_now()")]
+  pub saved: DateTime<Utc>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -216,11 +224,14 @@ pub struct PostRead {
   pub published: DateTime<Utc>,
 }
 
+#[derive(derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
-pub(crate) struct PostReadForm {
+pub struct PostReadForm {
   pub post_id: PostId,
   pub person_id: PersonId,
+  #[new(value = "naive_now()")]
+  pub read: DateTime<Utc>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -240,9 +251,12 @@ pub struct PostHide {
   pub published: DateTime<Utc>,
 }
 
+#[derive(derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
-pub(crate) struct PostHideForm {
+pub struct PostHideForm {
   pub post_id: PostId,
   pub person_id: PersonId,
+  #[new(value = "naive_now()")]
+  pub hidden: DateTime<Utc>,
 }

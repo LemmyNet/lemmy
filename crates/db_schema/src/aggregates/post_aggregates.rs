@@ -113,11 +113,7 @@ mod tests {
     let inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let post_like = PostLikeForm {
-      post_id: inserted_post.id,
-      person_id: inserted_person.id,
-      score: 1,
-    };
+    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, 1);
 
     PostLike::like(pool, &post_like).await?;
 
@@ -129,11 +125,7 @@ mod tests {
     assert_eq!(0, post_aggs_before_delete.downvotes);
 
     // Add a post dislike from the other person
-    let post_dislike = PostLikeForm {
-      post_id: inserted_post.id,
-      person_id: another_inserted_person.id,
-      score: -1,
-    };
+    let post_dislike = PostLikeForm::new(inserted_post.id, another_inserted_person.id, -1);
 
     PostLike::like(pool, &post_dislike).await?;
 

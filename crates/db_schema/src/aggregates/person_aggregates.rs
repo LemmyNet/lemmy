@@ -65,11 +65,7 @@ mod tests {
     );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let post_like = PostLikeForm {
-      post_id: inserted_post.id,
-      person_id: inserted_person.id,
-      score: 1,
-    };
+    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, 1);
     let _inserted_post_like = PostLike::like(pool, &post_like).await?;
 
     let comment_form = CommentInsertForm::new(
