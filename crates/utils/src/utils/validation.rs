@@ -92,8 +92,9 @@ pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyRes
     Regex::new(r"^(?:[a-zA-Z0-9_]+|[0-9_\p{Arabic}]+|[0-9_\p{Cyrillic}]+)$").expect("compile regex")
   });
 
-  if name.len() <= actor_name_max_length && name.len() >= 3 && VALID_ACTOR_NAME_REGEX.is_match(name)
-  {
+  min_length_check(name, 3, LemmyErrorType::InvalidName)?;
+  max_length_check(name, actor_name_max_length, LemmyErrorType::InvalidName)?;
+  if VALID_ACTOR_NAME_REGEX.is_match(name) {
     Ok(())
   } else {
     Err(LemmyErrorType::InvalidName.into())
