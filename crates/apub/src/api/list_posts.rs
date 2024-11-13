@@ -96,7 +96,7 @@ pub async fn list_posts(
   // If in their user settings (or as part of the API request), auto-mark fetched posts as read
   if let Some(local_user) = local_user {
     if data
-      .auto_mark_fetched_posts_as_read
+      .mark_as_read
       .unwrap_or(local_user.auto_mark_fetched_posts_as_read)
     {
       let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
