@@ -5,18 +5,12 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostLike, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_bot_account,
-    check_community_user_action,
-    check_local_vote_mode,
-    mark_post_as_read,
-    VoteItem,
-  },
+  utils::{check_bot_account, check_community_user_action, check_local_vote_mode, VoteItem},
 };
 use lemmy_db_schema::{
   source::{
     local_site::LocalSite,
-    post::{PostLike, PostLikeForm},
+    post::{PostLike, PostLikeForm, PostRead},
   },
   traits::Likeable,
 };
@@ -72,7 +66,8 @@ pub async fn like_post(
       .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
   }
 
-  mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
+  // Mark Post Read
+  PostRead::mark_as_read(&mut context.pool(), post_id, person_id).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {

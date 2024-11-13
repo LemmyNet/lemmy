@@ -1,7 +1,7 @@
 use crate::{
   diesel::{BoolExpressionMethods, OptionalExtension},
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::{community, person, post, post_hide, post_like, post_read, post_saved},
+  schema::{community, person, post, post_actions},
   source::post::{
     Post,
     PostHide,
@@ -21,6 +21,7 @@ use crate::{
     get_conn,
     naive_now,
     now,
+    uplete,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
@@ -32,13 +33,16 @@ use ::url::Url;
 use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{count, insert_into, not},
+  expression::SelectableHelper,
   result::Error,
   DecoratableTarget,
   ExpressionMethods,
+  NullableExpressionMethods,
   QueryDsl,
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[async_trait]
 impl Crud for Post {
@@ -277,11 +281,13 @@ impl Likeable for PostLike {
   type IdType = PostId;
   async fn like(pool: &mut DbPool<'_>, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(post_like::table)
+    let post_like_form = (post_like_form, post_actions::liked.eq(now().nullable()));
+    insert_into(post_actions::table)
       .values(post_like_form)
-      .on_conflict((post_like::post_id, post_like::person_id))
+      .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(post_like_form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
@@ -289,10 +295,12 @@ impl Likeable for PostLike {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     post_id: PostId,
-  ) -> Result<usize, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(post_like::table.find((person_id, post_id)))
-      .execute(conn)
+    uplete::new(post_actions::table.find((person_id, post_id)))
+      .set_null(post_actions::like_score)
+      .set_null(post_actions::liked)
+      .get_result(conn)
       .await
   }
 }
@@ -302,18 +310,24 @@ impl Saveable for PostSaved {
   type Form = PostSavedForm;
   async fn save(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(post_saved::table)
+    let post_saved_form = (post_saved_form, post_actions::saved.eq(now().nullable()));
+    insert_into(post_actions::table)
       .values(post_saved_form)
-      .on_conflict((post_saved::post_id, post_saved::person_id))
+      .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(post_saved_form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
-  async fn unsave(pool: &mut DbPool<'_>, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
+  async fn unsave(
+    pool: &mut DbPool<'_>,
+    post_saved_form: &PostSavedForm,
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(post_saved::table.find((post_saved_form.person_id, post_saved_form.post_id)))
-      .execute(conn)
+    uplete::new(post_actions::table.find((post_saved_form.person_id, post_saved_form.post_id)))
+      .set_null(post_actions::saved)
+      .get_result(conn)
       .await
   }
 }
@@ -323,51 +337,69 @@ impl PostRead {
     pool: &mut DbPool<'_>,
     post_id: PostId,
     person_id: PersonId,
-  ) -> Result<usize, Error> {
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
 
-    let form = PostReadForm { post_id, person_id };
+    let form = (
+      &PostReadForm { post_id, person_id },
+      post_actions::read.eq(now().nullable()),
+    );
 
-    insert_into(post_read::table)
+    insert_into(post_actions::table)
       .values(form)
-      .on_conflict_do_nothing()
+      .on_conflict((post_actions::person_id, post_actions::post_id))
+      .do_update()
+      .set(form)
       .execute(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
   }
 
   pub async fn mark_as_unread(
     pool: &mut DbPool<'_>,
     post_id_: PostId,
     person_id_: PersonId,
-  ) -> Result<usize, Error> {
+  ) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
 
-    let read_post = post_read::table
-      .filter(post_read::post_id.eq(post_id_))
-      .filter(post_read::person_id.eq(person_id_));
-
-    diesel::delete(read_post).execute(conn).await
+    uplete::new(
+      post_actions::table
+        .filter(post_actions::post_id.eq(post_id_))
+        .filter(post_actions::person_id.eq(person_id_)),
+    )
+    .set_null(post_actions::read)
+    .get_result(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
   }
 
   pub async fn mark_many_as_read(
     pool: &mut DbPool<'_>,
     post_ids: &[PostId],
     person_id: PersonId,
-  ) -> Result<usize, Error> {
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
 
     let forms = post_ids
       .iter()
-      .map(|post_id| PostReadForm {
-        post_id: *post_id,
-        person_id,
+      .map(|post_id| {
+        (
+          PostReadForm {
+            post_id: *post_id,
+            person_id,
+          },
+          post_actions::read.eq(now().nullable()),
+        )
       })
-      .collect::<Vec<PostReadForm>>();
-    insert_into(post_read::table)
+      .collect::<Vec<_>>();
+    insert_into(post_actions::table)
       .values(forms)
-      .on_conflict_do_nothing()
+      .on_conflict((post_actions::person_id, post_actions::post_id))
+      .do_update()
+      .set(post_actions::read.eq(now().nullable()))
       .execute(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
   }
 }
 
@@ -379,10 +411,15 @@ impl PostHide {
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let form = PostHideForm { post_id, person_id };
-    insert_into(post_hide::table)
+    let form = (
+      &PostHideForm { post_id, person_id },
+      post_actions::hidden.eq(now().nullable()),
+    );
+    insert_into(post_actions::table)
       .values(form)
-      .on_conflict_do_nothing()
+      .on_conflict((post_actions::person_id, post_actions::post_id))
+      .do_update()
+      .set(form)
       .execute(conn)
       .await
   }
@@ -391,19 +428,21 @@ impl PostHide {
     pool: &mut DbPool<'_>,
     post_id_: PostId,
     person_id_: PersonId,
-  ) -> Result<usize, Error> {
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let hidden_post = post_hide::table
-      .filter(post_hide::post_id.eq(post_id_))
-      .filter(post_hide::person_id.eq(person_id_));
-
-    diesel::delete(hidden_post).execute(conn).await
+    uplete::new(
+      post_actions::table
+        .filter(post_actions::post_id.eq(post_id_))
+        .filter(post_actions::person_id.eq(person_id_)),
+    )
+    .set_null(post_actions::hidden)
+    .get_result(conn)
+    .await
   }
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{
@@ -423,7 +462,7 @@ mod tests {
       },
     },
     traits::{Crud, Likeable, Saveable},
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, uplete},
   };
   use chrono::DateTime;
   use lemmy_utils::error::LemmyResult;
@@ -546,17 +585,17 @@ mod tests {
     assert_eq!(1, scheduled_post_count);
 
     let like_removed = PostLike::remove(pool, inserted_person.id, inserted_post.id).await?;
-    assert_eq!(1, like_removed);
+    assert_eq!(uplete::Count::only_updated(1), like_removed);
     let saved_removed = PostSaved::unsave(pool, &post_saved_form).await?;
-    assert_eq!(1, saved_removed);
+    assert_eq!(uplete::Count::only_updated(1), saved_removed);
 
-    // mark some posts as unread
     let read_removed_1 =
       PostRead::mark_as_unread(pool, inserted_post.id, inserted_person.id).await?;
-    assert_eq!(1, read_removed_1);
+    assert_eq!(uplete::Count::only_deleted(1), read_removed_1);
+
     let read_removed_2 =
       PostRead::mark_as_unread(pool, inserted_post2.id, inserted_person.id).await?;
-    assert_eq!(1, read_removed_2);
+    assert_eq!(uplete::Count::only_deleted(1), read_removed_2);
 
     let num_deleted = Post::delete(pool, inserted_post.id).await?
       + Post::delete(pool, inserted_post2.id).await?

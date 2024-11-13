@@ -2,7 +2,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{context::LemmyContext, post::MarkPostsAsRead, SuccessResponse};
 use lemmy_db_schema::source::post::PostRead;
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS};
 
 #[tracing::instrument(skip(context))]
 pub async fn mark_posts_as_read(
@@ -18,9 +18,7 @@ pub async fn mark_posts_as_read(
   let person_id = local_user_view.person.id;
 
   // Mark the posts as read
-  PostRead::mark_many_as_read(&mut context.pool(), post_ids, person_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)?;
+  PostRead::mark_many_as_read(&mut context.pool(), post_ids, person_id).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

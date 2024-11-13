@@ -1,7 +1,9 @@
 use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
-use crate::schema::{post, post_hide, post_like, post_read, post_saved};
+use crate::schema::{post, post_actions};
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
+use diesel::{dsl, expression_methods::NullableExpressionMethods};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -149,22 +151,27 @@ pub struct PostUpdateForm {
   derive(Identifiable, Queryable, Selectable, Associations)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
-#[cfg_attr(feature = "full", diesel(table_name = post_like))]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 #[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct PostLike {
   pub post_id: PostId,
   pub person_id: PersonId,
+  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::like_score.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::like_score>))]
   pub score: i16,
+  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::liked.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::liked>))]
   pub published: DateTime<Utc>,
 }
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = post_like))]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostLikeForm {
   pub post_id: PostId,
   pub person_id: PersonId,
+  #[cfg_attr(feature = "full", diesel(column_name = like_score))]
   pub score: i16,
 }
 
@@ -174,17 +181,19 @@ pub struct PostLikeForm {
   derive(Identifiable, Queryable, Selectable, Associations)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
-#[cfg_attr(feature = "full", diesel(table_name = post_saved))]
-#[cfg_attr(feature = "full", diesel(primary_key(post_id, person_id)))]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct PostSaved {
   pub post_id: PostId,
   pub person_id: PersonId,
+  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::saved.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::saved>))]
   pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = post_saved))]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostSavedForm {
   pub post_id: PostId,
   pub person_id: PersonId,
@@ -196,17 +205,19 @@ pub struct PostSavedForm {
   derive(Identifiable, Queryable, Selectable, Associations)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
-#[cfg_attr(feature = "full", diesel(table_name = post_read))]
-#[cfg_attr(feature = "full", diesel(primary_key(post_id, person_id)))]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct PostRead {
   pub post_id: PostId,
   pub person_id: PersonId,
+  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::read.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::read>))]
   pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = post_read))]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub(crate) struct PostReadForm {
   pub post_id: PostId,
   pub person_id: PersonId,
@@ -218,17 +229,19 @@ pub(crate) struct PostReadForm {
   derive(Identifiable, Queryable, Selectable, Associations)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
-#[cfg_attr(feature = "full", diesel(table_name = post_hide))]
-#[cfg_attr(feature = "full", diesel(primary_key(post_id, person_id)))]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
+#[cfg_attr(feature = "full", diesel(primary_key(person_id, post_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct PostHide {
   pub post_id: PostId,
   pub person_id: PersonId,
+  #[cfg_attr(feature = "full", diesel(select_expression = post_actions::hidden.assume_not_null()))]
+  #[cfg_attr(feature = "full", diesel(select_expression_type = dsl::AssumeNotNull<post_actions::hidden>))]
   pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = post_hide))]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub(crate) struct PostHideForm {
   pub post_id: PostId,
   pub person_id: PersonId,

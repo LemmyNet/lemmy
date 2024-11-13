@@ -28,7 +28,7 @@ use lemmy_db_schema::{
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
-    post::{Post, PostLike, PostRead},
+    post::{Post, PostLike},
     registration_application::RegistrationApplication,
     site::Site,
   },
@@ -141,19 +141,6 @@ pub fn is_top_mod(
   }
 }
 
-/// Marks a post as read for a given person.
-#[tracing::instrument(skip_all)]
-pub async fn mark_post_as_read(
-  person_id: PersonId,
-  post_id: PostId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  PostRead::mark_as_read(pool, post_id, person_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)?;
-  Ok(())
-}
-
 /// Updates the read comment count for a post. Usually done when reading or creating a new comment.
 #[tracing::instrument(skip_all)]
 pub async fn update_read_comments(
@@ -166,7 +153,6 @@ pub async fn update_read_comments(
     person_id,
     post_id,
     read_comments,
-    ..PersonPostAggregatesForm::default()
   };
 
   PersonPostAggregates::upsert(pool, &person_post_agg_form).await?;
