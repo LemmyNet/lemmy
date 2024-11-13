@@ -62,6 +62,7 @@ pub async fn like_post(
       .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
   }
 
+  // Mark Post Read
   let read_form = PostReadForm::new(post_id, person_id);
   PostRead::mark_as_read(&mut context.pool(), &read_form).await?;
 

@@ -108,6 +108,9 @@ pub struct GetPosts {
   /// If true, then show the nsfw posts (even if your user setting is to hide them)
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_nsfw: Option<bool>,
+  /// Whether to automatically mark fetched posts as read.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub mark_as_read: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// If true, then only show posts with no comments
   pub no_comments_only: Option<bool>,
@@ -195,6 +198,15 @@ pub struct RemovePost {
 pub struct MarkPostAsRead {
   pub post_id: PostId,
   pub read: bool,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Mark several posts as read.
+pub struct MarkPostsAsRead {
+  pub post_ids: Vec<PostId>,
 }
 
 #[skip_serializing_none]
