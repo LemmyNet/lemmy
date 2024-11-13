@@ -21,7 +21,7 @@ pub fn jsonify_plain_text_errors<BODY>(
   let lemmy_err_type = if let Some(error) = res_parts.error() {
     LemmyErrorType::Unknown(error.to_string())
   } else {
-    LemmyErrorType::CouldntBuildJsonError
+    LemmyErrorType::Unknown("couldnt build json".into())
   };
 
   let response = HttpResponse::build(res_parts.status()).json(lemmy_err_type);

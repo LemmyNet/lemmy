@@ -2,10 +2,13 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPost, GetPostResponse},
-  utils::{check_private_instance, is_mod_or_admin_opt, mark_post_as_read, update_read_comments},
+  utils::{check_private_instance, is_mod_or_admin_opt, update_read_comments},
 };
 use lemmy_db_schema::{
-  source::{comment::Comment, post::Post},
+  source::{
+    comment::Comment,
+    post::{Post, PostRead},
+  },
   traits::Crud,
 };
 use lemmy_db_views::{
@@ -62,7 +65,7 @@ pub async fn get_post(
 
   let post_id = post_view.post.id;
   if let Some(person_id) = person_id {
-    mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
+    PostRead::mark_as_read(&mut context.pool(), post_id, person_id).await?;
 
     update_read_comments(
       person_id,

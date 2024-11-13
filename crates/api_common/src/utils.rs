@@ -28,7 +28,7 @@ use lemmy_db_schema::{
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
-    post::{Post, PostLike, PostRead},
+    post::{Post, PostLike},
     registration_application::RegistrationApplication,
     site::Site,
   },
@@ -65,7 +65,7 @@ use lemmy_utils::{
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
 use rosetta_i18n::{Language, LanguageId};
-use std::{collections::HashSet, sync::LazyLock};
+use std::sync::LazyLock;
 use tracing::warn;
 use url::{ParseError, Url};
 use urlencoding::encode;
@@ -139,19 +139,6 @@ pub fn is_top_mod(
   } else {
     Ok(())
   }
-}
-
-/// Marks a post as read for a given person.
-#[tracing::instrument(skip_all)]
-pub async fn mark_post_as_read(
-  person_id: PersonId,
-  post_id: PostId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  PostRead::mark_as_read(pool, HashSet::from([post_id]), person_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)?;
-  Ok(())
 }
 
 /// Updates the read comment count for a post. Usually done when reading or creating a new comment.

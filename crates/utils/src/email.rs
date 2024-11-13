@@ -33,7 +33,7 @@ pub async fn send_email(
     let email_and_port = email_config.smtp_server.split(':').collect::<Vec<&str>>();
     let email = *email_and_port
       .first()
-      .ok_or(LemmyErrorType::MissingAnEmail)?;
+      .ok_or(LemmyErrorType::EmailRequired)?;
     let port = email_and_port
       .get(1)
       .ok_or(LemmyErrorType::EmailSmtpServerNeedsAPort)?
@@ -45,16 +45,20 @@ pub async fn send_email(
   // use usize::MAX as the line wrap length, since lettre handles the wrapping for us
   let plain_text = html2text::from_read(html.as_bytes(), usize::MAX);
 
+  let smtp_from_address = &email_config.smtp_from_address;
+
   let email = Message::builder()
     .from(
-      email_config
-        .smtp_from_address
+      smtp_from_address
         .parse()
-        .with_lemmy_type(LemmyErrorType::InvalidEmailFromAddress)?,
+        .with_lemmy_type(LemmyErrorType::InvalidEmailAddress(
+          smtp_from_address.into(),
+        ))?,
     )
     .to(Mailbox::new(
       Some(to_username.to_string()),
-      Address::from_str(to_email).with_lemmy_type(LemmyErrorType::InvalidEmailToAddress)?,
+      Address::from_str(to_email)
+        .with_lemmy_type(LemmyErrorType::InvalidEmailAddress(to_email.into()))?,
     ))
     .message_id(Some(format!("<{}@{}>", Uuid::new_v4(), settings.hostname)))
     .subject(subject)

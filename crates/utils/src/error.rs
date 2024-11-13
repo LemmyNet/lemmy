@@ -73,9 +73,7 @@ pub enum LemmyErrorType {
   NoEmailSetup,
   LocalSiteNotSetup,
   EmailSmtpServerNeedsAPort,
-  InvalidEmailFromAddress,
-  InvalidEmailToAddress,
-  MissingAnEmail,
+  InvalidEmailAddress(String),
   RateLimitError,
   InvalidName,
   InvalidDisplayName,
@@ -132,7 +130,6 @@ pub enum LemmyErrorType {
   CaptchaIncorrect,
   CouldntCreateAudioCaptcha,
   CouldntCreateImageCaptcha,
-  CouldntBuildJsonError,
   InvalidUrlScheme,
   CouldntSendWebmention,
   ContradictingFilters,
@@ -158,6 +155,7 @@ pub enum LemmyErrorType {
     #[cfg_attr(feature = "full", ts(optional))]
     error: Option<FederationError>,
   },
+  Unreachable,
 }
 
 /// Federation related errors, these dont need to be translated.

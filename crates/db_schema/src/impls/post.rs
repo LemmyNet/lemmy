@@ -42,7 +42,7 @@ use diesel::{
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
-use std::collections::HashSet;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[async_trait]
 impl Crud for Post {
@@ -335,83 +335,76 @@ impl Saveable for PostSaved {
 impl PostRead {
   pub async fn mark_as_read(
     pool: &mut DbPool<'_>,
-    post_ids: HashSet<PostId>,
+    post_id: PostId,
     person_id: PersonId,
-  ) -> Result<usize, Error> {
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
 
-    let forms = post_ids
-      .into_iter()
-      .map(|post_id| {
-        (
-          PostReadForm { post_id, person_id },
-          post_actions::read.eq(now().nullable()),
-        )
-      })
-      .collect::<Vec<_>>();
+    let form = (
+      &PostReadForm { post_id, person_id },
+      post_actions::read.eq(now().nullable()),
+    );
+
     insert_into(post_actions::table)
-      .values(forms)
+      .values(form)
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
-      .set(post_actions::read.eq(now().nullable()))
+      .set(form)
       .execute(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
   }
 
   pub async fn mark_as_unread(
     pool: &mut DbPool<'_>,
-    post_id_: HashSet<PostId>,
+    post_id_: PostId,
     person_id_: PersonId,
-  ) -> Result<uplete::Count, Error> {
+  ) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
 
     uplete::new(
       post_actions::table
-        .filter(post_actions::post_id.eq_any(post_id_))
+        .filter(post_actions::post_id.eq(post_id_))
         .filter(post_actions::person_id.eq(person_id_)),
     )
     .set_null(post_actions::read)
     .get_result(conn)
     .await
+    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
   }
 }
 
 impl PostHide {
   pub async fn hide(
     pool: &mut DbPool<'_>,
-    post_ids: HashSet<PostId>,
+    post_id: PostId,
     person_id: PersonId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let forms = post_ids
-      .into_iter()
-      .map(|post_id| {
-        (
-          PostHideForm { post_id, person_id },
-          post_actions::hidden.eq(now().nullable()),
-        )
-      })
-      .collect::<Vec<_>>();
+    let form = (
+      &PostHideForm { post_id, person_id },
+      post_actions::hidden.eq(now().nullable()),
+    );
     insert_into(post_actions::table)
-      .values(forms)
+      .values(form)
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
-      .set(post_actions::hidden.eq(now().nullable()))
+      .set(form)
       .execute(conn)
       .await
   }
 
   pub async fn unhide(
     pool: &mut DbPool<'_>,
-    post_id_: HashSet<PostId>,
+    post_id_: PostId,
     person_id_: PersonId,
   ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
 
     uplete::new(
       post_actions::table
-        .filter(post_actions::post_id.eq_any(post_id_))
+        .filter(post_actions::post_id.eq(post_id_))
         .filter(post_actions::person_id.eq(person_id_)),
     )
     .set_null(post_actions::hidden)
@@ -446,7 +439,6 @@ mod tests {
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
-  use std::collections::HashSet;
   use url::Url;
 
   #[tokio::test]
@@ -547,14 +539,9 @@ mod tests {
       published: inserted_post_saved.published,
     };
 
-    // Post Read
-    let marked_as_read = PostRead::mark_as_read(
-      pool,
-      HashSet::from([inserted_post.id, inserted_post2.id]),
-      inserted_person.id,
-    )
-    .await?;
-    assert_eq!(2, marked_as_read);
+    // Mark 2 posts as read
+    PostRead::mark_as_read(pool, inserted_post.id, inserted_person.id).await?;
+    PostRead::mark_as_read(pool, inserted_post2.id, inserted_person.id).await?;
 
     let read_post = Post::read(pool, inserted_post.id).await?;
 
@@ -572,17 +559,19 @@ mod tests {
     assert_eq!(uplete::Count::only_updated(1), like_removed);
     let saved_removed = PostSaved::unsave(pool, &post_saved_form).await?;
     assert_eq!(uplete::Count::only_updated(1), saved_removed);
-    let read_removed = PostRead::mark_as_unread(
-      pool,
-      HashSet::from([inserted_post.id, inserted_post2.id]),
-      inserted_person.id,
-    )
-    .await?;
-    assert_eq!(uplete::Count::only_deleted(2), read_removed);
+
+    let read_removed_1 =
+      PostRead::mark_as_unread(pool, inserted_post.id, inserted_person.id).await?;
+    assert_eq!(uplete::Count::only_deleted(1), read_removed_1);
+
+    let read_removed_2 =
+      PostRead::mark_as_unread(pool, inserted_post2.id, inserted_person.id).await?;
+    assert_eq!(uplete::Count::only_deleted(1), read_removed_2);
 
     let num_deleted = Post::delete(pool, inserted_post.id).await?
       + Post::delete(pool, inserted_post2.id).await?
       + Post::delete(pool, inserted_scheduled_post.id).await?;
+
     assert_eq!(3, num_deleted);
     Community::delete(pool, inserted_community.id).await?;
     Person::delete(pool, inserted_person.id).await?;

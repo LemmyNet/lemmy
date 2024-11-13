@@ -130,7 +130,7 @@ impl AnnounceActivity {
         actor: c.actor.clone().into_inner(),
         other: serde_json::to_value(c.object)?
           .as_object()
-          .ok_or(LemmyErrorType::NotFound)?
+          .ok_or(LemmyErrorType::Unreachable)?
           .clone(),
       };
       let announce_compat = AnnounceActivity::new(announcable_page, community, context)?;
