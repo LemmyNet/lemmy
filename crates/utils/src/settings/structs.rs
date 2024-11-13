@@ -52,7 +52,7 @@ pub struct Settings {
   /// Sets a response Access-Control-Allow-Origin CORS header
   /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
   #[default(None)]
-  #[doku(example = "*")]
+  #[doku(example = "lemmy.tld")]
   cors_origin: Option<String>,
 }
 
