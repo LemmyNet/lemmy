@@ -2,10 +2,9 @@ use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{PostResponse, SavePost},
-  utils::mark_post_as_read,
 };
 use lemmy_db_schema::{
-  source::post::{PostSaved, PostSavedForm},
+  source::post::{PostRead, PostSaved, PostSavedForm},
   traits::Saveable,
 };
 use lemmy_db_views::structs::{LocalUserView, PostView};
@@ -42,7 +41,7 @@ pub async fn save_post(
   )
   .await?;
 
-  mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
+  PostRead::mark_as_read(&mut context.pool(), post_id, person_id).await?;
 
   Ok(Json(PostResponse { post_view }))
 }

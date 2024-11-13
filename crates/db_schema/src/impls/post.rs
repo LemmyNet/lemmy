@@ -42,6 +42,7 @@ use diesel::{
   TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[async_trait]
 impl Crud for Post {
@@ -336,7 +337,7 @@ impl PostRead {
     pool: &mut DbPool<'_>,
     post_id: PostId,
     person_id: PersonId,
-  ) -> Result<usize, Error> {
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
 
     let form = (
@@ -351,13 +352,14 @@ impl PostRead {
       .set(form)
       .execute(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
   }
 
   pub async fn mark_as_unread(
     pool: &mut DbPool<'_>,
     post_id_: PostId,
     person_id_: PersonId,
-  ) -> Result<uplete::Count, Error> {
+  ) -> LemmyResult<uplete::Count> {
     let conn = &mut get_conn(pool).await?;
 
     uplete::new(
@@ -368,6 +370,7 @@ impl PostRead {
     .set_null(post_actions::read)
     .get_result(conn)
     .await
+    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
   }
 }
 

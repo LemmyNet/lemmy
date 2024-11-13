@@ -108,6 +108,9 @@ pub struct GetPosts {
   /// If true, then show the nsfw posts (even if your user setting is to hide them)
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_nsfw: Option<bool>,
+  /// Whether to automatically mark fetched posts as read.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub mark_as_read: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   /// If true, then only show posts with no comments
   pub no_comments_only: Option<bool>,

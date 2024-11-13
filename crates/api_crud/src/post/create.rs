@@ -12,7 +12,6 @@ use lemmy_api_common::{
     get_url_blocklist,
     honeypot_check,
     local_site_to_slur_regex,
-    mark_post_as_read,
     process_markdown_opt,
   },
 };
@@ -21,7 +20,7 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     local_site::LocalSite,
-    post::{Post, PostInsertForm, PostLike, PostLikeForm},
+    post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead},
   },
   traits::{Crud, Likeable},
   utils::diesel_url_create,
@@ -153,7 +152,7 @@ pub async fn create_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
-  mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
+  PostRead::mark_as_read(&mut context.pool(), post_id, person_id).await?;
 
   build_post_response(&context, community_id, local_user_view, post_id).await
 }

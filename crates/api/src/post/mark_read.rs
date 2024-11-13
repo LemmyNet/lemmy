@@ -5,7 +5,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::post::PostRead;
 use lemmy_db_views::structs::{LocalUserView, PostView};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn mark_post_as_read(
@@ -18,13 +18,9 @@ pub async fn mark_post_as_read(
 
   // Mark the post as read / unread
   if data.read {
-    PostRead::mark_as_read(&mut context.pool(), post_id, person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)?;
+    PostRead::mark_as_read(&mut context.pool(), post_id, person_id).await?;
   } else {
-    PostRead::mark_as_unread(&mut context.pool(), post_id, person_id)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)?;
+    PostRead::mark_as_unread(&mut context.pool(), post_id, person_id).await?;
   }
   let post_view = PostView::read(
     &mut context.pool(),
