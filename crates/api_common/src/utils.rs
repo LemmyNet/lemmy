@@ -613,15 +613,13 @@ pub async fn send_new_report_email_to_admins(
   let reports_link = &format!("{}/reports", settings.get_protocol_and_hostname(),);
 
   for admin in &admins {
-    let email = &admin
-      .local_user
-      .email
-      .clone()
-      .ok_or(LemmyErrorType::EmailRequired)?;
-    let lang = get_interface_language_from_settings(admin);
-    let subject = lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
-    let body = lang.new_report_body(reports_link);
-    send_email(&subject, email, &admin.person.name, &body, settings).await?;
+    if let Some(email) = &admin.local_user.email {
+      let lang = get_interface_language_from_settings(admin);
+      let subject =
+        lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
+      let body = lang.new_report_body(reports_link);
+      send_email(&subject, email, &admin.person.name, &body, settings).await?;
+    }
   }
   Ok(())
 }
