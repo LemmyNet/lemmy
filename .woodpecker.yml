@@ -290,14 +290,14 @@ steps:
     when:
       - event: tag
 
-  notify_on_failure:
+  notify_on_build:
     image: alpine:3
     commands:
       - apk add curl
-      - "curl -d'Lemmy CI build failed: ${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
+      - "curl -d'Lemmy CI build ${CI_PIPELINE_STATUS}: ${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
     when:
       - event: [pull_request, tag]
-        status: failure
+        status: [failure, success]
 
   notify_on_tag_deploy:
     image: alpine:3
