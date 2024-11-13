@@ -1,6 +1,7 @@
 use super::{convert_published_time, create::send_webmention};
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use chrono::Utc;
 use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
@@ -22,7 +23,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_string_update, diesel_url_update, naive_now},
+  utils::{diesel_string_update, diesel_url_update},
 };
 use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::{
@@ -131,7 +132,7 @@ pub async fn update_post(
     alt_text,
     nsfw: data.nsfw,
     language_id: Some(language_id),
-    updated: Some(Some(naive_now())),
+    updated: Some(Some(Utc::now())),
     scheduled_publish_time,
     ..Default::default()
   };

@@ -1,5 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use chrono::Utc;
 use lemmy_api_common::{
   build_response::{build_comment_response, send_local_notifs},
   comment::{CommentResponse, EditComment},
@@ -19,7 +20,6 @@ use lemmy_db_schema::{
     local_site::LocalSite,
   },
   traits::Crud,
-  utils::naive_now,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::{
@@ -74,7 +74,7 @@ pub async fn update_comment(
   let form = CommentUpdateForm {
     content,
     language_id: Some(language_id),
-    updated: Some(Some(naive_now())),
+    updated: Some(Some(Utc::now())),
     ..Default::default()
   };
   let updated_comment = Comment::update(&mut context.pool(), comment_id, &form)

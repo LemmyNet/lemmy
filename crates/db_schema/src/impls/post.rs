@@ -19,7 +19,6 @@ use crate::{
   utils::{
     functions::coalesce,
     get_conn,
-    naive_now,
     now,
     uplete,
     DbPool,
@@ -137,7 +136,7 @@ impl Post {
         post::url.eq(Option::<&str>::None),
         post::body.eq(DELETED_REPLACEMENT_TEXT),
         post::deleted.eq(true),
-        post::updated.eq(naive_now()),
+        post::updated.eq(Utc::now()),
       ))
       .get_results::<Self>(conn)
       .await
@@ -159,7 +158,7 @@ impl Post {
     }
 
     update
-      .set((post::removed.eq(removed), post::updated.eq(naive_now())))
+      .set((post::removed.eq(removed), post::updated.eq(Utc::now())))
       .get_results::<Self>(conn)
       .await
   }

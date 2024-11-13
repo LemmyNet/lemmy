@@ -1,9 +1,6 @@
+use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
 #[cfg(feature = "full")]
 use crate::schema::{post, post_actions};
-use crate::{
-  newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId},
-  utils::naive_now,
-};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel::{dsl, expression_methods::NullableExpressionMethods};
@@ -176,7 +173,7 @@ pub struct PostLikeForm {
   pub person_id: PersonId,
   #[cfg_attr(feature = "full", diesel(column_name = like_score))]
   pub score: i16,
-  #[new(value = "naive_now()")]
+  #[new(value = "Utc::now()")]
   pub liked: DateTime<Utc>,
 }
 
@@ -203,7 +200,7 @@ pub struct PostSaved {
 pub struct PostSavedForm {
   pub post_id: PostId,
   pub person_id: PersonId,
-  #[new(value = "naive_now()")]
+  #[new(value = "Utc::now()")]
   pub saved: DateTime<Utc>,
 }
 
@@ -230,7 +227,7 @@ pub struct PostRead {
 pub struct PostReadForm {
   pub post_id: PostId,
   pub person_id: PersonId,
-  #[new(value = "naive_now()")]
+  #[new(value = "Utc::now()")]
   pub read: DateTime<Utc>,
 }
 
@@ -257,6 +254,6 @@ pub struct PostHide {
 pub struct PostHideForm {
   pub post_id: PostId,
   pub person_id: PersonId,
-  #[new(value = "naive_now()")]
+  #[new(value = "Utc::now()")]
   pub hidden: DateTime<Utc>,
 }
