@@ -155,7 +155,6 @@ pub enum LemmyErrorType {
     #[cfg_attr(feature = "full", ts(optional))]
     error: Option<FederationError>,
   },
-  Unreachable,
 }
 
 /// Federation related errors, these dont need to be translated.
@@ -187,6 +186,7 @@ pub enum FederationError {
   CantDeleteSite,
   ObjectIsNotPublic,
   ObjectIsNotPrivate,
+  Unreachable,
 }
 
 cfg_if! {
