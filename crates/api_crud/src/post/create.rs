@@ -152,7 +152,7 @@ pub async fn create_post(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
-  PostRead::mark_as_read(&mut context.pool(), &[post_id], person_id).await?;
+  PostRead::mark_as_read(&mut context.pool(), post_id, person_id).await?;
 
   build_post_response(&context, community_id, local_user_view, post_id).await
 }
