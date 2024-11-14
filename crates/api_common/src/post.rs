@@ -205,7 +205,7 @@ pub struct MarkPostAsRead {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Mark several posts as read.
-pub struct MarkPostsAsRead {
+pub struct MarkManyPostsAsRead {
   pub post_ids: Vec<PostId>,
 }
 

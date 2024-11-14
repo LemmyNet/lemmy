@@ -333,16 +333,7 @@ impl PostRead {
     pool: &mut DbPool<'_>,
     post_read_form: &PostReadForm,
   ) -> LemmyResult<usize> {
-    let conn = &mut get_conn(pool).await?;
-
-    insert_into(post_actions::table)
-      .values(post_read_form)
-      .on_conflict((post_actions::person_id, post_actions::post_id))
-      .do_update()
-      .set(post_read_form)
-      .execute(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
+    Self::mark_many_as_read(pool, &[post_read_form.post_id], post_read_form.person_id).await
   }
 
   pub async fn mark_as_unread(
@@ -370,8 +361,9 @@ impl PostRead {
 
     let forms = post_ids
       .iter()
-      .map(|post_id| PostReadForm::new(*post_id, person_id))
+      .map(|post_id| (PostReadForm::new(*post_id, person_id)))
       .collect::<Vec<_>>();
+
     insert_into(post_actions::table)
       .values(forms)
       .on_conflict((post_actions::person_id, post_actions::post_id))
