@@ -139,7 +139,7 @@ steps:
     when: *slow_check_paths
 
   docker_check:
-    image: docker/dockerfile:1.11
+    image: docker:27-cli
     commands:
       - docker build --check . -f docker/Dockerfile
 
