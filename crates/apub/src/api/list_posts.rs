@@ -100,10 +100,7 @@ pub async fn list_posts(
       .unwrap_or(local_user.auto_mark_fetched_posts_as_read)
     {
       let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
-      // TODO get rid of this in the next pr
-      for post_id in post_ids {
-        PostRead::mark_as_read(&mut context.pool(), post_id, local_user.person_id).await?;
-      }
+      PostRead::mark_many_as_read(&mut context.pool(), &post_ids, local_user.person_id).await?;
     }
   }
 

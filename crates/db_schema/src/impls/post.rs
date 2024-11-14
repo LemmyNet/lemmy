@@ -338,21 +338,7 @@ impl PostRead {
     post_id: PostId,
     person_id: PersonId,
   ) -> LemmyResult<usize> {
-    let conn = &mut get_conn(pool).await?;
-
-    let form = (
-      &PostReadForm { post_id, person_id },
-      post_actions::read.eq(now().nullable()),
-    );
-
-    insert_into(post_actions::table)
-      .values(form)
-      .on_conflict((post_actions::person_id, post_actions::post_id))
-      .do_update()
-      .set(form)
-      .execute(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
+    Self::mark_many_as_read(pool, &[post_id], person_id).await
   }
 
   pub async fn mark_as_unread(
@@ -371,6 +357,35 @@ impl PostRead {
     .get_result(conn)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
+  }
+
+  pub async fn mark_many_as_read(
+    pool: &mut DbPool<'_>,
+    post_ids: &[PostId],
+    person_id: PersonId,
+  ) -> LemmyResult<usize> {
+    let conn = &mut get_conn(pool).await?;
+
+    let forms = post_ids
+      .iter()
+      .map(|post_id| {
+        (
+          PostReadForm {
+            post_id: *post_id,
+            person_id,
+          },
+          post_actions::read.eq(now().nullable()),
+        )
+      })
+      .collect::<Vec<_>>();
+    insert_into(post_actions::table)
+      .values(forms)
+      .on_conflict((post_actions::person_id, post_actions::post_id))
+      .do_update()
+      .set(post_actions::read.eq(now().nullable()))
+      .execute(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
   }
 }
 
