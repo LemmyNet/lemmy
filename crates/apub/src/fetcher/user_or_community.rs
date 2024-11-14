@@ -27,6 +27,7 @@ pub enum PersonOrGroup {
   Group(Group),
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum PersonOrGroupType {
   Person,

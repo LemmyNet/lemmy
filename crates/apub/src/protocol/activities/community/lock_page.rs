@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use strum::Display;
 use url::Url;
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(Clone, Debug, Display, Deserialize, Serialize)]
 pub enum LockType {
   Lock,

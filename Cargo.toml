@@ -162,6 +162,7 @@ pretty_assertions = "1.4.0"
 derive-new = "0.7.0"
 diesel-bind-if-some = "0.1.0"
 tuplex = "0.1.2"
+visibility = "0.1.1"
 
 [dependencies]
 lemmy_api = { workspace = true }

@@ -8,6 +8,7 @@ pub mod deletion;
 pub mod following;
 pub mod voting;
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(Clone, Debug, Display, Deserialize, Serialize, PartialEq, Eq)]
 pub enum CreateOrUpdateType {
   Create,

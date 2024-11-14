@@ -66,6 +66,7 @@ impl Bucket {
   }
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(Debug, enum_map::Enum, Copy, Clone, Display, AsRefStr)]
 pub enum ActionType {
   Message,

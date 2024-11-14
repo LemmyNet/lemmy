@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::{backtrace::Backtrace, fmt::Debug};
 use strum::{Display, EnumIter};
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -157,6 +158,7 @@ pub enum LemmyErrorType {
 }
 
 /// Federation related errors, these dont need to be translated.
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
 #[cfg_attr(feature = "full", ts(export))]

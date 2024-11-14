@@ -1,4 +1,5 @@
 #![recursion_limit = "256"]
+#![cfg_attr(test, allow(private_interfaces))]
 
 #[cfg(feature = "full")]
 #[macro_use]
@@ -51,6 +52,7 @@ use strum::{Display, EnumString};
 #[cfg(feature = "full")]
 use ts_rs::TS;
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
@@ -86,6 +88,7 @@ pub enum PostSortType {
   Scaled,
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
@@ -106,6 +109,7 @@ pub enum CommentSortType {
   Controversial,
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
@@ -129,6 +133,7 @@ pub enum ListingType {
   ModeratorView,
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
@@ -150,6 +155,7 @@ pub enum RegistrationMode {
   Open,
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
@@ -171,6 +177,7 @@ pub enum PostListingMode {
   SmallCard,
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -183,6 +190,7 @@ pub enum SearchType {
   Users,
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(EnumString, Display, Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Copy, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -194,6 +202,7 @@ pub enum SubscribedType {
   ApprovalRequired,
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -217,6 +226,7 @@ pub enum ModlogActionType {
   AdminPurgeComment,
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash,
 )]
@@ -231,6 +241,7 @@ pub enum PostFeatureType {
   Community,
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
@@ -252,6 +263,7 @@ pub enum CommunityVisibility {
   Private,
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]

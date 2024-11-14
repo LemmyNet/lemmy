@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub enum UserTypes {
   Person,

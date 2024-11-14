@@ -96,6 +96,7 @@ pub struct PictrsConfig {
   pub max_thumbnail_size: u32,
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub enum PictrsImageMode {

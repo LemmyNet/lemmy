@@ -943,6 +943,7 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
   Ok(())
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 pub enum EndpointType {
   Community,
   Person,

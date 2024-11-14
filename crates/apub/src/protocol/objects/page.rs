@@ -25,6 +25,7 @@ use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub enum PageType {
   Page,
@@ -168,6 +169,7 @@ pub struct Hashtag {
   pub(crate) kind: HashtagType,
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum HashtagType {
   Hashtag,

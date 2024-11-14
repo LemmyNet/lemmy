@@ -22,6 +22,7 @@ pub struct Vote {
   pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
+#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(Clone, Debug, Display, Deserialize, Serialize, PartialEq, Eq)]
 pub enum VoteType {
   Like,
