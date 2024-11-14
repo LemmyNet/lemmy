@@ -501,6 +501,7 @@ pub struct PostQuery<'a> {
 }
 
 impl<'a> PostQuery<'a> {
+  #[allow(clippy::expect_used)]
   async fn prefetch_upper_bound_for_page_before(
     &self,
     site: &Site,

@@ -331,7 +331,7 @@ impl InstanceWorker {
       self.state.last_successful_published_time = next.published;
     }
 
-    let save_state_every = chrono::Duration::from_std(SAVE_STATE_EVERY_TIME).expect("not negative");
+    let save_state_every = chrono::Duration::from_std(SAVE_STATE_EVERY_TIME)?;
     if force_write || (Utc::now() - self.last_state_insert) > save_state_every {
       self.save_and_send_state().await?;
     }

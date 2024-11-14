@@ -28,7 +28,10 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{get_conn, naive_now, DbPool},
 };
-use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
+use lemmy_utils::{
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
 use tracing::info;
 use url::Url;
 
@@ -420,7 +423,7 @@ async fn initialize_local_site_2022_10_10(
 
   let domain = settings
     .get_hostname_without_port()
-    .expect("must have domain");
+    .with_lemmy_type(LemmyErrorType::Unknown("must have domain".into()))?;
 
   // Upsert this to the instance table
   let instance = Instance::read_or_create(pool, domain).await?;

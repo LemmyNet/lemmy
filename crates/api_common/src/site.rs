@@ -514,6 +514,7 @@ pub struct ReadableFederationState {
   next_retry: Option<DateTime<Utc>>,
 }
 
+#[allow(clippy::expect_used)]
 impl From<FederationQueueState> for ReadableFederationState {
   fn from(internal_state: FederationQueueState) -> Self {
     ReadableFederationState {

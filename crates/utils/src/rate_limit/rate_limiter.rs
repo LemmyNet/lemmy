@@ -18,6 +18,7 @@ pub struct InstantSecs {
   secs: u32,
 }
 
+#[allow(clippy::expect_used)]
 impl InstantSecs {
   pub fn now() -> Self {
     InstantSecs {

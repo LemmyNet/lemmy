@@ -210,7 +210,7 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
       .slur_filter_regex
       .as_deref()
       .or(local_site.slur_filter_regex.as_deref()),
-  )?;
+  );
 
   if let Some(name) = &edit_site.name {
     // The name doesn't need to be updated, but if provided it cannot be blanked out...
