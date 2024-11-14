@@ -73,7 +73,7 @@ jsonwebtoken = { version = "9.3.0", optional = true }
 getrandom = { version = "0.2.15", features = ["js"] }
 
 [package.metadata.cargo-shear]
-ignored = ["getrandom"]
+ignored = ["getrandom", "visibility"]
 
 [dev-dependencies]
 serial_test = { workspace = true }
