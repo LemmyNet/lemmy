@@ -204,6 +204,15 @@ pub struct MarkPostAsRead {
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// Mark several posts as read.
+pub struct MarkManyPostsAsRead {
+  pub post_ids: Vec<PostId>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
 /// Hide a post from list views
 pub struct HidePost {
   pub post_id: PostId,
