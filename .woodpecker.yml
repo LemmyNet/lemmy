@@ -138,6 +138,11 @@ steps:
       - diff tmp.schema crates/db_schema/src/schema.rs
     when: *slow_check_paths
 
+  docker_check:
+    image: docker/dockerfile:1.11
+    commands:
+      - docker build --check . -f docker/Dockerfile
+
   cargo_clippy:
     image: *rust_image
     environment:
