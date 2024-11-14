@@ -81,7 +81,6 @@ pub struct SentActivityForm {
   pub actor_apub_id: DbUrl,
 }
 
-#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(Clone, Copy, Debug, diesel_derive_enum::DbEnum, PartialEq, Eq)]
 #[ExistingTypePath = "crate::schema::sql_types::ActorTypeEnum"]
 pub enum ActorType {

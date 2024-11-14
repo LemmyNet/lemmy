@@ -47,3 +47,4 @@ tokio = { workspace = true }
 pretty_assertions = { workspace = true }
 url.workspace = true
 lemmy_db_views = { workspace = true, features = ["full"] }
+visibility.workspace = true

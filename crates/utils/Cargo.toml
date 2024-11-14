@@ -92,7 +92,7 @@ markdown-it-ruby = "1.0.0"
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
-visibility = { workspace = true }
+visibility.workspace = true
 
 [build-dependencies]
 rosetta-build = { version = "0.1.3", default-features = false }

@@ -86,4 +86,3 @@ tuplex = { workspace = true, optional = true }
 [dev-dependencies]
 serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
-visibility = { workspace = true }

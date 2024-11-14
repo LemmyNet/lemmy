@@ -216,7 +216,6 @@ pub struct CommunityPersonBanForm {
   pub expires: Option<Option<DateTime<Utc>>>,
 }
 
-#[cfg_attr(test, visibility::make(pub(crate)))]
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(

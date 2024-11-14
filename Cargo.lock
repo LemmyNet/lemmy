@@ -2649,7 +2649,6 @@ dependencies = [
  "tuplex",
  "url",
  "uuid",
- "visibility",
 ]
 
 [[package]]
@@ -2692,6 +2691,7 @@ dependencies = [
  "tokio",
  "ts-rs",
  "url",
+ "visibility",
 ]
 
 [[package]]

@@ -50,4 +50,4 @@ enum_delegate = "0.2.0"
 serial_test = { workspace = true }
 assert-json-diff = "2.0.2"
 pretty_assertions = { workspace = true }
-visibility = { workspace = true }
+visibility.workspace = true

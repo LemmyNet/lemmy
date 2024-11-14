@@ -1,7 +1,13 @@
 use crate::error::{LemmyError, LemmyErrorType};
+#[cfg(test)]
+use crate::rate_limit::rate_limiter::ActionType;
 use actix_web::dev::{ConnectionInfo, Service, ServiceRequest, ServiceResponse, Transform};
 use enum_map::{enum_map, EnumMap};
 use futures::future::{ok, Ready};
+// Can not re-export ActionType in test because it is marked pub(crate) in that cfg.
+#[cfg(test)]
+pub use rate_limiter::BucketConfig;
+#[cfg(not(test))]
 pub use rate_limiter::{ActionType, BucketConfig};
 use rate_limiter::{InstantSecs, RateLimitState};
 use std::{

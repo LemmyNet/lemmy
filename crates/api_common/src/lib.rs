@@ -1,3 +1,6 @@
+// This allows functions to return error types that are made pub(crate) only in test builds.
+#![cfg_attr(test, allow(private_interfaces))]
+
 #[cfg(feature = "full")]
 pub mod build_response;
 #[cfg(feature = "full")]

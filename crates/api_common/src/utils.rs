@@ -943,7 +943,7 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
   Ok(())
 }
 
-#[cfg_attr(test, visibility::make(pub(crate)))]
+// TODO: This enum can not use visibility modifiers, because it is not used in tests.
 pub enum EndpointType {
   Community,
   Person,

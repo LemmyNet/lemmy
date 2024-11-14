@@ -123,7 +123,6 @@ impl Joinable for CommunityModerator {
   }
 }
 
-#[cfg_attr(test, visibility::make(pub(crate)))]
 pub enum CollectionType {
   Moderators,
   Featured,
