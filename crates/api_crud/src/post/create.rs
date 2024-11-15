@@ -20,7 +20,7 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     local_site::LocalSite,
-    post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead},
+    post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostReadForm},
   },
   traits::{Crud, Likeable},
   utils::diesel_url_create,
@@ -142,17 +142,14 @@ pub async fn create_post(
   // They like their own post by default
   let person_id = local_user_view.person.id;
   let post_id = inserted_post.id;
-  let like_form = PostLikeForm {
-    post_id,
-    person_id,
-    score: 1,
-  };
+  let like_form = PostLikeForm::new(post_id, person_id, 1);
 
   PostLike::like(&mut context.pool(), &like_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
-  PostRead::mark_as_read(&mut context.pool(), post_id, person_id).await?;
+  let read_form = PostReadForm::new(post_id, person_id);
+  PostRead::mark_as_read(&mut context.pool(), &read_form).await?;
 
   build_post_response(&context, community_id, local_user_view, post_id).await
 }

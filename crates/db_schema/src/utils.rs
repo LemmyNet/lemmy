@@ -1,7 +1,7 @@
 pub mod uplete;
 
 use crate::{newtypes::DbUrl, CommentSortType, PostSortType};
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::TimeDelta;
 use deadpool::Runtime;
 use diesel::{
   dsl,
@@ -68,7 +68,7 @@ use url::Url;
 const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
 pub const SITEMAP_LIMIT: i64 = 50000;
-pub const SITEMAP_DAYS: Option<TimeDelta> = TimeDelta::try_days(31);
+pub const SITEMAP_DAYS: TimeDelta = TimeDelta::days(31);
 pub const RANK_DEFAULT: f64 = 0.0001;
 
 /// Some connection options to speed up queries
@@ -360,8 +360,8 @@ pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
 }
 
 /// Sets a few additional config options necessary for starting lemmy
-fn build_config_options_uri_segment(config: &str) -> String {
-  let mut url = Url::parse(config).expect("Couldn't parse postgres connection URI");
+fn build_config_options_uri_segment(config: &str) -> LemmyResult<String> {
+  let mut url = Url::parse(config)?;
 
   // Set `lemmy.protocol_and_hostname` so triggers can use it
   let lemmy_protocol_and_hostname_option =
@@ -377,7 +377,7 @@ fn build_config_options_uri_segment(config: &str) -> String {
     .join(" ");
 
   url.set_query(Some(&format!("options={options_segments}")));
-  url.into()
+  Ok(url.into())
 }
 
 fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
@@ -385,8 +385,11 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
     /// Use a once_lock to create the postgres connection config, since this config never changes
     static POSTGRES_CONFIG_WITH_OPTIONS: OnceLock<String> = OnceLock::new();
 
-    let config =
-      POSTGRES_CONFIG_WITH_OPTIONS.get_or_init(|| build_config_options_uri_segment(config));
+    let config = POSTGRES_CONFIG_WITH_OPTIONS.get_or_init(|| {
+      build_config_options_uri_segment(config)
+        .inspect_err(|e| error!("Couldn't parse postgres connection URI: {e}"))
+        .unwrap_or_default()
+    });
 
     // We only support TLS with sslmode=require currently
     let conn = if config.contains("sslmode=require") {
@@ -495,12 +498,9 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   Ok(pool)
 }
 
+#[allow(clippy::expect_used)]
 pub fn build_db_pool_for_tests() -> ActualDbPool {
   build_db_pool().expect("db pool missing")
-}
-
-pub fn naive_now() -> DateTime<Utc> {
-  Utc::now()
 }
 
 pub fn post_to_comment_sort_type(sort: PostSortType) -> CommentSortType {
@@ -515,6 +515,7 @@ pub fn post_to_comment_sort_type(sort: PostSortType) -> CommentSortType {
   }
 }
 
+#[allow(clippy::expect_used)]
 static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
     .expect("compile email regex")

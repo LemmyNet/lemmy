@@ -50,7 +50,8 @@ impl UrlVerifier for VerifyUrlData {
   async fn verify(&self, url: &Url) -> Result<(), ActivityPubError> {
     let local_site_data = local_site_data_cached(&mut (&self.0).into())
       .await
-      .expect("read local site data");
+      .map_err(|e| ActivityPubError::Other(format!("Cant read local site data: {e}")))?;
+
     use FederationError::*;
     check_apub_id_valid(url, &local_site_data).map_err(|err| match err {
       LemmyError {
@@ -176,10 +177,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
     .domain()
     .ok_or(FederationError::UrlWithoutDomain)?
     .to_string();
-  let local_instance = context
-    .settings()
-    .get_hostname_without_port()
-    .expect("local hostname is valid");
+  let local_instance = context.settings().get_hostname_without_port()?;
   if domain == local_instance {
     return Ok(());
   }
@@ -196,10 +194,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
       .iter()
       .map(|i| i.domain.clone())
       .collect::<Vec<String>>();
-    let local_instance = context
-      .settings()
-      .get_hostname_without_port()
-      .expect("local hostname is valid");
+    let local_instance = context.settings().get_hostname_without_port()?;
     allowed_and_local.push(local_instance);
 
     let domain = apub_id

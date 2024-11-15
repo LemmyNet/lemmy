@@ -35,7 +35,6 @@ use lemmy_db_schema::{
     person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
   },
   traits::{ApubActor, Crud},
-  utils::naive_now,
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
@@ -176,7 +175,7 @@ impl Object for ApubPerson {
       bot_account: Some(person.kind == UserTypes::Service),
       private_key: None,
       public_key: person.public_key.public_key_pem,
-      last_refreshed_at: Some(naive_now()),
+      last_refreshed_at: Some(Utc::now()),
       inbox_url: Some(
         person
           .endpoints

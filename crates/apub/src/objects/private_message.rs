@@ -31,7 +31,6 @@ use lemmy_db_schema::{
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
   traits::Crud,
-  utils::naive_now,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
@@ -161,7 +160,7 @@ impl Object for ApubPrivateMessage {
       ap_id: Some(note.id.into()),
       local: Some(false),
     };
-    let timestamp = note.updated.or(note.published).unwrap_or_else(naive_now);
+    let timestamp = note.updated.or(note.published).unwrap_or_else(Utc::now);
     let pm = PrivateMessage::insert_apub(&mut context.pool(), timestamp, &form).await?;
     Ok(pm.into())
   }

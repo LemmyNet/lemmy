@@ -501,6 +501,7 @@ pub struct PostQuery<'a> {
 }
 
 impl<'a> PostQuery<'a> {
+  #[allow(clippy::expect_used)]
   async fn prefetch_upper_bound_for_page_before(
     &self,
     site: &Site,
@@ -641,6 +642,7 @@ mod tests {
         PostLike,
         PostLikeForm,
         PostRead,
+        PostReadForm,
         PostSaved,
         PostSavedForm,
         PostUpdateForm,
@@ -994,11 +996,8 @@ mod tests {
     let pool = &mut pool.into();
     let mut data = init_data(pool).await?;
 
-    let post_like_form = PostLikeForm {
-      post_id: data.inserted_post.id,
-      person_id: data.local_user_view.person.id,
-      score: 1,
-    };
+    let post_like_form =
+      PostLikeForm::new(data.inserted_post.id, data.local_user_view.person.id, 1);
 
     let inserted_post_like = PostLike::like(pool, &post_like_form).await?;
 
@@ -1054,18 +1053,12 @@ mod tests {
 
     // Like both the bot post, and your own
     // The liked_only should not show your own post
-    let post_like_form = PostLikeForm {
-      post_id: data.inserted_post.id,
-      person_id: data.local_user_view.person.id,
-      score: 1,
-    };
+    let post_like_form =
+      PostLikeForm::new(data.inserted_post.id, data.local_user_view.person.id, 1);
     PostLike::like(pool, &post_like_form).await?;
 
-    let bot_post_like_form = PostLikeForm {
-      post_id: data.inserted_bot_post.id,
-      person_id: data.local_user_view.person.id,
-      score: 1,
-    };
+    let bot_post_like_form =
+      PostLikeForm::new(data.inserted_bot_post.id, data.local_user_view.person.id, 1);
     PostLike::like(pool, &bot_post_like_form).await?;
 
     // Read the liked only
@@ -1103,10 +1096,8 @@ mod tests {
 
     // Save only the bot post
     // The saved_only should only show the bot post
-    let post_save_form = PostSavedForm {
-      post_id: data.inserted_bot_post.id,
-      person_id: data.local_user_view.person.id,
-    };
+    let post_save_form =
+      PostSavedForm::new(data.inserted_bot_post.id, data.local_user_view.person.id);
     PostSaved::save(pool, &post_save_form).await?;
 
     // Read the saved only
@@ -1521,12 +1512,8 @@ mod tests {
     data.local_user_view.local_user.show_read_posts = false;
 
     // Mark a post as read
-    PostRead::mark_as_read(
-      pool,
-      data.inserted_bot_post.id,
-      data.local_user_view.person.id,
-    )
-    .await?;
+    let read_form = PostReadForm::new(data.inserted_bot_post.id, data.local_user_view.person.id);
+    PostRead::mark_as_read(pool, &read_form).await?;
 
     // Make sure you don't see the read post in the results
     let post_listings_hide_read = data.default_post_query().list(&data.site, pool).await?;

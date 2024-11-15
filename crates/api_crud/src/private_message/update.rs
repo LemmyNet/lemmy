@@ -1,5 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use chrono::Utc;
 use lemmy_api_common::{
   context::LemmyContext,
   private_message::{EditPrivateMessage, PrivateMessageResponse},
@@ -12,7 +13,6 @@ use lemmy_db_schema::{
     private_message::{PrivateMessage, PrivateMessageUpdateForm},
   },
   traits::Crud,
-  utils::naive_now,
 };
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_utils::{
@@ -47,7 +47,7 @@ pub async fn update_private_message(
     private_message_id,
     &PrivateMessageUpdateForm {
       content: Some(content),
-      updated: Some(Some(naive_now())),
+      updated: Some(Some(Utc::now())),
       ..Default::default()
     },
   )

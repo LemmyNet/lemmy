@@ -47,6 +47,7 @@ pub mod tagline;
 /// This is necessary so they can be successfully deserialized from API responses, even though the
 /// value is not sent by Lemmy. Necessary for crates which rely on Rust API such as
 /// lemmy-stats-crawler.
+#[allow(clippy::expect_used)]
 fn placeholder_apub_url() -> DbUrl {
   DbUrl(Box::new(
     Url::parse("http://example.com").expect("parse placeholder url"),

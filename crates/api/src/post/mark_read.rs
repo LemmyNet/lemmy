@@ -3,7 +3,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{MarkPostAsRead, PostResponse},
 };
-use lemmy_db_schema::source::post::PostRead;
+use lemmy_db_schema::source::post::{PostRead, PostReadForm};
 use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::error::LemmyResult;
 
@@ -17,10 +17,11 @@ pub async fn mark_post_as_read(
   let post_id = data.post_id;
 
   // Mark the post as read / unread
+  let form = PostReadForm::new(post_id, person_id);
   if data.read {
-    PostRead::mark_as_read(&mut context.pool(), post_id, person_id).await?;
+    PostRead::mark_as_read(&mut context.pool(), &form).await?;
   } else {
-    PostRead::mark_as_unread(&mut context.pool(), post_id, person_id).await?;
+    PostRead::mark_as_unread(&mut context.pool(), &form).await?;
   }
   let post_view = PostView::read(
     &mut context.pool(),

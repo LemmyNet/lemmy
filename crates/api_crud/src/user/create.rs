@@ -148,14 +148,15 @@ pub async fn register(
   let inserted_local_user = create_local_user(&context, language_tags, &local_user_form).await?;
 
   if local_site.site_setup && require_registration_application {
-    // Create the registration application
-    let form = RegistrationApplicationInsertForm {
-      local_user_id: inserted_local_user.id,
-      // We already made sure answer was not null above
-      answer: data.answer.clone().expect("must have an answer"),
-    };
+    if let Some(answer) = data.answer.clone() {
+      // Create the registration application
+      let form = RegistrationApplicationInsertForm {
+        local_user_id: inserted_local_user.id,
+        answer,
+      };
 
-    RegistrationApplication::create(&mut context.pool(), &form).await?;
+      RegistrationApplication::create(&mut context.pool(), &form).await?;
+    }
   }
 
   // Email the admins, only if email verification is not required
@@ -373,17 +374,19 @@ pub async fn authenticate_with_oauth(
         && !local_user.accepted_application
         && !local_user.admin
       {
-        // Create the registration application
-        RegistrationApplication::create(
-          &mut context.pool(),
-          &RegistrationApplicationInsertForm {
-            local_user_id: local_user.id,
-            answer: data.answer.clone().expect("must have an answer"),
-          },
-        )
-        .await?;
+        if let Some(answer) = data.answer.clone() {
+          // Create the registration application
+          RegistrationApplication::create(
+            &mut context.pool(),
+            &RegistrationApplicationInsertForm {
+              local_user_id: local_user.id,
+              answer,
+            },
+          )
+          .await?;
 
-        login_response.registration_created = true;
+          login_response.registration_created = true;
+        }
       }
 
       // Check email is verified when required
@@ -483,7 +486,7 @@ async fn send_verification_email_if_required(
       &local_user
         .email
         .clone()
-        .expect("invalid verification email"),
+        .ok_or(LemmyErrorType::EmailRequired)?,
       &mut context.pool(),
       context.settings(),
     )

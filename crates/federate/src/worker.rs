@@ -22,7 +22,7 @@ use lemmy_db_schema::{
     federation_queue_state::FederationQueueState,
     instance::{Instance, InstanceForm},
   },
-  utils::{naive_now, ActualDbPool, DbPool},
+  utils::{ActualDbPool, DbPool},
 };
 use lemmy_utils::error::LemmyResult;
 use std::{collections::BinaryHeap, ops::Add, time::Duration};
@@ -295,7 +295,7 @@ impl InstanceWorker {
       self.instance.updated = Some(Utc::now());
 
       let form = InstanceForm {
-        updated: Some(naive_now()),
+        updated: Some(Utc::now()),
         ..InstanceForm::new(self.instance.domain.clone())
       };
       Instance::update(&mut self.pool(), self.instance.id, form).await?;
@@ -335,7 +335,7 @@ impl InstanceWorker {
       self.state.last_successful_published_time = next.published;
     }
 
-    let save_state_every = chrono::Duration::from_std(SAVE_STATE_EVERY_TIME).expect("not negative");
+    let save_state_every = chrono::Duration::from_std(SAVE_STATE_EVERY_TIME)?;
     if force_write || (Utc::now() - self.last_state_insert) > save_state_every {
       self.save_and_send_state().await?;
     }

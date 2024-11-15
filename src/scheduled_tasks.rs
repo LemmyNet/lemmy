@@ -36,15 +36,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::{
-    find_action,
-    functions::coalesce,
-    get_conn,
-    naive_now,
-    now,
-    DbPool,
-    DELETED_REPLACEMENT_TEXT,
-  },
+  utils::{find_action, functions::coalesce, get_conn, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use lemmy_utils::error::LemmyResult;
@@ -177,10 +169,7 @@ async fn process_ranks_in_batches(
   where_clause: &str,
   set_clause: &str,
 ) {
-  let process_start_time: DateTime<Utc> = Utc
-    .timestamp_opt(0, 0)
-    .single()
-    .expect("0 timestamp creation");
+  let process_start_time: DateTime<Utc> = Utc.timestamp_opt(0, 0).single().unwrap_or_default();
 
   let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
   let mut processed_rows_count = 0;
@@ -228,10 +217,7 @@ async fn process_ranks_in_batches(
 /// Post aggregates is a special case, since it needs to join to the community_aggregates
 /// table, to get the active monthly user counts.
 async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) {
-  let process_start_time: DateTime<Utc> = Utc
-    .timestamp_opt(0, 0)
-    .single()
-    .expect("0 timestamp creation");
+  let process_start_time: DateTime<Utc> = Utc.timestamp_opt(0, 0).single().unwrap_or_default();
 
   let update_batch_size = 1000; // Bigger batches than this tend to cause seq scans
   let mut processed_rows_count = 0;
@@ -558,7 +544,7 @@ async fn build_update_instance_form(
   // Activitypub). That's why we always need to mark instances as updated if they are
   // alive.
   let mut instance_form = InstanceForm {
-    updated: Some(naive_now()),
+    updated: Some(Utc::now()),
     ..InstanceForm::new(domain.to_string())
   };
 

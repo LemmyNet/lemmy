@@ -73,7 +73,7 @@ pub enum LemmyErrorType {
   NoEmailSetup,
   LocalSiteNotSetup,
   EmailSmtpServerNeedsAPort,
-  MissingAnEmail,
+  InvalidEmailAddress(String),
   RateLimitError,
   InvalidName,
   InvalidDisplayName,
@@ -129,6 +129,7 @@ pub enum LemmyErrorType {
   InvalidRegex,
   CaptchaIncorrect,
   CouldntCreateAudioCaptcha,
+  CouldntCreateImageCaptcha,
   InvalidUrlScheme,
   CouldntSendWebmention,
   ContradictingFilters,
@@ -185,6 +186,7 @@ pub enum FederationError {
   CantDeleteSite,
   ObjectIsNotPublic,
   ObjectIsNotPrivate,
+  Unreachable,
 }
 
 cfg_if! {

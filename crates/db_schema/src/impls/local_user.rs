@@ -26,19 +26,19 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalUser {
   pub async fn create(
     pool: &mut DbPool<'_>,
     form: &LocalUserInsertForm,
     languages: Vec<LanguageId>,
-  ) -> Result<LocalUser, Error> {
+  ) -> LemmyResult<LocalUser> {
     let conn = &mut get_conn(pool).await?;
     let mut form_with_encrypted_password = form.clone();
 
     if let Some(password_encrypted) = &form.password_encrypted {
-      let password_hash = hash(password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
+      let password_hash = hash(password_encrypted, DEFAULT_COST)?;
       form_with_encrypted_password.password_encrypted = Some(password_hash);
     }
 
@@ -84,14 +84,15 @@ impl LocalUser {
     pool: &mut DbPool<'_>,
     local_user_id: LocalUserId,
     new_password: &str,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    let password_hash = hash(new_password, DEFAULT_COST).expect("Couldn't hash password");
+    let password_hash = hash(new_password, DEFAULT_COST)?;
 
     diesel::update(local_user::table.find(local_user_id))
       .set((local_user::password_encrypted.eq(password_hash),))
       .get_result::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)
   }
 
   pub async fn set_all_users_email_verified(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {

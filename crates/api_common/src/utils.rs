@@ -442,7 +442,11 @@ pub async fn send_password_reset_email(
   // Generate a random token
   let token = uuid::Uuid::new_v4().to_string();
 
-  let email = &user.local_user.email.clone().expect("email");
+  let email = &user
+    .local_user
+    .email
+    .clone()
+    .ok_or(LemmyErrorType::EmailRequired)?;
   let lang = get_interface_language(user);
   let subject = &lang.password_reset_subject(&user.person.name);
   let protocol_and_hostname = settings.get_protocol_and_hostname();
@@ -492,6 +496,7 @@ pub fn get_interface_language_from_settings(user: &LocalUserView) -> Lang {
   lang_str_to_lang(&user.local_user.interface_language)
 }
 
+#[allow(clippy::expect_used)]
 fn lang_str_to_lang(lang: &str) -> Lang {
   let lang_id = LanguageId::new(lang);
   Lang::from_language_id(&lang_id).unwrap_or_else(|| {
@@ -518,11 +523,11 @@ pub fn local_site_rate_limit_to_rate_limit_config(
   })
 }
 
-pub fn local_site_to_slur_regex(local_site: &LocalSite) -> Option<Regex> {
+pub fn local_site_to_slur_regex(local_site: &LocalSite) -> Option<LemmyResult<Regex>> {
   build_slur_regex(local_site.slur_filter_regex.as_deref())
 }
 
-pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<Regex> {
+pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<LemmyResult<Regex>> {
   local_site
     .as_ref()
     .map(local_site_to_slur_regex)
@@ -557,7 +562,11 @@ pub async fn send_application_approved_email(
   user: &LocalUserView,
   settings: &Settings,
 ) -> LemmyResult<()> {
-  let email = &user.local_user.email.clone().expect("email");
+  let email = &user
+    .local_user
+    .email
+    .clone()
+    .ok_or(LemmyErrorType::EmailRequired)?;
   let lang = get_interface_language(user);
   let subject = lang.registration_approved_subject(&user.person.actor_id);
   let body = lang.registration_approved_body(&settings.hostname);
@@ -579,7 +588,11 @@ pub async fn send_new_applicant_email_to_admins(
   );
 
   for admin in &admins {
-    let email = &admin.local_user.email.clone().expect("email");
+    let email = &admin
+      .local_user
+      .email
+      .clone()
+      .ok_or(LemmyErrorType::EmailRequired)?;
     let lang = get_interface_language_from_settings(admin);
     let subject = lang.new_application_subject(&settings.hostname, applicant_username);
     let body = lang.new_application_body(applications_link);
@@ -601,11 +614,13 @@ pub async fn send_new_report_email_to_admins(
   let reports_link = &format!("{}/reports", settings.get_protocol_and_hostname(),);
 
   for admin in &admins {
-    let email = &admin.local_user.email.clone().expect("email");
-    let lang = get_interface_language_from_settings(admin);
-    let subject = lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
-    let body = lang.new_report_body(reports_link);
-    send_email(&subject, email, &admin.person.name, &body, settings).await?;
+    if let Some(email) = &admin.local_user.email {
+      let lang = get_interface_language_from_settings(admin);
+      let subject =
+        lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
+      let body = lang.new_report_body(reports_link);
+      send_email(&subject, email, &admin.person.name, &body, settings).await?;
+    }
   }
   Ok(())
 }
@@ -1030,7 +1045,7 @@ pub fn check_conflicting_like_filters(
 
 pub async fn process_markdown(
   text: &str,
-  slur_regex: &Option<Regex>,
+  slur_regex: &Option<LemmyResult<Regex>>,
   url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<String> {
@@ -1062,7 +1077,7 @@ pub async fn process_markdown(
 
 pub async fn process_markdown_opt(
   text: &Option<String>,
-  slur_regex: &Option<Regex>,
+  slur_regex: &Option<LemmyResult<Regex>>,
   url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<Option<String>> {
