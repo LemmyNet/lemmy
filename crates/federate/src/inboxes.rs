@@ -40,7 +40,7 @@ static FOLLOW_REMOVALS_RECHECK_DELAY: LazyLock<chrono::TimeDelta> =
 
 #[async_trait]
 pub trait DataSource: Send + Sync {
-  async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Option<Site>>;
+  async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Site>;
   async fn get_instance_followed_community_inboxes(
     &self,
     instance_id: InstanceId,
@@ -59,12 +59,8 @@ impl DbDataSource {
 
 #[async_trait]
 impl DataSource for DbDataSource {
-  async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Option<Site>> {
-    Ok(
-      Site::read_from_instance_id(&mut DbPool::Pool(&self.pool), instance_id)
-        .await
-        .ok(),
-    )
+  async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Site> {
+    Site::read_from_instance_id(&mut DbPool::Pool(&self.pool), instance_id).await
   }
 
   async fn get_instance_followed_community_inboxes(
@@ -134,7 +130,8 @@ impl<T: DataSource> CommunityInboxCollector<T> {
         self.site = self
           .data_source
           .read_site_from_instance_id(self.instance_id)
-          .await?;
+          .await
+          .ok();
         self.site_loaded = true;
       }
       if let Some(site) = &self.site {
@@ -236,7 +233,7 @@ mod tests {
       DataSource {}
       #[async_trait]
       impl DataSource for DataSource {
-          async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Option<Site>>;
+          async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Site>;
           async fn get_instance_followed_community_inboxes(
               &self,
               instance_id: InstanceId,
@@ -299,7 +296,7 @@ mod tests {
     collector
       .data_source
       .expect_read_site_from_instance_id()
-      .return_once(move |_| Ok(Some(site)));
+      .return_once(move |_| Ok(site));
 
     let activity = SentActivity {
       id: ActivityId(1),
@@ -422,7 +419,7 @@ mod tests {
     collector
       .data_source
       .expect_read_site_from_instance_id()
-      .return_once(move |_| Ok(Some(site)));
+      .return_once(move |_| Ok(site));
 
     let subdomain_inbox = "https://follower.example.com/inbox";
     collector
@@ -539,7 +536,7 @@ mod tests {
     collector
       .data_source
       .expect_read_site_from_instance_id()
-      .return_once(move |_| Ok(Some(site)));
+      .return_once(move |_| Ok(site));
 
     collector
       .data_source
