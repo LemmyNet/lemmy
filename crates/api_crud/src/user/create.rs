@@ -304,7 +304,7 @@ pub async fn authenticate_with_oauth(
 
         OAuthAccount::create(&mut context.pool(), &oauth_account_form)
           .await
-          .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+          .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
 
         local_user = user_view.local_user.clone();
       } else {
@@ -365,7 +365,7 @@ pub async fn authenticate_with_oauth(
 
       OAuthAccount::create(&mut context.pool(), &oauth_account_form)
         .await
-        .map_err(|_| LemmyErrorType::IncorrectLogin)?;
+        .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
 
       // prevent sign in until application is accepted
       if local_site.site_setup
@@ -525,15 +525,15 @@ async fn oauth_request_access_token(
     ])
     .send()
     .await
-    .map_err(|_| LemmyErrorType::OauthLoginFailed)?
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?
     .error_for_status()
-    .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
 
   // Extract the access token
   let token_response = response
     .json::<TokenResponse>()
     .await
-    .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
 
   Ok(token_response)
 }
@@ -551,15 +551,15 @@ async fn oidc_get_user_info(
     .bearer_auth(access_token)
     .send()
     .await
-    .map_err(|_| LemmyErrorType::OauthLoginFailed)?
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?
     .error_for_status()
-    .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
 
   // Extract the OAUTH user_id claim from the returned user_info
   let user_info = response
     .json::<serde_json::Value>()
     .await
-    .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
 
   Ok(user_info)
 }
@@ -567,7 +567,7 @@ async fn oidc_get_user_info(
 fn read_user_info(user_info: &serde_json::Value, key: &str) -> LemmyResult<String> {
   if let Some(value) = user_info.get(key) {
     let result = serde_json::from_value::<String>(value.clone())
-      .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
     return Ok(result);
   }
   Err(LemmyErrorType::OauthLoginFailed)?
