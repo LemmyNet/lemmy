@@ -524,12 +524,10 @@ async fn oauth_request_access_token(
       ("client_secret", &oauth_provider.client_secret),
     ])
     .send()
-    .await;
-
-  let response = response.map_err(|_| LemmyErrorType::OauthLoginFailed)?;
-  if !response.status().is_success() {
-    Err(LemmyErrorType::OauthLoginFailed)?;
-  }
+    .await
+    .map_err(|_| LemmyErrorType::OauthLoginFailed)?
+    .error_for_status()
+    .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
 
   // Extract the access token
   let token_response = response
@@ -552,12 +550,10 @@ async fn oidc_get_user_info(
     .header("Accept", "application/json")
     .bearer_auth(access_token)
     .send()
-    .await;
-
-  let response = response.map_err(|_| LemmyErrorType::OauthLoginFailed)?;
-  if !response.status().is_success() {
-    Err(LemmyErrorType::OauthLoginFailed)?;
-  }
+    .await
+    .map_err(|_| LemmyErrorType::OauthLoginFailed)?
+    .error_for_status()
+    .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
 
   // Extract the OAUTH user_id claim from the returned user_info
   let user_info = response

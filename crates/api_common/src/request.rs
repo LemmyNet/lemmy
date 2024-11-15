@@ -18,7 +18,7 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::{PictrsImageMode, Settings},
   REQWEST_TIMEOUT,
   VERSION,
@@ -309,7 +309,8 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
     .timeout(REQWEST_TIMEOUT)
     .header("x-api-token", pictrs_api_key)
     .send()
-    .await?;
+    .await?
+    .error_for_status()?;
 
   let response: PictrsPurgeResponse = response.json().await.map_err(LemmyError::from)?;
 
@@ -334,8 +335,8 @@ pub async fn delete_image_from_pictrs(
     .delete(&url)
     .timeout(REQWEST_TIMEOUT)
     .send()
-    .await
-    .map_err(LemmyError::from)?;
+    .await?
+    .error_for_status()?;
   Ok(())
 }
 
@@ -367,6 +368,7 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     .timeout(REQWEST_TIMEOUT)
     .send()
     .await?
+    .error_for_status()?
     .json::<PictrsResponse>()
     .await?;
 
@@ -407,16 +409,13 @@ pub async fn fetch_pictrs_proxied_image_details(
   // Pictrs needs you to fetch the proxied image before you can fetch the details
   let proxy_url = format!("{pictrs_url}image/original?proxy={encoded_image_url}");
 
-  let res = context
+  context
     .client()
     .get(&proxy_url)
     .timeout(REQWEST_TIMEOUT)
     .send()
     .await?
-    .status();
-  if !res.is_success() {
-    Err(LemmyErrorType::NotAnImageType)?
-  }
+    .error_for_status().with_lemmy_type(LemmyErrorType::NotAnImageType)?;
 
   let details_url = format!("{pictrs_url}image/details/original?proxy={encoded_image_url}");
 
@@ -426,6 +425,7 @@ pub async fn fetch_pictrs_proxied_image_details(
     .timeout(REQWEST_TIMEOUT)
     .send()
     .await?
+    .error_for_status()?
     .json()
     .await?;
 
