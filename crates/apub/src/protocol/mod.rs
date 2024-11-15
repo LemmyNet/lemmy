@@ -116,6 +116,7 @@ pub(crate) mod tests {
     // parse file into hashmap, which ensures that every field is included
     let raw = file_to_json_object::<HashMap<String, serde_json::Value>>(path)?;
     // assert that all fields are identical, otherwise print diff
+    //dbg!(&parsed, &raw);
     assert_json_include!(actual: &parsed, expected: raw);
     Ok(parsed)
   }

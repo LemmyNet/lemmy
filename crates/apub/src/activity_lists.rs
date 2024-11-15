@@ -12,9 +12,10 @@ use crate::{
         update::UpdateCommunity,
       },
       create_or_update::{
-        chat_message::CreateOrUpdateChatMessage,
         note::CreateOrUpdateNote,
+        note_wrapper::CreateOrUpdateNoteWrapper,
         page::CreateOrUpdatePage,
+        private_message::CreateOrUpdatePrivateMessage,
       },
       deletion::{delete::Delete, undo_delete::UndoDelete},
       following::{
@@ -48,7 +49,7 @@ pub enum SharedInboxActivities {
   AcceptFollow(AcceptFollow),
   RejectFollow(RejectFollow),
   UndoFollow(UndoFollow),
-  CreateOrUpdatePrivateMessage(CreateOrUpdateChatMessage),
+  CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
   Report(Report),
   AnnounceActivity(AnnounceActivity),
   /// This is a catch-all and needs to be last
@@ -76,7 +77,7 @@ pub enum PersonInboxActivities {
   AcceptFollow(AcceptFollow),
   RejectFollow(RejectFollow),
   UndoFollow(UndoFollow),
-  CreateOrUpdatePrivateMessage(CreateOrUpdateChatMessage),
+  CreateOrUpdateNoteWrapper(CreateOrUpdateNoteWrapper),
   Delete(Delete),
   UndoDelete(UndoDelete),
   AnnounceActivity(AnnounceActivity),
@@ -142,7 +143,7 @@ mod tests {
   fn test_group_inbox() -> LemmyResult<()> {
     test_parse_lemmy_item::<GroupInboxActivities>("assets/lemmy/activities/following/follow.json")?;
     test_parse_lemmy_item::<GroupInboxActivities>(
-      "assets/lemmy/activities/create_or_update/create_note.json",
+      "assets/lemmy/activities/create_or_update/create_comment.json",
     )?;
     Ok(())
   }
@@ -153,7 +154,7 @@ mod tests {
       "assets/lemmy/activities/following/accept.json",
     )?;
     test_parse_lemmy_item::<PersonInboxActivities>(
-      "assets/lemmy/activities/create_or_update/create_note.json",
+      "assets/lemmy/activities/create_or_update/create_comment.json",
     )?;
     test_parse_lemmy_item::<PersonInboxActivities>(
       "assets/lemmy/activities/create_or_update/create_private_message.json",

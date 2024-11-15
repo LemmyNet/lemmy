@@ -4,6 +4,7 @@ use crate::{
 };
 use activitypub_federation::{
   fetch::object_id::ObjectId,
+  kinds::object::NoteType,
   protocol::{
     helpers::{deserialize_one, deserialize_skip_error},
     values::MediaTypeHtml,
@@ -16,8 +17,8 @@ use serde_with::skip_serializing_none;
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatMessage {
-  pub(crate) r#type: ChatMessageType,
+pub struct PrivateMessage {
+  pub(crate) r#type: NoteType,
   pub(crate) id: ObjectId<ApubPrivateMessage>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one")]
@@ -29,10 +30,4 @@ pub struct ChatMessage {
   pub(crate) source: Option<Source>,
   pub(crate) published: Option<DateTime<Utc>>,
   pub(crate) updated: Option<DateTime<Utc>>,
-}
-
-/// https://docs.pleroma.social/backend/development/ap_extensions/#chatmessages
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ChatMessageType {
-  ChatMessage,
 }
