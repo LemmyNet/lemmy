@@ -1,5 +1,4 @@
 use crate::util::LEMMY_TEST_FAST_FEDERATION;
-use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, TimeZone, Utc};
 use lemmy_db_schema::{
@@ -8,6 +7,7 @@ use lemmy_db_schema::{
   utils::{ActualDbPool, DbPool},
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
+use lemmy_utils::error::LemmyResult;
 use reqwest::Url;
 use std::{
   collections::{HashMap, HashSet},
@@ -40,15 +40,12 @@ static FOLLOW_REMOVALS_RECHECK_DELAY: LazyLock<chrono::TimeDelta> =
 
 #[async_trait]
 pub trait DataSource: Send + Sync {
-  async fn read_site_from_instance_id(
-    &self,
-    instance_id: InstanceId,
-  ) -> Result<Option<Site>, diesel::result::Error>;
+  async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Site>;
   async fn get_instance_followed_community_inboxes(
     &self,
     instance_id: InstanceId,
     last_fetch: DateTime<Utc>,
-  ) -> Result<Vec<(CommunityId, DbUrl)>, diesel::result::Error>;
+  ) -> LemmyResult<Vec<(CommunityId, DbUrl)>>;
 }
 pub struct DbDataSource {
   pool: ActualDbPool,
@@ -62,10 +59,7 @@ impl DbDataSource {
 
 #[async_trait]
 impl DataSource for DbDataSource {
-  async fn read_site_from_instance_id(
-    &self,
-    instance_id: InstanceId,
-  ) -> Result<Option<Site>, diesel::result::Error> {
+  async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Site> {
     Site::read_from_instance_id(&mut DbPool::Pool(&self.pool), instance_id).await
   }
 
@@ -73,7 +67,7 @@ impl DataSource for DbDataSource {
     &self,
     instance_id: InstanceId,
     last_fetch: DateTime<Utc>,
-  ) -> Result<Vec<(CommunityId, DbUrl)>, diesel::result::Error> {
+  ) -> LemmyResult<Vec<(CommunityId, DbUrl)>> {
     CommunityFollowerView::get_instance_followed_community_inboxes(
       &mut DbPool::Pool(&self.pool),
       instance_id,
@@ -128,7 +122,7 @@ impl<T: DataSource> CommunityInboxCollector<T> {
   /// most often this will return 0 values (if instance doesn't care about the activity)
   /// or 1 value (the shared inbox)
   /// > 1 values only happens for non-lemmy software
-  pub async fn get_inbox_urls(&mut self, activity: &SentActivity) -> Result<Vec<Url>> {
+  pub async fn get_inbox_urls(&mut self, activity: &SentActivity) -> LemmyResult<Vec<Url>> {
     let mut inbox_urls: HashSet<Url> = HashSet::new();
 
     if activity.send_all_instances {
@@ -136,7 +130,8 @@ impl<T: DataSource> CommunityInboxCollector<T> {
         self.site = self
           .data_source
           .read_site_from_instance_id(self.instance_id)
-          .await?;
+          .await
+          .ok();
         self.site_loaded = true;
       }
       if let Some(site) = &self.site {
@@ -170,7 +165,7 @@ impl<T: DataSource> CommunityInboxCollector<T> {
     Ok(inbox_urls.into_iter().collect())
   }
 
-  pub async fn update_communities(&mut self) -> Result<()> {
+  pub async fn update_communities(&mut self) -> LemmyResult<()> {
     if (Utc::now() - self.last_full_communities_fetch) > *FOLLOW_REMOVALS_RECHECK_DELAY {
       tracing::debug!("{}: fetching full list of communities", self.domain);
       // process removals every hour
@@ -203,7 +198,7 @@ impl<T: DataSource> CommunityInboxCollector<T> {
     &mut self,
     instance_id: InstanceId,
     last_fetch: DateTime<Utc>,
-  ) -> Result<(HashMap<CommunityId, HashSet<Url>>, DateTime<Utc>)> {
+  ) -> LemmyResult<(HashMap<CommunityId, HashSet<Url>>, DateTime<Utc>)> {
     // update to time before fetch to ensure overlap. subtract some time to ensure overlap even if
     // published date is not exact
     let new_last_fetch = Utc::now() - *FOLLOW_ADDITIONS_RECHECK_DELAY / 2;
@@ -238,12 +233,12 @@ mod tests {
       DataSource {}
       #[async_trait]
       impl DataSource for DataSource {
-          async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> Result<Option<Site>, diesel::result::Error>;
+          async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Site>;
           async fn get_instance_followed_community_inboxes(
               &self,
               instance_id: InstanceId,
               last_fetch: DateTime<Utc>,
-          ) -> Result<Vec<(CommunityId, DbUrl)>, diesel::result::Error>;
+          ) -> LemmyResult<Vec<(CommunityId, DbUrl)>>;
       }
   }
 
@@ -301,7 +296,7 @@ mod tests {
     collector
       .data_source
       .expect_read_site_from_instance_id()
-      .return_once(move |_| Ok(Some(site)));
+      .return_once(move |_| Ok(site));
 
     let activity = SentActivity {
       id: ActivityId(1),
@@ -335,14 +330,8 @@ mod tests {
       .expect_get_instance_followed_community_inboxes()
       .return_once(move |_, _| {
         Ok(vec![
-          (
-            community_id,
-            Url::parse(url1).map_err(|_| diesel::NotFound)?.into(),
-          ),
-          (
-            community_id,
-            Url::parse(url2).map_err(|_| diesel::NotFound)?.into(),
-          ),
+          (community_id, Url::parse(url1)?.into()),
+          (community_id, Url::parse(url2)?.into()),
         ])
       });
 
@@ -430,20 +419,13 @@ mod tests {
     collector
       .data_source
       .expect_read_site_from_instance_id()
-      .return_once(move |_| Ok(Some(site)));
+      .return_once(move |_| Ok(site));
 
     let subdomain_inbox = "https://follower.example.com/inbox";
     collector
       .data_source
       .expect_get_instance_followed_community_inboxes()
-      .return_once(move |_, _| {
-        Ok(vec![(
-          community_id,
-          Url::parse(subdomain_inbox)
-            .map_err(|_| diesel::NotFound)?
-            .into(),
-        )])
-      });
+      .return_once(move |_, _| Ok(vec![(community_id, Url::parse(subdomain_inbox)?.into())]));
 
     collector.update_communities().await?;
     let user1_inbox = Url::parse("https://example.com/user1/inbox")?;
@@ -496,26 +478,11 @@ mod tests {
       .returning(move |_, last_fetch| {
         if last_fetch == Utc.timestamp_nanos(0) {
           Ok(vec![
-            (
-              community_id1,
-              Url::parse(user1_inbox_str)
-                .map_err(|_| diesel::NotFound)?
-                .into(),
-            ),
-            (
-              community_id2,
-              Url::parse(user2_inbox_str)
-                .map_err(|_| diesel::NotFound)?
-                .into(),
-            ),
+            (community_id1, Url::parse(user1_inbox_str)?.into()),
+            (community_id2, Url::parse(user2_inbox_str)?.into()),
           ])
         } else {
-          Ok(vec![(
-            community_id3,
-            Url::parse(user3_inbox_str)
-              .map_err(|_| diesel::NotFound)?
-              .into(),
-          )])
+          Ok(vec![(community_id3, Url::parse(user3_inbox_str)?.into())])
         }
       });
 
@@ -569,7 +536,7 @@ mod tests {
     collector
       .data_source
       .expect_read_site_from_instance_id()
-      .return_once(move |_| Ok(Some(site)));
+      .return_once(move |_| Ok(site));
 
     collector
       .data_source

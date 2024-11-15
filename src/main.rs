@@ -17,7 +17,7 @@ pub async fn main() -> LemmyResult<()> {
 
   rustls::crypto::ring::default_provider()
     .install_default()
-    .map_err(|_| LemmyErrorType::Unknown("Failed to install rustls crypto provider".into()))?;
+    .map_err(|_e| LemmyErrorType::Unknown("Failed to install rustls crypto provider".into()))?;
 
   start_lemmy_server(args).await?;
   Ok(())

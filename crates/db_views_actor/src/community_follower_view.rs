@@ -21,7 +21,7 @@ use lemmy_db_schema::{
   CommunityVisibility,
   SubscribedType,
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl CommunityFollowerView {
   /// return a list of local community ids and remote inboxes that at least one user of the given
@@ -30,7 +30,7 @@ impl CommunityFollowerView {
     pool: &mut DbPool<'_>,
     instance_id: InstanceId,
     published_since: chrono::DateTime<Utc>,
-  ) -> Result<Vec<(CommunityId, DbUrl)>, Error> {
+  ) -> LemmyResult<Vec<(CommunityId, DbUrl)>> {
     let conn = &mut get_conn(pool).await?;
     // In most cases this will fetch the same url many times (the shared inbox url)
     // PG will only send a single copy to rust, but it has to scan through all follower rows (same
@@ -51,6 +51,7 @@ impl CommunityFollowerView {
       .distinct() // only need each community_id, inbox combination once
       .load::<(CommunityId, DbUrl)>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
   pub async fn get_community_follower_inboxes(
     pool: &mut DbPool<'_>,

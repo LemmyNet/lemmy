@@ -79,6 +79,7 @@ unused_self = "deny"
 unwrap_used = "deny"
 unimplemented = "deny"
 unused_async = "deny"
+map_err_ignore = "deny"
 expect_used = "deny"
 
 [workspace.dependencies]

@@ -278,6 +278,12 @@ cfg_if! {
       }
     }
 
+    impl From<FederationError> for LemmyErrorType {
+      fn from(error: FederationError) -> Self {
+        LemmyErrorType::FederationError { error: Some(error) }
+      }
+    }
+
     pub trait LemmyErrorExt<T, E: Into<anyhow::Error>> {
       fn with_lemmy_type(self, error_type: LemmyErrorType) -> LemmyResult<T>;
     }

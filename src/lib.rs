@@ -178,7 +178,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     .set(Box::new(move |d, c| {
       Box::pin(match_outgoing_activities(d, c))
     }))
-    .map_err(|_| LemmyErrorType::Unknown("couldnt set function pointer".into()))?;
+    .map_err(|_e| LemmyErrorType::Unknown("couldnt set function pointer".into()))?;
 
   let request_data = federation_config.to_request_data();
   let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(

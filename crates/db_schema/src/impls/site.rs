@@ -10,7 +10,7 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error, ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;
 
 #[async_trait]
@@ -65,13 +65,13 @@ impl Site {
   pub async fn read_from_instance_id(
     pool: &mut DbPool<'_>,
     _instance_id: InstanceId,
-  ) -> Result<Option<Self>, Error> {
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     site::table
       .filter(site::instance_id.eq(_instance_id))
       .first(conn)
       .await
-      .optional()
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
