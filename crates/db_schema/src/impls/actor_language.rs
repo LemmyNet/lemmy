@@ -372,6 +372,7 @@ async fn convert_update_languages(
 }
 
 /// If all languages are returned, return empty vec instead
+#[allow(clippy::expect_used)]
 async fn convert_read_languages(
   conn: &mut AsyncPgConnection,
   language_ids: Vec<LanguageId>,
@@ -510,7 +511,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_user_languages() -> Result<(), Error> {
+  async fn test_user_languages() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
@@ -543,7 +544,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_community_languages() -> Result<(), Error> {
+  async fn test_community_languages() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let (site, instance) = create_test_site(pool).await?;

@@ -162,7 +162,7 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
       .slur_filter_regex
       .as_deref()
       .or(local_site.slur_filter_regex.as_deref()),
-  )?;
+  );
 
   site_name_length_check(&create_site.name)?;
   check_slurs(&create_site.name, &slur_regex)?;

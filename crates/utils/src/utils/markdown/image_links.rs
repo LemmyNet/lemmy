@@ -58,11 +58,13 @@ fn find_urls<T: NodeValue + UrlAndTitle>(src: &str) -> Vec<(usize, usize)> {
   let mut links_offsets = vec![];
   ast.walk(|node, _depth| {
     if let Some(image) = node.cast::<T>() {
-      let (_, node_offset) = node.srcmap.expect("srcmap is none").get_byte_offsets();
-      let start_offset = node_offset - image.url_len() - 1 - image.title_len();
-      let end_offset = node_offset - 1;
+      if let Some(srcmap) = node.srcmap {
+        let (_, node_offset) = srcmap.get_byte_offsets();
+        let start_offset = node_offset - image.url_len() - 1 - image.title_len();
+        let end_offset = node_offset - 1;
 
-      links_offsets.push((start_offset, end_offset));
+        links_offsets.push((start_offset, end_offset));
+      }
     }
   });
   links_offsets

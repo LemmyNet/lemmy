@@ -10,6 +10,7 @@ where
 }
 
 #[tracing::instrument(skip_all)]
+#[allow(clippy::expect_used)]
 async fn retry_custom<F, Fut, T>(f: F) -> Result<T, reqwest_middleware::Error>
 where
   F: Fn() -> Fut,

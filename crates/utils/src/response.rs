@@ -11,19 +11,20 @@ pub fn jsonify_plain_text_errors<BODY>(
     return Ok(ErrorHandlerResponse::Response(res.map_into_left_body()));
   }
   // We're assuming that any LemmyError is already in JSON format, so we don't need to do anything
-  if maybe_error
-    .expect("http responses with 400-599 statuses should have an error object")
-    .as_error::<LemmyError>()
-    .is_some()
-  {
-    return Ok(ErrorHandlerResponse::Response(res.map_into_left_body()));
+  if let Some(maybe_error) = maybe_error {
+    if maybe_error.as_error::<LemmyError>().is_some() {
+      return Ok(ErrorHandlerResponse::Response(res.map_into_left_body()));
+    }
   }
 
-  let (req, res) = res.into_parts();
-  let error = res
-    .error()
-    .expect("expected an error object in the response");
-  let response = HttpResponse::build(res.status()).json(LemmyErrorType::Unknown(error.to_string()));
+  let (req, res_parts) = res.into_parts();
+  let lemmy_err_type = if let Some(error) = res_parts.error() {
+    LemmyErrorType::Unknown(error.to_string())
+  } else {
+    LemmyErrorType::Unknown("couldnt build json".into())
+  };
+
+  let response = HttpResponse::build(res_parts.status()).json(lemmy_err_type);
 
   let service_response = ServiceResponse::new(req, response);
   Ok(ErrorHandlerResponse::Response(

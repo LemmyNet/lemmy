@@ -115,9 +115,7 @@ impl Post {
       .filter(post::local.eq(true))
       .filter(post::deleted.eq(false))
       .filter(post::removed.eq(false))
-      .filter(
-        post::published.ge(Utc::now().naive_utc() - SITEMAP_DAYS.expect("TimeDelta out of bounds")),
-      )
+      .filter(post::published.ge(Utc::now().naive_utc() - SITEMAP_DAYS))
       .order(post::published.desc())
       .limit(SITEMAP_LIMIT)
       .load::<(DbUrl, chrono::DateTime<Utc>)>(conn)

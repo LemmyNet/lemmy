@@ -57,11 +57,12 @@ mod tests {
     source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer},
     utils::build_db_pool_for_tests,
   };
+  use lemmy_utils::error::LemmyResult;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_captcha_happy_path() {
+  async fn test_captcha_happy_path() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
@@ -71,8 +72,7 @@ mod tests {
         answer: "XYZ".to_string(),
       },
     )
-    .await
-    .expect("should not fail to insert captcha");
+    .await?;
 
     let result = CaptchaAnswer::check_captcha(
       pool,
@@ -84,11 +84,12 @@ mod tests {
     .await;
 
     assert!(result.is_ok());
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_captcha_repeat_answer_fails() {
+  async fn test_captcha_repeat_answer_fails() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
@@ -98,8 +99,7 @@ mod tests {
         answer: "XYZ".to_string(),
       },
     )
-    .await
-    .expect("should not fail to insert captcha");
+    .await?;
 
     let _result = CaptchaAnswer::check_captcha(
       pool,
@@ -120,5 +120,7 @@ mod tests {
     .await;
 
     assert!(result_repeat.is_err());
+
+    Ok(())
   }
 }

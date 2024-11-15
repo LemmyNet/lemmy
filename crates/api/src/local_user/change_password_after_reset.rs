@@ -10,7 +10,7 @@ use lemmy_db_schema::source::{
   login_token::LoginToken,
   password_reset_request::PasswordResetRequest,
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn change_password_after_reset(
@@ -32,9 +32,7 @@ pub async fn change_password_after_reset(
 
   // Update the user with the new password
   let password = data.password.clone();
-  LocalUser::update_password(&mut context.pool(), local_user_id, &password)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
+  LocalUser::update_password(&mut context.pool(), local_user_id, &password).await?;
 
   LoginToken::invalidate_all(&mut context.pool(), local_user_id).await?;
 
