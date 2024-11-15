@@ -282,7 +282,7 @@ fn create_http_server(
   let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
     .registry(default_registry().clone())
     .build()
-    .map_err(|e| LemmyErrorType::Unknown(format!("Should always be buildable: {e}").into()))?;
+    .map_err(|e| LemmyErrorType::Unknown(format!("Should always be buildable: {e}")))?;
 
   let context: LemmyContext = federation_config.deref().clone();
   let rate_limit_cell = federation_config.rate_limit_cell().clone();
