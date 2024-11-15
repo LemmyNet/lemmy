@@ -7,7 +7,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     comment::Comment,
-    post::{Post, PostRead},
+    post::{Post, PostRead, PostReadForm},
   },
   traits::Crud,
 };
@@ -65,7 +65,8 @@ pub async fn get_post(
 
   let post_id = post_view.post.id;
   if let Some(person_id) = person_id {
-    PostRead::mark_as_read(&mut context.pool(), post_id, person_id).await?;
+    let read_form = PostReadForm::new(post_id, person_id);
+    PostRead::mark_as_read(&mut context.pool(), &read_form).await?;
 
     update_read_comments(
       person_id,

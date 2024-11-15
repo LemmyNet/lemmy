@@ -10,7 +10,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     local_site::LocalSite,
-    post::{PostLike, PostLikeForm, PostRead},
+    post::{PostLike, PostLikeForm, PostRead, PostReadForm},
   },
   traits::Likeable,
 };
@@ -47,11 +47,7 @@ pub async fn like_post(
   )
   .await?;
 
-  let like_form = PostLikeForm {
-    post_id: data.post_id,
-    person_id: local_user_view.person.id,
-    score: data.score,
-  };
+  let like_form = PostLikeForm::new(data.post_id, local_user_view.person.id, data.score);
 
   // Remove any likes first
   let person_id = local_user_view.person.id;
@@ -67,7 +63,8 @@ pub async fn like_post(
   }
 
   // Mark Post Read
-  PostRead::mark_as_read(&mut context.pool(), post_id, person_id).await?;
+  let read_form = PostReadForm::new(post_id, person_id);
+  PostRead::mark_as_read(&mut context.pool(), &read_form).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {

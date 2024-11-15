@@ -38,7 +38,6 @@ use lemmy_db_schema::{
     local_site::LocalSite,
   },
   traits::{ApubActor, Crud},
-  utils::naive_now,
   CommunityVisibility,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
@@ -166,7 +165,7 @@ impl Object for ApubCommunity {
       nsfw: Some(group.sensitive.unwrap_or(false)),
       actor_id: Some(group.id.into()),
       local: Some(false),
-      last_refreshed_at: Some(naive_now()),
+      last_refreshed_at: Some(Utc::now()),
       icon,
       banner,
       sidebar,
@@ -193,7 +192,7 @@ impl Object for ApubCommunity {
     let languages =
       LanguageTag::to_language_id_multiple(group.language, &mut context.pool()).await?;
 
-    let timestamp = group.updated.or(group.published).unwrap_or_else(naive_now);
+    let timestamp = group.updated.or(group.published).unwrap_or_else(Utc::now);
     let community: ApubCommunity = Community::insert_apub(&mut context.pool(), timestamp, &form)
       .await?
       .into();

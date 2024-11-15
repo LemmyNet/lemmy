@@ -16,11 +16,11 @@ use crate::{
   utils::{
     functions::{coalesce, lower},
     get_conn,
-    naive_now,
     now,
     DbPool,
   },
 };
+use chrono::Utc;
 use diesel::{
   dsl::{count_star, insert_into},
   result::Error,
@@ -52,7 +52,7 @@ impl Instance {
       None => {
         // Instance not in database yet, insert it
         let form = InstanceForm {
-          updated: Some(naive_now()),
+          updated: Some(Utc::now()),
           ..InstanceForm::new(domain_)
         };
         insert_into(instance::table)
