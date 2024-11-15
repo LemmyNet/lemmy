@@ -1,4 +1,4 @@
-use super::placeholder_url;
+use super::pictrs_placeholder_url;
 use doku::Document;
 use serde::{Deserialize, Serialize};
 use smart_default::SmartDefault;
@@ -69,7 +69,7 @@ impl Settings {
 #[serde(default, deny_unknown_fields)]
 pub struct PictrsConfig {
   /// Address where pictrs is available (for image hosting)
-  #[default(placeholder_url())]
+  #[default(pictrs_placeholder_url())]
   #[doku(example = "http://localhost:8080")]
   pub url: Url,
 
