@@ -134,6 +134,6 @@ impl PictrsConfig {
 
 #[allow(clippy::expect_used)]
 /// Necessary to avoid URL expect failures
-pub(crate) fn placeholder_url() -> Url {
-  Url::parse("http://example.com").expect("parse placeholder url")
+fn placeholder_url() -> Url {
+ Url::parse("http://localhost:8080").expect("parse pictrs url")
 }
