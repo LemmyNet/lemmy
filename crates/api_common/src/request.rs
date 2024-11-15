@@ -415,7 +415,8 @@ pub async fn fetch_pictrs_proxied_image_details(
     .timeout(REQWEST_TIMEOUT)
     .send()
     .await?
-    .error_for_status().with_lemmy_type(LemmyErrorType::NotAnImageType)?;
+    .error_for_status()
+    .with_lemmy_type(LemmyErrorType::NotAnImageType)?;
 
   let details_url = format!("{pictrs_url}image/details/original?proxy={encoded_image_url}");
 

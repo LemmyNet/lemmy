@@ -335,11 +335,11 @@ mod tests {
         Ok(vec![
           (
             community_id,
-            Url::parse(url1).map_err(|_| diesel::NotFound)?.into(),
+            Url::parse(url1).with_lemmy_type(diesel::NotFound)?.into(),
           ),
           (
             community_id,
-            Url::parse(url2).map_err(|_| diesel::NotFound)?.into(),
+            Url::parse(url2).with_lemmy_type(diesel::NotFound)?.into(),
           ),
         ])
       });
@@ -438,7 +438,7 @@ mod tests {
         Ok(vec![(
           community_id,
           Url::parse(subdomain_inbox)
-            .map_err(|_| diesel::NotFound)?
+            .with_lemmy_type(diesel::NotFound)?
             .into(),
         )])
       });
@@ -496,13 +496,13 @@ mod tests {
             (
               community_id1,
               Url::parse(user1_inbox_str)
-                .map_err(|_| diesel::NotFound)?
+                .with_lemmy_type(diesel::NotFound)?
                 .into(),
             ),
             (
               community_id2,
               Url::parse(user2_inbox_str)
-                .map_err(|_| diesel::NotFound)?
+                .with_lemmy_type(diesel::NotFound)?
                 .into(),
             ),
           ])
@@ -510,7 +510,7 @@ mod tests {
           Ok(vec![(
             community_id3,
             Url::parse(user3_inbox_str)
-              .map_err(|_| diesel::NotFound)?
+              .with_lemmy_type(diesel::NotFound)?
               .into(),
           )])
         }

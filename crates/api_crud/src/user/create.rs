@@ -567,7 +567,7 @@ async fn oidc_get_user_info(
 fn read_user_info(user_info: &serde_json::Value, key: &str) -> LemmyResult<String> {
   if let Some(value) = user_info.get(key) {
     let result = serde_json::from_value::<String>(value.clone())
-    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
+      .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
     return Ok(result);
   }
   Err(LemmyErrorType::OauthLoginFailed)?
