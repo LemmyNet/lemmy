@@ -22,7 +22,7 @@ use lemmy_db_schema::{
     federation_queue_state::FederationQueueState,
     instance::{Instance, InstanceForm},
   },
-  utils::{naive_now, ActualDbPool, DbPool},
+  utils::{ActualDbPool, DbPool},
 };
 use std::{collections::BinaryHeap, ops::Add, time::Duration};
 use tokio::{
@@ -291,7 +291,7 @@ impl InstanceWorker {
       self.instance.updated = Some(Utc::now());
 
       let form = InstanceForm {
-        updated: Some(naive_now()),
+        updated: Some(Utc::now()),
         ..InstanceForm::new(self.instance.domain.clone())
       };
       Instance::update(&mut self.pool(), self.instance.id, form).await?;

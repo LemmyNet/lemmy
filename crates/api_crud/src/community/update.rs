@@ -1,6 +1,7 @@
 use super::check_community_visibility_allowed;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use chrono::Utc;
 use lemmy_api_common::{
   build_response::build_community_response,
   community::{CommunityResponse, EditCommunity},
@@ -22,7 +23,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
   },
   traits::Crud,
-  utils::{diesel_string_update, diesel_url_update, naive_now},
+  utils::{diesel_string_update, diesel_url_update},
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
@@ -95,7 +96,7 @@ pub async fn update_community(
     nsfw: data.nsfw,
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
-    updated: Some(Some(naive_now())),
+    updated: Some(Some(Utc::now())),
     ..Default::default()
   };
 

@@ -10,8 +10,9 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Crud, Followable},
-  utils::{action_query, functions::lower, get_conn, naive_now, now, uplete, DbPool},
+  utils::{action_query, functions::lower, get_conn, now, uplete, DbPool},
 };
+use chrono::Utc;
 use diesel::{
   dsl::{insert_into, not},
   expression::SelectableHelper,
@@ -93,7 +94,7 @@ impl Person {
         person::bio.eq::<Option<String>>(None),
         person::matrix_user_id.eq::<Option<String>>(None),
         person::deleted.eq(true),
-        person::updated.eq(naive_now()),
+        person::updated.eq(Utc::now()),
       ))
       .get_result::<Self>(conn)
       .await

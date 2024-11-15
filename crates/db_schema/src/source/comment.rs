@@ -84,7 +84,7 @@ pub struct CommentInsertForm {
 pub struct CommentUpdateForm {
   pub content: Option<String>,
   pub removed: Option<bool>,
-  // Don't use a default naive_now here, because the create function does a lot of comment updates
+  // Don't use a default Utc::now here, because the create function does a lot of comment updates
   pub updated: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
   pub ap_id: Option<DbUrl>,

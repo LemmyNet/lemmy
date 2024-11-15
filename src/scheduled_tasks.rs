@@ -36,15 +36,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::{
-    find_action,
-    functions::coalesce,
-    get_conn,
-    naive_now,
-    now,
-    DbPool,
-    DELETED_REPLACEMENT_TEXT,
-  },
+  utils::{find_action, functions::coalesce, get_conn, now, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use lemmy_utils::error::LemmyResult;
@@ -552,7 +544,7 @@ async fn build_update_instance_form(
   // Activitypub). That's why we always need to mark instances as updated if they are
   // alive.
   let mut instance_form = InstanceForm {
-    updated: Some(naive_now()),
+    updated: Some(Utc::now()),
     ..InstanceForm::new(domain.to_string())
   };
 

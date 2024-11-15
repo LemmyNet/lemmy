@@ -200,10 +200,7 @@ pub async fn import_settings(
       &context,
       |(saved, context)| async move {
         let post = saved.dereference(&context).await?;
-        let form = PostSavedForm {
-          person_id,
-          post_id: post.id,
-        };
+        let form = PostSavedForm::new(post.id, person_id);
         PostSaved::save(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },

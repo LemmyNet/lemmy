@@ -1,7 +1,7 @@
 pub mod uplete;
 
 use crate::{newtypes::DbUrl, CommentSortType, PostSortType};
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::TimeDelta;
 use deadpool::Runtime;
 use diesel::{
   dsl,
@@ -501,10 +501,6 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
 #[allow(clippy::expect_used)]
 pub fn build_db_pool_for_tests() -> ActualDbPool {
   build_db_pool().expect("db pool missing")
-}
-
-pub fn naive_now() -> DateTime<Utc> {
-  Utc::now()
 }
 
 pub fn post_to_comment_sort_type(sort: PostSortType) -> CommentSortType {

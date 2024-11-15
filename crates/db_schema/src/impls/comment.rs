@@ -12,15 +12,7 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{
-    functions::coalesce,
-    get_conn,
-    naive_now,
-    now,
-    uplete,
-    DbPool,
-    DELETED_REPLACEMENT_TEXT,
-  },
+  utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -46,7 +38,7 @@ impl Comment {
       .set((
         comment::content.eq(DELETED_REPLACEMENT_TEXT),
         comment::deleted.eq(true),
-        comment::updated.eq(naive_now()),
+        comment::updated.eq(Utc::now()),
       ))
       .get_results::<Self>(conn)
       .await
@@ -61,7 +53,7 @@ impl Comment {
     diesel::update(comment::table.filter(comment::creator_id.eq(for_creator_id)))
       .set((
         comment::removed.eq(removed),
-        comment::updated.eq(naive_now()),
+        comment::updated.eq(Utc::now()),
       ))
       .get_results::<Self>(conn)
       .await
