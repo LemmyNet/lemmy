@@ -21,7 +21,7 @@ use lemmy_db_schema::{
   CommunityVisibility,
   SubscribedType,
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl CommunityFollowerView {
   /// return a list of local community ids and remote inboxes that at least one user of the given
@@ -39,20 +39,19 @@ impl CommunityFollowerView {
     // that would work for all instances that support fully shared inboxes.
     // It would be a bit more complicated though to keep it in sync.
 
-    Ok(
-      community_actions::table
-        .inner_join(community::table)
-        .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
-        .filter(person::instance_id.eq(instance_id))
-        .filter(community::local) // this should be a no-op since community_followers table only has
-        // local-person+remote-community or remote-person+local-community
-        .filter(not(person::local))
-        .filter(community_actions::followed.gt(published_since.naive_utc()))
-        .select((community::id, person::inbox_url))
-        .distinct() // only need each community_id, inbox combination once
-        .load::<(CommunityId, DbUrl)>(conn)
-        .await?,
-    )
+    community_actions::table
+      .inner_join(community::table)
+      .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
+      .filter(person::instance_id.eq(instance_id))
+      .filter(community::local) // this should be a no-op since community_followers table only has
+      // local-person+remote-community or remote-person+local-community
+      .filter(not(person::local))
+      .filter(community_actions::followed.gt(published_since.naive_utc()))
+      .select((community::id, person::inbox_url))
+      .distinct() // only need each community_id, inbox combination once
+      .load::<(CommunityId, DbUrl)>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
   pub async fn get_community_follower_inboxes(
     pool: &mut DbPool<'_>,

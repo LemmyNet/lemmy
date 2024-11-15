@@ -1,5 +1,4 @@
 use crate::util::LEMMY_TEST_FAST_FEDERATION;
-use anyhow::Result;
 use async_trait::async_trait;
 use chrono::{DateTime, TimeZone, Utc};
 use lemmy_db_schema::{
@@ -8,7 +7,7 @@ use lemmy_db_schema::{
   utils::{ActualDbPool, DbPool},
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 use reqwest::Url;
 use std::{
   collections::{HashMap, HashSet},
@@ -39,15 +38,12 @@ static FOLLOW_REMOVALS_RECHECK_DELAY: LazyLock<chrono::TimeDelta> =
 
 #[async_trait]
 pub trait DataSource: Send + Sync {
-  async fn read_site_from_instance_id(
-    &self,
-    instance_id: InstanceId,
-  ) -> Result<Option<Site>, LemmyError>;
+  async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Option<Site>>;
   async fn get_instance_followed_community_inboxes(
     &self,
     instance_id: InstanceId,
     last_fetch: DateTime<Utc>,
-  ) -> Result<Vec<(CommunityId, DbUrl)>, LemmyError>;
+  ) -> LemmyResult<Vec<(CommunityId, DbUrl)>>;
 }
 pub struct DbDataSource {
   pool: ActualDbPool,
@@ -61,18 +57,19 @@ impl DbDataSource {
 
 #[async_trait]
 impl DataSource for DbDataSource {
-  async fn read_site_from_instance_id(
-    &self,
-    instance_id: InstanceId,
-  ) -> Result<Option<Site>, LemmyError> {
-    Site::read_from_instance_id(&mut DbPool::Pool(&self.pool), instance_id).await
+  async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Option<Site>> {
+    Ok(
+      Site::read_from_instance_id(&mut DbPool::Pool(&self.pool), instance_id)
+        .await
+        .ok(),
+    )
   }
 
   async fn get_instance_followed_community_inboxes(
     &self,
     instance_id: InstanceId,
     last_fetch: DateTime<Utc>,
-  ) -> Result<Vec<(CommunityId, DbUrl)>, LemmyError> {
+  ) -> LemmyResult<Vec<(CommunityId, DbUrl)>> {
     CommunityFollowerView::get_instance_followed_community_inboxes(
       &mut DbPool::Pool(&self.pool),
       instance_id,
@@ -242,7 +239,7 @@ mod tests {
               &self,
               instance_id: InstanceId,
               last_fetch: DateTime<Utc>,
-          ) -> Result<Vec<(CommunityId, DbUrl)>, LemmyError>;
+          ) -> LemmyResult<Vec<(CommunityId, DbUrl)>>;
       }
   }
 
