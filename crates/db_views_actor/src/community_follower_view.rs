@@ -30,7 +30,7 @@ impl CommunityFollowerView {
     pool: &mut DbPool<'_>,
     instance_id: InstanceId,
     published_since: chrono::DateTime<Utc>,
-  ) -> Result<Vec<(CommunityId, DbUrl)>, Error> {
+  ) -> LemmyResult<Vec<(CommunityId, DbUrl)>> {
     let conn = &mut get_conn(pool).await?;
     // In most cases this will fetch the same url many times (the shared inbox url)
     // PG will only send a single copy to rust, but it has to scan through all follower rows (same
@@ -39,18 +39,20 @@ impl CommunityFollowerView {
     // that would work for all instances that support fully shared inboxes.
     // It would be a bit more complicated though to keep it in sync.
 
-    community_actions::table
-      .inner_join(community::table)
-      .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
-      .filter(person::instance_id.eq(instance_id))
-      .filter(community::local) // this should be a no-op since community_followers table only has
-      // local-person+remote-community or remote-person+local-community
-      .filter(not(person::local))
-      .filter(community_actions::followed.gt(published_since.naive_utc()))
-      .select((community::id, person::inbox_url))
-      .distinct() // only need each community_id, inbox combination once
-      .load::<(CommunityId, DbUrl)>(conn)
-      .await
+    Ok(
+      community_actions::table
+        .inner_join(community::table)
+        .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
+        .filter(person::instance_id.eq(instance_id))
+        .filter(community::local) // this should be a no-op since community_followers table only has
+        // local-person+remote-community or remote-person+local-community
+        .filter(not(person::local))
+        .filter(community_actions::followed.gt(published_since.naive_utc()))
+        .select((community::id, person::inbox_url))
+        .distinct() // only need each community_id, inbox combination once
+        .load::<(CommunityId, DbUrl)>(conn)
+        .await?,
+    )
   }
   pub async fn get_community_follower_inboxes(
     pool: &mut DbPool<'_>,

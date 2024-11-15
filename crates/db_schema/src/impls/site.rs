@@ -65,13 +65,15 @@ impl Site {
   pub async fn read_from_instance_id(
     pool: &mut DbPool<'_>,
     _instance_id: InstanceId,
-  ) -> Result<Option<Self>, Error> {
+  ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
-    site::table
-      .filter(site::instance_id.eq(_instance_id))
-      .first(conn)
-      .await
-      .optional()
+    Ok(
+      site::table
+        .filter(site::instance_id.eq(_instance_id))
+        .first(conn)
+        .await
+        .optional()?,
+    )
   }
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
