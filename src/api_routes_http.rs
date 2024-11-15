@@ -17,6 +17,11 @@ use lemmy_api::{
     block::block_community,
     follow::follow_community,
     hide::hide_community,
+    pending_follows::{
+      approve::post_pending_follows_approve,
+      count::get_pending_follows_count,
+      list::get_pending_follows_list,
+    },
     random::get_random_community,
     transfer::transfer_community,
   },
@@ -55,6 +60,7 @@ use lemmy_api::{
     like::like_post,
     list_post_likes::list_post_likes,
     lock::lock_post,
+    mark_many_read::mark_posts_as_read,
     mark_read::mark_post_as_read,
     save::save_post,
   },
@@ -204,7 +210,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/remove", web::post().to(remove_community))
           .route("/transfer", web::post().to(transfer_community))
           .route("/ban_user", web::post().to(ban_from_community))
-          .route("/mod", web::post().to(add_mod_to_community)),
+          .route("/mod", web::post().to(add_mod_to_community))
+          .service(
+            web::scope("/pending_follows")
+              .wrap(rate_limit.message())
+              .route("/count", web::get().to(get_pending_follows_count))
+              .route("/list", web::get().to(get_pending_follows_list))
+              .route("/approve", web::post().to(post_pending_follows_approve)),
+          ),
       )
       .service(
         web::scope("/federated_instances")
@@ -227,6 +240,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/delete", web::post().to(delete_post))
           .route("/remove", web::post().to(remove_post))
           .route("/mark_as_read", web::post().to(mark_post_as_read))
+          .route("/mark_many_as_read", web::post().to(mark_posts_as_read))
           .route("/hide", web::post().to(hide_post))
           .route("/lock", web::post().to(lock_post))
           .route("/feature", web::post().to(feature_post))

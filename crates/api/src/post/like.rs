@@ -5,23 +5,16 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostLike, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_bot_account,
-    check_community_user_action,
-    check_local_vote_mode,
-    mark_post_as_read,
-    VoteItem,
-  },
+  utils::{check_bot_account, check_community_user_action, check_local_vote_mode, VoteItem},
 };
 use lemmy_db_schema::{
   source::{
-    community::Community,
     local_site::LocalSite,
-    post::{Post, PostLike, PostLikeForm},
+    post::{PostLike, PostLikeForm, PostRead},
   },
-  traits::{Crud, Likeable},
+  traits::Likeable,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::ops::Deref;
 
@@ -45,11 +38,11 @@ pub async fn like_post(
   check_bot_account(&local_user_view.person)?;
 
   // Check for a community ban
-  let post = Post::read(&mut context.pool(), post_id).await?;
+  let post = PostView::read(&mut context.pool(), post_id, None, false).await?;
 
   check_community_user_action(
     &local_user_view.person,
-    post.community_id,
+    &post.community,
     &mut context.pool(),
   )
   .await?;
@@ -73,20 +66,18 @@ pub async fn like_post(
       .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
   }
 
-  mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
-
-  let community = Community::read(&mut context.pool(), post.community_id).await?;
+  // Mark Post Read
+  PostRead::mark_as_read(&mut context.pool(), post_id, person_id).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {
-      object_id: post.ap_id,
+      object_id: post.post.ap_id,
       actor: local_user_view.person.clone(),
-      community,
+      community: post.community.clone(),
       score: data.score,
     },
     &context,
-  )
-  .await?;
+  )?;
 
-  build_post_response(context.deref(), post.community_id, local_user_view, post_id).await
+  build_post_response(context.deref(), post.community.id, local_user_view, post_id).await
 }

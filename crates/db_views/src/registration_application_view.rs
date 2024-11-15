@@ -162,7 +162,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
@@ -240,7 +240,9 @@ mod tests {
         totp_2fa_enabled: inserted_sara_local_user.totp_2fa_enabled,
         enable_keyboard_navigation: inserted_sara_local_user.enable_keyboard_navigation,
         enable_animated_images: inserted_sara_local_user.enable_animated_images,
+        enable_private_messages: inserted_sara_local_user.enable_private_messages,
         collapse_bot_comments: inserted_sara_local_user.collapse_bot_comments,
+        auto_mark_fetched_posts_as_read: false,
       },
       creator: Person {
         id: inserted_sara_person.id,
@@ -258,7 +260,6 @@ mod tests {
         banner: None,
         updated: None,
         inbox_url: inserted_sara_person.inbox_url.clone(),
-        shared_inbox_url: None,
         matrix_user_id: None,
         instance_id: inserted_instance.id,
         private_key: inserted_sara_person.private_key,
@@ -328,7 +329,6 @@ mod tests {
       banner: None,
       updated: None,
       inbox_url: inserted_timmy_person.inbox_url.clone(),
-      shared_inbox_url: None,
       matrix_user_id: None,
       instance_id: inserted_instance.id,
       private_key: inserted_timmy_person.private_key,

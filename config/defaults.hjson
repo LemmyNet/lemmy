@@ -76,7 +76,7 @@
     # Timeout for uploading images to pictrs (in seconds)
     upload_timeout: 30
     # Resize post thumbnails to this maximum width/height.
-    max_thumbnail_size: 256
+    max_thumbnail_size: 512
   }
   # Email sending configuration. All options except login/password are mandatory
   email: {
@@ -122,5 +122,5 @@
   }
   # Sets a response Access-Control-Allow-Origin CORS header
   # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
-  cors_origin: "*"
+  cors_origin: "lemmy.tld"
 }

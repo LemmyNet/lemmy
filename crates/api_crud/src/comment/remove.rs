@@ -35,7 +35,7 @@ pub async fn remove_comment(
 
   check_community_mod_action(
     &local_user_view.person,
-    orig_comment.community.id,
+    &orig_comment.community,
     false,
     &mut context.pool(),
   )
@@ -99,8 +99,7 @@ pub async fn remove_comment(
       reason: data.reason.clone(),
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(
     build_comment_response(

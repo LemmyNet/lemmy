@@ -25,7 +25,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use url::Url;
 
 #[async_trait::async_trait]
@@ -68,7 +68,7 @@ impl UndoDelete {
   pub(in crate::activities::deletion) fn new(
     actor: &ApubPerson,
     object: DeletableObjects,
-    to: Url,
+    to: Vec<Url>,
     community: Option<&Community>,
     summary: Option<String>,
     context: &Data<LemmyContext>,
@@ -82,7 +82,7 @@ impl UndoDelete {
     let cc: Option<Url> = community.map(|c| c.actor_id.clone().into());
     Ok(UndoDelete {
       actor: actor.actor_id.clone().into(),
-      to: vec![to],
+      to,
       object,
       cc: cc.into_iter().collect(),
       kind: UndoType::Undo,
@@ -100,7 +100,7 @@ impl UndoDelete {
     match DeletableObjects::read_from_db(object, context).await? {
       DeletableObjects::Community(community) => {
         if community.local {
-          Err(LemmyErrorType::OnlyLocalAdminCanRestoreCommunity)?
+          Err(FederationError::OnlyLocalAdminCanRestoreCommunity)?
         }
         let form = ModRemoveCommunityForm {
           mod_person_id: actor.id,

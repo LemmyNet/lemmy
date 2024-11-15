@@ -45,8 +45,7 @@ pub async fn delete_account(
   ActivityChannel::submit_activity(
     SendActivityData::DeleteUser(local_user_view.person, data.delete_content),
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(SuccessResponse::default()))
 }

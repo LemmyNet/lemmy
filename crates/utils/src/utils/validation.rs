@@ -85,26 +85,19 @@ fn has_newline(name: &str) -> bool {
 }
 
 pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
-  static VALID_ACTOR_NAME_REGEX_EN: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
-  static VALID_ACTOR_NAME_REGEX_AR: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[\p{Arabic}0-9_]{3,}$").expect("compile regex"));
-  static VALID_ACTOR_NAME_REGEX_RU: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[\p{Cyrillic}0-9_]{3,}$").expect("compile regex"));
-
-  let check = name.chars().count() <= actor_name_max_length && !has_newline(name);
-
   // Only allow characters from a single alphabet per username. This avoids problems with lookalike
   // characters like `o` which looks identical in Latin and Cyrillic, and can be used to imitate
   // other users. Checks for additional alphabets can be added in the same way.
-  let lang_check = VALID_ACTOR_NAME_REGEX_EN.is_match(name)
-    || VALID_ACTOR_NAME_REGEX_AR.is_match(name)
-    || VALID_ACTOR_NAME_REGEX_RU.is_match(name);
+  static VALID_ACTOR_NAME_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(?:[a-zA-Z0-9_]+|[0-9_\p{Arabic}]+|[0-9_\p{Cyrillic}]+)$").expect("compile regex")
+  });
 
-  if !check || !lang_check {
-    Err(LemmyErrorType::InvalidName.into())
-  } else {
+  min_length_check(name, 3, LemmyErrorType::InvalidName)?;
+  max_length_check(name, actor_name_max_length, LemmyErrorType::InvalidName)?;
+  if VALID_ACTOR_NAME_REGEX.is_match(name) {
     Ok(())
+  } else {
+    Err(LemmyErrorType::InvalidName.into())
   }
 }
 
@@ -191,8 +184,8 @@ pub fn site_name_length_check(name: &str) -> LemmyResult<()> {
   )
 }
 
-/// Checks the site description length, the limit as defined in the DB.
-pub fn site_description_length_check(description: &str) -> LemmyResult<()> {
+/// Checks the site / community description length, the limit as defined in the DB.
+pub fn site_or_community_description_length_check(description: &str) -> LemmyResult<()> {
   max_length_check(
     description,
     SITE_DESCRIPTION_MAX_LENGTH,
@@ -368,8 +361,8 @@ mod tests {
       is_valid_matrix_id,
       is_valid_post_title,
       is_valid_url,
-      site_description_length_check,
       site_name_length_check,
+      site_or_community_description_length_check,
       BIO_MAX_LENGTH,
       SITE_DESCRIPTION_MAX_LENGTH,
       SITE_NAME_MAX_LENGTH,
@@ -379,11 +372,14 @@ mod tests {
   use pretty_assertions::assert_eq;
   use url::Url;
 
+  const URL_WITH_TRACKING: &str = "https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123";
+  const URL_TRACKING_REMOVED: &str = "https://example.com/path/123?user+name=random+user&id=123";
+
   #[test]
   fn test_clean_url_params() -> LemmyResult<()> {
-    let url = Url::parse("https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123")?;
+    let url = Url::parse(URL_WITH_TRACKING)?;
     let cleaned = clean_url(&url);
-    let expected = Url::parse("https://example.com/path/123?user+name=random+user&id=123")?;
+    let expected = Url::parse(URL_TRACKING_REMOVED)?;
     assert_eq!(expected.to_string(), cleaned.to_string());
 
     let url = Url::parse("https://example.com/path/123")?;
@@ -395,9 +391,9 @@ mod tests {
 
   #[test]
   fn test_clean_body() -> LemmyResult<()> {
-    let text = "[a link](https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123)";
-    let cleaned = clean_urls_in_text(text);
-    let expected = "[a link](https://example.com/path/123?user+name=random+user&id=123)";
+    let text = format!("[a link]({URL_WITH_TRACKING})");
+    let cleaned = clean_urls_in_text(&text);
+    let expected = format!("[a link]({URL_TRACKING_REMOVED})");
     assert_eq!(expected.to_string(), cleaned.to_string());
 
     let text = "[a link](https://example.com/path/123)";
@@ -438,6 +434,15 @@ mod tests {
     assert!(is_valid_actor_name("a", actor_name_max_length).is_err());
     // empty
     assert!(is_valid_actor_name("", actor_name_max_length).is_err());
+    // newline
+    assert!(is_valid_actor_name(
+      r"Line1
+
+Line3",
+      actor_name_max_length
+    )
+    .is_err());
+    assert!(is_valid_actor_name("Line1\nLine3", actor_name_max_length).is_err());
   }
 
   #[test]
@@ -537,14 +542,14 @@ mod tests {
 
   #[test]
   fn test_valid_site_description() {
-    assert!(site_description_length_check(
+    assert!(site_or_community_description_length_check(
       &(0..SITE_DESCRIPTION_MAX_LENGTH)
         .map(|_| 'A')
         .collect::<String>()
     )
     .is_ok());
 
-    let invalid_result = site_description_length_check(
+    let invalid_result = site_or_community_description_length_check(
       &(0..SITE_DESCRIPTION_MAX_LENGTH + 1)
         .map(|_| 'A')
         .collect::<String>(),

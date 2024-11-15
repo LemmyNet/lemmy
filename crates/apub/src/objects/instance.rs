@@ -42,12 +42,11 @@ use lemmy_db_schema::{
   utils::naive_now,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
+  error::{FederationError, LemmyError, LemmyResult},
   utils::{
     markdown::markdown_to_html,
     slurs::{check_slurs, check_slurs_opt},
   },
-  LemmyErrorType,
 };
 use std::ops::Deref;
 use tracing::debug;
@@ -89,7 +88,7 @@ impl Object for ApubSite {
   }
 
   async fn delete(self, _data: &Data<Self::DataType>) -> LemmyResult<()> {
-    Err(LemmyErrorType::CantDeleteSite.into())
+    Err(FederationError::CantDeleteSite.into())
   }
 
   #[tracing::instrument(skip_all)]
@@ -144,7 +143,7 @@ impl Object for ApubSite {
       .id
       .inner()
       .domain()
-      .ok_or(LemmyErrorType::UrlWithoutDomain)?;
+      .ok_or(FederationError::UrlWithoutDomain)?;
     let instance = DbInstance::read_or_create(&mut context.pool(), domain.to_string()).await?;
 
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
@@ -220,7 +219,7 @@ pub(in crate::objects) async fn fetch_instance_actor_for_object<T: Into<Url> + C
       debug!("Failed to dereference site for {}: {}", &instance_id, e);
       let domain = instance_id
         .domain()
-        .ok_or(LemmyErrorType::UrlWithoutDomain)?;
+        .ok_or(FederationError::UrlWithoutDomain)?;
       Ok(
         DbInstance::read_or_create(&mut context.pool(), domain.to_string())
           .await?

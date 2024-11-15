@@ -36,7 +36,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() -> Result<(), Error> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
@@ -82,7 +82,6 @@ mod tests {
     let mut comment_like = CommentLikeForm {
       comment_id: inserted_comment.id,
       person_id: inserted_person.id,
-      post_id: inserted_post.id,
       score: 1,
     };
 
@@ -99,7 +98,6 @@ mod tests {
     let child_comment_like = CommentLikeForm {
       comment_id: inserted_child_comment.id,
       person_id: another_inserted_person.id,
-      post_id: inserted_post.id,
       score: 1,
     };
 

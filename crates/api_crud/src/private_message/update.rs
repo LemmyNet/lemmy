@@ -59,8 +59,7 @@ pub async fn update_private_message(
   ActivityChannel::submit_activity(
     SendActivityData::UpdatePrivateMessage(view.clone()),
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(PrivateMessageResponse {
     private_message_view: view,

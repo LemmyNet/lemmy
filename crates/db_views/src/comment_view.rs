@@ -3,11 +3,8 @@ use diesel::{
   dsl::{exists, not},
   pg::Pg,
   result::Error,
-  sql_types,
   BoolExpressionMethods,
-  BoxableExpression,
   ExpressionMethods,
-  IntoSql,
   JoinOnDsl,
   NullableExpressionMethods,
   PgTextExpressionMethods,
@@ -16,28 +13,40 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
+  aliases::creator_community_actions,
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
   schema::{
     comment,
+    comment_actions,
     comment_aggregates,
-    comment_like,
-    comment_saved,
     community,
-    community_block,
-    community_follower,
-    community_moderator,
-    community_person_ban,
-    instance_block,
+    community_actions,
+    instance_actions,
     local_user,
     local_user_language,
     person,
-    person_block,
+    person_actions,
     post,
   },
-  source::{local_user::LocalUser, site::Site},
-  utils::{fuzzy_search, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  source::{
+    community::{CommunityFollower, CommunityFollowerState},
+    local_user::LocalUser,
+    site::Site,
+  },
+  utils::{
+    actions,
+    actions_alias,
+    fuzzy_search,
+    limit_and_offset,
+    DbConn,
+    DbPool,
+    ListFn,
+    Queries,
+    ReadFn,
+  },
   CommentSortType,
+  CommunityVisibility,
   ListingType,
 };
 
@@ -45,64 +54,6 @@ fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommentView, (CommentId, Option<&'a LocalUser>)>,
   impl ListFn<'a, CommentView, (CommentQuery<'a>, &'a Site)>,
 > {
-  let is_creator_banned_from_community = exists(
-    community_person_ban::table.filter(
-      community::id
-        .eq(community_person_ban::community_id)
-        .and(community_person_ban::person_id.eq(comment::creator_id)),
-    ),
-  );
-
-  let is_local_user_banned_from_community = |person_id| {
-    exists(
-      community_person_ban::table.filter(
-        community::id
-          .eq(community_person_ban::community_id)
-          .and(community_person_ban::person_id.eq(person_id)),
-      ),
-    )
-  };
-
-  let is_community_followed = |person_id| {
-    community_follower::table
-      .filter(
-        post::community_id
-          .eq(community_follower::community_id)
-          .and(community_follower::person_id.eq(person_id)),
-      )
-      .select(community_follower::pending.nullable())
-      .single_value()
-  };
-
-  let is_creator_blocked = |person_id| {
-    exists(
-      person_block::table.filter(
-        comment::creator_id
-          .eq(person_block::target_id)
-          .and(person_block::person_id.eq(person_id)),
-      ),
-    )
-  };
-
-  let score = |person_id| {
-    comment_like::table
-      .filter(
-        comment::id
-          .eq(comment_like::comment_id)
-          .and(comment_like::person_id.eq(person_id)),
-      )
-      .select(comment_like::score.nullable())
-      .single_value()
-  };
-
-  let creator_is_moderator = exists(
-    community_moderator::table.filter(
-      community::id
-        .eq(community_moderator::community_id)
-        .and(community_moderator::person_id.eq(comment::creator_id)),
-    ),
-  );
-
   let creator_is_admin = exists(
     local_user::table.filter(
       comment::creator_id
@@ -112,63 +63,56 @@ fn queries<'a>() -> Queries<
   );
 
   let all_joins = move |query: comment::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
-    let is_local_user_banned_from_community_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>,
-    > = if let Some(person_id) = my_person_id {
-      Box::new(is_local_user_banned_from_community(person_id))
-    } else {
-      Box::new(false.into_sql::<sql_types::Bool>())
-    };
-
-    let score_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
-    > = if let Some(person_id) = my_person_id {
-      Box::new(score(person_id))
-    } else {
-      Box::new(None::<i16>.into_sql::<sql_types::Nullable<sql_types::SmallInt>>())
-    };
-
-    let subscribed_type_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Bool>>,
-    > = if let Some(person_id) = my_person_id {
-      Box::new(is_community_followed(person_id))
-    } else {
-      Box::new(None::<bool>.into_sql::<sql_types::Nullable<sql_types::Bool>>())
-    };
-
-    let is_creator_blocked_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if let Some(person_id) = my_person_id {
-        Box::new(is_creator_blocked(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
-
     query
       .inner_join(person::table)
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .inner_join(comment_aggregates::table)
-      .left_join(
-        comment_saved::table.on(
-          comment::id
-            .eq(comment_saved::comment_id)
-            .and(comment_saved::person_id.eq(my_person_id.unwrap_or(PersonId(-1)))),
-        ),
-      )
+      .left_join(actions(
+        community_actions::table,
+        my_person_id,
+        post::community_id,
+      ))
+      .left_join(actions(
+        comment_actions::table,
+        my_person_id,
+        comment_aggregates::comment_id,
+      ))
+      .left_join(actions(
+        person_actions::table,
+        my_person_id,
+        comment::creator_id,
+      ))
+      .left_join(actions(
+        instance_actions::table,
+        my_person_id,
+        community::instance_id,
+      ))
+      .left_join(actions_alias(
+        creator_community_actions,
+        comment::creator_id,
+        post::community_id,
+      ))
       .select((
         comment::all_columns,
         person::all_columns,
         post::all_columns,
         community::all_columns,
         comment_aggregates::all_columns,
-        is_creator_banned_from_community,
-        is_local_user_banned_from_community_selection,
-        creator_is_moderator,
+        creator_community_actions
+          .field(community_actions::received_ban)
+          .nullable()
+          .is_not_null(),
+        community_actions::received_ban.nullable().is_not_null(),
+        creator_community_actions
+          .field(community_actions::became_moderator)
+          .nullable()
+          .is_not_null(),
         creator_is_admin,
-        subscribed_type_selection,
-        comment_saved::person_id.nullable().is_not_null(),
-        is_creator_blocked_selection,
-        score_selection,
+        CommunityFollower::select_subscribed_type(),
+        comment_actions::saved.nullable().is_not_null(),
+        person_actions::blocked.nullable().is_not_null(),
+        comment_actions::like_score.nullable(),
       ))
   };
 
@@ -179,12 +123,23 @@ fn queries<'a>() -> Queries<
       my_local_user.person_id(),
     );
     query = my_local_user.visible_communities_only(query);
+
+    // Check permissions to view private community content.
+    // Specifically, if the community is private then only accepted followers may view its
+    // content, otherwise it is filtered out. Admins can view private community content
+    // without restriction.
+    if !my_local_user.is_admin() {
+      query = query.filter(
+        community::visibility
+          .ne(CommunityVisibility::Private)
+          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+      );
+    }
     query.first(&mut conn).await
   };
 
   let list = move |mut conn: DbConn<'a>, (options, site): (CommentQuery<'a>, &'a Site)| async move {
     // The left join below will return None in this case
-    let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
     let local_user_id_join = options
       .local_user
       .local_user_id()
@@ -216,13 +171,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    let is_subscribed = exists(
-      community_follower::table.filter(
-        post::community_id
-          .eq(community_follower::community_id)
-          .and(community_follower::person_id.eq(person_id_join)),
-      ),
-    );
+    let is_subscribed = community_actions::followed.is_not_null();
 
     match options.listing_type.unwrap_or_default() {
       ListingType::Subscribed => query = query.filter(is_subscribed), /* TODO could be this: and(community_follower::person_id.eq(person_id_join)), */
@@ -233,29 +182,27 @@ fn queries<'a>() -> Queries<
       }
       ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
       ListingType::ModeratorView => {
-        query = query.filter(exists(
-          community_moderator::table.filter(
-            post::community_id
-              .eq(community_moderator::community_id)
-              .and(community_moderator::person_id.eq(person_id_join)),
-          ),
-        ));
+        query = query.filter(community_actions::became_moderator.is_not_null());
       }
     }
 
     // If its saved only, then filter, and order by the saved time, not the comment creation time.
     if options.saved_only.unwrap_or_default() {
       query = query
-        .filter(comment_saved::person_id.is_not_null())
-        .then_order_by(comment_saved::published.desc());
+        .filter(comment_actions::saved.is_not_null())
+        .then_order_by(comment_actions::saved.desc());
     }
 
     if let Some(my_id) = options.local_user.person_id() {
       let not_creator_filter = comment::creator_id.ne(my_id);
       if options.liked_only.unwrap_or_default() {
-        query = query.filter(not_creator_filter).filter(score(my_id).eq(1));
+        query = query
+          .filter(not_creator_filter)
+          .filter(comment_actions::like_score.eq(1));
       } else if options.disliked_only.unwrap_or_default() {
-        query = query.filter(not_creator_filter).filter(score(my_id).eq(-1));
+        query = query
+          .filter(not_creator_filter)
+          .filter(comment_actions::like_score.eq(-1));
       }
     }
 
@@ -276,21 +223,10 @@ fn queries<'a>() -> Queries<
       ));
 
       // Don't show blocked communities or persons
-      query = query.filter(not(exists(
-        instance_block::table.filter(
-          community::instance_id
-            .eq(instance_block::instance_id)
-            .and(instance_block::person_id.eq(person_id_join)),
-        ),
-      )));
-      query = query.filter(not(exists(
-        community_block::table.filter(
-          community::id
-            .eq(community_block::community_id)
-            .and(community_block::person_id.eq(person_id_join)),
-        ),
-      )));
-      query = query.filter(not(is_creator_blocked(person_id_join)));
+      query = query
+        .filter(instance_actions::blocked.is_null())
+        .filter(community_actions::blocked.is_null())
+        .filter(person_actions::blocked.is_null());
     };
 
     if !options.local_user.show_nsfw(site) {
@@ -300,6 +236,14 @@ fn queries<'a>() -> Queries<
     };
 
     query = options.local_user.visible_communities_only(query);
+
+    if !options.local_user.is_admin() {
+      query = query.filter(
+        community::visibility
+          .ne(CommunityVisibility::Private)
+          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+      );
+    }
 
     // A Max depth given means its a tree fetch
     let (limit, offset) = if let Some(max_depth) = options.max_depth {
@@ -445,6 +389,9 @@ mod tests {
       },
       community::{
         Community,
+        CommunityFollower,
+        CommunityFollowerForm,
+        CommunityFollowerState,
         CommunityInsertForm,
         CommunityModerator,
         CommunityModeratorForm,
@@ -461,7 +408,7 @@ mod tests {
       post::{Post, PostInsertForm, PostUpdateForm},
       site::{Site, SiteInsertForm},
     },
-    traits::{Bannable, Blockable, Crud, Joinable, Likeable, Saveable},
+    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable, Saveable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
     CommunityVisibility,
     SubscribedType,
@@ -601,7 +548,6 @@ mod tests {
 
     let comment_like_form = CommentLikeForm {
       comment_id: inserted_comment_0.id,
-      post_id: inserted_post.id,
       person_id: inserted_timmy_person.id,
       score: 1,
     };
@@ -632,7 +578,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_crud() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -687,7 +633,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_liked_only() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -701,7 +647,6 @@ mod tests {
     // Like a new comment
     let comment_like_form = CommentLikeForm {
       comment_id: data.inserted_comment_1.id,
-      post_id: data.inserted_post.id,
       person_id: data.timmy_local_user_view.person.id,
       score: 1,
     };
@@ -739,7 +684,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_comment_tree() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -812,7 +757,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_languages() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -871,7 +816,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_distinguished_first() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -896,7 +841,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_creator_is_moderator() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -927,7 +872,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_creator_is_admin() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -952,7 +897,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_saved_order() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1051,7 +996,6 @@ mod tests {
         banner: None,
         updated: None,
         inbox_url: data.timmy_local_user_view.person.inbox_url.clone(),
-        shared_inbox_url: None,
         matrix_user_id: None,
         ban_expires: None,
         instance_id: data.inserted_instance.id,
@@ -1095,6 +1039,7 @@ mod tests {
         actor_id: data.inserted_community.actor_id.clone(),
         local: true,
         title: "nada".to_owned(),
+        sidebar: None,
         description: None,
         updated: None,
         banner: None,
@@ -1107,7 +1052,6 @@ mod tests {
         last_refreshed_at: data.inserted_community.last_refreshed_at,
         followers_url: data.inserted_community.followers_url.clone(),
         inbox_url: data.inserted_community.inbox_url.clone(),
-        shared_inbox_url: data.inserted_community.shared_inbox_url.clone(),
         moderators_url: data.inserted_community.moderators_url.clone(),
         featured_url: data.inserted_community.featured_url.clone(),
         visibility: CommunityVisibility::Public,
@@ -1128,7 +1072,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn local_only_instance() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1174,7 +1118,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn comment_listing_local_user_banned_from_community() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1216,7 +1160,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn comment_listing_local_user_not_banned_from_community() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1235,7 +1179,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn comment_listings_hide_nsfw() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1257,6 +1201,98 @@ mod tests {
     // Now comments of nsfw post are returned
     let comments = CommentQuery::default().list(&site, pool).await?;
     assert_eq!(6, comments.len());
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn comment_listing_private_community() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let mut data = init_data(pool).await?;
+
+    // Mark community as private
+    Community::update(
+      pool,
+      data.inserted_community.id,
+      &CommunityUpdateForm {
+        visibility: Some(CommunityVisibility::Private),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    // No comments returned without auth
+    let read_comment_listing = CommentQuery::default().list(&data.site, pool).await?;
+    assert_eq!(0, read_comment_listing.len());
+    let comment_view = CommentView::read(pool, data.inserted_comment_0.id, None).await;
+    assert!(comment_view.is_err());
+
+    // No comments returned for non-follower who is not admin
+    data.timmy_local_user_view.local_user.admin = false;
+    let read_comment_listing = CommentQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(0, read_comment_listing.len());
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(&data.timmy_local_user_view.local_user),
+    )
+    .await;
+    assert!(comment_view.is_err());
+
+    // Admin can view content without following
+    data.timmy_local_user_view.local_user.admin = true;
+    let read_comment_listing = CommentQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(5, read_comment_listing.len());
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(&data.timmy_local_user_view.local_user),
+    )
+    .await;
+    assert!(comment_view.is_ok());
+    data.timmy_local_user_view.local_user.admin = false;
+
+    // User can view after following
+    CommunityFollower::follow(
+      pool,
+      &CommunityFollowerForm {
+        state: Some(CommunityFollowerState::Accepted),
+        ..CommunityFollowerForm::new(
+          data.inserted_community.id,
+          data.timmy_local_user_view.person.id,
+        )
+      },
+    )
+    .await?;
+    let read_comment_listing = CommentQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(5, read_comment_listing.len());
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(&data.timmy_local_user_view.local_user),
+    )
+    .await;
+    assert!(comment_view.is_ok());
 
     cleanup(data, pool).await
   }

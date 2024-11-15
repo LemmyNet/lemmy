@@ -10,7 +10,10 @@ use lemmy_api_common::{
   post::{GetPosts, GetPostsResponse},
   utils::{check_conflicting_like_filters, check_private_instance},
 };
-use lemmy_db_schema::source::community::Community;
+use lemmy_db_schema::{
+  newtypes::PostId,
+  source::{community::Community, post::PostRead},
+};
 use lemmy_db_views::{
   post_view::PostQuery,
   structs::{LocalUserView, PaginationCursor, SiteView},
@@ -42,6 +45,7 @@ pub async fn list_posts(
   let show_hidden = data.show_hidden;
   let show_read = data.show_read;
   let show_nsfw = data.show_nsfw;
+  let no_comments_only = data.no_comments_only;
 
   let liked_only = data.liked_only;
   let disliked_only = data.disliked_only;
@@ -82,11 +86,23 @@ pub async fn list_posts(
     show_hidden,
     show_read,
     show_nsfw,
+    no_comments_only,
     ..Default::default()
   }
   .list(&local_site.site, &mut context.pool())
   .await
   .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
+
+  // If in their user settings (or as part of the API request), auto-mark fetched posts as read
+  if let Some(local_user) = local_user {
+    if data
+      .mark_as_read
+      .unwrap_or(local_user.auto_mark_fetched_posts_as_read)
+    {
+      let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
+      PostRead::mark_many_as_read(&mut context.pool(), &post_ids, local_user.person_id).await?;
+    }
+  }
 
   // if this page wasn't empty, then there is a next page after the last post on this page
   let next_page = posts.last().map(PaginationCursor::after_post);

@@ -28,7 +28,7 @@ use lemmy_db_schema::{
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
-    post::{Post, PostLike, PostRead},
+    post::{Post, PostLike},
     registration_application::RegistrationApplication,
     site::Site,
   },
@@ -42,6 +42,7 @@ use lemmy_db_views::{
   structs::{LocalImageView, LocalUserView, SiteView},
 };
 use lemmy_db_views_actor::structs::{
+  CommunityFollowerView,
   CommunityModeratorView,
   CommunityPersonBanView,
   CommunityView,
@@ -50,7 +51,10 @@ use lemmy_utils::{
   email::{send_email, translations::Lang},
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
-  settings::structs::{PictrsImageMode, Settings},
+  settings::{
+    structs::{PictrsImageMode, Settings},
+    SETTINGS,
+  },
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
     slurs::{build_slur_regex, remove_slurs},
@@ -61,7 +65,7 @@ use lemmy_utils::{
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
 use rosetta_i18n::{Language, LanguageId};
-use std::{collections::HashSet, sync::LazyLock};
+use std::sync::LazyLock;
 use tracing::warn;
 use url::{ParseError, Url};
 use urlencoding::encode;
@@ -137,19 +141,6 @@ pub fn is_top_mod(
   }
 }
 
-/// Marks a post as read for a given person.
-#[tracing::instrument(skip_all)]
-pub async fn mark_post_as_read(
-  person_id: PersonId,
-  post_id: PostId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  PostRead::mark_as_read(pool, HashSet::from([post_id]), person_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)?;
-  Ok(())
-}
-
 /// Updates the read comment count for a post. Usually done when reading or creating a new comment.
 #[tracing::instrument(skip_all)]
 pub async fn update_read_comments(
@@ -162,7 +153,6 @@ pub async fn update_read_comments(
     person_id,
     post_id,
     read_comments,
-    ..PersonPostAggregatesForm::default()
   };
 
   PersonPostAggregates::upsert(pool, &person_post_agg_form).await?;
@@ -213,7 +203,9 @@ pub async fn check_registration_application(
     let local_user_id = local_user_view.local_user.id;
     let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id).await?;
     if registration.admin_id.is_some() {
-      Err(LemmyErrorType::RegistrationDenied(registration.deny_reason))?
+      Err(LemmyErrorType::RegistrationDenied {
+        reason: registration.deny_reason,
+      })?
     } else {
       Err(LemmyErrorType::RegistrationApplicationIsPending)?
     }
@@ -227,20 +219,17 @@ pub async fn check_registration_application(
 /// the user isn't banned.
 pub async fn check_community_user_action(
   person: &Person,
-  community_id: CommunityId,
+  community: &Community,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   check_user_valid(person)?;
-  check_community_deleted_removed(community_id, pool).await?;
-  CommunityPersonBanView::check(pool, person.id, community_id).await?;
+  check_community_deleted_removed(community)?;
+  CommunityPersonBanView::check(pool, person.id, community.id).await?;
+  CommunityFollowerView::check_private_community_action(pool, person.id, community).await?;
   Ok(())
 }
 
-async fn check_community_deleted_removed(
-  community_id: CommunityId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  let community = Community::read(pool, community_id).await?;
+pub fn check_community_deleted_removed(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
     Err(LemmyErrorType::Deleted)?
   }
@@ -253,16 +242,16 @@ async fn check_community_deleted_removed(
 /// removed/deleted.
 pub async fn check_community_mod_action(
   person: &Person,
-  community_id: CommunityId,
+  community: &Community,
   allow_deleted: bool,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  is_mod_or_admin(pool, person, community_id).await?;
-  CommunityPersonBanView::check(pool, person.id, community_id).await?;
+  is_mod_or_admin(pool, person, community.id).await?;
+  CommunityPersonBanView::check(pool, person.id, community.id).await?;
 
   // it must be possible to restore deleted community
   if !allow_deleted {
-    check_community_deleted_removed(community_id, pool).await?;
+    check_community_deleted_removed(community)?;
   }
   Ok(())
 }
@@ -347,6 +336,16 @@ pub fn check_private_instance(
 ) -> LemmyResult<()> {
   if local_user_view.is_none() && local_site.private_instance {
     Err(LemmyErrorType::InstanceIsPrivate)?
+  } else {
+    Ok(())
+  }
+}
+
+/// If private messages are disabled, dont allow them to be sent / received
+#[tracing::instrument(skip_all)]
+pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
+  if !local_user_view.local_user.enable_private_messages {
+    Err(LemmyErrorType::CouldntCreatePrivateMessage)?
   } else {
     Ok(())
   }
@@ -973,12 +972,8 @@ pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{actor_id}/followers"))?.into())
 }
 
-pub fn generate_inbox_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {
-  Ok(Url::parse(&format!("{actor_id}/inbox"))?.into())
-}
-
-pub fn generate_shared_inbox_url(settings: &Settings) -> LemmyResult<DbUrl> {
-  let url = format!("{}/inbox", settings.get_protocol_and_hostname());
+pub fn generate_inbox_url() -> LemmyResult<DbUrl> {
+  let url = format!("{}/inbox", SETTINGS.get_protocol_and_hostname());
   Ok(Url::parse(&url)?.into())
 }
 
@@ -1111,7 +1106,7 @@ async fn proxy_image_link_internal(
 
 /// Rewrite a link to go through `/api/v3/image_proxy` endpoint. This is only for remote urls and
 /// if image_proxy setting is enabled.
-pub(crate) async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
+pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
   proxy_image_link_internal(
     link,
     context.settings().pictrs_config()?.image_mode(),

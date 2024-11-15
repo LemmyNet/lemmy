@@ -66,8 +66,7 @@ pub async fn purge_post(
       removed: true,
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(SuccessResponse::default()))
 }

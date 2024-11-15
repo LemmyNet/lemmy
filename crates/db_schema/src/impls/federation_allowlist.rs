@@ -61,7 +61,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_allowlist_insert_and_clear() -> Result<(), Error> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let domains = vec![
       "tld1.xyz".to_string(),

@@ -4,5 +4,6 @@ pub mod hide;
 pub mod like;
 pub mod list_post_likes;
 pub mod lock;
+pub mod mark_many_read;
 pub mod mark_read;
 pub mod save;
