@@ -22,7 +22,7 @@ use crate::{
   utils::{
     action_query,
     find_action,
-    functions::{coalesce, lower},
+    functions::{coalesce, lower, random},
     get_conn,
     now,
     uplete,
@@ -211,7 +211,6 @@ impl Community {
     type_: &Option<ListingType>,
   ) -> Result<CommunityId, Error> {
     let conn = &mut get_conn(pool).await?;
-    sql_function!(fn random() -> Text);
 
     let mut query = community::table
       .filter(not(community::deleted))

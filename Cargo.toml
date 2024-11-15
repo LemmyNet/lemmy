@@ -97,10 +97,10 @@ lemmy_federate = { version = "=0.19.6-beta.7", path = "./crates/federate" }
 activitypub_federation = { version = "0.6.0-alpha2", default-features = false, features = [
   "actix-web",
 ] }
-diesel = "2.1.6"
-diesel_migrations = "2.1.0"
-diesel-async = "0.4.1"
-serde = { version = "1.0.204", features = ["derive"] }
+diesel = "2.2.4"
+diesel_migrations = "2.2.0"
+diesel-async = "0.5.1"
+serde = { version = "1.0.215", features = ["derive"] }
 serde_with = "3.9.0"
 actix-web = { version = "4.9.0", default-features = false, features = [
   "macros",
@@ -113,7 +113,7 @@ actix-web = { version = "4.9.0", default-features = false, features = [
 tracing = "0.1.40"
 tracing-actix-web = { version = "0.7.10", default-features = false }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-url = { version = "2.5.2", features = ["serde"] }
+url = { version = "2.5.3", features = ["serde"] }
 reqwest = { version = "0.12.7", default-features = false, features = [
   "json",
   "blocking",
@@ -129,23 +129,23 @@ chrono = { version = "0.4.38", features = [
   "serde",
   "now",
 ], default-features = false }
-serde_json = { version = "1.0.121", features = ["preserve_order"] }
+serde_json = { version = "1.0.132", features = ["preserve_order"] }
 base64 = "0.22.1"
-uuid = { version = "1.10.0", features = ["serde", "v4"] }
-async-trait = "0.1.81"
+uuid = { version = "1.11.0", features = ["serde", "v4"] }
+async-trait = "0.1.83"
 captcha = "0.0.9"
-anyhow = { version = "1.0.86", features = [
+anyhow = { version = "1.0.93", features = [
   "backtrace",
 ] } # backtrace is on by default on nightly, but not stable rust
 diesel_ltree = "0.3.1"
-serial_test = "3.1.1"
-tokio = { version = "1.39.2", features = ["full"] }
-regex = "1.10.5"
+serial_test = "3.2.0"
+tokio = { version = "1.41.1", features = ["full"] }
+regex = "1.11.1"
 diesel-derive-newtype = "2.1.2"
 diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
 strum = { version = "0.26.3", features = ["derive"] }
 itertools = "0.13.0"
-futures = "0.3.30"
+futures = "0.3.31"
 http = "1.1"
 rosetta-i18n = "0.1.3"
 ts-rs = { version = "10.0.0", features = [
@@ -154,16 +154,16 @@ ts-rs = { version = "10.0.0", features = [
   "no-serde-warnings",
   "url-impl",
 ] }
-rustls = { version = "0.23.12", features = ["ring"] }
-futures-util = "0.3.30"
-tokio-postgres = "0.7.11"
+rustls = { version = "0.23.16", features = ["ring"] }
+futures-util = "0.3.31"
+tokio-postgres = "0.7.12"
 tokio-postgres-rustls = "0.12.0"
 urlencoding = "2.1.3"
 enum-map = "2.7"
 moka = { version = "0.12.8", features = ["future"] }
 i-love-jesus = { version = "0.1.0" }
-clap = { version = "4.5.13", features = ["derive", "env"] }
-pretty_assertions = "1.4.0"
+clap = { version = "4.5.21", features = ["derive", "env"] }
+pretty_assertions = "1.4.1"
 derive-new = "0.7.0"
 diesel-bind-if-some = "0.1.0"
 tuplex = "0.1.2"
