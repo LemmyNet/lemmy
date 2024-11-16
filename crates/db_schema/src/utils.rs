@@ -486,7 +486,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
       // from the pool
       let conn_was_used = metrics.recycled.is_some();
       if metrics.age() > Duration::from_secs(3 * 24 * 60 * 60) && conn_was_used {
-        Err(HookError::Message("Prevented first recycle".into()))
+        Err(HookError::Message("Connection is too old".into()))
       } else {
         Ok(())
       }
