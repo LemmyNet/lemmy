@@ -70,7 +70,8 @@ impl Report {
     let object_creator = Person::read(&mut context.pool(), object_creator_id).await?;
     let object_creator_site: Option<ApubSite> =
       Site::read_from_instance_id(&mut context.pool(), object_creator.instance_id)
-        .await?
+        .await
+        .ok()
         .map(Into::into);
     if let Some(inbox) = object_creator_site.map(|s| s.shared_inbox_or_inbox()) {
       inboxes.add_inbox(inbox);

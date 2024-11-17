@@ -6,8 +6,9 @@ use crate::{
   },
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
-  utils::{get_conn, naive_now, DbPool},
+  utils::{get_conn, DbPool},
 };
+use chrono::Utc;
 use diesel::{
   dsl::{insert_into, update},
   result::Error,
@@ -40,7 +41,7 @@ impl Reportable for PostReport {
       .set((
         resolved.eq(true),
         resolver_id.eq(by_resolver_id),
-        updated.eq(naive_now()),
+        updated.eq(Utc::now()),
       ))
       .execute(conn)
       .await
@@ -56,7 +57,7 @@ impl Reportable for PostReport {
       .set((
         resolved.eq(true),
         resolver_id.eq(by_resolver_id),
-        updated.eq(naive_now()),
+        updated.eq(Utc::now()),
       ))
       .execute(conn)
       .await
@@ -72,7 +73,7 @@ impl Reportable for PostReport {
       .set((
         resolved.eq(false),
         resolver_id.eq(by_resolver_id),
-        updated.eq(naive_now()),
+        updated.eq(Utc::now()),
       ))
       .execute(conn)
       .await

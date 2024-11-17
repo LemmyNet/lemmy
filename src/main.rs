@@ -1,6 +1,6 @@
 use clap::Parser;
 use lemmy_server::{start_lemmy_server, CmdArgs};
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
@@ -17,7 +17,7 @@ pub async fn main() -> LemmyResult<()> {
 
   rustls::crypto::ring::default_provider()
     .install_default()
-    .expect("Failed to install rustls crypto provider");
+    .map_err(|_e| LemmyErrorType::Unknown("Failed to install rustls crypto provider".into()))?;
 
   start_lemmy_server(args).await?;
   Ok(())

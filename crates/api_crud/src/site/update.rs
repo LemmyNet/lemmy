@@ -2,6 +2,7 @@ use super::not_zero;
 use crate::site::{application_question_check, site_default_post_listing_type_check};
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use chrono::Utc;
 use lemmy_api_common::{
   context::LemmyContext,
   request::replace_image,
@@ -27,7 +28,7 @@ use lemmy_db_schema::{
     site::{Site, SiteUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_string_update, diesel_url_update, naive_now},
+  utils::{diesel_string_update, diesel_url_update},
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
@@ -88,7 +89,7 @@ pub async fn update_site(
     icon,
     banner,
     content_warning: diesel_string_update(data.content_warning.as_deref()),
-    updated: Some(Some(naive_now())),
+    updated: Some(Some(Utc::now())),
     ..Default::default()
   };
 
@@ -111,7 +112,7 @@ pub async fn update_site(
     legal_information: diesel_string_update(data.legal_information.as_deref()),
     application_email_admins: data.application_email_admins,
     hide_modlog_mod_names: data.hide_modlog_mod_names,
-    updated: Some(Some(naive_now())),
+    updated: Some(Some(Utc::now())),
     slur_filter_regex: diesel_string_update(data.slur_filter_regex.as_deref()),
     actor_name_max_length: data.actor_name_max_length,
     federation_enabled: data.federation_enabled,
@@ -210,7 +211,7 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
       .slur_filter_regex
       .as_deref()
       .or(local_site.slur_filter_regex.as_deref()),
-  )?;
+  );
 
   if let Some(name) = &edit_site.name {
     // The name doesn't need to be updated, but if provided it cannot be blanked out...

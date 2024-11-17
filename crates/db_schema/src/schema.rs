@@ -455,6 +455,7 @@ diesel::table! {
         enable_private_messages -> Bool,
         collapse_bot_comments -> Bool,
         default_comment_sort_type -> CommentSortTypeEnum,
+        auto_mark_fetched_posts_as_read -> Bool,
     }
 }
 

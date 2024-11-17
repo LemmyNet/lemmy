@@ -134,19 +134,11 @@ mod tests {
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     // Timmy upvotes his own post
-    let timmy_post_vote_form = PostLikeForm {
-      post_id: inserted_post.id,
-      person_id: inserted_timmy.id,
-      score: 1,
-    };
+    let timmy_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_timmy.id, 1);
     PostLike::like(pool, &timmy_post_vote_form).await?;
 
     // Sara downvotes timmy's post
-    let sara_post_vote_form = PostLikeForm {
-      post_id: inserted_post.id,
-      person_id: inserted_sara.id,
-      score: -1,
-    };
+    let sara_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_sara.id, -1);
     PostLike::like(pool, &sara_post_vote_form).await?;
 
     let expected_post_vote_views = [

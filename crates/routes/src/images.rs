@@ -312,12 +312,16 @@ where
 }
 
 // TODO: remove these conversions after actix-web upgrades to http 1.0
+#[allow(clippy::expect_used)]
 fn convert_status(status: http::StatusCode) -> StatusCode {
   StatusCode::from_u16(status.as_u16()).expect("status can be converted")
 }
+
+#[allow(clippy::expect_used)]
 fn convert_method(method: &Method) -> http::Method {
   http::Method::from_bytes(method.as_str().as_bytes()).expect("method can be converted")
 }
+
 fn convert_header<'a>(name: &'a http::HeaderName, value: &'a HeaderValue) -> (&'a str, &'a [u8]) {
   (name.as_str(), value.as_bytes())
 }

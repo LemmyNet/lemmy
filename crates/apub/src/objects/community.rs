@@ -38,7 +38,6 @@ use lemmy_db_schema::{
     local_site::LocalSite,
   },
   traits::{ApubActor, Crud},
-  utils::naive_now,
   CommunityVisibility,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
@@ -166,7 +165,7 @@ impl Object for ApubCommunity {
       nsfw: Some(group.sensitive.unwrap_or(false)),
       actor_id: Some(group.id.into()),
       local: Some(false),
-      last_refreshed_at: Some(naive_now()),
+      last_refreshed_at: Some(Utc::now()),
       icon,
       banner,
       sidebar,
@@ -193,11 +192,17 @@ impl Object for ApubCommunity {
     let languages =
       LanguageTag::to_language_id_multiple(group.language, &mut context.pool()).await?;
 
-    let timestamp = group.updated.or(group.published).unwrap_or_else(naive_now);
-    let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
+    let timestamp = group.updated.or(group.published).unwrap_or_else(Utc::now);
+    let community: ApubCommunity = Community::insert_apub(&mut context.pool(), timestamp, &form)
+      .await?
+      .into();
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
-    let community: ApubCommunity = community.into();
+    // Need to fetch mods synchronously, otherwise fetching a post in community with
+    // `posting_restricted_to_mods` can fail if mods havent been fetched yet.
+    if let Some(moderators) = group.attributed_to {
+      moderators.dereference(&community, context).await.ok();
+    }
 
     // These collections are not necessary for Lemmy to work, so ignore errors.
     let community_ = community.clone();
@@ -209,9 +214,6 @@ impl Object for ApubCommunity {
       }
       if let Some(featured) = group.featured {
         featured.dereference(&community_, &context_).await.ok();
-      }
-      if let Some(moderators) = group.attributed_to {
-        moderators.dereference(&community_, &context_).await.ok();
       }
       Ok(())
     });

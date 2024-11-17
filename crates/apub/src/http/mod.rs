@@ -18,7 +18,7 @@ use lemmy_db_schema::{
   CommunityVisibility,
 };
 use lemmy_db_views_actor::structs::CommunityFollowerView;
-use lemmy_utils::error::{FederationError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::{ops::Deref, time::Duration};
 use tokio::time::timeout;
@@ -46,7 +46,7 @@ pub async fn shared_inbox(
   // consider the activity broken and move on.
   timeout(INCOMING_ACTIVITY_TIMEOUT, receive_fut)
     .await
-    .map_err(|_| FederationError::InboxTimeout)?
+    .with_lemmy_type(FederationError::InboxTimeout.into())?
 }
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
@@ -109,7 +109,7 @@ pub(crate) async fn get_activity(
   .into();
   let activity = SentActivity::read_from_apub_id(&mut context.pool(), &activity_id)
     .await
-    .map_err(|_| FederationError::CouldntFindActivity)?;
+    .with_lemmy_type(FederationError::CouldntFindActivity.into())?;
 
   let sensitive = activity.sensitive;
   if sensitive {

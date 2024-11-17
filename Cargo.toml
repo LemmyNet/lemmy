@@ -79,6 +79,8 @@ unused_self = "deny"
 unwrap_used = "deny"
 unimplemented = "deny"
 unused_async = "deny"
+map_err_ignore = "deny"
+expect_used = "deny"
 
 [workspace.dependencies]
 lemmy_api = { version = "=0.19.6-beta.7", path = "./crates/api" }
@@ -123,7 +125,10 @@ reqwest-tracing = "0.5.3"
 clokwerk = "0.4.0"
 doku = { version = "0.21.1", features = ["url-2"] }
 bcrypt = "0.15.1"
-chrono = { version = "0.4.38", features = ["serde"], default-features = false }
+chrono = { version = "0.4.38", features = [
+  "serde",
+  "now",
+], default-features = false }
 serde_json = { version = "1.0.121", features = ["preserve_order"] }
 base64 = "0.22.1"
 uuid = { version = "1.10.0", features = ["serde", "v4"] }

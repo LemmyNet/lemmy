@@ -6,11 +6,13 @@ use std::sync::LazyLock;
 use url::{ParseError, Url};
 
 // From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
+#[allow(clippy::expect_used)]
 static VALID_MATRIX_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^@[A-Za-z0-9\x21-\x39\x3B-\x7F]+:[A-Za-z0-9.-]+(:[0-9]{2,5})?$")
     .expect("compile regex")
 });
 // taken from https://en.wikipedia.org/wiki/UTM_parameters
+#[allow(clippy::expect_used)]
 static URL_CLEANER: LazyLock<UrlCleaner> =
   LazyLock::new(|| UrlCleaner::from_embedded_rules().expect("compile clearurls"));
 const ALLOWED_POST_URL_SCHEMES: [&str; 3] = ["http", "https", "magnet"];
@@ -85,26 +87,20 @@ fn has_newline(name: &str) -> bool {
 }
 
 pub fn is_valid_actor_name(name: &str, actor_name_max_length: usize) -> LemmyResult<()> {
-  static VALID_ACTOR_NAME_REGEX_EN: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9_]{3,}$").expect("compile regex"));
-  static VALID_ACTOR_NAME_REGEX_AR: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[\p{Arabic}0-9_]{3,}$").expect("compile regex"));
-  static VALID_ACTOR_NAME_REGEX_RU: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[\p{Cyrillic}0-9_]{3,}$").expect("compile regex"));
-
-  let check = name.chars().count() <= actor_name_max_length && !has_newline(name);
-
   // Only allow characters from a single alphabet per username. This avoids problems with lookalike
   // characters like `o` which looks identical in Latin and Cyrillic, and can be used to imitate
   // other users. Checks for additional alphabets can be added in the same way.
-  let lang_check = VALID_ACTOR_NAME_REGEX_EN.is_match(name)
-    || VALID_ACTOR_NAME_REGEX_AR.is_match(name)
-    || VALID_ACTOR_NAME_REGEX_RU.is_match(name);
+  #[allow(clippy::expect_used)]
+  static VALID_ACTOR_NAME_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(?:[a-zA-Z0-9_]+|[0-9_\p{Arabic}]+|[0-9_\p{Cyrillic}]+)$").expect("compile regex")
+  });
 
-  if !check || !lang_check {
-    Err(LemmyErrorType::InvalidName.into())
-  } else {
+  min_length_check(name, 3, LemmyErrorType::InvalidName)?;
+  max_length_check(name, actor_name_max_length, LemmyErrorType::InvalidName)?;
+  if VALID_ACTOR_NAME_REGEX.is_match(name) {
     Ok(())
+  } else {
+    Err(LemmyErrorType::InvalidName.into())
   }
 }
 
@@ -225,33 +221,32 @@ fn min_length_check(item: &str, min_length: usize, min_msg: LemmyErrorType) -> L
 }
 
 /// Attempts to build a regex and check it for common errors before inserting into the DB.
-pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> LemmyResult<Option<Regex>> {
-  regex_str_opt.map_or_else(
-    || Ok(None::<Regex>),
-    |regex_str| {
-      if regex_str.is_empty() {
-        // If the proposed regex is empty, return as having no regex at all; this is the same
-        // behavior that happens downstream before the write to the database.
-        return Ok(None::<Regex>);
-      }
-
-      RegexBuilder::new(regex_str)
-        .case_insensitive(true)
-        .build()
-        .with_lemmy_type(LemmyErrorType::InvalidRegex)
-        .and_then(|regex| {
-          // NOTE: It is difficult to know, in the universe of user-crafted regex, which ones
-          // may match against any string text. To keep it simple, we'll match the regex
-          // against an innocuous string - a single number - which should help catch a regex
-          // that accidentally matches against all strings.
-          if regex.is_match("1") {
-            Err(LemmyErrorType::PermissiveRegex.into())
-          } else {
-            Ok(Some(regex))
-          }
-        })
-    },
-  )
+pub fn build_and_check_regex(regex_str_opt: &Option<&str>) -> Option<LemmyResult<Regex>> {
+  if let Some(regex) = regex_str_opt {
+    if regex.is_empty() {
+      None
+    } else {
+      Some(
+        RegexBuilder::new(regex)
+          .case_insensitive(true)
+          .build()
+          .with_lemmy_type(LemmyErrorType::InvalidRegex)
+          .and_then(|regex| {
+            // NOTE: It is difficult to know, in the universe of user-crafted regex, which ones
+            // may match against any string text. To keep it simple, we'll match the regex
+            // against an innocuous string - a single number - which should help catch a regex
+            // that accidentally matches against all strings.
+            if regex.is_match("1") {
+              Err(LemmyErrorType::PermissiveRegex.into())
+            } else {
+              Ok(regex)
+            }
+          }),
+      )
+    }
+  } else {
+    None
+  }
 }
 
 /// Cleans a url of tracking parameters.
@@ -334,7 +329,7 @@ pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
   // Set the scheme to http, then remove the http:// part
   url
     .set_scheme("http")
-    .map_err(|_| LemmyErrorType::InvalidUrl)?;
+    .map_err(|_e| LemmyErrorType::InvalidUrl)?;
 
   let mut out = url
     .to_string()
@@ -379,11 +374,14 @@ mod tests {
   use pretty_assertions::assert_eq;
   use url::Url;
 
+  const URL_WITH_TRACKING: &str = "https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123";
+  const URL_TRACKING_REMOVED: &str = "https://example.com/path/123?user+name=random+user&id=123";
+
   #[test]
   fn test_clean_url_params() -> LemmyResult<()> {
-    let url = Url::parse("https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123")?;
+    let url = Url::parse(URL_WITH_TRACKING)?;
     let cleaned = clean_url(&url);
-    let expected = Url::parse("https://example.com/path/123?user+name=random+user&id=123")?;
+    let expected = Url::parse(URL_TRACKING_REMOVED)?;
     assert_eq!(expected.to_string(), cleaned.to_string());
 
     let url = Url::parse("https://example.com/path/123")?;
@@ -395,9 +393,9 @@ mod tests {
 
   #[test]
   fn test_clean_body() -> LemmyResult<()> {
-    let text = "[a link](https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123)";
-    let cleaned = clean_urls_in_text(text);
-    let expected = "[a link](https://example.com/path/123?user+name=random+user&id=123)";
+    let text = format!("[a link]({URL_WITH_TRACKING})");
+    let cleaned = clean_urls_in_text(&text);
+    let expected = format!("[a link]({URL_TRACKING_REMOVED})");
     assert_eq!(expected.to_string(), cleaned.to_string());
 
     let text = "[a link](https://example.com/path/123)";
@@ -438,6 +436,15 @@ mod tests {
     assert!(is_valid_actor_name("a", actor_name_max_length).is_err());
     // empty
     assert!(is_valid_actor_name("", actor_name_max_length).is_err());
+    // newline
+    assert!(is_valid_actor_name(
+      r"Line1
+
+Line3",
+      actor_name_max_length
+    )
+    .is_err());
+    assert!(is_valid_actor_name("Line1\nLine3", actor_name_max_length).is_err());
   }
 
   #[test]
@@ -560,13 +567,27 @@ mod tests {
 
   #[test]
   fn test_valid_slur_regex() {
-    let valid_regexes = [&None, &Some(""), &Some("(foo|bar)")];
+    let valid_regex = Some("(foo|bar)");
+    let result = build_and_check_regex(&valid_regex);
+    assert!(
+      result.is_some_and(|x| x.is_ok()),
+      "Testing regex: {:?}",
+      valid_regex
+    );
+  }
 
-    valid_regexes.iter().for_each(|regex| {
-      let result = build_and_check_regex(regex);
+  #[test]
+  fn test_missing_slur_regex() {
+    let missing_regex = None;
+    let result = build_and_check_regex(&missing_regex);
+    assert!(result.is_none());
+  }
 
-      assert!(result.is_ok(), "Testing regex: {:?}", regex);
-    });
+  #[test]
+  fn test_empty_slur_regex() {
+    let empty = Some("");
+    let result = build_and_check_regex(&empty);
+    assert!(result.is_none());
   }
 
   #[test]
@@ -582,9 +603,9 @@ mod tests {
       .for_each(|(regex_str, expected_err)| {
         let result = build_and_check_regex(regex_str);
 
-        assert!(result.is_err());
+        assert!(result.as_ref().is_some_and(Result::is_err));
         assert!(
-          result.is_err_and(|e| e.error_type.eq(&expected_err.clone())),
+          result.is_some_and(|x| x.is_err_and(|e| e.error_type.eq(&expected_err.clone()))),
           "Testing regex {:?}, expected error {}",
           regex_str,
           expected_err

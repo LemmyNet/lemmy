@@ -1,5 +1,6 @@
 // This is for db migrations that require code
 use activitypub_federation::http_signatures::generate_actor_keypair;
+use chrono::Utc;
 use diesel::{
   sql_types::{Nullable, Text},
   ExpressionMethods,
@@ -26,9 +27,12 @@ use lemmy_db_schema::{
     site::{Site, SiteInsertForm, SiteUpdateForm},
   },
   traits::Crud,
-  utils::{get_conn, naive_now, DbPool},
+  utils::{get_conn, DbPool},
 };
-use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
+use lemmy_utils::{
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
 use tracing::info;
 use url::Url;
 
@@ -78,7 +82,7 @@ async fn user_updates_2020_04_02(
       )?),
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(keypair.public_key),
-      last_refreshed_at: Some(naive_now()),
+      last_refreshed_at: Some(Utc::now()),
       ..Default::default()
     };
 
@@ -118,7 +122,7 @@ async fn community_updates_2020_04_02(
       actor_id: Some(community_actor_id.clone()),
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(keypair.public_key),
-      last_refreshed_at: Some(naive_now()),
+      last_refreshed_at: Some(Utc::now()),
       ..Default::default()
     };
 
@@ -334,7 +338,7 @@ async fn instance_actor_2022_01_28(
     let actor_id = Url::parse(protocol_and_hostname)?;
     let site_form = SiteUpdateForm {
       actor_id: Some(actor_id.clone().into()),
-      last_refreshed_at: Some(naive_now()),
+      last_refreshed_at: Some(Utc::now()),
       inbox_url: Some(generate_inbox_url()?),
       private_key: Some(Some(key_pair.private_key)),
       public_key: Some(key_pair.public_key),
@@ -420,7 +424,7 @@ async fn initialize_local_site_2022_10_10(
 
   let domain = settings
     .get_hostname_without_port()
-    .expect("must have domain");
+    .with_lemmy_type(LemmyErrorType::Unknown("must have domain".into()))?;
 
   // Upsert this to the instance table
   let instance = Instance::read_or_create(pool, domain).await?;
@@ -465,7 +469,7 @@ async fn initialize_local_site_2022_10_10(
     .unwrap_or_else(|| "New Site".to_string());
   let site_form = SiteInsertForm {
     actor_id: Some(site_actor_id.clone().into()),
-    last_refreshed_at: Some(naive_now()),
+    last_refreshed_at: Some(Utc::now()),
     inbox_url: Some(generate_inbox_url()?),
     private_key: Some(site_key_pair.private_key),
     public_key: Some(site_key_pair.public_key),

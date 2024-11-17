@@ -30,7 +30,6 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::Crud,
-  utils::naive_now,
 };
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyResult},
@@ -204,7 +203,7 @@ impl Object for ApubComment {
       language_id,
     };
     let parent_comment_path = parent_comment.map(|t| t.0.path);
-    let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(naive_now);
+    let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(Utc::now);
     let comment = Comment::insert_apub(
       &mut context.pool(),
       Some(timestamp),
