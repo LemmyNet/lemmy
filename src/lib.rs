@@ -230,7 +230,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
 
   if !args.disable_scheduled_tasks {
     // Schedules various cleanup tasks for the DB
-    let _scheduled_tasks = tokio::task::spawn(scheduled_tasks::setup(context.clone()));
+    let _scheduled_tasks =
+      tokio::task::spawn(scheduled_tasks::setup(request_data.reset_request_count()));
   }
 
   let server = if !args.disable_http_server {

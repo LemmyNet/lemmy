@@ -37,6 +37,7 @@ fn migrations() -> diesel_migrations::EmbeddedMigrations {
 
 // Avoid recompiling when migrations are changed
 #[cfg(debug_assertions)]
+#[expect(clippy::expect_used)]
 fn migrations() -> diesel_migrations::FileBasedMigrations {
   diesel_migrations::FileBasedMigrations::find_migrations_directory()
     .expect("failed to get migration source")
