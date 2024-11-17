@@ -126,18 +126,6 @@ steps:
       - diff config/defaults.hjson config/defaults_current.hjson
     when: *slow_check_paths
 
-  # `DROP OWNED` doesn't work for default user
-  create_database_user:
-    image: postgres:16-alpine
-    environment:
-      PGUSER: postgres
-      PGPASSWORD: password
-      PGHOST: database
-      PGDATABASE: lemmy
-    commands:
-      - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
-    when: *slow_check_paths
-
   cargo_clippy:
     image: *rust_image
     environment:
@@ -154,6 +142,18 @@ steps:
     commands:
       - cargo build
       - mv target/debug/lemmy_server target/lemmy_server
+    when: *slow_check_paths
+
+  # `DROP OWNED` doesn't work for default user
+  create_database_user:
+    image: postgres:16-alpine
+    environment:
+      PGUSER: postgres
+      PGPASSWORD: password
+      PGHOST: database
+      PGDATABASE: lemmy
+    commands:
+      - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
     when: *slow_check_paths
 
   check_diesel_schema:
