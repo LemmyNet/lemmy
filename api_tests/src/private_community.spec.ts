@@ -152,16 +152,7 @@ test("Only followers can view and interact with private community content", asyn
     follow: true,
   };
   await user.followCommunity(follow_form);
-  const pendingFollows1 = await waitUntil(
-    () => listCommunityPendingFollows(alpha),
-    f => f.items.length == 1,
-  );
-  const approve = await approveCommunityPendingFollow(
-    alpha,
-    alphaCommunityId,
-    pendingFollows1.items[0].person.id,
-  );
-  expect(approve.success).toBe(true);
+  approveFollower(alpha, alphaCommunityId);
 
   // now user can fetch posts and comments in community (using signed fetch), and create posts
   await waitUntil(
@@ -283,7 +274,7 @@ test("Follow a private community and receive activities", async () => {
   );
 });
 
-test("Fetch remote content in private community", async () => {
+test.only("Fetch remote content in private community", async () => {
   // create private community
   const community = await createCommunity(alpha, randomString(10), "Private");
   expect(community.community_view.community.visibility).toBe("Private");
@@ -297,6 +288,7 @@ test("Fetch remote content in private community", async () => {
     follow: true,
   };
   await beta.followCommunity(follow_form_beta);
+  await approveFollower(alpha, alphaCommunityId);
 
   // beta creates post and comment
   const post = await createPost(beta, betaCommunityId);
@@ -306,40 +298,35 @@ test("Fetch remote content in private community", async () => {
   const comment_id = comment.comment_view.comment.id;
   expect(comment_id).toBeDefined();
 
-  // gamma is not following the community and cannot view nor create posts
-  const user = await registerUser(gamma, betaUrl);
+  // create gamma user and follow community
   const gammaCommunityId = (
-    await resolveCommunity(user, community.community_view.community.actor_id)
+    await resolveCommunity(gamma, community.community_view.community.actor_id)
   ).community!.community.id;
-
-  // follow the community and approve
   const follow_form: FollowCommunity = {
     community_id: gammaCommunityId,
     follow: true,
   };
-  await user.followCommunity(follow_form);
-  const pendingFollows1 = await waitUntil(
-    () => listCommunityPendingFollows(alpha),
-    f => f.items.length == 1,
-  );
-  const approve = await approveCommunityPendingFollow(
-    alpha,
-    alphaCommunityId,
-    pendingFollows1.items[0].person.id,
-  );
-  expect(approve.success).toBe(true);
+  await gamma.followCommunity(follow_form);
+  await approveFollower(alpha, alphaCommunityId);
 
   // now user can fetch posts and comments in community (using signed fetch), and create posts
-  console.log(1);
-  await waitUntil(
-    () => resolvePost(user, post.post_view.post),
+  let resolvedPost = await waitUntil(
+    () => resolvePost(gamma, post.post_view.post),
     p => p?.post?.post.id != undefined,
   );
-  console.log(2);
+  console.log(post.post_view.post);
+  console.log(resolvedPost.post?.post);
+  expect(resolvedPost.post?.post.ap_id).toBe(post.post_view.post.ap_id);
   const resolvedComment = (
-    await resolveComment(user, comment.comment_view.comment)
+    await resolveComment(gamma, comment.comment_view.comment)
   ).comment;
-  expect(resolvedComment?.comment.id).toBeDefined();
+  expect(resolvedComment?.comment.ap_id).toBe(
+    comment.comment_view.comment.ap_id,
+  );
+
+  // TODO: this test should fail as check_has_followers_from_instance() on beta returns errors
+  //       because it doesnt know the community follower. yet for some reason the test passes???
+  fail();
 });
 
 async function approveFollower(user: LemmyHttp, community_id: number) {

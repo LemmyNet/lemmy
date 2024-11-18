@@ -174,9 +174,7 @@ impl ActivityHandler for CreateOrUpdateNote {
 
     // TODO: this fails in local community comment as CommentView::read() returns nothing
     //       without passing LocalUser
-    send_local_notifs(mentions, comment.id, &actor, do_send_email, context, None)
-      .await
-      .ok();
+    send_local_notifs(mentions, comment.id, &actor, do_send_email, context, None).await?;
     Ok(())
   }
 }
