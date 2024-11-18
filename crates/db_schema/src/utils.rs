@@ -181,8 +181,8 @@ where
   K: CursorKey<C, SqlType = Timestamptz>,
 {
   type SqlType = sql_types::BigInt;
-  type CursorValue = functions::reverse_timestamp_sort::HelperType<K::CursorValue>;
-  type SqlValue = functions::reverse_timestamp_sort::HelperType<K::SqlValue>;
+  type CursorValue = functions::reverse_timestamp_sort<K::CursorValue>;
+  type SqlValue = functions::reverse_timestamp_sort<K::SqlValue>;
 
   fn get_cursor_value(cursor: &C) -> Self::CursorValue {
     functions::reverse_timestamp_sort(K::get_cursor_value(cursor))
@@ -486,7 +486,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
       // from the pool
       let conn_was_used = metrics.recycled.is_some();
       if metrics.age() > Duration::from_secs(3 * 24 * 60 * 60) && conn_was_used {
-        Err(HookError::Continue(None))
+        Err(HookError::Message("Connection is too old".into()))
       } else {
         Ok(())
       }
@@ -524,27 +524,29 @@ static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 pub mod functions {
   use diesel::sql_types::{BigInt, Text, Timestamptz};
 
-  sql_function! {
+  define_sql_function! {
     #[sql_name = "r.hot_rank"]
     fn hot_rank(score: BigInt, time: Timestamptz) -> Double;
   }
 
-  sql_function! {
+  define_sql_function! {
     #[sql_name = "r.scaled_rank"]
     fn scaled_rank(score: BigInt, time: Timestamptz, users_active_month: BigInt) -> Double;
   }
 
-  sql_function! {
+  define_sql_function! {
     #[sql_name = "r.controversy_rank"]
     fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Double;
   }
 
-  sql_function!(fn reverse_timestamp_sort(time: Timestamptz) -> BigInt);
+  define_sql_function!(fn reverse_timestamp_sort(time: Timestamptz) -> BigInt);
 
-  sql_function!(fn lower(x: Text) -> Text);
+  define_sql_function!(fn lower(x: Text) -> Text);
+
+  define_sql_function!(fn random() -> Text);
 
   // really this function is variadic, this just adds the two-argument version
-  sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
+  define_sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
