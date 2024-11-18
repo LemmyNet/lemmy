@@ -6,22 +6,30 @@ use crate::{
     community_moderators::ApubCommunityModerators,
     community_outbox::ApubCommunityOutbox,
   },
+  fetcher::site_or_community_or_user::SiteOrCommunityOrUser,
   http::{check_community_fetchable, create_apub_response, create_apub_tombstone_response},
   objects::community::ApubCommunity,
 };
 use activitypub_federation::{
   config::Data,
+  fetch::object_id::ObjectId,
   traits::{Collection, Object},
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
+use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::Deserialize;
 
 #[derive(Deserialize, Clone)]
 pub(crate) struct CommunityQuery {
   community_name: String,
+}
+
+#[derive(Deserialize)]
+pub struct CommunityIsFollowerQuery {
+  is_follower: Option<ObjectId<SiteOrCommunityOrUser>>,
 }
 
 /// Return the ActivityPub json representation of a local community over HTTP.
@@ -48,11 +56,26 @@ pub(crate) async fn get_apub_community_http(
 /// Returns an empty followers collection, only populating the size (for privacy).
 pub(crate) async fn get_apub_community_followers(
   info: web::Path<CommunityQuery>,
+  query: web::Query<CommunityIsFollowerQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let community = Community::read_from_name(&mut context.pool(), &info.community_name, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
+  if let Some(is_follower) = &query.is_follower {
+    let instance_id = is_follower.dereference(&context).await?.instance_id();
+    let has_followers = CommunityFollowerView::check_has_followers_from_instance(
+      community.id,
+      instance_id,
+      &mut context.pool(),
+    )
+    .await;
+    return if has_followers.is_ok() {
+      Ok(HttpResponse::Ok().finish())
+    } else {
+      Ok(HttpResponse::NotFound().finish())
+    };
+  }
   check_community_fetchable(&community)?;
   let followers = ApubCommunityFollower::read_local(&community.into(), &context).await?;
   create_apub_response(&followers)

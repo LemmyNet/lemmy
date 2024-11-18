@@ -298,6 +298,20 @@ test.only("Fetch remote content in private community", async () => {
   const comment_id = comment.comment_view.comment.id;
   expect(comment_id).toBeDefined();
 
+  // Wait for post and comment to federate
+  /*
+  console.log('a');
+  await waitUntil(
+    () => resolvePost(alpha, post.post_view.post),
+    p => p?.post?.post.id != undefined,
+  );
+  await waitUntil(
+    () => resolveComment(gamma, comment.comment_view.comment),
+    p => p?.post?.post.id != undefined,
+  );
+  */
+  console.log("b");
+
   // create gamma user and follow community
   const gammaCommunityId = (
     await resolveCommunity(gamma, community.community_view.community.actor_id)
@@ -310,23 +324,22 @@ test.only("Fetch remote content in private community", async () => {
   await approveFollower(alpha, alphaCommunityId);
 
   // now user can fetch posts and comments in community (using signed fetch), and create posts
+  // TODO: this fails because beta doesnt know if the gamma user was approved by alpha community
+  console.log(0);
   let resolvedPost = await waitUntil(
     () => resolvePost(gamma, post.post_view.post),
     p => p?.post?.post.id != undefined,
   );
-  console.log(post.post_view.post);
-  console.log(resolvedPost.post?.post);
   expect(resolvedPost.post?.post.ap_id).toBe(post.post_view.post.ap_id);
-  const resolvedComment = (
-    await resolveComment(gamma, comment.comment_view.comment)
-  ).comment;
-  expect(resolvedComment?.comment.ap_id).toBe(
+  console.log(1);
+  const resolvedComment = await waitUntil(
+    () => resolveComment(gamma, comment.comment_view.comment),
+    p => p?.post?.post.id != undefined,
+  );
+  expect(resolvedComment?.comment?.comment.ap_id).toBe(
     comment.comment_view.comment.ap_id,
   );
-
-  // TODO: this test should fail as check_has_followers_from_instance() on beta returns errors
-  //       because it doesnt know the community follower. yet for some reason the test passes???
-  fail();
+  console.log(2);
 });
 
 async function approveFollower(user: LemmyHttp, community_id: number) {
