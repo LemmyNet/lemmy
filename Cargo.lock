@@ -3332,6 +3332,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "futures",
+ "http 0.2.12",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
