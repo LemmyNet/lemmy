@@ -171,7 +171,12 @@ impl ActivityHandler for CreateOrUpdateNote {
     // TODO: for compatibility with other projects, it would be much better to read this from cc or
     // tags
     let mentions = scrape_text_for_mentions(&comment.content);
-    send_local_notifs(mentions, comment.id, &actor, do_send_email, context, None).await?;
+
+    // TODO: this fails in local community comment as CommentView::read() returns nothing
+    //       without passing LocalUser
+    send_local_notifs(mentions, comment.id, &actor, do_send_email, context, None)
+      .await
+      .ok();
     Ok(())
   }
 }
