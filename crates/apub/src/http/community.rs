@@ -21,7 +21,7 @@ use actix_web::{
   HttpResponse,
 };
 use lemmy_api_common::context::LemmyContext;
-use lemmy_db_schema::{source::community::Community, traits::ApubActor};
+use lemmy_db_schema::{source::community::Community, traits::ApubActor, CommunityVisibility};
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::Deserialize;
@@ -31,7 +31,7 @@ pub(crate) struct CommunityPath {
   community_name: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct CommunityIsFollowerQuery {
   is_follower: Option<ObjectId<SiteOrCommunityOrUser>>,
 }
@@ -66,21 +66,22 @@ pub(crate) async fn get_apub_community_followers(
   let community = Community::read_from_name(&mut context.pool(), &info.community_name, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
-  if let Some(is_follower) = &query.is_follower {
-    // TODO: check for http sig
-    // TODO: only in private community
-    let instance_id = is_follower.dereference(&context).await?.instance_id();
-    let has_followers = CommunityFollowerView::check_has_followers_from_instance(
-      community.id,
-      instance_id,
-      &mut context.pool(),
-    )
-    .await;
-    return if has_followers.is_ok() {
-      Ok(HttpResponse::Ok().finish())
-    } else {
-      Ok(HttpResponse::NotFound().finish())
-    };
+  if community.visibility == CommunityVisibility::Private {
+    if let Some(is_follower) = &query.is_follower {
+      // TODO: also check for http sig
+      let instance_id = is_follower.dereference(&context).await?.instance_id();
+      let has_followers = CommunityFollowerView::check_has_followers_from_instance(
+        community.id,
+        instance_id,
+        &mut context.pool(),
+      )
+      .await;
+      return if has_followers.is_ok() {
+        Ok(HttpResponse::Ok().finish())
+      } else {
+        Ok(HttpResponse::NotFound().finish())
+      };
+    }
   }
   check_community_fetchable(&community)?;
   let followers = ApubCommunityFollower::read_local(&community.into(), &context).await?;
@@ -144,13 +145,19 @@ pub(crate) mod tests {
   use lemmy_db_schema::{
     newtypes::InstanceId,
     source::{
-      community::CommunityInsertForm,
+      community::{
+        CommunityFollower,
+        CommunityFollowerForm,
+        CommunityFollowerState,
+        CommunityInsertForm,
+      },
       instance::Instance,
       local_site::{LocalSite, LocalSiteInsertForm},
       local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
+      person::{Person, PersonInsertForm},
       site::{Site, SiteInsertForm},
     },
-    traits::Crud,
+    traits::{Crud, Followable},
     CommunityVisibility,
   };
   use serde::de::DeserializeOwned;
@@ -320,6 +327,68 @@ pub(crate) mod tests {
     assert!(res.is_err());
 
     Instance::delete(&mut context.pool(), instance.id).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_is_follower() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+
+    // insert local community
+    let local_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let community_form = CommunityInsertForm {
+      visibility: Some(CommunityVisibility::Private),
+      ..CommunityInsertForm::new(
+        local_instance.id,
+        "test_community_4".to_string(),
+        "nada".to_owned(),
+        "pubkey".to_string(),
+      )
+    };
+    let community = Community::create(pool, &community_form).await?;
+
+    // insert remote user
+    let remote_instance = Instance::read_or_create(pool, "other_domain.tld".to_string()).await?;
+    let person_form =
+      PersonInsertForm::new("name".to_string(), "pubkey".to_string(), remote_instance.id);
+    let person = Person::create(pool, &person_form).await?;
+
+    // community has no follower from remote instance, returns error
+    let path: Path<CommunityPath> = CommunityPath {
+      community_name: community.name.clone(),
+    }
+    .into();
+    let query = Query(CommunityIsFollowerQuery {
+      is_follower: Some(person.actor_id.clone().into()),
+    });
+    let res = get_apub_community_followers(
+      path.clone().into(),
+      query.clone().into(),
+      context.reset_request_count(),
+    )
+    .await;
+    assert_eq!(404, res?.status());
+
+    // insert approved follower
+    let follower_form = CommunityFollowerForm {
+      state: Some(CommunityFollowerState::Accepted),
+      ..CommunityFollowerForm::new(community.id, person.id)
+    };
+    CommunityFollower::follow(pool, &follower_form).await?;
+
+    // now returns ok
+    let res = get_apub_community_followers(
+      path.clone().into(),
+      query.into(),
+      context.reset_request_count(),
+    )
+    .await;
+    assert_eq!(200, res?.status());
+
+    Instance::delete(pool, local_instance.id).await?;
+    Instance::delete(pool, remote_instance.id).await?;
     Ok(())
   }
 }

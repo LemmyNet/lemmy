@@ -274,7 +274,7 @@ test("Follow a private community and receive activities", async () => {
   );
 });
 
-test.only("Fetch remote content in private community", async () => {
+test("Fetch remote content in private community", async () => {
   // create private community
   const community = await createCommunity(alpha, randomString(10), "Private");
   expect(community.community_view.community.visibility).toBe("Private");
@@ -290,6 +290,12 @@ test.only("Fetch remote content in private community", async () => {
   await beta.followCommunity(follow_form_beta);
   await approveFollower(alpha, alphaCommunityId);
 
+  // Follow is confirmed
+  await waitUntil(
+    () => getCommunity(beta, betaCommunityId),
+    c => c.community_view.subscribed == "Subscribed",
+  );
+
   // beta creates post and comment
   const post = await createPost(beta, betaCommunityId);
   const post_id = post.post_view.post.id;
@@ -298,19 +304,11 @@ test.only("Fetch remote content in private community", async () => {
   const comment_id = comment.comment_view.comment.id;
   expect(comment_id).toBeDefined();
 
-  // Wait for post and comment to federate
-  /*
-  console.log('a');
+  // Wait for it to federate
   await waitUntil(
-    () => resolvePost(alpha, post.post_view.post),
-    p => p?.post?.post.id != undefined,
+    () => resolveComment(alpha, comment.comment_view.comment),
+    p => p?.comment?.comment.id != undefined,
   );
-  await waitUntil(
-    () => resolveComment(gamma, comment.comment_view.comment),
-    p => p?.post?.post.id != undefined,
-  );
-  */
-  console.log("b");
 
   // create gamma user and follow community
   const gammaCommunityId = (
@@ -323,23 +321,20 @@ test.only("Fetch remote content in private community", async () => {
   await gamma.followCommunity(follow_form);
   await approveFollower(alpha, alphaCommunityId);
 
-  // now user can fetch posts and comments in community (using signed fetch), and create posts
-  // TODO: this fails because beta doesnt know if the gamma user was approved by alpha community
-  console.log(0);
+  // now user can fetch posts and comments in community (using signed fetch), and create posts.
+  // for this to work, beta checks with alpha if gamma is really an approved follower.
   let resolvedPost = await waitUntil(
     () => resolvePost(gamma, post.post_view.post),
     p => p?.post?.post.id != undefined,
   );
   expect(resolvedPost.post?.post.ap_id).toBe(post.post_view.post.ap_id);
-  console.log(1);
   const resolvedComment = await waitUntil(
     () => resolveComment(gamma, comment.comment_view.comment),
-    p => p?.post?.post.id != undefined,
+    p => p?.comment?.comment.id != undefined,
   );
   expect(resolvedComment?.comment?.comment.ap_id).toBe(
     comment.comment_view.comment.ap_id,
   );
-  console.log(2);
 });
 
 async function approveFollower(user: LemmyHttp, community_id: number) {
