@@ -15,7 +15,11 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   traits::{Collection, Object},
 };
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{
+  web::{Path, Query},
+  HttpRequest,
+  HttpResponse,
+};
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::community::Community, traits::ApubActor};
 use lemmy_db_views_actor::structs::CommunityFollowerView;
@@ -23,7 +27,7 @@ use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::Deserialize;
 
 #[derive(Deserialize, Clone)]
-pub(crate) struct CommunityQuery {
+pub(crate) struct CommunityPath {
   community_name: String,
 }
 
@@ -35,7 +39,7 @@ pub struct CommunityIsFollowerQuery {
 /// Return the ActivityPub json representation of a local community over HTTP.
 #[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_community_http(
-  info: web::Path<CommunityQuery>,
+  info: Path<CommunityPath>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
@@ -55,14 +59,16 @@ pub(crate) async fn get_apub_community_http(
 
 /// Returns an empty followers collection, only populating the size (for privacy).
 pub(crate) async fn get_apub_community_followers(
-  info: web::Path<CommunityQuery>,
-  query: web::Query<CommunityIsFollowerQuery>,
+  info: Path<CommunityPath>,
+  query: Query<CommunityIsFollowerQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let community = Community::read_from_name(&mut context.pool(), &info.community_name, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
   if let Some(is_follower) = &query.is_follower {
+    // TODO: check for http sig
+    // TODO: only in private community
     let instance_id = is_follower.dereference(&context).await?.instance_id();
     let has_followers = CommunityFollowerView::check_has_followers_from_instance(
       community.id,
@@ -84,7 +90,7 @@ pub(crate) async fn get_apub_community_followers(
 /// Returns the community outbox, which is populated by a maximum of 20 posts (but no other
 /// activities like votes or comments).
 pub(crate) async fn get_apub_community_outbox(
-  info: web::Path<CommunityQuery>,
+  info: Path<CommunityPath>,
   context: Data<LemmyContext>,
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
@@ -100,7 +106,7 @@ pub(crate) async fn get_apub_community_outbox(
 
 #[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_community_moderators(
-  info: web::Path<CommunityQuery>,
+  info: Path<CommunityPath>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
@@ -115,7 +121,7 @@ pub(crate) async fn get_apub_community_moderators(
 
 /// Returns collection of featured (stickied) posts.
 pub(crate) async fn get_apub_community_featured(
-  info: web::Path<CommunityQuery>,
+  info: Path<CommunityPath>,
   context: Data<LemmyContext>,
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
@@ -204,17 +210,17 @@ pub(crate) mod tests {
     let request = TestRequest::default().to_http_request();
 
     // fetch invalid community
-    let query = CommunityQuery {
+    let query = CommunityPath {
       community_name: "asd".to_string(),
     };
     let res = get_apub_community_http(query.into(), context.reset_request_count()).await;
     assert!(res.is_err());
 
     // fetch valid community
-    let query = CommunityQuery {
+    let path = CommunityPath {
       community_name: community.name.clone(),
     };
-    let res = get_apub_community_http(query.clone().into(), context.reset_request_count()).await?;
+    let res = get_apub_community_http(path.clone().into(), context.reset_request_count()).await?;
     assert_eq!(200, res.status());
     let res_group: Group = decode_response(res).await?;
     let community: ApubCommunity = community.into();
@@ -222,20 +228,22 @@ pub(crate) mod tests {
     assert_eq!(group, res_group);
 
     let res = get_apub_community_featured(
-      query.clone().into(),
+      path.clone().into(),
       context.reset_request_count(),
       request.clone(),
     )
     .await?;
     assert_eq!(200, res.status());
+    let query = Query(CommunityIsFollowerQuery { is_follower: None });
     let res =
-      get_apub_community_followers(query.clone().into(), context.reset_request_count()).await?;
+      get_apub_community_followers(path.clone().into(), query, context.reset_request_count())
+        .await?;
     assert_eq!(200, res.status());
     let res =
-      get_apub_community_moderators(query.clone().into(), context.reset_request_count()).await?;
+      get_apub_community_moderators(path.clone().into(), context.reset_request_count()).await?;
     assert_eq!(200, res.status());
     let res =
-      get_apub_community_outbox(query.into(), context.reset_request_count(), request).await?;
+      get_apub_community_outbox(path.into(), context.reset_request_count(), request).await?;
     assert_eq!(200, res.status());
 
     Instance::delete(&mut context.pool(), instance.id).await?;
@@ -250,28 +258,30 @@ pub(crate) mod tests {
     let request = TestRequest::default().to_http_request();
 
     // should return tombstone
-    let query = CommunityQuery {
+    let path: Path<CommunityPath> = CommunityPath {
       community_name: community.name.clone(),
-    };
-    let res = get_apub_community_http(query.clone().into(), context.reset_request_count()).await?;
+    }
+    .into();
+    let res = get_apub_community_http(path.clone().into(), context.reset_request_count()).await?;
     assert_eq!(410, res.status());
     let res_tombstone = decode_response::<Tombstone>(res).await;
     assert!(res_tombstone.is_ok());
 
     let res = get_apub_community_featured(
-      query.clone().into(),
+      path.clone().into(),
       context.reset_request_count(),
       request.clone(),
     )
     .await;
     assert!(res.is_err());
+    let query = Query(CommunityIsFollowerQuery { is_follower: None });
     let res =
-      get_apub_community_followers(query.clone().into(), context.reset_request_count()).await;
+      get_apub_community_followers(path.clone().into(), query, context.reset_request_count()).await;
     assert!(res.is_err());
     let res =
-      get_apub_community_moderators(query.clone().into(), context.reset_request_count()).await;
+      get_apub_community_moderators(path.clone().into(), context.reset_request_count()).await;
     assert!(res.is_err());
-    let res = get_apub_community_outbox(query.into(), context.reset_request_count(), request).await;
+    let res = get_apub_community_outbox(path.into(), context.reset_request_count(), request).await;
     assert!(res.is_err());
 
     //Community::delete(&mut context.pool(), community.id).await?;
@@ -286,25 +296,27 @@ pub(crate) mod tests {
     let (instance, community) = init(false, CommunityVisibility::LocalOnly, &context).await?;
     let request = TestRequest::default().to_http_request();
 
-    let query = CommunityQuery {
+    let path: Path<CommunityPath> = CommunityPath {
       community_name: community.name.clone(),
-    };
-    let res = get_apub_community_http(query.clone().into(), context.reset_request_count()).await;
+    }
+    .into();
+    let res = get_apub_community_http(path.clone().into(), context.reset_request_count()).await;
     assert!(res.is_err());
     let res = get_apub_community_featured(
-      query.clone().into(),
+      path.clone().into(),
       context.reset_request_count(),
       request.clone(),
     )
     .await;
     assert!(res.is_err());
+    let query = Query(CommunityIsFollowerQuery { is_follower: None });
     let res =
-      get_apub_community_followers(query.clone().into(), context.reset_request_count()).await;
+      get_apub_community_followers(path.clone().into(), query, context.reset_request_count()).await;
     assert!(res.is_err());
     let res =
-      get_apub_community_moderators(query.clone().into(), context.reset_request_count()).await;
+      get_apub_community_moderators(path.clone().into(), context.reset_request_count()).await;
     assert!(res.is_err());
-    let res = get_apub_community_outbox(query.into(), context.reset_request_count(), request).await;
+    let res = get_apub_community_outbox(path.into(), context.reset_request_count(), request).await;
     assert!(res.is_err());
 
     Instance::delete(&mut context.pool(), instance.id).await?;
