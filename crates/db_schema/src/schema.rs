@@ -282,6 +282,9 @@ diesel::table! {
         instance_id -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+        admin_person_id -> Nullable<Int4>,
+        reason -> Nullable<Text>,
+        expires -> Nullable<Timestamptz>,
     }
 }
 
@@ -955,6 +958,7 @@ diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
+diesel::joinable!(federation_blocklist -> person (admin_person_id));
 diesel::joinable!(federation_queue_state -> instance (instance_id));
 diesel::joinable!(instance_actions -> instance (instance_id));
 diesel::joinable!(instance_actions -> person (person_id));

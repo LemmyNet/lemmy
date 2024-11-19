@@ -2,13 +2,7 @@ use crate::federate_retry_sleep_duration;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   newtypes::{
-    CommentId,
-    CommunityId,
-    InstanceId,
-    LanguageId,
-    PersonId,
-    PostId,
-    RegistrationApplicationId,
+    CommentId, CommunityId, InstanceId, LanguageId, PersonId, PostId, RegistrationApplicationId,
   },
   source::{
     community::Community,
@@ -20,44 +14,20 @@ use lemmy_db_schema::{
     person::Person,
     tagline::Tagline,
   },
-  CommentSortType,
-  FederationMode,
-  ListingType,
-  ModlogActionType,
-  PostListingMode,
-  PostSortType,
-  RegistrationMode,
-  SearchType,
+  CommentSortType, FederationMode, ListingType, ModlogActionType, PostListingMode, PostSortType,
+  RegistrationMode, SearchType,
 };
 use lemmy_db_views::structs::{
-  CommentView,
-  LocalUserView,
-  PostView,
-  RegistrationApplicationView,
-  SiteView,
+  CommentView, LocalUserView, PostView, RegistrationApplicationView, SiteView,
 };
 use lemmy_db_views_actor::structs::{
-  CommunityFollowerView,
-  CommunityModeratorView,
-  CommunityView,
-  PersonView,
+  CommunityFollowerView, CommunityModeratorView, CommunityView, PersonView,
 };
 use lemmy_db_views_moderator::structs::{
-  AdminPurgeCommentView,
-  AdminPurgeCommunityView,
-  AdminPurgePersonView,
-  AdminPurgePostView,
-  ModAddCommunityView,
-  ModAddView,
-  ModBanFromCommunityView,
-  ModBanView,
-  ModFeaturePostView,
-  ModHideCommunityView,
-  ModLockPostView,
-  ModRemoveCommentView,
-  ModRemoveCommunityView,
-  ModRemovePostView,
-  ModTransferCommunityView,
+  AdminBlockInstanceView, AdminPurgeCommentView, AdminPurgeCommunityView, AdminPurgePersonView,
+  AdminPurgePostView, ModAddCommunityView, ModAddView, ModBanFromCommunityView, ModBanView,
+  ModFeaturePostView, ModHideCommunityView, ModLockPostView, ModRemoveCommentView,
+  ModRemoveCommunityView, ModRemovePostView, ModTransferCommunityView,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -183,6 +153,7 @@ pub struct GetModlogResponse {
   pub admin_purged_posts: Vec<AdminPurgePostView>,
   pub admin_purged_comments: Vec<AdminPurgeCommentView>,
   pub hidden_communities: Vec<ModHideCommunityView>,
+  pub admin_block_instance: Vec<AdminBlockInstanceView>,
 }
 
 #[skip_serializing_none]
@@ -658,5 +629,22 @@ pub struct BlockInstance {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct BlockInstanceResponse {
+  pub blocked: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct AdminBlockInstance {
+  pub instance_id: InstanceId,
+  pub block: bool,
+  pub reason: Option<String>,
+  pub expires: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct AdminBlockInstanceResponse {
   pub blocked: bool,
 }

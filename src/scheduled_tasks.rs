@@ -19,15 +19,7 @@ use lemmy_api_common::{
 use lemmy_api_crud::post::create::send_webmention;
 use lemmy_db_schema::{
   schema::{
-    captcha_answer,
-    comment,
-    community,
-    community_actions,
-    instance,
-    person,
-    post,
-    received_activity,
-    sent_activity,
+    captcha_answer, comment, community, community_actions, federation_blocklist, instance, person, post, received_activity, sent_activity
   },
   source::{
     community::Community,
@@ -438,6 +430,15 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) {
       .execute(&mut conn)
       .await
       .inspect_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
+      .ok();
+
+      // TODO: need separate table for modlog, otherwise entry will disappear
+      diesel::delete(
+        federation_blocklist::table.filter(federation_blocklist::expires.lt(now().nullable())),
+      )
+      .execute(&mut conn)
+      .await
+      .inspect_err(|e| error!("Failed to remove federation_blocklist expired rows: {e}"))
       .ok();
     }
     Err(e) => {

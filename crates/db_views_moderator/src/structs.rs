@@ -5,6 +5,8 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     community::Community,
+    federation_blocklist::FederationBlockList,
+    instance::Instance,
     moderator::{
       AdminPurgeComment,
       AdminPurgeCommunity,
@@ -231,6 +233,19 @@ pub struct AdminPurgePostView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub admin: Option<Person>,
   pub community: Community,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// When an admin purges a post.
+pub struct AdminBlockInstanceView {
+  pub blocklist_entry: FederationBlockList,
+  pub instance: Instance,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub admin: Option<Person>,
 }
 
 #[skip_serializing_none]
