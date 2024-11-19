@@ -63,6 +63,8 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
     .await?
     .error_for_status()?;
 
+  // In some cases servers send a wrong mime type for images, which prevents thumbnail
+  // generation. To avoid this we also try to guess the mime type from file extension.
   let content_type = mime_guess::from_path(url.path())
     .first()
     // If you can guess that its an image type, then return that first.
