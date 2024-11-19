@@ -60,9 +60,9 @@ impl<T, S: SelectableExpression<current_value>> SelectableExpression<T> for Valu
 
 impl<T, S: SelectableExpression<current_value>> Insertable<T> for ValuesFromSeries<S>
 where
-  dsl::BareSelect<Self>: AsQuery + Insertable<T>,
+  dsl::select<Self>: AsQuery + Insertable<T>,
 {
-  type Values = <dsl::BareSelect<Self> as Insertable<T>>::Values;
+  type Values = <dsl::select<Self> as Insertable<T>>::Values;
 
   fn values(self) -> Self::Values {
     dsl::select(self).values()
