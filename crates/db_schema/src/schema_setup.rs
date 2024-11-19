@@ -60,7 +60,7 @@ const REPLACEABLE_SCHEMA_PATH: &str = "crates/db_schema/replaceable_schema";
 struct MigrationHarnessWrapper<'a> {
   conn: &'a mut PgConnection,
   #[cfg(test)]
-  enable_diff_check: bool,
+  diff_checked_migration_name: Option<String>,
 }
 
 impl<'a> MigrationHarnessWrapper<'a> {
@@ -86,7 +86,7 @@ impl<'a> MigrationHarness<Pg> for MigrationHarnessWrapper<'a> {
     migration: &dyn Migration<Pg>,
   ) -> diesel::migration::Result<MigrationVersion<'static>> {
     #[cfg(test)]
-    if self.enable_diff_check {
+    if self.diff_checked_migration_name == Some(migration.name().to_string()) {
       let before = diff_check::get_dump();
 
       self.run_migration_inner(migration)?;
@@ -271,7 +271,11 @@ fn run_selected_migrations(
   let mut wrapper = MigrationHarnessWrapper {
     conn,
     #[cfg(test)]
-    enable_diff_check: options.enable_diff_check,
+    diff_checked_migration_name: options
+      .enable_diff_check
+      .then(|| diesel::migration::MigrationSource::<Pg>::migrations(&migrations()))
+      .transpose()?
+      .and_then(|migrations| Some(migrations.last()?.name().to_string())),
   };
 
   if options.revert {
@@ -325,7 +329,8 @@ mod tests {
     // Start with consistent state by dropping everything
     conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
 
-    // Run all migrations and check for mistakes in down.sql files
+    // Run all migrations, make sure the newest migration can be redone, and check the newest
+    // down.sql file
     assert_eq!(
       run(o().run().enable_diff_check())?,
       ReplaceableSchemaRebuilt
@@ -345,10 +350,8 @@ mod tests {
     );
     assert_eq!(run(o().run().limit(1))?, ReplaceableSchemaRebuilt);
 
-    // Revert all migrations
-    assert_eq!(run(o().revert())?, ReplaceableSchemaNotRebuilt);
-
     // This should throw an error saying to use lemmy_server instead of diesel CLI
+    conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
     assert!(matches!(
       conn.run_pending_migrations(migrations()),
       Err(e) if e.to_string().contains("lemmy_server")

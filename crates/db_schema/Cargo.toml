@@ -86,4 +86,4 @@ tuplex = { workspace = true, optional = true }
 [dev-dependencies]
 serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
-diff = "0.1.13"
+diffutils = "0.4.2"
