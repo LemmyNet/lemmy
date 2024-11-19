@@ -310,7 +310,7 @@ test("Fetch remote content in private community", async () => {
     p => p?.comment?.comment.id != undefined,
   );
 
-  // create gamma user and follow community
+  // create gamma user
   const gammaCommunityId = (
     await resolveCommunity(gamma, community.community_view.community.actor_id)
   ).community!.community.id;
@@ -318,6 +318,12 @@ test("Fetch remote content in private community", async () => {
     community_id: gammaCommunityId,
     follow: true,
   };
+
+  // cannot fetch post yet
+  await expect(resolvePost(gamma, post.post_view.post)).rejects.toStrictEqual(
+    Error("not_found"),
+  );
+  // follow community and approve
   await gamma.followCommunity(follow_form);
   await approveFollower(alpha, alphaCommunityId);
 

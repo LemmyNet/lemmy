@@ -160,12 +160,9 @@ async fn check_community_content_fetchable(
         followers_url
           .query_pairs_mut()
           .append_pair("is_follower", signing_actor.id().as_str());
-        context
-          .client()
-          .get(followers_url.as_str())
-          .send()
-          .await?
-          .error_for_status()?;
+        let req = context.client().get(followers_url.as_str());
+        let req = context.sign_request(req, Bytes::new()).await?;
+        context.client().execute(req).await?.error_for_status()?;
         Ok(())
       } else {
         Err(LemmyErrorType::NotFound.into())

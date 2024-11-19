@@ -11,6 +11,7 @@ use crate::{
   objects::community::ApubCommunity,
 };
 use activitypub_federation::{
+  actix_web::signing_actor,
   config::Data,
   fetch::object_id::ObjectId,
   traits::{Collection, Object},
@@ -62,30 +63,50 @@ pub(crate) async fn get_apub_community_followers(
   info: Path<CommunityPath>,
   query: Query<CommunityIsFollowerQuery>,
   context: Data<LemmyContext>,
+  request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
   let community = Community::read_from_name(&mut context.pool(), &info.community_name, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
-  if community.visibility == CommunityVisibility::Private {
-    if let Some(is_follower) = &query.is_follower {
-      // TODO: also check for http sig
-      let instance_id = is_follower.dereference(&context).await?.instance_id();
-      let has_followers = CommunityFollowerView::check_has_followers_from_instance(
-        community.id,
-        instance_id,
-        &mut context.pool(),
-      )
-      .await;
-      return if has_followers.is_ok() {
-        Ok(HttpResponse::Ok().finish())
-      } else {
-        Ok(HttpResponse::NotFound().finish())
-      };
-    }
+  if let Some(is_follower) = &query.is_follower {
+    return check_is_follower(community, is_follower, context, request).await;
   }
   check_community_fetchable(&community)?;
   let followers = ApubCommunityFollower::read_local(&community.into(), &context).await?;
   create_apub_response(&followers)
+}
+
+/// Checks if a given actor follows the private community. Returns status 200 if true.
+async fn check_is_follower(
+  community: Community,
+  is_follower: &ObjectId<SiteOrCommunityOrUser>,
+  context: Data<LemmyContext>,
+  request: HttpRequest,
+) -> LemmyResult<HttpResponse> {
+  if community.visibility != CommunityVisibility::Private {
+    return Ok(HttpResponse::BadRequest().body("must be a private community"));
+  }
+  // also check for http sig so that followers are not exposed publicly
+  let signing_actor = signing_actor::<SiteOrCommunityOrUser>(&request, None, &context).await?;
+  CommunityFollowerView::check_has_followers_from_instance(
+    community.id,
+    signing_actor.instance_id(),
+    &mut context.pool(),
+  )
+  .await?;
+
+  let instance_id = is_follower.dereference(&context).await?.instance_id();
+  let has_followers = CommunityFollowerView::check_has_followers_from_instance(
+    community.id,
+    instance_id,
+    &mut context.pool(),
+  )
+  .await;
+  if has_followers.is_ok() {
+    Ok(HttpResponse::Ok().finish())
+  } else {
+    Ok(HttpResponse::NotFound().finish())
+  }
 }
 
 /// Returns the community outbox, which is populated by a maximum of 20 posts (but no other
@@ -145,19 +166,13 @@ pub(crate) mod tests {
   use lemmy_db_schema::{
     newtypes::InstanceId,
     source::{
-      community::{
-        CommunityFollower,
-        CommunityFollowerForm,
-        CommunityFollowerState,
-        CommunityInsertForm,
-      },
+      community::CommunityInsertForm,
       instance::Instance,
       local_site::{LocalSite, LocalSiteInsertForm},
       local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
-      person::{Person, PersonInsertForm},
       site::{Site, SiteInsertForm},
     },
-    traits::{Crud, Followable},
+    traits::Crud,
     CommunityVisibility,
   };
   use serde::de::DeserializeOwned;
@@ -242,9 +257,13 @@ pub(crate) mod tests {
     .await?;
     assert_eq!(200, res.status());
     let query = Query(CommunityIsFollowerQuery { is_follower: None });
-    let res =
-      get_apub_community_followers(path.clone().into(), query, context.reset_request_count())
-        .await?;
+    let res = get_apub_community_followers(
+      path.clone().into(),
+      query,
+      context.reset_request_count(),
+      request.clone(),
+    )
+    .await?;
     assert_eq!(200, res.status());
     let res =
       get_apub_community_moderators(path.clone().into(), context.reset_request_count()).await?;
@@ -282,13 +301,18 @@ pub(crate) mod tests {
     .await;
     assert!(res.is_err());
     let query = Query(CommunityIsFollowerQuery { is_follower: None });
-    let res =
-      get_apub_community_followers(path.clone().into(), query, context.reset_request_count()).await;
+    let res = get_apub_community_followers(
+      path.clone().into(),
+      query,
+      context.reset_request_count(),
+      request.clone(),
+    )
+    .await;
     assert!(res.is_err());
     let res =
       get_apub_community_moderators(path.clone().into(), context.reset_request_count()).await;
     assert!(res.is_err());
-    let res = get_apub_community_outbox(path.into(), context.reset_request_count(), request).await;
+    let res = get_apub_community_outbox(path, context.reset_request_count(), request).await;
     assert!(res.is_err());
 
     //Community::delete(&mut context.pool(), community.id).await?;
@@ -317,78 +341,21 @@ pub(crate) mod tests {
     .await;
     assert!(res.is_err());
     let query = Query(CommunityIsFollowerQuery { is_follower: None });
-    let res =
-      get_apub_community_followers(path.clone().into(), query, context.reset_request_count()).await;
+    let res = get_apub_community_followers(
+      path.clone().into(),
+      query,
+      context.reset_request_count(),
+      request.clone(),
+    )
+    .await;
     assert!(res.is_err());
     let res =
       get_apub_community_moderators(path.clone().into(), context.reset_request_count()).await;
     assert!(res.is_err());
-    let res = get_apub_community_outbox(path.into(), context.reset_request_count(), request).await;
+    let res = get_apub_community_outbox(path, context.reset_request_count(), request).await;
     assert!(res.is_err());
 
     Instance::delete(&mut context.pool(), instance.id).await?;
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_is_follower() -> LemmyResult<()> {
-    let context = LemmyContext::init_test_context().await;
-    let pool = &mut context.pool();
-
-    // insert local community
-    let local_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
-    let community_form = CommunityInsertForm {
-      visibility: Some(CommunityVisibility::Private),
-      ..CommunityInsertForm::new(
-        local_instance.id,
-        "test_community_4".to_string(),
-        "nada".to_owned(),
-        "pubkey".to_string(),
-      )
-    };
-    let community = Community::create(pool, &community_form).await?;
-
-    // insert remote user
-    let remote_instance = Instance::read_or_create(pool, "other_domain.tld".to_string()).await?;
-    let person_form =
-      PersonInsertForm::new("name".to_string(), "pubkey".to_string(), remote_instance.id);
-    let person = Person::create(pool, &person_form).await?;
-
-    // community has no follower from remote instance, returns error
-    let path: Path<CommunityPath> = CommunityPath {
-      community_name: community.name.clone(),
-    }
-    .into();
-    let query = Query(CommunityIsFollowerQuery {
-      is_follower: Some(person.actor_id.clone().into()),
-    });
-    let res = get_apub_community_followers(
-      path.clone().into(),
-      query.clone().into(),
-      context.reset_request_count(),
-    )
-    .await;
-    assert_eq!(404, res?.status());
-
-    // insert approved follower
-    let follower_form = CommunityFollowerForm {
-      state: Some(CommunityFollowerState::Accepted),
-      ..CommunityFollowerForm::new(community.id, person.id)
-    };
-    CommunityFollower::follow(pool, &follower_form).await?;
-
-    // now returns ok
-    let res = get_apub_community_followers(
-      path.clone().into(),
-      query.into(),
-      context.reset_request_count(),
-    )
-    .await;
-    assert_eq!(200, res?.status());
-
-    Instance::delete(pool, local_instance.id).await?;
-    Instance::delete(pool, remote_instance.id).await?;
     Ok(())
   }
 }
