@@ -163,6 +163,9 @@ pub struct SaveUserSettings {
   /// should be paused
   #[cfg_attr(feature = "full", ts(optional))]
   pub enable_animated_images: Option<bool>,
+  /// Whether a user can send / receive private messages
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub enable_private_messages: Option<bool>,
   /// Whether to auto-collapse bot comments.
   #[cfg_attr(feature = "full", ts(optional))]
   pub collapse_bot_comments: Option<bool>,
@@ -175,6 +178,9 @@ pub struct SaveUserSettings {
   pub show_downvotes: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_upvote_percentage: Option<bool>,
+  /// Whether to automatically mark fetched posts as read.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub auto_mark_fetched_posts_as_read: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

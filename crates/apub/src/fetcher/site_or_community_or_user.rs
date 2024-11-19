@@ -9,6 +9,7 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::newtypes::InstanceId;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
@@ -124,6 +125,16 @@ impl Actor for SiteOrCommunityOrUser {
     match self {
       SiteOrCommunityOrUser::Site(u) => u.inbox(),
       SiteOrCommunityOrUser::UserOrCommunity(c) => c.inbox(),
+    }
+  }
+}
+
+impl SiteOrCommunityOrUser {
+  pub fn instance_id(&self) -> InstanceId {
+    match self {
+      SiteOrCommunityOrUser::Site(s) => s.instance_id,
+      SiteOrCommunityOrUser::UserOrCommunity(UserOrCommunity::User(u)) => u.instance_id,
+      SiteOrCommunityOrUser::UserOrCommunity(UserOrCommunity::Community(c)) => c.instance_id,
     }
   }
 }

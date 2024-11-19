@@ -28,7 +28,7 @@ use lemmy_db_schema::{
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
     person_block::PersonBlock,
-    post::{Post, PostLike, PostRead},
+    post::{Post, PostLike},
     registration_application::RegistrationApplication,
     site::Site,
   },
@@ -42,6 +42,7 @@ use lemmy_db_views::{
   structs::{LocalImageView, LocalUserView, SiteView},
 };
 use lemmy_db_views_actor::structs::{
+  CommunityFollowerView,
   CommunityModeratorView,
   CommunityPersonBanView,
   CommunityView,
@@ -64,7 +65,7 @@ use lemmy_utils::{
 use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
 use rosetta_i18n::{Language, LanguageId};
-use std::{collections::HashSet, sync::LazyLock};
+use std::sync::LazyLock;
 use tracing::warn;
 use url::{ParseError, Url};
 use urlencoding::encode;
@@ -140,19 +141,6 @@ pub fn is_top_mod(
   }
 }
 
-/// Marks a post as read for a given person.
-#[tracing::instrument(skip_all)]
-pub async fn mark_post_as_read(
-  person_id: PersonId,
-  post_id: PostId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  PostRead::mark_as_read(pool, HashSet::from([post_id]), person_id)
-    .await
-    .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)?;
-  Ok(())
-}
-
 /// Updates the read comment count for a post. Usually done when reading or creating a new comment.
 #[tracing::instrument(skip_all)]
 pub async fn update_read_comments(
@@ -165,7 +153,6 @@ pub async fn update_read_comments(
     person_id,
     post_id,
     read_comments,
-    ..PersonPostAggregatesForm::default()
   };
 
   PersonPostAggregates::upsert(pool, &person_post_agg_form).await?;
@@ -232,20 +219,17 @@ pub async fn check_registration_application(
 /// the user isn't banned.
 pub async fn check_community_user_action(
   person: &Person,
-  community_id: CommunityId,
+  community: &Community,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   check_user_valid(person)?;
-  check_community_deleted_removed(community_id, pool).await?;
-  CommunityPersonBanView::check(pool, person.id, community_id).await?;
+  check_community_deleted_removed(community)?;
+  CommunityPersonBanView::check(pool, person.id, community.id).await?;
+  CommunityFollowerView::check_private_community_action(pool, person.id, community).await?;
   Ok(())
 }
 
-async fn check_community_deleted_removed(
-  community_id: CommunityId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  let community = Community::read(pool, community_id).await?;
+pub fn check_community_deleted_removed(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
     Err(LemmyErrorType::Deleted)?
   }
@@ -258,16 +242,16 @@ async fn check_community_deleted_removed(
 /// removed/deleted.
 pub async fn check_community_mod_action(
   person: &Person,
-  community_id: CommunityId,
+  community: &Community,
   allow_deleted: bool,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  is_mod_or_admin(pool, person, community_id).await?;
-  CommunityPersonBanView::check(pool, person.id, community_id).await?;
+  is_mod_or_admin(pool, person, community.id).await?;
+  CommunityPersonBanView::check(pool, person.id, community.id).await?;
 
   // it must be possible to restore deleted community
   if !allow_deleted {
-    check_community_deleted_removed(community_id, pool).await?;
+    check_community_deleted_removed(community)?;
   }
   Ok(())
 }
@@ -352,6 +336,16 @@ pub fn check_private_instance(
 ) -> LemmyResult<()> {
   if local_user_view.is_none() && local_site.private_instance {
     Err(LemmyErrorType::InstanceIsPrivate)?
+  } else {
+    Ok(())
+  }
+}
+
+/// If private messages are disabled, dont allow them to be sent / received
+#[tracing::instrument(skip_all)]
+pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
+  if !local_user_view.local_user.enable_private_messages {
+    Err(LemmyErrorType::CouldntCreatePrivateMessage)?
   } else {
     Ok(())
   }
@@ -448,7 +442,11 @@ pub async fn send_password_reset_email(
   // Generate a random token
   let token = uuid::Uuid::new_v4().to_string();
 
-  let email = &user.local_user.email.clone().expect("email");
+  let email = &user
+    .local_user
+    .email
+    .clone()
+    .ok_or(LemmyErrorType::EmailRequired)?;
   let lang = get_interface_language(user);
   let subject = &lang.password_reset_subject(&user.person.name);
   let protocol_and_hostname = settings.get_protocol_and_hostname();
@@ -498,6 +496,7 @@ pub fn get_interface_language_from_settings(user: &LocalUserView) -> Lang {
   lang_str_to_lang(&user.local_user.interface_language)
 }
 
+#[allow(clippy::expect_used)]
 fn lang_str_to_lang(lang: &str) -> Lang {
   let lang_id = LanguageId::new(lang);
   Lang::from_language_id(&lang_id).unwrap_or_else(|| {
@@ -524,11 +523,11 @@ pub fn local_site_rate_limit_to_rate_limit_config(
   })
 }
 
-pub fn local_site_to_slur_regex(local_site: &LocalSite) -> Option<Regex> {
+pub fn local_site_to_slur_regex(local_site: &LocalSite) -> Option<LemmyResult<Regex>> {
   build_slur_regex(local_site.slur_filter_regex.as_deref())
 }
 
-pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<Regex> {
+pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<LemmyResult<Regex>> {
   local_site
     .as_ref()
     .map(local_site_to_slur_regex)
@@ -563,7 +562,11 @@ pub async fn send_application_approved_email(
   user: &LocalUserView,
   settings: &Settings,
 ) -> LemmyResult<()> {
-  let email = &user.local_user.email.clone().expect("email");
+  let email = &user
+    .local_user
+    .email
+    .clone()
+    .ok_or(LemmyErrorType::EmailRequired)?;
   let lang = get_interface_language(user);
   let subject = lang.registration_approved_subject(&user.person.actor_id);
   let body = lang.registration_approved_body(&settings.hostname);
@@ -585,7 +588,11 @@ pub async fn send_new_applicant_email_to_admins(
   );
 
   for admin in &admins {
-    let email = &admin.local_user.email.clone().expect("email");
+    let email = &admin
+      .local_user
+      .email
+      .clone()
+      .ok_or(LemmyErrorType::EmailRequired)?;
     let lang = get_interface_language_from_settings(admin);
     let subject = lang.new_application_subject(&settings.hostname, applicant_username);
     let body = lang.new_application_body(applications_link);
@@ -607,11 +614,13 @@ pub async fn send_new_report_email_to_admins(
   let reports_link = &format!("{}/reports", settings.get_protocol_and_hostname(),);
 
   for admin in &admins {
-    let email = &admin.local_user.email.clone().expect("email");
-    let lang = get_interface_language_from_settings(admin);
-    let subject = lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
-    let body = lang.new_report_body(reports_link);
-    send_email(&subject, email, &admin.person.name, &body, settings).await?;
+    if let Some(email) = &admin.local_user.email {
+      let lang = get_interface_language_from_settings(admin);
+      let subject =
+        lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
+      let body = lang.new_report_body(reports_link);
+      send_email(&subject, email, &admin.person.name, &body, settings).await?;
+    }
   }
   Ok(())
 }
@@ -1036,7 +1045,7 @@ pub fn check_conflicting_like_filters(
 
 pub async fn process_markdown(
   text: &str,
-  slur_regex: &Option<Regex>,
+  slur_regex: &Option<LemmyResult<Regex>>,
   url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<String> {
@@ -1068,7 +1077,7 @@ pub async fn process_markdown(
 
 pub async fn process_markdown_opt(
   text: &Option<String>,
-  slur_regex: &Option<Regex>,
+  slur_regex: &Option<LemmyResult<Regex>>,
   url_blocklist: &RegexSet,
   context: &LemmyContext,
 ) -> LemmyResult<Option<String>> {

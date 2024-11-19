@@ -80,8 +80,7 @@ pub async fn purge_person(
       expires: None,
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(SuccessResponse::default()))
 }

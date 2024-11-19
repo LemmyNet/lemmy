@@ -29,6 +29,7 @@ pub struct RateLimitCell {
   state: Arc<Mutex<RateLimitState>>,
 }
 
+#[allow(clippy::expect_used)]
 impl RateLimitCell {
   pub fn new(rate_limit_config: EnumMap<ActionType, BucketConfig>) -> Self {
     let state = Arc::new(Mutex::new(RateLimitState::new(rate_limit_config)));
@@ -133,6 +134,7 @@ pub struct RateLimitedMiddleware<S> {
   service: Rc<S>,
 }
 
+#[allow(clippy::expect_used)]
 impl RateLimitChecker {
   /// Returns true if the request passed the rate limit, false if it failed and should be rejected.
   pub fn check(self, ip_addr: IpAddr) -> bool {

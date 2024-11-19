@@ -73,6 +73,8 @@ pub struct Group {
   pub(crate) featured: Option<CollectionId<ApubCommunityFeatured>>,
   #[serde(default)]
   pub(crate) language: Vec<LanguageTag>,
+  /// True if this is a private community
+  pub(crate) manually_approves_followers: Option<bool>,
   pub(crate) published: Option<DateTime<Utc>>,
   pub(crate) updated: Option<DateTime<Utc>>,
 }

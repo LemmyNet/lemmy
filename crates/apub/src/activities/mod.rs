@@ -30,6 +30,7 @@ use activitypub_federation::{
   traits::{ActivityHandler, Actor},
 };
 use anyhow::anyhow;
+use following::send_accept_or_reject_follow;
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
@@ -40,6 +41,7 @@ use lemmy_db_schema::{
     community::Community,
   },
   traits::Crud,
+  CommunityVisibility,
 };
 use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -117,6 +119,28 @@ pub(crate) fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
     Err(FederationError::ObjectIsNotPublic)?
   } else {
     Ok(())
+  }
+}
+
+/// Returns an error if object visibility doesnt match community visibility
+/// (ie content in private community must also be private).
+pub(crate) fn verify_visibility(to: &[Url], cc: &[Url], community: &Community) -> LemmyResult<()> {
+  use CommunityVisibility::*;
+  let object_is_public = [to, cc].iter().any(|set| set.contains(&public()));
+  match community.visibility {
+    Public if !object_is_public => Err(FederationError::ObjectIsNotPublic)?,
+    Private if object_is_public => Err(FederationError::ObjectIsNotPrivate)?,
+    LocalOnly => Err(LemmyErrorType::NotFound.into()),
+    _ => Ok(()),
+  }
+}
+
+/// Marks object as public only if the community is public
+pub(crate) fn generate_to(community: &Community) -> LemmyResult<Url> {
+  if community.visibility == CommunityVisibility::Public {
+    Ok(public())
+  } else {
+    Ok(Url::parse(&format!("{}/followers", community.actor_id))?)
   }
 }
 
@@ -367,6 +391,12 @@ pub async fn match_outgoing_activities(
         community,
         reason,
       } => Report::send(ObjectId::from(object_id), actor, community, reason, context).await,
+      AcceptFollower(community_id, person_id) => {
+        send_accept_or_reject_follow(community_id, person_id, true, &context).await
+      }
+      RejectFollower(community_id, person_id) => {
+        send_accept_or_reject_follow(community_id, person_id, false, &context).await
+      }
     }
   };
   fed_task.await?;

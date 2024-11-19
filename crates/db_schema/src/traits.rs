@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PersonId},
-  utils::{get_conn, DbPool},
+  utils::{get_conn, uplete, DbPool},
 };
 use diesel::{
   associations::HasTable,
@@ -76,7 +76,7 @@ pub trait Followable {
   ) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unfollow(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn unfollow(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
   where
     Self: Sized;
 }
@@ -87,7 +87,7 @@ pub trait Joinable {
   async fn join(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn leave(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn leave(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
   where
     Self: Sized;
 }
@@ -103,7 +103,7 @@ pub trait Likeable {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     item_id: Self::IdType,
-  ) -> Result<usize, Error>
+  ) -> Result<uplete::Count, Error>
   where
     Self: Sized;
 }
@@ -114,7 +114,7 @@ pub trait Bannable {
   async fn ban(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
   where
     Self: Sized;
 }
@@ -125,7 +125,7 @@ pub trait Saveable {
   async fn save(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
   where
     Self: Sized;
 }
@@ -136,7 +136,7 @@ pub trait Blockable {
   async fn block(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
   where
     Self: Sized;
 }

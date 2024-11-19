@@ -2,6 +2,7 @@ use super::not_zero;
 use crate::site::{application_question_check, site_default_post_listing_type_check};
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::web::Json;
+use chrono::Utc;
 use lemmy_api_common::{
   context::LemmyContext,
   site::{CreateSite, SiteResponse},
@@ -23,7 +24,7 @@ use lemmy_db_schema::{
     site::{Site, SiteUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_string_update, diesel_url_create, naive_now},
+  utils::{diesel_string_update, diesel_url_create},
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
@@ -75,7 +76,7 @@ pub async fn create_site(
     icon: Some(icon),
     banner: Some(banner),
     actor_id: Some(actor_id),
-    last_refreshed_at: Some(naive_now()),
+    last_refreshed_at: Some(Utc::now()),
     inbox_url,
     private_key: Some(Some(keypair.private_key)),
     public_key: Some(keypair.public_key),
@@ -102,7 +103,7 @@ pub async fn create_site(
     legal_information: diesel_string_update(data.legal_information.as_deref()),
     application_email_admins: data.application_email_admins,
     hide_modlog_mod_names: data.hide_modlog_mod_names,
-    updated: Some(Some(naive_now())),
+    updated: Some(Some(Utc::now())),
     slur_filter_regex: diesel_string_update(data.slur_filter_regex.as_deref()),
     actor_name_max_length: data.actor_name_max_length,
     federation_enabled: data.federation_enabled,
@@ -161,7 +162,7 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
       .slur_filter_regex
       .as_deref()
       .or(local_site.slur_filter_regex.as_deref()),
-  )?;
+  );
 
   site_name_length_check(&create_site.name)?;
   check_slurs(&create_site.name, &slur_regex)?;

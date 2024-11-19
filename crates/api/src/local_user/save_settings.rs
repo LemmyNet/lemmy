@@ -141,7 +141,9 @@ pub async fn save_user_settings(
     post_listing_mode: data.post_listing_mode,
     enable_keyboard_navigation: data.enable_keyboard_navigation,
     enable_animated_images: data.enable_animated_images,
+    enable_private_messages: data.enable_private_messages,
     collapse_bot_comments: data.collapse_bot_comments,
+    auto_mark_fetched_posts_as_read: data.auto_mark_fetched_posts_as_read,
     ..Default::default()
   };
 

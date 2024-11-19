@@ -20,7 +20,7 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    community::{CommunityFollower, CommunityFollowerForm},
+    community::{CommunityFollower, CommunityFollowerForm, CommunityFollowerState},
     person::{PersonFollower, PersonFollowerForm},
   },
   traits::Followable,
@@ -102,21 +102,25 @@ impl ActivityHandler for Follow {
           pending: false,
         };
         PersonFollower::follow(&mut context.pool(), &form).await?;
+        AcceptFollow::send(self, context).await?;
       }
       UserOrCommunity::Community(c) => {
-        // Dont allow following local-only community via federation.
-        if c.visibility != CommunityVisibility::Public {
-          return Err(LemmyErrorType::NotFound.into());
-        }
+        let state = Some(match c.visibility {
+          CommunityVisibility::Public => CommunityFollowerState::Accepted,
+          CommunityVisibility::Private => CommunityFollowerState::ApprovalRequired,
+          // Dont allow following local-only community via federation.
+          CommunityVisibility::LocalOnly => return Err(LemmyErrorType::NotFound.into()),
+        });
         let form = CommunityFollowerForm {
-          community_id: c.id,
-          person_id: actor.id,
-          pending: false,
+          state,
+          ..CommunityFollowerForm::new(c.id, actor.id)
         };
         CommunityFollower::follow(&mut context.pool(), &form).await?;
+        if c.visibility == CommunityVisibility::Public {
+          AcceptFollow::send(self, context).await?;
+        }
       }
     }
-
-    AcceptFollow::send(self, context).await
+    Ok(())
   }
 }

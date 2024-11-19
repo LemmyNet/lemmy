@@ -5,7 +5,7 @@ use activitypub_federation::{
 };
 use diesel::NotFound;
 use itertools::Itertools;
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_db_schema::traits::ApubActor;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
@@ -42,7 +42,7 @@ where
     let (name, domain) = identifier
       .splitn(2, '@')
       .collect_tuple()
-      .expect("invalid query");
+      .ok_or(LemmyErrorType::InvalidUrl)?;
     let actor = DbActor::read_from_name_and_domain(&mut context.pool(), name, domain)
       .await
       .ok()

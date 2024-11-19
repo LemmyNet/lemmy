@@ -20,7 +20,7 @@ use lemmy_db_schema::{
     ReadFn,
   },
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::future::{ready, Ready};
 
 enum ReadBy<'a> {
@@ -146,7 +146,7 @@ impl LocalUserView {
     name: &str,
     bio: &str,
     admin: bool,
-  ) -> Result<Self, Error> {
+  ) -> LemmyResult<Self> {
     let instance_id = Instance::read_or_create(pool, "example.com".to_string())
       .await?
       .id;
@@ -163,7 +163,9 @@ impl LocalUserView {
     };
     let local_user = LocalUser::create(pool, &user_form, vec![]).await?;
 
-    LocalUserView::read(pool, local_user.id).await
+    LocalUserView::read(pool, local_user.id)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

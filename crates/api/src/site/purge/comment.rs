@@ -67,8 +67,7 @@ pub async fn purge_comment(
       reason: data.reason.clone(),
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(SuccessResponse::default()))
 }
