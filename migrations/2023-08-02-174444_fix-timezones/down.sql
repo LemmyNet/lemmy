@@ -328,9 +328,7 @@ ALTER TABLE captcha_answer
     ALTER COLUMN published TYPE timestamp
     USING published;
 
-DROP FUNCTION hot_rank;
-
-CREATE FUNCTION hot_rank (score numeric, published timestamp without time zone)
+CREATE OR REPLACE FUNCTION hot_rank (score numeric, published timestamp without time zone)
     RETURNS integer
     AS $$
 DECLARE

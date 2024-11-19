@@ -116,10 +116,6 @@ FROM
 WHERE
     c.id = ct.id;
 
--- Without this, `DROP EXTENSION` in down.sql throws an object dependency error if up.sql and down.sql
--- are run in the same database connection
-DROP TABLE comment_temp;
-
 -- Update the child counts
 UPDATE
     comment_aggregates ca

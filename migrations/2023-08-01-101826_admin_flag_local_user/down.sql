@@ -14,7 +14,3 @@ WHERE
 ALTER TABLE local_user
     DROP COLUMN admin;
 
-CREATE INDEX idx_person_admin ON person (admin)
-WHERE
-    admin;
-
