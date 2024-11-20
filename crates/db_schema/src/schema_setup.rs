@@ -275,7 +275,13 @@ fn run_selected_migrations(
       .enable_diff_check
       .then(|| diesel::migration::MigrationSource::<Pg>::migrations(&migrations()))
       .transpose()?
-      .and_then(|migrations| Some(migrations.last()?.name().to_string())),
+      // Get the migration with the highest version
+      .and_then(|migrations| {
+        migrations
+          .into_iter()
+          .map(|migration| migration.name().to_string())
+          .max()
+      }),
   };
 
   if options.revert {
