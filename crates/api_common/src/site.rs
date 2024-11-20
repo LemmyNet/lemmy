@@ -669,7 +669,9 @@ pub struct BlockInstanceResponse {
 pub struct AdminBlockInstanceParams {
   pub instance_id: InstanceId,
   pub block: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub expires: Option<DateTime<Utc>>,
 }
 

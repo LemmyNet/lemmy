@@ -24,7 +24,9 @@ use {
 pub struct FederationBlockList {
   pub instance_id: InstanceId,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub block_expires: Option<DateTime<Utc>>,
 }
 
@@ -54,7 +56,9 @@ pub struct AdminBlockInstance {
   pub id: i32,
   pub instance_id: InstanceId,
   pub admin_person_id: PersonId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub expires: Option<DateTime<Utc>>,
   pub published: DateTime<Utc>,
 }
