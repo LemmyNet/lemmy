@@ -12,7 +12,7 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
-pub async fn block_instance(
+pub async fn user_block_instance(
   data: Json<BlockInstance>,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,

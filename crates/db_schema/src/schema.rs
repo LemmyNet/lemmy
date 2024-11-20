@@ -43,6 +43,17 @@ pub mod sql_types {
 }
 
 diesel::table! {
+    admin_block_instance (id) {
+        id -> Int4,
+        instance_id -> Int4,
+        admin_person_id -> Int4,
+        reason -> Nullable<Text>,
+        expires -> Nullable<Timestamptz>,
+        published -> Timestamptz,
+    }
+}
+
+diesel::table! {
     admin_purge_comment (id) {
         id -> Int4,
         admin_person_id -> Int4,
@@ -282,9 +293,7 @@ diesel::table! {
         instance_id -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
-        admin_person_id -> Nullable<Int4>,
-        reason -> Nullable<Text>,
-        expires -> Nullable<Timestamptz>,
+        block_expires -> Nullable<Timestamptz>,
     }
 }
 
@@ -934,6 +943,8 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(admin_block_instance -> instance (instance_id));
+diesel::joinable!(admin_block_instance -> person (admin_person_id));
 diesel::joinable!(admin_purge_comment -> person (admin_person_id));
 diesel::joinable!(admin_purge_comment -> post (post_id));
 diesel::joinable!(admin_purge_community -> person (admin_person_id));
@@ -958,7 +969,6 @@ diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
-diesel::joinable!(federation_blocklist -> person (admin_person_id));
 diesel::joinable!(federation_queue_state -> instance (instance_id));
 diesel::joinable!(instance_actions -> instance (instance_id));
 diesel::joinable!(instance_actions -> person (person_id));
@@ -1012,6 +1022,7 @@ diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    admin_block_instance,
     admin_purge_comment,
     admin_purge_community,
     admin_purge_person,

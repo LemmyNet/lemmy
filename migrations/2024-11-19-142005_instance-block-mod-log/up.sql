@@ -1,3 +1,12 @@
-alter table federation_blocklist add column admin_person_id int REFERENCES person(id) ON UPDATE CASCADE ON DELETE CASCADE;
-alter table federation_blocklist add column reason text;
-alter table federation_blocklist add column expires timestamptz;
+ALTER TABLE federation_blocklist
+    ADD COLUMN block_expires timestamptz;
+
+CREATE TABLE admin_block_instance (
+    id serial PRIMARY KEY,
+    instance_id int NOT NULL REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    admin_person_id int NOT NULL REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    reason text,
+    expires timestamptz,
+    published timestamptz NOT NULL DEFAULT now()
+);
+

@@ -7,10 +7,22 @@ use lemmy_api_common::{
 use lemmy_db_schema::{source::local_site::LocalSite, ModlogActionType};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_moderator::structs::{
-  AdminBlockInstanceView, AdminPurgeCommentView, AdminPurgeCommunityView, AdminPurgePersonView,
-  AdminPurgePostView, ModAddCommunityView, ModAddView,
-  ModBanFromCommunityView, ModBanView, ModFeaturePostView, ModHideCommunityView, ModLockPostView,
-  ModRemoveCommentView, ModRemoveCommunityView, ModRemovePostView, ModTransferCommunityView,
+  AdminBlockInstanceView,
+  AdminPurgeCommentView,
+  AdminPurgeCommunityView,
+  AdminPurgePersonView,
+  AdminPurgePostView,
+  ModAddCommunityView,
+  ModAddView,
+  ModBanFromCommunityView,
+  ModBanView,
+  ModFeaturePostView,
+  ModHideCommunityView,
+  ModLockPostView,
+  ModRemoveCommentView,
+  ModRemoveCommunityView,
+  ModRemovePostView,
+  ModTransferCommunityView,
   ModlogListParams,
 };
 use lemmy_utils::error::LemmyResult;
