@@ -201,7 +201,7 @@ mod test {
   use chrono::DateTime;
   use lemmy_db_schema::{
     source::{
-      federation_allowlist::FederationAllowList,
+      federation_allowlist::{AdminAllowInstance, AdminAllowInstanceForm},
       federation_blocklist::{AdminBlockInstance, AdminBlockInstanceForm},
       instance::InstanceForm,
       person::{Person, PersonInsertForm},
@@ -349,13 +349,21 @@ mod test {
   async fn test_send_manager_allowed() -> LemmyResult<()> {
     let mut data = TestData::init(1, 1).await?;
 
-    let domain = data.instances[0].domain.clone();
-    FederationAllowList::replace(&mut data.context.pool(), Some(vec![domain])).await?;
+    let instance_id = data.instances[0].id;
+    let form = PersonInsertForm::new("tim".to_string(), String::new(), instance_id);
+    let person = Person::create(&mut data.context.pool(), &form).await?;
+    let form = AdminAllowInstanceForm {
+      instance_id: data.instances[0].id,
+      admin_person_id: person.id,
+      reason: None,
+    };
+    AdminAllowInstance::allow(&mut data.context.pool(), &form).await?;
     data.run().await?;
     let workers = &data.send_manager.workers;
     assert_eq!(1, workers.len());
     assert!(workers.contains_key(&data.instances[0].id));
 
+    Person::delete(&mut data.context.pool(), person.id).await?;
     data.cleanup().await?;
     Ok(())
   }

@@ -1,4 +1,6 @@
 #[cfg(feature = "full")]
+pub mod admin_allow_instance;
+#[cfg(feature = "full")]
 pub mod admin_block_instance;
 #[cfg(feature = "full")]
 pub mod admin_purge_comment_view;

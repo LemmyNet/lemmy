@@ -43,6 +43,7 @@ use lemmy_db_views_actor::structs::{
   PersonView,
 };
 use lemmy_db_views_moderator::structs::{
+  AdminAllowInstanceView,
   AdminBlockInstanceView,
   AdminPurgeCommentView,
   AdminPurgeCommunityView,
@@ -185,6 +186,7 @@ pub struct GetModlogResponse {
   pub admin_purged_comments: Vec<AdminPurgeCommentView>,
   pub hidden_communities: Vec<ModHideCommunityView>,
   pub admin_block_instance: Vec<AdminBlockInstanceView>,
+  pub admin_allow_instance: Vec<AdminAllowInstanceView>,
 }
 
 #[skip_serializing_none]
@@ -678,6 +680,9 @@ pub struct AdminBlockInstanceParams {
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct AdminBlockInstanceResponse {
-  pub blocked: bool,
+pub struct AdminAllowInstanceParams {
+  pub instance_id: InstanceId,
+  pub allow: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub reason: Option<String>,
 }

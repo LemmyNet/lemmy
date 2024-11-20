@@ -1,3 +1,4 @@
+pub mod admin_allow_instance;
 pub mod admin_block_instance;
 pub mod federated_instances;
 pub mod leave_admin;

@@ -33,7 +33,7 @@ pub struct FederationBlockList {
 #[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = federation_blocklist))]
-pub struct FederationBlockListForm {
+pub(crate) struct FederationBlockListForm {
   pub instance_id: InstanceId,
   pub updated: Option<DateTime<Utc>>,
   pub block_expires: Option<DateTime<Utc>>,
