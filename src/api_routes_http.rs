@@ -161,7 +161,7 @@ use lemmy_utils::rate_limit::RateLimitCell;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
-    web::scope("/api/v3")
+    web::scope("/api/v4")
       .route("/image_proxy", web::get().to(image_proxy))
       // Site
       .service(
@@ -295,74 +295,62 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         // Account action, I don't like that it's in /user maybe /accounts
         // Handle /user/register separately to add the register() rate limiter
-        web::resource("/user/register")
+        web::resource("/account/register")
           .guard(guard::Post())
           .wrap(rate_limit.register())
           .route(web::post().to(register)),
       )
       // User
       .service(
-        // Handle /user/login separately to add the register() rate limiter
+        // Handle /account/login separately to add the register() rate limiter
         // TODO: pretty annoying way to apply rate limits for register and login, we should
         //       group them under a common path so that rate limit is only applied once (eg under
         // /account).
-        web::resource("/user/login")
+        web::resource("/account/login")
           .guard(guard::Post())
           .wrap(rate_limit.register())
           .route(web::post().to(login)),
       )
       .service(
-        web::resource("/user/password_reset")
+        web::resource("/account/password_reset")
           .wrap(rate_limit.register())
           .route(web::post().to(reset_password)),
       )
       .service(
         // Handle captcha separately
-        web::resource("/user/get_captcha")
+        web::resource("/account/get_captcha")
           .wrap(rate_limit.post())
           .route(web::get().to(get_captcha)),
       )
       .service(
-        web::resource("/user/export_settings")
+        web::resource("/account/export_settings")
           .wrap(rate_limit.import_user_settings())
           .route(web::get().to(export_settings)),
       )
       .service(
-        web::resource("/user/import_settings")
+        web::resource("/account/import_settings")
           .wrap(rate_limit.import_user_settings())
           .route(web::post().to(import_settings)),
       )
-      // TODO, all the current account related actions under /user need to get moved here eventually
       .service(
         web::scope("/account")
           .wrap(rate_limit.message())
-          .route("/list_media", web::get().to(list_media)),
-      )
-      // User actions
-      .service(
-        web::scope("/user")
-          .wrap(rate_limit.message())
-          .route("", web::get().to(read_person))
+          .route("/list_media", web::get().to(list_media))
           .route("/mention", web::get().to(list_mentions))
-          .route(
-            "/mention/mark_as_read",
-            web::post().to(mark_person_mention_as_read),
-          )
           .route("/replies", web::get().to(list_replies))
-          // Admin action. I don't like that it's in /user
-          .route("/ban", web::post().to(ban_from_site))
-          .route("/banned", web::get().to(list_banned_users))
           .route("/block", web::post().to(block_person))
-          // TODO Account actions. I don't like that they're in /user maybe /accounts
           .route("/logout", web::post().to(logout))
           .route("/delete_account", web::post().to(delete_account))
           .route(
             "/password_change",
             web::post().to(change_password_after_reset),
           )
-          // TODO mark_all_as_read feels off being in this section as well
           .route(
-            "/mark_all_as_read",
+            "/mention/mark_as_read",
+            web::post().to(mark_person_mention_as_read),
+          )
+          .route(
+            "/mention/mark_all_as_read",
             web::post().to(mark_all_notifications_read),
           )
           .route("/save_user_settings", web::put().to(save_user_settings))
@@ -375,6 +363,12 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/totp/update", web::post().to(update_totp))
           .route("/list_logins", web::get().to(list_logins))
           .route("/validate_auth", web::get().to(validate_auth)),
+      )
+      // User actions
+      .service(
+        web::scope("/user")
+          .wrap(rate_limit.message())
+          .route("", web::get().to(read_person)),
       )
       // Admin Actions
       .service(
@@ -412,7 +406,9 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
               .route("", web::put().to(update_tagline))
               .route("/delete", web::post().to(delete_tagline))
               .route("/list", web::get().to(list_taglines)),
-          ),
+          )
+          .route("/ban", web::post().to(ban_from_site))
+          .route("/banned", web::get().to(list_banned_users)),
       )
       .service(
         web::scope("/custom_emoji")
