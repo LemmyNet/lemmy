@@ -798,6 +798,13 @@ diesel::table! {
 }
 
 diesel::table! {
+    previously_run_sql (id) {
+        id -> Bool,
+        content -> Text,
+    }
+}
+
+diesel::table! {
     private_message (id) {
         id -> Int4,
         creator_id -> Int4,
@@ -1063,6 +1070,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     post_actions,
     post_aggregates,
     post_report,
+    previously_run_sql,
     private_message,
     private_message_report,
     received_activity,
