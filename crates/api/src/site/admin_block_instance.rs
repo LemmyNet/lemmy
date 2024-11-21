@@ -24,10 +24,7 @@ pub async fn admin_block_instance(
 
   let allowlist = Instance::allowlist(&mut context.pool()).await?;
   if !allowlist.is_empty() {
-    return Err(
-      LemmyErrorType::Unknown("Using blocklist requires that allowlist be empty".to_string())
-        .into(),
-    );
+    Err(LemmyErrorType::CannotCombineFederationBlocklistAndAllowlist)?;
   }
 
   let instance_block_form = AdminBlockInstanceForm {

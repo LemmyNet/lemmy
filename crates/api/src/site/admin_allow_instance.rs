@@ -22,12 +22,9 @@ pub async fn admin_allow_instance(
 ) -> LemmyResult<Json<SuccessResponse>> {
   is_admin(&local_user_view)?;
 
-  let allowlist = Instance::allowlist(&mut context.pool()).await?;
-  if !allowlist.is_empty() {
-    return Err(
-      LemmyErrorType::Unknown("Using allowlist requires that blocklist be empty".to_string())
-        .into(),
-    );
+  let blocklist = Instance::blocklist(&mut context.pool()).await?;
+  if !blocklist.is_empty() {
+    Err(LemmyErrorType::CannotCombineFederationBlocklistAndAllowlist)?;
   }
 
   let instance_block_form = AdminAllowInstanceForm {
