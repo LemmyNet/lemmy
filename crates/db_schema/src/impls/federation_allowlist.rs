@@ -36,13 +36,12 @@ impl AdminAllowInstance {
       })
       .await
   }
-  pub async fn unallow(pool: &mut DbPool<'_>, instance_id: InstanceId) -> Result<(), Error> {
+  pub async fn unallow(pool: &mut DbPool<'_>, instance_id_: InstanceId) -> Result<(), Error> {
+    use federation_allowlist::dsl::instance_id;
     let conn = &mut get_conn(pool).await?;
-    delete(
-      federation_allowlist::table.filter(federation_allowlist::dsl::instance_id.eq(instance_id)),
-    )
-    .execute(conn)
-    .await?;
+    delete(federation_allowlist::table.filter(instance_id.eq(instance_id_)))
+      .execute(conn)
+      .await?;
     Ok(())
   }
 }

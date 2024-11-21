@@ -1,5 +1,5 @@
 ALTER TABLE federation_blocklist
-    ADD COLUMN block_expires timestamptz;
+    ADD COLUMN expires timestamptz;
 
 CREATE TABLE admin_block_instance (
     id serial PRIMARY KEY,

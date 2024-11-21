@@ -303,7 +303,7 @@ diesel::table! {
         instance_id -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
-        block_expires -> Nullable<Timestamptz>,
+        expires -> Nullable<Timestamptz>,
     }
 }
 

@@ -652,17 +652,9 @@ pub struct GetUnreadRegistrationApplicationCountResponse {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Block an instance as user
-pub struct BlockInstance {
+pub struct UserBlockInstanceParams {
   pub instance_id: InstanceId,
   pub block: bool,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-pub struct BlockInstanceResponse {
-  pub blocked: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

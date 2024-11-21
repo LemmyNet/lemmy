@@ -27,7 +27,7 @@ pub struct FederationBlockList {
   #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub block_expires: Option<DateTime<Utc>>,
+  pub expires: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Default)]
@@ -36,7 +36,7 @@ pub struct FederationBlockList {
 pub(crate) struct FederationBlockListForm {
   pub instance_id: InstanceId,
   pub updated: Option<DateTime<Utc>>,
-  pub block_expires: Option<DateTime<Utc>>,
+  pub expires: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]

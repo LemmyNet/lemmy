@@ -26,7 +26,7 @@ impl AdminBlockInstance {
           let form2 = FederationBlockListForm {
             instance_id: form.instance_id,
             updated: None,
-            block_expires: form.expires,
+            expires: form.expires,
           };
           insert_into(federation_blocklist::table)
             .values(form2)
