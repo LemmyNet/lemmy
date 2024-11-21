@@ -162,6 +162,7 @@ use lemmy_utils::rate_limit::RateLimitCell;
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
     web::scope("/api/v4")
+      .wrap(rate_limit.message())
       .route("/image_proxy", web::get().to(image_proxy))
       // Site
       .service(
