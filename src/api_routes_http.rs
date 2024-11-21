@@ -293,43 +293,25 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       )
       // User
       .service(
-        // Account action, I don't like that it's in /user maybe /accounts
-        // Handle /user/register separately to add the register() rate limiter
-        web::resource("/account/register")
+        web::scope("/account/auth")
           .guard(guard::Post())
           .wrap(rate_limit.register())
-          .route(web::post().to(register)),
-      )
-      // User
-      .service(
-        // Handle /account/login separately to add the register() rate limiter
-        // TODO: pretty annoying way to apply rate limits for register and login, we should
-        //       group them under a common path so that rate limit is only applied once (eg under
-        // /account).
-        web::resource("/account/login")
-          .guard(guard::Post())
-          .wrap(rate_limit.register())
-          .route(web::post().to(login)),
-      )
-      .service(
-        web::resource("/account/password_reset")
-          .wrap(rate_limit.register())
-          .route(web::post().to(reset_password)),
+          .route("register", web::post().to(register))
+          .route("login", web::post().to(login))
+          .route("password_reset", web::post().to(reset_password))
+          .route("get_captcha", web::get().to(get_captcha))
+          .route(
+            "/password_change",
+            web::post().to(change_password_after_reset),
+          )
+          .route("/change_password", web::put().to(change_password))
+          .route("/totp/generate", web::post().to(generate_totp_secret))
+          .route("/totp/update", web::post().to(update_totp)),
       )
       .service(
-        // Handle captcha separately
-        web::resource("/account/get_captcha")
-          .wrap(rate_limit.post())
-          .route(web::get().to(get_captcha)),
-      )
-      .service(
-        web::resource("/account/export_settings")
+        web::resource("/account/export")
           .wrap(rate_limit.import_user_settings())
-          .route(web::get().to(export_settings)),
-      )
-      .service(
-        web::resource("/account/import_settings")
-          .wrap(rate_limit.import_user_settings())
+          .route(web::get().to(export_settings))
           .route(web::post().to(import_settings)),
       )
       .service(
@@ -342,10 +324,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/logout", web::post().to(logout))
           .route("/delete_account", web::post().to(delete_account))
           .route(
-            "/password_change",
-            web::post().to(change_password_after_reset),
-          )
-          .route(
             "/mention/mark_as_read",
             web::post().to(mark_person_mention_as_read),
           )
@@ -354,13 +332,9 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
             web::post().to(mark_all_notifications_read),
           )
           .route("/save_user_settings", web::put().to(save_user_settings))
-          .route("/change_password", web::put().to(change_password))
           .route("/report_count", web::get().to(report_count))
           .route("/unread_count", web::get().to(unread_count))
           .route("/verify_email", web::post().to(verify_email))
-          .route("/leave_admin", web::post().to(leave_admin))
-          .route("/totp/generate", web::post().to(generate_totp_secret))
-          .route("/totp/update", web::post().to(update_totp))
           .route("/list_logins", web::get().to(list_logins))
           .route("/validate_auth", web::get().to(validate_auth)),
       )
@@ -408,7 +382,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/list", web::get().to(list_taglines)),
           )
           .route("/ban", web::post().to(ban_from_site))
-          .route("/banned", web::get().to(list_banned_users)),
+          .route("/banned", web::get().to(list_banned_users))
+          .route("/leave", web::post().to(leave_admin)),
       )
       .service(
         web::scope("/custom_emoji")
