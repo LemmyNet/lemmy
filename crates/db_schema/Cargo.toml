@@ -38,7 +38,7 @@ full = [
   "rustls",
   "i-love-jesus",
   "tuplex",
-  "diesel-bind-if-some",
+  "diesel-bind-if-some","lingua"
 ]
 
 [dependencies]
@@ -82,6 +82,8 @@ diesel-bind-if-some = { workspace = true, optional = true }
 moka.workspace = true
 derive-new.workspace = true
 tuplex = { workspace = true, optional = true }
+lingua = { version = "1.6.2", optional = true }
+cfg-if.workspace =true
 
 [dev-dependencies]
 serial_test = { workspace = true }

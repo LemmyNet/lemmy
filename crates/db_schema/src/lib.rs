@@ -1,42 +1,37 @@
 #![recursion_limit = "256"]
+use cfg_if::cfg_if;
 
-#[cfg(feature = "full")]
-#[macro_use]
-extern crate diesel;
-#[cfg(feature = "full")]
-#[macro_use]
-extern crate diesel_derive_newtype;
-
-#[cfg(feature = "full")]
-#[macro_use]
-extern crate diesel_derive_enum;
-
-// this is used in tests
-#[cfg(feature = "full")]
-#[macro_use]
-extern crate diesel_migrations;
-
-#[cfg(feature = "full")]
-#[macro_use]
-extern crate async_trait;
+cfg_if! {
+  if #[cfg(feature = "full")] {
+    #[macro_use]
+    extern crate diesel;
+    #[macro_use]
+    extern crate diesel_derive_newtype;
+    #[macro_use]
+    extern crate diesel_derive_enum;
+    // this is used in tests
+    #[macro_use]
+    extern crate diesel_migrations;
+    #[macro_use]
+    extern crate async_trait;
+    pub mod impls;
+    #[rustfmt::skip]
+    pub mod schema;
+    pub mod detect_language;
+    pub mod aliases {
+      use crate::schema::{community_actions, person};
+      diesel::alias!(
+        community_actions as creator_community_actions: CreatorCommunityActions,
+        person as person1: Person1,
+        person as person2: Person2,
+      );
+    }
+  }
+}
 
 pub mod aggregates;
-#[cfg(feature = "full")]
-pub mod impls;
 pub mod newtypes;
 pub mod sensitive;
-#[cfg(feature = "full")]
-#[rustfmt::skip]
-pub mod schema;
-#[cfg(feature = "full")]
-pub mod aliases {
-  use crate::schema::{community_actions, person};
-  diesel::alias!(
-    community_actions as creator_community_actions: CreatorCommunityActions,
-    person as person1: Person1,
-    person as person2: Person2,
-  );
-}
 pub mod source;
 #[cfg(feature = "full")]
 pub mod traits;
