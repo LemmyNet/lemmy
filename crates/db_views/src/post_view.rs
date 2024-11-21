@@ -1735,6 +1735,8 @@ mod tests {
         community_id: inserted_post.community_id,
         creator_id: inserted_post.creator_id,
         instance_id: data.inserted_instance.id,
+        report_count: 0,
+        unresolved_report_count: 0,
       },
       subscribed: SubscribedType::NotSubscribed,
       read: false,

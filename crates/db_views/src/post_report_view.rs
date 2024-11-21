@@ -232,6 +232,7 @@ mod tests {
     structs::LocalUserView,
   };
   use lemmy_db_schema::{
+    aggregates::structs::PostAggregates,
     assert_length,
     source::{
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
@@ -336,6 +337,10 @@ mod tests {
     let read_jessica_report_view =
       PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id).await?;
 
+    // Make sure the triggers are reading the aggregates correctly.
+    let agg_1 = PostAggregates::read(pool, inserted_post.id).await?;
+    let agg_2 = PostAggregates::read(pool, inserted_post_2.id).await?;
+
     assert_eq!(
       read_jessica_report_view.post_report,
       inserted_jessica_report
@@ -346,6 +351,10 @@ mod tests {
     assert_eq!(read_jessica_report_view.post_creator.id, inserted_timmy.id);
     assert_eq!(read_jessica_report_view.my_vote, None);
     assert_eq!(read_jessica_report_view.resolver, None);
+    assert_eq!(agg_1.report_count, 1);
+    assert_eq!(agg_1.unresolved_report_count, 1);
+    assert_eq!(agg_2.report_count, 1);
+    assert_eq!(agg_2.unresolved_report_count, 1);
 
     // Do a batch read of timmys reports
     let reports = PostReportQuery::default().list(pool, &timmy_view).await?;
@@ -378,6 +387,16 @@ mod tests {
         .map(|r| r.id),
       Some(inserted_timmy.id)
     );
+
+    // Make sure the unresolved_post report got decremented in the trigger
+    let agg_2 = PostAggregates::read(pool, inserted_post_2.id).await?;
+    assert_eq!(agg_2.report_count, 1);
+    assert_eq!(agg_2.unresolved_report_count, 0);
+
+    // Make sure the other unresolved report isn't changed
+    let agg_1 = PostAggregates::read(pool, inserted_post.id).await?;
+    assert_eq!(agg_1.report_count, 1);
+    assert_eq!(agg_1.unresolved_report_count, 1);
 
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved

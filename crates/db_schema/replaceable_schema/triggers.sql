@@ -615,3 +615,98 @@ CREATE TRIGGER change_values
     FOR EACH ROW
     EXECUTE FUNCTION r.private_message_change_values ();
 
+-- When creating or resolving a report, update a report count
+-- on the post and comment aggregate tables
+CREATE FUNCTION r.update_post_aggregates_report_count ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        post_aggregates
+    SET
+        report_count = report_count + 1,
+        unresolved_report_count = unresolved_report_count + 1
+    WHERE
+        post_id = NEW.post_id;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER post_report_aggregates
+    AFTER INSERT ON post_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.update_post_aggregates_report_count ();
+
+-- When resolving / unresolving a report, update the unresolved_report_count
+CREATE FUNCTION r.update_post_aggregates_unresolved_report_count ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        post_aggregates
+    SET
+        unresolved_report_count = unresolved_report_count + CASE WHEN NEW.resolved THEN
+            -1
+        ELSE
+            1
+        END
+    WHERE
+        post_id = NEW.post_id;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER post_report_unresolved_aggregates
+    AFTER UPDATE OF resolved ON post_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.update_post_aggregates_unresolved_report_count ();
+
+-- comment_aggregates
+CREATE FUNCTION r.update_comment_aggregates_report_count ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        comment_aggregates
+    SET
+        report_count = report_count + 1,
+        unresolved_report_count = unresolved_report_count + 1
+    WHERE
+        comment_id = NEW.comment_id;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER comment_report_aggregates
+    AFTER INSERT ON comment_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.update_comment_aggregates_report_count ();
+
+-- When resolving / unresolving a report, update the unresolved_report_count
+CREATE FUNCTION r.update_comment_aggregates_unresolved_report_count ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        comment_aggregates
+    SET
+        unresolved_report_count = unresolved_report_count + CASE WHEN NEW.resolved THEN
+            -1
+        ELSE
+            1
+        END
+    WHERE
+        comment_id = NEW.comment_id;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER comment_report_unresolved_aggregates
+    AFTER UPDATE OF resolved ON comment_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.update_comment_aggregates_unresolved_report_count ();
+
