@@ -284,6 +284,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.register())
           .route("register", web::post().to(register))
           .route("login", web::post().to(login))
+          .route("/logout", web::post().to(logout))
           .route("password_reset", web::post().to(reset_password))
           .route("get_captcha", web::get().to(get_captcha))
           .route(
@@ -292,13 +293,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           )
           .route("/change_password", web::put().to(change_password))
           .route("/totp/generate", web::post().to(generate_totp_secret))
-          .route("/totp/update", web::post().to(update_totp)),
+          .route("/totp/update", web::post().to(update_totp))
+          .route("/verify_email", web::post().to(verify_email)),
       )
       .service(
-        web::resource("/account/export")
+        web::scope("/account/settings")
           .wrap(rate_limit.import_user_settings())
-          .route(web::get().to(export_settings))
-          .route(web::post().to(import_settings)),
+          .route("/export", web::get().to(export_settings))
+          .route("/import", web::post().to(import_settings)),
       )
       .service(
         web::scope("/account")
@@ -306,8 +308,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/mention", web::get().to(list_mentions))
           .route("/replies", web::get().to(list_replies))
           .route("/block", web::post().to(block_person))
-          .route("/logout", web::post().to(logout))
-          .route("/delete_account", web::post().to(delete_account))
+          .route("/delete", web::post().to(delete_account))
           .route(
             "/mention/mark_as_read",
             web::post().to(mark_person_mention_as_read),
@@ -316,15 +317,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
             "/mention/mark_all_as_read",
             web::post().to(mark_all_notifications_read),
           )
-          .route("/save_user_settings", web::put().to(save_user_settings))
+          .route("/settings/save", web::put().to(save_user_settings))
           .route("/report_count", web::get().to(report_count))
           .route("/unread_count", web::get().to(unread_count))
-          .route("/verify_email", web::post().to(verify_email))
           .route("/list_logins", web::get().to(list_logins))
           .route("/validate_auth", web::get().to(validate_auth)),
       )
       // User actions
-      .route("/user", web::get().to(read_person))
+      .route("/person", web::get().to(read_person))
       // Admin Actions
       .service(
         web::scope("/admin")
