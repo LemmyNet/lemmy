@@ -297,6 +297,7 @@ fn create_http_server(
   let server = HttpServer::new(move || {
     let cors_config = cors_config(&settings);
     let app = App::new()
+      .wrap(rate_limit_cell.message())
       .wrap(middleware::Logger::new(
         // This is the default log format save for the usage of %{r}a over %a to guarantee to
         // record the client's (forwarded) IP and not the last peer address, since the latter is

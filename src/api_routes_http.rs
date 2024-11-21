@@ -166,28 +166,19 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       // Site
       .service(
         web::scope("/site")
-          .wrap(rate_limit.message())
           .route("", web::get().to(get_site))
           // Admin Actions
           .route("", web::post().to(create_site))
           .route("", web::put().to(update_site))
           .route("/block", web::post().to(block_instance)),
       )
-      .service(
-        web::resource("/modlog")
-          .wrap(rate_limit.message())
-          .route(web::get().to(get_mod_log)),
-      )
+      .route("/modlog", web::get().to(get_mod_log))
       .service(
         web::resource("/search")
           .wrap(rate_limit.search())
           .route(web::get().to(search)),
       )
-      .service(
-        web::resource("/resolve_object")
-          .wrap(rate_limit.message())
-          .route(web::get().to(resolve_object)),
-      )
+      .route("/resolve_object", web::get().to(resolve_object))
       // Community
       .service(
         web::resource("/community")
@@ -197,7 +188,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       )
       .service(
         web::scope("/community")
-          .wrap(rate_limit.message())
           .route("", web::get().to(get_community))
           .route("", web::put().to(update_community))
           .route("/random", web::get().to(get_random_community))
@@ -213,16 +203,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/mod", web::post().to(add_mod_to_community))
           .service(
             web::scope("/pending_follows")
-              .wrap(rate_limit.message())
               .route("/count", web::get().to(get_pending_follows_count))
               .route("/list", web::get().to(get_pending_follows_list))
               .route("/approve", web::post().to(post_pending_follows_approve)),
           ),
       )
-      .service(
-        web::scope("/federated_instances")
-          .wrap(rate_limit.message())
-          .route("", web::get().to(get_federated_instances)),
+      .route(
+        "/federated_instances",
+        web::get().to(get_federated_instances),
       )
       // Post
       .service(
@@ -234,7 +222,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       )
       .service(
         web::scope("/post")
-          .wrap(rate_limit.message())
           .route("", web::get().to(get_post))
           .route("", web::put().to(update_post))
           .route("/delete", web::post().to(delete_post))
@@ -263,7 +250,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       )
       .service(
         web::scope("/comment")
-          .wrap(rate_limit.message())
           .route("", web::get().to(get_comment))
           .route("", web::put().to(update_comment))
           .route("/delete", web::post().to(delete_comment))
@@ -281,7 +267,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       // Private Message
       .service(
         web::scope("/private_message")
-          .wrap(rate_limit.message())
           .route("/list", web::get().to(get_private_message))
           .route("", web::post().to(create_private_message))
           .route("", web::put().to(update_private_message))
@@ -316,7 +301,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       )
       .service(
         web::scope("/account")
-          .wrap(rate_limit.message())
           .route("/list_media", web::get().to(list_media))
           .route("/mention", web::get().to(list_mentions))
           .route("/replies", web::get().to(list_replies))
@@ -339,15 +323,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/validate_auth", web::get().to(validate_auth)),
       )
       // User actions
-      .service(
-        web::scope("/user")
-          .wrap(rate_limit.message())
-          .route("", web::get().to(read_person)),
-      )
+      .route("/user", web::get().to(read_person))
       // Admin Actions
       .service(
         web::scope("/admin")
-          .wrap(rate_limit.message())
           .route("/add", web::post().to(add_admin))
           .route(
             "/registration_application/count",
@@ -375,7 +354,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           )
           .service(
             web::scope("/tagline")
-              .wrap(rate_limit.message())
               .route("", web::post().to(create_tagline))
               .route("", web::put().to(update_tagline))
               .route("/delete", web::post().to(delete_tagline))
@@ -387,7 +365,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       )
       .service(
         web::scope("/custom_emoji")
-          .wrap(rate_limit.message())
           .route("", web::post().to(create_custom_emoji))
           .route("", web::put().to(update_custom_emoji))
           .route("/delete", web::post().to(delete_custom_emoji))
@@ -395,7 +372,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       )
       .service(
         web::scope("/oauth_provider")
-          .wrap(rate_limit.message())
           .route("", web::post().to(create_oauth_provider))
           .route("", web::put().to(update_oauth_provider))
           .route("/delete", web::post().to(delete_oauth_provider)),
@@ -404,11 +380,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         web::scope("/oauth")
           .wrap(rate_limit.register())
           .route("/authenticate", web::post().to(authenticate_with_oauth)),
-      ),
-  );
-  cfg.service(
-    web::scope("/sitemap.xml")
-      .wrap(rate_limit.message())
-      .route("", web::get().to(get_sitemap)),
+      )
+      .route("/sitemap.xml", web::get().to(get_sitemap)),
   );
 }
