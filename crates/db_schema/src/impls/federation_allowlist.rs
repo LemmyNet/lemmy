@@ -64,6 +64,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
+  #[expect(clippy::indexing_slicing)]
   async fn test_allowlist_insert_and_clear() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
@@ -84,7 +85,7 @@ mod tests {
       .collect();
 
     for f in &forms {
-      AdminAllowInstance::allow(pool, &f).await?;
+      AdminAllowInstance::allow(pool, f).await?;
     }
 
     let allows = Instance::allowlist(pool).await?;
