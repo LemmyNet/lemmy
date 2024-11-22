@@ -8,6 +8,7 @@ use activitypub_federation::{
   actix_web::{inbox::receive_activity, signing_actor},
   config::Data,
   protocol::context::WithContext,
+  traits::Actor,
   FEDERATION_CONTENT_TYPE,
 };
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
@@ -145,14 +146,27 @@ async fn check_community_content_fetchable(
     // from the fetching instance then fetching is allowed
     Private => {
       let signing_actor = signing_actor::<SiteOrCommunityOrUser>(request, None, context).await?;
-      Ok(
-        CommunityFollowerView::check_has_followers_from_instance(
-          community.id,
-          signing_actor.instance_id(),
-          &mut context.pool(),
+      if community.local {
+        Ok(
+          CommunityFollowerView::check_has_followers_from_instance(
+            community.id,
+            signing_actor.instance_id(),
+            &mut context.pool(),
+          )
+          .await?,
         )
-        .await?,
-      )
+      } else if let Some(followers_url) = community.followers_url.clone() {
+        let mut followers_url = followers_url.inner().clone();
+        followers_url
+          .query_pairs_mut()
+          .append_pair("is_follower", signing_actor.id().as_str());
+        let req = context.client().get(followers_url.as_str());
+        let req = context.sign_request(req, Bytes::new()).await?;
+        context.client().execute(req).await?.error_for_status()?;
+        Ok(())
+      } else {
+        Err(LemmyErrorType::NotFound.into())
+      }
     }
   }
 }

@@ -232,6 +232,25 @@ impl CommunityFollowerView {
     .then_some(())
     .ok_or(diesel::NotFound)
   }
+
+  pub async fn is_follower(
+    community_id: CommunityId,
+    instance_id: InstanceId,
+    pool: &mut DbPool<'_>,
+  ) -> Result<(), Error> {
+    let conn = &mut get_conn(pool).await?;
+    select(exists(
+      action_query(community_actions::followed)
+        .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
+        .filter(community_actions::community_id.eq(community_id))
+        .filter(person::instance_id.eq(instance_id))
+        .filter(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+    ))
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(diesel::NotFound)
+  }
 }
 
 #[cfg(test)]
