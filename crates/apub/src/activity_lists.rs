@@ -48,6 +48,7 @@ pub enum SharedInboxActivities {
   AcceptFollow(AcceptFollow),
   RejectFollow(RejectFollow),
   UndoFollow(UndoFollow),
+  // Handle private messages, and comments sent directly to user (mentions)
   CreateOrUpdateNoteWrapper(CreateOrUpdateNoteWrapper),
   Report(Report),
   AnnounceActivity(AnnounceActivity),

@@ -10,9 +10,12 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde_json::{from_value, to_value};
 use url::Url;
 
+/// Private messages and public comments are quite awkward in Activitypub, because the json
+/// format looks identical. They only way to differentiate them is to check for the presence
+/// or absence of `https://www.w3.org/ns/activitystreams#Public` in `to` or `cc` which this
+/// wrapper does.
 #[derive(Debug)]
 pub(crate) struct ApubNote {}
-// TODO: change type of private message to `Note`
 
 #[async_trait::async_trait]
 impl Object for ApubNote {
