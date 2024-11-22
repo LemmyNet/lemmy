@@ -130,8 +130,8 @@ diesel::table! {
         child_count -> Int4,
         hot_rank -> Float8,
         controversy_rank -> Float8,
-        report_count -> Int8,
-        unresolved_report_count -> Int8,
+        report_count -> Int2,
+        unresolved_report_count -> Int2,
     }
 }
 
@@ -779,8 +779,8 @@ diesel::table! {
         controversy_rank -> Float8,
         instance_id -> Int4,
         scaled_rank -> Float8,
-        report_count -> Int8,
-        unresolved_report_count -> Int8,
+        report_count -> Int2,
+        unresolved_report_count -> Int2,
     }
 }
 
