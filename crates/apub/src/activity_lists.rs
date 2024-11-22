@@ -15,7 +15,6 @@ use crate::{
         note::CreateOrUpdateNote,
         note_wrapper::CreateOrUpdateNoteWrapper,
         page::CreateOrUpdatePage,
-        private_message::CreateOrUpdatePrivateMessage,
       },
       deletion::{delete::Delete, undo_delete::UndoDelete},
       following::{
@@ -49,40 +48,11 @@ pub enum SharedInboxActivities {
   AcceptFollow(AcceptFollow),
   RejectFollow(RejectFollow),
   UndoFollow(UndoFollow),
-  CreateOrUpdatePrivateMessage(CreateOrUpdatePrivateMessage),
+  CreateOrUpdateNoteWrapper(CreateOrUpdateNoteWrapper),
   Report(Report),
   AnnounceActivity(AnnounceActivity),
   /// This is a catch-all and needs to be last
   RawAnnouncableActivities(RawAnnouncableActivities),
-}
-
-/// List of activities which the group inbox can handle.
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-#[enum_delegate::implement(ActivityHandler)]
-pub enum GroupInboxActivities {
-  Follow(Follow),
-  UndoFollow(UndoFollow),
-  Report(Report),
-  /// This is a catch-all and needs to be last
-  AnnouncableActivities(RawAnnouncableActivities),
-}
-
-/// List of activities which the person inbox can handle.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-#[enum_delegate::implement(ActivityHandler)]
-pub enum PersonInboxActivities {
-  Follow(Follow),
-  AcceptFollow(AcceptFollow),
-  RejectFollow(RejectFollow),
-  UndoFollow(UndoFollow),
-  CreateOrUpdateNoteWrapper(CreateOrUpdateNoteWrapper),
-  Delete(Delete),
-  UndoDelete(UndoDelete),
-  AnnounceActivity(AnnounceActivity),
-  /// User can also receive some "announcable" activities, eg a comment mention.
-  AnnouncableActivities(AnnouncableActivities),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -134,40 +104,32 @@ impl InCommunity for AnnouncableActivities {
 mod tests {
 
   use crate::{
-    activity_lists::{GroupInboxActivities, PersonInboxActivities, SharedInboxActivities},
+    activity_lists::SharedInboxActivities,
     protocol::tests::{test_json, test_parse_lemmy_item},
   };
   use lemmy_utils::error::LemmyResult;
-
-  #[test]
-  fn test_group_inbox() -> LemmyResult<()> {
-    test_parse_lemmy_item::<GroupInboxActivities>("assets/lemmy/activities/following/follow.json")?;
-    test_parse_lemmy_item::<GroupInboxActivities>(
-      "assets/lemmy/activities/create_or_update/create_comment.json",
-    )?;
-    Ok(())
-  }
-
-  #[test]
-  fn test_person_inbox() -> LemmyResult<()> {
-    test_parse_lemmy_item::<PersonInboxActivities>(
-      "assets/lemmy/activities/following/accept.json",
-    )?;
-    test_parse_lemmy_item::<PersonInboxActivities>(
-      "assets/lemmy/activities/create_or_update/create_comment.json",
-    )?;
-    test_parse_lemmy_item::<PersonInboxActivities>(
-      "assets/lemmy/activities/create_or_update/create_private_message.json",
-    )?;
-    test_json::<PersonInboxActivities>("assets/mastodon/activities/follow.json")?;
-    Ok(())
-  }
 
   #[test]
   fn test_shared_inbox() -> LemmyResult<()> {
     test_parse_lemmy_item::<SharedInboxActivities>(
       "assets/lemmy/activities/deletion/delete_user.json",
     )?;
+    test_parse_lemmy_item::<SharedInboxActivities>(
+      "assets/lemmy/activities/following/accept.json",
+    )?;
+    test_parse_lemmy_item::<SharedInboxActivities>(
+      "assets/lemmy/activities/create_or_update/create_comment.json",
+    )?;
+    test_parse_lemmy_item::<SharedInboxActivities>(
+      "assets/lemmy/activities/create_or_update/create_private_message.json",
+    )?;
+    test_parse_lemmy_item::<SharedInboxActivities>(
+      "assets/lemmy/activities/following/follow.json",
+    )?;
+    test_parse_lemmy_item::<SharedInboxActivities>(
+      "assets/lemmy/activities/create_or_update/create_comment.json",
+    )?;
+    test_json::<SharedInboxActivities>("assets/mastodon/activities/follow.json")?;
     Ok(())
   }
 }
