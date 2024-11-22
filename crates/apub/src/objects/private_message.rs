@@ -3,7 +3,10 @@ use crate::{
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links,
   objects::read_from_string_or_source,
-  protocol::{objects::private_message::PrivateMessage, Source},
+  protocol::{
+    objects::private_message::{PrivateMessage, PrivateMessageType},
+    Source,
+  },
 };
 use activitypub_federation::{
   config::Data,
@@ -22,6 +25,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    instance::Instance,
     local_site::LocalSite,
     person::Person,
     person_block::PersonBlock,
@@ -34,6 +38,7 @@ use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorType, LemmyResult},
   utils::markdown::markdown_to_html,
 };
+use semver::{Version, VersionReq};
 use std::ops::Deref;
 use url::Url;
 
@@ -88,8 +93,19 @@ impl Object for ApubPrivateMessage {
     let recipient_id = self.recipient_id;
     let recipient = Person::read(&mut context.pool(), recipient_id).await?;
 
+    let instance = Instance::read(&mut context.pool(), recipient.instance_id).await?;
+    let mut kind = PrivateMessageType::Note;
+
+    // For Lemmy versions before 0.20, send private messages with old type
+    if let (Some(software), Some(version)) = (instance.software, &instance.version) {
+      let req = VersionReq::parse("<0.20")?;
+      if software == "lemmy" && req.matches(&Version::parse(version)?) {
+        kind = PrivateMessageType::ChatMessage
+      }
+    }
+
     let note = PrivateMessage {
-      r#type: Default::default(),
+      kind,
       id: self.ap_id.clone().into(),
       attributed_to: creator.actor_id.into(),
       to: [recipient.actor_id.into()],
