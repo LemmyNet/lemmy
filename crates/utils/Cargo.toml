@@ -46,7 +46,8 @@ full = [
   "lettre",
   "uuid",
   "itertools",
-  "markdown-it","moka"
+  "markdown-it",
+  "moka",
 ]
 
 [package.metadata.cargo-shear]
