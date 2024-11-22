@@ -450,10 +450,6 @@ pub struct GetSiteResponse {
   pub version: String,
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
-  /// deprecated, use field `tagline` or /api/v3/tagline/list
-  pub taglines: Vec<()>,
-  /// deprecated, use /api/v3/custom_emoji/list
-  pub custom_emojis: Vec<()>,
   /// If the site has any taglines, a random one is included here for displaying
   #[cfg_attr(feature = "full", ts(optional))]
   pub tagline: Option<Tagline>,
