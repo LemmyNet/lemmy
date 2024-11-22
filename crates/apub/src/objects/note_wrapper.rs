@@ -5,7 +5,7 @@ use crate::{
 };
 use activitypub_federation::{config::Data, kinds::public, traits::Object};
 use chrono::{DateTime, Utc};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde_json::{from_value, to_value};
 use url::Url;
@@ -32,12 +32,12 @@ impl Object for ApubNote {
     _object_id: Url,
     _context: &Data<Self::DataType>,
   ) -> LemmyResult<Option<Self>> {
-    unimplemented!()
+    Err(LemmyErrorType::Unknown("not implemented".to_string()).into())
   }
 
   #[tracing::instrument(skip_all)]
   async fn delete(self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
-    todo!()
+    Err(LemmyErrorType::Unknown("not implemented".to_string()).into())
   }
 
   async fn verify(
@@ -66,7 +66,7 @@ impl Object for ApubNote {
   }
 
   async fn into_json(self, _context: &Data<Self::DataType>) -> LemmyResult<NoteWrapper> {
-    todo!()
+    Err(LemmyErrorType::Unknown("not implemented".to_string()).into())
   }
 }
 

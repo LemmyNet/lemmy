@@ -96,7 +96,7 @@ impl Object for ApubPrivateMessage {
     let instance = Instance::read(&mut context.pool(), recipient.instance_id).await?;
     let mut kind = PrivateMessageType::Note;
 
-    // For Lemmy versions before 0.20, send private messages with old type
+    // Deprecated: For Lemmy versions before 0.20, send private messages with old type
     if let (Some(software), Some(version)) = (instance.software, &instance.version) {
       let req = VersionReq::parse("<0.20")?;
       if software == "lemmy" && req.matches(&Version::parse(version)?) {
