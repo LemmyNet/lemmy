@@ -448,8 +448,6 @@ pub struct GetSiteResponse {
   pub site_view: SiteView,
   pub admins: Vec<PersonView>,
   pub version: String,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub my_user: Option<MyUserInfo>,
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
   /// deprecated, use field `tagline` or /api/v3/tagline/list

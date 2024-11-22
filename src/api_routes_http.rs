@@ -145,6 +145,7 @@ use lemmy_api_crud::{
   user::{
     create::{authenticate_with_oauth, register},
     delete::delete_account,
+    my_user::get_my_user,
   },
 };
 use lemmy_apub::api::{
@@ -304,6 +305,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
       )
       .service(
         web::scope("/account")
+          .route("/my_user", web::get().to(get_my_user))
           .route("/list_media", web::get().to(list_media))
           .route("/mention", web::get().to(list_mentions))
           .route("/replies", web::get().to(list_replies))

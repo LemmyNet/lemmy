@@ -1,22 +1,16 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  site::{GetSiteResponse, MyUserInfo},
-};
+use lemmy_api_common::{context::LemmyContext, site::GetSiteResponse};
 use lemmy_db_schema::source::{
-  actor_language::{LocalUserLanguage, SiteLanguage},
-  community_block::CommunityBlock,
-  instance_block::InstanceBlock,
+  actor_language::SiteLanguage,
   language::Language,
   local_site_url_blocklist::LocalSiteUrlBlocklist,
   oauth_provider::OAuthProvider,
-  person_block::PersonBlock,
   tagline::Tagline,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_db_views_actor::structs::{CommunityFollowerView, CommunityModeratorView, PersonView};
+use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyResult},
   CACHE_DURATION_API,
   VERSION,
 };
@@ -52,7 +46,6 @@ pub async fn get_site(
         site_view,
         admins,
         version: VERSION.to_string(),
-        my_user: None,
         all_languages,
         discussion_languages,
         blocked_urls,
@@ -65,42 +58,6 @@ pub async fn get_site(
     })
     .await
     .map_err(|e| anyhow::anyhow!("Failed to construct site response: {e}"))?;
-
-  // Build the local user with parallel queries and add it to site response
-  site_response.my_user = if let Some(ref local_user_view) = local_user_view {
-    let person_id = local_user_view.person.id;
-    let local_user_id = local_user_view.local_user.id;
-    let pool = &mut context.pool();
-
-    let (
-      follows,
-      community_blocks,
-      instance_blocks,
-      person_blocks,
-      moderates,
-      discussion_languages,
-    ) = lemmy_db_schema::try_join_with_pool!(pool => (
-      |pool| CommunityFollowerView::for_person(pool, person_id),
-      |pool| CommunityBlock::for_person(pool, person_id),
-      |pool| InstanceBlock::for_person(pool, person_id),
-      |pool| PersonBlock::for_person(pool, person_id),
-      |pool| CommunityModeratorView::for_person(pool, person_id, Some(&local_user_view.local_user)),
-      |pool| LocalUserLanguage::read(pool, local_user_id)
-    ))
-    .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
-
-    Some(MyUserInfo {
-      local_user_view: local_user_view.clone(),
-      follows,
-      moderates,
-      community_blocks,
-      instance_blocks,
-      person_blocks,
-      discussion_languages,
-    })
-  } else {
-    None
-  };
 
   // filter oauth_providers for public access
   if !local_user_view
