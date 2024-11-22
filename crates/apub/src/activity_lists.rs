@@ -11,11 +11,7 @@ use crate::{
         report::Report,
         update::UpdateCommunity,
       },
-      create_or_update::{
-        note::CreateOrUpdateNote,
-        note_wrapper::CreateOrUpdateNoteWrapper,
-        page::CreateOrUpdatePage,
-      },
+      create_or_update::{note_wrapper::CreateOrUpdateNoteWrapper, page::CreateOrUpdatePage},
       deletion::{delete::Delete, undo_delete::UndoDelete},
       following::{
         accept::AcceptFollow,
@@ -49,7 +45,7 @@ pub enum SharedInboxActivities {
   RejectFollow(RejectFollow),
   UndoFollow(UndoFollow),
   // Handle private messages, and comments sent directly to user (mentions)
-  CreateOrUpdateNoteWrapper(CreateOrUpdateNoteWrapper),
+  //CreateOrUpdateNoteWrapper(CreateOrUpdateNoteWrapper),
   Report(Report),
   AnnounceActivity(AnnounceActivity),
   /// This is a catch-all and needs to be last
@@ -60,7 +56,7 @@ pub enum SharedInboxActivities {
 #[serde(untagged)]
 #[enum_delegate::implement(ActivityHandler)]
 pub enum AnnouncableActivities {
-  CreateOrUpdateComment(CreateOrUpdateNote),
+  CreateOrUpdateNoteWrapper(CreateOrUpdateNoteWrapper),
   CreateOrUpdatePost(CreateOrUpdatePage),
   Vote(Vote),
   UndoVote(UndoVote),
@@ -83,7 +79,7 @@ impl InCommunity for AnnouncableActivities {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     use AnnouncableActivities::*;
     match self {
-      CreateOrUpdateComment(a) => a.community(context).await,
+      CreateOrUpdateNoteWrapper(a) => a.community(context).await,
       CreateOrUpdatePost(a) => a.community(context).await,
       Vote(a) => a.community(context).await,
       UndoVote(a) => a.community(context).await,
