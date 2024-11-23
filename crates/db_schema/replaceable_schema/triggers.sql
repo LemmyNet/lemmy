@@ -384,6 +384,44 @@ END;
 
 $$);
 
+CALL r.create_triggers ('post_report', $$
+BEGIN
+    UPDATE
+        post_aggregates AS a
+    SET
+        report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
+    FROM (
+        SELECT
+            (post_report).post_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (post_report).resolved), 0) AS unresolved_report_count
+    FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (post_report).post_id) AS diff
+WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
+    AND a.post_id = diff.post_id;
+
+RETURN NULL;
+
+END;
+
+$$);
+
+CALL r.create_triggers ('comment_report', $$
+BEGIN
+    UPDATE
+        comment_aggregates AS a
+    SET
+        report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
+    FROM (
+        SELECT
+            (comment_report).comment_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (comment_report).resolved), 0) AS unresolved_report_count
+    FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (comment_report).comment_id) AS diff
+WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
+    AND a.comment_id = diff.comment_id;
+
+RETURN NULL;
+
+END;
+
+$$);
+
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
 CREATE FUNCTION r.comment_aggregates_from_comment ()
@@ -614,99 +652,4 @@ CREATE TRIGGER change_values
     BEFORE INSERT ON private_message
     FOR EACH ROW
     EXECUTE FUNCTION r.private_message_change_values ();
-
--- When creating or resolving a report, update a report count
--- on the post and comment aggregate tables
-CREATE FUNCTION r.update_post_aggregates_report_count ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    UPDATE
-        post_aggregates
-    SET
-        report_count = report_count + 1,
-        unresolved_report_count = unresolved_report_count + 1
-    WHERE
-        post_id = NEW.post_id;
-    RETURN NULL;
-END
-$$;
-
-CREATE TRIGGER post_report_aggregates
-    AFTER INSERT ON post_report
-    FOR EACH ROW
-    EXECUTE FUNCTION r.update_post_aggregates_report_count ();
-
--- When resolving / unresolving a report, update the unresolved_report_count
-CREATE FUNCTION r.update_post_aggregates_unresolved_report_count ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    UPDATE
-        post_aggregates
-    SET
-        unresolved_report_count = unresolved_report_count + CASE WHEN NEW.resolved THEN
-            -1
-        ELSE
-            1
-        END
-    WHERE
-        post_id = NEW.post_id;
-    RETURN NULL;
-END
-$$;
-
-CREATE TRIGGER post_report_unresolved_aggregates
-    AFTER UPDATE OF resolved ON post_report
-    FOR EACH ROW
-    EXECUTE FUNCTION r.update_post_aggregates_unresolved_report_count ();
-
--- comment_aggregates
-CREATE FUNCTION r.update_comment_aggregates_report_count ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    UPDATE
-        comment_aggregates
-    SET
-        report_count = report_count + 1,
-        unresolved_report_count = unresolved_report_count + 1
-    WHERE
-        comment_id = NEW.comment_id;
-    RETURN NULL;
-END
-$$;
-
-CREATE TRIGGER comment_report_aggregates
-    AFTER INSERT ON comment_report
-    FOR EACH ROW
-    EXECUTE FUNCTION r.update_comment_aggregates_report_count ();
-
--- When resolving / unresolving a report, update the unresolved_report_count
-CREATE FUNCTION r.update_comment_aggregates_unresolved_report_count ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    UPDATE
-        comment_aggregates
-    SET
-        unresolved_report_count = unresolved_report_count + CASE WHEN NEW.resolved THEN
-            -1
-        ELSE
-            1
-        END
-    WHERE
-        comment_id = NEW.comment_id;
-    RETURN NULL;
-END
-$$;
-
-CREATE TRIGGER comment_report_unresolved_aggregates
-    AFTER UPDATE OF resolved ON comment_report
-    FOR EACH ROW
-    EXECUTE FUNCTION r.update_comment_aggregates_unresolved_report_count ();
 
