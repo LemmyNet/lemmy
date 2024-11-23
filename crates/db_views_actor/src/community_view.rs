@@ -34,9 +34,12 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
+type QueriesReadTypes<'a> = (CommunityId, Option<&'a LocalUser>, bool);
+type QueriesListTypes<'a> = (CommunityQuery<'a>, &'a Site);
+
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, CommunityView, (CommunityId, Option<&'a LocalUser>, bool)>,
-  impl ListFn<'a, CommunityView, (CommunityQuery<'a>, &'a Site)>,
+  impl ReadFn<'a, CommunityView, QueriesReadTypes<'a>>,
+  impl ListFn<'a, CommunityView, QueriesListTypes<'a>>,
 > {
   let all_joins = |query: community::BoxedQuery<'a, Pg>, my_local_user: Option<&'a LocalUser>| {
     query
@@ -166,10 +169,10 @@ fn queries<'a>() -> Queries<
 }
 
 impl CommunityView {
-  pub async fn read<'a>(
+  pub async fn read(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
-    my_local_user: Option<&'a LocalUser>,
+    my_local_user: Option<&'_ LocalUser>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
     queries()
@@ -253,7 +256,7 @@ pub struct CommunityQuery<'a> {
   pub limit: Option<i64>,
 }
 
-impl<'a> CommunityQuery<'a> {
+impl CommunityQuery<'_> {
   pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommunityView>, Error> {
     queries().list(pool, (self, site)).await
   }
