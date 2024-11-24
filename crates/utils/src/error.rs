@@ -76,6 +76,7 @@ pub enum LemmyErrorType {
   InvalidEmailAddress(String),
   RateLimitError,
   InvalidName,
+  InvalidCodeVerifier,
   InvalidDisplayName,
   InvalidMatrixId,
   InvalidPostTitle,
