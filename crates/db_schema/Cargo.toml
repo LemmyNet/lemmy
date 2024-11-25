@@ -75,7 +75,7 @@ tokio = { workspace = true, optional = true }
 tokio-postgres = { workspace = true, optional = true }
 tokio-postgres-rustls = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
-uuid = { workspace = true, features = ["v4"] }
+uuid.workspace = true
 i-love-jesus = { workspace = true, optional = true }
 anyhow = { workspace = true }
 diesel-bind-if-some = { workspace = true, optional = true }

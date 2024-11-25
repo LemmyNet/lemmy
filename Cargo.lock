@@ -2507,7 +2507,6 @@ dependencies = [
  "encoding_rs",
  "enum-map",
  "futures",
- "getrandom",
  "jsonwebtoken",
  "lemmy_db_schema",
  "lemmy_db_views",
