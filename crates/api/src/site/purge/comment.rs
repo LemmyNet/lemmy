@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     local_user::LocalUser,
-    moderator::{AdminPurgeComment, AdminPurgeCommentForm},
+    mod_log::admin::{AdminPurgeComment, AdminPurgeCommentForm},
   },
   traits::Crud,
 };

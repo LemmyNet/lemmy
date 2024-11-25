@@ -442,8 +442,7 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) {
       .ok();
 
       diesel::delete(
-        federation_blocklist::table
-          .filter(federation_blocklist::expires.lt(now().nullable())),
+        federation_blocklist::table.filter(federation_blocklist::expires.lt(now().nullable())),
       )
       .execute(&mut conn)
       .await
