@@ -444,6 +444,8 @@ mod tests {
         child_count: 0,
         hot_rank: RANK_DEFAULT,
         controversy_rank: 0.0,
+        report_count: 2,
+        unresolved_report_count: 2,
       },
       my_vote: None,
       resolver: None,
@@ -511,6 +513,10 @@ mod tests {
       .updated = read_jessica_report_view_after_resolve
       .comment_report
       .updated;
+    expected_jessica_report_view_after_resolve
+      .counts
+      .unresolved_report_count = 1;
+    expected_sara_report_view.counts.unresolved_report_count = 1;
     expected_jessica_report_view_after_resolve.resolver = Some(Person {
       id: inserted_timmy.id,
       name: inserted_timmy.name.clone(),
