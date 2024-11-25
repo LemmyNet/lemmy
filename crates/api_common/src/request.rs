@@ -18,17 +18,14 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::{PictrsImageMode, Settings},
-  REQWEST_TIMEOUT,
-  VERSION,
+  REQWEST_TIMEOUT, VERSION,
 };
 use mime::Mime;
 use reqwest::{
   header::{CONTENT_TYPE, RANGE},
-  Client,
-  ClientBuilder,
-  Response,
+  Client, ClientBuilder, Response,
 };
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
@@ -54,21 +51,40 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
   // We only fetch the first 64kB of data in order to not waste bandwidth especially for large
   // binary files
   let bytes_to_fetch = 64 * 1024;
-  let response = context
-    .client()
-    .get(url.as_str())
-    // we only need the first chunk of data. Note that we do not check for Accept-Range so the
-    // server may ignore this and still respond with the full response
-    .header(RANGE, format!("bytes=0-{}", bytes_to_fetch - 1)) /* -1 because inclusive */
-    .send()
-    .await?
-    .error_for_status()?;
+  let mut response = Some(
+    context
+      .client()
+      .get(url.as_str())
+      // we only need the first chunk of data. Note that we do not check for Accept-Range so the
+      // server may ignore this and still respond with the full response
+      .header(RANGE, format!("bytes=0-{}", bytes_to_fetch - 1)) /* -1 because inclusive */
+      .send()
+      .await?
+      .error_for_status()?,
+  );
 
-  let content_type: Option<Mime> = response
-    .headers()
-    .get(CONTENT_TYPE)
-    .and_then(|h| h.to_str().ok())
-    .and_then(|h| h.parse().ok());
+  let content_type: Option<Mime> = {
+    let mut mime = response.as_ref().and_then(|m| {
+      m.headers()
+        .get(CONTENT_TYPE)
+        .and_then(|h| h.to_str().ok())
+        .and_then(|h| h.parse().ok())
+    });
+
+    // If a server is serving `application/octet-stream`, it's likely a mistake,
+    // so we try to guess the file type from its magic number.
+    if mime
+      .as_ref()
+      .is_some_and(|m: &Mime| m.subtype() == "octet-stream")
+    {
+      // Don't need to fetch as much data for this as we do with opengraph
+      let octet_bytes =
+        collect_bytes_until_limit(response.take().ok_or(FederationError::Unreachable)?, 512)
+          .await?;
+      mime = infer::get(&octet_bytes).map_or(mime, |t| t.mime_type().parse().ok());
+    }
+    mime
+  };
 
   let opengraph_data = {
     // if the content type is not text/html, we don't need to parse it
@@ -76,12 +92,12 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
       .as_ref()
       .map(|c| {
         (c.type_() == mime::TEXT && c.subtype() == mime::HTML)
-      ||
-      // application/xhtml+xml is a subset of HTML
-      (c.type_() == mime::APPLICATION && c.subtype() == "xhtml")
+	  ||
+	// application/xhtml+xml is a subset of HTML
+	  (c.type_() == mime::APPLICATION && c.subtype() == "xhtml")
       })
       .unwrap_or(false);
-    if !is_html {
+    if !is_html || response.is_none() {
       Default::default()
     } else {
       // Can't use .text() here, because it only checks the content header, not the actual bytes
@@ -90,7 +106,11 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
       // spend too much time parsing binary data as HTML
 
       // only take first bytes regardless of how many bytes the server returns
-      let html_bytes = collect_bytes_until_limit(response, bytes_to_fetch).await?;
+      let html_bytes = collect_bytes_until_limit(
+        response.take().ok_or(FederationError::Unreachable)?,
+        bytes_to_fetch,
+      )
+      .await?;
       extract_opengraph_data(&html_bytes, url)
         .map_err(|e| info!("{e}"))
         .unwrap_or_default()
