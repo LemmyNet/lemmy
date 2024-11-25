@@ -79,7 +79,7 @@
     # in the config, this default is ignored and you need to list imgur explicitly. To proxy imgur
     # requests, specify a noop bypass list, eg `proxy_bypass_domains ["example.org"]`.
     proxy_bypass_domains: [
-      "imgur.com"
+      "i.imgur.com"
       /* ... */
     ]
     # Timeout for uploading images to pictrs (in seconds)
