@@ -88,8 +88,13 @@ pub struct PictrsConfig {
   #[default(PictrsImageMode::StoreLinkPreviews)]
   pub(super) image_mode: PictrsImageMode,
 
-  /// Allows bypassing proxy for specific image hosts when using ProxyAllImages
-  #[default([].to_vec())]
+  /// Allows bypassing proxy for specific image hosts when using ProxyAllImages.
+  ///
+  /// imgur.com is bypassed by default to avoid rate limit errors. When specifying any bypass
+  /// in the config, this default is ignored and you need to list imgur explicitly. To proxy imgur
+  /// requests, specify a noop bypass list, eg `proxy_bypass_domains ["example.org"]`.
+  #[default(vec!["imgur.com".to_string()])]
+  #[doku(example = "imgur.com")]
   pub proxy_bypass_domains: Vec<String>,
 
   /// Timeout for uploading images to pictrs (in seconds)
