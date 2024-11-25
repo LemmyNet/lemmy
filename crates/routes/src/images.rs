@@ -259,23 +259,23 @@ pub async fn image_proxy(
   // for arbitrary purposes.
   RemoteImage::validate(&mut context.pool(), url.clone().into()).await?;
 
-  if context
+  let bypass_proxy = context
     .settings()
     .pictrs_config()?
     .proxy_bypass_domains
     .iter()
-    .any(|s| url.domain().expect("Invalid URL").starts_with(s))
-  {
-    return Ok(
+    .any(|s| url.domain().is_some_and(|domain| domain.starts_with(s)));
+  if bypass_proxy {
+    Ok(
       Redirect::to(url.to_string())
         .respond_to(&req)
         .map_into_boxed_body(),
-    );
+    )
+  } else {
+    let pictrs_config = context.settings().pictrs_config()?;
+    let url = format!("{}image/original?proxy={}", pictrs_config.url, &params.url);
+    image(url, req, &client).await
   }
-
-  let pictrs_config = context.settings().pictrs_config()?;
-  let url = format!("{}image/original?proxy={}", pictrs_config.url, &params.url);
-  image(url, req, &client).await
 }
 
 fn make_send<S>(mut stream: S) -> impl Stream<Item = S::Item> + Send + Unpin + 'static
