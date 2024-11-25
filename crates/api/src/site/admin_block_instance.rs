@@ -8,8 +8,9 @@ use lemmy_api_common::{
   SuccessResponse,
 };
 use lemmy_db_schema::source::{
-  federation_blocklist::{AdminBlockInstance, AdminBlockInstanceForm},
+  federation_blocklist::{FederationBlockList, FederationBlockListForm},
   instance::Instance,
+  mod_log::admin::{AdminBlockInstance, AdminBlockInstanceForm},
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
@@ -27,18 +28,26 @@ pub async fn admin_block_instance(
     Err(LemmyErrorType::CannotCombineFederationBlocklistAndAllowlist)?;
   }
 
-  let instance_block_form = AdminBlockInstanceForm {
+  let form = FederationBlockListForm {
     instance_id: data.instance_id,
-    admin_person_id: local_user_view.person.id,
-    reason: data.reason.clone(),
     expires: data.expires,
+    updated: None,
   };
 
   if data.block {
-    AdminBlockInstance::block(&mut context.pool(), &instance_block_form).await?;
+    FederationBlockList::block(&mut context.pool(), &form).await?;
   } else {
-    AdminBlockInstance::unblock(&mut context.pool(), data.instance_id).await?;
+    FederationBlockList::unblock(&mut context.pool(), data.instance_id).await?;
   }
+
+  let mod_log_form = AdminBlockInstanceForm {
+    instance_id: data.instance_id,
+    admin_person_id: local_user_view.person.id,
+    blocked: data.block,
+    reason: data.reason.clone(),
+    expires: data.expires,
+  };
+  AdminBlockInstance::insert(&mut context.pool(), &mod_log_form).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

@@ -47,6 +47,7 @@ diesel::table! {
         id -> Int4,
         instance_id -> Int4,
         admin_person_id -> Int4,
+        allowed -> Bool,
         reason -> Nullable<Text>,
         published -> Timestamptz,
     }
@@ -57,6 +58,7 @@ diesel::table! {
         id -> Int4,
         instance_id -> Int4,
         admin_person_id -> Int4,
+        blocked -> Bool,
         reason -> Nullable<Text>,
         expires -> Nullable<Timestamptz>,
         published -> Timestamptz,

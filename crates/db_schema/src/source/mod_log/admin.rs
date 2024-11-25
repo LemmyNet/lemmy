@@ -1,6 +1,8 @@
-use crate::newtypes::{CommunityId, PersonId, PostId};
+use crate::newtypes::{CommunityId, InstanceId, PersonId, PostId};
 #[cfg(feature = "full")]
 use crate::schema::{
+  admin_allow_instance,
+  admin_block_instance,
   admin_purge_comment,
   admin_purge_community,
   admin_purge_person,
@@ -102,4 +104,73 @@ pub struct AdminPurgeCommentForm {
   pub admin_person_id: PersonId,
   pub post_id: PostId,
   pub reason: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[cfg_attr(
+  feature = "full",
+  derive(TS, Queryable, Selectable, Associations, Identifiable)
+)]
+#[cfg_attr(
+  feature = "full",
+  diesel(belongs_to(crate::source::instance::Instance))
+)]
+#[cfg_attr(feature = "full", diesel(table_name = admin_allow_instance))]
+#[cfg_attr(feature = "full", diesel(primary_key(instance_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct AdminAllowInstance {
+  pub id: i32,
+  pub instance_id: InstanceId,
+  pub admin_person_id: PersonId,
+  pub allowed: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub reason: Option<String>,
+  pub published: DateTime<Utc>,
+}
+
+#[derive(Clone, Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = admin_allow_instance))]
+pub struct AdminAllowInstanceForm {
+  pub instance_id: InstanceId,
+  pub admin_person_id: PersonId,
+  pub allowed: bool,
+  pub reason: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[cfg_attr(
+  feature = "full",
+  derive(TS, Queryable, Selectable, Associations, Identifiable)
+)]
+#[cfg_attr(
+  feature = "full",
+  diesel(belongs_to(crate::source::instance::Instance))
+)]
+#[cfg_attr(feature = "full", diesel(table_name = admin_block_instance))]
+#[cfg_attr(feature = "full", diesel(primary_key(instance_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct AdminBlockInstance {
+  pub id: i32,
+  pub instance_id: InstanceId,
+  pub admin_person_id: PersonId,
+  pub blocked: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub reason: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub expires: Option<DateTime<Utc>>,
+  pub published: DateTime<Utc>,
+}
+
+#[derive(Clone, Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = admin_block_instance))]
+pub struct AdminBlockInstanceForm {
+  pub instance_id: InstanceId,
+  pub admin_person_id: PersonId,
+  pub blocked: bool,
+  pub reason: Option<String>,
+  pub expires: Option<DateTime<Utc>>,
 }

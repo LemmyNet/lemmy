@@ -201,8 +201,8 @@ mod test {
   use chrono::DateTime;
   use lemmy_db_schema::{
     source::{
-      federation_allowlist::{AdminAllowInstance, AdminAllowInstanceForm},
-      federation_blocklist::{AdminBlockInstance, AdminBlockInstanceForm},
+      federation_allowlist::{FederationAllowList, FederationAllowListForm},
+      federation_blocklist::{FederationBlockList, FederationBlockListForm},
       instance::InstanceForm,
       person::{Person, PersonInsertForm},
     },
@@ -325,13 +325,12 @@ mod test {
     let instance_id = data.instances[0].id;
     let form = PersonInsertForm::new("tim".to_string(), String::new(), instance_id);
     let person = Person::create(&mut data.context.pool(), &form).await?;
-    let form = AdminBlockInstanceForm {
+    let form = FederationBlockListForm {
       instance_id,
-      admin_person_id: person.id,
-      reason: None,
+      updated: None,
       expires: None,
     };
-    AdminBlockInstance::block(&mut data.context.pool(), &form).await?;
+    FederationBlockList::block(&mut data.context.pool(), &form).await?;
     data.run().await?;
     let workers = &data.send_manager.workers;
     assert_eq!(2, workers.len());
@@ -352,12 +351,11 @@ mod test {
     let instance_id = data.instances[0].id;
     let form = PersonInsertForm::new("tim".to_string(), String::new(), instance_id);
     let person = Person::create(&mut data.context.pool(), &form).await?;
-    let form = AdminAllowInstanceForm {
+    let form = FederationAllowListForm {
       instance_id: data.instances[0].id,
-      admin_person_id: person.id,
-      reason: None,
+      updated: None,
     };
-    AdminAllowInstance::allow(&mut data.context.pool(), &form).await?;
+    FederationAllowList::allow(&mut data.context.pool(), &form).await?;
     data.run().await?;
     let workers = &data.send_manager.workers;
     assert_eq!(1, workers.len());

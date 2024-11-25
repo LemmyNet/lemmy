@@ -5,11 +5,16 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     community::Community,
-    federation_allowlist::AdminAllowInstance,
-    federation_blocklist::AdminBlockInstance,
     instance::Instance,
     mod_log::{
-      admin::{AdminPurgeComment, AdminPurgeCommunity, AdminPurgePerson, AdminPurgePost},
+      admin::{
+        AdminAllowInstance,
+        AdminBlockInstance,
+        AdminPurgeComment,
+        AdminPurgeCommunity,
+        AdminPurgePerson,
+        AdminPurgePost,
+      },
       moderator::{
         ModAdd,
         ModAddCommunity,

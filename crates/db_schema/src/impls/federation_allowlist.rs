@@ -1,10 +1,9 @@
 use crate::{
   newtypes::InstanceId,
   schema::{admin_allow_instance, federation_allowlist},
-  source::federation_allowlist::{
-    AdminAllowInstance,
-    AdminAllowInstanceForm,
-    FederationAllowListForm,
+  source::{
+    federation_allowlist::{FederationAllowList, FederationAllowListForm},
+    mod_log::admin::{AdminAllowInstance, AdminAllowInstanceForm},
   },
   utils::{get_conn, DbPool},
 };
@@ -12,29 +11,25 @@ use diesel::{delete, dsl::insert_into, result::Error, ExpressionMethods, QueryDs
 use diesel_async::RunQueryDsl;
 
 impl AdminAllowInstance {
-  pub async fn allow(pool: &mut DbPool<'_>, form: &AdminAllowInstanceForm) -> Result<(), Error> {
+  pub async fn insert(pool: &mut DbPool<'_>, form: &AdminAllowInstanceForm) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
-    conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          insert_into(admin_allow_instance::table)
-            .values(form)
-            .execute(conn)
-            .await?;
+    insert_into(admin_allow_instance::table)
+      .values(form)
+      .execute(conn)
+      .await?;
 
-          let form2 = FederationAllowListForm {
-            instance_id: form.instance_id,
-            updated: None,
-          };
-          insert_into(federation_allowlist::table)
-            .values(form2)
-            .execute(conn)
-            .await?;
-          Ok(())
-        })
-      })
-      .await
+    Ok(())
+  }
+}
+
+impl FederationAllowList {
+  pub async fn allow(pool: &mut DbPool<'_>, form: &FederationAllowListForm) -> Result<(), Error> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(federation_allowlist::table)
+      .values(form)
+      .execute(conn)
+      .await?;
+    Ok(())
   }
   pub async fn unallow(pool: &mut DbPool<'_>, instance_id_: InstanceId) -> Result<(), Error> {
     use federation_allowlist::dsl::instance_id;
@@ -50,14 +45,7 @@ impl AdminAllowInstance {
 mod tests {
 
   use super::*;
-  use crate::{
-    source::{
-      instance::Instance,
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
-    utils::build_db_pool_for_tests,
-  };
+  use crate::{source::instance::Instance, utils::build_db_pool_for_tests};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -72,19 +60,16 @@ mod tests {
       Instance::read_or_create(pool, "tld2.xyz".to_string()).await?,
       Instance::read_or_create(pool, "tld3.xyz".to_string()).await?,
     ];
-    let new_person_3 = PersonInsertForm::test_form(instances[0].id, "xyz");
-    let person = Person::create(pool, &new_person_3).await?;
     let forms: Vec<_> = instances
       .iter()
-      .map(|i| AdminAllowInstanceForm {
+      .map(|i| FederationAllowListForm {
         instance_id: i.id,
-        admin_person_id: person.id,
-        reason: None,
+        updated: None,
       })
       .collect();
 
     for f in &forms {
-      AdminAllowInstance::allow(pool, f).await?;
+      FederationAllowList::allow(pool, f).await?;
     }
 
     let allows = Instance::allowlist(pool).await?;
@@ -94,7 +79,7 @@ mod tests {
 
     // Now test clearing them
     for f in forms {
-      AdminAllowInstance::unallow(pool, f.instance_id).await?;
+      FederationAllowList::unallow(pool, f.instance_id).await?;
     }
     let allows = Instance::allowlist(pool).await?;
     assert_eq!(0, allows.len());
