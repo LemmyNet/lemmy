@@ -20,12 +20,15 @@ use lemmy_db_schema::{
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::{PictrsImageMode, Settings},
-  REQWEST_TIMEOUT, VERSION,
+  REQWEST_TIMEOUT,
+  VERSION,
 };
 use mime::Mime;
 use reqwest::{
   header::{CONTENT_TYPE, RANGE},
-  Client, ClientBuilder, Response,
+  Client,
+  ClientBuilder,
+  Response,
 };
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
