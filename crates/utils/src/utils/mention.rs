@@ -1,8 +1,9 @@
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 
-static MENTIONS_REGEX: Lazy<Regex> = Lazy::new(|| {
+#[allow(clippy::expect_used)]
+static MENTIONS_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"@(?P<name>[\w.]+)@(?P<domain>[a-zA-Z0-9._:-]+)").expect("compile regex")
 });
 // TODO nothing is done with community / group webfingers yet, so just ignore those for now
@@ -34,8 +35,7 @@ pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::indexing_slicing)]
 mod test {
 
   use crate::utils::mention::scrape_text_for_mentions;

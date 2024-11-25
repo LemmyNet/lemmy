@@ -1,8 +1,9 @@
 use crate::{
-  activities::{verify_is_public, verify_person_in_community},
+  activities::{generate_to, verify_person_in_community, verify_visibility},
   check_apub_id_valid_with_strictness,
+  fetcher::markdown_links::markdown_rewrite_remote_links,
   mentions::collect_non_local_mentions,
-  objects::{read_from_string_or_source, verify_is_remote_object},
+  objects::{append_attachments_to_comment, read_from_string_or_source, verify_is_remote_object},
   protocol::{
     objects::{note::Note, LanguageTag},
     InCommunity,
@@ -11,7 +12,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  kinds::{object::NoteType, public},
+  kinds::object::NoteType,
   protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::Object,
 };
@@ -29,10 +30,9 @@ use lemmy_db_schema::{
     post::Post,
   },
   traits::Crud,
-  utils::naive_now,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{FederationError, LemmyError, LemmyResult},
   utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
@@ -91,35 +91,27 @@ impl Object for ApubComment {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Note> {
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut context.pool(), creator_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    let creator = Person::read(&mut context.pool(), creator_id).await?;
 
     let post_id = self.post_id;
-    let post = Post::read(&mut context.pool(), post_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPost)?;
+    let post = Post::read(&mut context.pool(), post_id).await?;
     let community_id = post.community_id;
-    let community = Community::read(&mut context.pool(), community_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+    let community = Community::read(&mut context.pool(), community_id).await?;
 
     let in_reply_to = if let Some(comment_id) = self.parent_comment_id() {
-      let parent_comment = Comment::read(&mut context.pool(), comment_id)
-        .await?
-        .ok_or(LemmyErrorType::CouldntFindComment)?;
+      let parent_comment = Comment::read(&mut context.pool(), comment_id).await?;
       parent_comment.ap_id.into()
     } else {
       post.ap_id.into()
     };
-    let language = LanguageTag::new_single(self.language_id, &mut context.pool()).await?;
+    let language = Some(LanguageTag::new_single(self.language_id, &mut context.pool()).await?);
     let maa = collect_non_local_mentions(&self, community.actor_id.clone().into(), context).await?;
 
     let note = Note {
       r#type: NoteType::Note,
       id: self.ap_id.clone().into(),
       attributed_to: creator.actor_id.into(),
-      to: vec![public()],
+      to: vec![generate_to(&community)?],
       cc: maa.ccs,
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
@@ -131,11 +123,14 @@ impl Object for ApubComment {
       distinguished: Some(self.distinguished),
       language,
       audience: Some(community.actor_id.into()),
+      attachment: vec![],
     };
 
     Ok(note)
   }
 
+  /// Recursively fetches all parent comments. This can lead to a stack overflow so we need to
+  /// Box::pin all large futures on the heap.
   #[tracing::instrument(skip_all)]
   async fn verify(
     note: &Note,
@@ -144,20 +139,30 @@ impl Object for ApubComment {
   ) -> LemmyResult<()> {
     verify_domains_match(note.id.inner(), expected_domain)?;
     verify_domains_match(note.attributed_to.inner(), note.id.inner())?;
-    verify_is_public(&note.to, &note.cc)?;
-    let community = note.community(context).await?;
+    let community = Box::pin(note.community(context)).await?;
+    verify_visibility(&note.to, &note.cc, &community)?;
 
-    check_apub_id_valid_with_strictness(note.id.inner(), community.local, context).await?;
+    Box::pin(check_apub_id_valid_with_strictness(
+      note.id.inner(),
+      community.local,
+      context,
+    ))
+    .await?;
     verify_is_remote_object(&note.id, context)?;
-    verify_person_in_community(&note.attributed_to, &community, context).await?;
+    Box::pin(verify_person_in_community(
+      &note.attributed_to,
+      &community,
+      context,
+    ))
+    .await?;
 
-    let (post, _) = note.get_parents(context).await?;
-    let creator = note.attributed_to.dereference(context).await?;
+    let (post, _) = Box::pin(note.get_parents(context)).await?;
+    let creator = Box::pin(note.attributed_to.dereference(context)).await?;
     let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &creator, community.id)
       .await
       .is_ok();
     if post.locked && !is_mod_or_admin {
-      Err(LemmyErrorType::PostIsLocked)?
+      Err(FederationError::PostIsLocked)?
     } else {
       Ok(())
     }
@@ -176,9 +181,13 @@ impl Object for ApubComment {
     let local_site = LocalSite::read(&mut context.pool()).await.ok();
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
     let url_blocklist = get_url_blocklist(context).await?;
+    let content = append_attachments_to_comment(content, &note.attachment, context).await?;
     let content = process_markdown(&content, slur_regex, &url_blocklist, context).await?;
-    let language_id =
-      LanguageTag::to_language_id_single(note.language, &mut context.pool()).await?;
+    let content = markdown_rewrite_remote_links(content, context).await;
+    let language_id = Some(
+      LanguageTag::to_language_id_single(note.language.unwrap_or_default(), &mut context.pool())
+        .await?,
+    );
 
     let form = CommentInsertForm {
       creator_id: creator.id,
@@ -194,7 +203,7 @@ impl Object for ApubComment {
       language_id,
     };
     let parent_comment_path = parent_comment.map(|t| t.0.path);
-    let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(naive_now);
+    let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(Utc::now);
     let comment = Comment::insert_apub(
       &mut context.pool(),
       Some(timestamp),
@@ -239,13 +248,13 @@ pub(crate) mod tests {
   }
 
   async fn cleanup(
-    data: (ApubPerson, ApubCommunity, ApubPost, ApubSite),
+    (person, community, post, site): (ApubPerson, ApubCommunity, ApubPost, ApubSite),
     context: &LemmyContext,
   ) -> LemmyResult<()> {
-    Post::delete(&mut context.pool(), data.2.id).await?;
-    Community::delete(&mut context.pool(), data.1.id).await?;
-    Person::delete(&mut context.pool(), data.0.id).await?;
-    Site::delete(&mut context.pool(), data.3.id).await?;
+    Post::delete(&mut context.pool(), post.id).await?;
+    Community::delete(&mut context.pool(), community.id).await?;
+    Person::delete(&mut context.pool(), person.id).await?;
+    Site::delete(&mut context.pool(), site.id).await?;
     LocalSite::delete(&mut context.pool()).await?;
     Ok(())
   }
@@ -292,7 +301,7 @@ pub(crate) mod tests {
     let comment = ApubComment::from_json(json, &context).await?;
 
     assert_eq!(comment.ap_id, pleroma_url.into());
-    assert_eq!(comment.content.len(), 64);
+    assert_eq!(comment.content.len(), 10);
     assert!(!comment.local);
     assert_eq!(context.request_count(), 1);
 

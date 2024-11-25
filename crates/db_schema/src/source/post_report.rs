@@ -25,13 +25,17 @@ pub struct PostReport {
   /// The original post title.
   pub original_post_name: String,
   /// The original post url.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub original_post_url: Option<DbUrl>,
   /// The original post body.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub original_post_body: Option<String>,
   pub reason: String,
   pub resolved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub resolver_id: Option<PersonId>,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
 }
 

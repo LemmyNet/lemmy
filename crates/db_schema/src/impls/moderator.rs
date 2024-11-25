@@ -66,6 +66,20 @@ impl Crud for ModRemovePost {
   }
 }
 
+impl ModRemovePost {
+  pub async fn create_multiple(
+    pool: &mut DbPool<'_>,
+    forms: &Vec<ModRemovePostForm>,
+  ) -> Result<usize, Error> {
+    use crate::schema::mod_remove_post::dsl::mod_remove_post;
+    let conn = &mut get_conn(pool).await?;
+    insert_into(mod_remove_post)
+      .values(forms)
+      .execute(conn)
+      .await
+  }
+}
+
 #[async_trait]
 impl Crud for ModLockPost {
   type InsertForm = ModLockPostForm;
@@ -149,6 +163,20 @@ impl Crud for ModRemoveComment {
     diesel::update(mod_remove_comment.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
+      .await
+  }
+}
+
+impl ModRemoveComment {
+  pub async fn create_multiple(
+    pool: &mut DbPool<'_>,
+    forms: &Vec<ModRemoveCommentForm>,
+  ) -> Result<usize, Error> {
+    use crate::schema::mod_remove_comment::dsl::mod_remove_comment;
+    let conn = &mut get_conn(pool).await?;
+    insert_into(mod_remove_comment)
+      .values(forms)
+      .execute(conn)
       .await
   }
 }
@@ -465,8 +493,6 @@ impl Crud for AdminPurgeComment {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{
@@ -500,51 +526,48 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
+  use diesel::result::Error;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+  async fn test_crud() -> Result<(), Error> {
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let new_mod = PersonInsertForm::test_form(inserted_instance.id, "the mod");
 
-    let inserted_mod = Person::create(pool, &new_mod).await.unwrap();
+    let inserted_mod = Person::create(pool, &new_mod).await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "jim2");
 
-    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+    let inserted_person = Person::create(pool, &new_person).await?;
 
-    let new_community = CommunityInsertForm::builder()
-      .name("mod_community".to_string())
-      .title("nada".to_owned())
-      .public_key("pubkey".to_string())
-      .instance_id(inserted_instance.id)
-      .build();
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "mod_community".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
 
-    let inserted_community = Community::create(pool, &new_community).await.unwrap();
+    let inserted_community = Community::create(pool, &new_community).await?;
 
-    let new_post = PostInsertForm::builder()
-      .name("A test post thweep".into())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .build();
+    let new_post = PostInsertForm::new(
+      "A test post thweep".into(),
+      inserted_person.id,
+      inserted_community.id,
+    );
+    let inserted_post = Post::create(pool, &new_post).await?;
 
-    let inserted_post = Post::create(pool, &new_post).await.unwrap();
-
-    let comment_form = CommentInsertForm::builder()
-      .content("A test comment".into())
-      .creator_id(inserted_person.id)
-      .post_id(inserted_post.id)
-      .build();
-
-    let inserted_comment = Comment::create(pool, &comment_form, None).await.unwrap();
+    let comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "A test comment".into(),
+    );
+    let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     // Now the actual tests
 
@@ -555,13 +578,8 @@ mod tests {
       reason: None,
       removed: None,
     };
-    let inserted_mod_remove_post = ModRemovePost::create(pool, &mod_remove_post_form)
-      .await
-      .unwrap();
-    let read_mod_remove_post = ModRemovePost::read(pool, inserted_mod_remove_post.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let inserted_mod_remove_post = ModRemovePost::create(pool, &mod_remove_post_form).await?;
+    let read_mod_remove_post = ModRemovePost::read(pool, inserted_mod_remove_post.id).await?;
     let expected_mod_remove_post = ModRemovePost {
       id: inserted_mod_remove_post.id,
       post_id: inserted_post.id,
@@ -578,13 +596,8 @@ mod tests {
       post_id: inserted_post.id,
       locked: None,
     };
-    let inserted_mod_lock_post = ModLockPost::create(pool, &mod_lock_post_form)
-      .await
-      .unwrap();
-    let read_mod_lock_post = ModLockPost::read(pool, inserted_mod_lock_post.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let inserted_mod_lock_post = ModLockPost::create(pool, &mod_lock_post_form).await?;
+    let read_mod_lock_post = ModLockPost::read(pool, inserted_mod_lock_post.id).await?;
     let expected_mod_lock_post = ModLockPost {
       id: inserted_mod_lock_post.id,
       post_id: inserted_post.id,
@@ -601,13 +614,8 @@ mod tests {
       featured: false,
       is_featured_community: true,
     };
-    let inserted_mod_feature_post = ModFeaturePost::create(pool, &mod_feature_post_form)
-      .await
-      .unwrap();
-    let read_mod_feature_post = ModFeaturePost::read(pool, inserted_mod_feature_post.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let inserted_mod_feature_post = ModFeaturePost::create(pool, &mod_feature_post_form).await?;
+    let read_mod_feature_post = ModFeaturePost::read(pool, inserted_mod_feature_post.id).await?;
     let expected_mod_feature_post = ModFeaturePost {
       id: inserted_mod_feature_post.id,
       post_id: inserted_post.id,
@@ -625,13 +633,10 @@ mod tests {
       reason: None,
       removed: None,
     };
-    let inserted_mod_remove_comment = ModRemoveComment::create(pool, &mod_remove_comment_form)
-      .await
-      .unwrap();
-    let read_mod_remove_comment = ModRemoveComment::read(pool, inserted_mod_remove_comment.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let inserted_mod_remove_comment =
+      ModRemoveComment::create(pool, &mod_remove_comment_form).await?;
+    let read_mod_remove_comment =
+      ModRemoveComment::read(pool, inserted_mod_remove_comment.id).await?;
     let expected_mod_remove_comment = ModRemoveComment {
       id: inserted_mod_remove_comment.id,
       comment_id: inserted_comment.id,
@@ -650,14 +655,9 @@ mod tests {
       removed: None,
     };
     let inserted_mod_remove_community =
-      ModRemoveCommunity::create(pool, &mod_remove_community_form)
-        .await
-        .unwrap();
+      ModRemoveCommunity::create(pool, &mod_remove_community_form).await?;
     let read_mod_remove_community =
-      ModRemoveCommunity::read(pool, inserted_mod_remove_community.id)
-        .await
-        .unwrap()
-        .unwrap();
+      ModRemoveCommunity::read(pool, inserted_mod_remove_community.id).await?;
     let expected_mod_remove_community = ModRemoveCommunity {
       id: inserted_mod_remove_community.id,
       community_id: inserted_community.id,
@@ -678,14 +678,9 @@ mod tests {
       expires: None,
     };
     let inserted_mod_ban_from_community =
-      ModBanFromCommunity::create(pool, &mod_ban_from_community_form)
-        .await
-        .unwrap();
+      ModBanFromCommunity::create(pool, &mod_ban_from_community_form).await?;
     let read_mod_ban_from_community =
-      ModBanFromCommunity::read(pool, inserted_mod_ban_from_community.id)
-        .await
-        .unwrap()
-        .unwrap();
+      ModBanFromCommunity::read(pool, inserted_mod_ban_from_community.id).await?;
     let expected_mod_ban_from_community = ModBanFromCommunity {
       id: inserted_mod_ban_from_community.id,
       community_id: inserted_community.id,
@@ -706,11 +701,8 @@ mod tests {
       banned: None,
       expires: None,
     };
-    let inserted_mod_ban = ModBan::create(pool, &mod_ban_form).await.unwrap();
-    let read_mod_ban = ModBan::read(pool, inserted_mod_ban.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let inserted_mod_ban = ModBan::create(pool, &mod_ban_form).await?;
+    let read_mod_ban = ModBan::read(pool, inserted_mod_ban.id).await?;
     let expected_mod_ban = ModBan {
       id: inserted_mod_ban.id,
       mod_person_id: inserted_mod.id,
@@ -729,13 +721,8 @@ mod tests {
       community_id: inserted_community.id,
       removed: None,
     };
-    let inserted_mod_add_community = ModAddCommunity::create(pool, &mod_add_community_form)
-      .await
-      .unwrap();
-    let read_mod_add_community = ModAddCommunity::read(pool, inserted_mod_add_community.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let inserted_mod_add_community = ModAddCommunity::create(pool, &mod_add_community_form).await?;
+    let read_mod_add_community = ModAddCommunity::read(pool, inserted_mod_add_community.id).await?;
     let expected_mod_add_community = ModAddCommunity {
       id: inserted_mod_add_community.id,
       community_id: inserted_community.id,
@@ -752,11 +739,8 @@ mod tests {
       other_person_id: inserted_person.id,
       removed: None,
     };
-    let inserted_mod_add = ModAdd::create(pool, &mod_add_form).await.unwrap();
-    let read_mod_add = ModAdd::read(pool, inserted_mod_add.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let inserted_mod_add = ModAdd::create(pool, &mod_add_form).await?;
+    let read_mod_add = ModAdd::read(pool, inserted_mod_add.id).await?;
     let expected_mod_add = ModAdd {
       id: inserted_mod_add.id,
       mod_person_id: inserted_mod.id,
@@ -765,14 +749,12 @@ mod tests {
       when_: inserted_mod_add.when_,
     };
 
-    Comment::delete(pool, inserted_comment.id).await.unwrap();
-    Post::delete(pool, inserted_post.id).await.unwrap();
-    Community::delete(pool, inserted_community.id)
-      .await
-      .unwrap();
-    Person::delete(pool, inserted_person.id).await.unwrap();
-    Person::delete(pool, inserted_mod.id).await.unwrap();
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    Comment::delete(pool, inserted_comment.id).await?;
+    Post::delete(pool, inserted_post.id).await?;
+    Community::delete(pool, inserted_community.id).await?;
+    Person::delete(pool, inserted_person.id).await?;
+    Person::delete(pool, inserted_mod.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
 
     assert_eq!(expected_mod_remove_post, read_mod_remove_post);
     assert_eq!(expected_mod_lock_post, read_mod_lock_post);
@@ -783,5 +765,7 @@ mod tests {
     assert_eq!(expected_mod_ban, read_mod_ban);
     assert_eq!(expected_mod_add_community, read_mod_add_community);
     assert_eq!(expected_mod_add, read_mod_add);
+
+    Ok(())
   }
 }

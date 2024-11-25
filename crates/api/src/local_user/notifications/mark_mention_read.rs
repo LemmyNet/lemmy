@@ -18,9 +18,7 @@ pub async fn mark_person_mention_as_read(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PersonMentionResponse>> {
   let person_mention_id = data.person_mention_id;
-  let read_person_mention = PersonMention::read(&mut context.pool(), person_mention_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPersonMention)?;
+  let read_person_mention = PersonMention::read(&mut context.pool(), person_mention_id).await?;
 
   if local_user_view.person.id != read_person_mention.recipient_id {
     Err(LemmyErrorType::CouldntUpdateComment)?
@@ -39,9 +37,7 @@ pub async fn mark_person_mention_as_read(
   let person_mention_id = read_person_mention.id;
   let person_id = local_user_view.person.id;
   let person_mention_view =
-    PersonMentionView::read(&mut context.pool(), person_mention_id, Some(person_id))
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPersonMention)?;
+    PersonMentionView::read(&mut context.pool(), person_mention_id, Some(person_id)).await?;
 
   Ok(Json(PersonMentionResponse {
     person_mention_view,

@@ -1,5 +1,6 @@
 // This is for db migrations that require code
 use activitypub_federation::http_signatures::generate_actor_keypair;
+use chrono::Utc;
 use diesel::{
   sql_types::{Nullable, Text},
   ExpressionMethods,
@@ -10,13 +11,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_api_common::{
   lemmy_db_views::structs::SiteView,
-  utils::{
-    generate_followers_url,
-    generate_inbox_url,
-    generate_local_apub_endpoint,
-    generate_shared_inbox_url,
-    EndpointType,
-  },
+  utils::{generate_followers_url, generate_inbox_url, generate_local_apub_endpoint, EndpointType},
 };
 use lemmy_db_schema::{
   source::{
@@ -32,9 +27,12 @@ use lemmy_db_schema::{
     site::{Site, SiteInsertForm, SiteUpdateForm},
   },
   traits::Crud,
-  utils::{get_conn, naive_now, DbPool},
+  utils::{get_conn, DbPool},
 };
-use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
+use lemmy_utils::{
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
+};
 use tracing::info;
 use url::Url;
 
@@ -49,8 +47,8 @@ pub async fn run_advanced_migrations(
   comment_updates_2020_04_03(pool, protocol_and_hostname).await?;
   private_message_updates_2020_05_05(pool, protocol_and_hostname).await?;
   post_thumbnail_url_updates_2020_07_27(pool, protocol_and_hostname).await?;
-  apub_columns_2021_02_02(pool, settings).await?;
-  instance_actor_2022_01_28(pool, protocol_and_hostname, settings).await?;
+  apub_columns_2021_02_02(pool).await?;
+  instance_actor_2022_01_28(pool, protocol_and_hostname).await?;
   regenerate_public_keys_2022_07_05(pool).await?;
   initialize_local_site_2022_10_10(pool, settings).await?;
 
@@ -84,7 +82,7 @@ async fn user_updates_2020_04_02(
       )?),
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(keypair.public_key),
-      last_refreshed_at: Some(naive_now()),
+      last_refreshed_at: Some(Utc::now()),
       ..Default::default()
     };
 
@@ -124,7 +122,7 @@ async fn community_updates_2020_04_02(
       actor_id: Some(community_actor_id.clone()),
       private_key: Some(Some(keypair.private_key)),
       public_key: Some(keypair.public_key),
-      last_refreshed_at: Some(naive_now()),
+      last_refreshed_at: Some(Utc::now()),
       ..Default::default()
     };
 
@@ -282,36 +280,27 @@ async fn post_thumbnail_url_updates_2020_07_27(
 
 /// We are setting inbox and follower URLs for local and remote actors alike, because for now
 /// all federated instances are also Lemmy and use the same URL scheme.
-async fn apub_columns_2021_02_02(pool: &mut DbPool<'_>, settings: &Settings) -> LemmyResult<()> {
+async fn apub_columns_2021_02_02(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   let conn = &mut get_conn(pool).await?;
   info!("Running apub_columns_2021_02_02");
   {
-    use lemmy_db_schema::schema::person::dsl::{inbox_url, person, shared_inbox_url};
+    use lemmy_db_schema::schema::person::dsl::{inbox_url, person};
     let persons = person
       .filter(inbox_url.like("http://changeme%"))
       .load::<Person>(conn)
       .await?;
 
     for p in &persons {
-      let inbox_url_ = generate_inbox_url(&p.actor_id)?;
-      let shared_inbox_url_ = generate_shared_inbox_url(settings)?;
+      let inbox_url_ = generate_inbox_url()?;
       diesel::update(person.find(p.id))
-        .set((
-          inbox_url.eq(inbox_url_),
-          shared_inbox_url.eq(shared_inbox_url_),
-        ))
+        .set((inbox_url.eq(inbox_url_),))
         .get_result::<Person>(conn)
         .await?;
     }
   }
 
   {
-    use lemmy_db_schema::schema::community::dsl::{
-      community,
-      followers_url,
-      inbox_url,
-      shared_inbox_url,
-    };
+    use lemmy_db_schema::schema::community::dsl::{community, followers_url, inbox_url};
     let communities = community
       .filter(inbox_url.like("http://changeme%"))
       .load::<Community>(conn)
@@ -319,14 +308,9 @@ async fn apub_columns_2021_02_02(pool: &mut DbPool<'_>, settings: &Settings) -> 
 
     for c in &communities {
       let followers_url_ = generate_followers_url(&c.actor_id)?;
-      let inbox_url_ = generate_inbox_url(&c.actor_id)?;
-      let shared_inbox_url_ = generate_shared_inbox_url(settings)?;
+      let inbox_url_ = generate_inbox_url()?;
       diesel::update(community.find(c.id))
-        .set((
-          followers_url.eq(followers_url_),
-          inbox_url.eq(inbox_url_),
-          shared_inbox_url.eq(shared_inbox_url_),
-        ))
+        .set((followers_url.eq(followers_url_), inbox_url.eq(inbox_url_)))
         .get_result::<Community>(conn)
         .await?;
     }
@@ -342,10 +326,9 @@ async fn apub_columns_2021_02_02(pool: &mut DbPool<'_>, settings: &Settings) -> 
 async fn instance_actor_2022_01_28(
   pool: &mut DbPool<'_>,
   protocol_and_hostname: &str,
-  settings: &Settings,
 ) -> LemmyResult<()> {
   info!("Running instance_actor_2021_09_29");
-  if let Ok(Some(site_view)) = SiteView::read_local(pool).await {
+  if let Ok(site_view) = SiteView::read_local(pool).await {
     let site = site_view.site;
     // if site already has public key, we dont need to do anything here
     if !site.public_key.is_empty() {
@@ -355,8 +338,8 @@ async fn instance_actor_2022_01_28(
     let actor_id = Url::parse(protocol_and_hostname)?;
     let site_form = SiteUpdateForm {
       actor_id: Some(actor_id.clone().into()),
-      last_refreshed_at: Some(naive_now()),
-      inbox_url: Some(generate_shared_inbox_url(settings)?),
+      last_refreshed_at: Some(Utc::now()),
+      inbox_url: Some(generate_inbox_url()?),
       private_key: Some(Some(key_pair.private_key)),
       public_key: Some(key_pair.public_key),
       ..Default::default()
@@ -441,7 +424,7 @@ async fn initialize_local_site_2022_10_10(
 
   let domain = settings
     .get_hostname_without_port()
-    .expect("must have domain");
+    .with_lemmy_type(LemmyErrorType::Unknown("must have domain".into()))?;
 
   // Upsert this to the instance table
   let instance = Instance::read_or_create(pool, domain).await?;
@@ -457,8 +440,7 @@ async fn initialize_local_site_2022_10_10(
     // Register the user if there's a site setup
     let person_form = PersonInsertForm {
       actor_id: Some(person_actor_id.clone()),
-      inbox_url: Some(generate_inbox_url(&person_actor_id)?),
-      shared_inbox_url: Some(generate_shared_inbox_url(settings)?),
+      inbox_url: Some(generate_inbox_url()?),
       private_key: Some(person_keypair.private_key),
       ..PersonInsertForm::new(
         setup.admin_username.clone(),
@@ -468,12 +450,11 @@ async fn initialize_local_site_2022_10_10(
     };
     let person_inserted = Person::create(pool, &person_form).await?;
 
-    let local_user_form = LocalUserInsertForm::builder()
-      .person_id(person_inserted.id)
-      .password_encrypted(setup.admin_password.clone())
-      .email(setup.admin_email.clone())
-      .admin(Some(true))
-      .build();
+    let local_user_form = LocalUserInsertForm {
+      email: setup.admin_email.clone(),
+      admin: Some(true),
+      ..LocalUserInsertForm::new(person_inserted.id, Some(setup.admin_password.clone()))
+    };
     LocalUser::create(pool, &local_user_form, vec![]).await?;
   };
 
@@ -481,44 +462,43 @@ async fn initialize_local_site_2022_10_10(
   let site_key_pair = generate_actor_keypair()?;
   let site_actor_id = Url::parse(&settings.get_protocol_and_hostname())?;
 
-  let site_form = SiteInsertForm::builder()
-    .name(
-      settings
-        .setup
-        .clone()
-        .map(|s| s.site_name)
-        .unwrap_or_else(|| "New Site".to_string()),
-    )
-    .instance_id(instance.id)
-    .actor_id(Some(site_actor_id.clone().into()))
-    .last_refreshed_at(Some(naive_now()))
-    .inbox_url(Some(generate_shared_inbox_url(settings)?))
-    .private_key(Some(site_key_pair.private_key))
-    .public_key(Some(site_key_pair.public_key))
-    .build();
+  let name = settings
+    .setup
+    .clone()
+    .map(|s| s.site_name)
+    .unwrap_or_else(|| "New Site".to_string());
+  let site_form = SiteInsertForm {
+    actor_id: Some(site_actor_id.clone().into()),
+    last_refreshed_at: Some(Utc::now()),
+    inbox_url: Some(generate_inbox_url()?),
+    private_key: Some(site_key_pair.private_key),
+    public_key: Some(site_key_pair.public_key),
+
+    ..SiteInsertForm::new(name, instance.id)
+  };
   let site = Site::create(pool, &site_form).await?;
 
   // Finally create the local_site row
-  let local_site_form = LocalSiteInsertForm::builder()
-    .site_id(site.id)
-    .site_setup(Some(settings.setup.is_some()))
-    .build();
+  let local_site_form = LocalSiteInsertForm {
+    site_setup: Some(settings.setup.is_some()),
+    ..LocalSiteInsertForm::new(site.id)
+  };
   let local_site = LocalSite::create(pool, &local_site_form).await?;
 
   // Create the rate limit table
-  let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::builder()
-    // TODO these have to be set, because the database defaults are too low for the federation
-    // tests to pass, and there's no way to live update the rate limits without restarting the
-    // server.
-    // This can be removed once live rate limits are enabled.
-    .message(Some(999))
-    .post(Some(999))
-    .register(Some(999))
-    .image(Some(999))
-    .comment(Some(999))
-    .search(Some(999))
-    .local_site_id(local_site.id)
-    .build();
+  let local_site_rate_limit_form = LocalSiteRateLimitInsertForm {
+    message: Some(999),
+    post: Some(999),
+    register: Some(999),
+    image: Some(999),
+    comment: Some(999),
+    search: Some(999),
+    ..LocalSiteRateLimitInsertForm::new(local_site.id)
+  };
+  // TODO these have to be set, because the database defaults are too low for the federation
+  // tests to pass, and there's no way to live update the rate limits without restarting the
+  // server.
+  // This can be removed once live rate limits are enabled.
   LocalSiteRateLimit::create(pool, &local_site_rate_limit_form).await?;
 
   Ok(())

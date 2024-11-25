@@ -1,4 +1,4 @@
-use crate::newtypes::{LocalUserId, PersonId};
+use crate::newtypes::{LocalUserId, PersonId, RegistrationApplicationId};
 #[cfg(feature = "full")]
 use crate::schema::registration_application;
 use chrono::{DateTime, Utc};
@@ -15,10 +15,12 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", ts(export))]
 /// A registration application.
 pub struct RegistrationApplication {
-  pub id: i32,
+  pub id: RegistrationApplicationId,
   pub local_user_id: LocalUserId,
   pub answer: String,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub admin_id: Option<PersonId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub deny_reason: Option<String>,
   pub published: DateTime<Utc>,
 }

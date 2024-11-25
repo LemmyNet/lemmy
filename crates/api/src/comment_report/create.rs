@@ -35,13 +35,16 @@ pub async fn create_comment_report(
 
   let person_id = local_user_view.person.id;
   let comment_id = data.comment_id;
-  let comment_view = CommentView::read(&mut context.pool(), comment_id, None)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+  let comment_view = CommentView::read(
+    &mut context.pool(),
+    comment_id,
+    Some(&local_user_view.local_user),
+  )
+  .await?;
 
   check_community_user_action(
     &local_user_view.person,
-    comment_view.community.id,
+    &comment_view.community,
     &mut context.pool(),
   )
   .await?;
@@ -60,9 +63,8 @@ pub async fn create_comment_report(
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
 
-  let comment_report_view = CommentReportView::read(&mut context.pool(), report.id, person_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindCommentReport)?;
+  let comment_report_view =
+    CommentReportView::read(&mut context.pool(), report.id, person_id).await?;
 
   // Email the admins
   if local_site.reports_email_admins {
@@ -83,8 +85,7 @@ pub async fn create_comment_report(
       reason: data.reason.clone(),
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(CommentReportResponse {
     comment_report_view,

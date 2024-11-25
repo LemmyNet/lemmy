@@ -21,9 +21,12 @@ pub async fn delete_comment(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
   let comment_id = data.comment_id;
-  let orig_comment = CommentView::read(&mut context.pool(), comment_id, None)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindComment)?;
+  let orig_comment = CommentView::read(
+    &mut context.pool(),
+    comment_id,
+    Some(&local_user_view.local_user),
+  )
+  .await?;
 
   // Dont delete it if its already been deleted.
   if orig_comment.comment.deleted == data.deleted {
@@ -32,7 +35,7 @@ pub async fn delete_comment(
 
   check_community_user_action(
     &local_user_view.person,
-    orig_comment.community.id,
+    &orig_comment.community,
     &mut context.pool(),
   )
   .await?;
@@ -55,8 +58,15 @@ pub async fn delete_comment(
   .await
   .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
 
-  let recipient_ids =
-    send_local_notifs(vec![], comment_id, &local_user_view.person, false, &context).await?;
+  let recipient_ids = send_local_notifs(
+    vec![],
+    comment_id,
+    &local_user_view.person,
+    false,
+    &context,
+    Some(&local_user_view),
+  )
+  .await?;
   let updated_comment_id = updated_comment.id;
 
   ActivityChannel::submit_activity(
@@ -66,8 +76,7 @@ pub async fn delete_comment(
       orig_comment.community,
     ),
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(
     build_comment_response(

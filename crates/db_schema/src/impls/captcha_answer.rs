@@ -13,6 +13,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl CaptchaAnswer {
   pub async fn insert(pool: &mut DbPool<'_>, captcha: &CaptchaAnswerForm) -> Result<Self, Error> {
@@ -27,7 +28,7 @@ impl CaptchaAnswer {
   pub async fn check_captcha(
     pool: &mut DbPool<'_>,
     to_check: CheckCaptchaAnswer,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
 
     // fetch requested captcha
@@ -43,25 +44,26 @@ impl CaptchaAnswer {
       .execute(conn)
       .await?;
 
-    Ok(captcha_exists)
+    captcha_exists
+      .then_some(())
+      .ok_or(LemmyErrorType::CaptchaIncorrect.into())
   }
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{
     source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer},
     utils::build_db_pool_for_tests,
   };
+  use lemmy_utils::error::LemmyResult;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_captcha_happy_path() {
-    let pool = &build_db_pool_for_tests().await;
+  async fn test_captcha_happy_path() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let inserted = CaptchaAnswer::insert(
@@ -70,8 +72,7 @@ mod tests {
         answer: "XYZ".to_string(),
       },
     )
-    .await
-    .expect("should not fail to insert captcha");
+    .await?;
 
     let result = CaptchaAnswer::check_captcha(
       pool,
@@ -83,13 +84,13 @@ mod tests {
     .await;
 
     assert!(result.is_ok());
-    assert!(result.unwrap());
+    Ok(())
   }
 
   #[tokio::test]
   #[serial]
-  async fn test_captcha_repeat_answer_fails() {
-    let pool = &build_db_pool_for_tests().await;
+  async fn test_captcha_repeat_answer_fails() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     let inserted = CaptchaAnswer::insert(
@@ -98,8 +99,7 @@ mod tests {
         answer: "XYZ".to_string(),
       },
     )
-    .await
-    .expect("should not fail to insert captcha");
+    .await?;
 
     let _result = CaptchaAnswer::check_captcha(
       pool,
@@ -119,7 +119,8 @@ mod tests {
     )
     .await;
 
-    assert!(result_repeat.is_ok());
-    assert!(!result_repeat.unwrap());
+    assert!(result_repeat.is_err());
+
+    Ok(())
   }
 }

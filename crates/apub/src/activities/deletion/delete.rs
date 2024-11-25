@@ -27,7 +27,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Reportable},
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use url::Url;
 
 #[async_trait::async_trait]
@@ -84,7 +84,7 @@ impl Delete {
   pub(in crate::activities::deletion) fn new(
     actor: &ApubPerson,
     object: DeletableObjects,
-    to: Url,
+    to: Vec<Url>,
     community: Option<&Community>,
     summary: Option<String>,
     context: &Data<LemmyContext>,
@@ -96,7 +96,7 @@ impl Delete {
     let cc: Option<Url> = community.map(|c| c.actor_id.clone().into());
     Ok(Delete {
       actor: actor.actor_id.clone().into(),
-      to: vec![to],
+      to,
       object: IdOrNestedObject::Id(object.id()),
       cc: cc.into_iter().collect(),
       kind: DeleteType::Delete,
@@ -118,7 +118,7 @@ pub(in crate::activities) async fn receive_remove_action(
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {
-        Err(LemmyErrorType::OnlyLocalAdminCanRemoveCommunity)?
+        Err(FederationError::OnlyLocalAdminCanRemoveCommunity)?
       }
       let form = ModRemoveCommunityForm {
         mod_person_id: actor.id,
@@ -175,8 +175,9 @@ pub(in crate::activities) async fn receive_remove_action(
       )
       .await?;
     }
-    DeletableObjects::PrivateMessage(_) => unimplemented!(),
-    DeletableObjects::Person { .. } => unimplemented!(),
+    // TODO these need to be implemented yet, for now, return errors
+    DeletableObjects::PrivateMessage(_) => Err(LemmyErrorType::NotFound)?,
+    DeletableObjects::Person(_) => Err(LemmyErrorType::NotFound)?,
   }
   Ok(())
 }

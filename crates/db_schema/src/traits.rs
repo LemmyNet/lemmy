@@ -1,7 +1,6 @@
 use crate::{
-  diesel::OptionalExtension,
   newtypes::{CommunityId, DbUrl, PersonId},
-  utils::{get_conn, DbPool},
+  utils::{get_conn, uplete, DbPool},
 };
 use diesel::{
   associations::HasTable,
@@ -43,10 +42,10 @@ where
 
   async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error>;
 
-  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Option<Self>, Error> {
+  async fn read(pool: &mut DbPool<'_>, id: Self::IdType) -> Result<Self, Error> {
     let query: Find<Self> = Self::table().find(id);
     let conn = &mut *get_conn(pool).await?;
-    query.first(conn).await.optional()
+    query.first(conn).await
   }
 
   /// when you want to null out a column, you have to send Some(None)), since sending None means you
@@ -77,7 +76,7 @@ pub trait Followable {
   ) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unfollow(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn unfollow(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
   where
     Self: Sized;
 }
@@ -88,7 +87,7 @@ pub trait Joinable {
   async fn join(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn leave(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn leave(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
   where
     Self: Sized;
 }
@@ -104,7 +103,7 @@ pub trait Likeable {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     item_id: Self::IdType,
-  ) -> Result<usize, Error>
+  ) -> Result<uplete::Count, Error>
   where
     Self: Sized;
 }
@@ -115,7 +114,7 @@ pub trait Bannable {
   async fn ban(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn unban(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
   where
     Self: Sized;
 }
@@ -126,7 +125,7 @@ pub trait Saveable {
   async fn save(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn unsave(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
   where
     Self: Sized;
 }
@@ -137,7 +136,7 @@ pub trait Blockable {
   async fn block(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<Self, Error>
   where
     Self: Sized;
-  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<usize, Error>
+  async fn unblock(pool: &mut DbPool<'_>, form: &Self::Form) -> Result<uplete::Count, Error>
   where
     Self: Sized;
 }

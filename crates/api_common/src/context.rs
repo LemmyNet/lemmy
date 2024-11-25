@@ -55,9 +55,10 @@ impl LemmyContext {
   /// Initialize a context for use in tests which blocks federation network calls.
   ///
   /// Do not use this in production code.
-  pub async fn init_test_context() -> Data<LemmyContext> {
+  #[allow(clippy::expect_used)]
+  pub async fn init_test_federation_config() -> FederationConfig<LemmyContext> {
     // call this to run migrations
-    let pool = build_db_pool_for_tests().await;
+    let pool = build_db_pool_for_tests();
 
     let client = client_builder(&SETTINGS).build().expect("build client");
 
@@ -70,14 +71,19 @@ impl LemmyContext {
     let rate_limit_cell = RateLimitCell::with_test_config();
 
     let context = LemmyContext::create(pool, client, secret, rate_limit_cell.clone());
-    let config = FederationConfig::builder()
+
+    FederationConfig::builder()
       .domain(context.settings().hostname.clone())
       .app_data(context)
+      .debug(true)
       // Dont allow any network fetches
       .http_fetch_limit(0)
       .build()
       .await
-      .expect("build federation config");
+      .expect("build federation config")
+  }
+  pub async fn init_test_context() -> Data<LemmyContext> {
+    let config = Self::init_test_federation_config().await;
     config.to_request_data()
   }
 }

@@ -10,13 +10,14 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    local_user::LocalUser,
     moderator::{AdminPurgePerson, AdminPurgePersonForm},
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn purge_person(
@@ -27,9 +28,16 @@ pub async fn purge_person(
   // Only let admin purge an item
   is_admin(&local_user_view)?;
 
-  let person = Person::read(&mut context.pool(), data.person_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?;
+  // Also check that you're a higher admin
+  LocalUser::is_higher_admin_check(
+    &mut context.pool(),
+    local_user_view.person.id,
+    vec![data.person_id],
+  )
+  .await?;
+
+  let person = Person::read(&mut context.pool(), data.person_id).await?;
+
   ban_nonlocal_user_from_local_communities(
     &local_user_view,
     &person,
@@ -67,13 +75,12 @@ pub async fn purge_person(
       moderator: local_user_view.person,
       banned_user: person,
       reason: data.reason.clone(),
-      remove_data: Some(true),
+      remove_or_restore_data: Some(true),
       ban: true,
       expires: None,
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(SuccessResponse::default()))
 }

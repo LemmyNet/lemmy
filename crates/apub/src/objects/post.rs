@@ -1,6 +1,7 @@
 use crate::{
-  activities::{verify_is_public, verify_person_in_community},
+  activities::{generate_to, verify_person_in_community, verify_visibility},
   check_apub_id_valid_with_strictness,
+  fetcher::markdown_links::{markdown_rewrite_remote_links_opt, to_local_url},
   local_site_data_cached,
   objects::{read_from_string_or_source_opt, verify_is_remote_object},
   protocol::{
@@ -15,7 +16,6 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  kinds::public,
   protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
   traits::Object,
 };
@@ -35,13 +35,16 @@ use lemmy_db_schema::{
     post::{Post, PostInsertForm, PostUpdateForm},
   },
   traits::Crud,
-  utils::naive_now,
 };
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyResult},
   spawn_try_task,
-  utils::{markdown::markdown_to_html, slurs::check_slurs_opt, validation::check_url_scheme},
+  utils::{
+    markdown::markdown_to_html,
+    slurs::check_slurs_opt,
+    validation::{is_url_blocked, is_valid_url},
+  },
 };
 use std::ops::Deref;
 use stringreader::StringReader;
@@ -103,14 +106,10 @@ impl Object for ApubPost {
   #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Page> {
     let creator_id = self.creator_id;
-    let creator = Person::read(&mut context.pool(), creator_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindPerson)?;
+    let creator = Person::read(&mut context.pool(), creator_id).await?;
     let community_id = self.community_id;
-    let community = Community::read(&mut context.pool(), community_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
-    let language = LanguageTag::new_single(self.language_id, &mut context.pool()).await?;
+    let community = Community::read(&mut context.pool(), community_id).await?;
+    let language = Some(LanguageTag::new_single(self.language_id, &mut context.pool()).await?);
 
     let attachment = self
       .url
@@ -134,7 +133,7 @@ impl Object for ApubPost {
       kind: PageType::Page,
       id: self.ap_id.clone().into(),
       attributed_to: AttributedTo::Lemmy(creator.actor_id.into()),
-      to: vec![community.actor_id.clone().into(), public()],
+      to: vec![generate_to(&community)?],
       cc: vec![],
       name: Some(self.name.clone()),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
@@ -171,7 +170,7 @@ impl Object for ApubPost {
     check_slurs_opt(&page.name, slur_regex)?;
 
     verify_domains_match(page.creator()?.inner(), page.id.inner())?;
-    verify_is_public(&page.to, &page.cc)?;
+    verify_visibility(&page.to, &page.cc, &community)?;
     Ok(())
   }
 
@@ -180,8 +179,12 @@ impl Object for ApubPost {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
     if community.posting_restricted_to_mods {
-      CommunityModeratorView::is_community_moderator(&mut context.pool(), community.id, creator.id)
-        .await?;
+      CommunityModeratorView::check_is_community_moderator(
+        &mut context.pool(),
+        community.id,
+        creator.id,
+      )
+      .await?;
     }
     let mut name = page
       .name
@@ -220,46 +223,52 @@ impl Object for ApubPost {
       None
     };
 
-    if let Some(url) = &url {
-      check_url_scheme(url)?;
-    }
+    let url_blocklist = get_url_blocklist(context).await?;
+
+    let url = if let Some(url) = url {
+      is_url_blocked(&url, &url_blocklist)?;
+      is_valid_url(&url)?;
+      to_local_url(url.as_str(), context).await.or(Some(url))
+    } else {
+      None
+    };
 
     let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
 
     let slur_regex = &local_site_opt_to_slur_regex(&local_site);
-    let url_blocklist = get_url_blocklist(context).await?;
 
     let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
     let body = process_markdown_opt(&body, slur_regex, &url_blocklist, context).await?;
-    let language_id =
-      LanguageTag::to_language_id_single(page.language, &mut context.pool()).await?;
+    let body = markdown_rewrite_remote_links_opt(body, context).await;
+    let language_id = Some(
+      LanguageTag::to_language_id_single(page.language.unwrap_or_default(), &mut context.pool())
+        .await?,
+    );
 
-    let form = PostInsertForm::builder()
-      .name(name)
-      .url(url.map(Into::into))
-      .body(body)
-      .alt_text(alt_text)
-      .creator_id(creator.id)
-      .community_id(community.id)
-      .published(page.published.map(Into::into))
-      .updated(page.updated.map(Into::into))
-      .deleted(Some(false))
-      .nsfw(page.sensitive)
-      .ap_id(Some(page.id.clone().into()))
-      .local(Some(false))
-      .language_id(language_id)
-      .build();
+    let form = PostInsertForm {
+      url: url.map(Into::into),
+      body,
+      alt_text,
+      published: page.published.map(Into::into),
+      updated: page.updated.map(Into::into),
+      deleted: Some(false),
+      nsfw: page.sensitive,
+      ap_id: Some(page.id.clone().into()),
+      local: Some(false),
+      language_id,
+      ..PostInsertForm::new(name, creator.id, community.id)
+    };
 
-    let timestamp = page.updated.or(page.published).unwrap_or_else(naive_now);
+    let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
     let post_ = post.clone();
     let context_ = context.reset_request_count();
 
     // Generates a post thumbnail in background task, because some sites can be very slow to
     // respond.
-    spawn_try_task(async move {
-      generate_post_link_metadata(post_, None, |_| None, local_site, context_).await
-    });
+    spawn_try_task(
+      async move { generate_post_link_metadata(post_, None, |_| None, context_).await },
+    );
 
     Ok(post.into())
   }
@@ -297,7 +306,7 @@ mod tests {
     assert_eq!(post.body.as_ref().map(std::string::String::len), Some(45));
     assert!(!post.locked);
     assert!(!post.featured_community);
-    assert_eq!(context.request_count(), 0);
+    assert_eq!(context.request_count(), 1);
 
     Post::delete(&mut context.pool(), post.id).await?;
     Person::delete(&mut context.pool(), person.id).await?;

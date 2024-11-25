@@ -1,5 +1,4 @@
 use crate::{
-  diesel::OptionalExtension,
   newtypes::LocalUserId,
   schema::password_reset_request::dsl::{password_reset_request, published, token},
   source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
@@ -32,20 +31,17 @@ impl PasswordResetRequest {
       .await
   }
 
-  pub async fn read_and_delete(pool: &mut DbPool<'_>, token_: &str) -> Result<Option<Self>, Error> {
+  pub async fn read_and_delete(pool: &mut DbPool<'_>, token_: &str) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     delete(password_reset_request)
       .filter(token.eq(token_))
       .filter(published.gt(now.into_sql::<Timestamptz>() - 1.days()))
       .get_result(conn)
       .await
-      .optional()
   }
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{
@@ -65,17 +61,14 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_password_reset() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
     // Setup
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy prw");
     let inserted_person = Person::create(pool, &new_person).await?;
-    let new_local_user = LocalUserInsertForm::builder()
-      .person_id(inserted_person.id)
-      .password_encrypted("pass".to_string())
-      .build();
+    let new_local_user = LocalUserInsertForm::test_form(inserted_person.id);
     let inserted_local_user = LocalUser::create(pool, &new_local_user, vec![]).await?;
 
     // Create password reset token
@@ -84,9 +77,7 @@ mod tests {
       PasswordResetRequest::create(pool, inserted_local_user.id, token.to_string()).await?;
 
     // Read it and verify
-    let read_password_reset_request = PasswordResetRequest::read_and_delete(pool, token)
-      .await?
-      .unwrap();
+    let read_password_reset_request = PasswordResetRequest::read_and_delete(pool, token).await?;
     assert_eq!(
       inserted_password_reset_request.id,
       read_password_reset_request.id
@@ -105,8 +96,8 @@ mod tests {
     );
 
     // Cannot reuse same token again
-    let read_password_reset_request = PasswordResetRequest::read_and_delete(pool, token).await?;
-    assert!(read_password_reset_request.is_none());
+    let read_password_reset_request = PasswordResetRequest::read_and_delete(pool, token).await;
+    assert!(read_password_reset_request.is_err());
 
     // Cleanup
     let num_deleted = Person::delete(pool, inserted_person.id).await?;

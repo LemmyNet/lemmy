@@ -16,11 +16,11 @@ use crate::{
   utils::{
     functions::{coalesce, lower},
     get_conn,
-    naive_now,
     now,
     DbPool,
   },
 };
+use chrono::Utc;
 use diesel::{
   dsl::{count_star, insert_into},
   result::Error,
@@ -51,10 +51,10 @@ impl Instance {
       Some(i) => Ok(i),
       None => {
         // Instance not in database yet, insert it
-        let form = InstanceForm::builder()
-          .domain(domain_)
-          .updated(Some(naive_now()))
-          .build();
+        let form = InstanceForm {
+          updated: Some(Utc::now()),
+          ..InstanceForm::new(domain_)
+        };
         insert_into(instance::table)
           .values(&form)
           // Necessary because this method may be called concurrently for the same domain. This
@@ -67,6 +67,11 @@ impl Instance {
       }
     }
   }
+  pub async fn read(pool: &mut DbPool<'_>, instance_id: InstanceId) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    instance::table.find(instance_id).first(conn).await
+  }
+
   pub async fn update(
     pool: &mut DbPool<'_>,
     instance_id: InstanceId,

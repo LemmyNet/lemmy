@@ -2,7 +2,6 @@ use cfg_if::cfg_if;
 
 cfg_if! {
   if #[cfg(feature = "full")] {
-    pub mod apub;
     pub mod cache_header;
     pub mod email;
     pub mod rate_limit;
@@ -14,7 +13,6 @@ cfg_if! {
 }
 
 pub mod error;
-pub use error::LemmyErrorType;
 use std::time::Duration;
 
 pub type ConnectionId = usize;
@@ -30,6 +28,8 @@ pub const CACHE_DURATION_FEDERATION: Duration = Duration::from_secs(60);
 
 pub const CACHE_DURATION_API: Duration = Duration::from_secs(1);
 
+pub const MAX_COMMENT_DEPTH_LIMIT: usize = 50;
+
 #[macro_export]
 macro_rules! location_info {
   () => {
@@ -42,7 +42,10 @@ macro_rules! location_info {
   };
 }
 
-#[cfg(feature = "full")]
+cfg_if! {
+  if #[cfg(feature = "full")] {
+use moka::future::Cache;use std::fmt::Debug;use std::hash::Hash;
+
 /// tokio::spawn, but accepts a future that may fail and also
 /// * logs errors
 /// * attaches the spawned task to the tracing span of the caller for better logging
@@ -59,4 +62,21 @@ pub fn spawn_try_task(
     .in_current_span(), /* this makes sure the inner tracing gets the same context as where
                          * spawn was called */
   );
+}
+
+pub fn build_cache<K, V>() -> Cache<K, V>
+where
+  K: Debug + Eq + Hash + Send + Sync + 'static,
+  V: Debug + Clone + Send + Sync + 'static,
+{
+  Cache::<K, V>::builder()
+    .max_capacity(1)
+    .time_to_live(CACHE_DURATION_API)
+    .build()
+}
+
+#[cfg(feature = "full")]
+pub type CacheLock<T> = std::sync::LazyLock<Cache<(), T>>;
+
+  }
 }

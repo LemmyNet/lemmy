@@ -1,17 +1,23 @@
 import {
+  ApproveCommunityPendingFollower,
   BlockCommunity,
   BlockCommunityResponse,
   BlockInstance,
   BlockInstanceResponse,
   CommunityId,
+  CommunityVisibility,
   CreatePrivateMessageReport,
   DeleteImage,
   EditCommunity,
+  GetCommunityPendingFollowsCountResponse,
   GetReplies,
   GetRepliesResponse,
   GetUnreadCountResponse,
   InstanceId,
   LemmyHttp,
+  ListCommunityPendingFollows,
+  ListCommunityPendingFollowsResponse,
+  PersonId,
   PostView,
   PrivateMessageReportResponse,
   SuccessResponse,
@@ -83,7 +89,7 @@ export const fetchFunction = fetch;
 export const imageFetchLimit = 50;
 export const sampleImage =
   "https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg";
-export const sampleSite = "https://yahoo.com";
+export const sampleSite = "https://w3.org";
 
 export const alphaUrl = "http://127.0.0.1:8541";
 export const betaUrl = "http://127.0.0.1:8551";
@@ -197,8 +203,8 @@ export async function setupLogins() {
     // (because last_successful_id is set to current id when federation to an instance is first started)
     // only needed the first time so do in this try
     await delay(10_000);
-  } catch (_) {
-    console.log("Communities already exist");
+  } catch {
+    //console.log("Communities already exist");
   }
 }
 
@@ -419,13 +425,13 @@ export async function banPersonFromSite(
   api: LemmyHttp,
   person_id: number,
   ban: boolean,
-  remove_data: boolean,
+  remove_or_restore_data: boolean,
 ): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
     person_id,
     ban,
-    remove_data,
+    remove_or_restore_data,
   };
   return api.banPerson(form);
 }
@@ -434,13 +440,13 @@ export async function banPersonFromCommunity(
   api: LemmyHttp,
   person_id: number,
   community_id: number,
-  remove_data: boolean,
+  remove_or_restore_data: boolean,
   ban: boolean,
 ): Promise<BanFromCommunityResponse> {
   let form: BanFromCommunity = {
     person_id,
     community_id,
-    remove_data: remove_data,
+    remove_or_restore_data,
     ban,
   };
   return api.banFromCommunity(form);
@@ -554,12 +560,14 @@ export async function likeComment(
 export async function createCommunity(
   api: LemmyHttp,
   name_: string = randomString(10),
+  visibility: CommunityVisibility = "Public",
 ): Promise<CommunityResponse> {
   let description = "a sample description";
   let form: CreateCommunity = {
     name: name_,
     title: name_,
     description,
+    visibility,
   };
   return api.createCommunity(form);
 }
@@ -688,9 +696,8 @@ export async function saveUserSettingsBio(
   let form: SaveUserSettings = {
     show_nsfw: true,
     blur_nsfw: false,
-    auto_expand: true,
     theme: "darkly",
-    default_sort_type: "Active",
+    default_post_sort_type: "Active",
     default_listing_type: "All",
     interface_language: "en",
     show_avatars: true,
@@ -709,8 +716,7 @@ export async function saveUserSettingsFederated(
   let form: SaveUserSettings = {
     show_nsfw: false,
     blur_nsfw: true,
-    auto_expand: false,
-    default_sort_type: "Hot",
+    default_post_sort_type: "Hot",
     default_listing_type: "All",
     interface_language: "",
     avatar,
@@ -872,6 +878,39 @@ export function blockCommunity(
   return api.blockCommunity(form);
 }
 
+export function listCommunityPendingFollows(
+  api: LemmyHttp,
+): Promise<ListCommunityPendingFollowsResponse> {
+  let form: ListCommunityPendingFollows = {
+    pending_only: true,
+    all_communities: false,
+    page: 1,
+    limit: 50,
+  };
+  return api.listCommunityPendingFollows(form);
+}
+
+export function getCommunityPendingFollowsCount(
+  api: LemmyHttp,
+  community_id: CommunityId,
+): Promise<GetCommunityPendingFollowsCountResponse> {
+  return api.getCommunityPendingFollowsCount(community_id);
+}
+
+export function approveCommunityPendingFollow(
+  api: LemmyHttp,
+  community_id: CommunityId,
+  follower_id: PersonId,
+  approve: boolean = true,
+): Promise<SuccessResponse> {
+  let form: ApproveCommunityPendingFollower = {
+    community_id,
+    follower_id,
+    approve,
+  };
+  return api.approveCommunityPendingFollow(form);
+}
+
 export function delay(millis = 500) {
   return new Promise(resolve => setTimeout(resolve, millis));
 }
@@ -899,7 +938,6 @@ export async function deleteAllImages(api: LemmyHttp) {
   const imagesRes = await api.listAllMedia({
     limit: imageFetchLimit,
   });
-  imagesRes.images;
   Promise.all(
     imagesRes.images
       .map(image => {
@@ -949,7 +987,7 @@ export function getCommentParentId(comment: Comment): number | undefined {
   if (split.length > 1) {
     return Number(split[split.length - 2]);
   } else {
-    console.log(`Failed to extract comment parent id from ${comment.path}`);
+    console.error(`Failed to extract comment parent id from ${comment.path}`);
     return undefined;
   }
 }
@@ -963,8 +1001,12 @@ export async function waitUntil<T>(
   let retry = 0;
   let result;
   while (retry++ < retries) {
-    result = await fetcher();
-    if (checker(result)) return result;
+    try {
+      result = await fetcher();
+      if (checker(result)) return result;
+    } catch (error) {
+      console.error(error);
+    }
     await delay(
       delaySeconds[Math.min(retry - 1, delaySeconds.length - 1)] * 1000,
     );

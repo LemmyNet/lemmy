@@ -12,6 +12,7 @@ use captcha::{gen, Difficulty};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{CaptchaResponse, GetCaptchaResponse},
+  LemmyErrorType,
 };
 use lemmy_db_schema::source::{
   captcha_answer::{CaptchaAnswer, CaptchaAnswerForm},
@@ -37,7 +38,9 @@ pub async fn get_captcha(context: Data<LemmyContext>) -> LemmyResult<HttpRespons
 
   let answer = captcha.chars_as_string();
 
-  let png = captcha.as_base64().expect("failed to generate captcha");
+  let png = captcha
+    .as_base64()
+    .ok_or(LemmyErrorType::CouldntCreateImageCaptcha)?;
 
   let wav = captcha_as_wav_base64(&captcha)?;
 

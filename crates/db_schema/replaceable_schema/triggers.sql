@@ -38,7 +38,7 @@ AS $a$
 BEGIN
     EXECUTE replace($b$
         -- When a thing gets a vote, update its aggregates and its creator's aggregates
-        CALL r.create_triggers ('thing_like', $$
+        CALL r.create_triggers ('thing_actions', $$
             BEGIN
                 WITH thing_diff AS ( UPDATE
                         thing_aggregates AS a
@@ -46,7 +46,8 @@ BEGIN
                         score = a.score + diff.upvotes - diff.downvotes, upvotes = a.upvotes + diff.upvotes, downvotes = a.downvotes + diff.downvotes, controversy_rank = r.controversy_rank ((a.upvotes + diff.upvotes)::numeric, (a.downvotes + diff.downvotes)::numeric)
                     FROM (
                         SELECT
-                            (thing_like).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (thing_like).thing_id) AS diff
+                            (thing_actions).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows
+                WHERE (thing_actions).like_score IS NOT NULL GROUP BY (thing_actions).thing_id) AS diff
             WHERE
                 a.thing_id = diff.thing_id
                     AND (diff.upvotes, diff.downvotes) != (0, 0)
@@ -360,7 +361,7 @@ CREATE TRIGGER comment_count
 -- Count subscribers for communities.
 -- subscribers should be updated only when a local community is followed by a local or remote person.
 -- subscribers_local should be updated only when a local person follows a local or remote community.
-CALL r.create_triggers ('community_follower', $$
+CALL r.create_triggers ('community_actions', $$
 BEGIN
     UPDATE
         community_aggregates AS a
@@ -368,10 +369,11 @@ BEGIN
         subscribers = a.subscribers + diff.subscribers, subscribers_local = a.subscribers_local + diff.subscribers_local
     FROM (
         SELECT
-            (community_follower).community_id, coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers, coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local
+            (community_actions).community_id, coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers, coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local
         FROM select_old_and_new_rows AS old_and_new_rows
-    LEFT JOIN community ON community.id = (community_follower).community_id
-    LEFT JOIN person ON person.id = (community_follower).person_id GROUP BY (community_follower).community_id) AS diff
+    LEFT JOIN community ON community.id = (community_actions).community_id
+    LEFT JOIN person ON person.id = (community_actions).person_id
+    WHERE (community_actions).followed IS NOT NULL GROUP BY (community_actions).community_id) AS diff
 WHERE
     a.community_id = diff.community_id
         AND (diff.subscribers, diff.subscribers_local) != (0, 0);
@@ -541,7 +543,7 @@ CREATE FUNCTION r.delete_follow_before_person ()
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    DELETE FROM community_follower AS c
+    DELETE FROM community_actions AS c
     WHERE c.person_id = OLD.id;
     RETURN OLD;
 END;
@@ -564,6 +566,10 @@ BEGIN
     IF NOT (NEW.path ~ ('*.' || id)::lquery) THEN
         NEW.path = NEW.path || id;
     END IF;
+    -- Set local ap_id
+    IF NEW.local THEN
+        NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/comment/' || id));
+    END IF;
     RETURN NEW;
 END
 $$;
@@ -572,4 +578,40 @@ CREATE TRIGGER change_values
     BEFORE INSERT OR UPDATE ON comment
     FOR EACH ROW
     EXECUTE FUNCTION r.comment_change_values ();
+
+CREATE FUNCTION r.post_change_values ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Set local ap_id
+    IF NEW.local THEN
+        NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/post/' || NEW.id::text));
+    END IF;
+    RETURN NEW;
+END
+$$;
+
+CREATE TRIGGER change_values
+    BEFORE INSERT ON post
+    FOR EACH ROW
+    EXECUTE FUNCTION r.post_change_values ();
+
+CREATE FUNCTION r.private_message_change_values ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Set local ap_id
+    IF NEW.local THEN
+        NEW.ap_id = coalesce(NEW.ap_id, r.local_url ('/private_message/' || NEW.id::text));
+    END IF;
+    RETURN NEW;
+END
+$$;
+
+CREATE TRIGGER change_values
+    BEFORE INSERT ON private_message
+    FOR EACH ROW
+    EXECUTE FUNCTION r.private_message_change_values ();
 

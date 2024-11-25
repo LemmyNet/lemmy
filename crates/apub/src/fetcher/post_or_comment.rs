@@ -12,10 +12,7 @@ use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
 };
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  LemmyErrorType,
-};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Deserialize;
 use url::Url;
 
@@ -29,7 +26,7 @@ pub enum PostOrComment {
 #[serde(untagged)]
 pub enum PageOrNote {
   Page(Box<Page>),
-  Note(Note),
+  Note(Box<Note>),
 }
 
 #[async_trait::async_trait]
@@ -61,8 +58,11 @@ impl Object for PostOrComment {
     }
   }
 
-  async fn into_json(self, _data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    unimplemented!()
+  async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
+    Ok(match self {
+      PostOrComment::Post(p) => PageOrNote::Page(Box::new(p.into_json(data).await?)),
+      PostOrComment::Comment(c) => PageOrNote::Note(Box::new(c.into_json(data).await?)),
+    })
   }
 
   #[tracing::instrument(skip_all)]
@@ -81,7 +81,7 @@ impl Object for PostOrComment {
   async fn from_json(apub: PageOrNote, context: &Data<LemmyContext>) -> LemmyResult<Self> {
     Ok(match apub {
       PageOrNote::Page(p) => PostOrComment::Post(ApubPost::from_json(*p, context).await?),
-      PageOrNote::Note(n) => PostOrComment::Comment(ApubComment::from_json(n, context).await?),
+      PageOrNote::Note(n) => PostOrComment::Comment(ApubComment::from_json(*n, context).await?),
     })
   }
 }
@@ -94,15 +94,9 @@ impl InCommunity for PostOrComment {
       PostOrComment::Comment(c) => {
         Post::read(&mut context.pool(), c.post_id)
           .await?
-          .ok_or(LemmyErrorType::CouldntFindPost)?
           .community_id
       }
     };
-    Ok(
-      Community::read(&mut context.pool(), cid)
-        .await?
-        .ok_or(LemmyErrorType::CouldntFindCommunity)?
-        .into(),
-    )
+    Ok(Community::read(&mut context.pool(), cid).await?.into())
   }
 }

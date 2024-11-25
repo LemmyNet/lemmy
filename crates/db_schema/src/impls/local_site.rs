@@ -5,9 +5,8 @@ use crate::{
 };
 use diesel::{dsl::insert_into, result::Error};
 use diesel_async::RunQueryDsl;
-use lemmy_utils::{error::LemmyResult, CACHE_DURATION_API};
-use moka::future::Cache;
-use once_cell::sync::Lazy;
+use lemmy_utils::{build_cache, error::LemmyResult, CacheLock};
+use std::sync::LazyLock;
 
 impl LocalSite {
   pub async fn create(pool: &mut DbPool<'_>, form: &LocalSiteInsertForm) -> Result<Self, Error> {
@@ -18,12 +17,7 @@ impl LocalSite {
       .await
   }
   pub async fn read(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
-    static CACHE: Lazy<Cache<(), LocalSite>> = Lazy::new(|| {
-      Cache::builder()
-        .max_capacity(1)
-        .time_to_live(CACHE_DURATION_API)
-        .build()
-    });
+    static CACHE: CacheLock<LocalSite> = LazyLock::new(build_cache);
     Ok(
       CACHE
         .try_get_with((), async {

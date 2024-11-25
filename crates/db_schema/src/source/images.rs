@@ -23,6 +23,7 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", diesel(primary_key(pictrs_alias)))]
 pub struct LocalImage {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub local_user_id: Option<LocalUserId>,
   pub pictrs_alias: String,
   pub pictrs_delete_token: String,
@@ -49,13 +50,6 @@ pub struct LocalImageForm {
 pub struct RemoteImage {
   pub link: DbUrl,
   pub published: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = remote_image))]
-pub struct RemoteImageForm {
-  pub link: DbUrl,
 }
 
 #[skip_serializing_none]

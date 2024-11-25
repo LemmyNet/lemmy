@@ -1,6 +1,6 @@
 use crate::{
   fetcher::user_or_community::{PersonOrGroup, UserOrCommunity},
-  objects::instance::ApubSite,
+  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::objects::instance::Instance,
 };
 use activitypub_federation::{
@@ -9,6 +9,7 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_common::context::LemmyContext;
+use lemmy_db_schema::newtypes::InstanceId;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
@@ -41,11 +42,14 @@ impl Object for SiteOrCommunityOrUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn read_from_id(
-    _object_id: Url,
-    _data: &Data<Self::DataType>,
-  ) -> LemmyResult<Option<Self>> {
-    unimplemented!();
+  async fn read_from_id(object_id: Url, data: &Data<Self::DataType>) -> LemmyResult<Option<Self>> {
+    let site = ApubSite::read_from_id(object_id.clone(), data).await?;
+    Ok(match site {
+      Some(o) => Some(SiteOrCommunityOrUser::Site(o)),
+      None => UserOrCommunity::read_from_id(object_id, data)
+        .await?
+        .map(SiteOrCommunityOrUser::UserOrCommunity),
+    })
   }
 
   #[tracing::instrument(skip_all)]
@@ -56,8 +60,13 @@ impl Object for SiteOrCommunityOrUser {
     }
   }
 
-  async fn into_json(self, _data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    unimplemented!()
+  async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
+    Ok(match self {
+      SiteOrCommunityOrUser::Site(p) => SiteOrPersonOrGroup::Instance(p.into_json(data).await?),
+      SiteOrCommunityOrUser::UserOrCommunity(p) => {
+        SiteOrPersonOrGroup::PersonOrGroup(p.into_json(data).await?)
+      }
+    })
   }
 
   #[tracing::instrument(skip_all)]
@@ -75,8 +84,18 @@ impl Object for SiteOrCommunityOrUser {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn from_json(_apub: Self::Kind, _data: &Data<Self::DataType>) -> LemmyResult<Self> {
-    unimplemented!();
+  async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> LemmyResult<Self> {
+    Ok(match apub {
+      SiteOrPersonOrGroup::Instance(a) => {
+        SiteOrCommunityOrUser::Site(ApubSite::from_json(a, data).await?)
+      }
+      SiteOrPersonOrGroup::PersonOrGroup(a) => SiteOrCommunityOrUser::UserOrCommunity(match a {
+        PersonOrGroup::Person(p) => UserOrCommunity::User(ApubPerson::from_json(p, data).await?),
+        PersonOrGroup::Group(g) => {
+          UserOrCommunity::Community(ApubCommunity::from_json(g, data).await?)
+        }
+      }),
+    })
   }
 }
 
@@ -103,6 +122,19 @@ impl Actor for SiteOrCommunityOrUser {
   }
 
   fn inbox(&self) -> Url {
-    unimplemented!()
+    match self {
+      SiteOrCommunityOrUser::Site(u) => u.inbox(),
+      SiteOrCommunityOrUser::UserOrCommunity(c) => c.inbox(),
+    }
+  }
+}
+
+impl SiteOrCommunityOrUser {
+  pub fn instance_id(&self) -> InstanceId {
+    match self {
+      SiteOrCommunityOrUser::Site(s) => s.instance_id,
+      SiteOrCommunityOrUser::UserOrCommunity(UserOrCommunity::User(u)) => u.instance_id,
+      SiteOrCommunityOrUser::UserOrCommunity(UserOrCommunity::Community(c)) => c.instance_id,
+    }
   }
 }

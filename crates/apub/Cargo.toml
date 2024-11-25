@@ -31,20 +31,18 @@ serde = { workspace = true }
 actix-web = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-strum_macros = { workspace = true }
+strum = { workspace = true }
 url = { workspace = true }
-http = { workspace = true }
 futures = { workspace = true }
 itertools = { workspace = true }
 uuid = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }
 reqwest = { workspace = true }
-once_cell = { workspace = true }
 moka.workspace = true
 serde_with.workspace = true
 html2md = "0.2.14"
-html2text = "0.12.5"
+html2text = "0.12.6"
 stringreader = "0.1.1"
 enum_delegate = "0.2.0"
 

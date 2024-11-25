@@ -2,9 +2,10 @@ use crate::{
   activities::{
     generate_activity_id,
     generate_announce_activity_id,
+    generate_to,
     send_lemmy_activity,
-    verify_is_public,
     verify_person_in_community,
+    verify_visibility,
   },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
@@ -18,7 +19,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  kinds::{activity::AnnounceType, public},
+  kinds::activity::AnnounceType,
   traits::{ActivityHandler, Actor},
 };
 use lemmy_api_common::context::LemmyContext;
@@ -26,7 +27,7 @@ use lemmy_db_schema::{
   source::{activity::ActivitySendTargets, community::CommunityFollower},
   CommunityVisibility,
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use serde_json::Value;
 use url::Url;
 
@@ -54,7 +55,7 @@ impl ActivityHandler for RawAnnouncableActivities {
 
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = activity {
-      Err(LemmyErrorType::CannotReceivePage)?
+      Err(FederationError::CannotReceivePage)?
     }
 
     // Need to treat community as optional here because `Delete/PrivateMessage` gets routed through
@@ -92,7 +93,7 @@ impl AnnounceActivity {
       generate_announce_activity_id(inner_kind, &context.settings().get_protocol_and_hostname())?;
     Ok(AnnounceActivity {
       actor: community.id().into(),
-      to: vec![public()],
+      to: vec![generate_to(community)?],
       object: IdOrNestedObject::NestedObject(object),
       cc: community
         .followers_url
@@ -129,7 +130,7 @@ impl AnnounceActivity {
         actor: c.actor.clone().into_inner(),
         other: serde_json::to_value(c.object)?
           .as_object()
-          .expect("is object")
+          .ok_or(FederationError::Unreachable)?
           .clone(),
       };
       let announce_compat = AnnounceActivity::new(announcable_page, community, context)?;
@@ -154,7 +155,6 @@ impl ActivityHandler for AnnounceActivity {
 
   #[tracing::instrument(skip_all)]
   async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
-    verify_is_public(&self.to, &self.cc)?;
     Ok(())
   }
 
@@ -165,10 +165,11 @@ impl ActivityHandler for AnnounceActivity {
 
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
-      Err(LemmyErrorType::CannotReceivePage)?
+      Err(FederationError::CannotReceivePage)?
     }
 
     let community = object.community(context).await?;
+    verify_visibility(&self.to, &self.cc, &community)?;
     can_accept_activity_in_community(&Some(community), context).await?;
 
     // verify here in order to avoid fetching the object twice over http
@@ -213,14 +214,12 @@ async fn can_accept_activity_in_community(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   if let Some(community) = community {
-    if !community.local
-      && !CommunityFollower::has_local_followers(&mut context.pool(), community.id).await?
-    {
-      Err(LemmyErrorType::CommunityHasNoFollowers)?
-    }
     // Local only community can't federate
-    if community.visibility != CommunityVisibility::Public {
-      return Err(LemmyErrorType::CouldntFindCommunity.into());
+    if community.visibility == CommunityVisibility::LocalOnly {
+      return Err(LemmyErrorType::NotFound.into());
+    }
+    if !community.local {
+      CommunityFollower::check_has_local_followers(&mut context.pool(), community.id).await?
     }
   }
   Ok(())

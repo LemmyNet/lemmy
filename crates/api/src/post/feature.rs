@@ -9,6 +9,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
+    community::Community,
     moderator::{ModFeaturePost, ModFeaturePostForm},
     post::{Post, PostUpdateForm},
   },
@@ -16,7 +17,7 @@ use lemmy_db_schema::{
   PostFeatureType,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn feature_post(
@@ -25,13 +26,12 @@ pub async fn feature_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let post_id = data.post_id;
-  let orig_post = Post::read(&mut context.pool(), post_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+  let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
+  let community = Community::read(&mut context.pool(), orig_post.community_id).await?;
   check_community_mod_action(
     &local_user_view.person,
-    orig_post.community_id,
+    &community,
     false,
     &mut context.pool(),
   )
@@ -69,14 +69,7 @@ pub async fn feature_post(
   ActivityChannel::submit_activity(
     SendActivityData::FeaturePost(post, local_user_view.person.clone(), data.featured),
     &context,
-  )
-  .await?;
+  )?;
 
-  build_post_response(
-    &context,
-    orig_post.community_id,
-    &local_user_view.person,
-    post_id,
-  )
-  .await
+  build_post_response(&context, orig_post.community_id, local_user_view, post_id).await
 }

@@ -13,7 +13,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::PrivateMessageView;
 use lemmy_utils::error::LemmyResult;
-use once_cell::sync::{Lazy, OnceCell};
+use std::sync::{LazyLock, OnceLock};
 use tokio::{
   sync::{
     mpsc,
@@ -28,7 +28,7 @@ type MatchOutgoingActivitiesBoxed =
   Box<for<'a> fn(SendActivityData, &'a Data<LemmyContext>) -> BoxFuture<'a, LemmyResult<()>>>;
 
 /// This static is necessary so that the api_common crates don't need to depend on lemmy_apub
-pub static MATCH_OUTGOING_ACTIVITIES: OnceCell<MatchOutgoingActivitiesBoxed> = OnceCell::new();
+pub static MATCH_OUTGOING_ACTIVITIES: OnceLock<MatchOutgoingActivitiesBoxed> = OnceLock::new();
 
 #[derive(Debug)]
 pub enum SendActivityData {
@@ -59,6 +59,8 @@ pub enum SendActivityData {
     score: i16,
   },
   FollowCommunity(Community, Person, bool),
+  AcceptFollower(CommunityId, PersonId),
+  RejectFollower(CommunityId, PersonId),
   UpdateCommunity(Person, Community),
   DeleteCommunity(Person, Community, bool),
   RemoveCommunity {
@@ -83,7 +85,7 @@ pub enum SendActivityData {
     moderator: Person,
     banned_user: Person,
     reason: Option<String>,
-    remove_data: Option<bool>,
+    remove_or_restore_data: Option<bool>,
     ban: bool,
     expires: Option<i64>,
   },
@@ -101,7 +103,7 @@ pub enum SendActivityData {
 
 // TODO: instead of static, move this into LemmyContext. make sure that stopping the process with
 //       ctrl+c still works.
-static ACTIVITY_CHANNEL: Lazy<ActivityChannel> = Lazy::new(|| {
+static ACTIVITY_CHANNEL: LazyLock<ActivityChannel> = LazyLock::new(|| {
   let (sender, receiver) = mpsc::unbounded_channel();
   let weak_sender = sender.downgrade();
   ActivityChannel {
@@ -123,10 +125,7 @@ impl ActivityChannel {
     lock.recv().await
   }
 
-  pub async fn submit_activity(
-    data: SendActivityData,
-    _context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+  pub fn submit_activity(data: SendActivityData, _context: &Data<LemmyContext>) -> LemmyResult<()> {
     // could do `ACTIVITY_CHANNEL.keepalive_sender.lock()` instead and get rid of weak_sender,
     // not sure which way is more efficient
     if let Some(sender) = ACTIVITY_CHANNEL.weak_sender.upgrade() {

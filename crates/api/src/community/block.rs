@@ -35,12 +35,7 @@ pub async fn block_community(
       .with_lemmy_type(LemmyErrorType::CommunityBlockAlreadyExists)?;
 
     // Also, unfollow the community, and send a federated unfollow
-    let community_follower_form = CommunityFollowerForm {
-      community_id: data.community_id,
-      person_id,
-      pending: false,
-    };
-
+    let community_follower_form = CommunityFollowerForm::new(data.community_id, person_id);
     CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
       .await
       .ok();
@@ -50,10 +45,13 @@ pub async fn block_community(
       .with_lemmy_type(LemmyErrorType::CommunityBlockAlreadyExists)?;
   }
 
-  let community_view =
-    CommunityView::read(&mut context.pool(), community_id, Some(person_id), false)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+  let community_view = CommunityView::read(
+    &mut context.pool(),
+    community_id,
+    Some(&local_user_view.local_user),
+    false,
+  )
+  .await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::FollowCommunity(
@@ -62,8 +60,7 @@ pub async fn block_community(
       false,
     ),
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(BlockCommunityResponse {
     blocked: data.block,
