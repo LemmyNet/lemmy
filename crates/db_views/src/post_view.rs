@@ -62,9 +62,12 @@ use lemmy_db_schema::{
 use tracing::debug;
 use PostSortType::*;
 
+type QueriesReadTypes<'a> = (PostId, Option<&'a LocalUser>, bool);
+type QueriesListTypes<'a> = (PostQuery<'a>, &'a Site);
+
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, PostView, (PostId, Option<&'a LocalUser>, bool)>,
-  impl ListFn<'a, PostView, (PostQuery<'a>, &'a Site)>,
+  impl ReadFn<'a, PostView, QueriesReadTypes<'a>>,
+  impl ListFn<'a, PostView, QueriesListTypes<'a>>,
 > {
   let creator_is_admin = exists(
     local_user::table.filter(
@@ -431,10 +434,10 @@ fn queries<'a>() -> Queries<
 }
 
 impl PostView {
-  pub async fn read<'a>(
+  pub async fn read(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    my_local_user: Option<&'a LocalUser>,
+    my_local_user: Option<&'_ LocalUser>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
     queries()
