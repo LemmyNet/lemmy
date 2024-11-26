@@ -1,5 +1,5 @@
 use actix_web::{
-  body::BodyStream,
+  body::{BodyStream, BoxBody},
   http::{
     header::{HeaderName, ACCEPT_ENCODING, HOST},
     Method,
@@ -252,29 +252,26 @@ pub async fn image_proxy(
   req: HttpRequest,
   client: Data<ClientWithMiddleware>,
   context: Data<LemmyContext>,
-) -> LemmyResult<HttpResponse> {
+) -> LemmyResult<Either<HttpResponse<()>, HttpResponse<BoxBody>>> {
   let url = Url::parse(&params.url)?;
 
   // Check that url corresponds to a federated image so that this can't be abused as a proxy
   // for arbitrary purposes.
   RemoteImage::validate(&mut context.pool(), url.clone().into()).await?;
 
-  let bypass_proxy = context
-    .settings()
-    .pictrs_config()?
+  let pictrs_config = context.settings().pictrs_config()?;
+  let processed_url = params.process_url(&params.url, &pictrs_config.url);
+
+  let bypass_proxy = pictrs_config
     .proxy_bypass_domains
     .iter()
-    .any(|s| url.domain().is_some_and(|domain| domain.starts_with(s)));
+    .any(|s| url.domain().is_some_and(|d| d == s));
   if bypass_proxy {
-    Ok(
-      Redirect::to(url.to_string())
-        .respond_to(&req)
-        .map_into_boxed_body(),
-    )
+    // Bypass proxy and redirect user to original image
+    Ok(Either::Left(Redirect::to(url.to_string()).respond_to(&req)))
   } else {
-    let pictrs_config = context.settings().pictrs_config()?;
-    let url = format!("{}image/original?proxy={}", pictrs_config.url, &params.url);
-    image(url, req, &client).await
+    // Proxy the image data through Lemmy
+    Ok(Either::Right(image(processed_url, req, &client).await?))
   }
 }
 
