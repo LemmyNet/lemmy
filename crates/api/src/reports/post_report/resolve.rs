@@ -1,7 +1,7 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
-  post::{PostReportResponse, ResolvePostReport},
+  reports::post::{PostReportResponse, ResolvePostReport},
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};

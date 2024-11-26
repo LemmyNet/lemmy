@@ -3,7 +3,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
-  post::{CreatePostReport, PostReportResponse},
+  reports::post::{CreatePostReport, PostReportResponse},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_user_action,

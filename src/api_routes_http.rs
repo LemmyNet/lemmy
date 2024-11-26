@@ -6,11 +6,6 @@ use lemmy_api::{
     list_comment_likes::list_comment_likes,
     save::save_comment,
   },
-  comment_report::{
-    create::create_comment_report,
-    list::list_comment_reports,
-    resolve::resolve_comment_report,
-  },
   community::{
     add_mod::add_mod_to_community,
     ban::ban_from_community,
@@ -64,16 +59,24 @@ use lemmy_api::{
     mark_read::mark_post_as_read,
     save::save_post,
   },
-  post_report::{
-    create::create_post_report,
-    list::list_post_reports,
-    resolve::resolve_post_report,
-  },
   private_message::mark_read::mark_pm_as_read,
-  private_message_report::{
-    create::create_pm_report,
-    list::list_pm_reports,
-    resolve::resolve_pm_report,
+  reports::{
+    comment_report::{
+      create::create_comment_report,
+      list::list_comment_reports,
+      resolve::resolve_comment_report,
+    },
+    post_report::{
+      create::create_post_report,
+      list::list_post_reports,
+      resolve::resolve_post_report,
+    },
+    private_message_report::{
+      create::create_pm_report,
+      list::list_pm_reports,
+      resolve::resolve_pm_report,
+    },
+    report_combined::list::list_reports,
   },
   site::{
     block::block_instance,
@@ -248,6 +251,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/like", web::post().to(like_post))
           .route("/like/list", web::get().to(list_post_likes))
           .route("/save", web::put().to(save_post))
+          // TODO should these be moved into the new report heading?
           .route("/report", web::post().to(create_post_report))
           .route("/report/resolve", web::put().to(resolve_post_report))
           .route("/report/list", web::get().to(list_post_reports))
@@ -274,9 +278,15 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/like/list", web::get().to(list_comment_likes))
           .route("/save", web::put().to(save_comment))
           .route("/list", web::get().to(list_comments))
+          // TODO should these be moved into the new report heading?
           .route("/report", web::post().to(create_comment_report))
           .route("/report/resolve", web::put().to(resolve_comment_report))
           .route("/report/list", web::get().to(list_comment_reports)),
+      )
+      .service(
+        web::scope("report")
+          .wrap(rate_limit.message())
+          .route("/list", web::get().to(list_reports)),
       )
       // Private Message
       .service(
@@ -287,6 +297,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", web::put().to(update_private_message))
           .route("/delete", web::post().to(delete_private_message))
           .route("/mark_as_read", web::post().to(mark_pm_as_read))
+          // TODO should these be moved into the new report heading?
           .route("/report", web::post().to(create_pm_report))
           .route("/report/resolve", web::put().to(resolve_pm_report))
           .route("/report/list", web::get().to(list_pm_reports)),

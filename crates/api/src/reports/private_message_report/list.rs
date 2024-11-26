@@ -1,7 +1,7 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
-  private_message::{ListPrivateMessageReports, ListPrivateMessageReportsResponse},
+  reports::private_message::{ListPrivateMessageReports, ListPrivateMessageReportsResponse},
   utils::is_admin,
 };
 use lemmy_db_views::{
