@@ -75,5 +75,6 @@ pub async fn leave_admin(
     admin_oauth_providers: None,
     blocked_urls,
     tagline,
+    my_user: None,
   }))
 }

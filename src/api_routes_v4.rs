@@ -135,7 +135,7 @@ use lemmy_api_crud::{
     read::get_private_message,
     update::update_private_message,
   },
-  site::{create::create_site, read::get_site, update::update_site},
+  site::{create::create_site, read::get_site_v4, update::update_site},
   tagline::{
     create::create_tagline,
     delete::delete_tagline,
@@ -162,13 +162,13 @@ use lemmy_utils::rate_limit::RateLimitCell;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
-    web::scope("/api/v4")
+    web::scope("/api/v3")
       .wrap(rate_limit.message())
       .route("/image_proxy", web::get().to(image_proxy))
       // Site
       .service(
         web::scope("/site")
-          .route("", web::get().to(get_site))
+          .route("", web::get().to(get_site_v4))
           // Admin Actions
           .route("", web::post().to(create_site))
           .route("", web::put().to(update_site))
