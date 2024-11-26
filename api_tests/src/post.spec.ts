@@ -40,7 +40,7 @@ import {
   createCommunity,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
-import { AdminBlockInstanceParams} from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
+import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
 import { EditSite, ResolveObject } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
@@ -135,7 +135,7 @@ test("Create a post", async () => {
   ).rejects.toStrictEqual(Error("not_found"));
 
   // remove blocked instance
-  block_instance_params.block= false;
+  block_instance_params.block = false;
   await epsilon.adminBlockInstance(block_instance_params);
 });
 
