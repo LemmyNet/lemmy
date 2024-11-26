@@ -60,6 +60,7 @@ use lemmy_utils::{
     slurs::{build_slur_regex, remove_slurs},
     validation::clean_urls_in_text,
   },
+  CacheLock,
   CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
@@ -535,7 +536,7 @@ pub fn local_site_opt_to_slur_regex(local_site: &Option<LocalSite>) -> Option<Le
 }
 
 pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> {
-  static URL_BLOCKLIST: LazyLock<Cache<(), RegexSet>> = LazyLock::new(|| {
+  static URL_BLOCKLIST: CacheLock<RegexSet> = LazyLock::new(|| {
     Cache::builder()
       .max_capacity(1)
       .time_to_live(CACHE_DURATION_FEDERATION)

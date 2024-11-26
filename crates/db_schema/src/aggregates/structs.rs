@@ -39,6 +39,8 @@ pub struct CommentAggregates {
   pub hot_rank: f64,
   #[serde(skip)]
   pub controversy_rank: f64,
+  pub report_count: i16,
+  pub unresolved_report_count: i16,
 }
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
@@ -146,6 +148,8 @@ pub struct PostAggregates {
   /// A rank that amplifies smaller communities
   #[serde(skip)]
   pub scaled_rank: f64,
+  pub report_count: i16,
+  pub unresolved_report_count: i16,
 }
 
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]

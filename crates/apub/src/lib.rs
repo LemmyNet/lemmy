@@ -11,6 +11,7 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyErrorType, LemmyResult},
+  CacheLock,
   CACHE_DURATION_FEDERATION,
 };
 use moka::future::Cache;
@@ -139,7 +140,7 @@ pub(crate) async fn local_site_data_cached(
   // multiple times. This causes a huge number of database reads if we hit the db directly. So we
   // cache these values for a short time, which will already make a huge difference and ensures that
   // changes take effect quickly.
-  static CACHE: LazyLock<Cache<(), Arc<LocalSiteData>>> = LazyLock::new(|| {
+  static CACHE: CacheLock<Arc<LocalSiteData>> = LazyLock::new(|| {
     Cache::builder()
       .max_capacity(1)
       .time_to_live(CACHE_DURATION_FEDERATION)

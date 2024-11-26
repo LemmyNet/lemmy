@@ -42,7 +42,7 @@ pub(crate) async fn send_activity_in_community(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   // If community is local only, don't send anything out
-  if community.visibility != CommunityVisibility::Public {
+  if community.visibility == CommunityVisibility::LocalOnly {
     return Ok(());
   }
 
