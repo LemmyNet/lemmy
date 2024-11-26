@@ -22,6 +22,8 @@ pub mod private_message_view;
 #[cfg(feature = "full")]
 pub mod registration_application_view;
 #[cfg(feature = "full")]
+pub mod report_combined_view;
+#[cfg(feature = "full")]
 pub mod site_view;
 pub mod structs;
 #[cfg(feature = "full")]

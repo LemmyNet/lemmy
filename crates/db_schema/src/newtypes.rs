@@ -179,6 +179,12 @@ pub struct LtreeDef(pub String);
 #[cfg_attr(feature = "full", ts(export))]
 pub struct DbUrl(pub(crate) Box<Url>);
 
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The report combined id
+pub struct ReportCombinedId(i32);
+
 impl DbUrl {
   pub fn inner(&self) -> &Url {
     &self.0

@@ -136,14 +136,14 @@ fn queries<'a>() -> Queries<
       query = query.order_by(post_report::published.desc());
     }
 
-    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
-
-    query = query.limit(limit).offset(offset);
-
     // If its not an admin, get only the ones you mod
     if !user.local_user.admin {
       query = query.filter(community_actions::became_moderator.is_not_null());
     }
+
+    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+
+    query = query.limit(limit).offset(offset);
 
     query.load::<PostReportView>(&mut conn).await
   };

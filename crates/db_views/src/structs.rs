@@ -237,3 +237,56 @@ pub struct LocalImageView {
   pub local_image: LocalImage,
   pub person: Person,
 }
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+// TODO TS shouldn't be necessary here, since this shouldn't be used externally
+#[cfg_attr(feature = "full", ts(export))]
+/// A combined report view
+pub struct ReportCombinedView {
+  // Post-specific
+  pub post_report: Option<PostReport>,
+  // pub post_creator: Person,
+  // pub unread_comments: i64,
+  // pub post_counts: PostAggregates,
+  // #[cfg_attr(feature = "full", ts(optional))]
+  // pub resolver: Option<Person>,
+  // Comment-specific
+  pub comment_report: Option<CommentReport>,
+  // pub comment_creator: Person,
+  // pub comment: Comment,
+  // pub comment_counts: CommentAggregates,
+  // Shared
+  // pub post: Post,
+  // pub community: Community,
+  // pub creator: Person,
+  // pub creator_banned_from_community: bool,
+  // pub creator_is_moderator: bool,
+  // pub creator_is_admin: bool,
+  // pub subscribed: SubscribedType,
+  // pub saved: bool,
+  // pub read: bool,
+  // pub hidden: bool,
+  // pub creator_blocked: bool,
+  // #[cfg_attr(feature = "full", ts(optional))]
+  // pub my_vote: Option<i16>,
+  // ---
+  pub creator: Option<Person>,
+}
+
+pub enum PostOrCommentReportView {
+  Post(PostReportView),
+  Comment(CommentReportView),
+}
+
+pub enum PostOrCommentReportViewTemp {
+  Post {
+    post_report: PostReport,
+    post_creator: Person,
+  },
+  Comment {
+    comment_report: CommentReport,
+    comment_creator: Person,
+  },
+}
