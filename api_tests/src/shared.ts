@@ -105,13 +105,6 @@ export const gamma = new LemmyHttp(gammaUrl, { fetchFunction });
 export const delta = new LemmyHttp(deltaUrl, { fetchFunction });
 export const epsilon = new LemmyHttp(epsilonUrl, { fetchFunction });
 
-export const betaAllowedInstances = [
-  "lemmy-alpha",
-  "lemmy-gamma",
-  "lemmy-delta",
-  "lemmy-epsilon",
-];
-
 const password = "lemmylemmy";
 
 export async function setupLogins() {
@@ -175,7 +168,7 @@ export async function setupLogins() {
   await delta.editSite(editSiteForm);
   await epsilon.editSite(editSiteForm);
 
-  // Set the blocksfor each
+  // Set the blocks for each
   await allowInstance(alpha, "lemmy-beta");
   await allowInstance(alpha, "lemmy-gamma");
   await allowInstance(alpha, "lemmy-delta");
@@ -209,12 +202,11 @@ export async function setupLogins() {
   }
 }
 
-async function allowInstance(
-  api: LemmyHttp,instance: string) {
-  const params: AdminAllowInstanceParams =  {
+export async function allowInstance(api: LemmyHttp, instance: string) {
+  const params: AdminAllowInstanceParams = {
     instance,
     allow: true,
-    reason: undefined
+    reason: undefined,
   };
   await api.adminAllowInstance(params);
 }
