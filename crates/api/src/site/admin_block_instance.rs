@@ -28,8 +28,11 @@ pub async fn admin_block_instance(
     Err(LemmyErrorType::CannotCombineFederationBlocklistAndAllowlist)?;
   }
 
+  let instance_id = Instance::read_or_create(&mut context.pool(), data.instance.clone())
+    .await?
+    .id;
   let form = FederationBlockListForm {
-    instance_id: data.instance_id,
+    instance_id,
     expires: data.expires,
     updated: None,
   };
@@ -37,11 +40,11 @@ pub async fn admin_block_instance(
   if data.block {
     FederationBlockList::block(&mut context.pool(), &form).await?;
   } else {
-    FederationBlockList::unblock(&mut context.pool(), data.instance_id).await?;
+    FederationBlockList::unblock(&mut context.pool(), instance_id).await?;
   }
 
   let mod_log_form = AdminBlockInstanceForm {
-    instance_id: data.instance_id,
+    instance_id: instance_id,
     admin_person_id: local_user_view.person.id,
     blocked: data.block,
     reason: data.reason.clone(),

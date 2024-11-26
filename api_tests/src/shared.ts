@@ -169,36 +169,30 @@ export async function setupLogins() {
     rate_limit_comment: 999,
     rate_limit_search: 999,
   };
-
-  // Set the blocks and auths for each
-  editSiteForm.allowed_instances = [
-    "lemmy-beta",
-    "lemmy-gamma",
-    "lemmy-delta",
-    "lemmy-epsilon",
-  ];
   await alpha.editSite(editSiteForm);
-  const params: AdminAllowInstanceParams =  {
-    instance_id: 0,
-    allow: true,
-    reason: undefined
-  };
-  await alpha.adminAllowInstance(params);
-
-  editSiteForm.allowed_instances = betaAllowedInstances;
   await beta.editSite(editSiteForm);
-
-  editSiteForm.allowed_instances = [
-    "lemmy-alpha",
-    "lemmy-beta",
-    "lemmy-delta",
-    "lemmy-epsilon",
-  ];
   await gamma.editSite(editSiteForm);
+  await delta.editSite(editSiteForm);
+  await epsilon.editSite(editSiteForm);
+
+  // Set the blocksfor each
+  await allowInstance(alpha, "lemmy-beta");
+  await allowInstance(alpha, "lemmy-gamma");
+  await allowInstance(alpha, "lemmy-delta");
+  await allowInstance(alpha, "lemmy-epsilon");
+
+  await allowInstance(beta, "lemmy-alpha");
+  await allowInstance(beta, "lemmy-gamma");
+  await allowInstance(beta, "lemmy-delta");
+  await allowInstance(beta, "lemmy-epsilon");
+
+  await allowInstance(gamma, "lemmy-alpha");
+  await allowInstance(gamma, "lemmy-beta");
+  await allowInstance(gamma, "lemmy-delta");
+  await allowInstance(gamma, "lemmy-epsilon");
 
   // Setup delta allowed instance
-  editSiteForm.allowed_instances = ["lemmy-beta"];
-  await delta.editSite(editSiteForm);
+  await allowInstance(delta, "lemmy-beta");
 
   // Create the main alpha/beta communities
   // Ignore thrown errors of duplicates
@@ -213,6 +207,16 @@ export async function setupLogins() {
   } catch {
     //console.log("Communities already exist");
   }
+}
+
+async function allowInstance(
+  api: LemmyHttp,instance: string) {
+  const params: AdminAllowInstanceParams =  {
+    instance,
+    allow: true,
+    reason: undefined
+  };
+  await api.adminAllowInstance(params);
 }
 
 export async function createPost(
