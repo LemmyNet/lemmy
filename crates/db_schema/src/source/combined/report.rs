@@ -1,4 +1,4 @@
-use crate::newtypes::{CommentReportId, PostReportId, ReportCombinedId};
+use crate::newtypes::{CommentReportId, PostReportId, PrivateMessageReportId, ReportCombinedId};
 #[cfg(feature = "full")]
 use crate::schema::report_combined;
 use chrono::{DateTime, Utc};
@@ -17,6 +17,10 @@ use ts_rs::TS;
 pub struct ReportCombined {
   pub id: ReportCombinedId,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub post_report_id: Option<PostReportId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub comment_report_id: Option<CommentReportId>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub private_message_report_id: Option<PrivateMessageReportId>,
 }
