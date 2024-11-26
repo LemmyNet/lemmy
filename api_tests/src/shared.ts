@@ -1,9 +1,8 @@
 import {
+  AdminBlockInstanceParams,
   ApproveCommunityPendingFollower,
   BlockCommunity,
   BlockCommunityResponse,
-  BlockInstance,
-  BlockInstanceResponse,
   CommunityId,
   CommunityVisibility,
   CreatePrivateMessageReport,
@@ -21,11 +20,13 @@ import {
   PostView,
   PrivateMessageReportResponse,
   SuccessResponse,
+  UserBlockInstanceParams,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
 import { EditPost } from "lemmy-js-client/dist/types/EditPost";
 import { EditSite } from "lemmy-js-client/dist/types/EditSite";
+import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
 import { FeaturePost } from "lemmy-js-client/dist/types/FeaturePost";
 import { GetComments } from "lemmy-js-client/dist/types/GetComments";
 import { GetCommentsResponse } from "lemmy-js-client/dist/types/GetCommentsResponse";
@@ -177,6 +178,12 @@ export async function setupLogins() {
     "lemmy-epsilon",
   ];
   await alpha.editSite(editSiteForm);
+  const params: AdminAllowInstanceParams =  {
+    instance_id: 0,
+    allow: true,
+    reason: undefined
+  };
+  await alpha.adminAllowInstance(params);
 
   editSiteForm.allowed_instances = betaAllowedInstances;
   await beta.editSite(editSiteForm);
@@ -854,16 +861,16 @@ export function getPosts(
   return api.getPosts(form);
 }
 
-export function blockInstance(
+export function userBlockInstance(
   api: LemmyHttp,
   instance_id: InstanceId,
   block: boolean,
-): Promise<BlockInstanceResponse> {
-  let form: BlockInstance = {
+): Promise<SuccessResponse> {
+  let form: UserBlockInstanceParams = {
     instance_id,
     block,
   };
-  return api.blockInstance(form);
+  return api.userBlockInstance(form);
 }
 
 export function blockCommunity(

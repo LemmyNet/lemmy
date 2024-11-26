@@ -269,10 +269,6 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_difficulty: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub allowed_instances: Option<Vec<String>>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub blocked_instances: Option<Vec<String>>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub registration_mode: Option<RegistrationMode>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub oauth_registration: Option<bool>,
@@ -398,12 +394,6 @@ pub struct EditSite {
   /// The captcha difficulty. Can be easy, medium, or hard
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_difficulty: Option<String>,
-  /// A list of allowed instances. If none are set, federation is open.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub allowed_instances: Option<Vec<String>>,
-  /// A list of blocked instances.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub blocked_instances: Option<Vec<String>>,
   /// A list of blocked URLs
   #[cfg_attr(feature = "full", ts(optional))]
   pub blocked_urls: Option<Vec<String>>,
