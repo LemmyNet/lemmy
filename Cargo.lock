@@ -2582,6 +2582,7 @@ dependencies = [
  "moka",
  "pretty_assertions",
  "reqwest 0.12.8",
+ "semver",
  "serde",
  "serde_json",
  "serde_with",
