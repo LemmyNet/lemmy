@@ -44,7 +44,7 @@ pub async fn admin_block_instance(
   }
 
   let mod_log_form = AdminBlockInstanceForm {
-    instance_id: instance_id,
+    instance_id,
     admin_person_id: local_user_view.person.id,
     blocked: data.block,
     reason: data.reason.clone(),

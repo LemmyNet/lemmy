@@ -32,7 +32,7 @@ pub async fn admin_allow_instance(
     .await?
     .id;
   let form = FederationAllowListForm {
-    instance_id: instance_id,
+    instance_id,
     updated: None,
   };
   if data.allow {
