@@ -50,9 +50,12 @@ use lemmy_db_schema::{
   ListingType,
 };
 
+type QueriesReadTypes<'a> = (CommentId, Option<&'a LocalUser>);
+type QueriesListTypes<'a> = (CommentQuery<'a>, &'a Site);
+
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, CommentView, (CommentId, Option<&'a LocalUser>)>,
-  impl ListFn<'a, CommentView, (CommentQuery<'a>, &'a Site)>,
+  impl ReadFn<'a, CommentView, QueriesReadTypes<'a>>,
+  impl ListFn<'a, CommentView, QueriesListTypes<'a>>,
 > {
   let creator_is_admin = exists(
     local_user::table.filter(
@@ -308,10 +311,10 @@ fn queries<'a>() -> Queries<
 }
 
 impl CommentView {
-  pub async fn read<'a>(
+  pub async fn read(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    my_local_user: Option<&'a LocalUser>,
+    my_local_user: Option<&'_ LocalUser>,
   ) -> Result<Self, Error> {
     // If a person is given, then my_vote (res.9), if None, should be 0, not null
     // Necessary to differentiate between other person's votes
@@ -345,7 +348,7 @@ pub struct CommentQuery<'a> {
   pub max_depth: Option<i32>,
 }
 
-impl<'a> CommentQuery<'a> {
+impl CommentQuery<'_> {
   pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
     Ok(
       queries()
@@ -1065,6 +1068,8 @@ mod tests {
         child_count: 5,
         hot_rank: RANK_DEFAULT,
         controversy_rank: 0.0,
+        report_count: 0,
+        unresolved_report_count: 0,
       },
     })
   }

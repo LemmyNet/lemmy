@@ -1,14 +1,16 @@
-pub mod chat_message;
 pub mod note;
+pub(crate) mod note_wrapper;
 pub mod page;
+pub mod private_message;
 
 #[cfg(test)]
 mod tests {
+  use super::note_wrapper::CreateOrUpdateNoteWrapper;
   use crate::protocol::{
     activities::create_or_update::{
-      chat_message::CreateOrUpdateChatMessage,
       note::CreateOrUpdateNote,
       page::CreateOrUpdatePage,
+      private_message::CreateOrUpdatePrivateMessage,
     },
     tests::test_parse_lemmy_item,
   };
@@ -23,9 +25,15 @@ mod tests {
       "assets/lemmy/activities/create_or_update/update_page.json",
     )?;
     test_parse_lemmy_item::<CreateOrUpdateNote>(
-      "assets/lemmy/activities/create_or_update/create_note.json",
+      "assets/lemmy/activities/create_or_update/create_comment.json",
     )?;
-    test_parse_lemmy_item::<CreateOrUpdateChatMessage>(
+    test_parse_lemmy_item::<CreateOrUpdatePrivateMessage>(
+      "assets/lemmy/activities/create_or_update/create_private_message.json",
+    )?;
+    test_parse_lemmy_item::<CreateOrUpdateNoteWrapper>(
+      "assets/lemmy/activities/create_or_update/create_comment.json",
+    )?;
+    test_parse_lemmy_item::<CreateOrUpdateNoteWrapper>(
       "assets/lemmy/activities/create_or_update/create_private_message.json",
     )?;
     Ok(())

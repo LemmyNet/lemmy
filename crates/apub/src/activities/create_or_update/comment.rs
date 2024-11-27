@@ -43,6 +43,7 @@ use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
 };
+use serde_json::{from_value, to_value};
 use url::Url;
 
 impl CreateOrUpdateNote {
@@ -98,7 +99,8 @@ impl CreateOrUpdateNote {
       inboxes.add_inbox(person.shared_inbox_or_inbox());
     }
 
-    let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
+    let activity =
+      AnnouncableActivities::CreateOrUpdateNoteWrapper(from_value(to_value(create_or_update)?)?);
     send_activity_in_community(activity, &person, &community, inboxes, false, &context).await
   }
 }
@@ -171,6 +173,9 @@ impl ActivityHandler for CreateOrUpdateNote {
     // TODO: for compatibility with other projects, it would be much better to read this from cc or
     // tags
     let mentions = scrape_text_for_mentions(&comment.content);
+
+    // TODO: this fails in local community comment as CommentView::read() returns nothing
+    //       without passing LocalUser
     send_local_notifs(mentions, comment.id, &actor, do_send_email, context, None).await?;
     Ok(())
   }

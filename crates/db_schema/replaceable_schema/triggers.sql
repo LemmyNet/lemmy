@@ -384,6 +384,44 @@ END;
 
 $$);
 
+CALL r.create_triggers ('post_report', $$
+BEGIN
+    UPDATE
+        post_aggregates AS a
+    SET
+        report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
+    FROM (
+        SELECT
+            (post_report).post_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (post_report).resolved), 0) AS unresolved_report_count
+    FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (post_report).post_id) AS diff
+WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
+    AND a.post_id = diff.post_id;
+
+RETURN NULL;
+
+END;
+
+$$);
+
+CALL r.create_triggers ('comment_report', $$
+BEGIN
+    UPDATE
+        comment_aggregates AS a
+    SET
+        report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
+    FROM (
+        SELECT
+            (comment_report).comment_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (comment_report).resolved), 0) AS unresolved_report_count
+    FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (comment_report).comment_id) AS diff
+WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
+    AND a.comment_id = diff.comment_id;
+
+RETURN NULL;
+
+END;
+
+$$);
+
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
 CREATE FUNCTION r.comment_aggregates_from_comment ()
