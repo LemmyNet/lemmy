@@ -2,6 +2,7 @@
 --
 -- Reports: (comment, post, and private_message)
 -- Inbox: (Comment replies, post replies, comment mentions, post mentions, private messages)
+-- Profile: (Posts and Comments)
 -- Modlog: (lots of types)
 -- Search: (community, post, comment, user, url)
 -- TODO not sure about these two:
@@ -40,4 +41,3 @@ SELECT
 FROM
     private_message_report;
 
--- TODO do triggers in replaceable schema

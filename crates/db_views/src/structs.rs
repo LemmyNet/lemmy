@@ -261,7 +261,7 @@ pub struct ReportCombinedViewInternal {
   // Private-message-specific
   pub private_message_report: Option<PrivateMessageReport>,
   pub private_message: Option<PrivateMessage>,
-  // // Shared
+  // Shared
   pub report_creator: Person,
   pub item_creator: Person,
   pub community: Option<Community>,

@@ -44,7 +44,6 @@ pub struct ListPostReports {
   /// Only shows the unresolved reports
   #[cfg_attr(feature = "full", ts(optional))]
   pub unresolved_only: Option<bool>,
-  // TODO make into tagged enum at some point
   /// if no community is given, it returns reports for all communities moderated by the auth user
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,

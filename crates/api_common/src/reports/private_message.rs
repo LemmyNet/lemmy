@@ -36,7 +36,6 @@ pub struct ResolvePrivateMessageReport {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// List private message reports.
-// TODO , perhaps GetReports should be a tagged enum list too.
 pub struct ListPrivateMessageReports {
   #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
