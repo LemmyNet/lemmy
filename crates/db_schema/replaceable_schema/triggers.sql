@@ -653,3 +653,57 @@ CREATE TRIGGER change_values
     FOR EACH ROW
     EXECUTE FUNCTION r.private_message_change_values ();
 
+-- Combined tables triggers
+-- These insert (published, item_id) into X_combined tables
+-- Reports
+-- Comment
+CREATE FUNCTION r.report_combined_comment_report_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO report_combined (published, comment_report_id)
+        VALUES (NEW.published, NEW.id);
+    RETURN NEW;
+END
+$$;
+
+CREATE TRIGGER report_combined_comment
+    AFTER INSERT ON comment_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_comment_report_insert ();
+
+-- Post
+CREATE FUNCTION r.report_combined_post_report_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO report_combined (published, post_report_id)
+        VALUES (NEW.published, NEW.id);
+    RETURN NEW;
+END
+$$;
+
+CREATE TRIGGER report_combined_post
+    AFTER INSERT ON post_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_post_report_insert ();
+
+-- Private message
+CREATE FUNCTION r.report_combined_private_message_report_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO report_combined (published, private_message_report_id)
+        VALUES (NEW.published, NEW.id);
+    RETURN NEW;
+END
+$$;
+
+CREATE TRIGGER report_combined_private_message
+    AFTER INSERT ON private_message_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_private_message_report_insert ();
+

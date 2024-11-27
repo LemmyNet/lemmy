@@ -17,7 +17,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
-  newtypes::{CommunityId, PersonId},
+  newtypes::CommunityId,
   schema::{
     comment,
     comment_actions,
@@ -41,20 +41,41 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::LemmyResult;
 
-// TODO fix
 impl ReportCombinedViewInternal {
   /// returns the current unresolved report count for the communities you mod
   pub async fn get_report_count(
     pool: &mut DbPool<'_>,
-    my_person_id: PersonId,
-    admin: bool,
+    user: &LocalUserView,
     community_id: Option<CommunityId>,
   ) -> Result<i64, Error> {
     use diesel::dsl::count;
+
     let conn = &mut get_conn(pool).await?;
-    let mut query = post_report::table
-      .inner_join(post::table)
+    let my_person_id = user.local_user.person_id;
+
+    let mut query = report_combined::table
+      .left_join(post_report::table)
+      .left_join(comment_report::table)
+      .left_join(private_message_report::table)
+      // Need to join to comment and post to get the community
+      .left_join(comment::table.on(comment_report::comment_id.eq(comment::id)))
+      // The post
+      .left_join(
+        post::table.on(
+          post_report::post_id
+            .eq(post::id)
+            .or(comment::post_id.eq(post::id)),
+        ),
+      )
+      .left_join(community::table.on(post::community_id.eq(community::id)))
+      .left_join(actions(
+        community_actions::table,
+        Some(my_person_id),
+        post::community_id,
+      ))
       .filter(post_report::resolved.eq(false))
+      .or_filter(comment_report::resolved.eq(false))
+      .or_filter(private_message_report::resolved.eq(false))
       .into_boxed();
 
     if let Some(community_id) = community_id {
@@ -62,25 +83,14 @@ impl ReportCombinedViewInternal {
     }
 
     // If its not an admin, get only the ones you mod
-    if !admin {
-      query
-        .inner_join(
-          community_actions::table.on(
-            community_actions::community_id
-              .eq(post::community_id)
-              .and(community_actions::person_id.eq(my_person_id))
-              .and(community_actions::became_moderator.is_not_null()),
-          ),
-        )
-        .select(count(post_report::id))
-        .first::<i64>(conn)
-        .await
-    } else {
-      query
-        .select(count(post_report::id))
-        .first::<i64>(conn)
-        .await
+    if !user.local_user.admin {
+      query = query.filter(community_actions::became_moderator.is_not_null());
     }
+
+    query
+      .select(count(report_combined::id))
+      .first::<i64>(conn)
+      .await
   }
 }
 
@@ -92,7 +102,6 @@ pub struct ReportCombinedQuery {
   pub unresolved_only: bool,
 }
 
-// TODO need to add private message
 impl ReportCombinedQuery {
   pub async fn list(
     self,
@@ -330,4 +339,215 @@ fn map_to_enum(view: ReportCombinedViewInternal) -> Option<ReportCombinedView> {
   }
 }
 
-// TODO add tests
+#[cfg(test)]
+#[expect(clippy::indexing_slicing)]
+mod tests {
+
+  use crate::{
+    report_combined_view::ReportCombinedQuery,
+    structs::{LocalUserView, ReportCombinedView, ReportCombinedViewInternal},
+  };
+  use lemmy_db_schema::{
+    assert_length,
+    source::{
+      comment::{Comment, CommentInsertForm},
+      comment_report::{CommentReport, CommentReportForm},
+      community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
+      instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
+      local_user_vote_display_mode::LocalUserVoteDisplayMode,
+      person::{Person, PersonInsertForm},
+      post::{Post, PostInsertForm},
+      post_report::{PostReport, PostReportForm},
+      private_message::{PrivateMessage, PrivateMessageInsertForm},
+      private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
+    },
+    traits::{Crud, Joinable, Reportable},
+    utils::build_db_pool_for_tests,
+  };
+  use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
+  use serial_test::serial;
+
+  #[tokio::test]
+  #[serial]
+  async fn test_crud() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let timmy_form = PersonInsertForm::test_form(inserted_instance.id, "timmy_rcv");
+    let inserted_timmy = Person::create(pool, &timmy_form).await?;
+    let timmy_local_user_form = LocalUserInsertForm::test_form(inserted_timmy.id);
+    let timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
+    let timmy_view = LocalUserView {
+      local_user: timmy_local_user,
+      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
+      person: inserted_timmy.clone(),
+      counts: Default::default(),
+    };
+
+    // Make an admin, to be able to see private message reports.
+    let admin_form = PersonInsertForm::test_form(inserted_instance.id, "admin_rcv");
+    let inserted_admin = Person::create(pool, &admin_form).await?;
+    let admin_local_user_form = LocalUserInsertForm::test_form_admin(inserted_admin.id);
+    let admin_local_user = LocalUser::create(pool, &admin_local_user_form, vec![]).await?;
+    let admin_view = LocalUserView {
+      local_user: admin_local_user,
+      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
+      person: inserted_admin.clone(),
+      counts: Default::default(),
+    };
+
+    let sara_form = PersonInsertForm::test_form(inserted_instance.id, "sara_rcv");
+    let inserted_sara = Person::create(pool, &sara_form).await?;
+
+    let community_form = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test community crv".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let inserted_community = Community::create(pool, &community_form).await?;
+
+    // Make timmy a mod
+    let timmy_moderator_form = CommunityModeratorForm {
+      community_id: inserted_community.id,
+      person_id: inserted_timmy.id,
+    };
+    CommunityModerator::join(pool, &timmy_moderator_form).await?;
+
+    let post_form = PostInsertForm::new(
+      "A test post crv".into(),
+      inserted_timmy.id,
+      inserted_community.id,
+    );
+    let inserted_post = Post::create(pool, &post_form).await?;
+
+    // sara reports the post
+    let sara_report_post_form = PostReportForm {
+      creator_id: inserted_sara.id,
+      post_id: inserted_post.id,
+      original_post_name: "Orig post".into(),
+      original_post_url: None,
+      original_post_body: None,
+      reason: "from sara".into(),
+    };
+    let inserted_post_report = PostReport::report(pool, &sara_report_post_form).await?;
+
+    // Timmy creates a comment
+    let comment_form = CommentInsertForm::new(
+      inserted_timmy.id,
+      inserted_post.id,
+      "A test comment rv".into(),
+    );
+    let inserted_comment = Comment::create(pool, &comment_form, None).await?;
+
+    // Sara reports the comment
+    let sara_report_comment_form = CommentReportForm {
+      creator_id: inserted_sara.id,
+      comment_id: inserted_comment.id,
+      original_comment_text: "A test comment rv".into(),
+      reason: "from sara".into(),
+    };
+    CommentReport::report(pool, &sara_report_comment_form).await?;
+
+    // Timmy creates a private message report
+    let pm_form = PrivateMessageInsertForm::new(
+      inserted_timmy.id,
+      inserted_sara.id,
+      "something offensive crv".to_string(),
+    );
+    let inserted_pm = PrivateMessage::create(pool, &pm_form).await?;
+
+    // sara reports private message
+    let pm_report_form = PrivateMessageReportForm {
+      creator_id: inserted_sara.id,
+      original_pm_text: inserted_pm.content.clone(),
+      private_message_id: inserted_pm.id,
+      reason: "its offensive".to_string(),
+    };
+    PrivateMessageReport::report(pool, &pm_report_form).await?;
+
+    // Do a batch read of admins reports
+    let reports = ReportCombinedQuery::default()
+      .list(pool, &admin_view)
+      .await?;
+    assert_eq!(3, reports.len());
+
+    // Make sure the report types are correct
+    if let ReportCombinedView::Post(v) = &reports[2] {
+      assert_eq!(inserted_post.id, v.post.id);
+      assert_eq!(inserted_sara.id, v.creator.id);
+      assert_eq!(inserted_timmy.id, v.post_creator.id);
+    } else {
+      panic!("wrong type");
+    }
+    if let ReportCombinedView::Comment(v) = &reports[1] {
+      assert_eq!(inserted_comment.id, v.comment.id);
+      assert_eq!(inserted_post.id, v.post.id);
+      assert_eq!(inserted_timmy.id, v.comment_creator.id);
+    } else {
+      panic!("wrong type");
+    }
+    if let ReportCombinedView::PrivateMessage(v) = &reports[0] {
+      assert_eq!(inserted_pm.id, v.private_message.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    let report_count_admin =
+      ReportCombinedViewInternal::get_report_count(pool, &admin_view, None).await?;
+    assert_eq!(3, report_count_admin);
+
+    // Timmy should only see 2 reports, since they're not an admin,
+    // but they do mod the community
+    let reports = ReportCombinedQuery::default()
+      .list(pool, &timmy_view)
+      .await?;
+    assert_eq!(2, reports.len());
+
+    // Make sure the report types are correct
+    if let ReportCombinedView::Post(v) = &reports[1] {
+      assert_eq!(inserted_post.id, v.post.id);
+      assert_eq!(inserted_sara.id, v.creator.id);
+      assert_eq!(inserted_timmy.id, v.post_creator.id);
+    } else {
+      panic!("wrong type");
+    }
+    if let ReportCombinedView::Comment(v) = &reports[0] {
+      assert_eq!(inserted_comment.id, v.comment.id);
+      assert_eq!(inserted_post.id, v.post.id);
+      assert_eq!(inserted_timmy.id, v.comment_creator.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    let report_count_timmy =
+      ReportCombinedViewInternal::get_report_count(pool, &timmy_view, None).await?;
+    assert_eq!(2, report_count_timmy);
+
+    // Resolve the post report
+    PostReport::resolve(pool, inserted_post_report.id, inserted_timmy.id).await?;
+
+    // Do a batch read of timmys reports
+    // It should only show saras, which is unresolved
+    let reports_after_resolve = ReportCombinedQuery {
+      unresolved_only: true,
+      ..Default::default()
+    }
+    .list(pool, &timmy_view)
+    .await?;
+    assert_length!(1, reports_after_resolve);
+
+    // Make sure the counts are correct
+    let report_count_after_resolved =
+      ReportCombinedViewInternal::get_report_count(pool, &timmy_view, None).await?;
+    assert_eq!(1, report_count_after_resolved);
+
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    Ok(())
+  }
+}
