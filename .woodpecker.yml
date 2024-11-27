@@ -100,27 +100,6 @@ steps:
       - cargo clippy --workspace --tests --all-targets -- -D warnings
     when: *slow_check_paths
 
-  cargo_test:
-    image: *rust_image
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      RUST_BACKTRACE: "1"
-      CARGO_HOME: .cargo_home
-      LEMMY_TEST_FAST_FEDERATION: "1"
-      LEMMY_CONFIG_LOCATION: ../../config/config.hjson
-    commands:
-      - cargo test --workspace --no-fail-fast
-    when: *slow_check_paths
-
-  check_ts_bindings:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-    commands:
-      - ./scripts/ts_bindings_check.sh
-    when:
-      - event: pull_request
-
   # `DROP OWNED` doesn't work for default user
   create_database_user:
     image: postgres:16-alpine
@@ -150,6 +129,15 @@ steps:
       # Run tests
       - cargo test --workspace --no-fail-fast
     when: *slow_check_paths
+
+  check_ts_bindings:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+    commands:
+      - ./scripts/ts_bindings_check.sh
+    when:
+      - event: pull_request
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
