@@ -1,4 +1,4 @@
-use actix_web::{guard, web};
+use actix_web::{guard, web::*};
 use lemmy_api::{
   comment::{
     distinguish::distinguish_comment,
@@ -160,230 +160,230 @@ use lemmy_apub::api::{
 use lemmy_routes::images::image_proxy;
 use lemmy_utils::rate_limit::RateLimitCell;
 
-pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
+pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
-    web::scope("/api/v4")
+    scope("/api/v4")
       .wrap(rate_limit.message())
-      .route("/image_proxy", web::get().to(image_proxy))
+      .route("/image_proxy", get().to(image_proxy))
       // Site
       .service(
-        web::scope("/site")
-          .route("", web::get().to(get_site_v4))
+        scope("/site")
+          .route("", get().to(get_site_v4))
           // Admin Actions
-          .route("", web::post().to(create_site))
-          .route("", web::put().to(update_site))
-          .route("/block", web::post().to(block_instance)),
+          .route("", post().to(create_site))
+          .route("", put().to(update_site))
+          .route("/block", post().to(block_instance)),
       )
-      .route("/modlog", web::get().to(get_mod_log))
+      .route("/modlog", get().to(get_mod_log))
       .service(
-        web::resource("/search")
+        resource("/search")
           .wrap(rate_limit.search())
-          .route(web::get().to(search)),
+          .route(get().to(search)),
       )
-      .route("/resolve_object", web::get().to(resolve_object))
+      .route("/resolve_object", get().to(resolve_object))
       // Community
       .service(
-        web::resource("/community")
+        resource("/community")
           .guard(guard::Post())
           .wrap(rate_limit.register())
-          .route(web::post().to(create_community)),
+          .route(post().to(create_community)),
       )
       .service(
-        web::scope("/community")
-          .route("", web::get().to(get_community))
-          .route("", web::put().to(update_community))
-          .route("/random", web::get().to(get_random_community))
-          .route("/hide", web::put().to(hide_community))
-          .route("/list", web::get().to(list_communities))
-          .route("/follow", web::post().to(follow_community))
-          .route("/block", web::post().to(block_community))
-          .route("/delete", web::post().to(delete_community))
+        scope("/community")
+          .route("", get().to(get_community))
+          .route("", put().to(update_community))
+          .route("/random", get().to(get_random_community))
+          .route("/hide", put().to(hide_community))
+          .route("/list", get().to(list_communities))
+          .route("/follow", post().to(follow_community))
+          .route("/block", post().to(block_community))
+          .route("/delete", post().to(delete_community))
           // Mod Actions
-          .route("/remove", web::post().to(remove_community))
-          .route("/transfer", web::post().to(transfer_community))
-          .route("/ban_user", web::post().to(ban_from_community))
-          .route("/mod", web::post().to(add_mod_to_community))
+          .route("/remove", post().to(remove_community))
+          .route("/transfer", post().to(transfer_community))
+          .route("/ban_user", post().to(ban_from_community))
+          .route("/mod", post().to(add_mod_to_community))
           .service(
-            web::scope("/pending_follows")
-              .route("/count", web::get().to(get_pending_follows_count))
-              .route("/list", web::get().to(get_pending_follows_list))
-              .route("/approve", web::post().to(post_pending_follows_approve)),
+            scope("/pending_follows")
+              .route("/count", get().to(get_pending_follows_count))
+              .route("/list", get().to(get_pending_follows_list))
+              .route("/approve", post().to(post_pending_follows_approve)),
           ),
       )
       .route(
         "/federated_instances",
-        web::get().to(get_federated_instances),
+        get().to(get_federated_instances),
       )
       // Post
       .service(
         // Handle POST to /post separately to add the post() rate limitter
-        web::resource("/post")
+        resource("/post")
           .guard(guard::Post())
           .wrap(rate_limit.post())
-          .route(web::post().to(create_post)),
+          .route(post().to(create_post)),
       )
       .service(
-        web::scope("/post")
-          .route("", web::get().to(get_post))
-          .route("", web::put().to(update_post))
-          .route("/delete", web::post().to(delete_post))
-          .route("/remove", web::post().to(remove_post))
-          .route("/mark_as_read", web::post().to(mark_post_as_read))
-          .route("/mark_many_as_read", web::post().to(mark_posts_as_read))
-          .route("/hide", web::post().to(hide_post))
-          .route("/lock", web::post().to(lock_post))
-          .route("/feature", web::post().to(feature_post))
-          .route("/list", web::get().to(list_posts))
-          .route("/like", web::post().to(like_post))
-          .route("/like/list", web::get().to(list_post_likes))
-          .route("/save", web::put().to(save_post))
-          .route("/report", web::post().to(create_post_report))
-          .route("/report/resolve", web::put().to(resolve_post_report))
-          .route("/report/list", web::get().to(list_post_reports))
-          .route("/site_metadata", web::get().to(get_link_metadata)),
+        scope("/post")
+          .route("", get().to(get_post))
+          .route("", put().to(update_post))
+          .route("/delete", post().to(delete_post))
+          .route("/remove", post().to(remove_post))
+          .route("/mark_as_read", post().to(mark_post_as_read))
+          .route("/mark_many_as_read", post().to(mark_posts_as_read))
+          .route("/hide", post().to(hide_post))
+          .route("/lock", post().to(lock_post))
+          .route("/feature", post().to(feature_post))
+          .route("/list", get().to(list_posts))
+          .route("/like", post().to(like_post))
+          .route("/like/list", get().to(list_post_likes))
+          .route("/save", put().to(save_post))
+          .route("/report", post().to(create_post_report))
+          .route("/report/resolve", put().to(resolve_post_report))
+          .route("/report/list", get().to(list_post_reports))
+          .route("/site_metadata", get().to(get_link_metadata)),
       )
       // Comment
       .service(
         // Handle POST to /comment separately to add the comment() rate limitter
-        web::resource("/comment")
+        resource("/comment")
           .guard(guard::Post())
           .wrap(rate_limit.comment())
-          .route(web::post().to(create_comment)),
+          .route(post().to(create_comment)),
       )
       .service(
-        web::scope("/comment")
-          .route("", web::get().to(get_comment))
-          .route("", web::put().to(update_comment))
-          .route("/delete", web::post().to(delete_comment))
-          .route("/remove", web::post().to(remove_comment))
-          .route("/mark_as_read", web::post().to(mark_reply_as_read))
-          .route("/distinguish", web::post().to(distinguish_comment))
-          .route("/like", web::post().to(like_comment))
-          .route("/like/list", web::get().to(list_comment_likes))
-          .route("/save", web::put().to(save_comment))
-          .route("/list", web::get().to(list_comments))
-          .route("/report", web::post().to(create_comment_report))
-          .route("/report/resolve", web::put().to(resolve_comment_report))
-          .route("/report/list", web::get().to(list_comment_reports)),
+        scope("/comment")
+          .route("", get().to(get_comment))
+          .route("", put().to(update_comment))
+          .route("/delete", post().to(delete_comment))
+          .route("/remove", post().to(remove_comment))
+          .route("/mark_as_read", post().to(mark_reply_as_read))
+          .route("/distinguish", post().to(distinguish_comment))
+          .route("/like", post().to(like_comment))
+          .route("/like/list", get().to(list_comment_likes))
+          .route("/save", put().to(save_comment))
+          .route("/list", get().to(list_comments))
+          .route("/report", post().to(create_comment_report))
+          .route("/report/resolve", put().to(resolve_comment_report))
+          .route("/report/list", get().to(list_comment_reports)),
       )
       // Private Message
       .service(
-        web::scope("/private_message")
-          .route("/list", web::get().to(get_private_message))
-          .route("", web::post().to(create_private_message))
-          .route("", web::put().to(update_private_message))
-          .route("/delete", web::post().to(delete_private_message))
-          .route("/mark_as_read", web::post().to(mark_pm_as_read))
-          .route("/report", web::post().to(create_pm_report))
-          .route("/report/resolve", web::put().to(resolve_pm_report))
-          .route("/report/list", web::get().to(list_pm_reports)),
+        scope("/private_message")
+          .route("/list", get().to(get_private_message))
+          .route("", post().to(create_private_message))
+          .route("", put().to(update_private_message))
+          .route("/delete", post().to(delete_private_message))
+          .route("/mark_as_read", post().to(mark_pm_as_read))
+          .route("/report", post().to(create_pm_report))
+          .route("/report/resolve", put().to(resolve_pm_report))
+          .route("/report/list", get().to(list_pm_reports)),
       )
       // User
       .service(
-        web::scope("/account/auth")
+        scope("/account/auth")
           .guard(guard::Post())
           .wrap(rate_limit.register())
-          .route("/register", web::post().to(register))
-          .route("/login", web::post().to(login))
-          .route("/logout", web::post().to(logout))
-          .route("/password_reset", web::post().to(reset_password))
-          .route("/get_captcha", web::get().to(get_captcha))
+          .route("/register", post().to(register))
+          .route("/login", post().to(login))
+          .route("/logout", post().to(logout))
+          .route("/password_reset", post().to(reset_password))
+          .route("/get_captcha", get().to(get_captcha))
           .route(
             "/password_change",
-            web::post().to(change_password_after_reset),
+            post().to(change_password_after_reset),
           )
-          .route("/change_password", web::put().to(change_password))
-          .route("/totp/generate", web::post().to(generate_totp_secret))
-          .route("/totp/update", web::post().to(update_totp))
-          .route("/verify_email", web::post().to(verify_email)),
+          .route("/change_password", put().to(change_password))
+          .route("/totp/generate", post().to(generate_totp_secret))
+          .route("/totp/update", post().to(update_totp))
+          .route("/verify_email", post().to(verify_email)),
       )
       .service(
-        web::scope("/account/settings")
+        scope("/account/settings")
           .wrap(rate_limit.import_user_settings())
-          .route("/export", web::get().to(export_settings))
-          .route("/import", web::post().to(import_settings)),
+          .route("/export", get().to(export_settings))
+          .route("/import", post().to(import_settings)),
       )
       .service(
-        web::scope("/account")
-          .route("/my_user", web::get().to(get_my_user))
-          .route("/list_media", web::get().to(list_media))
-          .route("/mention", web::get().to(list_mentions))
-          .route("/replies", web::get().to(list_replies))
-          .route("/block", web::post().to(block_person))
-          .route("/delete", web::post().to(delete_account))
+        scope("/account")
+          .route("/my_user", get().to(get_my_user))
+          .route("/list_media", get().to(list_media))
+          .route("/mention", get().to(list_mentions))
+          .route("/replies", get().to(list_replies))
+          .route("/block", post().to(block_person))
+          .route("/delete", post().to(delete_account))
           .route(
             "/mention/mark_as_read",
-            web::post().to(mark_person_mention_as_read),
+            post().to(mark_person_mention_as_read),
           )
           .route(
             "/mention/mark_all_as_read",
-            web::post().to(mark_all_notifications_read),
+            post().to(mark_all_notifications_read),
           )
-          .route("/settings/save", web::put().to(save_user_settings))
-          .route("/report_count", web::get().to(report_count))
-          .route("/unread_count", web::get().to(unread_count))
-          .route("/list_logins", web::get().to(list_logins))
-          .route("/validate_auth", web::get().to(validate_auth)),
+          .route("/settings/save", put().to(save_user_settings))
+          .route("/report_count", get().to(report_count))
+          .route("/unread_count", get().to(unread_count))
+          .route("/list_logins", get().to(list_logins))
+          .route("/validate_auth", get().to(validate_auth)),
       )
       // User actions
-      .route("/person", web::get().to(read_person))
+      .route("/person", get().to(read_person))
       // Admin Actions
       .service(
-        web::scope("/admin")
-          .route("/add", web::post().to(add_admin))
+        scope("/admin")
+          .route("/add", post().to(add_admin))
           .route(
             "/registration_application/count",
-            web::get().to(get_unread_registration_application_count),
+            get().to(get_unread_registration_application_count),
           )
           .route(
             "/registration_application/list",
-            web::get().to(list_registration_applications),
+            get().to(list_registration_applications),
           )
           .route(
             "/registration_application/approve",
-            web::put().to(approve_registration_application),
+            put().to(approve_registration_application),
           )
           .route(
             "/registration_application",
-            web::get().to(get_registration_application),
+            get().to(get_registration_application),
           )
-          .route("/list_all_media", web::get().to(list_all_media))
+          .route("/list_all_media", get().to(list_all_media))
           .service(
-            web::scope("/purge")
-              .route("/person", web::post().to(purge_person))
-              .route("/community", web::post().to(purge_community))
-              .route("/post", web::post().to(purge_post))
-              .route("/comment", web::post().to(purge_comment)),
+            scope("/purge")
+              .route("/person", post().to(purge_person))
+              .route("/community", post().to(purge_community))
+              .route("/post", post().to(purge_post))
+              .route("/comment", post().to(purge_comment)),
           )
           .service(
-            web::scope("/tagline")
-              .route("", web::post().to(create_tagline))
-              .route("", web::put().to(update_tagline))
-              .route("/delete", web::post().to(delete_tagline))
-              .route("/list", web::get().to(list_taglines)),
+            scope("/tagline")
+              .route("", post().to(create_tagline))
+              .route("", put().to(update_tagline))
+              .route("/delete", post().to(delete_tagline))
+              .route("/list", get().to(list_taglines)),
           )
-          .route("/ban", web::post().to(ban_from_site))
-          .route("/banned", web::get().to(list_banned_users))
-          .route("/leave", web::post().to(leave_admin)),
+          .route("/ban", post().to(ban_from_site))
+          .route("/banned", get().to(list_banned_users))
+          .route("/leave", post().to(leave_admin)),
       )
       .service(
-        web::scope("/custom_emoji")
-          .route("", web::post().to(create_custom_emoji))
-          .route("", web::put().to(update_custom_emoji))
-          .route("/delete", web::post().to(delete_custom_emoji))
-          .route("/list", web::get().to(list_custom_emojis)),
+        scope("/custom_emoji")
+          .route("", post().to(create_custom_emoji))
+          .route("", put().to(update_custom_emoji))
+          .route("/delete", post().to(delete_custom_emoji))
+          .route("/list", get().to(list_custom_emojis)),
       )
       .service(
-        web::scope("/oauth_provider")
-          .route("", web::post().to(create_oauth_provider))
-          .route("", web::put().to(update_oauth_provider))
-          .route("/delete", web::post().to(delete_oauth_provider)),
+        scope("/oauth_provider")
+          .route("", post().to(create_oauth_provider))
+          .route("", put().to(update_oauth_provider))
+          .route("/delete", post().to(delete_oauth_provider)),
       )
       .service(
-        web::scope("/oauth")
+        scope("/oauth")
           .wrap(rate_limit.register())
-          .route("/authenticate", web::post().to(authenticate_with_oauth)),
+          .route("/authenticate", post().to(authenticate_with_oauth)),
       )
-      .route("/sitemap.xml", web::get().to(get_sitemap)),
+      .route("/sitemap.xml", get().to(get_sitemap)),
   );
 }
