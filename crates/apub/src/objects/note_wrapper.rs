@@ -46,7 +46,7 @@ impl Object for ApubNote {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let val = to_value(note)?;
-    if is_public(&note.to, &note.cc) {
+    if note.is_comment(context).await? {
       ApubComment::verify(&from_value(val)?, expected_domain, context).await?;
     } else {
       ApubPrivateMessage::verify(&from_value(val)?, expected_domain, context).await?;
@@ -55,9 +55,9 @@ impl Object for ApubNote {
   }
 
   async fn from_json(note: NoteWrapper, context: &Data<LemmyContext>) -> LemmyResult<ApubNote> {
-    let is_public = is_public(&note.to, &note.cc);
+    let is_comment = note.is_comment(context).await?;
     let val = to_value(note)?;
-    if is_public {
+    if is_comment {
       ApubComment::from_json(from_value(val)?, context).await?;
     } else {
       ApubPrivateMessage::from_json(from_value(val)?, context).await?;
@@ -70,16 +70,10 @@ impl Object for ApubNote {
   }
 }
 
-pub(crate) fn is_public(to: &Option<Vec<Url>>, cc: &Option<Vec<Url>>) -> bool {
-  if let Some(to) = to {
-    if to.contains(&public()) {
-      return true;
-    }
+impl NoteWrapper {
+  pub(crate) async fn is_comment(&self, context: &LemmyContext) -> LemmyResult<bool> {
+    // TODO: if it belongs to a community then its a comment (same logic as impl InCommunity for
+    // Note)
+    todo!()
   }
-  if let Some(cc) = cc {
-    if cc.contains(&public()) {
-      return true;
-    }
-  }
-  false
 }
