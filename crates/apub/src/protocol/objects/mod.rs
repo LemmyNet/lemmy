@@ -102,7 +102,8 @@ impl LanguageTag {
 #[cfg(test)]
 mod tests {
   use crate::protocol::{
-    activities::create_or_update::note_wrapper::NoteWrapper, objects::{
+    activities::create_or_update::note_wrapper::NoteWrapper,
+    objects::{
       group::Group,
       instance::Instance,
       note::Note,
@@ -110,7 +111,8 @@ mod tests {
       person::Person,
       private_message::PrivateMessage,
       tombstone::Tombstone,
-    }, tests::{test_json, test_parse_lemmy_item}
+    },
+    tests::{test_json, test_parse_lemmy_item},
   };
   use lemmy_utils::error::LemmyResult;
 

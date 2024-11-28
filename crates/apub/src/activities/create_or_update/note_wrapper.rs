@@ -60,6 +60,7 @@ impl ActivityHandler for CreateOrUpdateNoteWrapper {
 #[async_trait::async_trait]
 impl InCommunity for CreateOrUpdateNoteWrapper {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    // TODO: inefficient that we have to convert here and also later in receive
     let val = to_value(self)?;
     let comment: CreateOrUpdateNote = from_value(val.clone())?;
     comment.community(context).await

@@ -9,9 +9,9 @@ pub struct CreateOrUpdateNoteWrapper {
   pub(crate) object: NoteWrapper,
   pub(crate) id: Url,
   #[serde(default)]
-  pub (crate) to: Vec<Url>,
+  pub(crate) to: Vec<Url>,
   #[serde(default)]
-  pub (crate) cc: Vec<Url>,
+  pub(crate) cc: Vec<Url>,
   pub(crate) actor: Url,
   #[serde(flatten)]
   other: Map<String, Value>,
