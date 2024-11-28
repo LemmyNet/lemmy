@@ -146,7 +146,13 @@ pub async fn register(
     ..LocalUserInsertForm::new(inserted_person.id, Some(data.password.to_string()))
   };
 
-  let inserted_local_user = create_local_user(&context, language_tags, &local_user_form).await?;
+  let inserted_local_user = create_local_user(
+    &context,
+    language_tags,
+    &local_user_form,
+    local_site.site_id,
+  )
+  .await?;
 
   if local_site.site_setup && require_registration_application {
     if let Some(answer) = data.answer.clone() {
