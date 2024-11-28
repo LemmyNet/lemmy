@@ -23,7 +23,12 @@ import {
   unfollows,
   saveUserSettingsBio,
 } from "./shared";
-import { LemmyHttp, SaveUserSettings, UploadImage } from "lemmy-js-client";
+import {
+  EditSite,
+  LemmyHttp,
+  SaveUserSettings,
+  UploadImage,
+} from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 
 beforeAll(setupLogins);
@@ -149,9 +154,14 @@ test("Create user with Arabic name", async () => {
 });
 
 test("Create user with accept-language", async () => {
+  const edit: EditSite = {
+    discussion_languages: [32],
+  };
+  await alpha.editSite(edit);
+
   let lemmy_http = new LemmyHttp(alphaUrl, {
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language#syntax
-    headers: { "Accept-Language": "fr-CH, en;q=0.8, de;q=0.7, *;q=0.5" },
+    headers: { "Accept-Language": "fr-CH, en;q=0.8, *;q=0.5" },
   });
   let user = await registerUser(lemmy_http, alphaUrl);
 
