@@ -16,9 +16,8 @@ use serde_with::skip_serializing_none;
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PrivateMessage {
-  #[serde(rename = "type")]
-  pub(crate) kind: PrivateMessageType,
+pub struct ChatMessage {
+  pub(crate) r#type: ChatMessageType,
   pub(crate) id: ObjectId<ApubPrivateMessage>,
   pub(crate) attributed_to: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one")]
@@ -32,10 +31,8 @@ pub struct PrivateMessage {
   pub(crate) updated: Option<DateTime<Utc>>,
 }
 
+/// https://docs.pleroma.social/backend/development/ap_extensions/#chatmessages
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum PrivateMessageType {
-  /// For compatibility with Lemmy 0.19 and earlier
-  /// https://docs.pleroma.social/backend/development/ap_extensions/#chatmessages
+pub enum ChatMessageType {
   ChatMessage,
-  Note,
 }
