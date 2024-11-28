@@ -10,7 +10,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityUpdateForm},
-    moderator::{ModHideCommunity, ModHideCommunityForm},
+    mod_log::moderator::{ModHideCommunity, ModHideCommunityForm},
   },
   traits::Crud,
 };

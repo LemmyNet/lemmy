@@ -7,6 +7,8 @@ use lemmy_api_common::{
 use lemmy_db_schema::{source::local_site::LocalSite, ModlogActionType};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_moderator::structs::{
+  AdminAllowInstanceView,
+  AdminBlockInstanceView,
   AdminPurgeCommentView,
   AdminPurgeCommunityView,
   AdminPurgePersonView,
@@ -121,6 +123,8 @@ pub async fn get_mod_log(
     admin_purged_communities,
     admin_purged_posts,
     admin_purged_comments,
+    admin_block_instance,
+    admin_allow_instance,
   ) = if data.community_id.is_none() {
     (
       match type_ {
@@ -161,6 +165,18 @@ pub async fn get_mod_log(
         }
         _ => Default::default(),
       },
+      match type_ {
+        All | AdminBlockInstance if other_person_id.is_none() => {
+          AdminBlockInstanceView::list(&mut context.pool(), params).await?
+        }
+        _ => Default::default(),
+      },
+      match type_ {
+        All | AdminAllowInstance if other_person_id.is_none() => {
+          AdminAllowInstanceView::list(&mut context.pool(), params).await?
+        }
+        _ => Default::default(),
+      },
     )
   } else {
     Default::default()
@@ -183,5 +199,7 @@ pub async fn get_mod_log(
     admin_purged_posts,
     admin_purged_comments,
     hidden_communities,
+    admin_block_instance,
+    admin_allow_instance,
   }))
 }

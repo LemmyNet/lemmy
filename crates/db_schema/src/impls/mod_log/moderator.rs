@@ -1,13 +1,5 @@
 use crate::{
-  source::moderator::{
-    AdminPurgeComment,
-    AdminPurgeCommentForm,
-    AdminPurgeCommunity,
-    AdminPurgeCommunityForm,
-    AdminPurgePerson,
-    AdminPurgePersonForm,
-    AdminPurgePost,
-    AdminPurgePostForm,
+  source::mod_log::moderator::{
     ModAdd,
     ModAddCommunity,
     ModAddCommunityForm,
@@ -376,157 +368,20 @@ impl Crud for ModAdd {
   }
 }
 
-#[async_trait]
-impl Crud for AdminPurgePerson {
-  type InsertForm = AdminPurgePersonForm;
-  type UpdateForm = AdminPurgePersonForm;
-  type IdType = i32;
-
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
-    use crate::schema::admin_purge_person::dsl::admin_purge_person;
-    let conn = &mut get_conn(pool).await?;
-    insert_into(admin_purge_person)
-      .values(form)
-      .get_result::<Self>(conn)
-      .await
-  }
-
-  async fn update(
-    pool: &mut DbPool<'_>,
-    from_id: i32,
-    form: &Self::InsertForm,
-  ) -> Result<Self, Error> {
-    use crate::schema::admin_purge_person::dsl::admin_purge_person;
-    let conn = &mut get_conn(pool).await?;
-    diesel::update(admin_purge_person.find(from_id))
-      .set(form)
-      .get_result::<Self>(conn)
-      .await
-  }
-}
-
-#[async_trait]
-impl Crud for AdminPurgeCommunity {
-  type InsertForm = AdminPurgeCommunityForm;
-  type UpdateForm = AdminPurgeCommunityForm;
-  type IdType = i32;
-
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
-    use crate::schema::admin_purge_community::dsl::admin_purge_community;
-    let conn = &mut get_conn(pool).await?;
-    insert_into(admin_purge_community)
-      .values(form)
-      .get_result::<Self>(conn)
-      .await
-  }
-
-  async fn update(
-    pool: &mut DbPool<'_>,
-    from_id: i32,
-    form: &Self::InsertForm,
-  ) -> Result<Self, Error> {
-    use crate::schema::admin_purge_community::dsl::admin_purge_community;
-    let conn = &mut get_conn(pool).await?;
-    diesel::update(admin_purge_community.find(from_id))
-      .set(form)
-      .get_result::<Self>(conn)
-      .await
-  }
-}
-
-#[async_trait]
-impl Crud for AdminPurgePost {
-  type InsertForm = AdminPurgePostForm;
-  type UpdateForm = AdminPurgePostForm;
-  type IdType = i32;
-
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
-    use crate::schema::admin_purge_post::dsl::admin_purge_post;
-    let conn = &mut get_conn(pool).await?;
-    insert_into(admin_purge_post)
-      .values(form)
-      .get_result::<Self>(conn)
-      .await
-  }
-
-  async fn update(
-    pool: &mut DbPool<'_>,
-    from_id: i32,
-    form: &Self::InsertForm,
-  ) -> Result<Self, Error> {
-    use crate::schema::admin_purge_post::dsl::admin_purge_post;
-    let conn = &mut get_conn(pool).await?;
-    diesel::update(admin_purge_post.find(from_id))
-      .set(form)
-      .get_result::<Self>(conn)
-      .await
-  }
-}
-
-#[async_trait]
-impl Crud for AdminPurgeComment {
-  type InsertForm = AdminPurgeCommentForm;
-  type UpdateForm = AdminPurgeCommentForm;
-  type IdType = i32;
-
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
-    use crate::schema::admin_purge_comment::dsl::admin_purge_comment;
-    let conn = &mut get_conn(pool).await?;
-    insert_into(admin_purge_comment)
-      .values(form)
-      .get_result::<Self>(conn)
-      .await
-  }
-
-  async fn update(
-    pool: &mut DbPool<'_>,
-    from_id: i32,
-    form: &Self::InsertForm,
-  ) -> Result<Self, Error> {
-    use crate::schema::admin_purge_comment::dsl::admin_purge_comment;
-    let conn = &mut get_conn(pool).await?;
-    diesel::update(admin_purge_comment.find(from_id))
-      .set(form)
-      .get_result::<Self>(conn)
-      .await
-  }
-}
-
 #[cfg(test)]
 mod tests {
 
+  use super::*;
   use crate::{
     source::{
       comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
-      moderator::{
-        ModAdd,
-        ModAddCommunity,
-        ModAddCommunityForm,
-        ModAddForm,
-        ModBan,
-        ModBanForm,
-        ModBanFromCommunity,
-        ModBanFromCommunityForm,
-        ModFeaturePost,
-        ModFeaturePostForm,
-        ModLockPost,
-        ModLockPostForm,
-        ModRemoveComment,
-        ModRemoveCommentForm,
-        ModRemoveCommunity,
-        ModRemoveCommunityForm,
-        ModRemovePost,
-        ModRemovePostForm,
-      },
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
-    traits::Crud,
     utils::build_db_pool_for_tests,
   };
-  use diesel::result::Error;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

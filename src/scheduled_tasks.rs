@@ -23,6 +23,7 @@ use lemmy_db_schema::{
     comment,
     community,
     community_actions,
+    federation_blocklist,
     instance,
     person,
     post,
@@ -58,6 +59,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
     async move {
       active_counts(&mut context.pool()).await;
       update_banned_when_expired(&mut context.pool()).await;
+      delete_instance_block_when_expired(&mut context.pool()).await;
     }
   });
 
@@ -113,6 +115,7 @@ async fn startup_jobs(pool: &mut DbPool<'_>) {
   active_counts(pool).await;
   update_hot_ranks(pool).await;
   update_banned_when_expired(pool).await;
+  delete_instance_block_when_expired(pool).await;
   clear_old_activities(pool).await;
   overwrite_deleted_posts_and_comments(pool).await;
   delete_old_denied_users(pool).await;
@@ -438,6 +441,27 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) {
       .execute(&mut conn)
       .await
       .inspect_err(|e| error!("Failed to remove community_ban expired rows: {e}"))
+      .ok();
+    }
+    Err(e) => {
+      error!("Failed to get connection from pool: {e}");
+    }
+  }
+}
+
+/// Set banned to false after ban expires
+async fn delete_instance_block_when_expired(pool: &mut DbPool<'_>) {
+  info!("Delete instance blocks when expired ...");
+  let conn = get_conn(pool).await;
+
+  match conn {
+    Ok(mut conn) => {
+      diesel::delete(
+        federation_blocklist::table.filter(federation_blocklist::expires.lt(now().nullable())),
+      )
+      .execute(&mut conn)
+      .await
+      .inspect_err(|e| error!("Failed to remove federation_blocklist expired rows: {e}"))
       .ok();
     }
     Err(e) => {

@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
     local_user::LocalUser,
-    moderator::{ModAddCommunity, ModAddCommunityForm},
+    mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
   },
   traits::{Crud, Joinable},
 };

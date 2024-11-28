@@ -43,6 +43,29 @@ pub mod sql_types {
 }
 
 diesel::table! {
+    admin_allow_instance (id) {
+        id -> Int4,
+        instance_id -> Int4,
+        admin_person_id -> Int4,
+        allowed -> Bool,
+        reason -> Nullable<Text>,
+        when_ -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    admin_block_instance (id) {
+        id -> Int4,
+        instance_id -> Int4,
+        admin_person_id -> Int4,
+        blocked -> Bool,
+        reason -> Nullable<Text>,
+        expires -> Nullable<Timestamptz>,
+        when_ -> Timestamptz,
+    }
+}
+
+diesel::table! {
     admin_purge_comment (id) {
         id -> Int4,
         admin_person_id -> Int4,
@@ -284,6 +307,7 @@ diesel::table! {
         instance_id -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+        expires -> Nullable<Timestamptz>,
     }
 }
 
@@ -935,6 +959,10 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(admin_allow_instance -> instance (instance_id));
+diesel::joinable!(admin_allow_instance -> person (admin_person_id));
+diesel::joinable!(admin_block_instance -> instance (instance_id));
+diesel::joinable!(admin_block_instance -> person (admin_person_id));
 diesel::joinable!(admin_purge_comment -> person (admin_person_id));
 diesel::joinable!(admin_purge_comment -> post (post_id));
 diesel::joinable!(admin_purge_community -> person (admin_person_id));
@@ -1012,6 +1040,8 @@ diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    admin_allow_instance,
+    admin_block_instance,
     admin_purge_comment,
     admin_purge_community,
     admin_purge_person,

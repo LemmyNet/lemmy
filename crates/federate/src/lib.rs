@@ -199,10 +199,14 @@ mod test {
   use super::*;
   use activitypub_federation::config::Data;
   use chrono::DateTime;
-  use lemmy_db_schema::source::{
-    federation_allowlist::FederationAllowList,
-    federation_blocklist::FederationBlockList,
-    instance::InstanceForm,
+  use lemmy_db_schema::{
+    source::{
+      federation_allowlist::{FederationAllowList, FederationAllowListForm},
+      federation_blocklist::{FederationBlockList, FederationBlockListForm},
+      instance::InstanceForm,
+      person::{Person, PersonInsertForm},
+    },
+    traits::Crud,
   };
   use lemmy_utils::error::LemmyError;
   use serial_test::serial;
@@ -318,14 +322,22 @@ mod test {
   async fn test_send_manager_blocked() -> LemmyResult<()> {
     let mut data = TestData::init(1, 1).await?;
 
-    let domain = data.instances[0].domain.clone();
-    FederationBlockList::replace(&mut data.context.pool(), Some(vec![domain])).await?;
+    let instance_id = data.instances[0].id;
+    let form = PersonInsertForm::new("tim".to_string(), String::new(), instance_id);
+    let person = Person::create(&mut data.context.pool(), &form).await?;
+    let form = FederationBlockListForm {
+      instance_id,
+      updated: None,
+      expires: None,
+    };
+    FederationBlockList::block(&mut data.context.pool(), &form).await?;
     data.run().await?;
     let workers = &data.send_manager.workers;
     assert_eq!(2, workers.len());
     assert!(workers.contains_key(&data.instances[1].id));
     assert!(workers.contains_key(&data.instances[2].id));
 
+    Person::delete(&mut data.context.pool(), person.id).await?;
     data.cleanup().await?;
     Ok(())
   }
@@ -336,13 +348,20 @@ mod test {
   async fn test_send_manager_allowed() -> LemmyResult<()> {
     let mut data = TestData::init(1, 1).await?;
 
-    let domain = data.instances[0].domain.clone();
-    FederationAllowList::replace(&mut data.context.pool(), Some(vec![domain])).await?;
+    let instance_id = data.instances[0].id;
+    let form = PersonInsertForm::new("tim".to_string(), String::new(), instance_id);
+    let person = Person::create(&mut data.context.pool(), &form).await?;
+    let form = FederationAllowListForm {
+      instance_id: data.instances[0].id,
+      updated: None,
+    };
+    FederationAllowList::allow(&mut data.context.pool(), &form).await?;
     data.run().await?;
     let workers = &data.send_manager.workers;
     assert_eq!(1, workers.len());
     assert!(workers.contains_key(&data.instances[0].id));
 
+    Person::delete(&mut data.context.pool(), person.id).await?;
     data.cleanup().await?;
     Ok(())
   }

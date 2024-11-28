@@ -27,7 +27,7 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::Community,
-    moderator::{ModLockPost, ModLockPostForm},
+    mod_log::moderator::{ModLockPost, ModLockPostForm},
     person::Person,
     post::{Post, PostUpdateForm},
   },
