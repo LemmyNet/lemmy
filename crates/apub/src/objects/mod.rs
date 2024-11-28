@@ -15,7 +15,6 @@ use std::fmt::Debug;
 pub mod comment;
 pub mod community;
 pub mod instance;
-pub mod note_wrapper;
 pub mod person;
 pub mod post;
 pub mod private_message;

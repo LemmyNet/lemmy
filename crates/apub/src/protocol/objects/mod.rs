@@ -8,13 +8,12 @@ use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+pub(crate) mod chat_message;
 pub(crate) mod group;
 pub(crate) mod instance;
 pub(crate) mod note;
-pub(crate) mod note_wrapper;
 pub(crate) mod page;
 pub(crate) mod person;
-pub(crate) mod private_message;
 pub(crate) mod tombstone;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -102,15 +101,14 @@ impl LanguageTag {
 
 #[cfg(test)]
 mod tests {
-  use super::note_wrapper::NoteWrapper;
   use crate::protocol::{
     objects::{
+      chat_message::ChatMessage,
       group::Group,
       instance::Instance,
       note::Note,
       page::Page,
       person::Person,
-      private_message::PrivateMessage,
       tombstone::Tombstone,
     },
     tests::{test_json, test_parse_lemmy_item},
@@ -123,10 +121,8 @@ mod tests {
     test_parse_lemmy_item::<Group>("assets/lemmy/objects/group.json")?;
     test_parse_lemmy_item::<Person>("assets/lemmy/objects/person.json")?;
     test_parse_lemmy_item::<Page>("assets/lemmy/objects/page.json")?;
-    test_parse_lemmy_item::<Note>("assets/lemmy/objects/comment.json")?;
-    test_parse_lemmy_item::<PrivateMessage>("assets/lemmy/objects/private_message.json")?;
-    test_parse_lemmy_item::<NoteWrapper>("assets/lemmy/objects/comment.json")?;
-    test_parse_lemmy_item::<NoteWrapper>("assets/lemmy/objects/private_message.json")?;
+    test_parse_lemmy_item::<Note>("assets/lemmy/objects/note.json")?;
+    test_parse_lemmy_item::<ChatMessage>("assets/lemmy/objects/chat_message.json")?;
     test_parse_lemmy_item::<Tombstone>("assets/lemmy/objects/tombstone.json")?;
     Ok(())
   }
@@ -135,6 +131,7 @@ mod tests {
   fn test_parse_objects_pleroma() -> LemmyResult<()> {
     test_json::<Person>("assets/pleroma/objects/person.json")?;
     test_json::<Note>("assets/pleroma/objects/note.json")?;
+    test_json::<ChatMessage>("assets/pleroma/objects/chat_message.json")?;
     Ok(())
   }
 
