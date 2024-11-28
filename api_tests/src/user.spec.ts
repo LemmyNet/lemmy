@@ -119,7 +119,9 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
     headers: { Authorization: "Bearer foobar" },
     fetchFunction,
   });
-  await expect(getMyUser(invalid_auth)).rejects.toStrictEqual(Error("incorrect_login"));
+  await expect(getMyUser(invalid_auth)).rejects.toStrictEqual(
+    Error("incorrect_login"),
+  );
   let site = await getSite(invalid_auth);
   expect(site.site_view).toBeDefined();
 
