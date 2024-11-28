@@ -153,9 +153,7 @@ test("Create user with accept-language", async () => {
 
   let my_user = await getMyUser(user);
   expect(my_user).toBeDefined();
-  expect(my_user?.local_user_view.local_user.interface_language).toBe(
-    "fr",
-  );
+  expect(my_user?.local_user_view.local_user.interface_language).toBe("fr");
   let site = await getSite(user);
   let langs = site.all_languages
     .filter(a => my_user.discussion_languages.includes(a.id))

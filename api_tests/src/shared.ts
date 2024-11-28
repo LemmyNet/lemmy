@@ -771,9 +771,7 @@ export async function listPrivateMessages(
   return api.getPrivateMessages(form);
 }
 
-export async function unfollowRemotes(
-  api: LemmyHttp,
-): Promise<MyUserInfo> {
+export async function unfollowRemotes(api: LemmyHttp): Promise<MyUserInfo> {
   // Unfollow all remote communities
   let my_user = await getMyUser(api);
   let remoteFollowed =
