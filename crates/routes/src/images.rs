@@ -35,7 +35,8 @@ pub fn config(cfg: &mut ServiceConfig, client: ClientWithMiddleware, rate_limit:
     )
     // This has optional query params: /image/{filename}?format=jpg&thumbnail=256
     .service(resource("/pictrs/image/{filename}").route(get().to(full_res)))
-    .service(resource("/pictrs/image/delete/{token}/{filename}").route(get().to(delete)));
+    .service(resource("/pictrs/image/delete/{token}/{filename}").route(get().to(delete)))
+    .service(resource("/pictrs/healthz").route(get().to(healthz)));
 }
 
 trait ProcessUrl {
@@ -243,6 +244,25 @@ async fn delete(
   let res = client_req.send().await?;
 
   LocalImage::delete_by_alias(&mut context.pool(), &file).await?;
+
+  Ok(HttpResponse::build(convert_status(res.status())).body(BodyStream::new(res.bytes_stream())))
+}
+
+async fn healthz(
+  req: HttpRequest,
+  client: Data<ClientWithMiddleware>,
+  context: Data<LemmyContext>,
+) -> LemmyResult<HttpResponse> {
+  let pictrs_config = context.settings().pictrs_config()?;
+  let url = format!("{}healthz", pictrs_config.url);
+
+  let mut client_req = adapt_request(&req, &client, url);
+
+  if let Some(addr) = req.head().peer_addr {
+    client_req = client_req.header("X-Forwarded-For", addr.to_string());
+  }
+
+  let res = client_req.send().await?;
 
   Ok(HttpResponse::build(convert_status(res.status())).body(BodyStream::new(res.bytes_stream())))
 }

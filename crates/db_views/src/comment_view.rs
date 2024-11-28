@@ -1068,6 +1068,8 @@ mod tests {
         child_count: 5,
         hot_rank: RANK_DEFAULT,
         controversy_rank: 0.0,
+        report_count: 0,
+        unresolved_report_count: 0,
       },
     })
   }
