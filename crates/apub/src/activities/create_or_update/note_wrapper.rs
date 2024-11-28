@@ -9,9 +9,9 @@ use crate::{
     InCommunity,
   },
 };
-use activitypub_federation::{config::Data, traits::ActivityHandler};
+use activitypub_federation::{config::Data, kinds::public, traits::ActivityHandler};
 use lemmy_api_common::context::LemmyContext;
-use lemmy_utils::error::{FederationError, LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde_json::{from_value, to_value};
 use url::Url;
 
@@ -29,24 +29,29 @@ impl ActivityHandler for CreateOrUpdateNoteWrapper {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let val = to_value(self)?;
-    if is_public(&self.to, &self.cc) {
-      CreateOrUpdateNote::verify(&from_value(val)?, context).await?;
-    } else {
-      CreateOrUpdatePrivateMessage::verify(&from_value(val)?, context).await?;
-    }
+  async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
+    // Do everything in receive to avoid extra checks.
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let is_comment = self.object.is_comment(context).await?;
     let val = to_value(self)?;
-    if is_comment {
-      CreateOrUpdateNote::receive(from_value(val)?, context).await?;
+    let comment: CreateOrUpdateNote = from_value(val.clone())?;
+    // First check if the activity is marked as public which is true for all comments
+    // in public communities. However that check doesnt work in private communities. So if
+    // it fails we need to resolve the community which is much slower as it requires
+    // db reads and maybe network fetches.
+    if comment.cc.contains(&public())
+      || comment.to.contains(&public())
+      || comment.community(context).await.is_ok()
+    {
+      CreateOrUpdateNote::verify(&comment, context).await?;
+      CreateOrUpdateNote::receive(comment, context).await?;
     } else {
-      CreateOrUpdatePrivateMessage::receive(from_value(val)?, context).await?;
+      let private_message = from_value(val)?;
+      CreateOrUpdatePrivateMessage::verify(&private_message, context).await?;
+      CreateOrUpdatePrivateMessage::receive(private_message, context).await?;
     }
     Ok(())
   }
@@ -54,13 +59,9 @@ impl ActivityHandler for CreateOrUpdateNoteWrapper {
 
 #[async_trait::async_trait]
 impl InCommunity for CreateOrUpdateNoteWrapper {
-  #[tracing::instrument(skip(self, context))]
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    if self.object.is_comment(context).await? {
-      let comment: CreateOrUpdateNote = from_value(to_value(self)?)?;
-      comment.community(context).await
-    } else {
-      Err(FederationError::ObjectIsNotPublic.into())
-    }
+    let val = to_value(self)?;
+    let comment: CreateOrUpdateNote = from_value(val.clone())?;
+    comment.community(context).await
   }
 }
