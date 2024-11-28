@@ -21,7 +21,7 @@ pub mod local_site_url_blocklist;
 pub mod local_user;
 pub mod local_user_vote_display_mode;
 pub mod login_token;
-pub mod moderator;
+pub mod mod_log;
 pub mod oauth_account;
 pub mod oauth_provider;
 pub mod password_reset_request;

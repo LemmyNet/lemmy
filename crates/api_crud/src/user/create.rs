@@ -21,8 +21,9 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
-  newtypes::{InstanceId, OAuthProviderId},
+  newtypes::{InstanceId, OAuthProviderId, SiteId},
   source::{
+    actor_language::SiteLanguage,
     captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
     language::Language,
     local_site::LocalSite,
@@ -145,7 +146,13 @@ pub async fn register(
     ..LocalUserInsertForm::new(inserted_person.id, Some(data.password.to_string()))
   };
 
-  let inserted_local_user = create_local_user(&context, language_tags, &local_user_form).await?;
+  let inserted_local_user = create_local_user(
+    &context,
+    language_tags,
+    &local_user_form,
+    local_site.site_id,
+  )
+  .await?;
 
   if local_site.site_setup && require_registration_application {
     if let Some(answer) = data.answer.clone() {
@@ -358,7 +365,13 @@ pub async fn authenticate_with_oauth(
         ..LocalUserInsertForm::new(person.id, None)
       };
 
-      local_user = create_local_user(&context, language_tags, &local_user_form).await?;
+      local_user = create_local_user(
+        &context,
+        language_tags,
+        &local_user_form,
+        local_site.site_id,
+      )
+      .await?;
 
       // Create the oauth account
       let oauth_account_form =
@@ -449,15 +462,23 @@ async fn create_local_user(
   context: &Data<LemmyContext>,
   language_tags: Vec<String>,
   local_user_form: &LocalUserInsertForm,
+  local_site_id: SiteId,
 ) -> Result<LocalUser, LemmyError> {
   let all_languages = Language::read_all(&mut context.pool()).await?;
   // use hashset to avoid duplicates
   let mut language_ids = HashSet::new();
+
+  // Enable languages from `Accept-Language` header
   for l in language_tags {
     if let Some(found) = all_languages.iter().find(|all| all.code == l) {
       language_ids.insert(found.id);
     }
   }
+
+  // Enable site languages. Ignored if all languages are enabled.
+  let discussion_languages = SiteLanguage::read(&mut context.pool(), local_site_id).await?;
+  language_ids.extend(discussion_languages);
+
   let language_ids = language_ids.into_iter().collect();
 
   let inserted_local_user =

@@ -19,7 +19,7 @@ use lemmy_db_schema::{
       CommunityPersonBanForm,
     },
     local_site::LocalSite,
-    moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
+    mod_log::moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
     person::Person,
   },
   traits::{Bannable, Crud, Followable},

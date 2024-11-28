@@ -7,7 +7,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     local_user::{LocalUser, LocalUserUpdateForm},
-    moderator::{ModAdd, ModAddForm},
+    mod_log::moderator::{ModAdd, ModAddForm},
   },
   traits::Crud,
 };

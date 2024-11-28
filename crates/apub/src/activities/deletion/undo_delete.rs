@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityUpdateForm},
-    moderator::{
+    mod_log::moderator::{
       ModRemoveComment,
       ModRemoveCommentForm,
       ModRemoveCommunity,

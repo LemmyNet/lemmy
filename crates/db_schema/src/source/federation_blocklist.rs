@@ -1,14 +1,14 @@
 use crate::newtypes::InstanceId;
-#[cfg(feature = "full")]
-use crate::schema::federation_blocklist;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
+#[cfg(feature = "full")]
+use {crate::schema::federation_blocklist, ts_rs::TS};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable)
+  derive(TS, Queryable, Selectable, Associations, Identifiable)
 )]
 #[cfg_attr(
   feature = "full",
@@ -17,10 +17,14 @@ use std::fmt::Debug;
 #[cfg_attr(feature = "full", diesel(table_name = federation_blocklist))]
 #[cfg_attr(feature = "full", diesel(primary_key(instance_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
 pub struct FederationBlockList {
   pub instance_id: InstanceId,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub expires: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Default)]
@@ -29,4 +33,5 @@ pub struct FederationBlockList {
 pub struct FederationBlockListForm {
   pub instance_id: InstanceId,
   pub updated: Option<DateTime<Utc>>,
+  pub expires: Option<DateTime<Utc>>,
 }
