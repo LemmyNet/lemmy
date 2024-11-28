@@ -92,7 +92,6 @@ test("Create a post", async () => {
   var block_instance_params: AdminBlockInstanceParams = {
     instance: "lemmy-alpha",
     block: true,
-    reason: undefined,
   };
   await epsilon.adminBlockInstance(block_instance_params);
 

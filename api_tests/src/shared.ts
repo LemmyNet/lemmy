@@ -205,7 +205,6 @@ async function allowInstance(api: LemmyHttp, instance: string) {
   const params: AdminAllowInstanceParams = {
     instance,
     allow: true,
-    reason: undefined,
   };
   // Ignore errors from duplicate allows (because setup gets called for each test file)
   try {

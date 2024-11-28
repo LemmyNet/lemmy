@@ -45,7 +45,7 @@ impl AdminBlockInstanceView {
     query
       .limit(limit)
       .offset(offset)
-      .order_by(admin_block_instance::published.desc())
+      .order_by(admin_block_instance::when_.desc())
       .load::<Self>(conn)
       .await
   }

@@ -49,7 +49,7 @@ diesel::table! {
         admin_person_id -> Int4,
         allowed -> Bool,
         reason -> Nullable<Text>,
-        published -> Timestamptz,
+        when_ -> Timestamptz,
     }
 }
 
@@ -61,7 +61,7 @@ diesel::table! {
         blocked -> Bool,
         reason -> Nullable<Text>,
         expires -> Nullable<Timestamptz>,
-        published -> Timestamptz,
+        when_ -> Timestamptz,
     }
 }
 

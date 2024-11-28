@@ -8,7 +8,7 @@ CREATE TABLE admin_block_instance (
     blocked bool NOT NULL,
     reason text,
     expires timestamptz,
-    published timestamptz NOT NULL DEFAULT now()
+    when_ timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE admin_allow_instance (
@@ -17,6 +17,6 @@ CREATE TABLE admin_allow_instance (
     admin_person_id int NOT NULL REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE,
     allowed bool NOT NULL,
     reason text,
-    published timestamptz NOT NULL DEFAULT now()
+    when_ timestamptz NOT NULL DEFAULT now()
 );
 

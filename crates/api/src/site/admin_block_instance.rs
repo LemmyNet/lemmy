@@ -48,7 +48,7 @@ pub async fn admin_block_instance(
     admin_person_id: local_user_view.person.id,
     blocked: data.block,
     reason: data.reason.clone(),
-    expires: data.expires,
+    when_: data.expires,
   };
   AdminBlockInstance::insert(&mut context.pool(), &mod_log_form).await?;
 

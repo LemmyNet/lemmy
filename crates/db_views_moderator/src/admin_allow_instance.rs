@@ -45,7 +45,7 @@ impl AdminAllowInstanceView {
     query
       .limit(limit)
       .offset(offset)
-      .order_by(admin_allow_instance::published.desc())
+      .order_by(admin_allow_instance::when_.desc())
       .load::<Self>(conn)
       .await
   }

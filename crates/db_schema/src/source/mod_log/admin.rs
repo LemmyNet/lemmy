@@ -126,7 +126,7 @@ pub struct AdminAllowInstance {
   pub allowed: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
-  pub published: DateTime<Utc>,
+  pub when_: DateTime<Utc>,
 }
 
 #[derive(Clone, Default)]
@@ -161,7 +161,7 @@ pub struct AdminBlockInstance {
   pub reason: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub expires: Option<DateTime<Utc>>,
-  pub published: DateTime<Utc>,
+  pub when_: DateTime<Utc>,
 }
 
 #[derive(Clone, Default)]
@@ -172,5 +172,5 @@ pub struct AdminBlockInstanceForm {
   pub admin_person_id: PersonId,
   pub blocked: bool,
   pub reason: Option<String>,
-  pub expires: Option<DateTime<Utc>>,
+  pub when_: Option<DateTime<Utc>>,
 }
