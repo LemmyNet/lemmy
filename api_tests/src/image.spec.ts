@@ -32,6 +32,7 @@ import {
   createPostWithThumbnail,
   sampleImage,
   sampleSite,
+  getMyUser,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -129,9 +130,9 @@ test("Purge user, uploaded image removed", async () => {
   expect(content.length).toBeGreaterThan(0);
 
   // purge user
-  let site = await getSite(user);
+  let my_user = await getMyUser(user);
   const purgeForm: PurgePerson = {
-    person_id: site.my_user!.local_user_view.person.id,
+    person_id: my_user.local_user_view.person.id,
   };
   const delete_ = await alphaImage.purgePerson(purgeForm);
   expect(delete_.success).toBe(true);
