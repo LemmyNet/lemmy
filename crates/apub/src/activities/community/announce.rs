@@ -64,17 +64,16 @@ impl ActivityHandler for RawAnnouncableActivities {
 
     // verify and receive activity
     activity.verify(context).await?;
-    let actor_id = activity.actor().clone().into();
-    activity.receive(context).await?;
+    activity.clone().receive(context).await?;
 
     // if community is local, send activity to followers
     if let Some(community) = community {
       if community.local {
+        let actor_id = activity.actor().clone().into();
         verify_person_in_community(&actor_id, &community, context).await?;
         AnnounceActivity::send(self, &community, context).await?;
       }
     }
-
     Ok(())
   }
 }
