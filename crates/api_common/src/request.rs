@@ -23,7 +23,6 @@ use lemmy_utils::{
   REQWEST_TIMEOUT,
   VERSION,
 };
-use mime::Mime;
 use reqwest::{
   header::{CONTENT_TYPE, RANGE},
   Client,
@@ -64,11 +63,20 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
     .await?
     .error_for_status()?;
 
-  let content_type: Option<Mime> = response
-    .headers()
-    .get(CONTENT_TYPE)
-    .and_then(|h| h.to_str().ok())
-    .and_then(|h| h.parse().ok());
+  // In some cases servers send a wrong mime type for images, which prevents thumbnail
+  // generation. To avoid this we also try to guess the mime type from file extension.
+  let content_type = mime_guess::from_path(url.path())
+    .first()
+    // If you can guess that its an image type, then return that first.
+    .filter(|guess| guess.type_() == mime::IMAGE)
+    // Otherwise, get the content type from the headers
+    .or(
+      response
+        .headers()
+        .get(CONTENT_TYPE)
+        .and_then(|h| h.to_str().ok())
+        .and_then(|h| h.parse().ok()),
+    );
 
   let opengraph_data = {
     // if the content type is not text/html, we don't need to parse it

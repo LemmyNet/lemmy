@@ -23,30 +23,31 @@ workspace = true
 
 [features]
 full = [
-  "dep:ts-rs",
-  "dep:diesel",
-  "dep:rosetta-i18n",
-  "dep:actix-web",
-  "dep:reqwest-middleware",
-  "dep:tracing",
-  "dep:actix-web",
-  "dep:serde_json",
-  "dep:anyhow",
-  "dep:http",
-  "dep:deser-hjson",
-  "dep:regex",
-  "dep:urlencoding",
-  "dep:doku",
-  "dep:url",
-  "dep:smart-default",
-  "dep:enum-map",
-  "dep:futures",
-  "dep:tokio",
-  "dep:html2text",
-  "dep:lettre",
-  "dep:uuid",
-  "dep:itertools",
-  "dep:markdown-it",
+  "ts-rs",
+  "diesel",
+  "rosetta-i18n",
+  "actix-web",
+  "reqwest-middleware",
+  "tracing",
+  "actix-web",
+  "serde_json",
+  "anyhow",
+  "http",
+  "deser-hjson",
+  "regex",
+  "urlencoding",
+  "doku",
+  "url",
+  "smart-default",
+  "enum-map",
+  "futures",
+  "tokio",
+  "html2text",
+  "lettre",
+  "uuid",
+  "itertools",
+  "markdown-it",
+  "moka",
 ]
 
 [package.metadata.cargo-shear]
@@ -89,6 +90,7 @@ markdown-it-block-spoiler = "1.0.0"
 markdown-it-sub = "1.0.0"
 markdown-it-sup = "1.0.0"
 markdown-it-ruby = "1.0.0"
+moka = { workspace = true, optional = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
