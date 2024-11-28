@@ -210,10 +210,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/approve", post().to(post_pending_follows_approve)),
           ),
       )
-      .route(
-        "/federated_instances",
-        get().to(get_federated_instances),
-      )
+      .route("/federated_instances", get().to(get_federated_instances))
       // Post
       .service(
         // Handle POST to /post separately to add the post() rate limitter
@@ -288,10 +285,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/logout", post().to(logout))
           .route("/password_reset", post().to(reset_password))
           .route("/get_captcha", get().to(get_captcha))
-          .route(
-            "/password_change",
-            post().to(change_password_after_reset),
-          )
+          .route("/password_change", post().to(change_password_after_reset))
           .route("/change_password", put().to(change_password))
           .route("/totp/generate", post().to(generate_totp_secret))
           .route("/totp/update", post().to(update_totp))
