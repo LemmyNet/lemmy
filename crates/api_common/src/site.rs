@@ -435,7 +435,7 @@ pub struct EditSite {
 /// The response for a site.
 pub struct SiteResponse {
   pub site_view: SiteView,
-  /// deprecated, use field `tagline` or /api/v3/tagline/list
+  /// deprecated, use field `tagline` or /api/4/tagline/list
   pub taglines: Vec<()>,
 }
 

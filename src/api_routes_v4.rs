@@ -162,7 +162,7 @@ use lemmy_utils::rate_limit::RateLimitCell;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
-    web::scope("/api/v3")
+    web::scope("/api/v4")
       .wrap(rate_limit.message())
       .route("/image_proxy", web::get().to(image_proxy))
       // Site
@@ -283,11 +283,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
         web::scope("/account/auth")
           .guard(guard::Post())
           .wrap(rate_limit.register())
-          .route("register", web::post().to(register))
-          .route("login", web::post().to(login))
+          .route("/register", web::post().to(register))
+          .route("/login", web::post().to(login))
           .route("/logout", web::post().to(logout))
-          .route("password_reset", web::post().to(reset_password))
-          .route("get_captcha", web::get().to(get_captcha))
+          .route("/password_reset", web::post().to(reset_password))
+          .route("/get_captcha", web::get().to(get_captcha))
           .route(
             "/password_change",
             web::post().to(change_password_after_reset),
