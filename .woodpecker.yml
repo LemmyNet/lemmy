@@ -273,13 +273,15 @@ steps:
   # using https://github.com/pksunkara/cargo-workspaces
   publish_to_crates_io:
     image: *rust_image
+    environment:
+      CARGO_API_TOKEN:
+        from_secret: cargo_api_token
     commands:
       - *install_binstall
       # Install cargo-workspaces
       - cargo binstall -y cargo-workspaces
       - cp -r migrations crates/db_schema/
       - cargo workspaces publish --token "$CARGO_API_TOKEN" --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
-    secrets: [cargo_api_token]
     when:
       - event: tag
 
