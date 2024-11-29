@@ -30,8 +30,8 @@ importers:
         specifier: ^29.5.0
         version: 29.7.0(@types/node@22.9.0)
       lemmy-js-client:
-        specifier: 0.20.0-api-v4.10
-        version: 0.20.0-api-v4.10
+        specifier: 0.20.0-api-v4.12
+        version: 0.20.0-api-v4.12
       prettier:
         specifier: ^3.2.5
         version: 3.3.3
@@ -1167,8 +1167,8 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
-  lemmy-js-client@0.20.0-api-v4.10:
-    resolution: {integrity: sha512-Dtl0CuS2LSVTX02TTRW3Zu51VWUZW3cPt3he+dnfPLVAr+nRA5erGObQJH5B353IO4RTPXDV+nYl+GKHgDeLtw==}
+  lemmy-js-client@0.20.0-api-v4.12:
+    resolution: {integrity: sha512-U6/1ZLBgWHCQgqKraNUGASORqgUPTdutReqeY8+Bl5LYpenFGe87jM3A6Eniu3PQ+C6hBWNbC5axl8EdLOMLrA==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -3077,7 +3077,7 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  lemmy-js-client@0.20.0-api-v4.10: {}
+  lemmy-js-client@0.20.0-api-v4.12: {}
 
   leven@3.1.0: {}
 

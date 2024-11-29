@@ -363,8 +363,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/ban", post().to(ban_from_site))
           .route("/banned", get().to(list_banned_users))
           .route("/leave", post().to(leave_admin))
-          .route("block_instance", post().to(admin_block_instance))
-          .route("allow_instance", post().to(admin_allow_instance)),
+          .service(
+            scope("/instance")
+              .route("/block", post().to(admin_block_instance))
+              .route("/allow", post().to(admin_allow_instance)),
+          ),
       )
       .service(
         scope("/custom_emoji")
