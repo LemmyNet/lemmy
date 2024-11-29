@@ -291,6 +291,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/totp/update", post().to(update_totp))
           .route("/verify_email", post().to(verify_email)),
       )
+      .route("/account/settings/save", put().to(save_user_settings))
       .service(
         scope("/account/settings")
           .wrap(rate_limit.import_user_settings())
@@ -313,7 +314,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
             "/mention/mark_all_as_read",
             post().to(mark_all_notifications_read),
           )
-          .route("/settings/save", put().to(save_user_settings))
           .route("/report_count", get().to(report_count))
           .route("/unread_count", get().to(unread_count))
           .route("/list_logins", get().to(list_logins))
