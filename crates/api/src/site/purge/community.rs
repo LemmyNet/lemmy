@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     local_user::LocalUser,
-    moderator::{AdminPurgeCommunity, AdminPurgeCommunityForm},
+    mod_log::admin::{AdminPurgeCommunity, AdminPurgeCommunityForm},
   },
   traits::Crud,
 };

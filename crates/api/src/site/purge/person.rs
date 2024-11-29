@@ -11,7 +11,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     local_user::LocalUser,
-    moderator::{AdminPurgePerson, AdminPurgePersonForm},
+    mod_log::admin::{AdminPurgePerson, AdminPurgePersonForm},
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,

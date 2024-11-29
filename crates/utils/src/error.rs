@@ -152,6 +152,7 @@ pub enum LemmyErrorType {
   CommunityHasNoFollowers,
   PostScheduleTimeMustBeInFuture,
   TooManyScheduledPosts,
+  CannotCombineFederationBlocklistAndAllowlist,
   FederationError {
     #[cfg_attr(feature = "full", ts(optional))]
     error: Option<FederationError>,

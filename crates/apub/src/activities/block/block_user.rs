@@ -36,7 +36,7 @@ use lemmy_db_schema::{
       CommunityPersonBan,
       CommunityPersonBanForm,
     },
-    moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
+    mod_log::moderator::{ModBan, ModBanForm, ModBanFromCommunity, ModBanFromCommunityForm},
     person::{Person, PersonUpdateForm},
   },
   traits::{Bannable, Crud, Followable},

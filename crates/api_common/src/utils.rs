@@ -23,7 +23,12 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
-    moderator::{ModRemoveComment, ModRemoveCommentForm, ModRemovePost, ModRemovePostForm},
+    mod_log::moderator::{
+      ModRemoveComment,
+      ModRemoveCommentForm,
+      ModRemovePost,
+      ModRemovePostForm,
+    },
     oauth_account::OAuthAccount,
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
