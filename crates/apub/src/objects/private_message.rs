@@ -242,4 +242,24 @@ mod tests {
     cleanup(data, &context).await?;
     Ok(())
   }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_parse_pleroma_pm() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let url = Url::parse("https://enterprise.lemmy.ml/private_message/1621")?;
+    let data = prepare_comment_test(&url, &context).await?;
+    let pleroma_url = Url::parse("https://queer.hacktivis.me/objects/2")?;
+    let json = file_to_json_object("assets/pleroma/objects/chat_message.json")?;
+    ApubPrivateMessage::verify(&json, &pleroma_url, &context).await?;
+    let pm = ApubPrivateMessage::from_json(json, &context).await?;
+
+    assert_eq!(pm.ap_id, pleroma_url.into());
+    assert_eq!(pm.content.len(), 3);
+    assert_eq!(context.request_count(), 0);
+
+    DbPrivateMessage::delete(&mut context.pool(), pm.id).await?;
+    cleanup(data, &context).await?;
+    Ok(())
+  }
 }
