@@ -1,60 +1,51 @@
 use crate::{
-  schema::federation_allowlist,
+  newtypes::InstanceId,
+  schema::{admin_allow_instance, federation_allowlist},
   source::{
     federation_allowlist::{FederationAllowList, FederationAllowListForm},
-    instance::Instance,
+    mod_log::admin::{AdminAllowInstance, AdminAllowInstanceForm},
   },
   utils::{get_conn, DbPool},
 };
-use diesel::{dsl::insert_into, result::Error};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel::{delete, dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 
-impl FederationAllowList {
-  pub async fn replace(pool: &mut DbPool<'_>, list_opt: Option<Vec<String>>) -> Result<(), Error> {
+impl AdminAllowInstance {
+  pub async fn insert(pool: &mut DbPool<'_>, form: &AdminAllowInstanceForm) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
-    conn
-      .build_transaction()
-      .run(|conn| {
-        Box::pin(async move {
-          if let Some(list) = list_opt {
-            Self::clear(conn).await?;
-
-            for domain in list {
-              // Upsert all of these as instances
-              let instance = Instance::read_or_create(&mut conn.into(), domain).await?;
-
-              let form = FederationAllowListForm {
-                instance_id: instance.id,
-                updated: None,
-              };
-              insert_into(federation_allowlist::table)
-                .values(form)
-                .get_result::<Self>(conn)
-                .await?;
-            }
-            Ok(())
-          } else {
-            Ok(())
-          }
-        }) as _
-      })
-      .await
-  }
-
-  async fn clear(conn: &mut AsyncPgConnection) -> Result<usize, Error> {
-    diesel::delete(federation_allowlist::table)
+    insert_into(admin_allow_instance::table)
+      .values(form)
       .execute(conn)
-      .await
+      .await?;
+
+    Ok(())
   }
 }
+
+impl FederationAllowList {
+  pub async fn allow(pool: &mut DbPool<'_>, form: &FederationAllowListForm) -> Result<(), Error> {
+    let conn = &mut get_conn(pool).await?;
+    insert_into(federation_allowlist::table)
+      .values(form)
+      .execute(conn)
+      .await?;
+    Ok(())
+  }
+  pub async fn unallow(pool: &mut DbPool<'_>, instance_id_: InstanceId) -> Result<(), Error> {
+    use federation_allowlist::dsl::instance_id;
+    let conn = &mut get_conn(pool).await?;
+    delete(federation_allowlist::table.filter(instance_id.eq(instance_id_)))
+      .execute(conn)
+      .await?;
+    Ok(())
+  }
+}
+
 #[cfg(test)]
 mod tests {
 
-  use crate::{
-    source::{federation_allowlist::FederationAllowList, instance::Instance},
-    utils::build_db_pool_for_tests,
-  };
-  use diesel::result::Error;
+  use super::*;
+  use crate::{source::instance::Instance, utils::build_db_pool_for_tests};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -63,31 +54,33 @@ mod tests {
   async fn test_allowlist_insert_and_clear() -> Result<(), Error> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
-    let domains = vec![
-      "tld1.xyz".to_string(),
-      "tld2.xyz".to_string(),
-      "tld3.xyz".to_string(),
+    let instances = vec![
+      Instance::read_or_create(pool, "tld1.xyz".to_string()).await?,
+      Instance::read_or_create(pool, "tld2.xyz".to_string()).await?,
+      Instance::read_or_create(pool, "tld3.xyz".to_string()).await?,
     ];
+    let forms: Vec<_> = instances
+      .iter()
+      .map(|i| FederationAllowListForm {
+        instance_id: i.id,
+        updated: None,
+      })
+      .collect();
 
-    let allowed = Some(domains.clone());
-
-    FederationAllowList::replace(pool, allowed).await?;
+    for f in &forms {
+      FederationAllowList::allow(pool, f).await?;
+    }
 
     let allows = Instance::allowlist(pool).await?;
-    let allows_domains = allows
-      .iter()
-      .map(|i| i.domain.clone())
-      .collect::<Vec<String>>();
 
     assert_eq!(3, allows.len());
-    assert_eq!(domains, allows_domains);
+    assert_eq!(instances, allows);
 
-    // Now test clearing them via Some(empty vec)
-    let clear_allows = Some(Vec::new());
-
-    FederationAllowList::replace(pool, clear_allows).await?;
+    // Now test clearing them
+    for f in forms {
+      FederationAllowList::unallow(pool, f.instance_id).await?;
+    }
     let allows = Instance::allowlist(pool).await?;
-
     assert_eq!(0, allows.len());
 
     Instance::delete_all(pool).await?;

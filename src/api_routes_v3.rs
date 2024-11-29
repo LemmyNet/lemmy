@@ -69,7 +69,6 @@ use lemmy_api::{
     resolve::resolve_pm_report,
   },
   site::{
-    block::block_instance,
     federated_instances::get_federated_instances,
     leave_admin::leave_admin,
     list_all_media::list_all_media,
@@ -86,6 +85,7 @@ use lemmy_api::{
       list::list_registration_applications,
       unread_count::get_unread_registration_application_count,
     },
+    user_block_instance::user_block_instance,
   },
   sitemap::get_sitemap,
 };
@@ -149,7 +149,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           // Admin Actions
           .route("", post().to(create_site))
           .route("", put().to(update_site))
-          .route("/block", post().to(block_instance)),
+          .route("/block", post().to(user_block_instance)),
       )
       .service(
         resource("/modlog")

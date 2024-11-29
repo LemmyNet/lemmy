@@ -31,7 +31,7 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{Community, CommunityModerator, CommunityModeratorForm},
-    moderator::{ModAddCommunity, ModAddCommunityForm},
+    mod_log::moderator::{ModAddCommunity, ModAddCommunityForm},
     person::Person,
     post::{Post, PostUpdateForm},
   },

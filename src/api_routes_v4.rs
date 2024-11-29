@@ -76,7 +76,8 @@ use lemmy_api::{
     resolve::resolve_pm_report,
   },
   site::{
-    block::block_instance,
+    admin_allow_instance::admin_allow_instance,
+    admin_block_instance::admin_block_instance,
     federated_instances::get_federated_instances,
     leave_admin::leave_admin,
     list_all_media::list_all_media,
@@ -171,8 +172,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", get().to(get_site_v4))
           // Admin Actions
           .route("", post().to(create_site))
-          .route("", put().to(update_site))
-          .route("/block", post().to(block_instance)),
+          .route("", put().to(update_site)),
       )
       .route("/modlog", get().to(get_mod_log))
       .service(
@@ -358,7 +358,9 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           )
           .route("/ban", post().to(ban_from_site))
           .route("/banned", get().to(list_banned_users))
-          .route("/leave", post().to(leave_admin)),
+          .route("/leave", post().to(leave_admin))
+          .route("block_instance", post().to(admin_block_instance))
+          .route("allow_instance", post().to(admin_allow_instance)),
       )
       .service(
         scope("/custom_emoji")

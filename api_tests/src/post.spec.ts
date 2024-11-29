@@ -41,6 +41,7 @@ import {
   getMyUser,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
+import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
 import { EditSite, ResolveObject } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
@@ -88,12 +89,12 @@ async function assertPostFederation(
 }
 
 test("Create a post", async () => {
-  // Setup some allowlists and blocklists
-  const editSiteForm: EditSite = {};
-
-  editSiteForm.allowed_instances = [];
-  editSiteForm.blocked_instances = ["lemmy-alpha"];
-  await epsilon.editSite(editSiteForm);
+  // Block alpha
+  var block_instance_params: AdminBlockInstanceParams = {
+    instance: "lemmy-alpha",
+    block: true,
+  };
+  await epsilon.adminBlockInstance(block_instance_params);
 
   if (!betaCommunity) {
     throw "Missing beta community";
@@ -133,11 +134,9 @@ test("Create a post", async () => {
     resolvePost(epsilon, postRes.post_view.post),
   ).rejects.toStrictEqual(Error("not_found"));
 
-  // remove added allow/blocklists
-  editSiteForm.allowed_instances = [];
-  editSiteForm.blocked_instances = [];
-  await delta.editSite(editSiteForm);
-  await epsilon.editSite(editSiteForm);
+  // remove blocked instance
+  block_instance_params.block = false;
+  await epsilon.adminBlockInstance(block_instance_params);
 });
 
 test("Create a post in a non-existent community", async () => {

@@ -73,6 +73,15 @@
       # 
       # Requires pict-rs 0.5
       "ProxyAllImages"
+    # Allows bypassing proxy for specific image hosts when using ProxyAllImages.
+    # 
+    # imgur.com is bypassed by default to avoid rate limit errors. When specifying any bypass
+    # in the config, this default is ignored and you need to list imgur explicitly. To proxy imgur
+    # requests, specify a noop bypass list, eg `proxy_bypass_domains ["example.org"]`.
+    proxy_bypass_domains: [
+      "i.imgur.com"
+      /* ... */
+    ]
     # Timeout for uploading images to pictrs (in seconds)
     upload_timeout: 30
     # Resize post thumbnails to this maximum width/height.

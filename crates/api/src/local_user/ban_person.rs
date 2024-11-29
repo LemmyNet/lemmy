@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   source::{
     local_user::LocalUser,
     login_token::LoginToken,
-    moderator::{ModBan, ModBanForm},
+    mod_log::moderator::{ModBan, ModBanForm},
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,

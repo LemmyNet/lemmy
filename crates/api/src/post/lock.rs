@@ -9,7 +9,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{
-    moderator::{ModLockPost, ModLockPostForm},
+    mod_log::moderator::{ModLockPost, ModLockPostForm},
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
