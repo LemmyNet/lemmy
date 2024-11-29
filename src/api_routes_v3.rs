@@ -14,7 +14,7 @@ use lemmy_api::{
   community::{
     add_mod::add_mod_to_community,
     ban::ban_from_community,
-    block::block_community,
+    block::user_block_community,
     follow::follow_community,
     hide::hide_community,
     transfer::transfer_community,
@@ -22,7 +22,7 @@ use lemmy_api::{
   local_user::{
     add_admin::add_admin,
     ban_person::ban_from_site,
-    block::block_person,
+    block::user_block_person,
     change_password::change_password,
     change_password_after_reset::change_password_after_reset,
     generate_totp_secret::generate_totp_secret,
@@ -44,6 +44,7 @@ use lemmy_api::{
     reset_password::reset_password,
     save_settings::save_user_settings,
     update_totp::update_totp,
+    user_block_instance::user_block_instance,
     validate_auth::validate_auth,
     verify_email::verify_email,
   },
@@ -85,7 +86,6 @@ use lemmy_api::{
       list::list_registration_applications,
       unread_count::get_unread_registration_application_count,
     },
-    user_block_instance::user_block_instance,
   },
   sitemap::get_sitemap,
 };
@@ -181,7 +181,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/hide", put().to(hide_community))
           .route("/list", get().to(list_communities))
           .route("/follow", post().to(follow_community))
-          .route("/block", post().to(block_community))
+          .route("/block", post().to(user_block_community))
           .route("/delete", post().to(delete_community))
           // Mod Actions
           .route("/remove", post().to(remove_community))
@@ -321,7 +321,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           // Admin action. I don't like that it's in /user
           .route("/ban", post().to(ban_from_site))
           .route("/banned", get().to(list_banned_users))
-          .route("/block", post().to(block_person))
+          .route("/block", post().to(user_block_person))
           // TODO Account actions. I don't like that they're in /user maybe /accounts
           .route("/logout", post().to(logout))
           .route("/delete_account", post().to(delete_account))

@@ -14,7 +14,7 @@ use lemmy_api::{
   community::{
     add_mod::add_mod_to_community,
     ban::ban_from_community,
-    block::block_community,
+    block::user_block_community,
     follow::follow_community,
     hide::hide_community,
     pending_follows::{
@@ -28,7 +28,7 @@ use lemmy_api::{
   local_user::{
     add_admin::add_admin,
     ban_person::ban_from_site,
-    block::block_person,
+    block::user_block_person,
     change_password::change_password,
     change_password_after_reset::change_password_after_reset,
     generate_totp_secret::generate_totp_secret,
@@ -50,6 +50,7 @@ use lemmy_api::{
     reset_password::reset_password,
     save_settings::save_user_settings,
     update_totp::update_totp,
+    user_block_instance::user_block_instance,
     validate_auth::validate_auth,
     verify_email::verify_email,
   },
@@ -170,7 +171,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         scope("/site")
           .route("", get().to(get_site_v4))
-          // Admin Actions
           .route("", post().to(create_site))
           .route("", put().to(update_site)),
       )
@@ -196,7 +196,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/hide", put().to(hide_community))
           .route("/list", get().to(list_communities))
           .route("/follow", post().to(follow_community))
-          .route("/block", post().to(block_community))
           .route("/delete", post().to(delete_community))
           // Mod Actions
           .route("/remove", post().to(remove_community))
@@ -304,7 +303,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/list_media", get().to(list_media))
           .route("/mention", get().to(list_mentions))
           .route("/replies", get().to(list_replies))
-          .route("/block", post().to(block_person))
           .route("/delete", post().to(delete_account))
           .route(
             "/mention/mark_as_read",
@@ -317,7 +315,13 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/report_count", get().to(report_count))
           .route("/unread_count", get().to(unread_count))
           .route("/list_logins", get().to(list_logins))
-          .route("/validate_auth", get().to(validate_auth)),
+          .route("/validate_auth", get().to(validate_auth))
+          .service(
+            scope("/block")
+              .route("/person", post().to(user_block_person))
+              .route("/community", post().to(user_block_community))
+              .route("/instance", post().to(user_block_instance)),
+          ),
       )
       // User actions
       .route("/person", get().to(read_person))

@@ -10,7 +10,7 @@ pub mod list_logins;
 pub mod list_media;
 pub mod login;
 pub mod logout;
-pub mod notifications;
+pub mod notifications;pub mod user_block_instance;
 pub mod report_count;
 pub mod reset_password;
 pub mod save_settings;
