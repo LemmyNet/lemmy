@@ -8,7 +8,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
-    moderator::{ModTransferCommunity, ModTransferCommunityForm},
+    mod_log::moderator::{ModTransferCommunity, ModTransferCommunityForm},
   },
   traits::{Crud, Joinable},
 };

@@ -37,7 +37,7 @@ use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_federate::{Opts, SendManager};
 use lemmy_routes::{feeds, images, nodeinfo, webfinger};
 use lemmy_utils::{
-  error::LemmyResult,
+  error::{LemmyErrorType, LemmyResult},
   rate_limit::RateLimitCell,
   response::jsonify_plain_text_errors,
   settings::{structs::Settings, SETTINGS},
@@ -178,7 +178,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     .set(Box::new(move |d, c| {
       Box::pin(match_outgoing_activities(d, c))
     }))
-    .expect("set function pointer");
+    .map_err(|_e| LemmyErrorType::Unknown("couldnt set function pointer".into()))?;
+
   let request_data = federation_config.to_request_data();
   let outgoing_activities_task = tokio::task::spawn(handle_outgoing_activities(
     request_data.reset_request_count(),
@@ -281,7 +282,7 @@ fn create_http_server(
   let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
     .registry(default_registry().clone())
     .build()
-    .expect("Should always be buildable");
+    .map_err(|e| LemmyErrorType::Unknown(format!("Should always be buildable: {e}")))?;
 
   let context: LemmyContext = federation_config.deref().clone();
   let rate_limit_cell = federation_config.rate_limit_cell().clone();
@@ -339,23 +340,31 @@ fn create_http_server(
 fn cors_config(settings: &Settings) -> Cors {
   let self_origin = settings.get_protocol_and_hostname();
   let cors_origin_setting = settings.cors_origin();
+
+  // A default setting for either wildcard, or None
+  let cors_default = Cors::default()
+    .allow_any_origin()
+    .allow_any_method()
+    .allow_any_header()
+    .expose_any_header()
+    .max_age(3600);
+
   match (cors_origin_setting.clone(), cfg!(debug_assertions)) {
     (Some(origin), false) => {
       // Need to call send_wildcard() explicitly, passing this into allowed_origin() results in
       // error
-      if cors_origin_setting.as_deref() == Some("*") {
-        Cors::default().allow_any_origin().send_wildcard()
+      if origin == "*" {
+        cors_default
       } else {
         Cors::default()
           .allowed_origin(&origin)
           .allowed_origin(&self_origin)
+          .allow_any_method()
+          .allow_any_header()
+          .expose_any_header()
+          .max_age(3600)
       }
     }
-    _ => Cors::default()
-      .allow_any_origin()
-      .allow_any_method()
-      .allow_any_header()
-      .expose_any_header()
-      .max_age(3600),
+    _ => cors_default,
   }
 }

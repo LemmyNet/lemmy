@@ -17,6 +17,7 @@ use activitypub_federation::{
   kinds::activity::UpdateType,
   traits::{ActivityHandler, Actor, Object},
 };
+use chrono::Utc;
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
@@ -25,7 +26,6 @@ use lemmy_db_schema::{
     person::Person,
   },
   traits::Crud,
-  utils::naive_now,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
@@ -103,7 +103,7 @@ impl ActivityHandler for UpdateCommunity {
       nsfw: Some(self.object.sensitive.unwrap_or(false)),
       actor_id: Some(self.object.id.into()),
       public_key: Some(self.object.public_key.public_key_pem),
-      last_refreshed_at: Some(naive_now()),
+      last_refreshed_at: Some(Utc::now()),
       icon: Some(self.object.icon.map(|i| i.url.into())),
       banner: Some(self.object.image.map(|i| i.url.into())),
       followers_url: self.object.followers.map(Into::into),

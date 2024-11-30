@@ -242,6 +242,7 @@ mod tests {
         enable_animated_images: inserted_sara_local_user.enable_animated_images,
         enable_private_messages: inserted_sara_local_user.enable_private_messages,
         collapse_bot_comments: inserted_sara_local_user.collapse_bot_comments,
+        auto_mark_fetched_posts_as_read: false,
       },
       creator: Person {
         id: inserted_sara_person.id,

@@ -39,7 +39,6 @@ use lemmy_db_schema::{
     site::{Site, SiteInsertForm},
   },
   traits::Crud,
-  utils::naive_now,
 };
 use lemmy_utils::{
   error::{FederationError, LemmyError, LemmyResult},
@@ -163,7 +162,7 @@ impl Object for ApubSite {
       banner,
       description: apub.summary,
       actor_id: Some(apub.id.clone().into()),
-      last_refreshed_at: Some(naive_now()),
+      last_refreshed_at: Some(Utc::now()),
       inbox_url: Some(apub.inbox.clone().into()),
       public_key: Some(apub.public_key.public_key_pem.clone()),
       private_key: None,

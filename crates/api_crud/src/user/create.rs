@@ -21,8 +21,9 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
-  newtypes::{InstanceId, OAuthProviderId},
+  newtypes::{InstanceId, OAuthProviderId, SiteId},
   source::{
+    actor_language::SiteLanguage,
     captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
     language::Language,
     local_site::LocalSite,
@@ -145,17 +146,24 @@ pub async fn register(
     ..LocalUserInsertForm::new(inserted_person.id, Some(data.password.to_string()))
   };
 
-  let inserted_local_user = create_local_user(&context, language_tags, &local_user_form).await?;
+  let inserted_local_user = create_local_user(
+    &context,
+    language_tags,
+    &local_user_form,
+    local_site.site_id,
+  )
+  .await?;
 
   if local_site.site_setup && require_registration_application {
-    // Create the registration application
-    let form = RegistrationApplicationInsertForm {
-      local_user_id: inserted_local_user.id,
-      // We already made sure answer was not null above
-      answer: data.answer.clone().expect("must have an answer"),
-    };
+    if let Some(answer) = data.answer.clone() {
+      // Create the registration application
+      let form = RegistrationApplicationInsertForm {
+        local_user_id: inserted_local_user.id,
+        answer,
+      };
 
-    RegistrationApplication::create(&mut context.pool(), &form).await?;
+      RegistrationApplication::create(&mut context.pool(), &form).await?;
+    }
   }
 
   // Email the admins, only if email verification is not required
@@ -304,7 +312,7 @@ pub async fn authenticate_with_oauth(
 
         OAuthAccount::create(&mut context.pool(), &oauth_account_form)
           .await
-          .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+          .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
 
         local_user = user_view.local_user.clone();
       } else {
@@ -357,7 +365,13 @@ pub async fn authenticate_with_oauth(
         ..LocalUserInsertForm::new(person.id, None)
       };
 
-      local_user = create_local_user(&context, language_tags, &local_user_form).await?;
+      local_user = create_local_user(
+        &context,
+        language_tags,
+        &local_user_form,
+        local_site.site_id,
+      )
+      .await?;
 
       // Create the oauth account
       let oauth_account_form =
@@ -365,7 +379,7 @@ pub async fn authenticate_with_oauth(
 
       OAuthAccount::create(&mut context.pool(), &oauth_account_form)
         .await
-        .map_err(|_| LemmyErrorType::IncorrectLogin)?;
+        .with_lemmy_type(LemmyErrorType::IncorrectLogin)?;
 
       // prevent sign in until application is accepted
       if local_site.site_setup
@@ -373,17 +387,19 @@ pub async fn authenticate_with_oauth(
         && !local_user.accepted_application
         && !local_user.admin
       {
-        // Create the registration application
-        RegistrationApplication::create(
-          &mut context.pool(),
-          &RegistrationApplicationInsertForm {
-            local_user_id: local_user.id,
-            answer: data.answer.clone().expect("must have an answer"),
-          },
-        )
-        .await?;
+        if let Some(answer) = data.answer.clone() {
+          // Create the registration application
+          RegistrationApplication::create(
+            &mut context.pool(),
+            &RegistrationApplicationInsertForm {
+              local_user_id: local_user.id,
+              answer,
+            },
+          )
+          .await?;
 
-        login_response.registration_created = true;
+          login_response.registration_created = true;
+        }
       }
 
       // Check email is verified when required
@@ -446,15 +462,23 @@ async fn create_local_user(
   context: &Data<LemmyContext>,
   language_tags: Vec<String>,
   local_user_form: &LocalUserInsertForm,
+  local_site_id: SiteId,
 ) -> Result<LocalUser, LemmyError> {
   let all_languages = Language::read_all(&mut context.pool()).await?;
   // use hashset to avoid duplicates
   let mut language_ids = HashSet::new();
+
+  // Enable languages from `Accept-Language` header
   for l in language_tags {
     if let Some(found) = all_languages.iter().find(|all| all.code == l) {
       language_ids.insert(found.id);
     }
   }
+
+  // Enable site languages. Ignored if all languages are enabled.
+  let discussion_languages = SiteLanguage::read(&mut context.pool(), local_site_id).await?;
+  language_ids.extend(discussion_languages);
+
   let language_ids = language_ids.into_iter().collect();
 
   let inserted_local_user =
@@ -483,7 +507,7 @@ async fn send_verification_email_if_required(
       &local_user
         .email
         .clone()
-        .expect("invalid verification email"),
+        .ok_or(LemmyErrorType::EmailRequired)?,
       &mut context.pool(),
       context.settings(),
     )
@@ -524,18 +548,16 @@ async fn oauth_request_access_token(
       ("client_secret", &oauth_provider.client_secret),
     ])
     .send()
-    .await;
-
-  let response = response.map_err(|_| LemmyErrorType::OauthLoginFailed)?;
-  if !response.status().is_success() {
-    Err(LemmyErrorType::OauthLoginFailed)?;
-  }
+    .await
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?
+    .error_for_status()
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
 
   // Extract the access token
   let token_response = response
     .json::<TokenResponse>()
     .await
-    .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
 
   Ok(token_response)
 }
@@ -552,18 +574,16 @@ async fn oidc_get_user_info(
     .header("Accept", "application/json")
     .bearer_auth(access_token)
     .send()
-    .await;
-
-  let response = response.map_err(|_| LemmyErrorType::OauthLoginFailed)?;
-  if !response.status().is_success() {
-    Err(LemmyErrorType::OauthLoginFailed)?;
-  }
+    .await
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?
+    .error_for_status()
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
 
   // Extract the OAUTH user_id claim from the returned user_info
   let user_info = response
     .json::<serde_json::Value>()
     .await
-    .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
 
   Ok(user_info)
 }
@@ -571,7 +591,7 @@ async fn oidc_get_user_info(
 fn read_user_info(user_info: &serde_json::Value, key: &str) -> LemmyResult<String> {
   if let Some(value) = user_info.get(key) {
     let result = serde_json::from_value::<String>(value.clone())
-      .map_err(|_| LemmyErrorType::OauthLoginFailed)?;
+      .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
     return Ok(result);
   }
   Err(LemmyErrorType::OauthLoginFailed)?

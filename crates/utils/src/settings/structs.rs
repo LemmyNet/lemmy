@@ -1,3 +1,4 @@
+use super::pictrs_placeholder_url;
 use doku::Document;
 use serde::{Deserialize, Serialize};
 use smart_default::SmartDefault;
@@ -52,7 +53,7 @@ pub struct Settings {
   /// Sets a response Access-Control-Allow-Origin CORS header
   /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
   #[default(None)]
-  #[doku(example = "*")]
+  #[doku(example = "lemmy.tld")]
   cors_origin: Option<String>,
 }
 
@@ -68,7 +69,7 @@ impl Settings {
 #[serde(default, deny_unknown_fields)]
 pub struct PictrsConfig {
   /// Address where pictrs is available (for image hosting)
-  #[default(Url::parse("http://localhost:8080").expect("parse pictrs url"))]
+  #[default(pictrs_placeholder_url())]
   #[doku(example = "http://localhost:8080")]
   pub url: Url,
 
@@ -86,6 +87,15 @@ pub struct PictrsConfig {
   /// servers.
   #[default(PictrsImageMode::StoreLinkPreviews)]
   pub(super) image_mode: PictrsImageMode,
+
+  /// Allows bypassing proxy for specific image hosts when using ProxyAllImages.
+  ///
+  /// imgur.com is bypassed by default to avoid rate limit errors. When specifying any bypass
+  /// in the config, this default is ignored and you need to list imgur explicitly. To proxy imgur
+  /// requests, specify a noop bypass list, eg `proxy_bypass_domains ["example.org"]`.
+  #[default(vec!["i.imgur.com".to_string()])]
+  #[doku(example = "i.imgur.com")]
+  pub proxy_bypass_domains: Vec<String>,
 
   /// Timeout for uploading images to pictrs (in seconds)
   #[default(30)]

@@ -25,16 +25,16 @@ import {
   getComments,
   createComment,
   getCommunityByName,
-  blockInstance,
   waitUntil,
   alphaUrl,
   delta,
-  betaAllowedInstances,
   searchPostLocal,
   longDelay,
   editCommunity,
   unfollows,
+  userBlockInstance,
 } from "./shared";
+import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
 import { EditCommunity, EditSite } from "lemmy-js-client";
 
 beforeAll(setupLogins);
@@ -363,7 +363,7 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids).toContain(postRes.post_view.post.ap_id);
 
   // block the beta instance
-  await blockInstance(alpha, alphaPost.community.instance_id, true);
+  await userBlockInstance(alpha, alphaPost.community.instance_id, true);
 
   // after blocking, post should not be in listing
   let listing2 = await getPosts(alpha, "All");
@@ -371,7 +371,7 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids2.indexOf(postRes.post_view.post.ap_id)).toBe(-1);
 
   // unblock instance again
-  await blockInstance(alpha, alphaPost.community.instance_id, false);
+  await userBlockInstance(alpha, alphaPost.community.instance_id, false);
 
   // post should be included in listing
   let listing3 = await getPosts(alpha, "All");
@@ -455,9 +455,12 @@ test("Dont receive community activities after unsubscribe", async () => {
   expect(communityRes1.community_view.counts.subscribers).toBe(2);
 
   // temporarily block alpha, so that it doesn't know about unfollow
-  let editSiteForm: EditSite = {};
-  editSiteForm.allowed_instances = ["lemmy-epsilon"];
-  await beta.editSite(editSiteForm);
+  var allow_instance_params: AdminAllowInstanceParams = {
+    instance: "lemmy-alpha",
+    allow: false,
+    reason: undefined,
+  };
+  await beta.adminAllowInstance(allow_instance_params);
   await longDelay();
 
   // unfollow
@@ -471,8 +474,8 @@ test("Dont receive community activities after unsubscribe", async () => {
   expect(communityRes2.community_view.counts.subscribers).toBe(2);
 
   // unblock alpha
-  editSiteForm.allowed_instances = betaAllowedInstances;
-  await beta.editSite(editSiteForm);
+  allow_instance_params.allow = true;
+  await beta.adminAllowInstance(allow_instance_params);
   await longDelay();
 
   // create a post, it shouldnt reach beta

@@ -3,7 +3,7 @@ use crate::{
   schema::tagline::dsl::{published, tagline},
   source::tagline::{Tagline, TaglineInsertForm, TaglineUpdateForm},
   traits::Crud,
-  utils::{get_conn, limit_and_offset, DbPool},
+  utils::{functions::random, get_conn, limit_and_offset, DbPool},
 };
 use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -53,7 +53,6 @@ impl Tagline {
 
   pub async fn get_random(pool: &mut DbPool<'_>) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    sql_function!(fn random() -> Text);
     tagline.order(random()).limit(1).first::<Self>(conn).await
   }
 }

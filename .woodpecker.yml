@@ -91,6 +91,36 @@ steps:
     when:
       - event: pull_request
 
+  cargo_clippy:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+    commands:
+      - rustup component add clippy
+      - cargo clippy --workspace --tests --all-targets -- -D warnings
+    when: *slow_check_paths
+
+  cargo_test:
+    image: *rust_image
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: "1"
+      CARGO_HOME: .cargo_home
+      LEMMY_TEST_FAST_FEDERATION: "1"
+      LEMMY_CONFIG_LOCATION: ../../config/config.hjson
+    commands:
+      - cargo test --workspace --no-fail-fast
+    when: *slow_check_paths
+
+  check_ts_bindings:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+    commands:
+      - ./scripts/ts_bindings_check.sh
+    when:
+      - event: pull_request
+
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
     image: *rust_image
@@ -138,26 +168,6 @@ steps:
       - diff tmp.schema crates/db_schema/src/schema.rs
     when: *slow_check_paths
 
-  check_db_perf_tool:
-    image: *rust_image
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      RUST_BACKTRACE: "1"
-      CARGO_HOME: .cargo_home
-    commands:
-      # same as scripts/db_perf.sh but without creating a new database server
-      - cargo run --package lemmy_db_perf -- --posts 10 --read-post-pages 1
-    when: *slow_check_paths
-
-  cargo_clippy:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-    commands:
-      - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets -- -D warnings
-    when: *slow_check_paths
-
   cargo_build:
     image: *rust_image
     environment:
@@ -166,27 +176,6 @@ steps:
       - cargo build
       - mv target/debug/lemmy_server target/lemmy_server
     when: *slow_check_paths
-
-  cargo_test:
-    image: *rust_image
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      RUST_BACKTRACE: "1"
-      CARGO_HOME: .cargo_home
-      LEMMY_TEST_FAST_FEDERATION: "1"
-      LEMMY_CONFIG_LOCATION: ../../config/config.hjson
-    commands:
-      - cargo test --workspace --no-fail-fast
-    when: *slow_check_paths
-
-  check_ts_bindings:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-    commands:
-      - ./scripts/ts_bindings_check.sh
-    when:
-      - event: pull_request
 
   check_diesel_migration:
     # TODO: use willsquire/diesel-cli image when shared libraries become optional in lemmy_server
@@ -219,6 +208,17 @@ steps:
       - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
       - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f after.sqldump
       - diff before.sqldump after.sqldump
+    when: *slow_check_paths
+
+  check_db_perf_tool:
+    image: *rust_image
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: "1"
+      CARGO_HOME: .cargo_home
+    commands:
+      # same as scripts/db_perf.sh but without creating a new database server
+      - cargo run --package lemmy_db_perf -- --posts 10 --read-post-pages 1
     when: *slow_check_paths
 
   run_federation_tests:
@@ -280,24 +280,26 @@ steps:
   # using https://github.com/pksunkara/cargo-workspaces
   publish_to_crates_io:
     image: *rust_image
+    environment:
+      CARGO_API_TOKEN:
+        from_secret: cargo_api_token
     commands:
       - *install_binstall
       # Install cargo-workspaces
       - cargo binstall -y cargo-workspaces
       - cp -r migrations crates/db_schema/
       - cargo workspaces publish --token "$CARGO_API_TOKEN" --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
-    secrets: [cargo_api_token]
     when:
       - event: tag
 
-  notify_on_failure:
+  notify_on_build:
     image: alpine:3
     commands:
       - apk add curl
-      - "curl -d'Lemmy CI build failed: ${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
+      - "curl -d'Lemmy CI build ${CI_PIPELINE_STATUS}: ${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
     when:
       - event: [pull_request, tag]
-        status: failure
+        status: [failure, success]
 
   notify_on_tag_deploy:
     image: alpine:3

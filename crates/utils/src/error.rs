@@ -73,7 +73,7 @@ pub enum LemmyErrorType {
   NoEmailSetup,
   LocalSiteNotSetup,
   EmailSmtpServerNeedsAPort,
-  MissingAnEmail,
+  InvalidEmailAddress(String),
   RateLimitError,
   InvalidName,
   InvalidDisplayName,
@@ -129,6 +129,7 @@ pub enum LemmyErrorType {
   InvalidRegex,
   CaptchaIncorrect,
   CouldntCreateAudioCaptcha,
+  CouldntCreateImageCaptcha,
   InvalidUrlScheme,
   CouldntSendWebmention,
   ContradictingFilters,
@@ -150,6 +151,7 @@ pub enum LemmyErrorType {
   CommunityHasNoFollowers,
   PostScheduleTimeMustBeInFuture,
   TooManyScheduledPosts,
+  CannotCombineFederationBlocklistAndAllowlist,
   FederationError {
     #[cfg_attr(feature = "full", ts(optional))]
     error: Option<FederationError>,
@@ -185,6 +187,7 @@ pub enum FederationError {
   CantDeleteSite,
   ObjectIsNotPublic,
   ObjectIsNotPrivate,
+  Unreachable,
 }
 
 cfg_if! {
@@ -273,6 +276,12 @@ cfg_if! {
           inner,
           context: Backtrace::capture(),
         }
+      }
+    }
+
+    impl From<FederationError> for LemmyErrorType {
+      fn from(error: FederationError) -> Self {
+        LemmyErrorType::FederationError { error: Some(error) }
       }
     }
 

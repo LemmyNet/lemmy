@@ -4,7 +4,6 @@ use diesel::{
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
-  JoinOnDsl,
   NullableExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
@@ -13,20 +12,14 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
-  schema::{
-    community,
-    community_aggregates,
-    community_block,
-    community_follower,
-    community_person_ban,
-    instance_block,
-  },
+  schema::{community, community_actions, community_aggregates, instance_actions},
   source::{
     community::{CommunityFollower, CommunityFollowerState},
     local_user::LocalUser,
     site::Site,
   },
   utils::{
+    actions,
     functions::lower,
     fuzzy_search,
     limit_and_offset,
@@ -41,52 +34,34 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
+type QueriesReadTypes<'a> = (CommunityId, Option<&'a LocalUser>, bool);
+type QueriesListTypes<'a> = (CommunityQuery<'a>, &'a Site);
+
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, CommunityView, (CommunityId, Option<&'a LocalUser>, bool)>,
-  impl ListFn<'a, CommunityView, (CommunityQuery<'a>, &'a Site)>,
+  impl ReadFn<'a, CommunityView, QueriesReadTypes<'a>>,
+  impl ListFn<'a, CommunityView, QueriesListTypes<'a>>,
 > {
   let all_joins = |query: community::BoxedQuery<'a, Pg>, my_local_user: Option<&'a LocalUser>| {
-    // The left join below will return None in this case
-    let person_id_join = my_local_user.person_id().unwrap_or(PersonId(-1));
-
     query
       .inner_join(community_aggregates::table)
-      .left_join(
-        community_follower::table.on(
-          community::id
-            .eq(community_follower::community_id)
-            .and(community_follower::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        instance_block::table.on(
-          community::instance_id
-            .eq(instance_block::instance_id)
-            .and(instance_block::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        community_block::table.on(
-          community::id
-            .eq(community_block::community_id)
-            .and(community_block::person_id.eq(person_id_join)),
-        ),
-      )
-      .left_join(
-        community_person_ban::table.on(
-          community::id
-            .eq(community_person_ban::community_id)
-            .and(community_person_ban::person_id.eq(person_id_join)),
-        ),
-      )
+      .left_join(actions(
+        community_actions::table,
+        my_local_user.person_id(),
+        community::id,
+      ))
+      .left_join(actions(
+        instance_actions::table,
+        my_local_user.person_id(),
+        community::instance_id,
+      ))
   };
 
   let selection = (
     community::all_columns,
     CommunityFollower::select_subscribed_type(),
-    community_block::community_id.nullable().is_not_null(),
+    community_actions::blocked.nullable().is_not_null(),
     community_aggregates::all_columns,
-    community_person_ban::person_id.nullable().is_not_null(),
+    community_actions::received_ban.nullable().is_not_null(),
   );
 
   let not_removed_or_deleted = community::removed
@@ -118,9 +93,6 @@ fn queries<'a>() -> Queries<
   let list = move |mut conn: DbConn<'a>, (options, site): (CommunityQuery<'a>, &'a Site)| async move {
     use CommunitySortType::*;
 
-    // The left join below will return None in this case
-    let person_id_join = options.local_user.person_id().unwrap_or(PersonId(-1));
-
     let mut query = all_joins(community::table.into_boxed(), options.local_user).select(selection);
 
     if let Some(search_term) = options.search_term {
@@ -140,7 +112,7 @@ fn queries<'a>() -> Queries<
       query = query.filter(not_removed_or_deleted).filter(
         community::hidden
           .eq(false)
-          .or(community_follower::person_id.eq(person_id_join)),
+          .or(community_actions::follow_state.is_not_null()),
       );
     }
 
@@ -168,7 +140,7 @@ fn queries<'a>() -> Queries<
     if let Some(listing_type) = options.listing_type {
       query = match listing_type {
         ListingType::Subscribed => {
-          query.filter(community_follower::state.eq(CommunityFollowerState::Accepted))
+          query.filter(community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted)))
         }
         ListingType::Local => query.filter(community::local.eq(true)),
         _ => query,
@@ -177,8 +149,8 @@ fn queries<'a>() -> Queries<
 
     // Don't show blocked communities and communities on blocked instances. nsfw communities are
     // also hidden (based on profile setting)
-    query = query.filter(instance_block::person_id.is_null());
-    query = query.filter(community_block::person_id.is_null());
+    query = query.filter(instance_actions::blocked.is_null());
+    query = query.filter(community_actions::blocked.is_null());
     if !(options.local_user.show_nsfw(site) || options.show_nsfw) {
       query = query.filter(community::nsfw.eq(false));
     }
@@ -197,10 +169,10 @@ fn queries<'a>() -> Queries<
 }
 
 impl CommunityView {
-  pub async fn read<'a>(
+  pub async fn read(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
-    my_local_user: Option<&'a LocalUser>,
+    my_local_user: Option<&'_ LocalUser>,
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
     queries()
@@ -284,7 +256,7 @@ pub struct CommunityQuery<'a> {
   pub limit: Option<i64>,
 }
 
-impl<'a> CommunityQuery<'a> {
+impl CommunityQuery<'_> {
   pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommunityView>, Error> {
     queries().list(pool, (self, site)).await
   }
@@ -317,7 +289,7 @@ mod tests {
     CommunityVisibility,
     SubscribedType,
   };
-  use lemmy_utils::error::LemmyResult;
+  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use url::Url;
 
@@ -526,7 +498,7 @@ mod tests {
     };
     let communities = query.list(&data.site, pool).await?;
     for (i, c) in communities.iter().enumerate().skip(1) {
-      let prev = communities.get(i - 1).expect("No previous community?");
+      let prev = communities.get(i - 1).ok_or(LemmyErrorType::NotFound)?;
       assert!(c.community.title.cmp(&prev.community.title).is_ge());
     }
 
@@ -536,7 +508,7 @@ mod tests {
     };
     let communities = query.list(&data.site, pool).await?;
     for (i, c) in communities.iter().enumerate().skip(1) {
-      let prev = communities.get(i - 1).expect("No previous community?");
+      let prev = communities.get(i - 1).ok_or(LemmyErrorType::NotFound)?;
       assert!(c.community.title.cmp(&prev.community.title).is_le());
     }
 

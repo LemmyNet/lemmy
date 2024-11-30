@@ -1,7 +1,7 @@
 use crate::{
   diesel::OptionalExtension,
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId},
-  schema::{comment, community, instance, local_user, person, person_follower, post},
+  schema::{comment, community, instance, local_user, person, person_actions, post},
   source::person::{
     Person,
     PersonFollower,
@@ -10,14 +10,17 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Crud, Followable},
-  utils::{functions::lower, get_conn, naive_now, DbPool},
+  utils::{action_query, functions::lower, get_conn, now, uplete, DbPool},
 };
+use chrono::Utc;
 use diesel::{
   dsl::{insert_into, not},
+  expression::SelectableHelper,
   result::Error,
   CombineDsl,
   ExpressionMethods,
   JoinOnDsl,
+  NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -91,7 +94,7 @@ impl Person {
         person::bio.eq::<Option<String>>(None),
         person::matrix_user_id.eq::<Option<String>>(None),
         person::deleted.eq(true),
-        person::updated.eq(naive_now()),
+        person::updated.eq(Utc::now()),
       ))
       .get_result::<Self>(conn)
       .await
@@ -197,11 +200,13 @@ impl Followable for PersonFollower {
   type Form = PersonFollowerForm;
   async fn follow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(person_follower::table)
+    let form = (form, person_actions::followed.eq(now().nullable()));
+    insert_into(person_actions::table)
       .values(form)
-      .on_conflict((person_follower::follower_id, person_follower::person_id))
+      .on_conflict((person_actions::person_id, person_actions::target_id))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
   }
@@ -211,10 +216,15 @@ impl Followable for PersonFollower {
     Err(Error::NotFound)
   }
 
-  async fn unfollow(pool: &mut DbPool<'_>, form: &PersonFollowerForm) -> Result<usize, Error> {
+  async fn unfollow(
+    pool: &mut DbPool<'_>,
+    form: &PersonFollowerForm,
+  ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::delete(person_follower::table.find((form.follower_id, form.person_id)))
-      .execute(conn)
+    uplete::new(person_actions::table.find((form.follower_id, form.person_id)))
+      .set_null(person_actions::followed)
+      .set_null(person_actions::follow_pending)
+      .get_result(conn)
       .await
   }
 }
@@ -225,9 +235,9 @@ impl PersonFollower {
     for_person_id: PersonId,
   ) -> Result<Vec<Person>, Error> {
     let conn = &mut get_conn(pool).await?;
-    person_follower::table
-      .inner_join(person::table.on(person_follower::follower_id.eq(person::id)))
-      .filter(person_follower::person_id.eq(for_person_id))
+    action_query(person_actions::followed)
+      .inner_join(person::table.on(person_actions::person_id.eq(person::id)))
+      .filter(person_actions::target_id.eq(for_person_id))
       .select(person::all_columns)
       .load(conn)
       .await
@@ -243,7 +253,7 @@ mod tests {
       person::{Person, PersonFollower, PersonFollowerForm, PersonInsertForm, PersonUpdateForm},
     },
     traits::{Crud, Followable},
-    utils::build_db_pool_for_tests,
+    utils::{build_db_pool_for_tests, uplete},
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -329,7 +339,7 @@ mod tests {
     assert_eq!(vec![person_2], followers);
 
     let unfollow = PersonFollower::unfollow(pool, &follow_form).await?;
-    assert_eq!(1, unfollow);
+    assert_eq!(uplete::Count::only_deleted(1), unfollow);
 
     Ok(())
   }

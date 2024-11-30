@@ -17,8 +17,10 @@ use lemmy_db_schema::{
     actor_language::CommunityLanguage,
     comment::Comment,
     comment_reply::{CommentReply, CommentReplyInsertForm},
+    community::Community,
     person::Person,
     person_mention::{PersonMention, PersonMentionInsertForm},
+    post::Post,
   },
   traits::Crud,
 };
@@ -101,17 +103,28 @@ pub async fn send_local_notifs(
   let mut recipient_ids = Vec::new();
   let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
 
-  // let person = my_local_user.person;
-  // Read the comment view to get extra info
-  let comment_view = CommentView::read(
-    &mut context.pool(),
-    comment_id,
-    local_user_view.map(|view| &view.local_user),
-  )
-  .await?;
-  let comment = comment_view.comment;
-  let post = comment_view.post;
-  let community = comment_view.community;
+  // When called from api code, we have local user view and can read with CommentView
+  // to reduce db queries. But when receiving a federated comment the user view is None,
+  // which means that comments inside private communities cant be read. As a workaround
+  // we need to read the items manually to bypass this check.
+  let (comment, post, community) = if let Some(local_user_view) = local_user_view {
+    let comment_view = CommentView::read(
+      &mut context.pool(),
+      comment_id,
+      Some(&local_user_view.local_user),
+    )
+    .await?;
+    (
+      comment_view.comment,
+      comment_view.post,
+      comment_view.community,
+    )
+  } else {
+    let comment = Comment::read(&mut context.pool(), comment_id).await?;
+    let post = Post::read(&mut context.pool(), comment.post_id).await?;
+    let community = Community::read(&mut context.pool(), post.community_id).await?;
+    (comment, post, community)
+  };
 
   // Send the local mentions
   for mention in mentions

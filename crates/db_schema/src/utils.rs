@@ -1,18 +1,30 @@
+pub mod uplete;
+
 use crate::{newtypes::DbUrl, CommentSortType, PostSortType};
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::TimeDelta;
 use deadpool::Runtime;
 use diesel::{
+  dsl,
+  expression::AsExpression,
   helper_types::AsExprOf,
   pg::Pg,
   query_builder::{Query, QueryFragment},
-  query_dsl::methods::LimitDsl,
+  query_dsl::methods::{FilterDsl, FindDsl, LimitDsl},
+  query_source::{Alias, AliasSource, AliasedField},
   result::{
     ConnectionError,
     ConnectionResult,
     Error::{self as DieselError, QueryBuilderError},
   },
-  sql_types::{self, Timestamptz},
+  sql_types::{self, SingleValue, Timestamptz},
+  Column,
+  Expression,
+  ExpressionMethods,
   IntoSql,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QuerySource,
+  Table,
 };
 use diesel_async::{
   pg::AsyncPgConnection,
@@ -23,6 +35,7 @@ use diesel_async::{
   },
   AsyncConnection,
 };
+use diesel_bind_if_some::BindIfSome;
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use i_love_jesus::CursorKey;
 use lemmy_utils::{
@@ -55,7 +68,7 @@ use url::Url;
 const FETCH_LIMIT_DEFAULT: i64 = 10;
 pub const FETCH_LIMIT_MAX: i64 = 50;
 pub const SITEMAP_LIMIT: i64 = 50000;
-pub const SITEMAP_DAYS: Option<TimeDelta> = TimeDelta::try_days(31);
+pub const SITEMAP_DAYS: TimeDelta = TimeDelta::days(31);
 pub const RANK_DEFAULT: f64 = 0.0001;
 
 /// Some connection options to speed up queries
@@ -83,7 +96,7 @@ pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>
   })
 }
 
-impl<'a> Deref for DbConn<'a> {
+impl Deref for DbConn<'_> {
   type Target = AsyncPgConnection;
 
   fn deref(&self) -> &Self::Target {
@@ -94,7 +107,7 @@ impl<'a> Deref for DbConn<'a> {
   }
 }
 
-impl<'a> DerefMut for DbConn<'a> {
+impl DerefMut for DbConn<'_> {
   fn deref_mut(&mut self) -> &mut Self::Target {
     match self {
       DbConn::Pool(conn) => conn.deref_mut(),
@@ -168,8 +181,8 @@ where
   K: CursorKey<C, SqlType = Timestamptz>,
 {
   type SqlType = sql_types::BigInt;
-  type CursorValue = functions::reverse_timestamp_sort::HelperType<K::CursorValue>;
-  type SqlValue = functions::reverse_timestamp_sort::HelperType<K::SqlValue>;
+  type CursorValue = functions::reverse_timestamp_sort<K::CursorValue>;
+  type SqlValue = functions::reverse_timestamp_sort<K::SqlValue>;
 
   fn get_cursor_value(cursor: &C) -> Self::CursorValue {
     functions::reverse_timestamp_sort(K::get_cursor_value(cursor))
@@ -347,8 +360,8 @@ pub fn diesel_url_create(opt: Option<&str>) -> LemmyResult<Option<DbUrl>> {
 }
 
 /// Sets a few additional config options necessary for starting lemmy
-fn build_config_options_uri_segment(config: &str) -> String {
-  let mut url = Url::parse(config).expect("Couldn't parse postgres connection URI");
+fn build_config_options_uri_segment(config: &str) -> LemmyResult<String> {
+  let mut url = Url::parse(config)?;
 
   // Set `lemmy.protocol_and_hostname` so triggers can use it
   let lemmy_protocol_and_hostname_option =
@@ -364,7 +377,7 @@ fn build_config_options_uri_segment(config: &str) -> String {
     .join(" ");
 
   url.set_query(Some(&format!("options={options_segments}")));
-  url.into()
+  Ok(url.into())
 }
 
 fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConnection>> {
@@ -372,8 +385,11 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
     /// Use a once_lock to create the postgres connection config, since this config never changes
     static POSTGRES_CONFIG_WITH_OPTIONS: OnceLock<String> = OnceLock::new();
 
-    let config =
-      POSTGRES_CONFIG_WITH_OPTIONS.get_or_init(|| build_config_options_uri_segment(config));
+    let config = POSTGRES_CONFIG_WITH_OPTIONS.get_or_init(|| {
+      build_config_options_uri_segment(config)
+        .inspect_err(|e| error!("Couldn't parse postgres connection URI: {e}"))
+        .unwrap_or_default()
+    });
 
     // We only support TLS with sslmode=require currently
     let conn = if config.contains("sslmode=require") {
@@ -470,7 +486,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
       // from the pool
       let conn_was_used = metrics.recycled.is_some();
       if metrics.age() > Duration::from_secs(3 * 24 * 60 * 60) && conn_was_used {
-        Err(HookError::Continue(None))
+        Err(HookError::Message("Connection is too old".into()))
       } else {
         Ok(())
       }
@@ -482,12 +498,9 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   Ok(pool)
 }
 
+#[allow(clippy::expect_used)]
 pub fn build_db_pool_for_tests() -> ActualDbPool {
   build_db_pool().expect("db pool missing")
-}
-
-pub fn naive_now() -> DateTime<Utc> {
-  Utc::now()
 }
 
 pub fn post_to_comment_sort_type(sort: PostSortType) -> CommentSortType {
@@ -502,6 +515,7 @@ pub fn post_to_comment_sort_type(sort: PostSortType) -> CommentSortType {
   }
 }
 
+#[allow(clippy::expect_used)]
 static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$")
     .expect("compile email regex")
@@ -510,29 +524,31 @@ static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 pub mod functions {
   use diesel::sql_types::{BigInt, Text, Timestamptz};
 
-  sql_function! {
+  define_sql_function! {
     #[sql_name = "r.hot_rank"]
     fn hot_rank(score: BigInt, time: Timestamptz) -> Double;
   }
 
-  sql_function! {
+  define_sql_function! {
     #[sql_name = "r.scaled_rank"]
     fn scaled_rank(score: BigInt, time: Timestamptz, users_active_month: BigInt) -> Double;
   }
 
-  sql_function! {
+  define_sql_function! {
     #[sql_name = "r.controversy_rank"]
     fn controversy_rank(upvotes: BigInt, downvotes: BigInt, score: BigInt) -> Double;
   }
 
-  sql_function!(fn reverse_timestamp_sort(time: Timestamptz) -> BigInt);
+  define_sql_function!(fn reverse_timestamp_sort(time: Timestamptz) -> BigInt);
 
-  sql_function!(fn lower(x: Text) -> Text);
+  define_sql_function!(fn lower(x: Text) -> Text);
+
+  define_sql_function!(fn random() -> Text);
 
   // really this function is variadic, this just adds the two-argument version
-  sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
+  define_sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
 
-  sql_function! {
+  define_sql_function! {
     #[aggregate]
     fn json_agg<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(obj: T) -> Json
   }
@@ -543,6 +559,117 @@ pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
 pub fn now() -> AsExprOf<diesel::dsl::now, diesel::sql_types::Timestamptz> {
   // https://github.com/diesel-rs/diesel/issues/1514
   diesel::dsl::now.into_sql::<Timestamptz>()
+}
+
+/// Trait alias for a type that can be converted to an SQL tuple using `IntoSql::into_sql`
+pub trait AsRecord: Expression + AsExpression<sql_types::Record<Self::SqlType>>
+where
+  Self::SqlType: 'static,
+{
+}
+
+impl<T: Expression + AsExpression<sql_types::Record<T::SqlType>>> AsRecord for T where
+  T::SqlType: 'static
+{
+}
+
+/// Output of `IntoSql::into_sql` for a type that implements `AsRecord`
+pub type AsRecordOutput<T> = dsl::AsExprOf<T, sql_types::Record<<T as Expression>::SqlType>>;
+
+/// Output of `t.on((l0, l1).into_sql().eq((r0, r1)))`
+type OnTupleEq<T, L0, L1, R0, R1> = dsl::On<T, dsl::Eq<AsRecordOutput<(L0, L1)>, (R0, R1)>>;
+
+/// Creates an `ON` clause for a table where a person ID and another column are used as the
+/// primary key. Use with the `QueryDsl::left_join` method.
+///
+/// This example modifies a query to make columns in `community_actions` available:
+///
+/// ```
+/// community::table
+///   .left_join(actions(
+///     community_actions::table,
+///     my_person_id,
+///     community::id,
+///   ))
+/// ```
+pub fn actions<T, P, C, K0, K1>(
+  actions_table: T,
+  person_id: Option<P>,
+  target_id: C,
+) -> OnTupleEq<T, dsl::Nullable<K0>, K1, BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>, C>
+where
+  T: Table<PrimaryKey = (K0, K1)> + Copy,
+  K0: Expression,
+  P: AsExpression<sql_types::Integer>,
+  (dsl::Nullable<K0>, K1): AsRecord,
+  (BindIfSome<dsl::AsExprOf<P, sql_types::Integer>>, C):
+    AsExpression<<AsRecordOutput<(dsl::Nullable<K0>, K1)> as Expression>::SqlType>,
+{
+  let (k0, k1) = actions_table.primary_key();
+  actions_table.on((k0.nullable(), k1).into_sql().eq((
+    BindIfSome(person_id.map(diesel::IntoSql::into_sql)),
+    target_id,
+  )))
+}
+
+/// Like `actions` but `actions_table` is an alias and person id is not nullable
+#[allow(clippy::type_complexity)]
+pub fn actions_alias<T, P, C, K0, K1>(
+  actions_table: Alias<T>,
+  person_id: P,
+  target_id: C,
+) -> OnTupleEq<Alias<T>, AliasedField<T, K0>, AliasedField<T, K1>, P, C>
+where
+  Alias<T>: QuerySource + Copy,
+  T: AliasSource<Target: Table<PrimaryKey = (K0, K1)>> + Default,
+  K0: Column<Table = T::Target>,
+  K1: Column<Table = T::Target>,
+  (AliasedField<T, K0>, AliasedField<T, K1>): AsRecord,
+  (P, C): AsExpression<
+    <AsRecordOutput<(AliasedField<T, K0>, AliasedField<T, K1>)> as Expression>::SqlType,
+  >,
+{
+  let (k0, k1) = T::default().target().primary_key();
+  actions_table.on(
+    (actions_table.field(k0), actions_table.field(k1))
+      .into_sql()
+      .eq((person_id, target_id)),
+  )
+}
+
+/// `action_query(table_name::action_name)` is the same as
+/// `table_name::table.filter(table_name::action_name.is_not_null())`.
+pub fn action_query<C>(column: C) -> dsl::Filter<C::Table, dsl::IsNotNull<C>>
+where
+  C: Column<Table: Default + FilterDsl<dsl::IsNotNull<C>>, SqlType: SingleValue>,
+{
+  action_query_with_fn(column, |t| t)
+}
+
+/// `find_action(table_name::action_name, key)` is the same as
+/// `table_name::table.find(key).filter(table_name::action_name.is_not_null())`.
+pub fn find_action<C, K>(
+  column: C,
+  key: K,
+) -> dsl::Filter<dsl::Find<C::Table, K>, dsl::IsNotNull<C>>
+where
+  C:
+    Column<Table: Default + FindDsl<K, Output: FilterDsl<dsl::IsNotNull<C>>>, SqlType: SingleValue>,
+{
+  action_query_with_fn(column, |t| t.find(key))
+}
+
+/// `action_query_with_fn(table_name::action_name, f)` is the same as
+/// `f(table_name::table).filter(table_name::action_name.is_not_null())`.
+fn action_query_with_fn<C, Q>(
+  column: C,
+  f: impl FnOnce(C::Table) -> Q,
+) -> dsl::Filter<Q, dsl::IsNotNull<C>>
+where
+  C: Column<Table: Default, SqlType: SingleValue>,
+  Q: FilterDsl<dsl::IsNotNull<C>>,
+{
+  f(C::Table::default()).filter(column.is_not_null())
 }
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
