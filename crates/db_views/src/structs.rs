@@ -8,7 +8,7 @@ use lemmy_db_schema::{
     comment::Comment,
     comment_report::CommentReport,
     community::Community,
-    community_post_tag::CommunityPostTag,
+    community_post_tag::Tag,
     custom_emoji::CustomEmoji,
     custom_emoji_keyword::CustomEmojiKeyword,
     images::{ImageDetails, LocalImage},
@@ -247,5 +247,5 @@ pub struct LocalImageView {
 #[serde(transparent)]
 #[cfg_attr(feature = "full", diesel(sql_type = Nullable<sql_types::Json>))]
 pub struct PostCommunityPostTags {
-  pub tags: Vec<CommunityPostTag>,
+  pub tags: Vec<Tag>,
 }

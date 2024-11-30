@@ -264,14 +264,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_post_tag (id) {
-        id -> Int4,
-        ap_id -> Text,
+    community_post_tag (community_id, tag_id) {
         community_id -> Int4,
-        name -> Text,
+        tag_id -> Int4,
         published -> Timestamptz,
-        updated -> Nullable<Timestamptz>,
-        deleted -> Nullable<Timestamptz>,
     }
 }
 
@@ -821,13 +817,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    post_community_post_tag (post_id, community_post_tag_id) {
-        post_id -> Int4,
-        community_post_tag_id -> Int4,
-    }
-}
-
-diesel::table! {
     post_report (id) {
         id -> Int4,
         creator_id -> Int4,
@@ -841,6 +830,14 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    post_tag (post_id, tag_id) {
+        post_id -> Int4,
+        tag_id -> Int4,
+        published -> Timestamptz,
     }
 }
 
@@ -970,6 +967,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    tag (id) {
+        id -> Int4,
+        ap_id -> Text,
+        name -> Text,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
+        deleted -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     tagline (id) {
         id -> Int4,
         content -> Text,
@@ -1003,6 +1011,7 @@ diesel::joinable!(community_aggregates -> community (community_id));
 diesel::joinable!(community_language -> community (community_id));
 diesel::joinable!(community_language -> language (language_id));
 diesel::joinable!(community_post_tag -> community (community_id));
+diesel::joinable!(community_post_tag -> tag (tag_id));
 diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
@@ -1050,9 +1059,9 @@ diesel::joinable!(post_aggregates -> community (community_id));
 diesel::joinable!(post_aggregates -> instance (instance_id));
 diesel::joinable!(post_aggregates -> person (creator_id));
 diesel::joinable!(post_aggregates -> post (post_id));
-diesel::joinable!(post_community_post_tag -> community_post_tag (community_post_tag_id));
-diesel::joinable!(post_community_post_tag -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
+diesel::joinable!(post_tag -> post (post_id));
+diesel::joinable!(post_tag -> tag (tag_id));
 diesel::joinable!(private_message_report -> private_message (private_message_id));
 diesel::joinable!(registration_application -> local_user (local_user_id));
 diesel::joinable!(registration_application -> person (admin_id));
@@ -1119,8 +1128,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     post,
     post_actions,
     post_aggregates,
-    post_community_post_tag,
     post_report,
+    post_tag,
     private_message,
     private_message_report,
     received_activity,
@@ -1131,5 +1140,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     site,
     site_aggregates,
     site_language,
+    tag,
     tagline,
 );

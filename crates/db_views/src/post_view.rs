@@ -5,7 +5,9 @@ use diesel::{
   pg::Pg,
   query_builder::AsQuery,
   result::Error,
+  sql_types,
   BoolExpressionMethods,
+  BoxableExpression,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
@@ -23,7 +25,6 @@ use lemmy_db_schema::{
   schema::{
     community,
     community_actions,
-    community_post_tag,
     image_details,
     instance_actions,
     local_user,
@@ -33,7 +34,8 @@ use lemmy_db_schema::{
     post,
     post_actions,
     post_aggregates,
-    post_community_post_tag,
+    post_tag,
+    tag,
   },
   source::{
     community::{CommunityFollower, CommunityFollowerState},
@@ -82,82 +84,7 @@ fn queries<'a>() -> Queries<
   // TODO maybe this should go to localuser also
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>| {
-    let is_local_user_banned_from_community_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>,
-    > = if let Some(person_id) = my_person_id {
-      Box::new(is_local_user_banned_from_community(person_id))
-    } else {
-      Box::new(false.into_sql::<sql_types::Bool>())
-    };
-
-    let is_read_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if let Some(person_id) = my_person_id {
-        Box::new(is_read(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
-
-    let is_hidden_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if let Some(person_id) = my_person_id {
-        Box::new(is_hidden(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
-
-    let is_creator_blocked_selection: Box<dyn BoxableExpression<_, Pg, SqlType = sql_types::Bool>> =
-      if let Some(person_id) = my_person_id {
-        Box::new(is_creator_blocked(person_id))
-      } else {
-        Box::new(false.into_sql::<sql_types::Bool>())
-      };
-
-    let subscribed_type_selection: Box<
-      dyn BoxableExpression<
-        _,
-        Pg,
-        SqlType = sql_types::Nullable<lemmy_db_schema::schema::sql_types::CommunityFollowerState>,
-      >,
-    > = if let Some(person_id) = my_person_id {
-      Box::new(
-        community_follower::table
-          .filter(
-            post_aggregates::community_id
-              .eq(community_follower::community_id)
-              .and(community_follower::person_id.eq(person_id)),
-          )
-          .select(CommunityFollower::select_subscribed_type())
-          .single_value(),
-      )
-    } else {
-      Box::new(None::<CommunityFollowerState>.into_sql::<sql_types::Nullable<lemmy_db_schema::schema::sql_types::CommunityFollowerState>>())
-    };
-
-    let score_selection: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::SmallInt>>,
-    > = if let Some(person_id) = my_person_id {
-      Box::new(score(person_id))
-    } else {
-      Box::new(None::<i16>.into_sql::<sql_types::Nullable<sql_types::SmallInt>>())
-    };
-
-    let read_comments: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::BigInt>>,
-    > = if let Some(person_id) = my_person_id {
-      Box::new(
-        person_post_aggregates::table
-          .filter(
-            post_aggregates::post_id
-              .eq(person_post_aggregates::post_id)
-              .and(person_post_aggregates::person_id.eq(person_id)),
-          )
-          .select(person_post_aggregates::read_comments.nullable())
-          .single_value(),
-      )
-    } else {
-      Box::new(None::<i64>.into_sql::<sql_types::Nullable<sql_types::BigInt>>())
-    };
-
-        // We fetch post tags by letting postgresql aggregate them internally in a subquery into JSON.
+    // We fetch post tags by letting postgresql aggregate them internally in a subquery into JSON.
     // This is a simple way to join m rows into n rows without duplicating the data and getting
     // complex diesel types. In pure SQL you would usually do this either using a LEFT JOIN + then
     // aggregating the results in the application code. But this results in a lot of duplicate
@@ -170,15 +97,15 @@ fn queries<'a>() -> Queries<
     // If we want to filter by post tag we will have to add
     // separate logic below since this subquery can't affect filtering, but it is simple (`WHERE
     // exists (select 1 from post_community_post_tags where community_post_tag_id in (1,2,3,4)`).
-    let community_post_tags: Box<
+    let post_tags: Box<
       dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Json>>,
     > = Box::new(
-      post_community_post_tag::table
-        .inner_join(community_post_tag::table)
+      post_tag::table
+        .inner_join(tag::table)
         .select(diesel::dsl::sql::<diesel::sql_types::Json>(
-          "json_agg(community_post_tag.*)",
+          "json_agg(tag.*)",
         ))
-        .filter(post_community_post_tag::post_id.eq(post_aggregates::post_id))
+        .filter(post_tag::post_id.eq(post_aggregates::post_id))
         .single_value(),
     );
     query
@@ -237,7 +164,7 @@ fn queries<'a>() -> Queries<
           post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
           post_aggregates::comments,
         ),
-        community_post_tags,
+        post_tags,
       ))
   };
 
@@ -737,7 +664,9 @@ mod tests {
       community_post_tag::{
         CommunityPostTag,
         CommunityPostTagInsertForm,
-        PostCommunityPostTagInsertForm,
+        PostTagInsertForm,
+        Tag,
+        TagInsertForm,
       },
       instance::Instance,
       instance_block::{InstanceBlock, InstanceBlockForm},
@@ -766,7 +695,7 @@ mod tests {
     PostSortType,
     SubscribedType,
   };
-  use lemmy_utils::error::LemmyResult;
+  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::time::{Duration, Instant};
@@ -791,8 +720,8 @@ mod tests {
     inserted_post: Post,
     inserted_bot_post: Post,
     inserted_post_with_tags: Post,
-    tag_1: CommunityPostTag,
-    tag_2: CommunityPostTag,
+    tag_1: Tag,
+    tag_2: Tag,
     site: Site,
   }
 
@@ -865,13 +794,12 @@ mod tests {
     PersonBlock::block(pool, &person_block).await?;
 
     // Two community post tags
-    let tag_1 = CommunityPostTag::create(
+    let tag_1 = Tag::create(
       pool,
-      &CommunityPostTagInsertForm {
+      &TagInsertForm {
         ap_id: Url::parse(&format!("{}/tags/test_tag1", inserted_community.actor_id))
           .expect("valid")
           .into(),
-        community_id: inserted_community.id,
         name: "Test Tag 1".into(),
         published: None,
         updated: None,
@@ -879,13 +807,21 @@ mod tests {
       },
     )
     .await?;
-    let tag_2 = CommunityPostTag::create(
+    CommunityPostTag::create(
       pool,
       &CommunityPostTagInsertForm {
+        community_id: inserted_community.id,
+        tag_id: tag_1.id,
+        published: None,
+      },
+    )
+    .await?;
+    let tag_2 = Tag::create(
+      pool,
+      &TagInsertForm {
         ap_id: Url::parse(&format!("{}/tags/test_tag2", inserted_community.actor_id))
           .expect("valid")
           .into(),
-        community_id: inserted_community.id,
         name: "Test Tag 2".into(),
         published: None,
         updated: None,
@@ -893,14 +829,21 @@ mod tests {
       },
     )
     .await?;
+    CommunityPostTag::create(
+      pool,
+      &CommunityPostTagInsertForm {
+        community_id: inserted_community.id,
+        tag_id: tag_2.id,
+        published: None,
+      },
+    )
+    .await?;
 
     // A sample post
-    let new_post = PostInsertForm::builder()
-      .name(POST.to_string())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .language_id(Some(LanguageId(47)))
-      .build();
+    let new_post = PostInsertForm {
+      language_id: Some(LanguageId(47)),
+      ..PostInsertForm::new(POST.to_string(), inserted_person.id, inserted_community.id)
+    };
 
     let inserted_post = Post::create(pool, &new_post).await?;
 
@@ -912,26 +855,27 @@ mod tests {
     let inserted_bot_post = Post::create(pool, &new_bot_post).await?;
 
     // A sample post with tags
-    let new_post = PostInsertForm::builder()
-      .name(POST_WITH_TAGS.to_string())
-      .creator_id(inserted_person.id)
-      .community_id(inserted_community.id)
-      .language_id(Some(LanguageId(47)))
-      .build();
+    let new_post = PostInsertForm {
+      language_id: Some(LanguageId(47)),
+      ..PostInsertForm::new(
+        POST_WITH_TAGS.to_string(),
+        inserted_person.id,
+        inserted_community.id,
+      )
+    };
 
     let inserted_post_with_tags = Post::create(pool, &new_post).await?;
     let inserted_tags = vec![
-      PostCommunityPostTagInsertForm {
+      PostTagInsertForm {
         post_id: inserted_post_with_tags.id,
-        community_post_tag_id: tag_1.id,
+        tag_id: tag_1.id,
       },
-      PostCommunityPostTagInsertForm {
+      PostTagInsertForm {
         post_id: inserted_post_with_tags.id,
-        community_post_tag_id: tag_2.id,
+        tag_id: tag_2.id,
       },
     ];
-    PostCommunityPostTagInsertForm::insert_tag_associations(pool, &inserted_tags).await?;
-
+    PostTagInsertForm::insert_tag_associations(pool, &inserted_tags).await?;
 
     let local_user_view = LocalUserView {
       local_user: inserted_local_user,
@@ -1782,7 +1726,7 @@ mod tests {
     );
 
     // Make sure that hidden field is true.
-    assert!(&post_listings_show_hidden.at(1).is_some_and(|p| p.hidden));
+    assert!(&post_listings_show_hidden.get(1).is_some_and(|p| p.hidden));
 
     cleanup(data, pool).await
   }
@@ -1824,7 +1768,7 @@ mod tests {
     assert!(
       &post_listings_show_nsfw
         .first()
-        .ok_or(LemmyErrorType::CouldntFindPost)?
+        .ok_or(LemmyErrorType::NotFound)?
         .post
         .nsfw
     );
@@ -2262,7 +2206,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn post_tags_present() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests().await;
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -2272,8 +2216,7 @@ mod tests {
       Some(&data.local_user_view.local_user),
       false,
     )
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+    .await?;
 
     assert_eq!(2, post_view.community_post_tags.tags.len());
     assert_eq!(data.tag_1.name, post_view.community_post_tags.tags[0].name);

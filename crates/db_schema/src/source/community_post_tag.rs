@@ -1,6 +1,6 @@
-use crate::newtypes::{CommunityId, CommunityPostTagId, DbUrl, PostId};
+use crate::newtypes::{CommunityId, DbUrl, PostId, TagId};
 #[cfg(feature = "full")]
-use crate::schema::{community_post_tag, post_community_post_tag};
+use crate::schema::{community_post_tag, post_tag, tag};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -13,25 +13,36 @@ use ts_rs::TS;
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable, Selectable, Identifiable))]
-#[cfg_attr(feature = "full", diesel(table_name = community_post_tag))]
+#[cfg_attr(feature = "full", diesel(table_name = tag))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct CommunityPostTag {
-  pub id: CommunityPostTagId,
+pub struct Tag {
+  pub id: TagId,
   pub ap_id: DbUrl,
-  pub community_id: CommunityId,
   pub name: String,
   pub published: DateTime<Utc>,
   pub updated: Option<DateTime<Utc>>,
   pub deleted: Option<DateTime<Utc>>,
 }
 
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable, Identifiable))]
+#[cfg_attr(feature = "full", diesel(table_name = community_post_tag))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", diesel(primary_key(community_id, tag_id)))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct CommunityPostTag {
+  pub community_id: CommunityId,
+  pub tag_id: TagId,
+  pub published: DateTime<Utc>,
+}
+
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = community_post_tag))]
-pub struct CommunityPostTagInsertForm {
+#[cfg_attr(feature = "full", diesel(table_name = tag))]
+pub struct TagInsertForm {
   pub ap_id: DbUrl,
-  pub community_id: CommunityId,
   pub name: String,
   // default now
   pub published: Option<DateTime<Utc>>,
@@ -41,8 +52,17 @@ pub struct CommunityPostTagInsertForm {
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
-#[cfg_attr(feature = "full", diesel(table_name = post_community_post_tag))]
-pub struct PostCommunityPostTagInsertForm {
+#[cfg_attr(feature = "full", diesel(table_name = community_post_tag))]
+pub struct CommunityPostTagInsertForm {
+  pub community_id: CommunityId,
+  pub tag_id: TagId,
+  pub published: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = post_tag))]
+pub struct PostTagInsertForm {
   pub post_id: PostId,
-  pub community_post_tag_id: CommunityPostTagId,
+  pub tag_id: TagId,
 }

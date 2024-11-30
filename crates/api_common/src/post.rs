@@ -1,5 +1,5 @@
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, CommunityPostTagId, DbUrl, LanguageId, PostId, PostReportId},
+  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, PostReportId, TagId},
   ListingType,
   PostFeatureType,
   PostSortType,
@@ -37,7 +37,7 @@ pub struct CreatePost {
   /// Instead of fetching a thumbnail, use a custom one.
   #[cfg_attr(feature = "full", ts(optional))]
   pub custom_thumbnail: Option<String>,
-  pub community_post_tags: Option<Vec<CommunityPostTagId>>,
+  pub tags: Option<Vec<TagId>>,
   /// Time when this post should be scheduled. Null means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<i64>,
@@ -165,7 +165,7 @@ pub struct EditPost {
   /// Instead of fetching a thumbnail, use a custom one.
   #[cfg_attr(feature = "full", ts(optional))]
   pub custom_thumbnail: Option<String>,
-  pub community_post_tags: Option<Vec<CommunityPostTagId>>,
+  pub tags: Option<Vec<TagId>>,
   /// Time when this post should be scheduled. Null means publish immediately.
   #[cfg_attr(feature = "full", ts(optional))]
   pub scheduled_publish_time: Option<i64>,
