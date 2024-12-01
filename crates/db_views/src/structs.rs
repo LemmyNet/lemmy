@@ -126,6 +126,12 @@ pub struct PostReportView {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct PaginationCursor(pub String);
 
+/// like PaginationCursor but for the report_combined table
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(ts_rs::TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ReportCombinedPaginationCursor(pub String);
+
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
