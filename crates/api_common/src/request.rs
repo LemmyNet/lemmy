@@ -23,7 +23,7 @@ use lemmy_utils::{
   REQWEST_TIMEOUT,
   VERSION,
 };
-use mime::Mime;
+use mime::{Mime, TEXT_HTML};
 use reqwest::{
   header::{CONTENT_TYPE, RANGE},
   Client,
@@ -73,10 +73,10 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
   let mut opengraph_data = Default::default();
 
   if let Some(c) = &content_type {
-    if (c.type_() == mime::TEXT && c.subtype() == mime::HTML)
-	    ||
-	    // application/xhtml+xml is a subset of HTML
-	    (c.type_() == mime::APPLICATION && c.subtype() == "xhtml")
+    // application/xhtml+xml is a subset of HTML
+    let application_xhtml: Mime = "application/xhtml+xml".parse()?;
+    if c.essence_str() == TEXT_HTML.essence_str()
+      || c.essence_str() == application_xhtml.essence_str()
     {
       // Can't use .text() here, because it only checks the content header, not the actual bytes
       // https://github.com/LemmyNet/lemmy/issues/1964
@@ -96,6 +96,11 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
       let octet_bytes = collect_bytes_until_limit(response, 512).await?;
       content_type = infer::get(&octet_bytes).map_or(content_type, |t| t.mime_type().parse().ok());
     }
+  }
+  // If we don't get a content_type from the response (e.g. if the server is down),
+  // then try to infer the content_type from the file extension.
+  else {
+    content_type = mime_guess::from_path(url.path()).first();
   }
 
   Ok(LinkMetadata {
