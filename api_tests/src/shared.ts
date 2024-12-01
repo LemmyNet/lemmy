@@ -1,9 +1,8 @@
 import {
+  AdminBlockInstanceParams,
   ApproveCommunityPendingFollower,
   BlockCommunity,
   BlockCommunityResponse,
-  BlockInstance,
-  BlockInstanceResponse,
   CommunityId,
   CommunityVisibility,
   CreatePrivateMessageReport,
@@ -21,11 +20,13 @@ import {
   PostView,
   PrivateMessageReportResponse,
   SuccessResponse,
+  UserBlockInstanceParams,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
 import { EditPost } from "lemmy-js-client/dist/types/EditPost";
 import { EditSite } from "lemmy-js-client/dist/types/EditSite";
+import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
 import { FeaturePost } from "lemmy-js-client/dist/types/FeaturePost";
 import { GetComments } from "lemmy-js-client/dist/types/GetComments";
 import { GetCommentsResponse } from "lemmy-js-client/dist/types/GetCommentsResponse";
@@ -104,13 +105,6 @@ export const gamma = new LemmyHttp(gammaUrl, { fetchFunction });
 export const delta = new LemmyHttp(deltaUrl, { fetchFunction });
 export const epsilon = new LemmyHttp(epsilonUrl, { fetchFunction });
 
-export const betaAllowedInstances = [
-  "lemmy-alpha",
-  "lemmy-gamma",
-  "lemmy-delta",
-  "lemmy-epsilon",
-];
-
 const password = "lemmylemmy";
 
 export async function setupLogins() {
@@ -168,30 +162,29 @@ export async function setupLogins() {
     rate_limit_comment: 999,
     rate_limit_search: 999,
   };
-
-  // Set the blocks and auths for each
-  editSiteForm.allowed_instances = [
-    "lemmy-beta",
-    "lemmy-gamma",
-    "lemmy-delta",
-    "lemmy-epsilon",
-  ];
   await alpha.editSite(editSiteForm);
-
-  editSiteForm.allowed_instances = betaAllowedInstances;
   await beta.editSite(editSiteForm);
-
-  editSiteForm.allowed_instances = [
-    "lemmy-alpha",
-    "lemmy-beta",
-    "lemmy-delta",
-    "lemmy-epsilon",
-  ];
   await gamma.editSite(editSiteForm);
-
-  // Setup delta allowed instance
-  editSiteForm.allowed_instances = ["lemmy-beta"];
   await delta.editSite(editSiteForm);
+  await epsilon.editSite(editSiteForm);
+
+  // Set the blocks for each
+  await allowInstance(alpha, "lemmy-beta");
+  await allowInstance(alpha, "lemmy-gamma");
+  await allowInstance(alpha, "lemmy-delta");
+  await allowInstance(alpha, "lemmy-epsilon");
+
+  await allowInstance(beta, "lemmy-alpha");
+  await allowInstance(beta, "lemmy-gamma");
+  await allowInstance(beta, "lemmy-delta");
+  await allowInstance(beta, "lemmy-epsilon");
+
+  await allowInstance(gamma, "lemmy-alpha");
+  await allowInstance(gamma, "lemmy-beta");
+  await allowInstance(gamma, "lemmy-delta");
+  await allowInstance(gamma, "lemmy-epsilon");
+
+  await allowInstance(delta, "lemmy-beta");
 
   // Create the main alpha/beta communities
   // Ignore thrown errors of duplicates
@@ -206,6 +199,17 @@ export async function setupLogins() {
   } catch {
     //console.log("Communities already exist");
   }
+}
+
+async function allowInstance(api: LemmyHttp, instance: string) {
+  const params: AdminAllowInstanceParams = {
+    instance,
+    allow: true,
+  };
+  // Ignore errors from duplicate allows (because setup gets called for each test file)
+  try {
+    await api.adminAllowInstance(params);
+  } catch {}
 }
 
 export async function createPost(
@@ -854,16 +858,16 @@ export function getPosts(
   return api.getPosts(form);
 }
 
-export function blockInstance(
+export function userBlockInstance(
   api: LemmyHttp,
   instance_id: InstanceId,
   block: boolean,
-): Promise<BlockInstanceResponse> {
-  let form: BlockInstance = {
+): Promise<SuccessResponse> {
+  let form: UserBlockInstanceParams = {
     instance_id,
     block,
   };
-  return api.blockInstance(form);
+  return api.userBlockInstance(form);
 }
 
 export function blockCommunity(

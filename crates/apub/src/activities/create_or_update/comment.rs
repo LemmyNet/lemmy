@@ -43,7 +43,6 @@ use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
 };
-use serde_json::{from_value, to_value};
 use url::Url;
 
 impl CreateOrUpdateNote {
@@ -99,8 +98,7 @@ impl CreateOrUpdateNote {
       inboxes.add_inbox(person.shared_inbox_or_inbox());
     }
 
-    let activity =
-      AnnouncableActivities::CreateOrUpdateNoteWrapper(from_value(to_value(create_or_update)?)?);
+    let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
     send_activity_in_community(activity, &person, &community, inboxes, false, &context).await
   }
 }

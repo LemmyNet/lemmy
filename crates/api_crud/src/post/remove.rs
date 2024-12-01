@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     local_user::LocalUser,
-    moderator::{ModRemovePost, ModRemovePostForm},
+    mod_log::moderator::{ModRemovePost, ModRemovePostForm},
     post::{Post, PostUpdateForm},
     post_report::PostReport,
   },

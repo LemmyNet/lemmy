@@ -12,7 +12,7 @@ use lemmy_db_schema::{
     comment::{Comment, CommentUpdateForm},
     comment_report::CommentReport,
     local_user::LocalUser,
-    moderator::{ModRemoveComment, ModRemoveCommentForm},
+    mod_log::moderator::{ModRemoveComment, ModRemoveCommentForm},
   },
   traits::{Crud, Reportable},
 };

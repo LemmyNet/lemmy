@@ -5,22 +5,29 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     community::Community,
-    moderator::{
-      AdminPurgeComment,
-      AdminPurgeCommunity,
-      AdminPurgePerson,
-      AdminPurgePost,
-      ModAdd,
-      ModAddCommunity,
-      ModBan,
-      ModBanFromCommunity,
-      ModFeaturePost,
-      ModHideCommunity,
-      ModLockPost,
-      ModRemoveComment,
-      ModRemoveCommunity,
-      ModRemovePost,
-      ModTransferCommunity,
+    instance::Instance,
+    mod_log::{
+      admin::{
+        AdminAllowInstance,
+        AdminBlockInstance,
+        AdminPurgeComment,
+        AdminPurgeCommunity,
+        AdminPurgePerson,
+        AdminPurgePost,
+      },
+      moderator::{
+        ModAdd,
+        ModAddCommunity,
+        ModBan,
+        ModBanFromCommunity,
+        ModFeaturePost,
+        ModHideCommunity,
+        ModLockPost,
+        ModRemoveComment,
+        ModRemoveCommunity,
+        ModRemovePost,
+        ModTransferCommunity,
+      },
     },
     person::Person,
     post::Post,
@@ -231,6 +238,32 @@ pub struct AdminPurgePostView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub admin: Option<Person>,
   pub community: Community,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// When an admin purges a post.
+pub struct AdminBlockInstanceView {
+  pub admin_block_instance: AdminBlockInstance,
+  pub instance: Instance,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub admin: Option<Person>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// When an admin purges a post.
+pub struct AdminAllowInstanceView {
+  pub admin_block_instance: AdminAllowInstance,
+  pub instance: Instance,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub admin: Option<Person>,
 }
 
 #[skip_serializing_none]
