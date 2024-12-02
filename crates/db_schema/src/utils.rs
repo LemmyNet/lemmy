@@ -83,7 +83,7 @@ pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>
   })
 }
 
-impl<'a> Deref for DbConn<'a> {
+impl Deref for DbConn<'_> {
   type Target = AsyncPgConnection;
 
   fn deref(&self) -> &Self::Target {
@@ -94,7 +94,7 @@ impl<'a> Deref for DbConn<'a> {
   }
 }
 
-impl<'a> DerefMut for DbConn<'a> {
+impl DerefMut for DbConn<'_> {
   fn deref_mut(&mut self) -> &mut Self::Target {
     match self {
       DbConn::Pool(conn) => conn.deref_mut(),
