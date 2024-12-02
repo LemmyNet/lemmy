@@ -1,3 +1,5 @@
+use i_love_jesus::CursorKeysModule;
+use diesel::Selectable;
 use crate::structs::{
   CommentReportView,
   LocalUserView,
@@ -7,6 +9,7 @@ use crate::structs::{
   ReportCombinedView,
   ReportCombinedViewInternal,
 };
+use chrono::{DateTime, Utc};
 use diesel::{
   result::Error,
   BoolExpressionMethods,
@@ -17,6 +20,7 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
   newtypes::CommunityId,
@@ -38,7 +42,7 @@ use lemmy_db_schema::{
     private_message_report,
     report_combined,
   },
-  source::{combined::report::ReportCombined, community::CommunityFollower},
+  source::{combined::report::{report_combined_keys as key, ReportCombined}, community::CommunityFollower},
   utils::{actions, actions_alias, functions::coalesce, get_conn, limit_and_offset, DbPool},
 };
 use lemmy_utils::error::LemmyResult;
@@ -99,15 +103,16 @@ impl ReportCombinedViewInternal {
 impl ReportCombinedPaginationCursor {
   // get cursor for page that starts immediately after the given post
   pub fn after_post(view: &ReportCombinedView) -> ReportCombinedPaginationCursor {
-    let (prefix, id) = match view {
-      ReportCombinedView::Comment(v) => ('C', v.comment_report.id.0),
-      ReportCombinedView::Post(v) => ('P', v.post_report.id.0),
-      ReportCombinedView::PrivateMessage(v) => ('M', v.private_message_report.id.0),
+    // This is the simplest way to encode the cursor without making `report_combined::id` part of the public API
+    let published = match view {
+      ReportCombinedView::Comment(v) => v.comment_report.published,
+      ReportCombinedView::Post(v) => v.post_report.published,
+      ReportCombinedView::PrivateMessage(v) => v.private_message_report.published,
     };
     // hex encoding to prevent ossification
-    ReportCombinedPaginationCursor(format!("{prefix}{id:x}"))
+    ReportCombinedPaginationCursor(format!("published_{:x}", published.timestamp_micros()))
   }
-  pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
+  pub fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
     let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
     let mut query = report_combined::table
       .select(ReportCombined::as_select())
@@ -126,8 +131,13 @@ impl ReportCombinedPaginationCursor {
   }
 }
 
-#[derive(Clone)]
-pub struct PaginationCursorData(ReportCombined);
+// TODO: when the CursorKeysModule macro allows specifying the table name without a diesel macro, remove the Selectable macro
+#[derive(Clone, Selectable, CursorKeysModule)]
+#[diesel(table_name = report_combined)]
+#[cursor_keys_module(name = key)]
+pub struct PaginationCursorData {
+  published: DateTime<Utc>,
+}
 
 #[derive(Default)]
 pub struct ReportCombinedQuery {
@@ -135,6 +145,8 @@ pub struct ReportCombinedQuery {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unresolved_only: bool,
+  pub page_after: Option<PaginationCursorData>,
+  pub page_back: bool,
 }
 
 impl ReportCombinedQuery {
@@ -272,14 +284,24 @@ impl ReportCombinedQuery {
       query = query.filter(community::id.eq(community_id));
     }
 
+    let mut query = PaginatedQueryBuilder::new(query);
+
+    let page_after = options.page_after.map(|c| c.0);
+
+    if options.page_back {
+      query = query.before(page_after).limit_and_offset_from_end();
+    } else {
+      query = query.after(page_after);
+    }
+
     // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
     // first (FIFO)
     if options.unresolved_only {
       query = query
-        .filter(post_report::resolved.eq(false))
-        .or_filter(comment_report::resolved.eq(false))
-        .or_filter(private_message_report::resolved.eq(false))
-        .order_by(report_combined::published.asc());
+        .filter(post_report::resolved.eq(false)
+        .or(comment_report::resolved.eq(false))
+        .or(private_message_report::resolved.eq(false)))
+        .then_desc(report_combined::published);
     } else {
       query = query.order_by(report_combined::published.desc());
     }
