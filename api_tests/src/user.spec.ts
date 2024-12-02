@@ -138,11 +138,8 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
 
 test("Create user with Arabic name", async () => {
   // less than actor_name_max_length
-    const name = "تجريب" + Math.random().toString().slice(2, 10); 
-  let user = await registerUser(
-    alpha,
-    alphaUrl,name
-  );
+  const name = "تجريب" + Math.random().toString().slice(2, 10);
+  let user = await registerUser(alpha, alphaUrl, name);
 
   let site = await getSite(user);
   expect(site.my_user).toBeDefined();

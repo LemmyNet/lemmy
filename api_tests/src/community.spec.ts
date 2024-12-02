@@ -578,7 +578,7 @@ test("Remote mods can edit communities", async () => {
 });
 
 test("Community name with non-ascii chars", async () => {
-    const name = "това_ме_ядосва" + Math.random().toString().slice(2, 6); 
+  const name = "това_ме_ядосва" + Math.random().toString().slice(2, 6);
   let communityRes = await createCommunity(alpha, name);
 
   let betaCommunity1 = await resolveCommunity(
@@ -586,7 +586,7 @@ test("Community name with non-ascii chars", async () => {
     communityRes.community_view.community.actor_id,
   );
   expect(betaCommunity1.community!.community.name).toBe(name);
-  
+
   let alphaCommunity2 = await getCommunityByName(alpha, name);
   expect(alphaCommunity2.community_view.community.name).toBe(name);
 
@@ -594,10 +594,7 @@ test("Community name with non-ascii chars", async () => {
   let betaCommunity2 = await getCommunityByName(beta, fediName);
   expect(betaCommunity2.community_view.community.name).toBe(name);
 
-  let postRes = await createPost(
-    beta,
-    betaCommunity1.community!.community.id,
-  );
+  let postRes = await createPost(beta, betaCommunity1.community!.community.id);
 
   let form: GetPosts = {
     community_name: fediName,
