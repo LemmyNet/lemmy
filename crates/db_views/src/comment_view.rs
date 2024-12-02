@@ -360,10 +360,8 @@ impl CommentQuery<'_> {
 }
 
 fn handle_deleted(mut c: CommentView, is_admin: bool) -> CommentView {
-  dbg!(is_admin, c.comment.removed);
   if !is_admin && (c.comment.deleted || c.comment.removed) {
     c.comment.content = String::new();
-    dbg!("clear content");
   }
   c
 }
