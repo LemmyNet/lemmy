@@ -17,6 +17,7 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
   newtypes::CommunityId,
@@ -38,8 +39,19 @@ use lemmy_db_schema::{
     private_message_report,
     report_combined,
   },
-  source::{combined::report::ReportCombined, community::CommunityFollower},
-  utils::{actions, actions_alias, functions::coalesce, get_conn, limit_and_offset, DbPool},
+  source::{
+    combined::report::{report_combined_keys as key, ReportCombined},
+    community::CommunityFollower,
+  },
+  utils::{
+    actions,
+    actions_alias,
+    functions::coalesce,
+    get_conn,
+    limit_and_offset,
+    DbPool,
+    ReverseTimestampKey,
+  },
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -113,7 +125,7 @@ impl ReportCombinedPaginationCursor {
       .select(ReportCombined::as_select())
       .into_boxed();
     let (prefix, id_str) = self.0.split_at_checked(1).ok_or_else(err_msg)?;
-    let id = i32::from_str_radix(id_str, 16).map_err(|_| err_msg())?;
+    let id = i32::from_str_radix(id_str, 16).map_err(|_err| err_msg())?;
     query = match prefix {
       "C" => query.filter(report_combined::comment_report_id.eq(id)),
       "P" => query.filter(report_combined::post_report_id.eq(id)),
@@ -135,6 +147,8 @@ pub struct ReportCombinedQuery {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub unresolved_only: bool,
+  pub page_after: Option<PaginationCursorData>,
+  pub page_back: bool,
 }
 
 impl ReportCombinedQuery {
@@ -272,18 +286,6 @@ impl ReportCombinedQuery {
       query = query.filter(community::id.eq(community_id));
     }
 
-    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
-    // first (FIFO)
-    if options.unresolved_only {
-      query = query
-        .filter(post_report::resolved.eq(false))
-        .or_filter(comment_report::resolved.eq(false))
-        .or_filter(private_message_report::resolved.eq(false))
-        .order_by(report_combined::published.asc());
-    } else {
-      query = query.order_by(report_combined::published.desc());
-    }
-
     // If its not an admin, get only the ones you mod
     if !user.local_user.admin {
       query = query.filter(community_actions::became_moderator.is_not_null());
@@ -292,6 +294,36 @@ impl ReportCombinedQuery {
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 
     query = query.limit(limit).offset(offset);
+
+    let mut query = PaginatedQueryBuilder::new(query);
+
+    let page_after = options.page_after.map(|c| c.0);
+
+    if options.page_back {
+      query = query.before(page_after).limit_and_offset_from_end();
+    } else {
+      query = query.after(page_after);
+    }
+
+    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
+    // first (FIFO)
+    if options.unresolved_only {
+      query = query
+        .filter(
+          post_report::resolved
+            .eq(false)
+            .or(comment_report::resolved.eq(false))
+            .or(private_message_report::resolved.eq(false)),
+        )
+        // TODO: when a `then_asc` method is added, use it here, make the id sort direction match,
+        // and remove the separate index; unless additional columns are added to this sort
+        .then_desc(ReverseTimestampKey(key::published));
+    } else {
+      query = query.then_desc(key::published);
+    }
+
+    // Tie breaker
+    query = query.then_desc(key::id);
 
     let res = query.load::<ReportCombinedViewInternal>(conn).await?;
 

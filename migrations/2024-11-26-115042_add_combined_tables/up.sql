@@ -17,7 +17,9 @@ CREATE TABLE report_combined (
     UNIQUE (post_report_id, comment_report_id, private_message_report_id)
 );
 
-CREATE INDEX idx_report_combined_published ON report_combined (published DESC);
+CREATE INDEX idx_report_combined_published ON report_combined (published DESC, id DESC);
+
+CREATE INDEX idx_report_combined_published_asc ON report_combined (reverse_timestamp_sort (published) DESC, id DESC);
 
 -- Updating the history
 INSERT INTO report_combined (published, post_report_id)
