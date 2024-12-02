@@ -25,6 +25,8 @@ pub struct CreateOAuthProvider {
   #[cfg_attr(feature = "full", ts(optional))]
   pub account_linking_enabled: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
+  pub use_pkce: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub enabled: Option<bool>,
 }
 
@@ -54,6 +56,8 @@ pub struct EditOAuthProvider {
   #[cfg_attr(feature = "full", ts(optional))]
   pub account_linking_enabled: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
+  pub use_pkce: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub enabled: Option<bool>,
 }
 
@@ -82,4 +86,6 @@ pub struct AuthenticateWithOauth {
   /// An answer is mandatory if require application is enabled on the server
   #[cfg_attr(feature = "full", ts(optional))]
   pub answer: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub pkce_code_verifier: Option<String>,
 }
