@@ -2549,6 +2549,7 @@ dependencies = [
  "lemmy_db_views",
  "lemmy_db_views_actor",
  "lemmy_utils",
+ "regex",
  "serde",
  "serde_json",
  "serde_with",

@@ -282,6 +282,8 @@ pub struct ReportCombinedViewInternal {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
+// Use serde's internal tagging, to work easier with javascript libraries
+#[serde(tag = "type_")]
 pub enum ReportCombinedView {
   Post(PostReportView),
   Comment(CommentReportView),
