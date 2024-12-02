@@ -35,6 +35,7 @@ pub async fn create_oauth_provider(
     scopes: data.scopes.to_string(),
     auto_verify_email: data.auto_verify_email,
     account_linking_enabled: data.account_linking_enabled,
+    use_pkce: data.use_pkce,
     enabled: data.enabled,
   };
   let oauth_provider = OAuthProvider::create(&mut context.pool(), &oauth_provider_form).await?;
