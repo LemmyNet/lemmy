@@ -27,7 +27,6 @@ import {
   followCommunity,
   banPersonFromCommunity,
   reportPost,
-  listPostReports,
   randomString,
   registerUser,
   getSite,
@@ -38,10 +37,11 @@ import {
   alphaUrl,
   loginUser,
   createCommunity,
+  listReports,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
-import { EditSite, ResolveObject } from "lemmy-js-client";
+import { EditSite, PostReportView, ResolveObject } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 
@@ -690,16 +690,25 @@ test("Report a post", async () => {
   expect(gammaReport).toBeDefined();
 
   // Report was federated to community instance
-  let betaReport = (await waitUntil(
-    () =>
-      listPostReports(beta).then(p =>
-        p.post_reports.find(
-          r =>
-            r.post_report.original_post_name === gammaReport.original_post_name,
+  let betaReport = (
+    (await waitUntil(
+      () =>
+        listReports(beta).then(p =>
+          p.reports.find(r => {
+            switch (r.type_) {
+              case "Post":
+                return (
+                  r.post_report.original_post_name ===
+                  gammaReport.original_post_name
+                );
+              default:
+                return false;
+            }
+          }),
         ),
-      ),
-    res => !!res,
-  ))!.post_report;
+      res => !!res,
+    ))! as PostReportView
+  ).post_report;
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
   expect(betaReport.original_post_name).toBe(gammaReport.original_post_name);
@@ -709,16 +718,25 @@ test("Report a post", async () => {
   await unfollowRemotes(alpha);
 
   // Report was federated to poster's instance
-  let alphaReport = (await waitUntil(
-    () =>
-      listPostReports(alpha).then(p =>
-        p.post_reports.find(
-          r =>
-            r.post_report.original_post_name === gammaReport.original_post_name,
+  let alphaReport = (
+    (await waitUntil(
+      () =>
+        listReports(alpha).then(p =>
+          p.reports.find(r => {
+            switch (r.type_) {
+              case "Post":
+                return (
+                  r.post_report.original_post_name ===
+                  gammaReport.original_post_name
+                );
+              default:
+                return false;
+            }
+          }),
         ),
-      ),
-    res => !!res,
-  ))!.post_report;
+      res => !!res,
+    ))! as PostReportView
+  ).post_report;
   expect(alphaReport).toBeDefined();
   expect(alphaReport.resolved).toBe(false);
   expect(alphaReport.original_post_name).toBe(gammaReport.original_post_name);
