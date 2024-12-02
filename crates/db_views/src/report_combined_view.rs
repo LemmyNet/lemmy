@@ -43,15 +43,7 @@ use lemmy_db_schema::{
     combined::report::{report_combined_keys as key, ReportCombined},
     community::CommunityFollower,
   },
-  utils::{
-    actions,
-    actions_alias,
-    functions::coalesce,
-    get_conn,
-    limit_and_offset,
-    DbPool,
-    ReverseTimestampKey,
-  },
+  utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -119,6 +111,7 @@ impl ReportCombinedPaginationCursor {
     // hex encoding to prevent ossification
     ReportCombinedPaginationCursor(format!("{prefix}{id:x}"))
   }
+
   pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
     let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
     let mut query = report_combined::table
@@ -144,11 +137,9 @@ pub struct PaginationCursorData(ReportCombined);
 #[derive(Default)]
 pub struct ReportCombinedQuery {
   pub community_id: Option<CommunityId>,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
-  pub unresolved_only: bool,
+  pub unresolved_only: Option<bool>,
   pub page_after: Option<PaginationCursorData>,
-  pub page_back: bool,
+  pub page_back: Option<bool>,
 }
 
 impl ReportCombinedQuery {
@@ -291,15 +282,11 @@ impl ReportCombinedQuery {
       query = query.filter(community_actions::became_moderator.is_not_null());
     }
 
-    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
-
-    query = query.limit(limit).offset(offset);
-
     let mut query = PaginatedQueryBuilder::new(query);
 
     let page_after = options.page_after.map(|c| c.0);
 
-    if options.page_back {
+    if options.page_back.unwrap_or_default() {
       query = query.before(page_after).limit_and_offset_from_end();
     } else {
       query = query.after(page_after);
@@ -307,7 +294,7 @@ impl ReportCombinedQuery {
 
     // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
     // first (FIFO)
-    if options.unresolved_only {
+    if options.unresolved_only.unwrap_or_default() {
       query = query
         .filter(
           post_report::resolved
@@ -601,7 +588,7 @@ mod tests {
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
     let reports_after_resolve = ReportCombinedQuery {
-      unresolved_only: true,
+      unresolved_only: Some(true),
       ..Default::default()
     }
     .list(pool, &timmy_view)

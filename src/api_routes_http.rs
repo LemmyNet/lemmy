@@ -286,7 +286,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       .service(
         scope("report")
           .wrap(rate_limit.message())
-          .route("/list", web::get().to(list_reports)),
+          .route("/list", get().to(list_reports)),
       )
       // Private Message
       .service(

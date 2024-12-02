@@ -116,6 +116,8 @@ pub struct GetPosts {
   pub no_comments_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
 }
 
 #[skip_serializing_none]
