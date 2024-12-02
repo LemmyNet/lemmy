@@ -14,7 +14,8 @@ CREATE TABLE report_combined (
     post_report_id int REFERENCES post_report ON UPDATE CASCADE ON DELETE CASCADE,
     comment_report_id int REFERENCES comment_report ON UPDATE CASCADE ON DELETE CASCADE,
     private_message_report_id int REFERENCES private_message_report ON UPDATE CASCADE ON DELETE CASCADE,
-    UNIQUE (post_report_id, comment_report_id, private_message_report_id)
+    -- Make sure only one of the columns is not null
+    CHECK ((post_report_id IS NOT NULL)::integer + (comment_report_id IS NOT NULL)::integer + (private_message_report_id IS NOT NULL)::integer = 1)
 );
 
 CREATE INDEX idx_report_combined_published ON report_combined (published DESC, id DESC);
