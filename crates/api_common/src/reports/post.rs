@@ -30,31 +30,3 @@ pub struct ResolvePostReport {
   pub report_id: PostReportId,
   pub resolved: bool,
 }
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// List post reports.
-pub struct ListPostReports {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-  /// Only shows the unresolved reports
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub unresolved_only: Option<bool>,
-  /// if no community is given, it returns reports for all communities moderated by the auth user
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub community_id: Option<CommunityId>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub post_id: Option<PostId>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The post reports response.
-pub struct ListPostReportsResponse {
-  pub post_reports: Vec<PostReportView>,
-}

@@ -30,31 +30,3 @@ pub struct ResolveCommentReport {
   pub report_id: CommentReportId,
   pub resolved: bool,
 }
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// List comment reports.
-pub struct ListCommentReports {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub comment_id: Option<CommentId>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-  /// Only shows the unresolved reports
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub unresolved_only: Option<bool>,
-  /// if no community is given, it returns reports for all communities moderated by the auth user
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub community_id: Option<CommunityId>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The comment report list response.
-pub struct ListCommentReportsResponse {
-  pub comment_reports: Vec<CommentReportView>,
-}

@@ -30,26 +30,3 @@ pub struct ResolvePrivateMessageReport {
   pub report_id: PrivateMessageReportId,
   pub resolved: bool,
 }
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// List private message reports.
-pub struct ListPrivateMessageReports {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-  /// Only shows the unresolved reports
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub unresolved_only: Option<bool>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The response for list private message reports.
-pub struct ListPrivateMessageReportsResponse {
-  pub private_message_reports: Vec<PrivateMessageReportView>,
-}
