@@ -1345,7 +1345,10 @@ mod tests {
       Some(&data.timmy_local_user_view.local_user),
     )
     .await?;
-    assert_eq!(data.inserted_comment_0.content, comment_view.comment.content);
+    assert_eq!(
+      data.inserted_comment_0.content,
+      comment_view.comment.content
+    );
     let comment_listing = CommentQuery {
       community_id: Some(data.inserted_community.id),
       local_user: Some(&data.timmy_local_user_view.local_user),
@@ -1354,7 +1357,10 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(data.inserted_comment_0.content, comment_listing[0].comment.content);
+    assert_eq!(
+      data.inserted_comment_0.content,
+      comment_listing[0].comment.content
+    );
 
     cleanup(data, pool).await
   }
