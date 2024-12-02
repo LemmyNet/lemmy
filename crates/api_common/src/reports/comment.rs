@@ -1,7 +1,6 @@
-use lemmy_db_schema::newtypes::{CommentId, CommentReportId, CommunityId};
+use lemmy_db_schema::newtypes::{CommentId, CommentReportId};
 use lemmy_db_views::structs::CommentReportView;
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 

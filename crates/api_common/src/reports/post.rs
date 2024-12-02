@@ -1,7 +1,6 @@
-use lemmy_db_schema::newtypes::{CommunityId, PostId, PostReportId};
+use lemmy_db_schema::newtypes::{PostId, PostReportId};
 use lemmy_db_views::structs::PostReportView;
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 
