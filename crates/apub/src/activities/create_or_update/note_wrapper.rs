@@ -39,6 +39,9 @@ impl ActivityHandler for CreateOrUpdateNoteWrapper {
 
   #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
+    // Use serde to convert NoteWrapper either into Comment or PrivateMessage,
+    // depending on conditions below. This works because NoteWrapper keeps all
+    // additional data in field `other: Map<String, Value>`.
     let val = to_value(self)?;
 
     // Convert self to a comment and get the community. If the conversion is
