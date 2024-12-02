@@ -225,7 +225,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/delete", post().to(delete_post))
           .route("/remove", post().to(remove_post))
           .route("/mark_as_read", post().to(mark_post_as_read))
-          .route("/mark_many_as_read", post().to(mark_posts_as_read))
+          .route("/mark_as_read/many", post().to(mark_posts_as_read))
           .route("/hide", post().to(hide_post))
           .route("/lock", post().to(lock_post))
           .route("/feature", post().to(feature_post))
@@ -299,7 +299,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       )
       .service(
         scope("/account")
-          .route("/my_user", get().to(get_my_user))
+          .route("", get().to(get_my_user))
           .route("/list_media", get().to(list_media))
           .route("/mention", get().to(list_mentions))
           .route("/replies", get().to(list_replies))
@@ -309,7 +309,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
             post().to(mark_person_mention_as_read),
           )
           .route(
-            "/mention/mark_all_as_read",
+            "/mention/mark_as_read/all",
             post().to(mark_all_notifications_read),
           )
           .route("/report_count", get().to(report_count))
