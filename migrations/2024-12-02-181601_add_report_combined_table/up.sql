@@ -11,9 +11,9 @@
 CREATE TABLE report_combined (
     id serial PRIMARY KEY,
     published timestamptz NOT NULL,
-    post_report_id int REFERENCES post_report ON UPDATE CASCADE ON DELETE CASCADE,
-    comment_report_id int REFERENCES comment_report ON UPDATE CASCADE ON DELETE CASCADE,
-    private_message_report_id int REFERENCES private_message_report ON UPDATE CASCADE ON DELETE CASCADE,
+    post_report_id int UNIQUE REFERENCES post_report ON UPDATE CASCADE ON DELETE CASCADE,
+    comment_report_id int UNIQUE REFERENCES comment_report ON UPDATE CASCADE ON DELETE CASCADE,
+    private_message_report_id int UNIQUE REFERENCES private_message_report ON UPDATE CASCADE ON DELETE CASCADE,
     -- Make sure only one of the columns is not null
     CHECK ((post_report_id IS NOT NULL)::integer + (comment_report_id IS NOT NULL)::integer + (private_message_report_id IS NOT NULL)::integer = 1)
 );
@@ -21,12 +21,6 @@ CREATE TABLE report_combined (
 CREATE INDEX idx_report_combined_published ON report_combined (published DESC, id DESC);
 
 CREATE INDEX idx_report_combined_published_asc ON report_combined (reverse_timestamp_sort (published) DESC, id DESC);
-
-CREATE INDEX idx_report_combined_post_report ON report_combined (post_report_id);
-
-CREATE INDEX idx_report_combined_comment_report ON report_combined (comment_report_id);
-
-CREATE INDEX idx_report_combined_private_message_report ON report_combined (private_message_report_id);
 
 -- Updating the history
 INSERT INTO report_combined (published, post_report_id)
