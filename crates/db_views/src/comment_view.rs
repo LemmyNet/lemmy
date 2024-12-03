@@ -316,17 +316,14 @@ impl CommentView {
     comment_id: CommentId,
     my_local_user: Option<&'_ LocalUser>,
   ) -> Result<Self, Error> {
+    let is_admin = my_local_user.map(|u| u.admin).unwrap_or(false);
     // If a person is given, then my_vote (res.9), if None, should be 0, not null
     // Necessary to differentiate between other person's votes
-    let res = queries().read(pool, (comment_id, my_local_user)).await?;
-    let mut new_view = res.clone();
+    let mut res = queries().read(pool, (comment_id, my_local_user)).await?;
     if my_local_user.is_some() && res.my_vote.is_none() {
-      new_view.my_vote = Some(0);
+      res.my_vote = Some(0);
     }
-    if res.comment.deleted || res.comment.removed {
-      new_view.comment.content = String::new();
-    }
-    Ok(new_view)
+    Ok(handle_deleted(res, is_admin))
   }
 }
 
@@ -350,20 +347,23 @@ pub struct CommentQuery<'a> {
 
 impl CommentQuery<'_> {
   pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
+    let is_admin = self.local_user.map(|u| u.admin).unwrap_or(false);
     Ok(
       queries()
         .list(pool, (self, site))
         .await?
         .into_iter()
-        .map(|mut c| {
-          if c.comment.deleted || c.comment.removed {
-            c.comment.content = String::new();
-          }
-          c
-        })
+        .map(|c| handle_deleted(c, is_admin))
         .collect(),
     )
   }
+}
+
+fn handle_deleted(mut c: CommentView, is_admin: bool) -> CommentView {
+  if !is_admin && (c.comment.deleted || c.comment.removed) {
+    c.comment.content = String::new();
+  }
+  c
 }
 
 #[cfg(test)]
@@ -1298,6 +1298,67 @@ mod tests {
     )
     .await;
     assert!(comment_view.is_ok());
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn comment_removed() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let mut data = init_data(pool).await?;
+
+    // Mark a comment as removed
+    let form = CommentUpdateForm {
+      removed: Some(true),
+      ..Default::default()
+    };
+    Comment::update(pool, data.inserted_comment_0.id, &form).await?;
+
+    // Read as normal user, content is cleared
+    data.timmy_local_user_view.local_user.admin = false;
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(&data.timmy_local_user_view.local_user),
+    )
+    .await?;
+    assert_eq!("", comment_view.comment.content);
+    let comment_listing = CommentQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      sort: Some(CommentSortType::Old),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!("", comment_listing[0].comment.content);
+
+    // Read as admin, content is returned
+    data.timmy_local_user_view.local_user.admin = true;
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(&data.timmy_local_user_view.local_user),
+    )
+    .await?;
+    assert_eq!(
+      data.inserted_comment_0.content,
+      comment_view.comment.content
+    );
+    let comment_listing = CommentQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      sort: Some(CommentSortType::Old),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(
+      data.inserted_comment_0.content,
+      comment_listing[0].comment.content
+    );
 
     cleanup(data, pool).await
   }

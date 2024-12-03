@@ -668,6 +668,7 @@ diesel::table! {
         enabled -> Bool,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+        use_pkce -> Bool,
     }
 }
 

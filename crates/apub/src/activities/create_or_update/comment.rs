@@ -43,6 +43,7 @@ use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
 };
+use serde_json::{from_value, to_value};
 use url::Url;
 
 impl CreateOrUpdateNote {
@@ -98,7 +99,11 @@ impl CreateOrUpdateNote {
       inboxes.add_inbox(person.shared_inbox_or_inbox());
     }
 
-    let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
+    // AnnouncableActivities doesnt contain Comment activity but only NoteWrapper,
+    // to be able to handle both comment and private message. So to send this out we need
+    // to convert this to NoteWrapper, by serializing and then deserializing again.
+    let converted = from_value(to_value(create_or_update)?)?;
+    let activity = AnnouncableActivities::CreateOrUpdateNoteWrapper(converted);
     send_activity_in_community(activity, &person, &community, inboxes, false, &context).await
   }
 }
