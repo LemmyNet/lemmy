@@ -633,7 +633,7 @@ impl<'a> PostQuery<'a> {
 }
 
 #[allow(clippy::indexing_slicing)]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::expect_used)]
 #[cfg(test)]
 mod tests {
   use crate::{
