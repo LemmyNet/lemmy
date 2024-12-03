@@ -29,7 +29,7 @@ import {
 beforeAll(setupLogins);
 afterAll(unfollows);
 
-test("Follow a private community", async () => {
+test.concurrent("Follow a private community", async () => {
   // create private community
   const community = await createCommunity(alpha, randomString(10), "Private");
   expect(community.community_view.community.visibility).toBe("Private");
@@ -117,7 +117,7 @@ test("Follow a private community", async () => {
   expect(approve2.success).toBe(true);
 });
 
-test("Only followers can view and interact with private community content", async () => {
+test.concurrent("Only followers can view and interact with private community content", async () => {
   // create private community
   const community = await createCommunity(alpha, randomString(10), "Private");
   expect(community.community_view.community.visibility).toBe("Private");
@@ -170,7 +170,7 @@ test("Only followers can view and interact with private community content", asyn
   expect(like.comment_view.my_vote).toBe(1);
 });
 
-test("Reject follower", async () => {
+test.concurrent("Reject follower", async () => {
   // create private community
   const community = await createCommunity(alpha, randomString(10), "Private");
   expect(community.community_view.community.visibility).toBe("Private");
@@ -208,7 +208,7 @@ test("Reject follower", async () => {
   );
 });
 
-test("Follow a private community and receive activities", async () => {
+test.concurrent("Follow a private community and receive activities", async () => {
   // create private community
   const community = await createCommunity(alpha, randomString(10), "Private");
   expect(community.community_view.community.visibility).toBe("Private");
@@ -274,7 +274,7 @@ test("Follow a private community and receive activities", async () => {
   );
 });
 
-test("Fetch remote content in private community", async () => {
+test.concurrent("Fetch remote content in private community", async () => {
   // create private community
   const community = await createCommunity(alpha, randomString(10), "Private");
   expect(community.community_view.community.visibility).toBe("Private");

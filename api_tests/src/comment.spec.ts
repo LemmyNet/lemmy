@@ -90,13 +90,13 @@ test("Create a comment", async () => {
   assertCommentFederation(betaComment, commentRes.comment_view);
 });
 
-test("Create a comment in a non-existent post", async () => {
+test.concurrent("Create a comment in a non-existent post", async () => {
   await expect(createComment(alpha, -1)).rejects.toStrictEqual(
     Error("not_found"),
   );
 });
 
-test("Update a comment", async () => {
+test.concurrent("Update a comment", async () => {
   let commentRes = await createComment(alpha, postOnAlphaRes.post_view.post.id);
   // Federate the comment first
   let betaComment = (
@@ -125,7 +125,7 @@ test("Update a comment", async () => {
   assertCommentFederation(betaCommentUpdated, updateCommentRes.comment_view);
 });
 
-test("Delete a comment", async () => {
+test.concurrent("Delete a comment", async () => {
   let post = await createPost(alpha, betaCommunity!.community.id);
   // creating a comment on alpha (remote from home of community)
   let commentRes = await createComment(alpha, post.post_view.post.id);

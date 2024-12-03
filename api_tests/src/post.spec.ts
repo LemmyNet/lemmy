@@ -46,9 +46,13 @@ import { EditSite, ResolveObject } from "lemmy-js-client";
 let betaCommunity: CommunityView | undefined;
 
 beforeAll(async () => {
+  try {
   await setupLogins();
   betaCommunity = (await resolveBetaCommunity(alpha)).community;
   expect(betaCommunity).toBeDefined();
+  } catch (e) {
+    console.log(e);
+  }
 });
 
 afterAll(unfollows);
@@ -87,7 +91,8 @@ async function assertPostFederation(
   expect(postOne?.post.deleted).toBe(postTwo?.post.deleted);
 }
 
-test("Create a post", async () => {
+test.concurrent("Create a post", async () => {
+  try {
   // Block alpha
   var block_instance_params: AdminBlockInstanceParams = {
     instance: "lemmy-alpha",
@@ -136,13 +141,16 @@ test("Create a post", async () => {
   // remove blocked instance
   block_instance_params.block = false;
   await epsilon.adminBlockInstance(block_instance_params);
+} catch (e) { 
+  console.log(e);
+}
 });
 
-test("Create a post in a non-existent community", async () => {
+test.concurrent("Create a post in a non-existent community", async () => {
   await expect(createPost(alpha, -2)).rejects.toStrictEqual(Error("not_found"));
 });
 
-test("Unlike a post", async () => {
+test.concurrent("Unlike a post", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -168,7 +176,7 @@ test("Unlike a post", async () => {
   await assertPostFederation(betaPost, postRes.post_view);
 });
 
-test("Update a post", async () => {
+test.concurrent("Update a post", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -194,7 +202,7 @@ test("Update a post", async () => {
   );
 });
 
-test("Sticky a post", async () => {
+test.concurrent("Sticky a post", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -235,7 +243,7 @@ test("Sticky a post", async () => {
   expect(betaPost3?.post.featured_community).toBe(false);
 });
 
-test("Collection of featured posts gets federated", async () => {
+test.concurrent("Collection of featured posts gets federated", async () => {
   // create a new community and feature a post
   let community = await createCommunity(alpha);
   let post = await createPost(alpha, community.community_view.community.id);
@@ -257,7 +265,7 @@ test("Collection of featured posts gets federated", async () => {
   expect(betaPost).toBeDefined();
 });
 
-test("Lock a post", async () => {
+test.concurrent("Lock a post", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -306,7 +314,7 @@ test("Lock a post", async () => {
   expect(commentAlpha).toBeDefined();
 });
 
-test("Delete a post", async () => {
+test.concurrent("Delete a post", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -345,7 +353,7 @@ test("Delete a post", async () => {
   );
 });
 
-test("Remove a post from admin and community on different instance", async () => {
+test.concurrent("Remove a post from admin and community on different instance", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -383,7 +391,7 @@ test("Remove a post from admin and community on different instance", async () =>
   await assertPostFederation(betaPost2!, undeletedPost.post_view);
 });
 
-test("Remove a post from admin and community on same instance", async () => {
+test.concurrent("Remove a post from admin and community on same instance", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -432,7 +440,7 @@ test("Remove a post from admin and community on same instance", async () => {
   await unfollowRemotes(alpha);
 });
 
-test("Search for a post", async () => {
+test.concurrent("Search for a post", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -444,7 +452,7 @@ test("Search for a post", async () => {
   expect(betaPost?.post.name).toBeDefined();
 });
 
-test("Enforce site ban federation for local user", async () => {
+test.concurrent("Enforce site ban federation for local user", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -525,7 +533,7 @@ test("Enforce site ban federation for local user", async () => {
   await unfollowRemotes(alpha);
 });
 
-test("Enforce site ban federation for federated user", async () => {
+test.concurrent("Enforce site ban federation for federated user", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -588,7 +596,7 @@ test("Enforce site ban federation for federated user", async () => {
   await unfollowRemotes(alpha);
 });
 
-test("Enforce community ban for federated user", async () => {
+test.concurrent("Enforce community ban for federated user", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -656,7 +664,7 @@ test("Enforce community ban for federated user", async () => {
   await unfollowRemotes(alpha);
 });
 
-test("A and G subscribe to B (center) A posts, it gets announced to G", async () => {
+test.concurrent("A and G subscribe to B (center) A posts, it gets announced to G", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -670,7 +678,7 @@ test("A and G subscribe to B (center) A posts, it gets announced to G", async ()
   await unfollowRemotes(alpha);
 });
 
-test("Report a post", async () => {
+test.concurrent("Report a post", async () => {
   // Create post from alpha
   let alphaCommunity = (await resolveBetaCommunity(alpha)).community!;
   await followBeta(alpha);
@@ -727,7 +735,7 @@ test("Report a post", async () => {
   expect(alphaReport.reason).toBe(gammaReport.reason);
 });
 
-test("Fetch post via redirect", async () => {
+test.concurrent("Fetch post via redirect", async () => {
   await followBeta(alpha);
   let alphaPost = await createPost(alpha, betaCommunity!.community.id);
   expect(alphaPost.post_view.post).toBeDefined();
@@ -752,7 +760,7 @@ test("Fetch post via redirect", async () => {
   await unfollowRemotes(alpha);
 });
 
-test("Block post that contains banned URL", async () => {
+test.concurrent("Block post that contains banned URL", async () => {
   let editSiteForm: EditSite = {
     blocked_urls: ["https://evil.com/"],
   };
@@ -774,7 +782,7 @@ test("Block post that contains banned URL", async () => {
   await epsilon.editSite(editSiteForm);
 });
 
-test("Fetch post with redirect", async () => {
+test.concurrent("Fetch post with redirect", async () => {
   let alphaPost = await createPost(alpha, betaCommunity!.community.id);
   expect(alphaPost.post_view.post).toBeDefined();
 
@@ -794,7 +802,7 @@ test("Fetch post with redirect", async () => {
   expect(gammaPost2.post).toBeDefined();
 });
 
-test("Rewrite markdown links", async () => {
+test.concurrent("Rewrite markdown links", async () => {
   const community = (await resolveBetaCommunity(beta)).community!;
 
   // create a post

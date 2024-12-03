@@ -46,7 +46,7 @@ function assertUserFederation(userOne?: PersonView, userTwo?: PersonView) {
   expect(userOne?.person.published).toBe(userTwo?.person.published);
 }
 
-test("Create user", async () => {
+test.concurrent("Create user", async () => {
   let user = await registerUser(alpha, alphaUrl);
 
   let site = await getSite(user);
@@ -57,7 +57,7 @@ test("Create user", async () => {
   apShortname = `${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
 });
 
-test("Set some user settings, check that they are federated", async () => {
+test.concurrent("Set some user settings, check that they are federated", async () => {
   await saveUserSettingsFederated(alpha);
   let alphaPerson = (await resolvePerson(alpha, apShortname)).person;
   let betaPerson = (await resolvePerson(beta, apShortname)).person;
@@ -73,7 +73,7 @@ test("Set some user settings, check that they are federated", async () => {
   expect(site.my_user?.local_user_view.local_user.theme).toBe("test");
 });
 
-test("Delete user", async () => {
+test.concurrent("Delete user", async () => {
   let user = await registerUser(alpha, alphaUrl);
 
   // make a local post and comment
@@ -121,7 +121,7 @@ test("Delete user", async () => {
   ).toBe(true);
 });
 
-test("Requests with invalid auth should be treated as unauthenticated", async () => {
+test.concurrent("Requests with invalid auth should be treated as unauthenticated", async () => {
   let invalid_auth = new LemmyHttp(alphaUrl, {
     headers: { Authorization: "Bearer foobar" },
     fetchFunction,
@@ -135,7 +135,7 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
   expect((await posts).posts).toBeDefined();
 });
 
-test("Create user with Arabic name", async () => {
+test.concurrent("Create user with Arabic name", async () => {
   let user = await registerUser(
     alpha,
     alphaUrl,
@@ -153,7 +153,7 @@ test("Create user with Arabic name", async () => {
   expect(alphaPerson).toBeDefined();
 });
 
-test("Create user with accept-language", async () => {
+test.concurrent("Create user with accept-language", async () => {
   const edit: EditSite = {
     discussion_languages: [32],
   };
@@ -178,7 +178,7 @@ test("Create user with accept-language", async () => {
   expect(langs).toStrictEqual(["und", "de", "en", "fr"]);
 });
 
-test("Set a new avatar, old avatar is deleted", async () => {
+test.concurrent("Set a new avatar, old avatar is deleted", async () => {
   const listMediaRes = await alphaImage.listMedia();
   expect(listMediaRes.images.length).toBe(0);
   const upload_form1: UploadImage = {

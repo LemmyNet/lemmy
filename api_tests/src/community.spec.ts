@@ -62,7 +62,7 @@ function assertCommunityFederation(
   expect(communityOne?.community.deleted).toBe(communityTwo?.community.deleted);
 }
 
-test("Create community", async () => {
+test.concurrent("Create community", async () => {
   let communityRes = await createCommunity(alpha);
   expect(communityRes.community_view.community.name).toBeDefined();
 
@@ -78,7 +78,7 @@ test("Create community", async () => {
   assertCommunityFederation(betaCommunity, communityRes.community_view);
 });
 
-test("Delete community", async () => {
+test.concurrent("Delete community", async () => {
   let communityRes = await createCommunity(beta);
 
   // Cache the community on Alpha
@@ -130,7 +130,7 @@ test("Delete community", async () => {
   );
 });
 
-test("Remove community", async () => {
+test.concurrent("Remove community", async () => {
   let communityRes = await createCommunity(beta);
 
   // Cache the community on Alpha
@@ -182,7 +182,7 @@ test("Remove community", async () => {
   );
 });
 
-test("Search for beta community", async () => {
+test.concurrent("Search for beta community", async () => {
   let communityRes = await createCommunity(beta);
   expect(communityRes.community_view.community.name).toBeDefined();
 
@@ -191,7 +191,7 @@ test("Search for beta community", async () => {
   assertCommunityFederation(alphaCommunity, communityRes.community_view);
 });
 
-test("Admin actions in remote community are not federated to origin", async () => {
+test.concurrent("Admin actions in remote community are not federated to origin", async () => {
   // create a community on alpha
   let communityRes = (await createCommunity(alpha)).community_view;
   expect(communityRes.community.name).toBeDefined();
@@ -253,7 +253,7 @@ test("Admin actions in remote community are not federated to origin", async () =
   expect(gammaPost2.post_view.creator_banned_from_community).toBe(false);
 });
 
-test("moderator view", async () => {
+test.concurrent("moderator view", async () => {
   // register a new user with their own community on alpha and post to it
   let otherUser = await registerUser(alpha, alphaUrl);
 
@@ -326,7 +326,7 @@ test("moderator view", async () => {
   expect(commentIds).toContain(otherAlphaComment.comment.id);
 });
 
-test("Get community for different casing on domain", async () => {
+test.concurrent("Get community for different casing on domain", async () => {
   let communityRes = await createCommunity(alpha);
   expect(communityRes.community_view.community.name).toBeDefined();
 
@@ -343,7 +343,7 @@ test("Get community for different casing on domain", async () => {
   assertCommunityFederation(betaCommunity, communityRes.community_view);
 });
 
-test("User blocks instance, communities are hidden", async () => {
+test.concurrent("User blocks instance, communities are hidden", async () => {
   // create community and post on beta
   let communityRes = await createCommunity(beta);
   expect(communityRes.community_view.community.name).toBeDefined();
@@ -379,7 +379,7 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids3).toContain(postRes.post_view.post.ap_id);
 });
 
-test("Community follower count is federated", async () => {
+test.concurrent("Community follower count is federated", async () => {
   // Follow the beta community from alpha
   let community = await createCommunity(beta);
   let communityActorId = community.community_view.community.actor_id;
@@ -434,7 +434,7 @@ test("Community follower count is federated", async () => {
   expect(followed?.counts?.subscribers).toBe(3);
 });
 
-test("Dont receive community activities after unsubscribe", async () => {
+test.concurrent("Dont receive community activities after unsubscribe", async () => {
   let communityRes = await createCommunity(alpha);
   expect(communityRes.community_view.community.name).toBeDefined();
   expect(communityRes.community_view.counts.subscribers).toBe(1);
@@ -490,7 +490,7 @@ test("Dont receive community activities after unsubscribe", async () => {
   expect((await postResBeta).posts.length).toBe(0);
 });
 
-test("Fetch community, includes posts", async () => {
+test.concurrent("Fetch community, includes posts", async () => {
   let communityRes = await createCommunity(alpha);
   expect(communityRes.community_view.community.name).toBeDefined();
   expect(communityRes.community_view.counts.subscribers).toBe(1);
@@ -518,7 +518,7 @@ test("Fetch community, includes posts", async () => {
   expect(post_listing.posts[0].post.ap_id).toBe(postRes.post_view.post.ap_id);
 });
 
-test("Content in local-only community doesn't federate", async () => {
+test.concurrent("Content in local-only community doesn't federate", async () => {
   // create a community and set it local-only
   let communityRes = (await createCommunity(alpha)).community_view.community;
   let form: EditCommunity = {
@@ -539,7 +539,7 @@ test("Content in local-only community doesn't federate", async () => {
   );
 });
 
-test("Remote mods can edit communities", async () => {
+test.concurrent("Remote mods can edit communities", async () => {
   let communityRes = await createCommunity(alpha);
 
   let betaCommunity = await resolveCommunity(

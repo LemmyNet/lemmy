@@ -40,7 +40,7 @@ afterAll(async () => {
   await Promise.all([unfollows(), deleteAllImages(alpha)]);
 });
 
-test("Upload image and delete it", async () => {
+test.concurrent("Upload image and delete it", async () => {
   const healthz = await fetch(alphaUrl + "/pictrs/healthz");
   expect(healthz.status).toBe(200);
 
@@ -110,7 +110,7 @@ test("Upload image and delete it", async () => {
   expect(deletedListAllMediaRes.images.length).toBe(previousThumbnails - 1);
 });
 
-test("Purge user, uploaded image removed", async () => {
+test.concurrent("Purge user, uploaded image removed", async () => {
   let user = await registerUser(alphaImage, alphaUrl);
 
   // upload test image
@@ -142,7 +142,7 @@ test("Purge user, uploaded image removed", async () => {
   expect(content2).toBe("");
 });
 
-test("Purge post, linked image removed", async () => {
+test.concurrent("Purge post, linked image removed", async () => {
   let user = await registerUser(beta, betaUrl);
 
   // upload test image
@@ -182,7 +182,7 @@ test("Purge post, linked image removed", async () => {
   expect(content2).toBe("");
 });
 
-test("Images in remote image post are proxied if setting enabled", async () => {
+test.concurrent("Images in remote image post are proxied if setting enabled", async () => {
   let community = await createCommunity(gamma);
   let postRes = await createPost(
     gamma,
@@ -235,7 +235,7 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   expect(epsilonPost.thumbnail_url?.endsWith(".jpg")).toBeTruthy();
 });
 
-test("Thumbnail of remote image link is proxied if setting enabled", async () => {
+test.concurrent("Thumbnail of remote image link is proxied if setting enabled", async () => {
   let community = await createCommunity(gamma);
   let postRes = await createPost(
     gamma,
@@ -275,7 +275,7 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
   expect(epsilonPost.thumbnail_url?.endsWith(".png")).toBeTruthy();
 });
 
-test("No image proxying if setting is disabled", async () => {
+test.concurrent("No image proxying if setting is disabled", async () => {
   let user = await registerUser(beta, betaUrl);
   let community = await createCommunity(alpha);
   let betaCommunity = await resolveCommunity(
@@ -318,7 +318,7 @@ test("No image proxying if setting is disabled", async () => {
   expect(post.post_view.post.alt_text).toBe(betaPost.post.alt_text);
 });
 
-test("Make regular post, and give it a custom thumbnail", async () => {
+test.concurrent("Make regular post, and give it a custom thumbnail", async () => {
   const uploadForm1: UploadImage = {
     image: Buffer.from("testRegular1"),
   };
@@ -346,7 +346,7 @@ test("Make regular post, and give it a custom thumbnail", async () => {
   expect(post.post_view.post.thumbnail_url).toBe(upload1.url);
 });
 
-test("Create an image post, and make sure a custom thumbnail doesn't overwrite it", async () => {
+test.concurrent("Create an image post, and make sure a custom thumbnail doesn't overwrite it", async () => {
   const uploadForm1: UploadImage = {
     image: Buffer.from("test1"),
   };

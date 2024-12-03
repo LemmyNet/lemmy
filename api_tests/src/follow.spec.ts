@@ -18,7 +18,7 @@ beforeAll(setupLogins);
 
 afterAll(unfollows);
 
-test("Follow local community", async () => {
+test.concurrent("Follow local community", async () => {
   let user = await registerUser(beta, betaUrl);
 
   let community = (await resolveBetaCommunity(user)).community!;
@@ -45,7 +45,7 @@ test("Follow local community", async () => {
   );
 });
 
-test("Follow federated community", async () => {
+test.concurrent("Follow federated community", async () => {
   // It takes about 1 second for the community aggregates to federate
   await delay(2000); // if this is the second test run, we don't have a way to wait for the correct number of subscribers
   const betaCommunityInitial = (
