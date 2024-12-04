@@ -89,7 +89,6 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
       // https://github.com/LemmyNet/lemmy/issues/1964
       // So we want to do deep inspection of the actually returned bytes but need to be careful
       // not spend too much time parsing binary data as HTML
-
       // only take first bytes regardless of how many bytes the server returns
       let html_bytes = collect_bytes_until_limit(response, bytes_to_fetch).await?;
       extract_opengraph_data(&html_bytes, url)
@@ -105,8 +104,6 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
       if is_octet_type {
         // Don't need to fetch as much data for this as we do with opengraph
         let octet_bytes = collect_bytes_until_limit(response, 512).await?;
-        // content_type = infer::get(&octet_bytes).or(&content_type, |t|
-        // t.mime_type().parse().ok());
         content_type =
           infer::get(&octet_bytes).map_or(content_type, |t| t.mime_type().parse().ok());
       }
