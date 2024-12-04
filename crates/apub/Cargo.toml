@@ -45,6 +45,7 @@ html2md = "0.2.14"
 html2text = "0.12.6"
 stringreader = "0.1.1"
 enum_delegate = "0.2.0"
+semver = "1.0.23"
 
 [dev-dependencies]
 serial_test = { workspace = true }

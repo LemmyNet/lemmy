@@ -266,7 +266,7 @@ pub(crate) mod tests {
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
     let data = prepare_comment_test(&url, &context).await?;
 
-    let json: Note = file_to_json_object("assets/lemmy/objects/note.json")?;
+    let json: Note = file_to_json_object("assets/lemmy/objects/comment.json")?;
     ApubComment::verify(&json, &url, &context).await?;
     let comment = ApubComment::from_json(json.clone(), &context).await?;
 
