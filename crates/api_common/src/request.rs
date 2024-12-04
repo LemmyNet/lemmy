@@ -68,40 +68,40 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
     .headers()
     .get(CONTENT_TYPE)
     .and_then(|h| h.to_str().ok())
-    .and_then(|h| h.parse().ok());
+    .and_then(|h| h.parse().ok())
+    // If we don't get a content_type from the response (e.g. if the server is down),
+    // then try to infer the content_type from the file extension.
+    .or(mime_guess::from_path(url.path()).first());
 
-  let mut opengraph_data = Default::default();
+  let opengraph_data = 'ograph: {
+    if let Some(c) = &content_type {
+      // application/xhtml+xml is a subset of HTML
+      let application_xhtml: Mime = "application/xhtml+xml".parse()?;
+      if c.essence_str() == TEXT_HTML.essence_str()
+        || c.essence_str() == application_xhtml.essence_str()
+      {
+        // Can't use .text() here, because it only checks the content header, not the actual bytes
+        // https://github.com/LemmyNet/lemmy/issues/1964
+        // So we want to do deep inspection of the actually returned bytes but need to be careful
+        // not spend too much time parsing binary data as HTML
 
-  if let Some(c) = &content_type {
-    // application/xhtml+xml is a subset of HTML
-    let application_xhtml: Mime = "application/xhtml+xml".parse()?;
-    if c.essence_str() == TEXT_HTML.essence_str()
-      || c.essence_str() == application_xhtml.essence_str()
-    {
-      // Can't use .text() here, because it only checks the content header, not the actual bytes
-      // https://github.com/LemmyNet/lemmy/issues/1964
-      // So we want to do deep inspection of the actually returned bytes but need to be careful not
-      // spend too much time parsing binary data as HTML
-
-      // only take first bytes regardless of how many bytes the server returns
-      let html_bytes = collect_bytes_until_limit(response, bytes_to_fetch).await?;
-      opengraph_data = extract_opengraph_data(&html_bytes, url)
-        .map_err(|e| info!("{e}"))
-        .unwrap_or_default();
+        // only take first bytes regardless of how many bytes the server returns
+        let html_bytes = collect_bytes_until_limit(response, bytes_to_fetch).await?;
+        break 'ograph extract_opengraph_data(&html_bytes, url)
+          .map_err(|e| info!("{e}"))
+          .unwrap_or_default();
+      }
+      // If a server is serving `application/octet-stream`, it's likely a mistake,
+      // so we try to guess the file type from its magic number.
+      else if c.subtype() == "octet-stream" {
+        // Don't need to fetch as much data for this as we do with opengraph
+        let octet_bytes = collect_bytes_until_limit(response, 512).await?;
+        content_type =
+          infer::get(&octet_bytes).map_or(content_type, |t| t.mime_type().parse().ok());
+      }
     }
-    // If a server is serving `application/octet-stream`, it's likely a mistake,
-    // so we try to guess the file type from its magic number.
-    else if c.subtype() == "octet-stream" {
-      // Don't need to fetch as much data for this as we do with opengraph
-      let octet_bytes = collect_bytes_until_limit(response, 512).await?;
-      content_type = infer::get(&octet_bytes).map_or(content_type, |t| t.mime_type().parse().ok());
-    }
-  }
-  // If we don't get a content_type from the response (e.g. if the server is down),
-  // then try to infer the content_type from the file extension.
-  else {
-    content_type = mime_guess::from_path(url.path()).first();
-  }
+    Default::default()
+  };
 
   Ok(LinkMetadata {
     opengraph_data,
