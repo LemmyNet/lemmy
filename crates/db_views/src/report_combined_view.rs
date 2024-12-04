@@ -148,7 +148,6 @@ impl ReportCombinedQuery {
     pool: &mut DbPool<'_>,
     user: &LocalUserView,
   ) -> LemmyResult<Vec<ReportCombinedView>> {
-    let options = self;
     let my_person_id = user.local_user.person_id;
     let item_creator = aliases::person1.field(person::id);
 
@@ -283,7 +282,7 @@ impl ReportCombinedQuery {
       ))
       .into_boxed();
 
-    if let Some(community_id) = options.community_id {
+    if let Some(community_id) = self.community_id {
       query = query.filter(community::id.eq(community_id));
     }
 
@@ -294,9 +293,9 @@ impl ReportCombinedQuery {
 
     let mut query = PaginatedQueryBuilder::new(query);
 
-    let page_after = options.page_after.map(|c| c.0);
+    let page_after = self.page_after.map(|c| c.0);
 
-    if options.page_back.unwrap_or_default() {
+    if self.page_back.unwrap_or_default() {
       query = query.before(page_after).limit_and_offset_from_end();
     } else {
       query = query.after(page_after);
@@ -304,7 +303,7 @@ impl ReportCombinedQuery {
 
     // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
     // first (FIFO)
-    if options.unresolved_only.unwrap_or_default() {
+    if self.unresolved_only.unwrap_or_default() {
       query = query
         .filter(
           post_report::resolved

@@ -1,13 +1,5 @@
--- Creates combined tables for the following:
---
+-- Creates combined tables for
 -- Reports: (comment, post, and private_message)
--- Inbox: (Comment replies, post replies, comment mentions, post mentions, private messages)
--- Profile: (Posts and Comments)
--- Modlog: (lots of types)
--- Search: (community, post, comment, user, url)
--- TODO not sure about these two:
--- Home: (comment, post)
--- Community: (comment, post)
 CREATE TABLE report_combined (
     id serial PRIMARY KEY,
     published timestamptz NOT NULL,

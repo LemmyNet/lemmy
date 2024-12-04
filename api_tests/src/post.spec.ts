@@ -41,7 +41,13 @@ import {
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
-import { EditSite, PostReportView, ResolveObject } from "lemmy-js-client";
+import {
+  EditSite,
+  PostReport,
+  PostReportView,
+  ReportCombinedView,
+  ResolveObject,
+} from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 
@@ -695,15 +701,7 @@ test("Report a post", async () => {
       () =>
         listReports(beta).then(p =>
           p.reports.find(r => {
-            switch (r.type_) {
-              case "Post":
-                return (
-                  r.post_report.original_post_name ===
-                  gammaReport.original_post_name
-                );
-              default:
-                return false;
-            }
+            return checkReportName(r, gammaReport);
           }),
         ),
       res => !!res,
@@ -837,3 +835,12 @@ test("Rewrite markdown links", async () => {
     `[link](http://lemmy-alpha:8541/post/${alphaPost1.post?.post.id})`,
   );
 });
+
+function checkReportName(rcv: ReportCombinedView, report: PostReport) {
+  switch (rcv.type_) {
+    case "Post":
+      return rcv.post_report.original_post_name === report.original_post_name;
+    default:
+      return false;
+  }
+}

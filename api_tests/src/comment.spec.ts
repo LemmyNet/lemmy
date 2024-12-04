@@ -43,6 +43,7 @@ import {
   CommentReportView,
   CommentView,
   CommunityView,
+  ReportCombinedView,
   SaveUserSettings,
 } from "lemmy-js-client";
 
@@ -806,12 +807,7 @@ test("Report a comment", async () => {
       () =>
         listReports(beta).then(p =>
           p.reports.find(r => {
-            switch (r.type_) {
-              case "Comment":
-                return r.comment_report.reason === reason;
-              default:
-                return false;
-            }
+            return checkCommentReportReason(r, reason);
           }),
         ),
       e => !!e,
@@ -891,3 +887,12 @@ test.skip("Fetch a deeply nested comment", async () => {
   expect(betaComment!.comment!.comment).toBeDefined();
   expect(betaComment?.comment?.post).toBeDefined();
 });
+
+function checkCommentReportReason(rcv: ReportCombinedView, reason: string) {
+  switch (rcv.type_) {
+    case "Comment":
+      return rcv.comment_report.reason === reason;
+    default:
+      return false;
+  }
+}
