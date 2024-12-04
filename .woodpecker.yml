@@ -2,6 +2,10 @@
 # See https://github.com/woodpecker-ci/woodpecker/issues/1677
 
 variables:
+  # When updating the rust version here, be sure to update versions in `docker/Dockerfile`
+  # as well. Otherwise release builds can fail if Lemmy or dependencies rely on new Rust
+  # features. In particular the ARM builder image needs to be updated manually in the repo below:
+  # https://github.com/raskyld/lemmy-cross-toolchains
   - &rust_image "rust:1.81"
   - &rust_nightly_image "rustlang/rust:nightly"
   - &install_pnpm "corepack enable pnpm"
