@@ -35,7 +35,7 @@ import {
   userBlockInstance,
 } from "./shared";
 import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
-import { EditCommunity, EditSite } from "lemmy-js-client";
+import { EditCommunity, EditSite, GetPosts } from "lemmy-js-client";
 
 beforeAll(setupLogins);
 afterAll(unfollows);
@@ -575,4 +575,30 @@ test("Remote mods can edit communities", async () => {
   await expect(alphaCommunity.community_view.community.description).toBe(
     "Example description",
   );
+});
+
+test("Community name with non-ascii chars", async () => {
+  const name = "това_ме_ядосва" + Math.random().toString().slice(2, 6);
+  let communityRes = await createCommunity(alpha, name);
+
+  let betaCommunity1 = await resolveCommunity(
+    beta,
+    communityRes.community_view.community.actor_id,
+  );
+  expect(betaCommunity1.community!.community.name).toBe(name);
+
+  let alphaCommunity2 = await getCommunityByName(alpha, name);
+  expect(alphaCommunity2.community_view.community.name).toBe(name);
+
+  let fediName = `${communityRes.community_view.community.name}@LEMMY-ALPHA:8541`;
+  let betaCommunity2 = await getCommunityByName(beta, fediName);
+  expect(betaCommunity2.community_view.community.name).toBe(name);
+
+  let postRes = await createPost(beta, betaCommunity1.community!.community.id);
+
+  let form: GetPosts = {
+    community_name: fediName,
+  };
+  let posts = await beta.getPosts(form);
+  expect(posts.posts[0].post.name).toBe(postRes.post_view.post.name);
 });

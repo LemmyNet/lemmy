@@ -23,6 +23,7 @@ use lemmy_utils::{
   REQWEST_TIMEOUT,
   VERSION,
 };
+use mime::{Mime, TEXT_HTML};
 use reqwest::{
   header::{CONTENT_TYPE, RANGE},
   Client,
@@ -63,47 +64,54 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
     .await?
     .error_for_status()?;
 
-  // In some cases servers send a wrong mime type for images, which prevents thumbnail
-  // generation. To avoid this we also try to guess the mime type from file extension.
-  let content_type = mime_guess::from_path(url.path())
-    .first()
-    // If you can guess that its an image type, then return that first.
-    .filter(|guess| guess.type_() == mime::IMAGE)
-    // Otherwise, get the content type from the headers
-    .or(
-      response
-        .headers()
-        .get(CONTENT_TYPE)
-        .and_then(|h| h.to_str().ok())
-        .and_then(|h| h.parse().ok()),
-    );
+  let mut content_type: Option<Mime> = response
+    .headers()
+    .get(CONTENT_TYPE)
+    .and_then(|h| h.to_str().ok())
+    .and_then(|h| h.parse().ok())
+    // If we don't get a content_type from the response (e.g. if the server is down),
+    // then try to infer the content_type from the file extension.
+    .or(mime_guess::from_path(url.path()).first());
 
   let opengraph_data = {
-    // if the content type is not text/html, we don't need to parse it
     let is_html = content_type
       .as_ref()
       .map(|c| {
-        (c.type_() == mime::TEXT && c.subtype() == mime::HTML)
-      ||
-      // application/xhtml+xml is a subset of HTML
-      (c.type_() == mime::APPLICATION && c.subtype() == "xhtml")
+        // application/xhtml+xml is a subset of HTML
+        let application_xhtml: Mime = "application/xhtml+xml".parse::<Mime>().unwrap_or(TEXT_HTML);
+        let allowed_mime_types = [TEXT_HTML.essence_str(), application_xhtml.essence_str()];
+        allowed_mime_types.contains(&c.essence_str())
       })
-      .unwrap_or(false);
-    if !is_html {
-      Default::default()
-    } else {
+      .unwrap_or_default();
+
+    if is_html {
       // Can't use .text() here, because it only checks the content header, not the actual bytes
       // https://github.com/LemmyNet/lemmy/issues/1964
-      // So we want to do deep inspection of the actually returned bytes but need to be careful not
-      // spend too much time parsing binary data as HTML
-
+      // So we want to do deep inspection of the actually returned bytes but need to be careful
+      // not spend too much time parsing binary data as HTML
       // only take first bytes regardless of how many bytes the server returns
       let html_bytes = collect_bytes_until_limit(response, bytes_to_fetch).await?;
       extract_opengraph_data(&html_bytes, url)
         .map_err(|e| info!("{e}"))
         .unwrap_or_default()
+    } else {
+      let is_octet_type = content_type
+        .as_ref()
+        .map(|c| c.subtype() == "octet-stream")
+        .unwrap_or_default();
+
+      // Overwrite the content type if its an octet type
+      if is_octet_type {
+        // Don't need to fetch as much data for this as we do with opengraph
+        let octet_bytes = collect_bytes_until_limit(response, 512).await?;
+        content_type =
+          infer::get(&octet_bytes).map_or(content_type, |t| t.mime_type().parse().ok());
+      }
+
+      Default::default()
     }
   };
+
   Ok(LinkMetadata {
     opengraph_data,
     content_type: content_type.map(|c| c.to_string()),

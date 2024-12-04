@@ -22,6 +22,7 @@ import {
   alphaImage,
   unfollows,
   saveUserSettingsBio,
+  getPersonDetails,
 } from "./shared";
 import {
   EditSite,
@@ -136,11 +137,9 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
 });
 
 test("Create user with Arabic name", async () => {
-  let user = await registerUser(
-    alpha,
-    alphaUrl,
-    "تجريب" + Math.random().toString().slice(2, 10), // less than actor_name_max_length
-  );
+  // less than actor_name_max_length
+  const name = "تجريب" + Math.random().toString().slice(2, 10);
+  let user = await registerUser(alpha, alphaUrl, name);
 
   let site = await getSite(user);
   expect(site.my_user).toBeDefined();
@@ -149,8 +148,11 @@ test("Create user with Arabic name", async () => {
   }
   apShortname = `${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
 
-  let alphaPerson = (await resolvePerson(alpha, apShortname)).person;
-  expect(alphaPerson).toBeDefined();
+  let betaPerson1 = (await resolvePerson(beta, apShortname)).person;
+  expect(betaPerson1!.person.name).toBe(name);
+
+  let betaPerson2 = await getPersonDetails(beta, betaPerson1!.person.id);
+  expect(betaPerson2!.person_view.person.name).toBe(name);
 });
 
 test("Create user with accept-language", async () => {
