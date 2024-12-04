@@ -1239,9 +1239,9 @@ dependencies = [
 
 [[package]]
 name = "diesel"
-version = "2.2.4"
+version = "2.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "158fe8e2e68695bd615d7e4f3227c0727b151330d3e253b525086c348d055d5e"
+checksum = "cbf9649c05e0a9dbd6d0b0b8301db5182b972d0fd02f0a7c6736cf632d7c0fd5"
 dependencies = [
  "bitflags 2.6.0",
  "byteorder",
@@ -1255,9 +1255,9 @@ dependencies = [
 
 [[package]]
 name = "diesel-async"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c5c6ec8d5c7b8444d19a47161797cbe361e0fb1ee40c6a8124ec915b64a4125"
+checksum = "51a307ac00f7c23f526a04a77761a0519b9f0eb2838ebf5b905a58580095bdcb"
 dependencies = [
  "async-trait",
  "deadpool",
@@ -2582,6 +2582,7 @@ dependencies = [
  "moka",
  "pretty_assertions",
  "reqwest 0.12.8",
+ "semver",
  "serde",
  "serde_json",
  "serde_with",
@@ -2877,7 +2878,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]

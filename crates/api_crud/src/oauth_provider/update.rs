@@ -33,6 +33,7 @@ pub async fn update_oauth_provider(
     auto_verify_email: data.auto_verify_email,
     account_linking_enabled: data.account_linking_enabled,
     enabled: data.enabled,
+    use_pkce: data.use_pkce,
     updated: Some(Some(Utc::now())),
   };
 
