@@ -310,8 +310,8 @@ pub struct ProfileCombinedViewInternal {
   pub my_post_vote: Option<i16>,
   pub image_details: Option<ImageDetails>,
   // Comment-specific
-  pub comment: Comment,
-  pub comment_counts: CommentAggregates,
+  pub comment: Option<Comment>,
+  pub comment_counts: Option<CommentAggregates>,
   pub comment_saved: bool,
   pub my_comment_vote: Option<i16>,
   // Shared
@@ -323,7 +323,6 @@ pub struct ProfileCombinedViewInternal {
   pub item_creator_is_moderator: bool,
   pub item_creator_banned_from_community: bool,
   pub item_creator_blocked: bool,
-  pub item_saved: bool,
   pub banned_from_community: bool,
 }
 

@@ -6,10 +6,9 @@ use lemmy_api_common::{
   person::{GetPersonDetails, GetPersonDetailsResponse},
   utils::{check_private_instance, read_site_for_actor},
 };
-use lemmy_db_schema::{source::person::Person, utils::post_to_comment_sort_type};
+use lemmy_db_schema::source::person::Person;
 use lemmy_db_views::{
-  comment_view::CommentQuery,
-  post_view::PostQuery,
+  profile_combined_view::ProfileCombinedQuery,
   structs::{LocalUserView, SiteView},
 };
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
@@ -47,46 +46,38 @@ pub async fn read_person(
   // `my_user`
   let person_view = PersonView::read(&mut context.pool(), person_details_id).await?;
 
-  let sort = data.sort;
-  let page = data.page;
-  let limit = data.limit;
-  let saved_only = data.saved_only;
-  let community_id = data.community_id;
-  // If its saved only, you don't care what creator it was
-  // Or, if its not saved, then you only want it for that specific creator
-  let creator_id = if !saved_only.unwrap_or_default() {
-    Some(person_details_id)
+  // parse pagination token
+  let page_after = if let Some(pa) = &data.page_cursor {
+    Some(pa.read(&mut context.pool()).await?)
   } else {
     None
   };
+  let page_back = data.page_back;
+  let saved_only = data.saved_only;
+  let community_id = data.community_id;
 
-  let local_user = local_user_view.as_ref().map(|l| &l.local_user);
+  // If its saved only, then ignore the person details id,
+  // and use your local user's id
+  let creator_id = if !saved_only.unwrap_or_default() {
+    Some(person_details_id)
+  } else {
+    local_user_view.as_ref().map(|u| u.local_user.person_id)
+  };
 
-  let posts = PostQuery {
-    sort,
-    saved_only,
-    local_user,
-    community_id,
-    page,
-    limit,
-    creator_id,
-    ..Default::default()
-  }
-  .list(&local_site.site, &mut context.pool())
-  .await?;
-
-  let comments = CommentQuery {
-    local_user,
-    sort: sort.map(post_to_comment_sort_type),
-    saved_only,
-    community_id,
-    page,
-    limit,
-    creator_id,
-    ..Default::default()
-  }
-  .list(&local_site.site, &mut context.pool())
-  .await?;
+  let content = if let Some(creator_id) = creator_id {
+    ProfileCombinedQuery {
+      creator_id,
+      community_id,
+      saved_only,
+      page_after,
+      page_back,
+    }
+    .list(&mut context.pool(), &local_user_view)
+    .await?
+  } else {
+    // if the creator is missing (saved_only, and no local_user), then return empty content
+    Vec::new()
+  };
 
   let moderates = CommunityModeratorView::for_person(
     &mut context.pool(),
@@ -97,12 +88,10 @@ pub async fn read_person(
 
   let site = read_site_for_actor(person_view.person.actor_id.clone(), &context).await?;
 
-  // Return the jwt
   Ok(Json(GetPersonDetailsResponse {
     person_view,
     site,
     moderates,
-    comments,
-    posts,
+    content,
   }))
 }

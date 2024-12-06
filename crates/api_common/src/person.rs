@@ -7,7 +7,11 @@ use lemmy_db_schema::{
   PostListingMode,
   PostSortType,
 };
-use lemmy_db_views::structs::{CommentView, LocalImageView, PostView};
+use lemmy_db_views::structs::{
+  LocalImageView,
+  ProfileCombinedPaginationCursor,
+  ProfileCombinedView,
+};
 use lemmy_db_views_actor::structs::{
   CommentReplyView,
   CommunityModeratorView,
@@ -223,15 +227,13 @@ pub struct GetPersonDetails {
   #[cfg_attr(feature = "full", ts(optional))]
   pub username: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub sort: Option<PostSortType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub saved_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<ProfileCombinedPaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -243,8 +245,7 @@ pub struct GetPersonDetailsResponse {
   pub person_view: PersonView,
   #[cfg_attr(feature = "full", ts(optional))]
   pub site: Option<Site>,
-  pub comments: Vec<CommentView>,
-  pub posts: Vec<PostView>,
+  pub content: Vec<ProfileCombinedView>,
   pub moderates: Vec<CommunityModeratorView>,
 }
 

@@ -4,7 +4,7 @@ CREATE TABLE profile_combined (
     id serial PRIMARY KEY,
     published timestamptz NOT NULL,
     post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
-    comment_id int UNIQUE REFERENCES comment ON UPDATE CASCADE ON DELETE CASCADE,
+    comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
     -- Make sure only one of the columns is not null
     CHECK ((post_id IS NOT NULL)::integer + (comment_id IS NOT NULL)::integer = 1)
 );
@@ -27,3 +27,4 @@ SELECT
     id
 FROM
     comment;
+

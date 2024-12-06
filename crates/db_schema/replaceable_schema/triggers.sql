@@ -685,3 +685,31 @@ CALL r.create_report_combined_trigger ('comment_report');
 
 CALL r.create_report_combined_trigger ('private_message_report');
 
+-- Profile (comment, post)
+CREATE PROCEDURE r.create_profile_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.profile_combined_thing_insert ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                INSERT INTO profile_combined (published, thing_id)
+                    VALUES (NEW.published, NEW.id);
+                RETURN NEW;
+            END $$;
+    CREATE TRIGGER profile_combined
+        AFTER INSERT ON thing
+        FOR EACH ROW
+        EXECUTE FUNCTION r.profile_combined_thing_insert ( );
+        $b$,
+        'thing',
+        table_name);
+END;
+$a$;
+
+CALL r.create_profile_combined_trigger ('post');
+
+CALL r.create_profile_combined_trigger ('comment');
+

@@ -18,14 +18,15 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
-  aliases::{self, creator_community_actions},
-  newtypes::CommunityId,
+  aliases::creator_community_actions,
+  newtypes::{CommunityId, PersonId},
   schema::{
     comment,
     comment_actions,
     comment_aggregates,
     community,
     community_actions,
+    image_details,
     local_user,
     person,
     person_actions,
@@ -74,11 +75,11 @@ impl ProfileCombinedPaginationCursor {
 #[derive(Clone)]
 pub struct PaginationCursorData(ProfileCombined);
 
-// TODO check these
 #[derive(Default)]
 pub struct ProfileCombinedQuery {
+  pub creator_id: PersonId,
   pub community_id: Option<CommunityId>,
-  pub unresolved_only: Option<bool>,
+  pub saved_only: Option<bool>,
   pub page_after: Option<PaginationCursorData>,
   pub page_back: Option<bool>,
 }
@@ -87,10 +88,12 @@ impl ProfileCombinedQuery {
   pub async fn list(
     self,
     pool: &mut DbPool<'_>,
-    user: &LocalUserView,
+    user: &Option<LocalUserView>,
   ) -> LemmyResult<Vec<ProfileCombinedView>> {
-    let my_person_id = user.local_user.person_id;
-    // let item_creator = aliases::person1.field(person::id);
+    let my_person_id = user
+      .as_ref()
+      .map(|u| u.local_user.person_id)
+      .unwrap_or(PersonId(-1));
     let item_creator = person::id;
 
     let conn = &mut get_conn(pool).await?;
@@ -114,20 +117,11 @@ impl ProfileCombinedQuery {
       // The item creator
       .inner_join(
         person::table.on(
-          post::creator_id
+          comment::creator_id
             .eq(person::id)
-            .or(comment::creator_id.eq(person::id)),
+            .or(post::creator_id.eq(person::id)),
         ),
       )
-      // The item creator
-      // You can now use aliases::person1.field(person::id) / item_creator for all the item actions
-      // .inner_join(
-      //   aliases::person1.on(
-      //     post::creator_id
-      //       .eq(item_creator)
-      //       .or(comment::creator_id.eq(item_creator)),
-      //   ),
-      // )
       // The community
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .left_join(actions_alias(
@@ -153,10 +147,7 @@ impl ProfileCombinedQuery {
         Some(my_person_id),
         item_creator,
       ))
-      .left_join(
-        post_aggregates::table
-          .on(profile_combined::post_id.eq(post_aggregates::post_id.nullable())),
-      )
+      .inner_join(post_aggregates::table.on(post::id.eq(post_aggregates::post_id)))
       .left_join(
         comment_aggregates::table
           .on(profile_combined::comment_id.eq(comment_aggregates::comment_id.nullable())),
@@ -166,43 +157,42 @@ impl ProfileCombinedQuery {
         Some(my_person_id),
         comment::id,
       ))
+      .left_join(image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable())))
+      // The creator id filter
+      .filter(item_creator.eq(self.creator_id))
       .select((
         // Post-specific
-        post::all_columns.nullable(),
-        // post_aggregates::all_columns.nullable(),
-        // coalesce(
-        //   post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
-        //   post_aggregates::comments,
-        // )
-        // .nullable(),
-        // post_actions::saved.nullable().is_not_null(),
-        // post_actions::read.nullable().is_not_null(),
-        // post_actions::hidden.nullable().is_not_null(),
-        // post_actions::like_score.nullable(),
-        // // Comment-specific
-        // comment::all_columns.nullable(),
-        // comment_aggregates::all_columns.nullable(),
-        // comment_actions::saved.nullable().is_not_null(),
-        // comment_actions::like_score.nullable(),
-        // // Private-message-specific
-        // private_message_profile::all_columns.nullable(),
-        // private_message::all_columns.nullable(),
-        // // Shared
-        // person::all_columns,
-        // aliases::person1.fields(person::all_columns),
-        // community::all_columns.nullable(),
-        // CommunityFollower::select_subscribed_type(),
-        // aliases::person2.fields(person::all_columns.nullable()),
-        // local_user::admin.nullable().is_not_null(),
-        // creator_community_actions
-        //   .field(community_actions::received_ban)
-        //   .nullable()
-        //   .is_not_null(),
-        // creator_community_actions
-        //   .field(community_actions::became_moderator)
-        //   .nullable()
-        //   .is_not_null(),
-        // person_actions::blocked.nullable().is_not_null(),
+        post_aggregates::all_columns,
+        coalesce(
+          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
+          post_aggregates::comments,
+        ),
+        post_actions::saved.nullable().is_not_null(),
+        post_actions::read.nullable().is_not_null(),
+        post_actions::hidden.nullable().is_not_null(),
+        post_actions::like_score.nullable(),
+        image_details::all_columns.nullable(),
+        // Comment-specific
+        comment::all_columns.nullable(),
+        comment_aggregates::all_columns.nullable(),
+        comment_actions::saved.nullable().is_not_null(),
+        comment_actions::like_score.nullable(),
+        // Shared
+        post::all_columns,
+        community::all_columns,
+        person::all_columns,
+        CommunityFollower::select_subscribed_type(),
+        local_user::admin.nullable().is_not_null(),
+        creator_community_actions
+          .field(community_actions::became_moderator)
+          .nullable()
+          .is_not_null(),
+        creator_community_actions
+          .field(community_actions::received_ban)
+          .nullable()
+          .is_not_null(),
+        person_actions::blocked.nullable().is_not_null(),
+        community_actions::received_ban.nullable().is_not_null(),
       ))
       .into_boxed();
 
@@ -210,9 +200,13 @@ impl ProfileCombinedQuery {
       query = query.filter(community::id.eq(community_id));
     }
 
-    // If its not an admin, get only the ones you mod
-    if !user.local_user.admin {
-      query = query.filter(community_actions::became_moderator.is_not_null());
+    // If its saved only, then filter
+    if self.saved_only.unwrap_or_default() {
+      query = query.filter(
+        comment_actions::saved
+          .is_not_null()
+          .or(post_actions::saved.is_not_null()),
+      )
     }
 
     let mut query = PaginatedQueryBuilder::new(query);
@@ -225,25 +219,11 @@ impl ProfileCombinedQuery {
       query = query.after(page_after);
     }
 
-    // If viewing all profiles, order by newest, but if viewing unresolved only, show the oldest
-    // first (FIFO)
-    if self.unresolved_only.unwrap_or_default() {
-      query = query
-        .filter(
-          post_profile::resolved
-            .eq(false)
-            .or(comment_profile::resolved.eq(false))
-            .or(private_message_profile::resolved.eq(false)),
-        )
-        // TODO: when a `then_asc` method is added, use it here, make the id sort direction match,
-        // and remove the separate index; unless additional columns are added to this sort
-        .then_desc(ReverseTimestampKey(key::published));
-    } else {
-      query = query.then_desc(key::published);
-    }
-
-    // Tie breaker
-    query = query.then_desc(key::id);
+    // Sorting by published
+    query = query
+      .then_desc(ReverseTimestampKey(key::published))
+      // Tie breaker
+      .then_desc(key::id);
 
     let res = query.load::<ProfileCombinedViewInternal>(conn).await?;
 
@@ -259,14 +239,28 @@ fn map_to_enum(view: ProfileCombinedViewInternal) -> Option<ProfileCombinedView>
   // Use for a short alias
   let v = view;
 
-  if let (Some(post), Some(community), Some(unread_comments), Some(counts)) =
-    (v.post, v.community, v.post_unread_comments, v.post_counts)
-  {
-    Some(ProfileCombinedView::Post(PostView {
-      post,
-      community,
-      unread_comments,
+  if let (Some(comment), Some(counts)) = (v.comment, v.comment_counts) {
+    Some(ProfileCombinedView::Comment(CommentView {
+      comment,
       counts,
+      post: v.post,
+      community: v.community,
+      creator: v.item_creator,
+      creator_banned_from_community: v.item_creator_banned_from_community,
+      creator_is_moderator: v.item_creator_is_moderator,
+      creator_is_admin: v.item_creator_is_admin,
+      creator_blocked: v.item_creator_blocked,
+      subscribed: v.subscribed,
+      saved: v.comment_saved,
+      my_vote: v.my_comment_vote,
+      banned_from_community: v.banned_from_community,
+    }))
+  } else {
+    Some(ProfileCombinedView::Post(PostView {
+      post: v.post,
+      community: v.community,
+      unread_comments: v.post_unread_comments,
+      counts: v.post_counts,
       creator: v.item_creator,
       creator_banned_from_community: v.item_creator_banned_from_community,
       creator_is_moderator: v.item_creator_is_moderator,
@@ -277,28 +271,8 @@ fn map_to_enum(view: ProfileCombinedViewInternal) -> Option<ProfileCombinedView>
       read: v.post_read,
       hidden: v.post_hidden,
       my_vote: v.my_post_vote,
+      image_details: v.image_details,
+      banned_from_community: v.banned_from_community,
     }))
-  } else if let (Some(comment), Some(counts), Some(post), Some(community)) = (
-    v.comment,
-    v.comment_counts,
-    v.post.clone(),
-    v.community.clone(),
-  ) {
-    Some(ProfileCombinedView::Comment(CommentView {
-      comment,
-      counts,
-      post,
-      community,
-      creator: v.item_creator,
-      creator_banned_from_community: v.item_creator_banned_from_community,
-      creator_is_moderator: v.item_creator_is_moderator,
-      creator_is_admin: v.item_creator_is_admin,
-      creator_blocked: v.item_creator_blocked,
-      subscribed: v.subscribed,
-      saved: v.comment_saved,
-      my_vote: v.my_comment_vote,
-    }))
-  } else {
-    None
   }
 }
