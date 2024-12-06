@@ -185,6 +185,12 @@ pub struct DbUrl(pub(crate) Box<Url>);
 /// The report combined id
 pub struct ReportCombinedId(i32);
 
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The profile combined id
+pub struct ProfileCombinedId(i32);
+
 impl DbUrl {
   pub fn inner(&self) -> &Url {
     &self.0

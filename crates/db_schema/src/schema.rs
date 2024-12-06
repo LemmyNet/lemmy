@@ -857,6 +857,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    profile_combined (id) {
+        id -> Int4,
+        published -> Timestamptz,
+        post_id -> Nullable<Int4>,
+        comment_id -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
     received_activity (ap_id) {
         ap_id -> Text,
         published -> Timestamptz,
@@ -1043,6 +1052,8 @@ diesel::joinable!(post_aggregates -> person (creator_id));
 diesel::joinable!(post_aggregates -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
 diesel::joinable!(private_message_report -> private_message (private_message_id));
+diesel::joinable!(profile_combined -> comment (comment_id));
+diesel::joinable!(profile_combined -> post (post_id));
 diesel::joinable!(registration_application -> local_user (local_user_id));
 diesel::joinable!(registration_application -> person (admin_id));
 diesel::joinable!(report_combined -> comment_report (comment_report_id));
@@ -1113,6 +1124,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     post_report,
     private_message,
     private_message_report,
+    profile_combined,
     received_activity,
     registration_application,
     remote_image,

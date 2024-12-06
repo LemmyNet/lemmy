@@ -132,6 +132,12 @@ pub struct PaginationCursor(pub String);
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ReportCombinedPaginationCursor(pub String);
 
+/// like PaginationCursor but for the profile_combined table
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(ts_rs::TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ProfileCombinedPaginationCursor(pub String);
+
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
@@ -288,4 +294,45 @@ pub enum ReportCombinedView {
   Post(PostReportView),
   Comment(CommentReportView),
   PrivateMessage(PrivateMessageReportView),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+/// A combined profile view
+pub struct ProfileCombinedViewInternal {
+  // Post-specific
+  pub post_counts: PostAggregates,
+  pub post_unread_comments: i64,
+  pub post_saved: bool,
+  pub post_read: bool,
+  pub post_hidden: bool,
+  pub my_post_vote: Option<i16>,
+  pub image_details: Option<ImageDetails>,
+  // Comment-specific
+  pub comment: Comment,
+  pub comment_counts: CommentAggregates,
+  pub comment_saved: bool,
+  pub my_comment_vote: Option<i16>,
+  // Shared
+  pub post: Post,
+  pub community: Community,
+  pub item_creator: Person,
+  pub subscribed: SubscribedType,
+  pub item_creator_is_admin: bool,
+  pub item_creator_is_moderator: bool,
+  pub item_creator_banned_from_community: bool,
+  pub item_creator_blocked: bool,
+  pub item_saved: bool,
+  pub banned_from_community: bool,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+// Use serde's internal tagging, to work easier with javascript libraries
+#[serde(tag = "type_")]
+pub enum ProfileCombinedView {
+  Post(PostView),
+  Comment(CommentView),
 }
