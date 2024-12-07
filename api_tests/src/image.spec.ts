@@ -32,6 +32,7 @@ import {
   createPostWithThumbnail,
   sampleImage,
   sampleSite,
+  getMyUser,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -129,9 +130,9 @@ test("Purge user, uploaded image removed", async () => {
   expect(content.length).toBeGreaterThan(0);
 
   // purge user
-  let site = await getSite(user);
+  let my_user = await getMyUser(user);
   const purgeForm: PurgePerson = {
-    person_id: site.my_user!.local_user_view.person.id,
+    person_id: my_user.local_user_view.person.id,
   };
   const delete_ = await alphaImage.purgePerson(purgeForm);
   expect(delete_.success).toBe(true);
@@ -199,11 +200,11 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   // remote image gets proxied after upload
   expect(
     post.thumbnail_url?.startsWith(
-      "http://lemmy-gamma:8561/api/v3/image_proxy?url",
+      "http://lemmy-gamma:8561/api/v4/image_proxy?url",
     ),
   ).toBeTruthy();
   expect(
-    post.body?.startsWith("![](http://lemmy-gamma:8561/api/v3/image_proxy?url"),
+    post.body?.startsWith("![](http://lemmy-gamma:8561/api/v4/image_proxy?url"),
   ).toBeTruthy();
 
   // Make sure that it ends with jpg, to be sure its an image
@@ -222,12 +223,12 @@ test("Images in remote image post are proxied if setting enabled", async () => {
 
   expect(
     epsilonPost.thumbnail_url?.startsWith(
-      "http://lemmy-epsilon:8581/api/v3/image_proxy?url",
+      "http://lemmy-epsilon:8581/api/v4/image_proxy?url",
     ),
   ).toBeTruthy();
   expect(
     epsilonPost.body?.startsWith(
-      "![](http://lemmy-epsilon:8581/api/v3/image_proxy?url",
+      "![](http://lemmy-epsilon:8581/api/v4/image_proxy?url",
     ),
   ).toBeTruthy();
 
@@ -249,7 +250,7 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
   // remote image gets proxied after upload
   expect(
     post.thumbnail_url?.startsWith(
-      "http://lemmy-gamma:8561/api/v3/image_proxy?url",
+      "http://lemmy-gamma:8561/api/v4/image_proxy?url",
     ),
   ).toBeTruthy();
 
@@ -267,7 +268,7 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
 
   expect(
     epsilonPost.thumbnail_url?.startsWith(
-      "http://lemmy-epsilon:8581/api/v3/image_proxy?url",
+      "http://lemmy-epsilon:8581/api/v4/image_proxy?url",
     ),
   ).toBeTruthy();
 

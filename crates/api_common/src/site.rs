@@ -429,7 +429,7 @@ pub struct EditSite {
 /// The response for a site.
 pub struct SiteResponse {
   pub site_view: SiteView,
-  /// deprecated, use field `tagline` or /api/v3/tagline/list
+  /// deprecated, use field `tagline` or /api/v4/tagline/list
   pub taglines: Vec<()>,
 }
 
@@ -442,14 +442,10 @@ pub struct GetSiteResponse {
   pub site_view: SiteView,
   pub admins: Vec<PersonView>,
   pub version: String,
-  #[cfg_attr(feature = "full", ts(optional))]
+  #[cfg_attr(feature = "full", ts(skip))]
   pub my_user: Option<MyUserInfo>,
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
-  /// deprecated, use field `tagline` or /api/v3/tagline/list
-  pub taglines: Vec<()>,
-  /// deprecated, use /api/v3/custom_emoji/list
-  pub custom_emojis: Vec<()>,
   /// If the site has any taglines, a random one is included here for displaying
   #[cfg_attr(feature = "full", ts(optional))]
   pub tagline: Option<Tagline>,

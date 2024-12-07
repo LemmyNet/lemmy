@@ -14,7 +14,7 @@ use lemmy_api::{
   community::{
     add_mod::add_mod_to_community,
     ban::ban_from_community,
-    block::block_community,
+    block::user_block_community,
     follow::follow_community,
     hide::hide_community,
     pending_follows::{
@@ -28,7 +28,7 @@ use lemmy_api::{
   local_user::{
     add_admin::add_admin,
     ban_person::ban_from_site,
-    block::block_person,
+    block::user_block_person,
     change_password::change_password,
     change_password_after_reset::change_password_after_reset,
     generate_totp_secret::generate_totp_secret,
@@ -50,6 +50,7 @@ use lemmy_api::{
     reset_password::reset_password,
     save_settings::save_user_settings,
     update_totp::update_totp,
+    user_block_instance::user_block_instance,
     validate_auth::validate_auth,
     verify_email::verify_email,
   },
@@ -94,7 +95,6 @@ use lemmy_api::{
       list::list_registration_applications,
       unread_count::get_unread_registration_application_count,
     },
-    user_block_instance::user_block_instance,
   },
   sitemap::get_sitemap,
 };
@@ -137,7 +137,7 @@ use lemmy_api_crud::{
     read::get_private_message,
     update::update_private_message,
   },
-  site::{create::create_site, read::get_site, update::update_site},
+  site::{create::create_site, read::get_site_v4, update::update_site},
   tagline::{
     create::create_tagline,
     delete::delete_tagline,
@@ -147,6 +147,7 @@ use lemmy_api_crud::{
   user::{
     create::{authenticate_with_oauth, register},
     delete::delete_account,
+    my_user::get_my_user,
   },
 };
 use lemmy_apub::api::{
@@ -163,33 +164,23 @@ use lemmy_utils::rate_limit::RateLimitCell;
 
 pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
-    scope("/api/v3")
+    scope("/api/v4")
+      .wrap(rate_limit.message())
       .route("/image_proxy", get().to(image_proxy))
       // Site
       .service(
         scope("/site")
-          .wrap(rate_limit.message())
-          .route("", get().to(get_site))
-          // Admin Actions
+          .route("", get().to(get_site_v4))
           .route("", post().to(create_site))
-          .route("", put().to(update_site))
-          .route("/block", post().to(user_block_instance)),
+          .route("", put().to(update_site)),
       )
-      .service(
-        resource("/modlog")
-          .wrap(rate_limit.message())
-          .route(get().to(get_mod_log)),
-      )
+      .route("/modlog", get().to(get_mod_log))
       .service(
         resource("/search")
           .wrap(rate_limit.search())
           .route(get().to(search)),
       )
-      .service(
-        resource("/resolve_object")
-          .wrap(rate_limit.message())
-          .route(get().to(resolve_object)),
-      )
+      .route("/resolve_object", get().to(resolve_object))
       // Community
       .service(
         resource("/community")
@@ -199,14 +190,12 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       )
       .service(
         scope("/community")
-          .wrap(rate_limit.message())
           .route("", get().to(get_community))
           .route("", put().to(update_community))
           .route("/random", get().to(get_random_community))
           .route("/hide", put().to(hide_community))
           .route("/list", get().to(list_communities))
           .route("/follow", post().to(follow_community))
-          .route("/block", post().to(block_community))
           .route("/delete", post().to(delete_community))
           // Mod Actions
           .route("/remove", post().to(remove_community))
@@ -215,17 +204,12 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/mod", post().to(add_mod_to_community))
           .service(
             scope("/pending_follows")
-              .wrap(rate_limit.message())
               .route("/count", get().to(get_pending_follows_count))
               .route("/list", get().to(get_pending_follows_list))
               .route("/approve", post().to(post_pending_follows_approve)),
           ),
       )
-      .service(
-        scope("/federated_instances")
-          .wrap(rate_limit.message())
-          .route("", get().to(get_federated_instances)),
-      )
+      .route("/federated_instances", get().to(get_federated_instances))
       // Post
       .service(
         // Handle POST to /post separately to add the post() rate limitter
@@ -236,13 +220,12 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       )
       .service(
         scope("/post")
-          .wrap(rate_limit.message())
           .route("", get().to(get_post))
           .route("", put().to(update_post))
           .route("/delete", post().to(delete_post))
           .route("/remove", post().to(remove_post))
           .route("/mark_as_read", post().to(mark_post_as_read))
-          .route("/mark_many_as_read", post().to(mark_posts_as_read))
+          .route("/mark_as_read/many", post().to(mark_posts_as_read))
           .route("/hide", post().to(hide_post))
           .route("/lock", post().to(lock_post))
           .route("/feature", post().to(feature_post))
@@ -265,7 +248,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       )
       .service(
         scope("/comment")
-          .wrap(rate_limit.message())
           .route("", get().to(get_comment))
           .route("", put().to(update_comment))
           .route("/delete", post().to(delete_comment))
@@ -283,7 +265,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       // Private Message
       .service(
         scope("/private_message")
-          .wrap(rate_limit.message())
           .route("/list", get().to(get_private_message))
           .route("", post().to(create_private_message))
           .route("", put().to(update_private_message))
@@ -295,87 +276,58 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       )
       // User
       .service(
-        // Account action, I don't like that it's in /user maybe /accounts
-        // Handle /user/register separately to add the register() rate limiter
-        resource("/user/register")
+        scope("/account/auth")
           .guard(guard::Post())
           .wrap(rate_limit.register())
-          .route(post().to(register)),
+          .route("/register", post().to(register))
+          .route("/login", post().to(login))
+          .route("/logout", post().to(logout))
+          .route("/password_reset", post().to(reset_password))
+          .route("/get_captcha", get().to(get_captcha))
+          .route("/password_change", post().to(change_password_after_reset))
+          .route("/change_password", put().to(change_password))
+          .route("/totp/generate", post().to(generate_totp_secret))
+          .route("/totp/update", post().to(update_totp))
+          .route("/verify_email", post().to(verify_email)),
       )
-      // User
+      .route("/account/settings/save", put().to(save_user_settings))
       .service(
-        // Handle /user/login separately to add the register() rate limiter
-        // TODO: pretty annoying way to apply rate limits for register and login, we should
-        //       group them under a common path so that rate limit is only applied once (eg under
-        // /account).
-        resource("/user/login")
-          .guard(guard::Post())
-          .wrap(rate_limit.register())
-          .route(post().to(login)),
-      )
-      .service(
-        resource("/user/password_reset")
-          .wrap(rate_limit.register())
-          .route(post().to(reset_password)),
-      )
-      .service(
-        // Handle captcha separately
-        resource("/user/get_captcha")
-          .wrap(rate_limit.post())
-          .route(get().to(get_captcha)),
-      )
-      .service(
-        resource("/user/export_settings")
+        scope("/account/settings")
           .wrap(rate_limit.import_user_settings())
-          .route(get().to(export_settings)),
+          .route("/export", get().to(export_settings))
+          .route("/import", post().to(import_settings)),
       )
-      .service(
-        resource("/user/import_settings")
-          .wrap(rate_limit.import_user_settings())
-          .route(post().to(import_settings)),
-      )
-      // TODO, all the current account related actions under /user need to get moved here eventually
       .service(
         scope("/account")
-          .wrap(rate_limit.message())
-          .route("/list_media", get().to(list_media)),
-      )
-      // User actions
-      .service(
-        scope("/user")
-          .wrap(rate_limit.message())
-          .route("", get().to(read_person))
+          .route("", get().to(get_my_user))
+          .route("/list_media", get().to(list_media))
           .route("/mention", get().to(list_mentions))
+          .route("/replies", get().to(list_replies))
+          .route("/delete", post().to(delete_account))
           .route(
             "/mention/mark_as_read",
             post().to(mark_person_mention_as_read),
           )
-          .route("/replies", get().to(list_replies))
-          // Admin action. I don't like that it's in /user
-          .route("/ban", post().to(ban_from_site))
-          .route("/banned", get().to(list_banned_users))
-          .route("/block", post().to(block_person))
-          // TODO Account actions. I don't like that they're in /user maybe /accounts
-          .route("/logout", post().to(logout))
-          .route("/delete_account", post().to(delete_account))
-          .route("/password_change", post().to(change_password_after_reset))
-          // TODO mark_all_as_read feels off being in this section as well
-          .route("/mark_all_as_read", post().to(mark_all_notifications_read))
-          .route("/save_user_settings", put().to(save_user_settings))
-          .route("/change_password", put().to(change_password))
+          .route(
+            "/mention/mark_as_read/all",
+            post().to(mark_all_notifications_read),
+          )
           .route("/report_count", get().to(report_count))
           .route("/unread_count", get().to(unread_count))
-          .route("/verify_email", post().to(verify_email))
-          .route("/leave_admin", post().to(leave_admin))
-          .route("/totp/generate", post().to(generate_totp_secret))
-          .route("/totp/update", post().to(update_totp))
           .route("/list_logins", get().to(list_logins))
-          .route("/validate_auth", get().to(validate_auth)),
+          .route("/validate_auth", get().to(validate_auth))
+          .service(
+            scope("/block")
+              .route("/person", post().to(user_block_person))
+              .route("/community", post().to(user_block_community))
+              .route("/instance", post().to(user_block_instance)),
+          ),
       )
+      // User actions
+      .route("/person", get().to(read_person))
       // Admin Actions
       .service(
         scope("/admin")
-          .wrap(rate_limit.message())
           .route("/add", post().to(add_admin))
           .route(
             "/registration_application/count",
@@ -403,18 +355,22 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           )
           .service(
             scope("/tagline")
-              .wrap(rate_limit.message())
               .route("", post().to(create_tagline))
               .route("", put().to(update_tagline))
               .route("/delete", post().to(delete_tagline))
               .route("/list", get().to(list_taglines)),
           )
-          .route("block_instance", post().to(admin_block_instance))
-          .route("allow_instance", post().to(admin_allow_instance)),
+          .route("/ban", post().to(ban_from_site))
+          .route("/banned", get().to(list_banned_users))
+          .route("/leave", post().to(leave_admin))
+          .service(
+            scope("/instance")
+              .route("/block", post().to(admin_block_instance))
+              .route("/allow", post().to(admin_allow_instance)),
+          ),
       )
       .service(
         scope("/custom_emoji")
-          .wrap(rate_limit.message())
           .route("", post().to(create_custom_emoji))
           .route("", put().to(update_custom_emoji))
           .route("/delete", post().to(delete_custom_emoji))
@@ -422,7 +378,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       )
       .service(
         scope("/oauth_provider")
-          .wrap(rate_limit.message())
           .route("", post().to(create_oauth_provider))
           .route("", put().to(update_oauth_provider))
           .route("/delete", post().to(delete_oauth_provider)),
@@ -431,11 +386,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
         scope("/oauth")
           .wrap(rate_limit.register())
           .route("/authenticate", post().to(authenticate_with_oauth)),
-      ),
-  );
-  cfg.service(
-    scope("/sitemap.xml")
-      .wrap(rate_limit.message())
-      .route("", get().to(get_sitemap)),
+      )
+      .route("/sitemap.xml", get().to(get_sitemap)),
   );
 }

@@ -32,6 +32,7 @@ import {
   longDelay,
   editCommunity,
   unfollows,
+  getMyUser,
   userBlockInstance,
 } from "./shared";
 import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
@@ -226,7 +227,7 @@ test("Admin actions in remote community are not federated to origin", async () =
   if (!betaCommunity) {
     throw "Missing beta community";
   }
-  let bannedUserInfo1 = (await getSite(gamma)).my_user?.local_user_view.person;
+  let bannedUserInfo1 = (await getMyUser(gamma)).local_user_view.person;
   if (!bannedUserInfo1) {
     throw "Missing banned user 1";
   }

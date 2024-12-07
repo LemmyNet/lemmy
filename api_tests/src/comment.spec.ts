@@ -699,10 +699,10 @@ test("Check that activity from another instance is sent to third instance", asyn
 
 test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedded comments, A subs to B, B updates the lowest level comment, A fetches both the post and all the inreplyto comments for that post.", async () => {
   // Unfollow all remote communities
-  let site = await unfollowRemotes(alpha);
-  expect(
-    site.my_user?.follows.filter(c => c.community.local == false).length,
-  ).toBe(0);
+  let my_user = await unfollowRemotes(alpha);
+  expect(my_user.follows.filter(c => c.community.local == false).length).toBe(
+    0,
+  );
 
   // B creates a post, and two comments, should be invisible to A
   let postOnBetaRes = await createPost(beta, 2);
