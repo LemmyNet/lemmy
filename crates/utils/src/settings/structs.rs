@@ -120,7 +120,7 @@ pub enum PictrsImageMode {
   #[default]
   StoreLinkPreviews,
   /// If enabled, all images from remote domains are rewritten to pass through
-  /// `/api/v3/image_proxy`, including embedded images in markdown. Images are stored temporarily
+  /// `/api/v4/image_proxy`, including embedded images in markdown. Images are stored temporarily
   /// in pict-rs for caching. This improves privacy as users don't expose their IP to untrusted
   /// servers, and decreases load on other servers. However it increases bandwidth use for the
   /// local server.

@@ -141,7 +141,7 @@ mod tests {
         (
           "remote image proxied",
           "![link](http://example.com/image.jpg)",
-          "![link](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)",
+          "![link](https://lemmy-alpha/api/v4/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)",
         ),
         (
           "local image unproxied",
@@ -151,7 +151,7 @@ mod tests {
         (
           "multiple image links",
           "![link](http://example.com/image1.jpg) ![link](http://example.com/image2.jpg)",
-          "![link](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage1.jpg) ![link](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage2.jpg)",
+          "![link](https://lemmy-alpha/api/v4/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage1.jpg) ![link](https://lemmy-alpha/api/v4/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage2.jpg)",
         ),
         (
           "empty link handled",
@@ -161,7 +161,7 @@ mod tests {
         (
           "empty label handled",
           "![](http://example.com/image.jpg)",
-          "![](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
+          "![](https://lemmy-alpha/api/v4/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
         ),
         (
           "invalid image link removed",
@@ -171,12 +171,12 @@ mod tests {
         (
           "label with nested markdown handled",
           "![a *b* c](http://example.com/image.jpg)",
-          "![a *b* c](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
+          "![a *b* c](https://lemmy-alpha/api/v4/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
         ),
         (
           "custom emoji support",
           r#"![party-blob](https://www.hexbear.net/pictrs/image/83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#,
-          r#"![party-blob](https://lemmy-alpha/api/v3/image_proxy?url=https%3A%2F%2Fwww.hexbear.net%2Fpictrs%2Fimage%2F83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#
+          r#"![party-blob](https://lemmy-alpha/api/v4/image_proxy?url=https%3A%2F%2Fwww.hexbear.net%2Fpictrs%2Fimage%2F83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#
         )
       ];
 

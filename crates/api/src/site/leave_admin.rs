@@ -69,14 +69,12 @@ pub async fn leave_admin(
     site_view,
     admins,
     version: VERSION.to_string(),
-    my_user: None,
     all_languages,
     discussion_languages,
     oauth_providers: Some(oauth_providers),
     admin_oauth_providers: None,
     blocked_urls,
     tagline,
-    taglines: vec![],
-    custom_emojis: vec![],
+    my_user: None,
   }))
 }
