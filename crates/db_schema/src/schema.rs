@@ -752,6 +752,7 @@ diesel::table! {
     person_saved_combined (id) {
         id -> Int4,
         published -> Timestamptz,
+        person_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
     }
@@ -1053,6 +1054,7 @@ diesel::joinable!(person_content_combined -> post (post_id));
 diesel::joinable!(person_mention -> comment (comment_id));
 diesel::joinable!(person_mention -> person (recipient_id));
 diesel::joinable!(person_saved_combined -> comment (comment_id));
+diesel::joinable!(person_saved_combined -> person (person_id));
 diesel::joinable!(person_saved_combined -> post (post_id));
 diesel::joinable!(post -> community (community_id));
 diesel::joinable!(post -> language (language_id));

@@ -1,4 +1,4 @@
-use crate::newtypes::{CommentId, PersonSavedCombinedId, PostId};
+use crate::newtypes::{CommentId, PersonId, PersonSavedCombinedId, PostId};
 #[cfg(feature = "full")]
 use crate::schema::person_saved_combined;
 use chrono::{DateTime, Utc};
@@ -23,6 +23,7 @@ use ts_rs::TS;
 pub struct PersonSavedCombined {
   pub id: PersonSavedCombinedId,
   pub published: DateTime<Utc>,
+  pub person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
   pub post_id: Option<PostId>,
   #[cfg_attr(feature = "full", ts(optional))]

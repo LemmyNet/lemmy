@@ -33,6 +33,7 @@ FROM
 CREATE TABLE person_saved_combined (
     id serial PRIMARY KEY,
     published timestamptz NOT NULL,
+    person_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
     comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
     -- Make sure only one of the columns is not null
@@ -43,23 +44,26 @@ CREATE INDEX idx_person_saved_combined_published ON person_saved_combined (publi
 
 CREATE INDEX idx_person_saved_combined_published_asc ON person_saved_combined (reverse_timestamp_sort (published) DESC, id DESC);
 
+CREATE INDEX idx_person_saved_combined ON person_saved_combined (person_id);
+
 -- Updating the history
-INSERT INTO person_saved_combined (published, post_id)
+INSERT INTO person_saved_combined (published, person_id, post_id)
 SELECT
     saved,
+    person_id,
     post_id
 FROM
     post_actions
-WHERE 
+WHERE
     saved IS NOT NULL;
 
-INSERT INTO person_saved_combined (published, comment_id)
+INSERT INTO person_saved_combined (published, person_id, comment_id)
 SELECT
     saved,
+    person_id,
     comment_id
 FROM
     comment_actions
-WHERE 
+WHERE
     saved IS NOT NULL;
-
 

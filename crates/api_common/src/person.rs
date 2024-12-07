@@ -11,6 +11,7 @@ use lemmy_db_views::structs::{
   LocalImageView,
   PersonContentCombinedPaginationCursor,
   PersonContentCombinedView,
+  PersonSavedCombinedPaginationCursor,
 };
 use lemmy_db_views_actor::structs::{
   CommentReplyView,
@@ -273,9 +274,9 @@ pub struct ListPersonContentResponse {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Gets your saved posts and comments
-pub struct ListSaved {
+pub struct ListPersonSaved {
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<PersonContentCombinedPaginationCursor>,
+  pub page_cursor: Option<PersonSavedCombinedPaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
 }
@@ -285,7 +286,7 @@ pub struct ListSaved {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A person's saved content response.
-pub struct ListSavedResponse {
+pub struct ListPersonSavedResponse {
   pub saved: Vec<PersonContentCombinedView>,
 }
 

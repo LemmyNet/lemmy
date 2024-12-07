@@ -121,8 +121,8 @@ impl PersonContentCombinedQuery {
         person::table.on(
           comment::creator_id
             .eq(item_creator)
-            // Need to filter out the post rows where both the post and comment creator are the
-            // same.
+            // Need to filter out the post rows where the post_id given is null
+            // Otherwise you'll get duped post rows
             .or(
               post::creator_id
                 .eq(item_creator)
@@ -372,7 +372,7 @@ mod tests {
       .await?;
     assert_eq!(3, timmy_content.len());
 
-    // Make sure the report types are correct
+    // Make sure the types are correct
     if let PersonContentCombinedView::Comment(v) = &timmy_content[0] {
       assert_eq!(data.timmy_comment.id, v.comment.id);
       assert_eq!(data.timmy.id, v.creator.id);

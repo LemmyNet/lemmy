@@ -31,6 +31,7 @@ use lemmy_api::{
     list_banned::list_banned_users,
     list_logins::list_logins,
     list_media::list_media,
+    list_saved::list_person_saved,
     login::login,
     logout::logout,
     notifications::{
@@ -341,7 +342,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", get().to(read_person))
           .route("/content", get().to(list_person_content))
           // TODO move this to /account/saved after http routes
-          // .route("/saved", get().to(read_person_saved))
+          .route("/saved", get().to(list_person_saved))
           .route("/mention", get().to(list_mentions))
           .route(
             "/mention/mark_as_read",
