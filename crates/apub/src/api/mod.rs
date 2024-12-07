@@ -1,12 +1,18 @@
+use crate::{fetcher::resolve_actor_identifier, objects::person::ApubPerson};
+use activitypub_federation::config::Data;
+use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::{local_site::LocalSite, local_user::LocalUser},
+  newtypes::{CommunityId, PersonId},
+  source::{local_site::LocalSite, local_user::LocalUser, person::Person},
   CommentSortType,
   ListingType,
   PostSortType,
 };
+use lemmy_db_views::structs::LocalUserView;
+use lemmy_utils::error::LemmyResult;
 
 pub mod list_comments;
+pub mod list_person_content;
 pub mod list_posts;
 pub mod read_community;
 pub mod read_person;
@@ -60,4 +66,29 @@ fn comment_sort_type_with_default(
       .map(|u| u.default_comment_sort_type)
       .unwrap_or(local_site.default_comment_sort_type),
   )
+}
+
+async fn resolve_person_id_from_id_or_username(
+  person_id: &Option<PersonId>,
+  username: &Option<String>,
+  context: &Data<LemmyContext>,
+  local_user_view: &Option<LocalUserView>,
+) -> LemmyResult<PersonId> {
+  // Check to make sure a person name or an id is given
+  if username.is_none() && person_id.is_none() {
+    Err(LemmyErrorType::NoIdGiven)?
+  }
+
+  Ok(match person_id {
+    Some(id) => *id,
+    None => {
+      if let Some(username) = username {
+        resolve_actor_identifier::<ApubPerson, Person>(username, context, local_user_view, true)
+          .await?
+          .id
+      } else {
+        Err(LemmyErrorType::NotFound)?
+      }
+    }
+  })
 }

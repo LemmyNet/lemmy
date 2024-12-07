@@ -142,6 +142,7 @@ use lemmy_api_crud::{
 };
 use lemmy_apub::api::{
   list_comments::list_comments,
+  list_person_content::list_person_content,
   list_posts::list_posts,
   read_community::get_community,
   read_person::read_person,
@@ -338,6 +339,9 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
         scope("/user")
           .wrap(rate_limit.message())
           .route("", get().to(read_person))
+          .route("/content", get().to(list_person_content))
+          // TODO move this to /account/saved after http routes
+          // .route("/saved", get().to(read_person_saved))
           .route("/mention", get().to(list_mentions))
           .route(
             "/mention/mark_as_read",

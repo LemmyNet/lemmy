@@ -94,8 +94,6 @@ pub struct Search {
   #[cfg_attr(feature = "full", ts(optional))]
   pub post_url_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub saved_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub liked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,

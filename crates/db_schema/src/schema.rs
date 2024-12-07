@@ -730,12 +730,30 @@ diesel::table! {
 }
 
 diesel::table! {
+    person_content_combined (id) {
+        id -> Int4,
+        published -> Timestamptz,
+        post_id -> Nullable<Int4>,
+        comment_id -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
     person_mention (id) {
         id -> Int4,
         recipient_id -> Int4,
         comment_id -> Int4,
         read -> Bool,
         published -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    person_saved_combined (id) {
+        id -> Int4,
+        published -> Timestamptz,
+        post_id -> Nullable<Int4>,
+        comment_id -> Nullable<Int4>,
     }
 }
 
@@ -853,15 +871,6 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
-    }
-}
-
-diesel::table! {
-    profile_combined (id) {
-        id -> Int4,
-        published -> Timestamptz,
-        post_id -> Nullable<Int4>,
-        comment_id -> Nullable<Int4>,
     }
 }
 
@@ -1039,8 +1048,12 @@ diesel::joinable!(password_reset_request -> local_user (local_user_id));
 diesel::joinable!(person -> instance (instance_id));
 diesel::joinable!(person_aggregates -> person (person_id));
 diesel::joinable!(person_ban -> person (person_id));
+diesel::joinable!(person_content_combined -> comment (comment_id));
+diesel::joinable!(person_content_combined -> post (post_id));
 diesel::joinable!(person_mention -> comment (comment_id));
 diesel::joinable!(person_mention -> person (recipient_id));
+diesel::joinable!(person_saved_combined -> comment (comment_id));
+diesel::joinable!(person_saved_combined -> post (post_id));
 diesel::joinable!(post -> community (community_id));
 diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
@@ -1052,8 +1065,6 @@ diesel::joinable!(post_aggregates -> person (creator_id));
 diesel::joinable!(post_aggregates -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
 diesel::joinable!(private_message_report -> private_message (private_message_id));
-diesel::joinable!(profile_combined -> comment (comment_id));
-diesel::joinable!(profile_combined -> post (post_id));
 diesel::joinable!(registration_application -> local_user (local_user_id));
 diesel::joinable!(registration_application -> person (admin_id));
 diesel::joinable!(report_combined -> comment_report (comment_report_id));
@@ -1117,14 +1128,15 @@ diesel::allow_tables_to_appear_in_same_query!(
     person_actions,
     person_aggregates,
     person_ban,
+    person_content_combined,
     person_mention,
+    person_saved_combined,
     post,
     post_actions,
     post_aggregates,
     post_report,
     private_message,
     private_message_report,
-    profile_combined,
     received_activity,
     registration_application,
     remote_image,

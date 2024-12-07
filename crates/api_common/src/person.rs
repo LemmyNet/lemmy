@@ -9,8 +9,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{
   LocalImageView,
-  ProfileCombinedPaginationCursor,
-  ProfileCombinedView,
+  PersonContentCombinedPaginationCursor,
+  PersonContentCombinedView,
 };
 use lemmy_db_views_actor::structs::{
   CommentReplyView,
@@ -226,14 +226,6 @@ pub struct GetPersonDetails {
   /// Example: dessalines , or dessalines@xyz.tld
   #[cfg_attr(feature = "full", ts(optional))]
   pub username: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub community_id: Option<CommunityId>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub saved_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page_cursor: Option<ProfileCombinedPaginationCursor>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page_back: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -245,8 +237,56 @@ pub struct GetPersonDetailsResponse {
   pub person_view: PersonView,
   #[cfg_attr(feature = "full", ts(optional))]
   pub site: Option<Site>,
-  pub content: Vec<ProfileCombinedView>,
   pub moderates: Vec<CommunityModeratorView>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Gets a person's content (posts and comments)
+///
+/// Either person_id, or username are required.
+pub struct ListPersonContent {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub person_id: Option<PersonId>,
+  /// Example: dessalines , or dessalines@xyz.tld
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub username: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<PersonContentCombinedPaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A person's content response.
+pub struct ListPersonContentResponse {
+  pub content: Vec<PersonContentCombinedView>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Gets your saved posts and comments
+pub struct ListSaved {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<PersonContentCombinedPaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A person's saved content response.
+pub struct ListSavedResponse {
+  pub saved: Vec<PersonContentCombinedView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq)]

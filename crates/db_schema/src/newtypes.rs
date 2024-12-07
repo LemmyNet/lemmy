@@ -188,8 +188,14 @@ pub struct ReportCombinedId(i32);
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// The profile combined id
-pub struct ProfileCombinedId(i32);
+/// The person content combined id
+pub struct PersonContentCombinedId(i32);
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The person saved combined id
+pub struct PersonSavedCombinedId(i32);
 
 impl DbUrl {
   pub fn inner(&self) -> &Url {

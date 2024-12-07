@@ -685,31 +685,62 @@ CALL r.create_report_combined_trigger ('comment_report');
 
 CALL r.create_report_combined_trigger ('private_message_report');
 
--- Profile (comment, post)
-CREATE PROCEDURE r.create_profile_combined_trigger (table_name text)
+-- person_content (comment, post)
+CREATE PROCEDURE r.create_person_content_combined_trigger (table_name text)
 LANGUAGE plpgsql
 AS $a$
 BEGIN
-    EXECUTE replace($b$ CREATE FUNCTION r.profile_combined_thing_insert ( )
+    EXECUTE replace($b$ CREATE FUNCTION r.person_content_combined_thing_insert ( )
             RETURNS TRIGGER
             LANGUAGE plpgsql
             AS $$
             BEGIN
-                INSERT INTO profile_combined (published, thing_id)
+                INSERT INTO person_content_combined (published, thing_id)
                     VALUES (NEW.published, NEW.id);
                 RETURN NEW;
             END $$;
-    CREATE TRIGGER profile_combined
+    CREATE TRIGGER person_content_combined
         AFTER INSERT ON thing
         FOR EACH ROW
-        EXECUTE FUNCTION r.profile_combined_thing_insert ( );
+        EXECUTE FUNCTION r.person_content_combined_thing_insert ( );
         $b$,
         'thing',
         table_name);
 END;
 $a$;
 
-CALL r.create_profile_combined_trigger ('post');
+CALL r.create_person_content_combined_trigger ('post');
 
-CALL r.create_profile_combined_trigger ('comment');
+CALL r.create_person_content_combined_trigger ('comment');
+
+-- person_saved (comment, post)
+-- TODO, not sure how to handle changes to post_actions and comment_actions.saved column.
+-- False should delete this row, true should insert
+-- CREATE PROCEDURE r.create_person_saved_combined_trigger (table_name text)
+-- LANGUAGE plpgsql
+-- AS $a$
+-- BEGIN
+--     EXECUTE replace($b$ CREATE FUNCTION r.person_saved_combined_thing_insert ( )
+--             RETURNS TRIGGER
+--             LANGUAGE plpgsql
+--             AS $$
+--             BEGIN
+--                 INSERT INTO person_saved_combined (published, thing_id)
+--                     VALUES (NEW.saved, NEW.id);
+--                 RETURN NEW;
+--             END $$;
+--     CREATE TRIGGER person_saved_combined
+--         AFTER INSERT ON thing
+--         FOR EACH ROW
+--         EXECUTE FUNCTION r.person_saved_combined_thing_insert ( );
+--         $b$,
+--         'thing',
+--         table_name);
+-- END;
+-- $a$;
+
+-- CALL r.create_person_saved_combined_trigger ('post_actions');
+
+-- CALL r.create_person_saved_combined_trigger ('comment_actions');
+
 

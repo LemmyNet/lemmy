@@ -1,6 +1,6 @@
-use crate::newtypes::{CommentId, PostId, ProfileCombinedId};
+use crate::newtypes::{CommentId, PersonSavedCombinedId, PostId};
 #[cfg(feature = "full")]
-use crate::schema::profile_combined;
+use crate::schema::person_saved_combined;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
@@ -15,13 +15,13 @@ use ts_rs::TS;
   feature = "full",
   derive(Identifiable, Queryable, Selectable, TS, CursorKeysModule)
 )]
-#[cfg_attr(feature = "full", diesel(table_name = profile_combined))]
+#[cfg_attr(feature = "full", diesel(table_name = person_saved_combined))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
-#[cfg_attr(feature = "full", cursor_keys_module(name = profile_combined_keys))]
-/// A combined profile table.
-pub struct ProfileCombined {
-  pub id: ProfileCombinedId,
+#[cfg_attr(feature = "full", cursor_keys_module(name = person_saved_combined_keys))]
+/// A combined person_saved table.
+pub struct PersonSavedCombined {
+  pub id: PersonSavedCombinedId,
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub post_id: Option<PostId>,

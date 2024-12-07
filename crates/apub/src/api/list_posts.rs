@@ -41,7 +41,6 @@ pub async fn list_posts(
   } else {
     data.community_id
   };
-  let saved_only = data.saved_only;
   let show_hidden = data.show_hidden;
   let show_read = data.show_read;
   let show_nsfw = data.show_nsfw;
@@ -77,7 +76,6 @@ pub async fn list_posts(
     listing_type,
     sort,
     community_id,
-    saved_only,
     liked_only,
     disliked_only,
     page,

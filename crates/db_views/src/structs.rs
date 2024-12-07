@@ -132,11 +132,17 @@ pub struct PaginationCursor(pub String);
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ReportCombinedPaginationCursor(pub String);
 
-/// like PaginationCursor but for the profile_combined table
+/// like PaginationCursor but for the person_content_combined table
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct ProfileCombinedPaginationCursor(pub String);
+pub struct PersonContentCombinedPaginationCursor(pub String);
+
+/// like PaginationCursor but for the person_saved_combined table
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(ts_rs::TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct PersonSavedCombinedPaginationCursor(pub String);
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -299,8 +305,8 @@ pub enum ReportCombinedView {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-/// A combined profile view
-pub struct ProfileCombinedViewInternal {
+/// A combined person_content view
+pub struct PersonContentViewInternal {
   // Post-specific
   pub post_counts: PostAggregates,
   pub post_unread_comments: i64,
@@ -331,7 +337,7 @@ pub struct ProfileCombinedViewInternal {
 #[cfg_attr(feature = "full", ts(export))]
 // Use serde's internal tagging, to work easier with javascript libraries
 #[serde(tag = "type_")]
-pub enum ProfileCombinedView {
+pub enum PersonContentCombinedView {
   Post(PostView),
   Comment(CommentView),
 }
