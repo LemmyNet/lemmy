@@ -10,7 +10,7 @@ pub mod structs;
 
 use structs::{DatabaseConnection, PictrsConfig, PictrsImageMode, Settings};
 
-static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
+const DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
 #[allow(clippy::expect_used)]
 pub static SETTINGS: LazyLock<Settings> = LazyLock::new(|| {
