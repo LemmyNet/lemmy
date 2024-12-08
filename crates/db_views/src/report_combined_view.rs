@@ -16,6 +16,7 @@ use diesel::{
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
+  PgExpressionMethods,
   QueryDsl,
   SelectableHelper,
 };
@@ -82,9 +83,12 @@ impl ReportCombinedViewInternal {
         Some(my_person_id),
         post::community_id,
       ))
-      .filter(post_report::resolved.eq(false))
-      .or_filter(comment_report::resolved.eq(false))
-      .or_filter(private_message_report::resolved.eq(false))
+      .filter(
+        post_report::resolved
+          .or(comment_report::resolved)
+          .or(private_message_report::resolved)
+          .is_distinct_from(true),
+      )
       .into_boxed();
 
     if let Some(community_id) = community_id {
@@ -191,9 +195,7 @@ impl ReportCombinedQuery {
             .or(comment::post_id.eq(post::id)),
         ),
       )
-      // The item creator
-      // You can now use aliases::person1.field(person::id) / item_creator
-      // for all the item actions
+      // The item creator (`item_creator` is the id of this person)
       .inner_join(
         aliases::person1.on(
           post::creator_id
@@ -312,9 +314,9 @@ impl ReportCombinedQuery {
       query = query
         .filter(
           post_report::resolved
-            .eq(false)
-            .or(comment_report::resolved.eq(false))
-            .or(private_message_report::resolved.eq(false)),
+            .or(comment_report::resolved)
+            .or(private_message_report::resolved)
+            .is_distinct_from(true),
         )
         // TODO: when a `then_asc` method is added, use it here, make the id sort direction match,
         // and remove the separate index; unless additional columns are added to this sort
