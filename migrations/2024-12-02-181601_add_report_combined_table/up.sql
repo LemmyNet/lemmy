@@ -15,23 +15,27 @@ CREATE INDEX idx_report_combined_published ON report_combined (published DESC, i
 CREATE INDEX idx_report_combined_published_asc ON report_combined (reverse_timestamp_sort (published) DESC, id DESC);
 
 -- Updating the history
-INSERT INTO report_combined (published, post_report_id)
+INSERT INTO report_combined (published, post_report_id, comment_report_id, private_message_report_id)
 SELECT
     published,
-    id
+    id,
+    NULL,
+    NULL
 FROM
-    post_report;
-
-INSERT INTO report_combined (published, comment_report_id)
+    post_report
+UNION ALL
 SELECT
     published,
-    id
+    NULL,
+    id,
+    NULL
 FROM
-    comment_report;
-
-INSERT INTO report_combined (published, private_message_report_id)
+    comment_report
+UNION ALL
 SELECT
     published,
+    NULL,
+    NULL,
     id
 FROM
     private_message_report;
