@@ -7,7 +7,7 @@ CREATE TABLE person_content_combined (
     post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
     comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
     -- Make sure only one of the columns is not null
-    CHECK ((post_id IS NOT NULL)::integer + (comment_id IS NOT NULL)::integer = 1)
+    CHECK (num_nonnulls (post_id, comment_id) = 1)
 );
 
 CREATE INDEX idx_person_content_combined_published ON person_content_combined (published DESC, id DESC);
@@ -15,16 +15,17 @@ CREATE INDEX idx_person_content_combined_published ON person_content_combined (p
 CREATE INDEX idx_person_content_combined_published_asc ON person_content_combined (reverse_timestamp_sort (published) DESC, id DESC);
 
 -- Updating the history
-INSERT INTO person_content_combined (published, post_id)
+INSERT INTO person_content_combined (published, post_id, comment_id)
 SELECT
     published,
-    id
+    id,
+    NULL::int
 FROM
-    post;
-
-INSERT INTO person_content_combined (published, comment_id)
+    post
+UNION ALL
 SELECT
     published,
+    NULL::int,
     id
 FROM
     comment;
@@ -37,7 +38,7 @@ CREATE TABLE person_saved_combined (
     post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
     comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
     -- Make sure only one of the columns is not null
-    CHECK ((post_id IS NOT NULL)::integer + (comment_id IS NOT NULL)::integer = 1)
+    CHECK (num_nonnulls (post_id, comment_id) = 1)
 );
 
 CREATE INDEX idx_person_saved_combined_published ON person_saved_combined (published DESC, id DESC);
@@ -47,20 +48,21 @@ CREATE INDEX idx_person_saved_combined_published_asc ON person_saved_combined (r
 CREATE INDEX idx_person_saved_combined ON person_saved_combined (person_id);
 
 -- Updating the history
-INSERT INTO person_saved_combined (published, person_id, post_id)
+INSERT INTO person_saved_combined (published, person_id, post_id, comment_id)
 SELECT
     saved,
     person_id,
-    post_id
+    post_id,
+    NULL::int
 FROM
     post_actions
 WHERE
-    saved IS NOT NULL;
-
-INSERT INTO person_saved_combined (published, person_id, comment_id)
+    saved IS NOT NULL
+UNION ALL
 SELECT
     saved,
     person_id,
+    NULL::int,
     comment_id
 FROM
     comment_actions
