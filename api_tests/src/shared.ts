@@ -208,7 +208,7 @@ async function allowInstance(api: LemmyHttp, instance: string) {
   try {
     await api.adminAllowInstance(params);
   } catch (error) {
-    console.error(error);
+    // console.error(error);
   }
 }
 
