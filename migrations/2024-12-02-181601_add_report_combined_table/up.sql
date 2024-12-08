@@ -19,23 +19,23 @@ INSERT INTO report_combined (published, post_report_id, comment_report_id, priva
 SELECT
     published,
     id,
-    NULL,
-    NULL
+    NULL::int,
+    NULL::int
 FROM
     post_report
 UNION ALL
 SELECT
     published,
-    NULL,
+    NULL::int,
     id,
-    NULL
+    NULL::int
 FROM
     comment_report
 UNION ALL
 SELECT
     published,
-    NULL,
-    NULL,
+    NULL::int,
+    NULL::int,
     id
 FROM
     private_message_report;
