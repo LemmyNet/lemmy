@@ -1,4 +1,20 @@
-use crate::newtypes::{CommentId, CommunityId, PersonId, PostId};
+use crate::newtypes::{
+  CommentId,
+  CommunityId,
+  ModAddCommunityId,
+  ModAddId,
+  ModBanFromCommunityId,
+  ModBanId,
+  ModFeaturePostId,
+  ModHideCommunityId,
+  ModLockPostId,
+  ModRemoveCommentId,
+  ModRemoveCommunityId,
+  ModRemovePostId,
+  ModTransferCommunityId,
+  PersonId,
+  PostId,
+};
 #[cfg(feature = "full")]
 use crate::schema::{
   mod_add,
@@ -27,7 +43,7 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", ts(export))]
 /// When a moderator removes a post.
 pub struct ModRemovePost {
-  pub id: i32,
+  pub id: ModRemovePostId,
   pub mod_person_id: PersonId,
   pub post_id: PostId,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -52,7 +68,7 @@ pub struct ModRemovePostForm {
 #[cfg_attr(feature = "full", ts(export))]
 /// When a moderator locks a post (prevents new comments being made).
 pub struct ModLockPost {
-  pub id: i32,
+  pub id: ModLockPostId,
   pub mod_person_id: PersonId,
   pub post_id: PostId,
   pub locked: bool,
@@ -74,7 +90,7 @@ pub struct ModLockPostForm {
 #[cfg_attr(feature = "full", ts(export))]
 /// When a moderator features a post on a community (pins it to the top).
 pub struct ModFeaturePost {
-  pub id: i32,
+  pub id: ModFeaturePostId,
   pub mod_person_id: PersonId,
   pub post_id: PostId,
   pub featured: bool,
@@ -99,7 +115,7 @@ pub struct ModFeaturePostForm {
 #[cfg_attr(feature = "full", ts(export))]
 /// When a moderator removes a comment.
 pub struct ModRemoveComment {
-  pub id: i32,
+  pub id: ModRemoveCommentId,
   pub mod_person_id: PersonId,
   pub comment_id: CommentId,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -125,7 +141,7 @@ pub struct ModRemoveCommentForm {
 #[cfg_attr(feature = "full", ts(export))]
 /// When a moderator removes a community.
 pub struct ModRemoveCommunity {
-  pub id: i32,
+  pub id: ModRemoveCommunityId,
   pub mod_person_id: PersonId,
   pub community_id: CommunityId,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -151,7 +167,7 @@ pub struct ModRemoveCommunityForm {
 #[cfg_attr(feature = "full", ts(export))]
 /// When someone is banned from a community.
 pub struct ModBanFromCommunity {
-  pub id: i32,
+  pub id: ModBanFromCommunityId,
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
@@ -182,7 +198,7 @@ pub struct ModBanFromCommunityForm {
 #[cfg_attr(feature = "full", ts(export))]
 /// When someone is banned from the site.
 pub struct ModBan {
-  pub id: i32,
+  pub id: ModBanId,
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -210,7 +226,7 @@ pub struct ModHideCommunityForm {
 #[cfg_attr(feature = "full", ts(export))]
 /// When a community is hidden from public view.
 pub struct ModHideCommunity {
-  pub id: i32,
+  pub id: ModHideCommunityId,
   pub community_id: CommunityId,
   pub mod_person_id: PersonId,
   pub when_: DateTime<Utc>,
@@ -236,7 +252,7 @@ pub struct ModBanForm {
 #[cfg_attr(feature = "full", ts(export))]
 /// When someone is added as a community moderator.
 pub struct ModAddCommunity {
-  pub id: i32,
+  pub id: ModAddCommunityId,
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
@@ -260,7 +276,7 @@ pub struct ModAddCommunityForm {
 #[cfg_attr(feature = "full", ts(export))]
 /// When a moderator transfers a community to a new owner.
 pub struct ModTransferCommunity {
-  pub id: i32,
+  pub id: ModTransferCommunityId,
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
@@ -282,7 +298,7 @@ pub struct ModTransferCommunityForm {
 #[cfg_attr(feature = "full", ts(export))]
 /// When someone is added as a site moderator.
 pub struct ModAdd {
-  pub id: i32,
+  pub id: ModAddId,
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub removed: bool,

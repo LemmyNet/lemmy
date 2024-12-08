@@ -634,6 +634,30 @@ diesel::table! {
 }
 
 diesel::table! {
+    modlog_combined (id) {
+        id -> Int4,
+        published -> Timestamptz,
+        admin_allow_instance_id -> Nullable<Int4>,
+        admin_block_instance_id -> Nullable<Int4>,
+        admin_purge_comment_id -> Nullable<Int4>,
+        admin_purge_community_id -> Nullable<Int4>,
+        admin_purge_person_id -> Nullable<Int4>,
+        admin_purge_post_id -> Nullable<Int4>,
+        mod_add_id -> Nullable<Int4>,
+        mod_add_community_id -> Nullable<Int4>,
+        mod_ban_id -> Nullable<Int4>,
+        mod_ban_from_community_id -> Nullable<Int4>,
+        mod_feature_post_id -> Nullable<Int4>,
+        mod_hide_community_id -> Nullable<Int4>,
+        mod_lock_post_id -> Nullable<Int4>,
+        mod_remove_comment_id -> Nullable<Int4>,
+        mod_remove_community_id -> Nullable<Int4>,
+        mod_remove_post_id -> Nullable<Int4>,
+        mod_transfer_community_id -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
     oauth_account (oauth_provider_id, local_user_id) {
         local_user_id -> Int4,
         oauth_provider_id -> Int4,
@@ -1043,6 +1067,23 @@ diesel::joinable!(mod_remove_community -> person (mod_person_id));
 diesel::joinable!(mod_remove_post -> person (mod_person_id));
 diesel::joinable!(mod_remove_post -> post (post_id));
 diesel::joinable!(mod_transfer_community -> community (community_id));
+diesel::joinable!(modlog_combined -> admin_allow_instance (admin_allow_instance_id));
+diesel::joinable!(modlog_combined -> admin_block_instance (admin_block_instance_id));
+diesel::joinable!(modlog_combined -> admin_purge_comment (admin_purge_comment_id));
+diesel::joinable!(modlog_combined -> admin_purge_community (admin_purge_community_id));
+diesel::joinable!(modlog_combined -> admin_purge_person (admin_purge_person_id));
+diesel::joinable!(modlog_combined -> admin_purge_post (admin_purge_post_id));
+diesel::joinable!(modlog_combined -> mod_add (mod_add_id));
+diesel::joinable!(modlog_combined -> mod_add_community (mod_add_community_id));
+diesel::joinable!(modlog_combined -> mod_ban (mod_ban_id));
+diesel::joinable!(modlog_combined -> mod_ban_from_community (mod_ban_from_community_id));
+diesel::joinable!(modlog_combined -> mod_feature_post (mod_feature_post_id));
+diesel::joinable!(modlog_combined -> mod_hide_community (mod_hide_community_id));
+diesel::joinable!(modlog_combined -> mod_lock_post (mod_lock_post_id));
+diesel::joinable!(modlog_combined -> mod_remove_comment (mod_remove_comment_id));
+diesel::joinable!(modlog_combined -> mod_remove_community (mod_remove_community_id));
+diesel::joinable!(modlog_combined -> mod_remove_post (mod_remove_post_id));
+diesel::joinable!(modlog_combined -> mod_transfer_community (mod_transfer_community_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));
 diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
@@ -1123,6 +1164,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     mod_remove_community,
     mod_remove_post,
     mod_transfer_community,
+    modlog_combined,
     oauth_account,
     oauth_provider,
     password_reset_request,
