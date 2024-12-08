@@ -16,7 +16,6 @@ import {
   followCommunity,
   banPersonFromCommunity,
   resolvePerson,
-  getSite,
   createPost,
   getPost,
   resolvePost,
@@ -32,10 +31,11 @@ import {
   longDelay,
   editCommunity,
   unfollows,
+  getMyUser,
   userBlockInstance,
 } from "./shared";
 import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
-import { EditCommunity, EditSite, GetPosts } from "lemmy-js-client";
+import { EditCommunity, GetPosts } from "lemmy-js-client";
 
 beforeAll(setupLogins);
 afterAll(unfollows);
@@ -226,7 +226,7 @@ test("Admin actions in remote community are not federated to origin", async () =
   if (!betaCommunity) {
     throw "Missing beta community";
   }
-  let bannedUserInfo1 = (await getSite(gamma)).my_user?.local_user_view.person;
+  let bannedUserInfo1 = (await getMyUser(gamma)).local_user_view.person;
   if (!bannedUserInfo1) {
     throw "Missing banned user 1";
   }
@@ -572,7 +572,7 @@ test("Remote mods can edit communities", async () => {
     communityRes.community_view.community.id,
   );
 
-  await expect(alphaCommunity.community_view.community.description).toBe(
+  expect(alphaCommunity.community_view.community.description).toBe(
     "Example description",
   );
 });

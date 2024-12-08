@@ -17,6 +17,7 @@ import {
   ListCommunityPendingFollowsResponse,
   ListReports,
   ListReportsResponse,
+  MyUserInfo,
   PersonId,
   PostView,
   PrivateMessageReportResponse,
@@ -206,7 +207,9 @@ async function allowInstance(api: LemmyHttp, instance: string) {
   // Ignore errors from duplicate allows (because setup gets called for each test file)
   try {
     await api.adminAllowInstance(params);
-  } catch {}
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 export async function createPost(
@@ -758,6 +761,10 @@ export async function getSite(api: LemmyHttp): Promise<GetSiteResponse> {
   return api.getSite();
 }
 
+export async function getMyUser(api: LemmyHttp): Promise<MyUserInfo> {
+  return api.getMyUser();
+}
+
 export async function listPrivateMessages(
   api: LemmyHttp,
 ): Promise<PrivateMessagesResponse> {
@@ -767,19 +774,16 @@ export async function listPrivateMessages(
   return api.getPrivateMessages(form);
 }
 
-export async function unfollowRemotes(
-  api: LemmyHttp,
-): Promise<GetSiteResponse> {
+export async function unfollowRemotes(api: LemmyHttp): Promise<MyUserInfo> {
   // Unfollow all remote communities
-  let site = await getSite(api);
+  let my_user = await getMyUser(api);
   let remoteFollowed =
-    site.my_user?.follows.filter(c => c.community.local == false) ?? [];
+    my_user.follows.filter(c => c.community.local == false) ?? [];
   await Promise.all(
     remoteFollowed.map(cu => followCommunity(api, false, cu.community.id)),
   );
 
-  let siteRes = await getSite(api);
-  return siteRes;
+  return await getMyUser(api);
 }
 
 export async function followBeta(api: LemmyHttp): Promise<CommunityResponse> {

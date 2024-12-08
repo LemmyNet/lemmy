@@ -29,7 +29,6 @@ import {
   reportPost,
   randomString,
   registerUser,
-  getSite,
   unfollows,
   resolveCommunity,
   waitUntil,
@@ -38,6 +37,7 @@ import {
   loginUser,
   createCommunity,
   listReports,
+  getMyUser,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
@@ -457,8 +457,7 @@ test("Enforce site ban federation for local user", async () => {
 
   // create a test user
   let alphaUserHttp = await registerUser(alpha, alphaUrl);
-  let alphaUserPerson = (await getSite(alphaUserHttp)).my_user?.local_user_view
-    .person;
+  let alphaUserPerson = (await getMyUser(alphaUserHttp)).local_user_view.person;
   let alphaUserActorId = alphaUserPerson?.actor_id;
   if (!alphaUserActorId) {
     throw "Missing alpha user actor id";
@@ -538,8 +537,7 @@ test("Enforce site ban federation for federated user", async () => {
 
   // create a test user
   let alphaUserHttp = await registerUser(alpha, alphaUrl);
-  let alphaUserPerson = (await getSite(alphaUserHttp)).my_user?.local_user_view
-    .person;
+  let alphaUserPerson = (await getMyUser(alphaUserHttp)).local_user_view.person;
   let alphaUserActorId = alphaUserPerson?.actor_id;
   if (!alphaUserActorId) {
     throw "Missing alpha user actor id";
@@ -569,8 +567,7 @@ test("Enforce site ban federation for federated user", async () => {
   expect(banAlphaOnBeta.banned).toBe(true);
 
   // The beta site ban should NOT be federated to alpha
-  let alphaPerson2 = (await getSite(alphaUserHttp)).my_user!.local_user_view
-    .person;
+  let alphaPerson2 = (await getMyUser(alphaUserHttp)).local_user_view.person;
   expect(alphaPerson2.banned).toBe(false);
 
   // existing alpha post should be removed on beta

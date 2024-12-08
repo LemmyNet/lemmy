@@ -6,4 +6,3 @@ pub mod list_all_media;
 pub mod mod_log;
 pub mod purge;
 pub mod registration_applications;
-pub mod user_block_instance;
