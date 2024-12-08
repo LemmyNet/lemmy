@@ -31,6 +31,7 @@ use lemmy_api::{
     list_banned::list_banned_users,
     list_logins::list_logins,
     list_media::list_media,
+    list_saved::list_person_saved,
     login::login,
     logout::logout,
     notifications::{
@@ -143,6 +144,7 @@ use lemmy_api_crud::{
 };
 use lemmy_apub::api::{
   list_comments::list_comments,
+  list_person_content::list_person_content,
   list_posts::list_posts,
   read_community::get_community,
   read_person::read_person,
