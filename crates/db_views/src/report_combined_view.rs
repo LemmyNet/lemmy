@@ -306,9 +306,9 @@ impl ReportCombinedQuery {
       query = query
         .filter(
           post_report::resolved
-            .eq(false)
-            .or(comment_report::resolved.eq(false))
-            .or(private_message_report::resolved.eq(false)),
+            
+            .or(comment_report::resolved)
+            .or(private_message_report::resolved).is_distinct_from(true),
         )
         // TODO: when a `then_asc` method is added, use it here, make the id sort direction match,
         // and remove the separate index; unless additional columns are added to this sort
