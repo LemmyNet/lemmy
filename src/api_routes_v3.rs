@@ -58,7 +58,6 @@ use lemmy_api::{
     comment_report::{create::create_comment_report, resolve::resolve_comment_report},
     post_report::{create::create_post_report, resolve::resolve_post_report},
     private_message_report::{create::create_pm_report, resolve::resolve_pm_report},
-    report_combined::list::list_reports,
   },
   site::{
     federated_instances::get_federated_instances,
@@ -238,11 +237,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/list", get().to(list_comments))
           .route("/report", post().to(create_comment_report))
           .route("/report/resolve", put().to(resolve_comment_report)),
-      )
-      .service(
-        scope("report")
-          .wrap(rate_limit.message())
-          .route("/list", get().to(list_reports)),
       )
       // Private Message
       .service(

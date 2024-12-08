@@ -207,7 +207,9 @@ async function allowInstance(api: LemmyHttp, instance: string) {
   // Ignore errors from duplicate allows (because setup gets called for each test file)
   try {
     await api.adminAllowInstance(params);
-  } catch {}
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 export async function createPost(

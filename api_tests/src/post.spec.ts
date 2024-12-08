@@ -29,7 +29,6 @@ import {
   reportPost,
   randomString,
   registerUser,
-  getSite,
   unfollows,
   resolveCommunity,
   waitUntil,
