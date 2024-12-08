@@ -187,8 +187,7 @@ impl ReportCombinedQuery {
             .or(comment::post_id.eq(post::id)),
         ),
       )
-      // The item creator
-      // You can now use aliases::person1.field(person::id) / item_creator for all the item actions
+      // The item creator (`item_creator` is the id of this person)
       .inner_join(
         aliases::person1.on(
           post::creator_id
