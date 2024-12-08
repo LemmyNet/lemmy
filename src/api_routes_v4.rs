@@ -282,7 +282,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/change_password", put().to(change_password))
           .route("/totp/generate", post().to(generate_totp_secret))
           .route("/totp/update", post().to(update_totp))
-          .route("/verify_email", post().to(verify_email)),
+          .route("/verify_email", post().to(verify_email))
+          .route("/saved", get().to(list_person_saved)),
       )
       .route("/account/settings/save", put().to(save_user_settings))
       .service(
@@ -318,7 +319,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           ),
       )
       // User actions
-      .route("/person", get().to(read_person))
+      .service(
+        scope("/person")
+          .route("", get().to(read_person))
+          .route("/content", get().to(list_person_content)),
+      )
       // Admin Actions
       .service(
         scope("/admin")

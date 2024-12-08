@@ -304,9 +304,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
         scope("/user")
           .wrap(rate_limit.message())
           .route("", get().to(read_person))
-          .route("/content", get().to(list_person_content))
-          // TODO move this to /account/saved after http routes
-          .route("/saved", get().to(list_person_saved))
           .route("/mention", get().to(list_mentions))
           .route(
             "/mention/mark_as_read",
