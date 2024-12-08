@@ -13,6 +13,7 @@ use diesel::{
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
+  PgExpressionMethods,
   QueryDsl,
   SelectableHelper,
 };
@@ -79,9 +80,12 @@ impl ReportCombinedViewInternal {
         Some(my_person_id),
         post::community_id,
       ))
-      .filter(post_report::resolved
-      .or(comment_report::resolved)
-      .or(private_message_report::resolved).is_distinct_from(true))
+      .filter(
+        post_report::resolved
+          .or(comment_report::resolved)
+          .or(private_message_report::resolved)
+          .is_distinct_from(true),
+      )
       .into_boxed();
 
     if let Some(community_id) = community_id {
@@ -306,9 +310,9 @@ impl ReportCombinedQuery {
       query = query
         .filter(
           post_report::resolved
-            
             .or(comment_report::resolved)
-            .or(private_message_report::resolved).is_distinct_from(true),
+            .or(private_message_report::resolved)
+            .is_distinct_from(true),
         )
         // TODO: when a `then_asc` method is added, use it here, make the id sort direction match,
         // and remove the separate index; unless additional columns are added to this sort

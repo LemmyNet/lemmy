@@ -180,8 +180,7 @@ pub struct LtreeDef(pub String);
 pub struct DbUrl(pub(crate) Box<Url>);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
 /// The report combined id
 pub struct ReportCombinedId(i32);
 
