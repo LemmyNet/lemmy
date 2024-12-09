@@ -714,74 +714,50 @@ CALL r.create_person_content_combined_trigger ('post');
 CALL r.create_person_content_combined_trigger ('comment');
 
 -- person_saved (comment, post)
--- TODO, not sure how to handle changes to post_actions and comment_actions.saved column using @dullbanana's trigger method.
--- Post
-CREATE FUNCTION r.person_saved_combined_change_values_post ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
+-- This one is a little different, because it triggers using x_actions.saved,
+-- Rather than any row insert
+CREATE PROCEDURE r.create_person_saved_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
 BEGIN
-    IF (TG_OP = 'DELETE') THEN
-        DELETE FROM person_saved_combined AS p
-        WHERE p.person_id = OLD.person_id
-            AND p.post_id = OLD.post_id;
-    ELSIF (TG_OP = 'INSERT') THEN
-        IF NEW.saved IS NOT NULL THEN
-            INSERT INTO person_saved_combined (published, person_id, post_id)
-                VALUES (NEW.saved, NEW.person_id, NEW.post_id);
-        END IF;
-    ELSIF (TG_OP = 'UPDATE') THEN
-        IF NEW.saved IS NOT NULL THEN
-            INSERT INTO person_saved_combined (published, person_id, post_id)
-                VALUES (NEW.saved, NEW.person_id, NEW.post_id);
-            -- If saved gets set as null, delete the row
-        ELSE
-            DELETE FROM person_saved_combined AS p
-            WHERE p.person_id = NEW.person_id
-                AND p.post_id = NEW.post_id;
-        END IF;
-    END IF;
-    RETURN NULL;
-END
-$$;
+    EXECUTE replace($b$ CREATE FUNCTION r.person_saved_combined_change_values_thing ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                IF (TG_OP = 'DELETE') THEN
+                    DELETE FROM person_saved_combined AS p
+                    WHERE p.person_id = OLD.person_id
+                        AND p.thing_id = OLD.thing_id;
+                ELSIF (TG_OP = 'INSERT') THEN
+                    IF NEW.saved IS NOT NULL THEN
+                        INSERT INTO person_saved_combined (published, person_id, thing_id)
+                            VALUES (NEW.saved, NEW.person_id, NEW.thing_id);
+                    END IF;
+                ELSIF (TG_OP = 'UPDATE') THEN
+                    IF NEW.saved IS NOT NULL THEN
+                        INSERT INTO person_saved_combined (published, person_id, thing_id)
+                            VALUES (NEW.saved, NEW.person_id, NEW.thing_id);
+                        -- If saved gets set as null, delete the row
+                    ELSE
+                        DELETE FROM person_saved_combined AS p
+                        WHERE p.person_id = NEW.person_id
+                            AND p.thing_id = NEW.thing_id;
+                    END IF;
+                END IF;
+                RETURN NULL;
+            END $$;
+    CREATE TRIGGER person_saved_combined
+        AFTER INSERT OR DELETE OR UPDATE OF saved ON thing_actions
+        FOR EACH ROW
+        EXECUTE FUNCTION r.person_saved_combined_change_values_thing ( );
+    $b$,
+    'thing',
+    table_name);
+END;
+$a$;
 
-CREATE TRIGGER person_saved_combined_post
-    AFTER INSERT OR DELETE OR UPDATE OF saved ON post_actions
-    FOR EACH ROW
-    EXECUTE FUNCTION r.person_saved_combined_change_values_post ();
+CALL r.create_person_saved_combined_trigger ('post');
 
--- Comment
-CREATE FUNCTION r.person_saved_combined_change_values_comment ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    IF (TG_OP = 'DELETE') THEN
-        DELETE FROM person_saved_combined AS p
-        WHERE p.person_id = OLD.person_id
-            AND p.comment_id = OLD.comment_id;
-    ELSIF (TG_OP = 'INSERT') THEN
-        IF NEW.saved IS NOT NULL THEN
-            INSERT INTO person_saved_combined (published, person_id, comment_id)
-                VALUES (NEW.saved, NEW.person_id, NEW.comment_id);
-        END IF;
-    ELSIF (TG_OP = 'UPDATE') THEN
-        IF NEW.saved IS NOT NULL THEN
-            INSERT INTO person_saved_combined (published, person_id, comment_id)
-                VALUES (NEW.saved, NEW.person_id, NEW.comment_id);
-            -- If saved gets set as null, delete the row
-        ELSE
-            DELETE FROM person_saved_combined AS p
-            WHERE p.person_id = NEW.person_id
-                AND p.comment_id = NEW.comment_id;
-        END IF;
-    END IF;
-    RETURN NULL;
-END
-$$;
-
-CREATE TRIGGER person_saved_combined_comment
-    AFTER INSERT OR DELETE OR UPDATE OF saved ON comment_actions
-    FOR EACH ROW
-    EXECUTE FUNCTION r.person_saved_combined_change_values_comment ();
+CALL r.create_person_saved_combined_trigger ('comment');
 
