@@ -76,7 +76,7 @@ use tracing::warn;
 use url::{ParseError, Url};
 use urlencoding::encode;
 
-pub static AUTH_COOKIE_NAME: &str = "jwt";
+pub const AUTH_COOKIE_NAME: &str = "jwt";
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
