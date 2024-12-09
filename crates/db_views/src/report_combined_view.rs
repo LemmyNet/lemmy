@@ -1,14 +1,11 @@
-use crate::{
-  structs::{
-    CommentReportView,
-    LocalUserView,
-    PostReportView,
-    PrivateMessageReportView,
-    ReportCombinedPaginationCursor,
-    ReportCombinedView,
-    ReportCombinedViewInternal,
-  },
-  InternalToCombinedView,
+use crate::structs::{
+  CommentReportView,
+  LocalUserView,
+  PostReportView,
+  PrivateMessageReportView,
+  ReportCombinedPaginationCursor,
+  ReportCombinedView,
+  ReportCombinedViewInternal,
 };
 use diesel::{
   result::Error,
@@ -48,6 +45,7 @@ use lemmy_db_schema::{
     community::CommunityFollower,
   },
   utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
+  InternalToCombinedView,
 };
 use lemmy_utils::error::LemmyResult;
 

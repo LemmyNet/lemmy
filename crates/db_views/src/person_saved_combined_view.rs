@@ -1,11 +1,8 @@
-use crate::{
-  structs::{
-    LocalUserView,
-    PersonContentCombinedView,
-    PersonContentViewInternal,
-    PersonSavedCombinedPaginationCursor,
-  },
-  InternalToCombinedView,
+use crate::structs::{
+  LocalUserView,
+  PersonContentCombinedView,
+  PersonContentViewInternal,
+  PersonSavedCombinedPaginationCursor,
 };
 use diesel::{
   result::Error,
@@ -40,6 +37,7 @@ use lemmy_db_schema::{
     community::CommunityFollower,
   },
   utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool},
+  InternalToCombinedView,
 };
 use lemmy_utils::error::LemmyResult;
 

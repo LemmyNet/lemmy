@@ -2720,7 +2720,9 @@ version = "0.19.6-beta.7"
 dependencies = [
  "diesel",
  "diesel-async",
+ "i-love-jesus",
  "lemmy_db_schema",
+ "lemmy_utils",
  "serde",
  "serde_with",
  "ts-rs",
