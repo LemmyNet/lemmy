@@ -2,7 +2,7 @@ use crate::check_report_reason;
 use actix_web::web::{Data, Json};
 use lemmy_api_common::{
   context::LemmyContext,
-  private_message::{CreatePrivateMessageReport, PrivateMessageReportResponse},
+  reports::private_message::{CreatePrivateMessageReport, PrivateMessageReportResponse},
   utils::send_new_report_email_to_admins,
 };
 use lemmy_db_schema::{

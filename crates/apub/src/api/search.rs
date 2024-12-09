@@ -53,7 +53,6 @@ pub async fn search(
     limit,
     title_only,
     post_url_only,
-    saved_only,
     liked_only,
     disliked_only,
   }) = data;
@@ -86,7 +85,6 @@ pub async fn search(
     url_only: post_url_only,
     liked_only,
     disliked_only,
-    saved_only,
     ..Default::default()
   };
 
@@ -101,7 +99,6 @@ pub async fn search(
     limit,
     liked_only,
     disliked_only,
-    saved_only,
     ..Default::default()
   };
 

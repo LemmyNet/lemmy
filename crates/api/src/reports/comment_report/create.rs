@@ -2,8 +2,8 @@ use crate::check_report_reason;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
-  comment::{CommentReportResponse, CreateCommentReport},
   context::LemmyContext,
+  reports::comment::{CommentReportResponse, CreateCommentReport},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_comment_deleted_or_removed,
