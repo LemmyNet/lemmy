@@ -286,6 +286,50 @@ pub struct ModlogListParams {
   #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
   #[cfg_attr(feature = "full", ts(optional))]
+  // TODO page_after, page_back
   pub limit: Option<i64>,
   pub hide_modlog_names: bool,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+/// A combined modlog view
+pub struct ModlogCombinedViewInternal {
+  // Post-specific
+  // Shared
+  pub report_creator: Person,
+  pub item_creator: Person,
+  pub community: Option<Community>,
+  pub subscribed: SubscribedType,
+  pub resolver: Option<Person>,
+  pub item_creator_is_admin: bool,
+  pub item_creator_banned_from_community: bool,
+  pub item_creator_is_moderator: bool,
+  pub item_creator_blocked: bool,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+// Use serde's internal tagging, to work easier with javascript libraries
+#[serde(tag = "type_")]
+pub enum ModlogCombinedView {
+  AdminAllowInstance(AdminAllowInstanceView),
+  AdminBlockInstance(AdminBlockInstanceView),
+  AdminPurgeComment(AdminPurgeCommentView),
+  AdminPurgeCommunity(AdminPurgeCommunityView),
+  AdminPurgePerson(AdminPurgePersonView),
+  AdminPurgePost(AdminPurgePostView),
+  ModAdd(ModAddView),
+  ModAddCommunity(ModAddCommunityView),
+  ModBan(ModBanView),
+  ModBanFromCommunity(ModBanFromCommunityView),
+  ModFeaturePost(ModFeaturePostView),
+  ModHideCommunity(ModHideCommunityView),
+  ModLockPost(ModLockPostView),
+  ModRemoveComment(ModRemoveCommentView),
+  ModRemoveCommunity(ModRemoveCommunityView),
+  ModRemovePost(ModRemovePostView),
+  ModTransferCommunity(ModTransferCommunityView),
 }
