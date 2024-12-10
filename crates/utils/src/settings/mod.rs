@@ -49,7 +49,7 @@ impl Settings {
 
   pub fn get_database_url(&self) -> String {
     if let Ok(url) = env::var("LEMMY_DATABASE_URL") {
-      return url;
+      url
     } else {
       self.database.connection.clone()
     }
