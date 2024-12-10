@@ -22,7 +22,6 @@ import {
   createCommunity,
   registerUser,
   reportComment,
-  listCommentReports,
   randomString,
   unfollows,
   getComments,
@@ -38,8 +37,15 @@ import {
   blockCommunity,
   delay,
   saveUserSettings,
+  listReports,
 } from "./shared";
-import { CommentView, CommunityView, SaveUserSettings } from "lemmy-js-client";
+import {
+  CommentReportView,
+  CommentView,
+  CommunityView,
+  ReportCombinedView,
+  SaveUserSettings,
+} from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 let postOnAlphaRes: PostResponse;
@@ -796,13 +802,17 @@ test("Report a comment", async () => {
   let alphaReport = (await reportComment(alpha, alphaComment.id, reason))
     .comment_report_view.comment_report;
 
-  let betaReport = (await waitUntil(
-    () =>
-      listCommentReports(beta).then(r =>
-        r.comment_reports.find(rep => rep.comment_report.reason === reason),
-      ),
-    e => !!e,
-  ))!.comment_report;
+  let betaReport = (
+    (await waitUntil(
+      () =>
+        listReports(beta).then(p =>
+          p.reports.find(r => {
+            return checkCommentReportReason(r, reason);
+          }),
+        ),
+      e => !!e,
+    )!) as CommentReportView
+  ).comment_report;
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
   expect(betaReport.original_comment_text).toBe(
@@ -877,3 +887,12 @@ test.skip("Fetch a deeply nested comment", async () => {
   expect(betaComment!.comment!.comment).toBeDefined();
   expect(betaComment?.comment?.post).toBeDefined();
 });
+
+function checkCommentReportReason(rcv: ReportCombinedView, reason: string) {
+  switch (rcv.type_) {
+    case "Comment":
+      return rcv.comment_report.reason === reason;
+    default:
+      return false;
+  }
+}
