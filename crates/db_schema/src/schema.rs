@@ -634,6 +634,30 @@ diesel::table! {
 }
 
 diesel::table! {
+    modlog_combined (id) {
+        id -> Int4,
+        published -> Timestamptz,
+        admin_allow_instance_id -> Nullable<Int4>,
+        admin_block_instance_id -> Nullable<Int4>,
+        admin_purge_comment_id -> Nullable<Int4>,
+        admin_purge_community_id -> Nullable<Int4>,
+        admin_purge_person_id -> Nullable<Int4>,
+        admin_purge_post_id -> Nullable<Int4>,
+        mod_add_id -> Nullable<Int4>,
+        mod_add_community_id -> Nullable<Int4>,
+        mod_ban_id -> Nullable<Int4>,
+        mod_ban_from_community_id -> Nullable<Int4>,
+        mod_feature_post_id -> Nullable<Int4>,
+        mod_hide_community_id -> Nullable<Int4>,
+        mod_lock_post_id -> Nullable<Int4>,
+        mod_remove_comment_id -> Nullable<Int4>,
+        mod_remove_community_id -> Nullable<Int4>,
+        mod_remove_post_id -> Nullable<Int4>,
+        mod_transfer_community_id -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
     oauth_account (oauth_provider_id, local_user_id) {
         local_user_id -> Int4,
         oauth_provider_id -> Int4,
@@ -730,12 +754,31 @@ diesel::table! {
 }
 
 diesel::table! {
+    person_content_combined (id) {
+        id -> Int4,
+        published -> Timestamptz,
+        post_id -> Nullable<Int4>,
+        comment_id -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
     person_mention (id) {
         id -> Int4,
         recipient_id -> Int4,
         comment_id -> Int4,
         read -> Bool,
         published -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    person_saved_combined (id) {
+        id -> Int4,
+        published -> Timestamptz,
+        person_id -> Int4,
+        post_id -> Nullable<Int4>,
+        comment_id -> Nullable<Int4>,
     }
 }
 
@@ -882,6 +925,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    report_combined (id) {
+        id -> Int4,
+        published -> Timestamptz,
+        post_report_id -> Nullable<Int4>,
+        comment_report_id -> Nullable<Int4>,
+        private_message_report_id -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
     secret (id) {
         id -> Int4,
         jwt_secret -> Varchar,
@@ -1014,14 +1067,36 @@ diesel::joinable!(mod_remove_community -> person (mod_person_id));
 diesel::joinable!(mod_remove_post -> person (mod_person_id));
 diesel::joinable!(mod_remove_post -> post (post_id));
 diesel::joinable!(mod_transfer_community -> community (community_id));
+diesel::joinable!(modlog_combined -> admin_allow_instance (admin_allow_instance_id));
+diesel::joinable!(modlog_combined -> admin_block_instance (admin_block_instance_id));
+diesel::joinable!(modlog_combined -> admin_purge_comment (admin_purge_comment_id));
+diesel::joinable!(modlog_combined -> admin_purge_community (admin_purge_community_id));
+diesel::joinable!(modlog_combined -> admin_purge_person (admin_purge_person_id));
+diesel::joinable!(modlog_combined -> admin_purge_post (admin_purge_post_id));
+diesel::joinable!(modlog_combined -> mod_add (mod_add_id));
+diesel::joinable!(modlog_combined -> mod_add_community (mod_add_community_id));
+diesel::joinable!(modlog_combined -> mod_ban (mod_ban_id));
+diesel::joinable!(modlog_combined -> mod_ban_from_community (mod_ban_from_community_id));
+diesel::joinable!(modlog_combined -> mod_feature_post (mod_feature_post_id));
+diesel::joinable!(modlog_combined -> mod_hide_community (mod_hide_community_id));
+diesel::joinable!(modlog_combined -> mod_lock_post (mod_lock_post_id));
+diesel::joinable!(modlog_combined -> mod_remove_comment (mod_remove_comment_id));
+diesel::joinable!(modlog_combined -> mod_remove_community (mod_remove_community_id));
+diesel::joinable!(modlog_combined -> mod_remove_post (mod_remove_post_id));
+diesel::joinable!(modlog_combined -> mod_transfer_community (mod_transfer_community_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));
 diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
 diesel::joinable!(person -> instance (instance_id));
 diesel::joinable!(person_aggregates -> person (person_id));
 diesel::joinable!(person_ban -> person (person_id));
+diesel::joinable!(person_content_combined -> comment (comment_id));
+diesel::joinable!(person_content_combined -> post (post_id));
 diesel::joinable!(person_mention -> comment (comment_id));
 diesel::joinable!(person_mention -> person (recipient_id));
+diesel::joinable!(person_saved_combined -> comment (comment_id));
+diesel::joinable!(person_saved_combined -> person (person_id));
+diesel::joinable!(person_saved_combined -> post (post_id));
 diesel::joinable!(post -> community (community_id));
 diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
@@ -1035,6 +1110,9 @@ diesel::joinable!(post_report -> post (post_id));
 diesel::joinable!(private_message_report -> private_message (private_message_id));
 diesel::joinable!(registration_application -> local_user (local_user_id));
 diesel::joinable!(registration_application -> person (admin_id));
+diesel::joinable!(report_combined -> comment_report (comment_report_id));
+diesel::joinable!(report_combined -> post_report (post_report_id));
+diesel::joinable!(report_combined -> private_message_report (private_message_report_id));
 diesel::joinable!(site -> instance (instance_id));
 diesel::joinable!(site_aggregates -> site (site_id));
 diesel::joinable!(site_language -> language (language_id));
@@ -1086,6 +1164,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     mod_remove_community,
     mod_remove_post,
     mod_transfer_community,
+    modlog_combined,
     oauth_account,
     oauth_provider,
     password_reset_request,
@@ -1093,7 +1172,9 @@ diesel::allow_tables_to_appear_in_same_query!(
     person_actions,
     person_aggregates,
     person_ban,
+    person_content_combined,
     person_mention,
+    person_saved_combined,
     post,
     post_actions,
     post_aggregates,
@@ -1103,6 +1184,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     received_activity,
     registration_application,
     remote_image,
+    report_combined,
     secret,
     sent_activity,
     site,

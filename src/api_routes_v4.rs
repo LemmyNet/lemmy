@@ -6,11 +6,6 @@ use lemmy_api::{
     list_comment_likes::list_comment_likes,
     save::save_comment,
   },
-  comment_report::{
-    create::create_comment_report,
-    list::list_comment_reports,
-    resolve::resolve_comment_report,
-  },
   community::{
     add_mod::add_mod_to_community,
     ban::ban_from_community,
@@ -36,6 +31,7 @@ use lemmy_api::{
     list_banned::list_banned_users,
     list_logins::list_logins,
     list_media::list_media,
+    list_saved::list_person_saved,
     login::login,
     logout::logout,
     notifications::{
@@ -65,16 +61,12 @@ use lemmy_api::{
     mark_read::mark_post_as_read,
     save::save_post,
   },
-  post_report::{
-    create::create_post_report,
-    list::list_post_reports,
-    resolve::resolve_post_report,
-  },
   private_message::mark_read::mark_pm_as_read,
-  private_message_report::{
-    create::create_pm_report,
-    list::list_pm_reports,
-    resolve::resolve_pm_report,
+  reports::{
+    comment_report::{create::create_comment_report, resolve::resolve_comment_report},
+    post_report::{create::create_post_report, resolve::resolve_post_report},
+    private_message_report::{create::create_pm_report, resolve::resolve_pm_report},
+    report_combined::list::list_reports,
   },
   site::{
     admin_allow_instance::admin_allow_instance,
@@ -152,6 +144,7 @@ use lemmy_api_crud::{
 };
 use lemmy_apub::api::{
   list_comments::list_comments,
+  list_person_content::list_person_content,
   list_posts::list_posts,
   read_community::get_community,
   read_person::read_person,
@@ -235,7 +228,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/save", put().to(save_post))
           .route("/report", post().to(create_post_report))
           .route("/report/resolve", put().to(resolve_post_report))
-          .route("/report/list", get().to(list_post_reports))
           .route("/site_metadata", get().to(get_link_metadata)),
       )
       // Comment
@@ -259,8 +251,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/save", put().to(save_comment))
           .route("/list", get().to(list_comments))
           .route("/report", post().to(create_comment_report))
-          .route("/report/resolve", put().to(resolve_comment_report))
-          .route("/report/list", get().to(list_comment_reports)),
+          .route("/report/resolve", put().to(resolve_comment_report)),
       )
       // Private Message
       .service(
@@ -271,8 +262,13 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/delete", post().to(delete_private_message))
           .route("/mark_as_read", post().to(mark_pm_as_read))
           .route("/report", post().to(create_pm_report))
-          .route("/report/resolve", put().to(resolve_pm_report))
-          .route("/report/list", get().to(list_pm_reports)),
+          .route("/report/resolve", put().to(resolve_pm_report)),
+      )
+      // Reports
+      .service(
+        scope("/report")
+          .wrap(rate_limit.message())
+          .route("/list", get().to(list_reports)),
       )
       // User
       .service(
@@ -288,7 +284,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/change_password", put().to(change_password))
           .route("/totp/generate", post().to(generate_totp_secret))
           .route("/totp/update", post().to(update_totp))
-          .route("/verify_email", post().to(verify_email)),
+          .route("/verify_email", post().to(verify_email))
+          .route("/saved", get().to(list_person_saved)),
       )
       .route("/account/settings/save", put().to(save_user_settings))
       .service(
@@ -324,7 +321,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           ),
       )
       // User actions
-      .route("/person", get().to(read_person))
+      .service(
+        scope("/person")
+          .route("", get().to(read_person))
+          .route("/content", get().to(list_person_content)),
+      )
       // Admin Actions
       .service(
         scope("/admin")
