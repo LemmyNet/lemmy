@@ -6,12 +6,12 @@ variables:
   # as well. Otherwise release builds can fail if Lemmy or dependencies rely on new Rust
   # features. In particular the ARM builder image needs to be updated manually in the repo below:
   # https://github.com/raskyld/lemmy-cross-toolchains
-  - &rust_image "rust:1.81-slim"
+  - &rust_image "rust:1.81-alpine"
   - &rust_nightly_image "rustlang/rust:nightly-slim"
   - &install_pnpm "corepack enable pnpm"
   - &install_binstall "wget -O- https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xvz -C /usr/local/cargo/bin"
   - install_diesel_cli: &install_diesel_cli
-      - apt-get update && apt-get install -y postgresql-client
+      - apk add --update postgresql-client
       - cargo install diesel_cli --no-default-features --features postgres
       - export PATH="$CARGO_HOME/bin:$PATH"
   - &slow_check_paths
@@ -233,7 +233,7 @@ steps:
       DO_WRITE_HOSTS_FILE: "1"
     commands:
       - *install_pnpm
-      - apt-get update && apt-get install -y bash curl postgresql-client
+      - apk add --update bash curl postgresql-client
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - pnpm i
