@@ -8,7 +8,7 @@
     site_name: lemmy-epsilon
   }
   database: {
-    host: postgres_epsilon
+    connection: "postgres://lemmy:password@postgres_epsilon:5432/lemmy"
   }
   pictrs: {
     api_key: "my-pictrs-key"
