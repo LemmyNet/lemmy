@@ -132,62 +132,22 @@ pub enum PictrsImageMode {
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default)]
 pub struct DatabaseConfig {
-  #[serde(flatten, default)]
-  pub(crate) connection: DatabaseConnection,
+  /// Configure the database by specifying URI pointing to a postgres instance
+  ///
+  /// This example uses peer authentication to obviate the need for creating,
+  /// configuring, and managing passwords.
+  ///
+  /// For an explanation of how to use connection URIs, see [here][0] in
+  /// PostgreSQL's documentation.
+  ///
+  /// [0]: https://www.postgresql.org/docs/current/libpq-connect.html#id-1.7.3.8.3.6
+  #[default("postgres://lemmy:password@localhost:5432/lemmy")]
+  #[doku(example = "postgresql:///lemmy?user=lemmy&host=/var/run/postgresql")]
+  pub(crate) connection: String,
 
   /// Maximum number of active sql connections
   #[default(30)]
   pub pool_size: usize,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(untagged)]
-pub enum DatabaseConnection {
-  /// Configure the database by specifying a URI
-  ///
-  /// This is the preferred method to specify database connection details since
-  /// it is the most flexible.
-  Uri {
-    /// Connection URI pointing to a postgres instance
-    ///
-    /// This example uses peer authentication to obviate the need for creating,
-    /// configuring, and managing passwords.
-    ///
-    /// For an explanation of how to use connection URIs, see [here][0] in
-    /// PostgreSQL's documentation.
-    ///
-    /// [0]: https://www.postgresql.org/docs/current/libpq-connect.html#id-1.7.3.8.3.6
-    #[doku(example = "postgresql:///lemmy?user=lemmy&host=/var/run/postgresql")]
-    uri: String,
-  },
-
-  /// Configure the database by specifying parts of a URI
-  ///
-  /// Note that specifying the `uri` field should be preferred since it provides
-  /// greater control over how the connection is made. This merely exists for
-  /// backwards-compatibility.
-  #[default]
-  Parts(DatabaseConnectionParts),
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(default)]
-pub struct DatabaseConnectionParts {
-  /// Username to connect to postgres
-  #[default("lemmy")]
-  pub(super) user: String,
-  /// Password to connect to postgres
-  #[default("password")]
-  pub(super) password: String,
-  #[default("localhost")]
-  /// Host where postgres is running
-  pub(super) host: String,
-  /// Port where postgres can be accessed
-  #[default(5432)]
-  pub(super) port: i32,
-  /// Name of the postgres database for lemmy
-  #[default("lemmy")]
-  pub(super) database: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Document, SmartDefault)]
