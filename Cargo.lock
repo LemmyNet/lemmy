@@ -2723,8 +2723,11 @@ dependencies = [
  "i-love-jesus",
  "lemmy_db_schema",
  "lemmy_utils",
+ "pretty_assertions",
  "serde",
  "serde_with",
+ "serial_test",
+ "tokio",
  "ts-rs",
 ]
 

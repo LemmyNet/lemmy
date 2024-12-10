@@ -33,3 +33,8 @@ diesel-async = { workspace = true, features = [
 serde = { workspace = true }
 serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }
+
+[dev-dependencies]
+serial_test = { workspace = true }
+tokio = { workspace = true }
+pretty_assertions = { workspace = true }

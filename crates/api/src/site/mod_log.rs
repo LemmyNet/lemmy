@@ -55,7 +55,7 @@ pub async fn get_mod_log(
     modded_person_id,
     post_id,
     comment_id,
-    hide_modlog_names,
+    hide_modlog_names: Some(hide_modlog_names),
     page_after,
     page_back,
   }

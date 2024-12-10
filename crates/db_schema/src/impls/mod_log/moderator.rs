@@ -476,8 +476,8 @@ mod tests {
     let mod_feature_post_form = ModFeaturePostForm {
       mod_person_id: inserted_mod.id,
       post_id: inserted_post.id,
-      featured: false,
-      is_featured_community: true,
+      featured: Some(false),
+      is_featured_community: Some(true),
     };
     let inserted_mod_feature_post = ModFeaturePost::create(pool, &mod_feature_post_form).await?;
     let read_mod_feature_post = ModFeaturePost::read(pool, inserted_mod_feature_post.id).await?;

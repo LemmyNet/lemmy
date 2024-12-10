@@ -183,5 +183,4 @@ pub struct AdminBlockInstanceForm {
   pub admin_person_id: PersonId,
   pub blocked: bool,
   pub reason: Option<String>,
-  pub when_: Option<DateTime<Utc>>,
 }

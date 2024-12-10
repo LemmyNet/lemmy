@@ -166,4 +166,3 @@ SELECT
 FROM
     mod_transfer_community;
 
-

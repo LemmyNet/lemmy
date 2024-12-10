@@ -789,7 +789,7 @@ BEGIN
             AS $$
             BEGIN
                 INSERT INTO modlog_combined (published, thing_id)
-                    VALUES (NEW.published, NEW.id);
+                    VALUES (NEW.when_, NEW.id);
                 RETURN NEW;
             END $$;
     CREATE TRIGGER modlog_combined
@@ -803,19 +803,36 @@ END;
 $a$;
 
 CALL r.create_modlog_combined_trigger ('admin_allow_instance');
+
 CALL r.create_modlog_combined_trigger ('admin_block_instance');
+
 CALL r.create_modlog_combined_trigger ('admin_purge_comment');
+
 CALL r.create_modlog_combined_trigger ('admin_purge_community');
+
 CALL r.create_modlog_combined_trigger ('admin_purge_person');
+
 CALL r.create_modlog_combined_trigger ('admin_purge_post');
+
 CALL r.create_modlog_combined_trigger ('mod_add');
+
 CALL r.create_modlog_combined_trigger ('mod_add_community');
+
 CALL r.create_modlog_combined_trigger ('mod_ban');
+
 CALL r.create_modlog_combined_trigger ('mod_ban_from_community');
+
 CALL r.create_modlog_combined_trigger ('mod_feature_post');
+
 CALL r.create_modlog_combined_trigger ('mod_hide_community');
+
 CALL r.create_modlog_combined_trigger ('mod_lock_post');
+
 CALL r.create_modlog_combined_trigger ('mod_remove_comment');
+
 CALL r.create_modlog_combined_trigger ('mod_remove_community');
+
 CALL r.create_modlog_combined_trigger ('mod_remove_post');
+
 CALL r.create_modlog_combined_trigger ('mod_transfer_community');
+

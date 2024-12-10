@@ -103,8 +103,8 @@ pub struct ModFeaturePost {
 pub struct ModFeaturePostForm {
   pub mod_person_id: PersonId,
   pub post_id: PostId,
-  pub featured: bool,
-  pub is_featured_community: bool,
+  pub featured: Option<bool>,
+  pub is_featured_community: Option<bool>,
 }
 
 #[skip_serializing_none]

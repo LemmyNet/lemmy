@@ -149,7 +149,7 @@ pub struct ModlogCombinedQuery {
   pub comment_id: Option<CommentId>,
   pub post_id: Option<PostId>,
   pub community_id: Option<CommunityId>,
-  pub hide_modlog_names: bool,
+  pub hide_modlog_names: Option<bool>,
   pub mod_person_id: Option<PersonId>,
   pub modded_person_id: Option<PersonId>,
   pub page_after: Option<PaginationCursorData>,
@@ -161,7 +161,7 @@ impl ModlogCombinedQuery {
     let conn = &mut get_conn(pool).await?;
 
     let mod_person = self.mod_person_id.unwrap_or(PersonId(-1));
-    let show_mod_names = !self.hide_modlog_names;
+    let show_mod_names = !(self.hide_modlog_names.unwrap_or_default());
     let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
 
     let modded_person = aliases::person1.field(person::id);
@@ -605,4 +605,801 @@ impl InternalToCombinedView for ModlogCombinedViewInternal {
   }
 }
 
-// TODO add tests, especially for all the filters
+#[cfg(test)]
+#[expect(clippy::indexing_slicing)]
+mod tests {
+
+  use crate::{modlog_combined_view::ModlogCombinedQuery, structs::ModlogCombinedView};
+  use lemmy_db_schema::{
+    newtypes::PersonId,
+    source::{
+      comment::{Comment, CommentInsertForm},
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      mod_log::{
+        admin::{
+          AdminAllowInstance,
+          AdminAllowInstanceForm,
+          AdminBlockInstance,
+          AdminBlockInstanceForm,
+          AdminPurgeComment,
+          AdminPurgeCommentForm,
+          AdminPurgeCommunity,
+          AdminPurgeCommunityForm,
+          AdminPurgePerson,
+          AdminPurgePersonForm,
+          AdminPurgePost,
+          AdminPurgePostForm,
+        },
+        moderator::{
+          ModAdd,
+          ModAddCommunity,
+          ModAddCommunityForm,
+          ModAddForm,
+          ModBan,
+          ModBanForm,
+          ModBanFromCommunity,
+          ModBanFromCommunityForm,
+          ModFeaturePost,
+          ModFeaturePostForm,
+          ModHideCommunity,
+          ModHideCommunityForm,
+          ModLockPost,
+          ModLockPostForm,
+          ModRemoveComment,
+          ModRemoveCommentForm,
+          ModRemoveCommunity,
+          ModRemoveCommunityForm,
+          ModRemovePost,
+          ModRemovePostForm,
+          ModTransferCommunity,
+          ModTransferCommunityForm,
+        },
+      },
+      person::{Person, PersonInsertForm},
+      post::{Post, PostInsertForm},
+    },
+    traits::Crud,
+    utils::{build_db_pool_for_tests, DbPool},
+    ModlogActionType,
+  };
+  use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
+  use serial_test::serial;
+
+  struct Data {
+    instance: Instance,
+    timmy: Person,
+    sara: Person,
+    jessica: Person,
+    community: Community,
+    community_2: Community,
+    post: Post,
+    post_2: Post,
+    comment: Comment,
+    comment_2: Comment,
+  }
+
+  async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
+    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_rcv");
+    let timmy = Person::create(pool, &timmy_form).await?;
+
+    let sara_form = PersonInsertForm::test_form(instance.id, "sara_rcv");
+    let sara = Person::create(pool, &sara_form).await?;
+
+    let jessica_form = PersonInsertForm::test_form(instance.id, "jessica_mrv");
+    let jessica = Person::create(pool, &jessica_form).await?;
+
+    let community_form = CommunityInsertForm::new(
+      instance.id,
+      "test community crv".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let community = Community::create(pool, &community_form).await?;
+
+    let community_form_2 = CommunityInsertForm::new(
+      instance.id,
+      "test community crv 2".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let community_2 = Community::create(pool, &community_form_2).await?;
+
+    let post_form = PostInsertForm::new("A test post crv".into(), timmy.id, community.id);
+    let post = Post::create(pool, &post_form).await?;
+
+    let new_post_2 = PostInsertForm::new("A test post crv 2".into(), sara.id, community_2.id);
+    let post_2 = Post::create(pool, &new_post_2).await?;
+
+    // Timmy creates a comment
+    let comment_form = CommentInsertForm::new(timmy.id, post.id, "A test comment rv".into());
+    let comment = Comment::create(pool, &comment_form, None).await?;
+
+    // jessica creates a comment
+    let comment_form_2 =
+      CommentInsertForm::new(jessica.id, post_2.id, "A test comment rv 2".into());
+    let comment_2 = Comment::create(pool, &comment_form_2, None).await?;
+
+    Ok(Data {
+      instance,
+      timmy,
+      sara,
+      jessica,
+      community,
+      community_2,
+      post,
+      post_2,
+      comment,
+      comment_2,
+    })
+  }
+
+  async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    Instance::delete(pool, data.instance.id).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn admin_types() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let form = AdminAllowInstanceForm {
+      instance_id: data.instance.id,
+      admin_person_id: data.timmy.id,
+      allowed: true,
+      reason: None,
+    };
+    AdminAllowInstance::create(pool, &form).await?;
+
+    let form = AdminBlockInstanceForm {
+      instance_id: data.instance.id,
+      admin_person_id: data.timmy.id,
+      blocked: true,
+      reason: None,
+    };
+    AdminBlockInstance::create(pool, &form).await?;
+
+    let form = AdminPurgeCommentForm {
+      admin_person_id: data.timmy.id,
+      post_id: data.post.id,
+      reason: None,
+    };
+    AdminPurgeComment::create(pool, &form).await?;
+
+    let form = AdminPurgeCommunityForm {
+      admin_person_id: data.timmy.id,
+      reason: None,
+    };
+    AdminPurgeCommunity::create(pool, &form).await?;
+
+    let form = AdminPurgePersonForm {
+      admin_person_id: data.timmy.id,
+      reason: None,
+    };
+    AdminPurgePerson::create(pool, &form).await?;
+
+    let form = AdminPurgePostForm {
+      admin_person_id: data.timmy.id,
+      community_id: data.community.id,
+      reason: None,
+    };
+    AdminPurgePost::create(pool, &form).await?;
+
+    let form = ModHideCommunityForm {
+      mod_person_id: data.timmy.id,
+      community_id: data.community.id,
+      hidden: Some(true),
+      reason: None,
+    };
+    ModHideCommunity::create(pool, &form).await?;
+
+    // A 2nd mod hide community, but to a different community, and with jessica
+    let form = ModHideCommunityForm {
+      mod_person_id: data.jessica.id,
+      community_id: data.community_2.id,
+      hidden: Some(true),
+      reason: None,
+    };
+    ModHideCommunity::create(pool, &form).await?;
+
+    let modlog = ModlogCombinedQuery::default().list(pool).await?;
+    assert_eq!(8, modlog.len());
+
+    if let ModlogCombinedView::ModHideCommunity(v) = &modlog[0] {
+      assert_eq!(data.community_2.id, v.mod_hide_community.community_id);
+      assert_eq!(data.community_2.id, v.community.id);
+      assert_eq!(
+        data.jessica.id,
+        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::ModHideCommunity(v) = &modlog[1] {
+      assert_eq!(data.community.id, v.mod_hide_community.community_id);
+      assert_eq!(data.community.id, v.community.id);
+      assert_eq!(
+        data.timmy.id,
+        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::AdminPurgePost(v) = &modlog[2] {
+      assert_eq!(data.community.id, v.admin_purge_post.community_id);
+      assert_eq!(data.community.id, v.community.id);
+      assert_eq!(
+        data.timmy.id,
+        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::AdminPurgePerson(v) = &modlog[3] {
+      assert_eq!(
+        data.timmy.id,
+        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::AdminPurgeCommunity(v) = &modlog[4] {
+      assert_eq!(
+        data.timmy.id,
+        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::AdminPurgeComment(v) = &modlog[5] {
+      assert_eq!(data.post.id, v.admin_purge_comment.post_id);
+      assert_eq!(data.post.id, v.post.id);
+      assert_eq!(
+        data.timmy.id,
+        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+    } else {
+      panic!("wrong type");
+    }
+
+    // Make sure the report types are correct
+    if let ModlogCombinedView::AdminBlockInstance(v) = &modlog[6] {
+      assert_eq!(data.instance.id, v.admin_block_instance.instance_id);
+      assert_eq!(data.instance.id, v.instance.id);
+      assert_eq!(
+        data.timmy.id,
+        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::AdminAllowInstance(v) = &modlog[7] {
+      assert_eq!(data.instance.id, v.admin_allow_instance.instance_id);
+      assert_eq!(data.instance.id, v.instance.id);
+      assert_eq!(
+        data.timmy.id,
+        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+    } else {
+      panic!("wrong type");
+    }
+
+    // Filter by admin
+    let modlog_admin_filter = ModlogCombinedQuery {
+      mod_person_id: Some(data.timmy.id),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    // Only one is jessica
+    assert_eq!(7, modlog_admin_filter.len());
+
+    // Filter by community
+    let modlog_community_filter = ModlogCombinedQuery {
+      community_id: Some(data.community.id),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+
+    // Should be 2, and not jessicas
+    assert_eq!(2, modlog_community_filter.len());
+
+    // Filter by type
+    let modlog_type_filter = ModlogCombinedQuery {
+      type_: Some(ModlogActionType::ModHideCommunity),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+
+    // 2 of these, one is jessicas
+    assert_eq!(2, modlog_type_filter.len());
+
+    if let ModlogCombinedView::ModHideCommunity(v) = &modlog_type_filter[0] {
+      assert_eq!(data.community_2.id, v.mod_hide_community.community_id);
+      assert_eq!(data.community_2.id, v.community.id);
+      assert_eq!(
+        data.jessica.id,
+        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::ModHideCommunity(v) = &modlog_type_filter[1] {
+      assert_eq!(data.community.id, v.mod_hide_community.community_id);
+      assert_eq!(data.community.id, v.community.id);
+      assert_eq!(
+        data.timmy.id,
+        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+    } else {
+      panic!("wrong type");
+    }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn mod_types() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let form = ModAddForm {
+      mod_person_id: data.timmy.id,
+      other_person_id: data.jessica.id,
+      removed: Some(false),
+    };
+    ModAdd::create(pool, &form).await?;
+
+    let form = ModAddCommunityForm {
+      mod_person_id: data.timmy.id,
+      other_person_id: data.jessica.id,
+      community_id: data.community.id,
+      removed: Some(false),
+    };
+    ModAddCommunity::create(pool, &form).await?;
+
+    let form = ModBanForm {
+      mod_person_id: data.timmy.id,
+      other_person_id: data.jessica.id,
+      banned: Some(true),
+      reason: None,
+      expires: None,
+    };
+    ModBan::create(pool, &form).await?;
+
+    let form = ModBanFromCommunityForm {
+      mod_person_id: data.timmy.id,
+      other_person_id: data.jessica.id,
+      community_id: data.community.id,
+      banned: Some(true),
+      reason: None,
+      expires: None,
+    };
+    ModBanFromCommunity::create(pool, &form).await?;
+
+    let form = ModFeaturePostForm {
+      mod_person_id: data.timmy.id,
+      post_id: data.post.id,
+      featured: Some(true),
+      is_featured_community: None,
+    };
+    ModFeaturePost::create(pool, &form).await?;
+
+    let form = ModLockPostForm {
+      mod_person_id: data.timmy.id,
+      post_id: data.post.id,
+      locked: Some(true),
+    };
+    ModLockPost::create(pool, &form).await?;
+
+    let form = ModRemoveCommentForm {
+      mod_person_id: data.timmy.id,
+      comment_id: data.comment.id,
+      removed: Some(true),
+      reason: None,
+    };
+    ModRemoveComment::create(pool, &form).await?;
+
+    let form = ModRemoveCommunityForm {
+      mod_person_id: data.timmy.id,
+      community_id: data.community.id,
+      removed: Some(true),
+      reason: None,
+    };
+    ModRemoveCommunity::create(pool, &form).await?;
+
+    let form = ModRemovePostForm {
+      mod_person_id: data.timmy.id,
+      post_id: data.post.id,
+      removed: Some(true),
+      reason: None,
+    };
+    ModRemovePost::create(pool, &form).await?;
+
+    let form = ModTransferCommunityForm {
+      mod_person_id: data.timmy.id,
+      other_person_id: data.jessica.id,
+      community_id: data.community.id,
+    };
+    ModTransferCommunity::create(pool, &form).await?;
+
+    // A few extra ones to test different filters
+    let form = ModTransferCommunityForm {
+      mod_person_id: data.jessica.id,
+      other_person_id: data.sara.id,
+      community_id: data.community_2.id,
+    };
+    ModTransferCommunity::create(pool, &form).await?;
+
+    let form = ModRemovePostForm {
+      mod_person_id: data.jessica.id,
+      post_id: data.post_2.id,
+      removed: Some(true),
+      reason: None,
+    };
+    ModRemovePost::create(pool, &form).await?;
+
+    let form = ModRemoveCommentForm {
+      mod_person_id: data.jessica.id,
+      comment_id: data.comment_2.id,
+      removed: Some(true),
+      reason: None,
+    };
+    ModRemoveComment::create(pool, &form).await?;
+
+    // The all view
+    let modlog = ModlogCombinedQuery::default().list(pool).await?;
+    assert_eq!(13, modlog.len());
+
+    if let ModlogCombinedView::ModRemoveComment(v) = &modlog[0] {
+      assert_eq!(data.comment_2.id, v.mod_remove_comment.comment_id);
+      assert_eq!(data.comment_2.id, v.comment.id);
+      assert_eq!(data.post_2.id, v.post.id);
+      assert_eq!(data.community_2.id, v.community.id);
+      assert_eq!(
+        data.jessica.id,
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+      assert_eq!(data.jessica.id, v.modded_person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::ModRemovePost(v) = &modlog[1] {
+      assert_eq!(data.post_2.id, v.mod_remove_post.post_id);
+      assert_eq!(data.post_2.id, v.post.id);
+      assert_eq!(data.sara.id, v.post.creator_id);
+      assert_eq!(data.community_2.id, v.community.id);
+      assert_eq!(
+        data.jessica.id,
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+      assert_eq!(data.sara.id, v.modded_person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::ModTransferCommunity(v) = &modlog[2] {
+      assert_eq!(data.community_2.id, v.mod_transfer_community.community_id);
+      assert_eq!(data.community_2.id, v.community.id);
+      assert_eq!(
+        data.jessica.id,
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+      assert_eq!(data.sara.id, v.modded_person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::ModTransferCommunity(v) = &modlog[3] {
+      assert_eq!(data.community.id, v.mod_transfer_community.community_id);
+      assert_eq!(data.community.id, v.community.id);
+      assert_eq!(
+        data.timmy.id,
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+      assert_eq!(data.jessica.id, v.modded_person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::ModRemovePost(v) = &modlog[4] {
+      assert_eq!(data.post.id, v.mod_remove_post.post_id);
+      assert_eq!(data.post.id, v.post.id);
+      assert_eq!(data.timmy.id, v.post.creator_id);
+      assert_eq!(data.community.id, v.community.id);
+      assert_eq!(
+        data.timmy.id,
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+      assert_eq!(data.timmy.id, v.modded_person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::ModRemoveCommunity(v) = &modlog[5] {
+      assert_eq!(data.community.id, v.mod_remove_community.community_id);
+      assert_eq!(data.community.id, v.community.id);
+      assert_eq!(
+        data.timmy.id,
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::ModRemoveComment(v) = &modlog[6] {
+      assert_eq!(data.comment.id, v.mod_remove_comment.comment_id);
+      assert_eq!(data.comment.id, v.comment.id);
+      assert_eq!(data.post.id, v.post.id);
+      assert_eq!(data.community.id, v.community.id);
+      assert_eq!(
+        data.timmy.id,
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+      assert_eq!(data.timmy.id, v.modded_person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::ModLockPost(v) = &modlog[7] {
+      assert_eq!(data.post.id, v.mod_lock_post.post_id);
+      assert!(v.mod_lock_post.locked);
+      assert_eq!(data.post.id, v.post.id);
+      assert_eq!(data.timmy.id, v.post.creator_id);
+      assert_eq!(data.community.id, v.community.id);
+      assert_eq!(
+        data.timmy.id,
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+      assert_eq!(data.timmy.id, v.modded_person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::ModFeaturePost(v) = &modlog[8] {
+      assert_eq!(data.post.id, v.mod_feature_post.post_id);
+      assert!(v.mod_feature_post.featured);
+      assert_eq!(data.post.id, v.post.id);
+      assert_eq!(data.timmy.id, v.post.creator_id);
+      assert_eq!(data.community.id, v.community.id);
+      assert_eq!(
+        data.timmy.id,
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+      assert_eq!(data.timmy.id, v.modded_person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::ModBanFromCommunity(v) = &modlog[9] {
+      assert_eq!(data.community.id, v.mod_ban_from_community.community_id);
+      assert_eq!(data.community.id, v.community.id);
+      assert_eq!(
+        data.timmy.id,
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+      assert_eq!(data.jessica.id, v.modded_person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::ModBan(v) = &modlog[10] {
+      assert_eq!(
+        data.timmy.id,
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+      assert_eq!(data.jessica.id, v.modded_person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::ModAddCommunity(v) = &modlog[11] {
+      assert_eq!(data.community.id, v.mod_add_community.community_id);
+      assert_eq!(data.community.id, v.community.id);
+      assert_eq!(
+        data.timmy.id,
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+      assert_eq!(data.jessica.id, v.modded_person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let ModlogCombinedView::ModAdd(v) = &modlog[12] {
+      assert_eq!(
+        data.timmy.id,
+        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+      assert_eq!(data.jessica.id, v.modded_person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    // Filter by moderator
+    let modlog_mod_timmy_filter = ModlogCombinedQuery {
+      mod_person_id: Some(data.timmy.id),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(10, modlog_mod_timmy_filter.len());
+
+    let modlog_mod_jessica_filter = ModlogCombinedQuery {
+      mod_person_id: Some(data.jessica.id),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(3, modlog_mod_jessica_filter.len());
+
+    // Filter by other_person
+    // Gets a little complicated because things aren't directly linked,
+    // you have to go into the item to see who created it.
+
+    let modlog_modded_timmy_filter = ModlogCombinedQuery {
+      modded_person_id: Some(data.timmy.id),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(4, modlog_modded_timmy_filter.len());
+
+    let modlog_modded_jessica_filter = ModlogCombinedQuery {
+      modded_person_id: Some(data.jessica.id),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(6, modlog_modded_jessica_filter.len());
+
+    let modlog_modded_sara_filter = ModlogCombinedQuery {
+      modded_person_id: Some(data.sara.id),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(2, modlog_modded_sara_filter.len());
+
+    // Filter by community
+    let modlog_community_filter = ModlogCombinedQuery {
+      community_id: Some(data.community.id),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(8, modlog_community_filter.len());
+
+    let modlog_community_2_filter = ModlogCombinedQuery {
+      community_id: Some(data.community_2.id),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(3, modlog_community_2_filter.len());
+
+    // Filter by post
+    let modlog_post_filter = ModlogCombinedQuery {
+      post_id: Some(data.post.id),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(4, modlog_post_filter.len());
+
+    let modlog_post_2_filter = ModlogCombinedQuery {
+      post_id: Some(data.post_2.id),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(2, modlog_post_2_filter.len());
+
+    // Filter by comment
+    let modlog_comment_filter = ModlogCombinedQuery {
+      comment_id: Some(data.comment.id),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(1, modlog_comment_filter.len());
+
+    let modlog_comment_2_filter = ModlogCombinedQuery {
+      comment_id: Some(data.comment_2.id),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(1, modlog_comment_2_filter.len());
+
+    // Filter by type
+    let modlog_type_filter = ModlogCombinedQuery {
+      type_: Some(ModlogActionType::ModRemoveComment),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(2, modlog_type_filter.len());
+
+    // Assert that the types are correct
+    assert!(matches!(
+      modlog_type_filter[0],
+      ModlogCombinedView::ModRemoveComment(_)
+    ));
+    assert!(matches!(
+      modlog_type_filter[1],
+      ModlogCombinedView::ModRemoveComment(_)
+    ));
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn hide_modlog_names() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let form = AdminAllowInstanceForm {
+      instance_id: data.instance.id,
+      admin_person_id: data.timmy.id,
+      allowed: true,
+      reason: None,
+    };
+    AdminAllowInstance::create(pool, &form).await?;
+
+    let modlog = ModlogCombinedQuery::default().list(pool).await?;
+    assert_eq!(1, modlog.len());
+
+    if let ModlogCombinedView::AdminAllowInstance(v) = &modlog[0] {
+      assert_eq!(
+        data.timmy.id,
+        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
+      );
+    } else {
+      panic!("wrong type");
+    }
+
+    // Filter out the names
+    let modlog_hide_names_filter = ModlogCombinedQuery {
+      hide_modlog_names: Some(true),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+    assert_eq!(1, modlog_hide_names_filter.len());
+
+    if let ModlogCombinedView::AdminAllowInstance(v) = &modlog_hide_names_filter[0] {
+      assert!(v.admin.is_none())
+    } else {
+      panic!("wrong type");
+    }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+}
