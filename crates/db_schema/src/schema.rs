@@ -754,6 +754,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    person_comment_mention (id) {
+        id -> Int4,
+        recipient_id -> Int4,
+        comment_id -> Int4,
+        read -> Bool,
+        published -> Timestamptz,
+    }
+}
+
+diesel::table! {
     person_content_combined (id) {
         id -> Int4,
         published -> Timestamptz,
@@ -763,10 +773,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    person_mention (id) {
+    person_post_mention (id) {
         id -> Int4,
         recipient_id -> Int4,
-        comment_id -> Int4,
+        post_id -> Int4,
         read -> Bool,
         published -> Timestamptz,
     }
@@ -1090,10 +1100,12 @@ diesel::joinable!(password_reset_request -> local_user (local_user_id));
 diesel::joinable!(person -> instance (instance_id));
 diesel::joinable!(person_aggregates -> person (person_id));
 diesel::joinable!(person_ban -> person (person_id));
+diesel::joinable!(person_comment_mention -> comment (comment_id));
+diesel::joinable!(person_comment_mention -> person (recipient_id));
 diesel::joinable!(person_content_combined -> comment (comment_id));
 diesel::joinable!(person_content_combined -> post (post_id));
-diesel::joinable!(person_mention -> comment (comment_id));
-diesel::joinable!(person_mention -> person (recipient_id));
+diesel::joinable!(person_post_mention -> person (recipient_id));
+diesel::joinable!(person_post_mention -> post (post_id));
 diesel::joinable!(person_saved_combined -> comment (comment_id));
 diesel::joinable!(person_saved_combined -> person (person_id));
 diesel::joinable!(person_saved_combined -> post (post_id));
@@ -1172,8 +1184,9 @@ diesel::allow_tables_to_appear_in_same_query!(
     person_actions,
     person_aggregates,
     person_ban,
+    person_comment_mention,
     person_content_combined,
-    person_mention,
+    person_post_mention,
     person_saved_combined,
     post,
     post_actions,

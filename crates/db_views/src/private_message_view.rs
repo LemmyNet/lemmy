@@ -114,7 +114,7 @@ impl PrivateMessageView {
   }
 
   /// Gets the number of unread messages
-  pub async fn get_unread_messages(
+  pub async fn get_unread_count(
     pool: &mut DbPool<'_>,
     my_person_id: PersonId,
   ) -> Result<i64, Error> {
@@ -348,7 +348,7 @@ mod tests {
 
     assert_length!(1, &timmy_messages);
 
-    let timmy_unread_messages = PrivateMessageView::get_unread_messages(pool, timmy.id).await?;
+    let timmy_unread_messages = PrivateMessageView::get_unread_count(pool, timmy.id).await?;
     assert_eq!(timmy_unread_messages, 1);
 
     cleanup(instance.id, pool).await
@@ -390,7 +390,7 @@ mod tests {
 
     assert_length!(0, &timmy_messages);
 
-    let timmy_unread_messages = PrivateMessageView::get_unread_messages(pool, timmy.id).await?;
+    let timmy_unread_messages = PrivateMessageView::get_unread_count(pool, timmy.id).await?;
     assert_eq!(timmy_unread_messages, 0);
     cleanup(instance.id, pool).await
   }

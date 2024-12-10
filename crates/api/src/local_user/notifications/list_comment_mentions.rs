@@ -1,18 +1,18 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
-  person::{GetPersonMentions, GetPersonMentionsResponse},
+  person::{GetPersonCommentMentions, GetPersonCommentMentionsResponse},
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::person_mention_view::PersonMentionQuery;
+use lemmy_db_views_actor::person_comment_mention_view::PersonCommentMentionQuery;
 use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
-pub async fn list_mentions(
-  data: Query<GetPersonMentions>,
+pub async fn list_comment_mentions(
+  data: Query<GetPersonCommentMentions>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> LemmyResult<Json<GetPersonMentionsResponse>> {
+) -> LemmyResult<Json<GetPersonCommentMentionsResponse>> {
   let sort = data.sort;
   let page = data.page;
   let limit = data.limit;
@@ -20,7 +20,7 @@ pub async fn list_mentions(
   let person_id = Some(local_user_view.person.id);
   let show_bot_accounts = local_user_view.local_user.show_bot_accounts;
 
-  let mentions = PersonMentionQuery {
+  let comment_mentions = PersonCommentMentionQuery {
     recipient_id: person_id,
     my_person_id: person_id,
     sort,
@@ -32,5 +32,5 @@ pub async fn list_mentions(
   .list(&mut context.pool())
   .await?;
 
-  Ok(Json(GetPersonMentionsResponse { mentions }))
+  Ok(Json(GetPersonCommentMentionsResponse { comment_mentions }))
 }

@@ -1,13 +1,14 @@
 #[cfg(feature = "full")]
 use diesel::Queryable;
 use lemmy_db_schema::{
-  aggregates::structs::{CommentAggregates, CommunityAggregates, PersonAggregates},
+  aggregates::structs::{CommentAggregates, CommunityAggregates, PersonAggregates, PostAggregates},
   source::{
     comment::Comment,
     comment_reply::CommentReply,
     community::Community,
     person::Person,
-    person_mention::PersonMention,
+    person_comment_mention::PersonCommentMention,
+    person_post_mention::PersonPostMention,
     post::Post,
   },
   SubscribedType,
@@ -93,9 +94,9 @@ pub enum CommunitySortType {
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
-/// A person mention view.
-pub struct PersonMentionView {
-  pub person_mention: PersonMention,
+/// A person comment mention view.
+pub struct PersonCommentMentionView {
+  pub person_comment_mention: PersonCommentMention,
   pub comment: Comment,
   pub creator: Person,
   pub post: Post,
@@ -110,6 +111,29 @@ pub struct PersonMentionView {
   pub saved: bool,
   pub creator_blocked: bool,
   #[cfg_attr(feature = "full", ts(optional))]
+  pub my_vote: Option<i16>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A person post mention view.
+pub struct PersonPostMentionView {
+  pub person_post_mention: PersonPostMention,
+  pub post: Post,
+  pub creator: Person,
+  pub community: Community,
+  pub recipient: Person,
+  pub counts: PostAggregates,
+  pub creator_banned_from_community: bool,
+  pub banned_from_community: bool,
+  pub creator_is_moderator: bool,
+  pub creator_is_admin: bool,
+  pub subscribed: SubscribedType,
+  pub saved: bool,
+  pub creator_blocked: bool,
   pub my_vote: Option<i16>,
 }
 
