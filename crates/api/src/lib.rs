@@ -33,13 +33,11 @@ use std::io::Cursor;
 use totp_rs::{Secret, TOTP};
 
 pub mod comment;
-pub mod comment_report;
 pub mod community;
 pub mod local_user;
 pub mod post;
-pub mod post_report;
 pub mod private_message;
-pub mod private_message_report;
+pub mod reports;
 pub mod site;
 pub mod sitemap;
 

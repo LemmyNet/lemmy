@@ -142,7 +142,10 @@ pub struct CommentSaved {
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
+#[derive(derive_new::new)]
 pub struct CommentSavedForm {
   pub comment_id: CommentId,
   pub person_id: PersonId,
+  #[new(value = "Utc::now()")]
+  pub saved: DateTime<Utc>,
 }

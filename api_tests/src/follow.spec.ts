@@ -5,7 +5,6 @@ import {
   setupLogins,
   resolveBetaCommunity,
   followCommunity,
-  getSite,
   waitUntil,
   beta,
   betaUrl,
