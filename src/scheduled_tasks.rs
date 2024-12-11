@@ -617,7 +617,6 @@ async fn build_update_instance_form(
   }
   .await;
 
-  dbg!("reach here?");
   Some(instance_form)
 }
 
