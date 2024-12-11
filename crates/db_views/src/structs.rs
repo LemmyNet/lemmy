@@ -1,11 +1,14 @@
 #[cfg(feature = "full")]
 use diesel::Queryable;
+#[cfg(feature = "full")]
+use diesel::{deserialize::FromSqlRow, expression::AsExpression, sql_types};
 use lemmy_db_schema::{
   aggregates::structs::{CommentAggregates, PersonAggregates, PostAggregates, SiteAggregates},
   source::{
     comment::Comment,
     comment_report::CommentReport,
     community::Community,
+    community_post_tag::Tag,
     custom_emoji::CustomEmoji,
     custom_emoji_keyword::CustomEmojiKeyword,
     images::{ImageDetails, LocalImage},
@@ -151,6 +154,7 @@ pub struct PostView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
+  pub community_post_tags: PostCommunityPostTags,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
@@ -236,4 +240,12 @@ pub struct VoteView {
 pub struct LocalImageView {
   pub local_image: LocalImage,
   pub person: Person,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
+#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
+#[serde(transparent)]
+#[cfg_attr(feature = "full", diesel(sql_type = Nullable<sql_types::Json>))]
+pub struct PostCommunityPostTags {
+  pub tags: Vec<Tag>,
 }
