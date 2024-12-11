@@ -5,12 +5,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostLike, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_bot_account,
-    check_community_user_action,
-    check_local_vote_mode,
-    mark_post_as_read,
-  },
+  utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
 };
 use lemmy_db_schema::{
   newtypes::PostOrCommentId,

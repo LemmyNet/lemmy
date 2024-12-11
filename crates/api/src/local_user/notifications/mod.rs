@@ -1,6 +1,4 @@
-pub mod list_comment_mentions;
-pub mod list_post_mentions;
-pub mod list_replies;
+pub mod list_inbox;
 pub mod mark_all_read;
 pub mod mark_comment_mention_read;
 pub mod mark_post_mention_read;

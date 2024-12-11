@@ -40,6 +40,7 @@ use lemmy_db_schema::{
   CommentSortType,
 };
 
+// TODO get rid of all this
 fn queries<'a>() -> Queries<
   impl ReadFn<'a, CommentReplyView, (CommentReplyId, Option<PersonId>)>,
   impl ListFn<'a, CommentReplyView, CommentReplyQuery>,
@@ -130,6 +131,9 @@ fn queries<'a>() -> Queries<
       query = query.filter(not(person::bot_account));
     };
 
+    // Don't show replies from blocked persons
+    query = query.filter(person_actions::blocked.is_null());
+
     query = match options.sort.unwrap_or(CommentSortType::New) {
       CommentSortType::Hot => query.then_order_by(comment_aggregates::hot_rank.desc()),
       CommentSortType::Controversial => {
@@ -139,9 +143,6 @@ fn queries<'a>() -> Queries<
       CommentSortType::Old => query.then_order_by(comment_reply::published.asc()),
       CommentSortType::Top => query.order_by(comment_aggregates::score.desc()),
     };
-
-    // Don't show replies from blocked persons
-    query = query.filter(person_actions::blocked.is_null());
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;
 

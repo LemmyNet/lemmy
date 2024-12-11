@@ -331,6 +331,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    inbox_combined (id) {
+        id -> Int4,
+        published -> Timestamptz,
+        comment_reply_id -> Nullable<Int4>,
+        person_comment_mention_id -> Nullable<Int4>,
+        person_post_mention_id -> Nullable<Int4>,
+        private_message_id -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
     instance (id) {
         id -> Int4,
         #[max_length = 255]
@@ -1052,6 +1063,10 @@ diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
 diesel::joinable!(federation_blocklist -> instance (instance_id));
 diesel::joinable!(federation_queue_state -> instance (instance_id));
+diesel::joinable!(inbox_combined -> comment_reply (comment_reply_id));
+diesel::joinable!(inbox_combined -> person_comment_mention (person_comment_mention_id));
+diesel::joinable!(inbox_combined -> person_post_mention (person_post_mention_id));
+diesel::joinable!(inbox_combined -> private_message (private_message_id));
 diesel::joinable!(instance_actions -> instance (instance_id));
 diesel::joinable!(instance_actions -> person (person_id));
 diesel::joinable!(local_image -> local_user (local_user_id));
@@ -1154,6 +1169,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     federation_blocklist,
     federation_queue_state,
     image_details,
+    inbox_combined,
     instance,
     instance_actions,
     language,

@@ -16,7 +16,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  impls::actor_language::default_post_language,
+  impls::actor_language::validate_post_language,
   newtypes::PostOrCommentId,
   source::{
     community::Community,
@@ -162,9 +162,8 @@ pub async fn create_post(
   )
   .await?;
 
-  // TODO 
-PostRead::mark_as_read(&mut context.pool(), &read_form).await?;
-  mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
+  let read_form = PostReadForm::new(post_id, person_id);
+  PostRead::mark_as_read(&mut context.pool(), &read_form).await?;
 
   build_post_response(&context, community_id, local_user_view, post_id).await
 }

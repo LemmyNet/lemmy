@@ -16,7 +16,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  impls::actor_language::default_post_language,
+  impls::actor_language::validate_post_language,
   newtypes::PostOrCommentId,
   source::{
     comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm},

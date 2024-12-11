@@ -23,6 +23,8 @@ use lemmy_db_views::structs::{
 use lemmy_db_views_actor::structs::{
   CommentReplyView,
   CommunityModeratorView,
+  InboxCombinedPaginationCursor,
+  InboxCombinedView,
   PersonCommentMentionView,
   PersonPostMentionView,
   PersonView,
@@ -373,51 +375,25 @@ pub struct BlockPersonResponse {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// Get comment replies.
-pub struct GetReplies {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub sort: Option<CommentSortType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
+/// Get your inbox (replies, comment mentions, post mentions, and messages)
+pub struct ListInbox {
   #[cfg_attr(feature = "full", ts(optional))]
   pub unread_only: Option<bool>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Fetches your replies.
-// TODO, replies and mentions below should be redone as tagged enums.
-pub struct GetRepliesResponse {
-  pub replies: Vec<CommentReplyView>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Get mentions for your user.
-pub struct GetPersonCommentMentions {
-  pub sort: Option<CommentSortType>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
+  pub page_cursor: Option<InboxCombinedPaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub unread_only: Option<bool>,
+  pub page_back: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// The response of mentions for your user.
-pub struct GetPersonCommentMentionsResponse {
-  pub comment_mentions: Vec<PersonCommentMentionView>,
+/// Get your inbox (replies, comment mentions, post mentions, and messages)
+pub struct ListInboxResponse {
+  pub inbox: Vec<InboxCombinedView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -435,26 +411,6 @@ pub struct MarkPersonCommentMentionAsRead {
 /// The response for a person mention action.
 pub struct PersonCommentMentionResponse {
   pub person_comment_mention_view: PersonCommentMentionView,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Get mentions for your user.
-pub struct GetPersonPostMentions {
-  pub sort: Option<PostSortType>,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
-  pub unread_only: Option<bool>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The response of mentions for your user.
-pub struct GetPersonPostMentionsResponse {
-  pub post_mentions: Vec<PersonPostMentionView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -540,12 +496,9 @@ pub struct GetReportCountResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// A response containing counts for your notifications.
+/// A response containing a count of unread notifications.
 pub struct GetUnreadCountResponse {
-  pub replies: i64,
-  pub comment_mentions: i64,
-  pub post_mentions: i64,
-  pub private_messages: i64,
+  pub count: i64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq, Eq, Hash)]
