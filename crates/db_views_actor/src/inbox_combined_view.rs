@@ -838,7 +838,7 @@ mod tests {
   }
 
   /// A helper function to coerce to a private message type for tests
-  fn map_to_pm(inbox: &Vec<InboxCombinedView>) -> Vec<PrivateMessageView> {
+  fn map_to_pm(inbox: &[InboxCombinedView]) -> Vec<PrivateMessageView> {
     inbox
       .iter()
       // Filter map to collect private messages
