@@ -139,7 +139,7 @@ use lemmy_utils::rate_limit::RateLimitCell;
 
 // Deprecated, use api v4 instead.
 // When removing api v3, we also need to rewrite all links in database with
-// `/api/v3/image_proxy` to use `/api/v4/image_proxy` instead.
+// `/api/v3/image_proxy` to use `/api/v4/image/proxy` instead.
 pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
   cfg
     .service(

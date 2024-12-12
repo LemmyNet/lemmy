@@ -172,7 +172,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
     scope("/api/v4")
       .wrap(rate_limit.message())
-      .route("/image_proxy", get().to(image_proxy))
       // Site
       .service(
         scope("/site")
@@ -401,6 +400,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .wrap(rate_limit.image())
               .route(post().to(upload_image)),
           )
+          .route("/proxy", get().to(image_proxy))
           .route("/{filename}", get().to(get_full_res_image))
           .route("{token}/{filename}", delete().to(delete_image))
           .route("/healthz", get().to(pictrs_healthz)),

@@ -2,7 +2,6 @@ use actix_web::{
   body::{BodyStream, BoxBody},
   http::{
     header::{HeaderName, ACCEPT_ENCODING, HOST},
-    Method,
     StatusCode,
   },
   web::*,
@@ -10,8 +9,6 @@ use actix_web::{
   HttpResponse,
   Responder,
 };
-use futures::stream::{Stream, StreamExt};
-use http::HeaderValue;
 use lemmy_api_common::{context::LemmyContext, request::PictrsResponse};
 use lemmy_db_schema::source::{
   images::{LocalImage, LocalImageForm, RemoteImage},
@@ -24,6 +21,9 @@ use reqwest_middleware::RequestBuilder;
 use serde::Deserialize;
 use std::time::Duration;
 use url::Url;
+use utils::{convert_header, convert_method, convert_status, make_send};
+
+mod utils;
 
 trait ProcessUrl {
   /// If thumbnail or format is given, this uses the pictrs process endpoint.
@@ -223,7 +223,10 @@ pub async fn delete_image(
   Ok(HttpResponse::build(convert_status(res.status())).body(BodyStream::new(res.bytes_stream())))
 }
 
-pub async fn pictrs_healthz(req: HttpRequest, context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
+pub async fn pictrs_healthz(
+  req: HttpRequest,
+  context: Data<LemmyContext>,
+) -> LemmyResult<HttpResponse> {
   let pictrs_config = context.settings().pictrs_config()?;
   let url = format!("{}healthz", pictrs_config.url);
 
@@ -263,61 +266,4 @@ pub async fn image_proxy(
     // Proxy the image data through Lemmy
     Ok(Either::Right(image(processed_url, req, &context).await?))
   }
-}
-
-fn make_send<S>(mut stream: S) -> impl Stream<Item = S::Item> + Send + Unpin + 'static
-where
-  S: Stream + Unpin + 'static,
-  S::Item: Send,
-{
-  // NOTE: the 8 here is arbitrary
-  let (tx, rx) = tokio::sync::mpsc::channel(8);
-
-  // NOTE: spawning stream into a new task can potentially hit this bug:
-  // - https://github.com/actix/actix-web/issues/1679
-  //
-  // Since 4.0.0-beta.2 this issue is incredibly less frequent. I have not personally reproduced it.
-  // That said, it is still technically possible to encounter.
-  actix_web::rt::spawn(async move {
-    while let Some(res) = stream.next().await {
-      if tx.send(res).await.is_err() {
-        break;
-      }
-    }
-  });
-
-  SendStream { rx }
-}
-
-struct SendStream<T> {
-  rx: tokio::sync::mpsc::Receiver<T>,
-}
-
-impl<T> Stream for SendStream<T>
-where
-  T: Send,
-{
-  type Item = T;
-
-  fn poll_next(
-    mut self: std::pin::Pin<&mut Self>,
-    cx: &mut std::task::Context<'_>,
-  ) -> std::task::Poll<Option<Self::Item>> {
-    std::pin::Pin::new(&mut self.rx).poll_recv(cx)
-  }
-}
-
-// TODO: remove these conversions after actix-web upgrades to http 1.0
-#[allow(clippy::expect_used)]
-fn convert_status(status: http::StatusCode) -> StatusCode {
-  StatusCode::from_u16(status.as_u16()).expect("status can be converted")
-}
-
-#[allow(clippy::expect_used)]
-fn convert_method(method: &Method) -> http::Method {
-  http::Method::from_bytes(method.as_str().as_bytes()).expect("method can be converted")
-}
-
-fn convert_header<'a>(name: &'a http::HeaderName, value: &'a HeaderValue) -> (&'a str, &'a [u8]) {
-  (name.as_str(), value.as_bytes())
 }
