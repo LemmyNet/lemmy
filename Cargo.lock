@@ -2699,12 +2699,10 @@ name = "lemmy_db_views_actor"
 version = "0.19.6-beta.7"
 dependencies = [
  "chrono",
- "derive-new",
  "diesel",
  "diesel-async",
  "i-love-jesus",
  "lemmy_db_schema",
- "lemmy_db_views",
  "lemmy_utils",
  "pretty_assertions",
  "serde",
@@ -2712,7 +2710,6 @@ dependencies = [
  "serial_test",
  "strum",
  "tokio",
- "tracing",
  "ts-rs",
  "url",
 ]
