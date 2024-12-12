@@ -6,11 +6,6 @@ use lemmy_api::{
     list_comment_likes::list_comment_likes,
     save::save_comment,
   },
-  comment_report::{
-    create::create_comment_report,
-    list::list_comment_reports,
-    resolve::resolve_comment_report,
-  },
   community::{
     add_mod::add_mod_to_community,
     ban::ban_from_community,
@@ -33,10 +28,9 @@ use lemmy_api::{
     login::login,
     logout::logout,
     notifications::{
-      list_mentions::list_mentions,
-      list_replies::list_replies,
       mark_all_read::mark_all_notifications_read,
-      mark_mention_read::mark_person_mention_as_read,
+      mark_comment_mention_read::mark_comment_mention_as_read,
+      mark_post_mention_read::mark_post_mention_as_read,
       mark_reply_read::mark_reply_as_read,
       unread_count::unread_count,
     },
@@ -58,16 +52,11 @@ use lemmy_api::{
     mark_read::mark_post_as_read,
     save::save_post,
   },
-  post_report::{
-    create::create_post_report,
-    list::list_post_reports,
-    resolve::resolve_post_report,
-  },
   private_message::mark_read::mark_pm_as_read,
-  private_message_report::{
-    create::create_pm_report,
-    list::list_pm_reports,
-    resolve::resolve_pm_report,
+  reports::{
+    comment_report::{create::create_comment_report, resolve::resolve_comment_report},
+    post_report::{create::create_post_report, resolve::resolve_post_report},
+    private_message_report::{create::create_pm_report, resolve::resolve_pm_report},
   },
   site::{
     federated_instances::get_federated_instances,
@@ -119,7 +108,6 @@ use lemmy_api_crud::{
   private_message::{
     create::create_private_message,
     delete::delete_private_message,
-    read::get_private_message,
     update::update_private_message,
   },
   site::{create::create_site, read::get_site_v3, update::update_site},
@@ -222,7 +210,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/save", put().to(save_post))
           .route("/report", post().to(create_post_report))
           .route("/report/resolve", put().to(resolve_post_report))
-          .route("/report/list", get().to(list_post_reports))
           .route("/site_metadata", get().to(get_link_metadata)),
       )
       // Comment
@@ -247,21 +234,18 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/save", put().to(save_comment))
           .route("/list", get().to(list_comments))
           .route("/report", post().to(create_comment_report))
-          .route("/report/resolve", put().to(resolve_comment_report))
-          .route("/report/list", get().to(list_comment_reports)),
+          .route("/report/resolve", put().to(resolve_comment_report)),
       )
       // Private Message
       .service(
         scope("/private_message")
           .wrap(rate_limit.message())
-          .route("/list", get().to(get_private_message))
           .route("", post().to(create_private_message))
           .route("", put().to(update_private_message))
           .route("/delete", post().to(delete_private_message))
           .route("/mark_as_read", post().to(mark_pm_as_read))
           .route("/report", post().to(create_pm_report))
-          .route("/report/resolve", put().to(resolve_pm_report))
-          .route("/report/list", get().to(list_pm_reports)),
+          .route("/report/resolve", put().to(resolve_pm_report)),
       )
       // User
       .service(
@@ -315,12 +299,14 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
         scope("/user")
           .wrap(rate_limit.message())
           .route("", get().to(read_person))
-          .route("/mention", get().to(list_mentions))
           .route(
-            "/mention/mark_as_read",
-            post().to(mark_person_mention_as_read),
+            "/mention/comment/mark_as_read",
+            post().to(mark_comment_mention_as_read),
           )
-          .route("/replies", get().to(list_replies))
+          .route(
+            "/mention/post/mark_as_read",
+            post().to(mark_post_mention_as_read),
+          )
           // Admin action. I don't like that it's in /user
           .route("/ban", post().to(ban_from_site))
           .route("/banned", get().to(list_banned_users))

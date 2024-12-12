@@ -11,7 +11,7 @@ use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
-  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
   source::{
     comment::{Comment, CommentLike, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
@@ -293,23 +293,17 @@ pub async fn check_person_instance_community_block(
   Ok(())
 }
 
-/// A vote item type used to check the vote mode.
-pub enum VoteItem {
-  Post(PostId),
-  Comment(CommentId),
-}
-
 #[tracing::instrument(skip_all)]
 pub async fn check_local_vote_mode(
   score: i16,
-  vote_item: VoteItem,
+  post_or_comment_id: PostOrCommentId,
   local_site: &LocalSite,
   person_id: PersonId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let (downvote_setting, upvote_setting) = match vote_item {
-    VoteItem::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
-    VoteItem::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
+  let (downvote_setting, upvote_setting) = match post_or_comment_id {
+    PostOrCommentId::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
+    PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
   };
 
   let downvote_fail = score == -1 && downvote_setting == FederationMode::Disable;
@@ -317,9 +311,11 @@ pub async fn check_local_vote_mode(
 
   // Undo previous vote for item if new vote fails
   if downvote_fail || upvote_fail {
-    match vote_item {
-      VoteItem::Post(post_id) => PostLike::remove(pool, person_id, post_id).await?,
-      VoteItem::Comment(comment_id) => CommentLike::remove(pool, person_id, comment_id).await?,
+    match post_or_comment_id {
+      PostOrCommentId::Post(post_id) => PostLike::remove(pool, person_id, post_id).await?,
+      PostOrCommentId::Comment(comment_id) => {
+        CommentLike::remove(pool, person_id, comment_id).await?
+      }
     };
   }
   Ok(())
@@ -1187,16 +1183,18 @@ fn build_proxied_image_url(
 mod tests {
 
   use super::*;
-  use lemmy_db_schema::source::{
-    comment::CommentInsertForm,
-    community::CommunityInsertForm,
-    person::PersonInsertForm,
-    post::PostInsertForm,
+  use lemmy_db_schema::{
+    source::{
+      comment::CommentInsertForm,
+      community::CommunityInsertForm,
+      person::PersonInsertForm,
+      post::PostInsertForm,
+    },
+    ModlogActionType,
   };
-  use lemmy_db_views_moderator::structs::{
-    ModRemoveCommentView,
-    ModRemovePostView,
-    ModlogListParams,
+  use lemmy_db_views_moderator::{
+    modlog_combined_view::ModlogCombinedQuery,
+    structs::ModlogCombinedView,
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -1332,45 +1330,58 @@ mod tests {
     .await?;
 
     // Verify that their posts and comments are removed.
-    let params = ModlogListParams {
-      community_id: None,
-      mod_person_id: None,
-      other_person_id: None,
-      post_id: None,
-      comment_id: None,
-      page: None,
-      limit: None,
-      hide_modlog_names: false,
-    };
-
     // Posts
-    let post_modlog = ModRemovePostView::list(pool, params).await?;
+    let post_modlog = ModlogCombinedQuery {
+      type_: Some(ModlogActionType::ModRemovePost),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_eq!(2, post_modlog.len());
 
-    let mod_removed_posts = post_modlog
-      .iter()
+    let posts_mapped = &post_modlog.iter().filter_map(|p| {
+      if let ModlogCombinedView::ModRemovePost(v) = p {
+        Some(v)
+      } else {
+        None
+      }
+    });
+    let mod_removed_posts = posts_mapped
+      .clone()
       .map(|p| p.mod_remove_post.removed)
       .collect::<Vec<bool>>();
     assert_eq!(vec![true, true], mod_removed_posts);
 
-    let removed_posts = post_modlog
-      .iter()
+    let removed_posts = posts_mapped
+      .clone()
       .map(|p| p.post.removed)
       .collect::<Vec<bool>>();
     assert_eq!(vec![true, true], removed_posts);
 
     // Comments
-    let comment_modlog = ModRemoveCommentView::list(pool, params).await?;
+    let comment_modlog = ModlogCombinedQuery {
+      type_: Some(ModlogActionType::ModRemoveComment),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_eq!(2, comment_modlog.len());
 
-    let mod_removed_comments = comment_modlog
-      .iter()
+    let comments_mapped = &comment_modlog.iter().filter_map(|c| {
+      if let ModlogCombinedView::ModRemoveComment(v) = c {
+        Some(v)
+      } else {
+        None
+      }
+    });
+    let mod_removed_comments = comments_mapped
+      .clone()
       .map(|p| p.mod_remove_comment.removed)
       .collect::<Vec<bool>>();
     assert_eq!(vec![true, true], mod_removed_comments);
 
-    let removed_comments = comment_modlog
-      .iter()
+    let removed_comments = comments_mapped
+      .clone()
       .map(|p| p.comment.removed)
       .collect::<Vec<bool>>();
     assert_eq!(vec![true, true], removed_comments);
@@ -1386,34 +1397,60 @@ mod tests {
     .await?;
 
     // Posts
-    let post_modlog = ModRemovePostView::list(pool, params).await?;
+    let post_modlog = ModlogCombinedQuery {
+      type_: Some(ModlogActionType::ModRemovePost),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_eq!(4, post_modlog.len());
 
-    let mod_restored_posts = post_modlog
-      .iter()
+    let posts_mapped = &post_modlog.iter().filter_map(|p| {
+      if let ModlogCombinedView::ModRemovePost(v) = p {
+        Some(v)
+      } else {
+        None
+      }
+    });
+
+    let mod_restored_posts = posts_mapped
+      .clone()
       .map(|p| p.mod_remove_post.removed)
       .collect::<Vec<bool>>();
     assert_eq!(vec![false, false, true, true], mod_restored_posts);
 
-    let restored_posts = post_modlog
-      .iter()
+    let restored_posts = posts_mapped
+      .clone()
       .map(|p| p.post.removed)
       .collect::<Vec<bool>>();
     // All of these will be false, cause its the current state of the post
     assert_eq!(vec![false, false, false, false], restored_posts);
 
     // Comments
-    let comment_modlog = ModRemoveCommentView::list(pool, params).await?;
+    let comment_modlog = ModlogCombinedQuery {
+      type_: Some(ModlogActionType::ModRemoveComment),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_eq!(4, comment_modlog.len());
 
-    let mod_restored_comments = comment_modlog
-      .iter()
+    let comments_mapped = &comment_modlog.iter().filter_map(|c| {
+      if let ModlogCombinedView::ModRemoveComment(v) = c {
+        Some(v)
+      } else {
+        None
+      }
+    });
+
+    let mod_restored_comments = comments_mapped
+      .clone()
       .map(|p| p.mod_remove_comment.removed)
       .collect::<Vec<bool>>();
     assert_eq!(vec![false, false, true, true], mod_restored_comments);
 
-    let restored_comments = comment_modlog
-      .iter()
+    let restored_comments = comments_mapped
+      .clone()
       .map(|p| p.comment.removed)
       .collect::<Vec<bool>>();
     assert_eq!(vec![false, false, false, false], restored_comments);

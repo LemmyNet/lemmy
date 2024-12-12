@@ -2677,6 +2677,7 @@ version = "0.19.6-beta.7"
 dependencies = [
  "actix-web",
  "chrono",
+ "derive-new",
  "diesel",
  "diesel-async",
  "diesel_ltree",
@@ -2700,8 +2701,8 @@ dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
+ "i-love-jesus",
  "lemmy_db_schema",
- "lemmy_db_views",
  "lemmy_utils",
  "pretty_assertions",
  "serde",
@@ -2719,9 +2720,14 @@ version = "0.19.6-beta.7"
 dependencies = [
  "diesel",
  "diesel-async",
+ "i-love-jesus",
  "lemmy_db_schema",
+ "lemmy_utils",
+ "pretty_assertions",
  "serde",
  "serde_with",
+ "serial_test",
+ "tokio",
  "ts-rs",
 ]
 

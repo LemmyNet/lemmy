@@ -7,10 +7,13 @@ use lemmy_api_common::{
   LemmyErrorType,
   SuccessResponse,
 };
-use lemmy_db_schema::source::{
-  federation_blocklist::{FederationBlockList, FederationBlockListForm},
-  instance::Instance,
-  mod_log::admin::{AdminBlockInstance, AdminBlockInstanceForm},
+use lemmy_db_schema::{
+  source::{
+    federation_blocklist::{FederationBlockList, FederationBlockListForm},
+    instance::Instance,
+    mod_log::admin::{AdminBlockInstance, AdminBlockInstanceForm},
+  },
+  traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
@@ -48,9 +51,8 @@ pub async fn admin_block_instance(
     admin_person_id: local_user_view.person.id,
     blocked: data.block,
     reason: data.reason.clone(),
-    when_: data.expires,
   };
-  AdminBlockInstance::insert(&mut context.pool(), &mod_log_form).await?;
+  AdminBlockInstance::create(&mut context.pool(), &mod_log_form).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

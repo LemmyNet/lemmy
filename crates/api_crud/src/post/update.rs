@@ -3,7 +3,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_common::{
-  build_response::build_post_response,
+  build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
   post::{EditPost, PostResponse},
   request::generate_post_link_metadata,
@@ -17,6 +17,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
+  newtypes::PostOrCommentId,
   source::{
     community::Community,
     local_site::LocalSite,
@@ -29,6 +30,7 @@ use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{
+    mention::scrape_text_for_mentions,
     slurs::check_slurs,
     validation::{
       is_url_blocked,
@@ -141,6 +143,18 @@ pub async fn update_post(
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
+
+  // Scan the post body for user mentions, add those rows
+  let mentions = scrape_text_for_mentions(&updated_post.body.clone().unwrap_or_default());
+  send_local_notifs(
+    mentions,
+    PostOrCommentId::Post(updated_post.id),
+    &local_user_view.person,
+    false,
+    &context,
+    Some(&local_user_view),
+  )
+  .await?;
 
   // send out federation/webmention if necessary
   match (
