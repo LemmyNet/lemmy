@@ -836,7 +836,6 @@ CALL r.create_modlog_combined_trigger ('mod_remove_post');
 
 CALL r.create_modlog_combined_trigger ('mod_transfer_community');
 
-
 -- Inbox: (replies, comment mentions, post mentions, and private_messages)
 CREATE PROCEDURE r.create_inbox_combined_trigger (table_name text)
 LANGUAGE plpgsql
@@ -868,3 +867,4 @@ CALL r.create_inbox_combined_trigger ('person_comment_mention');
 CALL r.create_inbox_combined_trigger ('person_post_mention');
 
 CALL r.create_inbox_combined_trigger ('private_message');
+

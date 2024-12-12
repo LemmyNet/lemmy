@@ -1,8 +1,6 @@
 -- Creates combined tables for
 -- Inbox: (replies, comment mentions, post mentions, and private_messages)
-
 -- Also add post mentions, since these didn't exist before.
-
 -- Rename the person_mention table to person_comment_mention
 ALTER TABLE person_mention RENAME TO person_comment_mention;
 
