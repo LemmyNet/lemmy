@@ -47,13 +47,13 @@ use lemmy_db_schema::{
     community::CommunityFollower,
   },
   utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool},
+  InboxDataType,
   InternalToCombinedView,
 };
 use lemmy_utils::error::LemmyResult;
 
 impl InboxCombinedViewInternal {
   /// Gets the number of unread mentions
-  // TODO need to test this
   pub async fn get_unread_count(
     pool: &mut DbPool<'_>,
     my_person_id: PersonId,
@@ -88,21 +88,33 @@ impl InboxCombinedViewInternal {
     let recipient_join = comment_reply::recipient_id
       .eq(recipient_person)
       .or(person_comment_mention::recipient_id.eq(recipient_person))
-      .or(person_post_mention::recipient_id.eq(recipient_person));
+      .or(person_post_mention::recipient_id.eq(recipient_person))
+      .or(private_message::recipient_id.eq(recipient_person));
 
     let comment_join = comment_reply::comment_id
       .eq(comment::id)
-      .or(person_comment_mention::comment_id.eq(comment::id));
+      .or(person_comment_mention::comment_id.eq(comment::id))
+      // Filter out the deleted / removed
+      .and(not(comment::deleted))
+      .and(not(comment::removed));
 
     let post_join = person_post_mention::post_id
       .eq(post::id)
-      .or(comment::post_id.eq(post::id));
+      .or(comment::post_id.eq(post::id))
+      // Filter out the deleted / removed
+      .and(not(post::deleted))
+      .and(not(post::removed));
+
+    // This could be a simple join, but you need to check for deleted here
+    let private_message_join = inbox_combined::private_message_id
+      .eq(private_message::id.nullable())
+      .and(not(private_message::deleted));
 
     let mut query = inbox_combined::table
       .left_join(comment_reply::table)
       .left_join(person_comment_mention::table)
       .left_join(person_post_mention::table)
-      .left_join(private_message::table)
+      .left_join(private_message::table.on(private_message_join))
       .left_join(comment::table.on(comment_join))
       .left_join(post::table.on(post_join))
       // The item creator
@@ -126,11 +138,6 @@ impl InboxCombinedViewInternal {
       // Don't count replies from blocked users
       .filter(person_actions::blocked.is_null())
       .filter(instance_actions::blocked.is_null())
-      .filter(comment::deleted.eq(false))
-      .filter(comment::removed.eq(false))
-      .filter(post::deleted.eq(false))
-      .filter(post::removed.eq(false))
-      .filter(private_message::deleted.eq(false))
       .into_boxed();
 
     // These filters need to be kept in sync with the filters in queries().list()
@@ -181,24 +188,23 @@ impl InboxCombinedPaginationCursor {
 #[derive(Clone)]
 pub struct PaginationCursorData(InboxCombined);
 
-#[derive(derive_new::new)]
+#[derive(Default)]
 pub struct InboxCombinedQuery {
-  pub my_person_id: PersonId,
-  #[new(default)]
+  pub type_: Option<InboxDataType>,
   pub unread_only: Option<bool>,
-  #[new(default)]
   pub show_bot_accounts: Option<bool>,
-  #[new(default)]
   pub page_after: Option<PaginationCursorData>,
-  #[new(default)]
   pub page_back: Option<bool>,
 }
 
 impl InboxCombinedQuery {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<InboxCombinedView>> {
+  pub async fn list(
+    self,
+    pool: &mut DbPool<'_>,
+    my_person_id: PersonId,
+  ) -> LemmyResult<Vec<InboxCombinedView>> {
     let conn = &mut get_conn(pool).await?;
 
-    let my_person_id = Some(self.my_person_id);
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
 
@@ -214,26 +220,36 @@ impl InboxCombinedQuery {
     let recipient_join = comment_reply::recipient_id
       .eq(recipient_person)
       .or(person_comment_mention::recipient_id.eq(recipient_person))
-      .or(person_post_mention::recipient_id.eq(recipient_person));
-    // TODO this might need fixing, because if its not unread, you want all pms, even the ones you
-    // sent
-    // .or(private_message::recipient_id.eq(recipient_person));
+      .or(person_post_mention::recipient_id.eq(recipient_person))
+      .or(private_message::recipient_id.eq(recipient_person));
 
     let comment_join = comment_reply::comment_id
       .eq(comment::id)
-      .or(person_comment_mention::comment_id.eq(comment::id));
+      .or(person_comment_mention::comment_id.eq(comment::id))
+      // Filter out the deleted / removed
+      .and(not(comment::deleted))
+      .and(not(comment::removed));
 
     let post_join = person_post_mention::post_id
       .eq(post::id)
-      .or(comment::post_id.eq(post::id));
+      .or(comment::post_id.eq(post::id))
+      // Filter out the deleted / removed
+      .and(not(post::deleted))
+      .and(not(post::removed));
 
-    let community_join = post::id.eq(community::id);
+    // This could be a simple join, but you need to check for deleted here
+    let private_message_join = inbox_combined::private_message_id
+      .eq(private_message::id.nullable())
+      .and(not(private_message::deleted));
+
+    let community_join = post::community_id.eq(community::id);
 
     let mut query = inbox_combined::table
       .left_join(comment_reply::table)
       .left_join(person_comment_mention::table)
       .left_join(person_post_mention::table)
-      .left_join(private_message::table)
+      .left_join(private_message::table.on(private_message_join))
+      // .left_join(private_message::table)
       .left_join(comment::table.on(comment_join))
       .left_join(post::table.on(post_join))
       .left_join(community::table.on(community_join))
@@ -255,22 +271,28 @@ impl InboxCombinedQuery {
       )
       .left_join(actions(
         community_actions::table,
-        my_person_id,
+        Some(my_person_id),
         post::community_id,
       ))
       .left_join(actions(
         instance_actions::table,
-        my_person_id,
+        Some(my_person_id),
         person::instance_id,
       ))
-      .left_join(actions(post_actions::table, my_person_id, post::id))
-      .left_join(actions(person_actions::table, my_person_id, item_creator))
+      .left_join(actions(post_actions::table, Some(my_person_id), post::id))
+      .left_join(actions(
+        person_actions::table,
+        Some(my_person_id),
+        item_creator,
+      ))
       .left_join(post_aggregates::table.on(post::id.eq(post_aggregates::post_id)))
       .left_join(comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id)))
-      .left_join(actions(comment_actions::table, my_person_id, comment::id))
+      .left_join(actions(
+        comment_actions::table,
+        Some(my_person_id),
+        comment::id,
+      ))
       .left_join(image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable())))
-      // The recipient filter (IE only show replies to you)
-      .filter(recipient_person.eq(self.my_person_id))
       .select((
         // Specific
         comment_reply::all_columns.nullable(),
@@ -314,16 +336,40 @@ impl InboxCombinedQuery {
 
     // Filters
     if self.unread_only.unwrap_or_default() {
+      query = query
+        // The recipient filter (IE only show replies to you)
+        .filter(recipient_person.eq(my_person_id))
+        .filter(
+          comment_reply::read
+            .eq(false)
+            .or(person_comment_mention::read.eq(false))
+            .or(person_post_mention::read.eq(false))
+            // If its unread, I only want the messages to me
+            .or(private_message::read.eq(false)),
+        );
+    } else {
+      // A special case for private messages: show messages FROM you also.
+      // Use a not-null checks to catch the others
       query = query.filter(
-        comment_reply::read
-          .eq(false)
-          .or(person_comment_mention::read.eq(false))
-          .or(person_post_mention::read.eq(false))
-          // If its unread, I only want the messages to me
+        inbox_combined::comment_reply_id
+          .is_not_null()
+          .and(recipient_person.eq(my_person_id))
           .or(
-            private_message::read
-              .eq(false)
-              .and(private_message::recipient_id.eq(self.my_person_id)),
+            inbox_combined::person_comment_mention_id
+              .is_not_null()
+              .and(recipient_person.eq(my_person_id)),
+          )
+          .or(
+            inbox_combined::person_post_mention_id
+              .is_not_null()
+              .and(recipient_person.eq(my_person_id)),
+          )
+          .or(
+            inbox_combined::private_message_id.is_not_null().and(
+              recipient_person
+                .eq(my_person_id)
+                .or(person::id.eq(my_person_id)),
+            ),
           ),
       );
     }
@@ -336,6 +382,22 @@ impl InboxCombinedQuery {
     query = query
       .filter(person_actions::blocked.is_null())
       .filter(instance_actions::blocked.is_null());
+
+    if let Some(type_) = self.type_ {
+      query = match type_ {
+        InboxDataType::All => query,
+        InboxDataType::CommentReply => query.filter(inbox_combined::comment_reply_id.is_not_null()),
+        InboxDataType::CommentMention => {
+          query.filter(inbox_combined::person_comment_mention_id.is_not_null())
+        }
+        InboxDataType::PostMention => {
+          query.filter(inbox_combined::person_post_mention_id.is_not_null())
+        }
+        InboxDataType::PrivateMessage => {
+          query.filter(inbox_combined::private_message_id.is_not_null())
+        }
+      }
+    }
 
     let mut query = PaginatedQueryBuilder::new(query);
 
@@ -470,502 +532,458 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
   }
 }
 
-// TODO Dont delete these
-// #[cfg(test)]
-// #[expect(clippy::indexing_slicing)]
-// mod tests {
-
-//   use crate::{inbox_combined_view::InboxCombinedQuery, structs::InboxCombinedView};
-//   use lemmy_db_schema::{
-//     source::{
-//       comment::{Comment, CommentInsertForm},
-//       community::{Community, CommunityInsertForm},
-//       instance::Instance,
-//       person::{Person, PersonInsertForm},
-//       post::{Post, PostInsertForm},
-//     },
-//     traits::Crud,
-//     utils::{build_db_pool_for_tests, DbPool},
-//   };
-//   use lemmy_utils::error::LemmyResult;
-//   use pretty_assertions::assert_eq;
-//   use serial_test::serial;
-
-//   struct Data {
-//     instance: Instance,
-//     timmy: Person,
-//     sara: Person,
-//     timmy_post: Post,
-//     timmy_post_2: Post,
-//     sara_post: Post,
-//     timmy_comment: Comment,
-//     sara_comment: Comment,
-//     sara_comment_2: Comment,
-//   }
-
-//   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-//     let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
-
-//     let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_pcv");
-//     let timmy = Person::create(pool, &timmy_form).await?;
-
-//     let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");
-//     let sara = Person::create(pool, &sara_form).await?;
-
-//     let community_form = CommunityInsertForm::new(
-//       instance.id,
-//       "test community pcv".to_string(),
-//       "nada".to_owned(),
-//       "pubkey".to_string(),
-//     );
-//     let community = Community::create(pool, &community_form).await?;
-
-//     let timmy_post_form = PostInsertForm::new("timmy post prv".into(), timmy.id, community.id);
-//     let timmy_post = Post::create(pool, &timmy_post_form).await?;
-
-//     let timmy_post_form_2 = PostInsertForm::new("timmy post prv 2".into(), timmy.id,
-// community.id);     let timmy_post_2 = Post::create(pool, &timmy_post_form_2).await?;
-
-//     let sara_post_form = PostInsertForm::new("sara post prv".into(), sara.id, community.id);
-//     let sara_post = Post::create(pool, &sara_post_form).await?;
-
-//     let timmy_comment_form =
-//       CommentInsertForm::new(timmy.id, timmy_post.id, "timmy comment prv".into());
-//     let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
-
-//     let sara_comment_form =
-//       CommentInsertForm::new(sara.id, timmy_post.id, "sara comment prv".into());
-//     let sara_comment = Comment::create(pool, &sara_comment_form, None).await?;
-
-//     let sara_comment_form_2 =
-//       CommentInsertForm::new(sara.id, timmy_post_2.id, "sara comment prv 2".into());
-//     let sara_comment_2 = Comment::create(pool, &sara_comment_form_2, None).await?;
-
-//     Ok(Data {
-//       instance,
-//       timmy,
-//       sara,
-//       timmy_post,
-//       timmy_post_2,
-//       sara_post,
-//       timmy_comment,
-//       sara_comment,
-//       sara_comment_2,
-//     })
-//   }
-
-//   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-//     Instance::delete(pool, data.instance.id).await?;
-
-//     Ok(())
-//   }
-
-//   #[tokio::test]
-//   #[serial]
-//   async fn test_combined() -> LemmyResult<()> {
-//     let pool = &build_db_pool_for_tests();
-//     let pool = &mut pool.into();
-//     let data = init_data(pool).await?;
-
-//     // Do a batch read of timmy
-//     let timmy_content = InboxCombinedQuery::new(data.timmy.id)
-//       .list(pool, &None)
-//       .await?;
-//     assert_eq!(3, timmy_content.len());
-
-//     // Make sure the types are correct
-//     if let InboxCombinedView::Comment(v) = &timmy_content[0] {
-//       assert_eq!(data.timmy_comment.id, v.comment.id);
-//       assert_eq!(data.timmy.id, v.creator.id);
-//     } else {
-//       panic!("wrong type");
-//     }
-//     if let InboxCombinedView::Post(v) = &timmy_content[1] {
-//       assert_eq!(data.timmy_post_2.id, v.post.id);
-//       assert_eq!(data.timmy.id, v.post.creator_id);
-//     } else {
-//       panic!("wrong type");
-//     }
-//     if let InboxCombinedView::Post(v) = &timmy_content[2] {
-//       assert_eq!(data.timmy_post.id, v.post.id);
-//       assert_eq!(data.timmy.id, v.post.creator_id);
-//     } else {
-//       panic!("wrong type");
-//     }
-
-//     // Do a batch read of sara
-//     let sara_content = InboxCombinedQuery::new(data.sara.id)
-//       .list(pool, &None)
-//       .await?;
-//     assert_eq!(3, sara_content.len());
-
-//     // Make sure the report types are correct
-//     if let InboxCombinedView::Comment(v) = &sara_content[0] {
-//       assert_eq!(data.sara_comment_2.id, v.comment.id);
-//       assert_eq!(data.sara.id, v.creator.id);
-//       // This one was to timmy_post_2
-//       assert_eq!(data.timmy_post_2.id, v.post.id);
-//       assert_eq!(data.timmy.id, v.post.creator_id);
-//     } else {
-//       panic!("wrong type");
-//     }
-//     if let InboxCombinedView::Comment(v) = &sara_content[1] {
-//       assert_eq!(data.sara_comment.id, v.comment.id);
-//       assert_eq!(data.sara.id, v.creator.id);
-//       assert_eq!(data.timmy_post.id, v.post.id);
-//       assert_eq!(data.timmy.id, v.post.creator_id);
-//     } else {
-//       panic!("wrong type");
-//     }
-//     if let InboxCombinedView::Post(v) = &sara_content[2] {
-//       assert_eq!(data.sara_post.id, v.post.id);
-//       assert_eq!(data.sara.id, v.post.creator_id);
-//     } else {
-//       panic!("wrong type");
-//     }
-
-//     cleanup(data, pool).await?;
-
-//     Ok(())
-//   }
-// }
-
-//
-
-// #[cfg(test)]
-// mod tests {
-
-//   use crate::{
-//     person_comment_mention_view::PersonCommentMentionQuery,
-//     structs::PersonCommentMentionView,
-//   };
-//   use lemmy_db_schema::{
-//     source::{
-//       comment::{Comment, CommentInsertForm},
-//       community::{Community, CommunityInsertForm},
-//       instance::Instance,
-//       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-//       person::{Person, PersonInsertForm, PersonUpdateForm},
-//       person_block::{PersonBlock, PersonBlockForm},
-//       person_comment_mention::{
-//         PersonCommentMention,
-//         PersonCommentMentionInsertForm,
-//         PersonCommentMentionUpdateForm,
-//       },
-//       post::{Post, PostInsertForm},
-//     },
-//     traits::{Blockable, Crud},
-//     utils::build_db_pool_for_tests,
-//   };
-//   use lemmy_db_views::structs::LocalUserView;
-//   use lemmy_utils::error::LemmyResult;
-//   use pretty_assertions::assert_eq;
-//   use serial_test::serial;
-
-//   #[tokio::test]
-//   #[serial]
-//   async fn test_crud() -> LemmyResult<()> {
-//     let pool = &build_db_pool_for_tests();
-//     let pool = &mut pool.into();
-
-//     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
-
-//     let new_person = PersonInsertForm::test_form(inserted_instance.id, "terrylake");
-
-//     let inserted_person = Person::create(pool, &new_person).await?;
-
-//     let recipient_form = PersonInsertForm::test_form(inserted_instance.id, "terrylakes
-// recipient");
-
-//     let inserted_recipient = Person::create(pool, &recipient_form).await?;
-//     let recipient_id = inserted_recipient.id;
-
-//     let recipient_local_user =
-//       LocalUser::create(pool, &LocalUserInsertForm::test_form(recipient_id), vec![]).await?;
-
-//     let new_community = CommunityInsertForm::new(
-//       inserted_instance.id,
-//       "test community lake".to_string(),
-//       "nada".to_owned(),
-//       "pubkey".to_string(),
-//     );
-//     let inserted_community = Community::create(pool, &new_community).await?;
-
-//     let new_post = PostInsertForm::new(
-//       "A test post".into(),
-//       inserted_person.id,
-//       inserted_community.id,
-//     );
-//     let inserted_post = Post::create(pool, &new_post).await?;
-
-//     let comment_form = CommentInsertForm::new(
-//       inserted_person.id,
-//       inserted_post.id,
-//       "A test comment".into(),
-//     );
-//     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
-
-//     let person_comment_mention_form = PersonCommentMentionInsertForm {
-//       recipient_id: inserted_recipient.id,
-//       comment_id: inserted_comment.id,
-//       read: None,
-//     };
-
-//     let inserted_mention = PersonCommentMention::create(pool,
-// &person_comment_mention_form).await?;
-
-//     let expected_mention = PersonCommentMention {
-//       id: inserted_mention.id,
-//       recipient_id: inserted_mention.recipient_id,
-//       comment_id: inserted_mention.comment_id,
-//       read: false,
-//       published: inserted_mention.published,
-//     };
-
-//     let read_mention = PersonCommentMention::read(pool, inserted_mention.id).await?;
-
-//     let person_comment_mention_update_form = PersonCommentMentionUpdateForm { read: Some(false)
-// };     let updated_mention = PersonCommentMention::update(
-//       pool,
-//       inserted_mention.id,
-//       &person_comment_mention_update_form,
-//     )
-//     .await?;
-
-//     // Test to make sure counts and blocks work correctly
-//     let unread_mentions =
-//       PersonCommentMentionView::get_unread_count(pool, &recipient_local_user).await?;
-
-//     let query = PersonCommentMentionQuery {
-//       recipient_id: Some(recipient_id),
-//       my_person_id: Some(recipient_id),
-//       sort: None,
-//       unread_only: false,
-//       show_bot_accounts: true,
-//       page: None,
-//       limit: None,
-//     };
-//     let mentions = query.clone().list(pool).await?;
-//     assert_eq!(1, unread_mentions);
-//     assert_eq!(1, mentions.len());
-
-//     // Block the person, and make sure these counts are now empty
-//     let block_form = PersonBlockForm {
-//       person_id: recipient_id,
-//       target_id: inserted_person.id,
-//     };
-//     PersonBlock::block(pool, &block_form).await?;
-
-//     let unread_mentions_after_block =
-//       PersonCommentMentionView::get_unread_count(pool, &recipient_local_user).await?;
-//     let mentions_after_block = query.clone().list(pool).await?;
-//     assert_eq!(0, unread_mentions_after_block);
-//     assert_eq!(0, mentions_after_block.len());
-
-//     // Unblock user so we can reuse the same person
-//     PersonBlock::unblock(pool, &block_form).await?;
-
-//     // Turn Terry into a bot account
-//     let person_update_form = PersonUpdateForm {
-//       bot_account: Some(true),
-//       ..Default::default()
-//     };
-//     Person::update(pool, inserted_person.id, &person_update_form).await?;
-
-//     let recipient_local_user_update_form = LocalUserUpdateForm {
-//       show_bot_accounts: Some(false),
-//       ..Default::default()
-//     };
-//     LocalUser::update(
-//       pool,
-//       recipient_local_user.id,
-//       &recipient_local_user_update_form,
-//     )
-//     .await?;
-//     let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id).await?;
-
-//     let unread_mentions_after_hide_bots =
-//       PersonCommentMentionView::get_unread_count(pool, &recipient_local_user_view.local_user)
-//         .await?;
-
-//     let mut query_without_bots = query.clone();
-//     query_without_bots.show_bot_accounts = false;
-//     let replies_after_hide_bots = query_without_bots.list(pool).await?;
-//     assert_eq!(0, unread_mentions_after_hide_bots);
-//     assert_eq!(0, replies_after_hide_bots.len());
-
-//     Comment::delete(pool, inserted_comment.id).await?;
-//     Post::delete(pool, inserted_post.id).await?;
-//     Community::delete(pool, inserted_community.id).await?;
-//     Person::delete(pool, inserted_person.id).await?;
-//     Person::delete(pool, inserted_recipient.id).await?;
-//     Instance::delete(pool, inserted_instance.id).await?;
-
-//     assert_eq!(expected_mention, read_mention);
-//     assert_eq!(expected_mention, inserted_mention);
-//     assert_eq!(expected_mention, updated_mention);
-
-//     Ok(())
-//   }
-// }
-// #[cfg(test)]
-// mod tests {
-
-//   use crate::{person_post_mention_view::PersonPostMentionQuery, structs::PersonPostMentionView};
-//   use lemmy_db_schema::{
-//     source::{
-//       community::{Community, CommunityInsertForm},
-//       instance::Instance,
-//       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-//       person::{Person, PersonInsertForm, PersonUpdateForm},
-//       person_block::{PersonBlock, PersonBlockForm},
-//       person_post_mention::{
-//         PersonPostMention,
-//         PersonPostMentionInsertForm,
-//         PersonPostMentionUpdateForm,
-//       },
-//       post::{Post, PostInsertForm},
-//     },
-//     traits::{Blockable, Crud},
-//     utils::build_db_pool_for_tests,
-//   };
-//   use lemmy_db_views::structs::LocalUserView;
-//   use lemmy_utils::error::LemmyResult;
-//   use pretty_assertions::assert_eq;
-//   use serial_test::serial;
-
-//   #[tokio::test]
-//   #[serial]
-//   async fn test_crud() -> LemmyResult<()> {
-//     let pool = &build_db_pool_for_tests().await;
-//     let pool = &mut pool.into();
-
-//     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
-
-//     let new_person = PersonInsertForm::test_form(inserted_instance.id, "terrylake");
-
-//     let inserted_person = Person::create(pool, &new_person).await?;
-
-//     let recipient_form = PersonInsertForm::test_form(inserted_instance.id, "terrylakes
-// recipient");
-
-//     let inserted_recipient = Person::create(pool, &recipient_form).await?;
-//     let recipient_id = inserted_recipient.id;
-
-//     let recipient_local_user =
-//       LocalUser::create(pool, &LocalUserInsertForm::test_form(recipient_id), vec![]).await?;
-
-//     let new_community = CommunityInsertForm::new(
-//       inserted_instance.id,
-//       "test community lake".to_string(),
-//       "nada".to_owned(),
-//       "pubkey".to_string(),
-//     );
-//     let inserted_community = Community::create(pool, &new_community).await?;
-
-//     let new_post = PostInsertForm::new(
-//       "A test post".into(),
-//       inserted_person.id,
-//       inserted_community.id,
-//     );
-//     let inserted_post = Post::create(pool, &new_post).await?;
-
-//     let person_post_mention_form = PersonPostMentionInsertForm {
-//       recipient_id: inserted_recipient.id,
-//       post_id: inserted_post.id,
-//       read: None,
-//     };
-
-//     let inserted_mention = PersonPostMention::create(pool, &person_post_mention_form).await?;
-
-//     let expected_mention = PersonPostMention {
-//       id: inserted_mention.id,
-//       recipient_id: inserted_mention.recipient_id,
-//       post_id: inserted_mention.post_id,
-//       read: false,
-//       published: inserted_mention.published,
-//     };
-
-//     let read_mention = PersonPostMention::read(pool, inserted_mention.id).await?;
-
-//     let person_post_mention_update_form = PersonPostMentionUpdateForm { read: Some(false) };
-//     let updated_mention =
-//       PersonPostMention::update(pool, inserted_mention.id, &person_post_mention_update_form)
-//         .await?;
-
-//     // Test to make sure counts and blocks work correctly
-//     let unread_mentions =
-//       PersonPostMentionView::get_unread_count(pool, &recipient_local_user).await?;
-
-//     let query = PersonPostMentionQuery {
-//       recipient_id: Some(recipient_id),
-//       my_person_id: Some(recipient_id),
-//       sort: None,
-//       unread_only: false,
-//       show_bot_accounts: true,
-//       page: None,
-//       limit: None,
-//     };
-//     let mentions = query.clone().list(pool).await?;
-//     assert_eq!(1, unread_mentions);
-//     assert_eq!(1, mentions.len());
-
-//     // Block the person, and make sure these counts are now empty
-//     let block_form = PersonBlockForm {
-//       person_id: recipient_id,
-//       target_id: inserted_person.id,
-//     };
-//     PersonBlock::block(pool, &block_form).await?;
-
-//     let unread_mentions_after_block =
-//       PersonPostMentionView::get_unread_count(pool, &recipient_local_user).await?;
-//     let mentions_after_block = query.clone().list(pool).await?;
-//     assert_eq!(0, unread_mentions_after_block);
-//     assert_eq!(0, mentions_after_block.len());
-
-//     // Unblock user so we can reuse the same person
-//     PersonBlock::unblock(pool, &block_form).await?;
-
-//     // Turn Terry into a bot account
-//     let person_update_form = PersonUpdateForm {
-//       bot_account: Some(true),
-//       ..Default::default()
-//     };
-//     Person::update(pool, inserted_person.id, &person_update_form).await?;
-
-//     let recipient_local_user_update_form = LocalUserUpdateForm {
-//       show_bot_accounts: Some(false),
-//       ..Default::default()
-//     };
-//     LocalUser::update(
-//       pool,
-//       recipient_local_user.id,
-//       &recipient_local_user_update_form,
-//     )
-//     .await?;
-//     let recipient_local_user_view = LocalUserView::read(pool, recipient_local_user.id).await?;
-
-//     let unread_mentions_after_hide_bots =
-//       PersonPostMentionView::get_unread_count(pool,
-// &recipient_local_user_view.local_user).await?;
-
-//     let mut query_without_bots = query.clone();
-//     query_without_bots.show_bot_accounts = false;
-//     let replies_after_hide_bots = query_without_bots.list(pool).await?;
-//     assert_eq!(0, unread_mentions_after_hide_bots);
-//     assert_eq!(0, replies_after_hide_bots.len());
-
-//     Post::delete(pool, inserted_post.id).await?;
-//     Post::delete(pool, inserted_post.id).await?;
-//     Community::delete(pool, inserted_community.id).await?;
-//     Person::delete(pool, inserted_person.id).await?;
-//     Person::delete(pool, inserted_recipient.id).await?;
-//     Instance::delete(pool, inserted_instance.id).await?;
-
-//     assert_eq!(expected_mention, read_mention);
-//     assert_eq!(expected_mention, inserted_mention);
-//     assert_eq!(expected_mention, updated_mention);
-
-//     Ok(())
-//   }
-// }
+#[cfg(test)]
+#[expect(clippy::indexing_slicing)]
+mod tests {
+  use crate::{
+    inbox_combined_view::InboxCombinedQuery,
+    structs::{InboxCombinedView, InboxCombinedViewInternal, PrivateMessageView},
+  };
+  use lemmy_db_schema::{
+    assert_length,
+    source::{
+      comment::{Comment, CommentInsertForm},
+      comment_reply::{CommentReply, CommentReplyInsertForm, CommentReplyUpdateForm},
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      instance_block::{InstanceBlock, InstanceBlockForm},
+      person::{Person, PersonInsertForm, PersonUpdateForm},
+      person_block::{PersonBlock, PersonBlockForm},
+      person_comment_mention::{PersonCommentMention, PersonCommentMentionInsertForm},
+      person_post_mention::{PersonPostMention, PersonPostMentionInsertForm},
+      post::{Post, PostInsertForm},
+      private_message::{PrivateMessage, PrivateMessageInsertForm},
+    },
+    traits::{Blockable, Crud},
+    utils::{build_db_pool_for_tests, DbPool},
+    InboxDataType,
+  };
+  use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
+  use serial_test::serial;
+
+  struct Data {
+    instance: Instance,
+    timmy: Person,
+    sara: Person,
+    jessica: Person,
+    timmy_post: Post,
+    jessica_post: Post,
+    timmy_comment: Comment,
+    sara_comment: Comment,
+  }
+
+  async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
+    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+
+    let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_pcv");
+    let timmy = Person::create(pool, &timmy_form).await?;
+
+    let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");
+    let sara = Person::create(pool, &sara_form).await?;
+
+    let jessica_form = PersonInsertForm::test_form(instance.id, "jessica_mrv");
+    let jessica = Person::create(pool, &jessica_form).await?;
+
+    let community_form = CommunityInsertForm::new(
+      instance.id,
+      "test community pcv".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let community = Community::create(pool, &community_form).await?;
+
+    let timmy_post_form = PostInsertForm::new("timmy post prv".into(), timmy.id, community.id);
+    let timmy_post = Post::create(pool, &timmy_post_form).await?;
+
+    let jessica_post_form =
+      PostInsertForm::new("jessica post prv".into(), jessica.id, community.id);
+    let jessica_post = Post::create(pool, &jessica_post_form).await?;
+
+    let timmy_comment_form =
+      CommentInsertForm::new(timmy.id, timmy_post.id, "timmy comment prv".into());
+    let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
+
+    let sara_comment_form =
+      CommentInsertForm::new(sara.id, timmy_post.id, "sara comment prv".into());
+    let sara_comment = Comment::create(pool, &sara_comment_form, Some(&timmy_comment.path)).await?;
+
+    Ok(Data {
+      instance,
+      timmy,
+      sara,
+      jessica,
+      timmy_post,
+      jessica_post,
+      timmy_comment,
+      sara_comment,
+    })
+  }
+
+  async fn setup_private_messages(data: &Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    let sara_timmy_message_form =
+      PrivateMessageInsertForm::new(data.sara.id, data.timmy.id, "sara to timmy".into());
+    PrivateMessage::create(pool, &sara_timmy_message_form).await?;
+
+    let sara_jessica_message_form =
+      PrivateMessageInsertForm::new(data.sara.id, data.jessica.id, "sara to jessica".into());
+    PrivateMessage::create(pool, &sara_jessica_message_form).await?;
+
+    let timmy_sara_message_form =
+      PrivateMessageInsertForm::new(data.timmy.id, data.sara.id, "timmy to sara".into());
+    PrivateMessage::create(pool, &timmy_sara_message_form).await?;
+
+    let jessica_timmy_message_form =
+      PrivateMessageInsertForm::new(data.jessica.id, data.timmy.id, "jessica to timmy".into());
+    PrivateMessage::create(pool, &jessica_timmy_message_form).await?;
+
+    Ok(())
+  }
+
+  async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    Instance::delete(pool, data.instance.id).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn replies() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Sara replied to timmys comment, but lets create the row now
+    let form = CommentReplyInsertForm {
+      recipient_id: data.timmy.id,
+      comment_id: data.sara_comment.id,
+      read: None,
+    };
+    let reply = CommentReply::create(pool, &form).await?;
+
+    let timmy_unread_replies =
+      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, true).await?;
+    assert_eq!(1, timmy_unread_replies);
+
+    let timmy_inbox = InboxCombinedQuery::default()
+      .list(pool, data.timmy.id)
+      .await?;
+    assert_eq!(1, timmy_inbox.len());
+
+    if let InboxCombinedView::CommentReply(v) = &timmy_inbox[0] {
+      assert_eq!(data.sara_comment.id, v.comment_reply.comment_id);
+      assert_eq!(data.sara_comment.id, v.comment.id);
+      assert_eq!(data.timmy_post.id, v.post.id);
+      assert_eq!(data.sara.id, v.creator.id);
+      assert_eq!(data.timmy.id, v.recipient.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    // Mark it as read
+    let form = CommentReplyUpdateForm { read: Some(true) };
+    CommentReply::update(pool, reply.id, &form).await?;
+
+    let timmy_unread_replies =
+      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, true).await?;
+    assert_eq!(0, timmy_unread_replies);
+
+    let timmy_inbox_unread = InboxCombinedQuery {
+      unread_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, data.timmy.id)
+    .await?;
+    assert_eq!(0, timmy_inbox_unread.len());
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn mentions() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Timmy mentions sara in a comment
+    let timmy_mention_sara_comment_form = PersonCommentMentionInsertForm {
+      recipient_id: data.sara.id,
+      comment_id: data.timmy_comment.id,
+      read: None,
+    };
+    PersonCommentMention::create(pool, &timmy_mention_sara_comment_form).await?;
+
+    // Jessica mentions sara in a post
+    let jessica_mention_sara_post_form = PersonPostMentionInsertForm {
+      recipient_id: data.sara.id,
+      post_id: data.jessica_post.id,
+      read: None,
+    };
+    PersonPostMention::create(pool, &jessica_mention_sara_post_form).await?;
+
+    // Test to make sure counts and blocks work correctly
+    let sara_unread_mentions =
+      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, true).await?;
+    assert_eq!(2, sara_unread_mentions);
+
+    let sara_inbox = InboxCombinedQuery::default()
+      .list(pool, data.sara.id)
+      .await?;
+    assert_eq!(2, sara_inbox.len());
+
+    if let InboxCombinedView::PostMention(v) = &sara_inbox[0] {
+      assert_eq!(data.jessica_post.id, v.person_post_mention.post_id);
+      assert_eq!(data.jessica_post.id, v.post.id);
+      assert_eq!(data.jessica.id, v.creator.id);
+      assert_eq!(data.sara.id, v.recipient.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let InboxCombinedView::CommentMention(v) = &sara_inbox[1] {
+      assert_eq!(data.timmy_comment.id, v.person_comment_mention.comment_id);
+      assert_eq!(data.timmy_comment.id, v.comment.id);
+      assert_eq!(data.timmy_post.id, v.post.id);
+      assert_eq!(data.timmy.id, v.creator.id);
+      assert_eq!(data.sara.id, v.recipient.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    // Sara blocks timmy, and make sure these counts are now empty
+    let sara_blocks_timmy_form = PersonBlockForm {
+      person_id: data.sara.id,
+      target_id: data.timmy.id,
+    };
+    PersonBlock::block(pool, &sara_blocks_timmy_form).await?;
+
+    let sara_unread_mentions_after_block =
+      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, true).await?;
+    assert_eq!(1, sara_unread_mentions_after_block);
+
+    let sara_inbox_after_block = InboxCombinedQuery::default()
+      .list(pool, data.sara.id)
+      .await?;
+    assert_eq!(1, sara_inbox_after_block.len());
+
+    // Make sure the comment mention which timmy made is the hidden one
+    assert!(matches!(
+      sara_inbox_after_block[0],
+      InboxCombinedView::PostMention(_)
+    ));
+
+    // Unblock user so we can reuse the same person
+    PersonBlock::unblock(pool, &sara_blocks_timmy_form).await?;
+
+    // Test the type filter
+    let sara_inbox_post_mentions_only = InboxCombinedQuery {
+      type_: Some(InboxDataType::PostMention),
+      ..Default::default()
+    }
+    .list(pool, data.sara.id)
+    .await?;
+    assert_eq!(1, sara_inbox_post_mentions_only.len());
+
+    assert!(matches!(
+      sara_inbox_post_mentions_only[0],
+      InboxCombinedView::PostMention(_)
+    ));
+
+    // Turn Jessica into a bot account
+    let person_update_form = PersonUpdateForm {
+      bot_account: Some(true),
+      ..Default::default()
+    };
+    Person::update(pool, data.jessica.id, &person_update_form).await?;
+
+    // Make sure sara hides bots
+    let sara_unread_mentions_after_hide_bots =
+      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, false).await?;
+    assert_eq!(1, sara_unread_mentions_after_hide_bots);
+
+    let sara_inbox_after_hide_bots = InboxCombinedQuery::default()
+      .list(pool, data.sara.id)
+      .await?;
+    assert_eq!(1, sara_inbox_after_hide_bots.len());
+
+    // Make sure the post mention which jessica made is the hidden one
+    assert!(matches!(
+      sara_inbox_after_hide_bots[0],
+      InboxCombinedView::CommentMention(_)
+    ));
+
+    // Mark them all as read
+    PersonPostMention::mark_all_as_read(pool, data.sara.id).await?;
+    PersonCommentMention::mark_all_as_read(pool, data.sara.id).await?;
+
+    // Make sure none come back
+    let sara_unread_mentions =
+      InboxCombinedViewInternal::get_unread_count(pool, data.sara.id, false).await?;
+    assert_eq!(0, sara_unread_mentions);
+
+    let sara_inbox_unread = InboxCombinedQuery {
+      unread_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, data.sara.id)
+    .await?;
+    assert_eq!(0, sara_inbox_unread.len());
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  /// A helper function to coerce to a private message type for tests
+  fn map_to_pm(inbox: &Vec<InboxCombinedView>) -> Vec<PrivateMessageView> {
+    inbox
+      .iter()
+      // Filter map to collect private messages
+      .filter_map(|f| {
+        if let InboxCombinedView::PrivateMessage(v) = f {
+          Some(v)
+        } else {
+          None
+        }
+      })
+      .cloned()
+      .collect::<Vec<PrivateMessageView>>()
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn read_private_messages() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+    setup_private_messages(&data, pool).await?;
+
+    let timmy_messages = map_to_pm(
+      &InboxCombinedQuery::default()
+        .list(pool, data.timmy.id)
+        .await?,
+    );
+
+    // The read even shows timmy's sent messages
+    assert_length!(3, &timmy_messages);
+    assert_eq!(timmy_messages[0].creator.id, data.jessica.id);
+    assert_eq!(timmy_messages[0].recipient.id, data.timmy.id);
+    assert_eq!(timmy_messages[1].creator.id, data.timmy.id);
+    assert_eq!(timmy_messages[1].recipient.id, data.sara.id);
+    assert_eq!(timmy_messages[2].creator.id, data.sara.id);
+    assert_eq!(timmy_messages[2].recipient.id, data.timmy.id);
+
+    let timmy_unread =
+      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, false).await?;
+    assert_eq!(2, timmy_unread);
+
+    let timmy_unread_messages = map_to_pm(
+      &InboxCombinedQuery {
+        unread_only: Some(true),
+        ..Default::default()
+      }
+      .list(pool, data.timmy.id)
+      .await?,
+    );
+
+    // The unread hides timmy's sent messages
+    assert_length!(2, &timmy_unread_messages);
+    assert_eq!(timmy_unread_messages[0].creator.id, data.jessica.id);
+    assert_eq!(timmy_unread_messages[0].recipient.id, data.timmy.id);
+    assert_eq!(timmy_unread_messages[1].creator.id, data.sara.id);
+    assert_eq!(timmy_unread_messages[1].recipient.id, data.timmy.id);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn ensure_private_message_person_block() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+    setup_private_messages(&data, pool).await?;
+
+    // Make sure blocks are working
+    let timmy_blocks_sara_form = PersonBlockForm {
+      person_id: data.timmy.id,
+      target_id: data.sara.id,
+    };
+
+    let inserted_block = PersonBlock::block(pool, &timmy_blocks_sara_form).await?;
+
+    let expected_block = PersonBlock {
+      person_id: data.timmy.id,
+      target_id: data.sara.id,
+      published: inserted_block.published,
+    };
+    assert_eq!(expected_block, inserted_block);
+
+    let timmy_messages = map_to_pm(
+      &InboxCombinedQuery {
+        unread_only: Some(true),
+        ..Default::default()
+      }
+      .list(pool, data.timmy.id)
+      .await?,
+    );
+
+    assert_length!(1, &timmy_messages);
+
+    let timmy_unread =
+      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, false).await?;
+    assert_eq!(1, timmy_unread);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn ensure_private_message_instance_block() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+    setup_private_messages(&data, pool).await?;
+
+    // Make sure instance_blocks are working
+    let timmy_blocks_instance_form = InstanceBlockForm {
+      person_id: data.timmy.id,
+      instance_id: data.sara.instance_id,
+    };
+
+    let inserted_instance_block = InstanceBlock::block(pool, &timmy_blocks_instance_form).await?;
+
+    let expected_instance_block = InstanceBlock {
+      person_id: data.timmy.id,
+      instance_id: data.sara.instance_id,
+      published: inserted_instance_block.published,
+    };
+    assert_eq!(expected_instance_block, inserted_instance_block);
+
+    let timmy_messages = map_to_pm(
+      &InboxCombinedQuery {
+        unread_only: Some(true),
+        ..Default::default()
+      }
+      .list(pool, data.timmy.id)
+      .await?,
+    );
+
+    assert_length!(0, &timmy_messages);
+
+    let timmy_unread =
+      InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, false).await?;
+    assert_length!(0, timmy_unread);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+}

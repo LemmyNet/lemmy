@@ -14,6 +14,7 @@ pub async fn list_inbox(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListInboxResponse>> {
   let unread_only = data.unread_only;
+  let type_ = data.type_;
   let person_id = local_user_view.person.id;
   let show_bot_accounts = Some(local_user_view.local_user.show_bot_accounts);
 
@@ -26,13 +27,13 @@ pub async fn list_inbox(
   let page_back = data.page_back;
 
   let inbox = InboxCombinedQuery {
-    my_person_id: person_id,
+    type_,
     unread_only,
     show_bot_accounts,
     page_after,
     page_back,
   }
-  .list(&mut context.pool())
+  .list(&mut context.pool(), person_id)
   .await?;
 
   Ok(Json(ListInboxResponse { inbox }))

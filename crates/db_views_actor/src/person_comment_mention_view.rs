@@ -1,6 +1,6 @@
 use crate::structs::PersonCommentMentionView;
 use diesel::{
-  dsl::{exists, not},
+  dsl::exists,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -24,7 +24,7 @@ use lemmy_db_schema::{
     person_comment_mention,
     post,
   },
-  source::{community::CommunityFollower, local_user::LocalUser},
+  source::community::CommunityFollower,
   utils::{actions, actions_alias, get_conn, DbPool},
 };
 
@@ -92,42 +92,6 @@ impl PersonCommentMentionView {
         comment_actions::like_score.nullable(),
       ))
       .first(conn)
-      .await
-  }
-
-  /// Gets the number of unread mentions
-  // TODO get rid of this
-  pub async fn get_unread_count(
-    pool: &mut DbPool<'_>,
-    local_user: &LocalUser,
-  ) -> Result<i64, Error> {
-    use diesel::dsl::count;
-    let conn = &mut get_conn(pool).await?;
-
-    let mut query = person_comment_mention::table
-      .inner_join(comment::table)
-      .left_join(actions(
-        person_actions::table,
-        Some(local_user.person_id),
-        comment::creator_id,
-      ))
-      .inner_join(person::table.on(comment::creator_id.eq(person::id)))
-      .into_boxed();
-
-    // These filters need to be kept in sync with the filters in queries().list()
-    if !local_user.show_bot_accounts {
-      query = query.filter(not(person::bot_account));
-    }
-
-    query
-      // Don't count replies from blocked users
-      .filter(person_actions::blocked.is_null())
-      .filter(person_comment_mention::recipient_id.eq(local_user.person_id))
-      .filter(person_comment_mention::read.eq(false))
-      .filter(comment::deleted.eq(false))
-      .filter(comment::removed.eq(false))
-      .select(count(person_comment_mention::id))
-      .first::<i64>(conn)
       .await
   }
 }

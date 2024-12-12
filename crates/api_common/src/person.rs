@@ -10,6 +10,7 @@ use lemmy_db_schema::{
   sensitive::SensitiveString,
   source::{login_token::LoginToken, site::Site},
   CommentSortType,
+  InboxDataType,
   ListingType,
   PostListingMode,
   PostSortType,
@@ -380,6 +381,8 @@ pub struct BlockPersonResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Get your inbox (replies, comment mentions, post mentions, and messages)
 pub struct ListInbox {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub type_: Option<InboxDataType>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub unread_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
