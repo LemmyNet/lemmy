@@ -11,7 +11,7 @@
     site_name: "lemmy-dev"
   }
   database: {
-    host: postgres
+    connection: "postgres://lemmy:password@postgres:5432/lemmy"
   }
 
   hostname: "localhost"

@@ -48,7 +48,7 @@ pub async fn user_block_person(
       .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
   }
 
-  let person_view = PersonView::read(&mut context.pool(), target_id).await?;
+  let person_view = PersonView::read(&mut context.pool(), target_id, false).await?;
   Ok(Json(BlockPersonResponse {
     person_view,
     blocked: data.block,

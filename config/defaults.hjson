@@ -1,11 +1,7 @@
 {
   # settings related to the postgresql database
   database: {
-    # Configure the database by specifying a URI
-    # 
-    # This is the preferred method to specify database connection details since
-    # it is the most flexible.
-    # Connection URI pointing to a postgres instance
+    # Configure the database by specifying URI pointing to a postgres instance
     # 
     # This example uses peer authentication to obviate the need for creating,
     # configuring, and managing passwords.
@@ -14,25 +10,7 @@
     # PostgreSQL's documentation.
     # 
     # [0]: https://www.postgresql.org/docs/current/libpq-connect.html#id-1.7.3.8.3.6
-    uri: "postgresql:///lemmy?user=lemmy&host=/var/run/postgresql"
-
-    # or
-
-    # Configure the database by specifying parts of a URI
-    # 
-    # Note that specifying the `uri` field should be preferred since it provides
-    # greater control over how the connection is made. This merely exists for
-    # backwards-compatibility.
-    # Username to connect to postgres
-    user: "string"
-    # Password to connect to postgres
-    password: "string"
-    # Host where postgres is running
-    host: "string"
-    # Port where postgres can be accessed
-    port: 123
-    # Name of the postgres database for lemmy
-    database: "string"
+    connection: "postgres://lemmy:password@localhost:5432/lemmy"
     # Maximum number of active sql connections
     pool_size: 30
   }

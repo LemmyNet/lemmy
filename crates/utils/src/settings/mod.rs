@@ -3,12 +3,10 @@ use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
 use regex::Regex;
 use std::{env, fs, io::Error, sync::LazyLock};
+use structs::{PictrsConfig, PictrsImageMode, Settings};
 use url::Url;
-use urlencoding::encode;
 
 pub mod structs;
-
-use structs::{DatabaseConnection, PictrsConfig, PictrsImageMode, Settings};
 
 const DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
@@ -51,20 +49,9 @@ impl Settings {
 
   pub fn get_database_url(&self) -> String {
     if let Ok(url) = env::var("LEMMY_DATABASE_URL") {
-      return url;
-    }
-    match &self.database.connection {
-      DatabaseConnection::Uri { uri } => uri.clone(),
-      DatabaseConnection::Parts(parts) => {
-        format!(
-          "postgres://{}:{}@{}:{}/{}",
-          encode(&parts.user),
-          encode(&parts.password),
-          parts.host,
-          parts.port,
-          encode(&parts.database),
-        )
-      }
+      url
+    } else {
+      self.database.connection.clone()
     }
   }
 
