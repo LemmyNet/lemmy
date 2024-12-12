@@ -368,7 +368,7 @@ impl InboxCombinedQuery {
             inbox_combined::private_message_id.is_not_null().and(
               recipient_person
                 .eq(my_person_id)
-                .or(person::id.eq(my_person_id)),
+                .or(item_creator.eq(my_person_id)),
             ),
           ),
       );
@@ -668,7 +668,7 @@ mod tests {
     let timmy_inbox = InboxCombinedQuery::default()
       .list(pool, data.timmy.id)
       .await?;
-    assert_eq!(1, timmy_inbox.len());
+    assert_length!(1, timmy_inbox);
 
     if let InboxCombinedView::CommentReply(v) = &timmy_inbox[0] {
       assert_eq!(data.sara_comment.id, v.comment_reply.comment_id);
@@ -694,7 +694,7 @@ mod tests {
     }
     .list(pool, data.timmy.id)
     .await?;
-    assert_eq!(0, timmy_inbox_unread.len());
+    assert_length!(0, timmy_inbox_unread);
 
     cleanup(data, pool).await?;
 
@@ -732,7 +732,7 @@ mod tests {
     let sara_inbox = InboxCombinedQuery::default()
       .list(pool, data.sara.id)
       .await?;
-    assert_eq!(2, sara_inbox.len());
+    assert_length!(2, sara_inbox);
 
     if let InboxCombinedView::PostMention(v) = &sara_inbox[0] {
       assert_eq!(data.jessica_post.id, v.person_post_mention.post_id);
@@ -767,7 +767,7 @@ mod tests {
     let sara_inbox_after_block = InboxCombinedQuery::default()
       .list(pool, data.sara.id)
       .await?;
-    assert_eq!(1, sara_inbox_after_block.len());
+    assert_length!(1, sara_inbox_after_block);
 
     // Make sure the comment mention which timmy made is the hidden one
     assert!(matches!(
@@ -785,7 +785,7 @@ mod tests {
     }
     .list(pool, data.sara.id)
     .await?;
-    assert_eq!(1, sara_inbox_post_mentions_only.len());
+    assert_length!(1, sara_inbox_post_mentions_only);
 
     assert!(matches!(
       sara_inbox_post_mentions_only[0],
@@ -807,7 +807,7 @@ mod tests {
     let sara_inbox_after_hide_bots = InboxCombinedQuery::default()
       .list(pool, data.sara.id)
       .await?;
-    assert_eq!(1, sara_inbox_after_hide_bots.len());
+    assert_length!(1, sara_inbox_after_hide_bots);
 
     // Make sure the post mention which jessica made is the hidden one
     assert!(matches!(
@@ -830,7 +830,7 @@ mod tests {
     }
     .list(pool, data.sara.id)
     .await?;
-    assert_eq!(0, sara_inbox_unread.len());
+    assert_length!(0, sara_inbox_unread);
 
     cleanup(data, pool).await?;
 
@@ -980,7 +980,7 @@ mod tests {
 
     let timmy_unread =
       InboxCombinedViewInternal::get_unread_count(pool, data.timmy.id, false).await?;
-    assert_length!(0, timmy_unread);
+    assert_eq!(0, timmy_unread);
 
     cleanup(data, pool).await?;
 
