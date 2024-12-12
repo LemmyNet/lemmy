@@ -18,26 +18,12 @@ use lemmy_db_schema::source::{
   local_site::LocalSite,
 };
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_utils::{error::LemmyResult, rate_limit::RateLimitCell, REQWEST_TIMEOUT};
+use lemmy_utils::{error::LemmyResult, REQWEST_TIMEOUT};
 use reqwest::Body;
-use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
+use reqwest_middleware::RequestBuilder;
 use serde::Deserialize;
 use std::time::Duration;
 use url::Url;
-
-pub fn config(cfg: &mut ServiceConfig, client: ClientWithMiddleware, rate_limit: &RateLimitCell) {
-  cfg
-    .app_data(Data::new(client))
-    .service(
-      resource("/pictrs/image")
-        .wrap(rate_limit.image())
-        .route(post().to(upload)),
-    )
-    // This has optional query params: /image/{filename}?format=jpg&thumbnail=256
-    .service(resource("/pictrs/image/{filename}").route(get().to(full_res)))
-    .service(resource("/pictrs/image/delete/{token}/{filename}").route(get().to(delete)))
-    .service(resource("/pictrs/healthz").route(get().to(healthz)));
-}
 
 trait ProcessUrl {
   /// If thumbnail or format is given, this uses the pictrs process endpoint.
@@ -46,7 +32,7 @@ trait ProcessUrl {
 }
 
 #[derive(Deserialize, Clone)]
-struct PictrsGetParams {
+pub struct PictrsGetParams {
   format: Option<String>,
   thumbnail: Option<i32>,
 }
@@ -99,15 +85,12 @@ impl ProcessUrl for ImageProxyParams {
     }
   }
 }
-fn adapt_request(
-  request: &HttpRequest,
-  client: &ClientWithMiddleware,
-  url: String,
-) -> RequestBuilder {
+fn adapt_request(request: &HttpRequest, context: &LemmyContext, url: String) -> RequestBuilder {
   // remove accept-encoding header so that pictrs doesn't compress the response
   const INVALID_HEADERS: &[HeaderName] = &[ACCEPT_ENCODING, HOST];
 
-  let client_request = client
+  let client_request = context
+    .client()
     .request(convert_method(request.method()), url)
     .timeout(REQWEST_TIMEOUT);
 
@@ -124,19 +107,17 @@ fn adapt_request(
     })
 }
 
-async fn upload(
+pub async fn upload_image(
   req: HttpRequest,
   body: Payload,
   // require login
   local_user_view: LocalUserView,
-  client: Data<ClientWithMiddleware>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  // TODO: check rate limit here
   let pictrs_config = context.settings().pictrs_config()?;
   let image_url = format!("{}image", pictrs_config.url);
 
-  let mut client_req = adapt_request(&req, &client, image_url);
+  let mut client_req = adapt_request(&req, &context, image_url);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
@@ -169,11 +150,10 @@ async fn upload(
   Ok(HttpResponse::build(convert_status(status)).json(images))
 }
 
-async fn full_res(
+pub async fn get_full_res_image(
   filename: Path<String>,
   Query(params): Query<PictrsGetParams>,
   req: HttpRequest,
-  client: Data<ClientWithMiddleware>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<HttpResponse> {
@@ -189,15 +169,11 @@ async fn full_res(
 
   let processed_url = params.process_url(name, &pictrs_config.url);
 
-  image(processed_url, req, &client).await
+  image(processed_url, req, &context).await
 }
 
-async fn image(
-  url: String,
-  req: HttpRequest,
-  client: &ClientWithMiddleware,
-) -> LemmyResult<HttpResponse> {
-  let mut client_req = adapt_request(&req, client, url);
+async fn image(url: String, req: HttpRequest, context: &LemmyContext) -> LemmyResult<HttpResponse> {
+  let mut client_req = adapt_request(&req, context, url);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string());
@@ -222,10 +198,9 @@ async fn image(
   Ok(client_res.body(BodyStream::new(res.bytes_stream())))
 }
 
-async fn delete(
+pub async fn delete_image(
   components: Path<(String, String)>,
   req: HttpRequest,
-  client: Data<ClientWithMiddleware>,
   context: Data<LemmyContext>,
   // require login
   _local_user_view: LocalUserView,
@@ -235,7 +210,7 @@ async fn delete(
   let pictrs_config = context.settings().pictrs_config()?;
   let url = format!("{}image/delete/{}/{}", pictrs_config.url, &token, &file);
 
-  let mut client_req = adapt_request(&req, &client, url);
+  let mut client_req = adapt_request(&req, &context, url);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string());
@@ -248,15 +223,11 @@ async fn delete(
   Ok(HttpResponse::build(convert_status(res.status())).body(BodyStream::new(res.bytes_stream())))
 }
 
-async fn healthz(
-  req: HttpRequest,
-  client: Data<ClientWithMiddleware>,
-  context: Data<LemmyContext>,
-) -> LemmyResult<HttpResponse> {
+pub async fn pictrs_healthz(req: HttpRequest, context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
   let pictrs_config = context.settings().pictrs_config()?;
   let url = format!("{}healthz", pictrs_config.url);
 
-  let mut client_req = adapt_request(&req, &client, url);
+  let mut client_req = adapt_request(&req, &context, url);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string());
@@ -270,7 +241,6 @@ async fn healthz(
 pub async fn image_proxy(
   Query(params): Query<ImageProxyParams>,
   req: HttpRequest,
-  client: Data<ClientWithMiddleware>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Either<HttpResponse<()>, HttpResponse<BoxBody>>> {
   let url = Url::parse(&params.url)?;
@@ -291,7 +261,7 @@ pub async fn image_proxy(
     Ok(Either::Left(Redirect::to(url.to_string()).respond_to(&req)))
   } else {
     // Proxy the image data through Lemmy
-    Ok(Either::Right(image(processed_url, req, &client).await?))
+    Ok(Either::Right(image(processed_url, req, &context).await?))
   }
 }
 

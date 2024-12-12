@@ -159,7 +159,13 @@ use lemmy_apub::api::{
   search::search,
   user_settings_backup::{export_settings, import_settings},
 };
-use lemmy_routes::images::image_proxy;
+use lemmy_routes::images::{
+  delete_image,
+  get_full_res_image,
+  image_proxy,
+  pictrs_healthz,
+  upload_image,
+};
 use lemmy_utils::rate_limit::RateLimitCell;
 
 pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
@@ -387,6 +393,17 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.register())
           .route("/authenticate", post().to(authenticate_with_oauth)),
       )
-      .route("/sitemap.xml", get().to(get_sitemap)),
+      .route("/sitemap.xml", get().to(get_sitemap))
+      .service(
+        scope("/image")
+          .service(
+            resource("")
+              .wrap(rate_limit.image())
+              .route(post().to(upload_image)),
+          )
+          .route("/{filename}", get().to(get_full_res_image))
+          .route("{token}/{filename}", delete().to(delete_image))
+          .route("/healthz", get().to(pictrs_healthz)),
+      ),
   );
 }
