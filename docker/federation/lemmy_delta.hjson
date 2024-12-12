@@ -8,6 +8,6 @@
     site_name: lemmy-delta
   }
   database: {
-    host: postgres_delta
+    connection: "postgres://lemmy:password@postgres_delta:5432/lemmy"
   }
 }

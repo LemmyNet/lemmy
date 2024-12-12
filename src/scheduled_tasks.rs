@@ -579,13 +579,13 @@ async fn build_update_instance_form(
     // This is the only kind of error that means the instance is dead
     return None;
   };
+  let status = res.status();
+  if status.is_client_error() || status.is_server_error() {
+    return None;
+  }
 
   // In this block, returning `None` is ignored, and only means not writing nodeinfo to db
   async {
-    if res.status().is_client_error() {
-      return None;
-    }
-
     let node_info_url = res
       .json::<NodeInfoWellKnown>()
       .await

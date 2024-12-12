@@ -113,7 +113,6 @@ pub enum LemmyErrorType {
   SystemErrLogin,
   CouldntSetAllRegistrationsAccepted,
   CouldntSetAllEmailVerified,
-  Banned,
   BlockedUrl,
   CouldntGetComments,
   CouldntGetPosts,
@@ -328,9 +327,9 @@ cfg_if! {
 
       #[test]
       fn deserializes_no_message() -> LemmyResult<()> {
-        let err = LemmyError::from(LemmyErrorType::Banned).error_response();
+        let err = LemmyError::from(LemmyErrorType::BlockedUrl).error_response();
         let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
-        assert_eq!(&json, "{\"error\":\"banned\"}");
+        assert_eq!(&json, "{\"error\":\"blocked_url\"}");
 
         Ok(())
       }

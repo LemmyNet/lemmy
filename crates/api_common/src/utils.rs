@@ -123,8 +123,6 @@ pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
   check_user_valid(&local_user_view.person)?;
   if !local_user_view.local_user.admin {
     Err(LemmyErrorType::NotAnAdmin)?
-  } else if local_user_view.person.banned {
-    Err(LemmyErrorType::Banned)?
   } else {
     Ok(())
   }
