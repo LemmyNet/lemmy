@@ -74,6 +74,9 @@ test("Set some user settings, check that they are federated", async () => {
 
 test("Delete user", async () => {
   let user = await registerUser(alpha, alphaUrl);
+  let user_profile = await getMyUser(user);
+  let person_id = user_profile.local_user_view.person.id;
+  let actor_id = user_profile.local_user_view.person.actor_id;
 
   // make a local post and comment
   let alphaCommunity = (await resolveCommunity(user, "main@lemmy-alpha:8541"))
@@ -101,6 +104,10 @@ test("Delete user", async () => {
   expect(remoteComment).toBeDefined();
 
   await deleteUser(user);
+  await expect(getMyUser(user)).rejects.toStrictEqual(Error("incorrect_login"));
+  await expect(getPersonDetails(user, person_id)).rejects.toStrictEqual(
+    Error("not_found"),
+  );
 
   // check that posts and comments are marked as deleted on other instances.
   // use get methods to avoid refetching from origin instance
@@ -118,6 +125,9 @@ test("Delete user", async () => {
     (await getComments(alpha, remoteComment.post_id)).comments[0].comment
       .deleted,
   ).toBe(true);
+  await expect(
+    getPersonDetails(user, remoteComment.creator_id),
+  ).rejects.toStrictEqual(Error("not_found"));
 });
 
 test("Requests with invalid auth should be treated as unauthenticated", async () => {
