@@ -8,7 +8,7 @@
     site_name: lemmy-beta
   }
   database: {
-    host: postgres_beta
+    connection: "postgres://lemmy:password@postgres_beta:5432/lemmy"
   }
   pictrs: {
     api_key: "my-pictrs-key"

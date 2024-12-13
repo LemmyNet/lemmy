@@ -60,7 +60,7 @@ async fn convert_response(
       }
     },
     SearchableObjects::PersonOrCommunity(pc) => match *pc {
-      UserOrCommunity::User(u) => res.person = Some(PersonView::read(pool, u.id).await?),
+      UserOrCommunity::User(u) => res.person = Some(PersonView::read(pool, u.id, is_admin).await?),
       UserOrCommunity::Community(c) => {
         res.community = Some(CommunityView::read(pool, c.id, local_user.as_ref(), is_admin).await?)
       }
