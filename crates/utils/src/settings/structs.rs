@@ -110,8 +110,8 @@ pub struct PictrsConfig {
   pub max_avatar_size: u32,
 
   /// Maximum size for user, community and site banner.
-  /// 
-  /// TODO: Unfortunately pictrs can only resize images to fit in a*a square, no rectangle. 
+  ///
+  /// TODO: Unfortunately pictrs can only resize images to fit in a*a square, no rectangle.
   ///       Otherwise we have to use crop, or use max_width/max_height which throws error
   ///       if image is larger.
   #[default(512)]

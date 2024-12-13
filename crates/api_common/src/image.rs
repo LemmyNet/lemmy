@@ -9,7 +9,9 @@ use url::Url;
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ImageGetParams {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub file_type: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub max_size: Option<i32>,
 }
 
@@ -27,7 +29,9 @@ pub struct DeleteImageParams {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ImageProxyParams {
   pub url: String,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub file_type: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub max_size: Option<i32>,
 }
 

@@ -67,6 +67,10 @@
     # Maximum size for user avatar, community icon and site icon.
     max_avatar_size: 512
     # Maximum size for user, community and site banner.
+    # 
+    # TODO: Unfortunately pictrs can only resize images to fit in a*a square, no rectangle.
+    #       Otherwise we have to use crop, or use max_width/max_height which throws error
+    #       if image is larger.
     max_banner_size: 512
   }
   # Email sending configuration. All options except login/password are mandatory
