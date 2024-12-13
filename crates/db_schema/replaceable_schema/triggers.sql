@@ -868,3 +868,35 @@ CALL r.create_inbox_combined_trigger ('person_post_mention');
 
 CALL r.create_inbox_combined_trigger ('private_message');
 
+-- search: (post, comment, community, person)
+CREATE PROCEDURE r.create_search_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.search_combined_thing_insert ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+            -- TODO need to figure out how to do the other columns here
+                INSERT INTO search_combined (published, thing_id)
+                    VALUES (NEW.published, NEW.id);
+                RETURN NEW;
+            END $$;
+    CREATE TRIGGER search_combined
+        AFTER INSERT ON thing
+        FOR EACH ROW
+        EXECUTE FUNCTION r.search_combined_thing_insert ( );
+        $b$,
+        'thing',
+        table_name);
+END;
+$a$;
+
+CALL r.create_search_combined_trigger ('post');
+
+CALL r.create_search_combined_trigger ('comment');
+
+CALL r.create_search_combined_trigger ('community');
+
+CALL r.create_search_combined_trigger ('person');
