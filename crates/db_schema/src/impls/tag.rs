@@ -5,7 +5,6 @@ use crate::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use anyhow::Context;
 use diesel::{insert_into, result::Error, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_utils::error::LemmyResult;
