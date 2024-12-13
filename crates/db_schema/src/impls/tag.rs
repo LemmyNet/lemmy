@@ -48,8 +48,7 @@ impl PostTagInsertForm {
     insert_into(post_tag::table)
       .values(tags)
       .execute(conn)
-      .await
-      .context("Failed to insert post community tag associations")?;
+      .await?;
     Ok(())
   }
 }
