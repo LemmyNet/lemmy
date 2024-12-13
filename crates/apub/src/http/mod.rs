@@ -18,7 +18,7 @@ use lemmy_db_schema::{
   source::{activity::SentActivity, community::Community},
   CommunityVisibility,
 };
-use lemmy_db_views_actor::structs::CommunityFollowerView;
+use lemmy_db_views::structs::CommunityFollowerView;
 use lemmy_utils::error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use std::{ops::Deref, time::Duration};

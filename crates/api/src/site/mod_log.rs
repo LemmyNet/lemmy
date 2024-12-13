@@ -5,8 +5,7 @@ use lemmy_api_common::{
   utils::{check_community_mod_of_any_or_admin_action, check_private_instance},
 };
 use lemmy_db_schema::source::local_site::LocalSite;
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_moderator::{self, modlog_combined_view::ModlogCombinedQuery};
+use lemmy_db_views::{combined::modlog_combined_view::ModlogCombinedQuery, structs::LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]

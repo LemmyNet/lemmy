@@ -8,14 +8,11 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{source::community::Community, utils::post_to_comment_sort_type, SearchType};
 use lemmy_db_views::{
-  comment_view::CommentQuery,
-  post_view::PostQuery,
-  structs::{LocalUserView, SiteView},
-};
-use lemmy_db_views_actor::{
-  community_view::CommunityQuery,
-  person_view::PersonQuery,
-  structs::CommunitySortType,
+  comment::comment_view::CommentQuery,
+  community::community_view::CommunityQuery,
+  person::person_view::PersonQuery,
+  post::post_view::PostQuery,
+  structs::{CommunitySortType, LocalUserView, SiteView},
 };
 use lemmy_utils::error::LemmyResult;
 

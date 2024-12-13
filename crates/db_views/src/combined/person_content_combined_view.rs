@@ -270,7 +270,7 @@ impl InternalToCombinedView for PersonContentViewInternal {
 mod tests {
 
   use crate::{
-    person_content_combined_view::PersonContentCombinedQuery,
+    combined::person_content_combined_view::PersonContentCombinedQuery,
     structs::PersonContentCombinedView,
   };
   use lemmy_db_schema::{

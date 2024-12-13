@@ -7,8 +7,7 @@ use lemmy_db_schema::{
   source::person_comment_mention::{PersonCommentMention, PersonCommentMentionUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::PersonCommentMentionView;
+use lemmy_db_views::structs::{LocalUserView, PersonCommentMentionView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]

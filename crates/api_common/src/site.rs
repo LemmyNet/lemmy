@@ -31,18 +31,17 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{
   CommentView,
+  CommunityFollowerView,
+  CommunityModeratorView,
+  CommunityView,
   LocalUserView,
+  ModlogCombinedPaginationCursor,
+  ModlogCombinedView,
+  PersonView,
   PostView,
   RegistrationApplicationView,
   SiteView,
 };
-use lemmy_db_views_actor::structs::{
-  CommunityFollowerView,
-  CommunityModeratorView,
-  CommunityView,
-  PersonView,
-};
-use lemmy_db_views_moderator::structs::{ModlogCombinedPaginationCursor, ModlogCombinedView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

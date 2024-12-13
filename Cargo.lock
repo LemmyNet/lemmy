@@ -2504,8 +2504,6 @@ dependencies = [
  "lemmy_api_crud",
  "lemmy_db_schema",
  "lemmy_db_views",
- "lemmy_db_views_actor",
- "lemmy_db_views_moderator",
  "lemmy_utils",
  "pretty_assertions",
  "serial_test",
@@ -2531,8 +2529,6 @@ dependencies = [
  "jsonwebtoken",
  "lemmy_db_schema",
  "lemmy_db_views",
- "lemmy_db_views_actor",
- "lemmy_db_views_moderator",
  "lemmy_utils",
  "mime",
  "mime_guess",
@@ -2568,7 +2564,6 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
- "lemmy_db_views_actor",
  "lemmy_utils",
  "regex",
  "serde",
@@ -2599,7 +2594,6 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
- "lemmy_db_views_actor",
  "lemmy_utils",
  "moka",
  "pretty_assertions",
@@ -2688,47 +2682,11 @@ dependencies = [
  "serde",
  "serde_with",
  "serial_test",
+ "strum",
  "tokio",
  "tracing",
  "ts-rs",
  "url",
-]
-
-[[package]]
-name = "lemmy_db_views_actor"
-version = "0.19.6-beta.7"
-dependencies = [
- "chrono",
- "diesel",
- "diesel-async",
- "i-love-jesus",
- "lemmy_db_schema",
- "lemmy_utils",
- "pretty_assertions",
- "serde",
- "serde_with",
- "serial_test",
- "strum",
- "tokio",
- "ts-rs",
- "url",
-]
-
-[[package]]
-name = "lemmy_db_views_moderator"
-version = "0.19.6-beta.7"
-dependencies = [
- "diesel",
- "diesel-async",
- "i-love-jesus",
- "lemmy_db_schema",
- "lemmy_utils",
- "pretty_assertions",
- "serde",
- "serde_with",
- "serial_test",
- "tokio",
- "ts-rs",
 ]
 
 [[package]]
@@ -2746,7 +2704,7 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_apub",
  "lemmy_db_schema",
- "lemmy_db_views_actor",
+ "lemmy_db_views",
  "lemmy_utils",
  "mockall",
  "moka",
@@ -2775,7 +2733,6 @@ dependencies = [
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
- "lemmy_db_views_actor",
  "lemmy_utils",
  "reqwest 0.12.8",
  "reqwest-middleware",

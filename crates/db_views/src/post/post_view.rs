@@ -597,7 +597,7 @@ impl<'a> PostQuery<'a> {
 #[cfg(test)]
 mod tests {
   use crate::{
-    post_view::{PaginationCursorData, PostQuery, PostView},
+    post::post_view::{PaginationCursorData, PostQuery, PostView},
     structs::LocalUserView,
   };
   use chrono::Utc;

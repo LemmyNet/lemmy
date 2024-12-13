@@ -7,8 +7,7 @@ use lemmy_db_schema::{
   source::comment_reply::{CommentReply, CommentReplyUpdateForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::CommentReplyView;
+use lemmy_db_views::structs::{CommentReplyView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]

@@ -36,7 +36,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_actor::structs::CommunityModeratorView;
+use lemmy_db_views::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,

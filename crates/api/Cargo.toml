@@ -21,8 +21,6 @@ workspace = true
 lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_views = { workspace = true, features = ["full"] }
-lemmy_db_views_moderator = { workspace = true, features = ["full"] }
-lemmy_db_views_actor = { workspace = true, features = ["full"] }
 lemmy_api_common = { workspace = true, features = ["full"] }
 activitypub_federation = { workspace = true }
 bcrypt = { workspace = true }

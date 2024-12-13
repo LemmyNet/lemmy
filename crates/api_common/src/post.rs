@@ -4,8 +4,13 @@ use lemmy_db_schema::{
   PostFeatureType,
   PostSortType,
 };
-use lemmy_db_views::structs::{PaginationCursor, PostView, VoteView};
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
+use lemmy_db_views::structs::{
+  CommunityModeratorView,
+  CommunityView,
+  PaginationCursor,
+  PostView,
+  VoteView,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

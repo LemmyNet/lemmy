@@ -22,7 +22,7 @@ use lemmy_db_schema::{
   utils::{build_db_pool, get_conn, now},
   PostSortType,
 };
-use lemmy_db_views::{post_view::PostQuery, structs::PaginationCursor};
+use lemmy_db_views::{post::post_view::PostQuery, structs::PaginationCursor};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyResult};
 use std::num::NonZeroU32;
 use url::Url;

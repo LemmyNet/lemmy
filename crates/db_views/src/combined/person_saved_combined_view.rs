@@ -226,7 +226,7 @@ impl PersonSavedCombinedQuery {
 mod tests {
 
   use crate::{
-    person_saved_combined_view::PersonSavedCombinedQuery,
+    combined::person_saved_combined_view::PersonSavedCombinedQuery,
     structs::{LocalUserView, PersonContentCombinedView},
   };
   use lemmy_db_schema::{
