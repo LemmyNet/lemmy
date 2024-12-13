@@ -1,4 +1,5 @@
 use actix_web::{
+  body::BodyStream,
   http::{
     header::{HeaderName, ACCEPT_ENCODING, HOST},
     Method,
@@ -6,6 +7,7 @@ use actix_web::{
   },
   web::{Data, Payload},
   HttpRequest,
+  HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
 use http::HeaderValue;
@@ -23,7 +25,6 @@ use lemmy_utils::{error::LemmyResult, settings::SETTINGS, REQWEST_TIMEOUT};
 use reqwest::Body;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder};
 use reqwest_tracing::TracingMiddleware;
-use serde::Deserialize;
 use std::{sync::LazyLock, time::Duration};
 use url::Url;
 
@@ -39,40 +40,7 @@ pub(super) static PICTRS_CLIENT: LazyLock<ClientWithMiddleware> = LazyLock::new(
   .build()
 });
 
-#[derive(Deserialize, Clone)]
-pub struct PictrsGetParams {
-  format: Option<String>,
-  thumbnail: Option<i32>,
-}
-
-pub(super) trait ProcessUrl {
-  /// If thumbnail or format is given, this uses the pictrs process endpoint.
-  /// Otherwise, it uses the normal pictrs url (IE image/original).
-  fn process_url(&self, image_url: &str, pictrs_url: &Url) -> String;
-}
-
-impl ProcessUrl for PictrsGetParams {
-  fn process_url(&self, src: &str, pictrs_url: &Url) -> String {
-    if self.format.is_none() && self.thumbnail.is_none() {
-      format!("{}image/original/{}", pictrs_url, src)
-    } else {
-      // Take file type from name, or jpg if nothing is given
-      let format = self
-        .clone()
-        .format
-        .unwrap_or_else(|| src.split('.').last().unwrap_or("jpg").to_string());
-
-      let mut url = format!("{}image/process.{}?src={}", pictrs_url, format, src);
-
-      if let Some(size) = self.thumbnail {
-        url = format!("{url}&thumbnail={size}",);
-      }
-      url
-    }
-  }
-}
-
-pub(super) fn adapt_request(request: &HttpRequest, url: String) -> RequestBuilder {
+fn adapt_request(request: &HttpRequest, url: String) -> RequestBuilder {
   // remove accept-encoding header so that pictrs doesn't compress the response
   const INVALID_HEADERS: &[HeaderName] = &[ACCEPT_ENCODING, HOST];
 
@@ -141,10 +109,7 @@ pub(super) fn convert_method(method: &Method) -> http::Method {
   http::Method::from_bytes(method.as_str().as_bytes()).expect("method can be converted")
 }
 
-pub(super) fn convert_header<'a>(
-  name: &'a http::HeaderName,
-  value: &'a HeaderValue,
-) -> (&'a str, &'a [u8]) {
+fn convert_header<'a>(name: &'a http::HeaderName, value: &'a HeaderValue) -> (&'a str, &'a [u8]) {
   (name.as_str(), value.as_bytes())
 }
 
@@ -203,7 +168,7 @@ pub(super) async fn do_upload_image(
     };
 
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-    let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
+    let thumbnail_url = image.image_url(&protocol_and_hostname)?;
 
     // Also store the details for the image
     let details_form = image.details.build_image_details_form(&thumbnail_url);
@@ -215,6 +180,32 @@ pub(super) async fn do_upload_image(
     .ok_or(LemmyErrorType::InvalidImageUpload)?;
 
   Ok(image)
+}
+
+pub(super) async fn do_get_image(url: String, req: HttpRequest) -> LemmyResult<HttpResponse> {
+  let mut client_req = adapt_request(&req, url);
+
+  if let Some(addr) = req.head().peer_addr {
+    client_req = client_req.header("X-Forwarded-For", addr.to_string());
+  }
+
+  if let Some(addr) = req.head().peer_addr {
+    client_req = client_req.header("X-Forwarded-For", addr.to_string());
+  }
+
+  let res = client_req.send().await?;
+
+  if res.status() == http::StatusCode::NOT_FOUND {
+    return Ok(HttpResponse::NotFound().finish());
+  }
+
+  let mut client_res = HttpResponse::build(StatusCode::from_u16(res.status().as_u16())?);
+
+  for (name, value) in res.headers().iter().filter(|(h, _)| *h != "connection") {
+    client_res.insert_header(convert_header(name, value));
+  }
+
+  Ok(client_res.body(BodyStream::new(res.bytes_stream())))
 }
 
 /// When adding a new avatar, banner or similar image, delete the old one.
@@ -231,4 +222,11 @@ pub(super) async fn delete_old_image(
     }
   }
   Ok(())
+}
+
+/// Take file type from param, name, or use jpg if nothing is given
+pub(super) fn file_type(file_type: Option<String>, name: &str) -> String {
+  file_type
+    .clone()
+    .unwrap_or_else(|| name.split('.').last().unwrap_or("jpg").to_string())
 }

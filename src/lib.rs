@@ -36,7 +36,7 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
 use lemmy_federate::{Opts, SendManager};
-use lemmy_routes::{feeds, images, nodeinfo, webfinger};
+use lemmy_routes::{feeds, nodeinfo, webfinger};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   rate_limit::RateLimitCell,

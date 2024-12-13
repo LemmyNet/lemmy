@@ -1177,7 +1177,7 @@ fn build_proxied_image_url(
   protocol_and_hostname: &str,
 ) -> Result<Url, url::ParseError> {
   Url::parse(&format!(
-    "{}/api/v4/image_proxy?url={}",
+    "{}/api/v4/image/proxy?url={}",
     protocol_and_hostname,
     encode(link.as_str())
   ))
@@ -1256,7 +1256,7 @@ mod tests {
     )
     .await?;
     assert_eq!(
-      "https://lemmy-alpha/api/v4/image_proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
+      "https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
       proxied.as_str()
     );
 

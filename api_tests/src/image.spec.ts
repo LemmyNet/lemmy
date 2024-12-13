@@ -2,9 +2,9 @@ jest.setTimeout(120000);
 
 import {
   UploadImage,
-  DeleteImage,
   PurgePerson,
   PurgePost,
+  DeleteImageParams,
 } from "lemmy-js-client";
 import {
   alpha,
@@ -54,13 +54,12 @@ test("Upload image and delete it", async () => {
     image: Buffer.from("test"),
   };
   const upload = await alphaImage.uploadImage(upload_form);
-  expect(upload.files![0].file).toBeDefined();
-  expect(upload.files![0].delete_token).toBeDefined();
-  expect(upload.url).toBeDefined();
-  expect(upload.delete_url).toBeDefined();
+  expect(upload.image_url).toBeDefined();
+  expect(upload.filename).toBeDefined();
+  expect(upload.delete_token).toBeDefined();
 
   // ensure that image download is working. theres probably a better way to do this
-  const response = await fetch(upload.url ?? "");
+  const response = await fetch(upload.image_url ?? "");
   const content = await response.text();
   expect(content.length).toBeGreaterThan(0);
 
@@ -77,26 +76,21 @@ test("Upload image and delete it", async () => {
   const previousThumbnails = 1;
   expect(listAllMediaRes.images.length).toBe(previousThumbnails);
 
-  // The deleteUrl is a combination of the endpoint, delete token, and alias
-  let firstImage = listMediaRes.images[0];
-  let deleteUrl = `${alphaUrl}/pictrs/image/delete/${firstImage.local_image.pictrs_delete_token}/${firstImage.local_image.pictrs_alias}`;
-  expect(deleteUrl).toBe(upload.delete_url);
-
   // Make sure the uploader is correct
-  expect(firstImage.person.actor_id).toBe(
+  expect(listMediaRes.images[0].person.actor_id).toBe(
     `http://lemmy-alpha:8541/u/lemmy_alpha`,
   );
 
   // delete image
-  const delete_form: DeleteImage = {
-    token: upload.files![0].delete_token,
-    filename: upload.files![0].file,
+  const delete_form: DeleteImageParams = {
+    token: upload.delete_token,
+    filename: upload.filename,
   };
   const delete_ = await alphaImage.deleteImage(delete_form);
-  expect(delete_).toBe(true);
+  expect(delete_.success).toBe(true);
 
   // ensure that image is deleted
-  const response2 = await fetch(upload.url ?? "");
+  const response2 = await fetch(upload.image_url ?? "");
   const content2 = await response2.text();
   expect(content2).toBe("");
 
@@ -119,13 +113,12 @@ test("Purge user, uploaded image removed", async () => {
     image: Buffer.from("test"),
   };
   const upload = await user.uploadImage(upload_form);
-  expect(upload.files![0].file).toBeDefined();
-  expect(upload.files![0].delete_token).toBeDefined();
-  expect(upload.url).toBeDefined();
-  expect(upload.delete_url).toBeDefined();
+  expect(upload.filename).toBeDefined();
+  expect(upload.delete_token).toBeDefined();
+  expect(upload.image_url).toBeDefined();
 
   // ensure that image download is working. theres probably a better way to do this
-  const response = await fetch(upload.url ?? "");
+  const response = await fetch(upload.image_url ?? "");
   const content = await response.text();
   expect(content.length).toBeGreaterThan(0);
 
@@ -138,7 +131,7 @@ test("Purge user, uploaded image removed", async () => {
   expect(delete_.success).toBe(true);
 
   // ensure that image is deleted
-  const response2 = await fetch(upload.url ?? "");
+  const response2 = await fetch(upload.image_url ?? "");
   const content2 = await response2.text();
   expect(content2).toBe("");
 });
@@ -151,13 +144,12 @@ test("Purge post, linked image removed", async () => {
     image: Buffer.from("test"),
   };
   const upload = await user.uploadImage(upload_form);
-  expect(upload.files![0].file).toBeDefined();
-  expect(upload.files![0].delete_token).toBeDefined();
-  expect(upload.url).toBeDefined();
-  expect(upload.delete_url).toBeDefined();
+  expect(upload.filename).toBeDefined();
+  expect(upload.delete_token).toBeDefined();
+  expect(upload.image_url).toBeDefined();
 
   // ensure that image download is working. theres probably a better way to do this
-  const response = await fetch(upload.url ?? "");
+  const response = await fetch(upload.image_url ?? "");
   const content = await response.text();
   expect(content.length).toBeGreaterThan(0);
 
@@ -165,9 +157,9 @@ test("Purge post, linked image removed", async () => {
   let post = await createPost(
     user,
     community.community!.community.id,
-    upload.url,
+    upload.image_url,
   );
-  expect(post.post_view.post.url).toBe(upload.url);
+  expect(post.post_view.post.url).toBe(upload.image_url);
   expect(post.post_view.image_details).toBeDefined();
 
   // purge post
@@ -178,7 +170,7 @@ test("Purge post, linked image removed", async () => {
   expect(delete_.success).toBe(true);
 
   // ensure that image is deleted
-  const response2 = await fetch(upload.url ?? "");
+  const response2 = await fetch(upload.image_url ?? "");
   const content2 = await response2.text();
   expect(content2).toBe("");
 });
@@ -200,11 +192,11 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   // remote image gets proxied after upload
   expect(
     post.thumbnail_url?.startsWith(
-      "http://lemmy-gamma:8561/api/v4/image_proxy?url",
+      "http://lemmy-gamma:8561/api/v4/image/proxy?url",
     ),
   ).toBeTruthy();
   expect(
-    post.body?.startsWith("![](http://lemmy-gamma:8561/api/v4/image_proxy?url"),
+    post.body?.startsWith("![](http://lemmy-gamma:8561/api/v4/image/proxy?url"),
   ).toBeTruthy();
 
   // Make sure that it ends with jpg, to be sure its an image
@@ -223,12 +215,12 @@ test("Images in remote image post are proxied if setting enabled", async () => {
 
   expect(
     epsilonPost.thumbnail_url?.startsWith(
-      "http://lemmy-epsilon:8581/api/v4/image_proxy?url",
+      "http://lemmy-epsilon:8581/api/v4/image/proxy?url",
     ),
   ).toBeTruthy();
   expect(
     epsilonPost.body?.startsWith(
-      "![](http://lemmy-epsilon:8581/api/v4/image_proxy?url",
+      "![](http://lemmy-epsilon:8581/api/v4/image/proxy?url",
     ),
   ).toBeTruthy();
 
@@ -250,7 +242,7 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
   // remote image gets proxied after upload
   expect(
     post.thumbnail_url?.startsWith(
-      "http://lemmy-gamma:8561/api/v4/image_proxy?url",
+      "http://lemmy-gamma:8561/api/v4/image/proxy?url",
     ),
   ).toBeTruthy();
 
@@ -268,7 +260,7 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
 
   expect(
     epsilonPost.thumbnail_url?.startsWith(
-      "http://lemmy-epsilon:8581/api/v4/image_proxy?url",
+      "http://lemmy-epsilon:8581/api/v4/image/proxy?url",
     ),
   ).toBeTruthy();
 
@@ -292,14 +284,14 @@ test("No image proxying if setting is disabled", async () => {
   let post = await createPost(
     alpha,
     community.community_view.community.id,
-    upload.url,
+    upload.image_url,
     `![](${sampleImage})`,
   );
   expect(post.post_view.post).toBeDefined();
 
   // remote image doesn't get proxied after upload
   expect(
-    post.post_view.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
+    post.post_view.post.url?.startsWith("http://lemmy-beta:8551/api/v4/image/"),
   ).toBeTruthy();
   expect(post.post_view.post.body).toBe(`![](${sampleImage})`);
 
@@ -312,7 +304,7 @@ test("No image proxying if setting is disabled", async () => {
 
   // remote image doesn't get proxied after federation
   expect(
-    betaPost.post.url?.startsWith("http://127.0.0.1:8551/pictrs/image/"),
+    betaPost.post.url?.startsWith("http://lemmy-beta:8551/api/v4/image/"),
   ).toBeTruthy();
   expect(betaPost.post.body).toBe(`![](${sampleImage})`);
   // Make sure the alt text got federated
@@ -334,7 +326,7 @@ test("Make regular post, and give it a custom thumbnail", async () => {
     alphaImage,
     community.community_view.community.id,
     wikipediaUrl,
-    upload1.url!,
+    upload1.image_url!,
   );
 
   // Wait for the metadata to get fetched, since this is backgrounded now
@@ -344,7 +336,7 @@ test("Make regular post, and give it a custom thumbnail", async () => {
   );
   expect(post.post_view.post.url).toBe(wikipediaUrl);
   // Make sure it uses custom thumbnail
-  expect(post.post_view.post.thumbnail_url).toBe(upload1.url);
+  expect(post.post_view.post.thumbnail_url).toBe(upload1.image_url);
 });
 
 test("Create an image post, and make sure a custom thumbnail doesn't overwrite it", async () => {
@@ -363,14 +355,14 @@ test("Create an image post, and make sure a custom thumbnail doesn't overwrite i
   let post = await createPostWithThumbnail(
     alphaImage,
     community.community_view.community.id,
-    upload1.url!,
-    upload2.url!,
+    upload1.image_url!,
+    upload2.image_url!,
   );
   post = await waitUntil(
     () => getPost(alphaImage, post.post_view.post.id),
     p => p.post_view.post.thumbnail_url != undefined,
   );
-  expect(post.post_view.post.url).toBe(upload1.url);
+  expect(post.post_view.post.url).toBe(upload1.image_url);
   // Make sure the custom thumbnail is ignored
-  expect(post.post_view.post.thumbnail_url == upload2.url).toBe(false);
+  expect(post.post_view.post.thumbnail_url == upload2.image_url).toBe(false);
 });

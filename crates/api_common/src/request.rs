@@ -263,9 +263,15 @@ pub struct PictrsFile {
 }
 
 impl PictrsFile {
-  pub fn thumbnail_url(&self, protocol_and_hostname: &str) -> Result<Url, url::ParseError> {
+  pub fn image_url(&self, protocol_and_hostname: &str) -> Result<Url, url::ParseError> {
     Url::parse(&format!(
-      "{protocol_and_hostname}/pictrs/image/{}",
+      "{protocol_and_hostname}/api/v4/image/{}",
+      self.file
+    ))
+  }
+  pub fn delete_url(&self, protocol_and_hostname: &str) -> Result<Url, url::ParseError> {
+    Url::parse(&format!(
+      "{protocol_and_hostname}/api/v4/image/{}",
       self.file
     ))
   }
@@ -402,7 +408,7 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     pictrs_delete_token: image.delete_token.clone(),
   };
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
+  let thumbnail_url = image.image_url(&protocol_and_hostname)?;
 
   // Also store the details for the image
   let details_form = image.details.build_image_details_form(&thumbnail_url);

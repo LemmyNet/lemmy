@@ -134,13 +134,7 @@ use lemmy_apub::api::{
   search::search,
   user_settings_backup::{export_settings, import_settings},
 };
-use lemmy_routes::images::{
-  delete_image,
-  get_full_res_image,
-  image_proxy,
-  pictrs_healthz,
-  upload_image,
-};
+use lemmy_routes::images::{delete_image, get_image, image_proxy, pictrs_health, upload_image};
 use lemmy_utils::rate_limit::RateLimitCell;
 
 // Deprecated, use api v4 instead.
@@ -153,9 +147,9 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
         .wrap(rate_limit.image())
         .route(post().to(upload_image)),
     )
-    .service(resource("/pictrs/image/{filename}").route(get().to(get_full_res_image)))
+    .service(resource("/pictrs/image/{filename}").route(get().to(get_image)))
     .service(resource("/pictrs/image/delete/{token}/{filename}").route(get().to(delete_image)))
-    .service(resource("/pictrs/healthz").route(get().to(pictrs_healthz)))
+    .service(resource("/pictrs/healthz").route(get().to(pictrs_health)))
     .service(
       scope("/api/v3")
         .route("/image_proxy", get().to(image_proxy))

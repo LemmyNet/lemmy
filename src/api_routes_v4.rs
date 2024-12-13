@@ -160,7 +160,12 @@ use lemmy_apub::api::{
   user_settings_backup::{export_settings, import_settings},
 };
 use lemmy_routes::images::{
-  delete_image, get_full_res_image, image_proxy, person::upload_avatar, pictrs_healthz, upload_image
+  delete_image,
+  get_image,
+  image_proxy,
+  person::upload_avatar,
+  pictrs_health,
+  upload_image,
 };
 use lemmy_utils::rate_limit::RateLimitCell;
 
@@ -289,8 +294,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/change_password", put().to(change_password))
           .route("/totp/generate", post().to(generate_totp_secret))
           .route("/totp/update", post().to(update_totp))
-          .route("/verify_email", post().to(verify_email))
-          .route("/avatar", post().to(upload_avatar)),
+          .route("/verify_email", post().to(verify_email)),
       )
       .route("/account/settings/save", put().to(save_user_settings))
       .service(
@@ -318,6 +322,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/unread_count", get().to(unread_count))
           .route("/list_logins", get().to(list_logins))
           .route("/validate_auth", get().to(validate_auth))
+          .route("/avatar", post().to(upload_avatar))
           .service(
             scope("/block")
               .route("/person", post().to(user_block_person))
@@ -395,13 +400,12 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .service(
             resource("")
               .wrap(rate_limit.image())
-              .route(post().to(upload_image)),
+              .route(post().to(upload_image))
+              .route(delete().to(delete_image)),
           )
           .route("/proxy", get().to(image_proxy))
-          .route("/image/{filename}", get().to(get_full_res_image))
-          // TODO: params are a bit strange like this
-          .route("{token}/{filename}", delete().to(delete_image))
-          .route("/healthz", get().to(pictrs_healthz)),
+          .route("/{filename}", get().to(get_image))
+          .route("/health", get().to(pictrs_health)),
       ),
   );
 }
