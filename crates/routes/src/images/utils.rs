@@ -26,9 +26,9 @@ use reqwest::Body;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder};
 use reqwest_tracing::TracingMiddleware;
 use std::{sync::LazyLock, time::Duration};
-use url::Url;
 
 // Pictrs cannot use proxy
+#[allow(clippy::expect_used)]
 pub(super) static PICTRS_CLIENT: LazyLock<ClientWithMiddleware> = LazyLock::new(|| {
   ClientBuilder::new(
     client_builder(&SETTINGS)
