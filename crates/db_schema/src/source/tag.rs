@@ -30,6 +30,7 @@ pub struct Tag {
   /// the community that owns this tag
   pub community_id: CommunityId,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
   pub deleted: bool,
 }
