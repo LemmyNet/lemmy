@@ -264,14 +264,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    community_post_tag (community_id, tag_id) {
-        community_id -> Int4,
-        tag_id -> Int4,
-        published -> Timestamptz,
-    }
-}
-
-diesel::table! {
     custom_emoji (id) {
         id -> Int4,
         #[max_length = 128]
@@ -972,9 +964,10 @@ diesel::table! {
         id -> Int4,
         ap_id -> Text,
         name -> Text,
+        community_id -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
-        deleted -> Nullable<Timestamptz>,
+        deleted -> Bool,
     }
 }
 
@@ -1011,8 +1004,6 @@ diesel::joinable!(community_actions -> community (community_id));
 diesel::joinable!(community_aggregates -> community (community_id));
 diesel::joinable!(community_language -> community (community_id));
 diesel::joinable!(community_language -> language (language_id));
-diesel::joinable!(community_post_tag -> community (community_id));
-diesel::joinable!(community_post_tag -> tag (tag_id));
 diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
@@ -1070,6 +1061,7 @@ diesel::joinable!(site -> instance (instance_id));
 diesel::joinable!(site_aggregates -> site (site_id));
 diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
+diesel::joinable!(tag -> community (community_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     admin_allow_instance,
@@ -1088,7 +1080,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     community_actions,
     community_aggregates,
     community_language,
-    community_post_tag,
     custom_emoji,
     custom_emoji_keyword,
     email_verification,

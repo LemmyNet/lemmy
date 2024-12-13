@@ -1,13 +1,7 @@
 use crate::{
-  newtypes::{CommunityId, TagId},
-  schema::{community_post_tag, post_tag, tag},
-  source::community_post_tag::{
-    CommunityPostTag,
-    CommunityPostTagInsertForm,
-    PostTagInsertForm,
-    Tag,
-    TagInsertForm,
-  },
+  newtypes::TagId,
+  schema::{post_tag, tag},
+  source::tag::{PostTagInsertForm, Tag, TagInsertForm},
   traits::Crud,
   utils::{get_conn, DbPool},
 };
@@ -39,35 +33,6 @@ impl Crud for Tag {
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(tag::table.find(pid))
-      .set(form)
-      .get_result::<Self>(conn)
-      .await
-  }
-}
-
-#[async_trait]
-impl Crud for CommunityPostTag {
-  type InsertForm = CommunityPostTagInsertForm;
-
-  type UpdateForm = CommunityPostTagInsertForm;
-
-  type IdType = (CommunityId, TagId);
-
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    insert_into(community_post_tag::table)
-      .values(form)
-      .get_result::<Self>(conn)
-      .await
-  }
-
-  async fn update(
-    pool: &mut DbPool<'_>,
-    pid: (CommunityId, TagId),
-    form: &Self::UpdateForm,
-  ) -> Result<Self, Error> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::update(community_post_tag::table.find(pid))
       .set(form)
       .get_result::<Self>(conn)
       .await

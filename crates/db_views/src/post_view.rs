@@ -106,6 +106,7 @@ fn queries<'a>() -> Queries<
           "json_agg(tag.*)",
         ))
         .filter(post_tag::post_id.eq(post_aggregates::post_id))
+        .filter(tag::deleted.eq(false))
         .single_value(),
     );
     query
@@ -638,7 +639,7 @@ impl<'a> PostQuery<'a> {
 mod tests {
   use crate::{
     post_view::{PaginationCursorData, PostQuery, PostView},
-    structs::{LocalUserView, PostCommunityPostTags},
+    structs::{LocalUserView, PostTags},
   };
   use chrono::Utc;
   use diesel_async::SimpleAsyncConnection;
@@ -662,13 +663,6 @@ mod tests {
         CommunityUpdateForm,
       },
       community_block::{CommunityBlock, CommunityBlockForm},
-      community_post_tag::{
-        CommunityPostTag,
-        CommunityPostTagInsertForm,
-        PostTagInsertForm,
-        Tag,
-        TagInsertForm,
-      },
       instance::Instance,
       instance_block::{InstanceBlock, InstanceBlockForm},
       language::Language,
@@ -689,6 +683,7 @@ mod tests {
         PostUpdateForm,
       },
       site::Site,
+      tag::{PostTagInsertForm, Tag, TagInsertForm},
     },
     traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable, Saveable},
     utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool, RANK_DEFAULT},
@@ -809,18 +804,10 @@ mod tests {
         &TagInsertForm {
           ap_id: Url::parse(&format!("{}/tags/test_tag1", inserted_community.actor_id))?.into(),
           name: "Test Tag 1".into(),
+          community_id: inserted_community.id,
           published: None,
           updated: None,
-          deleted: None,
-        },
-      )
-      .await?;
-      CommunityPostTag::create(
-        pool,
-        &CommunityPostTagInsertForm {
-          community_id: inserted_community.id,
-          tag_id: tag_1.id,
-          published: None,
+          deleted: false,
         },
       )
       .await?;
@@ -829,18 +816,10 @@ mod tests {
         &TagInsertForm {
           ap_id: Url::parse(&format!("{}/tags/test_tag2", inserted_community.actor_id))?.into(),
           name: "Test Tag 2".into(),
+          community_id: inserted_community.id,
           published: None,
           updated: None,
-          deleted: None,
-        },
-      )
-      .await?;
-      CommunityPostTag::create(
-        pool,
-        &CommunityPostTagInsertForm {
-          community_id: inserted_community.id,
-          tag_id: tag_2.id,
-          published: None,
+          deleted: false,
         },
       )
       .await?;
@@ -1921,7 +1900,7 @@ mod tests {
       hidden: false,
       saved: false,
       creator_blocked: false,
-      community_post_tags: PostCommunityPostTags::default(),
+      tags: PostTags::default(),
     })
   }
 
@@ -2236,14 +2215,14 @@ mod tests {
     )
     .await?;
 
-    assert_eq!(2, post_view.community_post_tags.tags.len());
-    assert_eq!(data.tag_1.name, post_view.community_post_tags.tags[0].name);
-    assert_eq!(data.tag_2.name, post_view.community_post_tags.tags[1].name);
+    assert_eq!(2, post_view.tags.tags.len());
+    assert_eq!(data.tag_1.name, post_view.tags.tags[0].name);
+    assert_eq!(data.tag_2.name, post_view.tags.tags[1].name);
 
     let all_posts = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(2, all_posts[0].community_post_tags.tags.len()); // post with tags
-    assert_eq!(0, all_posts[1].community_post_tags.tags.len()); // bot post
-    assert_eq!(0, all_posts[2].community_post_tags.tags.len()); // normal post
+    assert_eq!(2, all_posts[0].tags.tags.len()); // post with tags
+    assert_eq!(0, all_posts[1].tags.tags.len()); // bot post
+    assert_eq!(0, all_posts[2].tags.tags.len()); // normal post
 
     Ok(())
   }

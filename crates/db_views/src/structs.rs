@@ -8,7 +8,6 @@ use lemmy_db_schema::{
     comment::Comment,
     comment_report::CommentReport,
     community::Community,
-    community_post_tag::Tag,
     custom_emoji::CustomEmoji,
     custom_emoji_keyword::CustomEmojiKeyword,
     images::{ImageDetails, LocalImage},
@@ -23,6 +22,7 @@ use lemmy_db_schema::{
     private_message_report::PrivateMessageReport,
     registration_application::RegistrationApplication,
     site::Site,
+    tag::Tag,
   },
   SubscribedType,
 };
@@ -154,7 +154,7 @@ pub struct PostView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
-  pub community_post_tags: PostCommunityPostTags,
+  pub tags: PostTags,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
@@ -246,6 +246,7 @@ pub struct LocalImageView {
 #[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
 #[serde(transparent)]
 #[cfg_attr(feature = "full", diesel(sql_type = Nullable<sql_types::Json>))]
-pub struct PostCommunityPostTags {
+/// we wrap this in a struct so we can implement FromSqlRow<Json> for it
+pub struct PostTags {
   pub tags: Vec<Tag>,
 }
