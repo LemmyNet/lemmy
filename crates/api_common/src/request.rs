@@ -250,7 +250,8 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct PictrsResponse {
-  pub files: Option<Vec<PictrsFile>>,
+  #[serde(default)]
+  pub files: Vec<PictrsFile>,
   pub msg: String,
 }
 
@@ -388,9 +389,8 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     .json::<PictrsResponse>()
     .await?;
 
-  let files = res.files.unwrap_or_default();
-
-  let image = files
+  let image = res
+    .files
     .first()
     .ok_or(LemmyErrorType::PictrsResponseError(res.msg))?;
 
@@ -467,6 +467,7 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Lemm
 }
 
 /// When adding a new avatar, banner or similar image, delete the old one.
+/// TODO: remove this function
 pub async fn replace_image(
   new_image: &Option<Option<DbUrl>>,
   old_image: &Option<DbUrl>,

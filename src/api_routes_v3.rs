@@ -134,7 +134,13 @@ use lemmy_apub::api::{
   search::search,
   user_settings_backup::{export_settings, import_settings},
 };
-use lemmy_routes::images::{delete_image, get_full_res_image, image_proxy, pictrs_healthz, upload_image};
+use lemmy_routes::images::{
+  delete_image,
+  get_full_res_image,
+  image_proxy,
+  pictrs_healthz,
+  upload_image,
+};
 use lemmy_utils::rate_limit::RateLimitCell;
 
 // Deprecated, use api v4 instead.

@@ -160,11 +160,7 @@ use lemmy_apub::api::{
   user_settings_backup::{export_settings, import_settings},
 };
 use lemmy_routes::images::{
-  delete_image,
-  get_full_res_image,
-  image_proxy,
-  pictrs_healthz,
-  upload_image,
+  delete_image, get_full_res_image, image_proxy, person::upload_avatar, pictrs_healthz, upload_image
 };
 use lemmy_utils::rate_limit::RateLimitCell;
 
@@ -293,7 +289,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/change_password", put().to(change_password))
           .route("/totp/generate", post().to(generate_totp_secret))
           .route("/totp/update", post().to(update_totp))
-          .route("/verify_email", post().to(verify_email)),
+          .route("/verify_email", post().to(verify_email))
+          .route("/avatar", post().to(upload_avatar)),
       )
       .route("/account/settings/save", put().to(save_user_settings))
       .service(
@@ -401,7 +398,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route(post().to(upload_image)),
           )
           .route("/proxy", get().to(image_proxy))
-          .route("/{filename}", get().to(get_full_res_image))
+          .route("/image/{filename}", get().to(get_full_res_image))
+          // TODO: params are a bit strange like this
           .route("{token}/{filename}", delete().to(delete_image))
           .route("/healthz", get().to(pictrs_healthz)),
       ),

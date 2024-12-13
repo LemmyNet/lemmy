@@ -46,10 +46,6 @@ pub async fn save_user_settings(
       .as_deref(),
   );
 
-  let avatar = diesel_url_update(data.avatar.as_deref())?;
-  replace_image(&avatar, &local_user_view.person.avatar, &context).await?;
-  let avatar = proxy_image_link_opt_api(avatar, &context).await?;
-
   let banner = diesel_url_update(data.banner.as_deref())?;
   replace_image(&banner, &local_user_view.person.banner, &context).await?;
   let banner = proxy_image_link_opt_api(banner, &context).await?;
@@ -108,7 +104,6 @@ pub async fn save_user_settings(
     bio,
     matrix_user_id,
     bot_account: data.bot_account,
-    avatar,
     banner,
     ..Default::default()
   };

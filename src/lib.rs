@@ -285,17 +285,12 @@ fn create_http_server(
     .build()
     .map_err(|e| LemmyErrorType::Unknown(format!("Should always be buildable: {e}")))?;
 
-  let context: LemmyContext = federation_config.deref().clone();
-  let rate_limit_cell = federation_config.rate_limit_cell().clone();
-
-  // Pictrs cannot use proxy
-  let pictrs_client = ClientBuilder::new(client_builder(&SETTINGS).no_proxy().build()?)
-    .with(TracingMiddleware::default())
-    .build();
-
   // Create Http server
   let bind = (settings.bind, settings.port);
   let server = HttpServer::new(move || {
+    let context: LemmyContext = federation_config.deref().clone();
+    let rate_limit_cell = federation_config.rate_limit_cell().clone();
+
     let cors_config = cors_config(&settings);
     let app = App::new()
       .wrap(middleware::Logger::new(
@@ -328,7 +323,6 @@ fn create_http_server(
         }
       })
       .configure(feeds::config)
-      .configure(|cfg| images::config(cfg, pictrs_client.clone(), &rate_limit_cell))
       .configure(nodeinfo::config)
   })
   .disable_signals()
