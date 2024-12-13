@@ -104,6 +104,18 @@ pub struct PictrsConfig {
   /// Resize post thumbnails to this maximum width/height.
   #[default(512)]
   pub max_thumbnail_size: u32,
+
+  /// Maximum size for user avatar, community icon and site icon.
+  #[default(512)]
+  pub max_avatar_size: u32,
+
+  /// Maximum size for user, community and site banner.
+  /// 
+  /// TODO: Unfortunately pictrs can only resize images to fit in a*a square, no rectangle. 
+  ///       Otherwise we have to use crop, or use max_width/max_height which throws error
+  ///       if image is larger.
+  #[default(512)]
+  pub max_banner_size: u32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document, PartialEq)]

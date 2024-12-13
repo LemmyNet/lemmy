@@ -64,6 +64,10 @@
     upload_timeout: 30
     # Resize post thumbnails to this maximum width/height.
     max_thumbnail_size: 512
+    # Maximum size for user avatar, community icon and site icon.
+    max_avatar_size: 512
+    # Maximum size for user, community and site banner.
+    max_banner_size: 512
   }
   # Email sending configuration. All options except login/password are mandatory
   email: {

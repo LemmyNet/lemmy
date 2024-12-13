@@ -61,7 +61,7 @@ fn adapt_request(request: &HttpRequest, url: String) -> RequestBuilder {
     })
 }
 
-pub(super) fn make_send<S>(mut stream: S) -> impl Stream<Item = S::Item> + Send + Unpin + 'static
+fn make_send<S>(mut stream: S) -> impl Stream<Item = S::Item> + Send + Unpin + 'static
 where
   S: Stream + Unpin + 'static,
   S::Item: Send,
@@ -85,7 +85,7 @@ where
   SendStream { rx }
 }
 
-pub(super) struct SendStream<T> {
+struct SendStream<T> {
   rx: tokio::sync::mpsc::Receiver<T>,
 }
 
@@ -135,15 +135,16 @@ pub(super) async fn do_upload_image(
       let max_size = context
         .settings()
         .pictrs_config()?
-        .max_thumbnail_size
+        .max_avatar_size
         .to_string();
       client_req.query(&[
-        ("max_width", max_size.as_ref()),
-        ("max_height", max_size.as_ref()),
+        ("resize", max_size.as_ref()),
         ("allow_animation", "false"),
         ("allow_video", "false"),
       ])
     }
+    // TODO: same as above but using `max_banner_size`
+    // UploadType::Banner => {}
     _ => client_req,
   };
   if let Some(addr) = req.head().peer_addr {
