@@ -296,8 +296,8 @@ fn queries<'a>() -> Queries<
 
     if options.read_only.unwrap_or_default() {
       query = query
-          .filter(post_actions::read.is_not_null())
-          .then_order_by(post_actions::read.desc())
+        .filter(post_actions::read.is_not_null())
+        .then_order_by(post_actions::read.desc())
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
