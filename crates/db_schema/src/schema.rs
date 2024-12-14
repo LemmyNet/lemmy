@@ -915,6 +915,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    post_keyword_block (id) {
+        id -> Int4,
+        #[max_length = 50]
+        keyword -> Varchar,
+        person_id -> Int4,
+    }
+}
+
+diesel::table! {
     post_tag (post_id, tag_id) {
         post_id -> Int4,
         tag_id -> Int4,

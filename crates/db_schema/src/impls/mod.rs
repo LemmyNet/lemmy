@@ -39,3 +39,4 @@ pub mod secret;
 pub mod site;
 pub mod tag;
 pub mod tagline;
+mod post_keyword_block;

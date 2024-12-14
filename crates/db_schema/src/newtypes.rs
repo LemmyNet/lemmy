@@ -138,6 +138,12 @@ pub struct LanguageId(pub i32);
 /// The comment reply id.
 pub struct CommentReplyId(pub i32);
 
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The comment reply id.
+pub struct PostKeywordBlockId(i32);
+
 #[derive(
   Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default, Ord, PartialOrd,
 )]
