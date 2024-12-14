@@ -76,6 +76,7 @@ use lemmy_api::{
     },
   },
 };
+use lemmy_api::post::block::user_block_keyword_for_posts;
 use lemmy_api_crud::{
   comment::{
     create::create_comment,
@@ -221,7 +222,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
             .route("/save", put().to(save_post))
             .route("/report", post().to(create_post_report))
             .route("/report/resolve", put().to(resolve_post_report))
-            .route("/site_metadata", get().to(get_link_metadata)),
+            .route("/site_metadata", get().to(get_link_metadata))
+            .route("/block",post().to(user_block_keyword_for_posts)),
         )
         // Comment
         .service(

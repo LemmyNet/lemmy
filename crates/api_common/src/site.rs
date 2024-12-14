@@ -49,6 +49,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
+use lemmy_db_schema::source::post_keyword_block::PostKeywordBlock;
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -430,6 +431,7 @@ pub struct MyUserInfo {
   pub community_blocks: Vec<Community>,
   pub instance_blocks: Vec<Instance>,
   pub person_blocks: Vec<Person>,
+  pub post_keyword_blocks: Vec<PostKeywordBlock>,
   pub discussion_languages: Vec<LanguageId>,
 }
 
