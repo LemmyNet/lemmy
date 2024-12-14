@@ -378,9 +378,9 @@ fn queries<'a>() -> Queries<
       query = query.filter(instance_actions::blocked.is_null());
       query = query.filter(person_actions::blocked.is_null());
       query = query.filter(
-        not(post::name.like(any(post_keyword_block::keyword)))
-            .and(not(post::body.like(any(post_keyword_block::keyword))))
-            .and(not(post::url.like(any(post_keyword_block::keyword)))));
+        not(post::name.ilike(post_keyword_block::keyword))
+            .and(not(post::body.ilike(post_keyword_block::keyword)))
+            .and(not(post::url.ilike(post_keyword_block::keyword))));
     }
 
     let (limit, offset) = limit_and_offset(o.page, o.limit)?;
