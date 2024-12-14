@@ -98,6 +98,7 @@ use lemmy_api::{
   },
   sitemap::get_sitemap,
 };
+use lemmy_api::post::block::user_block_keyword_for_posts;
 use lemmy_api_crud::{
   comment::{
     create::create_comment,
@@ -320,7 +321,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
             scope("/block")
               .route("/person", post().to(user_block_person))
               .route("/community", post().to(user_block_community))
-              .route("/instance", post().to(user_block_instance)),
+              .route("/instance", post().to(user_block_instance))
+              .route("/post",get().to(user_block_keyword_for_posts)),
           ),
       )
       // User actions

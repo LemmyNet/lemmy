@@ -36,3 +36,4 @@ pub mod registration_application;
 pub mod secret;
 pub mod site;
 pub mod tagline;
+mod post_keyword_block;

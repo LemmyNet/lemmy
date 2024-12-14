@@ -6,6 +6,7 @@ use lemmy_db_schema::source::{
   instance_block::InstanceBlock,
   person_block::PersonBlock,
 };
+use lemmy_db_schema::source::post_keyword_block::PostKeywordBlock;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::{CommunityFollowerView, CommunityModeratorView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -22,12 +23,13 @@ pub async fn get_my_user(
   let local_user_id = local_user_view.local_user.id;
   let pool = &mut context.pool();
 
-  let (follows, community_blocks, instance_blocks, person_blocks, moderates, discussion_languages) =
+  let (follows, community_blocks, instance_blocks, person_blocks, post_keyword_blocks, moderates, discussion_languages) =
     lemmy_db_schema::try_join_with_pool!(pool => (
       |pool| CommunityFollowerView::for_person(pool, person_id),
       |pool| CommunityBlock::for_person(pool, person_id),
       |pool| InstanceBlock::for_person(pool, person_id),
       |pool| PersonBlock::for_person(pool, person_id),
+      |pool| PostKeywordBlock::for_person(pool, person_id),
       |pool| CommunityModeratorView::for_person(pool, person_id, Some(&local_user_view.local_user)),
       |pool| LocalUserLanguage::read(pool, local_user_id)
     ))
@@ -40,6 +42,7 @@ pub async fn get_my_user(
     community_blocks,
     instance_blocks,
     person_blocks,
+    post_keyword_blocks,
     discussion_languages,
   }))
 }
