@@ -293,6 +293,12 @@ fn queries<'a>() -> Queries<
         .filter(post_actions::saved.is_not_null())
         .then_order_by(post_actions::saved.desc());
     }
+
+    if options.read_only.unwrap_or_default() {
+      query = query
+          .filter(post_actions::read.is_not_null())
+          .then_order_by(post_actions::read.desc())
+    }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
     else if !options
@@ -489,6 +495,7 @@ pub struct PostQuery<'a> {
   pub search_term: Option<String>,
   pub url_only: Option<bool>,
   pub saved_only: Option<bool>,
+  pub read_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
   pub title_only: Option<bool>,
@@ -1114,6 +1121,34 @@ mod tests {
 
     // This should only include the bot post, not the one you created
     assert_eq!(vec![POST_BY_BOT], names(&read_saved_post_listing));
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post_listing_read_only() -> LemmyResult<()> {
+    let pool = &build_db_pool()?;
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Read only the bot post
+    // The read_only should only show the bot post
+    let post_save_form =
+      PostReadForm::new(data.inserted_bot_post.id, data.local_user_view.person.id);
+    PostRead::mark_as_read(pool, &post_save_form).await?;
+
+    // Read the saved only
+    let read_read_post_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      read_only: Some(true),
+      ..data.default_post_query()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    // This should only include the bot post, not the one you created
+    assert_eq!(vec![POST_BY_BOT], names(&read_read_post_listing));
 
     cleanup(data, pool).await
   }
