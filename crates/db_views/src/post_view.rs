@@ -32,6 +32,7 @@ use lemmy_db_schema::{
     post,
     post_actions,
     post_aggregates,
+    post_keyword_block
   },
   source::{
     community::{CommunityFollower, CommunityFollowerState},
@@ -85,6 +86,10 @@ fn queries<'a>() -> Queries<
       .inner_join(community::table)
       .inner_join(post::table)
       .left_join(image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable())))
+        .left_join(post_keyword_block::table.on(
+            post_keyword_block::person_id.eq(my_person_id.unwrap_or(PersonId(-1))),
+          ),
+        )
       .left_join(actions(
         community_actions::table,
         my_person_id,
@@ -115,6 +120,7 @@ fn queries<'a>() -> Queries<
         person::all_columns,
         community::all_columns,
         image_details::all_columns.nullable(),
+        post_keyword_block::keyword,
         creator_community_actions
           .field(community_actions::received_ban)
           .nullable()
@@ -207,6 +213,8 @@ fn queries<'a>() -> Queries<
       post_aggregates::table.into_boxed(),
       options.local_user.person_id(),
     );
+
+    query.filter
 
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
@@ -351,6 +359,10 @@ fn queries<'a>() -> Queries<
       query = query.filter(community_actions::blocked.is_null());
       query = query.filter(instance_actions::blocked.is_null());
       query = query.filter(person_actions::blocked.is_null());
+      query = query.filter(
+        not(post::name.like(any(post_keyword_block::keyword)))
+            .and(not(post::body.like(any(post_keyword_block::keyword))))
+            .and(not(post::url.like(any(post_keyword_block::keyword)))));
     }
 
     let (limit, offset) = limit_and_offset(options.page, options.limit)?;

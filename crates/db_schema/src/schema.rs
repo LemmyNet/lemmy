@@ -827,6 +827,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    post_keyword_block (id) {
+        id -> Int4,
+        #[max_length = 50]
+        keyword -> Varchar,
+        person_id -> Int4,
+    }
+}
+
+diesel::table! {
     private_message (id) {
         id -> Int4,
         creator_id -> Int4,
