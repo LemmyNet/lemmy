@@ -1,7 +1,7 @@
 use crate::structs::{
   LocalUserView,
   PersonContentCombinedView,
-  PersonContentViewInternal,
+  PersonContentCombinedViewInternal,
   PersonSavedCombinedPaginationCursor,
 };
 use diesel::{
@@ -212,7 +212,7 @@ impl PersonSavedCombinedQuery {
       // Tie breaker
       .then_desc(key::id);
 
-    let res = query.load::<PersonContentViewInternal>(conn).await?;
+    let res = query.load::<PersonContentCombinedViewInternal>(conn).await?;
 
     // Map the query results to the enum
     let out = res.into_iter().filter_map(|u| u.map_to_enum()).collect();
