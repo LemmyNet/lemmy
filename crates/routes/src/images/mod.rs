@@ -1,72 +1,13 @@
-use actix_web::{body::BoxBody, web::*, HttpRequest, HttpResponse, Responder};
-use lemmy_api_common::{
-  context::LemmyContext,
-  image::{DeleteImageParams, ImageGetParams, ImageProxyParams, UploadImageResponse},
-  LemmyErrorType,
-  SuccessResponse,
-};
-use lemmy_db_schema::source::{
-  images::{LocalImage, RemoteImage},
-  local_site::LocalSite,
-};
+use actix_web::web::*;
+use lemmy_api_common::{context::LemmyContext, image::DeleteImageParams, SuccessResponse};
+use lemmy_db_schema::source::images::LocalImage;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
-use url::Url;
-use utils::{do_get_image, do_upload_image, file_type, UploadType, PICTRS_CLIENT};
+use utils::PICTRS_CLIENT;
 
-pub mod person;
+pub mod download;
+pub mod upload;
 mod utils;
-
-pub async fn upload_image(
-  req: HttpRequest,
-  body: Payload,
-  local_user_view: LocalUserView,
-  context: Data<LemmyContext>,
-) -> LemmyResult<Json<UploadImageResponse>> {
-  if context.settings().pictrs()?.disable_image_upload {
-    return Err(LemmyErrorType::ImageUploadDisabled.into());
-  }
-
-  let image = do_upload_image(req, body, UploadType::Other, &local_user_view, &context).await?;
-
-  let image_url = image.image_url(&context.settings().get_protocol_and_hostname())?;
-  Ok(Json(UploadImageResponse {
-    image_url,
-    filename: image.file,
-    delete_token: image.delete_token,
-  }))
-}
-
-pub async fn get_image(
-  filename: Path<String>,
-  Query(params): Query<ImageGetParams>,
-  req: HttpRequest,
-  context: Data<LemmyContext>,
-  local_user_view: Option<LocalUserView>,
-) -> LemmyResult<HttpResponse> {
-  // block access to images if instance is private and unauthorized, public
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-  if local_site.private_instance && local_user_view.is_none() {
-    return Ok(HttpResponse::Unauthorized().finish());
-  }
-  let name = &filename.into_inner();
-
-  // If there are no query params, the URL is original
-  let pictrs_url = context.settings().pictrs()?.url;
-  let processed_url = if params.file_type.is_none() && params.max_size.is_none() {
-    format!("{}image/original/{}", pictrs_url, name)
-  } else {
-    let file_type = file_type(params.file_type, name);
-    let mut url = format!("{}image/process.{}?src={}", pictrs_url, file_type, name);
-
-    if let Some(size) = params.max_size {
-      url = format!("{url}&thumbnail={size}",);
-    }
-    url
-  };
-
-  do_get_image(processed_url, req).await
-}
 
 pub async fn delete_image(
   data: Json<DeleteImageParams>,
@@ -94,44 +35,4 @@ pub async fn pictrs_health(context: Data<LemmyContext>) -> LemmyResult<Json<Succ
   PICTRS_CLIENT.get(url).send().await?.error_for_status()?;
 
   Ok(Json(SuccessResponse::default()))
-}
-
-pub async fn image_proxy(
-  Query(params): Query<ImageProxyParams>,
-  req: HttpRequest,
-  context: Data<LemmyContext>,
-) -> LemmyResult<Either<HttpResponse<()>, HttpResponse<BoxBody>>> {
-  let url = Url::parse(&params.url)?;
-
-  // Check that url corresponds to a federated image so that this can't be abused as a proxy
-  // for arbitrary purposes.
-  RemoteImage::validate(&mut context.pool(), url.clone().into()).await?;
-
-  let pictrs_config = context.settings().pictrs()?;
-  let processed_url = if params.file_type.is_none() && params.max_size.is_none() {
-    format!("{}image/original?proxy={}", pictrs_config.url, params.url)
-  } else {
-    let file_type = file_type(params.file_type, url.as_str());
-    let mut url = format!(
-      "{}image/process.{}?proxy={}",
-      pictrs_config.url, file_type, url
-    );
-
-    if let Some(size) = params.max_size {
-      url = format!("{url}&thumbnail={size}",);
-    }
-    url
-  };
-
-  let bypass_proxy = pictrs_config
-    .proxy_bypass_domains
-    .iter()
-    .any(|s| url.domain().is_some_and(|d| d == s));
-  if bypass_proxy {
-    // Bypass proxy and redirect user to original image
-    Ok(Either::Left(Redirect::to(url.to_string()).respond_to(&req)))
-  } else {
-    // Proxy the image data through Lemmy
-    Ok(Either::Right(do_get_image(processed_url, req).await?))
-  }
 }

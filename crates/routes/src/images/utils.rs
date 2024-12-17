@@ -1,31 +1,22 @@
 use actix_web::{
-  body::BodyStream,
   http::{
     header::{HeaderName, ACCEPT_ENCODING, HOST},
     Method,
-    StatusCode,
   },
-  web::{Data, Payload},
+  web::Data,
   HttpRequest,
-  HttpResponse,
 };
 use futures::stream::{Stream, StreamExt};
 use http::HeaderValue;
 use lemmy_api_common::{
   context::LemmyContext,
-  request::{client_builder, delete_image_from_pictrs, PictrsFile, PictrsResponse},
-  LemmyErrorType,
+  request::{client_builder, delete_image_from_pictrs},
 };
-use lemmy_db_schema::{
-  newtypes::DbUrl,
-  source::images::{LocalImage, LocalImageForm},
-};
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_schema::{newtypes::DbUrl, source::images::LocalImage};
 use lemmy_utils::{error::LemmyResult, settings::SETTINGS, REQWEST_TIMEOUT};
-use reqwest::Body;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder};
 use reqwest_tracing::TracingMiddleware;
-use std::{sync::LazyLock, time::Duration};
+use std::sync::LazyLock;
 
 // Pictrs cannot use proxy
 #[allow(clippy::expect_used)]
@@ -40,7 +31,7 @@ pub(super) static PICTRS_CLIENT: LazyLock<ClientWithMiddleware> = LazyLock::new(
   .build()
 });
 
-fn adapt_request(request: &HttpRequest, url: String) -> RequestBuilder {
+pub(super) fn adapt_request(request: &HttpRequest, url: String) -> RequestBuilder {
   // remove accept-encoding header so that pictrs doesn't compress the response
   const INVALID_HEADERS: &[HeaderName] = &[ACCEPT_ENCODING, HOST];
 
@@ -61,7 +52,7 @@ fn adapt_request(request: &HttpRequest, url: String) -> RequestBuilder {
     })
 }
 
-fn make_send<S>(mut stream: S) -> impl Stream<Item = S::Item> + Send + Unpin + 'static
+pub(super) fn make_send<S>(mut stream: S) -> impl Stream<Item = S::Item> + Send + Unpin + 'static
 where
   S: Stream + Unpin + 'static,
   S::Item: Send,
@@ -109,104 +100,11 @@ pub(super) fn convert_method(method: &Method) -> http::Method {
   http::Method::from_bytes(method.as_str().as_bytes()).expect("method can be converted")
 }
 
-fn convert_header<'a>(name: &'a http::HeaderName, value: &'a HeaderValue) -> (&'a str, &'a [u8]) {
+pub(super) fn convert_header<'a>(
+  name: &'a http::HeaderName,
+  value: &'a HeaderValue,
+) -> (&'a str, &'a [u8]) {
   (name.as_str(), value.as_bytes())
-}
-
-pub(super) enum UploadType {
-  Avatar,
-  Other,
-}
-
-pub(super) async fn do_upload_image(
-  req: HttpRequest,
-  body: Payload,
-  upload_type: UploadType,
-  local_user_view: &LocalUserView,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<PictrsFile> {
-  let pictrs_config = context.settings().pictrs()?;
-  let image_url = format!("{}image", pictrs_config.url);
-
-  let mut client_req = adapt_request(&req, image_url);
-
-  client_req = match upload_type {
-    UploadType::Avatar => {
-      let max_size = context
-        .settings()
-        .pictrs()?
-        .max_avatar_size
-        .to_string();
-      client_req.query(&[
-        ("resize", max_size.as_ref()),
-        ("allow_animation", "false"),
-        ("allow_video", "false"),
-      ])
-    }
-    // TODO: same as above but using `max_banner_size`
-    // UploadType::Banner => {}
-    _ => client_req,
-  };
-  if let Some(addr) = req.head().peer_addr {
-    client_req = client_req.header("X-Forwarded-For", addr.to_string())
-  };
-  let res = client_req
-    .timeout(Duration::from_secs(pictrs_config.upload_timeout))
-    .body(Body::wrap_stream(make_send(body)))
-    .send()
-    .await?
-    .error_for_status()?;
-
-  let mut images = res.json::<PictrsResponse>().await?;
-  for image in &images.files {
-    // Pictrs allows uploading multiple images in a single request. Lemmy doesnt need this,
-    // but still a user may upload multiple and so we need to store all links in db for
-    // to allow deletion via web ui.
-    let form = LocalImageForm {
-      local_user_id: Some(local_user_view.local_user.id),
-      pictrs_alias: image.file.to_string(),
-      pictrs_delete_token: image.delete_token.to_string(),
-    };
-
-    let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-    let thumbnail_url = image.image_url(&protocol_and_hostname)?;
-
-    // Also store the details for the image
-    let details_form = image.details.build_image_details_form(&thumbnail_url);
-    LocalImage::create(&mut context.pool(), &form, &details_form).await?;
-  }
-  let image = images
-    .files
-    .pop()
-    .ok_or(LemmyErrorType::InvalidImageUpload)?;
-
-  Ok(image)
-}
-
-pub(super) async fn do_get_image(url: String, req: HttpRequest) -> LemmyResult<HttpResponse> {
-  let mut client_req = adapt_request(&req, url);
-
-  if let Some(addr) = req.head().peer_addr {
-    client_req = client_req.header("X-Forwarded-For", addr.to_string());
-  }
-
-  if let Some(addr) = req.head().peer_addr {
-    client_req = client_req.header("X-Forwarded-For", addr.to_string());
-  }
-
-  let res = client_req.send().await?;
-
-  if res.status() == http::StatusCode::NOT_FOUND {
-    return Ok(HttpResponse::NotFound().finish());
-  }
-
-  let mut client_res = HttpResponse::build(StatusCode::from_u16(res.status().as_u16())?);
-
-  for (name, value) in res.headers().iter().filter(|(h, _)| *h != "connection") {
-    client_res.insert_header(convert_header(name, value));
-  }
-
-  Ok(client_res.body(BodyStream::new(res.bytes_stream())))
 }
 
 /// When adding a new avatar, banner or similar image, delete the old one.

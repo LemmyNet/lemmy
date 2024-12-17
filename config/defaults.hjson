@@ -72,6 +72,9 @@
     #       Otherwise we have to use crop, or use max_width/max_height which throws error
     #       if image is larger.
     max_banner_size: 512
+    # Prevent users from uploading images for posts or embedding in markdown. Avatars, icons and
+    # banners can still be uploaded.
+    image_upload_disabled: false
   }
   # Email sending configuration. All options except login/password are mandatory
   email: {

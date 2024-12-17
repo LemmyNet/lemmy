@@ -1128,12 +1128,7 @@ async fn proxy_image_link_internal(
 /// Rewrite a link to go through `/api/v4/image_proxy` endpoint. This is only for remote urls and
 /// if image_proxy setting is enabled.
 pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
-  proxy_image_link_internal(
-    link,
-    context.settings().pictrs()?.image_mode(),
-    context,
-  )
-  .await
+  proxy_image_link_internal(link, context.settings().pictrs()?.image_mode(), context).await
 }
 
 pub async fn proxy_image_link_opt_api(

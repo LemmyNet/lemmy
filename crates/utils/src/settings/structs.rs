@@ -116,11 +116,11 @@ pub struct PictrsConfig {
   ///       if image is larger.
   #[default(512)]
   pub max_banner_size: u32,
-  
+
   /// Prevent users from uploading images for posts or embedding in markdown. Avatars, icons and
   /// banners can still be uploaded.
   #[default(false)]
-  pub disable_image_upload: bool,
+  pub image_upload_disabled: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document, PartialEq)]

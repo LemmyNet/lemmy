@@ -161,11 +161,9 @@ use lemmy_apub::api::{
 };
 use lemmy_routes::images::{
   delete_image,
-  get_image,
-  image_proxy,
-  person::upload_avatar,
+  download::{get_image, image_proxy},
   pictrs_health,
-  upload_image,
+  upload::{upload_avatar, upload_image},
 };
 use lemmy_utils::rate_limit::RateLimitCell;
 
