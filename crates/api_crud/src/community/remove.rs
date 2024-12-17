@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_common::{
   build_response::build_community_response,
   community::{CommunityResponse, RemoveCommunity},
@@ -8,6 +8,7 @@ use lemmy_api_common::{
   utils::{check_community_mod_action, is_admin},
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     community::{Community, CommunityUpdateForm},
     mod_log::moderator::{ModRemoveCommunity, ModRemoveCommunityForm},
@@ -22,8 +23,10 @@ pub async fn remove_community(
   data: Json<RemoveCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
+  path: Path<CommunityId>,
 ) -> LemmyResult<Json<CommunityResponse>> {
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
+  let community_id = path.into_inner();
+  let community = Community::read(&mut context.pool(), community_id).await?;
   check_community_mod_action(
     &local_user_view.person,
     &community,
@@ -36,7 +39,6 @@ pub async fn remove_community(
   is_admin(&local_user_view)?;
 
   // Do the remove
-  let community_id = data.community_id;
   let removed = data.removed;
   let community = Community::update(
     &mut context.pool(),

@@ -1,6 +1,6 @@
 use super::check_community_visibility_allowed;
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use chrono::Utc;
 use lemmy_api_common::{
   build_response::build_community_response,
@@ -9,14 +9,12 @@ use lemmy_api_common::{
   request::replace_image,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_mod_action,
-    get_url_blocklist,
-    local_site_to_slur_regex,
-    process_markdown_opt,
+    check_community_mod_action, get_url_blocklist, local_site_to_slur_regex, process_markdown_opt,
     proxy_image_link_opt_api,
   },
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{Community, CommunityUpdateForm},
@@ -36,7 +34,9 @@ pub async fn update_community(
   data: Json<EditCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
+  path: Path<CommunityId>,
 ) -> LemmyResult<Json<CommunityResponse>> {
+  let community_id = path.into_inner();
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   let slur_regex = local_site_to_slur_regex(&local_site);
@@ -56,7 +56,7 @@ pub async fn update_community(
   check_community_visibility_allowed(data.visibility, &local_user_view)?;
   let description = diesel_string_update(data.description.as_deref());
 
-  let old_community = Community::read(&mut context.pool(), data.community_id).await?;
+  let old_community = Community::read(&mut context.pool(), community_id).await?;
 
   let icon = diesel_url_update(data.icon.as_deref())?;
   replace_image(&icon, &old_community.icon, &context).await?;
@@ -75,7 +75,6 @@ pub async fn update_community(
   )
   .await?;
 
-  let community_id = data.community_id;
   if let Some(languages) = data.discussion_languages.clone() {
     let site_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
     // check that community languages are a subset of site languages
@@ -100,7 +99,6 @@ pub async fn update_community(
     ..Default::default()
   };
 
-  let community_id = data.community_id;
   let community = Community::update(&mut context.pool(), community_id, &community_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;

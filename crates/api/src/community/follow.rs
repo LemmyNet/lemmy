@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_common::{
   community::{CommunityResponse, FollowCommunity},
   context::LemmyContext,
@@ -7,6 +7,7 @@ use lemmy_api_common::{
   utils::{check_community_deleted_removed, check_user_valid},
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityFollower, CommunityFollowerForm, CommunityFollowerState},
@@ -23,10 +24,12 @@ pub async fn follow_community(
   data: Json<FollowCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
+  path: Path<CommunityId>,
 ) -> LemmyResult<Json<CommunityResponse>> {
+  let community_id = path.into_inner();
   check_user_valid(&local_user_view.person)?;
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
-  let form = CommunityFollowerForm::new(community.id, local_user_view.person.id);
+  let community = Community::read(&mut context.pool(), community_id).await?;
+  let form = CommunityFollowerForm::new(community_id, local_user_view.person.id);
 
   if data.follow {
     // Only run these checks for local community, in case of remote community the local
@@ -34,7 +37,7 @@ pub async fn follow_community(
     // actions from existing followers for private community (so following would be impossible).
     if community.local {
       check_community_deleted_removed(&community)?;
-      CommunityPersonBanView::check(&mut context.pool(), local_user_view.person.id, community.id)
+      CommunityPersonBanView::check(&mut context.pool(), local_user_view.person.id, community_id)
         .await?;
     }
 
@@ -51,7 +54,7 @@ pub async fn follow_community(
 
     let form = CommunityFollowerForm {
       state,
-      ..CommunityFollowerForm::new(community.id, local_user_view.person.id)
+      ..CommunityFollowerForm::new(community_id, local_user_view.person.id)
     };
 
     // Write to db

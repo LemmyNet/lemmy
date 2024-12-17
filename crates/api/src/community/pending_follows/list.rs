@@ -1,9 +1,10 @@
-use actix_web::web::{Data, Json, Query};
+use actix_web::web::{Data, Json, Path, Query};
 use lemmy_api_common::{
   community::{ListCommunityPendingFollows, ListCommunityPendingFollowsResponse},
   context::LemmyContext,
   utils::check_community_mod_of_any_or_admin_action,
 };
+use lemmy_db_schema::newtypes::CommunityId;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::error::LemmyResult;
@@ -12,7 +13,9 @@ pub async fn get_pending_follows_list(
   data: Query<ListCommunityPendingFollows>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
+  path: Path<CommunityId>,
 ) -> LemmyResult<Json<ListCommunityPendingFollowsResponse>> {
+  let community_id = path.into_inner();
   check_community_mod_of_any_or_admin_action(&local_user_view, &mut context.pool()).await?;
   let all_communities =
     data.all_communities.unwrap_or_default() && local_user_view.local_user.admin;

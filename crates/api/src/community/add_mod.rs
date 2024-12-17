@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_common::{
   community::{AddModToCommunity, AddModToCommunityResponse},
   context::LemmyContext,
@@ -7,6 +7,7 @@ use lemmy_api_common::{
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
     local_user::LocalUser,
@@ -23,8 +24,10 @@ pub async fn add_mod_to_community(
   data: Json<AddModToCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
+  path: Path<CommunityId>,
 ) -> LemmyResult<Json<AddModToCommunityResponse>> {
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
+  let community_id = path.into_inner();
+  let community = Community::read(&mut context.pool(), community_id).await?;
   // Verify that only mods or admins can add mod
   check_community_mod_action(
     &local_user_view.person,
@@ -38,7 +41,7 @@ pub async fn add_mod_to_community(
   if !data.added {
     LocalUser::is_higher_mod_or_admin_check(
       &mut context.pool(),
-      community.id,
+      community_id,
       local_user_view.person.id,
       vec![data.person_id],
     )
@@ -59,7 +62,7 @@ pub async fn add_mod_to_community(
 
   // Update in local database
   let community_moderator_form = CommunityModeratorForm {
-    community_id: data.community_id,
+    community_id,
     person_id: data.person_id,
   };
   if data.added {
@@ -76,7 +79,7 @@ pub async fn add_mod_to_community(
   let form = ModAddCommunityForm {
     mod_person_id: local_user_view.person.id,
     other_person_id: data.person_id,
-    community_id: data.community_id,
+    community_id,
     removed: Some(!data.added),
   };
 
@@ -84,13 +87,12 @@ pub async fn add_mod_to_community(
 
   // Note: in case a remote mod is added, this returns the old moderators list, it will only get
   //       updated once we receive an activity from the community (like `Announce/Add/Moderator`)
-  let community_id = data.community_id;
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::AddModToCommunity {
       moderator: local_user_view.person,
-      community_id: data.community_id,
+      community_id,
       target: data.person_id,
       added: data.added,
     },

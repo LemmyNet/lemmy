@@ -23,14 +23,14 @@ services:
 
   lemmy:
     # use "image" to pull down an already compiled lemmy. make sure to comment out "build".
-    # image: dessalines/lemmy:0.19.6
+    image: dessalines/lemmy:0.19.6
     # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
     # use "build" to build your local lemmy server image for development. make sure to comment out "image".
     # run: docker compose up --build
 
-    build:
-      context: ../
-      dockerfile: docker/Dockerfile
+    # build:
+    #   context: ../
+    #   dockerfile: docker/Dockerfile
     # args:
     #   RUST_RELEASE_MODE: release
     #   CARGO_BUILD_FEATURES: default

@@ -1,15 +1,11 @@
 use actix_web::{guard, web::*};
 use lemmy_api::{
   comment::{
-    distinguish::distinguish_comment,
-    like::like_comment,
-    list_comment_likes::list_comment_likes,
+    distinguish::distinguish_comment, like::like_comment, list_comment_likes::list_comment_likes,
     save::save_comment,
   },
   comment_report::{
-    create::create_comment_report,
-    list::list_comment_reports,
-    resolve::resolve_comment_report,
+    create::create_comment_report, list::list_comment_reports, resolve::resolve_comment_report,
   },
   community::{
     add_mod::add_mod_to_community,
@@ -18,8 +14,7 @@ use lemmy_api::{
     follow::follow_community,
     hide::hide_community,
     pending_follows::{
-      approve::post_pending_follows_approve,
-      count::get_pending_follows_count,
+      approve::post_pending_follows_approve, count::get_pending_follows_count,
       list::get_pending_follows_list,
     },
     random::get_random_community,
@@ -39,12 +34,9 @@ use lemmy_api::{
     login::login,
     logout::logout,
     notifications::{
-      list_mentions::list_mentions,
-      list_replies::list_replies,
-      mark_all_read::mark_all_notifications_read,
-      mark_mention_read::mark_person_mention_as_read,
-      mark_reply_read::mark_reply_as_read,
-      unread_count::unread_count,
+      list_mentions::list_mentions, list_replies::list_replies,
+      mark_all_read::mark_all_notifications_read, mark_mention_read::mark_person_mention_as_read,
+      mark_reply_read::mark_reply_as_read, unread_count::unread_count,
     },
     report_count::report_count,
     reset_password::reset_password,
@@ -55,26 +47,16 @@ use lemmy_api::{
     verify_email::verify_email,
   },
   post::{
-    feature::feature_post,
-    get_link_metadata::get_link_metadata,
-    hide::hide_post,
-    like::like_post,
-    list_post_likes::list_post_likes,
-    lock::lock_post,
-    mark_many_read::mark_posts_as_read,
-    mark_read::mark_post_as_read,
-    save::save_post,
+    feature::feature_post, get_link_metadata::get_link_metadata, hide::hide_post, like::like_post,
+    list_post_likes::list_post_likes, lock::lock_post, mark_many_read::mark_posts_as_read,
+    mark_read::mark_post_as_read, save::save_post,
   },
   post_report::{
-    create::create_post_report,
-    list::list_post_reports,
-    resolve::resolve_post_report,
+    create::create_post_report, list::list_post_reports, resolve::resolve_post_report,
   },
   private_message::mark_read::mark_pm_as_read,
   private_message_report::{
-    create::create_pm_report,
-    list::list_pm_reports,
-    resolve::resolve_pm_report,
+    create::create_pm_report, list::list_pm_reports, resolve::resolve_pm_report,
   },
   site::{
     admin_allow_instance::admin_allow_instance,
@@ -84,14 +66,10 @@ use lemmy_api::{
     list_all_media::list_all_media,
     mod_log::get_mod_log,
     purge::{
-      comment::purge_comment,
-      community::purge_community,
-      person::purge_person,
-      post::purge_post,
+      comment::purge_comment, community::purge_community, person::purge_person, post::purge_post,
     },
     registration_applications::{
-      approve::approve_registration_application,
-      get::get_registration_application,
+      approve::approve_registration_application, get::get_registration_application,
       list::list_registration_applications,
       unread_count::get_unread_registration_application_count,
     },
@@ -100,49 +78,31 @@ use lemmy_api::{
 };
 use lemmy_api_crud::{
   comment::{
-    create::create_comment,
-    delete::delete_comment,
-    read::get_comment,
-    remove::remove_comment,
+    create::create_comment, delete::delete_comment, read::get_comment, remove::remove_comment,
     update::update_comment,
   },
   community::{
-    create::create_community,
-    delete::delete_community,
-    list::list_communities,
-    remove::remove_community,
-    update::update_community,
+    create::create_community, delete::delete_community, list::list_communities,
+    remove::remove_community, update::update_community,
   },
   custom_emoji::{
-    create::create_custom_emoji,
-    delete::delete_custom_emoji,
-    list::list_custom_emojis,
+    create::create_custom_emoji, delete::delete_custom_emoji, list::list_custom_emojis,
     update::update_custom_emoji,
   },
   oauth_provider::{
-    create::create_oauth_provider,
-    delete::delete_oauth_provider,
-    update::update_oauth_provider,
+    create::create_oauth_provider, delete::delete_oauth_provider, update::update_oauth_provider,
   },
   post::{
-    create::create_post,
-    delete::delete_post,
-    read::get_post,
-    remove::remove_post,
+    create::create_post, delete::delete_post, read::get_post, remove::remove_post,
     update::update_post,
   },
   private_message::{
-    create::create_private_message,
-    delete::delete_private_message,
-    read::get_private_message,
+    create::create_private_message, delete::delete_private_message, read::get_private_message,
     update::update_private_message,
   },
   site::{create::create_site, read::get_site_v4, update::update_site},
   tagline::{
-    create::create_tagline,
-    delete::delete_tagline,
-    list::list_taglines,
-    update::update_tagline,
+    create::create_tagline, delete::delete_tagline, list::list_taglines, update::update_tagline,
   },
   user::{
     create::{authenticate_with_oauth, register},
@@ -183,30 +143,34 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       .route("/resolve_object", get().to(resolve_object))
       // Community
       .service(
-        resource("/community")
-          .guard(guard::Post())
-          .wrap(rate_limit.register())
-          .route(post().to(create_community)),
-      )
-      .service(
-        scope("/community")
-          .route("", get().to(get_community))
-          .route("", put().to(update_community))
+        scope("/communities")
+          .route("", get().to(list_communities))
           .route("/random", get().to(get_random_community))
-          .route("/hide", put().to(hide_community))
-          .route("/list", get().to(list_communities))
-          .route("/follow", post().to(follow_community))
-          .route("/delete", post().to(delete_community))
-          // Mod Actions
-          .route("/remove", post().to(remove_community))
-          .route("/transfer", post().to(transfer_community))
-          .route("/ban_user", post().to(ban_from_community))
-          .route("/mod", post().to(add_mod_to_community))
           .service(
-            scope("/pending_follows")
-              .route("/count", get().to(get_pending_follows_count))
-              .route("/list", get().to(get_pending_follows_list))
-              .route("/approve", post().to(post_pending_follows_approve)),
+            resource("")
+              .guard(guard::Post())
+              .wrap(rate_limit.register())
+              .route(post().to(create_community)),
+          )
+          .service(
+            scope("/{community_id}")
+              .route("", put().to(update_community))
+              .route("", get().to(get_community))
+              .route("", delete().to(delete_community))
+              .route("/hide", put().to(hide_community))
+              .route("/follow", post().to(follow_community))
+              // Mod Actions
+              .route("/remove", post().to(remove_community))
+              .route("/transfer", post().to(transfer_community))
+              .route("/ban_user", post().to(ban_from_community))
+              .route("/mod", post().to(add_mod_to_community))
+              .service(
+                // TODO: Not sure what to do with these
+                scope("/pending_follows")
+                  .route("", get().to(get_pending_follows_list))
+                  .route("/count", get().to(get_pending_follows_count))
+                  .route("/approve", post().to(post_pending_follows_approve)),
+              ),
           ),
       )
       .route("/federated_instances", get().to(get_federated_instances))

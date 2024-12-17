@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Path};
 use anyhow::Context;
 use lemmy_api_common::{
   community::{GetCommunityResponse, TransferCommunity},
@@ -6,6 +6,7 @@ use lemmy_api_common::{
   utils::{check_community_user_action, is_admin, is_top_mod},
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
     mod_log::moderator::{ModTransferCommunity, ModTransferCommunityForm},
@@ -26,10 +27,12 @@ pub async fn transfer_community(
   data: Json<TransferCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
+  path: Path<CommunityId>,
 ) -> LemmyResult<Json<GetCommunityResponse>> {
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
+  let community_id = path.into_inner();
+  let community = Community::read(&mut context.pool(), community_id).await?;
   let mut community_mods =
-    CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
+    CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
   check_community_user_action(&local_user_view.person, &community, &mut context.pool()).await?;
 
@@ -49,8 +52,6 @@ pub async fn transfer_community(
   community_mods.insert(0, creator_person);
 
   // Delete all the mods
-  let community_id = data.community_id;
-
   CommunityModerator::delete_for_community(&mut context.pool(), community_id).await?;
 
   // TODO: this should probably be a bulk operation
@@ -70,12 +71,11 @@ pub async fn transfer_community(
   let form = ModTransferCommunityForm {
     mod_person_id: local_user_view.person.id,
     other_person_id: data.person_id,
-    community_id: data.community_id,
+    community_id,
   };
 
   ModTransferCommunity::create(&mut context.pool(), &form).await?;
 
-  let community_id = data.community_id;
   let community_view = CommunityView::read(
     &mut context.pool(),
     community_id,
@@ -84,7 +84,6 @@ pub async fn transfer_community(
   )
   .await?;
 
-  let community_id = data.community_id;
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
   // Return the jwt

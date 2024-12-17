@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use lemmy_api_common::{
   community::HideCommunity,
   context::LemmyContext,
@@ -8,6 +8,7 @@ use lemmy_api_common::{
   SuccessResponse,
 };
 use lemmy_db_schema::{
+  newtypes::CommunityId,
   source::{
     community::{Community, CommunityUpdateForm},
     mod_log::moderator::{ModHideCommunity, ModHideCommunityForm},
@@ -22,7 +23,9 @@ pub async fn hide_community(
   data: Json<HideCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
+  path: Path<CommunityId>,
 ) -> LemmyResult<Json<SuccessResponse>> {
+  let community_id = path.into_inner();
   // Verify its a admin (only admin can hide or unhide it)
   is_admin(&local_user_view)?;
 
@@ -32,13 +35,12 @@ pub async fn hide_community(
   };
 
   let mod_hide_community_form = ModHideCommunityForm {
-    community_id: data.community_id,
+    community_id: community_id,
     mod_person_id: local_user_view.person.id,
     reason: data.reason.clone(),
     hidden: Some(data.hidden),
   };
 
-  let community_id = data.community_id;
   let community = Community::update(&mut context.pool(), community_id, &community_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunityHiddenStatus)?;
