@@ -30,7 +30,6 @@ import {
   listPostReports,
   randomString,
   registerUser,
-  getSite,
   unfollows,
   resolveCommunity,
   waitUntil,

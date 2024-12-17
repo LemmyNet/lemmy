@@ -16,7 +16,6 @@ import {
   followCommunity,
   banPersonFromCommunity,
   resolvePerson,
-  getSite,
   createPost,
   getPost,
   resolvePost,
@@ -36,7 +35,7 @@ import {
   userBlockInstance,
 } from "./shared";
 import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
-import { EditCommunity, EditSite, GetPosts } from "lemmy-js-client";
+import { EditCommunity, GetPosts } from "lemmy-js-client";
 
 beforeAll(setupLogins);
 afterAll(unfollows);

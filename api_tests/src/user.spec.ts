@@ -21,7 +21,6 @@ import {
   fetchFunction,
   alphaImage,
   unfollows,
-  saveUserSettingsBio,
   getMyUser,
   getPersonDetails,
 } from "./shared";
@@ -182,41 +181,23 @@ test("Set a new avatar, old avatar is deleted", async () => {
   const upload_form1: UploadImage = {
     image: Buffer.from("test1"),
   };
-  const upload1 = await alphaImage.uploadImage(upload_form1);
-  expect(upload1.url).toBeDefined();
-
-  let form1 = {
-    avatar: upload1.url,
-  };
-  await saveUserSettings(alpha, form1);
+  await alpha.userUploadAvatar(upload_form1);
   const listMediaRes1 = await alphaImage.listMedia();
   expect(listMediaRes1.images.length).toBe(1);
 
   const upload_form2: UploadImage = {
     image: Buffer.from("test2"),
   };
-  const upload2 = await alphaImage.uploadImage(upload_form2);
-  expect(upload2.url).toBeDefined();
-
-  let form2 = {
-    avatar: upload2.url,
-  };
-  await saveUserSettings(alpha, form2);
+  await alpha.userUploadAvatar(upload_form2);
   // make sure only the new avatar is kept
   const listMediaRes2 = await alphaImage.listMedia();
   expect(listMediaRes2.images.length).toBe(1);
 
   // Upload that same form2 avatar, make sure it isn't replaced / deleted
-  await saveUserSettings(alpha, form2);
+  await alpha.userUploadAvatar(upload_form2);
   // make sure only the new avatar is kept
   const listMediaRes3 = await alphaImage.listMedia();
   expect(listMediaRes3.images.length).toBe(1);
-
-  // Now try to save a user settings, with the icon missing,
-  // and make sure it doesn't clear the data, or delete the image
-  await saveUserSettingsBio(alpha);
-  let my_user = await getMyUser(alpha);
-  expect(my_user.local_user_view.person.avatar).toBe(upload2.url);
 
   // make sure only the new avatar is kept
   const listMediaRes4 = await alphaImage.listMedia();
