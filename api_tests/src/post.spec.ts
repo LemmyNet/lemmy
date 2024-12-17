@@ -27,10 +27,8 @@ import {
   followCommunity,
   banPersonFromCommunity,
   reportPost,
-  listPostReports,
   randomString,
   registerUser,
-  getSite,
   unfollows,
   resolveCommunity,
   waitUntil,
@@ -38,11 +36,18 @@ import {
   alphaUrl,
   loginUser,
   createCommunity,
+  listReports,
   getMyUser,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
-import { EditSite, ResolveObject } from "lemmy-js-client";
+import {
+  EditSite,
+  PostReport,
+  PostReportView,
+  ReportCombinedView,
+  ResolveObject,
+} from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 
@@ -688,16 +693,17 @@ test("Report a post", async () => {
   expect(gammaReport).toBeDefined();
 
   // Report was federated to community instance
-  let betaReport = (await waitUntil(
-    () =>
-      listPostReports(beta).then(p =>
-        p.post_reports.find(
-          r =>
-            r.post_report.original_post_name === gammaReport.original_post_name,
+  let betaReport = (
+    (await waitUntil(
+      () =>
+        listReports(beta).then(p =>
+          p.reports.find(r => {
+            return checkPostReportName(r, gammaReport);
+          }),
         ),
-      ),
-    res => !!res,
-  ))!.post_report;
+      res => !!res,
+    ))! as PostReportView
+  ).post_report;
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
   expect(betaReport.original_post_name).toBe(gammaReport.original_post_name);
@@ -707,16 +713,17 @@ test("Report a post", async () => {
   await unfollowRemotes(alpha);
 
   // Report was federated to poster's instance
-  let alphaReport = (await waitUntil(
-    () =>
-      listPostReports(alpha).then(p =>
-        p.post_reports.find(
-          r =>
-            r.post_report.original_post_name === gammaReport.original_post_name,
+  let alphaReport = (
+    (await waitUntil(
+      () =>
+        listReports(alpha).then(p =>
+          p.reports.find(r => {
+            return checkPostReportName(r, gammaReport);
+          }),
         ),
-      ),
-    res => !!res,
-  ))!.post_report;
+      res => !!res,
+    ))! as PostReportView
+  ).post_report;
   expect(alphaReport).toBeDefined();
   expect(alphaReport.resolved).toBe(false);
   expect(alphaReport.original_post_name).toBe(gammaReport.original_post_name);
@@ -817,3 +824,12 @@ test("Rewrite markdown links", async () => {
     `[link](http://lemmy-alpha:8541/post/${alphaPost1.post?.post.id})`,
   );
 });
+
+function checkPostReportName(rcv: ReportCombinedView, report: PostReport) {
+  switch (rcv.type_) {
+    case "Post":
+      return rcv.post_report.original_post_name === report.original_post_name;
+    default:
+      return false;
+  }
+}
