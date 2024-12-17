@@ -545,8 +545,12 @@ pub mod functions {
 
   define_sql_function!(fn random() -> Text);
 
+  define_sql_function!(fn random_smallint() -> SmallInt);
+
   // really this function is variadic, this just adds the two-argument version
   define_sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
+
+  define_sql_function!(#[sql_name = "coalesce"] fn coalesce_2_nullable<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: diesel::sql_types::Nullable<T>) -> diesel::sql_types::Nullable<T>);
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";

@@ -76,6 +76,8 @@ pub struct Community {
   /// A shorter, one-line description of the site.
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
+  #[serde(skip)]
+  pub random_number: i16,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
