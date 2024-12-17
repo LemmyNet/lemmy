@@ -125,7 +125,7 @@ pub(super) async fn do_upload_image(
   local_user_view: &LocalUserView,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<PictrsFile> {
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = context.settings().pictrs()?;
   let image_url = format!("{}image", pictrs_config.url);
 
   let mut client_req = adapt_request(&req, image_url);
@@ -134,7 +134,7 @@ pub(super) async fn do_upload_image(
     UploadType::Avatar => {
       let max_size = context
         .settings()
-        .pictrs_config()?
+        .pictrs()?
         .max_avatar_size
         .to_string();
       client_req.query(&[

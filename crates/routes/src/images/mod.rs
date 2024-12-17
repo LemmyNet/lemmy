@@ -2,6 +2,7 @@ use actix_web::{body::BoxBody, web::*, HttpRequest, HttpResponse, Responder};
 use lemmy_api_common::{
   context::LemmyContext,
   image::{DeleteImageParams, ImageGetParams, ImageProxyParams, UploadImageResponse},
+  LemmyErrorType,
   SuccessResponse,
 };
 use lemmy_db_schema::source::{
@@ -22,6 +23,10 @@ pub async fn upload_image(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<UploadImageResponse>> {
+  if context.settings().pictrs()?.disable_image_upload {
+    return Err(LemmyErrorType::ImageUploadDisabled.into());
+  }
+
   let image = do_upload_image(req, body, UploadType::Other, &local_user_view, &context).await?;
 
   let image_url = image.image_url(&context.settings().get_protocol_and_hostname())?;
@@ -47,7 +52,7 @@ pub async fn get_image(
   let name = &filename.into_inner();
 
   // If there are no query params, the URL is original
-  let pictrs_url = context.settings().pictrs_config()?.url;
+  let pictrs_url = context.settings().pictrs()?.url;
   let processed_url = if params.file_type.is_none() && params.max_size.is_none() {
     format!("{}image/original/{}", pictrs_url, name)
   } else {
@@ -69,7 +74,7 @@ pub async fn delete_image(
   // require login
   _local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = context.settings().pictrs()?;
   let url = format!(
     "{}image/delete/{}/{}",
     pictrs_config.url, &data.token, &data.filename
@@ -83,7 +88,7 @@ pub async fn delete_image(
 }
 
 pub async fn pictrs_health(context: Data<LemmyContext>) -> LemmyResult<Json<SuccessResponse>> {
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = context.settings().pictrs()?;
   let url = format!("{}healthz", pictrs_config.url);
 
   PICTRS_CLIENT.get(url).send().await?.error_for_status()?;
@@ -102,7 +107,7 @@ pub async fn image_proxy(
   // for arbitrary purposes.
   RemoteImage::validate(&mut context.pool(), url.clone().into()).await?;
 
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = context.settings().pictrs()?;
   let processed_url = if params.file_type.is_none() && params.max_size.is_none() {
     format!("{}image/original?proxy={}", pictrs_config.url, params.url)
   } else {

@@ -320,7 +320,7 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
     .next_back()
     .ok_or(LemmyErrorType::ImageUrlMissingLastPathSegment)?;
 
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = context.settings().pictrs()?;
   let purge_url = format!("{}internal/purge?alias={}", pictrs_config.url, alias);
 
   let pictrs_api_key = pictrs_config
@@ -348,7 +348,7 @@ pub async fn delete_image_from_pictrs(
   delete_token: &str,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = context.settings().pictrs()?;
   let url = format!(
     "{}image/delete/{}/{}",
     pictrs_config.url, &delete_token, &alias
@@ -366,7 +366,7 @@ pub async fn delete_image_from_pictrs(
 /// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
 #[tracing::instrument(skip_all)]
 async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> LemmyResult<Url> {
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = context.settings().pictrs()?;
 
   match pictrs_config.image_mode() {
     PictrsImageMode::None => return Ok(image_url.clone()),
@@ -382,7 +382,7 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     "{}image/download?url={}&resize={}",
     pictrs_config.url,
     encode(image_url.as_str()),
-    context.settings().pictrs_config()?.max_thumbnail_size
+    context.settings().pictrs()?.max_thumbnail_size
   );
 
   let res = context
@@ -425,7 +425,7 @@ pub async fn fetch_pictrs_proxied_image_details(
   image_url: &Url,
   context: &LemmyContext,
 ) -> LemmyResult<PictrsFileDetails> {
-  let pictrs_url = context.settings().pictrs_config()?.url;
+  let pictrs_url = context.settings().pictrs()?.url;
   let encoded_image_url = encode(image_url.as_str());
 
   // Pictrs needs you to fetch the proxied image before you can fetch the details

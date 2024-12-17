@@ -31,6 +31,7 @@ pub enum LemmyErrorType {
   NoContentTypeHeader,
   NotAnImageType,
   InvalidImageUpload,
+  ImageUploadDisabled,
   NotAModOrAdmin,
   NotTopMod,
   NotLoggedIn,

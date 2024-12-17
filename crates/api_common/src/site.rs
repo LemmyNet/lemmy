@@ -455,6 +455,9 @@ pub struct GetSiteResponse {
   #[cfg_attr(feature = "full", ts(optional))]
   pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
+  // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
+  // banners can be set.
+  pub image_upload_disabled: bool,
 }
 
 #[skip_serializing_none]
