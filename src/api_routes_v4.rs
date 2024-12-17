@@ -93,7 +93,10 @@ use lemmy_api_crud::{
     create::create_oauth_provider, delete::delete_oauth_provider, update::update_oauth_provider,
   },
   post::{
-    create::create_post, delete::delete_post, read::get_post, remove::remove_post,
+    create::{create_post, create_post_for_community},
+    delete::delete_post,
+    read::get_post,
+    remove::remove_post,
     update::update_post,
   },
   private_message::{
@@ -112,7 +115,7 @@ use lemmy_api_crud::{
 };
 use lemmy_apub::api::{
   list_comments::list_comments,
-  list_posts::list_posts,
+  list_posts::{list_posts, list_posts_for_community},
   read_community::get_community,
   read_person::read_person,
   resolve_object::resolve_object,
@@ -161,9 +164,23 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/follow", post().to(follow_community))
               // Mod Actions
               .route("/remove", post().to(remove_community))
-              .route("/transfer", post().to(transfer_community))
-              .route("/ban_user", post().to(ban_from_community))
-              .route("/mod", post().to(add_mod_to_community))
+              .service(
+                scope("/posts")
+                  .route("", get().to(list_posts_for_community))
+                  .service(
+                    // Handle POST to /post separately to add the post() rate limitter
+                    resource("")
+                      .guard(guard::Post())
+                      .wrap(rate_limit.post())
+                      .route(post().to(create_post_for_community)),
+                  ),
+              )
+              .service(
+                scope("/users/{person_id}")
+                  .route("/transfer-moderation", post().to(transfer_community))
+                  .route("/ban", post().to(ban_from_community))
+                  .route("/appoint-mod", post().to(add_mod_to_community)),
+              )
               .service(
                 // TODO: Not sure what to do with these
                 scope("/pending_follows")

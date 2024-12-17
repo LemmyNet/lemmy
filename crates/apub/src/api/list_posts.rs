@@ -4,14 +4,14 @@ use crate::{
   objects::community::ApubCommunity,
 };
 use activitypub_federation::config::Data;
-use actix_web::web::{Json, Query};
+use actix_web::web::{Json, Path, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPosts, GetPostsResponse},
   utils::{check_conflicting_like_filters, check_private_instance},
 };
 use lemmy_db_schema::{
-  newtypes::PostId,
+  newtypes::{CommunityId, PostId},
   source::{community::Community, post::PostRead},
 };
 use lemmy_db_views::{
@@ -19,6 +19,90 @@ use lemmy_db_views::{
   structs::{LocalUserView, PaginationCursor, SiteView},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+
+// API v4 TODO This is copy-pasted from list_posts. Refactor when API stabilizied.
+#[tracing::instrument(skip(context))]
+pub async fn list_posts_for_community(
+  data: Query<GetPosts>,
+  context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
+  path: Path<CommunityId>,
+) -> LemmyResult<Json<GetPostsResponse>> {
+  let community_id = Some(path.into_inner());
+  let local_site = SiteView::read_local(&mut context.pool()).await?;
+
+  check_private_instance(&local_user_view, &local_site.local_site)?;
+
+  let page = data.page;
+  let limit = data.limit;
+
+  let saved_only = data.saved_only;
+  let show_hidden = data.show_hidden;
+  let show_read = data.show_read;
+  let show_nsfw = data.show_nsfw;
+  let no_comments_only = data.no_comments_only;
+
+  let liked_only = data.liked_only;
+  let disliked_only = data.disliked_only;
+  check_conflicting_like_filters(liked_only, disliked_only)?;
+
+  let local_user = local_user_view.as_ref().map(|u| &u.local_user);
+  let listing_type = Some(listing_type_with_default(
+    data.type_,
+    local_user,
+    &local_site.local_site,
+    community_id,
+  ));
+
+  let sort = Some(post_sort_type_with_default(
+    data.sort,
+    local_user,
+    &local_site.local_site,
+  ));
+
+  // parse pagination token
+  let page_after = if let Some(pa) = &data.page_cursor {
+    Some(pa.read(&mut context.pool()).await?)
+  } else {
+    None
+  };
+
+  let posts = PostQuery {
+    local_user,
+    listing_type,
+    sort,
+    community_id,
+    saved_only,
+    liked_only,
+    disliked_only,
+    page,
+    page_after,
+    limit,
+    show_hidden,
+    show_read,
+    show_nsfw,
+    no_comments_only,
+    ..Default::default()
+  }
+  .list(&local_site.site, &mut context.pool())
+  .await
+  .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
+
+  // If in their user settings (or as part of the API request), auto-mark fetched posts as read
+  if let Some(local_user) = local_user {
+    if data
+      .mark_as_read
+      .unwrap_or(local_user.auto_mark_fetched_posts_as_read)
+    {
+      let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
+      PostRead::mark_many_as_read(&mut context.pool(), &post_ids, local_user.person_id).await?;
+    }
+  }
+
+  // if this page wasn't empty, then there is a next page after the last post on this page
+  let next_page = posts.last().map(PaginationCursor::after_post);
+  Ok(Json(GetPostsResponse { posts, next_page }))
+}
 
 #[tracing::instrument(skip(context))]
 pub async fn list_posts(

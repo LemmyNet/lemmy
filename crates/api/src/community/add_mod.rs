@@ -7,7 +7,7 @@ use lemmy_api_common::{
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
-  newtypes::CommunityId,
+  newtypes::{CommunityId, PersonId},
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
     local_user::LocalUser,
@@ -24,9 +24,9 @@ pub async fn add_mod_to_community(
   data: Json<AddModToCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-  path: Path<CommunityId>,
+  path: Path<(CommunityId, PersonId)>,
 ) -> LemmyResult<Json<AddModToCommunityResponse>> {
-  let community_id = path.into_inner();
+  let (community_id, person_id) = path.into_inner();
   let community = Community::read(&mut context.pool(), community_id).await?;
   // Verify that only mods or admins can add mod
   check_community_mod_action(
@@ -43,7 +43,7 @@ pub async fn add_mod_to_community(
       &mut context.pool(),
       community_id,
       local_user_view.person.id,
-      vec![data.person_id],
+      vec![person_id],
     )
     .await?;
   }
@@ -63,7 +63,7 @@ pub async fn add_mod_to_community(
   // Update in local database
   let community_moderator_form = CommunityModeratorForm {
     community_id,
-    person_id: data.person_id,
+    person_id,
   };
   if data.added {
     CommunityModerator::join(&mut context.pool(), &community_moderator_form)
@@ -78,7 +78,7 @@ pub async fn add_mod_to_community(
   // Mod tables
   let form = ModAddCommunityForm {
     mod_person_id: local_user_view.person.id,
-    other_person_id: data.person_id,
+    other_person_id: person_id,
     community_id,
     removed: Some(!data.added),
   };
@@ -93,7 +93,7 @@ pub async fn add_mod_to_community(
     SendActivityData::AddModToCommunity {
       moderator: local_user_view.person,
       community_id,
-      target: data.person_id,
+      target: person_id,
       added: data.added,
     },
     &context,

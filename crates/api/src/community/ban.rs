@@ -9,7 +9,7 @@ use lemmy_api_common::{
   },
 };
 use lemmy_db_schema::{
-  newtypes::CommunityId,
+  newtypes::{CommunityId, PersonId},
   source::{
     community::{
       Community, CommunityFollower, CommunityFollowerForm, CommunityPersonBan,
@@ -32,10 +32,9 @@ pub async fn ban_from_community(
   data: Json<BanFromCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-  path: Path<CommunityId>,
+  path: Path<(CommunityId, PersonId)>,
 ) -> LemmyResult<Json<BanFromCommunityResponse>> {
-  let community_id = path.into_inner();
-  let banned_person_id = data.person_id;
+  let (community_id, banned_person_id) = path.into_inner();
   let expires = check_expire_time(data.expires)?;
   let community = Community::read(&mut context.pool(), community_id).await?;
 
@@ -52,7 +51,7 @@ pub async fn ban_from_community(
     &mut context.pool(),
     community_id,
     local_user_view.person.id,
-    vec![data.person_id],
+    vec![banned_person_id],
   )
   .await?;
 
@@ -62,7 +61,7 @@ pub async fn ban_from_community(
 
   let community_user_ban_form = CommunityPersonBanForm {
     community_id,
-    person_id: data.person_id,
+    person_id: banned_person_id,
     expires: Some(expires),
   };
 
@@ -99,7 +98,7 @@ pub async fn ban_from_community(
   // Mod tables
   let form = ModBanFromCommunityForm {
     mod_person_id: local_user_view.person.id,
-    other_person_id: data.person_id,
+    other_person_id: banned_person_id,
     community_id,
     reason: data.reason.clone(),
     banned: Some(data.ban),
@@ -108,7 +107,7 @@ pub async fn ban_from_community(
 
   ModBanFromCommunity::create(&mut context.pool(), &form).await?;
 
-  let person_view = PersonView::read(&mut context.pool(), data.person_id, false).await?;
+  let person_view = PersonView::read(&mut context.pool(), banned_person_id, false).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::BanFromCommunity {

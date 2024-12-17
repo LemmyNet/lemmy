@@ -6,7 +6,7 @@ use lemmy_api_common::{
   utils::{check_community_user_action, is_admin, is_top_mod},
 };
 use lemmy_db_schema::{
-  newtypes::CommunityId,
+  newtypes::{CommunityId, PersonId},
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
     mod_log::moderator::{ModTransferCommunity, ModTransferCommunityForm},
@@ -27,9 +27,9 @@ pub async fn transfer_community(
   data: Json<TransferCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-  path: Path<CommunityId>,
+  path: Path<(CommunityId, PersonId)>,
 ) -> LemmyResult<Json<GetCommunityResponse>> {
-  let community_id = path.into_inner();
+  let (community_id, person_id) = path.into_inner();
   let community = Community::read(&mut context.pool(), community_id).await?;
   let mut community_mods =
     CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
@@ -46,7 +46,7 @@ pub async fn transfer_community(
   // Add the transferee to the top
   let creator_index = community_mods
     .iter()
-    .position(|r| r.moderator.id == data.person_id)
+    .position(|r| r.moderator.id == person_id)
     .context(location_info!())?;
   let creator_person = community_mods.remove(creator_index);
   community_mods.insert(0, creator_person);
@@ -70,7 +70,7 @@ pub async fn transfer_community(
   // Mod tables
   let form = ModTransferCommunityForm {
     mod_person_id: local_user_view.person.id,
-    other_person_id: data.person_id,
+    other_person_id: person_id,
     community_id,
   };
 
