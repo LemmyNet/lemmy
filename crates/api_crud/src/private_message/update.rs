@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use chrono::Utc;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -8,6 +8,7 @@ use lemmy_api_common::{
   utils::{get_url_blocklist, local_site_to_slur_regex, process_markdown},
 };
 use lemmy_db_schema::{
+  newtypes::PrivateMessageId,
   source::{
     local_site::LocalSite,
     private_message::{PrivateMessage, PrivateMessageUpdateForm},
@@ -25,11 +26,12 @@ pub async fn update_private_message(
   data: Json<EditPrivateMessage>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
+  path: Path<PrivateMessageId>,
 ) -> LemmyResult<Json<PrivateMessageResponse>> {
+  let private_message_id = path.into_inner();
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
   // Checking permissions
-  let private_message_id = data.private_message_id;
   let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
   if local_user_view.person.id != orig_private_message.creator_id {
     Err(LemmyErrorType::EditPrivateMessageNotAllowed)?
@@ -41,7 +43,6 @@ pub async fn update_private_message(
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&content, false)?;
 
-  let private_message_id = data.private_message_id;
   PrivateMessage::update(
     &mut context.pool(),
     private_message_id,

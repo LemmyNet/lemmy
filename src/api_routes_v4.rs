@@ -258,15 +258,21 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       )
       // Private Message
       .service(
-        scope("/private_message")
-          .route("/list", get().to(get_private_message))
+        scope("/direct-messages")
+          .route("", get().to(get_private_message))
           .route("", post().to(create_private_message))
-          .route("", put().to(update_private_message))
-          .route("/delete", post().to(delete_private_message))
-          .route("/mark_as_read", post().to(mark_pm_as_read))
-          .route("/report", post().to(create_pm_report))
-          .route("/report/resolve", put().to(resolve_pm_report))
-          .route("/report/list", get().to(list_pm_reports)),
+          .service(
+            scope("/{message_id}")
+              .route("", put().to(update_private_message))
+              .route("", delete().to(delete_private_message))
+              .route("/mark-as-read", post().to(mark_pm_as_read))
+              .service(
+                scope("/reports")
+                  .route("", get().to(list_pm_reports))
+                  .route("", post().to(create_pm_report))
+                  .service(scope("/{report_id}").route("", delete().to(resolve_pm_report))),
+              ),
+          ),
       )
       // User
       .service(
