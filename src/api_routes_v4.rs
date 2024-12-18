@@ -96,7 +96,6 @@ use lemmy_api::{
       unread_count::get_unread_registration_application_count,
     },
   },
-  sitemap::get_sitemap,
 };
 use lemmy_api_crud::{
   comment::{
@@ -392,7 +391,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.register())
           .route("/authenticate", post().to(authenticate_with_oauth)),
       )
-      .route("/sitemap.xml", get().to(get_sitemap))
       .service(
         scope("/image")
           .service(

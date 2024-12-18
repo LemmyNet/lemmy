@@ -11,13 +11,14 @@ use actix_cors::Cors;
 use actix_web::{
   dev::{ServerHandle, ServiceResponse},
   middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
-  web::Data,
+  web::{get, scope, Data},
   App,
   HttpResponse,
   HttpServer,
 };
 use actix_web_prom::PrometheusMetricsBuilder;
 use clap::Parser;
+use lemmy_api::sitemap::get_sitemap;
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
@@ -324,6 +325,11 @@ fn create_http_server(
       })
       .configure(feeds::config)
       .configure(nodeinfo::config)
+      .service(
+        scope("/sitemap.xml")
+          .wrap(rate_limit_cell.message())
+          .route("", get().to(get_sitemap)),
+      )
   })
   .disable_signals()
   .bind(bind)?

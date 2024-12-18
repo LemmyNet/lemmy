@@ -87,7 +87,6 @@ use lemmy_api::{
       unread_count::get_unread_registration_application_count,
     },
   },
-  sitemap::get_sitemap,
 };
 use lemmy_api_crud::{
   comment::{
@@ -395,9 +394,4 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
             .route("/delete", post().to(delete_custom_emoji)),
         ),
     );
-  cfg.service(
-    scope("/sitemap.xml")
-      .wrap(rate_limit.message())
-      .route("", get().to(get_sitemap)),
-  );
 }
