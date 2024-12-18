@@ -3,12 +3,10 @@ use actix_web::web::Json;
 use lemmy_api_common::{
   context::LemmyContext,
   person::SaveUserSettings,
-  request::replace_image,
   utils::{
     get_url_blocklist,
     local_site_to_slur_regex,
     process_markdown_opt,
-    proxy_image_link_opt_api,
     send_verification_email,
   },
   SuccessResponse,
@@ -21,7 +19,7 @@ use lemmy_db_schema::{
     person::{Person, PersonUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_string_update, diesel_url_update},
+  utils::diesel_string_update,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
@@ -45,14 +43,6 @@ pub async fn save_user_settings(
       .await?
       .as_deref(),
   );
-
-  let avatar = diesel_url_update(data.avatar.as_deref())?;
-  replace_image(&avatar, &local_user_view.person.avatar, &context).await?;
-  let avatar = proxy_image_link_opt_api(avatar, &context).await?;
-
-  let banner = diesel_url_update(data.banner.as_deref())?;
-  replace_image(&banner, &local_user_view.person.banner, &context).await?;
-  let banner = proxy_image_link_opt_api(banner, &context).await?;
 
   let display_name = diesel_string_update(data.display_name.as_deref());
   let matrix_user_id = diesel_string_update(data.matrix_user_id.as_deref());
@@ -108,8 +98,6 @@ pub async fn save_user_settings(
     bio,
     matrix_user_id,
     bot_account: data.bot_account,
-    avatar,
-    banner,
     ..Default::default()
   };
 

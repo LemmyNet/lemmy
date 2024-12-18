@@ -1,12 +1,11 @@
 import {
-  AdminBlockInstanceParams,
   ApproveCommunityPendingFollower,
   BlockCommunity,
   BlockCommunityResponse,
   CommunityId,
   CommunityVisibility,
   CreatePrivateMessageReport,
-  DeleteImage,
+  DeleteImageParams,
   EditCommunity,
   GetCommunityPendingFollowsCountResponse,
   GetReplies,
@@ -210,7 +209,9 @@ async function allowInstance(api: LemmyHttp, instance: string) {
   // Ignore errors from duplicate allows (because setup gets called for each test file)
   try {
     await api.adminAllowInstance(params);
-  } catch {}
+  } catch {
+    //console.log("Failed to allow instance");
+  }
 }
 
 export async function createPost(
@@ -715,7 +716,6 @@ export async function saveUserSettingsBio(
 export async function saveUserSettingsFederated(
   api: LemmyHttp,
 ): Promise<SuccessResponse> {
-  let avatar = sampleImage;
   let banner = sampleImage;
   let bio = "a changed bio";
   let form: SaveUserSettings = {
@@ -724,7 +724,6 @@ export async function saveUserSettingsFederated(
     default_post_sort_type: "Hot",
     default_listing_type: "All",
     interface_language: "",
-    avatar,
     banner,
     display_name: "user321",
     show_avatars: false,
@@ -947,7 +946,7 @@ export async function deleteAllImages(api: LemmyHttp) {
   Promise.all(
     imagesRes.images
       .map(image => {
-        const form: DeleteImage = {
+        const form: DeleteImageParams = {
           token: image.local_image.pictrs_delete_token,
           filename: image.local_image.pictrs_alias,
         };

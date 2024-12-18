@@ -33,4 +33,5 @@ url = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
 http.workspace = true
+reqwest-tracing = { workspace = true }
 rss = "2.0.10"

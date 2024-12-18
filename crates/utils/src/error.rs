@@ -23,7 +23,6 @@ pub enum LemmyErrorType {
   CouldntUpdateComment,
   CouldntUpdatePrivateMessage,
   CannotLeaveAdmin,
-  // TODO: also remove the translations of unused errors
   PictrsResponseError(String),
   PictrsPurgeResponseError(String),
   ImageUrlMissingPathSegments,
@@ -31,6 +30,8 @@ pub enum LemmyErrorType {
   PictrsApiKeyNotProvided,
   NoContentTypeHeader,
   NotAnImageType,
+  InvalidImageUpload,
+  ImageUploadDisabled,
   NotAModOrAdmin,
   NotTopMod,
   NotLoggedIn,
