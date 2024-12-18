@@ -389,6 +389,7 @@ mod tests {
         featured_url: inserted_community.featured_url,
         instance_id: inserted_instance.id,
         visibility: CommunityVisibility::Public,
+        random_number: inserted_community.random_number,
       },
       creator: Person {
         id: inserted_jessica.id,
