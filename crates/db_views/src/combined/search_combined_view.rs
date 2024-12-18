@@ -9,11 +9,13 @@ use crate::structs::{
   SearchCombinedViewInternal,
 };
 use diesel::{
+  dsl::not,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
+  PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
 };
@@ -21,7 +23,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
-  newtypes::PersonId,
+  newtypes::{CommunityId, PersonId},
   schema::{
     comment,
     comment_actions,
@@ -43,8 +45,10 @@ use lemmy_db_schema::{
     combined::search::{search_combined_keys as key, SearchCombined},
     community::CommunityFollower,
   },
-  utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool},
+  utils::{actions, actions_alias, functions::coalesce, fuzzy_search, get_conn, DbPool},
   InternalToCombinedView,
+  ListingType,
+  SearchType,
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -84,12 +88,20 @@ impl SearchCombinedPaginationCursor {
 #[derive(Clone)]
 pub struct PaginationCursorData(SearchCombined);
 
-#[derive(derive_new::new)]
+#[derive(Default)]
 pub struct SearchCombinedQuery {
-  pub creator_id: PersonId,
-  #[new(default)]
+  pub search_term: Option<String>,
+  pub community_id: Option<CommunityId>,
+  pub creator_id: Option<PersonId>,
+  pub type_: Option<SearchType>,
+  // TODO sorts need to be added
+  // pub sort: Option<PostSortType>,
+  pub listing_type: Option<ListingType>,
+  pub title_only: Option<bool>,
+  pub post_url_only: Option<bool>,
+  pub liked_only: Option<bool>,
+  pub disliked_only: Option<bool>,
   pub page_after: Option<PaginationCursorData>,
-  #[new(default)]
   pub page_back: Option<bool>,
 }
 
@@ -132,7 +144,7 @@ impl SearchCombinedQuery {
     // For example, the creator must be the person table joined to either:
     // - post.creator_id
     // - comment.creator_id
-    let query = search_combined::table
+    let mut query = search_combined::table
       // The comment
       .left_join(comment::table.on(comment_join))
       // The post
@@ -216,6 +228,112 @@ impl SearchCombinedQuery {
         community_actions::received_ban.nullable().is_not_null(),
       ))
       .into_boxed();
+
+    // The filters
+
+    // The search term
+    if let Some(search_term) = &self.search_term {
+      if self.post_url_only.unwrap_or_default() {
+        query = query.filter(post::url.eq(search_term));
+      } else {
+        let searcher = fuzzy_search(search_term);
+
+        let name_or_title_filter = post::name
+          .ilike(searcher.clone())
+          .or(comment::content.ilike(searcher.clone()))
+          .or(community::name.ilike(searcher.clone()))
+          .or(community::title.ilike(searcher.clone()))
+          .or(person::name.ilike(searcher.clone()))
+          .or(person::display_name.ilike(searcher.clone()));
+
+        let body_or_description_filter = post::body
+          .ilike(searcher.clone())
+          .or(community::description.ilike(searcher.clone()));
+
+        query = if self.title_only.unwrap_or_default() {
+          query.filter(name_or_title_filter)
+        } else {
+          query.filter(name_or_title_filter.or(body_or_description_filter))
+        }
+      }
+    }
+
+    // Community id
+    if let Some(community_id) = self.community_id {
+      query = query.filter(community::id.eq(community_id));
+    }
+
+    // Creator id
+    if let Some(creator_id) = self.creator_id {
+      query = query.filter(item_creator.eq(creator_id));
+    }
+
+    // Liked / disliked filter
+    if let Some(my_id) = my_person_id {
+      let not_creator_filter = item_creator.ne(my_id);
+      // TODO do I need not null checks for these?
+      let liked_disliked_filter = |score: i16| {
+        search_combined::post_id
+          .is_not_null()
+          .and(post_actions::like_score.eq(score))
+          .or(
+            search_combined::comment_id
+              .is_not_null()
+              .and(comment_actions::like_score.eq(score)),
+          )
+      };
+
+      if self.liked_only.unwrap_or_default() {
+        query = query
+          .filter(not_creator_filter)
+          .filter(liked_disliked_filter(1));
+      } else if self.disliked_only.unwrap_or_default() {
+        query = query
+          .filter(not_creator_filter)
+          .filter(liked_disliked_filter(-1));
+      }
+    };
+
+    // Type
+    if let Some(type_) = self.type_ {
+      query = match type_ {
+        SearchType::All => query,
+        SearchType::Posts => query.filter(search_combined::post_id.is_not_null()),
+        SearchType::Comments => query.filter(search_combined::comment_id.is_not_null()),
+        SearchType::Communities => query.filter(search_combined::community_id.is_not_null()),
+        SearchType::Users => query.filter(search_combined::person_id.is_not_null()),
+      }
+    }
+
+    // Listing type
+    // TODO need null checks for this one?
+    let is_subscribed = community_actions::followed.is_not_null();
+    match self.listing_type.unwrap_or_default() {
+      ListingType::Subscribed => query = query.filter(is_subscribed),
+      ListingType::Local => {
+        query = query
+          .filter(community::local.eq(true))
+          .filter(community::hidden.eq(false).or(is_subscribed));
+      }
+      ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
+      ListingType::ModeratorView => {
+        query = query.filter(community_actions::became_moderator.is_not_null());
+      }
+    }
+
+    // Deleted / removed filters
+    // TODO need null checks for this?
+    query = query.filter(not(
+      comment::removed
+        .or(comment::deleted)
+        .or(post::removed)
+        .or(post::deleted)
+        .or(community::removed)
+        .or(community::deleted)
+        .or(community::removed)
+        .or(community::deleted)
+        .or(person::deleted),
+    ));
 
     let mut query = PaginatedQueryBuilder::new(query);
 
@@ -311,164 +429,159 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
   }
 }
 
-// #[cfg(test)]
-// #[expect(clippy::indexing_slicing)]
-// mod tests {
+#[cfg(test)]
+#[expect(clippy::indexing_slicing)]
+mod tests {
 
-//   use crate::{
-//     combined::search_combined_view::SearchCombinedQuery,
-//     structs::SearchCombinedView,
-//   };
-//   use lemmy_db_schema::{
-//     source::{
-//       comment::{Comment, CommentInsertForm},
-//       community::{Community, CommunityInsertForm},
-//       instance::Instance,
-//       person::{Person, PersonInsertForm},
-//       post::{Post, PostInsertForm},
-//     },
-//     traits::Crud,
-//     utils::{build_db_pool_for_tests, DbPool},
-//   };
-//   use lemmy_utils::error::LemmyResult;
-//   use pretty_assertions::assert_eq;
-//   use serial_test::serial;
+  use crate::{combined::search_combined_view::SearchCombinedQuery, structs::SearchCombinedView};
+  use lemmy_db_schema::{
+    assert_length,
+    source::{
+      comment::{Comment, CommentInsertForm},
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      person::{Person, PersonInsertForm},
+      post::{Post, PostInsertForm},
+    },
+    traits::Crud,
+    utils::{build_db_pool_for_tests, DbPool},
+  };
+  use lemmy_utils::error::LemmyResult;
+  use pretty_assertions::assert_eq;
+  use serial_test::serial;
 
-//   struct Data {
-//     instance: Instance,
-//     timmy: Person,
-//     sara: Person,
-//     timmy_post: Post,
-//     timmy_post_2: Post,
-//     sara_post: Post,
-//     timmy_comment: Comment,
-//     sara_comment: Comment,
-//     sara_comment_2: Comment,
-//   }
+  struct Data {
+    instance: Instance,
+    timmy: Person,
+    sara: Person,
+    community: Community,
+    community_2: Community,
+    timmy_post: Post,
+    timmy_post_2: Post,
+    sara_post: Post,
+    timmy_comment: Comment,
+    sara_comment: Comment,
+    sara_comment_2: Comment,
+  }
 
-//   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-//     let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+  async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
+    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-//     let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_pcv");
-//     let timmy = Person::create(pool, &timmy_form).await?;
+    let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_pcv");
+    let timmy = Person::create(pool, &timmy_form).await?;
 
-//     let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");
-//     let sara = Person::create(pool, &sara_form).await?;
+    let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");
+    let sara = Person::create(pool, &sara_form).await?;
 
-//     let community_form = CommunityInsertForm::new(
-//       instance.id,
-//       "test community pcv".to_string(),
-//       "nada".to_owned(),
-//       "pubkey".to_string(),
-//     );
-//     let community = Community::create(pool, &community_form).await?;
+    let community_form = CommunityInsertForm::new(
+      instance.id,
+      "asklemmy".to_string(),
+      "Ask Lemmy".to_owned(),
+      "pubkey".to_string(),
+    );
+    let community = Community::create(pool, &community_form).await?;
 
-//     let timmy_post_form = PostInsertForm::new("timmy post prv".into(), timmy.id, community.id);
-//     let timmy_post = Post::create(pool, &timmy_post_form).await?;
+    let community_form_2 = CommunityInsertForm::new(
+      instance.id,
+      "startrek_ds9".to_string(),
+      "Star Trek - Deep Space Nine".to_owned(),
+      "pubkey".to_string(),
+    );
+    let community_2 = Community::create(pool, &community_form_2).await?;
 
-//     let timmy_post_form_2 = PostInsertForm::new("timmy post prv 2".into(), timmy.id,
-// community.id);     let timmy_post_2 = Post::create(pool, &timmy_post_form_2).await?;
+    let timmy_post_form = PostInsertForm::new("timmy post prv".into(), timmy.id, community.id);
+    let timmy_post = Post::create(pool, &timmy_post_form).await?;
 
-//     let sara_post_form = PostInsertForm::new("sara post prv".into(), sara.id, community.id);
-//     let sara_post = Post::create(pool, &sara_post_form).await?;
+    let timmy_post_form_2 = PostInsertForm::new("timmy post prv 2".into(), timmy.id, community.id);
+    let timmy_post_2 = Post::create(pool, &timmy_post_form_2).await?;
 
-//     let timmy_comment_form =
-//       CommentInsertForm::new(timmy.id, timmy_post.id, "timmy comment prv".into());
-//     let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
+    let sara_post_form = PostInsertForm::new("sara post prv".into(), sara.id, community.id);
+    let sara_post = Post::create(pool, &sara_post_form).await?;
 
-//     let sara_comment_form =
-//       CommentInsertForm::new(sara.id, timmy_post.id, "sara comment prv".into());
-//     let sara_comment = Comment::create(pool, &sara_comment_form, None).await?;
+    let timmy_comment_form =
+      CommentInsertForm::new(timmy.id, timmy_post.id, "timmy comment prv".into());
+    let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
 
-//     let sara_comment_form_2 =
-//       CommentInsertForm::new(sara.id, timmy_post_2.id, "sara comment prv 2".into());
-//     let sara_comment_2 = Comment::create(pool, &sara_comment_form_2, None).await?;
+    let sara_comment_form =
+      CommentInsertForm::new(sara.id, timmy_post.id, "sara comment prv".into());
+    let sara_comment = Comment::create(pool, &sara_comment_form, None).await?;
 
-//     Ok(Data {
-//       instance,
-//       timmy,
-//       sara,
-//       timmy_post,
-//       timmy_post_2,
-//       sara_post,
-//       timmy_comment,
-//       sara_comment,
-//       sara_comment_2,
-//     })
-//   }
+    let sara_comment_form_2 =
+      CommentInsertForm::new(sara.id, timmy_post_2.id, "sara comment prv 2".into());
+    let sara_comment_2 = Comment::create(pool, &sara_comment_form_2, None).await?;
 
-//   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-//     Instance::delete(pool, data.instance.id).await?;
+    Ok(Data {
+      instance,
+      timmy,
+      sara,
+      community,
+      community_2,
+      timmy_post,
+      timmy_post_2,
+      sara_post,
+      timmy_comment,
+      sara_comment,
+      sara_comment_2,
+    })
+  }
 
-//     Ok(())
-//   }
+  async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    Instance::delete(pool, data.instance.id).await?;
 
-//   #[tokio::test]
-//   #[serial]
-//   async fn test_combined() -> LemmyResult<()> {
-//     let pool = &build_db_pool_for_tests();
-//     let pool = &mut pool.into();
-//     let data = init_data(pool).await?;
+    Ok(())
+  }
 
-//     // Do a batch read of timmy
-//     let timmy_content = SearchCombinedQuery::new(data.timmy.id)
-//       .list(pool, &None)
-//       .await?;
-//     assert_eq!(3, timmy_content.len());
+  #[tokio::test]
+  #[serial]
+  async fn community_search() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
 
-//     // Make sure the types are correct
-//     if let SearchCombinedView::Comment(v) = &timmy_content[0] {
-//       assert_eq!(data.timmy_comment.id, v.comment.id);
-//       assert_eq!(data.timmy.id, v.creator.id);
-//     } else {
-//       panic!("wrong type");
-//     }
-//     if let SearchCombinedView::Post(v) = &timmy_content[1] {
-//       assert_eq!(data.timmy_post_2.id, v.post.id);
-//       assert_eq!(data.timmy.id, v.post.creator_id);
-//     } else {
-//       panic!("wrong type");
-//     }
-//     if let SearchCombinedView::Post(v) = &timmy_content[2] {
-//       assert_eq!(data.timmy_post.id, v.post.id);
-//       assert_eq!(data.timmy.id, v.post.creator_id);
-//     } else {
-//       panic!("wrong type");
-//     }
+    // Community search
+    let community_search = SearchCombinedQuery::default().list(pool, &None).await?;
+    assert_length!(2, community_search);
 
-//     // Do a batch read of sara
-//     let sara_content = SearchCombinedQuery::new(data.sara.id)
-//       .list(pool, &None)
-//       .await?;
-//     assert_eq!(3, sara_content.len());
+    // Make sure the types are correct
+    if let SearchCombinedView::Community(v) = &community_search[0] {
+      assert_eq!(data.community_2.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
 
-//     // Make sure the report types are correct
-//     if let SearchCombinedView::Comment(v) = &sara_content[0] {
-//       assert_eq!(data.sara_comment_2.id, v.comment.id);
-//       assert_eq!(data.sara.id, v.creator.id);
-//       // This one was to timmy_post_2
-//       assert_eq!(data.timmy_post_2.id, v.post.id);
-//       assert_eq!(data.timmy.id, v.post.creator_id);
-//     } else {
-//       panic!("wrong type");
-//     }
-//     if let SearchCombinedView::Comment(v) = &sara_content[1] {
-//       assert_eq!(data.sara_comment.id, v.comment.id);
-//       assert_eq!(data.sara.id, v.creator.id);
-//       assert_eq!(data.timmy_post.id, v.post.id);
-//       assert_eq!(data.timmy.id, v.post.creator_id);
-//     } else {
-//       panic!("wrong type");
-//     }
-//     if let SearchCombinedView::Post(v) = &sara_content[2] {
-//       assert_eq!(data.sara_post.id, v.post.id);
-//       assert_eq!(data.sara.id, v.post.creator_id);
-//     } else {
-//       panic!("wrong type");
-//     }
+    if let SearchCombinedView::Community(v) = &community_search[1] {
+      assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
 
-//     cleanup(data, pool).await?;
+    // Filtered by id
+    let community_search_by_id = SearchCombinedQuery {
+      community_id: Some(data.community.id),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+    assert_length!(1, community_search_by_id);
 
-//     Ok(())
-//   }
-// }
+    // Using a term
+    let community_search_by_name = SearchCombinedQuery {
+      search_term: Some("Ask".into()),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+
+    assert_length!(1, community_search_by_name);
+    if let SearchCombinedView::Community(v) = &community_search_by_name[0] {
+      // The asklemmy community
+      assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+}
