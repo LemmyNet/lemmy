@@ -162,7 +162,7 @@ use lemmy_routes::images::{
   delete_image,
   download::{get_image, image_proxy},
   pictrs_health,
-  upload::{upload_avatar, upload_image},
+  upload::{upload_image, upload_user_avatar},
 };
 use lemmy_utils::rate_limit::RateLimitCell;
 
@@ -319,7 +319,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/unread_count", get().to(unread_count))
           .route("/list_logins", get().to(list_logins))
           .route("/validate_auth", get().to(validate_auth))
-          .route("/avatar", post().to(upload_avatar))
+          .route("/avatar", post().to(upload_user_avatar))
           .service(
             scope("/block")
               .route("/person", post().to(user_block_person))

@@ -114,6 +114,7 @@ pub struct PictrsConfig {
   /// TODO: Unfortunately pictrs can only resize images to fit in a*a square, no rectangle.
   ///       Otherwise we have to use crop, or use max_width/max_height which throws error
   ///       if image is larger.
+  /// TODO: whats a sensible default here?
   #[default(512)]
   pub max_banner_size: u32,
 

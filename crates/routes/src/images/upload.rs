@@ -3,7 +3,7 @@ use actix_web::{self, web::*, HttpRequest};
 use lemmy_api_common::{
   context::LemmyContext,
   image::UploadImageResponse,
-  request::{PictrsFile, PictrsResponse},
+  request::PictrsResponse,
   LemmyErrorType,
   SuccessResponse,
 };
@@ -18,7 +18,12 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 use reqwest::Body;
 use std::time::Duration;
-use url::Url;
+use UploadType::*;
+
+pub enum UploadType {
+  Avatar,
+  Other,
+}
 
 pub async fn upload_image(
   req: HttpRequest,
@@ -30,44 +35,27 @@ pub async fn upload_image(
     return Err(LemmyErrorType::ImageUploadDisabled.into());
   }
 
-  let image = do_upload_image(req, body, UploadType::Other, &local_user_view, &context).await?;
-
-  let image_url = image.image_url(&context.settings().get_protocol_and_hostname())?;
-  Ok(Json(UploadImageResponse {
-    image_url,
-    filename: image.file,
-    delete_token: image.delete_token,
-  }))
+  Ok(Json(
+    do_upload_image(req, body, Other, &local_user_view, &context).await?,
+  ))
 }
 
-pub async fn upload_avatar(
+pub async fn upload_user_avatar(
   req: HttpRequest,
   body: Payload,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  let image = do_upload_image(req, body, UploadType::Avatar, &local_user_view, &context).await?;
-
+  let image = do_upload_image(req, body, Avatar, &local_user_view, &context).await?;
   delete_old_image(&local_user_view.person.avatar, &context).await?;
 
-  let avatar = format!(
-    "{}/api/v4/image/{}",
-    context.settings().get_protocol_and_hostname(),
-    image.file
-  );
-  let avatar = Some(Some(Url::parse(&avatar)?.into()));
   let person_form = PersonUpdateForm {
-    avatar,
+    avatar: Some(Some(image.image_url.into())),
     ..Default::default()
   };
-
   Person::update(&mut context.pool(), local_user_view.person.id, &person_form).await?;
 
   Ok(Json(SuccessResponse::default()))
-}
-pub enum UploadType {
-  Avatar,
-  Other,
 }
 
 pub async fn do_upload_image(
@@ -76,14 +64,14 @@ pub async fn do_upload_image(
   upload_type: UploadType,
   local_user_view: &LocalUserView,
   context: &Data<LemmyContext>,
-) -> LemmyResult<PictrsFile> {
+) -> LemmyResult<UploadImageResponse> {
   let pictrs_config = context.settings().pictrs()?;
   let image_url = format!("{}image", pictrs_config.url);
 
   let mut client_req = adapt_request(&req, image_url);
 
   client_req = match upload_type {
-    UploadType::Avatar => {
+    Avatar => {
       let max_size = context.settings().pictrs()?.max_avatar_size.to_string();
       client_req.query(&[
         ("resize", max_size.as_ref()),
@@ -92,7 +80,7 @@ pub async fn do_upload_image(
       ])
     }
     // TODO: same as above but using `max_banner_size`
-    // UploadType::Banner => {}
+    // Banner => {}
     _ => client_req,
   };
   if let Some(addr) = req.head().peer_addr {
@@ -128,5 +116,10 @@ pub async fn do_upload_image(
     .pop()
     .ok_or(LemmyErrorType::InvalidImageUpload)?;
 
-  Ok(image)
+  let url = image.image_url(&context.settings().get_protocol_and_hostname())?;
+  Ok(UploadImageResponse {
+    image_url: url,
+    filename: image.file,
+    delete_token: image.delete_token,
+  })
 }
