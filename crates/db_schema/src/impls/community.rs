@@ -252,7 +252,11 @@ impl Community {
       .filter(
         community::id.nullable().eq(coalesce_2_nullable(
           try_pick()
-            .filter(community::random_number.ge(random_smallint()))
+            .filter(community::random_number.nullable().ge(
+              // Without `select` and `single_value`, this would call `random_smallint` separately
+              // for each row
+              select(random_smallint()).single_value(),
+            ))
             .single_value(),
           // Wrap to the beginning if the generated number is higher than all
           // `community::random_number` values, just like in the MediaWiki algorithm
