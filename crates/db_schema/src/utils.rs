@@ -492,7 +492,7 @@ pub mod functions {
 
   sql_function! {
     #[sql_name = "r.scaled_rank"]
-    fn scaled_rank(score: BigInt, time: Timestamptz, users_active_month: BigInt) -> Double;
+    fn scaled_rank(score: BigInt, time: Timestamptz, interactions_month: BigInt) -> Double;
   }
 
   sql_function! {
