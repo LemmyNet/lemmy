@@ -22,6 +22,7 @@ use UploadType::*;
 
 pub enum UploadType {
   Avatar,
+  Banner,
   Other,
 }
 
@@ -51,6 +52,24 @@ pub async fn upload_user_avatar(
 
   let person_form = PersonUpdateForm {
     avatar: Some(Some(image.image_url.into())),
+    ..Default::default()
+  };
+  Person::update(&mut context.pool(), local_user_view.person.id, &person_form).await?;
+
+  Ok(Json(SuccessResponse::default()))
+}
+
+pub async fn upload_user_banner(
+  req: HttpRequest,
+  body: Payload,
+  local_user_view: LocalUserView,
+  context: Data<LemmyContext>,
+) -> LemmyResult<Json<SuccessResponse>> {
+  let image = do_upload_image(req, body, Banner, &local_user_view, &context).await?;
+  delete_old_image(&local_user_view.person.banner, &context).await?;
+
+  let person_form = PersonUpdateForm {
+    banner: Some(Some(image.image_url.into())),
     ..Default::default()
   };
   Person::update(&mut context.pool(), local_user_view.person.id, &person_form).await?;
