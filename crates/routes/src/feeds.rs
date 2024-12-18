@@ -454,7 +454,6 @@ fn build_item(
   protocol_and_hostname: &str,
 ) -> LemmyResult<Item> {
   // TODO add images
-  let author_url = format!("{protocol_and_hostname}/u/{creator_name}");
   let guid = Some(Guid {
     permalink: true,
     value: url.to_owned(),
@@ -464,7 +463,8 @@ fn build_item(
   Ok(Item {
     title: Some(format!("Reply from {creator_name}")),
     author: Some(format!(
-      "/u/{creator_name} <a href=\"{author_url}\">(link)</a>"
+      "/u/{creator_name} <a href=\"{}\">(link)</a>",
+      format_args!("{protocol_and_hostname}/u/{creator_name}")
     )),
     pub_date: Some(published.to_rfc2822()),
     comments: Some(url.to_owned()),

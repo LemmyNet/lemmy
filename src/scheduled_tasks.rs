@@ -190,10 +190,8 @@ async fn process_ranks_in_batches(
          UPDATE {aggregates_table} a {set_clause}
              FROM batch WHERE a.{id_column} = batch.{id_column} RETURNING a.published;
     "#,
-      id_column = format!("{table_name}_id"),
-      aggregates_table = format!("{table_name}_aggregates"),
-      set_clause = set_clause,
-      where_clause = where_clause
+      id_column = format_args!("{table_name}_id"),
+      aggregates_table = format_args!("{table_name}_aggregates"),
     ))
     .bind::<Timestamptz, _>(previous_batch_last_published)
     .bind::<Integer, _>(update_batch_size)
