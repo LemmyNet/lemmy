@@ -166,6 +166,8 @@ use lemmy_routes::images::{
     upload_community_banner,
     upload_community_icon,
     upload_image,
+    upload_site_banner,
+    upload_site_icon,
     upload_user_avatar,
     upload_user_banner,
   },
@@ -181,7 +183,9 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
         scope("/site")
           .route("", get().to(get_site_v4))
           .route("", post().to(create_site))
-          .route("", put().to(update_site)),
+          .route("", put().to(update_site))
+          .route("/icon", post().to(upload_site_icon))
+          .route("/banner", post().to(upload_site_banner)),
       )
       .route("/modlog", get().to(get_mod_log))
       .service(

@@ -1131,31 +1131,6 @@ pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<
   proxy_image_link_internal(link, context.settings().pictrs()?.image_mode(), context).await
 }
 
-pub async fn proxy_image_link_opt_api(
-  link: Option<Option<DbUrl>>,
-  context: &LemmyContext,
-) -> LemmyResult<Option<Option<DbUrl>>> {
-  if let Some(Some(link)) = link {
-    proxy_image_link(link.into(), context)
-      .await
-      .map(Some)
-      .map(Some)
-  } else {
-    Ok(link)
-  }
-}
-
-pub async fn proxy_image_link_api(
-  link: Option<DbUrl>,
-  context: &LemmyContext,
-) -> LemmyResult<Option<DbUrl>> {
-  if let Some(link) = link {
-    proxy_image_link(link.into(), context).await.map(Some)
-  } else {
-    Ok(link)
-  }
-}
-
 pub async fn proxy_image_link_opt_apub(
   link: Option<Url>,
   context: &LemmyContext,

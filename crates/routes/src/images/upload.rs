@@ -4,7 +4,7 @@ use lemmy_api_common::{
   context::LemmyContext,
   image::{CommunityIdQuery, UploadImageResponse},
   request::PictrsResponse,
-  utils::is_mod_or_admin,
+  utils::{is_admin, is_mod_or_admin},
   LemmyErrorType,
   SuccessResponse,
 };
@@ -13,6 +13,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityUpdateForm},
     images::{LocalImage, LocalImageForm},
     person::{Person, PersonUpdateForm},
+    site::{Site, SiteUpdateForm},
   },
   traits::Crud,
 };
@@ -112,13 +113,55 @@ pub async fn upload_community_banner(
   is_mod_or_admin(&mut context.pool(), &local_user_view.person, community.id).await?;
 
   let image = do_upload_image(req, body, Banner, &local_user_view, &context).await?;
-  delete_old_image(&community.icon, &context).await?;
+  delete_old_image(&community.banner, &context).await?;
 
   let form = CommunityUpdateForm {
     banner: Some(Some(image.image_url.into())),
     ..Default::default()
   };
   Community::update(&mut context.pool(), community.id, &form).await?;
+
+  Ok(Json(SuccessResponse::default()))
+}
+
+pub async fn upload_site_icon(
+  req: HttpRequest,
+  body: Payload,
+  local_user_view: LocalUserView,
+  context: Data<LemmyContext>,
+) -> LemmyResult<Json<SuccessResponse>> {
+  is_admin(&local_user_view)?;
+  let site = Site::read_local(&mut context.pool()).await?;
+
+  let image = do_upload_image(req, body, Avatar, &local_user_view, &context).await?;
+  delete_old_image(&site.icon, &context).await?;
+
+  let form = SiteUpdateForm {
+    icon: Some(Some(image.image_url.into())),
+    ..Default::default()
+  };
+  Site::update(&mut context.pool(), site.id, &form).await?;
+
+  Ok(Json(SuccessResponse::default()))
+}
+
+pub async fn upload_site_banner(
+  req: HttpRequest,
+  body: Payload,
+  local_user_view: LocalUserView,
+  context: Data<LemmyContext>,
+) -> LemmyResult<Json<SuccessResponse>> {
+  is_admin(&local_user_view)?;
+  let site = Site::read_local(&mut context.pool()).await?;
+
+  let image = do_upload_image(req, body, Banner, &local_user_view, &context).await?;
+  delete_old_image(&site.banner, &context).await?;
+
+  let form = SiteUpdateForm {
+    banner: Some(Some(image.image_url.into())),
+    ..Default::default()
+  };
+  Site::update(&mut context.pool(), site.id, &form).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

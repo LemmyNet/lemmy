@@ -9,13 +9,10 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
-use lemmy_db_schema::{
-  newtypes::DbUrl,
-  source::{
-    images::{ImageDetailsForm, LocalImage, LocalImageForm},
-    post::{Post, PostUpdateForm},
-    site::Site,
-  },
+use lemmy_db_schema::source::{
+  images::{ImageDetailsForm, LocalImage, LocalImageForm},
+  post::{Post, PostUpdateForm},
+  site::Site,
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -470,30 +467,6 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Lemm
   } else {
     Err(LemmyErrorType::NotAnImageType)?
   }
-}
-
-/// When adding a new avatar, banner or similar image, delete the old one.
-/// TODO: remove this function
-pub async fn replace_image(
-  new_image: &Option<Option<DbUrl>>,
-  old_image: &Option<DbUrl>,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  if let (Some(Some(new_image)), Some(old_image)) = (new_image, old_image) {
-    // Note: Oftentimes front ends will include the current image in the form.
-    // In this case, deleting `old_image` would also be deletion of `new_image`,
-    // so the deletion must be skipped for the image to be kept.
-    if new_image != old_image {
-      // Ignore errors because image may be stored externally.
-      let image = LocalImage::delete_by_url(&mut context.pool(), old_image)
-        .await
-        .ok();
-      if let Some(image) = image {
-        delete_image_from_pictrs(&image.pictrs_alias, &image.pictrs_delete_token, context).await?;
-      }
-    }
-  }
-  Ok(())
 }
 
 #[cfg(test)]
