@@ -1,3 +1,4 @@
+use lemmy_db_schema::newtypes::CommunityId;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -43,4 +44,11 @@ pub struct UploadImageResponse {
   pub image_url: Url,
   pub filename: String,
   pub delete_token: String,
+}
+
+/// Parameter for setting community icon or banner. Can't use POST data here as it already contains
+/// the image data.
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+pub struct CommunityIdQuery {
+  pub id: CommunityId,
 }

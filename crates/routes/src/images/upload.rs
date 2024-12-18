@@ -2,13 +2,15 @@ use super::utils::{adapt_request, delete_old_image, make_send};
 use actix_web::{self, web::*, HttpRequest};
 use lemmy_api_common::{
   context::LemmyContext,
-  image::UploadImageResponse,
+  image::{CommunityIdQuery, UploadImageResponse},
   request::PictrsResponse,
+  utils::is_mod_or_admin,
   LemmyErrorType,
   SuccessResponse,
 };
 use lemmy_db_schema::{
   source::{
+    community::{Community, CommunityUpdateForm},
     images::{LocalImage, LocalImageForm},
     person::{Person, PersonUpdateForm},
   },
@@ -50,11 +52,11 @@ pub async fn upload_user_avatar(
   let image = do_upload_image(req, body, Avatar, &local_user_view, &context).await?;
   delete_old_image(&local_user_view.person.avatar, &context).await?;
 
-  let person_form = PersonUpdateForm {
+  let form = PersonUpdateForm {
     avatar: Some(Some(image.image_url.into())),
     ..Default::default()
   };
-  Person::update(&mut context.pool(), local_user_view.person.id, &person_form).await?;
+  Person::update(&mut context.pool(), local_user_view.person.id, &form).await?;
 
   Ok(Json(SuccessResponse::default()))
 }
@@ -68,11 +70,55 @@ pub async fn upload_user_banner(
   let image = do_upload_image(req, body, Banner, &local_user_view, &context).await?;
   delete_old_image(&local_user_view.person.banner, &context).await?;
 
-  let person_form = PersonUpdateForm {
+  let form = PersonUpdateForm {
     banner: Some(Some(image.image_url.into())),
     ..Default::default()
   };
-  Person::update(&mut context.pool(), local_user_view.person.id, &person_form).await?;
+  Person::update(&mut context.pool(), local_user_view.person.id, &form).await?;
+
+  Ok(Json(SuccessResponse::default()))
+}
+
+pub async fn upload_community_icon(
+  req: HttpRequest,
+  query: Query<CommunityIdQuery>,
+  body: Payload,
+  local_user_view: LocalUserView,
+  context: Data<LemmyContext>,
+) -> LemmyResult<Json<SuccessResponse>> {
+  let community: Community = Community::read(&mut context.pool(), query.id).await?;
+  is_mod_or_admin(&mut context.pool(), &local_user_view.person, community.id).await?;
+
+  let image = do_upload_image(req, body, Avatar, &local_user_view, &context).await?;
+  delete_old_image(&community.icon, &context).await?;
+
+  let form = CommunityUpdateForm {
+    icon: Some(Some(image.image_url.into())),
+    ..Default::default()
+  };
+  Community::update(&mut context.pool(), community.id, &form).await?;
+
+  Ok(Json(SuccessResponse::default()))
+}
+
+pub async fn upload_community_banner(
+  req: HttpRequest,
+  query: Query<CommunityIdQuery>,
+  body: Payload,
+  local_user_view: LocalUserView,
+  context: Data<LemmyContext>,
+) -> LemmyResult<Json<SuccessResponse>> {
+  let community: Community = Community::read(&mut context.pool(), query.id).await?;
+  is_mod_or_admin(&mut context.pool(), &local_user_view.person, community.id).await?;
+
+  let image = do_upload_image(req, body, Banner, &local_user_view, &context).await?;
+  delete_old_image(&community.icon, &context).await?;
+
+  let form = CommunityUpdateForm {
+    banner: Some(Some(image.image_url.into())),
+    ..Default::default()
+  };
+  Community::update(&mut context.pool(), community.id, &form).await?;
 
   Ok(Json(SuccessResponse::default()))
 }
@@ -84,29 +130,35 @@ pub async fn do_upload_image(
   local_user_view: &LocalUserView,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<UploadImageResponse> {
-  let pictrs_config = context.settings().pictrs()?;
-  let image_url = format!("{}image", pictrs_config.url);
+  let pictrs = context.settings().pictrs()?;
+  let image_url = format!("{}image", pictrs.url);
 
   let mut client_req = adapt_request(&req, image_url);
 
   client_req = match upload_type {
     Avatar => {
-      let max_size = context.settings().pictrs()?.max_avatar_size.to_string();
+      let max_size = pictrs.max_avatar_size.to_string();
       client_req.query(&[
         ("resize", max_size.as_ref()),
         ("allow_animation", "false"),
         ("allow_video", "false"),
       ])
     }
-    // TODO: same as above but using `max_banner_size`
-    // Banner => {}
+    Banner => {
+      let max_size = pictrs.max_banner_size.to_string();
+      client_req.query(&[
+        ("resize", max_size.as_ref()),
+        ("allow_animation", "false"),
+        ("allow_video", "false"),
+      ])
+    }
     _ => client_req,
   };
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
   };
   let res = client_req
-    .timeout(Duration::from_secs(pictrs_config.upload_timeout))
+    .timeout(Duration::from_secs(pictrs.upload_timeout))
     .body(Body::wrap_stream(make_send(body)))
     .send()
     .await?

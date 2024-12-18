@@ -162,7 +162,13 @@ use lemmy_routes::images::{
   delete_image,
   download::{get_image, image_proxy},
   pictrs_health,
-  upload::{upload_image, upload_user_avatar, upload_user_banner},
+  upload::{
+    upload_community_banner,
+    upload_community_icon,
+    upload_image,
+    upload_user_avatar,
+    upload_user_banner,
+  },
 };
 use lemmy_utils::rate_limit::RateLimitCell;
 
@@ -205,6 +211,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/transfer", post().to(transfer_community))
           .route("/ban_user", post().to(ban_from_community))
           .route("/mod", post().to(add_mod_to_community))
+          .route("/icon", post().to(upload_community_icon))
+          .route("/banner", post().to(upload_community_banner))
           .service(
             scope("/pending_follows")
               .route("/count", get().to(get_pending_follows_count))
