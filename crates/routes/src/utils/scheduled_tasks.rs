@@ -256,24 +256,36 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
   while let Some(previous_batch_last_published) = previous_batch_result {
     let updated_rows = sql_query(
       r#"WITH batch AS (SELECT pa.post_id
-               FROM post_aggregates pa
-               WHERE pa.published > $1
-               AND (pa.hot_rank != 0 OR pa.hot_rank_active != 0)
-               ORDER BY pa.published
-               LIMIT $2
-               FOR UPDATE SKIP LOCKED)
-         UPDATE post_aggregates pa
-           SET hot_rank = r.hot_rank(pa.score, pa.published),
-           hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro),
-           scaled_rank = r.scaled_rank(pa.score, pa.published, ca.users_active_month)
-         FROM batch, community_aggregates ca
-         WHERE pa.post_id = batch.post_id and pa.community_id = ca.community_id RETURNING pa.published;
-    "#,
+           FROM post_aggregates pa
+           WHERE pa.published > $1
+           AND (pa.hot_rank != 0 OR pa.hot_rank_active != 0)
+           ORDER BY pa.published
+           LIMIT $2
+          FOR UPDATE SKIP LOCKED),
+      community_interactions AS (
+          SELECT community_id, interactions_month
+          FROM community_aggregates
+          GROUP BY community_id)
+      UPDATE post_aggregates pa
+      SET hot_rank = r.hot_rank(pa.score, pa.published),
+          hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro),
+          scaled_rank = r.scaled_rank(pa.score, pa.published, ci.interactions_month)
+      FROM batch, community_interactions ci
+      WHERE pa.post_id = batch.post_id
+      AND pa.community_id = ci.community_id
+      RETURNING pa.published;
+"#,
     )
     .bind::<Timestamptz, _>(previous_batch_last_published)
     .bind::<Integer, _>(update_batch_size)
     .get_results::<HotRanksUpdateResult>(conn)
-    .await.map_err(|e| LemmyErrorType::Unknown(format!("Failed to update {} hot_ranks: {}", "post_aggregates", e)))?;
+    .await
+    .map_err(|e| {
+      LemmyErrorType::Unknown(format!(
+        "Failed to update {} hot_ranks: {}",
+        "post_aggregates", e
+      ))
+    })?;
 
     processed_rows_count += updated_rows.len();
     previous_batch_result = updated_rows.last().map(|row| row.published);
@@ -371,7 +383,7 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 
   for (full_form, abbr) in &intervals {
     let update_site_stmt = format!(
-      "update site_aggregates set users_active_{} = (select * from r.site_aggregates_activity('{}')) where site_id = 1",
+      "update site_aggregates set users_active_{} = (select r.site_aggregates_activity('{}')) where site_id = 1",
       abbr, full_form
     );
     sql_query(update_site_stmt).execute(&mut conn).await?;
@@ -379,6 +391,11 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     let update_community_stmt = format!("update community_aggregates ca set users_active_{} = mv.count_ from r.community_aggregates_activity('{}') mv where ca.community_id = mv.community_id_", abbr, full_form);
     sql_query(update_community_stmt).execute(&mut conn).await?;
   }
+
+  let update_interactions_stmt = "update community_aggregates ca set interactions_month = mv.count_ from r.community_aggregates_interactions('1 month') mv where ca.community_id = mv.community_id_";
+  sql_query(update_interactions_stmt)
+    .execute(&mut conn)
+    .await?;
 
   info!("Done.");
   Ok(())
