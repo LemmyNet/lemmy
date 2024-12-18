@@ -225,27 +225,36 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       )
       // Comment
       .service(
-        // Handle POST to /comment separately to add the comment() rate limitter
-        resource("/comment")
-          .guard(guard::Post())
-          .wrap(rate_limit.comment())
-          .route(post().to(create_comment)),
-      )
-      .service(
-        scope("/comment")
-          .route("", get().to(get_comment))
-          .route("", put().to(update_comment))
-          .route("/delete", post().to(delete_comment))
-          .route("/remove", post().to(remove_comment))
-          .route("/mark_as_read", post().to(mark_reply_as_read))
-          .route("/distinguish", post().to(distinguish_comment))
-          .route("/like", post().to(like_comment))
-          .route("/like/list", get().to(list_comment_likes))
-          .route("/save", put().to(save_comment))
-          .route("/list", get().to(list_comments))
-          .route("/report", post().to(create_comment_report))
-          .route("/report/resolve", put().to(resolve_comment_report))
-          .route("/report/list", get().to(list_comment_reports)),
+        scope("/comments")
+          .route("", get().to(list_comments))
+          .service(
+            // Handle POST to /comment separately to add the comment() rate limitter
+            resource("")
+              .guard(guard::Post())
+              .wrap(rate_limit.comment())
+              .route(post().to(create_comment)),
+          )
+          .service(
+            scope("/{comment_id}")
+              .route("", get().to(get_comment))
+              .route("", put().to(update_comment))
+              .route("", delete().to(delete_comment))
+              .route("/remove", post().to(remove_comment))
+              .route("/mark-as-read", post().to(mark_reply_as_read))
+              .route("/distinguish", post().to(distinguish_comment))
+              .route("/save", put().to(save_comment))
+              .service(
+                resource("/likes")
+                  .route(get().to(list_comment_likes))
+                  .route(post().to(like_comment)),
+              )
+              .service(
+                scope("/reports")
+                  .route("", get().to(list_comment_reports))
+                  .route("", post().to(create_comment_report))
+                  .service(scope("/{report_id}").route("", delete().to(resolve_comment_report))),
+              ),
+          ),
       )
       // Private Message
       .service(

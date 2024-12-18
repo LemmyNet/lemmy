@@ -1,5 +1,5 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Path};
 use chrono::Utc;
 use lemmy_api_common::{
   build_response::{build_comment_response, send_local_notifs},
@@ -7,14 +7,12 @@ use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_user_action,
-    get_url_blocklist,
-    local_site_to_slur_regex,
-    process_markdown_opt,
+    check_community_user_action, get_url_blocklist, local_site_to_slur_regex, process_markdown_opt,
   },
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
+  newtypes::CommentId,
   source::{
     comment::{Comment, CommentUpdateForm},
     local_site::LocalSite,
@@ -32,10 +30,11 @@ pub async fn update_comment(
   data: Json<EditComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
+  path: Path<CommentId>,
 ) -> LemmyResult<Json<CommentResponse>> {
+  let comment_id = path.into_inner();
   let local_site = LocalSite::read(&mut context.pool()).await?;
 
-  let comment_id = data.comment_id;
   let orig_comment = CommentView::read(
     &mut context.pool(),
     comment_id,
@@ -70,7 +69,6 @@ pub async fn update_comment(
     is_valid_body_field(content, false)?;
   }
 
-  let comment_id = data.comment_id;
   let form = CommentUpdateForm {
     content,
     language_id: Some(language_id),
