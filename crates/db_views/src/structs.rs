@@ -1,5 +1,7 @@
 #[cfg(feature = "full")]
 use diesel::Queryable;
+#[cfg(feature = "full")]
+use diesel::{deserialize::FromSqlRow, expression::AsExpression, sql_types};
 use lemmy_db_schema::{
   aggregates::structs::{CommentAggregates, PersonAggregates, PostAggregates, SiteAggregates},
   source::{
@@ -20,6 +22,7 @@ use lemmy_db_schema::{
     private_message_report::PrivateMessageReport,
     registration_application::RegistrationApplication,
     site::Site,
+    tag::Tag,
   },
   SubscribedType,
 };
@@ -169,6 +172,7 @@ pub struct PostView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
+  pub tags: PostTags,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
@@ -315,6 +319,7 @@ pub struct PersonContentViewInternal {
   pub post_hidden: bool,
   pub my_post_vote: Option<i16>,
   pub image_details: Option<ImageDetails>,
+  pub post_tags: PostTags,
   // Comment-specific
   pub comment: Option<Comment>,
   pub comment_counts: Option<CommentAggregates>,
@@ -340,4 +345,13 @@ pub struct PersonContentViewInternal {
 pub enum PersonContentCombinedView {
   Post(PostView),
   Comment(CommentView),
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
+#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
+#[serde(transparent)]
+#[cfg_attr(feature = "full", diesel(sql_type = Nullable<sql_types::Json>))]
+/// we wrap this in a struct so we can implement FromSqlRow<Json> for it
+pub struct PostTags {
+  pub tags: Vec<Tag>,
 }

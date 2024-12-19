@@ -8,8 +8,11 @@ use crate::{
   InternalToCombinedView,
 };
 use diesel::{
+  pg::Pg,
   result::Error,
+  sql_types,
   BoolExpressionMethods,
+  BoxableExpression,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
@@ -34,6 +37,8 @@ use lemmy_db_schema::{
     post,
     post_actions,
     post_aggregates,
+    post_tag,
+    tag,
   },
   source::{
     combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
@@ -91,6 +96,19 @@ impl PersonSavedCombinedQuery {
     let item_creator = person::id;
 
     let conn = &mut get_conn(pool).await?;
+
+    let post_tags: Box<
+      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Json>>,
+    > = Box::new(
+      post_tag::table
+        .inner_join(tag::table)
+        .select(diesel::dsl::sql::<diesel::sql_types::Json>(
+          "json_agg(tag.*)",
+        ))
+        .filter(post_tag::post_id.eq(post::id))
+        .filter(tag::deleted.eq(false))
+        .single_value(),
+    );
 
     // Notes: since the post_id and comment_id are optional columns,
     // many joins must use an OR condition.
@@ -174,6 +192,7 @@ impl PersonSavedCombinedQuery {
         post_actions::hidden.nullable().is_not_null(),
         post_actions::like_score.nullable(),
         image_details::all_columns.nullable(),
+        post_tags,
         // Comment-specific
         comment::all_columns.nullable(),
         comment_aggregates::all_columns.nullable(),
