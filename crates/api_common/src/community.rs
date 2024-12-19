@@ -177,12 +177,6 @@ pub struct EditCommunity {
   /// A shorter, one line description of your community.
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
-  /// An icon URL.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub icon: Option<String>,
-  /// A banner URL.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub banner: Option<String>,
   /// Whether its an NSFW community.
   #[cfg_attr(feature = "full", ts(optional))]
   pub nsfw: Option<bool>,

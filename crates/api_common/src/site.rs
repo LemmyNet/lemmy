@@ -201,10 +201,6 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub icon: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub banner: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub enable_nsfw: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
@@ -298,12 +294,6 @@ pub struct EditSite {
   /// A shorter, one line description of your site.
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
-  /// A url for your site's icon.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub icon: Option<String>,
-  /// A url for your site's banner.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub banner: Option<String>,
   /// Whether to enable NSFW.
   #[cfg_attr(feature = "full", ts(optional))]
   pub enable_nsfw: Option<bool>,
@@ -455,6 +445,9 @@ pub struct GetSiteResponse {
   #[cfg_attr(feature = "full", ts(optional))]
   pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
+  // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
+  // banners can be set.
+  pub image_upload_disabled: bool,
 }
 
 #[skip_serializing_none]

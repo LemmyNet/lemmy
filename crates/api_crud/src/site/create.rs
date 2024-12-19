@@ -13,7 +13,6 @@ use lemmy_api_common::{
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
     process_markdown_opt,
-    proxy_image_link_api,
   },
 };
 use lemmy_db_schema::{
@@ -24,7 +23,7 @@ use lemmy_db_schema::{
     site::{Site, SiteUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_string_update, diesel_url_create},
+  utils::diesel_string_update,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
@@ -63,18 +62,10 @@ pub async fn create_site(
   let url_blocklist = get_url_blocklist(&context).await?;
   let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
 
-  let icon = diesel_url_create(data.icon.as_deref())?;
-  let icon = proxy_image_link_api(icon, &context).await?;
-
-  let banner = diesel_url_create(data.banner.as_deref())?;
-  let banner = proxy_image_link_api(banner, &context).await?;
-
   let site_form = SiteUpdateForm {
     name: Some(data.name.clone()),
     sidebar: diesel_string_update(sidebar.as_deref()),
     description: diesel_string_update(data.description.as_deref()),
-    icon: Some(icon),
-    banner: Some(banner),
     actor_id: Some(actor_id),
     last_refreshed_at: Some(Utc::now()),
     inbox_url,

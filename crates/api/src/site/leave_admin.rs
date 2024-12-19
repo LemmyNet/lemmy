@@ -76,5 +76,6 @@ pub async fn leave_admin(
     blocked_urls,
     tagline,
     my_user: None,
+    image_upload_disabled: context.settings().pictrs()?.image_upload_disabled,
   }))
 }

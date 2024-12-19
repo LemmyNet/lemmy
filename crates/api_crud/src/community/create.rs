@@ -13,7 +13,6 @@ use lemmy_api_common::{
     is_admin,
     local_site_to_slur_regex,
     process_markdown_opt,
-    proxy_image_link_api,
     EndpointType,
   },
 };
@@ -31,7 +30,6 @@ use lemmy_db_schema::{
     },
   },
   traits::{ApubActor, Crud, Followable, Joinable},
-  utils::diesel_url_create,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
@@ -76,12 +74,6 @@ pub async fn create_community(
     check_slurs(desc, &slur_regex)?;
   }
 
-  let icon = diesel_url_create(data.icon.as_deref())?;
-  let icon = proxy_image_link_api(icon, &context).await?;
-
-  let banner = diesel_url_create(data.banner.as_deref())?;
-  let banner = proxy_image_link_api(banner, &context).await?;
-
   is_valid_actor_name(&data.name, local_site.actor_name_max_length as usize)?;
 
   if let Some(desc) = &data.description {
@@ -108,8 +100,6 @@ pub async fn create_community(
   let community_form = CommunityInsertForm {
     sidebar,
     description,
-    icon,
-    banner,
     nsfw: data.nsfw,
     actor_id: Some(community_actor_id.clone()),
     private_key: Some(keypair.private_key),
