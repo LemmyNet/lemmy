@@ -76,6 +76,7 @@ pub enum LemmyErrorType {
   InvalidEmailAddress(String),
   RateLimitError,
   InvalidName,
+  InvalidCodeVerifier,
   InvalidDisplayName,
   InvalidMatrixId,
   InvalidPostTitle,
@@ -112,7 +113,6 @@ pub enum LemmyErrorType {
   SystemErrLogin,
   CouldntSetAllRegistrationsAccepted,
   CouldntSetAllEmailVerified,
-  Banned,
   BlockedUrl,
   CouldntGetComments,
   CouldntGetPosts,
@@ -151,6 +151,7 @@ pub enum LemmyErrorType {
   CommunityHasNoFollowers,
   PostScheduleTimeMustBeInFuture,
   TooManyScheduledPosts,
+  CannotCombineFederationBlocklistAndAllowlist,
   FederationError {
     #[cfg_attr(feature = "full", ts(optional))]
     error: Option<FederationError>,
@@ -326,9 +327,9 @@ cfg_if! {
 
       #[test]
       fn deserializes_no_message() -> LemmyResult<()> {
-        let err = LemmyError::from(LemmyErrorType::Banned).error_response();
+        let err = LemmyError::from(LemmyErrorType::BlockedUrl).error_response();
         let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
-        assert_eq!(&json, "{\"error\":\"banned\"}");
+        assert_eq!(&json, "{\"error\":\"blocked_url\"}");
 
         Ok(())
       }

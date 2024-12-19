@@ -25,17 +25,18 @@ import {
   getComments,
   createComment,
   getCommunityByName,
-  blockInstance,
   waitUntil,
   alphaUrl,
   delta,
-  betaAllowedInstances,
   searchPostLocal,
   longDelay,
   editCommunity,
   unfollows,
+  getMyUser,
+  userBlockInstance,
 } from "./shared";
-import { EditCommunity, EditSite } from "lemmy-js-client";
+import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
+import { EditCommunity, EditSite, GetPosts } from "lemmy-js-client";
 
 beforeAll(setupLogins);
 afterAll(unfollows);
@@ -226,7 +227,7 @@ test("Admin actions in remote community are not federated to origin", async () =
   if (!betaCommunity) {
     throw "Missing beta community";
   }
-  let bannedUserInfo1 = (await getSite(gamma)).my_user?.local_user_view.person;
+  let bannedUserInfo1 = (await getMyUser(gamma)).local_user_view.person;
   if (!bannedUserInfo1) {
     throw "Missing banned user 1";
   }
@@ -363,7 +364,7 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids).toContain(postRes.post_view.post.ap_id);
 
   // block the beta instance
-  await blockInstance(alpha, alphaPost.community.instance_id, true);
+  await userBlockInstance(alpha, alphaPost.community.instance_id, true);
 
   // after blocking, post should not be in listing
   let listing2 = await getPosts(alpha, "All");
@@ -371,7 +372,7 @@ test("User blocks instance, communities are hidden", async () => {
   expect(listing_ids2.indexOf(postRes.post_view.post.ap_id)).toBe(-1);
 
   // unblock instance again
-  await blockInstance(alpha, alphaPost.community.instance_id, false);
+  await userBlockInstance(alpha, alphaPost.community.instance_id, false);
 
   // post should be included in listing
   let listing3 = await getPosts(alpha, "All");
@@ -455,9 +456,12 @@ test("Dont receive community activities after unsubscribe", async () => {
   expect(communityRes1.community_view.counts.subscribers).toBe(2);
 
   // temporarily block alpha, so that it doesn't know about unfollow
-  let editSiteForm: EditSite = {};
-  editSiteForm.allowed_instances = ["lemmy-epsilon"];
-  await beta.editSite(editSiteForm);
+  var allow_instance_params: AdminAllowInstanceParams = {
+    instance: "lemmy-alpha",
+    allow: false,
+    reason: undefined,
+  };
+  await beta.adminAllowInstance(allow_instance_params);
   await longDelay();
 
   // unfollow
@@ -471,8 +475,8 @@ test("Dont receive community activities after unsubscribe", async () => {
   expect(communityRes2.community_view.counts.subscribers).toBe(2);
 
   // unblock alpha
-  editSiteForm.allowed_instances = betaAllowedInstances;
-  await beta.editSite(editSiteForm);
+  allow_instance_params.allow = true;
+  await beta.adminAllowInstance(allow_instance_params);
   await longDelay();
 
   // create a post, it shouldnt reach beta
@@ -572,4 +576,30 @@ test("Remote mods can edit communities", async () => {
   await expect(alphaCommunity.community_view.community.description).toBe(
     "Example description",
   );
+});
+
+test("Community name with non-ascii chars", async () => {
+  const name = "това_ме_ядосва" + Math.random().toString().slice(2, 6);
+  let communityRes = await createCommunity(alpha, name);
+
+  let betaCommunity1 = await resolveCommunity(
+    beta,
+    communityRes.community_view.community.actor_id,
+  );
+  expect(betaCommunity1.community!.community.name).toBe(name);
+
+  let alphaCommunity2 = await getCommunityByName(alpha, name);
+  expect(alphaCommunity2.community_view.community.name).toBe(name);
+
+  let fediName = `${communityRes.community_view.community.name}@LEMMY-ALPHA:8541`;
+  let betaCommunity2 = await getCommunityByName(beta, fediName);
+  expect(betaCommunity2.community_view.community.name).toBe(name);
+
+  let postRes = await createPost(beta, betaCommunity1.community!.community.id);
+
+  let form: GetPosts = {
+    community_name: fediName,
+  };
+  let posts = await beta.getPosts(form);
+  expect(posts.posts[0].post.name).toBe(postRes.post_view.post.name);
 });

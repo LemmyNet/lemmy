@@ -2,6 +2,10 @@
 # See https://github.com/woodpecker-ci/woodpecker/issues/1677
 
 variables:
+  # When updating the rust version here, be sure to update versions in `docker/Dockerfile`
+  # as well. Otherwise release builds can fail if Lemmy or dependencies rely on new Rust
+  # features. In particular the ARM builder image needs to be updated manually in the repo below:
+  # https://github.com/raskyld/lemmy-cross-toolchains
   - &rust_image "rust:1.81"
   - &rust_nightly_image "rustlang/rust:nightly"
   - &install_pnpm "corepack enable pnpm"
@@ -268,13 +272,15 @@ steps:
   # using https://github.com/pksunkara/cargo-workspaces
   publish_to_crates_io:
     image: *rust_image
+    environment:
+      CARGO_API_TOKEN:
+        from_secret: cargo_api_token
     commands:
       - *install_binstall
       # Install cargo-workspaces
       - cargo binstall -y cargo-workspaces
       - cp -r migrations crates/db_schema/
       - cargo workspaces publish --token "$CARGO_API_TOKEN" --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
-    secrets: [cargo_api_token]
     when:
       - event: tag
 

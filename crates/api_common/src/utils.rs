@@ -23,7 +23,12 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
-    moderator::{ModRemoveComment, ModRemoveCommentForm, ModRemovePost, ModRemovePostForm},
+    mod_log::moderator::{
+      ModRemoveComment,
+      ModRemoveCommentForm,
+      ModRemovePost,
+      ModRemovePostForm,
+    },
     oauth_account::OAuthAccount,
     password_reset_request::PasswordResetRequest,
     person::{Person, PersonUpdateForm},
@@ -71,7 +76,7 @@ use tracing::warn;
 use url::{ParseError, Url};
 use urlencoding::encode;
 
-pub static AUTH_COOKIE_NAME: &str = "jwt";
+pub const AUTH_COOKIE_NAME: &str = "jwt";
 
 #[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
@@ -118,8 +123,6 @@ pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
   check_user_valid(&local_user_view.person)?;
   if !local_user_view.local_user.admin {
     Err(LemmyErrorType::NotAnAdmin)?
-  } else if local_user_view.person.banned {
-    Err(LemmyErrorType::Banned)?
   } else {
     Ok(())
   }
@@ -1120,7 +1123,7 @@ async fn proxy_image_link_internal(
   }
 }
 
-/// Rewrite a link to go through `/api/v3/image_proxy` endpoint. This is only for remote urls and
+/// Rewrite a link to go through `/api/v4/image_proxy` endpoint. This is only for remote urls and
 /// if image_proxy setting is enabled.
 pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
   proxy_image_link_internal(
@@ -1172,7 +1175,7 @@ fn build_proxied_image_url(
   protocol_and_hostname: &str,
 ) -> Result<Url, url::ParseError> {
   Url::parse(&format!(
-    "{}/api/v3/image_proxy?url={}",
+    "{}/api/v4/image_proxy?url={}",
     protocol_and_hostname,
     encode(link.as_str())
   ))
@@ -1251,7 +1254,7 @@ mod tests {
     )
     .await?;
     assert_eq!(
-      "https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
+      "https://lemmy-alpha/api/v4/image_proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
       proxied.as_str()
     );
 

@@ -210,6 +210,8 @@ pub enum ModlogActionType {
   AdminPurgeCommunity,
   AdminPurgePost,
   AdminPurgeComment,
+  AdminBlockInstance,
+  AdminAllowInstance,
 }
 
 #[derive(

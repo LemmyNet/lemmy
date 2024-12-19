@@ -11,7 +11,6 @@ use url::Url;
 pub(crate) mod group;
 pub(crate) mod instance;
 pub(crate) mod note;
-pub(crate) mod note_wrapper;
 pub(crate) mod page;
 pub(crate) mod person;
 pub(crate) mod private_message;
@@ -102,8 +101,8 @@ impl LanguageTag {
 
 #[cfg(test)]
 mod tests {
-  use super::note_wrapper::NoteWrapper;
   use crate::protocol::{
+    activities::create_or_update::note_wrapper::NoteWrapper,
     objects::{
       group::Group,
       instance::Instance,

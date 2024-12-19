@@ -4,7 +4,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   person::{GetPersonDetails, GetPersonDetailsResponse},
-  utils::{check_private_instance, read_site_for_actor},
+  utils::{check_private_instance, is_admin, read_site_for_actor},
 };
 use lemmy_db_schema::{source::person::Person, utils::post_to_comment_sort_type};
 use lemmy_db_views::{
@@ -45,7 +45,11 @@ pub async fn read_person(
 
   // You don't need to return settings for the user, since this comes back with GetSite
   // `my_user`
-  let person_view = PersonView::read(&mut context.pool(), person_details_id).await?;
+  let is_admin = local_user_view
+    .as_ref()
+    .map(|l| is_admin(l).is_ok())
+    .unwrap_or_default();
+  let person_view = PersonView::read(&mut context.pool(), person_details_id, is_admin).await?;
 
   let sort = data.sort;
   let page = data.page;

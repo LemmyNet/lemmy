@@ -23,6 +23,7 @@ use lemmy_db_schema::{
     comment,
     community,
     community_actions,
+    federation_blocklist,
     instance,
     person,
     post,
@@ -58,6 +59,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
     async move {
       active_counts(&mut context.pool()).await;
       update_banned_when_expired(&mut context.pool()).await;
+      delete_instance_block_when_expired(&mut context.pool()).await;
     }
   });
 
@@ -113,6 +115,7 @@ async fn startup_jobs(pool: &mut DbPool<'_>) {
   active_counts(pool).await;
   update_hot_ranks(pool).await;
   update_banned_when_expired(pool).await;
+  delete_instance_block_when_expired(pool).await;
   clear_old_activities(pool).await;
   overwrite_deleted_posts_and_comments(pool).await;
   delete_old_denied_users(pool).await;
@@ -187,10 +190,8 @@ async fn process_ranks_in_batches(
          UPDATE {aggregates_table} a {set_clause}
              FROM batch WHERE a.{id_column} = batch.{id_column} RETURNING a.published;
     "#,
-      id_column = format!("{table_name}_id"),
-      aggregates_table = format!("{table_name}_aggregates"),
-      set_clause = set_clause,
-      where_clause = where_clause
+      id_column = format_args!("{table_name}_id"),
+      aggregates_table = format_args!("{table_name}_aggregates"),
     ))
     .bind::<Timestamptz, _>(previous_batch_last_published)
     .bind::<Integer, _>(update_batch_size)
@@ -446,6 +447,27 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) {
   }
 }
 
+/// Set banned to false after ban expires
+async fn delete_instance_block_when_expired(pool: &mut DbPool<'_>) {
+  info!("Delete instance blocks when expired ...");
+  let conn = get_conn(pool).await;
+
+  match conn {
+    Ok(mut conn) => {
+      diesel::delete(
+        federation_blocklist::table.filter(federation_blocklist::expires.lt(now().nullable())),
+      )
+      .execute(&mut conn)
+      .await
+      .inspect_err(|e| error!("Failed to remove federation_blocklist expired rows: {e}"))
+      .ok();
+    }
+    Err(e) => {
+      error!("Failed to get connection from pool: {e}");
+    }
+  }
+}
+
 /// Find all unpublished posts with scheduled date in the future, and publish them.
 async fn publish_scheduled_posts(context: &Data<LemmyContext>) {
   let pool = &mut context.pool();
@@ -555,13 +577,13 @@ async fn build_update_instance_form(
     // This is the only kind of error that means the instance is dead
     return None;
   };
+  let status = res.status();
+  if status.is_client_error() || status.is_server_error() {
+    return None;
+  }
 
   // In this block, returning `None` is ignored, and only means not writing nodeinfo to db
   async {
-    if res.status().is_client_error() {
-      return None;
-    }
-
     let node_info_url = res
       .json::<NodeInfoWellKnown>()
       .await

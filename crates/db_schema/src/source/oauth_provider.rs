@@ -62,6 +62,8 @@ pub struct OAuthProvider {
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
+  /// switch to enable or disable PKCE
+  pub use_pkce: bool,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Deserialize)]
@@ -83,6 +85,7 @@ impl Serialize for PublicOAuthProvider {
     state.serialize_field("authorization_endpoint", &self.0.authorization_endpoint)?;
     state.serialize_field("client_id", &self.0.client_id)?;
     state.serialize_field("scopes", &self.0.scopes)?;
+    state.serialize_field("use_pkce", &self.0.use_pkce)?;
     state.end()
   }
 }
@@ -102,6 +105,7 @@ pub struct OAuthProviderInsertForm {
   pub scopes: String,
   pub auto_verify_email: Option<bool>,
   pub account_linking_enabled: Option<bool>,
+  pub use_pkce: Option<bool>,
   pub enabled: Option<bool>,
 }
 
@@ -118,6 +122,7 @@ pub struct OAuthProviderUpdateForm {
   pub scopes: Option<String>,
   pub auto_verify_email: Option<bool>,
   pub account_linking_enabled: Option<bool>,
+  pub use_pkce: Option<bool>,
   pub enabled: Option<bool>,
   pub updated: Option<Option<DateTime<Utc>>>,
 }
