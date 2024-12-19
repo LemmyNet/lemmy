@@ -1,13 +1,13 @@
 use actix_web::{
-  body::BodyStream,
+  body::{BodyStream, BoxBody},
   http::{
     header::{HeaderName, ACCEPT_ENCODING, HOST},
     StatusCode,
   },
-  web,
-  web::Query,
+  web::*,
   HttpRequest,
   HttpResponse,
+  Responder,
 };
 use futures::stream::{Stream, StreamExt};
 use lemmy_api_common::{context::LemmyContext, request::PictrsResponse};
@@ -23,21 +23,18 @@ use serde::Deserialize;
 use std::time::Duration;
 use url::Url;
 
-pub fn config(
-  cfg: &mut web::ServiceConfig,
-  client: ClientWithMiddleware,
-  rate_limit: &RateLimitCell,
-) {
+pub fn config(cfg: &mut ServiceConfig, client: ClientWithMiddleware, rate_limit: &RateLimitCell) {
   cfg
-    .app_data(web::Data::new(client))
+    .app_data(Data::new(client))
     .service(
-      web::resource("/pictrs/image")
+      resource("/pictrs/image")
         .wrap(rate_limit.image())
-        .route(web::post().to(upload)),
+        .route(post().to(upload)),
     )
     // This has optional query params: /image/{filename}?format=jpg&thumbnail=256
-    .service(web::resource("/pictrs/image/{filename}").route(web::get().to(full_res)))
-    .service(web::resource("/pictrs/image/delete/{token}/{filename}").route(web::get().to(delete)));
+    .service(resource("/pictrs/image/{filename}").route(get().to(full_res)))
+    .service(resource("/pictrs/image/delete/{token}/{filename}").route(get().to(delete)))
+    .service(resource("/pictrs/healthz").route(get().to(healthz)));
 }
 
 trait ProcessUrl {
@@ -126,11 +123,11 @@ fn adapt_request(
 
 async fn upload(
   req: HttpRequest,
-  body: web::Payload,
+  body: Payload,
   // require login
   local_user_view: LocalUserView,
-  client: web::Data<ClientWithMiddleware>,
-  context: web::Data<LemmyContext>,
+  client: Data<ClientWithMiddleware>,
+  context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   // TODO: check rate limit here
   let pictrs_config = context.settings().pictrs_config()?;
@@ -170,11 +167,11 @@ async fn upload(
 }
 
 async fn full_res(
-  filename: web::Path<String>,
-  web::Query(params): web::Query<PictrsGetParams>,
+  filename: Path<String>,
+  Query(params): Query<PictrsGetParams>,
   req: HttpRequest,
-  client: web::Data<ClientWithMiddleware>,
-  context: web::Data<LemmyContext>,
+  client: Data<ClientWithMiddleware>,
+  context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<HttpResponse> {
   // block access to images if instance is private and unauthorized, public
@@ -223,10 +220,10 @@ async fn image(
 }
 
 async fn delete(
-  components: web::Path<(String, String)>,
+  components: Path<(String, String)>,
   req: HttpRequest,
-  client: web::Data<ClientWithMiddleware>,
-  context: web::Data<LemmyContext>,
+  client: Data<ClientWithMiddleware>,
+  context: Data<LemmyContext>,
   // require login
   _local_user_view: LocalUserView,
 ) -> LemmyResult<HttpResponse> {
@@ -248,12 +245,31 @@ async fn delete(
   Ok(HttpResponse::build(res.status()).body(BodyStream::new(res.bytes_stream())))
 }
 
+async fn healthz(
+  req: HttpRequest,
+  client: Data<ClientWithMiddleware>,
+  context: Data<LemmyContext>,
+) -> LemmyResult<HttpResponse> {
+  let pictrs_config = context.settings().pictrs_config()?;
+  let url = format!("{}healthz", pictrs_config.url);
+
+  let mut client_req = adapt_request(&req, &client, url);
+
+  if let Some(addr) = req.head().peer_addr {
+    client_req = client_req.header("X-Forwarded-For", addr.to_string());
+  }
+
+  let res = client_req.send().await?;
+
+  Ok(HttpResponse::build(res.status()).body(BodyStream::new(res.bytes_stream())))
+}
+
 pub async fn image_proxy(
   Query(params): Query<ImageProxyParams>,
   req: HttpRequest,
-  client: web::Data<ClientWithMiddleware>,
-  context: web::Data<LemmyContext>,
-) -> LemmyResult<HttpResponse> {
+  client: Data<ClientWithMiddleware>,
+  context: Data<LemmyContext>,
+) -> LemmyResult<Either<HttpResponse<()>, HttpResponse<BoxBody>>> {
   let url = Url::parse(&params.url)?;
 
   // Check that url corresponds to a federated image so that this can't be abused as a proxy
@@ -261,10 +277,19 @@ pub async fn image_proxy(
   RemoteImage::validate(&mut context.pool(), url.clone().into()).await?;
 
   let pictrs_config = context.settings().pictrs_config()?;
-
   let processed_url = params.process_url(&params.url, &pictrs_config.url);
 
-  image(processed_url, req, &client).await
+  let bypass_proxy = pictrs_config
+    .proxy_bypass_domains
+    .iter()
+    .any(|s| url.domain().is_some_and(|d| d == s));
+  if bypass_proxy {
+    // Bypass proxy and redirect user to original image
+    Ok(Either::Left(Redirect::to(url.to_string()).respond_to(&req)))
+  } else {
+    // Proxy the image data through Lemmy
+    Ok(Either::Right(image(processed_url, req, &client).await?))
+  }
 }
 
 fn make_send<S>(mut stream: S) -> impl Stream<Item = S::Item> + Send + Unpin + 'static
