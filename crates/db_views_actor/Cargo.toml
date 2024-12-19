@@ -26,13 +26,13 @@ full = [
 [dependencies]
 lemmy_db_schema = { workspace = true }
 diesel = { workspace = true, features = [
-  "postgres",
   "chrono",
+  "postgres",
   "serde_json",
 ], optional = true }
 diesel-async = { workspace = true, features = [
-  "postgres",
   "deadpool",
+  "postgres",
 ], optional = true }
 serde = { workspace = true }
 serde_with = { workspace = true }

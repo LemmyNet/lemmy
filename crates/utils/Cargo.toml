@@ -65,10 +65,10 @@ anyhow = { workspace = true, optional = true }
 reqwest-middleware = { workspace = true, optional = true }
 strum = { workspace = true }
 futures = { workspace = true, optional = true }
-diesel = { workspace = true, features = ["chrono"], optional = true }
+diesel = { workspace = true, optional = true, features = ["chrono"] }
 http = { workspace = true, optional = true }
 doku = { workspace = true, features = ["url-2"], optional = true }
-uuid = { workspace = true, features = ["serde", "v4"], optional = true }
+uuid = { workspace = true, optional = true, features = ["v4"] }
 rosetta-i18n = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 urlencoding = { workspace = true, optional = true }
@@ -77,9 +77,8 @@ deser-hjson = { version = "2.2.4", optional = true }
 smart-default = { version = "0.7.1", optional = true }
 lettre = { version = "0.11.10", default-features = false, features = [
   "builder",
-  "tokio1",
-  "tokio1-rustls-tls",
   "smtp-transport",
+  "tokio1-rustls-tls",
 ], optional = true }
 markdown-it = { version = "0.6.1", optional = true }
 ts-rs = { workspace = true, optional = true }
