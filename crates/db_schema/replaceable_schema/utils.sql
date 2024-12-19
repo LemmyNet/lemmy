@@ -186,26 +186,26 @@ BEGIN
             AND pe.bot_account = FALSE
         UNION
         SELECT
-            pa.person_id,
+            pl.person_id,
             p.community_id
         FROM
-            post_actions pa
-            INNER JOIN post p ON pa.post_id = p.id
-            INNER JOIN person pe ON pa.person_id = pe.id
+            post_like pl
+            INNER JOIN post p ON pl.post_id = p.id
+            INNER JOIN person pe ON pl.person_id = pe.id
         WHERE
-            pa.liked > ('now'::timestamp - i::interval)
+            pl.published > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE
         UNION
         SELECT
-            ca.person_id,
+            cl.person_id,
             p.community_id
         FROM
-            comment_actions ca
-            INNER JOIN comment c ON ca.comment_id = c.id
+            comment_like cl
+            INNER JOIN comment c ON cl.comment_id = c.id
             INNER JOIN post p ON c.post_id = p.id
-            INNER JOIN person pe ON ca.person_id = pe.id
+            INNER JOIN person pe ON cl.person_id = pe.id
         WHERE
-            ca.liked > ('now'::timestamp - i::interval)
+            cl.published > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE) a
 GROUP BY
     community_id;
@@ -244,22 +244,22 @@ BEGIN
             AND pe.bot_account = FALSE
         UNION
         SELECT
-            pa.person_id
+            pl.person_id
         FROM
-            post_actions pa
-            INNER JOIN person pe ON pa.person_id = pe.id
+            post_like pl
+            INNER JOIN person pe ON pl.person_id = pe.id
         WHERE
-            pa.liked > ('now'::timestamp - i::interval)
+            pl.published > ('now'::timestamp - i::interval)
             AND pe.local = TRUE
             AND pe.bot_account = FALSE
         UNION
         SELECT
-            ca.person_id
+            cl.person_id
         FROM
-            comment_actions ca
-            INNER JOIN person pe ON ca.person_id = pe.id
+            comment_like cl
+            INNER JOIN person pe ON cl.person_id = pe.id
         WHERE
-            ca.liked > ('now'::timestamp - i::interval)
+            cl.published > ('now'::timestamp - i::interval)
             AND pe.local = TRUE
             AND pe.bot_account = FALSE) a;
     RETURN count_;
