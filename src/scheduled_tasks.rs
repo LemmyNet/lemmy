@@ -285,8 +285,7 @@ async fn delete_expired_captcha_answers(pool: &mut DbPool<'_>) -> LemmyResult<()
     captcha_answer::table.filter(captcha_answer::published.lt(now() - IntervalDsl::minutes(10))),
   )
   .execute(&mut conn)
-  .await
-  .map(|_| {})?;
+  .await?;
   info!("Done.");
 
   Ok(())
@@ -313,11 +312,8 @@ async fn clear_old_activities(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 }
 
 async fn delete_old_denied_users(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-  LocalUser::delete_old_denied_local_users(pool)
-    .await
-    .map(|_| {
-      info!("Done.");
-    })?;
+  LocalUser::delete_old_denied_local_users(pool).await?;
+  info!("Done.");
   Ok(())
 }
 
@@ -583,7 +579,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_scheduled_tasks() -> LemmyResult<()> {
+  async fn test_scheduled_tasks_no_errors() -> LemmyResult<()> {
     let context = test_context().await;
 
     startup_jobs(&mut context.pool()).await?;
