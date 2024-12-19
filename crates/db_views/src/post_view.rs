@@ -1277,9 +1277,10 @@ mod tests {
     // This should only include the bot post, not the one you created
     assert_eq!(vec![POST_BY_BOT], names(&read_read_post_listing));
 
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
   async fn creator_info(data: &mut Data) -> LemmyResult<()> {
