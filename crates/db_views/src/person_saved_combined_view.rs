@@ -8,11 +8,8 @@ use crate::{
   InternalToCombinedView,
 };
 use diesel::{
-  pg::Pg,
   result::Error,
-  sql_types,
   BoolExpressionMethods,
-  BoxableExpression,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
@@ -97,18 +94,14 @@ impl PersonSavedCombinedQuery {
 
     let conn = &mut get_conn(pool).await?;
 
-    let post_tags: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Json>>,
-    > = Box::new(
-      post_tag::table
-        .inner_join(tag::table)
-        .select(diesel::dsl::sql::<diesel::sql_types::Json>(
-          "json_agg(tag.*)",
-        ))
-        .filter(post_tag::post_id.eq(post::id))
-        .filter(tag::deleted.eq(false))
-        .single_value(),
-    );
+    let post_tags = post_tag::table
+      .inner_join(tag::table)
+      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
+        "json_agg(tag.*)",
+      ))
+      .filter(post_tag::post_id.eq(post::id))
+      .filter(tag::deleted.eq(false))
+      .single_value();
 
     // Notes: since the post_id and comment_id are optional columns,
     // many joins must use an OR condition.

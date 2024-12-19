@@ -5,9 +5,7 @@ use diesel::{
   pg::Pg,
   query_builder::AsQuery,
   result::Error,
-  sql_types,
   BoolExpressionMethods,
-  BoxableExpression,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
@@ -97,18 +95,15 @@ fn queries<'a>() -> Queries<
     // If we want to filter by post tag we will have to add
     // separate logic below since this subquery can't affect filtering, but it is simple (`WHERE
     // exists (select 1 from post_community_post_tags where community_post_tag_id in (1,2,3,4)`).
-    let post_tags: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Json>>,
-    > = Box::new(
-      post_tag::table
-        .inner_join(tag::table)
-        .select(diesel::dsl::sql::<diesel::sql_types::Json>(
-          "json_agg(tag.*)",
-        ))
-        .filter(post_tag::post_id.eq(post_aggregates::post_id))
-        .filter(tag::deleted.eq(false))
-        .single_value(),
-    );
+    let post_tags = post_tag::table
+      .inner_join(tag::table)
+      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
+        "json_agg(tag.*)",
+      ))
+      .filter(post_tag::post_id.eq(post_aggregates::post_id))
+      .filter(tag::deleted.eq(false))
+      .single_value();
+
     query
       .inner_join(person::table)
       .inner_join(community::table)
