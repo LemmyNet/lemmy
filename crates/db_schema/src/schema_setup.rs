@@ -39,8 +39,10 @@ fn migrations() -> diesel_migrations::EmbeddedMigrations {
 #[cfg(debug_assertions)]
 #[expect(clippy::expect_used)]
 fn migrations() -> diesel_migrations::FileBasedMigrations {
-  diesel_migrations::FileBasedMigrations::find_migrations_directory()
-    .expect("failed to get migration source")
+  diesel_migrations::FileBasedMigrations::find_migrations_directory_in_path(env!(
+    "CARGO_MANIFEST_DIR"
+  ))
+  .expect("failed to get migration source")
 }
 
 /// This SQL code sets up the `r` schema, which contains things that can be safely dropped and
