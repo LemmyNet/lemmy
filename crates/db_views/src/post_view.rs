@@ -674,7 +674,7 @@ mod tests {
       site::Site,
       tag::{PostTagInsertForm, Tag, TagInsertForm},
     },
-    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable, Saveable},
+    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable},
     utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool, RANK_DEFAULT},
     CommunityVisibility,
     PostSortType,
@@ -1202,34 +1202,6 @@ mod tests {
 
     // Should be no posts
     assert_eq!(read_disliked_post_listing, vec![]);
-
-    Ok(())
-  }
-
-  #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
-  async fn post_listing_saved_only(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
-    let pool = &mut pool.into();
-
-    // Save only the bot post
-    // The saved_only should only show the bot post
-    let post_save_form =
-      PostSavedForm::new(data.inserted_bot_post.id, data.local_user_view.person.id);
-    PostSaved::save(pool, &post_save_form).await?;
-
-    // Read the saved only
-    let read_saved_post_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
-      saved_only: Some(true),
-      ..data.default_post_query()
-    }
-    .list(&data.site, pool)
-    .await?;
-
-    // This should only include the bot post, not the one you created
-    assert_eq!(vec![POST_BY_BOT], names(&read_saved_post_listing));
 
     Ok(())
   }
