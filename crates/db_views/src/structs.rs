@@ -897,7 +897,6 @@ pub enum ModlogCombinedView {
   ModTransferCommunity(ModTransferCommunityView),
 }
 
-
 /// like PaginationCursor but for the modlog_combined
 // TODO get rid of all these pagination cursors
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]

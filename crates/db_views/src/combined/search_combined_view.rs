@@ -127,17 +127,25 @@ impl SearchCombinedQuery {
         search_combined::post_id
           .is_not_null()
           .and(post::creator_id.eq(item_creator)),
-      );
+      )
+      .and(not(person::deleted));
 
-    let comment_join = search_combined::comment_id.eq(comment::id.nullable());
+    let comment_join = search_combined::comment_id
+      .eq(comment::id.nullable())
+      .and(not(comment::removed))
+      .and(not(comment::deleted));
 
     let post_join = search_combined::post_id
       .eq(post::id.nullable())
-      .or(comment::post_id.eq(post::id));
+      .or(comment::post_id.eq(post::id))
+      .and(not(post::removed))
+      .and(not(post::deleted));
 
     let community_join = search_combined::community_id
       .eq(community::id.nullable())
-      .or(post::community_id.eq(community::id));
+      .or(post::community_id.eq(community::id))
+      .and(not(community::removed))
+      .and(not(community::deleted));
 
     // Notes: since the post_id and comment_id are optional columns,
     // many joins must use an OR condition.
@@ -271,7 +279,6 @@ impl SearchCombinedQuery {
     // Liked / disliked filter
     if let Some(my_id) = my_person_id {
       let not_creator_filter = item_creator.ne(my_id);
-      // TODO do I need not null checks for these?
       let liked_disliked_filter = |score: i16| {
         search_combined::post_id
           .is_not_null()
@@ -306,7 +313,6 @@ impl SearchCombinedQuery {
     }
 
     // Listing type
-    // TODO need null checks for this one?
     let is_subscribed = community_actions::followed.is_not_null();
     match self.listing_type.unwrap_or_default() {
       ListingType::Subscribed => query = query.filter(is_subscribed),
@@ -330,20 +336,6 @@ impl SearchCombinedQuery {
         query = query.filter(community_actions::became_moderator.is_not_null());
       }
     }
-
-    // Deleted / removed filters
-    // TODO need null checks for this?
-    query = query.filter(not(
-      comment::removed
-        .and(comment::deleted)
-        .and(post::removed)
-        .and(post::deleted)
-        .and(community::removed)
-        .and(community::deleted)
-        .and(community::removed)
-        .and(community::deleted)
-        .and(person::deleted),
-    ));
 
     let mut query = PaginatedQueryBuilder::new(query);
 
@@ -377,8 +369,36 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
     // Use for a short alias
     let v = self.clone();
 
-    if let (Some(post), Some(counts), Some(creator), Some(community), Some(unread_comments)) = (
+    if let (Some(comment), Some(counts), Some(creator), Some(post), Some(community)) = (
+      v.comment,
+      v.comment_counts,
+      v.item_creator.clone(),
       v.post.clone(),
+      v.community.clone(),
+    ) {
+      Some(SearchCombinedView::Comment(CommentView {
+        comment,
+        counts,
+        post,
+        community,
+        creator,
+        creator_banned_from_community: v.item_creator_banned_from_community,
+        creator_is_moderator: v.item_creator_is_moderator,
+        creator_is_admin: v.item_creator_is_admin,
+        creator_blocked: v.item_creator_blocked,
+        subscribed: v.subscribed,
+        saved: v.comment_saved,
+        my_vote: v.my_comment_vote,
+        banned_from_community: v.banned_from_community,
+      }))
+    } else if let (
+      Some(post),
+      Some(counts),
+      Some(creator),
+      Some(community),
+      Some(unread_comments),
+    ) = (
+      v.post,
       v.post_counts,
       v.item_creator.clone(),
       v.community.clone(),
@@ -400,28 +420,6 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         hidden: v.post_hidden,
         my_vote: v.my_post_vote,
         image_details: v.image_details,
-        banned_from_community: v.banned_from_community,
-      }))
-    } else if let (Some(comment), Some(counts), Some(creator), Some(post), Some(community)) = (
-      v.comment,
-      v.comment_counts,
-      v.item_creator.clone(),
-      v.post,
-      v.community.clone(),
-    ) {
-      Some(SearchCombinedView::Comment(CommentView {
-        comment,
-        counts,
-        post,
-        community,
-        creator,
-        creator_banned_from_community: v.item_creator_banned_from_community,
-        creator_is_moderator: v.item_creator_is_moderator,
-        creator_is_admin: v.item_creator_is_admin,
-        creator_blocked: v.item_creator_blocked,
-        subscribed: v.subscribed,
-        saved: v.comment_saved,
-        my_vote: v.my_comment_vote,
         banned_from_community: v.banned_from_community,
       }))
     } else if let (Some(community), Some(counts)) = (v.community, v.community_counts) {
@@ -448,17 +446,22 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{combined::search_combined_view::SearchCombinedQuery, structs::SearchCombinedView};
+  use crate::{
+    combined::search_combined_view::SearchCombinedQuery,
+    structs::{LocalUserView, SearchCombinedView},
+  };
   use lemmy_db_schema::{
     assert_length,
     source::{
-      comment::{Comment, CommentInsertForm},
+      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
+      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm},
+      post::{Post, PostInsertForm, PostLike, PostLikeForm, PostUpdateForm},
     },
-    traits::Crud,
+    traits::{Crud, Likeable},
     utils::{build_db_pool_for_tests, DbPool},
     SearchType,
   };
@@ -470,6 +473,7 @@ mod tests {
   struct Data {
     instance: Instance,
     timmy: Person,
+    timmy_view: LocalUserView,
     sara: Person,
     community: Community,
     community_2: Community,
@@ -486,6 +490,14 @@ mod tests {
 
     let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_pcv");
     let timmy = Person::create(pool, &timmy_form).await?;
+    let timmy_local_user_form = LocalUserInsertForm::test_form(timmy.id);
+    let timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
+    let timmy_view = LocalUserView {
+      local_user: timmy_local_user,
+      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
+      person: timmy.clone(),
+      counts: Default::default(),
+    };
 
     let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");
     let sara = Person::create(pool, &sara_form).await?;
@@ -523,20 +535,52 @@ mod tests {
     let sara_post = Post::create(pool, &sara_post_form).await?;
 
     let timmy_comment_form =
-      CommentInsertForm::new(timmy.id, timmy_post.id, "timmy comment prv".into());
+      CommentInsertForm::new(timmy.id, timmy_post.id, "timmy comment prv gold".into());
     let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
 
     let sara_comment_form =
-      CommentInsertForm::new(sara.id, timmy_post.id, "sara comment prv".into());
+      CommentInsertForm::new(sara.id, sara_post.id, "sara comment prv gold".into());
     let sara_comment = Comment::create(pool, &sara_comment_form, None).await?;
 
     let sara_comment_form_2 =
       CommentInsertForm::new(sara.id, timmy_post_2.id, "sara comment prv 2".into());
     let sara_comment_2 = Comment::create(pool, &sara_comment_form_2, None).await?;
 
+    // Timmy likes and dislikes a few things
+    let timmy_like_post_form = PostLikeForm::new(timmy_post.id, timmy.id, 1);
+    PostLike::like(pool, &timmy_like_post_form).await?;
+
+    let timmy_like_sara_post_form = PostLikeForm::new(sara_post.id, timmy.id, 1);
+    PostLike::like(pool, &timmy_like_sara_post_form).await?;
+
+    let timmy_dislike_post_form = PostLikeForm::new(timmy_post_2.id, timmy.id, -1);
+    PostLike::like(pool, &timmy_dislike_post_form).await?;
+
+    let timmy_like_comment_form = CommentLikeForm {
+      person_id: timmy.id,
+      comment_id: timmy_comment.id,
+      score: 1,
+    };
+    CommentLike::like(pool, &timmy_like_comment_form).await?;
+
+    let timmy_like_sara_comment_form = CommentLikeForm {
+      person_id: timmy.id,
+      comment_id: sara_comment.id,
+      score: 1,
+    };
+    CommentLike::like(pool, &timmy_like_sara_comment_form).await?;
+
+    let timmy_dislike_sara_comment_form = CommentLikeForm {
+      person_id: timmy.id,
+      comment_id: sara_comment_2.id,
+      score: -1,
+    };
+    CommentLike::like(pool, &timmy_dislike_sara_comment_form).await?;
+
     Ok(Data {
       instance,
       timmy,
+      timmy_view,
       sara,
       community,
       community_2,
@@ -551,6 +595,164 @@ mod tests {
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
     Instance::delete(pool, data.instance.id).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn combined() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // search
+    let search = SearchCombinedQuery::default().list(pool, &None).await?;
+    assert_length!(10, search);
+
+    // Make sure the types are correct
+    if let SearchCombinedView::Comment(v) = &search[0] {
+      assert_eq!(data.sara_comment_2.id, v.comment.id);
+      assert_eq!(data.timmy_post_2.id, v.post.id);
+      assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let SearchCombinedView::Comment(v) = &search[1] {
+      assert_eq!(data.sara_comment.id, v.comment.id);
+      assert_eq!(data.sara_post.id, v.post.id);
+      assert_eq!(data.community_2.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let SearchCombinedView::Comment(v) = &search[2] {
+      assert_eq!(data.timmy_comment.id, v.comment.id);
+      assert_eq!(data.timmy_post.id, v.post.id);
+      assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let SearchCombinedView::Post(v) = &search[3] {
+      assert_eq!(data.sara_post.id, v.post.id);
+      assert_eq!(data.community_2.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let SearchCombinedView::Post(v) = &search[4] {
+      assert_eq!(data.timmy_post_2.id, v.post.id);
+      assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let SearchCombinedView::Post(v) = &search[5] {
+      assert_eq!(data.timmy_post.id, v.post.id);
+      assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let SearchCombinedView::Community(v) = &search[6] {
+      assert_eq!(data.community_2.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let SearchCombinedView::Community(v) = &search[7] {
+      assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let SearchCombinedView::Person(v) = &search[8] {
+      assert_eq!(data.sara.id, v.person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let SearchCombinedView::Person(v) = &search[9] {
+      assert_eq!(data.timmy.id, v.person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    // Filtered by community id
+    let search_by_community = SearchCombinedQuery {
+      community_id: Some(data.community.id),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+    assert_length!(5, search_by_community);
+
+    // Filtered by creator_id
+    let search_by_creator = SearchCombinedQuery {
+      creator_id: Some(data.timmy.id),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+    assert_length!(4, search_by_creator);
+
+    // Using a term
+    let search_by_name = SearchCombinedQuery {
+      search_term: Some("gold".into()),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+
+    assert_length!(2, search_by_name);
+
+    // Liked / disliked only
+    let search_liked_only = SearchCombinedQuery {
+      liked_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &Some(data.timmy_view.clone()))
+    .await?;
+
+    assert_length!(2, search_liked_only);
+
+    let search_disliked_only = SearchCombinedQuery {
+      disliked_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &Some(data.timmy_view.clone()))
+    .await?;
+
+    assert_length!(1, search_disliked_only);
+
+    // Remove a post and delete a comment
+    Post::update(
+      pool,
+      data.timmy_post_2.id,
+      &PostUpdateForm {
+        removed: Some(true),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    Comment::update(
+      pool,
+      data.sara_comment.id,
+      &CommentUpdateForm {
+        deleted: Some(true),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    // 2 things got removed, but the post also has another comment which got removed
+    let search = SearchCombinedQuery::default().list(pool, &None).await?;
+    assert_length!(7, search);
+
+    cleanup(data, pool).await?;
 
     Ok(())
   }
@@ -778,6 +980,117 @@ mod tests {
     .await?;
 
     assert_length!(1, post_search_url_only);
+
+    // Liked / disliked only
+    let post_search_liked_only = SearchCombinedQuery {
+      type_: Some(SearchType::Posts),
+      liked_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &Some(data.timmy_view.clone()))
+    .await?;
+
+    // Should only be 1 not 2, because liked only ignores your own content
+    assert_length!(1, post_search_liked_only);
+
+    let post_search_disliked_only = SearchCombinedQuery {
+      type_: Some(SearchType::Posts),
+      disliked_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &Some(data.timmy_view.clone()))
+    .await?;
+
+    // Should be zero because you disliked your own post
+    assert_length!(0, post_search_disliked_only);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn comment() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // comment search
+    let comment_search = SearchCombinedQuery {
+      type_: Some(SearchType::Comments),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+    assert_length!(3, comment_search);
+
+    // Make sure the types are correct
+    if let SearchCombinedView::Comment(v) = &comment_search[0] {
+      assert_eq!(data.sara_comment_2.id, v.comment.id);
+      assert_eq!(data.timmy_post_2.id, v.post.id);
+      assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let SearchCombinedView::Comment(v) = &comment_search[1] {
+      assert_eq!(data.sara_comment.id, v.comment.id);
+      assert_eq!(data.sara_post.id, v.post.id);
+      assert_eq!(data.community_2.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let SearchCombinedView::Comment(v) = &comment_search[2] {
+      assert_eq!(data.timmy_comment.id, v.comment.id);
+      assert_eq!(data.timmy_post.id, v.post.id);
+      assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    // Filtered by id
+    let comment_search_by_community = SearchCombinedQuery {
+      community_id: Some(data.community.id),
+      type_: Some(SearchType::Comments),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+    assert_length!(2, comment_search_by_community);
+
+    // Using a term
+    let comment_search_by_name = SearchCombinedQuery {
+      search_term: Some("gold".into()),
+      type_: Some(SearchType::Comments),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+
+    assert_length!(2, comment_search_by_name);
+
+    // Liked / disliked only
+    let comment_search_liked_only = SearchCombinedQuery {
+      type_: Some(SearchType::Comments),
+      liked_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &Some(data.timmy_view.clone()))
+    .await?;
+
+    assert_length!(1, comment_search_liked_only);
+
+    let comment_search_disliked_only = SearchCombinedQuery {
+      type_: Some(SearchType::Comments),
+      disliked_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &Some(data.timmy_view.clone()))
+    .await?;
+
+    assert_length!(1, comment_search_disliked_only);
 
     cleanup(data, pool).await?;
 
