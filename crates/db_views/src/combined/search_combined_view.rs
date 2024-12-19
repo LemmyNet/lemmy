@@ -150,7 +150,7 @@ impl SearchCombinedQuery {
       // The post
       .left_join(post::table.on(post_join))
       // The item creator
-      .inner_join(person::table.on(item_creator_join))
+      .left_join(person::table.on(item_creator_join))
       // The community
       .left_join(community::table.on(community_join))
       .left_join(actions_alias(
@@ -176,7 +176,7 @@ impl SearchCombinedQuery {
         person_aggregates::table
           .on(search_combined::person_id.eq(person_aggregates::person_id.nullable())),
       )
-      .inner_join(post_aggregates::table.on(post::id.eq(post_aggregates::post_id)))
+      .left_join(post_aggregates::table.on(post::id.eq(post_aggregates::post_id)))
       .left_join(
         comment_aggregates::table
           .on(search_combined::comment_id.eq(comment_aggregates::comment_id.nullable())),
@@ -214,7 +214,7 @@ impl SearchCombinedQuery {
         // Person
         person_aggregates::all_columns.nullable(),
         // // Shared
-        person::all_columns,
+        person::all_columns.nullable(),
         local_user::admin.nullable().is_not_null(),
         creator_community_actions
           .field(community_actions::became_moderator)
@@ -311,11 +311,21 @@ impl SearchCombinedQuery {
     match self.listing_type.unwrap_or_default() {
       ListingType::Subscribed => query = query.filter(is_subscribed),
       ListingType::Local => {
-        query = query
-          .filter(community::local.eq(true))
-          .filter(community::hidden.eq(false).or(is_subscribed));
+        query = query.filter(
+          community::local
+            .eq(true)
+            .and(community::hidden.eq(false).or(is_subscribed))
+            .or(search_combined::person_id.is_not_null().and(person::local)),
+        );
       }
-      ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
+      ListingType::All => {
+        query = query.filter(
+          community::hidden
+            .eq(false)
+            .or(is_subscribed)
+            .or(search_combined::person_id.is_not_null()),
+        )
+      }
       ListingType::ModeratorView => {
         query = query.filter(community_actions::became_moderator.is_not_null());
       }
@@ -325,14 +335,14 @@ impl SearchCombinedQuery {
     // TODO need null checks for this?
     query = query.filter(not(
       comment::removed
-        .or(comment::deleted)
-        .or(post::removed)
-        .or(post::deleted)
-        .or(community::removed)
-        .or(community::deleted)
-        .or(community::removed)
-        .or(community::deleted)
-        .or(person::deleted),
+        .and(comment::deleted)
+        .and(post::removed)
+        .and(post::deleted)
+        .and(community::removed)
+        .and(community::deleted)
+        .and(community::removed)
+        .and(community::deleted)
+        .and(person::deleted),
     ));
 
     let mut query = PaginatedQueryBuilder::new(query);
@@ -367,9 +377,10 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
     // Use for a short alias
     let v = self.clone();
 
-    if let (Some(post), Some(counts), Some(community), Some(unread_comments)) = (
+    if let (Some(post), Some(counts), Some(creator), Some(community), Some(unread_comments)) = (
       v.post.clone(),
       v.post_counts,
+      v.item_creator.clone(),
       v.community.clone(),
       v.post_unread_comments,
     ) {
@@ -378,7 +389,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         community,
         counts,
         unread_comments,
-        creator: v.item_creator,
+        creator,
         creator_banned_from_community: v.item_creator_banned_from_community,
         creator_is_moderator: v.item_creator_is_moderator,
         creator_is_admin: v.item_creator_is_admin,
@@ -391,15 +402,19 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         image_details: v.image_details,
         banned_from_community: v.banned_from_community,
       }))
-    } else if let (Some(comment), Some(counts), Some(post), Some(community)) =
-      (v.comment, v.comment_counts, v.post, v.community.clone())
-    {
+    } else if let (Some(comment), Some(counts), Some(creator), Some(post), Some(community)) = (
+      v.comment,
+      v.comment_counts,
+      v.item_creator.clone(),
+      v.post,
+      v.community.clone(),
+    ) {
       Some(SearchCombinedView::Comment(CommentView {
         comment,
         counts,
         post,
         community,
-        creator: v.item_creator,
+        creator,
         creator_banned_from_community: v.item_creator_banned_from_community,
         creator_is_moderator: v.item_creator_is_moderator,
         creator_is_admin: v.item_creator_is_admin,
@@ -417,9 +432,9 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         blocked: v.community_blocked,
         banned_from_community: v.banned_from_community,
       }))
-    } else if let Some(counts) = v.item_creator_counts {
+    } else if let (Some(person), Some(counts)) = (v.item_creator, v.item_creator_counts) {
       Some(SearchCombinedView::Person(PersonView {
-        person: v.item_creator,
+        person,
         counts,
         is_admin: v.item_creator_is_admin,
       }))
@@ -445,10 +460,12 @@ mod tests {
     },
     traits::Crud,
     utils::{build_db_pool_for_tests, DbPool},
+    SearchType,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
+  use url::Url;
 
   struct Data {
     instance: Instance,
@@ -473,12 +490,15 @@ mod tests {
     let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");
     let sara = Person::create(pool, &sara_form).await?;
 
-    let community_form = CommunityInsertForm::new(
-      instance.id,
-      "asklemmy".to_string(),
-      "Ask Lemmy".to_owned(),
-      "pubkey".to_string(),
-    );
+    let community_form = CommunityInsertForm {
+      description: Some("ask lemmy things".into()),
+      ..CommunityInsertForm::new(
+        instance.id,
+        "asklemmy".to_string(),
+        "Ask Lemmy".to_owned(),
+        "pubkey".to_string(),
+      )
+    };
     let community = Community::create(pool, &community_form).await?;
 
     let community_form_2 = CommunityInsertForm::new(
@@ -489,13 +509,17 @@ mod tests {
     );
     let community_2 = Community::create(pool, &community_form_2).await?;
 
-    let timmy_post_form = PostInsertForm::new("timmy post prv".into(), timmy.id, community.id);
+    let timmy_post_form = PostInsertForm {
+      body: Some("postbody inside here".into()),
+      url: Some(Url::parse("https://google.com")?.into()),
+      ..PostInsertForm::new("timmy post prv".into(), timmy.id, community.id)
+    };
     let timmy_post = Post::create(pool, &timmy_post_form).await?;
 
     let timmy_post_form_2 = PostInsertForm::new("timmy post prv 2".into(), timmy.id, community.id);
     let timmy_post_2 = Post::create(pool, &timmy_post_form_2).await?;
 
-    let sara_post_form = PostInsertForm::new("sara post prv".into(), sara.id, community.id);
+    let sara_post_form = PostInsertForm::new("sara post prv".into(), sara.id, community_2.id);
     let sara_post = Post::create(pool, &sara_post_form).await?;
 
     let timmy_comment_form =
@@ -533,13 +557,18 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn community_search() -> LemmyResult<()> {
+  async fn community() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
     // Community search
-    let community_search = SearchCombinedQuery::default().list(pool, &None).await?;
+    let community_search = SearchCombinedQuery {
+      type_: Some(SearchType::Communities),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
     assert_length!(2, community_search);
 
     // Make sure the types are correct
@@ -558,6 +587,7 @@ mod tests {
     // Filtered by id
     let community_search_by_id = SearchCombinedQuery {
       community_id: Some(data.community.id),
+      type_: Some(SearchType::Communities),
       ..Default::default()
     }
     .list(pool, &None)
@@ -566,7 +596,8 @@ mod tests {
 
     // Using a term
     let community_search_by_name = SearchCombinedQuery {
-      search_term: Some("Ask".into()),
+      search_term: Some("things".into()),
+      type_: Some(SearchType::Communities),
       ..Default::default()
     }
     .list(pool, &None)
@@ -579,6 +610,174 @@ mod tests {
     } else {
       panic!("wrong type");
     }
+
+    // Test title only search to make sure 'ask lemmy things' doesn't get returned
+    // Using a term
+    let community_search_title_only = SearchCombinedQuery {
+      search_term: Some("things".into()),
+      type_: Some(SearchType::Communities),
+      title_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+
+    assert!(community_search_title_only.is_empty());
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn person() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Person search
+    let person_search = SearchCombinedQuery {
+      type_: Some(SearchType::Users),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+    assert_length!(2, person_search);
+
+    // Make sure the types are correct
+    if let SearchCombinedView::Person(v) = &person_search[0] {
+      assert_eq!(data.sara.id, v.person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let SearchCombinedView::Person(v) = &person_search[1] {
+      assert_eq!(data.timmy.id, v.person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    // Filtered by creator_id
+    let person_search_by_id = SearchCombinedQuery {
+      creator_id: Some(data.sara.id),
+      type_: Some(SearchType::Users),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+    assert_length!(1, person_search_by_id);
+    if let SearchCombinedView::Person(v) = &person_search_by_id[0] {
+      assert_eq!(data.sara.id, v.person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    // Using a term
+    let person_search_by_name = SearchCombinedQuery {
+      search_term: Some("tim".into()),
+      type_: Some(SearchType::Users),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+
+    assert_length!(1, person_search_by_name);
+    if let SearchCombinedView::Person(v) = &person_search_by_name[0] {
+      assert_eq!(data.timmy.id, v.person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn post() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // post search
+    let post_search = SearchCombinedQuery {
+      type_: Some(SearchType::Posts),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+    assert_length!(3, post_search);
+
+    // Make sure the types are correct
+    if let SearchCombinedView::Post(v) = &post_search[0] {
+      assert_eq!(data.sara_post.id, v.post.id);
+      assert_eq!(data.community_2.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let SearchCombinedView::Post(v) = &post_search[1] {
+      assert_eq!(data.timmy_post_2.id, v.post.id);
+      assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    if let SearchCombinedView::Post(v) = &post_search[2] {
+      assert_eq!(data.timmy_post.id, v.post.id);
+      assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    // Filtered by id
+    let post_search_by_community = SearchCombinedQuery {
+      community_id: Some(data.community.id),
+      type_: Some(SearchType::Posts),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+    assert_length!(2, post_search_by_community);
+
+    // Using a term
+    let post_search_by_name = SearchCombinedQuery {
+      search_term: Some("sara".into()),
+      type_: Some(SearchType::Posts),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+
+    assert_length!(1, post_search_by_name);
+
+    // Test title only search to make sure 'postbody' doesn't show up
+    // Using a term
+    let post_search_title_only = SearchCombinedQuery {
+      search_term: Some("postbody".into()),
+      type_: Some(SearchType::Posts),
+      title_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+
+    assert!(post_search_title_only.is_empty());
+
+    // Test title only search to make sure 'postbody' doesn't show up
+    // Using a term
+    let post_search_url_only = SearchCombinedQuery {
+      search_term: data.timmy_post.url.as_ref().map(|u| u.to_string()),
+      type_: Some(SearchType::Posts),
+      post_url_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+
+    assert_length!(1, post_search_url_only);
 
     cleanup(data, pool).await?;
 

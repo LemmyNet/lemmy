@@ -932,7 +932,7 @@ pub struct SearchCombinedViewInternal {
   // Person
   pub item_creator_counts: Option<PersonAggregates>,
   // Shared
-  pub item_creator: Person,
+  pub item_creator: Option<Person>,
   pub item_creator_is_admin: bool,
   pub item_creator_is_moderator: bool,
   pub item_creator_banned_from_community: bool,
