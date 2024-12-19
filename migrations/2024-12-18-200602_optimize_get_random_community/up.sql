@@ -5,8 +5,10 @@
 CREATE FUNCTION random_smallint ()
     RETURNS smallint
     LANGUAGE sql
-    VOLATILE PARALLEL RESTRICTED RETURN random (
-        -32768, 32767
+    VOLATILE PARALLEL RESTRICTED RETURN
+    -- https://stackoverflow.com/questions/1400505/generate-a-random-number-in-the-range-1-10/1400752#1400752
+    -- (`+ 1` makes the upper bound inclusive)
+    trunc ((random() * (32768 + 32767 + 1)) - 32768
 );
 
 ALTER TABLE community
