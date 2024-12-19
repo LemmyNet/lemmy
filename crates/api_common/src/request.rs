@@ -51,9 +51,11 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
 #[tracing::instrument(skip_all)]
 pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResult<LinkMetadata> {
   info!("Fetching site metadata for url: {}", url);
-  // We only fetch the first 64kB of data in order to not waste bandwidth especially for large
-  // binary files
-  let bytes_to_fetch = 64 * 1024;
+  // We only fetch the first MB of data in order to not waste bandwidth especially for large
+  // binary files. This high limit is particularly needed for youtube, which includes a lot of
+  // javascript code before the opengraph tags. Mastodon also uses a 1 MB limit:
+  // https://github.com/mastodon/mastodon/blob/295ad6f19a016b3f16e1201ffcbb1b3ad6b455a2/app/lib/request.rb#L213
+  let bytes_to_fetch = 1024 * 1024;
   let response = context
     .client()
     .get(url.as_str())
