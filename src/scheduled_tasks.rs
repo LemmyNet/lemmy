@@ -556,7 +556,6 @@ mod tests {
   use serial_test::serial;
 
   #[tokio::test]
-  #[serial]
   async fn test_nodeinfo_lemmy_ml() -> LemmyResult<()> {
     let client = ClientBuilder::new(client_builder(&Settings::default()).build()?).build();
     let form = build_update_instance_form("lemmy.ml", &client)
@@ -567,7 +566,6 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_nodeinfo_mastodon_social() -> LemmyResult<()> {
     let client = ClientBuilder::new(client_builder(&Settings::default()).build()?).build();
     let form = build_update_instance_form("mastodon.social", &client)
