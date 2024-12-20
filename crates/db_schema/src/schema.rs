@@ -890,6 +890,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    report_combined (id) {
+        id -> Int4,
+        published -> Timestamptz,
+        post_report_id -> Nullable<Int4>,
+        comment_report_id -> Nullable<Int4>,
+        private_message_report_id -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
     secret (id) {
         id -> Int4,
         jwt_secret -> Varchar,
@@ -1057,6 +1067,9 @@ diesel::joinable!(post_tag -> tag (tag_id));
 diesel::joinable!(private_message_report -> private_message (private_message_id));
 diesel::joinable!(registration_application -> local_user (local_user_id));
 diesel::joinable!(registration_application -> person (admin_id));
+diesel::joinable!(report_combined -> comment_report (comment_report_id));
+diesel::joinable!(report_combined -> post_report (post_report_id));
+diesel::joinable!(report_combined -> private_message_report (private_message_report_id));
 diesel::joinable!(site -> instance (instance_id));
 diesel::joinable!(site_aggregates -> site (site_id));
 diesel::joinable!(site_language -> language (language_id));
@@ -1127,6 +1140,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     received_activity,
     registration_application,
     remote_image,
+    report_combined,
     secret,
     sent_activity,
     site,

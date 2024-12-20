@@ -89,19 +89,19 @@ pub struct PersonMentionId(i32);
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The comment report id.
-pub struct CommentReportId(i32);
+pub struct CommentReportId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The post report id.
-pub struct PostReportId(i32);
+pub struct PostReportId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The private message report id.
-pub struct PrivateMessageReportId(i32);
+pub struct PrivateMessageReportId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
@@ -178,6 +178,11 @@ pub struct LtreeDef(pub String);
 #[cfg_attr(feature = "full", diesel(sql_type = diesel::sql_types::Text))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct DbUrl(pub(crate) Box<Url>);
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
+/// The report combined id
+pub struct ReportCombinedId(i32);
 
 impl DbUrl {
   pub fn inner(&self) -> &Url {
