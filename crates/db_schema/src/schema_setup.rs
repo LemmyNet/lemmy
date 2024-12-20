@@ -27,22 +27,10 @@ diesel::table! {
   }
 }
 
-// In production, include migrations in the binary
-#[cfg(not(debug_assertions))]
 fn migrations() -> diesel_migrations::EmbeddedMigrations {
   // Using `const` here is required by the borrow checker
   const MIGRATIONS: diesel_migrations::EmbeddedMigrations = diesel_migrations::embed_migrations!();
   MIGRATIONS
-}
-
-// Avoid recompiling when migrations are changed
-#[cfg(debug_assertions)]
-#[expect(clippy::expect_used)]
-fn migrations() -> diesel_migrations::FileBasedMigrations {
-  diesel_migrations::FileBasedMigrations::find_migrations_directory_in_path(env!(
-    "CARGO_MANIFEST_DIR"
-  ))
-  .expect("failed to get migration source")
 }
 
 /// This SQL code sets up the `r` schema, which contains things that can be safely dropped and
