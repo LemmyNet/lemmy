@@ -1259,13 +1259,13 @@ mod tests {
     let pool = &data.pool();
     let pool = &mut pool.into();
 
-    // Read only the bot post
+    // Only mark the bot post as read
     // The read_only should only show the bot post
-    let post_save_form =
+    let post_read_form =
       PostReadForm::new(data.inserted_bot_post.id, data.local_user_view.person.id);
-    PostRead::mark_as_read(pool, &post_save_form).await?;
+    PostRead::mark_as_read(pool, &post_read_form).await?;
 
-    // Read the saved only
+    // Only read the post marked as read
     let read_read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       read_only: Some(true),
