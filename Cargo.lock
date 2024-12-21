@@ -2805,7 +2805,6 @@ dependencies = [
  "lemmy_utils",
  "pretty_assertions",
  "prometheus",
- "reqwest 0.12.8",
  "reqwest-middleware",
  "reqwest-tracing",
  "rustls 0.23.16",
