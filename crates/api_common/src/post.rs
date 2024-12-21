@@ -1,10 +1,10 @@
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, PostReportId, TagId},
+  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PostId, TagId},
   ListingType,
   PostFeatureType,
   PostSortType,
 };
-use lemmy_db_views::structs::{PaginationCursor, PostReportView, PostView, VoteView};
+use lemmy_db_views::structs::{PaginationCursor, PostView, VoteView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -118,6 +118,8 @@ pub struct GetPosts {
   pub no_comments_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_cursor: Option<PaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -249,61 +251,6 @@ pub struct FeaturePost {
 pub struct SavePost {
   pub post_id: PostId,
   pub save: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Create a post report.
-pub struct CreatePostReport {
-  pub post_id: PostId,
-  pub reason: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The post report response.
-pub struct PostReportResponse {
-  pub post_report_view: PostReportView,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Resolve a post report (mods only).
-pub struct ResolvePostReport {
-  pub report_id: PostReportId,
-  pub resolved: bool,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// List post reports.
-pub struct ListPostReports {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-  /// Only shows the unresolved reports
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub unresolved_only: Option<bool>,
-  // TODO make into tagged enum at some point
-  /// if no community is given, it returns reports for all communities moderated by the auth user
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub community_id: Option<CommunityId>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub post_id: Option<PostId>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The post reports response.
-pub struct ListPostReportsResponse {
-  pub post_reports: Vec<PostReportView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
