@@ -9,7 +9,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   comment::{GetComments, GetCommentsResponse},
   context::LemmyContext,
-  utils::check_private_instance,
+  utils::{check_conflicting_like_filters, check_private_instance},
 };
 use lemmy_db_schema::{
   source::{comment::Comment, community::Community},
@@ -19,7 +19,7 @@ use lemmy_db_views::{
   comment_view::CommentQuery,
   structs::{LocalUserView, SiteView},
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn list_comments(
@@ -50,9 +50,7 @@ pub async fn list_comments(
 
   let liked_only = data.liked_only;
   let disliked_only = data.disliked_only;
-  if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
-    return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
-  }
+  check_conflicting_like_filters(liked_only, disliked_only)?;
 
   let page = data.page;
   let limit = data.limit;
