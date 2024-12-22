@@ -56,9 +56,9 @@ impl OAuthProvider {
     oauth_providers: Vec<OAuthProvider>,
   ) -> Vec<PublicOAuthProvider> {
     oauth_providers
-      .iter()
+      .into_iter()
       .filter(|x| x.enabled)
-      .map(|x| PublicOAuthProvider(x.clone()))
+      .map(PublicOAuthProvider)
       .collect()
   }
 
