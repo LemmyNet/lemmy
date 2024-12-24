@@ -12,8 +12,6 @@ CREATE TABLE person_content_combined (
 
 CREATE INDEX idx_person_content_combined_published ON person_content_combined (published DESC, id DESC);
 
-CREATE INDEX idx_person_content_combined_published_asc ON person_content_combined (reverse_timestamp_sort (published) DESC, id DESC);
-
 -- Updating the history
 INSERT INTO person_content_combined (published, post_id, comment_id)
 SELECT
@@ -42,8 +40,6 @@ CREATE TABLE person_saved_combined (
 );
 
 CREATE INDEX idx_person_saved_combined_published ON person_saved_combined (published DESC, id DESC);
-
-CREATE INDEX idx_person_saved_combined_published_asc ON person_saved_combined (reverse_timestamp_sort (published) DESC, id DESC);
 
 CREATE INDEX idx_person_saved_combined ON person_saved_combined (person_id);
 
