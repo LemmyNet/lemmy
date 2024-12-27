@@ -99,7 +99,7 @@ fn queries<'a>(
           )
           .filter(person::deleted.eq(false));
       }
-      ListMode::Query(oo) => {
+      ListMode::Query(o) => {
         if let Some(search_term) = o.search_term {
           let searcher = fuzzy_search(&search_term);
           query = query
