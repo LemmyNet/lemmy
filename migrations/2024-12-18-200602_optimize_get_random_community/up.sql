@@ -1,4 +1,4 @@
--- * `smallint` range from https://www.postgresql.org/docs/17/datatype-numeric.html
+-- * inclusive bounds of `smallint` range from https://www.postgresql.org/docs/17/datatype-numeric.html
 -- * built-in `random` function has `VOLATILE` and `PARALLEL RESTRICTED` according to:
 --   * https://www.postgresql.org/docs/current/parallel-safety.html#PARALLEL-LABELING
 --   * https://www.postgresql.org/docs/17/xfunc-volatility.html
@@ -7,8 +7,8 @@ CREATE FUNCTION random_smallint ()
     LANGUAGE sql
     VOLATILE PARALLEL RESTRICTED RETURN
     -- https://stackoverflow.com/questions/1400505/generate-a-random-number-in-the-range-1-10/1400752#1400752
-    -- (`+ 1` makes the upper bound inclusive)
-    trunc ((random() * (32768 + 32767 + 1)) - 32768
+    -- (65536 = exclusive upper bound - inclusive lower bound)
+    trunc ((random() * (65536)) - 32768
 );
 
 ALTER TABLE community
