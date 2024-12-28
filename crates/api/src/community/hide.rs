@@ -10,7 +10,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityUpdateForm},
-    moderator::{ModHideCommunity, ModHideCommunityForm},
+    mod_log::moderator::{ModHideCommunity, ModHideCommunityForm},
   },
   traits::Crud,
 };
@@ -48,8 +48,7 @@ pub async fn hide_community(
   ActivityChannel::submit_activity(
     SendActivityData::UpdateCommunity(local_user_view.person.clone(), community),
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(SuccessResponse::default()))
 }

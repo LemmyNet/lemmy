@@ -18,6 +18,7 @@ pub struct InstantSecs {
   secs: u32,
 }
 
+#[allow(clippy::expect_used)]
 impl InstantSecs {
   pub fn now() -> Self {
     InstantSecs {
@@ -136,7 +137,6 @@ impl<K: Eq + Hash, C: MapLevel> MapLevel for Map<K, C> {
       .entry(addr_part)
       .or_insert(RateLimitedGroup::new(now, adjusted_configs));
 
-    #[allow(clippy::indexing_slicing)]
     let total_passes = group.check_total(action_type, now, adjusted_configs[action_type]);
 
     let children_pass = group.children.check(
@@ -161,7 +161,6 @@ impl<K: Eq + Hash, C: MapLevel> MapLevel for Map<K, C> {
       // Evaluated if `some_children_remaining` is false
       let total_has_refill_in_future = || {
         group.total.into_iter().any(|(action_type, bucket)| {
-          #[allow(clippy::indexing_slicing)]
           let config = configs[action_type];
           bucket.update(now, config).tokens != config.capacity
         })
@@ -214,7 +213,6 @@ impl<C: Default> RateLimitedGroup<C> {
     now: InstantSecs,
     config: BucketConfig,
   ) -> bool {
-    #[allow(clippy::indexing_slicing)] // `EnumMap` has no `get` function
     let bucket = &mut self.total[action_type];
 
     let new_bucket = bucket.update(now, config);
@@ -311,11 +309,10 @@ fn split_ipv6(ip: Ipv6Addr) -> ([u8; 6], u8, u8) {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use super::{ActionType, BucketConfig, InstantSecs, RateLimitState, RateLimitedGroup};
+  use crate::error::LemmyResult;
   use pretty_assertions::assert_eq;
 
   #[test]
@@ -330,7 +327,7 @@ mod tests {
   }
 
   #[test]
-  fn test_rate_limiter() {
+  fn test_rate_limiter() -> LemmyResult<()> {
     let bucket_configs = enum_map::enum_map! {
       ActionType::Message => BucketConfig {
         capacity: 2,
@@ -354,14 +351,13 @@ mod tests {
       "1:2:3:0405:6::",
     ];
     for ip in ips {
-      let ip = ip.parse().unwrap();
+      let ip = ip.parse()?;
       let message_passed = rate_limiter.check(ActionType::Message, ip, now);
       let post_passed = rate_limiter.check(ActionType::Post, ip, now);
       assert!(message_passed);
       assert!(post_passed);
     }
 
-    #[allow(clippy::indexing_slicing)]
     let expected_buckets = |factor: u32, tokens_consumed: u32| {
       let adjusted_configs = bucket_configs.map(|_, config| BucketConfig {
         capacity: config.capacity.saturating_mul(factor),
@@ -412,7 +408,7 @@ mod tests {
 
     // Do 2 `Message` actions for 1 IP address and expect only the 2nd one to fail
     for expected_to_pass in [true, false] {
-      let ip = "1:2:3:0400::".parse().unwrap();
+      let ip = "1:2:3:0400::".parse()?;
       let passed = rate_limiter.check(ActionType::Message, ip, now);
       assert_eq!(passed, expected_to_pass);
     }
@@ -424,7 +420,7 @@ mod tests {
     assert!(rate_limiter.ipv6_buckets.is_empty());
 
     // `remove full buckets` should not remove empty buckets
-    let ip = "1.1.1.1".parse().unwrap();
+    let ip = "1.1.1.1".parse()?;
     // empty the bucket with 2 requests
     assert!(rate_limiter.check(ActionType::Post, ip, now));
     assert!(rate_limiter.check(ActionType::Post, ip, now));
@@ -434,11 +430,13 @@ mod tests {
 
     // `remove full buckets` should not remove partial buckets
     now.secs += 2;
-    let ip = "1.1.1.1".parse().unwrap();
+    let ip = "1.1.1.1".parse()?;
     // Only make one request, so bucket still has 1 token
     assert!(rate_limiter.check(ActionType::Post, ip, now));
 
     rate_limiter.remove_full_buckets(now);
     assert!(!rate_limiter.ipv4_buckets.is_empty());
+
+    Ok(())
   }
 }

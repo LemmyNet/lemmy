@@ -3,7 +3,7 @@ use crate::{
   lemmy_db_schema::traits::Crud,
   post::{LinkMetadata, OpenGraphData},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{local_site_opt_to_sensitive, proxy_image_link},
+  utils::proxy_image_link,
 };
 use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
@@ -13,17 +13,17 @@ use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
     images::{ImageDetailsForm, LocalImage, LocalImageForm},
-    local_site::LocalSite,
     post::{Post, PostUpdateForm},
+    site::Site,
   },
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::{PictrsImageMode, Settings},
   REQWEST_TIMEOUT,
   VERSION,
 };
-use mime::Mime;
+use mime::{Mime, TEXT_HTML};
 use reqwest::{
   header::{CONTENT_TYPE, RANGE},
   Client,
@@ -44,15 +44,18 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
     .user_agent(user_agent.clone())
     .timeout(REQWEST_TIMEOUT)
     .connect_timeout(REQWEST_TIMEOUT)
+    .use_rustls_tls()
 }
 
 /// Fetches metadata for the given link and optionally generates thumbnail.
 #[tracing::instrument(skip_all)]
 pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResult<LinkMetadata> {
   info!("Fetching site metadata for url: {}", url);
-  // We only fetch the first 64kB of data in order to not waste bandwidth especially for large
-  // binary files
-  let bytes_to_fetch = 64 * 1024;
+  // We only fetch the first MB of data in order to not waste bandwidth especially for large
+  // binary files. This high limit is particularly needed for youtube, which includes a lot of
+  // javascript code before the opengraph tags. Mastodon also uses a 1 MB limit:
+  // https://github.com/mastodon/mastodon/blob/295ad6f19a016b3f16e1201ffcbb1b3ad6b455a2/app/lib/request.rb#L213
+  let bytes_to_fetch = 1024 * 1024;
   let response = context
     .client()
     .get(url.as_str())
@@ -60,40 +63,57 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
     // server may ignore this and still respond with the full response
     .header(RANGE, format!("bytes=0-{}", bytes_to_fetch - 1)) /* -1 because inclusive */
     .send()
-    .await?;
+    .await?
+    .error_for_status()?;
 
-  let content_type: Option<Mime> = response
+  let mut content_type: Option<Mime> = response
     .headers()
     .get(CONTENT_TYPE)
     .and_then(|h| h.to_str().ok())
-    .and_then(|h| h.parse().ok());
+    .and_then(|h| h.parse().ok())
+    // If we don't get a content_type from the response (e.g. if the server is down),
+    // then try to infer the content_type from the file extension.
+    .or(mime_guess::from_path(url.path()).first());
 
   let opengraph_data = {
-    // if the content type is not text/html, we don't need to parse it
     let is_html = content_type
       .as_ref()
       .map(|c| {
-        (c.type_() == mime::TEXT && c.subtype() == mime::HTML)
-      ||
-      // application/xhtml+xml is a subset of HTML
-      (c.type_() == mime::APPLICATION && c.subtype() == "xhtml")
+        // application/xhtml+xml is a subset of HTML
+        let application_xhtml: Mime = "application/xhtml+xml".parse::<Mime>().unwrap_or(TEXT_HTML);
+        let allowed_mime_types = [TEXT_HTML.essence_str(), application_xhtml.essence_str()];
+        allowed_mime_types.contains(&c.essence_str())
       })
-      .unwrap_or(false);
-    if !is_html {
-      Default::default()
-    } else {
+      .unwrap_or_default();
+
+    if is_html {
       // Can't use .text() here, because it only checks the content header, not the actual bytes
       // https://github.com/LemmyNet/lemmy/issues/1964
-      // So we want to do deep inspection of the actually returned bytes but need to be careful not
-      // spend too much time parsing binary data as HTML
-
+      // So we want to do deep inspection of the actually returned bytes but need to be careful
+      // not spend too much time parsing binary data as HTML
       // only take first bytes regardless of how many bytes the server returns
       let html_bytes = collect_bytes_until_limit(response, bytes_to_fetch).await?;
       extract_opengraph_data(&html_bytes, url)
         .map_err(|e| info!("{e}"))
         .unwrap_or_default()
+    } else {
+      let is_octet_type = content_type
+        .as_ref()
+        .map(|c| c.subtype() == "octet-stream")
+        .unwrap_or_default();
+
+      // Overwrite the content type if its an octet type
+      if is_octet_type {
+        // Don't need to fetch as much data for this as we do with opengraph
+        let octet_bytes = collect_bytes_until_limit(response, 512).await?;
+        content_type =
+          infer::get(&octet_bytes).map_or(content_type, |t| t.mime_type().parse().ok());
+      }
+
+      Default::default()
     }
   };
+
   Ok(LinkMetadata {
     opengraph_data,
     content_type: content_type.map(|c| c.to_string()),
@@ -130,7 +150,6 @@ pub async fn generate_post_link_metadata(
   post: Post,
   custom_thumbnail: Option<Url>,
   send_activity: impl FnOnce(Post) -> Option<SendActivityData> + Send + 'static,
-  local_site: Option<LocalSite>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let metadata = match &post.url {
@@ -144,7 +163,8 @@ pub async fn generate_post_link_metadata(
     .is_some_and(|content_type| content_type.starts_with("image"));
 
   // Decide if we are allowed to generate local thumbnail
-  let allow_sensitive = local_site_opt_to_sensitive(&local_site);
+  let site = Site::read_local(&mut context.pool()).await?;
+  let allow_sensitive = site.content_warning.is_some();
   let allow_generate_thumbnail = allow_sensitive || !post.nsfw;
 
   let image_url = if is_image_post {
@@ -174,7 +194,7 @@ pub async fn generate_post_link_metadata(
   };
   let updated_post = Post::update(&mut context.pool(), post.id, &form).await?;
   if let Some(send_activity) = send_activity(updated_post) {
-    ActivityChannel::submit_activity(send_activity, &context).await?;
+    ActivityChannel::submit_activity(send_activity, &context)?;
   }
   Ok(())
 }
@@ -307,7 +327,8 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
     .timeout(REQWEST_TIMEOUT)
     .header("x-api-token", pictrs_api_key)
     .send()
-    .await?;
+    .await?
+    .error_for_status()?;
 
   let response: PictrsPurgeResponse = response.json().await.map_err(LemmyError::from)?;
 
@@ -332,8 +353,8 @@ pub async fn delete_image_from_pictrs(
     .delete(&url)
     .timeout(REQWEST_TIMEOUT)
     .send()
-    .await
-    .map_err(LemmyError::from)?;
+    .await?
+    .error_for_status()?;
   Ok(())
 }
 
@@ -353,9 +374,10 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
   // fetch remote non-pictrs images for persistent thumbnail link
   // TODO: should limit size once supported by pictrs
   let fetch_url = format!(
-    "{}image/download?url={}",
+    "{}image/download?url={}&resize={}",
     pictrs_config.url,
-    encode(image_url.as_str())
+    encode(image_url.as_str()),
+    context.settings().pictrs_config()?.max_thumbnail_size
   );
 
   let res = context
@@ -364,6 +386,7 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     .timeout(REQWEST_TIMEOUT)
     .send()
     .await?
+    .error_for_status()?
     .json::<PictrsResponse>()
     .await?;
 
@@ -404,16 +427,14 @@ pub async fn fetch_pictrs_proxied_image_details(
   // Pictrs needs you to fetch the proxied image before you can fetch the details
   let proxy_url = format!("{pictrs_url}image/original?proxy={encoded_image_url}");
 
-  let res = context
+  context
     .client()
     .get(&proxy_url)
     .timeout(REQWEST_TIMEOUT)
     .send()
     .await?
-    .status();
-  if !res.is_success() {
-    Err(LemmyErrorType::NotAnImageType)?
-  }
+    .error_for_status()
+    .with_lemmy_type(LemmyErrorType::NotAnImageType)?;
 
   let details_url = format!("{pictrs_url}image/details/original?proxy={encoded_image_url}");
 
@@ -423,6 +444,7 @@ pub async fn fetch_pictrs_proxied_image_details(
     .timeout(REQWEST_TIMEOUT)
     .send()
     .await?
+    .error_for_status()?
     .json()
     .await?;
 
@@ -470,14 +492,13 @@ pub async fn replace_image(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::{
     context::LemmyContext,
     request::{extract_opengraph_data, fetch_link_metadata},
   };
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use url::Url;
@@ -485,10 +506,10 @@ mod tests {
   // These helped with testing
   #[tokio::test]
   #[serial]
-  async fn test_link_metadata() {
+  async fn test_link_metadata() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ").unwrap();
-    let sample_res = fetch_link_metadata(&sample_url, &context).await.unwrap();
+    let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ")?;
+    let sample_res = fetch_link_metadata(&sample_url, &context).await?;
     assert_eq!(
       Some("FAQ · Wiki · IzzyOnDroid / repo · GitLab".to_string()),
       sample_res.opengraph_data.title
@@ -499,8 +520,7 @@ mod tests {
     );
     assert_eq!(
       Some(
-        Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")
-          .unwrap()
+        Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")?
           .into()
       ),
       sample_res.opengraph_data.image
@@ -510,47 +530,47 @@ mod tests {
       Some(mime::TEXT_HTML_UTF_8.to_string()),
       sample_res.content_type
     );
+
+    Ok(())
   }
 
   #[test]
-  fn test_resolve_image_url() {
+  fn test_resolve_image_url() -> LemmyResult<()> {
     // url that lists the opengraph fields
-    let url = Url::parse("https://example.com/one/two.html").unwrap();
+    let url = Url::parse("https://example.com/one/two.html")?;
 
     // root relative url
     let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='/image.jpg'></head><body></body></html>";
-    let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
+    let metadata = extract_opengraph_data(html_bytes, &url)?;
     assert_eq!(
       metadata.image,
-      Some(Url::parse("https://example.com/image.jpg").unwrap().into())
+      Some(Url::parse("https://example.com/image.jpg")?.into())
     );
 
     // base relative url
     let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='image.jpg'></head><body></body></html>";
-    let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
+    let metadata = extract_opengraph_data(html_bytes, &url)?;
     assert_eq!(
       metadata.image,
-      Some(
-        Url::parse("https://example.com/one/image.jpg")
-          .unwrap()
-          .into()
-      )
+      Some(Url::parse("https://example.com/one/image.jpg")?.into())
     );
 
     // absolute url
     let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='https://cdn.host.com/image.jpg'></head><body></body></html>";
-    let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
+    let metadata = extract_opengraph_data(html_bytes, &url)?;
     assert_eq!(
       metadata.image,
-      Some(Url::parse("https://cdn.host.com/image.jpg").unwrap().into())
+      Some(Url::parse("https://cdn.host.com/image.jpg")?.into())
     );
 
     // protocol relative url
     let html_bytes = b"<!DOCTYPE html><html><head><meta property='og:image' content='//example.com/image.jpg'></head><body></body></html>";
-    let metadata = extract_opengraph_data(html_bytes, &url).expect("Unable to parse metadata");
+    let metadata = extract_opengraph_data(html_bytes, &url)?;
     assert_eq!(
       metadata.image,
-      Some(Url::parse("https://example.com/image.jpg").unwrap().into())
+      Some(Url::parse("https://example.com/image.jpg")?.into())
     );
+
+    Ok(())
   }
 }

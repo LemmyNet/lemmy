@@ -25,10 +25,14 @@ tracing = { workspace = true }
 url = { workspace = true }
 futures.workspace = true
 uuid = { workspace = true }
-moka.workspace = true
 anyhow.workspace = true
-webmention = "0.5.0"
+chrono.workspace = true
+webmention = "0.6.0"
 accept-language = "3.1.0"
+regex = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+serde_with = { workspace = true }
 
-[package.metadata.cargo-machete]
+[package.metadata.cargo-shear]
 ignored = ["futures"]

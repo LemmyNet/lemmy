@@ -1,7 +1,7 @@
 use actix_web::{
   body::MessageBody,
   dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-  http::header::CACHE_CONTROL,
+  http::header::{HeaderValue, CACHE_CONTROL},
   Error,
   HttpMessage,
 };
@@ -9,7 +9,6 @@ use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
 use lemmy_api::{local_user_view_from_jwt, read_auth_token};
 use lemmy_api_common::context::LemmyContext;
-use reqwest::header::HeaderValue;
 use std::{future::ready, rc::Rc};
 
 #[derive(Clone)]
@@ -98,11 +97,9 @@ where
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
-  use super::*;
+  use crate::tests::test_context;
   use actix_web::test::TestRequest;
   use lemmy_api_common::claims::Claims;
   use lemmy_db_schema::{
@@ -110,57 +107,39 @@ mod tests {
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
-      secret::Secret,
     },
     traits::Crud,
-    utils::build_db_pool_for_tests,
   };
-  use lemmy_utils::rate_limit::RateLimitCell;
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use reqwest::Client;
-  use reqwest_middleware::ClientBuilder;
   use serial_test::serial;
-  use std::env::set_current_dir;
 
   #[tokio::test]
   #[serial]
-  async fn test_session_auth() {
-    // hack, necessary so that config file can be loaded from hardcoded, relative path
-    set_current_dir("crates/utils").unwrap();
+  async fn test_session_auth() -> LemmyResult<()> {
+    let context = test_context().await;
 
-    let pool_ = build_db_pool_for_tests().await;
-    let pool = &mut (&pool_).into();
-    let secret = Secret::init(pool).await.unwrap().unwrap();
-    let context = LemmyContext::create(
-      pool_.clone(),
-      ClientBuilder::new(Client::default()).build(),
-      secret,
-      RateLimitCell::with_test_config(),
-    );
-
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance =
+      Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "Gerry9812");
 
-    let inserted_person = Person::create(pool, &new_person).await.unwrap();
+    let inserted_person = Person::create(&mut context.pool(), &new_person).await?;
 
     let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
 
-    let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![])
-      .await
-      .unwrap();
+    let inserted_local_user =
+      LocalUser::create(&mut context.pool(), &local_user_form, vec![]).await?;
 
     let req = TestRequest::default().to_http_request();
-    let jwt = Claims::generate(inserted_local_user.id, req, &context)
-      .await
-      .unwrap();
+    let jwt = Claims::generate(inserted_local_user.id, req, &context).await?;
 
     let valid = Claims::validate(&jwt, &context).await;
     assert!(valid.is_ok());
 
-    let num_deleted = Person::delete(pool, inserted_person.id).await.unwrap();
+    let num_deleted = Person::delete(&mut context.pool(), inserted_person.id).await?;
     assert_eq!(1, num_deleted);
+
+    Ok(())
   }
 }

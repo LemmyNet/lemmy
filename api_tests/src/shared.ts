@@ -1,25 +1,34 @@
 import {
+  ApproveCommunityPendingFollower,
   BlockCommunity,
   BlockCommunityResponse,
-  BlockInstance,
-  BlockInstanceResponse,
   CommunityId,
+  CommunityVisibility,
   CreatePrivateMessageReport,
   DeleteImage,
   EditCommunity,
+  GetCommunityPendingFollowsCountResponse,
   GetReplies,
   GetRepliesResponse,
   GetUnreadCountResponse,
   InstanceId,
   LemmyHttp,
+  ListCommunityPendingFollows,
+  ListCommunityPendingFollowsResponse,
+  ListReports,
+  ListReportsResponse,
+  MyUserInfo,
+  PersonId,
   PostView,
   PrivateMessageReportResponse,
   SuccessResponse,
+  UserBlockInstanceParams,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
 import { EditPost } from "lemmy-js-client/dist/types/EditPost";
 import { EditSite } from "lemmy-js-client/dist/types/EditSite";
+import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
 import { FeaturePost } from "lemmy-js-client/dist/types/FeaturePost";
 import { GetComments } from "lemmy-js-client/dist/types/GetComments";
 import { GetCommentsResponse } from "lemmy-js-client/dist/types/GetCommentsResponse";
@@ -67,12 +76,8 @@ import { PrivateMessagesResponse } from "lemmy-js-client/dist/types/PrivateMessa
 import { GetPrivateMessages } from "lemmy-js-client/dist/types/GetPrivateMessages";
 import { PostReportResponse } from "lemmy-js-client/dist/types/PostReportResponse";
 import { CreatePostReport } from "lemmy-js-client/dist/types/CreatePostReport";
-import { ListPostReportsResponse } from "lemmy-js-client/dist/types/ListPostReportsResponse";
-import { ListPostReports } from "lemmy-js-client/dist/types/ListPostReports";
 import { CommentReportResponse } from "lemmy-js-client/dist/types/CommentReportResponse";
 import { CreateCommentReport } from "lemmy-js-client/dist/types/CreateCommentReport";
-import { ListCommentReportsResponse } from "lemmy-js-client/dist/types/ListCommentReportsResponse";
-import { ListCommentReports } from "lemmy-js-client/dist/types/ListCommentReports";
 import { GetPostsResponse } from "lemmy-js-client/dist/types/GetPostsResponse";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
@@ -83,7 +88,7 @@ export const fetchFunction = fetch;
 export const imageFetchLimit = 50;
 export const sampleImage =
   "https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg";
-export const sampleSite = "https://yahoo.com";
+export const sampleSite = "https://w3.org";
 
 export const alphaUrl = "http://127.0.0.1:8541";
 export const betaUrl = "http://127.0.0.1:8551";
@@ -97,13 +102,6 @@ export const beta = new LemmyHttp(betaUrl, { fetchFunction });
 export const gamma = new LemmyHttp(gammaUrl, { fetchFunction });
 export const delta = new LemmyHttp(deltaUrl, { fetchFunction });
 export const epsilon = new LemmyHttp(epsilonUrl, { fetchFunction });
-
-export const betaAllowedInstances = [
-  "lemmy-alpha",
-  "lemmy-gamma",
-  "lemmy-delta",
-  "lemmy-epsilon",
-];
 
 const password = "lemmylemmy";
 
@@ -162,30 +160,29 @@ export async function setupLogins() {
     rate_limit_comment: 999,
     rate_limit_search: 999,
   };
-
-  // Set the blocks and auths for each
-  editSiteForm.allowed_instances = [
-    "lemmy-beta",
-    "lemmy-gamma",
-    "lemmy-delta",
-    "lemmy-epsilon",
-  ];
   await alpha.editSite(editSiteForm);
-
-  editSiteForm.allowed_instances = betaAllowedInstances;
   await beta.editSite(editSiteForm);
-
-  editSiteForm.allowed_instances = [
-    "lemmy-alpha",
-    "lemmy-beta",
-    "lemmy-delta",
-    "lemmy-epsilon",
-  ];
   await gamma.editSite(editSiteForm);
-
-  // Setup delta allowed instance
-  editSiteForm.allowed_instances = ["lemmy-beta"];
   await delta.editSite(editSiteForm);
+  await epsilon.editSite(editSiteForm);
+
+  // Set the blocks for each
+  await allowInstance(alpha, "lemmy-beta");
+  await allowInstance(alpha, "lemmy-gamma");
+  await allowInstance(alpha, "lemmy-delta");
+  await allowInstance(alpha, "lemmy-epsilon");
+
+  await allowInstance(beta, "lemmy-alpha");
+  await allowInstance(beta, "lemmy-gamma");
+  await allowInstance(beta, "lemmy-delta");
+  await allowInstance(beta, "lemmy-epsilon");
+
+  await allowInstance(gamma, "lemmy-alpha");
+  await allowInstance(gamma, "lemmy-beta");
+  await allowInstance(gamma, "lemmy-delta");
+  await allowInstance(gamma, "lemmy-epsilon");
+
+  await allowInstance(delta, "lemmy-beta");
 
   // Create the main alpha/beta communities
   // Ignore thrown errors of duplicates
@@ -198,7 +195,20 @@ export async function setupLogins() {
     // only needed the first time so do in this try
     await delay(10_000);
   } catch {
-    console.log("Communities already exist");
+    //console.log("Communities already exist");
+  }
+}
+
+async function allowInstance(api: LemmyHttp, instance: string) {
+  const params: AdminAllowInstanceParams = {
+    instance,
+    allow: true,
+  };
+  // Ignore errors from duplicate allows (because setup gets called for each test file)
+  try {
+    await api.adminAllowInstance(params);
+  } catch (error) {
+    // console.error(error);
   }
 }
 
@@ -419,13 +429,13 @@ export async function banPersonFromSite(
   api: LemmyHttp,
   person_id: number,
   ban: boolean,
-  remove_data: boolean,
+  remove_or_restore_data: boolean,
 ): Promise<BanPersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
     person_id,
     ban,
-    remove_data,
+    remove_or_restore_data,
   };
   return api.banPerson(form);
 }
@@ -434,13 +444,13 @@ export async function banPersonFromCommunity(
   api: LemmyHttp,
   person_id: number,
   community_id: number,
-  remove_data: boolean,
+  remove_or_restore_data: boolean,
   ban: boolean,
 ): Promise<BanFromCommunityResponse> {
   let form: BanFromCommunity = {
     person_id,
     community_id,
-    remove_data: remove_data,
+    remove_or_restore_data,
     ban,
   };
   return api.banFromCommunity(form);
@@ -554,12 +564,14 @@ export async function likeComment(
 export async function createCommunity(
   api: LemmyHttp,
   name_: string = randomString(10),
+  visibility: CommunityVisibility = "Public",
 ): Promise<CommunityResponse> {
   let description = "a sample description";
   let form: CreateCommunity = {
     name: name_,
     title: name_,
     description,
+    visibility,
   };
   return api.createCommunity(form);
 }
@@ -688,9 +700,8 @@ export async function saveUserSettingsBio(
   let form: SaveUserSettings = {
     show_nsfw: true,
     blur_nsfw: false,
-    auto_expand: true,
     theme: "darkly",
-    default_sort_type: "Active",
+    default_post_sort_type: "Active",
     default_listing_type: "All",
     interface_language: "en",
     show_avatars: true,
@@ -709,8 +720,7 @@ export async function saveUserSettingsFederated(
   let form: SaveUserSettings = {
     show_nsfw: false,
     blur_nsfw: true,
-    auto_expand: false,
-    default_sort_type: "Hot",
+    default_post_sort_type: "Hot",
     default_listing_type: "All",
     interface_language: "",
     avatar,
@@ -751,6 +761,10 @@ export async function getSite(api: LemmyHttp): Promise<GetSiteResponse> {
   return api.getSite();
 }
 
+export async function getMyUser(api: LemmyHttp): Promise<MyUserInfo> {
+  return api.getMyUser();
+}
+
 export async function listPrivateMessages(
   api: LemmyHttp,
 ): Promise<PrivateMessagesResponse> {
@@ -760,19 +774,16 @@ export async function listPrivateMessages(
   return api.getPrivateMessages(form);
 }
 
-export async function unfollowRemotes(
-  api: LemmyHttp,
-): Promise<GetSiteResponse> {
+export async function unfollowRemotes(api: LemmyHttp): Promise<MyUserInfo> {
   // Unfollow all remote communities
-  let site = await getSite(api);
+  let my_user = await getMyUser(api);
   let remoteFollowed =
-    site.my_user?.follows.filter(c => c.community.local == false) ?? [];
+    my_user.follows.filter(c => c.community.local == false) ?? [];
   await Promise.all(
     remoteFollowed.map(cu => followCommunity(api, false, cu.community.id)),
   );
 
-  let siteRes = await getSite(api);
-  return siteRes;
+  return await getMyUser(api);
 }
 
 export async function followBeta(api: LemmyHttp): Promise<CommunityResponse> {
@@ -797,11 +808,11 @@ export async function reportPost(
   return api.createPostReport(form);
 }
 
-export async function listPostReports(
+export async function listReports(
   api: LemmyHttp,
-): Promise<ListPostReportsResponse> {
-  let form: ListPostReports = {};
-  return api.listPostReports(form);
+): Promise<ListReportsResponse> {
+  let form: ListReports = {};
+  return api.listReports(form);
 }
 
 export async function reportComment(
@@ -828,13 +839,6 @@ export async function reportPrivateMessage(
   return api.createPrivateMessageReport(form);
 }
 
-export async function listCommentReports(
-  api: LemmyHttp,
-): Promise<ListCommentReportsResponse> {
-  let form: ListCommentReports = {};
-  return api.listCommentReports(form);
-}
-
 export function getPosts(
   api: LemmyHttp,
   listingType?: ListingType,
@@ -848,16 +852,16 @@ export function getPosts(
   return api.getPosts(form);
 }
 
-export function blockInstance(
+export function userBlockInstance(
   api: LemmyHttp,
   instance_id: InstanceId,
   block: boolean,
-): Promise<BlockInstanceResponse> {
-  let form: BlockInstance = {
+): Promise<SuccessResponse> {
+  let form: UserBlockInstanceParams = {
     instance_id,
     block,
   };
-  return api.blockInstance(form);
+  return api.userBlockInstance(form);
 }
 
 export function blockCommunity(
@@ -870,6 +874,39 @@ export function blockCommunity(
     block,
   };
   return api.blockCommunity(form);
+}
+
+export function listCommunityPendingFollows(
+  api: LemmyHttp,
+): Promise<ListCommunityPendingFollowsResponse> {
+  let form: ListCommunityPendingFollows = {
+    pending_only: true,
+    all_communities: false,
+    page: 1,
+    limit: 50,
+  };
+  return api.listCommunityPendingFollows(form);
+}
+
+export function getCommunityPendingFollowsCount(
+  api: LemmyHttp,
+  community_id: CommunityId,
+): Promise<GetCommunityPendingFollowsCountResponse> {
+  return api.getCommunityPendingFollowsCount(community_id);
+}
+
+export function approveCommunityPendingFollow(
+  api: LemmyHttp,
+  community_id: CommunityId,
+  follower_id: PersonId,
+  approve: boolean = true,
+): Promise<SuccessResponse> {
+  let form: ApproveCommunityPendingFollower = {
+    community_id,
+    follower_id,
+    approve,
+  };
+  return api.approveCommunityPendingFollow(form);
 }
 
 export function delay(millis = 500) {
@@ -948,7 +985,7 @@ export function getCommentParentId(comment: Comment): number | undefined {
   if (split.length > 1) {
     return Number(split[split.length - 2]);
   } else {
-    console.log(`Failed to extract comment parent id from ${comment.path}`);
+    console.error(`Failed to extract comment parent id from ${comment.path}`);
     return undefined;
   }
 }
@@ -962,8 +999,12 @@ export async function waitUntil<T>(
   let retry = 0;
   let result;
   while (retry++ < retries) {
-    result = await fetcher();
-    if (checker(result)) return result;
+    try {
+      result = await fetcher();
+      if (checker(result)) return result;
+    } catch (error) {
+      console.error(error);
+    }
     await delay(
       delaySeconds[Math.min(retry - 1, delaySeconds.length - 1)] * 1000,
     );

@@ -27,10 +27,8 @@ import {
   followCommunity,
   banPersonFromCommunity,
   reportPost,
-  listPostReports,
   randomString,
   registerUser,
-  getSite,
   unfollows,
   resolveCommunity,
   waitUntil,
@@ -38,9 +36,18 @@ import {
   alphaUrl,
   loginUser,
   createCommunity,
+  listReports,
+  getMyUser,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
-import { EditSite, ResolveObject } from "lemmy-js-client";
+import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
+import {
+  EditSite,
+  PostReport,
+  PostReportView,
+  ReportCombinedView,
+  ResolveObject,
+} from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 
@@ -87,12 +94,12 @@ async function assertPostFederation(
 }
 
 test("Create a post", async () => {
-  // Setup some allowlists and blocklists
-  const editSiteForm: EditSite = {};
-
-  editSiteForm.allowed_instances = [];
-  editSiteForm.blocked_instances = ["lemmy-alpha"];
-  await epsilon.editSite(editSiteForm);
+  // Block alpha
+  var block_instance_params: AdminBlockInstanceParams = {
+    instance: "lemmy-alpha",
+    block: true,
+  };
+  await epsilon.adminBlockInstance(block_instance_params);
 
   if (!betaCommunity) {
     throw "Missing beta community";
@@ -125,24 +132,20 @@ test("Create a post", async () => {
   // Delta only follows beta, so it should not see an alpha ap_id
   await expect(
     resolvePost(delta, postRes.post_view.post),
-  ).rejects.toStrictEqual(Error("couldnt_find_object"));
+  ).rejects.toStrictEqual(Error("not_found"));
 
   // Epsilon has alpha blocked, it should not see the alpha post
   await expect(
     resolvePost(epsilon, postRes.post_view.post),
-  ).rejects.toStrictEqual(Error("couldnt_find_object"));
+  ).rejects.toStrictEqual(Error("not_found"));
 
-  // remove added allow/blocklists
-  editSiteForm.allowed_instances = [];
-  editSiteForm.blocked_instances = [];
-  await delta.editSite(editSiteForm);
-  await epsilon.editSite(editSiteForm);
+  // remove blocked instance
+  block_instance_params.block = false;
+  await epsilon.adminBlockInstance(block_instance_params);
 });
 
 test("Create a post in a non-existent community", async () => {
-  await expect(createPost(alpha, -2)).rejects.toStrictEqual(
-    Error("couldnt_find_community"),
-  );
+  await expect(createPost(alpha, -2)).rejects.toStrictEqual(Error("not_found"));
 });
 
 test("Unlike a post", async () => {
@@ -454,8 +457,7 @@ test("Enforce site ban federation for local user", async () => {
 
   // create a test user
   let alphaUserHttp = await registerUser(alpha, alphaUrl);
-  let alphaUserPerson = (await getSite(alphaUserHttp)).my_user?.local_user_view
-    .person;
+  let alphaUserPerson = (await getMyUser(alphaUserHttp)).local_user_view.person;
   let alphaUserActorId = alphaUserPerson?.actor_id;
   if (!alphaUserActorId) {
     throw "Missing alpha user actor id";
@@ -502,9 +504,16 @@ test("Enforce site ban federation for local user", async () => {
     alpha,
     alphaPerson.person.id,
     false,
-    false,
+    true,
   );
   expect(unBanAlpha.banned).toBe(false);
+
+  // existing alpha post should be restored on beta
+  betaBanRes = await waitUntil(
+    () => getPost(beta, searchBeta1.post.id),
+    s => !s.post_view.post.removed,
+  );
+  expect(betaBanRes.post_view.post.removed).toBe(false);
 
   // Login gets invalidated by ban, need to login again
   if (!alphaUserPerson) {
@@ -528,8 +537,7 @@ test("Enforce site ban federation for federated user", async () => {
 
   // create a test user
   let alphaUserHttp = await registerUser(alpha, alphaUrl);
-  let alphaUserPerson = (await getSite(alphaUserHttp)).my_user?.local_user_view
-    .person;
+  let alphaUserPerson = (await getMyUser(alphaUserHttp)).local_user_view.person;
   let alphaUserActorId = alphaUserPerson?.actor_id;
   if (!alphaUserActorId) {
     throw "Missing alpha user actor id";
@@ -559,8 +567,7 @@ test("Enforce site ban federation for federated user", async () => {
   expect(banAlphaOnBeta.banned).toBe(true);
 
   // The beta site ban should NOT be federated to alpha
-  let alphaPerson2 = (await getSite(alphaUserHttp)).my_user!.local_user_view
-    .person;
+  let alphaPerson2 = (await getMyUser(alphaUserHttp)).local_user_view.person;
   expect(alphaPerson2.banned).toBe(false);
 
   // existing alpha post should be removed on beta
@@ -623,7 +630,7 @@ test("Enforce community ban for federated user", async () => {
   // Alpha tries to make post on beta, but it fails because of ban
   await expect(
     createPost(alpha, betaCommunity.community.id),
-  ).rejects.toStrictEqual(Error("banned_from_community"));
+  ).rejects.toStrictEqual(Error("person_is_banned_from_community"));
 
   // Unban alpha
   let unBanAlpha = await banPersonFromCommunity(
@@ -686,16 +693,17 @@ test("Report a post", async () => {
   expect(gammaReport).toBeDefined();
 
   // Report was federated to community instance
-  let betaReport = (await waitUntil(
-    () =>
-      listPostReports(beta).then(p =>
-        p.post_reports.find(
-          r =>
-            r.post_report.original_post_name === gammaReport.original_post_name,
+  let betaReport = (
+    (await waitUntil(
+      () =>
+        listReports(beta).then(p =>
+          p.reports.find(r => {
+            return checkPostReportName(r, gammaReport);
+          }),
         ),
-      ),
-    res => !!res,
-  ))!.post_report;
+      res => !!res,
+    ))! as PostReportView
+  ).post_report;
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
   expect(betaReport.original_post_name).toBe(gammaReport.original_post_name);
@@ -705,16 +713,17 @@ test("Report a post", async () => {
   await unfollowRemotes(alpha);
 
   // Report was federated to poster's instance
-  let alphaReport = (await waitUntil(
-    () =>
-      listPostReports(alpha).then(p =>
-        p.post_reports.find(
-          r =>
-            r.post_report.original_post_name === gammaReport.original_post_name,
+  let alphaReport = (
+    (await waitUntil(
+      () =>
+        listReports(alpha).then(p =>
+          p.reports.find(r => {
+            return checkPostReportName(r, gammaReport);
+          }),
         ),
-      ),
-    res => !!res,
-  ))!.post_report;
+      res => !!res,
+    ))! as PostReportView
+  ).post_report;
   expect(alphaReport).toBeDefined();
   expect(alphaReport.resolved).toBe(false);
   expect(alphaReport.original_post_name).toBe(gammaReport.original_post_name);
@@ -789,3 +798,38 @@ test("Fetch post with redirect", async () => {
   let gammaPost2 = await gamma.resolveObject(form);
   expect(gammaPost2.post).toBeDefined();
 });
+
+test("Rewrite markdown links", async () => {
+  const community = (await resolveBetaCommunity(beta)).community!;
+
+  // create a post
+  let postRes1 = await createPost(beta, community.community.id);
+
+  // link to this post in markdown
+  let postRes2 = await createPost(
+    beta,
+    community.community.id,
+    "https://example.com/",
+    `[link](${postRes1.post_view.post.ap_id})`,
+  );
+  console.log(postRes2.post_view.post.body);
+  expect(postRes2.post_view.post).toBeDefined();
+
+  // fetch both posts from another instance
+  const alphaPost1 = await resolvePost(alpha, postRes1.post_view.post);
+  const alphaPost2 = await resolvePost(alpha, postRes2.post_view.post);
+
+  // remote markdown link is replaced with local link
+  expect(alphaPost2.post?.post.body).toBe(
+    `[link](http://lemmy-alpha:8541/post/${alphaPost1.post?.post.id})`,
+  );
+});
+
+function checkPostReportName(rcv: ReportCombinedView, report: PostReport) {
+  switch (rcv.type_) {
+    case "Post":
+      return rcv.post_report.original_post_name === report.original_post_name;
+    default:
+      return false;
+  }
+}

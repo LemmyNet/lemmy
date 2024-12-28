@@ -38,7 +38,7 @@ AS $a$
 BEGIN
     EXECUTE replace($b$
         -- When a thing gets a vote, update its aggregates and its creator's aggregates
-        CALL r.create_triggers ('thing_like', $$
+        CALL r.create_triggers ('thing_actions', $$
             BEGIN
                 WITH thing_diff AS ( UPDATE
                         thing_aggregates AS a
@@ -46,7 +46,8 @@ BEGIN
                         score = a.score + diff.upvotes - diff.downvotes, upvotes = a.upvotes + diff.upvotes, downvotes = a.downvotes + diff.downvotes, controversy_rank = r.controversy_rank ((a.upvotes + diff.upvotes)::numeric, (a.downvotes + diff.downvotes)::numeric)
                     FROM (
                         SELECT
-                            (thing_like).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_like).score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (thing_like).thing_id) AS diff
+                            (thing_actions).thing_id, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score = 1), 0) AS upvotes, coalesce(sum(count_diff) FILTER (WHERE (thing_actions).like_score != 1), 0) AS downvotes FROM select_old_and_new_rows AS old_and_new_rows
+                WHERE (thing_actions).like_score IS NOT NULL GROUP BY (thing_actions).thing_id) AS diff
             WHERE
                 a.thing_id = diff.thing_id
                     AND (diff.upvotes, diff.downvotes) != (0, 0)
@@ -360,7 +361,7 @@ CREATE TRIGGER comment_count
 -- Count subscribers for communities.
 -- subscribers should be updated only when a local community is followed by a local or remote person.
 -- subscribers_local should be updated only when a local person follows a local or remote community.
-CALL r.create_triggers ('community_follower', $$
+CALL r.create_triggers ('community_actions', $$
 BEGIN
     UPDATE
         community_aggregates AS a
@@ -368,13 +369,52 @@ BEGIN
         subscribers = a.subscribers + diff.subscribers, subscribers_local = a.subscribers_local + diff.subscribers_local
     FROM (
         SELECT
-            (community_follower).community_id, coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers, coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local
+            (community_actions).community_id, coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers, coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local
         FROM select_old_and_new_rows AS old_and_new_rows
-    LEFT JOIN community ON community.id = (community_follower).community_id
-    LEFT JOIN person ON person.id = (community_follower).person_id GROUP BY (community_follower).community_id) AS diff
+    LEFT JOIN community ON community.id = (community_actions).community_id
+    LEFT JOIN person ON person.id = (community_actions).person_id
+    WHERE (community_actions).followed IS NOT NULL GROUP BY (community_actions).community_id) AS diff
 WHERE
     a.community_id = diff.community_id
         AND (diff.subscribers, diff.subscribers_local) != (0, 0);
+
+RETURN NULL;
+
+END;
+
+$$);
+
+CALL r.create_triggers ('post_report', $$
+BEGIN
+    UPDATE
+        post_aggregates AS a
+    SET
+        report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
+    FROM (
+        SELECT
+            (post_report).post_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (post_report).resolved), 0) AS unresolved_report_count
+    FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (post_report).post_id) AS diff
+WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
+    AND a.post_id = diff.post_id;
+
+RETURN NULL;
+
+END;
+
+$$);
+
+CALL r.create_triggers ('comment_report', $$
+BEGIN
+    UPDATE
+        comment_aggregates AS a
+    SET
+        report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
+    FROM (
+        SELECT
+            (comment_report).comment_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (comment_report).resolved), 0) AS unresolved_report_count
+    FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (comment_report).comment_id) AS diff
+WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
+    AND a.comment_id = diff.comment_id;
 
 RETURN NULL;
 
@@ -541,7 +581,7 @@ CREATE FUNCTION r.delete_follow_before_person ()
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    DELETE FROM community_follower AS c
+    DELETE FROM community_actions AS c
     WHERE c.person_id = OLD.id;
     RETURN OLD;
 END;
@@ -612,4 +652,36 @@ CREATE TRIGGER change_values
     BEFORE INSERT ON private_message
     FOR EACH ROW
     EXECUTE FUNCTION r.private_message_change_values ();
+
+-- Combined tables triggers
+-- These insert (published, item_id) into X_combined tables
+-- Reports (comment_report, post_report, private_message_report)
+CREATE PROCEDURE r.create_report_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.report_combined_thing_insert ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                INSERT INTO report_combined (published, thing_id)
+                    VALUES (NEW.published, NEW.id);
+                RETURN NEW;
+            END $$;
+    CREATE TRIGGER report_combined
+        AFTER INSERT ON thing
+        FOR EACH ROW
+        EXECUTE FUNCTION r.report_combined_thing_insert ( );
+        $b$,
+        'thing',
+        table_name);
+END;
+$a$;
+
+CALL r.create_report_combined_trigger ('post_report');
+
+CALL r.create_report_combined_trigger ('comment_report');
+
+CALL r.create_report_combined_trigger ('private_message_report');
 

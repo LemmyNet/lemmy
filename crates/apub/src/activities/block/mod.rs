@@ -1,3 +1,4 @@
+use super::generate_to;
 use crate::{
   objects::{community::ApubCommunity, instance::ApubSite},
   protocol::{
@@ -8,6 +9,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
+  kinds::public,
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
@@ -22,11 +24,7 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::DbPool,
 };
-use lemmy_db_views::structs::SiteView;
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  LemmyErrorType,
-};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Deserialize;
 use url::Url;
 
@@ -137,18 +135,12 @@ pub(crate) async fn send_ban_from_site(
   moderator: Person,
   banned_user: Person,
   reason: Option<String>,
-  remove_data: Option<bool>,
+  remove_or_restore_data: Option<bool>,
   ban: bool,
   expires: Option<i64>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let site = SiteOrCommunity::Site(
-    SiteView::read_local(&mut context.pool())
-      .await?
-      .ok_or(LemmyErrorType::LocalSiteNotSetup)?
-      .site
-      .into(),
-  );
+  let site = SiteOrCommunity::Site(Site::read_local(&mut context.pool()).await?.into());
   let expires = check_expire_time(expires)?;
 
   // if the action affects a local user, federate to other instances
@@ -158,7 +150,7 @@ pub(crate) async fn send_ban_from_site(
         &site,
         &banned_user.into(),
         &moderator.into(),
-        remove_data.unwrap_or(false),
+        remove_or_restore_data.unwrap_or(false),
         reason.clone(),
         expires,
         &context,
@@ -169,6 +161,7 @@ pub(crate) async fn send_ban_from_site(
         &site,
         &banned_user.into(),
         &moderator.into(),
+        remove_or_restore_data.unwrap_or(false),
         reason.clone(),
         &context,
       )
@@ -188,7 +181,6 @@ pub(crate) async fn send_ban_from_community(
 ) -> LemmyResult<()> {
   let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
     .await?
-    .ok_or(LemmyErrorType::CouldntFindCommunity)?
     .into();
   let expires = check_expire_time(data.expires)?;
 
@@ -197,7 +189,7 @@ pub(crate) async fn send_ban_from_community(
       &SiteOrCommunity::Community(community),
       &banned_person.into(),
       &mod_.into(),
-      data.remove_data.unwrap_or(false),
+      data.remove_or_restore_data.unwrap_or(false),
       data.reason.clone(),
       expires,
       &context,
@@ -208,9 +200,20 @@ pub(crate) async fn send_ban_from_community(
       &SiteOrCommunity::Community(community),
       &banned_person.into(),
       &mod_.into(),
+      data.remove_or_restore_data.unwrap_or(false),
       data.reason.clone(),
       &context,
     )
     .await
   }
+}
+
+fn to_and_audience(
+  target: &SiteOrCommunity,
+) -> LemmyResult<(Vec<Url>, Option<ObjectId<ApubCommunity>>)> {
+  Ok(if let SiteOrCommunity::Community(c) = target {
+    (vec![generate_to(c)?], Some(c.id().into()))
+  } else {
+    (vec![public()], None)
+  })
 }

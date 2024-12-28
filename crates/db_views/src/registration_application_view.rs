@@ -81,17 +81,11 @@ fn queries<'a>() -> Queries<
 }
 
 impl RegistrationApplicationView {
-  pub async fn read(
-    pool: &mut DbPool<'_>,
-    id: RegistrationApplicationId,
-  ) -> Result<Option<Self>, Error> {
+  pub async fn read(pool: &mut DbPool<'_>, id: RegistrationApplicationId) -> Result<Self, Error> {
     queries().read(pool, ReadBy::Id(id)).await
   }
 
-  pub async fn read_by_person(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-  ) -> Result<Option<Self>, Error> {
+  pub async fn read_by_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     queries().read(pool, ReadBy::Person(person_id)).await
   }
   /// Returns the current unread registration_application count
@@ -141,8 +135,6 @@ impl RegistrationApplicationQuery {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use crate::registration_application_view::{
@@ -163,38 +155,34 @@ mod tests {
     traits::Crud,
     utils::build_db_pool_for_tests,
   };
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
-  async fn test_crud() {
-    let pool = &build_db_pool_for_tests().await;
+  async fn test_crud() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string())
-      .await
-      .unwrap();
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
     let timmy_person_form = PersonInsertForm::test_form(inserted_instance.id, "timmy_rav");
 
-    let inserted_timmy_person = Person::create(pool, &timmy_person_form).await.unwrap();
+    let inserted_timmy_person = Person::create(pool, &timmy_person_form).await?;
 
     let timmy_local_user_form = LocalUserInsertForm::test_form_admin(inserted_timmy_person.id);
 
-    let _inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![])
-      .await
-      .unwrap();
+    let _inserted_timmy_local_user =
+      LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
 
     let sara_person_form = PersonInsertForm::test_form(inserted_instance.id, "sara_rav");
 
-    let inserted_sara_person = Person::create(pool, &sara_person_form).await.unwrap();
+    let inserted_sara_person = Person::create(pool, &sara_person_form).await?;
 
     let sara_local_user_form = LocalUserInsertForm::test_form(inserted_sara_person.id);
 
-    let inserted_sara_local_user = LocalUser::create(pool, &sara_local_user_form, vec![])
-      .await
-      .unwrap();
+    let inserted_sara_local_user = LocalUser::create(pool, &sara_local_user_form, vec![]).await?;
 
     // Sara creates an application
     let sara_app_form = RegistrationApplicationInsertForm {
@@ -202,24 +190,17 @@ mod tests {
       answer: "LET ME IIIIINN".to_string(),
     };
 
-    let sara_app = RegistrationApplication::create(pool, &sara_app_form)
-      .await
-      .unwrap();
+    let sara_app = RegistrationApplication::create(pool, &sara_app_form).await?;
 
-    let read_sara_app_view = RegistrationApplicationView::read(pool, sara_app.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let read_sara_app_view = RegistrationApplicationView::read(pool, sara_app.id).await?;
 
     let jess_person_form = PersonInsertForm::test_form(inserted_instance.id, "jess_rav");
 
-    let inserted_jess_person = Person::create(pool, &jess_person_form).await.unwrap();
+    let inserted_jess_person = Person::create(pool, &jess_person_form).await?;
 
     let jess_local_user_form = LocalUserInsertForm::test_form(inserted_jess_person.id);
 
-    let inserted_jess_local_user = LocalUser::create(pool, &jess_local_user_form, vec![])
-      .await
-      .unwrap();
+    let inserted_jess_local_user = LocalUser::create(pool, &jess_local_user_form, vec![]).await?;
 
     // Sara creates an application
     let jess_app_form = RegistrationApplicationInsertForm {
@@ -227,14 +208,9 @@ mod tests {
       answer: "LET ME IIIIINN".to_string(),
     };
 
-    let jess_app = RegistrationApplication::create(pool, &jess_app_form)
-      .await
-      .unwrap();
+    let jess_app = RegistrationApplication::create(pool, &jess_app_form).await?;
 
-    let read_jess_app_view = RegistrationApplicationView::read(pool, jess_app.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let read_jess_app_view = RegistrationApplicationView::read(pool, jess_app.id).await?;
 
     let mut expected_sara_app_view = RegistrationApplicationView {
       registration_application: sara_app.clone(),
@@ -243,16 +219,15 @@ mod tests {
         person_id: inserted_sara_local_user.person_id,
         email: inserted_sara_local_user.email,
         show_nsfw: inserted_sara_local_user.show_nsfw,
-        auto_expand: inserted_sara_local_user.auto_expand,
         blur_nsfw: inserted_sara_local_user.blur_nsfw,
         theme: inserted_sara_local_user.theme,
-        default_sort_type: inserted_sara_local_user.default_sort_type,
+        default_post_sort_type: inserted_sara_local_user.default_post_sort_type,
+        default_comment_sort_type: inserted_sara_local_user.default_comment_sort_type,
         default_listing_type: inserted_sara_local_user.default_listing_type,
         interface_language: inserted_sara_local_user.interface_language,
         show_avatars: inserted_sara_local_user.show_avatars,
         send_notifications_to_email: inserted_sara_local_user.send_notifications_to_email,
         show_bot_accounts: inserted_sara_local_user.show_bot_accounts,
-        show_scores: inserted_sara_local_user.show_scores,
         show_read_posts: inserted_sara_local_user.show_read_posts,
         email_verified: inserted_sara_local_user.email_verified,
         accepted_application: inserted_sara_local_user.accepted_application,
@@ -265,7 +240,9 @@ mod tests {
         totp_2fa_enabled: inserted_sara_local_user.totp_2fa_enabled,
         enable_keyboard_navigation: inserted_sara_local_user.enable_keyboard_navigation,
         enable_animated_images: inserted_sara_local_user.enable_animated_images,
+        enable_private_messages: inserted_sara_local_user.enable_private_messages,
         collapse_bot_comments: inserted_sara_local_user.collapse_bot_comments,
+        auto_mark_fetched_posts_as_read: false,
       },
       creator: Person {
         id: inserted_sara_person.id,
@@ -283,7 +260,6 @@ mod tests {
         banner: None,
         updated: None,
         inbox_url: inserted_sara_person.inbox_url.clone(),
-        shared_inbox_url: None,
         matrix_user_id: None,
         instance_id: inserted_instance.id,
         private_key: inserted_sara_person.private_key,
@@ -301,8 +277,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
 
     assert_eq!(
       apps,
@@ -310,9 +285,7 @@ mod tests {
     );
 
     // Make sure the counts are correct
-    let unread_count = RegistrationApplicationView::get_unread_count(pool, false)
-      .await
-      .unwrap();
+    let unread_count = RegistrationApplicationView::get_unread_count(pool, false).await?;
     assert_eq!(unread_count, 2);
 
     // Approve the application
@@ -321,9 +294,7 @@ mod tests {
       deny_reason: None,
     };
 
-    RegistrationApplication::update(pool, sara_app.id, &approve_form)
-      .await
-      .unwrap();
+    RegistrationApplication::update(pool, sara_app.id, &approve_form).await?;
 
     // Update the local_user row
     let approve_local_user_form = LocalUserUpdateForm {
@@ -331,14 +302,10 @@ mod tests {
       ..Default::default()
     };
 
-    LocalUser::update(pool, inserted_sara_local_user.id, &approve_local_user_form)
-      .await
-      .unwrap();
+    LocalUser::update(pool, inserted_sara_local_user.id, &approve_local_user_form).await?;
 
-    let read_sara_app_view_after_approve = RegistrationApplicationView::read(pool, sara_app.id)
-      .await
-      .unwrap()
-      .unwrap();
+    let read_sara_app_view_after_approve =
+      RegistrationApplicationView::read(pool, sara_app.id).await?;
 
     // Make sure the columns changed
     expected_sara_app_view
@@ -362,7 +329,6 @@ mod tests {
       banner: None,
       updated: None,
       inbox_url: inserted_timmy_person.inbox_url.clone(),
-      shared_inbox_url: None,
       matrix_user_id: None,
       instance_id: inserted_instance.id,
       private_key: inserted_timmy_person.private_key,
@@ -378,28 +344,23 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await
-    .unwrap();
+    .await?;
     assert_eq!(apps_after_resolve, vec![read_jess_app_view]);
 
     // Make sure the counts are correct
-    let unread_count_after_approve = RegistrationApplicationView::get_unread_count(pool, false)
-      .await
-      .unwrap();
+    let unread_count_after_approve =
+      RegistrationApplicationView::get_unread_count(pool, false).await?;
     assert_eq!(unread_count_after_approve, 1);
 
     // Make sure the not undenied_only has all the apps
-    let all_apps = RegistrationApplicationQuery::default()
-      .list(pool)
-      .await
-      .unwrap();
+    let all_apps = RegistrationApplicationQuery::default().list(pool).await?;
     assert_eq!(all_apps.len(), 2);
 
-    Person::delete(pool, inserted_timmy_person.id)
-      .await
-      .unwrap();
-    Person::delete(pool, inserted_sara_person.id).await.unwrap();
-    Person::delete(pool, inserted_jess_person.id).await.unwrap();
-    Instance::delete(pool, inserted_instance.id).await.unwrap();
+    Person::delete(pool, inserted_timmy_person.id).await?;
+    Person::delete(pool, inserted_sara_person.id).await?;
+    Person::delete(pool, inserted_jess_person.id).await?;
+    Instance::delete(pool, inserted_instance.id).await?;
+
+    Ok(())
   }
 }

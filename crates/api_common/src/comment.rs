@@ -1,9 +1,9 @@
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommentReportId, CommunityId, LanguageId, LocalUserId, PostId},
+  newtypes::{CommentId, CommunityId, LanguageId, LocalUserId, PostId},
   CommentSortType,
   ListingType,
 };
-use lemmy_db_views::structs::{CommentReportView, CommentView, VoteView};
+use lemmy_db_views::structs::{CommentView, VoteView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -17,7 +17,9 @@ use ts_rs::TS;
 pub struct CreateComment {
   pub content: String,
   pub post_id: PostId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub parent_id: Option<CommentId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub language_id: Option<LanguageId>,
 }
 
@@ -37,7 +39,9 @@ pub struct GetComment {
 /// Edit a comment.
 pub struct EditComment {
   pub comment_id: CommentId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub content: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub language_id: Option<LanguageId>,
 }
 
@@ -69,6 +73,7 @@ pub struct DeleteComment {
 pub struct RemoveComment {
   pub comment_id: CommentId,
   pub removed: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
 }
 
@@ -107,17 +112,29 @@ pub struct CreateCommentLike {
 #[cfg_attr(feature = "full", ts(export))]
 /// Get a list of comments.
 pub struct GetComments {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ListingType>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub sort: Option<CommentSortType>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub max_depth: Option<i32>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub community_name: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub post_id: Option<PostId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub parent_id: Option<CommentId>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub saved_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub liked_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
 }
 
@@ -129,55 +146,6 @@ pub struct GetCommentsResponse {
   pub comments: Vec<CommentView>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Report a comment.
-pub struct CreateCommentReport {
-  pub comment_id: CommentId,
-  pub reason: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The comment report response.
-pub struct CommentReportResponse {
-  pub comment_report_view: CommentReportView,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Resolve a comment report (only doable by mods).
-pub struct ResolveCommentReport {
-  pub report_id: CommentReportId,
-  pub resolved: bool,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// List comment reports.
-pub struct ListCommentReports {
-  pub comment_id: Option<CommentId>,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
-  /// Only shows the unresolved reports
-  pub unresolved_only: Option<bool>,
-  /// if no community is given, it returns reports for all communities moderated by the auth user
-  pub community_id: Option<CommunityId>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The comment report list response.
-pub struct ListCommentReportsResponse {
-  pub comment_reports: Vec<CommentReportView>,
-}
-
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
@@ -185,7 +153,9 @@ pub struct ListCommentReportsResponse {
 /// List comment likes. Admins-only.
 pub struct ListCommentLikes {
   pub comment_id: CommentId,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub page: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub limit: Option<i64>,
 }
 

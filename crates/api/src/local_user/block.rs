@@ -12,7 +12,7 @@ use lemmy_db_views_actor::structs::PersonView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
-pub async fn block_person(
+pub async fn user_block_person(
   data: Json<BlockPerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
@@ -32,8 +32,7 @@ pub async fn block_person(
 
   let target_user = LocalUserView::read_person(&mut context.pool(), target_id)
     .await
-    .ok()
-    .flatten();
+    .ok();
 
   if target_user.is_some_and(|t| t.local_user.admin) {
     Err(LemmyErrorType::CantBlockAdmin)?
@@ -49,9 +48,7 @@ pub async fn block_person(
       .with_lemmy_type(LemmyErrorType::PersonBlockAlreadyExists)?;
   }
 
-  let person_view = PersonView::read(&mut context.pool(), target_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPerson)?;
+  let person_view = PersonView::read(&mut context.pool(), target_id, false).await?;
   Ok(Json(BlockPersonResponse {
     person_view,
     blocked: data.block,

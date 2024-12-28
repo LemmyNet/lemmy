@@ -8,7 +8,10 @@ use lemmy_api_common::{
   utils::check_community_user_action,
 };
 use lemmy_db_schema::{
-  source::post::{Post, PostUpdateForm},
+  source::{
+    community::Community,
+    post::{Post, PostUpdateForm},
+  },
   traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
@@ -21,21 +24,15 @@ pub async fn delete_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let post_id = data.post_id;
-  let orig_post = Post::read(&mut context.pool(), post_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindPost)?;
+  let orig_post = Post::read(&mut context.pool(), post_id).await?;
 
   // Dont delete it if its already been deleted.
   if orig_post.deleted == data.deleted {
     Err(LemmyErrorType::CouldntUpdatePost)?
   }
 
-  check_community_user_action(
-    &local_user_view.person,
-    orig_post.community_id,
-    &mut context.pool(),
-  )
-  .await?;
+  let community = Community::read(&mut context.pool(), orig_post.community_id).await?;
+  check_community_user_action(&local_user_view.person, &community, &mut context.pool()).await?;
 
   // Verify that only the creator can delete
   if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
@@ -56,8 +53,7 @@ pub async fn delete_post(
   ActivityChannel::submit_activity(
     SendActivityData::DeletePost(post, local_user_view.person.clone(), data.0),
     &context,
-  )
-  .await?;
+  )?;
 
   build_post_response(
     &context,

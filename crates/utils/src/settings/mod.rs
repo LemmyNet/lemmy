@@ -3,14 +3,14 @@ use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
 use regex::Regex;
 use std::{env, fs, io::Error, sync::LazyLock};
-use urlencoding::encode;
+use structs::{PictrsConfig, PictrsImageMode, Settings};
+use url::Url;
 
 pub mod structs;
 
-use structs::{DatabaseConnection, PictrsConfig, PictrsImageMode, Settings};
+const DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
-static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
-
+#[allow(clippy::expect_used)]
 pub static SETTINGS: LazyLock<Settings> = LazyLock::new(|| {
   if env::var("LEMMY_INITIALIZE_WITH_DEFAULT_SETTINGS").is_ok() {
     println!(
@@ -23,6 +23,7 @@ pub static SETTINGS: LazyLock<Settings> = LazyLock::new(|| {
   }
 });
 
+#[allow(clippy::expect_used)]
 static WEBFINGER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(&format!(
     "^acct:([a-zA-Z0-9_]{{3,}})@{}$",
@@ -48,20 +49,9 @@ impl Settings {
 
   pub fn get_database_url(&self) -> String {
     if let Ok(url) = env::var("LEMMY_DATABASE_URL") {
-      return url;
-    }
-    match &self.database.connection {
-      DatabaseConnection::Uri { uri } => uri.clone(),
-      DatabaseConnection::Parts(parts) => {
-        format!(
-          "postgres://{}:{}@{}:{}/{}",
-          encode(&parts.user),
-          encode(&parts.password),
-          parts.host,
-          parts.port,
-          encode(&parts.database),
-        )
-      }
+      url
+    } else {
+      self.database.connection.clone()
     }
   }
 
@@ -127,4 +117,10 @@ impl PictrsConfig {
       self.image_mode.clone()
     }
   }
+}
+
+#[allow(clippy::expect_used)]
+/// Necessary to avoid URL expect failures
+fn pictrs_placeholder_url() -> Url {
+  Url::parse("http://localhost:8080").expect("parse pictrs url")
 }

@@ -12,7 +12,7 @@ use lemmy_db_schema::{
     comment::{Comment, CommentUpdateForm},
     comment_report::CommentReport,
     local_user::LocalUser,
-    moderator::{ModRemoveComment, ModRemoveCommentForm},
+    mod_log::moderator::{ModRemoveComment, ModRemoveCommentForm},
   },
   traits::{Crud, Reportable},
 };
@@ -31,12 +31,11 @@ pub async fn remove_comment(
     comment_id,
     Some(&local_user_view.local_user),
   )
-  .await?
-  .ok_or(LemmyErrorType::CouldntFindComment)?;
+  .await?;
 
   check_community_mod_action(
     &local_user_view.person,
-    orig_comment.community.id,
+    &orig_comment.community,
     false,
     &mut context.pool(),
   )
@@ -100,8 +99,7 @@ pub async fn remove_comment(
       reason: data.reason.clone(),
     },
     &context,
-  )
-  .await?;
+  )?;
 
   Ok(Json(
     build_comment_response(

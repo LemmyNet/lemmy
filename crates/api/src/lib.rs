@@ -19,7 +19,7 @@ use lemmy_db_schema::{
       CommunityPersonBanForm,
     },
     local_site::LocalSite,
-    moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
+    mod_log::moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
     person::Person,
   },
   traits::{Bannable, Crud, Followable},
@@ -33,13 +33,11 @@ use std::io::Cursor;
 use totp_rs::{Secret, TOTP};
 
 pub mod comment;
-pub mod comment_report;
 pub mod community;
 pub mod local_user;
 pub mod post;
-pub mod post_report;
 pub mod private_message;
-pub mod private_message_report;
+pub mod reports;
 pub mod site;
 pub mod sitemap;
 
@@ -145,7 +143,7 @@ fn build_totp_2fa(hostname: &str, username: &str, secret: &str) -> LemmyResult<T
   let sec = Secret::Raw(secret.as_bytes().to_vec());
   let sec_bytes = sec
     .to_bytes()
-    .map_err(|_| LemmyErrorType::CouldntParseTotpSecret)?;
+    .with_lemmy_type(LemmyErrorType::CouldntParseTotpSecret)?;
 
   TOTP::new(
     totp_rs::Algorithm::SHA1,
@@ -172,7 +170,7 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
   target: &Person,
   ban: bool,
   reason: &Option<String>,
-  remove_data: &Option<bool>,
+  remove_or_restore_data: &Option<bool>,
   expires: &Option<i64>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
@@ -197,11 +195,7 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
           .ok();
 
         // Also unsubscribe them from the community, if they are subscribed
-        let community_follower_form = CommunityFollowerForm {
-          community_id,
-          person_id: target.id,
-          pending: false,
-        };
+        let community_follower_form = CommunityFollowerForm::new(community_id, target.id);
 
         CommunityFollower::unfollow(&mut context.pool(), &community_follower_form)
           .await
@@ -230,7 +224,7 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
         person_id: target.id,
         ban,
         reason: reason.clone(),
-        remove_data: *remove_data,
+        remove_or_restore_data: *remove_or_restore_data,
         expires: *expires,
       };
 
@@ -242,8 +236,7 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
           data: ban_from_community,
         },
         context,
-      )
-      .await?;
+      )?;
     }
   }
 
@@ -258,17 +251,13 @@ pub async fn local_user_view_from_jwt(
   let local_user_id = Claims::validate(jwt, context)
     .await
     .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
-  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id)
-    .await?
-    .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
+  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
   check_user_valid(&local_user_view.person)?;
 
   Ok(local_user_view)
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
 mod tests {
 
   use super::*;

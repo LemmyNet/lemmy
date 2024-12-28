@@ -1,6 +1,7 @@
 use lemmy_db_schema::newtypes::CustomEmojiId;
 use lemmy_db_views::structs::CustomEmojiView;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 use url::Url;
@@ -45,4 +46,28 @@ pub struct DeleteCustomEmoji {
 /// A response for a custom emoji.
 pub struct CustomEmojiResponse {
   pub custom_emoji: CustomEmojiView,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A response for custom emojis.
+pub struct ListCustomEmojisResponse {
+  pub custom_emojis: Vec<CustomEmojiView>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Fetches a list of custom emojis.
+pub struct ListCustomEmojis {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub limit: Option<i64>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub category: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub ignore_page_limits: Option<bool>,
 }

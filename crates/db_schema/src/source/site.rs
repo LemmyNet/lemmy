@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use typed_builder::TypedBuilder;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -22,14 +21,19 @@ pub struct Site {
   pub id: SiteId,
   pub name: String,
   /// A sidebar for the site in markdown.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub sidebar: Option<String>,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
   /// An icon URL.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub icon: Option<DbUrl>,
   /// A banner url.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<DbUrl>,
   /// A shorter, one-line description of the site.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
   /// The federated actor_id.
   pub actor_id: DbUrl,
@@ -44,28 +48,37 @@ pub struct Site {
   pub instance_id: InstanceId,
   /// If present, nsfw content is visible by default. Should be displayed by frontends/clients
   /// when the site is first opened by a user.
+  #[cfg_attr(feature = "full", ts(optional))]
   pub content_warning: Option<String>,
 }
 
-#[derive(Clone, TypedBuilder)]
-#[builder(field_defaults(default))]
+#[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = site))]
 pub struct SiteInsertForm {
-  #[builder(!default)]
   pub name: String,
-  pub sidebar: Option<String>,
-  pub updated: Option<DateTime<Utc>>,
-  pub icon: Option<DbUrl>,
-  pub banner: Option<DbUrl>,
-  pub description: Option<String>,
-  pub actor_id: Option<DbUrl>,
-  pub last_refreshed_at: Option<DateTime<Utc>>,
-  pub inbox_url: Option<DbUrl>,
-  pub private_key: Option<String>,
-  pub public_key: Option<String>,
-  #[builder(!default)]
   pub instance_id: InstanceId,
+  #[new(default)]
+  pub sidebar: Option<String>,
+  #[new(default)]
+  pub updated: Option<DateTime<Utc>>,
+  #[new(default)]
+  pub icon: Option<DbUrl>,
+  #[new(default)]
+  pub banner: Option<DbUrl>,
+  #[new(default)]
+  pub description: Option<String>,
+  #[new(default)]
+  pub actor_id: Option<DbUrl>,
+  #[new(default)]
+  pub last_refreshed_at: Option<DateTime<Utc>>,
+  #[new(default)]
+  pub inbox_url: Option<DbUrl>,
+  #[new(default)]
+  pub private_key: Option<String>,
+  #[new(default)]
+  pub public_key: Option<String>,
+  #[new(default)]
   pub content_warning: Option<String>,
 }
 

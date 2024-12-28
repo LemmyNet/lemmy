@@ -22,8 +22,9 @@ use lemmy_db_schema::{
     federation_queue_state::FederationQueueState,
     instance::{Instance, InstanceForm},
   },
-  utils::{naive_now, ActualDbPool, DbPool},
+  utils::{ActualDbPool, DbPool},
 };
+use lemmy_utils::error::LemmyResult;
 use std::{collections::BinaryHeap, ops::Add, time::Duration};
 use tokio::{
   sync::mpsc::{self, UnboundedSender},
@@ -43,9 +44,9 @@ const MAX_SUCCESSFULS: usize = 1000;
 
 /// in prod mode, try to collect multiple send results at the same time to reduce load
 #[cfg(not(test))]
-static MIN_ACTIVITY_SEND_RESULTS_TO_HANDLE: usize = 4;
+const MIN_ACTIVITY_SEND_RESULTS_TO_HANDLE: usize = 4;
 #[cfg(test)]
-static MIN_ACTIVITY_SEND_RESULTS_TO_HANDLE: usize = 0;
+const MIN_ACTIVITY_SEND_RESULTS_TO_HANDLE: usize = 0;
 
 ///
 /// SendManager --(has many)--> InstanceWorker --(has many)--> SendRetryTask
@@ -86,7 +87,7 @@ impl InstanceWorker {
     federation_worker_config: FederationWorkerConfig,
     stop: CancellationToken,
     stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
-  ) -> Result<(), anyhow::Error> {
+  ) -> LemmyResult<()> {
     let pool = config.to_request_data().inner_pool().clone();
     let state = FederationQueueState::load(&mut DbPool::Pool(&pool), instance.id).await?;
     let (report_send_result, receive_send_result) =
@@ -116,7 +117,7 @@ impl InstanceWorker {
   /// loop fetch new activities from db and send them to the inboxes of the given instances
   /// this worker only returns if (a) there is an internal error or (b) the cancellation token is
   /// cancelled (graceful exit)
-  async fn loop_until_stopped(&mut self) -> Result<()> {
+  async fn loop_until_stopped(&mut self) -> LemmyResult<()> {
     self.initial_fail_sleep().await?;
     let (mut last_sent_id, mut newest_id) = self.get_latest_ids().await?;
 
@@ -149,12 +150,15 @@ impl InstanceWorker {
         });
         // compare to next id based on incrementing
         if expected_next_id != Some(next_id_to_send.0) {
-          anyhow::bail!(
-            "{}: next id to send is not as expected: {:?} != {:?}",
-            self.instance.domain,
-            expected_next_id,
-            next_id_to_send
-          )
+          return Err(
+            anyhow::anyhow!(
+              "{}: next id to send is not as expected: {:?} != {:?}",
+              self.instance.domain,
+              expected_next_id,
+              next_id_to_send
+            )
+            .into(),
+          );
         }
       }
 
@@ -290,10 +294,10 @@ impl InstanceWorker {
     if updated.add(Days::new(1)) < Utc::now() {
       self.instance.updated = Some(Utc::now());
 
-      let form = InstanceForm::builder()
-        .domain(self.instance.domain.clone())
-        .updated(Some(naive_now()))
-        .build();
+      let form = InstanceForm {
+        updated: Some(Utc::now()),
+        ..InstanceForm::new(self.instance.domain.clone())
+      };
       Instance::update(&mut self.pool(), self.instance.id, form).await?;
     }
     Ok(())
@@ -331,7 +335,7 @@ impl InstanceWorker {
       self.state.last_successful_published_time = next.published;
     }
 
-    let save_state_every = chrono::Duration::from_std(SAVE_STATE_EVERY_TIME).expect("not negative");
+    let save_state_every = chrono::Duration::from_std(SAVE_STATE_EVERY_TIME)?;
     if force_write || (Utc::now() - self.last_state_insert) > save_state_every {
       self.save_and_send_state().await?;
     }
@@ -341,7 +345,7 @@ impl InstanceWorker {
   /// we collect the relevant inboxes in the main instance worker task, and only spawn the send task
   /// if we have inboxes to send to this limits CPU usage and reduces overhead for the (many)
   /// cases where we don't have any inboxes
-  async fn spawn_send_if_needed(&mut self, activity_id: ActivityId) -> Result<()> {
+  async fn spawn_send_if_needed(&mut self, activity_id: ActivityId) -> LemmyResult<()> {
     let Some(ele) = get_activity_cached(&mut self.pool(), activity_id)
       .await
       .context("failed reading activity from db")?
@@ -357,11 +361,7 @@ impl InstanceWorker {
       return Ok(());
     };
     let activity = &ele.0;
-    let inbox_urls = self
-      .inbox_collector
-      .get_inbox_urls(activity)
-      .await
-      .context("failed figuring out inbox urls")?;
+    let inbox_urls = self.inbox_collector.get_inbox_urls(activity).await?;
     if inbox_urls.is_empty() {
       // this is the case when the activity is not relevant to this receiving instance (e.g. no user
       // subscribed to the relevant community)
@@ -439,8 +439,8 @@ impl InstanceWorker {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
-#[allow(clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used)]
+#[expect(clippy::indexing_slicing)]
 mod test {
 
   use super::*;
@@ -449,7 +449,7 @@ mod test {
     protocol::context::WithContext,
   };
   use actix_web::{dev::ServerHandle, web, App, HttpResponse, HttpServer};
-  use lemmy_api_common::utils::{generate_inbox_url, generate_shared_inbox_url};
+  use lemmy_api_common::utils::generate_inbox_url;
   use lemmy_db_schema::{
     newtypes::DbUrl,
     source::{
@@ -459,7 +459,6 @@ mod test {
     traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
-  use reqwest::StatusCode;
   use serde_json::{json, Value};
   use serial_test::serial;
   use test_context::{test_context, AsyncTestContext};
@@ -492,8 +491,7 @@ mod test {
       let person_form = PersonInsertForm {
         actor_id: Some(actor_id.clone()),
         private_key: (Some(actor_keypair.private_key)),
-        inbox_url: Some(generate_inbox_url(&actor_id)?),
-        shared_inbox_url: Some(generate_shared_inbox_url(context.settings())?),
+        inbox_url: Some(generate_inbox_url()?),
         ..PersonInsertForm::new("alice".to_string(), actor_keypair.public_key, instance.id)
       };
       let person = Person::create(&mut context.pool(), &person_form).await?;
@@ -659,10 +657,7 @@ mod test {
   #[tokio::test]
   #[serial]
   async fn test_update_instance(data: &mut Data) -> LemmyResult<()> {
-    let form = InstanceForm::builder()
-      .domain(data.instance.domain.clone())
-      .updated(None)
-      .build();
+    let form = InstanceForm::new(data.instance.domain.clone());
     Instance::update(&mut data.context.pool(), data.instance.id, form).await?;
 
     send_activity(data.person.actor_id.clone(), &data.context, true).await?;
@@ -688,7 +683,7 @@ mod test {
             |inbox_sender: actix_web::web::Data<UnboundedSender<String>>, body: String| async move {
               tracing::debug!("received activity: {:?}", body);
               inbox_sender.send(body.clone()).unwrap();
-              HttpResponse::new(StatusCode::OK)
+              HttpResponse::new(actix_web::http::StatusCode::OK)
             },
           ),
         )

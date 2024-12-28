@@ -5,6 +5,7 @@ use url::Url;
 pub mod activity;
 pub mod actor_language;
 pub mod captcha_answer;
+pub mod combined;
 pub mod comment;
 pub mod comment_reply;
 pub mod comment_report;
@@ -27,7 +28,9 @@ pub mod local_site_url_blocklist;
 pub mod local_user;
 pub mod local_user_vote_display_mode;
 pub mod login_token;
-pub mod moderator;
+pub mod mod_log;
+pub mod oauth_account;
+pub mod oauth_provider;
 pub mod password_reset_request;
 pub mod person;
 pub mod person_block;
@@ -39,6 +42,7 @@ pub mod private_message_report;
 pub mod registration_application;
 pub mod secret;
 pub mod site;
+pub mod tag;
 pub mod tagline;
 
 /// Default value for columns like [community::Community.inbox_url] which are marked as serde(skip).
@@ -46,6 +50,7 @@ pub mod tagline;
 /// This is necessary so they can be successfully deserialized from API responses, even though the
 /// value is not sent by Lemmy. Necessary for crates which rely on Rust API such as
 /// lemmy-stats-crawler.
+#[allow(clippy::expect_used)]
 fn placeholder_apub_url() -> DbUrl {
   DbUrl(Box::new(
     Url::parse("http://example.com").expect("parse placeholder url"),

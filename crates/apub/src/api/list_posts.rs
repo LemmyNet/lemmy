@@ -1,5 +1,5 @@
 use crate::{
-  api::{listing_type_with_default, sort_type_with_default},
+  api::{listing_type_with_default, post_sort_type_with_default},
   fetcher::resolve_actor_identifier,
   objects::community::ApubCommunity,
 };
@@ -8,14 +8,17 @@ use actix_web::web::{Json, Query};
 use lemmy_api_common::{
   context::LemmyContext,
   post::{GetPosts, GetPostsResponse},
-  utils::check_private_instance,
+  utils::{check_conflicting_like_filters, check_private_instance},
 };
-use lemmy_db_schema::source::community::Community;
+use lemmy_db_schema::{
+  newtypes::PostId,
+  source::{community::Community, post::PostRead},
+};
 use lemmy_db_views::{
   post_view::PostQuery,
   structs::{LocalUserView, PaginationCursor, SiteView},
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn list_posts(
@@ -23,9 +26,7 @@ pub async fn list_posts(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPostsResponse>> {
-  let local_site = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site.local_site)?;
 
@@ -44,12 +45,11 @@ pub async fn list_posts(
   let show_hidden = data.show_hidden;
   let show_read = data.show_read;
   let show_nsfw = data.show_nsfw;
+  let no_comments_only = data.no_comments_only;
 
   let liked_only = data.liked_only;
   let disliked_only = data.disliked_only;
-  if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
-    return Err(LemmyError::from(LemmyErrorType::ContradictingFilters));
-  }
+  check_conflicting_like_filters(liked_only, disliked_only)?;
 
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let listing_type = Some(listing_type_with_default(
@@ -59,7 +59,7 @@ pub async fn list_posts(
     community_id,
   ));
 
-  let sort = Some(sort_type_with_default(
+  let sort = Some(post_sort_type_with_default(
     data.sort,
     local_user,
     &local_site.local_site,
@@ -86,11 +86,23 @@ pub async fn list_posts(
     show_hidden,
     show_read,
     show_nsfw,
+    no_comments_only,
     ..Default::default()
   }
   .list(&local_site.site, &mut context.pool())
   .await
   .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
+
+  // If in their user settings (or as part of the API request), auto-mark fetched posts as read
+  if let Some(local_user) = local_user {
+    if data
+      .mark_as_read
+      .unwrap_or(local_user.auto_mark_fetched_posts_as_read)
+    {
+      let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
+      PostRead::mark_many_as_read(&mut context.pool(), &post_ids, local_user.person_id).await?;
+    }
+  }
 
   // if this page wasn't empty, then there is a next page after the last post on this page
   let next_page = posts.last().map(PaginationCursor::after_post);

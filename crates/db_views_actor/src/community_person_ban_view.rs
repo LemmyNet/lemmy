@@ -1,25 +1,30 @@
 use crate::structs::CommunityPersonBanView;
-use diesel::{dsl::exists, result::Error, select, ExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::{exists, not},
+  select,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
-  schema::community_person_ban,
-  utils::{get_conn, DbPool},
+  schema::community_actions,
+  utils::{find_action, get_conn, DbPool},
 };
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl CommunityPersonBanView {
-  pub async fn get(
+  pub async fn check(
     pool: &mut DbPool<'_>,
     from_person_id: PersonId,
     from_community_id: CommunityId,
-  ) -> Result<bool, Error> {
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(
-      community_person_ban::table
-        .filter(community_person_ban::community_id.eq(from_community_id))
-        .filter(community_person_ban::person_id.eq(from_person_id)),
-    ))
+    select(not(exists(find_action(
+      community_actions::received_ban,
+      (from_person_id, from_community_id),
+    ))))
     .get_result::<bool>(conn)
-    .await
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::PersonIsBannedFromCommunity.into())
   }
 }

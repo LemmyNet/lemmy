@@ -1,11 +1,7 @@
 {
   # settings related to the postgresql database
   database: {
-    # Configure the database by specifying a URI
-    # 
-    # This is the preferred method to specify database connection details since
-    # it is the most flexible.
-    # Connection URI pointing to a postgres instance
+    # Configure the database by specifying URI pointing to a postgres instance
     # 
     # This example uses peer authentication to obviate the need for creating,
     # configuring, and managing passwords.
@@ -14,25 +10,7 @@
     # PostgreSQL's documentation.
     # 
     # [0]: https://www.postgresql.org/docs/current/libpq-connect.html#id-1.7.3.8.3.6
-    uri: "postgresql:///lemmy?user=lemmy&host=/var/run/postgresql"
-
-    # or
-
-    # Configure the database by specifying parts of a URI
-    # 
-    # Note that specifying the `uri` field should be preferred since it provides
-    # greater control over how the connection is made. This merely exists for
-    # backwards-compatibility.
-    # Username to connect to postgres
-    user: "string"
-    # Password to connect to postgres
-    password: "string"
-    # Host where postgres is running
-    host: "string"
-    # Port where postgres can be accessed
-    port: 123
-    # Name of the postgres database for lemmy
-    database: "string"
+    connection: "postgres://lemmy:password@localhost:5432/lemmy"
     # Maximum number of active sql connections
     pool_size: 30
   }
@@ -66,15 +44,26 @@
       # or
 
       # If enabled, all images from remote domains are rewritten to pass through
-      # `/api/v3/image_proxy`, including embedded images in markdown. Images are stored temporarily
+      # `/api/v4/image_proxy`, including embedded images in markdown. Images are stored temporarily
       # in pict-rs for caching. This improves privacy as users don't expose their IP to untrusted
       # servers, and decreases load on other servers. However it increases bandwidth use for the
       # local server.
       # 
       # Requires pict-rs 0.5
       "ProxyAllImages"
+    # Allows bypassing proxy for specific image hosts when using ProxyAllImages.
+    # 
+    # imgur.com is bypassed by default to avoid rate limit errors. When specifying any bypass
+    # in the config, this default is ignored and you need to list imgur explicitly. To proxy imgur
+    # requests, specify a noop bypass list, eg `proxy_bypass_domains ["example.org"]`.
+    proxy_bypass_domains: [
+      "i.imgur.com"
+      /* ... */
+    ]
     # Timeout for uploading images to pictrs (in seconds)
     upload_timeout: 30
+    # Resize post thumbnails to this maximum width/height.
+    max_thumbnail_size: 512
   }
   # Email sending configuration. All options except login/password are mandatory
   email: {
@@ -120,5 +109,5 @@
   }
   # Sets a response Access-Control-Allow-Origin CORS header
   # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
-  cors_origin: "*"
+  cors_origin: "lemmy.tld"
 }

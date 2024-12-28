@@ -5,7 +5,7 @@ use lemmy_api_common::{
   utils::is_admin,
 };
 use lemmy_db_views::structs::{LocalUserView, RegistrationApplicationView};
-use lemmy_utils::{error::LemmyResult, LemmyErrorType};
+use lemmy_utils::error::LemmyResult;
 
 /// Lists registration applications, filterable by undenied only.
 pub async fn get_registration_application(
@@ -18,9 +18,7 @@ pub async fn get_registration_application(
 
   // Read the view
   let registration_application =
-    RegistrationApplicationView::read_by_person(&mut context.pool(), data.person_id)
-      .await?
-      .ok_or(LemmyErrorType::CouldntFindRegistrationApplication)?;
+    RegistrationApplicationView::read_by_person(&mut context.pool(), data.person_id).await?;
 
   Ok(Json(RegistrationApplicationResponse {
     registration_application,

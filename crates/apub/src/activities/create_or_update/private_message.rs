@@ -3,7 +3,7 @@ use crate::{
   insert_received_activity,
   objects::{person::ApubPerson, private_message::ApubPrivateMessage},
   protocol::activities::{
-    create_or_update::chat_message::CreateOrUpdateChatMessage,
+    create_or_update::private_message::CreateOrUpdatePrivateMessage,
     CreateOrUpdateType,
   },
 };
@@ -30,7 +30,7 @@ pub(crate) async fn send_create_or_update_pm(
     kind.clone(),
     &context.settings().get_protocol_and_hostname(),
   )?;
-  let create_or_update = CreateOrUpdateChatMessage {
+  let create_or_update = CreateOrUpdatePrivateMessage {
     id: id.clone(),
     actor: actor.id().into(),
     to: [recipient.id().into()],
@@ -44,7 +44,7 @@ pub(crate) async fn send_create_or_update_pm(
 }
 
 #[async_trait::async_trait]
-impl ActivityHandler for CreateOrUpdateChatMessage {
+impl ActivityHandler for CreateOrUpdatePrivateMessage {
   type DataType = LemmyContext;
   type Error = LemmyError;
 
