@@ -16,3 +16,8 @@ CREATE TABLE community_report (
 
 CREATE INDEX idx_community_report_published ON community_report (published DESC);
 
+ALTER TABLE report_combined
+    ADD COLUMN community_report_id int UNIQUE REFERENCES community_report ON UPDATE CASCADE ON DELETE CASCADE,
+    DROP CONSTRAINT report_combined_check,
+    ADD CHECK (num_nonnulls (post_report_id, comment_report_id, private_message_report_id, community_report_id) = 1);
+

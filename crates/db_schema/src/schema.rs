@@ -913,6 +913,7 @@ diesel::table! {
         post_report_id -> Nullable<Int4>,
         comment_report_id -> Nullable<Int4>,
         private_message_report_id -> Nullable<Int4>,
+        community_report_id -> Nullable<Int4>,
     }
 }
 
@@ -1086,6 +1087,7 @@ diesel::joinable!(private_message_report -> private_message (private_message_id)
 diesel::joinable!(registration_application -> local_user (local_user_id));
 diesel::joinable!(registration_application -> person (admin_id));
 diesel::joinable!(report_combined -> comment_report (comment_report_id));
+diesel::joinable!(report_combined -> community_report (community_report_id));
 diesel::joinable!(report_combined -> post_report (post_report_id));
 diesel::joinable!(report_combined -> private_message_report (private_message_report_id));
 diesel::joinable!(site -> instance (instance_id));

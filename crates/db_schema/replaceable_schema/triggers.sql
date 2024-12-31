@@ -685,3 +685,5 @@ CALL r.create_report_combined_trigger ('comment_report');
 
 CALL r.create_report_combined_trigger ('private_message_report');
 
+CALL r.create_report_combined_trigger ('community_report');
+

@@ -1,5 +1,6 @@
 use crate::structs::{
   CommentReportView,
+  CommunityReportView,
   LocalUserView,
   PostReportView,
   PrivateMessageReportView,
@@ -29,6 +30,8 @@ use lemmy_db_schema::{
     comment_report,
     community,
     community_actions,
+    community_aggregates,
+    community_report,
     local_user,
     person,
     person_actions,
@@ -64,6 +67,7 @@ impl ReportCombinedViewInternal {
       .left_join(post_report::table)
       .left_join(comment_report::table)
       .left_join(private_message_report::table)
+      .left_join(community_report::table)
       // Need to join to comment and post to get the community
       .left_join(comment::table.on(comment_report::comment_id.eq(comment::id)))
       // The post
@@ -84,6 +88,7 @@ impl ReportCombinedViewInternal {
         post_report::resolved
           .or(comment_report::resolved)
           .or(private_message_report::resolved)
+          .or(community_report::resolved)
           .is_distinct_from(true),
       )
       .into_boxed();
@@ -111,6 +116,7 @@ impl ReportCombinedPaginationCursor {
       ReportCombinedView::Comment(v) => ('C', v.comment_report.id.0),
       ReportCombinedView::Post(v) => ('P', v.post_report.id.0),
       ReportCombinedView::PrivateMessage(v) => ('M', v.private_message_report.id.0),
+      ReportCombinedView::Community(v) => ('Y', v.community_report.id.0),
     };
     // hex encoding to prevent ossification
     ReportCombinedPaginationCursor(format!("{prefix}{id:x}"))
@@ -127,6 +133,7 @@ impl ReportCombinedPaginationCursor {
       "C" => query.filter(report_combined::comment_report_id.eq(id)),
       "P" => query.filter(report_combined::post_report_id.eq(id)),
       "M" => query.filter(report_combined::private_message_report_id.eq(id)),
+      "Y" => query.filter(report_combined::community_report_id.eq(id)),
       _ => return Err(err_msg()),
     };
     let token = query.first(&mut get_conn(pool).await?).await?;
@@ -167,13 +174,15 @@ impl ReportCombinedQuery {
       .left_join(post_report::table)
       .left_join(comment_report::table)
       .left_join(private_message_report::table)
+      .left_join(community_report::table)
       // The report creator
       .inner_join(
         person::table.on(
           post_report::creator_id
             .eq(person::id)
             .or(comment_report::creator_id.eq(person::id))
-            .or(private_message_report::creator_id.eq(person::id)),
+            .or(private_message_report::creator_id.eq(person::id))
+            .or(community_report::creator_id.eq(person::id)),
         ),
       )
       // The comment
@@ -192,7 +201,7 @@ impl ReportCombinedQuery {
         ),
       )
       // The item creator (`item_creator` is the id of this person)
-      .inner_join(
+      .left_join(
         aliases::person1.on(
           post::creator_id
             .eq(item_creator)
@@ -201,7 +210,13 @@ impl ReportCombinedQuery {
         ),
       )
       // The community
-      .left_join(community::table.on(post::community_id.eq(community::id)))
+      .left_join(
+        community::table.on(
+          post::community_id
+            .eq(community::id)
+            .or(community_report::community_id.eq(community::id)),
+        ),
+      )
       .left_join(actions_alias(
         creator_community_actions,
         item_creator,
@@ -217,7 +232,7 @@ impl ReportCombinedQuery {
       .left_join(actions(
         community_actions::table,
         Some(my_person_id),
-        post::community_id,
+        community::id,
       ))
       .left_join(actions(post_actions::table, Some(my_person_id), post::id))
       .left_join(actions(
@@ -229,13 +244,18 @@ impl ReportCombinedQuery {
       .left_join(
         comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
       )
+      .left_join(
+        community_aggregates::table
+          .on(community_report::community_id.eq(community_aggregates::community_id)),
+      )
       // The resolver
       .left_join(
         aliases::person2.on(
           private_message_report::resolver_id
             .eq(resolver)
             .or(post_report::resolver_id.eq(resolver))
-            .or(comment_report::resolver_id.eq(resolver)),
+            .or(comment_report::resolver_id.eq(resolver))
+            .or(community_report::resolver_id.eq(resolver)),
         ),
       )
       .left_join(actions(
@@ -266,9 +286,12 @@ impl ReportCombinedQuery {
         // Private-message-specific
         private_message_report::all_columns.nullable(),
         private_message::all_columns.nullable(),
+        // Community-specific
+        community_report::all_columns.nullable(),
+        community_aggregates::all_columns.nullable(),
         // Shared
         person::all_columns,
-        aliases::person1.fields(person::all_columns),
+        aliases::person1.fields(person::all_columns.nullable()),
         community::all_columns.nullable(),
         CommunityFollower::select_subscribed_type(),
         aliases::person2.fields(person::all_columns.nullable()),
@@ -286,12 +309,20 @@ impl ReportCombinedQuery {
       .into_boxed();
 
     if let Some(community_id) = self.community_id {
-      query = query.filter(community::id.eq(community_id));
+      query = query.filter(
+        community::id
+          .eq(community_id)
+          .and(report_combined::community_report_id.is_null()),
+      );
     }
 
     // If its not an admin, get only the ones you mod
     if !user.local_user.admin {
-      query = query.filter(community_actions::became_moderator.is_not_null());
+      query = query.filter(
+        community_actions::became_moderator
+          .is_not_null()
+          .and(report_combined::community_report_id.is_null()),
+      );
     }
 
     let mut query = PaginatedQueryBuilder::new(query);
@@ -312,6 +343,7 @@ impl ReportCombinedQuery {
           post_report::resolved
             .or(comment_report::resolved)
             .or(private_message_report::resolved)
+            .or(community_report::resolved)
             .is_distinct_from(true),
         )
         // TODO: when a `then_asc` method is added, use it here, make the id sort direction match,
@@ -338,12 +370,20 @@ fn map_to_enum(view: ReportCombinedViewInternal) -> Option<ReportCombinedView> {
   // Use for a short alias
   let v = view;
 
-  if let (Some(post_report), Some(post), Some(community), Some(unread_comments), Some(counts)) = (
+  if let (
+    Some(post_report),
+    Some(post),
+    Some(community),
+    Some(unread_comments),
+    Some(counts),
+    Some(post_creator),
+  ) = (
     v.post_report,
     v.post.clone(),
     v.community.clone(),
     v.post_unread_comments,
     v.post_counts,
+    v.item_creator.clone(),
   ) {
     Some(ReportCombinedView::Post(PostReportView {
       post_report,
@@ -352,7 +392,7 @@ fn map_to_enum(view: ReportCombinedViewInternal) -> Option<ReportCombinedView> {
       unread_comments,
       counts,
       creator: v.report_creator,
-      post_creator: v.item_creator,
+      post_creator,
       creator_banned_from_community: v.item_creator_banned_from_community,
       creator_is_moderator: v.item_creator_is_moderator,
       creator_is_admin: v.item_creator_is_admin,
@@ -364,12 +404,20 @@ fn map_to_enum(view: ReportCombinedViewInternal) -> Option<ReportCombinedView> {
       my_vote: v.my_post_vote,
       resolver: v.resolver,
     }))
-  } else if let (Some(comment_report), Some(comment), Some(counts), Some(post), Some(community)) = (
+  } else if let (
+    Some(comment_report),
+    Some(comment),
+    Some(counts),
+    Some(post),
+    Some(community),
+    Some(comment_creator),
+  ) = (
     v.comment_report,
     v.comment,
     v.comment_counts,
     v.post.clone(),
     v.community.clone(),
+    v.item_creator.clone(),
   ) {
     Some(ReportCombinedView::Comment(CommentReportView {
       comment_report,
@@ -378,7 +426,7 @@ fn map_to_enum(view: ReportCombinedViewInternal) -> Option<ReportCombinedView> {
       post,
       community,
       creator: v.report_creator,
-      comment_creator: v.item_creator,
+      comment_creator,
       creator_banned_from_community: v.item_creator_banned_from_community,
       creator_is_moderator: v.item_creator_is_moderator,
       creator_is_admin: v.item_creator_is_admin,
@@ -388,18 +436,32 @@ fn map_to_enum(view: ReportCombinedViewInternal) -> Option<ReportCombinedView> {
       my_vote: v.my_comment_vote,
       resolver: v.resolver,
     }))
-  } else if let (Some(private_message_report), Some(private_message)) =
-    (v.private_message_report, v.private_message)
+  } else if let (
+    Some(private_message_report),
+    Some(private_message),
+    Some(private_message_creator),
+  ) = (v.private_message_report, v.private_message, v.item_creator)
   {
     Some(ReportCombinedView::PrivateMessage(
       PrivateMessageReportView {
         private_message_report,
         private_message,
         creator: v.report_creator,
-        private_message_creator: v.item_creator,
+        private_message_creator,
         resolver: v.resolver,
       },
     ))
+  } else if let (Some(community), Some(community_report), Some(counts)) =
+    (v.community, v.community_report, v.community_counts)
+  {
+    Some(ReportCombinedView::Community(CommunityReportView {
+      community_report,
+      community,
+      creator: v.report_creator,
+      counts,
+      subscribed: v.subscribed,
+      resolver: v.resolver,
+    }))
   } else {
     None
   }

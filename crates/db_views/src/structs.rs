@@ -293,9 +293,12 @@ pub struct ReportCombinedViewInternal {
   // Private-message-specific
   pub private_message_report: Option<PrivateMessageReport>,
   pub private_message: Option<PrivateMessage>,
+  // Community-specific
+  pub community_report: Option<CommunityReport>,
+  pub community_counts: Option<CommunityAggregates>,
   // Shared
   pub report_creator: Person,
-  pub item_creator: Person,
+  pub item_creator: Option<Person>,
   pub community: Option<Community>,
   pub subscribed: SubscribedType,
   pub resolver: Option<Person>,
@@ -314,6 +317,7 @@ pub enum ReportCombinedView {
   Post(PostReportView),
   Comment(CommentReportView),
   PrivateMessage(PrivateMessageReportView),
+  Community(CommunityReportView),
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
