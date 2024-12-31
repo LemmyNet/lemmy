@@ -151,6 +151,8 @@ pub async fn update_site(
     .ok();
 
   if let Some(url_blocklist) = data.blocked_urls.clone() {
+    // If this validation changes it must be synced with
+    // lemmy_utils::utils::markdown::create_url_blocklist_test_regex_set.
     let parsed_urls = check_urls_are_valid(&url_blocklist)?;
     LocalSiteUrlBlocklist::replace(&mut context.pool(), parsed_urls).await?;
   }
