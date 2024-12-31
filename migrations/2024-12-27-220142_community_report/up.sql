@@ -21,3 +21,7 @@ ALTER TABLE report_combined
     DROP CONSTRAINT report_combined_check,
     ADD CHECK (num_nonnulls (post_report_id, comment_report_id, private_message_report_id, community_report_id) = 1);
 
+ALTER TABLE community_aggregates
+    ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
+    ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
+

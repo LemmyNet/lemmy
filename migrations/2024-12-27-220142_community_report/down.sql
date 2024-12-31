@@ -8,3 +8,7 @@ ALTER TABLE report_combined
 
 DROP TABLE community_report CASCADE;
 
+ALTER TABLE community_aggregates
+    DROP COLUMN report_count,
+    DROP COLUMN unresolved_report_count;
+
