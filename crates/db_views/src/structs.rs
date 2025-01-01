@@ -99,6 +99,7 @@ pub struct CommunityReportView {
   pub creator: Person,
   pub counts: CommunityAggregates,
   pub subscribed: SubscribedType,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub resolver: Option<Person>,
 }
 
