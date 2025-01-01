@@ -1,4 +1,4 @@
-use crate::newtypes::{CommunityId, CommunityReportId, PersonId};
+use crate::newtypes::{CommunityId, CommunityReportId, DbUrl, PersonId};
 #[cfg(feature = "full")]
 use crate::schema::community_report;
 use chrono::{DateTime, Utc};
@@ -25,14 +25,20 @@ pub struct CommunityReport {
   pub id: CommunityReportId,
   pub creator_id: PersonId,
   pub community_id: CommunityId,
+  pub original_community_name: String,
   pub original_community_title: String,
-  pub original_community_description: String,
-  pub original_community_icon: String,
-  pub original_community_banner: String,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub original_community_description: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub original_community_icon: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub original_community_banner: Option<String>,
   pub reason: String,
   pub resolved: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub resolver_id: Option<PersonId>,
   pub published: DateTime<Utc>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
 }
 
@@ -42,9 +48,10 @@ pub struct CommunityReport {
 pub struct CommunityReportForm {
   pub creator_id: PersonId,
   pub community_id: CommunityId,
+  pub original_community_name: String,
   pub original_community_title: String,
-  pub original_community_description: String,
-  pub original_community_icon: String,
-  pub original_community_banner: String,
+  pub original_community_description: Option<String>,
+  pub original_community_icon: Option<DbUrl>,
+  pub original_community_banner: Option<DbUrl>,
   pub reason: String,
 }

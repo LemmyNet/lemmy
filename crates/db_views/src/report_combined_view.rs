@@ -488,6 +488,7 @@ mod tests {
       comment::{Comment, CommentInsertForm},
       comment_report::{CommentReport, CommentReportForm},
       community::{Community, CommunityInsertForm, CommunityModerator, CommunityModeratorForm},
+      community_report::{CommunityReport, CommunityReportForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       local_user_vote_display_mode::LocalUserVoteDisplayMode,
@@ -613,6 +614,19 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
+    // Sara reports the community
+    let sara_report_community_form = CommunityReportForm {
+      creator_id: data.sara.id,
+      community_id: data.community.id,
+      original_community_name: data.community.name.clone(),
+      original_community_banner: data.community.banner.clone(),
+      original_community_description: data.community.description.clone(),
+      original_community_icon: data.community.icon.clone(),
+      original_community_title: data.community.title.clone(),
+      reason: "from sara".into(),
+    };
+    CommunityReport::report(pool, &sara_report_community_form).await?;
+
     // sara reports the post
     let sara_report_post_form = PostReportForm {
       creator_id: data.sara.id,
@@ -654,9 +668,14 @@ mod tests {
     let reports = ReportCombinedQuery::default()
       .list(pool, &data.admin_view)
       .await?;
-    assert_eq!(3, reports.len());
+    assert_eq!(4, reports.len());
 
     // Make sure the report types are correct
+    if let ReportCombinedView::Community(v) = &reports[3] {
+      assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
     if let ReportCombinedView::Post(v) = &reports[2] {
       assert_eq!(data.post.id, v.post.id);
       assert_eq!(data.sara.id, v.creator.id);
@@ -679,7 +698,7 @@ mod tests {
 
     let report_count_admin =
       ReportCombinedViewInternal::get_report_count(pool, &data.admin_view, None).await?;
-    assert_eq!(3, report_count_admin);
+    assert_eq!(4, report_count_admin);
 
     // Timmy should only see 2 reports, since they're not an admin,
     // but they do mod the community
