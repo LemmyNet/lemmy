@@ -571,7 +571,7 @@ mod tests {
     };
     CommentReport::report(pool, &sara_report_comment_form).await?;
 
-    // Timmy creates a private message report
+    // Timmy creates a private message
     let pm_form = PrivateMessageInsertForm::new(
       data.timmy.id,
       data.sara.id,
