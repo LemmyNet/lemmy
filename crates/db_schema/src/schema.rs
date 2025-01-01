@@ -273,6 +273,7 @@ diesel::table! {
         original_community_name -> Text,
         original_community_title -> Text,
         original_community_description -> Nullable<Text>,
+        original_community_sidebar -> Nullable<Text>,
         original_community_icon -> Nullable<Text>,
         original_community_banner -> Nullable<Text>,
         reason -> Text,

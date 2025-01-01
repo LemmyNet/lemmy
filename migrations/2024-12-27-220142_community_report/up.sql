@@ -5,6 +5,7 @@ CREATE TABLE community_report (
     original_community_name text NOT NULL,
     original_community_title text NOT NULL,
     original_community_description text,
+    original_community_sidebar text,
     original_community_icon text,
     original_community_banner text,
     reason text NOT NULL,

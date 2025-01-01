@@ -30,6 +30,8 @@ pub struct CommunityReport {
   #[cfg_attr(feature = "full", ts(optional))]
   pub original_community_description: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
+  pub original_community_sidebar: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub original_community_icon: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub original_community_banner: Option<String>,
@@ -51,6 +53,7 @@ pub struct CommunityReportForm {
   pub original_community_name: String,
   pub original_community_title: String,
   pub original_community_description: Option<String>,
+  pub original_community_sidebar: Option<String>,
   pub original_community_icon: Option<DbUrl>,
   pub original_community_banner: Option<DbUrl>,
   pub reason: String,

@@ -619,10 +619,11 @@ mod tests {
       creator_id: data.sara.id,
       community_id: data.community.id,
       original_community_name: data.community.name.clone(),
-      original_community_banner: data.community.banner.clone(),
-      original_community_description: data.community.description.clone(),
-      original_community_icon: data.community.icon.clone(),
       original_community_title: data.community.title.clone(),
+      original_community_banner: None,
+      original_community_description: None,
+      original_community_sidebar: None,
+      original_community_icon: None,
       reason: "from sara".into(),
     };
     CommunityReport::report(pool, &sara_report_community_form).await?;
@@ -1040,6 +1041,64 @@ mod tests {
     let report_count_after_resolved =
       ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
     assert_eq!(1, report_count_after_resolved);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_community_reports() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // jessica reports community
+    let community_report_form = CommunityReportForm {
+      creator_id: data.jessica.id,
+      community_id: data.community.id,
+      original_community_name: data.community.name.clone(),
+      original_community_title: data.community.title.clone(),
+      original_community_banner: None,
+      original_community_description: None,
+      original_community_sidebar: None,
+      original_community_icon: None,
+      reason: "the ice cream incident".into(),
+    };
+    let community_report = CommunityReport::report(pool, &community_report_form).await?;
+
+    let reports = ReportCombinedQuery::default()
+      .list(pool, &data.admin_view)
+      .await?;
+    assert_length!(1, reports);
+    if let ReportCombinedView::Community(v) = &reports[0] {
+      assert!(!v.community_report.resolved);
+      assert_eq!(data.jessica.name, v.creator.name);
+      assert_eq!(community_report.reason, v.community_report.reason);
+      assert_eq!(data.community.name, v.community.name);
+      assert_eq!(data.community.title, v.community.title);
+    } else {
+      panic!("wrong type");
+    }
+
+    // admin resolves the report (after taking appropriate action)
+    CommunityReport::resolve(pool, community_report.id, data.admin_view.person.id).await?;
+
+    let reports = ReportCombinedQuery::default()
+      .list(pool, &data.admin_view)
+      .await?;
+    assert_length!(1, reports);
+    if let ReportCombinedView::Community(v) = &reports[0] {
+      assert!(v.community_report.resolved);
+      assert!(v.resolver.is_some());
+      assert_eq!(
+        Some(&data.admin_view.person.name),
+        v.resolver.as_ref().map(|r| &r.name)
+      );
+    } else {
+      panic!("wrong type");
+    }
 
     cleanup(data, pool).await?;
 
