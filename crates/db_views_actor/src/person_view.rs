@@ -99,15 +99,15 @@ fn queries<'a>(
           )
           .filter(person::deleted.eq(false));
       }
-      ListMode::Query(options) => {
-        if let Some(search_term) = options.search_term {
+      ListMode::Query(o) => {
+        if let Some(search_term) = o.search_term {
           let searcher = fuzzy_search(&search_term);
           query = query
             .filter(person::name.ilike(searcher.clone()))
             .or_filter(person::display_name.ilike(searcher));
         }
 
-        let sort = options.sort.map(post_to_person_sort_type);
+        let sort = o.sort.map(post_to_person_sort_type);
         query = match sort.unwrap_or(PersonSortType::CommentScore) {
           PersonSortType::New => query.order_by(person::published.desc()),
           PersonSortType::Old => query.order_by(person::published.asc()),
@@ -117,10 +117,10 @@ fn queries<'a>(
           PersonSortType::PostCount => query.order_by(person_aggregates::post_count.desc()),
         };
 
-        let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+        let (limit, offset) = limit_and_offset(o.page, o.limit)?;
         query = query.limit(limit).offset(offset);
 
-        if let Some(listing_type) = options.listing_type {
+        if let Some(listing_type) = o.listing_type {
           query = match listing_type {
             // return nothing as its not possible to follow users
             ListingType::Subscribed => query.limit(0),

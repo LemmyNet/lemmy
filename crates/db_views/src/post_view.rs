@@ -226,23 +226,20 @@ fn queries<'a>() -> Queries<
       .await
   };
 
-  let list = move |mut conn: DbConn<'a>, (options, site): (PostQuery<'a>, &'a Site)| async move {
+  let list = move |mut conn: DbConn<'a>, (o, site): (PostQuery<'a>, &'a Site)| async move {
     // The left join below will return None in this case
-    let local_user_id_join = options
-      .local_user
-      .local_user_id()
-      .unwrap_or(LocalUserId(-1));
+    let local_user_id_join = o.local_user.local_user_id().unwrap_or(LocalUserId(-1));
 
     let mut query = all_joins(
       post_aggregates::table.into_boxed(),
-      options.local_user.person_id(),
+      o.local_user.person_id(),
     );
 
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
 
     // only creator can see deleted posts and unpublished scheduled posts
-    if let Some(person_id) = options.local_user.person_id() {
+    if let Some(person_id) = o.local_user.person_id() {
       query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
       query = query.filter(
         post::scheduled_publish_time
@@ -256,21 +253,21 @@ fn queries<'a>() -> Queries<
     }
 
     // only show removed posts to admin when viewing user profile
-    if !(options.creator_id.is_some() && options.local_user.is_admin()) {
+    if !(o.creator_id.is_some() && o.local_user.is_admin()) {
       query = query
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
     }
-    if let Some(community_id) = options.community_id {
+    if let Some(community_id) = o.community_id {
       query = query.filter(post_aggregates::community_id.eq(community_id));
     }
 
-    if let Some(creator_id) = options.creator_id {
+    if let Some(creator_id) = o.creator_id {
       query = query.filter(post_aggregates::creator_id.eq(creator_id));
     }
 
     let is_subscribed = community_actions::followed.is_not_null();
-    match options.listing_type.unwrap_or_default() {
+    match o.listing_type.unwrap_or_default() {
       ListingType::Subscribed => query = query.filter(is_subscribed),
       ListingType::Local => {
         query = query
@@ -283,14 +280,14 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if let Some(search_term) = &options.search_term {
-      if options.url_only.unwrap_or_default() {
+    if let Some(search_term) = &o.search_term {
+      if o.url_only.unwrap_or_default() {
         query = query.filter(post::url.eq(search_term));
       } else {
         let searcher = fuzzy_search(search_term);
         let name_filter = post::name.ilike(searcher.clone());
         let body_filter = post::body.ilike(searcher.clone());
-        query = if options.title_only.unwrap_or_default() {
+        query = if o.title_only.unwrap_or_default() {
           query.filter(name_filter)
         } else {
           query.filter(name_filter.or(body_filter))
@@ -299,64 +296,58 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if !options
-      .show_nsfw
-      .unwrap_or(options.local_user.show_nsfw(site))
-    {
+    if !o.show_nsfw.unwrap_or(o.local_user.show_nsfw(site)) {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
     };
 
-    if !options.local_user.show_bot_accounts() {
+    if !o.local_user.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
 
     // Filter to show only posts with no comments
-    if options.no_comments_only.unwrap_or_default() {
+    if o.no_comments_only.unwrap_or_default() {
       query = query.filter(post_aggregates::comments.eq(0));
     };
 
     // If its saved only, then filter, and order by the saved time, not the comment creation time.
-    if options.saved_only.unwrap_or_default() {
+    if o.saved_only.unwrap_or_default() {
       query = query
         .filter(post_actions::saved.is_not_null())
         .then_order_by(post_actions::saved.desc());
     }
     // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
     // setting wont be able to see saved posts.
-    else if !options
-      .show_read
-      .unwrap_or(options.local_user.show_read_posts())
-    {
+    else if !o.show_read.unwrap_or(o.local_user.show_read_posts()) {
       // Do not hide read posts when it is a user profile view
       // Or, only hide read posts on non-profile views
-      if options.creator_id.is_none() {
+      if o.creator_id.is_none() {
         query = query.filter(post_actions::read.is_null());
       }
     }
 
     // If a creator id isn't given (IE its on home or community pages), hide the hidden posts
-    if !options.show_hidden.unwrap_or_default() && options.creator_id.is_none() {
+    if !o.show_hidden.unwrap_or_default() && o.creator_id.is_none() {
       query = query.filter(post_actions::hidden.is_null());
     }
 
-    if let Some(my_id) = options.local_user.person_id() {
+    if let Some(my_id) = o.local_user.person_id() {
       let not_creator_filter = post_aggregates::creator_id.ne(my_id);
-      if options.liked_only.unwrap_or_default() {
+      if o.liked_only.unwrap_or_default() {
         query = query
           .filter(not_creator_filter)
           .filter(post_actions::like_score.eq(1));
-      } else if options.disliked_only.unwrap_or_default() {
+      } else if o.disliked_only.unwrap_or_default() {
         query = query
           .filter(not_creator_filter)
           .filter(post_actions::like_score.eq(-1));
       }
     };
 
-    query = options.local_user.visible_communities_only(query);
+    query = o.local_user.visible_communities_only(query);
 
-    if !options.local_user.is_admin() {
+    if !o.local_user.is_admin() {
       query = query.filter(
         community::visibility
           .ne(CommunityVisibility::Private)
@@ -365,9 +356,9 @@ fn queries<'a>() -> Queries<
     }
 
     // Dont filter blocks or missing languages for moderator view type
-    if options.listing_type.unwrap_or_default() != ListingType::ModeratorView {
+    if o.listing_type.unwrap_or_default() != ListingType::ModeratorView {
       // Filter out the rows with missing languages if user is logged in
-      if options.local_user.is_some() {
+      if o.local_user.is_some() {
         query = query.filter(exists(
           local_user_language::table.filter(
             post::language_id
@@ -383,15 +374,15 @@ fn queries<'a>() -> Queries<
       query = query.filter(person_actions::blocked.is_null());
     }
 
-    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+    let (limit, offset) = limit_and_offset(o.page, o.limit)?;
     query = query.limit(limit).offset(offset);
 
     let mut query = PaginatedQueryBuilder::new(query);
 
-    let page_after = options.page_after.map(|c| c.0);
-    let page_before_or_equal = options.page_before_or_equal.map(|c| c.0);
+    let page_after = o.page_after.map(|c| c.0);
+    let page_before_or_equal = o.page_before_or_equal.map(|c| c.0);
 
-    if options.page_back.unwrap_or_default() {
+    if o.page_back.unwrap_or_default() {
       query = query
         .before(page_after)
         .after_or_equal(page_before_or_equal)
@@ -403,7 +394,7 @@ fn queries<'a>() -> Queries<
     }
 
     // featured posts first
-    query = if options.community_id.is_none() || options.community_id_just_for_prefetch {
+    query = if o.community_id.is_none() || o.community_id_just_for_prefetch {
       query.then_desc(key::featured_local)
     } else {
       query.then_desc(key::featured_community)
@@ -412,7 +403,7 @@ fn queries<'a>() -> Queries<
     let time = |interval| post_aggregates::published.gt(now() - interval);
 
     // then use the main sort
-    query = match options.sort.unwrap_or(Hot) {
+    query = match o.sort.unwrap_or(Hot) {
       Active => query.then_desc(key::hot_rank_active),
       Hot => query.then_desc(key::hot_rank),
       Scaled => query.then_desc(key::scaled_rank),
@@ -436,7 +427,7 @@ fn queries<'a>() -> Queries<
 
     // use publish as fallback. especially useful for hot rank which reaches zero after some days.
     // necessary because old posts can be fetched over federation and inserted with high post id
-    query = match options.sort.unwrap_or(Hot) {
+    query = match o.sort.unwrap_or(Hot) {
       // A second time-based sort would not be very useful
       New | Old | NewComments => query,
       _ => query.then_desc(key::published),
@@ -454,7 +445,7 @@ fn queries<'a>() -> Queries<
       .text("PostQuery::list")
       .text_if(
         "getting upper bound for next query",
-        options.community_id_just_for_prefetch,
+        o.community_id_just_for_prefetch,
       )
       .load::<PostView>(&mut conn)
       .await

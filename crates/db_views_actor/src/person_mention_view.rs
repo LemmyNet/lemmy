@@ -113,24 +113,24 @@ fn queries<'a>() -> Queries<
       .await
     };
 
-  let list = move |mut conn: DbConn<'a>, options: PersonMentionQuery| async move {
+  let list = move |mut conn: DbConn<'a>, o: PersonMentionQuery| async move {
     // These filters need to be kept in sync with the filters in
     // PersonMentionView::get_unread_mentions()
-    let mut query = all_joins(person_mention::table.into_boxed(), options.my_person_id);
+    let mut query = all_joins(person_mention::table.into_boxed(), o.my_person_id);
 
-    if let Some(recipient_id) = options.recipient_id {
+    if let Some(recipient_id) = o.recipient_id {
       query = query.filter(person_mention::recipient_id.eq(recipient_id));
     }
 
-    if options.unread_only {
+    if o.unread_only {
       query = query.filter(person_mention::read.eq(false));
     }
 
-    if !options.show_bot_accounts {
+    if !o.show_bot_accounts {
       query = query.filter(not(person::bot_account));
     };
 
-    query = match options.sort.unwrap_or(CommentSortType::Hot) {
+    query = match o.sort.unwrap_or(CommentSortType::Hot) {
       CommentSortType::Hot => query.then_order_by(comment_aggregates::hot_rank.desc()),
       CommentSortType::Controversial => {
         query.then_order_by(comment_aggregates::controversy_rank.desc())
@@ -143,7 +143,7 @@ fn queries<'a>() -> Queries<
     // Don't show mentions from blocked persons
     query = query.filter(person_actions::blocked.is_null());
 
-    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+    let (limit, offset) = limit_and_offset(o.page, o.limit)?;
 
     query
       .limit(limit)
