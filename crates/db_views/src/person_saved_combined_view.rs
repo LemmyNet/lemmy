@@ -220,9 +220,9 @@ impl PersonSavedCombinedQuery {
       query = query.after(page_after);
     }
 
-    // Sorting by published
+    // Sorting by saved desc
     query = query
-      .then_desc(key::published)
+      .then_desc(key::saved)
       // Tie breaker
       .then_desc(key::id);
 

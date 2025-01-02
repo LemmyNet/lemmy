@@ -16,7 +16,7 @@ use i_love_jesus::CursorKeysModule;
 /// A combined person_saved table.
 pub struct PersonSavedCombined {
   pub id: PersonSavedCombinedId,
-  pub published: DateTime<Utc>,
+  pub saved: DateTime<Utc>,
   pub person_id: PersonId,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,

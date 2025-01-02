@@ -751,7 +751,7 @@ diesel::table! {
 diesel::table! {
     person_saved_combined (id) {
         id -> Int4,
-        published -> Timestamptz,
+        saved -> Timestamptz,
         person_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,

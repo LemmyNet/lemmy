@@ -31,7 +31,7 @@ FROM
 -- This one is special, because you use the saved date, not the ordinary published
 CREATE TABLE person_saved_combined (
     id serial PRIMARY KEY,
-    published timestamptz NOT NULL,
+    saved timestamptz NOT NULL,
     person_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
     comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
@@ -39,12 +39,12 @@ CREATE TABLE person_saved_combined (
     CHECK (num_nonnulls (post_id, comment_id) = 1)
 );
 
-CREATE INDEX idx_person_saved_combined_published ON person_saved_combined (published DESC, id DESC);
+CREATE INDEX idx_person_saved_combined_published ON person_saved_combined (saved DESC, id DESC);
 
 CREATE INDEX idx_person_saved_combined ON person_saved_combined (person_id);
 
 -- Updating the history
-INSERT INTO person_saved_combined (published, person_id, post_id, comment_id)
+INSERT INTO person_saved_combined (saved, person_id, post_id, comment_id)
 SELECT
     saved,
     person_id,
