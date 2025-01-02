@@ -107,7 +107,7 @@ pub async fn create_post(
   let scheduled_publish_time =
     convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?;
   let post_form = PostInsertForm {
-    url: url.map(Into::into),
+    url,
     body,
     alt_text: data.alt_text.clone(),
     nsfw: data.nsfw,
