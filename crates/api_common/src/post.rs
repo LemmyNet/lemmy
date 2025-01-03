@@ -99,6 +99,8 @@ pub struct GetPosts {
   #[cfg_attr(feature = "full", ts(optional))]
   pub saved_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
+  pub read_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub liked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
