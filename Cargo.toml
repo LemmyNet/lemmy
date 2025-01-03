@@ -26,11 +26,9 @@ workspace = true
 
 # See https://github.com/johnthagen/min-sized-rust for additional optimizations
 [profile.release]
-debug = false
-lto = true
+lto = "fat"
 opt-level = 3     # Optimize for speed, not size.
 codegen-units = 1 # Reduce parallel code generation.
-panic = "abort"
 
 # This profile significantly speeds up build time. If debug info is needed you can comment the line
 # out temporarily, but make sure to leave this in the main branch.

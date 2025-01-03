@@ -1,8 +1,0 @@
-[unstable]
-codegen-backend = true
-
-[profile.dev]
-codegen-backend = "cranelift"
-
-[build]
-rustflags = ["-Clink-arg=-fuse-ld=lld", "-Zthreads=16", "-Ctarget-cpu=native"]
