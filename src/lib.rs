@@ -113,8 +113,10 @@ enum CmdSubcommand {
   Migration {
     #[command(subcommand)]
     subcommand: MigrationSubcommand,
+    /// Stop after there's no remaining migrations.
     #[arg(long, default_value_t = false)]
     all: bool,
+    /// Stop after the given number of migrations.
     #[arg(long, default_value_t = 1)]
     number: u64,
   },
@@ -122,9 +124,9 @@ enum CmdSubcommand {
 
 #[derive(Subcommand, Debug)]
 enum MigrationSubcommand {
-  /// Run up.sql for the specified migrations.
+  /// Run up.sql for pending migrations, oldest to newest.
   Run,
-  /// Run down.sql for the specified migrations.
+  /// Run down.sql for non-pending migrations, newest to oldest.
   Revert,
 }
 
