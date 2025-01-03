@@ -2676,6 +2676,7 @@ version = "0.19.6-beta.7"
 dependencies = [
  "actix-web",
  "chrono",
+ "derive-new",
  "diesel",
  "diesel-async",
  "diesel_ltree",
