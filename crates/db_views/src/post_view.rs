@@ -318,7 +318,7 @@ fn queries<'a>() -> Queries<
         .then_order_by(post_actions::saved.desc());
     }
 
-    if options.read_only.unwrap_or_default() {
+    if o.read_only.unwrap_or_default() {
       query = query
         .filter(post_actions::read.is_not_null())
         .then_order_by(post_actions::read.desc())
