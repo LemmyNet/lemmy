@@ -2,6 +2,7 @@ mod diff_check;
 
 use crate::schema::previously_run_sql;
 use anyhow::{anyhow, Context};
+use chrono::TimeDelta;
 use diesel::{
   connection::SimpleConnection,
   dsl::exists,
@@ -61,9 +62,11 @@ impl MigrationHarnessWrapper<'_> {
 
     let result = self.conn.run_migration(migration);
 
-    let duration = start_time.elapsed().as_millis();
+    let duration = TimeDelta::from_std(start_time.elapsed())
+      .map(|d| d.to_string())
+      .unwrap_or_default();
     let name = migration.name();
-    println!("{duration}ms run {name}");
+    println!("{duration} run {name}");
 
     result
   }
@@ -104,9 +107,11 @@ impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
 
     let result = self.conn.revert_migration(migration);
 
-    let duration = start_time.elapsed().as_millis();
+    let duration = TimeDelta::from_std(start_time.elapsed())
+      .map(|d| d.to_string())
+      .unwrap_or_default();
     let name = migration.name();
-    println!("{duration}ms revert {name}");
+    println!("{duration} revert {name}");
 
     result
   }
