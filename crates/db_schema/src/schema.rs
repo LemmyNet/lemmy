@@ -827,6 +827,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    post_tag (post_id, tag_id) {
+        post_id -> Int4,
+        tag_id -> Int4,
+        published -> Timestamptz,
+    }
+}
+
+diesel::table! {
     private_message (id) {
         id -> Int4,
         creator_id -> Int4,
@@ -878,6 +886,16 @@ diesel::table! {
     remote_image (link) {
         link -> Text,
         published -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    report_combined (id) {
+        id -> Int4,
+        published -> Timestamptz,
+        post_report_id -> Nullable<Int4>,
+        comment_report_id -> Nullable<Int4>,
+        private_message_report_id -> Nullable<Int4>,
     }
 }
 
@@ -948,6 +966,18 @@ diesel::table! {
     site_language (site_id, language_id) {
         site_id -> Int4,
         language_id -> Int4,
+    }
+}
+
+diesel::table! {
+    tag (id) {
+        id -> Int4,
+        ap_id -> Text,
+        name -> Text,
+        community_id -> Int4,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
+        deleted -> Bool,
     }
 }
 
@@ -1032,13 +1062,19 @@ diesel::joinable!(post_aggregates -> instance (instance_id));
 diesel::joinable!(post_aggregates -> person (creator_id));
 diesel::joinable!(post_aggregates -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
+diesel::joinable!(post_tag -> post (post_id));
+diesel::joinable!(post_tag -> tag (tag_id));
 diesel::joinable!(private_message_report -> private_message (private_message_id));
 diesel::joinable!(registration_application -> local_user (local_user_id));
 diesel::joinable!(registration_application -> person (admin_id));
+diesel::joinable!(report_combined -> comment_report (comment_report_id));
+diesel::joinable!(report_combined -> post_report (post_report_id));
+diesel::joinable!(report_combined -> private_message_report (private_message_report_id));
 diesel::joinable!(site -> instance (instance_id));
 diesel::joinable!(site_aggregates -> site (site_id));
 diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
+diesel::joinable!(tag -> community (community_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     admin_allow_instance,
@@ -1098,15 +1134,18 @@ diesel::allow_tables_to_appear_in_same_query!(
     post_actions,
     post_aggregates,
     post_report,
+    post_tag,
     private_message,
     private_message_report,
     received_activity,
     registration_application,
     remote_image,
+    report_combined,
     secret,
     sent_activity,
     site,
     site_aggregates,
     site_language,
+    tag,
     tagline,
 );

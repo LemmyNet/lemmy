@@ -5,6 +5,7 @@ use url::Url;
 pub mod activity;
 pub mod actor_language;
 pub mod captcha_answer;
+pub mod combined;
 pub mod comment;
 pub mod comment_reply;
 pub mod comment_report;
@@ -40,6 +41,7 @@ pub mod private_message_report;
 pub mod registration_application;
 pub mod secret;
 pub mod site;
+pub mod tag;
 pub mod tagline;
 
 /// Default value for columns like [community::Community.inbox_url] which are marked as serde(skip).

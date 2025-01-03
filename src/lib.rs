@@ -370,3 +370,18 @@ fn cors_config(settings: &Settings) -> Cors {
     _ => cors_default,
   }
 }
+
+#[cfg(test)]
+pub mod tests {
+  use activitypub_federation::config::Data;
+  use lemmy_api_common::context::LemmyContext;
+  use std::env::set_current_dir;
+
+  pub async fn test_context() -> Data<LemmyContext> {
+    // hack, necessary so that config file can be loaded from hardcoded, relative path.
+    // Ignore errors as this gets called once for every test (so changing dir again would fail).
+    set_current_dir("crates/utils").ok();
+
+    LemmyContext::init_test_context().await
+  }
+}

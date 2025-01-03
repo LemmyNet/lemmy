@@ -141,28 +141,25 @@ fn queries<'a>() -> Queries<
     query.first(&mut conn).await
   };
 
-  let list = move |mut conn: DbConn<'a>, (options, site): (CommentQuery<'a>, &'a Site)| async move {
+  let list = move |mut conn: DbConn<'a>, (o, site): (CommentQuery<'a>, &'a Site)| async move {
     // The left join below will return None in this case
-    let local_user_id_join = options
-      .local_user
-      .local_user_id()
-      .unwrap_or(LocalUserId(-1));
+    let local_user_id_join = o.local_user.local_user_id().unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(comment::table.into_boxed(), options.local_user.person_id());
+    let mut query = all_joins(comment::table.into_boxed(), o.local_user.person_id());
 
-    if let Some(creator_id) = options.creator_id {
+    if let Some(creator_id) = o.creator_id {
       query = query.filter(comment::creator_id.eq(creator_id));
     };
 
-    if let Some(post_id) = options.post_id {
+    if let Some(post_id) = o.post_id {
       query = query.filter(comment::post_id.eq(post_id));
     };
 
-    if let Some(parent_path) = options.parent_path.as_ref() {
+    if let Some(parent_path) = o.parent_path.as_ref() {
       query = query.filter(comment::path.contained_by(parent_path));
     };
     //filtering out removed and deleted comments from search
-    if let Some(search_term) = options.search_term {
+    if let Some(search_term) = o.search_term {
       query = query.filter(
         comment::content
           .ilike(fuzzy_search(&search_term))
@@ -170,13 +167,13 @@ fn queries<'a>() -> Queries<
       );
     };
 
-    if let Some(community_id) = options.community_id {
+    if let Some(community_id) = o.community_id {
       query = query.filter(post::community_id.eq(community_id));
     }
 
     let is_subscribed = community_actions::followed.is_not_null();
 
-    match options.listing_type.unwrap_or_default() {
+    match o.listing_type.unwrap_or_default() {
       ListingType::Subscribed => query = query.filter(is_subscribed), /* TODO could be this: and(community_follower::person_id.eq(person_id_join)), */
       ListingType::Local => {
         query = query
@@ -190,32 +187,30 @@ fn queries<'a>() -> Queries<
     }
 
     // If its saved only, then filter, and order by the saved time, not the comment creation time.
-    if options.saved_only.unwrap_or_default() {
+    if o.saved_only.unwrap_or_default() {
       query = query
         .filter(comment_actions::saved.is_not_null())
         .then_order_by(comment_actions::saved.desc());
     }
 
-    if let Some(my_id) = options.local_user.person_id() {
+    if let Some(my_id) = o.local_user.person_id() {
       let not_creator_filter = comment::creator_id.ne(my_id);
-      if options.liked_only.unwrap_or_default() {
+      if o.liked_only.unwrap_or_default() {
         query = query
           .filter(not_creator_filter)
           .filter(comment_actions::like_score.eq(1));
-      } else if options.disliked_only.unwrap_or_default() {
+      } else if o.disliked_only.unwrap_or_default() {
         query = query
           .filter(not_creator_filter)
           .filter(comment_actions::like_score.eq(-1));
       }
     }
 
-    if !options.local_user.show_bot_accounts() {
+    if !o.local_user.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if options.local_user.is_some()
-      && options.listing_type.unwrap_or_default() != ListingType::ModeratorView
-    {
+    if o.local_user.is_some() && o.listing_type.unwrap_or_default() != ListingType::ModeratorView {
       // Filter out the rows with missing languages
       query = query.filter(exists(
         local_user_language::table.filter(
@@ -232,15 +227,15 @@ fn queries<'a>() -> Queries<
         .filter(person_actions::blocked.is_null());
     };
 
-    if !options.local_user.show_nsfw(site) {
+    if !o.local_user.show_nsfw(site) {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
     };
 
-    query = options.local_user.visible_communities_only(query);
+    query = o.local_user.visible_communities_only(query);
 
-    if !options.local_user.is_admin() {
+    if !o.local_user.is_admin() {
       query = query.filter(
         community::visibility
           .ne(CommunityVisibility::Private)
@@ -249,8 +244,8 @@ fn queries<'a>() -> Queries<
     }
 
     // A Max depth given means its a tree fetch
-    let (limit, offset) = if let Some(max_depth) = options.max_depth {
-      let depth_limit = if let Some(parent_path) = options.parent_path.as_ref() {
+    let (limit, offset) = if let Some(max_depth) = o.max_depth {
+      let depth_limit = if let Some(parent_path) = o.parent_path.as_ref() {
         parent_path.0.split('.').count() as i32 + max_depth
         // Add one because of root "0"
       } else {
@@ -261,7 +256,7 @@ fn queries<'a>() -> Queries<
 
       // only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth
       // + !post_id isn't used anyways (afaik)
-      if options.post_id.is_some() || options.parent_path.is_some() {
+      if o.post_id.is_some() || o.parent_path.is_some() {
         // Always order by the parent path first
         query = query.then_order_by(subpath(comment::path, 0, -1));
       }
@@ -278,16 +273,16 @@ fn queries<'a>() -> Queries<
       // (i64::MAX, 0)
       (300, 0)
     } else {
-      // limit_and_offset_unlimited(options.page, options.limit)
-      limit_and_offset(options.page, options.limit)?
+      // limit_and_offset_unlimited(o.page, o.limit)
+      limit_and_offset(o.page, o.limit)?
     };
 
     // distinguished comments should go first when viewing post
-    if options.post_id.is_some() || options.parent_path.is_some() {
+    if o.post_id.is_some() || o.parent_path.is_some() {
       query = query.then_order_by(comment::distinguished.desc());
     }
 
-    query = match options.sort.unwrap_or(CommentSortType::Hot) {
+    query = match o.sort.unwrap_or(CommentSortType::Hot) {
       CommentSortType::Hot => query
         .then_order_by(comment_aggregates::hot_rank.desc())
         .then_order_by(comment_aggregates::score.desc()),

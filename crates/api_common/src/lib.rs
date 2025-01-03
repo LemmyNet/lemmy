@@ -12,6 +12,7 @@ pub mod oauth_provider;
 pub mod person;
 pub mod post;
 pub mod private_message;
+pub mod reports;
 #[cfg(feature = "full")]
 pub mod request;
 #[cfg(feature = "full")]

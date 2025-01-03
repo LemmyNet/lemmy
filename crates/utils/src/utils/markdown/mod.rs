@@ -47,8 +47,10 @@ pub fn markdown_check_for_blocked_urls(text: &str, blocklist: &RegexSet) -> Lemm
 mod tests {
 
   use super::*;
+  use crate::utils::validation::check_urls_are_valid;
   use image_links::markdown_rewrite_image_links;
   use pretty_assertions::assert_eq;
+  use regex::escape;
 
   #[test]
   fn test_basic_markdown() {
@@ -191,9 +193,20 @@ mod tests {
     });
   }
 
+  // This replicates the logic when saving url blocklist patterns and querying them.
+  // Refer to lemmy_api_crud::site::update::update_site and
+  // lemmy_api_common::utils::get_url_blocklist().
+  fn create_url_blocklist_test_regex_set(patterns: Vec<&str>) -> LemmyResult<RegexSet> {
+    let url_blocklist = patterns.iter().map(|&s| s.to_string()).collect();
+    let valid_urls = check_urls_are_valid(&url_blocklist)?;
+    let regexes = valid_urls.iter().map(|p| format!(r"\b{}\b", escape(p)));
+    let set = RegexSet::new(regexes)?;
+    Ok(set)
+  }
+
   #[test]
   fn test_url_blocking() -> LemmyResult<()> {
-    let set = RegexSet::new(vec![r"(https://)?example\.com/?"])?;
+    let set = create_url_blocklist_test_regex_set(vec!["example.com/"])?;
 
     assert!(
       markdown_check_for_blocked_urls(&String::from("[](https://example.com)"), &set).is_err()
@@ -221,36 +234,41 @@ mod tests {
     )
     .is_err());
 
-    let set = RegexSet::new(vec![r"(https://)?example\.com/spam\.jpg"])?;
-    assert!(markdown_check_for_blocked_urls(
-      &String::from("![](https://example.com/spam.jpg)"),
-      &set
-    )
-    .is_err());
+    let set = create_url_blocklist_test_regex_set(vec!["example.com/spam.jpg"])?;
+    assert!(markdown_check_for_blocked_urls("![](https://example.com/spam.jpg)", &set).is_err());
+    assert!(markdown_check_for_blocked_urls("![](https://example.com/spam.jpg1)", &set).is_ok());
+    // TODO: the following should not be matched, scunthorpe problem.
+    assert!(
+      markdown_check_for_blocked_urls("![](https://example.com/spam.jpg.html)", &set).is_err()
+    );
 
-    let set = RegexSet::new(vec![
-      r"(https://)?quo\.example\.com/?",
-      r"(https://)?foo\.example\.com/?",
-      r"(https://)?bar\.example\.com/?",
+    let set = create_url_blocklist_test_regex_set(vec![
+      r"quo.example.com/",
+      r"foo.example.com/",
+      r"bar.example.com/",
     ])?;
 
-    assert!(
-      markdown_check_for_blocked_urls(&String::from("https://baz.example.com"), &set).is_ok()
-    );
+    assert!(markdown_check_for_blocked_urls("https://baz.example.com", &set).is_ok());
 
-    assert!(
-      markdown_check_for_blocked_urls(&String::from("https://bar.example.com"), &set).is_err()
-    );
+    assert!(markdown_check_for_blocked_urls("https://bar.example.com", &set).is_err());
 
-    let set = RegexSet::new(vec![r"(https://)?example\.com/banned_page"])?;
+    let set = create_url_blocklist_test_regex_set(vec!["example.com/banned_page"])?;
 
-    assert!(
-      markdown_check_for_blocked_urls(&String::from("https://example.com/page"), &set).is_ok()
-    );
+    assert!(markdown_check_for_blocked_urls("https://example.com/page", &set).is_ok());
 
-    let set = RegexSet::new(vec![r"(https://)?ex\.mple\.com/?"])?;
+    let set = create_url_blocklist_test_regex_set(vec!["ex.mple.com/"])?;
 
     assert!(markdown_check_for_blocked_urls("example.com", &set).is_ok());
+
+    let set = create_url_blocklist_test_regex_set(vec!["rt.com/"])?;
+
+    assert!(markdown_check_for_blocked_urls("deviantart.com", &set).is_ok());
+    assert!(markdown_check_for_blocked_urls("art.com.example.com", &set).is_ok());
+    assert!(markdown_check_for_blocked_urls("https://rt.com/abc", &set).is_err());
+    assert!(markdown_check_for_blocked_urls("go to rt.com.", &set).is_err());
+    assert!(markdown_check_for_blocked_urls("check out rt.computer", &set).is_ok());
+    // TODO: the following should not be matched, scunthorpe problem.
+    assert!(markdown_check_for_blocked_urls("rt.com.example.com", &set).is_err());
 
     Ok(())
   }

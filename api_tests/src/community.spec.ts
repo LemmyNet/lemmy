@@ -572,7 +572,7 @@ test("Remote mods can edit communities", async () => {
     communityRes.community_view.community.id,
   );
 
-  await expect(alphaCommunity.community_view.community.description).toBe(
+  expect(alphaCommunity.community_view.community.description).toBe(
     "Example description",
   );
 });
