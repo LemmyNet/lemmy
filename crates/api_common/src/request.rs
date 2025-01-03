@@ -32,7 +32,7 @@ use reqwest::{
 };
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
-use tracing::info;
+use tracing::{info, warn};
 use url::Url;
 use urlencoding::encode;
 use webpage::HTML;
@@ -173,15 +173,23 @@ pub async fn generate_post_link_metadata(
     metadata.opengraph_data.image.clone()
   };
 
+  // Attempt to generate a thumbnail depending on the instance settings. Either by proxying,
+  // storing image persistently in pict-rs or returning the remote url directly as thumbnail.
   let thumbnail_url = if let (false, Some(url)) = (is_image_post, custom_thumbnail) {
-    proxy_image_link(url, &context).await.ok()
-  } else if let (true, Some(url)) = (allow_generate_thumbnail, image_url) {
+    proxy_image_link(url.clone(), &context)
+      .await
+      .map_err(|e| warn!("Failed to proxy thumbnail: {e}"))
+      .ok()
+      .or(Some(url.into()))
+  } else if let (true, Some(url)) = (allow_generate_thumbnail, image_url.clone()) {
     generate_pictrs_thumbnail(&url, &context)
       .await
+      .map_err(|e| warn!("Failed to generate thumbnail: {e}"))
       .ok()
       .map(Into::into)
+      .or(image_url)
   } else {
-    metadata.opengraph_data.image.clone()
+    image_url.clone()
   };
 
   let form = PostUpdateForm {
