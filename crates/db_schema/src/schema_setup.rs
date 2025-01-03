@@ -53,7 +53,7 @@ struct MigrationHarnessWrapper<'a> {
   diff_checked_migration_name: Option<String>,
 }
 
-impl<'a> MigrationHarnessWrapper<'a> {
+impl MigrationHarnessWrapper<'_> {
   fn run_migration_inner(
     &mut self,
     migration: &dyn Migration<Pg>,
@@ -70,7 +70,7 @@ impl<'a> MigrationHarnessWrapper<'a> {
   }
 }
 
-impl<'a> MigrationHarness<Pg> for MigrationHarnessWrapper<'a> {
+impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
   fn run_migration(
     &mut self,
     migration: &dyn Migration<Pg>,
