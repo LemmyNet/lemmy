@@ -219,6 +219,16 @@ pub enum ModlogActionType {
   AdminAllowInstance,
 }
 
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A list of possible types for the various modlog actions.
+pub enum PersonContentType {
+  All,
+  Comments,
+  Posts,
+}
+
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash,
 )]
@@ -273,6 +283,13 @@ pub enum FederationMode {
   Local,
   /// Disables
   Disable,
+}
+
+pub trait InternalToCombinedView {
+  type CombinedView;
+
+  /// Maps the combined DB row to an enum
+  fn map_to_enum(&self) -> Option<Self::CombinedView>;
 }
 
 /// Wrapper for assert_eq! macro. Checks that vec matches the given length, and prints the

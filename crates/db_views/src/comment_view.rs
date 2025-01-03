@@ -186,13 +186,6 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    // If its saved only, then filter, and order by the saved time, not the comment creation time.
-    if o.saved_only.unwrap_or_default() {
-      query = query
-        .filter(comment_actions::saved.is_not_null())
-        .then_order_by(comment_actions::saved.desc());
-    }
-
     if let Some(my_id) = o.local_user.person_id() {
       let not_creator_filter = comment::creator_id.ne(my_id);
       if o.liked_only.unwrap_or_default() {
@@ -332,7 +325,6 @@ pub struct CommentQuery<'a> {
   pub creator_id: Option<PersonId>,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
-  pub saved_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
   pub page: Option<i64>,
@@ -376,15 +368,7 @@ mod tests {
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
-      comment::{
-        Comment,
-        CommentInsertForm,
-        CommentLike,
-        CommentLikeForm,
-        CommentSaved,
-        CommentSavedForm,
-        CommentUpdateForm,
-      },
+      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
       community::{
         Community,
         CommunityFollower,
@@ -406,7 +390,7 @@ mod tests {
       post::{Post, PostInsertForm, PostUpdateForm},
       site::{Site, SiteInsertForm},
     },
-    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable, Saveable},
+    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
     CommunityVisibility,
     SubscribedType,
@@ -888,47 +872,6 @@ mod tests {
     // Sara isn't, make sure its false
     assert_eq!(comments[1].creator.name, "sara");
     assert!(!comments[1].creator_is_admin);
-
-    cleanup(data, pool).await
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_saved_order() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-    let data = init_data(pool).await?;
-
-    // Save two comments
-    let save_comment_0_form = CommentSavedForm {
-      person_id: data.timmy_local_user_view.person.id,
-      comment_id: data.inserted_comment_0.id,
-    };
-    CommentSaved::save(pool, &save_comment_0_form).await?;
-
-    let save_comment_2_form = CommentSavedForm {
-      person_id: data.timmy_local_user_view.person.id,
-      comment_id: data.inserted_comment_2.id,
-    };
-    CommentSaved::save(pool, &save_comment_2_form).await?;
-
-    // Fetch the saved comments
-    let comments = CommentQuery {
-      local_user: Some(&data.timmy_local_user_view.local_user),
-      saved_only: Some(true),
-      ..Default::default()
-    }
-    .list(&data.site, pool)
-    .await?;
-
-    // There should only be two comments
-    assert_eq!(2, comments.len());
-
-    // The first comment, should be the last one saved (descending order)
-    assert_eq!(comments[0].comment.id, data.inserted_comment_2.id);
-
-    // The second comment, should be the first one saved
-    assert_eq!(comments[1].comment.id, data.inserted_comment_0.id);
 
     cleanup(data, pool).await
   }

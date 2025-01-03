@@ -12,6 +12,10 @@ pub mod local_image_view;
 #[cfg(feature = "full")]
 pub mod local_user_view;
 #[cfg(feature = "full")]
+pub mod person_content_combined_view;
+#[cfg(feature = "full")]
+pub mod person_saved_combined_view;
+#[cfg(feature = "full")]
 pub mod post_report_view;
 #[cfg(feature = "full")]
 pub mod post_tags_view;
