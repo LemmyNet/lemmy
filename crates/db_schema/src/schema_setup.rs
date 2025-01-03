@@ -116,7 +116,7 @@ impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
   }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct Options {
   #[cfg(test)]
   enable_diff_check: bool,
@@ -310,14 +310,10 @@ mod tests {
   use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
   use serial_test::serial;
 
-  /// Reduces clutter
-  fn o() -> Options {
-    Options::default()
-  }
-
   #[test]
   #[serial]
   fn test_schema_setup() -> LemmyResult<()> {
+    let o = Options::default();
     let db_url = SETTINGS.get_database_url();
     let mut conn = PgConnection::establish(&db_url)?;
 
@@ -326,16 +322,13 @@ mod tests {
 
     // Run all migrations, make sure the newest migration can be redone, and check the newest
     // down.sql file
-    assert_eq!(
-      run(o().run().enable_diff_check())?,
-      ReplaceableSchemaRebuilt
-    );
+    assert_eq!(run(o.run().enable_diff_check())?, ReplaceableSchemaRebuilt);
 
     // Check for early return
-    assert_eq!(run(o().run())?, EarlyReturn);
+    assert_eq!(run(o.run())?, EarlyReturn);
 
     // Test `limit`
-    assert_eq!(run(o().revert().limit(1))?, ReplaceableSchemaNotRebuilt);
+    assert_eq!(run(o.revert().limit(1))?, ReplaceableSchemaNotRebuilt);
     assert_eq!(
       conn
         .pending_migrations(migrations())
@@ -343,7 +336,7 @@ mod tests {
         .len(),
       1
     );
-    assert_eq!(run(o().run().limit(1))?, ReplaceableSchemaRebuilt);
+    assert_eq!(run(o.run().limit(1))?, ReplaceableSchemaRebuilt);
 
     // This should throw an error saying to use lemmy_server instead of diesel CLI
     conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
@@ -353,7 +346,7 @@ mod tests {
     ));
 
     // Diesel CLI's way of running migrations shouldn't break the custom migration runner
-    assert_eq!(run(o().run())?, ReplaceableSchemaRebuilt);
+    assert_eq!(run(o.run())?, ReplaceableSchemaRebuilt);
 
     Ok(())
   }
