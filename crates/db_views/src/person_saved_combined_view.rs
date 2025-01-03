@@ -42,6 +42,7 @@ use lemmy_db_schema::{
     community::CommunityFollower,
   },
   utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool},
+  PersonContentType,
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -79,6 +80,7 @@ pub struct PaginationCursorData(PersonSavedCombined);
 
 #[derive(Default)]
 pub struct PersonSavedCombinedQuery {
+  pub type_: Option<PersonContentType>,
   pub page_after: Option<PaginationCursorData>,
   pub page_back: Option<bool>,
 }
@@ -211,6 +213,16 @@ impl PersonSavedCombinedQuery {
       .into_boxed();
 
     let mut query = PaginatedQueryBuilder::new(query);
+
+    if let Some(type_) = self.type_ {
+      query = match type_ {
+        PersonContentType::All => query,
+        PersonContentType::Comments => {
+          query.filter(person_saved_combined::comment_id.is_not_null())
+        }
+        PersonContentType::Posts => query.filter(person_saved_combined::post_id.is_not_null()),
+      }
+    }
 
     let page_after = self.page_after.map(|c| c.0);
 

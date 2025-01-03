@@ -4,6 +4,7 @@ use lemmy_db_schema::{
   source::{login_token::LoginToken, site::Site},
   CommentSortType,
   ListingType,
+  PersonContentType,
   PostListingMode,
   PostSortType,
 };
@@ -250,6 +251,8 @@ pub struct GetPersonDetailsResponse {
 /// Either person_id, or username are required.
 pub struct ListPersonContent {
   #[cfg_attr(feature = "full", ts(optional))]
+  pub type_: Option<PersonContentType>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub person_id: Option<PersonId>,
   /// Example: dessalines , or dessalines@xyz.tld
   #[cfg_attr(feature = "full", ts(optional))]
@@ -275,6 +278,8 @@ pub struct ListPersonContentResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Gets your saved posts and comments
 pub struct ListPersonSaved {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub type_: Option<PersonContentType>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_cursor: Option<PersonSavedCombinedPaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
