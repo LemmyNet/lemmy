@@ -6,8 +6,6 @@ pub mod comment_report_view;
 #[cfg(feature = "full")]
 pub mod comment_view;
 #[cfg(feature = "full")]
-pub mod community_report_view;
-#[cfg(feature = "full")]
 pub mod custom_emoji_view;
 #[cfg(feature = "full")]
 pub mod local_image_view;
