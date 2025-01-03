@@ -1,4 +1,3 @@
-#[cfg(test)]
 mod diff_check;
 
 use crate::schema::previously_run_sql;

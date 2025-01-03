@@ -1,3 +1,4 @@
+#![cfg(test)]
 #![expect(clippy::expect_used)]
 use lemmy_utils::settings::SETTINGS;
 use std::process::{Command, Stdio};
