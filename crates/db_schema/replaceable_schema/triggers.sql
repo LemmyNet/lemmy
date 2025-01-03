@@ -731,12 +731,12 @@ BEGIN
                         AND p.thing_id = OLD.thing_id;
                 ELSIF (TG_OP = 'INSERT') THEN
                     IF NEW.saved IS NOT NULL THEN
-                        INSERT INTO person_saved_combined (published, person_id, thing_id)
+                        INSERT INTO person_saved_combined (saved, person_id, thing_id)
                             VALUES (NEW.saved, NEW.person_id, NEW.thing_id);
                     END IF;
                 ELSIF (TG_OP = 'UPDATE') THEN
                     IF NEW.saved IS NOT NULL THEN
-                        INSERT INTO person_saved_combined (published, person_id, thing_id)
+                        INSERT INTO person_saved_combined (saved, person_id, thing_id)
                             VALUES (NEW.saved, NEW.person_id, NEW.thing_id);
                         -- If saved gets set as null, delete the row
                     ELSE

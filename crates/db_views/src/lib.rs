@@ -18,6 +18,8 @@ pub mod person_saved_combined_view;
 #[cfg(feature = "full")]
 pub mod post_report_view;
 #[cfg(feature = "full")]
+pub mod post_tags_view;
+#[cfg(feature = "full")]
 pub mod post_view;
 #[cfg(feature = "full")]
 pub mod private_message_report_view;

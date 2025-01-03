@@ -698,7 +698,7 @@ test("Report a post", async () => {
       () =>
         listReports(beta).then(p =>
           p.reports.find(r => {
-            return checkReportName(r, gammaReport);
+            return checkPostReportName(r, gammaReport);
           }),
         ),
       res => !!res,
@@ -718,15 +718,7 @@ test("Report a post", async () => {
       () =>
         listReports(alpha).then(p =>
           p.reports.find(r => {
-            switch (r.type_) {
-              case "Post":
-                return (
-                  r.post_report.original_post_name ===
-                  gammaReport.original_post_name
-                );
-              default:
-                return false;
-            }
+            return checkPostReportName(r, gammaReport);
           }),
         ),
       res => !!res,
@@ -833,7 +825,7 @@ test("Rewrite markdown links", async () => {
   );
 });
 
-function checkReportName(rcv: ReportCombinedView, report: PostReport) {
+function checkPostReportName(rcv: ReportCombinedView, report: PostReport) {
   switch (rcv.type_) {
     case "Post":
       return rcv.post_report.original_post_name === report.original_post_name;

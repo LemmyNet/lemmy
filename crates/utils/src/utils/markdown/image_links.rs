@@ -24,7 +24,8 @@ pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
           );
           // restore custom emoji format
           if let Some(extra) = extra {
-            proxied = format!("{proxied} {extra}");
+            proxied.push(' ');
+            proxied.push_str(extra);
           }
           src.replace_range(start..end, &proxied);
         }

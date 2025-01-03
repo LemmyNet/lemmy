@@ -552,7 +552,9 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
         let urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
 
         // The urls are already validated on saving, so just escape them.
-        let regexes = urls.iter().map(|url| escape(&url.url));
+        // If this regex creation changes it must be synced with
+        // lemmy_utils::utils::markdown::create_url_blocklist_test_regex_set.
+        let regexes = urls.iter().map(|url| format!(r"\b{}\b", escape(&url.url)));
 
         let set = RegexSet::new(regexes)?;
         Ok(set)

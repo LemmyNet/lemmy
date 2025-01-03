@@ -31,6 +31,8 @@ use lemmy_db_schema::{
     post,
     post_actions,
     post_aggregates,
+    post_tag,
+    tag,
   },
   source::{
     combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
@@ -89,6 +91,15 @@ impl PersonSavedCombinedQuery {
     let item_creator = person::id;
 
     let conn = &mut get_conn(pool).await?;
+
+    let post_tags = post_tag::table
+      .inner_join(tag::table)
+      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
+        "json_agg(tag.*)",
+      ))
+      .filter(post_tag::post_id.eq(post::id))
+      .filter(tag::deleted.eq(false))
+      .single_value();
 
     // Notes: since the post_id and comment_id are optional columns,
     // many joins must use an OR condition.
@@ -172,6 +183,7 @@ impl PersonSavedCombinedQuery {
         post_actions::hidden.nullable().is_not_null(),
         post_actions::like_score.nullable(),
         image_details::all_columns.nullable(),
+        post_tags,
         // Comment-specific
         comment::all_columns.nullable(),
         comment_aggregates::all_columns.nullable(),
@@ -206,9 +218,9 @@ impl PersonSavedCombinedQuery {
       query = query.after(page_after);
     }
 
-    // Sorting by published
+    // Sorting by saved desc
     query = query
-      .then_desc(key::published)
+      .then_desc(key::saved)
       // Tie breaker
       .then_desc(key::id);
 
