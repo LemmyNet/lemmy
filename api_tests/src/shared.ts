@@ -1,5 +1,4 @@
 import {
-  AdminBlockInstanceParams,
   ApproveCommunityPendingFollower,
   BlockCommunity,
   BlockCommunityResponse,
@@ -16,6 +15,8 @@ import {
   LemmyHttp,
   ListCommunityPendingFollows,
   ListCommunityPendingFollowsResponse,
+  ListReports,
+  ListReportsResponse,
   MyUserInfo,
   PersonId,
   PostView,
@@ -75,12 +76,8 @@ import { PrivateMessagesResponse } from "lemmy-js-client/dist/types/PrivateMessa
 import { GetPrivateMessages } from "lemmy-js-client/dist/types/GetPrivateMessages";
 import { PostReportResponse } from "lemmy-js-client/dist/types/PostReportResponse";
 import { CreatePostReport } from "lemmy-js-client/dist/types/CreatePostReport";
-import { ListPostReportsResponse } from "lemmy-js-client/dist/types/ListPostReportsResponse";
-import { ListPostReports } from "lemmy-js-client/dist/types/ListPostReports";
 import { CommentReportResponse } from "lemmy-js-client/dist/types/CommentReportResponse";
 import { CreateCommentReport } from "lemmy-js-client/dist/types/CreateCommentReport";
-import { ListCommentReportsResponse } from "lemmy-js-client/dist/types/ListCommentReportsResponse";
-import { ListCommentReports } from "lemmy-js-client/dist/types/ListCommentReports";
 import { GetPostsResponse } from "lemmy-js-client/dist/types/GetPostsResponse";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
@@ -210,7 +207,9 @@ async function allowInstance(api: LemmyHttp, instance: string) {
   // Ignore errors from duplicate allows (because setup gets called for each test file)
   try {
     await api.adminAllowInstance(params);
-  } catch {}
+  } catch (error) {
+    // console.error(error);
+  }
 }
 
 export async function createPost(
@@ -809,11 +808,11 @@ export async function reportPost(
   return api.createPostReport(form);
 }
 
-export async function listPostReports(
+export async function listReports(
   api: LemmyHttp,
-): Promise<ListPostReportsResponse> {
-  let form: ListPostReports = {};
-  return api.listPostReports(form);
+): Promise<ListReportsResponse> {
+  let form: ListReports = {};
+  return api.listReports(form);
 }
 
 export async function reportComment(
@@ -838,13 +837,6 @@ export async function reportPrivateMessage(
     reason,
   };
   return api.createPrivateMessageReport(form);
-}
-
-export async function listCommentReports(
-  api: LemmyHttp,
-): Promise<ListCommentReportsResponse> {
-  let form: ListCommentReports = {};
-  return api.listCommentReports(form);
 }
 
 export function getPosts(

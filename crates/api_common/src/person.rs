@@ -448,12 +448,7 @@ pub struct GetReportCount {
 #[cfg_attr(feature = "full", ts(export))]
 /// A response for the number of reports.
 pub struct GetReportCountResponse {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub community_id: Option<CommunityId>,
-  pub comment_reports: i64,
-  pub post_reports: i64,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub private_message_reports: Option<i64>,
+  pub count: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
