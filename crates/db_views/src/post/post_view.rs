@@ -458,7 +458,6 @@ fn queries<'a>() -> Queries<
     };
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
-    println!("{:?}", debug_query::<Pg, _>(&query));
     Commented::new(query)
       .text("PostQuery::list")
       .text_if(
