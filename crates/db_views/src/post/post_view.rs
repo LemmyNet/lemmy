@@ -14,6 +14,7 @@ use diesel::{
   QueryDsl,
   TextExpressionMethods,
 };
+use diesel::dsl::any;
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aggregates::structs::{post_aggregates_keys as key, PostAggregates},
@@ -112,10 +113,6 @@ fn queries<'a>() -> Queries<
       .inner_join(community::table)
       .inner_join(post::table)
       .left_join(image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable())))
-      .left_join(post_keyword_block::table.on(
-            post_keyword_block::person_id.eq(my_person_id.unwrap_or(PersonId(-1))),
-          ),
-        )
       .left_join(actions(
         community_actions::table,
         my_person_id,
@@ -146,7 +143,6 @@ fn queries<'a>() -> Queries<
         person::all_columns,
         community::all_columns,
         image_details::all_columns.nullable(),
-        post_keyword_block::keyword,
         creator_community_actions
           .field(community_actions::received_ban)
           .nullable()
@@ -372,15 +368,26 @@ fn queries<'a>() -> Queries<
           ),
         ));
       }
+      if let Some(person_id) = options.local_user.person_id()  {
+        let mut blocked_keywords: Vec<String> = post_keyword_block::table
+        .filter(post_keyword_block::person_id.eq(person_id))
+        .select(post_keyword_block::keyword)
+        .load::<String>(&mut conn).await?;
+        blocked_keywords.iter_mut().for_each(|keyword| {
+        *keyword = format!("%{}%", keyword);
+        });
+        query = query.filter(
+            not(post::name.ilike(any(blocked_keywords.clone())))
+                .and(post::url.is_null().or(not(post::url.ilike(any(blocked_keywords.clone())))))
+                .and(post::body.is_null().or(not(post::body.ilike(any(blocked_keywords.clone())))))
+        );
+      }
+
 
       // Don't show blocked instances, communities or persons
       query = query.filter(community_actions::blocked.is_null());
       query = query.filter(instance_actions::blocked.is_null());
       query = query.filter(person_actions::blocked.is_null());
-      query = query.filter(
-        not(post::name.ilike(post_keyword_block::keyword))
-            .and(not(post::body.ilike(post_keyword_block::keyword)))
-            .and(not(post::url.ilike(post_keyword_block::keyword))));
     }
 
     let (limit, offset) = limit_and_offset(o.page, o.limit)?;
@@ -451,7 +458,7 @@ fn queries<'a>() -> Queries<
     };
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
-
+    println!("{:?}", debug_query::<Pg, _>(&query));
     Commented::new(query)
       .text("PostQuery::list")
       .text_if(

@@ -10,7 +10,6 @@ use crate::{
         post_keyword_block::{PostKeywordBlock, PostKeywordBlockForm},
     }
 };
-use crate::traits::Crud;
 use crate::utils::{get_conn, DbPool};
 
 impl PostKeywordBlock {

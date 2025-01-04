@@ -1292,6 +1292,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     post_aggregates,
     post_report,
     post_tag,
+    post_keyword_block,
     previously_run_sql,
     private_message,
     private_message_report,
