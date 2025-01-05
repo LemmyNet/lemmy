@@ -184,10 +184,6 @@ impl Saveable for CommentSaved {
     comment_saved_form: &CommentSavedForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let comment_saved_form = (
-      comment_saved_form,
-      comment_actions::saved.eq(now().nullable()),
-    );
     insert_into(comment_actions::table)
       .values(comment_saved_form)
       .on_conflict((comment_actions::comment_id, comment_actions::person_id))
@@ -319,11 +315,7 @@ mod tests {
     };
 
     // Comment Saved
-    let comment_saved_form = CommentSavedForm {
-      comment_id: inserted_comment.id,
-      person_id: inserted_person.id,
-    };
-
+    let comment_saved_form = CommentSavedForm::new(inserted_comment.id, inserted_person.id);
     let inserted_comment_saved = CommentSaved::save(pool, &comment_saved_form).await?;
 
     let expected_comment_saved = CommentSaved {

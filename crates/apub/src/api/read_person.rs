@@ -1,4 +1,4 @@
-use crate::{fetcher::resolve_actor_identifier, objects::person::ApubPerson};
+use super::resolve_person_id_from_id_or_username;
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_common::{
@@ -6,14 +6,9 @@ use lemmy_api_common::{
   person::{GetPersonDetails, GetPersonDetailsResponse},
   utils::{check_private_instance, is_admin, read_site_for_actor},
 };
-use lemmy_db_schema::{source::person::Person, utils::post_to_comment_sort_type};
-use lemmy_db_views::{
-  comment_view::CommentQuery,
-  post_view::PostQuery,
-  structs::{LocalUserView, SiteView},
-};
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
 pub async fn read_person(
@@ -21,27 +16,17 @@ pub async fn read_person(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPersonDetailsResponse>> {
-  // Check to make sure a person name or an id is given
-  if data.username.is_none() && data.person_id.is_none() {
-    Err(LemmyErrorType::NoIdGiven)?
-  }
-
   let local_site = SiteView::read_local(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site.local_site)?;
 
-  let person_details_id = match data.person_id {
-    Some(id) => id,
-    None => {
-      if let Some(username) = &data.username {
-        resolve_actor_identifier::<ApubPerson, Person>(username, &context, &local_user_view, true)
-          .await?
-          .id
-      } else {
-        Err(LemmyErrorType::NotFound)?
-      }
-    }
-  };
+  let person_details_id = resolve_person_id_from_id_or_username(
+    &data.person_id,
+    &data.username,
+    &context,
+    &local_user_view,
+  )
+  .await?;
 
   // You don't need to return settings for the user, since this comes back with GetSite
   // `my_user`
@@ -50,48 +35,6 @@ pub async fn read_person(
     .map(|l| is_admin(l).is_ok())
     .unwrap_or_default();
   let person_view = PersonView::read(&mut context.pool(), person_details_id, is_admin).await?;
-
-  let sort = data.sort;
-  let page = data.page;
-  let limit = data.limit;
-  let saved_only = data.saved_only;
-  let community_id = data.community_id;
-  // If its saved only, you don't care what creator it was
-  // Or, if its not saved, then you only want it for that specific creator
-  let creator_id = if !saved_only.unwrap_or_default() {
-    Some(person_details_id)
-  } else {
-    None
-  };
-
-  let local_user = local_user_view.as_ref().map(|l| &l.local_user);
-
-  let posts = PostQuery {
-    sort,
-    saved_only,
-    local_user,
-    community_id,
-    page,
-    limit,
-    creator_id,
-    ..Default::default()
-  }
-  .list(&local_site.site, &mut context.pool())
-  .await?;
-
-  let comments = CommentQuery {
-    local_user,
-    sort: sort.map(post_to_comment_sort_type),
-    saved_only,
-    community_id,
-    page,
-    limit,
-    creator_id,
-    ..Default::default()
-  }
-  .list(&local_site.site, &mut context.pool())
-  .await?;
-
   let moderates = CommunityModeratorView::for_person(
     &mut context.pool(),
     person_details_id,
@@ -101,12 +44,9 @@ pub async fn read_person(
 
   let site = read_site_for_actor(person_view.person.actor_id.clone(), &context).await?;
 
-  // Return the jwt
   Ok(Json(GetPersonDetailsResponse {
     person_view,
     site,
     moderates,
-    comments,
-    posts,
   }))
 }

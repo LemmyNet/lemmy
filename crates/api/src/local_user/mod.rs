@@ -8,6 +8,7 @@ pub mod get_captcha;
 pub mod list_banned;
 pub mod list_logins;
 pub mod list_media;
+pub mod list_saved;
 pub mod login;
 pub mod logout;
 pub mod notifications;
