@@ -148,7 +148,6 @@ pub struct GetModlog {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The modlog fetch response.
-// TODO this should be redone as a list of tagged enums
 pub struct GetModlogResponse {
   pub modlog: Vec<ModlogCombinedView>,
 }
