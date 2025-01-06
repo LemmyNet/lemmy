@@ -135,6 +135,18 @@ pub struct PaginationCursor(pub String);
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ReportCombinedPaginationCursor(pub String);
 
+/// like PaginationCursor but for the person_content_combined table
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(ts_rs::TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct PersonContentCombinedPaginationCursor(pub String);
+
+/// like PaginationCursor but for the person_saved_combined table
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(ts_rs::TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct PersonSavedCombinedPaginationCursor(pub String);
+
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
@@ -292,6 +304,47 @@ pub enum ReportCombinedView {
   Post(PostReportView),
   Comment(CommentReportView),
   PrivateMessage(PrivateMessageReportView),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+/// A combined person_content view
+pub struct PersonContentViewInternal {
+  // Post-specific
+  pub post_counts: PostAggregates,
+  pub post_unread_comments: i64,
+  pub post_saved: bool,
+  pub post_read: bool,
+  pub post_hidden: bool,
+  pub my_post_vote: Option<i16>,
+  pub image_details: Option<ImageDetails>,
+  pub post_tags: PostTags,
+  // Comment-specific
+  pub comment: Option<Comment>,
+  pub comment_counts: Option<CommentAggregates>,
+  pub comment_saved: bool,
+  pub my_comment_vote: Option<i16>,
+  // Shared
+  pub post: Post,
+  pub community: Community,
+  pub item_creator: Person,
+  pub subscribed: SubscribedType,
+  pub item_creator_is_admin: bool,
+  pub item_creator_is_moderator: bool,
+  pub item_creator_banned_from_community: bool,
+  pub item_creator_blocked: bool,
+  pub banned_from_community: bool,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+// Use serde's internal tagging, to work easier with javascript libraries
+#[serde(tag = "type_")]
+pub enum PersonContentCombinedView {
+  Post(PostView),
+  Comment(CommentView),
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
