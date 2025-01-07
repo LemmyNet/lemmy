@@ -2837,6 +2837,7 @@ dependencies = [
  "lettre",
  "markdown-it",
  "markdown-it-block-spoiler",
+ "markdown-it-footnote",
  "markdown-it-ruby",
  "markdown-it-sub",
  "markdown-it-sup",
@@ -2901,7 +2902,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -3018,6 +3019,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "008a8e4184fd08b5dca0f2b5b2ef8f126c1e83ca797c44ee41f8d7765951360c"
 dependencies = [
  "itertools 0.13.0",
+ "markdown-it",
+]
+
+[[package]]
+name = "markdown-it-footnote"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6679ab967fbc45b290b25fb477af7556bf6825feec208a970585e6bb9aae3be"
+dependencies = [
  "markdown-it",
 ]
 
