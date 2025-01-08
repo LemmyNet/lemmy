@@ -87,7 +87,7 @@ pub async fn create_post(
   check_community_user_action(&local_user_view.person, &community, &mut context.pool()).await?;
 
   // If its an NSFW community, then use that as a default
-  let nsfw = Some(data.nsfw.unwrap_or_default() || community.nsfw);
+  let nsfw = data.nsfw.or(Some(community.nsfw));
 
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;
