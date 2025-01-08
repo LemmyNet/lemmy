@@ -111,7 +111,7 @@ impl Object for ApubComment {
       r#type: NoteType::Note,
       id: self.ap_id.clone().into(),
       attributed_to: creator.actor_id.into(),
-      to: vec![generate_to(&community)?],
+      to: generate_to(&community)?,
       cc: maa.ccs,
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),

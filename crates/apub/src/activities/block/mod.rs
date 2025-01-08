@@ -210,7 +210,7 @@ pub(crate) async fn send_ban_from_community(
 
 fn to(target: &SiteOrCommunity) -> LemmyResult<Vec<Url>> {
   Ok(if let SiteOrCommunity::Community(c) = target {
-    vec![generate_to(c)?]
+    generate_to(c)?
   } else {
     vec![public()]
   })

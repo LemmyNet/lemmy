@@ -49,7 +49,7 @@ impl CreateOrUpdatePage {
     )?;
     Ok(CreateOrUpdatePage {
       actor: actor.id().into(),
-      to: vec![generate_to(community)?],
+      to: generate_to(community)?,
       object: post.into_json(context).await?,
       cc: vec![community.id()],
       kind,

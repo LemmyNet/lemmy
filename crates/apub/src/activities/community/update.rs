@@ -43,7 +43,7 @@ pub(crate) async fn send_update_community(
   )?;
   let update = UpdateCommunity {
     actor: actor.id().into(),
-    to: vec![generate_to(&community)?],
+    to: generate_to(&community)?,
     object: Box::new(community.clone().into_json(&context).await?),
     cc: vec![community.id()],
     kind: UpdateType::Update,

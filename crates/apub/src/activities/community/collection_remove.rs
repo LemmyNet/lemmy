@@ -49,7 +49,7 @@ impl CollectionRemove {
     )?;
     let remove = CollectionRemove {
       actor: actor.id().into(),
-      to: vec![generate_to(community)?],
+      to: generate_to(community)?,
       object: removed_mod.id(),
       target: generate_moderators_url(&community.actor_id)?.into(),
       id: id.clone(),
@@ -74,7 +74,7 @@ impl CollectionRemove {
     )?;
     let remove = CollectionRemove {
       actor: actor.id().into(),
-      to: vec![generate_to(community)?],
+      to: generate_to(community)?,
       object: featured_post.ap_id.clone().into(),
       target: generate_featured_url(&community.actor_id)?.into(),
       cc: vec![community.id()],

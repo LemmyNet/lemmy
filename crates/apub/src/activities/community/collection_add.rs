@@ -54,7 +54,7 @@ impl CollectionAdd {
     )?;
     let add = CollectionAdd {
       actor: actor.id().into(),
-      to: vec![generate_to(community)?],
+      to: generate_to(community)?,
       object: added_mod.id(),
       target: generate_moderators_url(&community.actor_id)?.into(),
       cc: vec![community.id()],
@@ -79,7 +79,7 @@ impl CollectionAdd {
     )?;
     let add = CollectionAdd {
       actor: actor.id().into(),
-      to: vec![generate_to(community)?],
+      to: generate_to(community)?,
       object: featured_post.ap_id.clone().into(),
       target: generate_featured_url(&community.actor_id)?.into(),
       cc: vec![community.id()],

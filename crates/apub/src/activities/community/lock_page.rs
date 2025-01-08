@@ -138,7 +138,7 @@ pub(crate) async fn send_lock_post(
   let community_id = community.actor_id.inner().clone();
   let lock = LockPage {
     actor: actor.actor_id.clone().into(),
-    to: vec![generate_to(&community)?],
+    to: generate_to(&community)?,
     object: ObjectId::from(post.ap_id),
     cc: vec![community_id.clone()],
     kind: LockType::Lock,
@@ -153,7 +153,7 @@ pub(crate) async fn send_lock_post(
     )?;
     let undo = UndoLockPage {
       actor: lock.actor.clone(),
-      to: vec![generate_to(&community)?],
+      to: generate_to(&community)?,
       cc: lock.cc.clone(),
       kind: UndoType::Undo,
       id,
