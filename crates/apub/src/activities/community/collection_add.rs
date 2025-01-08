@@ -60,7 +60,6 @@ impl CollectionAdd {
       cc: vec![community.id()],
       kind: AddType::Add,
       id: id.clone(),
-      audience: Some(community.id().into()),
     };
 
     let activity = AnnouncableActivities::CollectionAdd(add);
@@ -86,7 +85,6 @@ impl CollectionAdd {
       cc: vec![community.id()],
       kind: AddType::Add,
       id: id.clone(),
-      audience: Some(community.id().into()),
     };
     let activity = AnnouncableActivities::CollectionAdd(add);
     send_activity_in_community(

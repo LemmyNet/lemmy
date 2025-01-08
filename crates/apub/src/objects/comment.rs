@@ -122,7 +122,6 @@ impl Object for ApubComment {
       tag: maa.tags,
       distinguished: Some(self.distinguished),
       language,
-      audience: Some(community.actor_id.into()),
       attachment: vec![],
     };
 

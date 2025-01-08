@@ -55,7 +55,6 @@ impl CollectionRemove {
       id: id.clone(),
       cc: vec![community.id()],
       kind: RemoveType::Remove,
-      audience: Some(community.id().into()),
     };
 
     let activity = AnnouncableActivities::CollectionRemove(remove);
@@ -81,7 +80,6 @@ impl CollectionRemove {
       cc: vec![community.id()],
       kind: RemoveType::Remove,
       id: id.clone(),
-      audience: Some(community.id().into()),
     };
     let activity = AnnouncableActivities::CollectionRemove(remove);
     send_activity_in_community(

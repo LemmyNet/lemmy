@@ -145,7 +145,6 @@ impl Object for ApubPost {
       language,
       published: Some(self.published),
       updated: self.updated,
-      audience: Some(community.actor_id.into()),
       in_reply_to: None,
       tag: vec![hashtag],
     };

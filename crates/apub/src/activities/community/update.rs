@@ -48,7 +48,6 @@ pub(crate) async fn send_update_community(
     cc: vec![community.id()],
     kind: UpdateType::Update,
     id: id.clone(),
-    audience: Some(community.id().into()),
   };
 
   let activity = AnnouncableActivities::UpdateCommunity(update);

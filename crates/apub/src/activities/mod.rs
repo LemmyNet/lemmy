@@ -144,18 +144,6 @@ pub(crate) fn generate_to(community: &Community) -> LemmyResult<Url> {
   }
 }
 
-pub(crate) fn verify_community_matches<T>(a: &ObjectId<ApubCommunity>, b: T) -> LemmyResult<()>
-where
-  T: Into<ObjectId<ApubCommunity>>,
-{
-  let b: ObjectId<ApubCommunity> = b.into();
-  if a != &b {
-    Err(FederationError::InvalidCommunity)?
-  } else {
-    Ok(())
-  }
-}
-
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
     Err(FederationError::CannotCreatePostOrCommentInDeletedOrRemovedCommunity)?

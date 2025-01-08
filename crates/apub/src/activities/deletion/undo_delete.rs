@@ -87,7 +87,6 @@ impl UndoDelete {
       cc: cc.into_iter().collect(),
       kind: UndoType::Undo,
       id,
-      audience: community.map(|c| c.actor_id.clone().into()),
     })
   }
 
