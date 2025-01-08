@@ -378,7 +378,10 @@ impl ModlogCombinedQuery {
     let res = query.load::<ModlogCombinedViewInternal>(conn).await?;
 
     // Map the query results to the enum
-    let out = res.into_iter().filter_map(|u| u.map_to_enum()).collect();
+    let out = res
+      .into_iter()
+      .filter_map(InternalToCombinedView::map_to_enum)
+      .collect();
 
     Ok(out)
   }
@@ -387,9 +390,9 @@ impl ModlogCombinedQuery {
 impl InternalToCombinedView for ModlogCombinedViewInternal {
   type CombinedView = ModlogCombinedView;
 
-  fn map_to_enum(&self) -> Option<Self::CombinedView> {
+  fn map_to_enum(self) -> Option<Self::CombinedView> {
     // Use for a short alias
-    let v = self.clone();
+    let v = self;
 
     if let (Some(admin_allow_instance), Some(instance)) =
       (v.admin_allow_instance, v.instance.clone())

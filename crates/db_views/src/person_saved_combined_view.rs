@@ -239,7 +239,10 @@ impl PersonSavedCombinedQuery {
     let res = query.load::<PersonContentViewInternal>(conn).await?;
 
     // Map the query results to the enum
-    let out = res.into_iter().filter_map(|u| u.map_to_enum()).collect();
+    let out = res
+      .into_iter()
+      .filter_map(InternalToCombinedView::map_to_enum)
+      .collect();
 
     Ok(out)
   }

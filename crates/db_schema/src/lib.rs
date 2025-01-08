@@ -284,7 +284,7 @@ pub trait InternalToCombinedView {
   type CombinedView;
 
   /// Maps the combined DB row to an enum
-  fn map_to_enum(&self) -> Option<Self::CombinedView>;
+  fn map_to_enum(self) -> Option<Self::CombinedView>;
 }
 
 /// Wrapper for assert_eq! macro. Checks that vec matches the given length, and prints the

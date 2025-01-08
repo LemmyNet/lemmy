@@ -329,7 +329,10 @@ impl ReportCombinedQuery {
     let res = query.load::<ReportCombinedViewInternal>(conn).await?;
 
     // Map the query results to the enum
-    let out = res.into_iter().filter_map(|u| u.map_to_enum()).collect();
+    let out = res
+      .into_iter()
+      .filter_map(InternalToCombinedView::map_to_enum)
+      .collect();
 
     Ok(out)
   }
@@ -338,9 +341,9 @@ impl ReportCombinedQuery {
 impl InternalToCombinedView for ReportCombinedViewInternal {
   type CombinedView = ReportCombinedView;
 
-  fn map_to_enum(&self) -> Option<Self::CombinedView> {
+  fn map_to_enum(self) -> Option<Self::CombinedView> {
     // Use for a short alias
-    let v = self.clone();
+    let v = self;
 
     if let (Some(post_report), Some(post), Some(community), Some(unread_comments), Some(counts)) = (
       v.post_report,

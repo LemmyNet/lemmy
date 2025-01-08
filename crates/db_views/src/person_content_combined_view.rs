@@ -238,7 +238,10 @@ impl PersonContentCombinedQuery {
     let res = query.load::<PersonContentViewInternal>(conn).await?;
 
     // Map the query results to the enum
-    let out = res.into_iter().filter_map(|u| u.map_to_enum()).collect();
+    let out = res
+      .into_iter()
+      .filter_map(InternalToCombinedView::map_to_enum)
+      .collect();
 
     Ok(out)
   }
@@ -247,9 +250,9 @@ impl PersonContentCombinedQuery {
 impl InternalToCombinedView for PersonContentViewInternal {
   type CombinedView = PersonContentCombinedView;
 
-  fn map_to_enum(&self) -> Option<Self::CombinedView> {
+  fn map_to_enum(self) -> Option<Self::CombinedView> {
     // Use for a short alias
-    let v = self.clone();
+    let v = self;
 
     if let (Some(comment), Some(counts)) = (v.comment, v.comment_counts) {
       Some(PersonContentCombinedView::Comment(CommentView {
