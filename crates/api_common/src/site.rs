@@ -168,8 +168,6 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub enable_nsfw: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub require_email_verification: Option<bool>,
@@ -226,8 +224,6 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub federation_enabled: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub federation_debug: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_enabled: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_difficulty: Option<String>,
@@ -267,9 +263,6 @@ pub struct EditSite {
   /// A url for your site's banner.
   #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<String>,
-  /// Whether to enable NSFW.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub enable_nsfw: Option<bool>,
   /// Limits community creation to admins only.
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
@@ -348,9 +341,6 @@ pub struct EditSite {
   /// Whether to enable federation.
   #[cfg_attr(feature = "full", ts(optional))]
   pub federation_enabled: Option<bool>,
-  /// Enables federation debugging.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub federation_debug: Option<bool>,
   /// Whether to enable captchas for signups.
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_enabled: Option<bool>,

@@ -14,6 +14,7 @@ static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
   markdown_it_sub::add(&mut parser);
   markdown_it_sup::add(&mut parser);
   markdown_it_ruby::add(&mut parser);
+  markdown_it_footnote::add(&mut parser);
   link_rule::add(&mut parser);
 
   parser
@@ -122,6 +123,17 @@ mod tests {
         "ruby text",
         "{漢|Kan}{字|ji}",
         "<p><ruby>漢<rp>(</rp><rt>Kan</rt><rp>)</rp></ruby><ruby>字<rp>(</rp><rt>ji</rt><rp>)</rp></ruby></p>\n"
+      ),
+      (
+        "footnotes",
+        "Bold claim.[^1]\n\n[^1]: example.com",
+        "<p>Bold claim.<sup class=\"footnote-ref\"><a href=\"#fn1\" id=\"fnref1\">[1]</a></sup></p>\n\
+	 <hr class=\"footnotes-sep\" />\n\
+	 <section class=\"footnotes\">\n\
+	 <ol class=\"footnotes-list\">\n\
+	 <li id=\"fn1\" class=\"footnote-item\">\n\
+	 <p>example.com <a href=\"#fnref1\" class=\"footnote-backref\">↩︎</a></p>\n\
+	 </li>\n</ol>\n</section>\n"
       )
     ];
 
