@@ -9,6 +9,15 @@ pub mod download;
 pub mod upload;
 mod utils;
 
+pub async fn delete_community_icon(
+  data: Json<DeleteImageParams>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<SuccessResponse>> {
+  todo!()
+}
+
+// TODO: get rid of delete tokens and allow deletion by admin or uploader
 pub async fn delete_image(
   data: Json<DeleteImageParams>,
   context: Data<LemmyContext>,

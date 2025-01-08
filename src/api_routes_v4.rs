@@ -207,6 +207,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/ban_user", post().to(ban_from_community))
           .route("/mod", post().to(add_mod_to_community))
           .route("/icon", post().to(upload_community_icon))
+          .route("/icon", delete().to(delete_community_icon))
           .route("/banner", post().to(upload_community_banner))
           .service(
             scope("/pending_follows")
