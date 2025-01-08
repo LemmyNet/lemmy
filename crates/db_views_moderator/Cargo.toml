@@ -40,6 +40,7 @@ diesel-async = { workspace = true, features = [
 serde = { workspace = true }
 serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }
+strum = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

@@ -70,38 +70,29 @@ use lemmy_utils::error::LemmyResult;
 impl ModlogCombinedPaginationCursor {
   // get cursor for page that starts immediately after the given post
   pub fn after_post(view: &ModlogCombinedView) -> ModlogCombinedPaginationCursor {
-    let (prefix, id) = match view {
-      ModlogCombinedView::AdminAllowInstance(v) => {
-        ("AdminAllowInstance", v.admin_allow_instance.id.0)
-      }
-      ModlogCombinedView::AdminBlockInstance(v) => {
-        ("AdminBlockInstance", v.admin_block_instance.id.0)
-      }
-      ModlogCombinedView::AdminPurgeComment(v) => ("AdminPurgeComment", v.admin_purge_comment.id.0),
-      ModlogCombinedView::AdminPurgeCommunity(v) => {
-        ("AdminPurgeCommunity", v.admin_purge_community.id.0)
-      }
-      ModlogCombinedView::AdminPurgePerson(v) => ("AdminPurgePerson", v.admin_purge_person.id.0),
-      ModlogCombinedView::AdminPurgePost(v) => ("AdminPurgePost", v.admin_purge_post.id.0),
-      ModlogCombinedView::ModAdd(v) => ("ModAdd", v.mod_add.id.0),
-      ModlogCombinedView::ModAddCommunity(v) => ("ModAddCommunity", v.mod_add_community.id.0),
-      ModlogCombinedView::ModBan(v) => ("ModBan", v.mod_ban.id.0),
-      ModlogCombinedView::ModBanFromCommunity(v) => {
-        ("ModBanFromCommunity", v.mod_ban_from_community.id.0)
-      }
-      ModlogCombinedView::ModFeaturePost(v) => ("ModFeaturePost", v.mod_feature_post.id.0),
-      ModlogCombinedView::ModHideCommunity(v) => ("ModHideCommunity", v.mod_hide_community.id.0),
-      ModlogCombinedView::ModLockPost(v) => ("ModLockPost", v.mod_lock_post.id.0),
-      ModlogCombinedView::ModRemoveComment(v) => ("ModRemoveComment", v.mod_remove_comment.id.0),
-      ModlogCombinedView::ModRemoveCommunity(v) => {
-        ("ModRemoveCommunity", v.mod_remove_community.id.0)
-      }
-      ModlogCombinedView::ModRemovePost(v) => ("ModRemovePost", v.mod_remove_post.id.0),
-      ModlogCombinedView::ModTransferCommunity(v) => {
-        ("ModTransferCommunity", v.mod_transfer_community.id.0)
-      }
+    let id = match view {
+      ModlogCombinedView::AdminAllowInstance(v) => v.admin_allow_instance.id.0,
+      ModlogCombinedView::AdminBlockInstance(v) => v.admin_block_instance.id.0,
+      ModlogCombinedView::AdminPurgeComment(v) => v.admin_purge_comment.id.0,
+      ModlogCombinedView::AdminPurgeCommunity(v) => v.admin_purge_community.id.0,
+      ModlogCombinedView::AdminPurgePerson(v) => v.admin_purge_person.id.0,
+      ModlogCombinedView::AdminPurgePost(v) => v.admin_purge_post.id.0,
+      ModlogCombinedView::ModAdd(v) => v.mod_add.id.0,
+      ModlogCombinedView::ModAddCommunity(v) => v.mod_add_community.id.0,
+      ModlogCombinedView::ModBan(v) => v.mod_ban.id.0,
+      ModlogCombinedView::ModBanFromCommunity(v) => v.mod_ban_from_community.id.0,
+
+      ModlogCombinedView::ModFeaturePost(v) => v.mod_feature_post.id.0,
+      ModlogCombinedView::ModHideCommunity(v) => v.mod_hide_community.id.0,
+      ModlogCombinedView::ModLockPost(v) => v.mod_lock_post.id.0,
+      ModlogCombinedView::ModRemoveComment(v) => v.mod_remove_comment.id.0,
+      ModlogCombinedView::ModRemoveCommunity(v) => v.mod_remove_community.id.0,
+
+      ModlogCombinedView::ModRemovePost(v) => v.mod_remove_post.id.0,
+      ModlogCombinedView::ModTransferCommunity(v) => v.mod_transfer_community.id.0,
     };
     // hex encoding to prevent ossification
+    let prefix = view.as_ref();
     ModlogCombinedPaginationCursor(format!("{prefix}{id:x}"))
   }
 
@@ -342,55 +333,32 @@ impl ModlogCombinedQuery {
     }
 
     if let Some(type_) = self.type_ {
+      use lemmy_db_schema::ModlogActionType::*;
       query = match type_ {
-        ModlogActionType::All => query,
-        ModlogActionType::ModRemovePost => {
-          query.filter(modlog_combined::mod_remove_post_id.is_not_null())
-        }
-        ModlogActionType::ModLockPost => {
-          query.filter(modlog_combined::mod_lock_post_id.is_not_null())
-        }
-        ModlogActionType::ModFeaturePost => {
-          query.filter(modlog_combined::mod_feature_post_id.is_not_null())
-        }
-        ModlogActionType::ModRemoveComment => {
-          query.filter(modlog_combined::mod_remove_comment_id.is_not_null())
-        }
-        ModlogActionType::ModRemoveCommunity => {
-          query.filter(modlog_combined::mod_remove_community_id.is_not_null())
-        }
-        ModlogActionType::ModBanFromCommunity => {
+        All => query,
+        ModRemovePost => query.filter(modlog_combined::mod_remove_post_id.is_not_null()),
+        ModLockPost => query.filter(modlog_combined::mod_lock_post_id.is_not_null()),
+        ModFeaturePost => query.filter(modlog_combined::mod_feature_post_id.is_not_null()),
+        ModRemoveComment => query.filter(modlog_combined::mod_remove_comment_id.is_not_null()),
+        ModRemoveCommunity => query.filter(modlog_combined::mod_remove_community_id.is_not_null()),
+        ModBanFromCommunity => {
           query.filter(modlog_combined::mod_ban_from_community_id.is_not_null())
         }
-        ModlogActionType::ModAddCommunity => {
-          query.filter(modlog_combined::mod_add_community_id.is_not_null())
-        }
-        ModlogActionType::ModTransferCommunity => {
+        ModAddCommunity => query.filter(modlog_combined::mod_add_community_id.is_not_null()),
+        ModTransferCommunity => {
           query.filter(modlog_combined::mod_transfer_community_id.is_not_null())
         }
-        ModlogActionType::ModAdd => query.filter(modlog_combined::mod_add_id.is_not_null()),
-        ModlogActionType::ModBan => query.filter(modlog_combined::mod_ban_id.is_not_null()),
-        ModlogActionType::ModHideCommunity => {
-          query.filter(modlog_combined::mod_hide_community_id.is_not_null())
-        }
-        ModlogActionType::AdminPurgePerson => {
-          query.filter(modlog_combined::admin_purge_person_id.is_not_null())
-        }
-        ModlogActionType::AdminPurgeCommunity => {
+        ModAdd => query.filter(modlog_combined::mod_add_id.is_not_null()),
+        ModBan => query.filter(modlog_combined::mod_ban_id.is_not_null()),
+        ModHideCommunity => query.filter(modlog_combined::mod_hide_community_id.is_not_null()),
+        AdminPurgePerson => query.filter(modlog_combined::admin_purge_person_id.is_not_null()),
+        AdminPurgeCommunity => {
           query.filter(modlog_combined::admin_purge_community_id.is_not_null())
         }
-        ModlogActionType::AdminPurgePost => {
-          query.filter(modlog_combined::admin_purge_post_id.is_not_null())
-        }
-        ModlogActionType::AdminPurgeComment => {
-          query.filter(modlog_combined::admin_purge_comment_id.is_not_null())
-        }
-        ModlogActionType::AdminBlockInstance => {
-          query.filter(modlog_combined::admin_block_instance_id.is_not_null())
-        }
-        ModlogActionType::AdminAllowInstance => {
-          query.filter(modlog_combined::admin_allow_instance_id.is_not_null())
-        }
+        AdminPurgePost => query.filter(modlog_combined::admin_purge_post_id.is_not_null()),
+        AdminPurgeComment => query.filter(modlog_combined::admin_purge_comment_id.is_not_null()),
+        AdminBlockInstance => query.filter(modlog_combined::admin_block_instance_id.is_not_null()),
+        AdminAllowInstance => query.filter(modlog_combined::admin_allow_instance_id.is_not_null()),
       }
     }
 
