@@ -57,7 +57,7 @@ pub async fn create_post_report(
 
   let report = PostReport::report(&mut context.pool(), &report_form)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   let post_report_view = PostReportView::read(&mut context.pool(), report.id, person_id).await?;
 

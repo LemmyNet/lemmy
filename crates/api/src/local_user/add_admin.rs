@@ -48,7 +48,7 @@ pub async fn add_admin(
     },
   )
   .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
+  .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   // Mod tables
   let form = ModAddForm {

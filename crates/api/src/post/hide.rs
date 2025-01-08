@@ -20,11 +20,11 @@ pub async fn hide_post(
   if data.hide {
     PostHide::hide(&mut context.pool(), post_id, person_id)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntHidePost)?;
+      .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   } else {
     PostHide::unhide(&mut context.pool(), post_id, person_id)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntHidePost)?;
+      .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   }
 
   let post_view = PostView::read(

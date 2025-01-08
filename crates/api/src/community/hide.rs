@@ -41,7 +41,7 @@ pub async fn hide_community(
   let community_id = data.community_id;
   let community = Community::update(&mut context.pool(), community_id, &community_form)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunityHiddenStatus)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   ModHideCommunity::create(&mut context.pool(), &mod_hide_community_form).await?;
 

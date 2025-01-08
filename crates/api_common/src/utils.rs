@@ -349,7 +349,7 @@ pub fn check_private_instance(
 #[tracing::instrument(skip_all)]
 pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.local_user.enable_private_messages {
-    Err(LemmyErrorType::CouldntCreatePrivateMessage)?
+    Err(LemmyErrorType::ActionFailed)?
   } else {
     Ok(())
   }
@@ -944,12 +944,12 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
   // Comments
   Comment::permadelete_for_creator(pool, person_id)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   // Posts
   Post::permadelete_for_creator(pool, person_id)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   // Leave communities they mod
   CommunityModerator::leave_all_communities(pool, person_id).await?;

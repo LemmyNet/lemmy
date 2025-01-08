@@ -21,11 +21,11 @@ pub async fn resolve_pm_report(
   if data.resolved {
     PrivateMessageReport::resolve(&mut context.pool(), report_id, person_id)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
+      .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   } else {
     PrivateMessageReport::unresolve(&mut context.pool(), report_id, person_id)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
+      .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   }
 
   let private_message_report_view =

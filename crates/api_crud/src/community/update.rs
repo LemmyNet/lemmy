@@ -103,7 +103,7 @@ pub async fn update_community(
   let community_id = data.community_id;
   let community = Community::update(&mut context.pool(), community_id, &community_form)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   ActivityChannel::submit_activity(
     SendActivityData::UpdateCommunity(local_user_view.person.clone(), community),

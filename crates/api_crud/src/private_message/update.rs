@@ -52,7 +52,7 @@ pub async fn update_private_message(
     },
   )
   .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
+  .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
 

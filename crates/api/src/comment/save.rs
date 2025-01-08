@@ -21,11 +21,11 @@ pub async fn save_comment(
   if data.save {
     CommentSaved::save(&mut context.pool(), &comment_saved_form)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntSaveComment)?;
+      .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   } else {
     CommentSaved::unsave(&mut context.pool(), &comment_saved_form)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntSaveComment)?;
+      .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   }
 
   let comment_id = data.comment_id;

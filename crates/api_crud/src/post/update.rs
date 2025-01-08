@@ -140,7 +140,7 @@ pub async fn update_post(
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdatePost)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   // send out federation/webmention if necessary
   match (

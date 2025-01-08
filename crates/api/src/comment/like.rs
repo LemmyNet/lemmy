@@ -81,7 +81,7 @@ pub async fn like_comment(
   if do_add {
     CommentLike::like(&mut context.pool(), &like_form)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
+      .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   }
 
   ActivityChannel::submit_activity(

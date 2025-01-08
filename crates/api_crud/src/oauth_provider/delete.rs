@@ -20,6 +20,6 @@ pub async fn delete_oauth_provider(
   is_admin(&local_user_view)?;
   OAuthProvider::delete(&mut context.pool(), data.id)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntDeleteOauthProvider)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   Ok(Json(SuccessResponse::default()))
 }

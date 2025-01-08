@@ -92,7 +92,7 @@ impl LocalUser {
       .set((local_user::password_encrypted.eq(password_hash),))
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)
+      .with_lemmy_type(LemmyErrorType::ActionFailed)
   }
 
   pub async fn set_all_users_email_verified(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {

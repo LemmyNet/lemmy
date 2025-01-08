@@ -66,8 +66,7 @@ async fn verify_person(
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
   if person.banned {
-    Err(anyhow!("Person {} is banned", person_id))
-      .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)
+    Err(anyhow!("Person {} is banned", person_id)).with_lemmy_type(LemmyErrorType::ActionFailed)
   } else {
     Ok(())
   }

@@ -369,7 +369,7 @@ impl PostRead {
       .set(post_actions::read.eq(now().nullable()))
       .execute(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntMarkPostAsRead)
+      .with_lemmy_type(LemmyErrorType::ActionFailed)
   }
 }
 

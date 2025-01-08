@@ -52,7 +52,7 @@ pub async fn distinguish_comment(
   };
   Comment::update(&mut context.pool(), data.comment_id, &form)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   let comment_view = CommentView::read(
     &mut context.pool(),

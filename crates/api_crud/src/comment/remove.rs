@@ -52,7 +52,7 @@ pub async fn remove_comment(
   // Don't allow removing or restoring comment which was deleted by user, as it would reveal
   // the comment text in mod log.
   if orig_comment.comment.deleted {
-    return Err(LemmyErrorType::CouldntUpdateComment.into());
+    return Err(LemmyErrorType::ActionFailed.into());
   }
 
   // Do the remove
@@ -66,7 +66,7 @@ pub async fn remove_comment(
     },
   )
   .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+  .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   CommentReport::resolve_all_for_object(&mut context.pool(), comment_id, local_user_view.person.id)
     .await?;

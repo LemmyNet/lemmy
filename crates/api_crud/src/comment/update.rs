@@ -79,7 +79,7 @@ pub async fn update_comment(
   };
   let updated_comment = Comment::update(&mut context.pool(), comment_id, &form)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   // Do the mentions / recipients
   let updated_comment_content = updated_comment.content.clone();

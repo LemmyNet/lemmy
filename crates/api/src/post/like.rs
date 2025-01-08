@@ -59,7 +59,7 @@ pub async fn like_post(
   if do_add {
     PostLike::like(&mut context.pool(), &like_form)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
+      .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   }
 
   // Mark Post Read

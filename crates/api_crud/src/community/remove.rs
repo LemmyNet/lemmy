@@ -47,7 +47,7 @@ pub async fn remove_community(
     },
   )
   .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
+  .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   // Mod tables
   let form = ModRemoveCommunityForm {

@@ -30,7 +30,7 @@ pub async fn delete_comment(
 
   // Dont delete it if its already been deleted.
   if orig_comment.comment.deleted == data.deleted {
-    Err(LemmyErrorType::CouldntUpdateComment)?
+    Err(LemmyErrorType::ActionFailed)?
   }
 
   check_community_user_action(
@@ -56,7 +56,7 @@ pub async fn delete_comment(
     },
   )
   .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+  .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   let recipient_ids = send_local_notifs(
     vec![],

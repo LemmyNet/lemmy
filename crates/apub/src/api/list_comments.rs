@@ -89,7 +89,7 @@ pub async fn list_comments(
   }
   .list(&site_view.site, &mut context.pool())
   .await
-  .with_lemmy_type(LemmyErrorType::CouldntGetComments)?;
+  .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   Ok(Json(GetCommentsResponse { comments }))
 }

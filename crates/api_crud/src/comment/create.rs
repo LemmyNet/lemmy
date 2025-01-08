@@ -87,7 +87,7 @@ pub async fn create_comment(
   // Strange issue where sometimes the post ID of the parent comment is incorrect
   if let Some(parent) = parent_opt.as_ref() {
     if parent.post_id != post_id {
-      Err(LemmyErrorType::CouldntCreateComment)?
+      Err(LemmyErrorType::ActionFailed)?
     }
     check_comment_depth(parent)?;
   }
@@ -109,7 +109,7 @@ pub async fn create_comment(
   let parent_path = parent_opt.clone().map(|t| t.path);
   let inserted_comment = Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref())
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreateComment)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   let inserted_comment_id = inserted_comment.id;
 
@@ -134,7 +134,7 @@ pub async fn create_comment(
 
   CommentLike::like(&mut context.pool(), &like_form)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntLikeComment)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   ActivityChannel::submit_activity(
     SendActivityData::CreateComment(inserted_comment.clone()),

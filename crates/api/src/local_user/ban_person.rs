@@ -56,7 +56,7 @@ pub async fn ban_from_site(
     },
   )
   .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateUser)?;
+  .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   // if its a local user, invalidate logins
   let local_user = LocalUserView::read_person(&mut context.pool(), person.id).await;

@@ -31,11 +31,11 @@ pub async fn resolve_post_report(
   if data.resolved {
     PostReport::resolve(&mut context.pool(), report_id, person_id)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
+      .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   } else {
     PostReport::unresolve(&mut context.pool(), report_id, person_id)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
+      .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   }
 
   let post_report_view = PostReportView::read(&mut context.pool(), report_id, person_id).await?;

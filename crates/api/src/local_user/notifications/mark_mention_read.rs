@@ -21,7 +21,7 @@ pub async fn mark_person_mention_as_read(
   let read_person_mention = PersonMention::read(&mut context.pool(), person_mention_id).await?;
 
   if local_user_view.person.id != read_person_mention.recipient_id {
-    Err(LemmyErrorType::CouldntUpdateComment)?
+    Err(LemmyErrorType::ActionFailed)?
   }
 
   let person_mention_id = read_person_mention.id;
@@ -32,7 +32,7 @@ pub async fn mark_person_mention_as_read(
     &PersonMentionUpdateForm { read },
   )
   .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+  .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   let person_mention_id = read_person_mention.id;
   let person_id = local_user_view.person.id;

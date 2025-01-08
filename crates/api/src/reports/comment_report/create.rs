@@ -61,7 +61,7 @@ pub async fn create_comment_report(
 
   let report = CommentReport::report(&mut context.pool(), &report_form)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreateReport)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   let comment_report_view =
     CommentReportView::read(&mut context.pool(), report.id, person_id).await?;

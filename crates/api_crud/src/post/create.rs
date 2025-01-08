@@ -122,7 +122,7 @@ pub async fn create_post(
 
   let inserted_post = Post::create(&mut context.pool(), &post_form)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   let community_id = community.id;
   let federate_post = if scheduled_publish_time.is_none() {
@@ -146,7 +146,7 @@ pub async fn create_post(
 
   PostLike::like(&mut context.pool(), &like_form)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   let read_form = PostReadForm::new(post_id, person_id);
   PostRead::mark_as_read(&mut context.pool(), &read_form).await?;

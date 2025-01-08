@@ -21,7 +21,7 @@ pub async fn mark_reply_as_read(
   let read_comment_reply = CommentReply::read(&mut context.pool(), comment_reply_id).await?;
 
   if local_user_view.person.id != read_comment_reply.recipient_id {
-    Err(LemmyErrorType::CouldntUpdateComment)?
+    Err(LemmyErrorType::ActionFailed)?
   }
 
   let comment_reply_id = read_comment_reply.id;
@@ -33,7 +33,7 @@ pub async fn mark_reply_as_read(
     &CommentReplyUpdateForm { read },
   )
   .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+  .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   let comment_reply_id = read_comment_reply.id;
   let person_id = local_user_view.person.id;

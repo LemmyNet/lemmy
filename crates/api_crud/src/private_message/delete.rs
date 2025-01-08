@@ -37,7 +37,7 @@ pub async fn delete_private_message(
     },
   )
   .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
+  .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   ActivityChannel::submit_activity(
     SendActivityData::DeletePrivateMessage(local_user_view.person, private_message, data.deleted),

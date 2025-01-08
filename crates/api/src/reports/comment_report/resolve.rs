@@ -31,11 +31,11 @@ pub async fn resolve_comment_report(
   if data.resolved {
     CommentReport::resolve(&mut context.pool(), report_id, person_id)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
+      .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   } else {
     CommentReport::unresolve(&mut context.pool(), report_id, person_id)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
+      .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   }
 
   let report_id = data.report_id;

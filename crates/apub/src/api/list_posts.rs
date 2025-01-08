@@ -91,7 +91,7 @@ pub async fn list_posts(
   }
   .list(&local_site.site, &mut context.pool())
   .await
-  .with_lemmy_type(LemmyErrorType::CouldntGetPosts)?;
+  .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   // If in their user settings (or as part of the API request), auto-mark fetched posts as read
   if let Some(local_user) = local_user {

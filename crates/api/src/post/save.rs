@@ -21,11 +21,11 @@ pub async fn save_post(
   if data.save {
     PostSaved::save(&mut context.pool(), &post_saved_form)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntSavePost)?;
+      .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   } else {
     PostSaved::unsave(&mut context.pool(), &post_saved_form)
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntSavePost)?;
+      .with_lemmy_type(LemmyErrorType::ActionFailed)?;
   }
 
   let post_id = data.post_id;

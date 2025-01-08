@@ -18,17 +18,17 @@ pub async fn mark_all_notifications_read(
   // Mark all comment_replies as read
   CommentReply::mark_all_as_read(&mut context.pool(), person_id)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   // Mark all user mentions as read
   PersonMention::mark_all_as_read(&mut context.pool(), person_id)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   // Mark all private_messages as read
   PrivateMessage::mark_all_as_read(&mut context.pool(), person_id)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntUpdatePrivateMessage)?;
+    .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   Ok(Json(GetRepliesResponse { replies: vec![] }))
 }

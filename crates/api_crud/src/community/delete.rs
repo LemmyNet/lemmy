@@ -49,7 +49,7 @@ pub async fn delete_community(
     },
   )
   .await
-  .with_lemmy_type(LemmyErrorType::CouldntUpdateCommunity)?;
+  .with_lemmy_type(LemmyErrorType::ActionFailed)?;
 
   ActivityChannel::submit_activity(
     SendActivityData::DeleteCommunity(local_user_view.person.clone(), community, data.deleted),
