@@ -49,7 +49,7 @@ diesel::table! {
         admin_person_id -> Int4,
         allowed -> Bool,
         reason -> Nullable<Text>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -61,7 +61,7 @@ diesel::table! {
         blocked -> Bool,
         reason -> Nullable<Text>,
         expires -> Nullable<Timestamptz>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -71,7 +71,7 @@ diesel::table! {
         admin_person_id -> Int4,
         post_id -> Int4,
         reason -> Nullable<Text>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -80,7 +80,7 @@ diesel::table! {
         id -> Int4,
         admin_person_id -> Int4,
         reason -> Nullable<Text>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -89,7 +89,7 @@ diesel::table! {
         id -> Int4,
         admin_person_id -> Int4,
         reason -> Nullable<Text>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -99,7 +99,7 @@ diesel::table! {
         admin_person_id -> Int4,
         community_id -> Int4,
         reason -> Nullable<Text>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -518,7 +518,7 @@ diesel::table! {
         mod_person_id -> Int4,
         other_person_id -> Int4,
         removed -> Bool,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -529,7 +529,7 @@ diesel::table! {
         other_person_id -> Int4,
         community_id -> Int4,
         removed -> Bool,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -541,7 +541,7 @@ diesel::table! {
         reason -> Nullable<Text>,
         banned -> Bool,
         expires -> Nullable<Timestamptz>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -554,7 +554,7 @@ diesel::table! {
         reason -> Nullable<Text>,
         banned -> Bool,
         expires -> Nullable<Timestamptz>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -564,7 +564,7 @@ diesel::table! {
         mod_person_id -> Int4,
         post_id -> Int4,
         featured -> Bool,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
         is_featured_community -> Bool,
     }
 }
@@ -574,7 +574,7 @@ diesel::table! {
         id -> Int4,
         community_id -> Int4,
         mod_person_id -> Int4,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
         reason -> Nullable<Text>,
         hidden -> Bool,
     }
@@ -586,7 +586,7 @@ diesel::table! {
         mod_person_id -> Int4,
         post_id -> Int4,
         locked -> Bool,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -597,7 +597,7 @@ diesel::table! {
         comment_id -> Int4,
         reason -> Nullable<Text>,
         removed -> Bool,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -608,7 +608,7 @@ diesel::table! {
         community_id -> Int4,
         reason -> Nullable<Text>,
         removed -> Bool,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -619,7 +619,7 @@ diesel::table! {
         post_id -> Int4,
         reason -> Nullable<Text>,
         removed -> Bool,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -629,7 +629,7 @@ diesel::table! {
         mod_person_id -> Int4,
         other_person_id -> Int4,
         community_id -> Int4,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 

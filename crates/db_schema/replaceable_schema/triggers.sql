@@ -789,7 +789,7 @@ BEGIN
             AS $$
             BEGIN
                 INSERT INTO modlog_combined (published, thing_id)
-                    VALUES (NEW.when_, NEW.id);
+                    VALUES (NEW.published, NEW.id);
                 RETURN NEW;
             END $$;
     CREATE TRIGGER modlog_combined

@@ -49,7 +49,7 @@ pub struct ModRemovePost {
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   pub removed: bool,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -72,7 +72,7 @@ pub struct ModLockPost {
   pub mod_person_id: PersonId,
   pub post_id: PostId,
   pub locked: bool,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -94,7 +94,7 @@ pub struct ModFeaturePost {
   pub mod_person_id: PersonId,
   pub post_id: PostId,
   pub featured: bool,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
   pub is_featured_community: bool,
 }
 
@@ -121,7 +121,7 @@ pub struct ModRemoveComment {
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   pub removed: bool,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -147,7 +147,7 @@ pub struct ModRemoveCommunity {
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   pub removed: bool,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -176,7 +176,7 @@ pub struct ModBanFromCommunity {
   pub banned: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub expires: Option<DateTime<Utc>>,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -206,7 +206,7 @@ pub struct ModBan {
   pub banned: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub expires: Option<DateTime<Utc>>,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -229,7 +229,7 @@ pub struct ModHideCommunity {
   pub id: ModHideCommunityId,
   pub community_id: CommunityId,
   pub mod_person_id: PersonId,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
   pub hidden: bool,
@@ -257,7 +257,7 @@ pub struct ModAddCommunity {
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
   pub removed: bool,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -280,7 +280,7 @@ pub struct ModTransferCommunity {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub community_id: CommunityId,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -302,7 +302,7 @@ pub struct ModAdd {
   pub mod_person_id: PersonId,
   pub other_person_id: PersonId,
   pub removed: bool,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
