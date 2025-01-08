@@ -203,8 +203,6 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub enable_nsfw: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub require_email_verification: Option<bool>,
@@ -302,9 +300,6 @@ pub struct EditSite {
   /// A url for your site's banner.
   #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<String>,
-  /// Whether to enable NSFW.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub enable_nsfw: Option<bool>,
   /// Limits community creation to admins only.
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
