@@ -208,12 +208,10 @@ pub(crate) async fn send_ban_from_community(
   }
 }
 
-fn to_and_audience(
-  target: &SiteOrCommunity,
-) -> LemmyResult<(Vec<Url>, Option<ObjectId<ApubCommunity>>)> {
+fn to(target: &SiteOrCommunity) -> LemmyResult<Vec<Url>> {
   Ok(if let SiteOrCommunity::Community(c) = target {
-    (vec![generate_to(c)?], Some(c.id().into()))
+    generate_to(c)?
   } else {
-    (vec![public()], None)
+    vec![public()]
   })
 }

@@ -60,7 +60,7 @@ pub(crate) async fn send_apub_delete_in_community(
 ) -> LemmyResult<()> {
   let actor = ApubPerson::from(actor);
   let is_mod_action = reason.is_some();
-  let to = vec![generate_to(&community)?];
+  let to = generate_to(&community)?;
   let activity = if deleted {
     let delete = Delete::new(&actor, object, to, Some(&community), reason, context)?;
     AnnouncableActivities::Delete(delete)
