@@ -150,7 +150,15 @@ use lemmy_apub::api::{
   user_settings_backup::{export_settings, import_settings},
 };
 use lemmy_routes::images::{
-  delete_image,
+  delete::{
+    delete_community_banner,
+    delete_community_icon,
+    delete_image,
+    delete_site_banner,
+    delete_site_icon,
+    delete_user_avatar,
+    delete_user_banner,
+  },
   download::{get_image, image_proxy},
   pictrs_health,
   upload::{
@@ -176,7 +184,9 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", post().to(create_site))
           .route("", put().to(update_site))
           .route("/icon", post().to(upload_site_icon))
-          .route("/banner", post().to(upload_site_banner)),
+          .route("/icon", delete().to(delete_site_icon))
+          .route("/banner", post().to(upload_site_banner))
+          .route("/banner", delete().to(delete_site_banner)),
       )
       .route("/modlog", get().to(get_mod_log))
       .service(
@@ -209,6 +219,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/icon", post().to(upload_community_icon))
           .route("/icon", delete().to(delete_community_icon))
           .route("/banner", post().to(upload_community_banner))
+          .route("/banner", delete().to(delete_community_banner))
           .service(
             scope("/pending_follows")
               .route("/count", get().to(get_pending_follows_count))
@@ -327,7 +338,9 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/list_logins", get().to(list_logins))
           .route("/validate_auth", get().to(validate_auth))
           .route("/avatar", post().to(upload_user_avatar))
+          .route("/avatar", delete().to(delete_user_avatar))
           .route("/banner", post().to(upload_user_banner))
+          .route("/banner", delete().to(delete_user_banner))
           .service(
             scope("/block")
               .route("/person", post().to(user_block_person))

@@ -124,7 +124,7 @@ use lemmy_apub::api::{
   user_settings_backup::{export_settings, import_settings},
 };
 use lemmy_routes::images::{
-  delete_image,
+  delete::delete_image,
   download::{get_image, image_proxy},
   pictrs_health,
   upload::upload_image,
