@@ -1,0 +1,1 @@
+alter table local_image drop column pictrs_delete_token;

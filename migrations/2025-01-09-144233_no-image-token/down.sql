@@ -1,0 +1,1 @@
+alter table local_image add column pictrs_delete_token text not null default '' ;

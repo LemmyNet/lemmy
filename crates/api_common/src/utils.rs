@@ -680,13 +680,9 @@ async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -
 
     // Delete their images
     for upload in pictrs_uploads {
-      delete_image_from_pictrs(
-        &upload.local_image.pictrs_alias,
-        &upload.local_image.pictrs_delete_token,
-        context,
-      )
-      .await
-      .ok();
+      delete_image_from_pictrs(&upload.local_image.pictrs_alias, context)
+        .await
+        .ok();
     }
   }
   Ok(())
