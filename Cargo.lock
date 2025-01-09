@@ -1360,6 +1360,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
 
 [[package]]
+name = "diffutils"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8d7ce619b5c0e13f7543dc2c203a7e6fa37e0111d876339aada7ec9540a58d5"
+dependencies = [
+ "chrono",
+ "diff",
+ "regex",
+ "same-file",
+ "unicode-width",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2649,6 +2662,7 @@ dependencies = [
  "diesel-derive-newtype",
  "diesel_ltree",
  "diesel_migrations",
+ "diffutils",
  "futures-util",
  "i-love-jesus",
  "lemmy_utils",
@@ -2837,6 +2851,7 @@ dependencies = [
  "lettre",
  "markdown-it",
  "markdown-it-block-spoiler",
+ "markdown-it-footnote",
  "markdown-it-ruby",
  "markdown-it-sub",
  "markdown-it-sup",
@@ -2901,7 +2916,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -3018,6 +3033,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "008a8e4184fd08b5dca0f2b5b2ef8f126c1e83ca797c44ee41f8d7765951360c"
 dependencies = [
  "itertools 0.13.0",
+ "markdown-it",
+]
+
+[[package]]
+name = "markdown-it-footnote"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6679ab967fbc45b290b25fb477af7556bf6825feec208a970585e6bb9aae3be"
+dependencies = [
  "markdown-it",
 ]
 

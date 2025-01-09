@@ -89,6 +89,7 @@ markdown-it-block-spoiler = "1.0.0"
 markdown-it-sub = "1.0.0"
 markdown-it-sup = "1.0.0"
 markdown-it-ruby = "1.0.0"
+markdown-it-footnote = "0.2.0"
 moka = { workspace = true, optional = true }
 
 [dev-dependencies]
