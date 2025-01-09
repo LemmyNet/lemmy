@@ -122,10 +122,3 @@ pub(super) async fn delete_old_image(
   }
   Ok(())
 }
-
-/// Take file type from param, name, or use jpg if nothing is given
-pub(super) fn file_type(file_type: Option<String>, name: &str) -> String {
-  file_type
-    .clone()
-    .unwrap_or_else(|| name.split('.').last().unwrap_or("jpg").to_string())
-}

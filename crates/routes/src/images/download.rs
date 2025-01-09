@@ -1,4 +1,4 @@
-use super::utils::{adapt_request, convert_header, file_type};
+use super::utils::{adapt_request, convert_header};
 use actix_web::{
   body::{BodyStream, BoxBody},
   http::StatusCode,
@@ -23,7 +23,7 @@ pub async fn get_image(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<HttpResponse> {
-  // block access to images if instance is private and unauthorized, public
+  // block access to images if instance is private
   if local_user_view.is_none() {
     let local_site = LocalSite::read(&mut context.pool()).await?;
     if local_site.private_instance {
@@ -48,6 +48,7 @@ pub async fn get_image(
 
   do_get_image(processed_url, req).await
 }
+
 pub async fn image_proxy(
   Query(params): Query<ImageProxyParams>,
   req: HttpRequest,
@@ -112,4 +113,11 @@ pub(super) async fn do_get_image(url: String, req: HttpRequest) -> LemmyResult<H
   }
 
   Ok(client_res.body(BodyStream::new(res.bytes_stream())))
+}
+
+/// Take file type from param, name, or use jpg if nothing is given
+pub(super) fn file_type(file_type: Option<String>, name: &str) -> String {
+  file_type
+    .clone()
+    .unwrap_or_else(|| name.split('.').last().unwrap_or("jpg").to_string())
 }
