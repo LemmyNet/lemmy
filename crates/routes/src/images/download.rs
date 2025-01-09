@@ -24,9 +24,11 @@ pub async fn get_image(
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<HttpResponse> {
   // block access to images if instance is private and unauthorized, public
-  let local_site = LocalSite::read(&mut context.pool()).await?;
-  if local_site.private_instance && local_user_view.is_none() {
-    return Ok(HttpResponse::Unauthorized().finish());
+  if local_user_view.is_none() {
+    let local_site = LocalSite::read(&mut context.pool()).await?;
+    if local_site.private_instance {
+      return Ok(HttpResponse::Unauthorized().finish());
+    }
   }
   let name = &filename.into_inner();
 
