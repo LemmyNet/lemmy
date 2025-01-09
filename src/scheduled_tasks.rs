@@ -3,6 +3,7 @@ use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
   dsl::{exists, not, IntervalDsl},
+  query_builder::AsQuery,
   sql_query,
   sql_types::{Integer, Timestamptz},
   BoolExpressionMethods,
@@ -37,7 +38,15 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::{find_action, functions::coalesce, get_conn, now, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::{
+    find_action,
+    functions::coalesce,
+    get_conn,
+    now,
+    uplete,
+    DbPool,
+    DELETED_REPLACEMENT_TEXT,
+  },
 };
 use lemmy_routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -389,11 +398,12 @@ async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   .execute(&mut conn)
   .await?;
 
-  diesel::delete(
-    community_actions::table.filter(community_actions::ban_expires.lt(now().nullable())),
-  )
-  .execute(&mut conn)
-  .await?;
+  uplete::new(community_actions::table.filter(community_actions::ban_expires.lt(now().nullable())))
+    .set_null(community_actions::received_ban)
+    .set_null(community_actions::ban_expires)
+    .as_query()
+    .execute(&mut conn)
+    .await?;
   Ok(())
 }
 
