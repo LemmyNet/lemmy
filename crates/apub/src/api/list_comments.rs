@@ -46,7 +46,6 @@ pub async fn list_comments(
     &site_view.local_site,
   ));
   let max_depth = data.max_depth;
-  let saved_only = data.saved_only;
 
   let liked_only = data.liked_only;
   let disliked_only = data.disliked_only;
@@ -78,7 +77,6 @@ pub async fn list_comments(
     listing_type,
     sort,
     max_depth,
-    saved_only,
     liked_only,
     disliked_only,
     community_id,

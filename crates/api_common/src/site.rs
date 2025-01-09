@@ -94,8 +94,6 @@ pub struct Search {
   #[cfg_attr(feature = "full", ts(optional))]
   pub post_url_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub saved_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub liked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
@@ -201,7 +199,6 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub enable_nsfw: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -259,8 +256,6 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub federation_enabled: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub federation_debug: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_enabled: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_difficulty: Option<String>,
@@ -294,9 +289,6 @@ pub struct EditSite {
   /// A shorter, one line description of your site.
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
-  /// Whether to enable NSFW.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub enable_nsfw: Option<bool>,
   /// Limits community creation to admins only.
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
@@ -375,9 +367,6 @@ pub struct EditSite {
   /// Whether to enable federation.
   #[cfg_attr(feature = "full", ts(optional))]
   pub federation_enabled: Option<bool>,
-  /// Enables federation debugging.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub federation_debug: Option<bool>,
   /// Whether to enable captchas for signups.
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_enabled: Option<bool>,

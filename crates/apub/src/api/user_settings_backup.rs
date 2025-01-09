@@ -212,10 +212,7 @@ pub async fn import_settings(
       &context,
       |(saved, context)| async move {
         let comment = saved.dereference(&context).await?;
-        let form = CommentSavedForm {
-          person_id,
-          comment_id: comment.id,
-        };
+        let form = CommentSavedForm::new(comment.id, person_id);
         CommentSaved::save(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
