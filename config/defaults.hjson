@@ -66,13 +66,9 @@
     max_thumbnail_size: 512
     # Maximum size for user avatar, community icon and site icon.
     max_avatar_size: 512
-    # Maximum size for user, community and site banner.
-    # 
-    # TODO: Unfortunately pictrs can only resize images to fit in a*a square, no rectangle.
-    #       Otherwise we have to use crop, or use max_width/max_height which throws error
-    #       if image is larger.
-    # TODO: whats a sensible default here?
-    max_banner_size: 512
+    # Maximum size for user, community and site banner. Larger images are downscaled to fit
+    # into a square of this size.
+    max_banner_size: 1024
     # Prevent users from uploading images for posts or embedding in markdown. Avatars, icons and
     # banners can still be uploaded.
     image_upload_disabled: false
