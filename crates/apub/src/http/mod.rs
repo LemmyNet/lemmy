@@ -110,7 +110,7 @@ pub(crate) async fn get_activity(
   .into();
   let activity = SentActivity::read_from_apub_id(&mut context.pool(), &activity_id)
     .await
-    .with_lemmy_type(FederationError::CouldntFindActivity.into())?;
+    .with_lemmy_type(LemmyErrorType::NotFound)?;
 
   let sensitive = activity.sensitive;
   if sensitive {
