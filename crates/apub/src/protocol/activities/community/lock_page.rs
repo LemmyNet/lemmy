@@ -1,5 +1,4 @@
 use crate::{
-  activities::verify_community_matches,
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::InCommunity,
 };
@@ -33,7 +32,6 @@ pub struct LockPage {
   #[serde(rename = "type")]
   pub(crate) kind: LockType,
   pub(crate) id: Url,
-  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -48,7 +46,6 @@ pub struct UndoLockPage {
   #[serde(rename = "type")]
   pub(crate) kind: UndoType,
   pub(crate) id: Url,
-  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 #[async_trait::async_trait]
@@ -56,9 +53,6 @@ impl InCommunity for LockPage {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let post = self.object.dereference(context).await?;
     let community = Community::read(&mut context.pool(), post.community_id).await?;
-    if let Some(audience) = &self.audience {
-      verify_community_matches(audience, community.actor_id.clone())?;
-    }
     Ok(community.into())
   }
 }
@@ -67,9 +61,6 @@ impl InCommunity for LockPage {
 impl InCommunity for UndoLockPage {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = self.object.community(context).await?;
-    if let Some(audience) = &self.audience {
-      verify_community_matches(audience, community.actor_id.clone())?;
-    }
     Ok(community)
   }
 }

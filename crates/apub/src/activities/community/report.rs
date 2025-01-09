@@ -56,7 +56,6 @@ impl Report {
       content: None,
       kind,
       id: id.clone(),
-      audience: Some(community.id().into()),
     };
 
     // send report to the community where object was posted

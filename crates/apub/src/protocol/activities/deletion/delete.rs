@@ -1,5 +1,5 @@
 use crate::{
-  activities::{deletion::DeletableObjects, verify_community_matches},
+  activities::deletion::DeletableObjects,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{objects::tombstone::Tombstone, IdOrNestedObject, InCommunity},
 };
@@ -31,7 +31,6 @@ pub struct Delete {
   #[serde(rename = "type")]
   pub(crate) kind: DeleteType,
   pub(crate) id: Url,
-  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 
   #[serde(deserialize_with = "deserialize_one_or_many")]
   #[serde(default)]
@@ -61,9 +60,6 @@ impl InCommunity for Delete {
       }
     };
     let community = Community::read(&mut context.pool(), community_id).await?;
-    if let Some(audience) = &self.audience {
-      verify_community_matches(audience, community.actor_id.clone())?;
-    }
     Ok(community.into())
   }
 }

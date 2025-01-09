@@ -94,7 +94,7 @@ impl AnnounceActivity {
       generate_announce_activity_id(inner_kind, &context.settings().get_protocol_and_hostname())?;
     Ok(AnnounceActivity {
       actor: community.id().into(),
-      to: vec![generate_to(community)?],
+      to: generate_to(community)?,
       object: IdOrNestedObject::NestedObject(object),
       cc: community
         .followers_url

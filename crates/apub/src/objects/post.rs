@@ -133,7 +133,7 @@ impl Object for ApubPost {
       kind: PageType::Page,
       id: self.ap_id.clone().into(),
       attributed_to: AttributedTo::Lemmy(creator.actor_id.into()),
-      to: vec![generate_to(&community)?],
+      to: generate_to(&community)?,
       cc: vec![],
       name: Some(self.name.clone()),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
@@ -145,7 +145,6 @@ impl Object for ApubPost {
       language,
       published: Some(self.published),
       updated: self.updated,
-      audience: Some(community.actor_id.into()),
       in_reply_to: None,
       tag: vec![hashtag],
     };
