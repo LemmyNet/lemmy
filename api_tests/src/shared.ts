@@ -932,18 +932,19 @@ export async function deleteAllImages(api: LemmyHttp) {
   const imagesRes = await api.listAllMedia({
     limit: imageFetchLimit,
   });
-  Promise.all(
-    imagesRes.images
-      .map(image => {
-        const form: DeleteImageParams = {
-          token: image.local_image.pictrs_delete_token,
-          filename: image.local_image.pictrs_alias,
-        };
-        console.log("delete image: " + form);
-        return form;
-      })
-      .map(form => api.deleteImage(form)),
-  );
+  const forms = imagesRes.images.map(image => {
+    const form: DeleteImageParams = {
+      token: image.local_image.pictrs_delete_token,
+      filename: image.local_image.pictrs_alias,
+    };
+    return form;
+  });
+  for (const form of forms) {
+    console.log(
+      "delete image: token=" + form.token + ", name=" + form.filename,
+    );
+    await api.deleteImage(form);
+  }
 }
 
 export async function unfollows() {
