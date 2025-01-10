@@ -95,6 +95,18 @@ steps:
     when:
       - event: pull_request
 
+  # `DROP OWNED` doesn't work for default user
+  create_database_user:
+    image: postgres:16-alpine
+    environment:
+      PGUSER: postgres
+      PGPASSWORD: password
+      PGHOST: database
+      PGDATABASE: lemmy
+    commands:
+      - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
+    when: *slow_check_paths
+
   cargo_build:
     image: *rust_image
     environment:
