@@ -1345,22 +1345,12 @@ mod tests {
 
     let posts_mapped = &post_modlog.iter().filter_map(|p| {
       if let ModlogCombinedView::ModRemovePost(v) = p {
-        Some(v)
+        Some((v.mod_remove_post.removed, v.post.removed))
       } else {
         None
       }
-    });
-    let mod_removed_posts = posts_mapped
-      .clone()
-      .map(|p| p.mod_remove_post.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![true, true], mod_removed_posts);
-
-    let removed_posts = posts_mapped
-      .clone()
-      .map(|p| p.post.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![true, true], removed_posts);
+    }).collect::<Vec<(bool, bool)>>();
+    assert_eq!(&vec![(true, true), (true, true)], posts_mapped);
 
     // Comments
     let comment_modlog = ModlogCombinedQuery {
@@ -1373,22 +1363,13 @@ mod tests {
 
     let comments_mapped = &comment_modlog.iter().filter_map(|c| {
       if let ModlogCombinedView::ModRemoveComment(v) = c {
-        Some(v)
+        Some((v.mod_remove_comment.removed, v.comment.removed))
       } else {
         None
       }
-    });
-    let mod_removed_comments = comments_mapped
-      .clone()
-      .map(|p| p.mod_remove_comment.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![true, true], mod_removed_comments);
+    }).collect::<Vec<(bool, bool)>>();
+    assert_eq!(&vec![(true, true), (true, true)], comments_mapped);
 
-    let removed_comments = comments_mapped
-      .clone()
-      .map(|p| p.comment.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![true, true], removed_comments);
 
     // Now restore the content, and make sure it got appended
     remove_or_restore_user_data(
@@ -1411,24 +1392,13 @@ mod tests {
 
     let posts_mapped = &post_modlog.iter().filter_map(|p| {
       if let ModlogCombinedView::ModRemovePost(v) = p {
-        Some(v)
+        Some((v.mod_remove_post.removed, v.post.removed))
       } else {
         None
       }
-    });
+    }).collect::<Vec<(bool, bool)>>();
+    assert_eq!(&vec![(false, false), (false, false),  (true, false),  (true, false)], posts_mapped);
 
-    let mod_restored_posts = posts_mapped
-      .clone()
-      .map(|p| p.mod_remove_post.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![false, false, true, true], mod_restored_posts);
-
-    let restored_posts = posts_mapped
-      .clone()
-      .map(|p| p.post.removed)
-      .collect::<Vec<bool>>();
-    // All of these will be false, cause its the current state of the post
-    assert_eq!(vec![false, false, false, false], restored_posts);
 
     // Comments
     let comment_modlog = ModlogCombinedQuery {
@@ -1441,23 +1411,13 @@ mod tests {
 
     let comments_mapped = &comment_modlog.iter().filter_map(|c| {
       if let ModlogCombinedView::ModRemoveComment(v) = c {
-        Some(v)
+        Some((v.mod_remove_comment.removed, v.comment.removed))
       } else {
         None
       }
-    });
+    }).collect::<Vec<(bool, bool)>>();
 
-    let mod_restored_comments = comments_mapped
-      .clone()
-      .map(|p| p.mod_remove_comment.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![false, false, true, true], mod_restored_comments);
-
-    let restored_comments = comments_mapped
-      .clone()
-      .map(|p| p.comment.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![false, false, false, false], restored_comments);
+    assert_eq!(&vec![(false, false), (false, false), (true, false), (true, false)], comments_mapped);
 
     Instance::delete(pool, inserted_instance.id).await?;
 

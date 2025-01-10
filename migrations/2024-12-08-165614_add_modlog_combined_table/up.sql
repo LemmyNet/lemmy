@@ -78,8 +78,6 @@ CREATE TABLE modlog_combined (
 
 CREATE INDEX idx_modlog_combined_published ON modlog_combined (published DESC, id DESC);
 
-CREATE INDEX idx_modlog_combined_published_asc ON modlog_combined (reverse_timestamp_sort (published) DESC, id DESC);
-
 -- Updating the history
 -- Not doing a union all here, because there's way too many null columns
 INSERT INTO modlog_combined (published, admin_allow_instance_id)
