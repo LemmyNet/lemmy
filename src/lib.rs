@@ -195,9 +195,13 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   let client = ClientBuilder::new(client_builder(&SETTINGS).build()?)
     .with(TracingMiddleware::default())
     .build();
+  let pictrs_client = ClientBuilder::new(client_builder(&SETTINGS).no_proxy().build()?)
+    .with(TracingMiddleware::default())
+    .build();
   let context = LemmyContext::create(
     pool.clone(),
     client.clone(),
+    pictrs_client,
     secret.clone(),
     rate_limit_cell.clone(),
   );
@@ -330,11 +334,6 @@ fn create_http_server(
     .build()
     .map_err(|e| LemmyErrorType::Unknown(format!("Should always be buildable: {e}")))?;
 
-  // Pictrs cannot use proxy
-  let pictrs_client = ClientBuilder::new(client_builder(&SETTINGS).no_proxy().build()?)
-    .with(TracingMiddleware::default())
-    .build();
-
   // Create Http server
   let bind = (settings.bind, settings.port);
   let server = HttpServer::new(move || {
@@ -355,7 +354,6 @@ fn create_http_server(
       .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
-      .app_data(Data::new(pictrs_client.clone()))
       .wrap(FederationMiddleware::new(federation_config.clone()))
       .wrap(SessionMiddleware::new(context.clone()))
       .wrap(Condition::new(

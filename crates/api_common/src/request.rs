@@ -319,7 +319,7 @@ struct PictrsPurgeResponse {
 /// - It might not be an image
 /// - Pictrs might not be set up
 pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) -> LemmyResult<()> {
-  is_image_content_type(context.client(), image_url).await?;
+  is_image_content_type(context.pictrs_client(), image_url).await?;
 
   let alias = image_url
     .path_segments()
@@ -334,7 +334,7 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
     .api_key
     .ok_or(LemmyErrorType::PictrsApiKeyNotProvided)?;
   let response = context
-    .client()
+    .pictrs_client()
     .post(&purge_url)
     .timeout(REQWEST_TIMEOUT)
     .header("x-api-token", pictrs_api_key)
@@ -361,7 +361,7 @@ pub async fn delete_image_from_pictrs(
     pictrs_config.url, &delete_token, &alias
   );
   context
-    .client()
+    .pictrs_client()
     .delete(&url)
     .timeout(REQWEST_TIMEOUT)
     .send()
@@ -384,7 +384,6 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
   };
 
   // fetch remote non-pictrs images for persistent thumbnail link
-  // TODO: should limit size once supported by pictrs
   let fetch_url = format!(
     "{}image/download?url={}&resize={}",
     pictrs_config.url,
@@ -393,7 +392,7 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
   );
 
   let res = context
-    .client()
+    .pictrs_client()
     .get(&fetch_url)
     .timeout(REQWEST_TIMEOUT)
     .send()
@@ -439,7 +438,7 @@ pub async fn fetch_pictrs_proxied_image_details(
   let proxy_url = format!("{pictrs_url}image/original?proxy={encoded_image_url}");
 
   context
-    .client()
+    .pictrs_client()
     .get(&proxy_url)
     .timeout(REQWEST_TIMEOUT)
     .send()
@@ -450,7 +449,7 @@ pub async fn fetch_pictrs_proxied_image_details(
   let details_url = format!("{pictrs_url}image/details/original?proxy={encoded_image_url}");
 
   let res = context
-    .client()
+    .pictrs_client()
     .get(&details_url)
     .timeout(REQWEST_TIMEOUT)
     .send()

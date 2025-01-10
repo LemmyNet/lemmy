@@ -11,17 +11,18 @@ use http::HeaderValue;
 use lemmy_api_common::{context::LemmyContext, request::delete_image_from_pictrs};
 use lemmy_db_schema::{newtypes::DbUrl, source::images::LocalImage};
 use lemmy_utils::{error::LemmyResult, REQWEST_TIMEOUT};
-use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
+use reqwest_middleware::RequestBuilder;
 
 pub(super) fn adapt_request(
   request: &HttpRequest,
   url: String,
-  client: Data<ClientWithMiddleware>,
+  context: &LemmyContext,
 ) -> RequestBuilder {
   // remove accept-encoding header so that pictrs doesn't compress the response
   const INVALID_HEADERS: &[HeaderName] = &[ACCEPT_ENCODING, HOST];
 
-  let client_request = client
+  let client_request = context
+    .pictrs_client()
     .request(convert_method(request.method()), url)
     .timeout(REQWEST_TIMEOUT);
 

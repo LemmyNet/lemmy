@@ -17,7 +17,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
-use reqwest_middleware::ClientWithMiddleware;
 
 pub async fn delete_site_icon(
   context: Data<LemmyContext>,
@@ -126,7 +125,6 @@ pub async fn delete_user_banner(
 pub async fn delete_image(
   data: Json<DeleteImageParams>,
   context: Data<LemmyContext>,
-  client: Data<ClientWithMiddleware>,
   // require login
   _local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
@@ -136,7 +134,12 @@ pub async fn delete_image(
     pictrs_config.url, &data.token, &data.filename
   );
 
-  client.delete(url).send().await?.error_for_status()?;
+  context
+    .pictrs_client()
+    .delete(url)
+    .send()
+    .await?
+    .error_for_status()?;
 
   LocalImage::delete_by_alias(&mut context.pool(), &data.filename).await?;
 
