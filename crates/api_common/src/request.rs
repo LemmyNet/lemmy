@@ -352,16 +352,14 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
 pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
   let pictrs_config = context.settings().pictrs()?;
   let url = format!("{}internal/delete?alias={}", pictrs_config.url, &alias);
-  dbg!(
-    context
-      .pictrs_client()
-      .post(&url)
-      .header("X-Api-Token", pictrs_config.api_key.unwrap_or_default())
-      .timeout(REQWEST_TIMEOUT)
-      .send()
-      .await?
-  )
-  .error_for_status()?;
+  context
+    .pictrs_client()
+    .post(&url)
+    .header("X-Api-Token", pictrs_config.api_key.unwrap_or_default())
+    .timeout(REQWEST_TIMEOUT)
+    .send()
+    .await?
+    .error_for_status()?;
   Ok(())
 }
 
