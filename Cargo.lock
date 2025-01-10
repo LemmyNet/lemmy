@@ -2789,7 +2789,6 @@ dependencies = [
  "lemmy_utils",
  "reqwest 0.12.8",
  "reqwest-middleware",
- "reqwest-tracing",
  "rss",
  "serde",
  "tokio",
