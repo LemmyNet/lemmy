@@ -101,7 +101,7 @@ impl ModlogCombinedPaginationCursor {
     let mut query = modlog_combined::table
       .select(ModlogCombined::as_select())
       .into_boxed();
-    let (prefix, id_str) = self.0.split_first('-').ok_or_else(err_msg)?;
+    let (prefix, id_str) = self.0.split_once('-').ok_or_else(err_msg)?;
     let id = i32::from_str_radix(id_str, 16).map_err(|_err| err_msg())?;
     query = match prefix {
       "AdminAllowInstance" => query.filter(modlog_combined::admin_allow_instance_id.eq(id)),
