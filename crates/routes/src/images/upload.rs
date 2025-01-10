@@ -176,7 +176,7 @@ pub async fn do_upload_image(
   let pictrs = context.settings().pictrs()?;
   let image_url = format!("{}image", pictrs.url);
 
-  let mut client_req = adapt_request(&req, image_url, &context);
+  let mut client_req = adapt_request(&req, image_url, context);
 
   client_req = match upload_type {
     Avatar => {
