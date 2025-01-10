@@ -16,8 +16,8 @@ export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queu
 # pictrs setup
 if [ ! -f "api_tests/pict-rs" ]; then
   # This one sometimes goes down
-  # curl "https://git.asonix.dog/asonix/pict-rs/releases/download/v0.5.16/pict-rs-linux-amd64" -o api_tests/pict-rs
-  curl "https://codeberg.org/asonix/pict-rs/releases/download/v0.5.6/pict-rs-linux-amd64" -o api_tests/pict-rs
+  curl "https://git.asonix.dog/asonix/pict-rs/releases/download/v0.5.17-pre.8/pict-rs-linux-amd64" -o api_tests/pict-rs
+  # curl "https://codeberg.org/asonix/pict-rs/releases/download/v0.5.6/pict-rs-linux-amd64" -o api_tests/pict-rs
   chmod +x api_tests/pict-rs
 fi
 ./api_tests/pict-rs \
