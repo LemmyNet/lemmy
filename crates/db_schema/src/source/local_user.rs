@@ -8,6 +8,7 @@ use crate::{
   PostListingMode,
   PostSortType,
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -70,6 +71,9 @@ pub struct LocalUser {
   pub default_comment_sort_type: CommentSortType,
   /// Whether to automatically mark fetched posts as read.
   pub auto_mark_fetched_posts_as_read: bool,
+  /// The last time a donation request was shown to this user. If this is more than a year ago,
+  /// a new notification request should be shown.
+  pub last_donation_notification: DateTime<Utc>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -128,6 +132,8 @@ pub struct LocalUserInsertForm {
   pub default_comment_sort_type: Option<CommentSortType>,
   #[new(default)]
   pub auto_mark_fetched_posts_as_read: Option<bool>,
+  #[new(default)]
+  pub last_donation_notification: Option<DateTime<Utc>>,
 }
 
 #[derive(Clone, Default)]
@@ -160,4 +166,5 @@ pub struct LocalUserUpdateForm {
   pub collapse_bot_comments: Option<bool>,
   pub default_comment_sort_type: Option<CommentSortType>,
   pub auto_mark_fetched_posts_as_read: Option<bool>,
+  pub last_donation_notification: Option<DateTime<Utc>>,
 }
