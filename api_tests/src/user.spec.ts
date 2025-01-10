@@ -191,20 +191,23 @@ test("Set a new avatar, old avatar is deleted", async () => {
   const upload_form1: UploadImage = {
     image: Buffer.from("test1"),
   };
-  await alpha.userUploadAvatar(upload_form1);
+  await alpha.uploadUserAvatar(upload_form1);
   const listMediaRes1 = await alphaImage.listMedia();
   expect(listMediaRes1.images.length).toBe(1);
+
+  let my_user1 = await alpha.getMyUser();
+  expect(my_user1.local_user_view.person.avatar).toBeDefined();
 
   const upload_form2: UploadImage = {
     image: Buffer.from("test2"),
   };
-  await alpha.userUploadAvatar(upload_form2);
+  await alpha.uploadUserAvatar(upload_form2);
   // make sure only the new avatar is kept
   const listMediaRes2 = await alphaImage.listMedia();
   expect(listMediaRes2.images.length).toBe(1);
 
   // Upload that same form2 avatar, make sure it isn't replaced / deleted
-  await alpha.userUploadAvatar(upload_form2);
+  await alpha.uploadUserAvatar(upload_form2);
   // make sure only the new avatar is kept
   const listMediaRes3 = await alphaImage.listMedia();
   expect(listMediaRes3.images.length).toBe(1);
@@ -212,4 +215,12 @@ test("Set a new avatar, old avatar is deleted", async () => {
   // make sure only the new avatar is kept
   const listMediaRes4 = await alphaImage.listMedia();
   expect(listMediaRes4.images.length).toBe(1);
+
+  // delete the avatar
+  await alpha.deleteUserAvatar();
+  // make sure only the new avatar is kept
+  const listMediaRes5 = await alphaImage.listMedia();
+  expect(listMediaRes5.images.length).toBe(0);
+  let my_user2 = await alpha.getMyUser();
+  expect(my_user2.local_user_view.person.avatar).toBeUndefined();
 });

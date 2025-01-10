@@ -355,7 +355,7 @@ fn create_http_server(
       .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
-      .app_data(Data::new(pictrs_client))
+      .app_data(Data::new(pictrs_client.clone()))
       .wrap(FederationMiddleware::new(federation_config.clone()))
       .wrap(SessionMiddleware::new(context.clone()))
       .wrap(Condition::new(
