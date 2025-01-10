@@ -939,6 +939,7 @@ export async function deleteAllImages(api: LemmyHttp) {
           token: image.local_image.pictrs_delete_token,
           filename: image.local_image.pictrs_alias,
         };
+        console.log("delete image: " + form);
         return form;
       })
       .map(form => api.deleteImage(form)),
