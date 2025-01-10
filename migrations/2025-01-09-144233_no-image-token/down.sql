@@ -1,1 +1,3 @@
-alter table local_image add column pictrs_delete_token text not null default '' ;
+ALTER TABLE local_image
+    ADD COLUMN pictrs_delete_token text NOT NULL DEFAULT '';
+

@@ -1,1 +1,3 @@
-alter table local_image drop column pictrs_delete_token;
+ALTER TABLE local_image
+    DROP COLUMN pictrs_delete_token;
+
