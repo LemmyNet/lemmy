@@ -105,13 +105,13 @@ impl Object for ApubComment {
       post.ap_id.into()
     };
     let language = Some(LanguageTag::new_single(self.language_id, &mut context.pool()).await?);
-    let maa = collect_non_local_mentions(&self, community.actor_id.clone().into(), context).await?;
+    let maa = collect_non_local_mentions(&self, context).await?;
 
     let note = Note {
       r#type: NoteType::Note,
       id: self.ap_id.clone().into(),
       attributed_to: creator.actor_id.into(),
-      to: vec![generate_to(&community)?],
+      to: generate_to(&community)?,
       cc: maa.ccs,
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
@@ -122,7 +122,6 @@ impl Object for ApubComment {
       tag: maa.tags,
       distinguished: Some(self.distinguished),
       language,
-      audience: Some(community.actor_id.into()),
       attachment: vec![],
     };
 
@@ -194,8 +193,8 @@ impl Object for ApubComment {
       post_id: post.id,
       content,
       removed: None,
-      published: note.published.map(Into::into),
-      updated: note.updated.map(Into::into),
+      published: note.published,
+      updated: note.updated,
       deleted: Some(false),
       ap_id: Some(note.id.into()),
       distinguished: note.distinguished,
@@ -266,7 +265,7 @@ pub(crate) mod tests {
     let url = Url::parse("https://enterprise.lemmy.ml/comment/38741")?;
     let data = prepare_comment_test(&url, &context).await?;
 
-    let json: Note = file_to_json_object("assets/lemmy/objects/note.json")?;
+    let json: Note = file_to_json_object("assets/lemmy/objects/comment.json")?;
     ApubComment::verify(&json, &url, &context).await?;
     let comment = ApubComment::from_json(json.clone(), &context).await?;
 

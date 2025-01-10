@@ -384,6 +384,44 @@ END;
 
 $$);
 
+CALL r.create_triggers ('post_report', $$
+BEGIN
+    UPDATE
+        post_aggregates AS a
+    SET
+        report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
+    FROM (
+        SELECT
+            (post_report).post_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (post_report).resolved), 0) AS unresolved_report_count
+    FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (post_report).post_id) AS diff
+WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
+    AND a.post_id = diff.post_id;
+
+RETURN NULL;
+
+END;
+
+$$);
+
+CALL r.create_triggers ('comment_report', $$
+BEGIN
+    UPDATE
+        comment_aggregates AS a
+    SET
+        report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
+    FROM (
+        SELECT
+            (comment_report).comment_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (comment_report).resolved), 0) AS unresolved_report_count
+    FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (comment_report).comment_id) AS diff
+WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
+    AND a.comment_id = diff.comment_id;
+
+RETURN NULL;
+
+END;
+
+$$);
+
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
 CREATE FUNCTION r.comment_aggregates_from_comment ()
@@ -614,4 +652,112 @@ CREATE TRIGGER change_values
     BEFORE INSERT ON private_message
     FOR EACH ROW
     EXECUTE FUNCTION r.private_message_change_values ();
+
+-- Combined tables triggers
+-- These insert (published, item_id) into X_combined tables
+-- Reports (comment_report, post_report, private_message_report)
+CREATE PROCEDURE r.create_report_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.report_combined_thing_insert ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                INSERT INTO report_combined (published, thing_id)
+                    VALUES (NEW.published, NEW.id);
+                RETURN NEW;
+            END $$;
+    CREATE TRIGGER report_combined
+        AFTER INSERT ON thing
+        FOR EACH ROW
+        EXECUTE FUNCTION r.report_combined_thing_insert ( );
+        $b$,
+        'thing',
+        table_name);
+END;
+$a$;
+
+CALL r.create_report_combined_trigger ('post_report');
+
+CALL r.create_report_combined_trigger ('comment_report');
+
+CALL r.create_report_combined_trigger ('private_message_report');
+
+-- person_content (comment, post)
+CREATE PROCEDURE r.create_person_content_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.person_content_combined_thing_insert ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                INSERT INTO person_content_combined (published, thing_id)
+                    VALUES (NEW.published, NEW.id);
+                RETURN NEW;
+            END $$;
+    CREATE TRIGGER person_content_combined
+        AFTER INSERT ON thing
+        FOR EACH ROW
+        EXECUTE FUNCTION r.person_content_combined_thing_insert ( );
+        $b$,
+        'thing',
+        table_name);
+END;
+$a$;
+
+CALL r.create_person_content_combined_trigger ('post');
+
+CALL r.create_person_content_combined_trigger ('comment');
+
+-- person_saved (comment, post)
+-- This one is a little different, because it triggers using x_actions.saved,
+-- Rather than any row insert
+CREATE PROCEDURE r.create_person_saved_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.person_saved_combined_change_values_thing ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                IF (TG_OP = 'DELETE') THEN
+                    DELETE FROM person_saved_combined AS p
+                    WHERE p.person_id = OLD.person_id
+                        AND p.thing_id = OLD.thing_id;
+                ELSIF (TG_OP = 'INSERT') THEN
+                    IF NEW.saved IS NOT NULL THEN
+                        INSERT INTO person_saved_combined (saved, person_id, thing_id)
+                            VALUES (NEW.saved, NEW.person_id, NEW.thing_id);
+                    END IF;
+                ELSIF (TG_OP = 'UPDATE') THEN
+                    IF NEW.saved IS NOT NULL THEN
+                        INSERT INTO person_saved_combined (saved, person_id, thing_id)
+                            VALUES (NEW.saved, NEW.person_id, NEW.thing_id);
+                        -- If saved gets set as null, delete the row
+                    ELSE
+                        DELETE FROM person_saved_combined AS p
+                        WHERE p.person_id = NEW.person_id
+                            AND p.thing_id = NEW.thing_id;
+                    END IF;
+                END IF;
+                RETURN NULL;
+            END $$;
+    CREATE TRIGGER person_saved_combined
+        AFTER INSERT OR DELETE OR UPDATE OF saved ON thing_actions
+        FOR EACH ROW
+        EXECUTE FUNCTION r.person_saved_combined_change_values_thing ( );
+    $b$,
+    'thing',
+    table_name);
+END;
+$a$;
+
+CALL r.create_person_saved_combined_trigger ('post');
+
+CALL r.create_person_saved_combined_trigger ('comment');
 

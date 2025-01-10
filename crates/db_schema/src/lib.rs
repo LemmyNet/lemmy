@@ -11,11 +11,6 @@ extern crate diesel_derive_newtype;
 #[macro_use]
 extern crate diesel_derive_enum;
 
-// this is used in tests
-#[cfg(feature = "full")]
-#[macro_use]
-extern crate diesel_migrations;
-
 #[cfg(feature = "full")]
 #[macro_use]
 extern crate async_trait;
@@ -44,7 +39,7 @@ pub mod traits;
 pub mod utils;
 
 #[cfg(feature = "full")]
-mod schema_setup;
+pub mod schema_setup;
 
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
@@ -215,6 +210,18 @@ pub enum ModlogActionType {
   AdminPurgeCommunity,
   AdminPurgePost,
   AdminPurgeComment,
+  AdminBlockInstance,
+  AdminAllowInstance,
+}
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A list of possible types for the various modlog actions.
+pub enum PersonContentType {
+  All,
+  Comments,
+  Posts,
 }
 
 #[derive(

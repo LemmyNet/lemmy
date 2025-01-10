@@ -1,0 +1,31 @@
+{
+  "id": "https://enterprise.lemmy.ml/comment/38741",
+  "type": "Note",
+  "attributedTo": "https://enterprise.lemmy.ml/u/picard",
+  "to": [
+    "https://enterprise.lemmy.ml/c/tenforward",
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "cc": ["https://enterprise.lemmy.ml/u/picard"],
+  "inReplyTo": "https://enterprise.lemmy.ml/post/55143",
+  "content": "<p>first comment!</p>\n",
+  "mediaType": "text/html",
+  "source": {
+    "content": "first comment!",
+    "mediaType": "text/markdown"
+  },
+  "tag": [
+    {
+      "href": "https://enterprise.lemmy.ml/u/picard",
+      "type": "Mention",
+      "name": "@picard@enterprise.lemmy.ml"
+    }
+  ],
+  "distinguished": false,
+  "language": {
+    "identifier": "fr",
+    "name": "Français"
+  },
+  "published": "2021-03-01T13:42:43.966208Z",
+  "updated": "2021-03-01T13:43:03.955787Z"
+}

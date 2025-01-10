@@ -43,6 +43,29 @@ pub mod sql_types {
 }
 
 diesel::table! {
+    admin_allow_instance (id) {
+        id -> Int4,
+        instance_id -> Int4,
+        admin_person_id -> Int4,
+        allowed -> Bool,
+        reason -> Nullable<Text>,
+        when_ -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    admin_block_instance (id) {
+        id -> Int4,
+        instance_id -> Int4,
+        admin_person_id -> Int4,
+        blocked -> Bool,
+        reason -> Nullable<Text>,
+        expires -> Nullable<Timestamptz>,
+        when_ -> Timestamptz,
+    }
+}
+
+diesel::table! {
     admin_purge_comment (id) {
         id -> Int4,
         admin_person_id -> Int4,
@@ -130,6 +153,8 @@ diesel::table! {
         child_count -> Int4,
         hot_rank -> Float8,
         controversy_rank -> Float8,
+        report_count -> Int2,
+        unresolved_report_count -> Int2,
     }
 }
 
@@ -282,6 +307,7 @@ diesel::table! {
         instance_id -> Int4,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+        expires -> Nullable<Timestamptz>,
     }
 }
 
@@ -634,6 +660,7 @@ diesel::table! {
         enabled -> Bool,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+        use_pkce -> Bool,
     }
 }
 
@@ -703,12 +730,31 @@ diesel::table! {
 }
 
 diesel::table! {
+    person_content_combined (id) {
+        id -> Int4,
+        published -> Timestamptz,
+        post_id -> Nullable<Int4>,
+        comment_id -> Nullable<Int4>,
+    }
+}
+
+diesel::table! {
     person_mention (id) {
         id -> Int4,
         recipient_id -> Int4,
         comment_id -> Int4,
         read -> Bool,
         published -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    person_saved_combined (id) {
+        id -> Int4,
+        saved -> Timestamptz,
+        person_id -> Int4,
+        post_id -> Nullable<Int4>,
+        comment_id -> Nullable<Int4>,
     }
 }
 
@@ -777,6 +823,8 @@ diesel::table! {
         controversy_rank -> Float8,
         instance_id -> Int4,
         scaled_rank -> Float8,
+        report_count -> Int2,
+        unresolved_report_count -> Int2,
     }
 }
 
@@ -794,6 +842,21 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    post_tag (post_id, tag_id) {
+        post_id -> Int4,
+        tag_id -> Int4,
+        published -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    previously_run_sql (id) {
+        id -> Bool,
+        content -> Text,
     }
 }
 
@@ -849,6 +912,16 @@ diesel::table! {
     remote_image (link) {
         link -> Text,
         published -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    report_combined (id) {
+        id -> Int4,
+        published -> Timestamptz,
+        post_report_id -> Nullable<Int4>,
+        comment_report_id -> Nullable<Int4>,
+        private_message_report_id -> Nullable<Int4>,
     }
 }
 
@@ -923,6 +996,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    tag (id) {
+        id -> Int4,
+        ap_id -> Text,
+        name -> Text,
+        community_id -> Int4,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
+        deleted -> Bool,
+    }
+}
+
+diesel::table! {
     tagline (id) {
         id -> Int4,
         content -> Text,
@@ -931,6 +1016,10 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(admin_allow_instance -> instance (instance_id));
+diesel::joinable!(admin_allow_instance -> person (admin_person_id));
+diesel::joinable!(admin_block_instance -> instance (instance_id));
+diesel::joinable!(admin_block_instance -> person (admin_person_id));
 diesel::joinable!(admin_purge_comment -> person (admin_person_id));
 diesel::joinable!(admin_purge_comment -> post (post_id));
 diesel::joinable!(admin_purge_community -> person (admin_person_id));
@@ -987,8 +1076,13 @@ diesel::joinable!(password_reset_request -> local_user (local_user_id));
 diesel::joinable!(person -> instance (instance_id));
 diesel::joinable!(person_aggregates -> person (person_id));
 diesel::joinable!(person_ban -> person (person_id));
+diesel::joinable!(person_content_combined -> comment (comment_id));
+diesel::joinable!(person_content_combined -> post (post_id));
 diesel::joinable!(person_mention -> comment (comment_id));
 diesel::joinable!(person_mention -> person (recipient_id));
+diesel::joinable!(person_saved_combined -> comment (comment_id));
+diesel::joinable!(person_saved_combined -> person (person_id));
+diesel::joinable!(person_saved_combined -> post (post_id));
 diesel::joinable!(post -> community (community_id));
 diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
@@ -999,15 +1093,23 @@ diesel::joinable!(post_aggregates -> instance (instance_id));
 diesel::joinable!(post_aggregates -> person (creator_id));
 diesel::joinable!(post_aggregates -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
+diesel::joinable!(post_tag -> post (post_id));
+diesel::joinable!(post_tag -> tag (tag_id));
 diesel::joinable!(private_message_report -> private_message (private_message_id));
 diesel::joinable!(registration_application -> local_user (local_user_id));
 diesel::joinable!(registration_application -> person (admin_id));
+diesel::joinable!(report_combined -> comment_report (comment_report_id));
+diesel::joinable!(report_combined -> post_report (post_report_id));
+diesel::joinable!(report_combined -> private_message_report (private_message_report_id));
 diesel::joinable!(site -> instance (instance_id));
 diesel::joinable!(site_aggregates -> site (site_id));
 diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
+diesel::joinable!(tag -> community (community_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    admin_allow_instance,
+    admin_block_instance,
     admin_purge_comment,
     admin_purge_community,
     admin_purge_person,
@@ -1058,20 +1160,26 @@ diesel::allow_tables_to_appear_in_same_query!(
     person_actions,
     person_aggregates,
     person_ban,
+    person_content_combined,
     person_mention,
+    person_saved_combined,
     post,
     post_actions,
     post_aggregates,
     post_report,
+    post_tag,
+    previously_run_sql,
     private_message,
     private_message_report,
     received_activity,
     registration_application,
     remote_image,
+    report_combined,
     secret,
     sent_activity,
     site,
     site_aggregates,
     site_language,
+    tag,
     tagline,
 );

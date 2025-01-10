@@ -84,7 +84,7 @@ pub(crate) struct SendRetryTask<'a> {
   pub stop: CancellationToken,
 }
 
-impl<'a> SendRetryTask<'a> {
+impl SendRetryTask<'_> {
   // this function will return successfully when (a) send succeeded or (b) worker cancelled
   // and will return an error if an internal error occurred (send errors cause an infinite loop)
   pub async fn send_retry_loop(self) -> Result<()> {

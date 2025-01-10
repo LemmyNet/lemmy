@@ -1,6 +1,6 @@
 pub mod uplete;
 
-use crate::{newtypes::DbUrl, CommentSortType, PostSortType};
+use crate::{newtypes::DbUrl, schema_setup, CommentSortType, PostSortType};
 use chrono::TimeDelta;
 use deadpool::Runtime;
 use diesel::{
@@ -96,7 +96,7 @@ pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>
   })
 }
 
-impl<'a> Deref for DbConn<'a> {
+impl Deref for DbConn<'_> {
   type Target = AsyncPgConnection;
 
   fn deref(&self) -> &Self::Target {
@@ -107,7 +107,7 @@ impl<'a> Deref for DbConn<'a> {
   }
 }
 
-impl<'a> DerefMut for DbConn<'a> {
+impl DerefMut for DbConn<'_> {
   fn deref_mut(&mut self) -> &mut Self::Target {
     match self {
       DbConn::Pool(conn) => conn.deref_mut(),
@@ -475,7 +475,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   // provide a setup function which handles creating the connection
   let mut config = ManagerConfig::default();
   config.custom_setup = Box::new(establish_connection);
-  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(&db_url, config);
+  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(db_url, config);
   let pool = Pool::builder(manager)
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
@@ -493,7 +493,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  crate::schema_setup::run(&db_url)?;
+  schema_setup::run(schema_setup::Options::default().run())?;
 
   Ok(pool)
 }
@@ -547,6 +547,11 @@ pub mod functions {
 
   // really this function is variadic, this just adds the two-argument version
   define_sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
+
+  define_sql_function! {
+    #[aggregate]
+    fn json_agg<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(obj: T) -> Json
+  }
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";

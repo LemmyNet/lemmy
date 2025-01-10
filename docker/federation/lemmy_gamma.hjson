@@ -8,7 +8,7 @@
     site_name: lemmy-gamma
   }
   database: {
-    host: postgres_gamma
+    connection: "postgres://lemmy:password@postgres_gamma:5432/lemmy"
   }
   pictrs: {
     api_key: "my-pictrs-key"

@@ -50,9 +50,12 @@ use lemmy_db_schema::{
   ListingType,
 };
 
+type QueriesReadTypes<'a> = (CommentId, Option<&'a LocalUser>);
+type QueriesListTypes<'a> = (CommentQuery<'a>, &'a Site);
+
 fn queries<'a>() -> Queries<
-  impl ReadFn<'a, CommentView, (CommentId, Option<&'a LocalUser>)>,
-  impl ListFn<'a, CommentView, (CommentQuery<'a>, &'a Site)>,
+  impl ReadFn<'a, CommentView, QueriesReadTypes<'a>>,
+  impl ListFn<'a, CommentView, QueriesListTypes<'a>>,
 > {
   let creator_is_admin = exists(
     local_user::table.filter(
@@ -138,28 +141,25 @@ fn queries<'a>() -> Queries<
     query.first(&mut conn).await
   };
 
-  let list = move |mut conn: DbConn<'a>, (options, site): (CommentQuery<'a>, &'a Site)| async move {
+  let list = move |mut conn: DbConn<'a>, (o, site): (CommentQuery<'a>, &'a Site)| async move {
     // The left join below will return None in this case
-    let local_user_id_join = options
-      .local_user
-      .local_user_id()
-      .unwrap_or(LocalUserId(-1));
+    let local_user_id_join = o.local_user.local_user_id().unwrap_or(LocalUserId(-1));
 
-    let mut query = all_joins(comment::table.into_boxed(), options.local_user.person_id());
+    let mut query = all_joins(comment::table.into_boxed(), o.local_user.person_id());
 
-    if let Some(creator_id) = options.creator_id {
+    if let Some(creator_id) = o.creator_id {
       query = query.filter(comment::creator_id.eq(creator_id));
     };
 
-    if let Some(post_id) = options.post_id {
+    if let Some(post_id) = o.post_id {
       query = query.filter(comment::post_id.eq(post_id));
     };
 
-    if let Some(parent_path) = options.parent_path.as_ref() {
+    if let Some(parent_path) = o.parent_path.as_ref() {
       query = query.filter(comment::path.contained_by(parent_path));
     };
     //filtering out removed and deleted comments from search
-    if let Some(search_term) = options.search_term {
+    if let Some(search_term) = o.search_term {
       query = query.filter(
         comment::content
           .ilike(fuzzy_search(&search_term))
@@ -167,13 +167,13 @@ fn queries<'a>() -> Queries<
       );
     };
 
-    if let Some(community_id) = options.community_id {
+    if let Some(community_id) = o.community_id {
       query = query.filter(post::community_id.eq(community_id));
     }
 
     let is_subscribed = community_actions::followed.is_not_null();
 
-    match options.listing_type.unwrap_or_default() {
+    match o.listing_type.unwrap_or_default() {
       ListingType::Subscribed => query = query.filter(is_subscribed), /* TODO could be this: and(community_follower::person_id.eq(person_id_join)), */
       ListingType::Local => {
         query = query
@@ -186,33 +186,24 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    // If its saved only, then filter, and order by the saved time, not the comment creation time.
-    if options.saved_only.unwrap_or_default() {
-      query = query
-        .filter(comment_actions::saved.is_not_null())
-        .then_order_by(comment_actions::saved.desc());
-    }
-
-    if let Some(my_id) = options.local_user.person_id() {
+    if let Some(my_id) = o.local_user.person_id() {
       let not_creator_filter = comment::creator_id.ne(my_id);
-      if options.liked_only.unwrap_or_default() {
+      if o.liked_only.unwrap_or_default() {
         query = query
           .filter(not_creator_filter)
           .filter(comment_actions::like_score.eq(1));
-      } else if options.disliked_only.unwrap_or_default() {
+      } else if o.disliked_only.unwrap_or_default() {
         query = query
           .filter(not_creator_filter)
           .filter(comment_actions::like_score.eq(-1));
       }
     }
 
-    if !options.local_user.show_bot_accounts() {
+    if !o.local_user.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if options.local_user.is_some()
-      && options.listing_type.unwrap_or_default() != ListingType::ModeratorView
-    {
+    if o.local_user.is_some() && o.listing_type.unwrap_or_default() != ListingType::ModeratorView {
       // Filter out the rows with missing languages
       query = query.filter(exists(
         local_user_language::table.filter(
@@ -229,15 +220,15 @@ fn queries<'a>() -> Queries<
         .filter(person_actions::blocked.is_null());
     };
 
-    if !options.local_user.show_nsfw(site) {
+    if !o.local_user.show_nsfw(site) {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
     };
 
-    query = options.local_user.visible_communities_only(query);
+    query = o.local_user.visible_communities_only(query);
 
-    if !options.local_user.is_admin() {
+    if !o.local_user.is_admin() {
       query = query.filter(
         community::visibility
           .ne(CommunityVisibility::Private)
@@ -246,8 +237,8 @@ fn queries<'a>() -> Queries<
     }
 
     // A Max depth given means its a tree fetch
-    let (limit, offset) = if let Some(max_depth) = options.max_depth {
-      let depth_limit = if let Some(parent_path) = options.parent_path.as_ref() {
+    let (limit, offset) = if let Some(max_depth) = o.max_depth {
+      let depth_limit = if let Some(parent_path) = o.parent_path.as_ref() {
         parent_path.0.split('.').count() as i32 + max_depth
         // Add one because of root "0"
       } else {
@@ -258,7 +249,7 @@ fn queries<'a>() -> Queries<
 
       // only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth
       // + !post_id isn't used anyways (afaik)
-      if options.post_id.is_some() || options.parent_path.is_some() {
+      if o.post_id.is_some() || o.parent_path.is_some() {
         // Always order by the parent path first
         query = query.then_order_by(subpath(comment::path, 0, -1));
       }
@@ -275,16 +266,16 @@ fn queries<'a>() -> Queries<
       // (i64::MAX, 0)
       (300, 0)
     } else {
-      // limit_and_offset_unlimited(options.page, options.limit)
-      limit_and_offset(options.page, options.limit)?
+      // limit_and_offset_unlimited(o.page, o.limit)
+      limit_and_offset(o.page, o.limit)?
     };
 
     // distinguished comments should go first when viewing post
-    if options.post_id.is_some() || options.parent_path.is_some() {
+    if o.post_id.is_some() || o.parent_path.is_some() {
       query = query.then_order_by(comment::distinguished.desc());
     }
 
-    query = match options.sort.unwrap_or(CommentSortType::Hot) {
+    query = match o.sort.unwrap_or(CommentSortType::Hot) {
       CommentSortType::Hot => query
         .then_order_by(comment_aggregates::hot_rank.desc())
         .then_order_by(comment_aggregates::score.desc()),
@@ -308,22 +299,19 @@ fn queries<'a>() -> Queries<
 }
 
 impl CommentView {
-  pub async fn read<'a>(
+  pub async fn read(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    my_local_user: Option<&'a LocalUser>,
+    my_local_user: Option<&'_ LocalUser>,
   ) -> Result<Self, Error> {
+    let is_admin = my_local_user.map(|u| u.admin).unwrap_or(false);
     // If a person is given, then my_vote (res.9), if None, should be 0, not null
     // Necessary to differentiate between other person's votes
-    let res = queries().read(pool, (comment_id, my_local_user)).await?;
-    let mut new_view = res.clone();
+    let mut res = queries().read(pool, (comment_id, my_local_user)).await?;
     if my_local_user.is_some() && res.my_vote.is_none() {
-      new_view.my_vote = Some(0);
+      res.my_vote = Some(0);
     }
-    if res.comment.deleted || res.comment.removed {
-      new_view.comment.content = String::new();
-    }
-    Ok(new_view)
+    Ok(handle_deleted(res, is_admin))
   }
 }
 
@@ -337,7 +325,6 @@ pub struct CommentQuery<'a> {
   pub creator_id: Option<PersonId>,
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
-  pub saved_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
   pub page: Option<i64>,
@@ -345,22 +332,25 @@ pub struct CommentQuery<'a> {
   pub max_depth: Option<i32>,
 }
 
-impl<'a> CommentQuery<'a> {
+impl CommentQuery<'_> {
   pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
+    let is_admin = self.local_user.map(|u| u.admin).unwrap_or(false);
     Ok(
       queries()
         .list(pool, (self, site))
         .await?
         .into_iter()
-        .map(|mut c| {
-          if c.comment.deleted || c.comment.removed {
-            c.comment.content = String::new();
-          }
-          c
-        })
+        .map(|c| handle_deleted(c, is_admin))
         .collect(),
     )
   }
+}
+
+fn handle_deleted(mut c: CommentView, is_admin: bool) -> CommentView {
+  if !is_admin && (c.comment.deleted || c.comment.removed) {
+    c.comment.content = String::new();
+  }
+  c
 }
 
 #[cfg(test)]
@@ -378,15 +368,7 @@ mod tests {
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
-      comment::{
-        Comment,
-        CommentInsertForm,
-        CommentLike,
-        CommentLikeForm,
-        CommentSaved,
-        CommentSavedForm,
-        CommentUpdateForm,
-      },
+      comment::{Comment, CommentInsertForm, CommentLike, CommentLikeForm, CommentUpdateForm},
       community::{
         Community,
         CommunityFollower,
@@ -408,7 +390,7 @@ mod tests {
       post::{Post, PostInsertForm, PostUpdateForm},
       site::{Site, SiteInsertForm},
     },
-    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable, Saveable},
+    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
     CommunityVisibility,
     SubscribedType,
@@ -894,47 +876,6 @@ mod tests {
     cleanup(data, pool).await
   }
 
-  #[tokio::test]
-  #[serial]
-  async fn test_saved_order() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-    let data = init_data(pool).await?;
-
-    // Save two comments
-    let save_comment_0_form = CommentSavedForm {
-      person_id: data.timmy_local_user_view.person.id,
-      comment_id: data.inserted_comment_0.id,
-    };
-    CommentSaved::save(pool, &save_comment_0_form).await?;
-
-    let save_comment_2_form = CommentSavedForm {
-      person_id: data.timmy_local_user_view.person.id,
-      comment_id: data.inserted_comment_2.id,
-    };
-    CommentSaved::save(pool, &save_comment_2_form).await?;
-
-    // Fetch the saved comments
-    let comments = CommentQuery {
-      local_user: Some(&data.timmy_local_user_view.local_user),
-      saved_only: Some(true),
-      ..Default::default()
-    }
-    .list(&data.site, pool)
-    .await?;
-
-    // There should only be two comments
-    assert_eq!(2, comments.len());
-
-    // The first comment, should be the last one saved (descending order)
-    assert_eq!(comments[0].comment.id, data.inserted_comment_2.id);
-
-    // The second comment, should be the first one saved
-    assert_eq!(comments[1].comment.id, data.inserted_comment_0.id);
-
-    cleanup(data, pool).await
-  }
-
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
     CommentLike::remove(
       pool,
@@ -1065,6 +1006,8 @@ mod tests {
         child_count: 5,
         hot_rank: RANK_DEFAULT,
         controversy_rank: 0.0,
+        report_count: 0,
+        unresolved_report_count: 0,
       },
     })
   }
@@ -1293,6 +1236,67 @@ mod tests {
     )
     .await;
     assert!(comment_view.is_ok());
+
+    cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn comment_removed() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let mut data = init_data(pool).await?;
+
+    // Mark a comment as removed
+    let form = CommentUpdateForm {
+      removed: Some(true),
+      ..Default::default()
+    };
+    Comment::update(pool, data.inserted_comment_0.id, &form).await?;
+
+    // Read as normal user, content is cleared
+    data.timmy_local_user_view.local_user.admin = false;
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(&data.timmy_local_user_view.local_user),
+    )
+    .await?;
+    assert_eq!("", comment_view.comment.content);
+    let comment_listing = CommentQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      sort: Some(CommentSortType::Old),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!("", comment_listing[0].comment.content);
+
+    // Read as admin, content is returned
+    data.timmy_local_user_view.local_user.admin = true;
+    let comment_view = CommentView::read(
+      pool,
+      data.inserted_comment_0.id,
+      Some(&data.timmy_local_user_view.local_user),
+    )
+    .await?;
+    assert_eq!(
+      data.inserted_comment_0.content,
+      comment_view.comment.content
+    );
+    let comment_listing = CommentQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.timmy_local_user_view.local_user),
+      sort: Some(CommentSortType::Old),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(
+      data.inserted_comment_0.content,
+      comment_listing[0].comment.content
+    );
 
     cleanup(data, pool).await
   }

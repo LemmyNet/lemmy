@@ -1,5 +1,4 @@
 use crate::{
-  activities::verify_community_matches,
   fetcher::post_or_comment::PostOrComment,
   mentions::MentionOrValue,
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost},
@@ -56,7 +55,6 @@ pub struct Note {
   // lemmy extension
   pub(crate) distinguished: Option<bool>,
   pub(crate) language: Option<LanguageTag>,
-  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
   #[serde(default)]
   pub(crate) attachment: Vec<Attachment>,
 }
@@ -94,9 +92,6 @@ impl InCommunity for Note {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let (post, _) = self.get_parents(context).await?;
     let community = Community::read(&mut context.pool(), post.community_id).await?;
-    if let Some(audience) = &self.audience {
-      verify_community_matches(audience, community.actor_id.clone())?;
-    }
     Ok(community.into())
   }
 }
