@@ -373,8 +373,10 @@ impl ModlogCombinedQuery {
       query = query.after(page_after);
     }
 
-    // Tie breaker
-    query = query.then_desc(key::published).then_desc(key::id);
+    query = query
+      .then_desc(key::published)
+      // Tie breaker
+      .then_desc(key::id);
 
     let res = query.load::<ModlogCombinedViewInternal>(conn).await?;
 
