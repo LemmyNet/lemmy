@@ -130,13 +130,14 @@ pub async fn delete_image(
 ) -> LemmyResult<Json<SuccessResponse>> {
   let pictrs_config = context.settings().pictrs()?;
   let url = format!(
-    "{}image/delete/{}/{}",
-    pictrs_config.url, &data.token, &data.filename
+    "{}internal/delete/?alias={}",
+    pictrs_config.url, &data.filename
   );
 
   context
     .pictrs_client()
     .delete(url)
+    .header("X-Api-Token", pictrs_config.api_key.unwrap_or_default())
     .send()
     .await?
     .error_for_status()?;

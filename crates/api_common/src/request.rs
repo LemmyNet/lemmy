@@ -265,7 +265,6 @@ pub struct PictrsResponse {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct PictrsFile {
   pub file: String,
-  pub delete_token: String,
   pub details: PictrsFileDetails,
 }
 

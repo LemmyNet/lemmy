@@ -233,6 +233,5 @@ pub async fn do_upload_image(
   Ok(UploadImageResponse {
     image_url: url,
     filename: image.file,
-    delete_token: image.delete_token,
   })
 }
