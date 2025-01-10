@@ -710,7 +710,6 @@ mod test {
     let data = json!({
       "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
       "object": "http://ds9.lemmy.ml/comment/1",
-      "audience": "https://enterprise.lemmy.ml/c/tenforward",
       "type": "Like",
       "id": format!("http://ds9.lemmy.ml/activities/like/{}", uuid::Uuid::new_v4()),
     });

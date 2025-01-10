@@ -2,12 +2,11 @@
   "id": "https://enterprise.lemmy.ml/comment/38741",
   "type": "Note",
   "attributedTo": "https://enterprise.lemmy.ml/u/picard",
-  "to": ["https://www.w3.org/ns/activitystreams#Public"],
-  "cc": [
+  "to": [
     "https://enterprise.lemmy.ml/c/tenforward",
-    "https://enterprise.lemmy.ml/u/picard"
+    "https://www.w3.org/ns/activitystreams#Public"
   ],
-  "audience": "https://enterprise.lemmy.ml/c/tenforward",
+  "cc": ["https://enterprise.lemmy.ml/u/picard"],
   "inReplyTo": "https://enterprise.lemmy.ml/post/55143",
   "content": "<p>first comment!</p>\n",
   "mediaType": "text/html",
