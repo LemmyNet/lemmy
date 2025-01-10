@@ -1,30 +1,32 @@
+use crate::user::my_user::get_my_user;
 use actix_web::web::{Data, Json};
-use lemmy_api_common::{
-  context::LemmyContext,
-  site::{GetSiteResponse, MyUserInfo},
-};
+use lemmy_api_common::{context::LemmyContext, site::GetSiteResponse};
 use lemmy_db_schema::source::{
-  actor_language::{LocalUserLanguage, SiteLanguage},
-  community_block::CommunityBlock,
-  instance_block::InstanceBlock,
+  actor_language::SiteLanguage,
   language::Language,
   local_site_url_blocklist::LocalSiteUrlBlocklist,
   oauth_provider::OAuthProvider,
-  person_block::PersonBlock,
   tagline::Tagline,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_db_views_actor::structs::{CommunityFollowerView, CommunityModeratorView, PersonView};
-use lemmy_utils::{
-  build_cache,
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  CacheLock,
-  VERSION,
-};
+use lemmy_db_views_actor::structs::PersonView;
+use lemmy_utils::{build_cache, error::LemmyResult, CacheLock, VERSION};
 use std::sync::LazyLock;
 
 #[tracing::instrument(skip(context))]
-pub async fn get_site(
+pub async fn get_site_v3(
+  local_user_view: Option<LocalUserView>,
+  context: Data<LemmyContext>,
+) -> LemmyResult<Json<GetSiteResponse>> {
+  let mut site = get_site_v4(local_user_view.clone(), context.clone()).await?;
+  if let Some(local_user_view) = local_user_view {
+    site.my_user = Some(get_my_user(local_user_view, context).await?.0);
+  }
+  Ok(site)
+}
+
+#[tracing::instrument(skip(context))]
+pub async fn get_site_v4(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<GetSiteResponse>> {
@@ -34,42 +36,6 @@ pub async fn get_site(
     .try_get_with((), read_site(&context))
     .await
     .map_err(|e| anyhow::anyhow!("Failed to construct site response: {e}"))?;
-
-  // Build the local user with parallel queries and add it to site response
-  site_response.my_user = if let Some(ref local_user_view) = local_user_view {
-    let person_id = local_user_view.person.id;
-    let local_user_id = local_user_view.local_user.id;
-    let pool = &mut context.pool();
-
-    let (
-      follows,
-      community_blocks,
-      instance_blocks,
-      person_blocks,
-      moderates,
-      discussion_languages,
-    ) = lemmy_db_schema::try_join_with_pool!(pool => (
-      |pool| CommunityFollowerView::for_person(pool, person_id),
-      |pool| CommunityBlock::for_person(pool, person_id),
-      |pool| InstanceBlock::for_person(pool, person_id),
-      |pool| PersonBlock::for_person(pool, person_id),
-      |pool| CommunityModeratorView::for_person(pool, person_id, Some(&local_user_view.local_user)),
-      |pool| LocalUserLanguage::read(pool, local_user_id)
-    ))
-    .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
-
-    Some(MyUserInfo {
-      local_user_view: local_user_view.clone(),
-      follows,
-      moderates,
-      community_blocks,
-      instance_blocks,
-      person_blocks,
-      discussion_languages,
-    })
-  } else {
-    None
-  };
 
   // filter oauth_providers for public access
   if !local_user_view
@@ -103,7 +69,5 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
     tagline,
     oauth_providers: Some(oauth_providers),
     admin_oauth_providers: Some(admin_oauth_providers),
-    taglines: vec![],
-    custom_emojis: vec![],
   })
 }

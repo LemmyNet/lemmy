@@ -77,16 +77,19 @@ pub struct PictrsConfig {
   #[default(None)]
   pub api_key: Option<String>,
 
-  /// Backwards compatibility with 0.18.1. False is equivalent to `image_mode: None`, true is
-  /// equivalent to `image_mode: StoreLinkPreviews`.
-  ///
-  /// To be removed in 0.20
-  pub(super) cache_external_link_previews: Option<bool>,
-
   /// Specifies how to handle remote images, so that users don't have to connect directly to remote
   /// servers.
-  #[default(PictrsImageMode::StoreLinkPreviews)]
-  pub(super) image_mode: PictrsImageMode,
+  #[default(PictrsImageMode::ProxyAllImages)]
+  pub image_mode: PictrsImageMode,
+
+  /// Allows bypassing proxy for specific image hosts when using ProxyAllImages.
+  ///
+  /// imgur.com is bypassed by default to avoid rate limit errors. When specifying any bypass
+  /// in the config, this default is ignored and you need to list imgur explicitly. To proxy imgur
+  /// requests, specify a noop bypass list, eg `proxy_bypass_domains ["example.org"]`.
+  #[default(vec!["i.imgur.com".to_string()])]
+  #[doku(example = "i.imgur.com")]
+  pub proxy_bypass_domains: Vec<String>,
 
   /// Timeout for uploading images to pictrs (in seconds)
   #[default(30)]
@@ -107,78 +110,38 @@ pub enum PictrsImageMode {
   /// ensures that they can be reliably retrieved and can be resized using pict-rs APIs. However
   /// it also increases storage usage.
   ///
-  /// This is the default behaviour, and also matches Lemmy 0.18.
-  #[default]
+  /// This behaviour matches Lemmy 0.18.
   StoreLinkPreviews,
   /// If enabled, all images from remote domains are rewritten to pass through
-  /// `/api/v3/image_proxy`, including embedded images in markdown. Images are stored temporarily
+  /// `/api/v4/image_proxy`, including embedded images in markdown. Images are stored temporarily
   /// in pict-rs for caching. This improves privacy as users don't expose their IP to untrusted
   /// servers, and decreases load on other servers. However it increases bandwidth use for the
   /// local server.
   ///
   /// Requires pict-rs 0.5
+  #[default]
   ProxyAllImages,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default)]
 pub struct DatabaseConfig {
-  #[serde(flatten, default)]
-  pub(crate) connection: DatabaseConnection,
+  /// Configure the database by specifying URI pointing to a postgres instance
+  ///
+  /// This example uses peer authentication to obviate the need for creating,
+  /// configuring, and managing passwords.
+  ///
+  /// For an explanation of how to use connection URIs, see [here][0] in
+  /// PostgreSQL's documentation.
+  ///
+  /// [0]: https://www.postgresql.org/docs/current/libpq-connect.html#id-1.7.3.8.3.6
+  #[default("postgres://lemmy:password@localhost:5432/lemmy")]
+  #[doku(example = "postgresql:///lemmy?user=lemmy&host=/var/run/postgresql")]
+  pub(crate) connection: String,
 
   /// Maximum number of active sql connections
   #[default(30)]
   pub pool_size: usize,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(untagged)]
-pub enum DatabaseConnection {
-  /// Configure the database by specifying a URI
-  ///
-  /// This is the preferred method to specify database connection details since
-  /// it is the most flexible.
-  Uri {
-    /// Connection URI pointing to a postgres instance
-    ///
-    /// This example uses peer authentication to obviate the need for creating,
-    /// configuring, and managing passwords.
-    ///
-    /// For an explanation of how to use connection URIs, see [here][0] in
-    /// PostgreSQL's documentation.
-    ///
-    /// [0]: https://www.postgresql.org/docs/current/libpq-connect.html#id-1.7.3.8.3.6
-    #[doku(example = "postgresql:///lemmy?user=lemmy&host=/var/run/postgresql")]
-    uri: String,
-  },
-
-  /// Configure the database by specifying parts of a URI
-  ///
-  /// Note that specifying the `uri` field should be preferred since it provides
-  /// greater control over how the connection is made. This merely exists for
-  /// backwards-compatibility.
-  #[default]
-  Parts(DatabaseConnectionParts),
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(default)]
-pub struct DatabaseConnectionParts {
-  /// Username to connect to postgres
-  #[default("lemmy")]
-  pub(super) user: String,
-  /// Password to connect to postgres
-  #[default("password")]
-  pub(super) password: String,
-  #[default("localhost")]
-  /// Host where postgres is running
-  pub(super) host: String,
-  /// Port where postgres can be accessed
-  #[default(5432)]
-  pub(super) port: i32,
-  /// Name of the postgres database for lemmy
-  #[default("lemmy")]
-  pub(super) database: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Document, SmartDefault)]

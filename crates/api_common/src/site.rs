@@ -43,6 +43,8 @@ use lemmy_db_views_actor::structs::{
   PersonView,
 };
 use lemmy_db_views_moderator::structs::{
+  AdminAllowInstanceView,
+  AdminBlockInstanceView,
   AdminPurgeCommentView,
   AdminPurgeCommunityView,
   AdminPurgePersonView,
@@ -91,8 +93,6 @@ pub struct Search {
   pub title_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub post_url_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub saved_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub liked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -183,6 +183,8 @@ pub struct GetModlogResponse {
   pub admin_purged_posts: Vec<AdminPurgePostView>,
   pub admin_purged_comments: Vec<AdminPurgeCommentView>,
   pub hidden_communities: Vec<ModHideCommunityView>,
+  pub admin_block_instance: Vec<AdminBlockInstanceView>,
+  pub admin_allow_instance: Vec<AdminAllowInstanceView>,
 }
 
 #[skip_serializing_none]
@@ -200,8 +202,6 @@ pub struct CreateSite {
   pub icon: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub enable_nsfw: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -259,15 +259,9 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub federation_enabled: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub federation_debug: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_enabled: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_difficulty: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub allowed_instances: Option<Vec<String>>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub blocked_instances: Option<Vec<String>>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub registration_mode: Option<RegistrationMode>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -304,9 +298,6 @@ pub struct EditSite {
   /// A url for your site's banner.
   #[cfg_attr(feature = "full", ts(optional))]
   pub banner: Option<String>,
-  /// Whether to enable NSFW.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub enable_nsfw: Option<bool>,
   /// Limits community creation to admins only.
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
@@ -385,21 +376,12 @@ pub struct EditSite {
   /// Whether to enable federation.
   #[cfg_attr(feature = "full", ts(optional))]
   pub federation_enabled: Option<bool>,
-  /// Enables federation debugging.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub federation_debug: Option<bool>,
   /// Whether to enable captchas for signups.
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_enabled: Option<bool>,
   /// The captcha difficulty. Can be easy, medium, or hard
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_difficulty: Option<String>,
-  /// A list of allowed instances. If none are set, federation is open.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub allowed_instances: Option<Vec<String>>,
-  /// A list of blocked instances.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub blocked_instances: Option<Vec<String>>,
   /// A list of blocked URLs
   #[cfg_attr(feature = "full", ts(optional))]
   pub blocked_urls: Option<Vec<String>>,
@@ -435,7 +417,7 @@ pub struct EditSite {
 /// The response for a site.
 pub struct SiteResponse {
   pub site_view: SiteView,
-  /// deprecated, use field `tagline` or /api/v3/tagline/list
+  /// deprecated, use field `tagline` or /api/v4/tagline/list
   pub taglines: Vec<()>,
 }
 
@@ -448,14 +430,10 @@ pub struct GetSiteResponse {
   pub site_view: SiteView,
   pub admins: Vec<PersonView>,
   pub version: String,
-  #[cfg_attr(feature = "full", ts(optional))]
+  #[cfg_attr(feature = "full", ts(skip))]
   pub my_user: Option<MyUserInfo>,
   pub all_languages: Vec<Language>,
   pub discussion_languages: Vec<LanguageId>,
-  /// deprecated, use field `tagline` or /api/v3/tagline/list
-  pub taglines: Vec<()>,
-  /// deprecated, use /api/v3/custom_emoji/list
-  pub custom_emojis: Vec<()>,
   /// If the site has any taglines, a random one is included here for displaying
   #[cfg_attr(feature = "full", ts(optional))]
   pub tagline: Option<Tagline>,
@@ -648,15 +626,29 @@ pub struct GetUnreadRegistrationApplicationCountResponse {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Block an instance as user
-pub struct BlockInstance {
+pub struct UserBlockInstanceParams {
   pub instance_id: InstanceId,
   pub block: bool,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-pub struct BlockInstanceResponse {
-  pub blocked: bool,
+pub struct AdminBlockInstanceParams {
+  pub instance: String,
+  pub block: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub reason: Option<String>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub expires: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct AdminAllowInstanceParams {
+  pub instance: String,
+  pub allow: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub reason: Option<String>,
 }

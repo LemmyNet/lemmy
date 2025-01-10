@@ -58,12 +58,11 @@ fn post_to_person_sort_type(sort: PostSortType) -> PersonSortType {
 }
 
 fn queries<'a>(
-) -> Queries<impl ReadFn<'a, PersonView, PersonId>, impl ListFn<'a, PersonView, ListMode>> {
+) -> Queries<impl ReadFn<'a, PersonView, (PersonId, bool)>, impl ListFn<'a, PersonView, ListMode>> {
   let all_joins = move |query: person::BoxedQuery<'a, Pg>| {
     query
       .inner_join(person_aggregates::table)
       .left_join(local_user::table)
-      .filter(person::deleted.eq(false))
       .select((
         person::all_columns,
         person_aggregates::all_columns,
@@ -71,14 +70,17 @@ fn queries<'a>(
       ))
   };
 
-  let read = move |mut conn: DbConn<'a>, person_id: PersonId| async move {
-    all_joins(person::table.find(person_id).into_boxed())
-      .first(&mut conn)
-      .await
+  let read = move |mut conn: DbConn<'a>, params: (PersonId, bool)| async move {
+    let (person_id, is_admin) = params;
+    let mut query = all_joins(person::table.find(person_id).into_boxed());
+    if !is_admin {
+      query = query.filter(person::deleted.eq(false));
+    }
+    query.first(&mut conn).await
   };
 
   let list = move |mut conn: DbConn<'a>, mode: ListMode| async move {
-    let mut query = all_joins(person::table.into_boxed());
+    let mut query = all_joins(person::table.into_boxed()).filter(person::deleted.eq(false));
     match mode {
       ListMode::Admins => {
         query = query
@@ -97,15 +99,15 @@ fn queries<'a>(
           )
           .filter(person::deleted.eq(false));
       }
-      ListMode::Query(options) => {
-        if let Some(search_term) = options.search_term {
+      ListMode::Query(o) => {
+        if let Some(search_term) = o.search_term {
           let searcher = fuzzy_search(&search_term);
           query = query
             .filter(person::name.ilike(searcher.clone()))
             .or_filter(person::display_name.ilike(searcher));
         }
 
-        let sort = options.sort.map(post_to_person_sort_type);
+        let sort = o.sort.map(post_to_person_sort_type);
         query = match sort.unwrap_or(PersonSortType::CommentScore) {
           PersonSortType::New => query.order_by(person::published.desc()),
           PersonSortType::Old => query.order_by(person::published.asc()),
@@ -115,10 +117,10 @@ fn queries<'a>(
           PersonSortType::PostCount => query.order_by(person_aggregates::post_count.desc()),
         };
 
-        let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+        let (limit, offset) = limit_and_offset(o.page, o.limit)?;
         query = query.limit(limit).offset(offset);
 
-        if let Some(listing_type) = options.listing_type {
+        if let Some(listing_type) = o.listing_type {
           query = match listing_type {
             // return nothing as its not possible to follow users
             ListingType::Subscribed => query.limit(0),
@@ -135,8 +137,12 @@ fn queries<'a>(
 }
 
 impl PersonView {
-  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
-    queries().read(pool, person_id).await
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    is_admin: bool,
+  ) -> Result<Self, Error> {
+    queries().read(pool, (person_id, is_admin)).await
   }
 
   pub async fn admins(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
@@ -243,8 +249,12 @@ mod tests {
     )
     .await?;
 
-    let read = PersonView::read(pool, data.alice.id).await;
+    let read = PersonView::read(pool, data.alice.id, false).await;
     assert!(read.is_err());
+
+    // only admin can view deleted users
+    let read = PersonView::read(pool, data.alice.id, true).await;
+    assert!(read.is_ok());
 
     let list = PersonQuery {
       sort: Some(PostSortType::New),
@@ -303,10 +313,10 @@ mod tests {
     assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
 
-    let is_admin = PersonView::read(pool, data.alice.id).await?.is_admin;
+    let is_admin = PersonView::read(pool, data.alice.id, false).await?.is_admin;
     assert!(is_admin);
 
-    let is_admin = PersonView::read(pool, data.bob.id).await?.is_admin;
+    let is_admin = PersonView::read(pool, data.bob.id, false).await?.is_admin;
     assert!(!is_admin);
 
     cleanup(data, pool).await

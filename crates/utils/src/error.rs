@@ -76,6 +76,7 @@ pub enum LemmyErrorType {
   InvalidEmailAddress(String),
   RateLimitError,
   InvalidName,
+  InvalidCodeVerifier,
   InvalidDisplayName,
   InvalidMatrixId,
   InvalidPostTitle,
@@ -112,7 +113,6 @@ pub enum LemmyErrorType {
   SystemErrLogin,
   CouldntSetAllRegistrationsAccepted,
   CouldntSetAllEmailVerified,
-  Banned,
   BlockedUrl,
   CouldntGetComments,
   CouldntGetPosts,
@@ -151,6 +151,7 @@ pub enum LemmyErrorType {
   CommunityHasNoFollowers,
   PostScheduleTimeMustBeInFuture,
   TooManyScheduledPosts,
+  CannotCombineFederationBlocklistAndAllowlist,
   FederationError {
     #[cfg_attr(feature = "full", ts(optional))]
     error: Option<FederationError>,
@@ -163,8 +164,6 @@ pub enum LemmyErrorType {
 #[cfg_attr(feature = "full", ts(export))]
 #[non_exhaustive]
 pub enum FederationError {
-  // TODO: merge into a single NotFound error
-  CouldntFindActivity,
   InvalidCommunity,
   CannotCreatePostOrCommentInDeletedOrRemovedCommunity,
   CannotReceivePage,
@@ -244,6 +243,9 @@ cfg_if! {
       fn status_code(&self) -> actix_web::http::StatusCode {
         if self.error_type == LemmyErrorType::IncorrectLogin {
           return actix_web::http::StatusCode::UNAUTHORIZED;
+        }
+        if self.error_type == LemmyErrorType::NotFound {
+          return actix_web::http::StatusCode::NOT_FOUND;
         }
         match self.inner.downcast_ref::<diesel::result::Error>() {
           Some(diesel::result::Error::NotFound) => actix_web::http::StatusCode::NOT_FOUND,
@@ -326,9 +328,9 @@ cfg_if! {
 
       #[test]
       fn deserializes_no_message() -> LemmyResult<()> {
-        let err = LemmyError::from(LemmyErrorType::Banned).error_response();
+        let err = LemmyError::from(LemmyErrorType::BlockedUrl).error_response();
         let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
-        assert_eq!(&json, "{\"error\":\"banned\"}");
+        assert_eq!(&json, "{\"error\":\"blocked_url\"}");
 
         Ok(())
       }

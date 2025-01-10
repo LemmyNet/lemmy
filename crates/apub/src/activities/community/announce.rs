@@ -64,16 +64,17 @@ impl ActivityHandler for RawAnnouncableActivities {
 
     // verify and receive activity
     activity.verify(context).await?;
-    activity.clone().receive(context).await?;
+    let actor_id = activity.actor().clone().into();
+    activity.receive(context).await?;
 
     // if community is local, send activity to followers
     if let Some(community) = community {
       if community.local {
-        let actor_id = activity.actor().clone().into();
         verify_person_in_community(&actor_id, &community, context).await?;
         AnnounceActivity::send(self, &community, context).await?;
       }
     }
+
     Ok(())
   }
 }
@@ -93,7 +94,7 @@ impl AnnounceActivity {
       generate_announce_activity_id(inner_kind, &context.settings().get_protocol_and_hostname())?;
     Ok(AnnounceActivity {
       actor: community.id().into(),
-      to: vec![generate_to(community)?],
+      to: generate_to(community)?,
       object: IdOrNestedObject::NestedObject(object),
       cc: community
         .followers_url

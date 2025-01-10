@@ -32,6 +32,8 @@ use lemmy_db_schema::{
     post,
     post_actions,
     post_aggregates,
+    post_tag,
+    tag,
   },
   source::{
     community::{CommunityFollower, CommunityFollowerState},
@@ -80,6 +82,28 @@ fn queries<'a>() -> Queries<
   // TODO maybe this should go to localuser also
   let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
                         my_person_id: Option<PersonId>| {
+    // We fetch post tags by letting postgresql aggregate them internally in a subquery into JSON.
+    // This is a simple way to join m rows into n rows without duplicating the data and getting
+    // complex diesel types. In pure SQL you would usually do this either using a LEFT JOIN + then
+    // aggregating the results in the application code. But this results in a lot of duplicate
+    // data transferred (since each post will be returned once per tag that it has) and more
+    // complicated application code. The diesel docs suggest doing three separate sequential queries
+    // in this case (see https://diesel.rs/guides/relations.html#many-to-many-or-mn ): First fetch
+    // the posts, then fetch all relevant post-tag-association tuples from the db, and then fetch
+    // all the relevant tag objects.
+    //
+    // If we want to filter by post tag we will have to add
+    // separate logic below since this subquery can't affect filtering, but it is simple (`WHERE
+    // exists (select 1 from post_community_post_tags where community_post_tag_id in (1,2,3,4)`).
+    let post_tags = post_tag::table
+      .inner_join(tag::table)
+      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
+        "json_agg(tag.*)",
+      ))
+      .filter(post_tag::post_id.eq(post_aggregates::post_id))
+      .filter(tag::deleted.eq(false))
+      .single_value();
+
     query
       .inner_join(person::table)
       .inner_join(community::table)
@@ -136,6 +160,7 @@ fn queries<'a>() -> Queries<
           post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
           post_aggregates::comments,
         ),
+        post_tags,
       ))
   };
 
@@ -196,23 +221,20 @@ fn queries<'a>() -> Queries<
       .await
   };
 
-  let list = move |mut conn: DbConn<'a>, (options, site): (PostQuery<'a>, &'a Site)| async move {
+  let list = move |mut conn: DbConn<'a>, (o, site): (PostQuery<'a>, &'a Site)| async move {
     // The left join below will return None in this case
-    let local_user_id_join = options
-      .local_user
-      .local_user_id()
-      .unwrap_or(LocalUserId(-1));
+    let local_user_id_join = o.local_user.local_user_id().unwrap_or(LocalUserId(-1));
 
     let mut query = all_joins(
       post_aggregates::table.into_boxed(),
-      options.local_user.person_id(),
+      o.local_user.person_id(),
     );
 
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
 
     // only creator can see deleted posts and unpublished scheduled posts
-    if let Some(person_id) = options.local_user.person_id() {
+    if let Some(person_id) = o.local_user.person_id() {
       query = query.filter(post::deleted.eq(false).or(post::creator_id.eq(person_id)));
       query = query.filter(
         post::scheduled_publish_time
@@ -226,21 +248,21 @@ fn queries<'a>() -> Queries<
     }
 
     // only show removed posts to admin when viewing user profile
-    if !(options.creator_id.is_some() && options.local_user.is_admin()) {
+    if !(o.creator_id.is_some() && o.local_user.is_admin()) {
       query = query
         .filter(community::removed.eq(false))
         .filter(post::removed.eq(false));
     }
-    if let Some(community_id) = options.community_id {
+    if let Some(community_id) = o.community_id {
       query = query.filter(post_aggregates::community_id.eq(community_id));
     }
 
-    if let Some(creator_id) = options.creator_id {
+    if let Some(creator_id) = o.creator_id {
       query = query.filter(post_aggregates::creator_id.eq(creator_id));
     }
 
     let is_subscribed = community_actions::followed.is_not_null();
-    match options.listing_type.unwrap_or_default() {
+    match o.listing_type.unwrap_or_default() {
       ListingType::Subscribed => query = query.filter(is_subscribed),
       ListingType::Local => {
         query = query
@@ -253,14 +275,14 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if let Some(search_term) = &options.search_term {
-      if options.url_only.unwrap_or_default() {
+    if let Some(search_term) = &o.search_term {
+      if o.url_only.unwrap_or_default() {
         query = query.filter(post::url.eq(search_term));
       } else {
         let searcher = fuzzy_search(search_term);
         let name_filter = post::name.ilike(searcher.clone());
         let body_filter = post::body.ilike(searcher.clone());
-        query = if options.title_only.unwrap_or_default() {
+        query = if o.title_only.unwrap_or_default() {
           query.filter(name_filter)
         } else {
           query.filter(name_filter.or(body_filter))
@@ -269,64 +291,56 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if !options
-      .show_nsfw
-      .unwrap_or(options.local_user.show_nsfw(site))
-    {
+    if !o.show_nsfw.unwrap_or(o.local_user.show_nsfw(site)) {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
     };
 
-    if !options.local_user.show_bot_accounts() {
+    if !o.local_user.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
 
     // Filter to show only posts with no comments
-    if options.no_comments_only.unwrap_or_default() {
+    if o.no_comments_only.unwrap_or_default() {
       query = query.filter(post_aggregates::comments.eq(0));
     };
 
-    // If its saved only, then filter, and order by the saved time, not the comment creation time.
-    if options.saved_only.unwrap_or_default() {
+    if o.read_only.unwrap_or_default() {
       query = query
-        .filter(post_actions::saved.is_not_null())
-        .then_order_by(post_actions::saved.desc());
+        .filter(post_actions::read.is_not_null())
+        .then_order_by(post_actions::read.desc())
     }
-    // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
-    // setting wont be able to see saved posts.
-    else if !options
-      .show_read
-      .unwrap_or(options.local_user.show_read_posts())
-    {
+
+    if !o.show_read.unwrap_or(o.local_user.show_read_posts()) {
       // Do not hide read posts when it is a user profile view
       // Or, only hide read posts on non-profile views
-      if options.creator_id.is_none() {
+      if o.creator_id.is_none() {
         query = query.filter(post_actions::read.is_null());
       }
     }
 
     // If a creator id isn't given (IE its on home or community pages), hide the hidden posts
-    if !options.show_hidden.unwrap_or_default() && options.creator_id.is_none() {
+    if !o.show_hidden.unwrap_or_default() && o.creator_id.is_none() {
       query = query.filter(post_actions::hidden.is_null());
     }
 
-    if let Some(my_id) = options.local_user.person_id() {
+    if let Some(my_id) = o.local_user.person_id() {
       let not_creator_filter = post_aggregates::creator_id.ne(my_id);
-      if options.liked_only.unwrap_or_default() {
+      if o.liked_only.unwrap_or_default() {
         query = query
           .filter(not_creator_filter)
           .filter(post_actions::like_score.eq(1));
-      } else if options.disliked_only.unwrap_or_default() {
+      } else if o.disliked_only.unwrap_or_default() {
         query = query
           .filter(not_creator_filter)
           .filter(post_actions::like_score.eq(-1));
       }
     };
 
-    query = options.local_user.visible_communities_only(query);
+    query = o.local_user.visible_communities_only(query);
 
-    if !options.local_user.is_admin() {
+    if !o.local_user.is_admin() {
       query = query.filter(
         community::visibility
           .ne(CommunityVisibility::Private)
@@ -335,9 +349,9 @@ fn queries<'a>() -> Queries<
     }
 
     // Dont filter blocks or missing languages for moderator view type
-    if options.listing_type.unwrap_or_default() != ListingType::ModeratorView {
+    if o.listing_type.unwrap_or_default() != ListingType::ModeratorView {
       // Filter out the rows with missing languages if user is logged in
-      if options.local_user.is_some() {
+      if o.local_user.is_some() {
         query = query.filter(exists(
           local_user_language::table.filter(
             post::language_id
@@ -353,15 +367,15 @@ fn queries<'a>() -> Queries<
       query = query.filter(person_actions::blocked.is_null());
     }
 
-    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+    let (limit, offset) = limit_and_offset(o.page, o.limit)?;
     query = query.limit(limit).offset(offset);
 
     let mut query = PaginatedQueryBuilder::new(query);
 
-    let page_after = options.page_after.map(|c| c.0);
-    let page_before_or_equal = options.page_before_or_equal.map(|c| c.0);
+    let page_after = o.page_after.map(|c| c.0);
+    let page_before_or_equal = o.page_before_or_equal.map(|c| c.0);
 
-    if options.page_back.unwrap_or_default() {
+    if o.page_back.unwrap_or_default() {
       query = query
         .before(page_after)
         .after_or_equal(page_before_or_equal)
@@ -373,7 +387,7 @@ fn queries<'a>() -> Queries<
     }
 
     // featured posts first
-    query = if options.community_id.is_none() || options.community_id_just_for_prefetch {
+    query = if o.community_id.is_none() || o.community_id_just_for_prefetch {
       query.then_desc(key::featured_local)
     } else {
       query.then_desc(key::featured_community)
@@ -382,7 +396,7 @@ fn queries<'a>() -> Queries<
     let time = |interval| post_aggregates::published.gt(now() - interval);
 
     // then use the main sort
-    query = match options.sort.unwrap_or(Hot) {
+    query = match o.sort.unwrap_or(Hot) {
       Active => query.then_desc(key::hot_rank_active),
       Hot => query.then_desc(key::hot_rank),
       Scaled => query.then_desc(key::scaled_rank),
@@ -406,7 +420,7 @@ fn queries<'a>() -> Queries<
 
     // use publish as fallback. especially useful for hot rank which reaches zero after some days.
     // necessary because old posts can be fetched over federation and inserted with high post id
-    query = match options.sort.unwrap_or(Hot) {
+    query = match o.sort.unwrap_or(Hot) {
       // A second time-based sort would not be very useful
       New | Old | NewComments => query,
       _ => query.then_desc(key::published),
@@ -424,7 +438,7 @@ fn queries<'a>() -> Queries<
       .text("PostQuery::list")
       .text_if(
         "getting upper bound for next query",
-        options.community_id_just_for_prefetch,
+        o.community_id_just_for_prefetch,
       )
       .load::<PostView>(&mut conn)
       .await
@@ -488,7 +502,7 @@ pub struct PostQuery<'a> {
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
   pub url_only: Option<bool>,
-  pub saved_only: Option<bool>,
+  pub read_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
   pub title_only: Option<bool>,
@@ -603,11 +617,13 @@ impl<'a> PostQuery<'a> {
   }
 }
 
+#[allow(clippy::indexing_slicing)]
+#[expect(clippy::expect_used)]
 #[cfg(test)]
 mod tests {
   use crate::{
     post_view::{PaginationCursorData, PostQuery, PostView},
-    structs::LocalUserView,
+    structs::{LocalUserView, PostTags},
   };
   use chrono::Utc;
   use diesel_async::SimpleAsyncConnection;
@@ -646,34 +662,36 @@ mod tests {
         PostLikeForm,
         PostRead,
         PostReadForm,
-        PostSaved,
-        PostSavedForm,
         PostUpdateForm,
       },
       site::Site,
+      tag::{PostTagInsertForm, Tag, TagInsertForm},
     },
-    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable, Saveable},
-    utils::{build_db_pool, build_db_pool_for_tests, get_conn, uplete, DbPool, RANK_DEFAULT},
+    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable},
+    utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool, RANK_DEFAULT},
     CommunityVisibility,
     PostSortType,
     SubscribedType,
   };
-  use lemmy_utils::error::LemmyResult;
+  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::time::{Duration, Instant};
+  use test_context::{test_context, AsyncTestContext};
   use url::Url;
 
   const POST_WITH_ANOTHER_TITLE: &str = "Another title";
   const POST_BY_BLOCKED_PERSON: &str = "post by blocked person";
   const POST_BY_BOT: &str = "post by bot";
   const POST: &str = "post";
+  const POST_WITH_TAGS: &str = "post with tags";
 
   fn names(post_views: &[PostView]) -> Vec<&str> {
     post_views.iter().map(|i| i.post.name.as_str()).collect()
   }
 
   struct Data {
+    pool: ActualDbPool,
     inserted_instance: Instance,
     local_user_view: LocalUserView,
     blocked_local_user_view: LocalUserView,
@@ -681,10 +699,19 @@ mod tests {
     inserted_community: Community,
     inserted_post: Post,
     inserted_bot_post: Post,
+    inserted_post_with_tags: Post,
+    tag_1: Tag,
+    tag_2: Tag,
     site: Site,
   }
 
   impl Data {
+    fn pool(&self) -> ActualDbPool {
+      self.pool.clone()
+    }
+    pub fn pool2(&self) -> DbPool<'_> {
+      DbPool::Pool(&self.pool)
+    }
     fn default_post_query(&self) -> PostQuery<'_> {
       PostQuery {
         sort: Some(PostSortType::New),
@@ -692,129 +719,206 @@ mod tests {
         ..Default::default()
       }
     }
-  }
 
-  async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    async fn setup() -> LemmyResult<Data> {
+      let actual_pool = build_db_pool()?;
+      let pool = &mut (&actual_pool).into();
+      let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "tegan");
+      let new_person = PersonInsertForm::test_form(inserted_instance.id, "tegan");
 
-    let inserted_person = Person::create(pool, &new_person).await?;
+      let inserted_person = Person::create(pool, &new_person).await?;
 
-    let local_user_form = LocalUserInsertForm {
-      admin: Some(true),
-      ..LocalUserInsertForm::test_form(inserted_person.id)
-    };
-    let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
+      let local_user_form = LocalUserInsertForm {
+        admin: Some(true),
+        ..LocalUserInsertForm::test_form(inserted_person.id)
+      };
+      let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
 
-    let new_bot = PersonInsertForm {
-      bot_account: Some(true),
-      ..PersonInsertForm::test_form(inserted_instance.id, "mybot")
-    };
+      let new_bot = PersonInsertForm {
+        bot_account: Some(true),
+        ..PersonInsertForm::test_form(inserted_instance.id, "mybot")
+      };
 
-    let inserted_bot = Person::create(pool, &new_bot).await?;
+      let inserted_bot = Person::create(pool, &new_bot).await?;
 
-    let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
-      "test_community_3".to_string(),
-      "nada".to_owned(),
-      "pubkey".to_string(),
-    );
-    let inserted_community = Community::create(pool, &new_community).await?;
+      let new_community = CommunityInsertForm::new(
+        inserted_instance.id,
+        "test_community_3".to_string(),
+        "nada".to_owned(),
+        "pubkey".to_string(),
+      );
+      let inserted_community = Community::create(pool, &new_community).await?;
 
-    // Test a person block, make sure the post query doesn't include their post
-    let blocked_person = PersonInsertForm::test_form(inserted_instance.id, "john");
+      // Test a person block, make sure the post query doesn't include their post
+      let blocked_person = PersonInsertForm::test_form(inserted_instance.id, "john");
 
-    let inserted_blocked_person = Person::create(pool, &blocked_person).await?;
+      let inserted_blocked_person = Person::create(pool, &blocked_person).await?;
 
-    let inserted_blocked_local_user = LocalUser::create(
-      pool,
-      &LocalUserInsertForm::test_form(inserted_blocked_person.id),
-      vec![],
-    )
-    .await?;
-
-    let post_from_blocked_person = PostInsertForm {
-      language_id: Some(LanguageId(1)),
-      ..PostInsertForm::new(
-        POST_BY_BLOCKED_PERSON.to_string(),
-        inserted_blocked_person.id,
-        inserted_community.id,
+      let inserted_blocked_local_user = LocalUser::create(
+        pool,
+        &LocalUserInsertForm::test_form(inserted_blocked_person.id),
+        vec![],
       )
-    };
-    Post::create(pool, &post_from_blocked_person).await?;
+      .await?;
 
-    // block that person
-    let person_block = PersonBlockForm {
-      person_id: inserted_person.id,
-      target_id: inserted_blocked_person.id,
-    };
+      let post_from_blocked_person = PostInsertForm {
+        language_id: Some(LanguageId(1)),
+        ..PostInsertForm::new(
+          POST_BY_BLOCKED_PERSON.to_string(),
+          inserted_blocked_person.id,
+          inserted_community.id,
+        )
+      };
+      Post::create(pool, &post_from_blocked_person).await?;
 
-    PersonBlock::block(pool, &person_block).await?;
+      // block that person
+      let person_block = PersonBlockForm {
+        person_id: inserted_person.id,
+        target_id: inserted_blocked_person.id,
+      };
 
-    // A sample post
-    let new_post = PostInsertForm {
-      language_id: Some(LanguageId(47)),
-      ..PostInsertForm::new(POST.to_string(), inserted_person.id, inserted_community.id)
-    };
-    let inserted_post = Post::create(pool, &new_post).await?;
+      PersonBlock::block(pool, &person_block).await?;
 
-    let new_bot_post = PostInsertForm::new(
-      POST_BY_BOT.to_string(),
-      inserted_bot.id,
-      inserted_community.id,
-    );
-    let inserted_bot_post = Post::create(pool, &new_bot_post).await?;
+      // Two community post tags
+      let tag_1 = Tag::create(
+        pool,
+        &TagInsertForm {
+          ap_id: Url::parse(&format!("{}/tags/test_tag1", inserted_community.actor_id))?.into(),
+          name: "Test Tag 1".into(),
+          community_id: inserted_community.id,
+          published: None,
+          updated: None,
+          deleted: false,
+        },
+      )
+      .await?;
+      let tag_2 = Tag::create(
+        pool,
+        &TagInsertForm {
+          ap_id: Url::parse(&format!("{}/tags/test_tag2", inserted_community.actor_id))?.into(),
+          name: "Test Tag 2".into(),
+          community_id: inserted_community.id,
+          published: None,
+          updated: None,
+          deleted: false,
+        },
+      )
+      .await?;
 
-    let local_user_view = LocalUserView {
-      local_user: inserted_local_user,
-      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
-      person: inserted_person,
-      counts: Default::default(),
-    };
-    let blocked_local_user_view = LocalUserView {
-      local_user: inserted_blocked_local_user,
-      local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
-      person: inserted_blocked_person,
-      counts: Default::default(),
-    };
+      // A sample post
+      let new_post = PostInsertForm {
+        language_id: Some(LanguageId(47)),
+        ..PostInsertForm::new(POST.to_string(), inserted_person.id, inserted_community.id)
+      };
 
-    let site = Site {
-      id: Default::default(),
-      name: String::new(),
-      sidebar: None,
-      published: Default::default(),
-      updated: None,
-      icon: None,
-      banner: None,
-      description: None,
-      actor_id: Url::parse("http://example.com")?.into(),
-      last_refreshed_at: Default::default(),
-      inbox_url: Url::parse("http://example.com")?.into(),
-      private_key: None,
-      public_key: String::new(),
-      instance_id: Default::default(),
-      content_warning: None,
-    };
+      let inserted_post = Post::create(pool, &new_post).await?;
 
-    Ok(Data {
-      inserted_instance,
-      local_user_view,
-      blocked_local_user_view,
-      inserted_bot,
-      inserted_community,
-      inserted_post,
-      inserted_bot_post,
-      site,
-    })
+      let new_bot_post = PostInsertForm::new(
+        POST_BY_BOT.to_string(),
+        inserted_bot.id,
+        inserted_community.id,
+      );
+      let inserted_bot_post = Post::create(pool, &new_bot_post).await?;
+
+      // A sample post with tags
+      let new_post = PostInsertForm {
+        language_id: Some(LanguageId(47)),
+        ..PostInsertForm::new(
+          POST_WITH_TAGS.to_string(),
+          inserted_person.id,
+          inserted_community.id,
+        )
+      };
+
+      let inserted_post_with_tags = Post::create(pool, &new_post).await?;
+      let inserted_tags = vec![
+        PostTagInsertForm {
+          post_id: inserted_post_with_tags.id,
+          tag_id: tag_1.id,
+        },
+        PostTagInsertForm {
+          post_id: inserted_post_with_tags.id,
+          tag_id: tag_2.id,
+        },
+      ];
+      PostTagInsertForm::insert_tag_associations(pool, &inserted_tags).await?;
+
+      let local_user_view = LocalUserView {
+        local_user: inserted_local_user,
+        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
+        person: inserted_person,
+        counts: Default::default(),
+      };
+      let blocked_local_user_view = LocalUserView {
+        local_user: inserted_blocked_local_user,
+        local_user_vote_display_mode: LocalUserVoteDisplayMode::default(),
+        person: inserted_blocked_person,
+        counts: Default::default(),
+      };
+
+      let site = Site {
+        id: Default::default(),
+        name: String::new(),
+        sidebar: None,
+        published: Default::default(),
+        updated: None,
+        icon: None,
+        banner: None,
+        description: None,
+        actor_id: Url::parse("http://example.com")?.into(),
+        last_refreshed_at: Default::default(),
+        inbox_url: Url::parse("http://example.com")?.into(),
+        private_key: None,
+        public_key: String::new(),
+        instance_id: Default::default(),
+        content_warning: None,
+      };
+
+      Ok(Data {
+        pool: actual_pool,
+        inserted_instance,
+        local_user_view,
+        blocked_local_user_view,
+        inserted_bot,
+        inserted_community,
+        inserted_post,
+        inserted_bot_post,
+        inserted_post_with_tags,
+        tag_1,
+        tag_2,
+        site,
+      })
+    }
+    async fn teardown(data: Data) -> LemmyResult<()> {
+      let pool = &mut data.pool2();
+      // let pool = &mut (&pool).into();
+      let num_deleted = Post::delete(pool, data.inserted_post.id).await?;
+      Community::delete(pool, data.inserted_community.id).await?;
+      Person::delete(pool, data.local_user_view.person.id).await?;
+      Person::delete(pool, data.inserted_bot.id).await?;
+      Person::delete(pool, data.blocked_local_user_view.person.id).await?;
+      Instance::delete(pool, data.inserted_instance.id).await?;
+      assert_eq!(1, num_deleted);
+
+      Ok(())
+    }
+  }
+  impl AsyncTestContext for Data {
+    async fn setup() -> Self {
+      Data::setup().await.expect("setup failed")
+    }
+    async fn teardown(self) {
+      Data::teardown(self).await.expect("teardown failed")
+    }
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_with_person() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listing_with_person(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let mut data = init_data(pool).await?;
 
     let local_user_form = LocalUserUpdateForm {
       show_bot_accounts: Some(false),
@@ -823,12 +927,14 @@ mod tests {
     LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user.show_bot_accounts = false;
 
-    let read_post_listing = PostQuery {
+    let mut read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
     .await?;
+    // remove tags post
+    read_post_listing.remove(0);
 
     let post_listing_single_with_person = PostView::read(
       pool,
@@ -838,7 +944,7 @@ mod tests {
     )
     .await?;
 
-    let expected_post_listing_with_user = expected_post_view(&data, pool).await?;
+    let expected_post_listing_with_user = expected_post_view(data, pool).await?;
 
     // Should be only one person, IE the bot post, and blocked should be missing
     assert_eq!(
@@ -864,17 +970,19 @@ mod tests {
     .list(&data.site, pool)
     .await?;
     // should include bot post which has "undetermined" language
-    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_with_bots));
-
-    cleanup(data, pool).await
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
+      names(&post_listings_with_bots)
+    );
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_no_person() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listing_no_person(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     let read_post_listing_multiple_no_person = PostQuery {
       community_id: Some(data.inserted_community.id),
@@ -887,32 +995,31 @@ mod tests {
     let read_post_listing_single_no_person =
       PostView::read(pool, data.inserted_post.id, None, false).await?;
 
-    let expected_post_listing_no_person = expected_post_view(&data, pool).await?;
+    let expected_post_listing_no_person = expected_post_view(data, pool).await?;
 
     // Should be 2 posts, with the bot post, and the blocked
     assert_eq!(
-      vec![POST_BY_BOT, POST, POST_BY_BLOCKED_PERSON],
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST, POST_BY_BLOCKED_PERSON],
       names(&read_post_listing_multiple_no_person)
     );
 
     assert_eq!(
       Some(&expected_post_listing_no_person),
-      read_post_listing_multiple_no_person.get(1)
+      read_post_listing_multiple_no_person.get(2)
     );
     assert_eq!(
       expected_post_listing_no_person,
       read_post_listing_single_no_person
     );
-
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_title_only() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listing_title_only(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     // A post which contains the search them 'Post' not in the title (but in the body)
     let new_post = PostInsertForm {
@@ -950,6 +1057,7 @@ mod tests {
     assert_eq!(
       vec![
         POST_WITH_ANOTHER_TITLE,
+        POST_WITH_TAGS,
         POST_BY_BOT,
         POST,
         POST_BY_BLOCKED_PERSON
@@ -959,19 +1067,19 @@ mod tests {
 
     // Should be 3 posts when we search for title only
     assert_eq!(
-      vec![POST_BY_BOT, POST, POST_BY_BLOCKED_PERSON],
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST, POST_BY_BLOCKED_PERSON],
       names(&read_post_listing_by_title_only)
     );
     Post::delete(pool, inserted_post.id).await?;
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_block_community() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listing_block_community(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     let community_block = CommunityBlockForm {
       person_id: data.local_user_view.person.id,
@@ -989,15 +1097,15 @@ mod tests {
     assert_eq!(read_post_listings_with_person_after_block, vec![]);
 
     CommunityBlock::unblock(pool, &community_block).await?;
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_like() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listing_like(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let mut data = init_data(pool).await?;
 
     let post_like_form =
       PostLikeForm::new(data.inserted_post.id, data.local_user_view.person.id, 1);
@@ -1020,7 +1128,7 @@ mod tests {
     )
     .await?;
 
-    let mut expected_post_with_upvote = expected_post_view(&data, pool).await?;
+    let mut expected_post_with_upvote = expected_post_view(data, pool).await?;
     expected_post_with_upvote.my_vote = Some(1);
     expected_post_with_upvote.counts.score = 1;
     expected_post_with_upvote.counts.upvotes = 1;
@@ -1033,26 +1141,27 @@ mod tests {
     LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
     data.local_user_view.local_user.show_bot_accounts = false;
 
-    let read_post_listing = PostQuery {
+    let mut read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
     .await?;
+    read_post_listing.remove(0);
     assert_eq!(vec![expected_post_with_upvote], read_post_listing);
 
     let like_removed =
       PostLike::remove(pool, data.local_user_view.person.id, data.inserted_post.id).await?;
     assert_eq!(uplete::Count::only_deleted(1), like_removed);
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_liked_only() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listing_liked_only(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     // Like both the bot post, and your own
     // The liked_only should not show your own post
@@ -1087,43 +1196,43 @@ mod tests {
     // Should be no posts
     assert_eq!(read_disliked_post_listing, vec![]);
 
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_saved_only() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listing_read_only(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
-    // Save only the bot post
-    // The saved_only should only show the bot post
-    let post_save_form =
-      PostSavedForm::new(data.inserted_bot_post.id, data.local_user_view.person.id);
-    PostSaved::save(pool, &post_save_form).await?;
+    // Only mark the bot post as read
+    // The read_only should only show the bot post
+    let post_read_form =
+      PostReadForm::new(data.inserted_bot_post.id, data.local_user_view.person.id);
+    PostRead::mark_as_read(pool, &post_read_form).await?;
 
-    // Read the saved only
-    let read_saved_post_listing = PostQuery {
+    // Only read the post marked as read
+    let read_read_post_listing = PostQuery {
       community_id: Some(data.inserted_community.id),
-      saved_only: Some(true),
+      read_only: Some(true),
       ..data.default_post_query()
     }
     .list(&data.site, pool)
     .await?;
 
     // This should only include the bot post, not the one you created
-    assert_eq!(vec![POST_BY_BOT], names(&read_saved_post_listing));
+    assert_eq!(vec![POST_BY_BOT], names(&read_read_post_listing));
 
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn creator_info() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn creator_info(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     // Make one of the inserted persons a moderator
     let person_id = data.local_user_view.person.id;
@@ -1145,23 +1254,24 @@ mod tests {
     .collect::<Vec<_>>();
 
     let expected_post_listing = vec![
+      ("tegan".to_owned(), true, true),
       ("mybot".to_owned(), false, false),
       ("tegan".to_owned(), true, true),
     ];
 
     assert_eq!(expected_post_listing, post_listing);
 
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_person_language() -> LemmyResult<()> {
+  async fn post_listing_person_language(data: &mut Data) -> LemmyResult<()> {
     const EL_POSTO: &str = "el posto";
 
-    let pool = &build_db_pool()?;
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     let spanish_id = Language::read_id_from_code(pool, "es").await?;
 
@@ -1180,17 +1290,23 @@ mod tests {
     let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
 
     // no language filters specified, all posts should be returned
-    assert_eq!(vec![EL_POSTO, POST_BY_BOT, POST], names(&post_listings_all));
+    assert_eq!(
+      vec![EL_POSTO, POST_WITH_TAGS, POST_BY_BOT, POST],
+      names(&post_listings_all)
+    );
 
     LocalUserLanguage::update(pool, vec![french_id], data.local_user_view.local_user.id).await?;
 
     let post_listing_french = data.default_post_query().list(&data.site, pool).await?;
 
     // only one post in french and one undetermined should be returned
-    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listing_french));
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
+      names(&post_listing_french)
+    );
     assert_eq!(
       Some(french_id),
-      post_listing_french.get(1).map(|p| p.post.language_id)
+      post_listing_french.get(2).map(|p| p.post.language_id)
     );
 
     LocalUserLanguage::update(
@@ -1207,6 +1323,7 @@ mod tests {
       .map(|p| (p.post.name, p.post.language_id))
       .collect::<Vec<_>>();
     let expected_post_listings_french_und = vec![
+      (POST_WITH_TAGS.to_owned(), french_id),
       (POST_BY_BOT.to_owned(), UNDETERMINED_ID),
       (POST.to_owned(), french_id),
     ];
@@ -1214,15 +1331,15 @@ mod tests {
     // french post and undetermined language post should be returned
     assert_eq!(expected_post_listings_french_und, post_listings_french_und);
 
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listings_removed() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listings_removed(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let mut data = init_data(pool).await?;
 
     // Remove the post
     Post::update(
@@ -1237,7 +1354,7 @@ mod tests {
 
     // Make sure you don't see the removed post in the results
     let post_listings_no_admin = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(vec![POST], names(&post_listings_no_admin));
+    assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listings_no_admin));
 
     // Removed bot post is shown to admins on its profile page
     data.local_user_view.local_user.admin = true;
@@ -1249,15 +1366,15 @@ mod tests {
     .await?;
     assert_eq!(vec![POST_BY_BOT], names(&post_listings_is_admin));
 
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listings_deleted() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listings_deleted(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     // Delete the post
     Post::update(
@@ -1288,15 +1405,15 @@ mod tests {
       assert_eq!(expect_contains_deleted, contains_deleted);
     }
 
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listings_hidden_community() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listings_hidden_community(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     Community::update(
       pool,
@@ -1324,17 +1441,17 @@ mod tests {
     let posts = data.default_post_query().list(&data.site, pool).await?;
     assert!(!posts.is_empty());
 
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_instance_block() -> LemmyResult<()> {
+  async fn post_listing_instance_block(data: &mut Data) -> LemmyResult<()> {
     const POST_FROM_BLOCKED_INSTANCE: &str = "post on blocked instance";
 
-    let pool = &build_db_pool()?;
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     let blocked_instance = Instance::read_or_create(pool, "another_domain.tld".to_string()).await?;
 
@@ -1359,7 +1476,12 @@ mod tests {
     // no instance block, should return all posts
     let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(
-      vec![POST_FROM_BLOCKED_INSTANCE, POST_BY_BOT, POST],
+      vec![
+        POST_FROM_BLOCKED_INSTANCE,
+        POST_WITH_TAGS,
+        POST_BY_BOT,
+        POST
+      ],
       names(&post_listings_all)
     );
 
@@ -1372,7 +1494,10 @@ mod tests {
 
     // now posts from communities on that instance should be hidden
     let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_blocked));
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
+      names(&post_listings_blocked)
+    );
     assert!(post_listings_blocked
       .iter()
       .all(|p| p.post.id != post_from_blocked_instance.id));
@@ -1381,20 +1506,25 @@ mod tests {
     InstanceBlock::unblock(pool, &block_form).await?;
     let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
     assert_eq!(
-      vec![POST_FROM_BLOCKED_INSTANCE, POST_BY_BOT, POST],
+      vec![
+        POST_FROM_BLOCKED_INSTANCE,
+        POST_WITH_TAGS,
+        POST_BY_BOT,
+        POST
+      ],
       names(&post_listings_blocked)
     );
 
     Instance::delete(pool, blocked_instance.id).await?;
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn pagination_includes_each_post_once() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn pagination_includes_each_post_once(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     let community_form = CommunityInsertForm::new(
       data.inserted_instance.id,
@@ -1496,15 +1626,15 @@ mod tests {
     assert_eq!(inserted_post_ids, listed_post_ids);
 
     Community::delete(pool, inserted_community.id).await?;
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listings_hide_read() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listings_hide_read(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let mut data = init_data(pool).await?;
 
     // Make sure local user hides read posts
     let local_user_form = LocalUserUpdateForm {
@@ -1520,7 +1650,7 @@ mod tests {
 
     // Make sure you don't see the read post in the results
     let post_listings_hide_read = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(vec![POST], names(&post_listings_hide_read));
+    assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listings_hide_read));
 
     // Test with the show_read override as true
     let post_listings_show_read_true = PostQuery {
@@ -1530,7 +1660,7 @@ mod tests {
     .list(&data.site, pool)
     .await?;
     assert_eq!(
-      vec![POST_BY_BOT, POST],
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
       names(&post_listings_show_read_true)
     );
 
@@ -1541,16 +1671,19 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(vec![POST], names(&post_listings_show_read_false));
-    cleanup(data, pool).await
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST],
+      names(&post_listings_show_read_false)
+    );
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listings_hide_hidden() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listings_hide_hidden(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     // Mark a post as hidden
     PostHide::hide(
@@ -1562,7 +1695,10 @@ mod tests {
 
     // Make sure you don't see the hidden post in the results
     let post_listings_hide_hidden = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(vec![POST], names(&post_listings_hide_hidden));
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST],
+      names(&post_listings_hide_hidden)
+    );
 
     // Make sure it does come back with the show_hidden option
     let post_listings_show_hidden = PostQuery {
@@ -1573,20 +1709,23 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_hidden));
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
+      names(&post_listings_show_hidden)
+    );
 
     // Make sure that hidden field is true.
-    assert!(&post_listings_show_hidden.first().is_some_and(|p| p.hidden));
+    assert!(&post_listings_show_hidden.get(1).is_some_and(|p| p.hidden));
 
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listings_hide_nsfw() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listings_hide_nsfw(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     // Mark a post as nsfw
     let update_form = PostUpdateForm {
@@ -1594,11 +1733,11 @@ mod tests {
       ..Default::default()
     };
 
-    Post::update(pool, data.inserted_bot_post.id, &update_form).await?;
+    Post::update(pool, data.inserted_post_with_tags.id, &update_form).await?;
 
     // Make sure you don't see the nsfw post in the regular results
     let post_listings_hide_nsfw = data.default_post_query().list(&data.site, pool).await?;
-    assert_eq!(vec![POST], names(&post_listings_hide_nsfw));
+    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_hide_nsfw));
 
     // Make sure it does come back with the show_nsfw option
     let post_listings_show_nsfw = PostQuery {
@@ -1609,22 +1748,19 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_show_nsfw));
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST_BY_BOT, POST],
+      names(&post_listings_show_nsfw)
+    );
 
     // Make sure that nsfw field is true.
-    assert!(&post_listings_show_nsfw.first().is_some_and(|p| p.post.nsfw));
-
-    cleanup(data, pool).await
-  }
-
-  async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    let num_deleted = Post::delete(pool, data.inserted_post.id).await?;
-    Community::delete(pool, data.inserted_community.id).await?;
-    Person::delete(pool, data.local_user_view.person.id).await?;
-    Person::delete(pool, data.inserted_bot.id).await?;
-    Person::delete(pool, data.blocked_local_user_view.person.id).await?;
-    Instance::delete(pool, data.inserted_instance.id).await?;
-    assert_eq!(1, num_deleted);
+    assert!(
+      &post_listings_show_nsfw
+        .first()
+        .ok_or(LemmyErrorType::NotFound)?
+        .post
+        .nsfw
+    );
 
     Ok(())
   }
@@ -1746,15 +1882,16 @@ mod tests {
       hidden: false,
       saved: false,
       creator_blocked: false,
+      tags: PostTags::default(),
     })
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn local_only_instance() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+  async fn local_only_instance(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     Community::update(
       pool,
@@ -1779,7 +1916,7 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(2, authenticated_query.len());
+    assert_eq!(3, authenticated_query.len());
 
     let unauthenticated_post = PostView::read(pool, data.inserted_post.id, None, false).await;
     assert!(unauthenticated_post.is_err());
@@ -1793,16 +1930,15 @@ mod tests {
     .await;
     assert!(authenticated_post.is_ok());
 
-    cleanup(data, pool).await?;
     Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_local_user_banned_from_community() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listing_local_user_banned_from_community(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     // Test that post view shows if local user is blocked from community
     let banned_from_comm_person = PersonInsertForm::test_form(data.inserted_instance.id, "jill");
@@ -1837,15 +1973,15 @@ mod tests {
     assert!(post_view.banned_from_community);
 
     Person::delete(pool, inserted_banned_from_comm_person.id).await?;
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_local_user_not_banned_from_community() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listing_local_user_not_banned_from_community(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     let post_view = PostView::read(
       pool,
@@ -1857,15 +1993,15 @@ mod tests {
 
     assert!(!post_view.banned_from_community);
 
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn speed_check() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn speed_check(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     // Make sure the post_view query is less than this time
     let duration_max = Duration::from_millis(80);
@@ -1913,15 +2049,15 @@ mod tests {
       duration_max
     );
 
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listings_no_comments_only() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listings_no_comments_only(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let data = init_data(pool).await?;
 
     // Create a comment for a post
     let comment_form = CommentInsertForm::new(
@@ -1941,17 +2077,20 @@ mod tests {
     .list(&data.site, pool)
     .await?;
 
-    assert_eq!(vec![POST_BY_BOT], names(&post_listings_no_comments));
+    assert_eq!(
+      vec![POST_WITH_TAGS, POST_BY_BOT],
+      names(&post_listings_no_comments)
+    );
 
-    cleanup(data, pool).await
+    Ok(())
   }
 
+  #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_listing_private_community() -> LemmyResult<()> {
-    let pool = &build_db_pool()?;
+  async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
     let pool = &mut pool.into();
-    let mut data = init_data(pool).await?;
 
     // Mark community as private
     Community::update(
@@ -2003,7 +2142,7 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(2, read_post_listing.len());
+    assert_eq!(3, read_post_listing.len());
     let post_view = PostView::read(
       pool,
       data.inserted_post.id,
@@ -2030,7 +2169,7 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?;
-    assert_eq!(2, read_post_listing.len());
+    assert_eq!(3, read_post_listing.len());
     let post_view = PostView::read(
       pool,
       data.inserted_post.id,
@@ -2040,6 +2179,33 @@ mod tests {
     .await;
     assert!(post_view.is_ok());
 
-    cleanup(data, pool).await
+    Ok(())
+  }
+
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn post_tags_present(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
+    let pool = &mut pool.into();
+
+    let post_view = PostView::read(
+      pool,
+      data.inserted_post_with_tags.id,
+      Some(&data.local_user_view.local_user),
+      false,
+    )
+    .await?;
+
+    assert_eq!(2, post_view.tags.tags.len());
+    assert_eq!(data.tag_1.name, post_view.tags.tags[0].name);
+    assert_eq!(data.tag_2.name, post_view.tags.tags[1].name);
+
+    let all_posts = data.default_post_query().list(&data.site, pool).await?;
+    assert_eq!(2, all_posts[0].tags.tags.len()); // post with tags
+    assert_eq!(0, all_posts[1].tags.tags.len()); // bot post
+    assert_eq!(0, all_posts[2].tags.tags.len()); // normal post
+
+    Ok(())
   }
 }

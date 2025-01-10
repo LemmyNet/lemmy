@@ -36,7 +36,7 @@ use lemmy_db_schema::{
     community::{Community, CommunityUpdateForm},
     person::Person,
     post::{Post, PostUpdateForm},
-    private_message::{PrivateMessage, PrivateMessageUpdateForm},
+    private_message::{PrivateMessage as DbPrivateMessage, PrivateMessageUpdateForm},
   },
   traits::Crud,
 };
@@ -60,7 +60,7 @@ pub(crate) async fn send_apub_delete_in_community(
 ) -> LemmyResult<()> {
   let actor = ApubPerson::from(actor);
   let is_mod_action = reason.is_some();
-  let to = vec![generate_to(&community)?];
+  let to = generate_to(&community)?;
   let activity = if deleted {
     let delete = Delete::new(&actor, object, to, Some(&community), reason, context)?;
     AnnouncableActivities::Delete(delete)
@@ -82,7 +82,7 @@ pub(crate) async fn send_apub_delete_in_community(
 #[tracing::instrument(skip_all)]
 pub(crate) async fn send_apub_delete_private_message(
   actor: &ApubPerson,
-  pm: PrivateMessage,
+  pm: DbPrivateMessage,
   deleted: bool,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
@@ -298,7 +298,7 @@ async fn receive_delete_action(
       }
     }
     DeletableObjects::PrivateMessage(pm) => {
-      PrivateMessage::update(
+      DbPrivateMessage::update(
         &mut context.pool(),
         pm.id,
         &PrivateMessageUpdateForm {

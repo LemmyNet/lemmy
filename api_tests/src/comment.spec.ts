@@ -22,7 +22,6 @@ import {
   createCommunity,
   registerUser,
   reportComment,
-  listCommentReports,
   randomString,
   unfollows,
   getComments,
@@ -38,8 +37,15 @@ import {
   blockCommunity,
   delay,
   saveUserSettings,
+  listReports,
 } from "./shared";
-import { CommentView, CommunityView, SaveUserSettings } from "lemmy-js-client";
+import {
+  CommentReportView,
+  CommentView,
+  CommunityView,
+  ReportCombinedView,
+  SaveUserSettings,
+} from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 let postOnAlphaRes: PostResponse;
@@ -156,7 +162,6 @@ test("Delete a comment", async () => {
     commentRes.comment_view.comment.id,
   );
   expect(deleteCommentRes.comment_view.comment.deleted).toBe(true);
-  expect(deleteCommentRes.comment_view.comment.content).toBe("");
 
   // Make sure that comment is deleted on beta
   await waitUntil(
@@ -254,7 +259,6 @@ test("Remove a comment from admin and community on different instance", async ()
     betaComment.comment.id,
   );
   expect(removeCommentRes.comment_view.comment.removed).toBe(true);
-  expect(removeCommentRes.comment_view.comment.content).toBe("");
 
   // Comment text is also hidden from list
   let listComments = await getComments(
@@ -263,7 +267,6 @@ test("Remove a comment from admin and community on different instance", async ()
   );
   expect(listComments.comments.length).toBe(1);
   expect(listComments.comments[0].comment.removed).toBe(true);
-  expect(listComments.comments[0].comment.content).toBe("");
 
   // Make sure its not removed on alpha
   let refetchedPostComments = await getComments(
@@ -702,10 +705,10 @@ test("Check that activity from another instance is sent to third instance", asyn
 
 test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedded comments, A subs to B, B updates the lowest level comment, A fetches both the post and all the inreplyto comments for that post.", async () => {
   // Unfollow all remote communities
-  let site = await unfollowRemotes(alpha);
-  expect(
-    site.my_user?.follows.filter(c => c.community.local == false).length,
-  ).toBe(0);
+  let my_user = await unfollowRemotes(alpha);
+  expect(my_user.follows.filter(c => c.community.local == false).length).toBe(
+    0,
+  );
 
   // B creates a post, and two comments, should be invisible to A
   let postOnBetaRes = await createPost(beta, 2);
@@ -799,13 +802,17 @@ test("Report a comment", async () => {
   let alphaReport = (await reportComment(alpha, alphaComment.id, reason))
     .comment_report_view.comment_report;
 
-  let betaReport = (await waitUntil(
-    () =>
-      listCommentReports(beta).then(r =>
-        r.comment_reports.find(rep => rep.comment_report.reason === reason),
-      ),
-    e => !!e,
-  ))!.comment_report;
+  let betaReport = (
+    (await waitUntil(
+      () =>
+        listReports(beta).then(p =>
+          p.reports.find(r => {
+            return checkCommentReportReason(r, reason);
+          }),
+        ),
+      e => !!e,
+    )!) as CommentReportView
+  ).comment_report;
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
   expect(betaReport.original_comment_text).toBe(
@@ -880,3 +887,12 @@ test.skip("Fetch a deeply nested comment", async () => {
   expect(betaComment!.comment!.comment).toBeDefined();
   expect(betaComment?.comment?.post).toBeDefined();
 });
+
+function checkCommentReportReason(rcv: ReportCombinedView, reason: string) {
+  switch (rcv.type_) {
+    case "Comment":
+      return rcv.comment_report.reason === reason;
+    default:
+      return false;
+  }
+}

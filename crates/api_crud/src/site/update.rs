@@ -19,8 +19,6 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
-    federation_allowlist::FederationAllowList,
-    federation_blocklist::FederationBlockList,
     local_site::{LocalSite, LocalSiteUpdateForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
     local_site_url_blocklist::LocalSiteUrlBlocklist,
@@ -152,13 +150,9 @@ pub async fn update_site(
     .await
     .ok();
 
-  // Replace the blocked and allowed instances
-  let allowed = data.allowed_instances.clone();
-  FederationAllowList::replace(&mut context.pool(), allowed).await?;
-  let blocked = data.blocked_instances.clone();
-  FederationBlockList::replace(&mut context.pool(), blocked).await?;
-
   if let Some(url_blocklist) = data.blocked_urls.clone() {
+    // If this validation changes it must be synced with
+    // lemmy_utils::utils::markdown::create_url_blocklist_test_regex_set.
     let parsed_urls = check_urls_are_valid(&url_blocklist)?;
     LocalSiteUrlBlocklist::replace(&mut context.pool(), parsed_urls).await?;
   }
