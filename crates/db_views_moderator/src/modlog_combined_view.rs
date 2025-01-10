@@ -93,7 +93,7 @@ impl ModlogCombinedPaginationCursor {
     };
     // hex encoding to prevent ossification
     let prefix = view.as_ref();
-    ModlogCombinedPaginationCursor(format!("{prefix}{id:x}"))
+    ModlogCombinedPaginationCursor(format!("{prefix}-{id:x}"))
   }
 
   pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
