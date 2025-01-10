@@ -32,7 +32,6 @@ use lemmy_db_schema::source::{
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use strum::AsRefStr;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 
@@ -307,7 +306,7 @@ pub struct ModlogCombinedViewInternal {
   pub comment: Option<Comment>,
 }
 
-#[derive(AsRefStr, Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 // Use serde's internal tagging, to work easier with javascript libraries

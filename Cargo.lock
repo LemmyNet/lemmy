@@ -2742,7 +2742,6 @@ dependencies = [
  "serde",
  "serde_with",
  "serial_test",
- "strum",
  "tokio",
  "ts-rs",
 ]

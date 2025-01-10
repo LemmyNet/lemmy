@@ -70,29 +70,38 @@ use lemmy_utils::error::LemmyResult;
 impl ModlogCombinedPaginationCursor {
   // get cursor for page that starts immediately after the given post
   pub fn after_post(view: &ModlogCombinedView) -> ModlogCombinedPaginationCursor {
-    let id = match view {
-      ModlogCombinedView::AdminAllowInstance(v) => v.admin_allow_instance.id.0,
-      ModlogCombinedView::AdminBlockInstance(v) => v.admin_block_instance.id.0,
-      ModlogCombinedView::AdminPurgeComment(v) => v.admin_purge_comment.id.0,
-      ModlogCombinedView::AdminPurgeCommunity(v) => v.admin_purge_community.id.0,
-      ModlogCombinedView::AdminPurgePerson(v) => v.admin_purge_person.id.0,
-      ModlogCombinedView::AdminPurgePost(v) => v.admin_purge_post.id.0,
-      ModlogCombinedView::ModAdd(v) => v.mod_add.id.0,
-      ModlogCombinedView::ModAddCommunity(v) => v.mod_add_community.id.0,
-      ModlogCombinedView::ModBan(v) => v.mod_ban.id.0,
-      ModlogCombinedView::ModBanFromCommunity(v) => v.mod_ban_from_community.id.0,
-
-      ModlogCombinedView::ModFeaturePost(v) => v.mod_feature_post.id.0,
-      ModlogCombinedView::ModHideCommunity(v) => v.mod_hide_community.id.0,
-      ModlogCombinedView::ModLockPost(v) => v.mod_lock_post.id.0,
-      ModlogCombinedView::ModRemoveComment(v) => v.mod_remove_comment.id.0,
-      ModlogCombinedView::ModRemoveCommunity(v) => v.mod_remove_community.id.0,
-
-      ModlogCombinedView::ModRemovePost(v) => v.mod_remove_post.id.0,
-      ModlogCombinedView::ModTransferCommunity(v) => v.mod_transfer_community.id.0,
+    let (prefix, id) = match view {
+      ModlogCombinedView::AdminAllowInstance(v) => {
+        ("AdminAllowInstance", v.admin_allow_instance.id.0)
+      }
+      ModlogCombinedView::AdminBlockInstance(v) => {
+        ("AdminBlockInstance", v.admin_block_instance.id.0)
+      }
+      ModlogCombinedView::AdminPurgeComment(v) => ("AdminPurgeComment", v.admin_purge_comment.id.0),
+      ModlogCombinedView::AdminPurgeCommunity(v) => {
+        ("AdminPurgeCommunity", v.admin_purge_community.id.0)
+      }
+      ModlogCombinedView::AdminPurgePerson(v) => ("AdminPurgePerson", v.admin_purge_person.id.0),
+      ModlogCombinedView::AdminPurgePost(v) => ("AdminPurgePost", v.admin_purge_post.id.0),
+      ModlogCombinedView::ModAdd(v) => ("ModAdd", v.mod_add.id.0),
+      ModlogCombinedView::ModAddCommunity(v) => ("ModAddCommunity", v.mod_add_community.id.0),
+      ModlogCombinedView::ModBan(v) => ("ModBan", v.mod_ban.id.0),
+      ModlogCombinedView::ModBanFromCommunity(v) => {
+        ("ModBanFromCommunity", v.mod_ban_from_community.id.0)
+      }
+      ModlogCombinedView::ModFeaturePost(v) => ("ModFeaturePost", v.mod_feature_post.id.0),
+      ModlogCombinedView::ModHideCommunity(v) => ("ModHideCommunity", v.mod_hide_community.id.0),
+      ModlogCombinedView::ModLockPost(v) => ("ModLockPost", v.mod_lock_post.id.0),
+      ModlogCombinedView::ModRemoveComment(v) => ("ModRemoveComment", v.mod_remove_comment.id.0),
+      ModlogCombinedView::ModRemoveCommunity(v) => {
+        ("ModRemoveCommunity", v.mod_remove_community.id.0)
+      }
+      ModlogCombinedView::ModRemovePost(v) => ("ModRemovePost", v.mod_remove_post.id.0),
+      ModlogCombinedView::ModTransferCommunity(v) => {
+        ("ModTransferCommunity", v.mod_transfer_community.id.0)
+      }
     };
     // hex encoding to prevent ossification
-    let prefix = view.as_ref();
     ModlogCombinedPaginationCursor(format!("{prefix}-{id:x}"))
   }
 
