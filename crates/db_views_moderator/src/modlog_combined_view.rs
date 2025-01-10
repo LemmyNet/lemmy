@@ -93,7 +93,7 @@ impl ModlogCombinedPaginationCursor {
     };
     // hex encoding to prevent ossification
     let prefix = view.as_ref();
-    ModlogCombinedPaginationCursor(format!("{prefix}{id:x}"))
+    ModlogCombinedPaginationCursor(format!("{prefix}-{id:x}"))
   }
 
   pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
@@ -101,7 +101,7 @@ impl ModlogCombinedPaginationCursor {
     let mut query = modlog_combined::table
       .select(ModlogCombined::as_select())
       .into_boxed();
-    let (prefix, id_str) = self.0.split_at_checked(1).ok_or_else(err_msg)?;
+    let (prefix, id_str) = self.0.split_first('-').ok_or_else(err_msg)?;
     let id = i32::from_str_radix(id_str, 16).map_err(|_err| err_msg())?;
     query = match prefix {
       "AdminAllowInstance" => query.filter(modlog_combined::admin_allow_instance_id.eq(id)),
@@ -373,8 +373,10 @@ impl ModlogCombinedQuery {
       query = query.after(page_after);
     }
 
-    // Tie breaker
-    query = query.then_desc(key::published).then_desc(key::id);
+    query = query
+      .then_desc(key::published)
+      // Tie breaker
+      .then_desc(key::id);
 
     let res = query.load::<ModlogCombinedViewInternal>(conn).await?;
 
