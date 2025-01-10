@@ -8,34 +8,20 @@ use actix_web::{
 };
 use futures::stream::{Stream, StreamExt};
 use http::HeaderValue;
-use lemmy_api_common::{
-  context::LemmyContext,
-  request::{client_builder, delete_image_from_pictrs},
-};
+use lemmy_api_common::{context::LemmyContext, request::delete_image_from_pictrs};
 use lemmy_db_schema::{newtypes::DbUrl, source::images::LocalImage};
-use lemmy_utils::{error::LemmyResult, settings::SETTINGS, REQWEST_TIMEOUT};
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder};
-use reqwest_tracing::TracingMiddleware;
-use std::sync::LazyLock;
+use lemmy_utils::{error::LemmyResult, REQWEST_TIMEOUT};
+use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
 
-// Pictrs cannot use proxy
-#[allow(clippy::expect_used)]
-pub(super) static PICTRS_CLIENT: LazyLock<ClientWithMiddleware> = LazyLock::new(|| {
-  ClientBuilder::new(
-    client_builder(&SETTINGS)
-      .no_proxy()
-      .build()
-      .expect("build pictrs client"),
-  )
-  .with(TracingMiddleware::default())
-  .build()
-});
-
-pub(super) fn adapt_request(request: &HttpRequest, url: String) -> RequestBuilder {
+pub(super) fn adapt_request(
+  request: &HttpRequest,
+  url: String,
+  client: Data<ClientWithMiddleware>,
+) -> RequestBuilder {
   // remove accept-encoding header so that pictrs doesn't compress the response
   const INVALID_HEADERS: &[HeaderName] = &[ACCEPT_ENCODING, HOST];
 
-  let client_request = PICTRS_CLIENT
+  let client_request = client
     .request(convert_method(request.method()), url)
     .timeout(REQWEST_TIMEOUT);
 

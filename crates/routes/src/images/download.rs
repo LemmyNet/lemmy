@@ -14,14 +14,16 @@ use lemmy_api_common::{
 use lemmy_db_schema::source::{images::RemoteImage, local_site::LocalSite};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
+use reqwest_middleware::ClientWithMiddleware;
 use url::Url;
 
 pub async fn get_image(
   filename: Path<String>,
   Query(params): Query<ImageGetParams>,
   req: HttpRequest,
-  context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
+  context: Data<LemmyContext>,
+  client: Data<ClientWithMiddleware>,
 ) -> LemmyResult<HttpResponse> {
   // block access to images if instance is private
   if local_user_view.is_none() {
@@ -46,12 +48,13 @@ pub async fn get_image(
     url
   };
 
-  do_get_image(processed_url, req).await
+  do_get_image(processed_url, req, client).await
 }
 
 pub async fn image_proxy(
   Query(params): Query<ImageProxyParams>,
   req: HttpRequest,
+  client: Data<ClientWithMiddleware>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Either<HttpResponse<()>, HttpResponse<BoxBody>>> {
   let url = Url::parse(&params.url)?;
@@ -85,12 +88,18 @@ pub async fn image_proxy(
     Ok(Either::Left(Redirect::to(url.to_string()).respond_to(&req)))
   } else {
     // Proxy the image data through Lemmy
-    Ok(Either::Right(do_get_image(processed_url, req).await?))
+    Ok(Either::Right(
+      do_get_image(processed_url, req, client).await?,
+    ))
   }
 }
 
-pub(super) async fn do_get_image(url: String, req: HttpRequest) -> LemmyResult<HttpResponse> {
-  let mut client_req = adapt_request(&req, url);
+pub(super) async fn do_get_image(
+  url: String,
+  req: HttpRequest,
+  client: Data<ClientWithMiddleware>,
+) -> LemmyResult<HttpResponse> {
+  let mut client_req = adapt_request(&req, url, client);
 
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string());
