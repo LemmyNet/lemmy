@@ -371,7 +371,7 @@ pub async fn delete_image_from_pictrs(
 async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> LemmyResult<Url> {
   let pictrs_config = context.settings().pictrs_config()?;
 
-  match pictrs_config.image_mode() {
+  match pictrs_config.image_mode {
     PictrsImageMode::None => return Ok(image_url.clone()),
     PictrsImageMode::ProxyAllImages => {
       return Ok(proxy_image_link(image_url.clone(), context).await?.into())

@@ -1060,7 +1060,7 @@ pub async fn process_markdown(
 
   markdown_check_for_blocked_urls(&text, url_blocklist)?;
 
-  if context.settings().pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
+  if context.settings().pictrs_config()?.image_mode == PictrsImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
     RemoteImage::create(&mut context.pool(), links.clone()).await?;
 
@@ -1130,7 +1130,7 @@ async fn proxy_image_link_internal(
 pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
   proxy_image_link_internal(
     link,
-    context.settings().pictrs_config()?.image_mode(),
+    context.settings().pictrs_config()?.image_mode,
     context,
   )
   .await
