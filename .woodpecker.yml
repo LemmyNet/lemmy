@@ -104,6 +104,18 @@ steps:
       - cargo clippy --workspace --tests --all-targets -- -D warnings
     when: *slow_check_paths
 
+  # `DROP OWNED` doesn't work for default user
+  create_database_user:
+    image: postgres:16-alpine
+    environment:
+      PGUSER: postgres
+      PGPASSWORD: password
+      PGHOST: database
+      PGDATABASE: lemmy
+    commands:
+      - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
+    when: *slow_check_paths
+
   cargo_test:
     image: *rust_image
     environment:
@@ -113,6 +125,12 @@ steps:
       LEMMY_TEST_FAST_FEDERATION: "1"
       LEMMY_CONFIG_LOCATION: ../../config/config.hjson
     commands:
+      # Install pg_dump for the schema setup test (must match server version)
+      - apt update && apt install -y lsb-release
+      - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+      - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+      - apt update && apt install -y postgresql-client-16
+      # Run tests
       - cargo test --workspace --no-fail-fast
     when: *slow_check_paths
 
@@ -160,18 +178,6 @@ steps:
       - diff config/defaults.hjson config/defaults_current.hjson
     when: *slow_check_paths
 
-  check_diesel_schema:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-    commands:
-      - <<: *install_diesel_cli
-      - cp crates/db_schema/src/schema.rs tmp.schema
-      - diesel migration run
-      - diff tmp.schema crates/db_schema/src/schema.rs
-    when: *slow_check_paths
-
   cargo_build:
     image: *rust_image
     environment:
@@ -181,37 +187,19 @@ steps:
       - mv target/debug/lemmy_server target/lemmy_server
     when: *slow_check_paths
 
-  check_diesel_migration:
-    # TODO: use willsquire/diesel-cli image when shared libraries become optional in lemmy_server
+  check_diesel_schema:
     image: *rust_image
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: "1"
       CARGO_HOME: .cargo_home
-      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      PGUSER: lemmy
-      PGPASSWORD: password
-      PGHOST: database
-      PGDATABASE: lemmy
     commands:
-      # Install diesel_cli
+      - cp crates/db_schema/src/schema.rs tmp.schema
+      - target/lemmy_server migration --all run
       - <<: *install_diesel_cli
-      # Run all migrations
-      - diesel migration run
-      - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
-      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f before.sqldump
-      # Make sure that the newest migration is revertable without the `r` schema
-      - diesel migration redo
-      # Run schema setup twice, which fails on the 2nd time if `DROP SCHEMA IF EXISTS r CASCADE` drops the wrong things
-      - alias lemmy_schema_setup="target/lemmy_server --disable-scheduled-tasks --disable-http-server --disable-activity-sending"
-      - lemmy_schema_setup
-      - lemmy_schema_setup
-      # Make sure that the newest migration is revertable with the `r` schema
-      - diesel migration redo
-      # Check for changes in the schema, which would be caused by an incorrect migration
-      - psql -c "DROP SCHEMA IF EXISTS r CASCADE;"
-      - pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --no-sync -f after.sqldump
-      - diff before.sqldump after.sqldump
+      - diesel print-schema
+      - diff tmp.schema crates/db_schema/src/schema.rs
     when: *slow_check_paths
 
   check_db_perf_tool:
@@ -318,5 +306,6 @@ services:
     # 15-alpine image necessary because of diesel tests
     image: pgautoupgrade/pgautoupgrade:15-alpine
     environment:
-      POSTGRES_USER: lemmy
+      POSTGRES_DB: lemmy
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password

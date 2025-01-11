@@ -5,9 +5,7 @@ use diesel::{
   pg::Pg,
   query_builder::AsQuery,
   result::Error,
-  sql_types,
   BoolExpressionMethods,
-  BoxableExpression,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
@@ -97,18 +95,15 @@ fn queries<'a>() -> Queries<
     // If we want to filter by post tag we will have to add
     // separate logic below since this subquery can't affect filtering, but it is simple (`WHERE
     // exists (select 1 from post_community_post_tags where community_post_tag_id in (1,2,3,4)`).
-    let post_tags: Box<
-      dyn BoxableExpression<_, Pg, SqlType = sql_types::Nullable<sql_types::Json>>,
-    > = Box::new(
-      post_tag::table
-        .inner_join(tag::table)
-        .select(diesel::dsl::sql::<diesel::sql_types::Json>(
-          "json_agg(tag.*)",
-        ))
-        .filter(post_tag::post_id.eq(post_aggregates::post_id))
-        .filter(tag::deleted.eq(false))
-        .single_value(),
-    );
+    let post_tags = post_tag::table
+      .inner_join(tag::table)
+      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
+        "json_agg(tag.*)",
+      ))
+      .filter(post_tag::post_id.eq(post_aggregates::post_id))
+      .filter(tag::deleted.eq(false))
+      .single_value();
+
     query
       .inner_join(person::table)
       .inner_join(community::table)
@@ -311,21 +306,13 @@ fn queries<'a>() -> Queries<
       query = query.filter(post_aggregates::comments.eq(0));
     };
 
-    // If its saved only, then filter, and order by the saved time, not the comment creation time.
-    if o.saved_only.unwrap_or_default() {
-      query = query
-        .filter(post_actions::saved.is_not_null())
-        .then_order_by(post_actions::saved.desc());
-    }
-
     if o.read_only.unwrap_or_default() {
       query = query
         .filter(post_actions::read.is_not_null())
         .then_order_by(post_actions::read.desc())
     }
-    // Only hide the read posts, if the saved_only is false. Otherwise ppl with the hide_read
-    // setting wont be able to see saved posts.
-    else if !o.show_read.unwrap_or(o.local_user.show_read_posts()) {
+
+    if !o.show_read.unwrap_or(o.local_user.show_read_posts()) {
       // Do not hide read posts when it is a user profile view
       // Or, only hide read posts on non-profile views
       if o.creator_id.is_none() {
@@ -515,7 +502,6 @@ pub struct PostQuery<'a> {
   pub local_user: Option<&'a LocalUser>,
   pub search_term: Option<String>,
   pub url_only: Option<bool>,
-  pub saved_only: Option<bool>,
   pub read_only: Option<bool>,
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
@@ -676,14 +662,12 @@ mod tests {
         PostLikeForm,
         PostRead,
         PostReadForm,
-        PostSaved,
-        PostSavedForm,
         PostUpdateForm,
       },
       site::Site,
       tag::{PostTagInsertForm, Tag, TagInsertForm},
     },
-    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable, Saveable},
+    traits::{Bannable, Blockable, Crud, Followable, Joinable, Likeable},
     utils::{build_db_pool, get_conn, uplete, ActualDbPool, DbPool, RANK_DEFAULT},
     CommunityVisibility,
     PostSortType,
@@ -1211,34 +1195,6 @@ mod tests {
 
     // Should be no posts
     assert_eq!(read_disliked_post_listing, vec![]);
-
-    Ok(())
-  }
-
-  #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
-  async fn post_listing_saved_only(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
-    let pool = &mut pool.into();
-
-    // Save only the bot post
-    // The saved_only should only show the bot post
-    let post_save_form =
-      PostSavedForm::new(data.inserted_bot_post.id, data.local_user_view.person.id);
-    PostSaved::save(pool, &post_save_form).await?;
-
-    // Read the saved only
-    let read_saved_post_listing = PostQuery {
-      community_id: Some(data.inserted_community.id),
-      saved_only: Some(true),
-      ..data.default_post_query()
-    }
-    .list(&data.site, pool)
-    .await?;
-
-    // This should only include the bot post, not the one you created
-    assert_eq!(vec![POST_BY_BOT], names(&read_saved_post_listing));
 
     Ok(())
   }

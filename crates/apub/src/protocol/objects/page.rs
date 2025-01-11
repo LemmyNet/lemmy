@@ -1,5 +1,4 @@
 use crate::{
-  activities::verify_community_matches,
   fetcher::user_or_community::{PersonOrGroupType, UserOrCommunity},
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::{objects::LanguageTag, ImageObject, InCommunity, Source},
@@ -64,7 +63,6 @@ pub struct Page {
   pub(crate) published: Option<DateTime<Utc>>,
   pub(crate) updated: Option<DateTime<Utc>>,
   pub(crate) language: Option<LanguageTag>,
-  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) tag: Vec<Hashtag>,
 }
@@ -231,10 +229,6 @@ impl ActivityHandler for Page {
 #[async_trait::async_trait]
 impl InCommunity for Page {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    if let Some(audience) = &self.audience {
-      return audience.dereference(context).await;
-    }
-
     let community = match &self.attributed_to {
       AttributedTo::Lemmy(_) => {
         let mut iter = self.to.iter().merge(self.cc.iter());
@@ -259,9 +253,6 @@ impl InCommunity for Page {
       }
     };
 
-    if let Some(audience) = &self.audience {
-      verify_community_matches(audience, community.actor_id.clone())?;
-    }
     Ok(community)
   }
 }

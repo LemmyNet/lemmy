@@ -1,12 +1,15 @@
-use crate::structs::{
-  CommentReportView,
-  CommunityReportView,
-  LocalUserView,
-  PostReportView,
-  PrivateMessageReportView,
-  ReportCombinedPaginationCursor,
-  ReportCombinedView,
-  ReportCombinedViewInternal,
+use crate::{
+  structs::{
+    CommentReportView,
+    CommunityReportView,
+    LocalUserView,
+    PostReportView,
+    PrivateMessageReportView,
+    ReportCombinedPaginationCursor,
+    ReportCombinedView,
+    ReportCombinedViewInternal,
+  },
+  InternalToCombinedView,
 };
 use diesel::{
   result::Error,
@@ -160,9 +163,10 @@ impl ReportCombinedQuery {
     user: &LocalUserView,
   ) -> LemmyResult<Vec<ReportCombinedView>> {
     let my_person_id = user.local_user.person_id;
+    let report_creator = person::id;
     let item_creator = aliases::person1.field(person::id);
-
     let resolver = aliases::person2.field(person::id).nullable();
+
     let conn = &mut get_conn(pool).await?;
 
     // Notes: since the post_report_id and comment_report_id are optional columns,
@@ -179,10 +183,10 @@ impl ReportCombinedQuery {
       .inner_join(
         person::table.on(
           post_report::creator_id
-            .eq(person::id)
-            .or(comment_report::creator_id.eq(person::id))
-            .or(private_message_report::creator_id.eq(person::id))
-            .or(community_report::creator_id.eq(person::id)),
+            .eq(report_creator)
+            .or(comment_report::creator_id.eq(report_creator))
+            .or(private_message_report::creator_id.eq(report_creator))
+            .or(community_report::creator_id.eq(report_creator)),
         ),
       )
       // The comment
@@ -359,111 +363,114 @@ impl ReportCombinedQuery {
     let res = query.load::<ReportCombinedViewInternal>(conn).await?;
 
     // Map the query results to the enum
-    let out = res.into_iter().filter_map(map_to_enum).collect();
+    let out = res.into_iter().filter_map(|u| u.map_to_enum()).collect();
 
     Ok(out)
   }
 }
 
-/// Maps the combined DB row to an enum
-fn map_to_enum(view: ReportCombinedViewInternal) -> Option<ReportCombinedView> {
-  // Use for a short alias
-  let v = view;
+impl InternalToCombinedView for ReportCombinedViewInternal {
+  type CombinedView = ReportCombinedView;
 
-  if let (
-    Some(post_report),
-    Some(post),
-    Some(community),
-    Some(unread_comments),
-    Some(counts),
-    Some(post_creator),
-  ) = (
-    v.post_report,
-    v.post.clone(),
-    v.community.clone(),
-    v.post_unread_comments,
-    v.post_counts,
-    v.item_creator.clone(),
-  ) {
-    Some(ReportCombinedView::Post(PostReportView {
-      post_report,
-      post,
-      community,
-      unread_comments,
-      counts,
-      creator: v.report_creator,
-      post_creator,
-      creator_banned_from_community: v.item_creator_banned_from_community,
-      creator_is_moderator: v.item_creator_is_moderator,
-      creator_is_admin: v.item_creator_is_admin,
-      creator_blocked: v.item_creator_blocked,
-      subscribed: v.subscribed,
-      saved: v.post_saved,
-      read: v.post_read,
-      hidden: v.post_hidden,
-      my_vote: v.my_post_vote,
-      resolver: v.resolver,
-    }))
-  } else if let (
-    Some(comment_report),
-    Some(comment),
-    Some(counts),
-    Some(post),
-    Some(community),
-    Some(comment_creator),
-  ) = (
-    v.comment_report,
-    v.comment,
-    v.comment_counts,
-    v.post.clone(),
-    v.community.clone(),
-    v.item_creator.clone(),
-  ) {
-    Some(ReportCombinedView::Comment(CommentReportView {
-      comment_report,
-      comment,
-      counts,
-      post,
-      community,
-      creator: v.report_creator,
-      comment_creator,
-      creator_banned_from_community: v.item_creator_banned_from_community,
-      creator_is_moderator: v.item_creator_is_moderator,
-      creator_is_admin: v.item_creator_is_admin,
-      creator_blocked: v.item_creator_blocked,
-      subscribed: v.subscribed,
-      saved: v.comment_saved,
-      my_vote: v.my_comment_vote,
-      resolver: v.resolver,
-    }))
-  } else if let (
-    Some(private_message_report),
-    Some(private_message),
-    Some(private_message_creator),
-  ) = (v.private_message_report, v.private_message, v.item_creator)
-  {
-    Some(ReportCombinedView::PrivateMessage(
-      PrivateMessageReportView {
-        private_message_report,
-        private_message,
+  fn map_to_enum(&self) -> Option<Self::CombinedView> {
+    // Use for a short alias
+    let v = self.clone();
+
+    if let (
+      Some(post_report),
+      Some(post),
+      Some(community),
+      Some(unread_comments),
+      Some(counts),
+      Some(post_creator),
+    ) = (
+      v.post_report,
+      v.post.clone(),
+      v.community.clone(),
+      v.post_unread_comments,
+      v.post_counts,
+      v.item_creator.clone(),
+    ) {
+      Some(ReportCombinedView::Post(PostReportView {
+        post_report,
+        post,
+        community,
+        unread_comments,
+        counts,
         creator: v.report_creator,
-        private_message_creator,
+        post_creator,
+        creator_banned_from_community: v.item_creator_banned_from_community,
+        creator_is_moderator: v.item_creator_is_moderator,
+        creator_is_admin: v.item_creator_is_admin,
+        creator_blocked: v.item_creator_blocked,
+        subscribed: v.subscribed,
+        saved: v.post_saved,
+        read: v.post_read,
+        hidden: v.post_hidden,
+        my_vote: v.my_post_vote,
         resolver: v.resolver,
-      },
-    ))
-  } else if let (Some(community), Some(community_report), Some(counts)) =
-    (v.community, v.community_report, v.community_counts)
-  {
-    Some(ReportCombinedView::Community(CommunityReportView {
-      community_report,
-      community,
-      creator: v.report_creator,
-      counts,
-      subscribed: v.subscribed,
-      resolver: v.resolver,
-    }))
-  } else {
-    None
+      }))
+    } else if let (
+      Some(comment_report),
+      Some(comment),
+      Some(counts),
+      Some(post),
+      Some(community),
+      Some(comment_creator),
+    ) = (
+      v.comment_report,
+      v.comment,
+      v.comment_counts,
+      v.post,
+      v.community.clone(),
+      v.item_creator.clone(),
+    ) {
+      Some(ReportCombinedView::Comment(CommentReportView {
+        comment_report,
+        comment,
+        counts,
+        post,
+        community,
+        creator: v.report_creator,
+        comment_creator,
+        creator_banned_from_community: v.item_creator_banned_from_community,
+        creator_is_moderator: v.item_creator_is_moderator,
+        creator_is_admin: v.item_creator_is_admin,
+        creator_blocked: v.item_creator_blocked,
+        subscribed: v.subscribed,
+        saved: v.comment_saved,
+        my_vote: v.my_comment_vote,
+        resolver: v.resolver,
+      }))
+    } else if let (
+      Some(private_message_report),
+      Some(private_message),
+      Some(private_message_creator),
+    ) = (v.private_message_report, v.private_message, v.item_creator)
+    {
+      Some(ReportCombinedView::PrivateMessage(
+        PrivateMessageReportView {
+          private_message_report,
+          private_message,
+          creator: v.report_creator,
+          private_message_creator,
+          resolver: v.resolver,
+        },
+      ))
+    } else if let (Some(community), Some(community_report), Some(counts)) =
+      (v.community, v.community_report, v.community_counts)
+    {
+      Some(ReportCombinedView::Community(CommunityReportView {
+        community_report,
+        community,
+        creator: v.report_creator,
+        counts,
+        subscribed: v.subscribed,
+        resolver: v.resolver,
+      }))
+    } else {
+      None
+    }
   }
 }
 
