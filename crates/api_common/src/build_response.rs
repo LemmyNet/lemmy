@@ -101,7 +101,6 @@ pub async fn send_local_notifs(
   local_user_view: Option<&LocalUserView>,
 ) -> LemmyResult<Vec<LocalUserId>> {
   let mut recipient_ids = Vec::new();
-  let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
 
   // When called from api code, we have local user view and can read with CommentView
   // to reduce db queries. But when receiving a federated comment the user view is None,
@@ -125,6 +124,14 @@ pub async fn send_local_notifs(
     let community = Community::read(&mut context.pool(), post.community_id).await?;
     (comment, post, community)
   };
+
+  let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
+  let comment_link = format!(
+    "{}/post/{}/{}",
+    context.settings().get_protocol_and_hostname(),
+    post.id,
+    comment_id
+  );
 
   // Send the local mentions
   for mention in mentions
@@ -159,7 +166,7 @@ pub async fn send_local_notifs(
         send_email_to_user(
           &mention_user_view,
           &lang.notification_mentioned_by_subject(&person.name),
-          &lang.notification_mentioned_by_body(&content, &inbox_link, &person.name),
+          &lang.notification_mentioned_by_body(&comment_link, &content, &inbox_link, &person.name),
           context.settings(),
         )
         .await
@@ -211,7 +218,14 @@ pub async fn send_local_notifs(
             send_email_to_user(
               &parent_user_view,
               &lang.notification_comment_reply_subject(&person.name),
-              &lang.notification_comment_reply_body(&content, &inbox_link, &person.name),
+              &lang.notification_comment_reply_body(
+                &comment_link,
+                &content,
+                &inbox_link,
+                &parent_comment.content,
+                &post.name,
+                &person.name,
+              ),
               context.settings(),
             )
             .await
@@ -257,7 +271,13 @@ pub async fn send_local_notifs(
             send_email_to_user(
               &parent_user_view,
               &lang.notification_post_reply_subject(&person.name),
-              &lang.notification_post_reply_body(&content, &inbox_link, &person.name),
+              &lang.notification_post_reply_body(
+                &comment_link,
+                &content,
+                &inbox_link,
+                &post.name,
+                &person.name,
+              ),
               context.settings(),
             )
             .await
