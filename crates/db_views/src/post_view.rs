@@ -14,7 +14,6 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aggregates::structs::{post_aggregates_keys as key, PostAggregates},
   aliases::creator_community_actions,
@@ -38,6 +37,7 @@ use lemmy_db_schema::{
   source::{
     community::{CommunityFollower, CommunityFollowerState},
     local_user::LocalUser,
+    post::{post_actions_keys, PostActionsCursor},
     site::Site,
   },
   utils::{
@@ -49,6 +49,7 @@ use lemmy_db_schema::{
     get_conn,
     limit_and_offset,
     now,
+    paginate,
     Commented,
     DbConn,
     DbPool,
@@ -306,12 +307,6 @@ fn queries<'a>() -> Queries<
       query = query.filter(post_aggregates::comments.eq(0));
     };
 
-    if o.read_only.unwrap_or_default() {
-      query = query
-        .filter(post_actions::read.is_not_null())
-        .then_order_by(post_actions::read.desc())
-    }
-
     if !o.show_read.unwrap_or(o.local_user.show_read_posts()) {
       // Do not hide read posts when it is a user profile view
       // Or, only hide read posts on non-profile views
@@ -370,67 +365,69 @@ fn queries<'a>() -> Queries<
     let (limit, offset) = limit_and_offset(o.page, o.limit)?;
     query = query.limit(limit).offset(offset);
 
-    let mut query = PaginatedQueryBuilder::new(query);
-
-    let page_after = o.page_after.map(|c| c.0);
-    let page_before_or_equal = o.page_before_or_equal.map(|c| c.0);
-
-    if o.page_back.unwrap_or_default() {
-      query = query
-        .before(page_after)
-        .after_or_equal(page_before_or_equal)
-        .limit_and_offset_from_end();
+    let query = if o.read_only.unwrap_or_default() {
+      paginate(
+        query,
+        o.page_after.map(|c| c.post_actions),
+        None,
+        o.page_back.unwrap_or_default(),
+      )
+      .filter(post_actions::read.is_not_null())
+      .then_desc(post_actions_keys::read)
+      .as_query()
     } else {
-      query = query
-        .after(page_after)
-        .before_or_equal(page_before_or_equal);
-    }
+      let mut query = paginate(
+        query,
+        o.page_after.map(|c| c.post_aggregates),
+        o.page_before_or_equal,
+        o.page_back.unwrap_or_default(),
+      );
 
-    // featured posts first
-    query = if o.community_id.is_none() || o.community_id_just_for_prefetch {
-      query.then_desc(key::featured_local)
-    } else {
-      query.then_desc(key::featured_community)
+      // featured posts first
+      query = if o.community_id.is_none() || o.community_id_just_for_prefetch {
+        query.then_desc(key::featured_local)
+      } else {
+        query.then_desc(key::featured_community)
+      };
+
+      let time = |interval| post_aggregates::published.gt(now() - interval);
+
+      // then use the main sort
+      query = match o.sort.unwrap_or(Hot) {
+        Active => query.then_desc(key::hot_rank_active),
+        Hot => query.then_desc(key::hot_rank),
+        Scaled => query.then_desc(key::scaled_rank),
+        Controversial => query.then_desc(key::controversy_rank),
+        New => query.then_desc(key::published),
+        Old => query.then_desc(ReverseTimestampKey(key::published)),
+        NewComments => query.then_desc(key::newest_comment_time),
+        MostComments => query.then_desc(key::comments),
+        TopAll => query.then_desc(key::score),
+        TopYear => query.then_desc(key::score).filter(time(1.years())),
+        TopMonth => query.then_desc(key::score).filter(time(1.months())),
+        TopWeek => query.then_desc(key::score).filter(time(1.weeks())),
+        TopDay => query.then_desc(key::score).filter(time(1.days())),
+        TopHour => query.then_desc(key::score).filter(time(1.hours())),
+        TopSixHour => query.then_desc(key::score).filter(time(6.hours())),
+        TopTwelveHour => query.then_desc(key::score).filter(time(12.hours())),
+        TopThreeMonths => query.then_desc(key::score).filter(time(3.months())),
+        TopSixMonths => query.then_desc(key::score).filter(time(6.months())),
+        TopNineMonths => query.then_desc(key::score).filter(time(9.months())),
+      };
+
+      // use publish as fallback. especially useful for hot rank which reaches zero after some days.
+      // necessary because old posts can be fetched over federation and inserted with high post id
+      query = match o.sort.unwrap_or(Hot) {
+        // A second time-based sort would not be very useful
+        New | Old | NewComments => query,
+        _ => query.then_desc(key::published),
+      };
+
+      // finally use unique post id as tie breaker
+      query = query.then_desc(key::post_id);
+
+      query.as_query()
     };
-
-    let time = |interval| post_aggregates::published.gt(now() - interval);
-
-    // then use the main sort
-    query = match o.sort.unwrap_or(Hot) {
-      Active => query.then_desc(key::hot_rank_active),
-      Hot => query.then_desc(key::hot_rank),
-      Scaled => query.then_desc(key::scaled_rank),
-      Controversial => query.then_desc(key::controversy_rank),
-      New => query.then_desc(key::published),
-      Old => query.then_desc(ReverseTimestampKey(key::published)),
-      NewComments => query.then_desc(key::newest_comment_time),
-      MostComments => query.then_desc(key::comments),
-      TopAll => query.then_desc(key::score),
-      TopYear => query.then_desc(key::score).filter(time(1.years())),
-      TopMonth => query.then_desc(key::score).filter(time(1.months())),
-      TopWeek => query.then_desc(key::score).filter(time(1.weeks())),
-      TopDay => query.then_desc(key::score).filter(time(1.days())),
-      TopHour => query.then_desc(key::score).filter(time(1.hours())),
-      TopSixHour => query.then_desc(key::score).filter(time(6.hours())),
-      TopTwelveHour => query.then_desc(key::score).filter(time(12.hours())),
-      TopThreeMonths => query.then_desc(key::score).filter(time(3.months())),
-      TopSixMonths => query.then_desc(key::score).filter(time(6.months())),
-      TopNineMonths => query.then_desc(key::score).filter(time(9.months())),
-    };
-
-    // use publish as fallback. especially useful for hot rank which reaches zero after some days.
-    // necessary because old posts can be fetched over federation and inserted with high post id
-    query = match o.sort.unwrap_or(Hot) {
-      // A second time-based sort would not be very useful
-      New | Old | NewComments => query,
-      _ => query.then_desc(key::published),
-    };
-
-    // finally use unique post id as tie breaker
-    query = query.then_desc(key::post_id);
-
-    // Not done by debug_query
-    let query = query.as_query();
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
 
@@ -466,29 +463,36 @@ impl PaginationCursor {
     // hex encoding to prevent ossification
     PaginationCursor(format!("P{:x}", view.counts.post_id.0))
   }
-  pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
+  pub async fn read(
+    &self,
+    pool: &mut DbPool<'_>,
+    local_user: Option<&LocalUser>,
+  ) -> Result<PaginationCursorData, Error> {
     let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
-    let token = PostAggregates::read(
-      pool,
-      PostId(
-        self
-          .0
-          .get(1..)
-          .and_then(|e| i32::from_str_radix(e, 16).ok())
-          .ok_or_else(err_msg)?,
-      ),
-    )
-    .await?;
+    let post_id = PostId(
+      self
+        .0
+        .get(1..)
+        .and_then(|e| i32::from_str_radix(e, 16).ok())
+        .ok_or_else(err_msg)?,
+    );
+    let post_aggregates = PostAggregates::read(pool, post_id).await?;
+    let post_actions = PostActionsCursor::read(pool, post_id, local_user.person_id()).await?;
 
-    Ok(PaginationCursorData(token))
+    Ok(PaginationCursorData {
+      post_aggregates,
+      post_actions,
+    })
   }
 }
 
-// currently we use a postaggregates struct as the pagination token.
-// we only use some of the properties of the post aggregates, depending on which sort type we page
-// by
+// currently we use aggregates or actions as the pagination token.
+// we only use some of the properties, depending on which sort type we page by
 #[derive(Clone)]
-pub struct PaginationCursorData(PostAggregates);
+pub struct PaginationCursorData {
+  post_aggregates: PostAggregates,
+  post_actions: PostActionsCursor,
+}
 
 #[derive(Clone, Default)]
 pub struct PostQuery<'a> {
@@ -509,7 +513,7 @@ pub struct PostQuery<'a> {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub page_after: Option<PaginationCursorData>,
-  pub page_before_or_equal: Option<PaginationCursorData>,
+  pub page_before_or_equal: Option<PostAggregates>,
   pub page_back: Option<bool>,
   pub show_hidden: Option<bool>,
   pub show_read: Option<bool>,
@@ -589,7 +593,7 @@ impl<'a> PostQuery<'a> {
       } else {
         v.pop()
       };
-      let limit_cursor = Some(PaginationCursorData(item.expect("else case").counts));
+      let limit_cursor = Some(item.expect("else case").counts);
       Ok(Some(PostQuery {
         page_before_or_equal: limit_cursor,
         ..self.clone()
@@ -1577,7 +1581,10 @@ mod tests {
     let mut page_after = None;
     loop {
       let post_listings = PostQuery {
-        page_after,
+        page_after: page_after.map(|p| PaginationCursorData {
+          post_aggregates: p,
+          post_actions: Default::default(),
+        }),
         ..options.clone()
       }
       .list(&data.site, pool)
@@ -1586,7 +1593,7 @@ mod tests {
       listed_post_ids.extend(post_listings.iter().map(|p| p.post.id));
 
       if let Some(p) = post_listings.into_iter().last() {
-        page_after = Some(PaginationCursorData(p.counts));
+        page_after = Some(p.counts);
       } else {
         break;
       }
@@ -1597,7 +1604,10 @@ mod tests {
     let mut page_before = None;
     loop {
       let post_listings = PostQuery {
-        page_after: page_before,
+        page_after: page_before.map(|p| PaginationCursorData {
+          post_aggregates: p,
+          post_actions: Default::default(),
+        }),
         page_back: Some(true),
         ..options.clone()
       }
@@ -1614,7 +1624,7 @@ mod tests {
       listed_post_ids_forward.truncate(index);
 
       if let Some(p) = post_listings.into_iter().next() {
-        page_before = Some(PaginationCursorData(p.counts));
+        page_before = Some(p.counts);
       } else {
         break;
       }
