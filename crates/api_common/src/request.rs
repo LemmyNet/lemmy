@@ -327,7 +327,7 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
     .ok_or(LemmyErrorType::ImageUrlMissingLastPathSegment)?;
 
   // Delete db row if any (old Lemmy versions didnt generate this).
-  LocalImage::delete_by_alias(&mut context.pool(), &alias)
+  LocalImage::delete_by_alias(&mut context.pool(), alias)
     .await
     .ok();
 
@@ -356,7 +356,7 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
 
 pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
   // Delete db row if any (old Lemmy versions didnt generate this).
-  LocalImage::delete_by_alias(&mut context.pool(), &alias)
+  LocalImage::delete_by_alias(&mut context.pool(), alias)
     .await
     .ok();
 
