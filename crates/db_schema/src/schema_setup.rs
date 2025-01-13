@@ -317,7 +317,6 @@ mod tests {
 
   #[test]
   #[serial]
-  #[ignore]
   fn test_schema_setup() -> LemmyResult<()> {
     let o = Options::default();
     let db_url = SETTINGS.get_database_url();
