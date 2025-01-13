@@ -41,8 +41,8 @@ afterAll(async () => {
 });
 
 test("Upload image and delete it", async () => {
-  const healthz = await fetch(alphaUrl + "/pictrs/healthz");
-  expect(healthz.status).toBe(200);
+  const health = await alpha.imageHealth();
+  expect(health.success).toBeTruthy();
 
   // Before running this test, you need to delete all previous images in the DB
   await deleteAllImages(alpha);
