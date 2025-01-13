@@ -1,4 +1,5 @@
 use actix_web::web::{Data, Json};
+use chrono::Utc;
 use lemmy_api_common::{context::LemmyContext, site::MyUserInfo, utils::check_user_valid};
 use lemmy_db_schema::source::{
   actor_language::LocalUserLanguage,
@@ -12,7 +13,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
 pub async fn get_my_user(
-  local_user_view: LocalUserView,
+  mut local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<MyUserInfo>> {
   check_user_valid(&local_user_view.person)?;
@@ -33,6 +34,9 @@ pub async fn get_my_user(
     ))
     .with_lemmy_type(LemmyErrorType::SystemErrLogin)?;
 
+  if context.settings().disable_donation_dialog.unwrap_or(false) {
+    local_user_view.local_user.last_donation_notification = Utc::now();
+  }
   Ok(Json(MyUserInfo {
     local_user_view: local_user_view.clone(),
     follows,
