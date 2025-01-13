@@ -18,6 +18,7 @@ use lemmy_db_schema::{
     local_site_url_blocklist::LocalSiteUrlBlocklist,
     oauth_provider::{OAuthProvider, PublicOAuthProvider},
     person::Person,
+    post_keyword_block::PostKeywordBlock,
     tagline::Tagline,
   },
   CommentSortType,
@@ -49,7 +50,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
-use lemmy_db_schema::source::post_keyword_block::PostKeywordBlock;
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

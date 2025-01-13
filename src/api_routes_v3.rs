@@ -42,6 +42,7 @@ use lemmy_api::{
     verify_email::verify_email,
   },
   post::{
+    block::user_block_keyword_for_posts,
     feature::feature_post,
     get_link_metadata::get_link_metadata,
     hide::hide_post,
@@ -76,7 +77,6 @@ use lemmy_api::{
     },
   },
 };
-use lemmy_api::post::block::user_block_keyword_for_posts;
 use lemmy_api_crud::{
   comment::{
     create::create_comment,
