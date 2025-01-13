@@ -37,7 +37,7 @@ use diesel_async::{
 };
 use diesel_bind_if_some::BindIfSome;
 use futures_util::{future::BoxFuture, Future, FutureExt};
-use i_love_jesus::CursorKey;
+use i_love_jesus::{CursorKey, PaginatedQueryBuilder};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
@@ -732,6 +732,28 @@ impl<RF, LF> Queries<RF, LF> {
     let conn = get_conn(pool).await?;
     (self.list_fn)(conn, args).await
   }
+}
+
+pub fn paginate<Q, C>(
+  query: Q,
+  page_after: Option<C>,
+  page_before_or_equal: Option<C>,
+  page_back: bool,
+) -> PaginatedQueryBuilder<C, Q> {
+  let mut query = PaginatedQueryBuilder::new(query);
+
+  if page_back {
+    query = query
+      .before(page_after)
+      .after_or_equal(page_before_or_equal)
+      .limit_and_offset_from_end();
+  } else {
+    query = query
+      .after(page_after)
+      .before_or_equal(page_before_or_equal);
+  }
+
+  query
 }
 
 #[cfg(test)]
