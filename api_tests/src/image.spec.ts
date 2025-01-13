@@ -40,7 +40,7 @@ afterAll(async () => {
   await Promise.all([unfollows(), deleteAllImages(alpha)]);
 });
 
-test.only("Upload image and delete it", async () => {
+test("Upload image and delete it", async () => {
   const healthz = await fetch(alphaUrl + "/pictrs/healthz");
   expect(healthz.status).toBe(200);
 
@@ -58,9 +58,7 @@ test.only("Upload image and delete it", async () => {
   expect(upload.delete_token).toBeDefined();
 
   // ensure that image download is working. theres probably a better way to do this
-  console.log(1);
   const response = await fetch(upload.image_url ?? "");
-  console.log(2);
   const content = await response.text();
   expect(content.length).toBeGreaterThan(0);
 
@@ -87,10 +85,8 @@ test.only("Upload image and delete it", async () => {
     token: upload.delete_token,
     filename: upload.filename,
   };
-  console.log(3);
   const delete_ = await alphaImage.deleteImage(delete_form);
   expect(delete_.success).toBe(true);
-  console.log(4);
 
   // ensure that image is deleted
   const response2 = await fetch(upload.image_url ?? "");
@@ -108,7 +104,7 @@ test.only("Upload image and delete it", async () => {
   expect(deletedListAllMediaRes.images.length).toBe(previousThumbnails - 1);
 });
 
-test("Purge user, uploaded image removed", async () => {
+test.only("Purge user, uploaded image removed", async () => {
   let user = await registerUser(alphaImage, alphaUrl);
 
   // upload test image
