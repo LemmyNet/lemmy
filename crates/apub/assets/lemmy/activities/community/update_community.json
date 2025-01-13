@@ -39,7 +39,6 @@
     "updated": "2021-11-01T12:23:50.151874Z"
   },
   "cc": ["http://enterprise.lemmy.ml/c/main"],
-  "audience": "http://enterprise.lemmy.ml/u/main",
   "type": "Update",
   "id": "http://ds9.lemmy.ml/activities/update/d3717cf5-096d-473f-9530-5d52f9d51f5f"
 }

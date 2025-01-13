@@ -1,4 +1,4 @@
-use super::to_and_audience;
+use super::to;
 use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
@@ -46,7 +46,7 @@ impl UndoBlockUser {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
-    let (to, audience) = to_and_audience(target)?;
+    let to = to(target)?;
 
     let id = generate_activity_id(
       UndoType::Undo,
@@ -59,7 +59,6 @@ impl UndoBlockUser {
       cc: generate_cc(target, &mut context.pool()).await?,
       kind: UndoType::Undo,
       id: id.clone(),
-      audience,
       restore_data: Some(restore_data),
     };
 
