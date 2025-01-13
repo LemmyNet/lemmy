@@ -88,7 +88,6 @@ use lemmy_api::{
       unread_count::get_unread_registration_application_count,
     },
   },
-  sitemap::get_sitemap,
 };
 use lemmy_api_crud::{
   comment::{
@@ -152,20 +151,44 @@ use lemmy_apub::api::{
   search::search,
   user_settings_backup::{export_settings, import_settings},
 };
-use lemmy_routes::images::image_proxy;
+use lemmy_routes::images::{
+  delete::{
+    delete_community_banner,
+    delete_community_icon,
+    delete_image,
+    delete_site_banner,
+    delete_site_icon,
+    delete_user_avatar,
+    delete_user_banner,
+  },
+  download::{get_image, image_proxy},
+  pictrs_health,
+  upload::{
+    upload_community_banner,
+    upload_community_icon,
+    upload_image,
+    upload_site_banner,
+    upload_site_icon,
+    upload_user_avatar,
+    upload_user_banner,
+  },
+};
 use lemmy_utils::rate_limit::RateLimitCell;
 
 pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
     scope("/api/v4")
       .wrap(rate_limit.message())
-      .route("/image_proxy", get().to(image_proxy))
       // Site
       .service(
         scope("/site")
           .route("", get().to(get_site_v4))
           .route("", post().to(create_site))
-          .route("", put().to(update_site)),
+          .route("", put().to(update_site))
+          .route("/icon", post().to(upload_site_icon))
+          .route("/icon", delete().to(delete_site_icon))
+          .route("/banner", post().to(upload_site_banner))
+          .route("/banner", delete().to(delete_site_banner)),
       )
       .route("/modlog", get().to(get_mod_log))
       .service(
@@ -195,6 +218,10 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/transfer", post().to(transfer_community))
           .route("/ban_user", post().to(ban_from_community))
           .route("/mod", post().to(add_mod_to_community))
+          .route("/icon", post().to(upload_community_icon))
+          .route("/icon", delete().to(delete_community_icon))
+          .route("/banner", post().to(upload_community_banner))
+          .route("/banner", delete().to(delete_community_banner))
           .service(
             scope("/pending_follows")
               .route("/count", get().to(get_pending_follows_count))
@@ -313,6 +340,10 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/unread_count", get().to(unread_count))
           .route("/list_logins", get().to(list_logins))
           .route("/validate_auth", get().to(validate_auth))
+          .route("/avatar", post().to(upload_user_avatar))
+          .route("/avatar", delete().to(delete_user_avatar))
+          .route("/banner", post().to(upload_user_banner))
+          .route("/banner", delete().to(delete_user_banner))
           .service(
             scope("/block")
               .route("/person", post().to(user_block_person))
@@ -388,6 +419,17 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.register())
           .route("/authenticate", post().to(authenticate_with_oauth)),
       )
-      .route("/sitemap.xml", get().to(get_sitemap)),
+      .service(
+        scope("/image")
+          .service(
+            resource("")
+              .wrap(rate_limit.image())
+              .route(post().to(upload_image))
+              .route(delete().to(delete_image)),
+          )
+          .route("/proxy", get().to(image_proxy))
+          .route("/health", get().to(pictrs_health))
+          .route("/{filename}", get().to(get_image)),
+      ),
   );
 }

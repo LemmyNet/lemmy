@@ -9,13 +9,10 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
-use lemmy_db_schema::{
-  newtypes::DbUrl,
-  source::{
-    images::{ImageDetailsForm, LocalImage, LocalImageForm},
-    post::{Post, PostUpdateForm},
-    site::Site,
-  },
+use lemmy_db_schema::source::{
+  images::{ImageDetailsForm, LocalImage, LocalImageForm},
+  post::{Post, PostUpdateForm},
+  site::Site,
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -260,7 +257,8 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct PictrsResponse {
-  pub files: Option<Vec<PictrsFile>>,
+  #[serde(default)]
+  pub files: Vec<PictrsFile>,
   pub msg: String,
 }
 
@@ -272,9 +270,15 @@ pub struct PictrsFile {
 }
 
 impl PictrsFile {
-  pub fn thumbnail_url(&self, protocol_and_hostname: &str) -> Result<Url, url::ParseError> {
+  pub fn image_url(&self, protocol_and_hostname: &str) -> Result<Url, url::ParseError> {
     Url::parse(&format!(
-      "{protocol_and_hostname}/pictrs/image/{}",
+      "{protocol_and_hostname}/api/v4/image/{}",
+      self.file
+    ))
+  }
+  pub fn delete_url(&self, protocol_and_hostname: &str) -> Result<Url, url::ParseError> {
+    Url::parse(&format!(
+      "{protocol_and_hostname}/api/v4/image/{}",
       self.file
     ))
   }
@@ -315,7 +319,7 @@ struct PictrsPurgeResponse {
 /// - It might not be an image
 /// - Pictrs might not be set up
 pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) -> LemmyResult<()> {
-  is_image_content_type(context.client(), image_url).await?;
+  is_image_content_type(context.pictrs_client(), image_url).await?;
 
   let alias = image_url
     .path_segments()
@@ -323,14 +327,19 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
     .next_back()
     .ok_or(LemmyErrorType::ImageUrlMissingLastPathSegment)?;
 
-  let pictrs_config = context.settings().pictrs_config()?;
+  // Delete db row if any (old Lemmy versions didnt generate this).
+  LocalImage::delete_by_alias(&mut context.pool(), alias)
+    .await
+    .ok();
+
+  let pictrs_config = context.settings().pictrs()?;
   let purge_url = format!("{}internal/purge?alias={}", pictrs_config.url, alias);
 
   let pictrs_api_key = pictrs_config
     .api_key
     .ok_or(LemmyErrorType::PictrsApiKeyNotProvided)?;
   let response = context
-    .client()
+    .pictrs_client()
     .post(&purge_url)
     .timeout(REQWEST_TIMEOUT)
     .header("x-api-token", pictrs_api_key)
@@ -351,13 +360,18 @@ pub async fn delete_image_from_pictrs(
   delete_token: &str,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
-  let pictrs_config = context.settings().pictrs_config()?;
+  // Delete db row if any (old Lemmy versions didnt generate this).
+  LocalImage::delete_by_alias(&mut context.pool(), alias)
+    .await
+    .ok();
+
+  let pictrs_config = context.settings().pictrs()?;
   let url = format!(
     "{}image/delete/{}/{}",
     pictrs_config.url, &delete_token, &alias
   );
   context
-    .client()
+    .pictrs_client()
     .delete(&url)
     .timeout(REQWEST_TIMEOUT)
     .send()
@@ -369,7 +383,7 @@ pub async fn delete_image_from_pictrs(
 /// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
 #[tracing::instrument(skip_all)]
 async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> LemmyResult<Url> {
-  let pictrs_config = context.settings().pictrs_config()?;
+  let pictrs_config = context.settings().pictrs()?;
 
   match pictrs_config.image_mode {
     PictrsImageMode::None => return Ok(image_url.clone()),
@@ -380,16 +394,15 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
   };
 
   // fetch remote non-pictrs images for persistent thumbnail link
-  // TODO: should limit size once supported by pictrs
   let fetch_url = format!(
     "{}image/download?url={}&resize={}",
     pictrs_config.url,
     encode(image_url.as_str()),
-    context.settings().pictrs_config()?.max_thumbnail_size
+    context.settings().pictrs()?.max_thumbnail_size
   );
 
   let res = context
-    .client()
+    .pictrs_client()
     .get(&fetch_url)
     .timeout(REQWEST_TIMEOUT)
     .send()
@@ -398,9 +411,8 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     .json::<PictrsResponse>()
     .await?;
 
-  let files = res.files.unwrap_or_default();
-
-  let image = files
+  let image = res
+    .files
     .first()
     .ok_or(LemmyErrorType::PictrsResponseError(res.msg))?;
 
@@ -412,7 +424,7 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     pictrs_delete_token: image.delete_token.clone(),
   };
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let thumbnail_url = image.thumbnail_url(&protocol_and_hostname)?;
+  let thumbnail_url = image.image_url(&protocol_and_hostname)?;
 
   // Also store the details for the image
   let details_form = image.details.build_image_details_form(&thumbnail_url);
@@ -429,14 +441,14 @@ pub async fn fetch_pictrs_proxied_image_details(
   image_url: &Url,
   context: &LemmyContext,
 ) -> LemmyResult<PictrsFileDetails> {
-  let pictrs_url = context.settings().pictrs_config()?.url;
+  let pictrs_url = context.settings().pictrs()?.url;
   let encoded_image_url = encode(image_url.as_str());
 
   // Pictrs needs you to fetch the proxied image before you can fetch the details
   let proxy_url = format!("{pictrs_url}image/original?proxy={encoded_image_url}");
 
   context
-    .client()
+    .pictrs_client()
     .get(&proxy_url)
     .timeout(REQWEST_TIMEOUT)
     .send()
@@ -447,7 +459,7 @@ pub async fn fetch_pictrs_proxied_image_details(
   let details_url = format!("{pictrs_url}image/details/original?proxy={encoded_image_url}");
 
   let res = context
-    .client()
+    .pictrs_client()
     .get(&details_url)
     .timeout(REQWEST_TIMEOUT)
     .send()
@@ -474,29 +486,6 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Lemm
   } else {
     Err(LemmyErrorType::NotAnImageType)?
   }
-}
-
-/// When adding a new avatar, banner or similar image, delete the old one.
-pub async fn replace_image(
-  new_image: &Option<Option<DbUrl>>,
-  old_image: &Option<DbUrl>,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  if let (Some(Some(new_image)), Some(old_image)) = (new_image, old_image) {
-    // Note: Oftentimes front ends will include the current image in the form.
-    // In this case, deleting `old_image` would also be deletion of `new_image`,
-    // so the deletion must be skipped for the image to be kept.
-    if new_image != old_image {
-      // Ignore errors because image may be stored externally.
-      let image = LocalImage::delete_by_url(&mut context.pool(), old_image)
-        .await
-        .ok();
-      if let Some(image) = image {
-        delete_image_from_pictrs(&image.pictrs_alias, &image.pictrs_delete_token, context).await?;
-      }
-    }
-  }
-  Ok(())
 }
 
 #[cfg(test)]
