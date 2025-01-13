@@ -428,8 +428,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route(delete().to(delete_image)),
           )
           .route("/proxy", get().to(image_proxy))
-          .route("/{filename}", get().to(get_image))
-          .route("/health", get().to(pictrs_health)),
+          .route("/health", get().to(pictrs_health))
+          .route("/{filename}", get().to(get_image)),
       ),
   );
 }
