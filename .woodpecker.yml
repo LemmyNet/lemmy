@@ -127,7 +127,7 @@ steps:
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - pnpm i
-      - pnpm api-test
+      - pnpm api-test-image
     when: *slow_check_paths
 
   federation_tests_server_output:
