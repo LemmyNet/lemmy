@@ -136,23 +136,15 @@ pub(crate) fn verify_visibility(to: &[Url], cc: &[Url], community: &Community) -
 }
 
 /// Marks object as public only if the community is public
-pub(crate) fn generate_to(community: &Community) -> LemmyResult<Url> {
+pub(crate) fn generate_to(community: &Community) -> LemmyResult<Vec<Url>> {
+  let actor_id = community.actor_id.clone().into();
   if community.visibility == CommunityVisibility::Public {
-    Ok(public())
+    Ok(vec![actor_id, public()])
   } else {
-    Ok(Url::parse(&format!("{}/followers", community.actor_id))?)
-  }
-}
-
-pub(crate) fn verify_community_matches<T>(a: &ObjectId<ApubCommunity>, b: T) -> LemmyResult<()>
-where
-  T: Into<ObjectId<ApubCommunity>>,
-{
-  let b: ObjectId<ApubCommunity> = b.into();
-  if a != &b {
-    Err(FederationError::InvalidCommunity)?
-  } else {
-    Ok(())
+    Ok(vec![
+      actor_id.clone(),
+      Url::parse(&format!("{}/followers", actor_id))?,
+    ])
   }
 }
 

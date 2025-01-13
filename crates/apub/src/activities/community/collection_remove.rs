@@ -49,13 +49,12 @@ impl CollectionRemove {
     )?;
     let remove = CollectionRemove {
       actor: actor.id().into(),
-      to: vec![generate_to(community)?],
+      to: generate_to(community)?,
       object: removed_mod.id(),
       target: generate_moderators_url(&community.actor_id)?.into(),
       id: id.clone(),
       cc: vec![community.id()],
       kind: RemoveType::Remove,
-      audience: Some(community.id().into()),
     };
 
     let activity = AnnouncableActivities::CollectionRemove(remove);
@@ -75,13 +74,12 @@ impl CollectionRemove {
     )?;
     let remove = CollectionRemove {
       actor: actor.id().into(),
-      to: vec![generate_to(community)?],
+      to: generate_to(community)?,
       object: featured_post.ap_id.clone().into(),
       target: generate_featured_url(&community.actor_id)?.into(),
       cc: vec![community.id()],
       kind: RemoveType::Remove,
       id: id.clone(),
-      audience: Some(community.id().into()),
     };
     let activity = AnnouncableActivities::CollectionRemove(remove);
     send_activity_in_community(

@@ -120,12 +120,6 @@ pub struct SaveUserSettings {
   /// The language of the lemmy interface
   #[cfg_attr(feature = "full", ts(optional))]
   pub interface_language: Option<String>,
-  /// A URL for your avatar.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub avatar: Option<String>,
-  /// A URL for your banner.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub banner: Option<String>,
   /// Your display name, which can contain strange characters, and does not need to be unique.
   #[cfg_attr(feature = "full", ts(optional))]
   pub display_name: Option<String>,

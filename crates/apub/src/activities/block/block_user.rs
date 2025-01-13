@@ -1,4 +1,4 @@
-use super::to_and_audience;
+use super::to;
 use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
@@ -54,7 +54,7 @@ impl BlockUser {
     expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<BlockUser> {
-    let (to, audience) = to_and_audience(target)?;
+    let to = to(target)?;
     Ok(BlockUser {
       actor: mod_.id().into(),
       to,
@@ -68,7 +68,6 @@ impl BlockUser {
         BlockType::Block,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      audience,
       end_time: expires,
     })
   }

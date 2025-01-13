@@ -253,6 +253,8 @@ diesel::table! {
         users_active_half_year -> Int8,
         hot_rank -> Float8,
         subscribers_local -> Int8,
+        report_count -> Int2,
+        unresolved_report_count -> Int2,
     }
 }
 
@@ -260,6 +262,25 @@ diesel::table! {
     community_language (community_id, language_id) {
         community_id -> Int4,
         language_id -> Int4,
+    }
+}
+
+diesel::table! {
+    community_report (id) {
+        id -> Int4,
+        creator_id -> Int4,
+        community_id -> Int4,
+        original_community_name -> Text,
+        original_community_title -> Text,
+        original_community_description -> Nullable<Text>,
+        original_community_sidebar -> Nullable<Text>,
+        original_community_icon -> Nullable<Text>,
+        original_community_banner -> Nullable<Text>,
+        reason -> Text,
+        resolved -> Bool,
+        resolver_id -> Nullable<Int4>,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
     }
 }
 
@@ -922,6 +943,7 @@ diesel::table! {
         post_report_id -> Nullable<Int4>,
         comment_report_id -> Nullable<Int4>,
         private_message_report_id -> Nullable<Int4>,
+        community_report_id -> Nullable<Int4>,
     }
 }
 
@@ -1040,6 +1062,7 @@ diesel::joinable!(community_actions -> community (community_id));
 diesel::joinable!(community_aggregates -> community (community_id));
 diesel::joinable!(community_language -> community (community_id));
 diesel::joinable!(community_language -> language (language_id));
+diesel::joinable!(community_report -> community (community_id));
 diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
@@ -1099,6 +1122,7 @@ diesel::joinable!(private_message_report -> private_message (private_message_id)
 diesel::joinable!(registration_application -> local_user (local_user_id));
 diesel::joinable!(registration_application -> person (admin_id));
 diesel::joinable!(report_combined -> comment_report (comment_report_id));
+diesel::joinable!(report_combined -> community_report (community_report_id));
 diesel::joinable!(report_combined -> post_report (post_report_id));
 diesel::joinable!(report_combined -> private_message_report (private_message_report_id));
 diesel::joinable!(site -> instance (instance_id));
@@ -1124,6 +1148,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     community_actions,
     community_aggregates,
     community_language,
+    community_report,
     custom_emoji,
     custom_emoji_keyword,
     email_verification,
