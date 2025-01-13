@@ -128,6 +128,7 @@ test.only("Purge user, uploaded image removed", async () => {
   };
   const delete_ = await alphaImage.purgePerson(purgeForm);
   expect(delete_.success).toBe(true);
+  console.log(upload.image_url + " should be purged");
 
   // ensure that image is deleted
   const response2 = await fetch(upload.image_url ?? "");
