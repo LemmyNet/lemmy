@@ -1,5 +1,4 @@
 use crate::{
-  activities::verify_community_matches,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::InCommunity,
 };
@@ -28,7 +27,6 @@ pub struct CollectionAdd {
   #[serde(rename = "type")]
   pub(crate) kind: AddType,
   pub(crate) id: Url,
-  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 #[async_trait::async_trait]
@@ -36,9 +34,6 @@ impl InCommunity for CollectionAdd {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let (community, _) =
       Community::get_by_collection_url(&mut context.pool(), &self.clone().target.into()).await?;
-    if let Some(audience) = &self.audience {
-      verify_community_matches(audience, community.actor_id.clone())?;
-    }
     Ok(community.into())
   }
 }

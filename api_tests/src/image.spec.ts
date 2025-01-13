@@ -104,7 +104,7 @@ test("Upload image and delete it", async () => {
   expect(deletedListAllMediaRes.images.length).toBe(previousThumbnails - 1);
 });
 
-test.only("Purge user, uploaded image removed", async () => {
+test("Purge user, uploaded image removed", async () => {
   let user = await registerUser(alphaImage, alphaUrl);
 
   // upload test image
@@ -128,7 +128,6 @@ test.only("Purge user, uploaded image removed", async () => {
   };
   const delete_ = await alphaImage.purgePerson(purgeForm);
   expect(delete_.success).toBe(true);
-  console.log(upload.image_url + " should be purged");
 
   // ensure that image is deleted
   const response2 = await fetch(upload.image_url ?? "");

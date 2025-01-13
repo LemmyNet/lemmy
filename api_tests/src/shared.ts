@@ -5,7 +5,7 @@ import {
   CommunityId,
   CommunityVisibility,
   CreatePrivateMessageReport,
-  DeleteImageParams,
+  DeleteImage,
   EditCommunity,
   GetCommunityPendingFollowsCountResponse,
   GetReplies,
@@ -714,6 +714,8 @@ export async function saveUserSettingsBio(
 export async function saveUserSettingsFederated(
   api: LemmyHttp,
 ): Promise<SuccessResponse> {
+  let avatar = sampleImage;
+  let banner = sampleImage;
   let bio = "a changed bio";
   let form: SaveUserSettings = {
     show_nsfw: false,
@@ -721,6 +723,8 @@ export async function saveUserSettingsFederated(
     default_post_sort_type: "Hot",
     default_listing_type: "All",
     interface_language: "",
+    avatar,
+    banner,
     display_name: "user321",
     show_avatars: false,
     send_notifications_to_email: false,
@@ -932,19 +936,17 @@ export async function deleteAllImages(api: LemmyHttp) {
   const imagesRes = await api.listAllMedia({
     limit: imageFetchLimit,
   });
-  const forms = imagesRes.images.map(image => {
-    const form: DeleteImageParams = {
-      token: image.local_image.pictrs_delete_token,
-      filename: image.local_image.pictrs_alias,
-    };
-    return form;
-  });
-  for (const form of forms) {
-    console.log(
-      "delete image: token=" + form.token + ", name=" + form.filename,
-    );
-    await api.deleteImage(form);
-  }
+  Promise.all(
+    imagesRes.images
+      .map(image => {
+        const form: DeleteImage = {
+          token: image.local_image.pictrs_delete_token,
+          filename: image.local_image.pictrs_alias,
+        };
+        return form;
+      })
+      .map(form => api.deleteImage(form)),
+  );
 }
 
 export async function unfollows() {

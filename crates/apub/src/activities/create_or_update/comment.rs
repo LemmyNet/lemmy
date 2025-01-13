@@ -71,13 +71,12 @@ impl CreateOrUpdateNote {
 
     let create_or_update = CreateOrUpdateNote {
       actor: person.id().into(),
-      to: vec![generate_to(&community)?],
+      to: generate_to(&community)?,
       cc: note.cc.clone(),
       tag: note.tag.clone(),
       object: note,
       kind,
       id: id.clone(),
-      audience: Some(community.id().into()),
     };
 
     let tagged_users: Vec<ObjectId<ApubPerson>> = create_or_update

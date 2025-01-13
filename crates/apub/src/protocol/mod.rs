@@ -82,8 +82,6 @@ impl<Kind: Id + DeserializeOwned + Send> IdOrNestedObject<Kind> {
 
 #[async_trait::async_trait]
 pub trait InCommunity {
-  // TODO: after we use audience field and remove backwards compat, it should be possible to change
-  //       this to simply `fn community(&self)  -> LemmyResult<ObjectId<ApubCommunity>>`
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity>;
 }
 

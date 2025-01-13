@@ -3,12 +3,12 @@ use anyhow::{anyhow, Context};
 use deser_hjson::from_str;
 use regex::Regex;
 use std::{env, fs, io::Error, sync::LazyLock};
-use structs::{PictrsConfig, PictrsImageMode, Settings};
+use structs::{PictrsConfig, Settings};
 use url::Url;
 
 pub mod structs;
 
-const DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
+static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
 #[allow(clippy::expect_used)]
 pub static SETTINGS: LazyLock<Settings> = LazyLock::new(|| {
@@ -104,21 +104,6 @@ impl Settings {
       .ok_or_else(|| anyhow!("images_disabled").into())
   }
 }
-
-impl PictrsConfig {
-  pub fn image_mode(&self) -> PictrsImageMode {
-    if let Some(cache_external_link_previews) = self.cache_external_link_previews {
-      if cache_external_link_previews {
-        PictrsImageMode::StoreLinkPreviews
-      } else {
-        PictrsImageMode::None
-      }
-    } else {
-      self.image_mode.clone()
-    }
-  }
-}
-
 #[allow(clippy::expect_used)]
 /// Necessary to avoid URL expect failures
 fn pictrs_placeholder_url() -> Url {
