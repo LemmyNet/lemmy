@@ -21,7 +21,6 @@ import {
   fetchFunction,
   alphaImage,
   unfollows,
-  saveUserSettingsBio,
   getMyUser,
   getPersonDetails,
 } from "./shared";
@@ -192,43 +191,36 @@ test("Set a new avatar, old avatar is deleted", async () => {
   const upload_form1: UploadImage = {
     image: Buffer.from("test1"),
   };
-  const upload1 = await alphaImage.uploadImage(upload_form1);
-  expect(upload1.url).toBeDefined();
-
-  let form1 = {
-    avatar: upload1.url,
-  };
-  await saveUserSettings(alpha, form1);
+  await alpha.uploadUserAvatar(upload_form1);
   const listMediaRes1 = await alphaImage.listMedia();
   expect(listMediaRes1.images.length).toBe(1);
+
+  let my_user1 = await alpha.getMyUser();
+  expect(my_user1.local_user_view.person.avatar).toBeDefined();
 
   const upload_form2: UploadImage = {
     image: Buffer.from("test2"),
   };
-  const upload2 = await alphaImage.uploadImage(upload_form2);
-  expect(upload2.url).toBeDefined();
-
-  let form2 = {
-    avatar: upload2.url,
-  };
-  await saveUserSettings(alpha, form2);
+  await alpha.uploadUserAvatar(upload_form2);
   // make sure only the new avatar is kept
   const listMediaRes2 = await alphaImage.listMedia();
   expect(listMediaRes2.images.length).toBe(1);
 
   // Upload that same form2 avatar, make sure it isn't replaced / deleted
-  await saveUserSettings(alpha, form2);
+  await alpha.uploadUserAvatar(upload_form2);
   // make sure only the new avatar is kept
   const listMediaRes3 = await alphaImage.listMedia();
   expect(listMediaRes3.images.length).toBe(1);
 
-  // Now try to save a user settings, with the icon missing,
-  // and make sure it doesn't clear the data, or delete the image
-  await saveUserSettingsBio(alpha);
-  let my_user = await getMyUser(alpha);
-  expect(my_user.local_user_view.person.avatar).toBe(upload2.url);
-
   // make sure only the new avatar is kept
   const listMediaRes4 = await alphaImage.listMedia();
   expect(listMediaRes4.images.length).toBe(1);
+
+  // delete the avatar
+  await alpha.deleteUserAvatar();
+  // make sure only the new avatar is kept
+  const listMediaRes5 = await alphaImage.listMedia();
+  expect(listMediaRes5.images.length).toBe(0);
+  let my_user2 = await alpha.getMyUser();
+  expect(my_user2.local_user_view.person.avatar).toBeUndefined();
 });

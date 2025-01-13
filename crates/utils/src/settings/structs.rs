@@ -98,6 +98,20 @@ pub struct PictrsConfig {
   /// Resize post thumbnails to this maximum width/height.
   #[default(512)]
   pub max_thumbnail_size: u32,
+
+  /// Maximum size for user avatar, community icon and site icon.
+  #[default(512)]
+  pub max_avatar_size: u32,
+
+  /// Maximum size for user, community and site banner. Larger images are downscaled to fit
+  /// into a square of this size.
+  #[default(1024)]
+  pub max_banner_size: u32,
+
+  /// Prevent users from uploading images for posts or embedding in markdown. Avatars, icons and
+  /// banners can still be uploaded.
+  #[default(false)]
+  pub image_upload_disabled: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document, PartialEq)]
@@ -113,7 +127,7 @@ pub enum PictrsImageMode {
   /// This behaviour matches Lemmy 0.18.
   StoreLinkPreviews,
   /// If enabled, all images from remote domains are rewritten to pass through
-  /// `/api/v4/image_proxy`, including embedded images in markdown. Images are stored temporarily
+  /// `/api/v4/image/proxy`, including embedded images in markdown. Images are stored temporarily
   /// in pict-rs for caching. This improves privacy as users don't expose their IP to untrusted
   /// servers, and decreases load on other servers. However it increases bandwidth use for the
   /// local server.
