@@ -293,7 +293,6 @@ pub struct PictrsFileDetails {
   pub height: u16,
   pub content_type: String,
   pub created_at: DateTime<Utc>,
-  // TODO this can get changed to String on future versions of pictrs
   pub blurhash: Option<String>,
 }
 
