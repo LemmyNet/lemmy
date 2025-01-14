@@ -34,10 +34,3 @@ pub mod site_view;
 pub mod structs;
 #[cfg(feature = "full")]
 pub mod vote_view;
-
-pub trait InternalToCombinedView {
-  type CombinedView;
-
-  /// Maps the combined DB row to an enum
-  fn map_to_enum(&self) -> Option<Self::CombinedView>;
-}
