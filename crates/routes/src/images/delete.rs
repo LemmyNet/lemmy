@@ -124,24 +124,28 @@ pub async fn delete_user_banner(
 pub async fn delete_image(
   data: Json<DeleteImageParams>,
   context: Data<LemmyContext>,
-  // require login
-  _local_user_view: LocalUserView,
+  local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
+  LocalImage::delete_by_alias_and_user(
+    &mut context.pool(),
+    &data.filename,
+    local_user_view.local_user.id,
+  )
+  .await?;
+
   let pictrs_config = context.settings().pictrs()?;
   let url = format!(
-    "{}internal/delete/?alias={}",
+    "{}internal/delete?alias={}",
     pictrs_config.url, &data.filename
   );
 
   context
     .pictrs_client()
-    .delete(url)
+    .post(url)
     .header("X-Api-Token", pictrs_config.api_key.unwrap_or_default())
     .send()
     .await?
     .error_for_status()?;
-
-  LocalImage::delete_by_alias(&mut context.pool(), &data.filename).await?;
 
   Ok(Json(SuccessResponse::default()))
 }
