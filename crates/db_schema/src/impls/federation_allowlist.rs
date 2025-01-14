@@ -1,43 +1,25 @@
 use crate::{
   newtypes::InstanceId,
-  schema::{admin_allow_instance, federation_allowlist},
-  source::{
-    federation_allowlist::{FederationAllowList, FederationAllowListForm},
-    mod_log::admin::{AdminAllowInstance, AdminAllowInstanceForm},
-  },
+  schema::federation_allowlist,
+  source::federation_allowlist::{FederationAllowList, FederationAllowListForm},
   utils::{get_conn, DbPool},
 };
 use diesel::{delete, dsl::insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
-impl AdminAllowInstance {
-  pub async fn insert(pool: &mut DbPool<'_>, form: &AdminAllowInstanceForm) -> Result<(), Error> {
-    let conn = &mut get_conn(pool).await?;
-    insert_into(admin_allow_instance::table)
-      .values(form)
-      .execute(conn)
-      .await?;
-
-    Ok(())
-  }
-}
-
 impl FederationAllowList {
-  pub async fn allow(pool: &mut DbPool<'_>, form: &FederationAllowListForm) -> Result<(), Error> {
+  pub async fn allow(pool: &mut DbPool<'_>, form: &FederationAllowListForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(federation_allowlist::table)
       .values(form)
-      .execute(conn)
-      .await?;
-    Ok(())
+      .get_result::<Self>(conn)
+      .await
   }
-  pub async fn unallow(pool: &mut DbPool<'_>, instance_id_: InstanceId) -> Result<(), Error> {
-    use federation_allowlist::dsl::instance_id;
+  pub async fn unallow(pool: &mut DbPool<'_>, instance_id_: InstanceId) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    delete(federation_allowlist::table.filter(instance_id.eq(instance_id_)))
+    delete(federation_allowlist::table.filter(federation_allowlist::instance_id.eq(instance_id_)))
       .execute(conn)
-      .await?;
-    Ok(())
+      .await
   }
 }
 

@@ -1,4 +1,15 @@
-use crate::newtypes::{CommunityId, InstanceId, PersonId, PostId};
+use crate::newtypes::{
+  AdminAllowInstanceId,
+  AdminBlockInstanceId,
+  AdminPurgeCommentId,
+  AdminPurgeCommunityId,
+  AdminPurgePersonId,
+  AdminPurgePostId,
+  CommunityId,
+  InstanceId,
+  PersonId,
+  PostId,
+};
 #[cfg(feature = "full")]
 use crate::schema::{
   admin_allow_instance,
@@ -22,11 +33,11 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", ts(export))]
 /// When an admin purges a person.
 pub struct AdminPurgePerson {
-  pub id: i32,
+  pub id: AdminPurgePersonId,
   pub admin_person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -44,11 +55,11 @@ pub struct AdminPurgePersonForm {
 #[cfg_attr(feature = "full", ts(export))]
 /// When an admin purges a community.
 pub struct AdminPurgeCommunity {
-  pub id: i32,
+  pub id: AdminPurgeCommunityId,
   pub admin_person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -66,12 +77,12 @@ pub struct AdminPurgeCommunityForm {
 #[cfg_attr(feature = "full", ts(export))]
 /// When an admin purges a post.
 pub struct AdminPurgePost {
-  pub id: i32,
+  pub id: AdminPurgePostId,
   pub admin_person_id: PersonId,
   pub community_id: CommunityId,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -90,12 +101,12 @@ pub struct AdminPurgePostForm {
 #[cfg_attr(feature = "full", ts(export))]
 /// When an admin purges a comment.
 pub struct AdminPurgeComment {
-  pub id: i32,
+  pub id: AdminPurgeCommentId,
   pub admin_person_id: PersonId,
   pub post_id: PostId,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -120,13 +131,13 @@ pub struct AdminPurgeCommentForm {
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct AdminAllowInstance {
-  pub id: i32,
+  pub id: AdminAllowInstanceId,
   pub instance_id: InstanceId,
   pub admin_person_id: PersonId,
   pub allowed: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[derive(Clone, Default)]
@@ -153,7 +164,7 @@ pub struct AdminAllowInstanceForm {
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct AdminBlockInstance {
-  pub id: i32,
+  pub id: AdminBlockInstanceId,
   pub instance_id: InstanceId,
   pub admin_person_id: PersonId,
   pub blocked: bool,
@@ -161,7 +172,7 @@ pub struct AdminBlockInstance {
   pub reason: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub expires: Option<DateTime<Utc>>,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[derive(Clone, Default)]
@@ -172,5 +183,4 @@ pub struct AdminBlockInstanceForm {
   pub admin_person_id: PersonId,
   pub blocked: bool,
   pub reason: Option<String>,
-  pub when_: Option<DateTime<Utc>>,
 }

@@ -1,4 +1,30 @@
 use crate::{
+  newtypes::{
+    ModAddCommunityId,
+    ModAddId,
+    ModBanFromCommunityId,
+    ModBanId,
+    ModFeaturePostId,
+    ModHideCommunityId,
+    ModLockPostId,
+    ModRemoveCommentId,
+    ModRemoveCommunityId,
+    ModRemovePostId,
+    ModTransferCommunityId,
+  },
+  schema::{
+    mod_add,
+    mod_add_community,
+    mod_ban,
+    mod_ban_from_community,
+    mod_feature_post,
+    mod_hide_community,
+    mod_lock_post,
+    mod_remove_comment,
+    mod_remove_community,
+    mod_remove_post,
+    mod_transfer_community,
+  },
   source::mod_log::moderator::{
     ModAdd,
     ModAddCommunity,
@@ -33,12 +59,11 @@ use diesel_async::RunQueryDsl;
 impl Crud for ModRemovePost {
   type InsertForm = ModRemovePostForm;
   type UpdateForm = ModRemovePostForm;
-  type IdType = i32;
+  type IdType = ModRemovePostId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModRemovePostForm) -> Result<Self, Error> {
-    use crate::schema::mod_remove_post::dsl::mod_remove_post;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_remove_post)
+    insert_into(mod_remove_post::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -46,12 +71,11 @@ impl Crud for ModRemovePost {
 
   async fn update(
     pool: &mut DbPool<'_>,
-    from_id: i32,
-    form: &ModRemovePostForm,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    use crate::schema::mod_remove_post::dsl::mod_remove_post;
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_remove_post.find(from_id))
+    diesel::update(mod_remove_post::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -63,9 +87,8 @@ impl ModRemovePost {
     pool: &mut DbPool<'_>,
     forms: &Vec<ModRemovePostForm>,
   ) -> Result<usize, Error> {
-    use crate::schema::mod_remove_post::dsl::mod_remove_post;
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_remove_post)
+    insert_into(mod_remove_post::table)
       .values(forms)
       .execute(conn)
       .await
@@ -76,12 +99,11 @@ impl ModRemovePost {
 impl Crud for ModLockPost {
   type InsertForm = ModLockPostForm;
   type UpdateForm = ModLockPostForm;
-  type IdType = i32;
+  type IdType = ModLockPostId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModLockPostForm) -> Result<Self, Error> {
-    use crate::schema::mod_lock_post::dsl::mod_lock_post;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_lock_post)
+    insert_into(mod_lock_post::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -89,12 +111,11 @@ impl Crud for ModLockPost {
 
   async fn update(
     pool: &mut DbPool<'_>,
-    from_id: i32,
-    form: &ModLockPostForm,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    use crate::schema::mod_lock_post::dsl::mod_lock_post;
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_lock_post.find(from_id))
+    diesel::update(mod_lock_post::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -105,12 +126,11 @@ impl Crud for ModLockPost {
 impl Crud for ModFeaturePost {
   type InsertForm = ModFeaturePostForm;
   type UpdateForm = ModFeaturePostForm;
-  type IdType = i32;
+  type IdType = ModFeaturePostId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModFeaturePostForm) -> Result<Self, Error> {
-    use crate::schema::mod_feature_post::dsl::mod_feature_post;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_feature_post)
+    insert_into(mod_feature_post::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -118,12 +138,11 @@ impl Crud for ModFeaturePost {
 
   async fn update(
     pool: &mut DbPool<'_>,
-    from_id: i32,
-    form: &ModFeaturePostForm,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    use crate::schema::mod_feature_post::dsl::mod_feature_post;
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_feature_post.find(from_id))
+    diesel::update(mod_feature_post::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -134,12 +153,11 @@ impl Crud for ModFeaturePost {
 impl Crud for ModRemoveComment {
   type InsertForm = ModRemoveCommentForm;
   type UpdateForm = ModRemoveCommentForm;
-  type IdType = i32;
+  type IdType = ModRemoveCommentId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModRemoveCommentForm) -> Result<Self, Error> {
-    use crate::schema::mod_remove_comment::dsl::mod_remove_comment;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_remove_comment)
+    insert_into(mod_remove_comment::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -147,12 +165,11 @@ impl Crud for ModRemoveComment {
 
   async fn update(
     pool: &mut DbPool<'_>,
-    from_id: i32,
-    form: &ModRemoveCommentForm,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    use crate::schema::mod_remove_comment::dsl::mod_remove_comment;
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_remove_comment.find(from_id))
+    diesel::update(mod_remove_comment::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -164,9 +181,8 @@ impl ModRemoveComment {
     pool: &mut DbPool<'_>,
     forms: &Vec<ModRemoveCommentForm>,
   ) -> Result<usize, Error> {
-    use crate::schema::mod_remove_comment::dsl::mod_remove_comment;
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_remove_comment)
+    insert_into(mod_remove_comment::table)
       .values(forms)
       .execute(conn)
       .await
@@ -177,12 +193,11 @@ impl ModRemoveComment {
 impl Crud for ModRemoveCommunity {
   type InsertForm = ModRemoveCommunityForm;
   type UpdateForm = ModRemoveCommunityForm;
-  type IdType = i32;
+  type IdType = ModRemoveCommunityId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModRemoveCommunityForm) -> Result<Self, Error> {
-    use crate::schema::mod_remove_community::dsl::mod_remove_community;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_remove_community)
+    insert_into(mod_remove_community::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -190,12 +205,11 @@ impl Crud for ModRemoveCommunity {
 
   async fn update(
     pool: &mut DbPool<'_>,
-    from_id: i32,
-    form: &ModRemoveCommunityForm,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    use crate::schema::mod_remove_community::dsl::mod_remove_community;
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_remove_community.find(from_id))
+    diesel::update(mod_remove_community::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -206,12 +220,11 @@ impl Crud for ModRemoveCommunity {
 impl Crud for ModBanFromCommunity {
   type InsertForm = ModBanFromCommunityForm;
   type UpdateForm = ModBanFromCommunityForm;
-  type IdType = i32;
+  type IdType = ModBanFromCommunityId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModBanFromCommunityForm) -> Result<Self, Error> {
-    use crate::schema::mod_ban_from_community::dsl::mod_ban_from_community;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_ban_from_community)
+    insert_into(mod_ban_from_community::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -219,12 +232,11 @@ impl Crud for ModBanFromCommunity {
 
   async fn update(
     pool: &mut DbPool<'_>,
-    from_id: i32,
-    form: &ModBanFromCommunityForm,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    use crate::schema::mod_ban_from_community::dsl::mod_ban_from_community;
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_ban_from_community.find(from_id))
+    diesel::update(mod_ban_from_community::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -235,21 +247,23 @@ impl Crud for ModBanFromCommunity {
 impl Crud for ModBan {
   type InsertForm = ModBanForm;
   type UpdateForm = ModBanForm;
-  type IdType = i32;
+  type IdType = ModBanId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModBanForm) -> Result<Self, Error> {
-    use crate::schema::mod_ban::dsl::mod_ban;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_ban)
+    insert_into(mod_ban::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
   }
 
-  async fn update(pool: &mut DbPool<'_>, from_id: i32, form: &ModBanForm) -> Result<Self, Error> {
-    use crate::schema::mod_ban::dsl::mod_ban;
+  async fn update(
+    pool: &mut DbPool<'_>,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_ban.find(from_id))
+    diesel::update(mod_ban::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -260,12 +274,11 @@ impl Crud for ModBan {
 impl Crud for ModHideCommunity {
   type InsertForm = ModHideCommunityForm;
   type UpdateForm = ModHideCommunityForm;
-  type IdType = i32;
+  type IdType = ModHideCommunityId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModHideCommunityForm) -> Result<Self, Error> {
-    use crate::schema::mod_hide_community::dsl::mod_hide_community;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_hide_community)
+    insert_into(mod_hide_community::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -273,12 +286,11 @@ impl Crud for ModHideCommunity {
 
   async fn update(
     pool: &mut DbPool<'_>,
-    from_id: i32,
-    form: &ModHideCommunityForm,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    use crate::schema::mod_hide_community::dsl::mod_hide_community;
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_hide_community.find(from_id))
+    diesel::update(mod_hide_community::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -289,12 +301,11 @@ impl Crud for ModHideCommunity {
 impl Crud for ModAddCommunity {
   type InsertForm = ModAddCommunityForm;
   type UpdateForm = ModAddCommunityForm;
-  type IdType = i32;
+  type IdType = ModAddCommunityId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModAddCommunityForm) -> Result<Self, Error> {
-    use crate::schema::mod_add_community::dsl::mod_add_community;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_add_community)
+    insert_into(mod_add_community::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -302,12 +313,11 @@ impl Crud for ModAddCommunity {
 
   async fn update(
     pool: &mut DbPool<'_>,
-    from_id: i32,
-    form: &ModAddCommunityForm,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    use crate::schema::mod_add_community::dsl::mod_add_community;
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_add_community.find(from_id))
+    diesel::update(mod_add_community::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -318,12 +328,11 @@ impl Crud for ModAddCommunity {
 impl Crud for ModTransferCommunity {
   type InsertForm = ModTransferCommunityForm;
   type UpdateForm = ModTransferCommunityForm;
-  type IdType = i32;
+  type IdType = ModTransferCommunityId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModTransferCommunityForm) -> Result<Self, Error> {
-    use crate::schema::mod_transfer_community::dsl::mod_transfer_community;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_transfer_community)
+    insert_into(mod_transfer_community::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
@@ -331,12 +340,11 @@ impl Crud for ModTransferCommunity {
 
   async fn update(
     pool: &mut DbPool<'_>,
-    from_id: i32,
-    form: &ModTransferCommunityForm,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
   ) -> Result<Self, Error> {
-    use crate::schema::mod_transfer_community::dsl::mod_transfer_community;
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_transfer_community.find(from_id))
+    diesel::update(mod_transfer_community::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -347,21 +355,23 @@ impl Crud for ModTransferCommunity {
 impl Crud for ModAdd {
   type InsertForm = ModAddForm;
   type UpdateForm = ModAddForm;
-  type IdType = i32;
+  type IdType = ModAddId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &ModAddForm) -> Result<Self, Error> {
-    use crate::schema::mod_add::dsl::mod_add;
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(mod_add)
+    insert_into(mod_add::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
   }
 
-  async fn update(pool: &mut DbPool<'_>, from_id: i32, form: &ModAddForm) -> Result<Self, Error> {
-    use crate::schema::mod_add::dsl::mod_add;
+  async fn update(
+    pool: &mut DbPool<'_>,
+    from_id: Self::IdType,
+    form: &Self::UpdateForm,
+  ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(mod_add.find(from_id))
+    diesel::update(mod_add::table.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
       .await
@@ -441,7 +451,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       reason: None,
       removed: true,
-      when_: inserted_mod_remove_post.when_,
+      published: inserted_mod_remove_post.published,
     };
 
     // lock post
@@ -458,7 +468,7 @@ mod tests {
       post_id: inserted_post.id,
       mod_person_id: inserted_mod.id,
       locked: true,
-      when_: inserted_mod_lock_post.when_,
+      published: inserted_mod_lock_post.published,
     };
 
     // feature post
@@ -466,8 +476,8 @@ mod tests {
     let mod_feature_post_form = ModFeaturePostForm {
       mod_person_id: inserted_mod.id,
       post_id: inserted_post.id,
-      featured: false,
-      is_featured_community: true,
+      featured: Some(false),
+      is_featured_community: Some(true),
     };
     let inserted_mod_feature_post = ModFeaturePost::create(pool, &mod_feature_post_form).await?;
     let read_mod_feature_post = ModFeaturePost::read(pool, inserted_mod_feature_post.id).await?;
@@ -477,7 +487,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       featured: false,
       is_featured_community: true,
-      when_: inserted_mod_feature_post.when_,
+      published: inserted_mod_feature_post.published,
     };
 
     // comment
@@ -498,7 +508,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       reason: None,
       removed: true,
-      when_: inserted_mod_remove_comment.when_,
+      published: inserted_mod_remove_comment.published,
     };
 
     // community
@@ -519,7 +529,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       reason: None,
       removed: true,
-      when_: inserted_mod_remove_community.when_,
+      published: inserted_mod_remove_community.published,
     };
 
     // ban from community
@@ -544,7 +554,7 @@ mod tests {
       reason: None,
       banned: true,
       expires: None,
-      when_: inserted_mod_ban_from_community.when_,
+      published: inserted_mod_ban_from_community.published,
     };
 
     // ban
@@ -565,7 +575,7 @@ mod tests {
       reason: None,
       banned: true,
       expires: None,
-      when_: inserted_mod_ban.when_,
+      published: inserted_mod_ban.published,
     };
 
     // mod add community
@@ -584,7 +594,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
       removed: false,
-      when_: inserted_mod_add_community.when_,
+      published: inserted_mod_add_community.published,
     };
 
     // mod add
@@ -601,7 +611,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
       removed: false,
-      when_: inserted_mod_add.when_,
+      published: inserted_mod_add.published,
     };
 
     Comment::delete(pool, inserted_comment.id).await?;

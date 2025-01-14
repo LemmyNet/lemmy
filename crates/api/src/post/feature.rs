@@ -60,8 +60,8 @@ pub async fn feature_post(
   let form = ModFeaturePostForm {
     mod_person_id: local_user_view.person.id,
     post_id: data.post_id,
-    featured: data.featured,
-    is_featured_community: data.feature_type == PostFeatureType::Community,
+    featured: Some(data.featured),
+    is_featured_community: Some(data.feature_type == PostFeatureType::Community),
   };
 
   ModFeaturePost::create(&mut context.pool(), &form).await?;
