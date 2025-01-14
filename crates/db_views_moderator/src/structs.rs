@@ -1,37 +1,34 @@
 #[cfg(feature = "full")]
 use diesel::Queryable;
-use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, PersonId, PostId},
-  source::{
-    comment::Comment,
-    community::Community,
-    instance::Instance,
-    mod_log::{
-      admin::{
-        AdminAllowInstance,
-        AdminBlockInstance,
-        AdminPurgeComment,
-        AdminPurgeCommunity,
-        AdminPurgePerson,
-        AdminPurgePost,
-      },
-      moderator::{
-        ModAdd,
-        ModAddCommunity,
-        ModBan,
-        ModBanFromCommunity,
-        ModFeaturePost,
-        ModHideCommunity,
-        ModLockPost,
-        ModRemoveComment,
-        ModRemoveCommunity,
-        ModRemovePost,
-        ModTransferCommunity,
-      },
+use lemmy_db_schema::source::{
+  comment::Comment,
+  community::Community,
+  instance::Instance,
+  mod_log::{
+    admin::{
+      AdminAllowInstance,
+      AdminBlockInstance,
+      AdminPurgeComment,
+      AdminPurgeCommunity,
+      AdminPurgePerson,
+      AdminPurgePost,
     },
-    person::Person,
-    post::Post,
+    moderator::{
+      ModAdd,
+      ModAddCommunity,
+      ModBan,
+      ModBanFromCommunity,
+      ModFeaturePost,
+      ModHideCommunity,
+      ModLockPost,
+      ModRemoveComment,
+      ModRemoveCommunity,
+      ModRemovePost,
+      ModTransferCommunity,
+    },
   },
+  person::Person,
+  post::Post,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -39,7 +36,7 @@ use serde_with::skip_serializing_none;
 use ts_rs::TS;
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -49,11 +46,11 @@ pub struct ModAddCommunityView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
   pub community: Community,
-  pub modded_person: Person,
+  pub other_person: Person,
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -62,11 +59,11 @@ pub struct ModAddView {
   pub mod_add: ModAdd,
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
-  pub modded_person: Person,
+  pub other_person: Person,
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -76,11 +73,11 @@ pub struct ModBanFromCommunityView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
   pub community: Community,
-  pub banned_person: Person,
+  pub other_person: Person,
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -89,11 +86,11 @@ pub struct ModBanView {
   pub mod_ban: ModBan,
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
-  pub banned_person: Person,
+  pub other_person: Person,
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -106,7 +103,7 @@ pub struct ModHideCommunityView {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -115,12 +112,13 @@ pub struct ModLockPostView {
   pub mod_lock_post: ModLockPost,
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
+  pub other_person: Person,
   pub post: Post,
   pub community: Community,
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -129,14 +127,14 @@ pub struct ModRemoveCommentView {
   pub mod_remove_comment: ModRemoveComment,
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
+  pub other_person: Person,
   pub comment: Comment,
-  pub commenter: Person,
   pub post: Post,
   pub community: Community,
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -149,7 +147,7 @@ pub struct ModRemoveCommunityView {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -158,12 +156,13 @@ pub struct ModRemovePostView {
   pub mod_remove_post: ModRemovePost,
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
+  pub other_person: Person,
   pub post: Post,
   pub community: Community,
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -172,12 +171,13 @@ pub struct ModFeaturePostView {
   pub mod_feature_post: ModFeaturePost,
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
+  pub other_person: Person,
   pub post: Post,
   pub community: Community,
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -187,11 +187,11 @@ pub struct ModTransferCommunityView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
   pub community: Community,
-  pub modded_person: Person,
+  pub other_person: Person,
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -204,7 +204,7 @@ pub struct AdminPurgeCommentView {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -216,7 +216,7 @@ pub struct AdminPurgeCommunityView {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -228,7 +228,7 @@ pub struct AdminPurgePersonView {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -241,7 +241,7 @@ pub struct AdminPurgePostView {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -254,38 +254,79 @@ pub struct AdminBlockInstanceView {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// When an admin purges a post.
 pub struct AdminAllowInstanceView {
-  pub admin_block_instance: AdminAllowInstance,
+  pub admin_allow_instance: AdminAllowInstance,
   pub instance: Instance,
   #[cfg_attr(feature = "full", ts(optional))]
   pub admin: Option<Person>,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+/// like PaginationCursor but for the modlog_combined
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// Querying / filtering the modlog.
-pub struct ModlogListParams {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub community_id: Option<CommunityId>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub mod_person_id: Option<PersonId>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub other_person_id: Option<PersonId>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub post_id: Option<PostId>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub comment_id: Option<CommentId>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-  pub hide_modlog_names: bool,
+pub struct ModlogCombinedPaginationCursor(pub String);
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+/// A combined modlog view
+pub struct ModlogCombinedViewInternal {
+  // Specific
+  pub admin_allow_instance: Option<AdminAllowInstance>,
+  pub admin_block_instance: Option<AdminBlockInstance>,
+  pub admin_purge_comment: Option<AdminPurgeComment>,
+  pub admin_purge_community: Option<AdminPurgeCommunity>,
+  pub admin_purge_person: Option<AdminPurgePerson>,
+  pub admin_purge_post: Option<AdminPurgePost>,
+  pub mod_add: Option<ModAdd>,
+  pub mod_add_community: Option<ModAddCommunity>,
+  pub mod_ban: Option<ModBan>,
+  pub mod_ban_from_community: Option<ModBanFromCommunity>,
+  pub mod_feature_post: Option<ModFeaturePost>,
+  pub mod_hide_community: Option<ModHideCommunity>,
+  pub mod_lock_post: Option<ModLockPost>,
+  pub mod_remove_comment: Option<ModRemoveComment>,
+  pub mod_remove_community: Option<ModRemoveCommunity>,
+  pub mod_remove_post: Option<ModRemovePost>,
+  pub mod_transfer_community: Option<ModTransferCommunity>,
+  // Specific fields
+
+  // Shared
+  pub moderator: Option<Person>,
+  pub other_person: Option<Person>,
+  pub instance: Option<Instance>,
+  pub community: Option<Community>,
+  pub post: Option<Post>,
+  pub comment: Option<Comment>,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+// Use serde's internal tagging, to work easier with javascript libraries
+#[serde(tag = "type_")]
+pub enum ModlogCombinedView {
+  AdminAllowInstance(AdminAllowInstanceView),
+  AdminBlockInstance(AdminBlockInstanceView),
+  AdminPurgeComment(AdminPurgeCommentView),
+  AdminPurgeCommunity(AdminPurgeCommunityView),
+  AdminPurgePerson(AdminPurgePersonView),
+  AdminPurgePost(AdminPurgePostView),
+  ModAdd(ModAddView),
+  ModAddCommunity(ModAddCommunityView),
+  ModBan(ModBanView),
+  ModBanFromCommunity(ModBanFromCommunityView),
+  ModFeaturePost(ModFeaturePostView),
+  ModHideCommunity(ModHideCommunityView),
+  ModLockPost(ModLockPostView),
+  ModRemoveComment(ModRemoveCommentView),
+  ModRemoveCommunity(ModRemoveCommunityView),
+  ModRemovePost(ModRemovePostView),
+  ModTransferCommunity(ModTransferCommunityView),
 }

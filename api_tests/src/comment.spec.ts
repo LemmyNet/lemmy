@@ -27,7 +27,6 @@ import {
   getComments,
   getCommentParentId,
   resolveCommunity,
-  getPersonDetails,
   getReplies,
   getUnreadCount,
   waitUntil,
@@ -38,6 +37,7 @@ import {
   delay,
   saveUserSettings,
   listReports,
+  listPersonContent,
 } from "./shared";
 import {
   CommentReportView,
@@ -210,11 +210,13 @@ test.skip("Remove a comment from admin and community on the same instance", asyn
   expect(removeCommentRes.comment_view.comment.removed).toBe(true);
 
   // Make sure that comment is removed on alpha (it gets pushed since an admin from beta removed it)
-  let refetchedPostComments = await getPersonDetails(
+  let refetchedPostComments = await listPersonContent(
     alpha,
     commentRes.comment_view.comment.creator_id,
+    "Comments",
   );
-  expect(refetchedPostComments.comments[0].comment.removed).toBe(true);
+  let firstRefetchedComment = refetchedPostComments.content[0] as CommentView;
+  expect(firstRefetchedComment.comment.removed).toBe(true);
 
   // beta will unremove the comment
   let unremoveCommentRes = await removeComment(beta, false, betaCommentId);

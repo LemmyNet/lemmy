@@ -75,7 +75,6 @@ test("Delete user", async () => {
   let user = await registerUser(alpha, alphaUrl);
   let user_profile = await getMyUser(user);
   let person_id = user_profile.local_user_view.person.id;
-  let actor_id = user_profile.local_user_view.person.actor_id;
 
   // make a local post and comment
   let alphaCommunity = (await resolveCommunity(user, "main@lemmy-alpha:8541"))

@@ -2,32 +2,28 @@
 UPDATE
     person
 SET
-    inbox_url = subquery.inbox_url
-FROM (
-    SELECT
-        id,
-        coalesce(shared_inbox_url, inbox_url) AS inbox_url
-    FROM
-        person) AS subquery
+    shared_inbox_url = inbox_url
 WHERE
-    person.id = subquery.id;
+    shared_inbox_url IS NULL;
 
 ALTER TABLE person
-    DROP COLUMN shared_inbox_url;
+    DROP COLUMN inbox_url,
+    ALTER COLUMN shared_inbox_url SET NOT NULL,
+    ALTER COLUMN shared_inbox_url SET DEFAULT generate_unique_changeme ();
+
+ALTER TABLE person RENAME COLUMN shared_inbox_url TO inbox_url;
 
 UPDATE
     community
 SET
-    inbox_url = subquery.inbox_url
-FROM (
-    SELECT
-        id,
-        coalesce(shared_inbox_url, inbox_url) AS inbox_url
-    FROM
-        community) AS subquery
+    shared_inbox_url = inbox_url
 WHERE
-    community.id = subquery.id;
+    shared_inbox_url IS NULL;
 
 ALTER TABLE community
-    DROP COLUMN shared_inbox_url;
+    DROP COLUMN inbox_url,
+    ALTER COLUMN shared_inbox_url SET NOT NULL,
+    ALTER COLUMN shared_inbox_url SET DEFAULT generate_unique_changeme ();
+
+ALTER TABLE community RENAME COLUMN shared_inbox_url TO inbox_url;
 

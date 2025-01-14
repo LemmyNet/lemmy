@@ -280,6 +280,13 @@ pub enum FederationMode {
   Disable,
 }
 
+pub trait InternalToCombinedView {
+  type CombinedView;
+
+  /// Maps the combined DB row to an enum
+  fn map_to_enum(self) -> Option<Self::CombinedView>;
+}
+
 /// Wrapper for assert_eq! macro. Checks that vec matches the given length, and prints the
 /// vec on failure.
 #[macro_export]
