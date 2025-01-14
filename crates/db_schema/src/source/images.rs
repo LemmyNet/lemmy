@@ -64,6 +64,7 @@ pub struct ImageDetails {
   pub width: i32,
   pub height: i32,
   pub content_type: String,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub blurhash: Option<String>,
 }
 
