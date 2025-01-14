@@ -23,12 +23,9 @@ use lemmy_db_views::structs::{
   PersonSavedCombinedPaginationCursor,
 };
 use lemmy_db_views_actor::structs::{
-  CommentReplyView,
   CommunityModeratorView,
   InboxCombinedPaginationCursor,
   InboxCombinedView,
-  PersonCommentMentionView,
-  PersonPostMentionView,
   PersonView,
 };
 use serde::{Deserialize, Serialize};
@@ -407,14 +404,6 @@ pub struct MarkPersonCommentMentionAsRead {
   pub read: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The response for a person mention action.
-pub struct PersonCommentMentionResponse {
-  pub person_comment_mention_view: PersonCommentMentionView,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -424,14 +413,6 @@ pub struct MarkPersonPostMentionAsRead {
   pub read: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The response for a person mention action.
-pub struct PersonPostMentionResponse {
-  pub person_post_mention_view: PersonPostMentionView,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -439,14 +420,6 @@ pub struct PersonPostMentionResponse {
 pub struct MarkCommentReplyAsRead {
   pub comment_reply_id: CommentReplyId,
   pub read: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The response for a comment reply action.
-pub struct CommentReplyResponse {
-  pub comment_reply_view: CommentReplyView,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

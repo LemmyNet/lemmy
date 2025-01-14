@@ -249,7 +249,6 @@ impl InboxCombinedQuery {
       .left_join(person_comment_mention::table)
       .left_join(person_post_mention::table)
       .left_join(private_message::table.on(private_message_join))
-      // .left_join(private_message::table)
       .left_join(comment::table.on(comment_join))
       .left_join(post::table.on(post_join))
       .left_join(community::table.on(community_join))
