@@ -97,7 +97,7 @@ impl Settings {
     WEBFINGER_REGEX.clone()
   }
 
-  pub fn pictrs_config(&self) -> LemmyResult<PictrsConfig> {
+  pub fn pictrs(&self) -> LemmyResult<PictrsConfig> {
     self
       .pictrs
       .clone()

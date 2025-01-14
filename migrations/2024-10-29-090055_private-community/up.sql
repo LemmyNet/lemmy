@@ -14,6 +14,7 @@ ALTER TABLE community_follower
 CREATE OR REPLACE FUNCTION convert_follower_state (b bool)
     RETURNS community_follower_state
     LANGUAGE sql
+    IMMUTABLE PARALLEL SAFE
     AS $$
     SELECT
         CASE WHEN b = TRUE THEN
