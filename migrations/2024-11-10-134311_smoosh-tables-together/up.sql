@@ -87,6 +87,57 @@ ON CONFLICT (person_id,
     DO UPDATE SET
         saved = excluded.saved;
 
+INSERT INTO person_actions (person_id, target_id, blocked)
+SELECT
+    person_id,
+    target_id,
+    published
+FROM
+    person_block
+ON CONFLICT (person_id,
+    target_id)
+    DO UPDATE SET
+        blocked = excluded.blocked;
+
+UPDATE
+    community_actions AS a
+SET
+    blocked = (
+        SELECT
+            published
+        FROM
+            community_block AS b
+        WHERE (b.person_id, b.community_id) = (a.person_id, a.community_id)),
+became_moderator = (
+    SELECT
+        published
+    FROM
+        community_moderator AS b
+    WHERE (b.person_id, b.community_id) = (a.person_id, a.community_id)),
+(received_ban,
+    ban_expires) = (
+    SELECT
+        published,
+        expires
+    FROM
+        community_person_ban AS b
+    WHERE (b.person_id, b.community_id) = (a.person_id, a.community_id));
+
+INSERT INTO community_actions (person_id, community_id, received_ban, ban_expires)
+SELECT
+    person_id,
+    community_id,
+    published,
+    expires
+FROM
+    community_person_ban AS b
+WHERE
+    NOT EXISTS (
+        SELECT
+        FROM
+            community_actions AS a
+        WHERE (a.person_id, a.community_id) = (b.person_id, b.community_id));
+
 INSERT INTO community_actions (person_id, community_id, blocked)
 SELECT
     person_id,
@@ -97,9 +148,9 @@ FROM
 ON CONFLICT (person_id,
     community_id)
     DO UPDATE SET
-        person_id = excluded.person_id,
-        community_id = excluded.community_id,
-        blocked = excluded.blocked;
+        blocked = excluded.blocked
+    WHERE
+        community_actions.blocked IS NULL;
 
 INSERT INTO community_actions (person_id, community_id, became_moderator)
 SELECT
@@ -111,39 +162,56 @@ FROM
 ON CONFLICT (person_id,
     community_id)
     DO UPDATE SET
-        person_id = excluded.person_id,
-        community_id = excluded.community_id,
-        became_moderator = excluded.became_moderator;
+        became_moderator = excluded.became_moderator
+    WHERE
+        community_actions.became_moderator IS NULL;
 
-INSERT INTO community_actions (person_id, community_id, received_ban, ban_expires)
+UPDATE
+    post_actions AS a
+SET
+    (read_comments,
+        read_comments_amount) = (
+        SELECT
+            published,
+            read_comments
+        FROM
+            person_post_aggregates AS b
+        WHERE (b.person_id, b.post_id) = (a.person_id, a.post_id)),
+hidden = (
+    SELECT
+        published
+    FROM
+        post_hide AS b
+    WHERE (b.person_id, b.post_id) = (a.person_id, a.post_id)),
+(liked,
+    like_score) = (
+    SELECT
+        published,
+        score
+    FROM
+        post_like AS b
+    WHERE (b.person_id, b.post_id) = (a.person_id, a.post_id)),
+saved = (
+    SELECT
+        published
+    FROM
+        post_saved AS b
+    WHERE (b.person_id, b.post_id) = (a.person_id, a.post_id));
+
+INSERT INTO post_actions (person_id, post_id, liked, like_score)
 SELECT
     person_id,
-    community_id,
+    post_id,
     published,
-    expires
+    score
 FROM
-    community_person_ban
-ON CONFLICT (person_id,
-    community_id)
-    DO UPDATE SET
-        person_id = excluded.person_id,
-        community_id = excluded.community_id,
-        received_ban = excluded.received_ban,
-        ban_expires = excluded.ban_expires;
-
-INSERT INTO person_actions (person_id, target_id, blocked)
-SELECT
-    person_id,
-    target_id,
-    published
-FROM
-    person_block
-ON CONFLICT (person_id,
-    target_id)
-    DO UPDATE SET
-        person_id = excluded.person_id,
-        target_id = excluded.target_id,
-        blocked = excluded.blocked;
+    post_like AS b
+WHERE
+    NOT EXISTS (
+        SELECT
+        FROM
+            post_actions AS a
+        WHERE (a.person_id, a.post_id) = (b.person_id, b.post_id));
 
 INSERT INTO post_actions (person_id, post_id, read_comments, read_comments_amount)
 SELECT
@@ -157,33 +225,9 @@ ON CONFLICT (person_id,
     post_id)
     DO UPDATE SET
         read_comments = excluded.read_comments,
-        read_comments_amount = excluded.read_comments_amount;
-
-INSERT INTO post_actions (person_id, post_id, hidden)
-SELECT
-    person_id,
-    post_id,
-    published
-FROM
-    post_hide
-ON CONFLICT (person_id,
-    post_id)
-    DO UPDATE SET
-        hidden = excluded.hidden;
-
-INSERT INTO post_actions (person_id, post_id, liked, like_score)
-SELECT
-    person_id,
-    post_id,
-    published,
-    score
-FROM
-    post_like
-ON CONFLICT (person_id,
-    post_id)
-    DO UPDATE SET
-        liked = excluded.liked,
-        like_score = excluded.like_score;
+        read_comments_amount = excluded.read_comments_amount
+    WHERE
+        post_actions.read_comments IS NULL;
 
 INSERT INTO post_actions (person_id, post_id, saved)
 SELECT
@@ -195,7 +239,23 @@ FROM
 ON CONFLICT (person_id,
     post_id)
     DO UPDATE SET
-        saved = excluded.saved;
+        saved = excluded.saved
+    WHERE
+        post_actions.saved IS NULL;
+
+INSERT INTO post_actions (person_id, post_id, hidden)
+SELECT
+    person_id,
+    post_id,
+    published
+FROM
+    post_hide
+ON CONFLICT (person_id,
+    post_id)
+    DO UPDATE SET
+        hidden = excluded.hidden
+    WHERE
+        post_actions.hidden IS NULL;
 
 -- Drop old tables
 DROP TABLE comment_saved, community_block, community_moderator, community_person_ban, person_block, person_post_aggregates, post_hide, post_like, post_saved;

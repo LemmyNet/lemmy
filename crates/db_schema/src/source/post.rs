@@ -4,6 +4,8 @@ use crate::schema::{post, post_actions};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel::{dsl, expression_methods::NullableExpressionMethods};
+#[cfg(feature = "full")]
+use i_love_jesus::CursorKeysModule;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -204,7 +206,7 @@ pub struct PostSavedForm {
   pub saved: DateTime<Utc>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(
   feature = "full",
   derive(Identifiable, Queryable, Selectable, Associations)
@@ -256,4 +258,14 @@ pub struct PostHideForm {
   pub person_id: PersonId,
   #[new(value = "Utc::now()")]
   pub hidden: DateTime<Utc>,
+}
+
+#[derive(PartialEq, Debug, Clone, Default)]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable, CursorKeysModule))]
+#[cfg_attr(feature = "full", diesel(table_name = post_actions))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = post_actions_keys))]
+/// Sorted timestamps of actions on a post.
+pub struct PostActionsCursor {
+  pub read: Option<DateTime<Utc>>,
 }
