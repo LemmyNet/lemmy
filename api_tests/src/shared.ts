@@ -23,6 +23,9 @@ import {
   PrivateMessageReportResponse,
   SuccessResponse,
   UserBlockInstanceParams,
+  ListPersonContentResponse,
+  ListPersonContent,
+  PersonContentType,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -735,6 +738,7 @@ export async function saveUserSettings(
 ): Promise<SuccessResponse> {
   return api.saveUserSettings(form);
 }
+
 export async function getPersonDetails(
   api: LemmyHttp,
   person_id: number,
@@ -743,6 +747,18 @@ export async function getPersonDetails(
     person_id: person_id,
   };
   return api.getPersonDetails(form);
+}
+
+export async function listPersonContent(
+  api: LemmyHttp,
+  person_id: number,
+  type_?: PersonContentType,
+): Promise<ListPersonContentResponse> {
+  let form: ListPersonContent = {
+    person_id,
+    type_,
+  };
+  return api.listPersonContent(form);
 }
 
 export async function deleteUser(api: LemmyHttp): Promise<SuccessResponse> {
