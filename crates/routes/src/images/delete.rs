@@ -121,7 +121,6 @@ pub async fn delete_user_banner(
   Ok(Json(SuccessResponse::default()))
 }
 
-// TODO: get rid of delete tokens and allow deletion by admin or uploader
 pub async fn delete_image(
   data: Json<DeleteImageParams>,
   context: Data<LemmyContext>,
