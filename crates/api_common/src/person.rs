@@ -12,6 +12,7 @@ use lemmy_db_schema::{
   CommentSortType,
   InboxDataType,
   ListingType,
+  PersonContentType,
   PostListingMode,
   PostSortType,
 };
@@ -130,12 +131,6 @@ pub struct SaveUserSettings {
   /// The language of the lemmy interface
   #[cfg_attr(feature = "full", ts(optional))]
   pub interface_language: Option<String>,
-  /// A URL for your avatar.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub avatar: Option<String>,
-  /// A URL for your banner.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub banner: Option<String>,
   /// Your display name, which can contain strange characters, and does not need to be unique.
   #[cfg_attr(feature = "full", ts(optional))]
   pub display_name: Option<String>,
@@ -261,6 +256,8 @@ pub struct GetPersonDetailsResponse {
 /// Either person_id, or username are required.
 pub struct ListPersonContent {
   #[cfg_attr(feature = "full", ts(optional))]
+  pub type_: Option<PersonContentType>,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub person_id: Option<PersonId>,
   /// Example: dessalines , or dessalines@xyz.tld
   #[cfg_attr(feature = "full", ts(optional))]
@@ -286,6 +283,8 @@ pub struct ListPersonContentResponse {
 #[cfg_attr(feature = "full", ts(export))]
 /// Gets your saved posts and comments
 pub struct ListPersonSaved {
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub type_: Option<PersonContentType>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_cursor: Option<PersonSavedCombinedPaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]

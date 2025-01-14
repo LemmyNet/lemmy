@@ -29,13 +29,13 @@ lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 diesel = { workspace = true, features = [
-  "postgres",
   "chrono",
+  "postgres",
   "serde_json",
 ], optional = true }
 diesel-async = { workspace = true, features = [
-  "postgres",
   "deadpool",
+  "postgres",
 ], optional = true }
 serde = { workspace = true }
 serde_with = { workspace = true }

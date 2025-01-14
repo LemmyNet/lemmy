@@ -1,5 +1,4 @@
 use crate::{
-  activities::verify_community_matches,
   fetcher::post_or_comment::PostOrComment,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::InCommunity,
@@ -19,7 +18,6 @@ pub struct Vote {
   #[serde(rename = "type")]
   pub(crate) kind: VoteType,
   pub(crate) id: Url,
-  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 #[derive(Clone, Debug, Display, Deserialize, Serialize, PartialEq, Eq)]
@@ -58,9 +56,6 @@ impl InCommunity for Vote {
       .await?
       .community(context)
       .await?;
-    if let Some(audience) = &self.audience {
-      verify_community_matches(audience, community.actor_id.clone())?;
-    }
     Ok(community)
   }
 }

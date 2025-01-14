@@ -54,13 +54,12 @@ impl CollectionAdd {
     )?;
     let add = CollectionAdd {
       actor: actor.id().into(),
-      to: vec![generate_to(community)?],
+      to: generate_to(community)?,
       object: added_mod.id(),
       target: generate_moderators_url(&community.actor_id)?.into(),
       cc: vec![community.id()],
       kind: AddType::Add,
       id: id.clone(),
-      audience: Some(community.id().into()),
     };
 
     let activity = AnnouncableActivities::CollectionAdd(add);
@@ -80,13 +79,12 @@ impl CollectionAdd {
     )?;
     let add = CollectionAdd {
       actor: actor.id().into(),
-      to: vec![generate_to(community)?],
+      to: generate_to(community)?,
       object: featured_post.ap_id.clone().into(),
       target: generate_featured_url(&community.actor_id)?.into(),
       cc: vec![community.id()],
       kind: AddType::Add,
       id: id.clone(),
-      audience: Some(community.id().into()),
     };
     let activity = AnnouncableActivities::CollectionAdd(add);
     send_activity_in_community(

@@ -1,6 +1,6 @@
 pub mod uplete;
 
-use crate::{newtypes::DbUrl, CommentSortType, PostSortType};
+use crate::{newtypes::DbUrl, schema_setup, CommentSortType, PostSortType};
 use chrono::TimeDelta;
 use deadpool::Runtime;
 use diesel::{
@@ -37,7 +37,7 @@ use diesel_async::{
 };
 use diesel_bind_if_some::BindIfSome;
 use futures_util::{future::BoxFuture, Future, FutureExt};
-use i_love_jesus::CursorKey;
+use i_love_jesus::{CursorKey, PaginatedQueryBuilder};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
@@ -475,7 +475,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   // provide a setup function which handles creating the connection
   let mut config = ManagerConfig::default();
   config.custom_setup = Box::new(establish_connection);
-  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(&db_url, config);
+  let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(db_url, config);
   let pool = Pool::builder(manager)
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
@@ -493,7 +493,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  crate::schema_setup::run(&db_url)?;
+  schema_setup::run(schema_setup::Options::default().run())?;
 
   Ok(pool)
 }
@@ -547,6 +547,11 @@ pub mod functions {
 
   // really this function is variadic, this just adds the two-argument version
   define_sql_function!(fn coalesce<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(x: diesel::sql_types::Nullable<T>, y: T) -> T);
+
+  define_sql_function! {
+    #[aggregate]
+    fn json_agg<T: diesel::sql_types::SqlType + diesel::sql_types::SingleValue>(obj: T) -> Json
+  }
 }
 
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
@@ -727,6 +732,28 @@ impl<RF, LF> Queries<RF, LF> {
     let conn = get_conn(pool).await?;
     (self.list_fn)(conn, args).await
   }
+}
+
+pub fn paginate<Q, C>(
+  query: Q,
+  page_after: Option<C>,
+  page_before_or_equal: Option<C>,
+  page_back: bool,
+) -> PaginatedQueryBuilder<C, Q> {
+  let mut query = PaginatedQueryBuilder::new(query);
+
+  if page_back {
+    query = query
+      .before(page_after)
+      .after_or_equal(page_before_or_equal)
+      .limit_and_offset_from_end();
+  } else {
+    query = query
+      .after(page_after)
+      .before_or_equal(page_before_or_equal);
+  }
+
+  query
 }
 
 #[cfg(test)]

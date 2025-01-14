@@ -451,7 +451,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       reason: None,
       removed: true,
-      when_: inserted_mod_remove_post.when_,
+      published: inserted_mod_remove_post.published,
     };
 
     // lock post
@@ -468,7 +468,7 @@ mod tests {
       post_id: inserted_post.id,
       mod_person_id: inserted_mod.id,
       locked: true,
-      when_: inserted_mod_lock_post.when_,
+      published: inserted_mod_lock_post.published,
     };
 
     // feature post
@@ -487,7 +487,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       featured: false,
       is_featured_community: true,
-      when_: inserted_mod_feature_post.when_,
+      published: inserted_mod_feature_post.published,
     };
 
     // comment
@@ -508,7 +508,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       reason: None,
       removed: true,
-      when_: inserted_mod_remove_comment.when_,
+      published: inserted_mod_remove_comment.published,
     };
 
     // community
@@ -529,7 +529,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       reason: None,
       removed: true,
-      when_: inserted_mod_remove_community.when_,
+      published: inserted_mod_remove_community.published,
     };
 
     // ban from community
@@ -554,7 +554,7 @@ mod tests {
       reason: None,
       banned: true,
       expires: None,
-      when_: inserted_mod_ban_from_community.when_,
+      published: inserted_mod_ban_from_community.published,
     };
 
     // ban
@@ -575,7 +575,7 @@ mod tests {
       reason: None,
       banned: true,
       expires: None,
-      when_: inserted_mod_ban.when_,
+      published: inserted_mod_ban.published,
     };
 
     // mod add community
@@ -594,7 +594,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
       removed: false,
-      when_: inserted_mod_add_community.when_,
+      published: inserted_mod_add_community.published,
     };
 
     // mod add
@@ -611,7 +611,7 @@ mod tests {
       mod_person_id: inserted_mod.id,
       other_person_id: inserted_person.id,
       removed: false,
-      when_: inserted_mod_add.when_,
+      published: inserted_mod_add.published,
     };
 
     Comment::delete(pool, inserted_comment.id).await?;

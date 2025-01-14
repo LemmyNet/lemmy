@@ -102,7 +102,7 @@ impl ModlogCombinedPaginationCursor {
       }
     };
     // hex encoding to prevent ossification
-    ModlogCombinedPaginationCursor(format!("{prefix}{id:x}"))
+    ModlogCombinedPaginationCursor(format!("{prefix}-{id:x}"))
   }
 
   pub async fn read(&self, pool: &mut DbPool<'_>) -> Result<PaginationCursorData, Error> {
@@ -110,7 +110,7 @@ impl ModlogCombinedPaginationCursor {
     let mut query = modlog_combined::table
       .select(ModlogCombined::as_select())
       .into_boxed();
-    let (prefix, id_str) = self.0.split_at_checked(1).ok_or_else(err_msg)?;
+    let (prefix, id_str) = self.0.split_once('-').ok_or_else(err_msg)?;
     let id = i32::from_str_radix(id_str, 16).map_err(|_err| err_msg())?;
     query = match prefix {
       "AdminAllowInstance" => query.filter(modlog_combined::admin_allow_instance_id.eq(id)),
@@ -151,7 +151,7 @@ pub struct ModlogCombinedQuery {
   pub community_id: Option<CommunityId>,
   pub hide_modlog_names: Option<bool>,
   pub mod_person_id: Option<PersonId>,
-  pub modded_person_id: Option<PersonId>,
+  pub other_person_id: Option<PersonId>,
   pub page_after: Option<PaginationCursorData>,
   pub page_back: Option<bool>,
 }
@@ -164,7 +164,8 @@ impl ModlogCombinedQuery {
     let show_mod_names = !(self.hide_modlog_names.unwrap_or_default());
     let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
 
-    let modded_person = aliases::person1.field(person::id);
+    // The modded / other person
+    let other_person = aliases::person1.field(person::id);
 
     // The query for the admin / mod person
     // It needs an OR condition to every mod table
@@ -190,33 +191,33 @@ impl ModlogCombinedQuery {
         .or(mod_transfer_community::mod_person_id.eq(person::id)),
     );
 
-    let modded_person_join = mod_add::other_person_id
-      .eq(modded_person)
-      .or(mod_add_community::other_person_id.eq(modded_person))
-      .or(mod_ban::other_person_id.eq(modded_person))
-      .or(mod_ban_from_community::other_person_id.eq(modded_person))
-      // Some tables don't have the modded_person_id directly, so you need to join
+    let other_person_join = mod_add::other_person_id
+      .eq(other_person)
+      .or(mod_add_community::other_person_id.eq(other_person))
+      .or(mod_ban::other_person_id.eq(other_person))
+      .or(mod_ban_from_community::other_person_id.eq(other_person))
+      // Some tables don't have the other_person_id directly, so you need to join
       .or(
         mod_feature_post::id
           .is_not_null()
-          .and(post::creator_id.eq(modded_person)),
+          .and(post::creator_id.eq(other_person)),
       )
       .or(
         mod_lock_post::id
           .is_not_null()
-          .and(post::creator_id.eq(modded_person)),
+          .and(post::creator_id.eq(other_person)),
       )
       .or(
         mod_remove_comment::id
           .is_not_null()
-          .and(comment::creator_id.eq(modded_person)),
+          .and(comment::creator_id.eq(other_person)),
       )
       .or(
         mod_remove_post::id
           .is_not_null()
-          .and(post::creator_id.eq(modded_person)),
+          .and(post::creator_id.eq(other_person)),
       )
-      .or(mod_transfer_community::other_person_id.eq(modded_person));
+      .or(mod_transfer_community::other_person_id.eq(other_person));
 
     let comment_join = mod_remove_comment::comment_id.eq(comment::id);
 
@@ -291,8 +292,8 @@ impl ModlogCombinedQuery {
       .left_join(community::table.on(community_join))
       // The instance
       .left_join(instance::table.on(instance_join))
-      // The modded person
-      .left_join(aliases::person1.on(modded_person_join))
+      // The other / modded person
+      .left_join(aliases::person1.on(other_person_join))
       .select((
         admin_allow_instance::all_columns.nullable(),
         admin_block_instance::all_columns.nullable(),
@@ -325,8 +326,8 @@ impl ModlogCombinedQuery {
       query = query.filter(person::id.eq(mod_person_id));
     };
 
-    if let Some(modded_person_id) = self.modded_person_id {
-      query = query.filter(modded_person.eq(modded_person_id));
+    if let Some(other_person_id) = self.other_person_id {
+      query = query.filter(other_person.eq(other_person_id));
     };
 
     if let Some(community_id) = self.community_id {
@@ -342,55 +343,32 @@ impl ModlogCombinedQuery {
     }
 
     if let Some(type_) = self.type_ {
+      use lemmy_db_schema::ModlogActionType::*;
       query = match type_ {
-        ModlogActionType::All => query,
-        ModlogActionType::ModRemovePost => {
-          query.filter(modlog_combined::mod_remove_post_id.is_not_null())
-        }
-        ModlogActionType::ModLockPost => {
-          query.filter(modlog_combined::mod_lock_post_id.is_not_null())
-        }
-        ModlogActionType::ModFeaturePost => {
-          query.filter(modlog_combined::mod_feature_post_id.is_not_null())
-        }
-        ModlogActionType::ModRemoveComment => {
-          query.filter(modlog_combined::mod_remove_comment_id.is_not_null())
-        }
-        ModlogActionType::ModRemoveCommunity => {
-          query.filter(modlog_combined::mod_remove_community_id.is_not_null())
-        }
-        ModlogActionType::ModBanFromCommunity => {
+        All => query,
+        ModRemovePost => query.filter(modlog_combined::mod_remove_post_id.is_not_null()),
+        ModLockPost => query.filter(modlog_combined::mod_lock_post_id.is_not_null()),
+        ModFeaturePost => query.filter(modlog_combined::mod_feature_post_id.is_not_null()),
+        ModRemoveComment => query.filter(modlog_combined::mod_remove_comment_id.is_not_null()),
+        ModRemoveCommunity => query.filter(modlog_combined::mod_remove_community_id.is_not_null()),
+        ModBanFromCommunity => {
           query.filter(modlog_combined::mod_ban_from_community_id.is_not_null())
         }
-        ModlogActionType::ModAddCommunity => {
-          query.filter(modlog_combined::mod_add_community_id.is_not_null())
-        }
-        ModlogActionType::ModTransferCommunity => {
+        ModAddCommunity => query.filter(modlog_combined::mod_add_community_id.is_not_null()),
+        ModTransferCommunity => {
           query.filter(modlog_combined::mod_transfer_community_id.is_not_null())
         }
-        ModlogActionType::ModAdd => query.filter(modlog_combined::mod_add_id.is_not_null()),
-        ModlogActionType::ModBan => query.filter(modlog_combined::mod_ban_id.is_not_null()),
-        ModlogActionType::ModHideCommunity => {
-          query.filter(modlog_combined::mod_hide_community_id.is_not_null())
-        }
-        ModlogActionType::AdminPurgePerson => {
-          query.filter(modlog_combined::admin_purge_person_id.is_not_null())
-        }
-        ModlogActionType::AdminPurgeCommunity => {
+        ModAdd => query.filter(modlog_combined::mod_add_id.is_not_null()),
+        ModBan => query.filter(modlog_combined::mod_ban_id.is_not_null()),
+        ModHideCommunity => query.filter(modlog_combined::mod_hide_community_id.is_not_null()),
+        AdminPurgePerson => query.filter(modlog_combined::admin_purge_person_id.is_not_null()),
+        AdminPurgeCommunity => {
           query.filter(modlog_combined::admin_purge_community_id.is_not_null())
         }
-        ModlogActionType::AdminPurgePost => {
-          query.filter(modlog_combined::admin_purge_post_id.is_not_null())
-        }
-        ModlogActionType::AdminPurgeComment => {
-          query.filter(modlog_combined::admin_purge_comment_id.is_not_null())
-        }
-        ModlogActionType::AdminBlockInstance => {
-          query.filter(modlog_combined::admin_block_instance_id.is_not_null())
-        }
-        ModlogActionType::AdminAllowInstance => {
-          query.filter(modlog_combined::admin_allow_instance_id.is_not_null())
-        }
+        AdminPurgePost => query.filter(modlog_combined::admin_purge_post_id.is_not_null()),
+        AdminPurgeComment => query.filter(modlog_combined::admin_purge_comment_id.is_not_null()),
+        AdminBlockInstance => query.filter(modlog_combined::admin_block_instance_id.is_not_null()),
+        AdminAllowInstance => query.filter(modlog_combined::admin_allow_instance_id.is_not_null()),
       }
     }
 
@@ -404,13 +382,18 @@ impl ModlogCombinedQuery {
       query = query.after(page_after);
     }
 
-    // Tie breaker
-    query = query.then_desc(key::published).then_desc(key::id);
+    query = query
+      .then_desc(key::published)
+      // Tie breaker
+      .then_desc(key::id);
 
     let res = query.load::<ModlogCombinedViewInternal>(conn).await?;
 
     // Map the query results to the enum
-    let out = res.into_iter().filter_map(|u| u.map_to_enum()).collect();
+    let out = res
+      .into_iter()
+      .filter_map(InternalToCombinedView::map_to_enum)
+      .collect();
 
     Ok(out)
   }
@@ -419,9 +402,9 @@ impl ModlogCombinedQuery {
 impl InternalToCombinedView for ModlogCombinedViewInternal {
   type CombinedView = ModlogCombinedView;
 
-  fn map_to_enum(&self) -> Option<Self::CombinedView> {
+  fn map_to_enum(self) -> Option<Self::CombinedView> {
     // Use for a short alias
-    let v = self.clone();
+    let v = self;
 
     if let (Some(admin_allow_instance), Some(instance)) =
       (v.admin_allow_instance, v.instance.clone())
@@ -472,52 +455,52 @@ impl InternalToCombinedView for ModlogCombinedViewInternal {
         admin: v.moderator,
         community,
       }))
-    } else if let (Some(mod_add), Some(modded_person)) = (v.mod_add, v.modded_person.clone()) {
+    } else if let (Some(mod_add), Some(other_person)) = (v.mod_add, v.other_person.clone()) {
       Some(ModlogCombinedView::ModAdd(ModAddView {
         mod_add,
         moderator: v.moderator,
-        modded_person,
+        other_person,
       }))
-    } else if let (Some(mod_add_community), Some(modded_person), Some(community)) = (
+    } else if let (Some(mod_add_community), Some(other_person), Some(community)) = (
       v.mod_add_community,
-      v.modded_person.clone(),
+      v.other_person.clone(),
       v.community.clone(),
     ) {
       Some(ModlogCombinedView::ModAddCommunity(ModAddCommunityView {
         mod_add_community,
         moderator: v.moderator,
-        modded_person,
+        other_person,
         community,
       }))
-    } else if let (Some(mod_ban), Some(modded_person)) = (v.mod_ban, v.modded_person.clone()) {
+    } else if let (Some(mod_ban), Some(other_person)) = (v.mod_ban, v.other_person.clone()) {
       Some(ModlogCombinedView::ModBan(ModBanView {
         mod_ban,
         moderator: v.moderator,
-        modded_person,
+        other_person,
       }))
-    } else if let (Some(mod_ban_from_community), Some(modded_person), Some(community)) = (
+    } else if let (Some(mod_ban_from_community), Some(other_person), Some(community)) = (
       v.mod_ban_from_community,
-      v.modded_person.clone(),
+      v.other_person.clone(),
       v.community.clone(),
     ) {
       Some(ModlogCombinedView::ModBanFromCommunity(
         ModBanFromCommunityView {
           mod_ban_from_community,
           moderator: v.moderator,
-          modded_person,
+          other_person,
           community,
         },
       ))
-    } else if let (Some(mod_feature_post), Some(modded_person), Some(community), Some(post)) = (
+    } else if let (Some(mod_feature_post), Some(other_person), Some(community), Some(post)) = (
       v.mod_feature_post,
-      v.modded_person.clone(),
+      v.other_person.clone(),
       v.community.clone(),
       v.post.clone(),
     ) {
       Some(ModlogCombinedView::ModFeaturePost(ModFeaturePostView {
         mod_feature_post,
         moderator: v.moderator,
-        modded_person,
+        other_person,
         community,
         post,
       }))
@@ -529,28 +512,28 @@ impl InternalToCombinedView for ModlogCombinedViewInternal {
         admin: v.moderator,
         community,
       }))
-    } else if let (Some(mod_lock_post), Some(modded_person), Some(community), Some(post)) = (
+    } else if let (Some(mod_lock_post), Some(other_person), Some(community), Some(post)) = (
       v.mod_lock_post,
-      v.modded_person.clone(),
+      v.other_person.clone(),
       v.community.clone(),
       v.post.clone(),
     ) {
       Some(ModlogCombinedView::ModLockPost(ModLockPostView {
         mod_lock_post,
         moderator: v.moderator,
-        modded_person,
+        other_person,
         community,
         post,
       }))
     } else if let (
       Some(mod_remove_comment),
-      Some(modded_person),
+      Some(other_person),
       Some(community),
       Some(post),
       Some(comment),
     ) = (
       v.mod_remove_comment,
-      v.modded_person.clone(),
+      v.other_person.clone(),
       v.community.clone(),
       v.post.clone(),
       v.comment,
@@ -558,7 +541,7 @@ impl InternalToCombinedView for ModlogCombinedViewInternal {
       Some(ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
         mod_remove_comment,
         moderator: v.moderator,
-        modded_person,
+        other_person,
         community,
         post,
         comment,
@@ -573,29 +556,29 @@ impl InternalToCombinedView for ModlogCombinedViewInternal {
           community,
         },
       ))
-    } else if let (Some(mod_remove_post), Some(modded_person), Some(community), Some(post)) = (
+    } else if let (Some(mod_remove_post), Some(other_person), Some(community), Some(post)) = (
       v.mod_remove_post,
-      v.modded_person.clone(),
+      v.other_person.clone(),
       v.community.clone(),
       v.post.clone(),
     ) {
       Some(ModlogCombinedView::ModRemovePost(ModRemovePostView {
         mod_remove_post,
         moderator: v.moderator,
-        modded_person,
+        other_person,
         community,
         post,
       }))
-    } else if let (Some(mod_transfer_community), Some(modded_person), Some(community)) = (
+    } else if let (Some(mod_transfer_community), Some(other_person), Some(community)) = (
       v.mod_transfer_community,
-      v.modded_person.clone(),
+      v.other_person.clone(),
       v.community.clone(),
     ) {
       Some(ModlogCombinedView::ModTransferCommunity(
         ModTransferCommunityView {
           mod_transfer_community,
           moderator: v.moderator,
-          modded_person,
+          other_person,
           community,
         },
       ))
@@ -1080,7 +1063,7 @@ mod tests {
         data.jessica.id,
         v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
-      assert_eq!(data.jessica.id, v.modded_person.id);
+      assert_eq!(data.jessica.id, v.other_person.id);
     } else {
       panic!("wrong type");
     }
@@ -1094,7 +1077,7 @@ mod tests {
         data.jessica.id,
         v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
-      assert_eq!(data.sara.id, v.modded_person.id);
+      assert_eq!(data.sara.id, v.other_person.id);
     } else {
       panic!("wrong type");
     }
@@ -1106,7 +1089,7 @@ mod tests {
         data.jessica.id,
         v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
-      assert_eq!(data.sara.id, v.modded_person.id);
+      assert_eq!(data.sara.id, v.other_person.id);
     } else {
       panic!("wrong type");
     }
@@ -1118,7 +1101,7 @@ mod tests {
         data.timmy.id,
         v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
-      assert_eq!(data.jessica.id, v.modded_person.id);
+      assert_eq!(data.jessica.id, v.other_person.id);
     } else {
       panic!("wrong type");
     }
@@ -1132,7 +1115,7 @@ mod tests {
         data.timmy.id,
         v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
-      assert_eq!(data.timmy.id, v.modded_person.id);
+      assert_eq!(data.timmy.id, v.other_person.id);
     } else {
       panic!("wrong type");
     }
@@ -1157,7 +1140,7 @@ mod tests {
         data.timmy.id,
         v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
-      assert_eq!(data.timmy.id, v.modded_person.id);
+      assert_eq!(data.timmy.id, v.other_person.id);
     } else {
       panic!("wrong type");
     }
@@ -1172,7 +1155,7 @@ mod tests {
         data.timmy.id,
         v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
-      assert_eq!(data.timmy.id, v.modded_person.id);
+      assert_eq!(data.timmy.id, v.other_person.id);
     } else {
       panic!("wrong type");
     }
@@ -1187,7 +1170,7 @@ mod tests {
         data.timmy.id,
         v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
-      assert_eq!(data.timmy.id, v.modded_person.id);
+      assert_eq!(data.timmy.id, v.other_person.id);
     } else {
       panic!("wrong type");
     }
@@ -1199,7 +1182,7 @@ mod tests {
         data.timmy.id,
         v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
-      assert_eq!(data.jessica.id, v.modded_person.id);
+      assert_eq!(data.jessica.id, v.other_person.id);
     } else {
       panic!("wrong type");
     }
@@ -1209,7 +1192,7 @@ mod tests {
         data.timmy.id,
         v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
-      assert_eq!(data.jessica.id, v.modded_person.id);
+      assert_eq!(data.jessica.id, v.other_person.id);
     } else {
       panic!("wrong type");
     }
@@ -1221,7 +1204,7 @@ mod tests {
         data.timmy.id,
         v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
-      assert_eq!(data.jessica.id, v.modded_person.id);
+      assert_eq!(data.jessica.id, v.other_person.id);
     } else {
       panic!("wrong type");
     }
@@ -1231,7 +1214,7 @@ mod tests {
         data.timmy.id,
         v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
       );
-      assert_eq!(data.jessica.id, v.modded_person.id);
+      assert_eq!(data.jessica.id, v.other_person.id);
     } else {
       panic!("wrong type");
     }
@@ -1258,7 +1241,7 @@ mod tests {
     // you have to go into the item to see who created it.
 
     let modlog_modded_timmy_filter = ModlogCombinedQuery {
-      modded_person_id: Some(data.timmy.id),
+      other_person_id: Some(data.timmy.id),
       ..Default::default()
     }
     .list(pool)
@@ -1266,7 +1249,7 @@ mod tests {
     assert_eq!(4, modlog_modded_timmy_filter.len());
 
     let modlog_modded_jessica_filter = ModlogCombinedQuery {
-      modded_person_id: Some(data.jessica.id),
+      other_person_id: Some(data.jessica.id),
       ..Default::default()
     }
     .list(pool)
@@ -1274,7 +1257,7 @@ mod tests {
     assert_eq!(6, modlog_modded_jessica_filter.len());
 
     let modlog_modded_sara_filter = ModlogCombinedQuery {
-      modded_person_id: Some(data.sara.id),
+      other_person_id: Some(data.sara.id),
       ..Default::default()
     }
     .list(pool)

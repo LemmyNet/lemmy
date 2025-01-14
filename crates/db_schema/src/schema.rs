@@ -49,7 +49,7 @@ diesel::table! {
         admin_person_id -> Int4,
         allowed -> Bool,
         reason -> Nullable<Text>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -61,7 +61,7 @@ diesel::table! {
         blocked -> Bool,
         reason -> Nullable<Text>,
         expires -> Nullable<Timestamptz>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -71,7 +71,7 @@ diesel::table! {
         admin_person_id -> Int4,
         post_id -> Int4,
         reason -> Nullable<Text>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -80,7 +80,7 @@ diesel::table! {
         id -> Int4,
         admin_person_id -> Int4,
         reason -> Nullable<Text>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -89,7 +89,7 @@ diesel::table! {
         id -> Int4,
         admin_person_id -> Int4,
         reason -> Nullable<Text>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -99,7 +99,7 @@ diesel::table! {
         admin_person_id -> Int4,
         community_id -> Int4,
         reason -> Nullable<Text>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -253,6 +253,8 @@ diesel::table! {
         users_active_half_year -> Int8,
         hot_rank -> Float8,
         subscribers_local -> Int8,
+        report_count -> Int2,
+        unresolved_report_count -> Int2,
     }
 }
 
@@ -260,6 +262,25 @@ diesel::table! {
     community_language (community_id, language_id) {
         community_id -> Int4,
         language_id -> Int4,
+    }
+}
+
+diesel::table! {
+    community_report (id) {
+        id -> Int4,
+        creator_id -> Int4,
+        community_id -> Int4,
+        original_community_name -> Text,
+        original_community_title -> Text,
+        original_community_description -> Nullable<Text>,
+        original_community_sidebar -> Nullable<Text>,
+        original_community_icon -> Nullable<Text>,
+        original_community_banner -> Nullable<Text>,
+        reason -> Text,
+        resolved -> Bool,
+        resolver_id -> Nullable<Int4>,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
     }
 }
 
@@ -529,7 +550,7 @@ diesel::table! {
         mod_person_id -> Int4,
         other_person_id -> Int4,
         removed -> Bool,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -540,7 +561,7 @@ diesel::table! {
         other_person_id -> Int4,
         community_id -> Int4,
         removed -> Bool,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -552,7 +573,7 @@ diesel::table! {
         reason -> Nullable<Text>,
         banned -> Bool,
         expires -> Nullable<Timestamptz>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -565,7 +586,7 @@ diesel::table! {
         reason -> Nullable<Text>,
         banned -> Bool,
         expires -> Nullable<Timestamptz>,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -575,7 +596,7 @@ diesel::table! {
         mod_person_id -> Int4,
         post_id -> Int4,
         featured -> Bool,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
         is_featured_community -> Bool,
     }
 }
@@ -585,7 +606,7 @@ diesel::table! {
         id -> Int4,
         community_id -> Int4,
         mod_person_id -> Int4,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
         reason -> Nullable<Text>,
         hidden -> Bool,
     }
@@ -597,7 +618,7 @@ diesel::table! {
         mod_person_id -> Int4,
         post_id -> Int4,
         locked -> Bool,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -608,7 +629,7 @@ diesel::table! {
         comment_id -> Int4,
         reason -> Nullable<Text>,
         removed -> Bool,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -619,7 +640,7 @@ diesel::table! {
         community_id -> Int4,
         reason -> Nullable<Text>,
         removed -> Bool,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -630,7 +651,7 @@ diesel::table! {
         post_id -> Int4,
         reason -> Nullable<Text>,
         removed -> Bool,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -640,7 +661,7 @@ diesel::table! {
         mod_person_id -> Int4,
         other_person_id -> Int4,
         community_id -> Int4,
-        when_ -> Timestamptz,
+        published -> Timestamptz,
     }
 }
 
@@ -796,7 +817,7 @@ diesel::table! {
 diesel::table! {
     person_saved_combined (id) {
         id -> Int4,
-        published -> Timestamptz,
+        saved -> Timestamptz,
         person_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
@@ -891,6 +912,21 @@ diesel::table! {
 }
 
 diesel::table! {
+    post_tag (post_id, tag_id) {
+        post_id -> Int4,
+        tag_id -> Int4,
+        published -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    previously_run_sql (id) {
+        id -> Bool,
+        content -> Text,
+    }
+}
+
+diesel::table! {
     private_message (id) {
         id -> Int4,
         creator_id -> Int4,
@@ -952,6 +988,7 @@ diesel::table! {
         post_report_id -> Nullable<Int4>,
         comment_report_id -> Nullable<Int4>,
         private_message_report_id -> Nullable<Int4>,
+        community_report_id -> Nullable<Int4>,
     }
 }
 
@@ -1026,6 +1063,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    tag (id) {
+        id -> Int4,
+        ap_id -> Text,
+        name -> Text,
+        community_id -> Int4,
+        published -> Timestamptz,
+        updated -> Nullable<Timestamptz>,
+        deleted -> Bool,
+    }
+}
+
+diesel::table! {
     tagline (id) {
         id -> Int4,
         content -> Text,
@@ -1058,6 +1107,7 @@ diesel::joinable!(community_actions -> community (community_id));
 diesel::joinable!(community_aggregates -> community (community_id));
 diesel::joinable!(community_language -> community (community_id));
 diesel::joinable!(community_language -> language (language_id));
+diesel::joinable!(community_report -> community (community_id));
 diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
@@ -1134,16 +1184,20 @@ diesel::joinable!(post_aggregates -> instance (instance_id));
 diesel::joinable!(post_aggregates -> person (creator_id));
 diesel::joinable!(post_aggregates -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
+diesel::joinable!(post_tag -> post (post_id));
+diesel::joinable!(post_tag -> tag (tag_id));
 diesel::joinable!(private_message_report -> private_message (private_message_id));
 diesel::joinable!(registration_application -> local_user (local_user_id));
 diesel::joinable!(registration_application -> person (admin_id));
 diesel::joinable!(report_combined -> comment_report (comment_report_id));
+diesel::joinable!(report_combined -> community_report (community_report_id));
 diesel::joinable!(report_combined -> post_report (post_report_id));
 diesel::joinable!(report_combined -> private_message_report (private_message_report_id));
 diesel::joinable!(site -> instance (instance_id));
 diesel::joinable!(site_aggregates -> site (site_id));
 diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
+diesel::joinable!(tag -> community (community_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     admin_allow_instance,
@@ -1162,6 +1216,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     community_actions,
     community_aggregates,
     community_language,
+    community_report,
     custom_emoji,
     custom_emoji_keyword,
     email_verification,
@@ -1208,6 +1263,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     post_actions,
     post_aggregates,
     post_report,
+    post_tag,
+    previously_run_sql,
     private_message,
     private_message_report,
     received_activity,
@@ -1219,5 +1276,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     site,
     site_aggregates,
     site_language,
+    tag,
     tagline,
 );

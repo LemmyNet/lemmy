@@ -34,6 +34,8 @@ use lemmy_db_schema::{
     post,
     post_actions,
     post_aggregates,
+    post_tag,
+    tag,
   },
   source::{
     combined::person_content::{person_content_combined_keys as key, PersonContentCombined},
@@ -41,6 +43,7 @@ use lemmy_db_schema::{
   },
   utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool},
   InternalToCombinedView,
+  PersonContentType,
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -80,6 +83,8 @@ pub struct PaginationCursorData(PersonContentCombined);
 pub struct PersonContentCombinedQuery {
   pub creator_id: PersonId,
   #[new(default)]
+  pub type_: Option<PersonContentType>,
+  #[new(default)]
   pub page_after: Option<PaginationCursorData>,
   #[new(default)]
   pub page_back: Option<bool>,
@@ -95,6 +100,15 @@ impl PersonContentCombinedQuery {
     let item_creator = person::id;
 
     let conn = &mut get_conn(pool).await?;
+
+    let post_tags = post_tag::table
+      .inner_join(tag::table)
+      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
+        "json_agg(tag.*)",
+      ))
+      .filter(post_tag::post_id.eq(post::id))
+      .filter(tag::deleted.eq(false))
+      .single_value();
 
     // Notes: since the post_id and comment_id are optional columns,
     // many joins must use an OR condition.
@@ -170,6 +184,7 @@ impl PersonContentCombinedQuery {
         post_actions::hidden.nullable().is_not_null(),
         post_actions::like_score.nullable(),
         image_details::all_columns.nullable(),
+        post_tags,
         // Comment-specific
         comment::all_columns.nullable(),
         comment_aggregates::all_columns.nullable(),
@@ -196,6 +211,16 @@ impl PersonContentCombinedQuery {
 
     let mut query = PaginatedQueryBuilder::new(query);
 
+    if let Some(type_) = self.type_ {
+      query = match type_ {
+        PersonContentType::All => query,
+        PersonContentType::Comments => {
+          query.filter(person_content_combined::comment_id.is_not_null())
+        }
+        PersonContentType::Posts => query.filter(person_content_combined::post_id.is_not_null()),
+      }
+    }
+
     let page_after = self.page_after.map(|c| c.0);
 
     if self.page_back.unwrap_or_default() {
@@ -213,7 +238,10 @@ impl PersonContentCombinedQuery {
     let res = query.load::<PersonContentViewInternal>(conn).await?;
 
     // Map the query results to the enum
-    let out = res.into_iter().filter_map(|u| u.map_to_enum()).collect();
+    let out = res
+      .into_iter()
+      .filter_map(InternalToCombinedView::map_to_enum)
+      .collect();
 
     Ok(out)
   }
@@ -222,9 +250,9 @@ impl PersonContentCombinedQuery {
 impl InternalToCombinedView for PersonContentViewInternal {
   type CombinedView = PersonContentCombinedView;
 
-  fn map_to_enum(&self) -> Option<Self::CombinedView> {
+  fn map_to_enum(self) -> Option<Self::CombinedView> {
     // Use for a short alias
-    let v = self.clone();
+    let v = self;
 
     if let (Some(comment), Some(counts)) = (v.comment, v.comment_counts) {
       Some(PersonContentCombinedView::Comment(CommentView {
@@ -260,6 +288,7 @@ impl InternalToCombinedView for PersonContentViewInternal {
         my_vote: v.my_post_vote,
         image_details: v.image_details,
         banned_from_community: v.banned_from_community,
+        tags: v.post_tags,
       }))
     }
   }

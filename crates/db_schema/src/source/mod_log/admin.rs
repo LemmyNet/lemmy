@@ -37,7 +37,7 @@ pub struct AdminPurgePerson {
   pub admin_person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -59,7 +59,7 @@ pub struct AdminPurgeCommunity {
   pub admin_person_id: PersonId,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -82,7 +82,7 @@ pub struct AdminPurgePost {
   pub community_id: CommunityId,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -106,7 +106,7 @@ pub struct AdminPurgeComment {
   pub post_id: PostId,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
@@ -137,7 +137,7 @@ pub struct AdminAllowInstance {
   pub allowed: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub reason: Option<String>,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[derive(Clone, Default)]
@@ -172,7 +172,7 @@ pub struct AdminBlockInstance {
   pub reason: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub expires: Option<DateTime<Utc>>,
-  pub when_: DateTime<Utc>,
+  pub published: DateTime<Utc>,
 }
 
 #[derive(Clone, Default)]

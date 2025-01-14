@@ -35,7 +35,6 @@ pub async fn read_person(
     .map(|l| is_admin(l).is_ok())
     .unwrap_or_default();
   let person_view = PersonView::read(&mut context.pool(), person_details_id, is_admin).await?;
-
   let moderates = CommunityModeratorView::for_person(
     &mut context.pool(),
     person_details_id,

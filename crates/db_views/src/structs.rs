@@ -1,11 +1,20 @@
 #[cfg(feature = "full")]
 use diesel::Queryable;
+#[cfg(feature = "full")]
+use diesel::{deserialize::FromSqlRow, expression::AsExpression, sql_types};
 use lemmy_db_schema::{
-  aggregates::structs::{CommentAggregates, PersonAggregates, PostAggregates, SiteAggregates},
+  aggregates::structs::{
+    CommentAggregates,
+    CommunityAggregates,
+    PersonAggregates,
+    PostAggregates,
+    SiteAggregates,
+  },
   source::{
     comment::Comment,
     comment_report::CommentReport,
     community::Community,
+    community_report::CommunityReport,
     custom_emoji::CustomEmoji,
     custom_emoji_keyword::CustomEmojiKeyword,
     images::{ImageDetails, LocalImage},
@@ -20,6 +29,7 @@ use lemmy_db_schema::{
     private_message_report::PrivateMessageReport,
     registration_application::RegistrationApplication,
     site::Site,
+    tag::Tag,
   },
   SubscribedType,
 };
@@ -75,6 +85,22 @@ pub struct CommentView {
   pub creator_blocked: bool,
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A community report view.
+pub struct CommunityReportView {
+  pub community_report: CommunityReport,
+  pub community: Community,
+  pub creator: Person,
+  pub counts: CommunityAggregates,
+  pub subscribed: SubscribedType,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub resolver: Option<Person>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -169,6 +195,7 @@ pub struct PostView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
+  pub tags: PostTags,
 }
 
 #[skip_serializing_none]
@@ -268,9 +295,12 @@ pub struct ReportCombinedViewInternal {
   // Private-message-specific
   pub private_message_report: Option<PrivateMessageReport>,
   pub private_message: Option<PrivateMessage>,
+  // Community-specific
+  pub community_report: Option<CommunityReport>,
+  pub community_counts: Option<CommunityAggregates>,
   // Shared
   pub report_creator: Person,
-  pub item_creator: Person,
+  pub item_creator: Option<Person>,
   pub community: Option<Community>,
   pub subscribed: SubscribedType,
   pub resolver: Option<Person>,
@@ -289,6 +319,7 @@ pub enum ReportCombinedView {
   Post(PostReportView),
   Comment(CommentReportView),
   PrivateMessage(PrivateMessageReportView),
+  Community(CommunityReportView),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -304,6 +335,7 @@ pub struct PersonContentViewInternal {
   pub post_hidden: bool,
   pub my_post_vote: Option<i16>,
   pub image_details: Option<ImageDetails>,
+  pub post_tags: PostTags,
   // Comment-specific
   pub comment: Option<Comment>,
   pub comment_counts: Option<CommentAggregates>,
@@ -329,4 +361,13 @@ pub struct PersonContentViewInternal {
 pub enum PersonContentCombinedView {
   Post(PostView),
   Comment(CommentView),
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
+#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
+#[serde(transparent)]
+#[cfg_attr(feature = "full", diesel(sql_type = Nullable<sql_types::Json>))]
+/// we wrap this in a struct so we can implement FromSqlRow<Json> for it
+pub struct PostTags {
+  pub tags: Vec<Tag>,
 }

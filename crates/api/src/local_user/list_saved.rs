@@ -28,8 +28,10 @@ pub async fn list_person_saved(
     None
   };
   let page_back = data.page_back;
+  let type_ = data.type_;
 
   let saved = PersonSavedCombinedQuery {
+    type_,
     page_after,
     page_back,
   }

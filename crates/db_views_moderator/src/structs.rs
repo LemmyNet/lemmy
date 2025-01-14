@@ -46,7 +46,7 @@ pub struct ModAddCommunityView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
   pub community: Community,
-  pub modded_person: Person,
+  pub other_person: Person,
 }
 
 #[skip_serializing_none]
@@ -59,7 +59,7 @@ pub struct ModAddView {
   pub mod_add: ModAdd,
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
-  pub modded_person: Person,
+  pub other_person: Person,
 }
 
 #[skip_serializing_none]
@@ -73,7 +73,7 @@ pub struct ModBanFromCommunityView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
   pub community: Community,
-  pub modded_person: Person,
+  pub other_person: Person,
 }
 
 #[skip_serializing_none]
@@ -86,7 +86,7 @@ pub struct ModBanView {
   pub mod_ban: ModBan,
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
-  pub modded_person: Person,
+  pub other_person: Person,
 }
 
 #[skip_serializing_none]
@@ -112,7 +112,7 @@ pub struct ModLockPostView {
   pub mod_lock_post: ModLockPost,
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
-  pub modded_person: Person,
+  pub other_person: Person,
   pub post: Post,
   pub community: Community,
 }
@@ -127,7 +127,7 @@ pub struct ModRemoveCommentView {
   pub mod_remove_comment: ModRemoveComment,
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
-  pub modded_person: Person,
+  pub other_person: Person,
   pub comment: Comment,
   pub post: Post,
   pub community: Community,
@@ -156,7 +156,7 @@ pub struct ModRemovePostView {
   pub mod_remove_post: ModRemovePost,
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
-  pub modded_person: Person,
+  pub other_person: Person,
   pub post: Post,
   pub community: Community,
 }
@@ -171,7 +171,7 @@ pub struct ModFeaturePostView {
   pub mod_feature_post: ModFeaturePost,
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
-  pub modded_person: Person,
+  pub other_person: Person,
   pub post: Post,
   pub community: Community,
 }
@@ -187,7 +187,7 @@ pub struct ModTransferCommunityView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub moderator: Option<Person>,
   pub community: Community,
-  pub modded_person: Person,
+  pub other_person: Person,
 }
 
 #[skip_serializing_none]
@@ -299,7 +299,7 @@ pub struct ModlogCombinedViewInternal {
 
   // Shared
   pub moderator: Option<Person>,
-  pub modded_person: Option<Person>,
+  pub other_person: Option<Person>,
   pub instance: Option<Instance>,
   pub community: Option<Community>,
   pub post: Option<Post>,

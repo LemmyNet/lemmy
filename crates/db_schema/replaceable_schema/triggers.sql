@@ -422,6 +422,25 @@ END;
 
 $$);
 
+CALL r.create_triggers ('community_report', $$
+BEGIN
+    UPDATE
+        community_aggregates AS a
+    SET
+        report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
+    FROM (
+        SELECT
+            (community_report).community_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (community_report).resolved), 0) AS unresolved_report_count
+    FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (community_report).community_id) AS diff
+WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
+    AND a.community_id = diff.community_id;
+
+RETURN NULL;
+
+END;
+
+$$);
+
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
 CREATE FUNCTION r.comment_aggregates_from_comment ()
@@ -685,6 +704,8 @@ CALL r.create_report_combined_trigger ('comment_report');
 
 CALL r.create_report_combined_trigger ('private_message_report');
 
+CALL r.create_report_combined_trigger ('community_report');
+
 -- person_content (comment, post)
 CREATE PROCEDURE r.create_person_content_combined_trigger (table_name text)
 LANGUAGE plpgsql
@@ -731,12 +752,12 @@ BEGIN
                         AND p.thing_id = OLD.thing_id;
                 ELSIF (TG_OP = 'INSERT') THEN
                     IF NEW.saved IS NOT NULL THEN
-                        INSERT INTO person_saved_combined (published, person_id, thing_id)
+                        INSERT INTO person_saved_combined (saved, person_id, thing_id)
                             VALUES (NEW.saved, NEW.person_id, NEW.thing_id);
                     END IF;
                 ELSIF (TG_OP = 'UPDATE') THEN
                     IF NEW.saved IS NOT NULL THEN
-                        INSERT INTO person_saved_combined (published, person_id, thing_id)
+                        INSERT INTO person_saved_combined (saved, person_id, thing_id)
                             VALUES (NEW.saved, NEW.person_id, NEW.thing_id);
                         -- If saved gets set as null, delete the row
                     ELSE
@@ -789,7 +810,7 @@ BEGIN
             AS $$
             BEGIN
                 INSERT INTO modlog_combined (published, thing_id)
-                    VALUES (NEW.when_, NEW.id);
+                    VALUES (NEW.published, NEW.id);
                 RETURN NEW;
             END $$;
     CREATE TRIGGER modlog_combined

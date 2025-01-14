@@ -1,5 +1,4 @@
 use crate::{
-  activities::verify_community_matches,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{objects::group::Group, InCommunity},
 };
@@ -29,16 +28,12 @@ pub struct UpdateCommunity {
   #[serde(rename = "type")]
   pub(crate) kind: UpdateType,
   pub(crate) id: Url,
-  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 #[async_trait::async_trait]
 impl InCommunity for UpdateCommunity {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community: ApubCommunity = self.object.id.clone().dereference(context).await?;
-    if let Some(audience) = &self.audience {
-      verify_community_matches(audience, community.actor_id.clone())?;
-    }
     Ok(community)
   }
 }

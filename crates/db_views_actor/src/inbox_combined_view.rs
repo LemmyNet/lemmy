@@ -418,7 +418,10 @@ impl InboxCombinedQuery {
     let res = query.load::<InboxCombinedViewInternal>(conn).await?;
 
     // Map the query results to the enum
-    let out = res.into_iter().filter_map(|u| u.map_to_enum()).collect();
+    let out = res
+      .into_iter()
+      .filter_map(InternalToCombinedView::map_to_enum)
+      .collect();
 
     Ok(out)
   }
@@ -427,9 +430,9 @@ impl InboxCombinedQuery {
 impl InternalToCombinedView for InboxCombinedViewInternal {
   type CombinedView = InboxCombinedView;
 
-  fn map_to_enum(&self) -> Option<Self::CombinedView> {
+  fn map_to_enum(self) -> Option<Self::CombinedView> {
     // Use for a short alias
-    let v = self.clone();
+    let v = self;
 
     if let (Some(comment_reply), Some(comment), Some(counts), Some(post), Some(community)) = (
       v.comment_reply,
