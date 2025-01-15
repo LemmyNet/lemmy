@@ -1,15 +1,12 @@
-use crate::{
-  structs::{
-    CommentReportView,
-    CommunityReportView,
-    LocalUserView,
-    PostReportView,
-    PrivateMessageReportView,
-    ReportCombinedPaginationCursor,
-    ReportCombinedView,
-    ReportCombinedViewInternal,
-  },
-  InternalToCombinedView,
+use crate::structs::{
+  CommentReportView,
+  CommunityReportView,
+  LocalUserView,
+  PostReportView,
+  PrivateMessageReportView,
+  ReportCombinedPaginationCursor,
+  ReportCombinedView,
+  ReportCombinedViewInternal,
 };
 use diesel::{
   result::Error,
@@ -51,6 +48,7 @@ use lemmy_db_schema::{
     community::CommunityFollower,
   },
   utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
+  InternalToCombinedView,
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -363,7 +361,10 @@ impl ReportCombinedQuery {
     let res = query.load::<ReportCombinedViewInternal>(conn).await?;
 
     // Map the query results to the enum
-    let out = res.into_iter().filter_map(|u| u.map_to_enum()).collect();
+    let out = res
+      .into_iter()
+      .filter_map(InternalToCombinedView::map_to_enum)
+      .collect();
 
     Ok(out)
   }
@@ -372,9 +373,9 @@ impl ReportCombinedQuery {
 impl InternalToCombinedView for ReportCombinedViewInternal {
   type CombinedView = ReportCombinedView;
 
-  fn map_to_enum(&self) -> Option<Self::CombinedView> {
+  fn map_to_enum(self) -> Option<Self::CombinedView> {
     // Use for a short alias
-    let v = self.clone();
+    let v = self;
 
     if let (
       Some(post_report),

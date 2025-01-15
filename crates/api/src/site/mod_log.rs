@@ -4,30 +4,10 @@ use lemmy_api_common::{
   site::{GetModlog, GetModlogResponse},
   utils::{check_community_mod_of_any_or_admin_action, check_private_instance},
 };
-use lemmy_db_schema::{source::local_site::LocalSite, ModlogActionType};
+use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_moderator::structs::{
-  AdminAllowInstanceView,
-  AdminBlockInstanceView,
-  AdminPurgeCommentView,
-  AdminPurgeCommunityView,
-  AdminPurgePersonView,
-  AdminPurgePostView,
-  ModAddCommunityView,
-  ModAddView,
-  ModBanFromCommunityView,
-  ModBanView,
-  ModFeaturePostView,
-  ModHideCommunityView,
-  ModLockPostView,
-  ModRemoveCommentView,
-  ModRemoveCommunityView,
-  ModRemovePostView,
-  ModTransferCommunityView,
-  ModlogListParams,
-};
+use lemmy_db_views_moderator::{self, modlog_combined_view::ModlogCombinedQuery};
 use lemmy_utils::error::LemmyResult;
-use ModlogActionType::*;
 
 #[tracing::instrument(skip(context))]
 pub async fn get_mod_log(
@@ -39,7 +19,7 @@ pub async fn get_mod_log(
 
   check_private_instance(&local_user_view, &local_site)?;
 
-  let type_ = data.type_.unwrap_or(All);
+  let type_ = data.type_;
   let community_id = data.community_id;
 
   let is_mod_or_admin = if let Some(local_user_view) = local_user_view {
@@ -60,146 +40,27 @@ pub async fn get_mod_log(
   let post_id = data.post_id;
   let comment_id = data.comment_id;
 
-  let params = ModlogListParams {
+  // parse pagination token
+  let page_after = if let Some(pa) = &data.page_cursor {
+    Some(pa.read(&mut context.pool()).await?)
+  } else {
+    None
+  };
+  let page_back = data.page_back;
+
+  let modlog = ModlogCombinedQuery {
+    type_,
     community_id,
     mod_person_id,
     other_person_id,
     post_id,
     comment_id,
-    page: data.page,
-    limit: data.limit,
-    hide_modlog_names,
-  };
-  let removed_posts = match type_ {
-    All | ModRemovePost => ModRemovePostView::list(&mut context.pool(), params).await?,
-    _ => Default::default(),
-  };
+    hide_modlog_names: Some(hide_modlog_names),
+    page_after,
+    page_back,
+  }
+  .list(&mut context.pool())
+  .await?;
 
-  let locked_posts = match type_ {
-    All | ModLockPost => ModLockPostView::list(&mut context.pool(), params).await?,
-    _ => Default::default(),
-  };
-
-  let featured_posts = match type_ {
-    All | ModFeaturePost => ModFeaturePostView::list(&mut context.pool(), params).await?,
-    _ => Default::default(),
-  };
-
-  let removed_comments = match type_ {
-    All | ModRemoveComment => ModRemoveCommentView::list(&mut context.pool(), params).await?,
-    _ => Default::default(),
-  };
-
-  let banned_from_community = match type_ {
-    All | ModBanFromCommunity => ModBanFromCommunityView::list(&mut context.pool(), params).await?,
-    _ => Default::default(),
-  };
-
-  let added_to_community = match type_ {
-    All | ModAddCommunity => ModAddCommunityView::list(&mut context.pool(), params).await?,
-    _ => Default::default(),
-  };
-
-  let transferred_to_community = match type_ {
-    All | ModTransferCommunity => {
-      ModTransferCommunityView::list(&mut context.pool(), params).await?
-    }
-    _ => Default::default(),
-  };
-
-  let hidden_communities = match type_ {
-    All | ModHideCommunity if other_person_id.is_none() => {
-      ModHideCommunityView::list(&mut context.pool(), params).await?
-    }
-    _ => Default::default(),
-  };
-
-  // These arrays are only for the full modlog, when a community isn't given
-  let (
-    banned,
-    added,
-    removed_communities,
-    admin_purged_persons,
-    admin_purged_communities,
-    admin_purged_posts,
-    admin_purged_comments,
-    admin_block_instance,
-    admin_allow_instance,
-  ) = if data.community_id.is_none() {
-    (
-      match type_ {
-        All | ModBan => ModBanView::list(&mut context.pool(), params).await?,
-        _ => Default::default(),
-      },
-      match type_ {
-        All | ModAdd => ModAddView::list(&mut context.pool(), params).await?,
-        _ => Default::default(),
-      },
-      match type_ {
-        All | ModRemoveCommunity if other_person_id.is_none() => {
-          ModRemoveCommunityView::list(&mut context.pool(), params).await?
-        }
-        _ => Default::default(),
-      },
-      match type_ {
-        All | AdminPurgePerson if other_person_id.is_none() => {
-          AdminPurgePersonView::list(&mut context.pool(), params).await?
-        }
-        _ => Default::default(),
-      },
-      match type_ {
-        All | AdminPurgeCommunity if other_person_id.is_none() => {
-          AdminPurgeCommunityView::list(&mut context.pool(), params).await?
-        }
-        _ => Default::default(),
-      },
-      match type_ {
-        All | AdminPurgePost if other_person_id.is_none() => {
-          AdminPurgePostView::list(&mut context.pool(), params).await?
-        }
-        _ => Default::default(),
-      },
-      match type_ {
-        All | AdminPurgeComment if other_person_id.is_none() => {
-          AdminPurgeCommentView::list(&mut context.pool(), params).await?
-        }
-        _ => Default::default(),
-      },
-      match type_ {
-        All | AdminBlockInstance if other_person_id.is_none() => {
-          AdminBlockInstanceView::list(&mut context.pool(), params).await?
-        }
-        _ => Default::default(),
-      },
-      match type_ {
-        All | AdminAllowInstance if other_person_id.is_none() => {
-          AdminAllowInstanceView::list(&mut context.pool(), params).await?
-        }
-        _ => Default::default(),
-      },
-    )
-  } else {
-    Default::default()
-  };
-
-  // Return the jwt
-  Ok(Json(GetModlogResponse {
-    removed_posts,
-    locked_posts,
-    featured_posts,
-    removed_comments,
-    removed_communities,
-    banned_from_community,
-    banned,
-    added_to_community,
-    added,
-    transferred_to_community,
-    admin_purged_persons,
-    admin_purged_communities,
-    admin_purged_posts,
-    admin_purged_comments,
-    hidden_communities,
-    admin_block_instance,
-    admin_allow_instance,
-  }))
+  Ok(Json(GetModlogResponse { modlog }))
 }
