@@ -110,7 +110,4 @@
   # Sets a response Access-Control-Allow-Origin CORS header
   # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
   cors_origin: "lemmy.tld"
-  # If this is true, users will never see the dialog asking to support Lemmy development with
-  # donations.
-  disable_donation_dialog: true
 }

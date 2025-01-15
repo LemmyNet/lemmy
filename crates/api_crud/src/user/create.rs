@@ -1,6 +1,5 @@
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::{web::Json, HttpRequest};
-use chrono::{TimeDelta, Utc};
 use lemmy_api_common::{
   claims::Claims,
   context::LemmyContext,

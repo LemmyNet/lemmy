@@ -48,10 +48,6 @@ pub struct Settings {
   /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
   #[doku(example = "lemmy.tld")]
   cors_origin: Option<String>,
-  /// If this is true, users will never see the dialog asking to support Lemmy development with
-  /// donations.
-  #[doku(example = "true")]
-  pub disable_donation_dialog: Option<bool>,
 }
 
 impl Settings {
