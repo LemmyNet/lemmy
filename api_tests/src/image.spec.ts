@@ -55,7 +55,6 @@ test("Upload image and delete it", async () => {
   const upload = await alphaImage.uploadImage(upload_form);
   expect(upload.image_url).toBeDefined();
   expect(upload.filename).toBeDefined();
-  expect(upload.delete_token).toBeDefined();
 
   // ensure that image download is working. theres probably a better way to do this
   const response = await fetch(upload.image_url ?? "");
@@ -82,7 +81,6 @@ test("Upload image and delete it", async () => {
 
   // delete image
   const delete_form: DeleteImageParams = {
-    token: upload.delete_token,
     filename: upload.filename,
   };
   const delete_ = await alphaImage.deleteImage(delete_form);
@@ -113,7 +111,6 @@ test("Purge user, uploaded image removed", async () => {
   };
   const upload = await user.uploadImage(upload_form);
   expect(upload.filename).toBeDefined();
-  expect(upload.delete_token).toBeDefined();
   expect(upload.image_url).toBeDefined();
 
   // ensure that image download is working. theres probably a better way to do this
@@ -144,7 +141,6 @@ test("Purge post, linked image removed", async () => {
   };
   const upload = await user.uploadImage(upload_form);
   expect(upload.filename).toBeDefined();
-  expect(upload.delete_token).toBeDefined();
   expect(upload.image_url).toBeDefined();
 
   // ensure that image download is working. theres probably a better way to do this

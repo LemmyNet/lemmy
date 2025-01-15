@@ -104,7 +104,7 @@ pub(super) async fn delete_old_image(
       .await
       .ok();
     if let Some(image) = image {
-      delete_image_from_pictrs(&image.pictrs_alias, &image.pictrs_delete_token, context).await?;
+      delete_image_from_pictrs(&image.pictrs_alias, context).await?;
     }
   }
   Ok(())
