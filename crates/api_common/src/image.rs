@@ -21,7 +21,6 @@ pub struct ImageGetParams {
 #[cfg_attr(feature = "full", ts(export))]
 pub struct DeleteImageParams {
   pub filename: String,
-  pub token: String,
 }
 
 #[skip_serializing_none]
@@ -43,7 +42,6 @@ pub struct ImageProxyParams {
 pub struct UploadImageResponse {
   pub image_url: Url,
   pub filename: String,
-  pub delete_token: String,
 }
 
 /// Parameter for setting community icon or banner. Can't use POST data here as it already contains

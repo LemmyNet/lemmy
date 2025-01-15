@@ -38,11 +38,13 @@ import {
   createCommunity,
   listReports,
   getMyUser,
+  listInbox,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
 import {
   EditSite,
+  PersonPostMentionView,
   PostReport,
   PostReportView,
   ReportCombinedView,
@@ -797,6 +799,44 @@ test("Fetch post with redirect", async () => {
   };
   let gammaPost2 = await gamma.resolveObject(form);
   expect(gammaPost2.post).toBeDefined();
+});
+
+test("Mention beta from alpha post body", async () => {
+  if (!betaCommunity) throw Error("no community");
+  let mentionContent = "A test mention of @lemmy_beta@lemmy-beta:8551";
+
+  const postOnAlphaRes = await createPost(
+    alpha,
+    betaCommunity.community.id,
+    undefined,
+    mentionContent,
+  );
+
+  expect(postOnAlphaRes.post_view.post.body).toBeDefined();
+  expect(postOnAlphaRes.post_view.community.local).toBe(false);
+  expect(postOnAlphaRes.post_view.creator.local).toBe(true);
+  expect(postOnAlphaRes.post_view.counts.score).toBe(1);
+
+  // get beta's localized copy of the alpha post
+  let betaPost = await waitForPost(beta, postOnAlphaRes.post_view.post);
+  if (!betaPost) {
+    throw "unable to locate post on beta";
+  }
+  expect(betaPost.post.ap_id).toBe(postOnAlphaRes.post_view.post.ap_id);
+  expect(betaPost.post.name).toBe(postOnAlphaRes.post_view.post.name);
+  await assertPostFederation(betaPost, postOnAlphaRes.post_view);
+
+  let mentionsRes = await waitUntil(
+    () => listInbox(beta, "PostMention"),
+    m => !!m.inbox[0],
+  );
+
+  const firstMention = mentionsRes.inbox[0] as PersonPostMentionView;
+  expect(firstMention.post.body).toBeDefined();
+  expect(firstMention.community.local).toBe(true);
+  expect(firstMention.creator.local).toBe(false);
+  expect(firstMention.counts.score).toBe(1);
+  expect(firstMention.person_post_mention.post_id).toBe(betaPost.post.id);
 });
 
 test("Rewrite markdown links", async () => {

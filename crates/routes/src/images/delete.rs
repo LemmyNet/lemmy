@@ -3,6 +3,7 @@ use actix_web::web::*;
 use lemmy_api_common::{
   context::LemmyContext,
   image::{CommunityIdQuery, DeleteImageParams},
+  request::delete_image_from_pictrs,
   utils::{is_admin, is_mod_or_admin},
   SuccessResponse,
 };
@@ -121,27 +122,19 @@ pub async fn delete_user_banner(
   Ok(Json(SuccessResponse::default()))
 }
 
-// TODO: get rid of delete tokens and allow deletion by admin or uploader
 pub async fn delete_image(
   data: Json<DeleteImageParams>,
   context: Data<LemmyContext>,
-  // require login
-  _local_user_view: LocalUserView,
+  local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  let pictrs_config = context.settings().pictrs()?;
-  let url = format!(
-    "{}image/delete/{}/{}",
-    pictrs_config.url, &data.token, &data.filename
-  );
+  LocalImage::delete_by_alias_and_user(
+    &mut context.pool(),
+    &data.filename,
+    local_user_view.local_user.id,
+  )
+  .await?;
 
-  context
-    .pictrs_client()
-    .delete(url)
-    .send()
-    .await?
-    .error_for_status()?;
-
-  LocalImage::delete_by_alias(&mut context.pool(), &data.filename).await?;
+  delete_image_from_pictrs(&data.filename, &context).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

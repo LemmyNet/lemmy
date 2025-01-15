@@ -265,7 +265,6 @@ pub struct PictrsResponse {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct PictrsFile {
   pub file: String,
-  pub delete_token: String,
   pub details: PictrsFileDetails,
 }
 
@@ -355,24 +354,18 @@ pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) ->
   }
 }
 
-pub async fn delete_image_from_pictrs(
-  alias: &str,
-  delete_token: &str,
-  context: &LemmyContext,
-) -> LemmyResult<()> {
+pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
   // Delete db row if any (old Lemmy versions didnt generate this).
   LocalImage::delete_by_alias(&mut context.pool(), alias)
     .await
     .ok();
 
   let pictrs_config = context.settings().pictrs()?;
-  let url = format!(
-    "{}image/delete/{}/{}",
-    pictrs_config.url, &delete_token, &alias
-  );
+  let url = format!("{}internal/delete?alias={}", pictrs_config.url, &alias);
   context
     .pictrs_client()
-    .delete(&url)
+    .post(&url)
+    .header("X-Api-Token", pictrs_config.api_key.unwrap_or_default())
     .timeout(REQWEST_TIMEOUT)
     .send()
     .await?
@@ -421,7 +414,6 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
     // IE, a local user shouldn't get to delete the thumbnails for their link posts
     local_user_id: None,
     pictrs_alias: image.file.clone(),
-    pictrs_delete_token: image.delete_token.clone(),
   };
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let thumbnail_url = image.image_url(&protocol_and_hostname)?;
