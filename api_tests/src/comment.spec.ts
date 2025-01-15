@@ -826,6 +826,7 @@ test("Report a comment", async () => {
 });
 
 test("Dont send a comment reply to a blocked community", async () => {
+  await beta.markAllNotificationsAsRead();
   let newCommunity = await createCommunity(beta);
   let newCommunityId = newCommunity.community_view.community.id;
 
@@ -839,7 +840,7 @@ test("Dont send a comment reply to a blocked community", async () => {
 
   // Check beta's inbox count
   let unreadCount = await getUnreadCount(beta);
-  expect(unreadCount.count).toBe(1);
+  expect(unreadCount.count).toBe(0);
 
   // Beta blocks the new beta community
   let blockRes = await blockCommunity(beta, newCommunityId, true);
@@ -859,10 +860,10 @@ test("Dont send a comment reply to a blocked community", async () => {
 
   // Check beta's inbox count, make sure it stays the same
   unreadCount = await getUnreadCount(beta);
-  expect(unreadCount.count).toBe(1);
+  expect(unreadCount.count).toBe(0);
 
-  let replies = await listInbox(beta, "CommentReply");
-  expect(replies.inbox.length).toBe(1);
+  let replies = await listInbox(beta, "CommentReply", true);
+  expect(replies.inbox.length).toBe(0);
 
   // Unblock the community
   blockRes = await blockCommunity(beta, newCommunityId, false);

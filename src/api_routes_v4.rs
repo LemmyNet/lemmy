@@ -312,26 +312,19 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/verify_email", post().to(verify_email))
           .route("/saved", get().to(list_person_saved)),
       )
-      .route("/account/settings/save", put().to(save_user_settings))
-      .service(
-        scope("/account/settings")
-          .wrap(rate_limit.import_user_settings())
-          .route("/export", get().to(export_settings))
-          .route("/import", post().to(import_settings)),
-      )
       .service(
         scope("/account")
           .route("", get().to(get_my_user))
           .route("/list_media", get().to(list_media))
           .route("/inbox", get().to(list_inbox))
           .route("/delete", post().to(delete_account))
-          .route(
-            "/mention/comment/mark_as_read",
-            post().to(mark_comment_mention_as_read),
-          )
-          .route(
-            "/mention/post/mark_as_read",
-            post().to(mark_post_mention_as_read),
+          .service(
+            scope("/mention")
+              .route(
+                "/comment/mark_as_read",
+                post().to(mark_comment_mention_as_read),
+              )
+              .route("/post/mark_as_read", post().to(mark_post_mention_as_read)),
           )
           .route("/mark_as_read/all", post().to(mark_all_notifications_read))
           .route("/report_count", get().to(report_count))
@@ -347,6 +340,14 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/person", post().to(user_block_person))
               .route("/community", post().to(user_block_community))
               .route("/instance", post().to(user_block_instance)),
+          )
+          .route("/settings/save", put().to(save_user_settings))
+          // Account settings import / export have a strict rate limit
+          .service(
+            scope("/settings")
+              .wrap(rate_limit.import_user_settings())
+              .route("/export", get().to(export_settings))
+              .route("/import", post().to(import_settings)),
           ),
       )
       // User actions
