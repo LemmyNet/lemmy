@@ -107,7 +107,7 @@ pub enum LemmyErrorType {
   CouldntHidePost,
   CouldntUpdateCommunity,
   CouldntUpdateReplies,
-  CouldntUpdatePersonMentions,
+  CouldntUpdatePersonCommentMentions,
   CouldntCreatePost,
   CouldntCreatePrivateMessage,
   CouldntUpdatePrivate,

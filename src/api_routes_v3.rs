@@ -28,10 +28,8 @@ use lemmy_api::{
     login::login,
     logout::logout,
     notifications::{
-      list_mentions::list_mentions,
-      list_replies::list_replies,
       mark_all_read::mark_all_notifications_read,
-      mark_mention_read::mark_person_mention_as_read,
+      mark_comment_mention_read::mark_comment_mention_as_read,
       mark_reply_read::mark_reply_as_read,
       unread_count::unread_count,
     },
@@ -108,7 +106,6 @@ use lemmy_api_crud::{
   private_message::{
     create::create_private_message,
     delete::delete_private_message,
-    read::get_private_message,
     update::update_private_message,
   },
   site::{create::create_site, read::get_site_v3, update::update_site},
@@ -254,7 +251,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
         .service(
           scope("/private_message")
             .wrap(rate_limit.message())
-            .route("/list", get().to(get_private_message))
             .route("", post().to(create_private_message))
             .route("", put().to(update_private_message))
             .route("/delete", post().to(delete_private_message))
@@ -315,12 +311,10 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           scope("/user")
             .wrap(rate_limit.message())
             .route("", get().to(read_person))
-            .route("/mention", get().to(list_mentions))
             .route(
               "/mention/mark_as_read",
-              post().to(mark_person_mention_as_read),
+              post().to(mark_comment_mention_as_read),
             )
-            .route("/replies", get().to(list_replies))
             // Admin action. I don't like that it's in /user
             .route("/ban", post().to(ban_from_site))
             .route("/banned", get().to(list_banned_users))

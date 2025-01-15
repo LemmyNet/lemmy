@@ -55,6 +55,11 @@ impl fmt::Display for CommentId {
   }
 }
 
+pub enum PostOrCommentId {
+  Post(PostId),
+  Comment(CommentId),
+}
+
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
@@ -71,7 +76,7 @@ pub struct LocalUserId(pub i32);
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The private message id.
-pub struct PrivateMessageId(i32);
+pub struct PrivateMessageId(pub i32);
 
 impl fmt::Display for PrivateMessageId {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -82,8 +87,14 @@ impl fmt::Display for PrivateMessageId {
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// The person mention id.
-pub struct PersonMentionId(i32);
+/// The person comment mention id.
+pub struct PersonCommentMentionId(pub i32);
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The person post mention id.
+pub struct PersonPostMentionId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
@@ -125,7 +136,7 @@ pub struct LanguageId(pub i32);
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The comment reply id.
-pub struct CommentReplyId(i32);
+pub struct CommentReplyId(pub i32);
 
 #[derive(
   Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default, Ord, PartialOrd,
@@ -203,6 +214,11 @@ pub struct PersonSavedCombinedId(i32);
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 pub struct ModlogCombinedId(i32);
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
+/// The inbox combined id
+pub struct InboxCombinedId(i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
