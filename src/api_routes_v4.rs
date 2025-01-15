@@ -35,10 +35,10 @@ use lemmy_api::{
     login::login,
     logout::logout,
     notifications::{
-      list_mentions::list_mentions,
-      list_replies::list_replies,
+      list_inbox::list_inbox,
       mark_all_read::mark_all_notifications_read,
-      mark_mention_read::mark_person_mention_as_read,
+      mark_comment_mention_read::mark_comment_mention_as_read,
+      mark_post_mention_read::mark_post_mention_as_read,
       mark_reply_read::mark_reply_as_read,
       unread_count::unread_count,
     },
@@ -125,7 +125,6 @@ use lemmy_api_crud::{
   private_message::{
     create::create_private_message,
     delete::delete_private_message,
-    read::get_private_message,
     update::update_private_message,
   },
   site::{create::create_site, read::get_site_v4, update::update_site},
@@ -283,7 +282,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
       // Private Message
       .service(
         scope("/private_message")
-          .route("/list", get().to(get_private_message))
           .route("", post().to(create_private_message))
           .route("", put().to(update_private_message))
           .route("/delete", post().to(delete_private_message))
@@ -314,28 +312,21 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/verify_email", post().to(verify_email))
           .route("/saved", get().to(list_person_saved)),
       )
-      .route("/account/settings/save", put().to(save_user_settings))
-      .service(
-        scope("/account/settings")
-          .wrap(rate_limit.import_user_settings())
-          .route("/export", get().to(export_settings))
-          .route("/import", post().to(import_settings)),
-      )
       .service(
         scope("/account")
           .route("", get().to(get_my_user))
           .route("/list_media", get().to(list_media))
-          .route("/mention", get().to(list_mentions))
-          .route("/replies", get().to(list_replies))
+          .route("/inbox", get().to(list_inbox))
           .route("/delete", post().to(delete_account))
-          .route(
-            "/mention/mark_as_read",
-            post().to(mark_person_mention_as_read),
+          .service(
+            scope("/mention")
+              .route(
+                "/comment/mark_as_read",
+                post().to(mark_comment_mention_as_read),
+              )
+              .route("/post/mark_as_read", post().to(mark_post_mention_as_read)),
           )
-          .route(
-            "/mention/mark_as_read/all",
-            post().to(mark_all_notifications_read),
-          )
+          .route("/mark_as_read/all", post().to(mark_all_notifications_read))
           .route("/report_count", get().to(report_count))
           .route("/unread_count", get().to(unread_count))
           .route("/list_logins", get().to(list_logins))
@@ -349,6 +340,14 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/person", post().to(user_block_person))
               .route("/community", post().to(user_block_community))
               .route("/instance", post().to(user_block_instance)),
+          )
+          .route("/settings/save", put().to(save_user_settings))
+          // Account settings import / export have a strict rate limit
+          .service(
+            scope("/settings")
+              .wrap(rate_limit.import_user_settings())
+              .route("/export", get().to(export_settings))
+              .route("/import", post().to(import_settings)),
           ),
       )
       // User actions

@@ -20,10 +20,10 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{ActivityHandler, Actor, Object},
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{build_response::send_local_notifs, context::LemmyContext};
 use lemmy_db_schema::{
   aggregates::structs::PostAggregates,
-  newtypes::PersonId,
+  newtypes::{PersonId, PostOrCommentId},
   source::{
     activity::ActivitySendTargets,
     community::Community,
@@ -32,7 +32,10 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
 };
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyError, LemmyResult},
+  utils::mention::scrape_text_for_mentions,
+};
 use url::Url;
 
 impl CreateOrUpdatePage {
@@ -122,6 +125,21 @@ impl ActivityHandler for CreateOrUpdatePage {
 
     // Calculate initial hot_rank for post
     PostAggregates::update_ranks(&mut context.pool(), post.id).await?;
+
+    let do_send_email = self.kind == CreateOrUpdateType::Create;
+    let actor = self.actor.dereference(context).await?;
+
+    // Send the post body mentions
+    let mentions = scrape_text_for_mentions(&post.body.clone().unwrap_or_default());
+    send_local_notifs(
+      mentions,
+      PostOrCommentId::Post(post.id),
+      &actor,
+      do_send_email,
+      context,
+      None,
+    )
+    .await?;
 
     Ok(())
   }

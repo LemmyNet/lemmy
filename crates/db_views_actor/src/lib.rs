@@ -1,6 +1,4 @@
 #[cfg(feature = "full")]
-pub mod comment_reply_view;
-#[cfg(feature = "full")]
 pub mod community_follower_view;
 #[cfg(feature = "full")]
 pub mod community_moderator_view;
@@ -9,7 +7,9 @@ pub mod community_person_ban_view;
 #[cfg(feature = "full")]
 pub mod community_view;
 #[cfg(feature = "full")]
-pub mod person_mention_view;
+pub mod inbox_combined_view;
 #[cfg(feature = "full")]
 pub mod person_view;
+#[cfg(feature = "full")]
+pub mod private_message_view;
 pub mod structs;
