@@ -3,6 +3,7 @@ use actix_web::web::*;
 use lemmy_api_common::{
   context::LemmyContext,
   image::{CommunityIdQuery, DeleteImageParams},
+  request::delete_image_from_pictrs,
   utils::{is_admin, is_mod_or_admin},
   SuccessResponse,
 };
@@ -133,19 +134,7 @@ pub async fn delete_image(
   )
   .await?;
 
-  let pictrs_config = context.settings().pictrs()?;
-  let url = format!(
-    "{}internal/delete?alias={}",
-    pictrs_config.url, &data.filename
-  );
-
-  context
-    .pictrs_client()
-    .post(url)
-    .header("X-Api-Token", pictrs_config.api_key.unwrap_or_default())
-    .send()
-    .await?
-    .error_for_status()?;
+  delete_image_from_pictrs(&data.filename, &context).await?;
 
   Ok(Json(SuccessResponse::default()))
 }
