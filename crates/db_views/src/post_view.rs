@@ -325,8 +325,8 @@ fn queries<'a>() -> Queries<
       query = query.filter(
         post::url_content_type.is_null().or(
           post::url_content_type
-            .not_like("image%")
-            .and(post::url_content_type.not_like("video%")),
+            .not_like("image/%")
+            .and(post::url_content_type.not_like("video/%")),
         ),
       );
     }
@@ -2211,14 +2211,6 @@ mod tests {
     let pool = &data.pool();
     let pool = &mut pool.into();
 
-    // Ensure the `hide_media` user setting is set
-    let local_user_form = LocalUserUpdateForm {
-      hide_media: Some(true),
-      ..Default::default()
-    };
-    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
-    data.local_user_view.local_user.hide_media = true;
-
     // Make one post an image post
     Post::update(
       pool,
@@ -2229,6 +2221,24 @@ mod tests {
       },
     )
     .await?;
+
+    // Make sure all the posts are returned when `hide_media` is unset
+    let hide_media_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(3, hide_media_listing.len());
+
+    // Ensure the `hide_media` user setting is set
+    let local_user_form = LocalUserUpdateForm {
+      hide_media: Some(true),
+      ..Default::default()
+    };
+    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
+    data.local_user_view.local_user.hide_media = true;
 
     // Ensure you don't see the image post
     let hide_media_listing = PostQuery {
