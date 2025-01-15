@@ -333,10 +333,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
             "/mention/post/mark_as_read",
             post().to(mark_post_mention_as_read),
           )
-          .route(
-            "/mark_as_read/all",
-            post().to(mark_all_notifications_read),
-          )
+          .route("/mark_as_read/all", post().to(mark_all_notifications_read))
           .route("/report_count", get().to(report_count))
           .route("/unread_count", get().to(unread_count))
           .route("/list_logins", get().to(list_logins))
