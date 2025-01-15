@@ -931,7 +931,6 @@ export async function deleteAllImages(api: LemmyHttp) {
     imagesRes.images
       .map(image => {
         const form: DeleteImageParams = {
-          token: image.local_image.pictrs_delete_token,
           filename: image.local_image.pictrs_alias,
         };
         return form;
