@@ -215,7 +215,6 @@ pub async fn do_upload_image(
     let form = LocalImageForm {
       local_user_id: Some(local_user_view.local_user.id),
       pictrs_alias: image.file.to_string(),
-      pictrs_delete_token: image.delete_token.to_string(),
     };
 
     let protocol_and_hostname = context.settings().get_protocol_and_hostname();
@@ -234,6 +233,5 @@ pub async fn do_upload_image(
   Ok(UploadImageResponse {
     image_url: url,
     filename: image.file,
-    delete_token: image.delete_token,
   })
 }

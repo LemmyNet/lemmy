@@ -198,17 +198,6 @@ pub struct PostView {
   pub tags: PostTags,
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
-/// A private message view.
-pub struct PrivateMessageView {
-  pub private_message: PrivateMessage,
-  pub creator: Person,
-  pub recipient: Person,
-}
-
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]

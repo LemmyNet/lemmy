@@ -26,7 +26,6 @@ pub struct LocalImage {
   #[cfg_attr(feature = "full", ts(optional))]
   pub local_user_id: Option<LocalUserId>,
   pub pictrs_alias: String,
-  pub pictrs_delete_token: String,
   pub published: DateTime<Utc>,
 }
 
@@ -36,7 +35,6 @@ pub struct LocalImage {
 pub struct LocalImageForm {
   pub local_user_id: Option<LocalUserId>,
   pub pictrs_alias: String,
-  pub pictrs_delete_token: String,
 }
 
 /// Stores all images which are hosted on remote domains. When attempting to proxy an image, it

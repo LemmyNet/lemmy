@@ -1,7 +1,6 @@
 use lemmy_db_schema::newtypes::{PersonId, PrivateMessageId};
-use lemmy_db_views::structs::PrivateMessageView;
+use lemmy_db_views_actor::structs::PrivateMessageView;
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
 
@@ -39,30 +38,6 @@ pub struct DeletePrivateMessage {
 pub struct MarkPrivateMessageAsRead {
   pub private_message_id: PrivateMessageId,
   pub read: bool,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Get your private messages.
-pub struct GetPrivateMessages {
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub unread_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub creator_id: Option<PersonId>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The private messages response.
-pub struct PrivateMessagesResponse {
-  pub private_messages: Vec<PrivateMessageView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
