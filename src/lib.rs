@@ -11,13 +11,14 @@ use actix_cors::Cors;
 use actix_web::{
   dev::{ServerHandle, ServiceResponse},
   middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
-  web::Data,
+  web::{get, scope, Data},
   App,
   HttpResponse,
   HttpServer,
 };
 use actix_web_prom::PrometheusMetricsBuilder;
 use clap::{Parser, Subcommand};
+use lemmy_api::sitemap::get_sitemap;
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
@@ -36,7 +37,7 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{schema_setup, source::secret::Secret, utils::build_db_pool};
 use lemmy_federate::{Opts, SendManager};
-use lemmy_routes::{feeds, images, nodeinfo, webfinger};
+use lemmy_routes::{feeds, nodeinfo, webfinger};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   rate_limit::RateLimitCell,
@@ -194,9 +195,13 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   let client = ClientBuilder::new(client_builder(&SETTINGS).build()?)
     .with(TracingMiddleware::default())
     .build();
+  let pictrs_client = ClientBuilder::new(client_builder(&SETTINGS).no_proxy().build()?)
+    .with(TracingMiddleware::default())
+    .build();
   let context = LemmyContext::create(
     pool.clone(),
     client.clone(),
+    pictrs_client,
     secret.clone(),
     rate_limit_cell.clone(),
   );
@@ -329,17 +334,12 @@ fn create_http_server(
     .build()
     .map_err(|e| LemmyErrorType::Unknown(format!("Should always be buildable: {e}")))?;
 
-  let context: LemmyContext = federation_config.deref().clone();
-  let rate_limit_cell = federation_config.rate_limit_cell().clone();
-
-  // Pictrs cannot use proxy
-  let pictrs_client = ClientBuilder::new(client_builder(&SETTINGS).no_proxy().build()?)
-    .with(TracingMiddleware::default())
-    .build();
-
   // Create Http server
   let bind = (settings.bind, settings.port);
   let server = HttpServer::new(move || {
+    let context: LemmyContext = federation_config.deref().clone();
+    let rate_limit_cell = federation_config.rate_limit_cell().clone();
+
     let cors_config = cors_config(&settings);
     let app = App::new()
       .wrap(middleware::Logger::new(
@@ -372,8 +372,12 @@ fn create_http_server(
         }
       })
       .configure(feeds::config)
-      .configure(|cfg| images::config(cfg, pictrs_client.clone(), &rate_limit_cell))
       .configure(nodeinfo::config)
+      .service(
+        scope("/sitemap.xml")
+          .wrap(rate_limit_cell.message())
+          .route("", get().to(get_sitemap)),
+      )
   })
   .disable_signals()
   .bind(bind)?

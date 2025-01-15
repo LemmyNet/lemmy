@@ -422,6 +422,25 @@ END;
 
 $$);
 
+CALL r.create_triggers ('community_report', $$
+BEGIN
+    UPDATE
+        community_aggregates AS a
+    SET
+        report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
+    FROM (
+        SELECT
+            (community_report).community_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (community_report).resolved), 0) AS unresolved_report_count
+    FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (community_report).community_id) AS diff
+WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
+    AND a.community_id = diff.community_id;
+
+RETURN NULL;
+
+END;
+
+$$);
+
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
 CREATE FUNCTION r.comment_aggregates_from_comment ()
@@ -685,6 +704,8 @@ CALL r.create_report_combined_trigger ('comment_report');
 
 CALL r.create_report_combined_trigger ('private_message_report');
 
+CALL r.create_report_combined_trigger ('community_report');
+
 -- person_content (comment, post)
 CREATE PROCEDURE r.create_person_content_combined_trigger (table_name text)
 LANGUAGE plpgsql
@@ -760,4 +781,79 @@ $a$;
 CALL r.create_person_saved_combined_trigger ('post');
 
 CALL r.create_person_saved_combined_trigger ('comment');
+
+-- modlog: (17 tables)
+-- admin_allow_instance
+-- admin_block_instance
+-- admin_purge_comment
+-- admin_purge_community
+-- admin_purge_person
+-- admin_purge_post
+-- mod_add
+-- mod_add_community
+-- mod_ban
+-- mod_ban_from_community
+-- mod_feature_post
+-- mod_hide_community
+-- mod_lock_post
+-- mod_remove_comment
+-- mod_remove_community
+-- mod_remove_post
+-- mod_transfer_community
+CREATE PROCEDURE r.create_modlog_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.modlog_combined_thing_insert ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                INSERT INTO modlog_combined (published, thing_id)
+                    VALUES (NEW.published, NEW.id);
+                RETURN NEW;
+            END $$;
+    CREATE TRIGGER modlog_combined
+        AFTER INSERT ON thing
+        FOR EACH ROW
+        EXECUTE FUNCTION r.modlog_combined_thing_insert ( );
+        $b$,
+        'thing',
+        table_name);
+END;
+$a$;
+
+CALL r.create_modlog_combined_trigger ('admin_allow_instance');
+
+CALL r.create_modlog_combined_trigger ('admin_block_instance');
+
+CALL r.create_modlog_combined_trigger ('admin_purge_comment');
+
+CALL r.create_modlog_combined_trigger ('admin_purge_community');
+
+CALL r.create_modlog_combined_trigger ('admin_purge_person');
+
+CALL r.create_modlog_combined_trigger ('admin_purge_post');
+
+CALL r.create_modlog_combined_trigger ('mod_add');
+
+CALL r.create_modlog_combined_trigger ('mod_add_community');
+
+CALL r.create_modlog_combined_trigger ('mod_ban');
+
+CALL r.create_modlog_combined_trigger ('mod_ban_from_community');
+
+CALL r.create_modlog_combined_trigger ('mod_feature_post');
+
+CALL r.create_modlog_combined_trigger ('mod_hide_community');
+
+CALL r.create_modlog_combined_trigger ('mod_lock_post');
+
+CALL r.create_modlog_combined_trigger ('mod_remove_comment');
+
+CALL r.create_modlog_combined_trigger ('mod_remove_community');
+
+CALL r.create_modlog_combined_trigger ('mod_remove_post');
+
+CALL r.create_modlog_combined_trigger ('mod_transfer_community');
 

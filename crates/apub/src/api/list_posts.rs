@@ -67,7 +67,7 @@ pub async fn list_posts(
 
   // parse pagination token
   let page_after = if let Some(pa) = &data.page_cursor {
-    Some(pa.read(&mut context.pool()).await?)
+    Some(pa.read(&mut context.pool(), local_user).await?)
   } else {
     None
   };

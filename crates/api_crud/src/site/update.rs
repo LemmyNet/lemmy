@@ -5,7 +5,6 @@ use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_common::{
   context::LemmyContext,
-  request::replace_image,
   site::{EditSite, SiteResponse},
   utils::{
     get_url_blocklist,
@@ -13,7 +12,6 @@ use lemmy_api_common::{
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
     process_markdown_opt,
-    proxy_image_link_opt_api,
   },
 };
 use lemmy_db_schema::{
@@ -26,7 +24,7 @@ use lemmy_db_schema::{
     site::{Site, SiteUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_string_update, diesel_url_update},
+  utils::diesel_string_update,
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
@@ -72,20 +70,10 @@ pub async fn update_site(
       .as_deref(),
   );
 
-  let icon = diesel_url_update(data.icon.as_deref())?;
-  replace_image(&icon, &site.icon, &context).await?;
-  let icon = proxy_image_link_opt_api(icon, &context).await?;
-
-  let banner = diesel_url_update(data.banner.as_deref())?;
-  replace_image(&banner, &site.banner, &context).await?;
-  let banner = proxy_image_link_opt_api(banner, &context).await?;
-
   let site_form = SiteUpdateForm {
     name: data.name.clone(),
     sidebar,
     description: diesel_string_update(data.description.as_deref()),
-    icon,
-    banner,
     content_warning: diesel_string_update(data.content_warning.as_deref()),
     updated: Some(Some(Utc::now())),
     ..Default::default()

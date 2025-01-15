@@ -1060,7 +1060,7 @@ pub async fn process_markdown(
 
   markdown_check_for_blocked_urls(&text, url_blocklist)?;
 
-  if context.settings().pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
+  if context.settings().pictrs()?.image_mode == PictrsImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
     RemoteImage::create(&mut context.pool(), links.clone()).await?;
 
@@ -1128,37 +1128,7 @@ async fn proxy_image_link_internal(
 /// Rewrite a link to go through `/api/v4/image_proxy` endpoint. This is only for remote urls and
 /// if image_proxy setting is enabled.
 pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
-  proxy_image_link_internal(
-    link,
-    context.settings().pictrs_config()?.image_mode(),
-    context,
-  )
-  .await
-}
-
-pub async fn proxy_image_link_opt_api(
-  link: Option<Option<DbUrl>>,
-  context: &LemmyContext,
-) -> LemmyResult<Option<Option<DbUrl>>> {
-  if let Some(Some(link)) = link {
-    proxy_image_link(link.into(), context)
-      .await
-      .map(Some)
-      .map(Some)
-  } else {
-    Ok(link)
-  }
-}
-
-pub async fn proxy_image_link_api(
-  link: Option<DbUrl>,
-  context: &LemmyContext,
-) -> LemmyResult<Option<DbUrl>> {
-  if let Some(link) = link {
-    proxy_image_link(link.into(), context).await.map(Some)
-  } else {
-    Ok(link)
-  }
+  proxy_image_link_internal(link, context.settings().pictrs()?.image_mode, context).await
 }
 
 pub async fn proxy_image_link_opt_apub(
@@ -1177,7 +1147,7 @@ fn build_proxied_image_url(
   protocol_and_hostname: &str,
 ) -> Result<Url, url::ParseError> {
   Url::parse(&format!(
-    "{}/api/v4/image_proxy?url={}",
+    "{}/api/v4/image/proxy?url={}",
     protocol_and_hostname,
     encode(link.as_str())
   ))
@@ -1187,16 +1157,18 @@ fn build_proxied_image_url(
 mod tests {
 
   use super::*;
-  use lemmy_db_schema::source::{
-    comment::CommentInsertForm,
-    community::CommunityInsertForm,
-    person::PersonInsertForm,
-    post::PostInsertForm,
+  use lemmy_db_schema::{
+    source::{
+      comment::CommentInsertForm,
+      community::CommunityInsertForm,
+      person::PersonInsertForm,
+      post::PostInsertForm,
+    },
+    ModlogActionType,
   };
-  use lemmy_db_views_moderator::structs::{
-    ModRemoveCommentView,
-    ModRemovePostView,
-    ModlogListParams,
+  use lemmy_db_views_moderator::{
+    modlog_combined_view::ModlogCombinedQuery,
+    structs::{ModRemoveCommentView, ModRemovePostView, ModlogCombinedView},
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -1256,7 +1228,7 @@ mod tests {
     )
     .await?;
     assert_eq!(
-      "https://lemmy-alpha/api/v4/image_proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
+      "https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
       proxied.as_str()
     );
 
@@ -1332,48 +1304,55 @@ mod tests {
     .await?;
 
     // Verify that their posts and comments are removed.
-    let params = ModlogListParams {
-      community_id: None,
-      mod_person_id: None,
-      other_person_id: None,
-      post_id: None,
-      comment_id: None,
-      page: None,
-      limit: None,
-      hide_modlog_names: false,
-    };
-
     // Posts
-    let post_modlog = ModRemovePostView::list(pool, params).await?;
+    let post_modlog = ModlogCombinedQuery {
+      type_: Some(ModlogActionType::ModRemovePost),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_eq!(2, post_modlog.len());
 
-    let mod_removed_posts = post_modlog
-      .iter()
-      .map(|p| p.mod_remove_post.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![true, true], mod_removed_posts);
-
-    let removed_posts = post_modlog
-      .iter()
-      .map(|p| p.post.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![true, true], removed_posts);
+    assert!(matches!(
+      &post_modlog[..],
+      [
+        ModlogCombinedView::ModRemovePost(ModRemovePostView {
+          mod_remove_post: ModRemovePost { removed: true, .. },
+          post: Post { removed: true, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemovePost(ModRemovePostView {
+          mod_remove_post: ModRemovePost { removed: true, .. },
+          post: Post { removed: true, .. },
+          ..
+        }),
+      ],
+    ));
 
     // Comments
-    let comment_modlog = ModRemoveCommentView::list(pool, params).await?;
+    let comment_modlog = ModlogCombinedQuery {
+      type_: Some(ModlogActionType::ModRemoveComment),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_eq!(2, comment_modlog.len());
 
-    let mod_removed_comments = comment_modlog
-      .iter()
-      .map(|p| p.mod_remove_comment.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![true, true], mod_removed_comments);
-
-    let removed_comments = comment_modlog
-      .iter()
-      .map(|p| p.comment.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![true, true], removed_comments);
+    assert!(matches!(
+      &comment_modlog[..],
+      [
+        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
+          mod_remove_comment: ModRemoveComment { removed: true, .. },
+          comment: Comment { removed: true, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
+          mod_remove_comment: ModRemoveComment { removed: true, .. },
+          comment: Comment { removed: true, .. },
+          ..
+        }),
+      ],
+    ));
 
     // Now restore the content, and make sure it got appended
     remove_or_restore_user_data(
@@ -1386,37 +1365,74 @@ mod tests {
     .await?;
 
     // Posts
-    let post_modlog = ModRemovePostView::list(pool, params).await?;
+    let post_modlog = ModlogCombinedQuery {
+      type_: Some(ModlogActionType::ModRemovePost),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_eq!(4, post_modlog.len());
 
-    let mod_restored_posts = post_modlog
-      .iter()
-      .map(|p| p.mod_remove_post.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![false, false, true, true], mod_restored_posts);
-
-    let restored_posts = post_modlog
-      .iter()
-      .map(|p| p.post.removed)
-      .collect::<Vec<bool>>();
-    // All of these will be false, cause its the current state of the post
-    assert_eq!(vec![false, false, false, false], restored_posts);
+    assert!(matches!(
+      &post_modlog[..],
+      [
+        ModlogCombinedView::ModRemovePost(ModRemovePostView {
+          mod_remove_post: ModRemovePost { removed: false, .. },
+          post: Post { removed: false, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemovePost(ModRemovePostView {
+          mod_remove_post: ModRemovePost { removed: false, .. },
+          post: Post { removed: false, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemovePost(ModRemovePostView {
+          mod_remove_post: ModRemovePost { removed: true, .. },
+          post: Post { removed: false, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemovePost(ModRemovePostView {
+          mod_remove_post: ModRemovePost { removed: true, .. },
+          post: Post { removed: false, .. },
+          ..
+        }),
+      ],
+    ));
 
     // Comments
-    let comment_modlog = ModRemoveCommentView::list(pool, params).await?;
+    let comment_modlog = ModlogCombinedQuery {
+      type_: Some(ModlogActionType::ModRemoveComment),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_eq!(4, comment_modlog.len());
 
-    let mod_restored_comments = comment_modlog
-      .iter()
-      .map(|p| p.mod_remove_comment.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![false, false, true, true], mod_restored_comments);
-
-    let restored_comments = comment_modlog
-      .iter()
-      .map(|p| p.comment.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![false, false, false, false], restored_comments);
+    assert!(matches!(
+      &comment_modlog[..],
+      [
+        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
+          mod_remove_comment: ModRemoveComment { removed: false, .. },
+          comment: Comment { removed: false, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
+          mod_remove_comment: ModRemoveComment { removed: false, .. },
+          comment: Comment { removed: false, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
+          mod_remove_comment: ModRemoveComment { removed: true, .. },
+          comment: Comment { removed: false, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
+          mod_remove_comment: ModRemoveComment { removed: true, .. },
+          comment: Comment { removed: false, .. },
+          ..
+        }),
+      ],
+    ));
 
     Instance::delete(pool, inserted_instance.id).await?;
 

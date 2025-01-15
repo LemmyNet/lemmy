@@ -78,29 +78,18 @@ mod tests {
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
-      secret::Secret,
     },
     traits::Crud,
-    utils::build_db_pool_for_tests,
   };
-  use lemmy_utils::{error::LemmyResult, rate_limit::RateLimitCell};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use reqwest::Client;
-  use reqwest_middleware::ClientBuilder;
   use serial_test::serial;
 
   #[tokio::test]
   #[serial]
   async fn test_should_not_validate_user_token_after_password_change() -> LemmyResult<()> {
-    let pool_ = build_db_pool_for_tests();
-    let pool = &mut (&pool_).into();
-    let secret = Secret::init(pool).await?;
-    let context = LemmyContext::create(
-      pool_.clone(),
-      ClientBuilder::new(Client::default()).build(),
-      secret,
-      RateLimitCell::with_test_config(),
-    );
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 

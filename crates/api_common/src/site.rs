@@ -42,25 +42,7 @@ use lemmy_db_views_actor::structs::{
   CommunityView,
   PersonView,
 };
-use lemmy_db_views_moderator::structs::{
-  AdminAllowInstanceView,
-  AdminBlockInstanceView,
-  AdminPurgeCommentView,
-  AdminPurgeCommunityView,
-  AdminPurgePersonView,
-  AdminPurgePostView,
-  ModAddCommunityView,
-  ModAddView,
-  ModBanFromCommunityView,
-  ModBanView,
-  ModFeaturePostView,
-  ModHideCommunityView,
-  ModLockPostView,
-  ModRemoveCommentView,
-  ModRemoveCommunityView,
-  ModRemovePostView,
-  ModTransferCommunityView,
-};
+use lemmy_db_views_moderator::structs::{ModlogCombinedPaginationCursor, ModlogCombinedView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -139,7 +121,7 @@ pub struct ResolveObjectResponse {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Fetches the modlog.
@@ -149,10 +131,6 @@ pub struct GetModlog {
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ModlogActionType>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub other_person_id: Option<PersonId>,
@@ -160,31 +138,18 @@ pub struct GetModlog {
   pub post_id: Option<PostId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_id: Option<CommentId>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<ModlogCombinedPaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The modlog fetch response.
-// TODO this should be redone as a list of tagged enums
 pub struct GetModlogResponse {
-  pub removed_posts: Vec<ModRemovePostView>,
-  pub locked_posts: Vec<ModLockPostView>,
-  pub featured_posts: Vec<ModFeaturePostView>,
-  pub removed_comments: Vec<ModRemoveCommentView>,
-  pub removed_communities: Vec<ModRemoveCommunityView>,
-  pub banned_from_community: Vec<ModBanFromCommunityView>,
-  pub banned: Vec<ModBanView>,
-  pub added_to_community: Vec<ModAddCommunityView>,
-  pub transferred_to_community: Vec<ModTransferCommunityView>,
-  pub added: Vec<ModAddView>,
-  pub admin_purged_persons: Vec<AdminPurgePersonView>,
-  pub admin_purged_communities: Vec<AdminPurgeCommunityView>,
-  pub admin_purged_posts: Vec<AdminPurgePostView>,
-  pub admin_purged_comments: Vec<AdminPurgeCommentView>,
-  pub hidden_communities: Vec<ModHideCommunityView>,
-  pub admin_block_instance: Vec<AdminBlockInstanceView>,
-  pub admin_allow_instance: Vec<AdminAllowInstanceView>,
+  pub modlog: Vec<ModlogCombinedView>,
 }
 
 #[skip_serializing_none]
@@ -199,9 +164,6 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub icon: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub banner: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -294,12 +256,6 @@ pub struct EditSite {
   /// A shorter, one line description of your site.
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
-  /// A url for your site's icon.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub icon: Option<String>,
-  /// A url for your site's banner.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub banner: Option<String>,
   /// Limits community creation to admins only.
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
@@ -449,6 +405,9 @@ pub struct GetSiteResponse {
   #[cfg_attr(feature = "full", ts(optional))]
   pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
+  // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
+  // banners can be set.
+  pub image_upload_disabled: bool,
 }
 
 #[skip_serializing_none]

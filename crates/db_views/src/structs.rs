@@ -3,11 +3,18 @@ use diesel::Queryable;
 #[cfg(feature = "full")]
 use diesel::{deserialize::FromSqlRow, expression::AsExpression, sql_types};
 use lemmy_db_schema::{
-  aggregates::structs::{CommentAggregates, PersonAggregates, PostAggregates, SiteAggregates},
+  aggregates::structs::{
+    CommentAggregates,
+    CommunityAggregates,
+    PersonAggregates,
+    PostAggregates,
+    SiteAggregates,
+  },
   source::{
     comment::Comment,
     comment_report::CommentReport,
     community::Community,
+    community_report::CommunityReport,
     custom_emoji::CustomEmoji,
     custom_emoji_keyword::CustomEmojiKeyword,
     images::{ImageDetails, LocalImage},
@@ -80,6 +87,22 @@ pub struct CommentView {
   pub my_vote: Option<i16>,
 }
 
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A community report view.
+pub struct CommunityReportView {
+  pub community_report: CommunityReport,
+  pub community: Community,
+  pub creator: Person,
+  pub counts: CommunityAggregates,
+  pub subscribed: SubscribedType,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub resolver: Option<Person>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
@@ -125,25 +148,25 @@ pub struct PostReportView {
 /// prevent ossification (api users love to make assumptions (e.g. parse stuff that looks like
 /// numbers as numbers) about apis that aren't part of the spec
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(ts_rs::TS))]
+#[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct PaginationCursor(pub String);
 
 /// like PaginationCursor but for the report_combined table
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(ts_rs::TS))]
+#[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct ReportCombinedPaginationCursor(pub String);
 
 /// like PaginationCursor but for the person_content_combined table
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(ts_rs::TS))]
+#[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct PersonContentCombinedPaginationCursor(pub String);
 
 /// like PaginationCursor but for the person_saved_combined table
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(ts_rs::TS))]
+#[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct PersonSavedCombinedPaginationCursor(pub String);
 
@@ -283,9 +306,12 @@ pub struct ReportCombinedViewInternal {
   // Private-message-specific
   pub private_message_report: Option<PrivateMessageReport>,
   pub private_message: Option<PrivateMessage>,
+  // Community-specific
+  pub community_report: Option<CommunityReport>,
+  pub community_counts: Option<CommunityAggregates>,
   // Shared
   pub report_creator: Person,
-  pub item_creator: Person,
+  pub item_creator: Option<Person>,
   pub community: Option<Community>,
   pub subscribed: SubscribedType,
   pub resolver: Option<Person>,
@@ -304,6 +330,7 @@ pub enum ReportCombinedView {
   Post(PostReportView),
   Comment(CommentReportView),
   PrivateMessage(PrivateMessageReportView),
+  Community(CommunityReportView),
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
