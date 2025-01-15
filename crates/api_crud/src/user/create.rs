@@ -478,8 +478,6 @@ async fn create_local_user(
   // If its the initial site setup, they are an admin
   local_user_form.admin = Some(!local_site.site_setup);
   local_user_form.interface_language = language_tags.first().cloned();
-  // Initialize donation time, this way dialog will first be shown 4 weeks after signup.
-  local_user_form.last_donation_notification = Some(Utc::now() - TimeDelta::weeks(48));
   let inserted_local_user =
     LocalUser::create(&mut context.pool(), &local_user_form, language_ids).await?;
 
