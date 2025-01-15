@@ -899,7 +899,7 @@ BEGIN
             LANGUAGE plpgsql
             AS $$
             BEGIN
-            -- TODO need to figure out how to do the other columns here
+                -- TODO need to figure out how to do the other columns here
                 INSERT INTO search_combined (published, thing_id)
                     VALUES (NEW.published, NEW.id);
                 RETURN NEW;
@@ -921,3 +921,4 @@ CALL r.create_search_combined_trigger ('comment');
 CALL r.create_search_combined_trigger ('community');
 
 CALL r.create_search_combined_trigger ('person');
+
