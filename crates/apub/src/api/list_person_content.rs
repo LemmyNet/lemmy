@@ -37,9 +37,11 @@ pub async fn list_person_content(
     None
   };
   let page_back = data.page_back;
+  let type_ = data.type_;
 
   let content = PersonContentCombinedQuery {
     creator_id: person_details_id,
+    type_,
     page_after,
     page_back,
   }

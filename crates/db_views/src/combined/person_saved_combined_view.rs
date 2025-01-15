@@ -31,6 +31,8 @@ use lemmy_db_schema::{
     post,
     post_actions,
     post_aggregates,
+    post_tag,
+    tag,
   },
   source::{
     combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
@@ -38,6 +40,7 @@ use lemmy_db_schema::{
   },
   utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool},
   InternalToCombinedView,
+  PersonContentType,
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -75,6 +78,7 @@ pub struct PaginationCursorData(PersonSavedCombined);
 
 #[derive(Default)]
 pub struct PersonSavedCombinedQuery {
+  pub type_: Option<PersonContentType>,
   pub page_after: Option<PaginationCursorData>,
   pub page_back: Option<bool>,
 }
@@ -89,6 +93,15 @@ impl PersonSavedCombinedQuery {
     let item_creator = person::id;
 
     let conn = &mut get_conn(pool).await?;
+
+    let post_tags = post_tag::table
+      .inner_join(tag::table)
+      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
+        "json_agg(tag.*)",
+      ))
+      .filter(post_tag::post_id.eq(post::id))
+      .filter(tag::deleted.eq(false))
+      .single_value();
 
     // Notes: since the post_id and comment_id are optional columns,
     // many joins must use an OR condition.
@@ -172,6 +185,7 @@ impl PersonSavedCombinedQuery {
         post_actions::hidden.nullable().is_not_null(),
         post_actions::like_score.nullable(),
         image_details::all_columns.nullable(),
+        post_tags,
         // Comment-specific
         comment::all_columns.nullable(),
         comment_aggregates::all_columns.nullable(),
@@ -198,6 +212,16 @@ impl PersonSavedCombinedQuery {
 
     let mut query = PaginatedQueryBuilder::new(query);
 
+    if let Some(type_) = self.type_ {
+      query = match type_ {
+        PersonContentType::All => query,
+        PersonContentType::Comments => {
+          query.filter(person_saved_combined::comment_id.is_not_null())
+        }
+        PersonContentType::Posts => query.filter(person_saved_combined::post_id.is_not_null()),
+      }
+    }
+
     let page_after = self.page_after.map(|c| c.0);
 
     if self.page_back.unwrap_or_default() {
@@ -206,9 +230,9 @@ impl PersonSavedCombinedQuery {
       query = query.after(page_after);
     }
 
-    // Sorting by published
+    // Sorting by saved desc
     query = query
-      .then_desc(key::published)
+      .then_desc(key::saved)
       // Tie breaker
       .then_desc(key::id);
 
@@ -217,7 +241,10 @@ impl PersonSavedCombinedQuery {
       .await?;
 
     // Map the query results to the enum
-    let out = res.into_iter().filter_map(|u| u.map_to_enum()).collect();
+    let out = res
+      .into_iter()
+      .filter_map(InternalToCombinedView::map_to_enum)
+      .collect();
 
     Ok(out)
   }

@@ -132,7 +132,7 @@ pub struct GetModlog {
   #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ModlogActionType>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub modded_person_id: Option<PersonId>,
+  pub other_person_id: Option<PersonId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub post_id: Option<PostId>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -147,7 +147,6 @@ pub struct GetModlog {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The modlog fetch response.
-// TODO this should be redone as a list of tagged enums
 pub struct GetModlogResponse {
   pub modlog: Vec<ModlogCombinedView>,
 }
@@ -164,11 +163,6 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub icon: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub banner: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub enable_nsfw: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -226,8 +220,6 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub federation_enabled: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub federation_debug: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_enabled: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_difficulty: Option<String>,
@@ -261,15 +253,6 @@ pub struct EditSite {
   /// A shorter, one line description of your site.
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
-  /// A url for your site's icon.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub icon: Option<String>,
-  /// A url for your site's banner.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub banner: Option<String>,
-  /// Whether to enable NSFW.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub enable_nsfw: Option<bool>,
   /// Limits community creation to admins only.
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
@@ -348,9 +331,6 @@ pub struct EditSite {
   /// Whether to enable federation.
   #[cfg_attr(feature = "full", ts(optional))]
   pub federation_enabled: Option<bool>,
-  /// Enables federation debugging.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub federation_debug: Option<bool>,
   /// Whether to enable captchas for signups.
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_enabled: Option<bool>,
@@ -418,6 +398,9 @@ pub struct GetSiteResponse {
   #[cfg_attr(feature = "full", ts(optional))]
   pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
+  // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
+  // banners can be set.
+  pub image_upload_disabled: bool,
 }
 
 #[skip_serializing_none]

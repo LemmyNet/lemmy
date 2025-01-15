@@ -35,7 +35,7 @@ pub async fn get_mod_log(
   } else {
     data.mod_person_id
   };
-  let modded_person_id = data.modded_person_id;
+  let other_person_id = data.other_person_id;
   let post_id = data.post_id;
   let comment_id = data.comment_id;
 
@@ -51,7 +51,7 @@ pub async fn get_mod_log(
     type_,
     community_id,
     mod_person_id,
-    modded_person_id,
+    other_person_id,
     post_id,
     comment_id,
     hide_modlog_names: Some(hide_modlog_names),

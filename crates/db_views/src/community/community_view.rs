@@ -90,17 +90,17 @@ fn queries<'a>() -> Queries<
     query.first(&mut conn).await
   };
 
-  let list = move |mut conn: DbConn<'a>, (options, site): (CommunityQuery<'a>, &'a Site)| async move {
+  let list = move |mut conn: DbConn<'a>, (o, site): (CommunityQuery<'a>, &'a Site)| async move {
     use CommunitySortType::*;
 
-    let mut query = all_joins(community::table.into_boxed(), options.local_user).select(selection);
+    let mut query = all_joins(community::table.into_boxed(), o.local_user).select(selection);
 
-    if let Some(search_term) = options.search_term {
+    if let Some(search_term) = o.search_term {
       let searcher = fuzzy_search(&search_term);
       let name_filter = community::name.ilike(searcher.clone());
       let title_filter = community::title.ilike(searcher.clone());
       let description_filter = community::description.ilike(searcher.clone());
-      query = if options.title_only.unwrap_or_default() {
+      query = if o.title_only.unwrap_or_default() {
         query.filter(name_filter.or(title_filter))
       } else {
         query.filter(name_filter.or(title_filter.or(description_filter)))
@@ -108,7 +108,7 @@ fn queries<'a>() -> Queries<
     }
 
     // Hide deleted and removed for non-admins or mods
-    if !options.is_mod_or_admin {
+    if !o.is_mod_or_admin {
       query = query.filter(not_removed_or_deleted).filter(
         community::hidden
           .eq(false)
@@ -116,7 +116,7 @@ fn queries<'a>() -> Queries<
       );
     }
 
-    match options.sort.unwrap_or(Hot) {
+    match o.sort.unwrap_or(Hot) {
       Hot | Active | Scaled => query = query.order_by(community_aggregates::hot_rank.desc()),
       NewComments | TopDay | TopTwelveHour | TopSixHour | TopHour => {
         query = query.order_by(community_aggregates::users_active_day.desc())
@@ -137,7 +137,7 @@ fn queries<'a>() -> Queries<
       NameDesc => query = query.order_by(lower(community::name).desc()),
     };
 
-    if let Some(listing_type) = options.listing_type {
+    if let Some(listing_type) = o.listing_type {
       query = match listing_type {
         ListingType::Subscribed => {
           query.filter(community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted)))
@@ -151,13 +151,13 @@ fn queries<'a>() -> Queries<
     // also hidden (based on profile setting)
     query = query.filter(instance_actions::blocked.is_null());
     query = query.filter(community_actions::blocked.is_null());
-    if !(options.local_user.show_nsfw(site) || options.show_nsfw) {
+    if !(o.local_user.show_nsfw(site) || o.show_nsfw) {
       query = query.filter(community::nsfw.eq(false));
     }
 
-    query = options.local_user.visible_communities_only(query);
+    query = o.local_user.visible_communities_only(query);
 
-    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+    let (limit, offset) = limit_and_offset(o.page, o.limit)?;
     query
       .limit(limit)
       .offset(offset)

@@ -8,10 +8,8 @@
     "object": "http://lemmy-alpha:8541/post/2",
     "cc": ["http://lemmy-alpha:8541/c/main"],
     "type": "Lock",
-    "id": "http://lemmy-alpha:8541/activities/lock/08b6fd3e-9ef3-4358-a987-8bb641f3e2c3",
-    "audience": "http://lemmy-alpha:8541/c/main"
+    "id": "http://lemmy-alpha:8541/activities/lock/08b6fd3e-9ef3-4358-a987-8bb641f3e2c3"
   },
   "cc": ["http://lemmy-alpha:8541/c/main"],
-  "type": "Undo",
-  "audience": "http://lemmy-alpha:8541/c/main"
+  "type": "Undo"
 }

@@ -87,6 +87,9 @@ pub async fn create_post(
   let community = Community::read(&mut context.pool(), data.community_id).await?;
   check_community_user_action(&local_user_view.person, &community, &mut context.pool()).await?;
 
+  // If its an NSFW community, then use that as a default
+  let nsfw = data.nsfw.or(Some(community.nsfw));
+
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;
     CommunityModeratorView::check_is_community_moderator(
@@ -108,10 +111,10 @@ pub async fn create_post(
   let scheduled_publish_time =
     convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?;
   let post_form = PostInsertForm {
-    url: url.map(Into::into),
+    url,
     body,
     alt_text: data.alt_text.clone(),
-    nsfw: data.nsfw,
+    nsfw,
     language_id: Some(language_id),
     scheduled_publish_time,
     ..PostInsertForm::new(

@@ -41,6 +41,7 @@ pub async fn list_posts(
   } else {
     data.community_id
   };
+  let read_only = data.read_only;
   let show_hidden = data.show_hidden;
   let show_read = data.show_read;
   let show_nsfw = data.show_nsfw;
@@ -66,7 +67,7 @@ pub async fn list_posts(
 
   // parse pagination token
   let page_after = if let Some(pa) = &data.page_cursor {
-    Some(pa.read(&mut context.pool()).await?)
+    Some(pa.read(&mut context.pool(), local_user).await?)
   } else {
     None
   };
@@ -76,6 +77,7 @@ pub async fn list_posts(
     listing_type,
     sort,
     community_id,
+    read_only,
     liked_only,
     disliked_only,
     page,

@@ -105,6 +105,12 @@ pub struct CommentReportId(pub i32);
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
+/// The community report id.
+pub struct CommunityReportId(pub i32);
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", ts(export))]
 /// The post report id.
 pub struct PostReportId(pub i32);
 
@@ -195,15 +201,13 @@ pub struct DbUrl(pub(crate) Box<Url>);
 /// The report combined id
 pub struct ReportCombinedId(i32);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
 /// The person content combined id
 pub struct PersonContentCombinedId(i32);
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
-#[cfg_attr(feature = "full", ts(export))]
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
 /// The person saved combined id
 pub struct PersonSavedCombinedId(i32);
 
@@ -411,3 +415,9 @@ impl InstanceId {
     self.0
   }
 }
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The internal tag id.
+pub struct TagId(pub i32);

@@ -39,7 +39,9 @@ use lemmy_db_schema::{
     post,
     post_actions,
     post_aggregates,
+    post_tag,
     search_combined,
+    tag,
   },
   source::{
     combined::search::{search_combined_keys as key, SearchCombined},
@@ -115,6 +117,15 @@ impl SearchCombinedQuery {
     let item_creator = person::id;
 
     let conn = &mut get_conn(pool).await?;
+
+    let post_tags = post_tag::table
+      .inner_join(tag::table)
+      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
+        "json_agg(tag.*)",
+      ))
+      .filter(post_tag::post_id.eq(post::id))
+      .filter(tag::deleted.eq(false))
+      .single_value();
 
     let item_creator_join = search_combined::person_id
       .eq(item_creator.nullable())
@@ -209,6 +220,7 @@ impl SearchCombinedQuery {
         post_actions::hidden.nullable().is_not_null(),
         post_actions::like_score.nullable(),
         image_details::all_columns.nullable(),
+        post_tags,
         // Comment-specific
         comment::all_columns.nullable(),
         comment_aggregates::all_columns.nullable(),
@@ -356,7 +368,10 @@ impl SearchCombinedQuery {
     let res = query.load::<SearchCombinedViewInternal>(conn).await?;
 
     // Map the query results to the enum
-    let out = res.into_iter().filter_map(|u| u.map_to_enum()).collect();
+    let out = res
+      .into_iter()
+      .filter_map(InternalToCombinedView::map_to_enum)
+      .collect();
 
     Ok(out)
   }
@@ -365,9 +380,9 @@ impl SearchCombinedQuery {
 impl InternalToCombinedView for SearchCombinedViewInternal {
   type CombinedView = SearchCombinedView;
 
-  fn map_to_enum(&self) -> Option<Self::CombinedView> {
+  fn map_to_enum(self) -> Option<Self::CombinedView> {
     // Use for a short alias
-    let v = self.clone();
+    let v = self;
 
     if let (Some(comment), Some(counts), Some(creator), Some(post), Some(community)) = (
       v.comment,
@@ -421,6 +436,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         my_vote: v.my_post_vote,
         image_details: v.image_details,
         banned_from_community: v.banned_from_community,
+        tags: v.post_tags,
       }))
     } else if let (Some(community), Some(counts)) = (v.community, v.community_counts) {
       Some(SearchCombinedView::Community(CommunityView {
@@ -971,7 +987,7 @@ mod tests {
     // Test title only search to make sure 'postbody' doesn't show up
     // Using a term
     let post_search_url_only = SearchCombinedQuery {
-      search_term: data.timmy_post.url.as_ref().map(|u| u.to_string()),
+      search_term: data.timmy_post.url.as_ref().map(ToString::to_string),
       type_: Some(SearchType::Posts),
       post_url_only: Some(true),
       ..Default::default()

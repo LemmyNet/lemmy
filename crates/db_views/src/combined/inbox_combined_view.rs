@@ -40,7 +40,9 @@ use lemmy_db_schema::{
     post,
     post_actions,
     post_aggregates,
+    post_tag,
     private_message,
+    tag,
   },
   source::{
     combined::inbox::{inbox_combined_keys as key, InboxCombined},
@@ -244,12 +246,20 @@ impl InboxCombinedQuery {
 
     let community_join = post::community_id.eq(community::id);
 
+    let post_tags = post_tag::table
+      .inner_join(tag::table)
+      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
+        "json_agg(tag.*)",
+      ))
+      .filter(post_tag::post_id.eq(post::id))
+      .filter(tag::deleted.eq(false))
+      .single_value();
+
     let mut query = inbox_combined::table
       .left_join(comment_reply::table)
       .left_join(person_comment_mention::table)
       .left_join(person_post_mention::table)
       .left_join(private_message::table.on(private_message_join))
-      // .left_join(private_message::table)
       .left_join(comment::table.on(comment_join))
       .left_join(post::table.on(post_join))
       .left_join(community::table.on(community_join))
@@ -309,6 +319,7 @@ impl InboxCombinedQuery {
         post_actions::hidden.nullable().is_not_null(),
         post_actions::like_score.nullable(),
         image_details::all_columns.nullable(),
+        post_tags,
         private_message::all_columns.nullable(),
         // Shared
         post::all_columns.nullable(),
@@ -418,7 +429,10 @@ impl InboxCombinedQuery {
     let res = query.load::<InboxCombinedViewInternal>(conn).await?;
 
     // Map the query results to the enum
-    let out = res.into_iter().filter_map(|u| u.map_to_enum()).collect();
+    let out = res
+      .into_iter()
+      .filter_map(InternalToCombinedView::map_to_enum)
+      .collect();
 
     Ok(out)
   }
@@ -427,9 +441,9 @@ impl InboxCombinedQuery {
 impl InternalToCombinedView for InboxCombinedViewInternal {
   type CombinedView = InboxCombinedView;
 
-  fn map_to_enum(&self) -> Option<Self::CombinedView> {
+  fn map_to_enum(self) -> Option<Self::CombinedView> {
     // Use for a short alias
-    let v = self.clone();
+    let v = self;
 
     if let (Some(comment_reply), Some(comment), Some(counts), Some(post), Some(community)) = (
       v.comment_reply,
@@ -518,6 +532,7 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         hidden: v.post_hidden,
         my_vote: v.my_post_vote,
         image_details: v.image_details,
+        post_tags: v.post_tags,
         banned_from_community: v.banned_from_community,
       }))
     } else if let Some(private_message) = v.private_message {

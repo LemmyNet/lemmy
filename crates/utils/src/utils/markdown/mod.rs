@@ -14,6 +14,7 @@ static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
   markdown_it_sub::add(&mut parser);
   markdown_it_sup::add(&mut parser);
   markdown_it_ruby::add(&mut parser);
+  markdown_it_footnote::add(&mut parser);
   link_rule::add(&mut parser);
 
   parser
@@ -47,8 +48,10 @@ pub fn markdown_check_for_blocked_urls(text: &str, blocklist: &RegexSet) -> Lemm
 mod tests {
 
   use super::*;
+  use crate::utils::validation::check_urls_are_valid;
   use image_links::markdown_rewrite_image_links;
   use pretty_assertions::assert_eq;
+  use regex::escape;
 
   #[test]
   fn test_basic_markdown() {
@@ -120,6 +123,17 @@ mod tests {
         "ruby text",
         "{漢|Kan}{字|ji}",
         "<p><ruby>漢<rp>(</rp><rt>Kan</rt><rp>)</rp></ruby><ruby>字<rp>(</rp><rt>ji</rt><rp>)</rp></ruby></p>\n"
+      ),
+      (
+        "footnotes",
+        "Bold claim.[^1]\n\n[^1]: example.com",
+        "<p>Bold claim.<sup class=\"footnote-ref\"><a href=\"#fn1\" id=\"fnref1\">[1]</a></sup></p>\n\
+	 <hr class=\"footnotes-sep\" />\n\
+	 <section class=\"footnotes\">\n\
+	 <ol class=\"footnotes-list\">\n\
+	 <li id=\"fn1\" class=\"footnote-item\">\n\
+	 <p>example.com <a href=\"#fnref1\" class=\"footnote-backref\">↩︎</a></p>\n\
+	 </li>\n</ol>\n</section>\n"
       )
     ];
 
@@ -141,7 +155,7 @@ mod tests {
         (
           "remote image proxied",
           "![link](http://example.com/image.jpg)",
-          "![link](https://lemmy-alpha/api/v4/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)",
+          "![link](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)",
         ),
         (
           "local image unproxied",
@@ -151,7 +165,7 @@ mod tests {
         (
           "multiple image links",
           "![link](http://example.com/image1.jpg) ![link](http://example.com/image2.jpg)",
-          "![link](https://lemmy-alpha/api/v4/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage1.jpg) ![link](https://lemmy-alpha/api/v4/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage2.jpg)",
+          "![link](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage1.jpg) ![link](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage2.jpg)",
         ),
         (
           "empty link handled",
@@ -161,7 +175,7 @@ mod tests {
         (
           "empty label handled",
           "![](http://example.com/image.jpg)",
-          "![](https://lemmy-alpha/api/v4/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
+          "![](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
         ),
         (
           "invalid image link removed",
@@ -171,12 +185,12 @@ mod tests {
         (
           "label with nested markdown handled",
           "![a *b* c](http://example.com/image.jpg)",
-          "![a *b* c](https://lemmy-alpha/api/v4/image_proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
+          "![a *b* c](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
         ),
         (
           "custom emoji support",
           r#"![party-blob](https://www.hexbear.net/pictrs/image/83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#,
-          r#"![party-blob](https://lemmy-alpha/api/v4/image_proxy?url=https%3A%2F%2Fwww.hexbear.net%2Fpictrs%2Fimage%2F83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#
+          r#"![party-blob](https://lemmy-alpha/api/v4/image/proxy?url=https%3A%2F%2Fwww.hexbear.net%2Fpictrs%2Fimage%2F83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#
         )
       ];
 
@@ -191,9 +205,20 @@ mod tests {
     });
   }
 
+  // This replicates the logic when saving url blocklist patterns and querying them.
+  // Refer to lemmy_api_crud::site::update::update_site and
+  // lemmy_api_common::utils::get_url_blocklist().
+  fn create_url_blocklist_test_regex_set(patterns: Vec<&str>) -> LemmyResult<RegexSet> {
+    let url_blocklist = patterns.iter().map(|&s| s.to_string()).collect();
+    let valid_urls = check_urls_are_valid(&url_blocklist)?;
+    let regexes = valid_urls.iter().map(|p| format!(r"\b{}\b", escape(p)));
+    let set = RegexSet::new(regexes)?;
+    Ok(set)
+  }
+
   #[test]
   fn test_url_blocking() -> LemmyResult<()> {
-    let set = RegexSet::new(vec![r"(https://)?example\.com/?"])?;
+    let set = create_url_blocklist_test_regex_set(vec!["example.com/"])?;
 
     assert!(
       markdown_check_for_blocked_urls(&String::from("[](https://example.com)"), &set).is_err()
@@ -221,36 +246,41 @@ mod tests {
     )
     .is_err());
 
-    let set = RegexSet::new(vec![r"(https://)?example\.com/spam\.jpg"])?;
-    assert!(markdown_check_for_blocked_urls(
-      &String::from("![](https://example.com/spam.jpg)"),
-      &set
-    )
-    .is_err());
+    let set = create_url_blocklist_test_regex_set(vec!["example.com/spam.jpg"])?;
+    assert!(markdown_check_for_blocked_urls("![](https://example.com/spam.jpg)", &set).is_err());
+    assert!(markdown_check_for_blocked_urls("![](https://example.com/spam.jpg1)", &set).is_ok());
+    // TODO: the following should not be matched, scunthorpe problem.
+    assert!(
+      markdown_check_for_blocked_urls("![](https://example.com/spam.jpg.html)", &set).is_err()
+    );
 
-    let set = RegexSet::new(vec![
-      r"(https://)?quo\.example\.com/?",
-      r"(https://)?foo\.example\.com/?",
-      r"(https://)?bar\.example\.com/?",
+    let set = create_url_blocklist_test_regex_set(vec![
+      r"quo.example.com/",
+      r"foo.example.com/",
+      r"bar.example.com/",
     ])?;
 
-    assert!(
-      markdown_check_for_blocked_urls(&String::from("https://baz.example.com"), &set).is_ok()
-    );
+    assert!(markdown_check_for_blocked_urls("https://baz.example.com", &set).is_ok());
 
-    assert!(
-      markdown_check_for_blocked_urls(&String::from("https://bar.example.com"), &set).is_err()
-    );
+    assert!(markdown_check_for_blocked_urls("https://bar.example.com", &set).is_err());
 
-    let set = RegexSet::new(vec![r"(https://)?example\.com/banned_page"])?;
+    let set = create_url_blocklist_test_regex_set(vec!["example.com/banned_page"])?;
 
-    assert!(
-      markdown_check_for_blocked_urls(&String::from("https://example.com/page"), &set).is_ok()
-    );
+    assert!(markdown_check_for_blocked_urls("https://example.com/page", &set).is_ok());
 
-    let set = RegexSet::new(vec![r"(https://)?ex\.mple\.com/?"])?;
+    let set = create_url_blocklist_test_regex_set(vec!["ex.mple.com/"])?;
 
     assert!(markdown_check_for_blocked_urls("example.com", &set).is_ok());
+
+    let set = create_url_blocklist_test_regex_set(vec!["rt.com/"])?;
+
+    assert!(markdown_check_for_blocked_urls("deviantart.com", &set).is_ok());
+    assert!(markdown_check_for_blocked_urls("art.com.example.com", &set).is_ok());
+    assert!(markdown_check_for_blocked_urls("https://rt.com/abc", &set).is_err());
+    assert!(markdown_check_for_blocked_urls("go to rt.com.", &set).is_err());
+    assert!(markdown_check_for_blocked_urls("check out rt.computer", &set).is_ok());
+    // TODO: the following should not be matched, scunthorpe problem.
+    assert!(markdown_check_for_blocked_urls("rt.com.example.com", &set).is_err());
 
     Ok(())
   }

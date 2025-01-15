@@ -4,11 +4,8 @@ use crate::schema::person_saved_combined;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
-use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 
-#[skip_serializing_none]
-#[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 #[cfg_attr(
   feature = "full",
   derive(Identifiable, Queryable, Selectable, CursorKeysModule)
@@ -19,7 +16,7 @@ use serde_with::skip_serializing_none;
 /// A combined person_saved table.
 pub struct PersonSavedCombined {
   pub id: PersonSavedCombinedId,
-  pub published: DateTime<Utc>,
+  pub saved: DateTime<Utc>,
   pub person_id: PersonId,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,

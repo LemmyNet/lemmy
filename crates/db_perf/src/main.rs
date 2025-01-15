@@ -163,7 +163,7 @@ async fn try_main() -> LemmyResult<()> {
     if let Some(post_view) = post_views.into_iter().last() {
       println!("👀 getting pagination cursor data for next page");
       let cursor_data = PaginationCursor::after_post(&post_view)
-        .read(&mut conn.into())
+        .read(&mut conn.into(), None)
         .await?;
       page_after = Some(cursor_data);
     } else {

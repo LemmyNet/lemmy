@@ -4,6 +4,7 @@ use crate::{
   schema::{community, person, post, post_actions},
   source::post::{
     Post,
+    PostActionsCursor,
     PostHide,
     PostHideForm,
     PostInsertForm,
@@ -406,6 +407,28 @@ impl PostHide {
     .set_null(post_actions::hidden)
     .get_result(conn)
     .await
+  }
+}
+
+impl PostActionsCursor {
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    post_id: PostId,
+    person_id: Option<PersonId>,
+  ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    Ok(if let Some(person_id) = person_id {
+      post_actions::table
+        .find((person_id, post_id))
+        .select(Self::as_select())
+        .first(conn)
+        .await
+        .optional()?
+        .unwrap_or_default()
+    } else {
+      Default::default()
+    })
   }
 }
 
