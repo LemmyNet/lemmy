@@ -322,13 +322,13 @@ fn queries<'a>() -> Queries<
     }
 
     if o.hide_media.unwrap_or(o.local_user.hide_media()) {
-      query = query.filter(
-        post::url_content_type.is_null().or(
+      query = query.filter(not(
+        post::url_content_type.is_not_null().and(
           post::url_content_type
-            .not_like("image/%")
-            .and(post::url_content_type.not_like("video/%")),
+            .like("image/%")
+            .or(post::url_content_type.like("video/%")),
         ),
-      );
+      ));
     }
 
     if let Some(my_id) = o.local_user.person_id() {
