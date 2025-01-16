@@ -45,6 +45,7 @@ pub async fn list_posts(
   let show_hidden = data.show_hidden;
   let show_read = data.show_read;
   let show_nsfw = data.show_nsfw;
+  let hide_media = data.hide_media;
   let no_comments_only = data.no_comments_only;
 
   let liked_only = data.liked_only;
@@ -86,6 +87,7 @@ pub async fn list_posts(
     show_hidden,
     show_read,
     show_nsfw,
+    hide_media,
     no_comments_only,
     ..Default::default()
   }
