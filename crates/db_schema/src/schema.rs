@@ -220,6 +220,7 @@ diesel::table! {
         visibility -> CommunityVisibility,
         #[max_length = 150]
         description -> Nullable<Varchar>,
+        random_number -> Int2,
     }
 }
 

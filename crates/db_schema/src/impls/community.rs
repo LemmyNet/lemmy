@@ -22,12 +22,13 @@ use crate::{
   utils::{
     action_query,
     find_action,
-    functions::{coalesce, lower, random},
+    functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
     get_conn,
     now,
     uplete,
     DbPool,
   },
+  CommunityVisibility,
   ListingType,
   SubscribedType,
 };
@@ -209,23 +210,62 @@ impl Community {
   pub async fn get_random_community_id(
     pool: &mut DbPool<'_>,
     type_: &Option<ListingType>,
+    show_nsfw: Option<bool>,
   ) -> Result<CommunityId, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let mut query = community::table
-      .filter(not(community::deleted))
-      .filter(not(community::removed))
-      .into_boxed();
+    // This is based on the random page selection algorithm in MediaWiki. It assigns a random number
+    // X to each item. To pick a random one, it generates a random number Y and gets the item with
+    // the lowest X value where X >= Y.
+    //
+    // https://phabricator.wikimedia.org/source/mediawiki/browse/master/includes/specials/SpecialRandomPage.php;763c5f084101676ab1bc52862e1ffbd24585a365
+    //
+    // The difference is we also regenerate the item's assigned number when the item is picked.
+    // Without this, items would have permanent variations in the probability of being picked.
+    // Additionally, in each group of multiple items that are assigned the same random number (a
+    // more likely occurence with `smallint`), there would be only one item that ever gets
+    // picked.
 
-    if let Some(ListingType::Local) = type_ {
-      query = query.filter(community::local);
-    }
+    let try_pick = || {
+      let mut query = community::table
+        .filter(not(
+          community::deleted
+            .or(community::removed)
+            .or(community::visibility.eq(CommunityVisibility::Private)),
+        ))
+        .order(community::random_number.asc())
+        .select(community::id)
+        .into_boxed();
 
-    query
-      .select(community::id)
-      .order(random())
-      .limit(1)
-      .first::<CommunityId>(conn)
+      if let Some(ListingType::Local) = type_ {
+        query = query.filter(community::local);
+      }
+
+      if !show_nsfw.unwrap_or(false) {
+        query = query.filter(not(community::nsfw));
+      }
+
+      query
+    };
+
+    diesel::update(community::table)
+      .filter(
+        community::id.nullable().eq(coalesce_2_nullable(
+          try_pick()
+            .filter(community::random_number.nullable().ge(
+              // Without `select` and `single_value`, this would call `random_smallint` separately
+              // for each row
+              select(random_smallint()).single_value(),
+            ))
+            .single_value(),
+          // Wrap to the beginning if the generated number is higher than all
+          // `community::random_number` values, just like in the MediaWiki algorithm
+          try_pick().single_value(),
+        )),
+      )
+      .set(community::random_number.eq(random_smallint()))
+      .returning(community::id)
+      .get_result::<CommunityId>(conn)
       .await
   }
 }
@@ -570,6 +610,7 @@ mod tests {
       posting_restricted_to_mods: false,
       instance_id: inserted_instance.id,
       visibility: CommunityVisibility::Public,
+      random_number: inserted_community.random_number,
     };
 
     let community_follower_form = CommunityFollowerForm {
