@@ -996,6 +996,7 @@ mod tests {
         moderators_url: data.inserted_community.moderators_url.clone(),
         featured_url: data.inserted_community.featured_url.clone(),
         visibility: CommunityVisibility::Public,
+        random_number: data.inserted_community.random_number,
       },
       counts: CommentAggregates {
         comment_id: data.inserted_comment_0.id,
