@@ -18,6 +18,7 @@ workspace = true
 full = [
   "lemmy_db_schema/full",
   "lemmy_utils/full",
+  "i-love-jesus",
   "diesel",
   "diesel-async",
   "ts-rs",
@@ -40,10 +41,10 @@ ts-rs = { workspace = true, optional = true }
 chrono.workspace = true
 strum = { workspace = true }
 lemmy_utils = { workspace = true, optional = true }
+i-love-jesus = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
 tokio = { workspace = true }
 pretty_assertions = { workspace = true }
 url.workspace = true
-lemmy_db_views = { workspace = true, features = ["full"] }

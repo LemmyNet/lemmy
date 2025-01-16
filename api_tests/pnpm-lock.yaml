@@ -30,8 +30,8 @@ importers:
         specifier: ^29.5.0
         version: 29.7.0(@types/node@22.10.6)
       lemmy-js-client:
-        specifier: 0.20.0-modlog-combined.0
-        version: 0.20.0-modlog-combined.0
+        specifier: 0.20.0-inbox-combined.1
+        version: 0.20.0-inbox-combined.1
       prettier:
         specifier: ^3.4.2
         version: 3.4.2
@@ -1157,8 +1157,8 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
-  lemmy-js-client@0.20.0-modlog-combined.0:
-    resolution: {integrity: sha512-lb3na39klOSE184hJJObMufKjHtm3Mrk42RHqyVNCYZQ+FAAbQzBFTuYyqv8QJV5TJlMmyFO2v1v/9cH72nLRg==}
+  lemmy-js-client@0.20.0-inbox-combined.1:
+    resolution: {integrity: sha512-sFJJePXdMHIVQwCa3fN+nIcIvfD7ZbBEZn08fmITXEA6/qbJLvZGWG/rEcRNkZM+lRKnhfrZihWKx1AHZE9wqA==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -3060,7 +3060,7 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  lemmy-js-client@0.20.0-modlog-combined.0: {}
+  lemmy-js-client@0.20.0-inbox-combined.1: {}
 
   leven@3.1.0: {}
 

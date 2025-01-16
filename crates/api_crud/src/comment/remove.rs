@@ -8,6 +8,7 @@ use lemmy_api_common::{
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
+  newtypes::PostOrCommentId,
   source::{
     comment::{Comment, CommentUpdateForm},
     comment_report::CommentReport,
@@ -82,7 +83,7 @@ pub async fn remove_comment(
 
   let recipient_ids = send_local_notifs(
     vec![],
-    comment_id,
+    PostOrCommentId::Comment(comment_id),
     &local_user_view.person,
     false,
     &context,

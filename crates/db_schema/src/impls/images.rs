@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::DbUrl,
+  newtypes::{DbUrl, LocalUserId},
   schema::{image_details, local_image, remote_image},
   source::images::{ImageDetails, ImageDetailsForm, LocalImage, LocalImageForm, RemoteImage},
   utils::{get_conn, DbPool},
@@ -9,6 +9,7 @@ use diesel::{
   insert_into,
   result::Error,
   select,
+  BoolExpressionMethods,
   ExpressionMethods,
   NotFound,
   QueryDsl,
@@ -45,6 +46,23 @@ impl LocalImage {
     diesel::delete(local_image::table.filter(local_image::pictrs_alias.eq(alias)))
       .get_result(conn)
       .await
+  }
+
+  pub async fn delete_by_alias_and_user(
+    pool: &mut DbPool<'_>,
+    alias: &str,
+    local_user_id: LocalUserId,
+  ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::delete(
+      local_image::table.filter(
+        local_image::pictrs_alias
+          .eq(alias)
+          .and(local_image::local_user_id.eq(local_user_id)),
+      ),
+    )
+    .get_result(conn)
+    .await
   }
 
   pub async fn delete_by_url(pool: &mut DbPool<'_>, url: &DbUrl) -> Result<Self, Error> {

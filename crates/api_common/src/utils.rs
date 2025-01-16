@@ -11,7 +11,7 @@ use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
-  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
   source::{
     comment::{Comment, CommentLike, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
@@ -291,23 +291,17 @@ pub async fn check_person_instance_community_block(
   Ok(())
 }
 
-/// A vote item type used to check the vote mode.
-pub enum VoteItem {
-  Post(PostId),
-  Comment(CommentId),
-}
-
 #[tracing::instrument(skip_all)]
 pub async fn check_local_vote_mode(
   score: i16,
-  vote_item: VoteItem,
+  post_or_comment_id: PostOrCommentId,
   local_site: &LocalSite,
   person_id: PersonId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let (downvote_setting, upvote_setting) = match vote_item {
-    VoteItem::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
-    VoteItem::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
+  let (downvote_setting, upvote_setting) = match post_or_comment_id {
+    PostOrCommentId::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
+    PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
   };
 
   let downvote_fail = score == -1 && downvote_setting == FederationMode::Disable;
@@ -315,9 +309,11 @@ pub async fn check_local_vote_mode(
 
   // Undo previous vote for item if new vote fails
   if downvote_fail || upvote_fail {
-    match vote_item {
-      VoteItem::Post(post_id) => PostLike::remove(pool, person_id, post_id).await?,
-      VoteItem::Comment(comment_id) => CommentLike::remove(pool, person_id, comment_id).await?,
+    match post_or_comment_id {
+      PostOrCommentId::Post(post_id) => PostLike::remove(pool, person_id, post_id).await?,
+      PostOrCommentId::Comment(comment_id) => {
+        CommentLike::remove(pool, person_id, comment_id).await?
+      }
     };
   }
   Ok(())
@@ -680,13 +676,9 @@ async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -
 
     // Delete their images
     for upload in pictrs_uploads {
-      delete_image_from_pictrs(
-        &upload.local_image.pictrs_alias,
-        &upload.local_image.pictrs_delete_token,
-        context,
-      )
-      .await
-      .ok();
+      delete_image_from_pictrs(&upload.local_image.pictrs_alias, context)
+        .await
+        .ok();
     }
   }
   Ok(())

@@ -1,8 +1,16 @@
 use lemmy_db_schema::{
-  newtypes::{CommentReplyId, CommunityId, LanguageId, PersonId, PersonMentionId},
+  newtypes::{
+    CommentReplyId,
+    CommunityId,
+    LanguageId,
+    PersonCommentMentionId,
+    PersonId,
+    PersonPostMentionId,
+  },
   sensitive::SensitiveString,
   source::{login_token::LoginToken, site::Site},
   CommentSortType,
+  InboxDataType,
   ListingType,
   PersonContentType,
   PostListingMode,
@@ -15,9 +23,9 @@ use lemmy_db_views::structs::{
   PersonSavedCombinedPaginationCursor,
 };
 use lemmy_db_views_actor::structs::{
-  CommentReplyView,
   CommunityModeratorView,
-  PersonMentionView,
+  InboxCombinedPaginationCursor,
+  InboxCombinedView,
   PersonView,
 };
 use serde::{Deserialize, Serialize};
@@ -364,69 +372,45 @@ pub struct BlockPersonResponse {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// Get comment replies.
-pub struct GetReplies {
+/// Get your inbox (replies, comment mentions, post mentions, and messages)
+pub struct ListInbox {
   #[cfg_attr(feature = "full", ts(optional))]
-  pub sort: Option<CommentSortType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
+  pub type_: Option<InboxDataType>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub unread_only: Option<bool>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Fetches your replies.
-// TODO, replies and mentions below should be redone as tagged enums.
-pub struct GetRepliesResponse {
-  pub replies: Vec<CommentReplyView>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// Get mentions for your user.
-pub struct GetPersonMentions {
   #[cfg_attr(feature = "full", ts(optional))]
-  pub sort: Option<CommentSortType>,
+  pub page_cursor: Option<InboxCombinedPaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub unread_only: Option<bool>,
+  pub page_back: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// The response of mentions for your user.
-pub struct GetPersonMentionsResponse {
-  pub mentions: Vec<PersonMentionView>,
+/// Get your inbox (replies, comment mentions, post mentions, and messages)
+pub struct ListInboxResponse {
+  pub inbox: Vec<InboxCombinedView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Mark a person mention as read.
-pub struct MarkPersonMentionAsRead {
-  pub person_mention_id: PersonMentionId,
+pub struct MarkPersonCommentMentionAsRead {
+  pub person_comment_mention_id: PersonCommentMentionId,
   pub read: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// The response for a person mention action.
-pub struct PersonMentionResponse {
-  pub person_mention_view: PersonMentionView,
+/// Mark a person mention as read.
+pub struct MarkPersonPostMentionAsRead {
+  pub person_post_mention_id: PersonPostMentionId,
+  pub read: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -436,14 +420,6 @@ pub struct PersonMentionResponse {
 pub struct MarkCommentReplyAsRead {
   pub comment_reply_id: CommentReplyId,
   pub read: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS))]
-#[cfg_attr(feature = "full", ts(export))]
-/// The response for a comment reply action.
-pub struct CommentReplyResponse {
-  pub comment_reply_view: CommentReplyView,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -495,11 +471,9 @@ pub struct GetReportCountResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// A response containing counts for your notifications.
+/// A response containing a count of unread notifications.
 pub struct GetUnreadCountResponse {
-  pub replies: i64,
-  pub mentions: i64,
-  pub private_messages: i64,
+  pub count: i64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq, Eq, Hash)]

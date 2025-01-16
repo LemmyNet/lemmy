@@ -7,8 +7,6 @@ import {
   CreatePrivateMessageReport,
   EditCommunity,
   GetCommunityPendingFollowsCountResponse,
-  GetReplies,
-  GetRepliesResponse,
   GetUnreadCountResponse,
   InstanceId,
   LemmyHttp,
@@ -26,6 +24,9 @@ import {
   ListPersonContentResponse,
   ListPersonContent,
   PersonContentType,
+  ListInboxResponse,
+  ListInbox,
+  InboxDataType,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -59,8 +60,6 @@ import { CreateComment } from "lemmy-js-client/dist/types/CreateComment";
 import { EditComment } from "lemmy-js-client/dist/types/EditComment";
 import { DeleteComment } from "lemmy-js-client/dist/types/DeleteComment";
 import { RemoveComment } from "lemmy-js-client/dist/types/RemoveComment";
-import { GetPersonMentionsResponse } from "lemmy-js-client/dist/types/GetPersonMentionsResponse";
-import { GetPersonMentions } from "lemmy-js-client/dist/types/GetPersonMentions";
 import { CreateCommentLike } from "lemmy-js-client/dist/types/CreateCommentLike";
 import { CreateCommunity } from "lemmy-js-client/dist/types/CreateCommunity";
 import { GetCommunity } from "lemmy-js-client/dist/types/GetCommunity";
@@ -75,8 +74,6 @@ import { Register } from "lemmy-js-client/dist/types/Register";
 import { SaveUserSettings } from "lemmy-js-client/dist/types/SaveUserSettings";
 import { DeleteAccount } from "lemmy-js-client/dist/types/DeleteAccount";
 import { GetSiteResponse } from "lemmy-js-client/dist/types/GetSiteResponse";
-import { PrivateMessagesResponse } from "lemmy-js-client/dist/types/PrivateMessagesResponse";
-import { GetPrivateMessages } from "lemmy-js-client/dist/types/GetPrivateMessages";
 import { PostReportResponse } from "lemmy-js-client/dist/types/PostReportResponse";
 import { CreatePostReport } from "lemmy-js-client/dist/types/CreatePostReport";
 import { CommentReportResponse } from "lemmy-js-client/dist/types/CommentReportResponse";
@@ -377,15 +374,16 @@ export async function getUnreadCount(
   return api.getUnreadCount();
 }
 
-export async function getReplies(
+export async function listInbox(
   api: LemmyHttp,
+  type_?: InboxDataType,
   unread_only: boolean = false,
-): Promise<GetRepliesResponse> {
-  let form: GetReplies = {
-    sort: "New",
+): Promise<ListInboxResponse> {
+  let form: ListInbox = {
     unread_only,
+    type_,
   };
-  return api.getReplies(form);
+  return api.listInbox(form);
 }
 
 export async function resolveComment(
@@ -540,16 +538,6 @@ export async function removeComment(
     removed,
   };
   return api.removeComment(form);
-}
-
-export async function getMentions(
-  api: LemmyHttp,
-): Promise<GetPersonMentionsResponse> {
-  let form: GetPersonMentions = {
-    sort: "New",
-    unread_only: false,
-  };
-  return api.getPersonMentions(form);
 }
 
 export async function likeComment(
@@ -777,15 +765,6 @@ export async function getMyUser(api: LemmyHttp): Promise<MyUserInfo> {
   return api.getMyUser();
 }
 
-export async function listPrivateMessages(
-  api: LemmyHttp,
-): Promise<PrivateMessagesResponse> {
-  let form: GetPrivateMessages = {
-    unread_only: false,
-  };
-  return api.getPrivateMessages(form);
-}
-
 export async function unfollowRemotes(api: LemmyHttp): Promise<MyUserInfo> {
   // Unfollow all remote communities
   let my_user = await getMyUser(api);
@@ -952,7 +931,6 @@ export async function deleteAllImages(api: LemmyHttp) {
     imagesRes.images
       .map(image => {
         const form: DeleteImageParams = {
-          token: image.local_image.pictrs_delete_token,
           filename: image.local_image.pictrs_alias,
         };
         return form;
