@@ -70,6 +70,8 @@ pub struct LocalUser {
   pub default_comment_sort_type: CommentSortType,
   /// Whether to automatically mark fetched posts as read.
   pub auto_mark_fetched_posts_as_read: bool,
+  /// Whether to hide posts containing images/videos
+  pub hide_media: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -128,6 +130,8 @@ pub struct LocalUserInsertForm {
   pub default_comment_sort_type: Option<CommentSortType>,
   #[new(default)]
   pub auto_mark_fetched_posts_as_read: Option<bool>,
+  #[new(default)]
+  pub hide_media: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -160,4 +164,5 @@ pub struct LocalUserUpdateForm {
   pub collapse_bot_comments: Option<bool>,
   pub default_comment_sort_type: Option<CommentSortType>,
   pub auto_mark_fetched_posts_as_read: Option<bool>,
+  pub hide_media: Option<bool>,
 }

@@ -12,6 +12,7 @@ use diesel::{
   OptionalExtension,
   PgTextExpressionMethods,
   QueryDsl,
+  TextExpressionMethods,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
@@ -320,6 +321,16 @@ fn queries<'a>() -> Queries<
       query = query.filter(post_actions::hidden.is_null());
     }
 
+    if o.hide_media.unwrap_or(o.local_user.hide_media()) {
+      query = query.filter(not(
+        post::url_content_type.is_not_null().and(
+          post::url_content_type
+            .like("image/%")
+            .or(post::url_content_type.like("video/%")),
+        ),
+      ));
+    }
+
     if let Some(my_id) = o.local_user.person_id() {
       let not_creator_filter = post_aggregates::creator_id.ne(my_id);
       if o.liked_only.unwrap_or_default() {
@@ -518,6 +529,7 @@ pub struct PostQuery<'a> {
   pub show_hidden: Option<bool>,
   pub show_read: Option<bool>,
   pub show_nsfw: Option<bool>,
+  pub hide_media: Option<bool>,
   pub no_comments_only: Option<bool>,
 }
 
@@ -2188,6 +2200,66 @@ mod tests {
     )
     .await;
     assert!(post_view.is_ok());
+
+    Ok(())
+  }
+
+  #[test_context(Data)]
+  #[tokio::test]
+  #[serial]
+  async fn post_listings_hide_media(data: &mut Data) -> LemmyResult<()> {
+    let pool = &data.pool();
+    let pool = &mut pool.into();
+
+    // Make one post an image post
+    Post::update(
+      pool,
+      data.inserted_bot_post.id,
+      &PostUpdateForm {
+        url_content_type: Some(Some(String::from("image/png"))),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    // Make sure all the posts are returned when `hide_media` is unset
+    let hide_media_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(3, hide_media_listing.len());
+
+    // Ensure the `hide_media` user setting is set
+    let local_user_form = LocalUserUpdateForm {
+      hide_media: Some(true),
+      ..Default::default()
+    };
+    LocalUser::update(pool, data.local_user_view.local_user.id, &local_user_form).await?;
+    data.local_user_view.local_user.hide_media = true;
+
+    // Ensure you don't see the image post
+    let hide_media_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.local_user_view.local_user),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(2, hide_media_listing.len());
+
+    // Make sure the `hide_media` override works
+    let hide_media_listing = PostQuery {
+      community_id: Some(data.inserted_community.id),
+      local_user: Some(&data.local_user_view.local_user),
+      hide_media: Some(false),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_eq!(3, hide_media_listing.len());
 
     Ok(())
   }
