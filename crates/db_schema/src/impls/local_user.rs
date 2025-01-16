@@ -297,6 +297,7 @@ pub trait LocalUserOptionHelper {
   fn show_read_posts(&self) -> bool;
   fn is_admin(&self) -> bool;
   fn show_nsfw(&self, site: &Site) -> bool;
+  fn hide_media(&self) -> bool;
   fn visible_communities_only<Q>(&self, query: Q) -> Q
   where
     Q: diesel::query_dsl::methods::FilterDsl<
@@ -330,6 +331,10 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
     self
       .map(|l| l.show_nsfw)
       .unwrap_or(site.content_warning.is_some())
+  }
+
+  fn hide_media(&self) -> bool {
+    self.map(|l| l.hide_media).unwrap_or(false)
   }
 
   // TODO: use this function for private community checks, but the generics get extremely confusing

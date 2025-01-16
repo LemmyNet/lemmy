@@ -189,6 +189,9 @@ pub struct SaveUserSettings {
   /// Whether to automatically mark fetched posts as read.
   #[cfg_attr(feature = "full", ts(optional))]
   pub auto_mark_fetched_posts_as_read: Option<bool>,
+  /// Whether to hide posts containing images/videos.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub hide_media: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

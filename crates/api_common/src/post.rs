@@ -112,6 +112,9 @@ pub struct GetPosts {
   /// If true, then show the nsfw posts (even if your user setting is to hide them)
   #[cfg_attr(feature = "full", ts(optional))]
   pub show_nsfw: Option<bool>,
+  /// If false, then show posts with media attached (even if your user setting is to hide them)
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub hide_media: Option<bool>,
   /// Whether to automatically mark fetched posts as read.
   #[cfg_attr(feature = "full", ts(optional))]
   pub mark_as_read: Option<bool>,
