@@ -55,6 +55,7 @@ use ts_rs::TS;
 #[cfg_attr(feature = "full", ts(export))]
 /// Searches the site, given a search term, and some optional filters.
 pub struct Search {
+  #[cfg_attr(feature = "full", ts(optional))]
   pub search_term: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
