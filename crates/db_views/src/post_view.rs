@@ -1877,6 +1877,7 @@ mod tests {
         moderators_url: inserted_community.moderators_url.clone(),
         featured_url: inserted_community.featured_url.clone(),
         visibility: CommunityVisibility::Public,
+        random_number: inserted_community.random_number,
       },
       counts: PostAggregates {
         post_id: inserted_post.id,
