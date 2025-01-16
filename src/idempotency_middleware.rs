@@ -9,17 +9,70 @@ use actix_web::{
 use futures_util::future::LocalBoxFuture;
 use lemmy_api_common::lemmy_db_views::structs::LocalUserView;
 use lemmy_db_schema::newtypes::LocalUserId;
+use lemmy_utils::rate_limit::rate_limiter::InstantSecs;
 use std::{
   collections::HashSet,
   future::{ready, Ready},
+  hash::{Hash, Hasher},
   sync::{Arc, RwLock},
+  time::Duration,
 };
 
 /// https://www.ietf.org/archive/id/draft-ietf-httpapi-idempotency-key-header-01.html
 const IDEMPOTENCY_HEADER: &str = "Idempotency-Key";
 
-// TODO: cleanup entries after a while
-pub type IdempotencySet = Arc<RwLock<HashSet<(LocalUserId, String)>>>;
+/// Delete idempotency keys older than this
+const CLEANUP_INTERVAL_SECS: u32 = 120;
+
+#[derive(Debug)]
+struct Entry {
+  user_id: LocalUserId,
+  key: String,
+  // Creation time is ignored for Eq, Hash and only used to cleanup old entries
+  created: InstantSecs,
+}
+
+impl PartialEq for Entry {
+  fn eq(&self, other: &Self) -> bool {
+    self.user_id == other.user_id && self.key == other.key
+  }
+}
+impl Eq for Entry {}
+
+impl Hash for Entry {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.user_id.hash(state);
+    self.key.hash(state);
+  }
+}
+
+#[derive(Clone)]
+pub struct IdempotencySet {
+  set: Arc<RwLock<HashSet<Entry>>>,
+}
+
+impl Default for IdempotencySet {
+  fn default() -> Self {
+    let set: Arc<RwLock<HashSet<Entry>>> = Default::default();
+
+    let set_ = set.clone();
+    tokio::spawn(async move {
+      let interval = Duration::from_secs(CLEANUP_INTERVAL_SECS.into());
+      let state_weak_ref = Arc::downgrade(&set_);
+
+      // Run at every interval to delete entries older than the interval.
+      // This loop stops when all other references to `state` are dropped.
+      while let Some(state) = state_weak_ref.upgrade() {
+        tokio::time::sleep(interval).await;
+        let now = InstantSecs::now();
+        let mut lock = state.write().expect("lock failed");
+        lock.retain(|e| e.created.secs > now.secs.saturating_sub(CLEANUP_INTERVAL_SECS));
+        lock.shrink_to_fit();
+      }
+    });
+    Self { set }
+  }
+}
 
 pub struct IdempotencyMiddleware {
   idempotency_set: IdempotencySet,
@@ -86,9 +139,19 @@ where
       ext.get().map(|u: &LocalUserView| u.local_user.id)
     };
 
-    if let (Some(idempotency), Some(user_id)) = (idempotency, user_id) {
-      let value = (user_id, idempotency);
-      if self.idempotency_set.read().unwrap().contains(&value) {
+    if let (Some(key), Some(user_id)) = (idempotency, user_id) {
+      let value = Entry {
+        user_id,
+        key,
+        created: InstantSecs::now(),
+      };
+      if dbg!(self
+        .idempotency_set
+        .set
+        .read()
+        .expect("lock failed")
+        .contains(&value))
+      {
         // Duplicate request, return error
         let (req, _pl) = req.into_parts();
         // TODO: need to return LemmyError as well?
@@ -98,7 +161,12 @@ where
         return Box::pin(async { Ok(ServiceResponse::new(req, response)) });
       } else {
         // New request, store key and continue
-        self.idempotency_set.write().unwrap().insert(value);
+        self
+          .idempotency_set
+          .set
+          .write()
+          .expect("lock failed")
+          .insert(value);
       }
     }
 
