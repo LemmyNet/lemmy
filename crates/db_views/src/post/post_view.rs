@@ -1604,7 +1604,7 @@ mod tests {
 
       listed_post_ids.extend(post_listings.iter().map(|p| p.post.id));
 
-      if let Some(p) = post_listings.into_iter().last() {
+      if let Some(p) = post_listings.into_iter().next_back() {
         page_after = Some(p.counts);
       } else {
         break;
