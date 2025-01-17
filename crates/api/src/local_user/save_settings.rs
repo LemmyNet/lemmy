@@ -132,6 +132,7 @@ pub async fn save_user_settings(
     enable_private_messages: data.enable_private_messages,
     collapse_bot_comments: data.collapse_bot_comments,
     auto_mark_fetched_posts_as_read: data.auto_mark_fetched_posts_as_read,
+    hide_media: data.hide_media,
     ..Default::default()
   };
 

@@ -220,6 +220,7 @@ diesel::table! {
         visibility -> CommunityVisibility,
         #[max_length = 150]
         description -> Nullable<Varchar>,
+        random_number -> Int2,
     }
 }
 
@@ -515,6 +516,7 @@ diesel::table! {
         default_comment_sort_type -> CommentSortTypeEnum,
         auto_mark_fetched_posts_as_read -> Bool,
         last_donation_notification -> Timestamptz,
+        hide_media -> Bool,
     }
 }
 

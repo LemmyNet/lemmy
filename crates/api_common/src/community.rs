@@ -268,6 +268,8 @@ pub struct TransferCommunity {
 pub struct GetRandomCommunity {
   #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ListingType>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub show_nsfw: Option<bool>,
 }
 
 #[skip_serializing_none]
