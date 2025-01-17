@@ -443,6 +443,7 @@ diesel::table! {
         post_downvotes -> FederationModeEnum,
         comment_upvotes -> FederationModeEnum,
         comment_downvotes -> FederationModeEnum,
+        disable_donation_dialog -> Bool,
     }
 }
 
@@ -514,6 +515,7 @@ diesel::table! {
         collapse_bot_comments -> Bool,
         default_comment_sort_type -> CommentSortTypeEnum,
         auto_mark_fetched_posts_as_read -> Bool,
+        last_donation_notification -> Timestamptz,
         hide_media -> Bool,
     }
 }

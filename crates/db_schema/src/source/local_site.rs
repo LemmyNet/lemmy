@@ -83,6 +83,9 @@ pub struct LocalSite {
   pub comment_upvotes: FederationMode,
   /// What kind of comment downvotes your site allows.
   pub comment_downvotes: FederationMode,
+  /// If this is true, users will never see the dialog asking to support Lemmy development with
+  /// donations.
+  pub disable_donation_dialog: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -142,6 +145,8 @@ pub struct LocalSiteInsertForm {
   pub comment_upvotes: Option<FederationMode>,
   #[new(default)]
   pub comment_downvotes: Option<FederationMode>,
+  #[new(default)]
+  pub disable_donation_dialog: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -175,4 +180,5 @@ pub struct LocalSiteUpdateForm {
   pub post_downvotes: Option<FederationMode>,
   pub comment_upvotes: Option<FederationMode>,
   pub comment_downvotes: Option<FederationMode>,
+  pub disable_donation_dialog: Option<bool>,
 }

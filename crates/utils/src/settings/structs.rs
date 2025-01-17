@@ -12,17 +12,14 @@ use url::Url;
 #[serde(default)]
 pub struct Settings {
   /// settings related to the postgresql database
-  #[default(Default::default())]
   pub database: DatabaseConfig,
   /// Pictrs image server configuration.
   #[default(Some(Default::default()))]
   pub(crate) pictrs: Option<PictrsConfig>,
   /// Email sending configuration. All options except login/password are mandatory
-  #[default(None)]
   #[doku(example = "Some(Default::default())")]
   pub email: Option<EmailConfig>,
   /// Parameters for automatic configuration of new instance (only used at first start)
-  #[default(None)]
   #[doku(example = "Some(Default::default())")]
   pub setup: Option<SetupConfig>,
   /// the domain name of your instance (mandatory)
@@ -41,18 +38,14 @@ pub struct Settings {
   pub tls_enabled: bool,
   /// Set the URL for opentelemetry exports. If you do not have an opentelemetry collector, do not
   /// set this option
-  #[default(None)]
   #[doku(skip)]
   pub opentelemetry_url: Option<Url>,
-  #[default(Default::default())]
   pub federation: FederationWorkerConfig,
   // Prometheus configuration.
-  #[default(None)]
   #[doku(example = "Some(Default::default())")]
   pub prometheus: Option<PrometheusConfig>,
   /// Sets a response Access-Control-Allow-Origin CORS header
   /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
-  #[default(None)]
   #[doku(example = "lemmy.tld")]
   cors_origin: Option<String>,
 }
@@ -74,7 +67,6 @@ pub struct PictrsConfig {
   pub url: Url,
 
   /// Set a custom pictrs API key. ( Required for deleting images )
-  #[default(None)]
   pub api_key: Option<String>,
 
   /// Specifies how to handle remote images, so that users don't have to connect directly to remote
@@ -114,7 +106,7 @@ pub struct PictrsConfig {
   pub image_upload_disabled: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default, Document, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub enum PictrsImageMode {
   /// Leave images unchanged, don't generate any local thumbnails for post urls. Instead the
@@ -185,7 +177,7 @@ impl EmailConfig {
   }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default, Document)]
 #[serde(deny_unknown_fields)]
 pub struct SetupConfig {
   /// Username for the admin user
@@ -199,7 +191,6 @@ pub struct SetupConfig {
   pub site_name: String,
   /// Email for the admin user (optional, can be omitted and set later through the website)
   #[doku(example = "user@example.com")]
-  #[default(None)]
   pub admin_email: Option<String>,
 }
 
