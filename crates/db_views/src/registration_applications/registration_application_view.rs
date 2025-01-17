@@ -235,15 +235,14 @@ mod tests {
         password_encrypted: inserted_sara_local_user.password_encrypted,
         open_links_in_new_tab: inserted_sara_local_user.open_links_in_new_tab,
         infinite_scroll_enabled: inserted_sara_local_user.infinite_scroll_enabled,
-        admin: false,
         post_listing_mode: inserted_sara_local_user.post_listing_mode,
         totp_2fa_enabled: inserted_sara_local_user.totp_2fa_enabled,
         enable_keyboard_navigation: inserted_sara_local_user.enable_keyboard_navigation,
         enable_animated_images: inserted_sara_local_user.enable_animated_images,
         enable_private_messages: inserted_sara_local_user.enable_private_messages,
         collapse_bot_comments: inserted_sara_local_user.collapse_bot_comments,
-        auto_mark_fetched_posts_as_read: false,
-        hide_media: false,
+        last_donation_notification: inserted_sara_local_user.last_donation_notification,
+        ..Default::default()
       },
       creator: Person {
         id: inserted_sara_person.id,
