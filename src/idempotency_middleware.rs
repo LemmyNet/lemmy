@@ -65,6 +65,7 @@ impl Default for IdempotencySet {
       while let Some(state) = state_weak_ref.upgrade() {
         tokio::time::sleep(interval).await;
         let now = InstantSecs::now();
+        #[allow(clippy::expect_used)]
         let mut lock = state.write().expect("lock failed");
         lock.retain(|e| e.created.secs > now.secs.saturating_sub(CLEANUP_INTERVAL_SECS));
         lock.shrink_to_fit();
@@ -121,6 +122,7 @@ where
 
   forward_ready!(service);
 
+  #[allow(clippy::expect_used)]
   fn call(&self, req: ServiceRequest) -> Self::Future {
     let is_post_or_put = req.method() == Method::POST || req.method() == Method::PUT;
     let idempotency = req
@@ -128,11 +130,9 @@ where
       .get(IDEMPOTENCY_HEADER)
       .map(|i| i.to_str().unwrap_or_default().to_string())
       // Ignore values longer than 32 chars
-      .map(|i| (i.len() <= 32).then_some(i))
-      .flatten()
+      .and_then(|i| (i.len() <= 32).then_some(i))
       // Only use idempotency for POST and PUT requests
-      .map(|i| is_post_or_put.then_some(i))
-      .flatten();
+      .and_then(|i| is_post_or_put.then_some(i));
 
     let user_id = {
       let ext = req.extensions();
@@ -145,12 +145,12 @@ where
         key,
         created: InstantSecs::now(),
       };
-      if dbg!(self
+      if self
         .idempotency_set
         .set
         .read()
         .expect("lock failed")
-        .contains(&value))
+        .contains(&value)
       {
         // Duplicate request, return error
         let (req, _pl) = req.into_parts();
