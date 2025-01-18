@@ -33,16 +33,16 @@ now() - published) < '7 days' THEN
         0.0
     END;
 
-CREATE FUNCTION r.scaled_rank (score numeric, published timestamp with time zone, users_active_month numeric)
+CREATE FUNCTION r.scaled_rank (score numeric, published timestamp with time zone, interactions_month numeric)
     RETURNS double precision
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE
     -- Add 2 to avoid divide by zero errors
     -- Default for score = 1, active users = 1, and now, is (0.1728 / log(2 + 1)) = 0.3621
-    -- There may need to be a scale factor multiplied to users_active_month, to make
+    -- There may need to be a scale factor multiplied to interactions_month, to make
     -- the log curve less pronounced. This can be tuned in the future.
     RETURN (
-        r.hot_rank (score, published) / log(2 + users_active_month)
+        r.hot_rank (score, published) / log(2 + interactions_month)
 );
 
 -- For tables with `deleted` and `removed` columns, this function determines which rows to include in a count.
