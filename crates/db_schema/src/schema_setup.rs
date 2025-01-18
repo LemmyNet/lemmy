@@ -1,8 +1,8 @@
-#[cfg(test)]
 mod diff_check;
 
 use crate::schema::previously_run_sql;
 use anyhow::{anyhow, Context};
+use chrono::TimeDelta;
 use diesel::{
   connection::SimpleConnection,
   dsl::exists,
@@ -27,19 +27,10 @@ diesel::table! {
   }
 }
 
-// In production, include migrations in the binary
-#[cfg(not(debug_assertions))]
 fn migrations() -> diesel_migrations::EmbeddedMigrations {
   // Using `const` here is required by the borrow checker
   const MIGRATIONS: diesel_migrations::EmbeddedMigrations = diesel_migrations::embed_migrations!();
   MIGRATIONS
-}
-
-// Avoid recompiling when migrations are changed
-#[cfg(debug_assertions)]
-fn migrations() -> diesel_migrations::FileBasedMigrations {
-  diesel_migrations::FileBasedMigrations::find_migrations_directory()
-    .expect("failed to get migration source")
 }
 
 /// This SQL code sets up the `r` schema, which contains things that can be safely dropped and
@@ -62,7 +53,7 @@ struct MigrationHarnessWrapper<'a> {
   enable_diff_check: bool,
 }
 
-impl<'a> MigrationHarnessWrapper<'a> {
+impl MigrationHarnessWrapper<'_> {
   fn run_migration_inner(
     &mut self,
     migration: &dyn Migration<Pg>,
@@ -71,15 +62,17 @@ impl<'a> MigrationHarnessWrapper<'a> {
 
     let result = self.conn.run_migration(migration);
 
-    let duration = start_time.elapsed().as_millis();
+    let duration = TimeDelta::from_std(start_time.elapsed())
+      .map(|d| d.to_string())
+      .unwrap_or_default();
     let name = migration.name();
-    println!("{duration}ms run {name}");
+    println!("{duration} run {name}");
 
     result
   }
 }
 
-impl<'a> MigrationHarness<Pg> for MigrationHarnessWrapper<'a> {
+impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
   fn run_migration(
     &mut self,
     migration: &dyn Migration<Pg>,
@@ -114,9 +107,11 @@ impl<'a> MigrationHarness<Pg> for MigrationHarnessWrapper<'a> {
 
     let result = self.conn.revert_migration(migration);
 
-    let duration = start_time.elapsed().as_millis();
+    let duration = TimeDelta::from_std(start_time.elapsed())
+      .map(|d| d.to_string())
+      .unwrap_or_default();
     let name = migration.name();
-    println!("{duration}ms revert {name}");
+    println!("{duration} revert {name}");
 
     result
   }
@@ -126,7 +121,7 @@ impl<'a> MigrationHarness<Pg> for MigrationHarnessWrapper<'a> {
   }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct Options {
   #[cfg(test)]
   enable_diff_check: bool,
@@ -310,31 +305,25 @@ mod tests {
   use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
   use serial_test::serial;
 
-  /// Reduces clutter
-  fn o() -> Options {
-    Options::default()
-  }
-
   #[test]
   #[serial]
   fn test_schema_setup() -> LemmyResult<()> {
+    let o = Options::default();
     let db_url = SETTINGS.get_database_url();
     let mut conn = PgConnection::establish(&db_url)?;
 
     // Start with consistent state by dropping everything
     conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
 
-    // Run all migrations and check for mistakes in down.sql files
-    assert_eq!(
-      run(o().run().enable_diff_check())?,
-      ReplaceableSchemaRebuilt
-    );
+    // Run all migrations, make sure the newest migration can be redone, and check the newest
+    // down.sql file
+    assert_eq!(run(o.run().enable_diff_check())?, ReplaceableSchemaRebuilt);
 
     // Check for early return
-    assert_eq!(run(o().run())?, EarlyReturn);
+    assert_eq!(run(o.run())?, EarlyReturn);
 
     // Test `limit`
-    assert_eq!(run(o().revert().limit(1))?, ReplaceableSchemaNotRebuilt);
+    assert_eq!(run(o.revert().limit(1))?, ReplaceableSchemaNotRebuilt);
     assert_eq!(
       conn
         .pending_migrations(migrations())
@@ -342,19 +331,17 @@ mod tests {
         .len(),
       1
     );
-    assert_eq!(run(o().run().limit(1))?, ReplaceableSchemaRebuilt);
-
-    // Revert all migrations
-    assert_eq!(run(o().revert())?, ReplaceableSchemaNotRebuilt);
+    assert_eq!(run(o.run().limit(1))?, ReplaceableSchemaRebuilt);
 
     // This should throw an error saying to use lemmy_server instead of diesel CLI
+    conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
     assert!(matches!(
       conn.run_pending_migrations(migrations()),
       Err(e) if e.to_string().contains("lemmy_server")
     ));
 
     // Diesel CLI's way of running migrations shouldn't break the custom migration runner
-    assert_eq!(run(o().run())?, ReplaceableSchemaRebuilt);
+    assert_eq!(run(o.run())?, ReplaceableSchemaRebuilt);
 
     Ok(())
   }

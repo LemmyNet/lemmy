@@ -5,7 +5,6 @@ use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_common::{
   context::LemmyContext,
-  request::replace_image,
   site::{EditSite, SiteResponse},
   utils::{
     get_url_blocklist,
@@ -13,14 +12,11 @@ use lemmy_api_common::{
     local_site_rate_limit_to_rate_limit_config,
     local_site_to_slur_regex,
     process_markdown_opt,
-    proxy_image_link_opt_api,
   },
 };
 use lemmy_db_schema::{
   source::{
     actor_language::SiteLanguage,
-    federation_allowlist::FederationAllowList,
-    federation_blocklist::FederationBlockList,
     local_site::{LocalSite, LocalSiteUpdateForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
     local_site_url_blocklist::LocalSiteUrlBlocklist,
@@ -28,7 +24,7 @@ use lemmy_db_schema::{
     site::{Site, SiteUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_string_update, diesel_url_update},
+  utils::diesel_string_update,
   RegistrationMode,
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
@@ -74,20 +70,10 @@ pub async fn update_site(
       .as_deref(),
   );
 
-  let icon = diesel_url_update(data.icon.as_deref())?;
-  replace_image(&icon, &site.icon, &context).await?;
-  let icon = proxy_image_link_opt_api(icon, &context).await?;
-
-  let banner = diesel_url_update(data.banner.as_deref())?;
-  replace_image(&banner, &site.banner, &context).await?;
-  let banner = proxy_image_link_opt_api(banner, &context).await?;
-
   let site_form = SiteUpdateForm {
     name: data.name.clone(),
     sidebar,
     description: diesel_string_update(data.description.as_deref()),
-    icon,
-    banner,
     content_warning: diesel_string_update(data.content_warning.as_deref()),
     updated: Some(Some(Utc::now())),
     ..Default::default()
@@ -125,6 +111,7 @@ pub async fn update_site(
     post_downvotes: data.post_downvotes,
     comment_upvotes: data.comment_upvotes,
     comment_downvotes: data.comment_downvotes,
+    disable_donation_dialog: data.disable_donation_dialog,
     ..Default::default()
   };
 
@@ -152,13 +139,9 @@ pub async fn update_site(
     .await
     .ok();
 
-  // Replace the blocked and allowed instances
-  let allowed = data.allowed_instances.clone();
-  FederationAllowList::replace(&mut context.pool(), allowed).await?;
-  let blocked = data.blocked_instances.clone();
-  FederationBlockList::replace(&mut context.pool(), blocked).await?;
-
   if let Some(url_blocklist) = data.blocked_urls.clone() {
+    // If this validation changes it must be synced with
+    // lemmy_utils::utils::markdown::create_url_blocklist_test_regex_set.
     let parsed_urls = check_urls_are_valid(&url_blocklist)?;
     LocalSiteUrlBlocklist::replace(&mut context.pool(), parsed_urls).await?;
   }

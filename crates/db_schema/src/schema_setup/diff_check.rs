@@ -1,3 +1,5 @@
+#![cfg(test)]
+#![expect(clippy::expect_used)]
 use lemmy_utils::settings::SETTINGS;
 use std::{
   borrow::Cow,

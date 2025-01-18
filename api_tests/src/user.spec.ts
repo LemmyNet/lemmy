@@ -21,9 +21,15 @@ import {
   fetchFunction,
   alphaImage,
   unfollows,
-  saveUserSettingsBio,
+  getMyUser,
+  getPersonDetails,
 } from "./shared";
-import { LemmyHttp, SaveUserSettings, UploadImage } from "lemmy-js-client";
+import {
+  EditSite,
+  LemmyHttp,
+  SaveUserSettings,
+  UploadImage,
+} from "lemmy-js-client";
 import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 
 beforeAll(setupLogins);
@@ -44,12 +50,9 @@ function assertUserFederation(userOne?: PersonView, userTwo?: PersonView) {
 test("Create user", async () => {
   let user = await registerUser(alpha, alphaUrl);
 
-  let site = await getSite(user);
-  expect(site.my_user).toBeDefined();
-  if (!site.my_user) {
-    throw "Missing site user";
-  }
-  apShortname = `${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
+  let my_user = await getMyUser(user);
+  expect(my_user).toBeDefined();
+  apShortname = `${my_user.local_user_view.person.name}@lemmy-alpha:8541`;
 });
 
 test("Set some user settings, check that they are federated", async () => {
@@ -64,12 +67,14 @@ test("Set some user settings, check that they are federated", async () => {
   };
   await saveUserSettings(beta, form);
 
-  let site = await getSite(beta);
-  expect(site.my_user?.local_user_view.local_user.theme).toBe("test");
+  let my_user = await getMyUser(beta);
+  expect(my_user.local_user_view.local_user.theme).toBe("test");
 });
 
 test("Delete user", async () => {
   let user = await registerUser(alpha, alphaUrl);
+  let user_profile = await getMyUser(user);
+  let person_id = user_profile.local_user_view.person.id;
 
   // make a local post and comment
   let alphaCommunity = (await resolveCommunity(user, "main@lemmy-alpha:8541"))
@@ -97,6 +102,10 @@ test("Delete user", async () => {
   expect(remoteComment).toBeDefined();
 
   await deleteUser(user);
+  await expect(getMyUser(user)).rejects.toStrictEqual(Error("incorrect_login"));
+  await expect(getPersonDetails(user, person_id)).rejects.toStrictEqual(
+    Error("not_found"),
+  );
 
   // check that posts and comments are marked as deleted on other instances.
   // use get methods to avoid refetching from origin instance
@@ -114,6 +123,9 @@ test("Delete user", async () => {
     (await getComments(alpha, remoteComment.post_id)).comments[0].comment
       .deleted,
   ).toBe(true);
+  await expect(
+    getPersonDetails(user, remoteComment.creator_id),
+  ).rejects.toStrictEqual(Error("not_found"));
 });
 
 test("Requests with invalid auth should be treated as unauthenticated", async () => {
@@ -121,8 +133,10 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
     headers: { Authorization: "Bearer foobar" },
     fetchFunction,
   });
+  await expect(getMyUser(invalid_auth)).rejects.toStrictEqual(
+    Error("incorrect_login"),
+  );
   let site = await getSite(invalid_auth);
-  expect(site.my_user).toBeUndefined();
   expect(site.site_view).toBeDefined();
 
   let form: GetPosts = {};
@@ -131,37 +145,39 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
 });
 
 test("Create user with Arabic name", async () => {
-  let user = await registerUser(
-    alpha,
-    alphaUrl,
-    "تجريب" + Math.random().toString().slice(2, 10), // less than actor_name_max_length
-  );
+  // less than actor_name_max_length
+  const name = "تجريب" + Math.random().toString().slice(2, 10);
+  let user = await registerUser(alpha, alphaUrl, name);
 
-  let site = await getSite(user);
-  expect(site.my_user).toBeDefined();
-  if (!site.my_user) {
-    throw "Missing site user";
-  }
-  apShortname = `${site.my_user.local_user_view.person.name}@lemmy-alpha:8541`;
+  let my_user = await getMyUser(user);
+  expect(my_user).toBeDefined();
+  apShortname = `${my_user.local_user_view.person.name}@lemmy-alpha:8541`;
 
-  let alphaPerson = (await resolvePerson(alpha, apShortname)).person;
-  expect(alphaPerson).toBeDefined();
+  let betaPerson1 = (await resolvePerson(beta, apShortname)).person;
+  expect(betaPerson1!.person.name).toBe(name);
+
+  let betaPerson2 = await getPersonDetails(beta, betaPerson1!.person.id);
+  expect(betaPerson2!.person_view.person.name).toBe(name);
 });
 
 test("Create user with accept-language", async () => {
+  const edit: EditSite = {
+    discussion_languages: [32],
+  };
+  await alpha.editSite(edit);
+
   let lemmy_http = new LemmyHttp(alphaUrl, {
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Language#syntax
-    headers: { "Accept-Language": "fr-CH, en;q=0.8, de;q=0.7, *;q=0.5" },
+    headers: { "Accept-Language": "fr-CH, en;q=0.8, *;q=0.5" },
   });
   let user = await registerUser(lemmy_http, alphaUrl);
 
+  let my_user = await getMyUser(user);
+  expect(my_user).toBeDefined();
+  expect(my_user?.local_user_view.local_user.interface_language).toBe("fr");
   let site = await getSite(user);
-  expect(site.my_user).toBeDefined();
-  expect(site.my_user?.local_user_view.local_user.interface_language).toBe(
-    "fr",
-  );
   let langs = site.all_languages
-    .filter(a => site.my_user?.discussion_languages.includes(a.id))
+    .filter(a => my_user.discussion_languages.includes(a.id))
     .map(l => l.code);
   // should have languages from accept header, as well as "undetermined"
   // which is automatically enabled by backend
@@ -174,43 +190,36 @@ test("Set a new avatar, old avatar is deleted", async () => {
   const upload_form1: UploadImage = {
     image: Buffer.from("test1"),
   };
-  const upload1 = await alphaImage.uploadImage(upload_form1);
-  expect(upload1.url).toBeDefined();
-
-  let form1 = {
-    avatar: upload1.url,
-  };
-  await saveUserSettings(alpha, form1);
+  await alpha.uploadUserAvatar(upload_form1);
   const listMediaRes1 = await alphaImage.listMedia();
   expect(listMediaRes1.images.length).toBe(1);
+
+  let my_user1 = await alpha.getMyUser();
+  expect(my_user1.local_user_view.person.avatar).toBeDefined();
 
   const upload_form2: UploadImage = {
     image: Buffer.from("test2"),
   };
-  const upload2 = await alphaImage.uploadImage(upload_form2);
-  expect(upload2.url).toBeDefined();
-
-  let form2 = {
-    avatar: upload2.url,
-  };
-  await saveUserSettings(alpha, form2);
+  await alpha.uploadUserAvatar(upload_form2);
   // make sure only the new avatar is kept
   const listMediaRes2 = await alphaImage.listMedia();
   expect(listMediaRes2.images.length).toBe(1);
 
   // Upload that same form2 avatar, make sure it isn't replaced / deleted
-  await saveUserSettings(alpha, form2);
+  await alpha.uploadUserAvatar(upload_form2);
   // make sure only the new avatar is kept
   const listMediaRes3 = await alphaImage.listMedia();
   expect(listMediaRes3.images.length).toBe(1);
 
-  // Now try to save a user settings, with the icon missing,
-  // and make sure it doesn't clear the data, or delete the image
-  await saveUserSettingsBio(alpha);
-  let site = await getSite(alpha);
-  expect(site.my_user?.local_user_view.person.avatar).toBe(upload2.url);
-
   // make sure only the new avatar is kept
   const listMediaRes4 = await alphaImage.listMedia();
   expect(listMediaRes4.images.length).toBe(1);
+
+  // delete the avatar
+  await alpha.deleteUserAvatar();
+  // make sure only the new avatar is kept
+  const listMediaRes5 = await alphaImage.listMedia();
+  expect(listMediaRes5.images.length).toBe(0);
+  let my_user2 = await alpha.getMyUser();
+  expect(my_user2.local_user_view.person.avatar).toBeUndefined();
 });

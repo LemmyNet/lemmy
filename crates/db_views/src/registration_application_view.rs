@@ -53,12 +53,12 @@ fn queries<'a>() -> Queries<
     query.first(&mut conn).await
   };
 
-  let list = move |mut conn: DbConn<'a>, options: RegistrationApplicationQuery| async move {
+  let list = move |mut conn: DbConn<'a>, o: RegistrationApplicationQuery| async move {
     let mut query = all_joins(registration_application::table.into_boxed());
 
     // If viewing all applications, order by newest, but if viewing unresolved only, show the oldest
     // first (FIFO)
-    if options.unread_only {
+    if o.unread_only {
       query = query
         .filter(registration_application::admin_id.is_null())
         .order_by(registration_application::published.asc());
@@ -66,11 +66,11 @@ fn queries<'a>() -> Queries<
       query = query.order_by(registration_application::published.desc());
     }
 
-    if options.verified_email_only {
+    if o.verified_email_only {
       query = query.filter(local_user::email_verified.eq(true))
     }
 
-    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+    let (limit, offset) = limit_and_offset(o.page, o.limit)?;
 
     query = query.limit(limit).offset(offset);
 
@@ -235,14 +235,14 @@ mod tests {
         password_encrypted: inserted_sara_local_user.password_encrypted,
         open_links_in_new_tab: inserted_sara_local_user.open_links_in_new_tab,
         infinite_scroll_enabled: inserted_sara_local_user.infinite_scroll_enabled,
-        admin: false,
         post_listing_mode: inserted_sara_local_user.post_listing_mode,
         totp_2fa_enabled: inserted_sara_local_user.totp_2fa_enabled,
         enable_keyboard_navigation: inserted_sara_local_user.enable_keyboard_navigation,
         enable_animated_images: inserted_sara_local_user.enable_animated_images,
         enable_private_messages: inserted_sara_local_user.enable_private_messages,
         collapse_bot_comments: inserted_sara_local_user.collapse_bot_comments,
-        auto_mark_fetched_posts_as_read: false,
+        last_donation_notification: inserted_sara_local_user.last_donation_notification,
+        ..Default::default()
       },
       creator: Person {
         id: inserted_sara_person.id,

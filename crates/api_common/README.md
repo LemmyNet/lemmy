@@ -11,7 +11,7 @@ Here is an example using [reqwest](https://crates.io/crates/reqwest):
     };
     let client = Client::new();
     let response = client
-        .get("https://lemmy.ml/api/v3/post/list")
+        .get("https://lemmy.ml/api/v4/post/list")
         .query(&params)
         .send()
         .await?;

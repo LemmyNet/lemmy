@@ -2,7 +2,11 @@
 # See https://github.com/woodpecker-ci/woodpecker/issues/1677
 
 variables:
-  - &rust_image "rust:1.81"
+  # When updating the rust version here, be sure to update versions in `docker/Dockerfile`
+  # as well. Otherwise release builds can fail if Lemmy or dependencies rely on new Rust
+  # features. In particular the ARM builder image needs to be updated manually in the repo below:
+  # https://github.com/raskyld/lemmy-cross-toolchains
+  - &rust_image "rust:1.83"
   - &rust_nightly_image "rustlang/rust:nightly"
   - &install_pnpm "corepack enable pnpm"
   - &install_binstall "wget -O- https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xvz -C /usr/local/cargo/bin"
@@ -91,6 +95,54 @@ steps:
     when:
       - event: pull_request
 
+  cargo_clippy:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+    commands:
+      - rustup component add clippy
+      - cargo clippy --workspace --tests --all-targets -- -D warnings
+    when: *slow_check_paths
+
+  # `DROP OWNED` doesn't work for default user
+  create_database_user:
+    image: postgres:16-alpine
+    environment:
+      PGUSER: postgres
+      PGPASSWORD: password
+      PGHOST: database
+      PGDATABASE: lemmy
+    commands:
+      - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
+    when: *slow_check_paths
+
+  cargo_test:
+    image: *rust_image
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: "1"
+      CARGO_HOME: .cargo_home
+      LEMMY_TEST_FAST_FEDERATION: "1"
+      LEMMY_CONFIG_LOCATION: ../../config/config.hjson
+    commands:
+      # Install pg_dump for the schema setup test (must match server version)
+      - apt update && apt install -y lsb-release
+      - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+      - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+      - apt update && apt install -y postgresql-client-16
+      # Run tests
+      - cargo test --workspace --no-fail-fast
+    when: *slow_check_paths
+
+  check_ts_bindings:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+    commands:
+      - ./scripts/ts_bindings_check.sh
+    when:
+      - event: pull_request
+
   # make sure api builds with default features (used by other crates relying on lemmy api)
   check_api_common_default_features:
     image: *rust_image
@@ -126,15 +178,6 @@ steps:
       - diff config/defaults.hjson config/defaults_current.hjson
     when: *slow_check_paths
 
-  cargo_clippy:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-    commands:
-      - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets -- -D warnings
-    when: *slow_check_paths
-
   cargo_build:
     image: *rust_image
     environment:
@@ -142,18 +185,6 @@ steps:
     commands:
       - cargo build
       - mv target/debug/lemmy_server target/lemmy_server
-    when: *slow_check_paths
-
-  # `DROP OWNED` doesn't work for default user
-  create_database_user:
-    image: postgres:16-alpine
-    environment:
-      PGUSER: postgres
-      PGPASSWORD: password
-      PGHOST: database
-      PGDATABASE: lemmy
-    commands:
-      - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
     when: *slow_check_paths
 
   check_diesel_schema:
@@ -170,33 +201,6 @@ steps:
       - diesel print-schema
       - diff tmp.schema crates/db_schema/src/schema.rs
     when: *slow_check_paths
-
-  cargo_test:
-    image: *rust_image
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      RUST_BACKTRACE: "1"
-      CARGO_HOME: .cargo_home
-      LEMMY_TEST_FAST_FEDERATION: "1"
-      LEMMY_CONFIG_LOCATION: ../../config/config.hjson
-    commands:
-      # Install pg_dump for the schema setup test (must match server version)
-      - apt update && apt install -y lsb-release
-      - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-      - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-      - apt update && apt install -y postgresql-client-16
-      # Run tests
-      - cargo test --workspace --no-fail-fast
-    when: *slow_check_paths
-
-  check_ts_bindings:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-    commands:
-      - ./scripts/ts_bindings_check.sh
-    when:
-      - event: pull_request
 
   check_db_perf_tool:
     image: *rust_image
@@ -268,13 +272,15 @@ steps:
   # using https://github.com/pksunkara/cargo-workspaces
   publish_to_crates_io:
     image: *rust_image
+    environment:
+      CARGO_API_TOKEN:
+        from_secret: cargo_api_token
     commands:
       - *install_binstall
       # Install cargo-workspaces
       - cargo binstall -y cargo-workspaces
       - cp -r migrations crates/db_schema/
       - cargo workspaces publish --token "$CARGO_API_TOKEN" --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
-    secrets: [cargo_api_token]
     when:
       - event: tag
 

@@ -14,7 +14,7 @@ use lemmy_db_schema::{
     comment::{Comment, CommentUpdateForm},
     comment_report::CommentReport,
     community::{Community, CommunityUpdateForm},
-    moderator::{
+    mod_log::moderator::{
       ModRemoveComment,
       ModRemoveCommentForm,
       ModRemoveCommunity,
@@ -102,7 +102,6 @@ impl Delete {
       kind: DeleteType::Delete,
       summary,
       id,
-      audience: community.map(|c| c.actor_id.clone().into()),
       remove_data: None,
     })
   }

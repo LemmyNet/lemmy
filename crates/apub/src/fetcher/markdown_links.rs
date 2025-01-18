@@ -42,7 +42,8 @@ pub async fn markdown_rewrite_remote_links(
       let mut local_url = local_url.to_string();
       // restore title
       if let Some(extra) = extra {
-        local_url = format!("{local_url} {extra}");
+        local_url.push(' ');
+        local_url.push_str(extra);
       }
       src.replace_range(start..end, local_url.as_str());
     }

@@ -1,5 +1,4 @@
 use crate::{
-  activities::verify_community_matches,
   fetcher::post_or_comment::PostOrComment,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::InCommunity,
@@ -29,7 +28,6 @@ pub struct Report {
   #[serde(rename = "type")]
   pub(crate) kind: FlagType,
   pub(crate) id: Url,
-  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 impl Report {
@@ -73,9 +71,6 @@ impl ReportObject {
 impl InCommunity for Report {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     let community = self.to[0].dereference(context).await?;
-    if let Some(audience) = &self.audience {
-      verify_community_matches(audience, community.actor_id.clone())?;
-    }
     Ok(community)
   }
 }

@@ -7,10 +7,12 @@ pub mod community;
 #[cfg(feature = "full")]
 pub mod context;
 pub mod custom_emoji;
+pub mod image;
 pub mod oauth_provider;
 pub mod person;
 pub mod post;
 pub mod private_message;
+pub mod reports;
 #[cfg(feature = "full")]
 pub mod request;
 #[cfg(feature = "full")]

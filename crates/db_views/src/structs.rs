@@ -1,11 +1,20 @@
 #[cfg(feature = "full")]
 use diesel::Queryable;
+#[cfg(feature = "full")]
+use diesel::{deserialize::FromSqlRow, expression::AsExpression, sql_types};
 use lemmy_db_schema::{
-  aggregates::structs::{CommentAggregates, PersonAggregates, PostAggregates, SiteAggregates},
+  aggregates::structs::{
+    CommentAggregates,
+    CommunityAggregates,
+    PersonAggregates,
+    PostAggregates,
+    SiteAggregates,
+  },
   source::{
     comment::Comment,
     comment_report::CommentReport,
     community::Community,
+    community_report::CommunityReport,
     custom_emoji::CustomEmoji,
     custom_emoji_keyword::CustomEmojiKeyword,
     images::{ImageDetails, LocalImage},
@@ -20,6 +29,7 @@ use lemmy_db_schema::{
     private_message_report::PrivateMessageReport,
     registration_application::RegistrationApplication,
     site::Site,
+    tag::Tag,
   },
   SubscribedType,
 };
@@ -77,6 +87,22 @@ pub struct CommentView {
   pub my_vote: Option<i16>,
 }
 
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A community report view.
+pub struct CommunityReportView {
+  pub community_report: CommunityReport,
+  pub community: Community,
+  pub creator: Person,
+  pub counts: CommunityAggregates,
+  pub subscribed: SubscribedType,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub resolver: Option<Person>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
@@ -122,9 +148,27 @@ pub struct PostReportView {
 /// prevent ossification (api users love to make assumptions (e.g. parse stuff that looks like
 /// numbers as numbers) about apis that aren't part of the spec
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(ts_rs::TS))]
+#[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct PaginationCursor(pub String);
+
+/// like PaginationCursor but for the report_combined table
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ReportCombinedPaginationCursor(pub String);
+
+/// like PaginationCursor but for the person_content_combined table
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct PersonContentCombinedPaginationCursor(pub String);
+
+/// like PaginationCursor but for the person_saved_combined table
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct PersonSavedCombinedPaginationCursor(pub String);
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -151,17 +195,7 @@ pub struct PostView {
   #[cfg_attr(feature = "full", ts(optional))]
   pub my_vote: Option<i16>,
   pub unread_comments: i64,
-}
-
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
-#[cfg_attr(feature = "full", ts(export))]
-/// A private message view.
-pub struct PrivateMessageView {
-  pub private_message: PrivateMessage,
-  pub creator: Person,
-  pub recipient: Person,
+  pub tags: PostTags,
 }
 
 #[skip_serializing_none]
@@ -236,4 +270,104 @@ pub struct VoteView {
 pub struct LocalImageView {
   pub local_image: LocalImage,
   pub person: Person,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+/// A combined report view
+pub struct ReportCombinedViewInternal {
+  // Post-specific
+  pub post_report: Option<PostReport>,
+  pub post: Option<Post>,
+  pub post_counts: Option<PostAggregates>,
+  pub post_unread_comments: Option<i64>,
+  pub post_saved: bool,
+  pub post_read: bool,
+  pub post_hidden: bool,
+  pub my_post_vote: Option<i16>,
+  // Comment-specific
+  pub comment_report: Option<CommentReport>,
+  pub comment: Option<Comment>,
+  pub comment_counts: Option<CommentAggregates>,
+  pub comment_saved: bool,
+  pub my_comment_vote: Option<i16>,
+  // Private-message-specific
+  pub private_message_report: Option<PrivateMessageReport>,
+  pub private_message: Option<PrivateMessage>,
+  // Community-specific
+  pub community_report: Option<CommunityReport>,
+  pub community_counts: Option<CommunityAggregates>,
+  // Shared
+  pub report_creator: Person,
+  pub item_creator: Option<Person>,
+  pub community: Option<Community>,
+  pub subscribed: SubscribedType,
+  pub resolver: Option<Person>,
+  pub item_creator_is_admin: bool,
+  pub item_creator_banned_from_community: bool,
+  pub item_creator_is_moderator: bool,
+  pub item_creator_blocked: bool,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+// Use serde's internal tagging, to work easier with javascript libraries
+#[serde(tag = "type_")]
+pub enum ReportCombinedView {
+  Post(PostReportView),
+  Comment(CommentReportView),
+  PrivateMessage(PrivateMessageReportView),
+  Community(CommunityReportView),
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+/// A combined person_content view
+pub struct PersonContentViewInternal {
+  // Post-specific
+  pub post_counts: PostAggregates,
+  pub post_unread_comments: i64,
+  pub post_saved: bool,
+  pub post_read: bool,
+  pub post_hidden: bool,
+  pub my_post_vote: Option<i16>,
+  pub image_details: Option<ImageDetails>,
+  pub post_tags: PostTags,
+  // Comment-specific
+  pub comment: Option<Comment>,
+  pub comment_counts: Option<CommentAggregates>,
+  pub comment_saved: bool,
+  pub my_comment_vote: Option<i16>,
+  // Shared
+  pub post: Post,
+  pub community: Community,
+  pub item_creator: Person,
+  pub subscribed: SubscribedType,
+  pub item_creator_is_admin: bool,
+  pub item_creator_is_moderator: bool,
+  pub item_creator_banned_from_community: bool,
+  pub item_creator_blocked: bool,
+  pub banned_from_community: bool,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+// Use serde's internal tagging, to work easier with javascript libraries
+#[serde(tag = "type_")]
+pub enum PersonContentCombinedView {
+  Post(PostView),
+  Comment(CommentView),
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
+#[cfg_attr(feature = "full", derive(TS, FromSqlRow, AsExpression))]
+#[serde(transparent)]
+#[cfg_attr(feature = "full", diesel(sql_type = Nullable<sql_types::Json>))]
+/// we wrap this in a struct so we can implement FromSqlRow<Json> for it
+pub struct PostTags {
+  pub tags: Vec<Tag>,
 }

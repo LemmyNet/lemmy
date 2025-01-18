@@ -5,7 +5,7 @@ use crate::{
     voting::{undo_vote_comment, undo_vote_post},
   },
   insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::person::ApubPerson,
   protocol::{
     activities::voting::{undo_vote::UndoVote, vote::Vote},
     InCommunity,
@@ -26,7 +26,6 @@ impl UndoVote {
   pub(in crate::activities::voting) fn new(
     vote: Vote,
     actor: &ApubPerson,
-    community: &ApubCommunity,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Self> {
     Ok(UndoVote {
@@ -37,7 +36,6 @@ impl UndoVote {
         UndoType::Undo,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      audience: Some(community.id().into()),
     })
   }
 }

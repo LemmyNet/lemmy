@@ -53,8 +53,7 @@ fn queries<'a>() -> Queries<
       .await
   };
 
-  let list = move |mut conn: DbConn<'a>,
-                   (options, recipient_id): (PrivateMessageQuery, PersonId)| async move {
+  let list = move |mut conn: DbConn<'a>, (o, recipient_id): (PrivateMessageQuery, PersonId)| async move {
     let mut query = all_joins(private_message::table.into_boxed())
       .select(selection)
       // Dont show replies from blocked users
@@ -63,9 +62,9 @@ fn queries<'a>() -> Queries<
       .filter(instance_actions::blocked.is_null());
 
     // If its unread, I only want the ones to me
-    if options.unread_only {
+    if o.unread_only {
       query = query.filter(private_message::read.eq(false));
-      if let Some(i) = options.creator_id {
+      if let Some(i) = o.creator_id {
         query = query.filter(private_message::creator_id.eq(i))
       }
       query = query.filter(private_message::recipient_id.eq(recipient_id));
@@ -77,7 +76,7 @@ fn queries<'a>() -> Queries<
           .eq(recipient_id)
           .or(private_message::creator_id.eq(recipient_id)),
       );
-      if let Some(i) = options.creator_id {
+      if let Some(i) = o.creator_id {
         query = query.filter(
           private_message::creator_id
             .eq(i)
@@ -86,7 +85,7 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    let (limit, offset) = limit_and_offset(options.page, options.limit)?;
+    let (limit, offset) = limit_and_offset(o.page, o.limit)?;
 
     query = query
       .filter(private_message::deleted.eq(false))

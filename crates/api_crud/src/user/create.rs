@@ -23,6 +23,7 @@ use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
   newtypes::{InstanceId, OAuthProviderId},
   source::{
+    actor_language::SiteLanguage,
     captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
     language::Language,
     local_site::LocalSite,
@@ -44,9 +45,10 @@ use lemmy_utils::{
     validation::is_valid_actor_name,
   },
 };
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::LazyLock};
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -137,15 +139,11 @@ pub async fn register(
     email: data.email.as_deref().map(str::to_lowercase),
     show_nsfw: Some(show_nsfw),
     accepted_application,
-    default_listing_type: Some(local_site.default_post_listing_type),
-    post_listing_mode: Some(local_site.default_post_listing_mode),
-    interface_language: language_tags.first().cloned(),
-    // If its the initial site setup, they are an admin
-    admin: Some(!local_site.site_setup),
     ..LocalUserInsertForm::new(inserted_person.id, Some(data.password.to_string()))
   };
 
-  let inserted_local_user = create_local_user(&context, language_tags, &local_user_form).await?;
+  let inserted_local_user =
+    create_local_user(&context, language_tags, local_user_form, &local_site).await?;
 
   if local_site.site_setup && require_registration_application {
     if let Some(answer) = data.answer.clone() {
@@ -218,6 +216,11 @@ pub async fn authenticate_with_oauth(
     Err(LemmyErrorType::OauthAuthorizationInvalid)?
   }
 
+  // validate the PKCE challenge
+  if let Some(code_verifier) = &data.pkce_code_verifier {
+    check_code_verifier(code_verifier)?;
+  }
+
   // Fetch the OAUTH provider and make sure it's enabled
   let oauth_provider_id = data.oauth_provider_id;
   let oauth_provider = OAuthProvider::read(&mut context.pool(), oauth_provider_id)
@@ -229,9 +232,14 @@ pub async fn authenticate_with_oauth(
     return Err(LemmyErrorType::OauthAuthorizationInvalid)?;
   }
 
-  let token_response =
-    oauth_request_access_token(&context, &oauth_provider, &data.code, redirect_uri.as_str())
-      .await?;
+  let token_response = oauth_request_access_token(
+    &context,
+    &oauth_provider,
+    &data.code,
+    data.pkce_code_verifier.as_deref(),
+    redirect_uri.as_str(),
+  )
+  .await?;
 
   let user_info = oidc_get_user_info(
     &context,
@@ -351,14 +359,10 @@ pub async fn authenticate_with_oauth(
         show_nsfw: Some(show_nsfw),
         accepted_application: Some(!require_registration_application),
         email_verified: Some(oauth_provider.auto_verify_email),
-        post_listing_mode: Some(local_site.default_post_listing_mode),
-        interface_language: language_tags.first().cloned(),
-        // If its the initial site setup, they are an admin
-        admin: Some(!local_site.site_setup),
         ..LocalUserInsertForm::new(person.id, None)
       };
 
-      local_user = create_local_user(&context, language_tags, &local_user_form).await?;
+      local_user = create_local_user(&context, language_tags, local_user_form, &local_site).await?;
 
       // Create the oauth account
       let oauth_account_form =
@@ -448,20 +452,33 @@ fn get_language_tags(req: &HttpRequest) -> Vec<String> {
 async fn create_local_user(
   context: &Data<LemmyContext>,
   language_tags: Vec<String>,
-  local_user_form: &LocalUserInsertForm,
+  mut local_user_form: LocalUserInsertForm,
+  local_site: &LocalSite,
 ) -> Result<LocalUser, LemmyError> {
   let all_languages = Language::read_all(&mut context.pool()).await?;
   // use hashset to avoid duplicates
   let mut language_ids = HashSet::new();
-  for l in language_tags {
-    if let Some(found) = all_languages.iter().find(|all| all.code == l) {
+
+  // Enable languages from `Accept-Language` header
+  for l in &language_tags {
+    if let Some(found) = all_languages.iter().find(|all| &all.code == l) {
       language_ids.insert(found.id);
     }
   }
+
+  // Enable site languages. Ignored if all languages are enabled.
+  let discussion_languages = SiteLanguage::read(&mut context.pool(), local_site.site_id).await?;
+  language_ids.extend(discussion_languages);
+
   let language_ids = language_ids.into_iter().collect();
 
+  local_user_form.default_listing_type = Some(local_site.default_post_listing_type);
+  local_user_form.post_listing_mode = Some(local_site.default_post_listing_mode);
+  // If its the initial site setup, they are an admin
+  local_user_form.admin = Some(!local_site.site_setup);
+  local_user_form.interface_language = language_tags.first().cloned();
   let inserted_local_user =
-    LocalUser::create(&mut context.pool(), local_user_form, language_ids).await?;
+    LocalUser::create(&mut context.pool(), &local_user_form, language_ids).await?;
 
   Ok(inserted_local_user)
 }
@@ -512,20 +529,27 @@ async fn oauth_request_access_token(
   context: &Data<LemmyContext>,
   oauth_provider: &OAuthProvider,
   code: &str,
+  pkce_code_verifier: Option<&str>,
   redirect_uri: &str,
 ) -> LemmyResult<TokenResponse> {
+  let mut form = vec![
+    ("client_id", &*oauth_provider.client_id),
+    ("client_secret", &*oauth_provider.client_secret),
+    ("code", code),
+    ("grant_type", "authorization_code"),
+    ("redirect_uri", redirect_uri),
+  ];
+
+  if let Some(code_verifier) = pkce_code_verifier {
+    form.push(("code_verifier", code_verifier));
+  }
+
   // Request an Access Token from the OAUTH provider
   let response = context
     .client()
     .post(oauth_provider.token_endpoint.as_str())
     .header("Accept", "application/json")
-    .form(&[
-      ("grant_type", "authorization_code"),
-      ("code", code),
-      ("redirect_uri", redirect_uri),
-      ("client_id", &oauth_provider.client_id),
-      ("client_secret", &oauth_provider.client_secret),
-    ])
+    .form(&form[..])
     .send()
     .await
     .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?
@@ -574,4 +598,18 @@ fn read_user_info(user_info: &serde_json::Value, key: &str) -> LemmyResult<Strin
     return Ok(result);
   }
   Err(LemmyErrorType::OauthLoginFailed)?
+}
+
+#[allow(clippy::expect_used)]
+fn check_code_verifier(code_verifier: &str) -> LemmyResult<()> {
+  static VALID_CODE_VERIFIER_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9\-._~]{43,128}$").expect("compile regex"));
+
+  let check = VALID_CODE_VERIFIER_REGEX.is_match(code_verifier);
+
+  if check {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::InvalidCodeVerifier.into())
+  }
 }

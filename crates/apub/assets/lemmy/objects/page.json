@@ -6,7 +6,6 @@
     "https://enterprise.lemmy.ml/c/tenforward",
     "https://www.w3.org/ns/activitystreams#Public"
   ],
-  "audience": "https://enterprise.lemmy.ml/c/tenforward",
   "name": "Post title",
   "content": "<p>This is a post in the /c/tenforward community</p>\n",
   "mediaType": "text/html",

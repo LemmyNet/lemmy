@@ -1,4 +1,5 @@
-pub mod api_routes_http;
+pub mod api_routes_v3;
+pub mod api_routes_v4;
 pub mod code_migrations;
 pub mod prometheus_metrics;
 pub mod scheduled_tasks;
@@ -10,13 +11,14 @@ use actix_cors::Cors;
 use actix_web::{
   dev::{ServerHandle, ServiceResponse},
   middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
-  web::Data,
+  web::{get, scope, Data},
   App,
   HttpResponse,
   HttpServer,
 };
 use actix_web_prom::PrometheusMetricsBuilder;
 use clap::{Parser, Subcommand};
+use lemmy_api::sitemap::get_sitemap;
 use lemmy_api_common::{
   context::LemmyContext,
   lemmy_db_views::structs::SiteView,
@@ -35,7 +37,7 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{schema_setup, source::secret::Secret, utils::build_db_pool};
 use lemmy_federate::{Opts, SendManager};
-use lemmy_routes::{feeds, images, nodeinfo, webfinger};
+use lemmy_routes::{feeds, nodeinfo, webfinger};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   rate_limit::RateLimitCell,
@@ -112,8 +114,10 @@ enum CmdSubcommand {
   Migration {
     #[command(subcommand)]
     subcommand: MigrationSubcommand,
+    /// Stop after there's no remaining migrations.
     #[arg(long, default_value_t = false)]
     all: bool,
+    /// Stop after the given number of migrations.
     #[arg(long, default_value_t = 1)]
     number: u64,
   },
@@ -121,9 +125,9 @@ enum CmdSubcommand {
 
 #[derive(Subcommand, Debug)]
 enum MigrationSubcommand {
-  /// Run up.sql for the specified migrations.
+  /// Run up.sql for pending migrations, oldest to newest.
   Run,
-  /// Run down.sql for the specified migrations.
+  /// Run down.sql for non-pending migrations, newest to oldest.
   Revert,
 }
 
@@ -191,9 +195,13 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   let client = ClientBuilder::new(client_builder(&SETTINGS).build()?)
     .with(TracingMiddleware::default())
     .build();
+  let pictrs_client = ClientBuilder::new(client_builder(&SETTINGS).no_proxy().build()?)
+    .with(TracingMiddleware::default())
+    .build();
   let context = LemmyContext::create(
     pool.clone(),
     client.clone(),
+    pictrs_client,
     secret.clone(),
     rate_limit_cell.clone(),
   );
@@ -230,7 +238,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
 
   if !args.disable_scheduled_tasks {
     // Schedules various cleanup tasks for the DB
-    let _scheduled_tasks = tokio::task::spawn(scheduled_tasks::setup(context.clone()));
+    let _scheduled_tasks =
+      tokio::task::spawn(scheduled_tasks::setup(request_data.reset_request_count()));
   }
 
   let server = if !args.disable_http_server {
@@ -325,17 +334,12 @@ fn create_http_server(
     .build()
     .map_err(|e| LemmyErrorType::Unknown(format!("Should always be buildable: {e}")))?;
 
-  let context: LemmyContext = federation_config.deref().clone();
-  let rate_limit_cell = federation_config.rate_limit_cell().clone();
-
-  // Pictrs cannot use proxy
-  let pictrs_client = ClientBuilder::new(client_builder(&SETTINGS).no_proxy().build()?)
-    .with(TracingMiddleware::default())
-    .build();
-
   // Create Http server
   let bind = (settings.bind, settings.port);
   let server = HttpServer::new(move || {
+    let context: LemmyContext = federation_config.deref().clone();
+    let rate_limit_cell = federation_config.rate_limit_cell().clone();
+
     let cors_config = cors_config(&settings);
     let app = App::new()
       .wrap(middleware::Logger::new(
@@ -359,7 +363,8 @@ fn create_http_server(
 
     // The routes
     app
-      .configure(|cfg| api_routes_http::config(cfg, &rate_limit_cell))
+      .configure(|cfg| api_routes_v3::config(cfg, &rate_limit_cell))
+      .configure(|cfg| api_routes_v4::config(cfg, &rate_limit_cell))
       .configure(|cfg| {
         if federation_enabled {
           lemmy_apub::http::routes::config(cfg);
@@ -367,8 +372,12 @@ fn create_http_server(
         }
       })
       .configure(feeds::config)
-      .configure(|cfg| images::config(cfg, pictrs_client.clone(), &rate_limit_cell))
       .configure(nodeinfo::config)
+      .service(
+        scope("/sitemap.xml")
+          .wrap(rate_limit_cell.message())
+          .route("", get().to(get_sitemap)),
+      )
   })
   .disable_signals()
   .bind(bind)?
@@ -407,5 +416,20 @@ fn cors_config(settings: &Settings) -> Cors {
       }
     }
     _ => cors_default,
+  }
+}
+
+#[cfg(test)]
+pub mod tests {
+  use activitypub_federation::config::Data;
+  use lemmy_api_common::context::LemmyContext;
+  use std::env::set_current_dir;
+
+  pub async fn test_context() -> Data<LemmyContext> {
+    // hack, necessary so that config file can be loaded from hardcoded, relative path.
+    // Ignore errors as this gets called once for every test (so changing dir again would fail).
+    set_current_dir("crates/utils").ok();
+
+    LemmyContext::init_test_context().await
   }
 }

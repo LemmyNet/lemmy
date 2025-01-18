@@ -212,10 +212,7 @@ pub async fn import_settings(
       &context,
       |(saved, context)| async move {
         let comment = saved.dereference(&context).await?;
-        let form = CommentSavedForm {
-          person_id,
-          comment_id: comment.id,
-        };
+        let form = CommentSavedForm::new(comment.id, person_id);
         CommentSaved::save(&mut context.pool(), &form).await?;
         LemmyResult::Ok(())
       },
@@ -322,7 +319,7 @@ pub(crate) mod tests {
         CommunityFollowerState,
         CommunityInsertForm,
       },
-      local_user::LocalUser,
+      person::Person,
     },
     traits::{Crud, Followable},
   };
@@ -376,8 +373,8 @@ pub(crate) mod tests {
     assert_eq!(follows.len(), 1);
     assert_eq!(follows[0].community.actor_id, community.actor_id);
 
-    LocalUser::delete(pool, export_user.local_user.id).await?;
-    LocalUser::delete(pool, import_user.local_user.id).await?;
+    Person::delete(pool, export_user.person.id).await?;
+    Person::delete(pool, import_user.person.id).await?;
     Ok(())
   }
 
@@ -412,8 +409,8 @@ pub(crate) mod tests {
       Some(LemmyErrorType::TooManyItems)
     );
 
-    LocalUser::delete(pool, export_user.local_user.id).await?;
-    LocalUser::delete(pool, import_user.local_user.id).await?;
+    Person::delete(pool, export_user.person.id).await?;
+    Person::delete(pool, import_user.person.id).await?;
     Ok(())
   }
 

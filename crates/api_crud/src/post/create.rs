@@ -2,7 +2,7 @@ use super::convert_published_time;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_common::{
-  build_response::build_post_response,
+  build_response::{build_post_response, send_local_notifs},
   context::LemmyContext,
   post::{CreatePost, PostResponse},
   request::generate_post_link_metadata,
@@ -17,6 +17,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
+  newtypes::PostOrCommentId,
   source::{
     community::Community,
     local_site::LocalSite,
@@ -32,6 +33,7 @@ use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   spawn_try_task,
   utils::{
+    mention::scrape_text_for_mentions,
     slurs::check_slurs,
     validation::{
       is_url_blocked,
@@ -86,6 +88,9 @@ pub async fn create_post(
   let community = Community::read(&mut context.pool(), data.community_id).await?;
   check_community_user_action(&local_user_view.person, &community, &mut context.pool()).await?;
 
+  // If its an NSFW community, then use that as a default
+  let nsfw = data.nsfw.or(Some(community.nsfw));
+
   if community.posting_restricted_to_mods {
     let community_id = data.community_id;
     CommunityModeratorView::check_is_community_moderator(
@@ -107,10 +112,10 @@ pub async fn create_post(
   let scheduled_publish_time =
     convert_published_time(data.scheduled_publish_time, &local_user_view, &context).await?;
   let post_form = PostInsertForm {
-    url: url.map(Into::into),
+    url,
     body,
     alt_text: data.alt_text.clone(),
-    nsfw: data.nsfw,
+    nsfw,
     language_id: Some(language_id),
     scheduled_publish_time,
     ..PostInsertForm::new(
@@ -147,6 +152,18 @@ pub async fn create_post(
   PostLike::like(&mut context.pool(), &like_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
+
+  // Scan the post body for user mentions, add those rows
+  let mentions = scrape_text_for_mentions(&inserted_post.body.clone().unwrap_or_default());
+  send_local_notifs(
+    mentions,
+    PostOrCommentId::Post(inserted_post.id),
+    &local_user_view.person,
+    true,
+    &context,
+    Some(&local_user_view),
+  )
+  .await?;
 
   let read_form = PostReadForm::new(post_id, person_id);
   PostRead::mark_as_read(&mut context.pool(), &read_form).await?;

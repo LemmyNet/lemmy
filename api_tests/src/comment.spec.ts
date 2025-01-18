@@ -16,20 +16,16 @@ import {
   editComment,
   deleteComment,
   removeComment,
-  getMentions,
   resolvePost,
   unfollowRemotes,
   createCommunity,
   registerUser,
   reportComment,
-  listCommentReports,
   randomString,
   unfollows,
   getComments,
   getCommentParentId,
   resolveCommunity,
-  getPersonDetails,
-  getReplies,
   getUnreadCount,
   waitUntil,
   waitForPost,
@@ -38,8 +34,19 @@ import {
   blockCommunity,
   delay,
   saveUserSettings,
+  listReports,
+  listPersonContent,
+  listInbox,
 } from "./shared";
-import { CommentView, CommunityView, SaveUserSettings } from "lemmy-js-client";
+import {
+  CommentReplyView,
+  CommentReportView,
+  CommentView,
+  CommunityView,
+  PersonCommentMentionView,
+  ReportCombinedView,
+  SaveUserSettings,
+} from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
 let postOnAlphaRes: PostResponse;
@@ -156,7 +163,6 @@ test("Delete a comment", async () => {
     commentRes.comment_view.comment.id,
   );
   expect(deleteCommentRes.comment_view.comment.deleted).toBe(true);
-  expect(deleteCommentRes.comment_view.comment.content).toBe("");
 
   // Make sure that comment is deleted on beta
   await waitUntil(
@@ -205,11 +211,13 @@ test.skip("Remove a comment from admin and community on the same instance", asyn
   expect(removeCommentRes.comment_view.comment.removed).toBe(true);
 
   // Make sure that comment is removed on alpha (it gets pushed since an admin from beta removed it)
-  let refetchedPostComments = await getPersonDetails(
+  let refetchedPostComments = await listPersonContent(
     alpha,
     commentRes.comment_view.comment.creator_id,
+    "Comments",
   );
-  expect(refetchedPostComments.comments[0].comment.removed).toBe(true);
+  let firstRefetchedComment = refetchedPostComments.content[0] as CommentView;
+  expect(firstRefetchedComment.comment.removed).toBe(true);
 
   // beta will unremove the comment
   let unremoveCommentRes = await removeComment(beta, false, betaCommentId);
@@ -254,7 +262,6 @@ test("Remove a comment from admin and community on different instance", async ()
     betaComment.comment.id,
   );
   expect(removeCommentRes.comment_view.comment.removed).toBe(true);
-  expect(removeCommentRes.comment_view.comment.content).toBe("");
 
   // Comment text is also hidden from list
   let listComments = await getComments(
@@ -263,7 +270,6 @@ test("Remove a comment from admin and community on different instance", async ()
   );
   expect(listComments.comments.length).toBe(1);
   expect(listComments.comments[0].comment.removed).toBe(true);
-  expect(listComments.comments[0].comment.content).toBe("");
 
   // Make sure its not removed on alpha
   let refetchedPostComments = await getComments(
@@ -351,7 +357,7 @@ test("Federated comment like", async () => {
 });
 
 test("Reply to a comment from another instance, get notification", async () => {
-  await alpha.markAllAsRead();
+  await alpha.markAllNotificationsAsRead();
 
   let betaCommunity = (
     await waitUntil(
@@ -418,18 +424,18 @@ test("Reply to a comment from another instance, get notification", async () => {
   // Did alpha get notified of the reply from beta?
   let alphaUnreadCountRes = await waitUntil(
     () => getUnreadCount(alpha),
-    e => e.replies >= 1,
+    e => e.count >= 1,
   );
-  expect(alphaUnreadCountRes.replies).toBeGreaterThanOrEqual(1);
+  expect(alphaUnreadCountRes.count).toBeGreaterThanOrEqual(1);
 
   // check inbox of replies on alpha, fetching read/unread both
   let alphaRepliesRes = await waitUntil(
-    () => getReplies(alpha),
-    r => r.replies.length > 0,
+    () => listInbox(alpha, "CommentReply"),
+    r => r.inbox.length > 0,
   );
-  const alphaReply = alphaRepliesRes.replies.find(
-    r => r.comment.id === alphaComment.comment.id,
-  );
+  const alphaReply = alphaRepliesRes.inbox.find(
+    r => r.type_ == "CommentReply" && r.comment.id === alphaComment.comment.id,
+  ) as CommentReplyView | undefined;
   expect(alphaReply).toBeDefined();
   if (!alphaReply) throw Error();
   expect(alphaReply.comment.content).toBeDefined();
@@ -458,7 +464,7 @@ test("Bot reply notifications are filtered when bots are hidden", async () => {
     throw "Missing alpha community";
   }
 
-  await alpha.markAllAsRead();
+  await alpha.markAllNotificationsAsRead();
   form = {
     show_bot_accounts: false,
   };
@@ -473,10 +479,7 @@ test("Bot reply notifications are filtered when bots are hidden", async () => {
   expect(commentRes).toBeDefined();
 
   let alphaUnreadCountRes = await getUnreadCount(alpha);
-  expect(alphaUnreadCountRes.replies).toBe(0);
-
-  let alphaUnreadRepliesRes = await getReplies(alpha, true);
-  expect(alphaUnreadRepliesRes.replies.length).toBe(0);
+  expect(alphaUnreadCountRes.count).toBe(0);
 
   // This both restores the original state that may be expected by other tests
   // implicitly and is used by the next steps to ensure replies are still
@@ -487,16 +490,16 @@ test("Bot reply notifications are filtered when bots are hidden", async () => {
   await saveUserSettings(alpha, form);
 
   alphaUnreadCountRes = await getUnreadCount(alpha);
-  expect(alphaUnreadCountRes.replies).toBe(1);
+  expect(alphaUnreadCountRes.count).toBe(1);
 
-  alphaUnreadRepliesRes = await getReplies(alpha, true);
-  expect(alphaUnreadRepliesRes.replies.length).toBe(1);
-  expect(alphaUnreadRepliesRes.replies[0].comment.id).toBe(
+  let alphaUnreadRepliesRes = await listInbox(alpha, "CommentReply", true);
+  expect(alphaUnreadRepliesRes.inbox.length).toBe(1);
+  expect((alphaUnreadRepliesRes.inbox[0] as CommentReplyView).comment.id).toBe(
     commentRes.comment_view.comment.id,
   );
 });
 
-test("Mention beta from alpha", async () => {
+test("Mention beta from alpha comment", async () => {
   if (!betaCommunity) throw Error("no community");
   const postOnAlphaRes = await createPost(alpha, betaCommunity.community.id);
   // Create a new branch, trunk-level comment branch, from alpha instance
@@ -543,15 +546,17 @@ test("Mention beta from alpha", async () => {
   assertCommentFederation(betaRootComment, commentRes.comment_view);
 
   let mentionsRes = await waitUntil(
-    () => getMentions(beta),
-    m => !!m.mentions[0],
+    () => listInbox(beta, "CommentMention"),
+    m => !!m.inbox[0],
   );
-  expect(mentionsRes.mentions[0].comment.content).toBeDefined();
-  expect(mentionsRes.mentions[0].community.local).toBe(true);
-  expect(mentionsRes.mentions[0].creator.local).toBe(false);
-  expect(mentionsRes.mentions[0].counts.score).toBe(1);
+
+  const firstMention = mentionsRes.inbox[0] as PersonCommentMentionView;
+  expect(firstMention.comment.content).toBeDefined();
+  expect(firstMention.community.local).toBe(true);
+  expect(firstMention.creator.local).toBe(false);
+  expect(firstMention.counts.score).toBe(1);
   // the reply comment with mention should be the most fresh, newest, index 0
-  expect(mentionsRes.mentions[0].person_mention.comment_id).toBe(
+  expect(firstMention.person_comment_mention.comment_id).toBe(
     betaPostComments.comments[0].comment.id,
   );
 });
@@ -618,15 +623,17 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   );
 
   // Make sure beta has mentions
-  let relevantMention = await waitUntil(
+  let relevantMention = (await waitUntil(
     () =>
-      getMentions(beta).then(m =>
-        m.mentions.find(
-          m => m.comment.ap_id === commentRes.comment_view.comment.ap_id,
+      listInbox(beta, "CommentMention").then(m =>
+        m.inbox.find(
+          m =>
+            m.type_ == "CommentMention" &&
+            m.comment.ap_id === commentRes.comment_view.comment.ap_id,
         ),
       ),
     e => !!e,
-  );
+  )) as PersonCommentMentionView | undefined;
   if (!relevantMention) throw Error("could not find mention");
   expect(relevantMention.comment.content).toBe(commentContent);
   expect(relevantMention.community.local).toBe(false);
@@ -702,10 +709,10 @@ test("Check that activity from another instance is sent to third instance", asyn
 
 test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedded comments, A subs to B, B updates the lowest level comment, A fetches both the post and all the inreplyto comments for that post.", async () => {
   // Unfollow all remote communities
-  let site = await unfollowRemotes(alpha);
-  expect(
-    site.my_user?.follows.filter(c => c.community.local == false).length,
-  ).toBe(0);
+  let my_user = await unfollowRemotes(alpha);
+  expect(my_user.follows.filter(c => c.community.local == false).length).toBe(
+    0,
+  );
 
   // B creates a post, and two comments, should be invisible to A
   let postOnBetaRes = await createPost(beta, 2);
@@ -799,13 +806,17 @@ test("Report a comment", async () => {
   let alphaReport = (await reportComment(alpha, alphaComment.id, reason))
     .comment_report_view.comment_report;
 
-  let betaReport = (await waitUntil(
-    () =>
-      listCommentReports(beta).then(r =>
-        r.comment_reports.find(rep => rep.comment_report.reason === reason),
-      ),
-    e => !!e,
-  ))!.comment_report;
+  let betaReport = (
+    (await waitUntil(
+      () =>
+        listReports(beta).then(p =>
+          p.reports.find(r => {
+            return checkCommentReportReason(r, reason);
+          }),
+        ),
+      e => !!e,
+    )!) as CommentReportView
+  ).comment_report;
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
   expect(betaReport.original_comment_text).toBe(
@@ -815,6 +826,7 @@ test("Report a comment", async () => {
 });
 
 test("Dont send a comment reply to a blocked community", async () => {
+  await beta.markAllNotificationsAsRead();
   let newCommunity = await createCommunity(beta);
   let newCommunityId = newCommunity.community_view.community.id;
 
@@ -828,7 +840,7 @@ test("Dont send a comment reply to a blocked community", async () => {
 
   // Check beta's inbox count
   let unreadCount = await getUnreadCount(beta);
-  expect(unreadCount.replies).toBe(1);
+  expect(unreadCount.count).toBe(0);
 
   // Beta blocks the new beta community
   let blockRes = await blockCommunity(beta, newCommunityId, true);
@@ -848,10 +860,10 @@ test("Dont send a comment reply to a blocked community", async () => {
 
   // Check beta's inbox count, make sure it stays the same
   unreadCount = await getUnreadCount(beta);
-  expect(unreadCount.replies).toBe(1);
+  expect(unreadCount.count).toBe(0);
 
-  let replies = await getReplies(beta);
-  expect(replies.replies.length).toBe(1);
+  let replies = await listInbox(beta, "CommentReply", true);
+  expect(replies.inbox.length).toBe(0);
 
   // Unblock the community
   blockRes = await blockCommunity(beta, newCommunityId, false);
@@ -880,3 +892,12 @@ test.skip("Fetch a deeply nested comment", async () => {
   expect(betaComment!.comment!.comment).toBeDefined();
   expect(betaComment?.comment?.post).toBeDefined();
 });
+
+function checkCommentReportReason(rcv: ReportCombinedView, reason: string) {
+  switch (rcv.type_) {
+    case "Comment":
+      return rcv.comment_report.reason === reason;
+    default:
+      return false;
+  }
+}

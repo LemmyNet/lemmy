@@ -1,5 +1,5 @@
 use crate::{
-  activities::{block::SiteOrCommunity, verify_community_matches},
+  activities::block::SiteOrCommunity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::InCommunity,
 };
@@ -31,7 +31,6 @@ pub struct BlockUser {
   #[serde(rename = "type")]
   pub(crate) kind: BlockType,
   pub(crate) id: Url,
-  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 
   /// Quick and dirty solution.
   /// TODO: send a separate Delete activity instead
@@ -49,9 +48,6 @@ impl InCommunity for BlockUser {
       SiteOrCommunity::Community(c) => c,
       SiteOrCommunity::Site(_) => return Err(anyhow!("activity is not in community").into()),
     };
-    if let Some(audience) = &self.audience {
-      verify_community_matches(audience, community.actor_id.clone())?;
-    }
     Ok(community)
   }
 }

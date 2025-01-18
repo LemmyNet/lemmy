@@ -6,7 +6,6 @@ use lemmy_api_common::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
-  CommentSortType,
   CommunityVisibility,
   ListingType,
   PostSortType,
@@ -15,15 +14,11 @@ use lemmy_db_views::{
   post_view::PostQuery,
   structs::{PostView, SiteView},
 };
-use lemmy_db_views_actor::{
-  comment_reply_view::CommentReplyQuery,
-  person_mention_view::PersonMentionQuery,
-  structs::{CommentReplyView, PersonMentionView},
-};
+use lemmy_db_views_actor::{inbox_combined_view::InboxCombinedQuery, structs::InboxCombinedView};
 use lemmy_utils::{
   cache_header::cache_1hour,
   error::{LemmyError, LemmyErrorType, LemmyResult},
-  utils::markdown::{markdown_to_html, sanitize_html},
+  utils::markdown::markdown_to_html,
 };
 use rss::{
   extension::{dublincore::DublinCoreExtension, ExtensionBuilder, ExtensionMap},
@@ -92,23 +87,6 @@ static RSS_NAMESPACE: LazyLock<BTreeMap<String, String>> = LazyLock::new(|| {
   );
   h
 });
-
-/// Removes any characters disallowed by the XML grammar.
-/// See https://www.w3.org/TR/xml/#NT-Char for details.
-fn sanitize_xml(input: String) -> String {
-  input
-    .chars()
-    .filter(|&c| {
-      matches!(c,
-        '\u{09}'
-        | '\u{0A}'
-        | '\u{0D}'
-        | '\u{20}'..='\u{D7FF}'
-        | '\u{E000}'..='\u{FFFD}'
-        | '\u{10000}'..='\u{10FFFF}')
-    })
-    .collect()
-}
 
 #[tracing::instrument(skip_all)]
 async fn get_all_feed(
@@ -278,7 +256,7 @@ async fn get_feed_user(
   let items = create_post_items(posts, &context.settings().get_protocol_and_hostname())?;
   let channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - {}", sanitize_xml(site_view.site.name), person.name),
+    title: format!("{} - {}", site_view.site.name, person.name),
     link: person.actor_id.to_string(),
     items,
     ..Default::default()
@@ -319,7 +297,7 @@ async fn get_feed_community(
 
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - {}", sanitize_xml(site_view.site.name), community.name),
+    title: format!("{} - {}", site_view.site.name, community.name),
     link: community.actor_id.to_string(),
     items,
     ..Default::default()
@@ -360,7 +338,7 @@ async fn get_feed_front(
   let items = create_post_items(posts, &protocol_and_hostname)?;
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - Subscribed", sanitize_xml(site_view.site.name)),
+    title: format!("{} - Subscribed", site_view.site.name),
     link: protocol_and_hostname,
     items,
     ..Default::default()
@@ -377,41 +355,24 @@ async fn get_feed_front(
 async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_user = local_user_view_from_jwt(jwt, context).await?;
-  let person_id = local_user.local_user.person_id;
-  let show_bot_accounts = local_user.local_user.show_bot_accounts;
-
-  let sort = CommentSortType::New;
+  let my_person_id = local_user.person.id;
+  let show_bot_accounts = Some(local_user.local_user.show_bot_accounts);
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
-  let replies = CommentReplyQuery {
-    recipient_id: (Some(person_id)),
-    my_person_id: (Some(person_id)),
-    show_bot_accounts: (show_bot_accounts),
-    sort: (Some(sort)),
-    limit: (Some(RSS_FETCH_LIMIT)),
+  let inbox = InboxCombinedQuery {
+    show_bot_accounts,
     ..Default::default()
   }
-  .list(&mut context.pool())
-  .await?;
-
-  let mentions = PersonMentionQuery {
-    recipient_id: (Some(person_id)),
-    my_person_id: (Some(person_id)),
-    show_bot_accounts: (show_bot_accounts),
-    sort: (Some(sort)),
-    limit: (Some(RSS_FETCH_LIMIT)),
-    ..Default::default()
-  }
-  .list(&mut context.pool())
+  .list(&mut context.pool(), my_person_id)
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let items = create_reply_and_mention_items(replies, mentions, &protocol_and_hostname)?;
+  let items = create_reply_and_mention_items(inbox, &protocol_and_hostname)?;
 
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - Inbox", sanitize_xml(site_view.site.name)),
+    title: format!("{} - Inbox", site_view.site.name),
     link: format!("{protocol_and_hostname}/inbox"),
     items,
     ..Default::default()
@@ -426,39 +387,55 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
 
 #[tracing::instrument(skip_all)]
 fn create_reply_and_mention_items(
-  replies: Vec<CommentReplyView>,
-  mentions: Vec<PersonMentionView>,
+  inbox: Vec<InboxCombinedView>,
   protocol_and_hostname: &str,
 ) -> LemmyResult<Vec<Item>> {
-  let mut reply_items: Vec<Item> = replies
+  let reply_items: Vec<Item> = inbox
     .iter()
-    .map(|r| {
-      let reply_url = format!("{}/comment/{}", protocol_and_hostname, r.comment.id);
-      build_item(
-        &r.creator.name,
-        &r.comment.published,
-        &reply_url,
-        &r.comment.content,
-        protocol_and_hostname,
-      )
+    .map(|r| match r {
+      InboxCombinedView::CommentReply(v) => {
+        let reply_url = format!("{}/comment/{}", protocol_and_hostname, v.comment.id);
+        build_item(
+          &v.creator.name,
+          &v.comment.published,
+          &reply_url,
+          &v.comment.content,
+          protocol_and_hostname,
+        )
+      }
+      InboxCombinedView::CommentMention(v) => {
+        let mention_url = format!("{}/comment/{}", protocol_and_hostname, v.comment.id);
+        build_item(
+          &v.creator.name,
+          &v.comment.published,
+          &mention_url,
+          &v.comment.content,
+          protocol_and_hostname,
+        )
+      }
+      InboxCombinedView::PostMention(v) => {
+        let mention_url = format!("{}/post/{}", protocol_and_hostname, v.post.id);
+        build_item(
+          &v.creator.name,
+          &v.post.published,
+          &mention_url,
+          &v.post.body.clone().unwrap_or_default(),
+          protocol_and_hostname,
+        )
+      }
+      InboxCombinedView::PrivateMessage(v) => {
+        let inbox_url = format!("{}/inbox", protocol_and_hostname);
+        build_item(
+          &v.creator.name,
+          &v.private_message.published,
+          &inbox_url,
+          &v.private_message.content,
+          protocol_and_hostname,
+        )
+      }
     })
     .collect::<LemmyResult<Vec<Item>>>()?;
 
-  let mut mention_items: Vec<Item> = mentions
-    .iter()
-    .map(|m| {
-      let mention_url = format!("{}/comment/{}", protocol_and_hostname, m.comment.id);
-      build_item(
-        &m.creator.name,
-        &m.comment.published,
-        &mention_url,
-        &m.comment.content,
-        protocol_and_hostname,
-      )
-    })
-    .collect::<LemmyResult<Vec<Item>>>()?;
-
-  reply_items.append(&mut mention_items);
   Ok(reply_items)
 }
 
@@ -471,7 +448,6 @@ fn build_item(
   protocol_and_hostname: &str,
 ) -> LemmyResult<Item> {
   // TODO add images
-  let author_url = format!("{protocol_and_hostname}/u/{creator_name}");
   let guid = Some(Guid {
     permalink: true,
     value: url.to_owned(),
@@ -481,7 +457,8 @@ fn build_item(
   Ok(Item {
     title: Some(format!("Reply from {creator_name}")),
     author: Some(format!(
-      "/u/{creator_name} <a href=\"{author_url}\">(link)</a>"
+      "/u/{creator_name} <a href=\"{}\">(link)</a>",
+      format_args!("{protocol_and_hostname}/u/{creator_name}")
     )),
     pub_date: Some(published.to_rfc2822()),
     comments: Some(url.to_owned()),
@@ -498,11 +475,7 @@ fn create_post_items(posts: Vec<PostView>, protocol_and_hostname: &str) -> Lemmy
 
   for p in posts {
     let post_url = format!("{}/post/{}", protocol_and_hostname, p.post.id);
-    let community_url = format!(
-      "{}/c/{}",
-      protocol_and_hostname,
-      sanitize_html(&p.community.name)
-    );
+    let community_url = format!("{}/c/{}", protocol_and_hostname, &p.community.name);
     let dublin_core_ext = Some(DublinCoreExtension {
       creators: vec![p.creator.actor_id.to_string()],
       ..DublinCoreExtension::default()
@@ -513,9 +486,9 @@ fn create_post_items(posts: Vec<PostView>, protocol_and_hostname: &str) -> Lemmy
     });
     let mut description = format!("submitted by <a href=\"{}\">{}</a> to <a href=\"{}\">{}</a><br>{} points | <a href=\"{}\">{} comments</a>",
     p.creator.actor_id,
-    sanitize_html(&p.creator.name),
+    &p.creator.name,
     community_url,
-    sanitize_html(&p.community.name),
+    &p.community.name,
     p.counts.score,
     post_url,
     p.counts.comments);
@@ -566,11 +539,11 @@ fn create_post_items(posts: Vec<PostView>, protocol_and_hostname: &str) -> Lemmy
     };
 
     let i = Item {
-      title: Some(sanitize_html(sanitize_xml(p.post.name).as_str())),
+      title: Some(p.post.name),
       pub_date: Some(p.post.published.to_rfc2822()),
       comments: Some(post_url.clone()),
       guid,
-      description: Some(sanitize_xml(description)),
+      description: Some(description),
       dublin_core_ext,
       link: Some(post_url.clone()),
       extensions,

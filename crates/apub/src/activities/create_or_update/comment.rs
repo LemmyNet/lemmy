@@ -29,7 +29,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
-  newtypes::PersonId,
+  newtypes::{PersonId, PostOrCommentId},
   source::{
     activity::ActivitySendTargets,
     comment::{Comment, CommentLike, CommentLikeForm},
@@ -43,6 +43,7 @@ use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::mention::scrape_text_for_mentions,
 };
+use serde_json::{from_value, to_value};
 use url::Url;
 
 impl CreateOrUpdateNote {
@@ -70,13 +71,12 @@ impl CreateOrUpdateNote {
 
     let create_or_update = CreateOrUpdateNote {
       actor: person.id().into(),
-      to: vec![generate_to(&community)?],
+      to: generate_to(&community)?,
       cc: note.cc.clone(),
       tag: note.tag.clone(),
       object: note,
       kind,
       id: id.clone(),
-      audience: Some(community.id().into()),
     };
 
     let tagged_users: Vec<ObjectId<ApubPerson>> = create_or_update
@@ -98,7 +98,11 @@ impl CreateOrUpdateNote {
       inboxes.add_inbox(person.shared_inbox_or_inbox());
     }
 
-    let activity = AnnouncableActivities::CreateOrUpdateComment(create_or_update);
+    // AnnouncableActivities doesnt contain Comment activity but only NoteWrapper,
+    // to be able to handle both comment and private message. So to send this out we need
+    // to convert this to NoteWrapper, by serializing and then deserializing again.
+    let converted = from_value(to_value(create_or_update)?)?;
+    let activity = AnnouncableActivities::CreateOrUpdateNoteWrapper(converted);
     send_activity_in_community(activity, &person, &community, inboxes, false, &context).await
   }
 }
@@ -171,7 +175,17 @@ impl ActivityHandler for CreateOrUpdateNote {
     // TODO: for compatibility with other projects, it would be much better to read this from cc or
     // tags
     let mentions = scrape_text_for_mentions(&comment.content);
-    send_local_notifs(mentions, comment.id, &actor, do_send_email, context, None).await?;
+    // TODO: this fails in local community comment as CommentView::read() returns nothing
+    //       without passing LocalUser
+    send_local_notifs(
+      mentions,
+      PostOrCommentId::Comment(comment.id),
+      &actor,
+      do_send_email,
+      context,
+      None,
+    )
+    .await?;
     Ok(())
   }
 }

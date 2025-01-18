@@ -12,17 +12,14 @@ use url::Url;
 #[serde(default)]
 pub struct Settings {
   /// settings related to the postgresql database
-  #[default(Default::default())]
   pub database: DatabaseConfig,
   /// Pictrs image server configuration.
   #[default(Some(Default::default()))]
   pub(crate) pictrs: Option<PictrsConfig>,
   /// Email sending configuration. All options except login/password are mandatory
-  #[default(None)]
   #[doku(example = "Some(Default::default())")]
   pub email: Option<EmailConfig>,
   /// Parameters for automatic configuration of new instance (only used at first start)
-  #[default(None)]
   #[doku(example = "Some(Default::default())")]
   pub setup: Option<SetupConfig>,
   /// the domain name of your instance (mandatory)
@@ -41,18 +38,14 @@ pub struct Settings {
   pub tls_enabled: bool,
   /// Set the URL for opentelemetry exports. If you do not have an opentelemetry collector, do not
   /// set this option
-  #[default(None)]
   #[doku(skip)]
   pub opentelemetry_url: Option<Url>,
-  #[default(Default::default())]
   pub federation: FederationWorkerConfig,
   // Prometheus configuration.
-  #[default(None)]
   #[doku(example = "Some(Default::default())")]
   pub prometheus: Option<PrometheusConfig>,
   /// Sets a response Access-Control-Allow-Origin CORS header
   /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
-  #[default(None)]
   #[doku(example = "lemmy.tld")]
   cors_origin: Option<String>,
 }
@@ -74,19 +67,21 @@ pub struct PictrsConfig {
   pub url: Url,
 
   /// Set a custom pictrs API key. ( Required for deleting images )
-  #[default(None)]
   pub api_key: Option<String>,
-
-  /// Backwards compatibility with 0.18.1. False is equivalent to `image_mode: None`, true is
-  /// equivalent to `image_mode: StoreLinkPreviews`.
-  ///
-  /// To be removed in 0.20
-  pub(super) cache_external_link_previews: Option<bool>,
 
   /// Specifies how to handle remote images, so that users don't have to connect directly to remote
   /// servers.
-  #[default(PictrsImageMode::StoreLinkPreviews)]
-  pub(super) image_mode: PictrsImageMode,
+  #[default(PictrsImageMode::ProxyAllImages)]
+  pub image_mode: PictrsImageMode,
+
+  /// Allows bypassing proxy for specific image hosts when using ProxyAllImages.
+  ///
+  /// imgur.com is bypassed by default to avoid rate limit errors. When specifying any bypass
+  /// in the config, this default is ignored and you need to list imgur explicitly. To proxy imgur
+  /// requests, specify a noop bypass list, eg `proxy_bypass_domains ["example.org"]`.
+  #[default(vec!["i.imgur.com".to_string()])]
+  #[doku(example = "i.imgur.com")]
+  pub proxy_bypass_domains: Vec<String>,
 
   /// Timeout for uploading images to pictrs (in seconds)
   #[default(30)]
@@ -95,9 +90,23 @@ pub struct PictrsConfig {
   /// Resize post thumbnails to this maximum width/height.
   #[default(512)]
   pub max_thumbnail_size: u32,
+
+  /// Maximum size for user avatar, community icon and site icon.
+  #[default(512)]
+  pub max_avatar_size: u32,
+
+  /// Maximum size for user, community and site banner. Larger images are downscaled to fit
+  /// into a square of this size.
+  #[default(1024)]
+  pub max_banner_size: u32,
+
+  /// Prevent users from uploading images for posts or embedding in markdown. Avatars, icons and
+  /// banners can still be uploaded.
+  #[default(false)]
+  pub image_upload_disabled: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default, Document, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub enum PictrsImageMode {
   /// Leave images unchanged, don't generate any local thumbnails for post urls. Instead the
@@ -107,78 +116,38 @@ pub enum PictrsImageMode {
   /// ensures that they can be reliably retrieved and can be resized using pict-rs APIs. However
   /// it also increases storage usage.
   ///
-  /// This is the default behaviour, and also matches Lemmy 0.18.
-  #[default]
+  /// This behaviour matches Lemmy 0.18.
   StoreLinkPreviews,
   /// If enabled, all images from remote domains are rewritten to pass through
-  /// `/api/v3/image_proxy`, including embedded images in markdown. Images are stored temporarily
+  /// `/api/v4/image/proxy`, including embedded images in markdown. Images are stored temporarily
   /// in pict-rs for caching. This improves privacy as users don't expose their IP to untrusted
   /// servers, and decreases load on other servers. However it increases bandwidth use for the
   /// local server.
   ///
   /// Requires pict-rs 0.5
+  #[default]
   ProxyAllImages,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default)]
 pub struct DatabaseConfig {
-  #[serde(flatten, default)]
-  pub(crate) connection: DatabaseConnection,
+  /// Configure the database by specifying URI pointing to a postgres instance
+  ///
+  /// This example uses peer authentication to obviate the need for creating,
+  /// configuring, and managing passwords.
+  ///
+  /// For an explanation of how to use connection URIs, see [here][0] in
+  /// PostgreSQL's documentation.
+  ///
+  /// [0]: https://www.postgresql.org/docs/current/libpq-connect.html#id-1.7.3.8.3.6
+  #[default("postgres://lemmy:password@localhost:5432/lemmy")]
+  #[doku(example = "postgresql:///lemmy?user=lemmy&host=/var/run/postgresql")]
+  pub(crate) connection: String,
 
   /// Maximum number of active sql connections
   #[default(30)]
   pub pool_size: usize,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(untagged)]
-pub enum DatabaseConnection {
-  /// Configure the database by specifying a URI
-  ///
-  /// This is the preferred method to specify database connection details since
-  /// it is the most flexible.
-  Uri {
-    /// Connection URI pointing to a postgres instance
-    ///
-    /// This example uses peer authentication to obviate the need for creating,
-    /// configuring, and managing passwords.
-    ///
-    /// For an explanation of how to use connection URIs, see [here][0] in
-    /// PostgreSQL's documentation.
-    ///
-    /// [0]: https://www.postgresql.org/docs/current/libpq-connect.html#id-1.7.3.8.3.6
-    #[doku(example = "postgresql:///lemmy?user=lemmy&host=/var/run/postgresql")]
-    uri: String,
-  },
-
-  /// Configure the database by specifying parts of a URI
-  ///
-  /// Note that specifying the `uri` field should be preferred since it provides
-  /// greater control over how the connection is made. This merely exists for
-  /// backwards-compatibility.
-  #[default]
-  Parts(DatabaseConnectionParts),
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(default)]
-pub struct DatabaseConnectionParts {
-  /// Username to connect to postgres
-  #[default("lemmy")]
-  pub(super) user: String,
-  /// Password to connect to postgres
-  #[default("password")]
-  pub(super) password: String,
-  #[default("localhost")]
-  /// Host where postgres is running
-  pub(super) host: String,
-  /// Port where postgres can be accessed
-  #[default(5432)]
-  pub(super) port: i32,
-  /// Name of the postgres database for lemmy
-  #[default("lemmy")]
-  pub(super) database: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Document, SmartDefault)]
@@ -208,7 +177,7 @@ impl EmailConfig {
   }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default, Document)]
 #[serde(deny_unknown_fields)]
 pub struct SetupConfig {
   /// Username for the admin user
@@ -222,7 +191,6 @@ pub struct SetupConfig {
   pub site_name: String,
   /// Email for the admin user (optional, can be omitted and set later through the website)
   #[doku(example = "user@example.com")]
-  #[default(None)]
   pub admin_email: Option<String>,
 }
 
