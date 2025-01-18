@@ -293,6 +293,7 @@ impl Likeable for PostLike {
     post_id: PostId,
   ) -> Result<uplete::Count, Error> {
     let conn = &mut get_conn(pool).await?;
+    diesel::delete(post_actions::table).execute(conn).await?;
     uplete::new(post_actions::table.find((person_id, post_id)))
       .set_null(post_actions::like_score)
       .set_null(post_actions::liked)
