@@ -1,6 +1,7 @@
 #![cfg(test)]
 #![expect(clippy::expect_used)]
 use lemmy_utils::settings::SETTINGS;
+use std::collections::HashSet;
 use std::{
   borrow::Cow,
   collections::btree_set::{self, BTreeSet},
@@ -32,6 +33,7 @@ pub fn get_dump() -> String {
       "--no-subscriptions",
       "--no-table-access-method",
       "--no-tablespaces",
+      "--no-large-objects",
     ])
     .stderr(Stdio::inherit())
     .output()
@@ -51,15 +53,24 @@ pub fn check_dump_diff(before: String, after: String, label: &str) {
     return;
   }
 
-  // Borrow checker requires this to be a separate variable
-  let normalized_chunk_vecs = [&before, &after]
-    // Remove identical items
-    .map(|dump| chunks(dump).collect::<BTreeSet<_>>())
-    .differences()
-    // Remove items without unwanted types of differences (if migrations are correct, then this
-    // removes everything)
-    .map(|chunks| chunks.map(|&i| normalize_chunk(i)).collect::<BTreeSet<_>>());
-  let [only_in_before, only_in_after] = normalized_chunk_vecs // Imagine that this line doesn't exist
+  let mut match_before_len = before.as_bytes().into_iter().zip(after.as_bytes()).position(|(a, b)| a != b).unwrap_or(0);
+  let mut match_after_len = before.as_bytes().into_iter().rev().zip(after.as_bytes().into_iter().rev()).position(|(a, b)| a != b).unwrap_or(0);
+  match_before_len = before.get(0..match_before_len).and_then(|s|s.rfind("\n\n")).unwrap_or(0);
+  match_after_len -= before.get((before.len() - match_after_len)..).and_then(|s|s.find("\n\n")).unwrap_or(0);
+  let [before_chunks, after_chunks] = [&before, &after].map(|dump| dump.get(match_before_len..(dump.len()-match_after_len)).unwrap_or(dump.as_str()).split("\n\n").filter_map(normalize_chunk).collect::<Vec<_>>());
+  let mut before_diff = BTreeSet::new();
+  let mut after_diff = BTreeSet::new();
+  let diff_results = diff::slice(&before_chunks, &after_chunks);
+  dbg!(diff_results.len());
+  for res in diff_results {
+    match res {
+      diff::Result::Both(_, _) => (),
+      diff::Result::Left(chunk) => {before_diff.insert((&**chunk));},
+      diff::Result::Right(chunk) =>{ after_diff.insert((&**chunk));},
+    }
+  }
+  let diffs = [before_diff, after_diff];
+  let [only_in_before, only_in_after] = diffs
     .differences()
     .map(|chunks| chunks.map(|i| &**i).collect::<Vec<_>>());
 
@@ -160,7 +171,30 @@ fn similarity(chunk: &str, other_chunk: &str) -> usize {
     .count()
 }
 
-fn normalize_chunk(chunk: &str) -> Cow<'_, str> {
+fn normalize_chunk(mut chunk: &str) -> Option<Cow<'_, str>> {
+  chunk = chunk.trim();
+  while let Some(s) = remove_skipped_item_from_beginning(chunk) {
+      chunk = s.trim_start();
+    }
+    if chunk.is_empty() ||
+  // Skip old views and fast table triggers
+  chunk.strip_prefix("CREATE ").is_some_and(|c| {
+    c
+      .starts_with("VIEW ")
+      || c.starts_with("OR REPLACE VIEW ")
+      || c.starts_with("MATERIALIZED VIEW ")
+      || c.strip_prefix("FUNCTION public.")
+          .and_then(after_skipped_trigger_name)
+          .is_some_and(|a| a.starts_with('('))
+      
+      || 
+        c.strip_prefix("TRIGGER ")
+          .and_then(after_skipped_trigger_name)
+          .is_some_and(|a| a.starts_with(' '))
+      
+  }) {
+    return None;
+  }
   let mut chunk = Cow::Borrowed(chunk);
 
   let stripped_lines = chunk
@@ -187,7 +221,7 @@ fn normalize_chunk(chunk: &str) -> Cow<'_, str> {
   }
 
   // Replace timestamps with a constant string, so differences in timestamps are ignored
-  for index in 0.. {
+  /*for index in 0.. {
     // Performance optimization
     let Some(byte) = chunk.as_bytes().get(index) else {
       break;
@@ -225,52 +259,19 @@ fn normalize_chunk(chunk: &str) -> Cow<'_, str> {
         "AAAAAAAAAAAAAAAAAAAAAAAAAA",
       );
     }
-  }
+  }*/
 
-  chunk
+  Some(chunk)
 }
 
 fn sort_within_sections<T: Ord + ?Sized>(vec: &mut [&T], mut section: impl FnMut(&T) -> u8) {
   vec.sort_unstable_by_key(|&i| (section(i), i));
 }
 
-fn chunks(dump: &str) -> impl Iterator<Item = &str> {
-  let mut remaining = dump;
-  std::iter::from_fn(move || {
-    remaining = remaining.trim_start();
-    while let Some(s) = remove_skipped_item_from_beginning(remaining) {
-      remaining = s.trim_start();
-    }
-
-    // `trim_start` guarantees that `result` is not empty
-    let (result, after_result) = remaining.split_once("\n\n")?;
-    remaining = after_result;
-    Some(result)
-  })
-}
-
 fn remove_skipped_item_from_beginning(s: &str) -> Option<&str> {
   // Skip commented line
   if let Some(after) = s.strip_prefix("--") {
     Some(after_first_occurence(after, "\n"))
-  }
-  // Skip old views and fast table triggers
-  else if let Some(after) = s
-    .strip_prefix("CREATE VIEW ")
-    .or_else(|| s.strip_prefix("CREATE OR REPLACE VIEW "))
-    .or_else(|| s.strip_prefix("CREATE MATERIALIZED VIEW "))
-    .or_else(|| {
-      s.strip_prefix("CREATE FUNCTION public.")
-        .and_then(after_skipped_trigger_name)
-        .and_then(|a| a.strip_prefix('('))
-    })
-    .or_else(|| {
-      s.strip_prefix("CREATE TRIGGER ")
-        .and_then(after_skipped_trigger_name)
-        .and_then(|a| a.strip_prefix(' '))
-    })
-  {
-    Some(after_first_occurence(after, "\n\n"))
   } else {
     None
   }
