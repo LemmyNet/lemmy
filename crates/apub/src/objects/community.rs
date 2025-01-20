@@ -40,7 +40,7 @@ use lemmy_db_schema::{
   traits::{ApubActor, Crud},
   CommunityVisibility,
 };
-use lemmy_db_views_actor::structs::CommunityFollowerView;
+use lemmy_db_views::structs::CommunityFollowerView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,

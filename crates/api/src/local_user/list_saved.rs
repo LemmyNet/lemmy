@@ -6,7 +6,7 @@ use lemmy_api_common::{
   utils::check_private_instance,
 };
 use lemmy_db_views::{
-  person_saved_combined_view::PersonSavedCombinedQuery,
+  combined::person_saved_combined_view::PersonSavedCombinedQuery,
   structs::{LocalUserView, SiteView},
 };
 use lemmy_utils::error::LemmyResult;

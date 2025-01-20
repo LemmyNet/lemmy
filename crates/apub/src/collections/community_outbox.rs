@@ -19,7 +19,7 @@ use activitypub_federation::{
 use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_db_schema::{source::site::Site, utils::FETCH_LIMIT_MAX, PostSortType};
-use lemmy_db_views::post_view::PostQuery;
+use lemmy_db_views::post::post_view::PostQuery;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
