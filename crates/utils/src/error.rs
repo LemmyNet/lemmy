@@ -242,14 +242,9 @@ cfg_if! {
 
     impl actix_web::error::ResponseError for LemmyError {
       fn status_code(&self) -> actix_web::http::StatusCode {
-        if self.error_type == LemmyErrorType::IncorrectLogin {
-          return actix_web::http::StatusCode::UNAUTHORIZED;
-        }
-        if self.error_type == LemmyErrorType::NotFound {
-          return actix_web::http::StatusCode::NOT_FOUND;
-        }
-        match self.inner.downcast_ref::<diesel::result::Error>() {
-          Some(diesel::result::Error::NotFound) => actix_web::http::StatusCode::NOT_FOUND,
+        match self.error_type {
+          LemmyErrorType::IncorrectLogin => actix_web::http::StatusCode::UNAUTHORIZED,
+          LemmyErrorType::NotFound => actix_web::http::StatusCode::NOT_FOUND,
           _ => actix_web::http::StatusCode::BAD_REQUEST,
         }
       }
