@@ -50,7 +50,7 @@ const REPLACEABLE_SCHEMA_PATH: &str = "crates/db_schema/replaceable_schema";
 struct MigrationHarnessWrapper<'a> {
   conn: &'a mut PgConnection,
   #[cfg(test)]
-  diff_checked_migration_name: Option<String>,
+  enable_diff_check: bool,
 }
 
 impl MigrationHarnessWrapper<'_> {
@@ -78,7 +78,7 @@ impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
     migration: &dyn Migration<Pg>,
   ) -> diesel::migration::Result<MigrationVersion<'static>> {
     #[cfg(test)]
-    if self.diff_checked_migration_name == Some(migration.name().to_string()) {
+    if self.enable_diff_check {
       let before = diff_check::get_dump();
 
       self.run_migration_inner(migration)?;
@@ -265,17 +265,7 @@ fn run_selected_migrations(
   let mut wrapper = MigrationHarnessWrapper {
     conn,
     #[cfg(test)]
-    diff_checked_migration_name: options
-      .enable_diff_check
-      .then(|| diesel::migration::MigrationSource::<Pg>::migrations(&migrations()))
-      .transpose()?
-      // Get the migration with the highest version
-      .and_then(|migrations| {
-        migrations
-          .into_iter()
-          .map(|migration| migration.name().to_string())
-          .max()
-      }),
+    enable_diff_check: options.enable_diff_check,
   };
 
   if options.revert {

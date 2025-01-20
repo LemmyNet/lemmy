@@ -1,19 +1,19 @@
 -- Drop the dependent views
-DROP VIEW post_view;
+DROP VIEW IF EXISTS post_view;
 
-DROP VIEW post_mview;
+DROP VIEW IF EXISTS post_mview;
 
-DROP MATERIALIZED VIEW post_aggregates_mview;
+DROP MATERIALIZED VIEW IF EXISTS post_aggregates_mview;
 
-DROP VIEW post_aggregates_view;
+DROP VIEW IF EXISTS post_aggregates_view;
 
-DROP VIEW mod_remove_post_view;
+DROP VIEW IF EXISTS mod_remove_post_view;
 
-DROP VIEW mod_sticky_post_view;
+DROP VIEW IF EXISTS mod_sticky_post_view;
 
-DROP VIEW mod_lock_post_view;
+DROP VIEW IF EXISTS mod_lock_post_view;
 
-DROP VIEW mod_remove_comment_view;
+DROP VIEW IF EXISTS mod_remove_comment_view;
 
 ALTER TABLE post
     ALTER COLUMN name TYPE varchar(100);

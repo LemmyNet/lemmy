@@ -57,7 +57,7 @@ BEGIN
 END
 $$;
 
-DROP TRIGGER refresh_user ON user_;
+DROP TRIGGER IF EXISTS refresh_user ON user_;
 
 CREATE TRIGGER refresh_user
     AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON user_
@@ -125,7 +125,7 @@ FROM
 CREATE UNIQUE INDEX idx_user_mview_id ON user_mview (id);
 
 -- community
-DROP TRIGGER refresh_community ON community;
+DROP TRIGGER IF EXISTS refresh_community ON community;
 
 CREATE TRIGGER refresh_community
     AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON community
@@ -547,7 +547,7 @@ FROM
     FROM
         all_post ap;
 
-DROP TRIGGER refresh_post ON post;
+DROP TRIGGER IF EXISTS refresh_post ON post;
 
 CREATE TRIGGER refresh_post
     AFTER INSERT OR UPDATE OR DELETE OR TRUNCATE ON post
