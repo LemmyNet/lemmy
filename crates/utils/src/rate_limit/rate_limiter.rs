@@ -13,9 +13,9 @@ static START_TIME: LazyLock<Instant> = LazyLock::new(Instant::now);
 
 /// Smaller than `std::time::Instant` because it uses a smaller integer for seconds and doesn't
 /// store nanoseconds
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, Hash)]
 pub struct InstantSecs {
-  secs: u32,
+  pub secs: u32,
 }
 
 #[allow(clippy::expect_used)]
