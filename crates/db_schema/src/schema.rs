@@ -999,6 +999,7 @@ diesel::table! {
     search_combined (id) {
         id -> Int4,
         published -> Timestamptz,
+        score -> Int8,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
         community_id -> Nullable<Int4>,

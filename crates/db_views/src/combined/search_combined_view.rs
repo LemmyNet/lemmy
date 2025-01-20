@@ -47,12 +47,22 @@ use lemmy_db_schema::{
     combined::search::{search_combined_keys as key, SearchCombined},
     community::CommunityFollower,
   },
-  utils::{actions, actions_alias, functions::coalesce, fuzzy_search, get_conn, DbPool},
+  utils::{
+    actions,
+    actions_alias,
+    functions::coalesce,
+    fuzzy_search,
+    get_conn,
+    DbPool,
+    ReverseTimestampKey,
+  },
   InternalToCombinedView,
   ListingType,
+  SearchSortType,
   SearchType,
 };
 use lemmy_utils::error::LemmyResult;
+use SearchSortType::*;
 
 impl SearchCombinedPaginationCursor {
   // get cursor for page that starts immediately after the given post
@@ -96,8 +106,7 @@ pub struct SearchCombinedQuery {
   pub community_id: Option<CommunityId>,
   pub creator_id: Option<PersonId>,
   pub type_: Option<SearchType>,
-  // TODO sorts need to be added
-  // pub sort: Option<PostSortType>,
+  pub sort: Option<SearchSortType>,
   pub listing_type: Option<ListingType>,
   pub title_only: Option<bool>,
   pub post_url_only: Option<bool>,
@@ -314,15 +323,13 @@ impl SearchCombinedQuery {
     };
 
     // Type
-    if let Some(type_) = self.type_ {
-      query = match type_ {
-        SearchType::All => query,
-        SearchType::Posts => query.filter(search_combined::post_id.is_not_null()),
-        SearchType::Comments => query.filter(search_combined::comment_id.is_not_null()),
-        SearchType::Communities => query.filter(search_combined::community_id.is_not_null()),
-        SearchType::Users => query.filter(search_combined::person_id.is_not_null()),
-      }
-    }
+    query = match self.type_.unwrap_or_default() {
+      SearchType::All => query,
+      SearchType::Posts => query.filter(search_combined::post_id.is_not_null()),
+      SearchType::Comments => query.filter(search_combined::comment_id.is_not_null()),
+      SearchType::Communities => query.filter(search_combined::community_id.is_not_null()),
+      SearchType::Users => query.filter(search_combined::person_id.is_not_null()),
+    };
 
     // Listing type
     let is_subscribed = community_actions::followed.is_not_null();
@@ -359,11 +366,13 @@ impl SearchCombinedQuery {
       query = query.after(page_after);
     }
 
-    // Sorting by published
-    query = query
-      .then_desc(key::published)
-      // Tie breaker
-      .then_desc(key::id);
+    query = match self.sort.unwrap_or_default() {
+      New => query.then_desc(key::published),
+      Old => query.then_desc(ReverseTimestampKey(key::published)),
+      Top => query.then_desc(key::score),
+    };
+    // finally use unique id as tie breaker
+    query = query.then_desc(key::id);
 
     let res = query.load::<SearchCombinedViewInternal>(conn).await?;
 
@@ -479,6 +488,7 @@ mod tests {
     },
     traits::{Crud, Likeable},
     utils::{build_db_pool_for_tests, DbPool},
+    SearchSortType,
     SearchType,
   };
   use lemmy_utils::error::LemmyResult;
@@ -504,6 +514,9 @@ mod tests {
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
 
+    let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");
+    let sara = Person::create(pool, &sara_form).await?;
+
     let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_pcv");
     let timmy = Person::create(pool, &timmy_form).await?;
     let timmy_local_user_form = LocalUserInsertForm::test_form(timmy.id);
@@ -514,9 +527,6 @@ mod tests {
       person: timmy.clone(),
       counts: Default::default(),
     };
-
-    let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");
-    let sara = Person::create(pool, &sara_form).await?;
 
     let community_form = CommunityInsertForm {
       description: Some("ask lemmy things".into()),
@@ -685,13 +695,13 @@ mod tests {
     }
 
     if let SearchCombinedView::Person(v) = &search[8] {
-      assert_eq!(data.sara.id, v.person.id);
+      assert_eq!(data.timmy.id, v.person.id);
     } else {
       panic!("wrong type");
     }
 
     if let SearchCombinedView::Person(v) = &search[9] {
-      assert_eq!(data.timmy.id, v.person.id);
+      assert_eq!(data.sara.id, v.person.id);
     } else {
       panic!("wrong type");
     }
@@ -742,6 +752,21 @@ mod tests {
     .await?;
 
     assert_length!(1, search_disliked_only);
+
+    // Test sorts
+    // Test Old sort
+    let search_old_sort = SearchCombinedQuery {
+      sort: Some(SearchSortType::Old),
+      ..Default::default()
+    }
+    .list(pool, &Some(data.timmy_view.clone()))
+    .await?;
+    if let SearchCombinedView::Person(v) = &search_old_sort[0] {
+      assert_eq!(data.sara.id, v.person.id);
+    } else {
+      panic!("wrong type");
+    }
+    assert_length!(10, search_old_sort);
 
     // Remove a post and delete a comment
     Post::update(
@@ -865,13 +890,13 @@ mod tests {
 
     // Make sure the types are correct
     if let SearchCombinedView::Person(v) = &person_search[0] {
-      assert_eq!(data.sara.id, v.person.id);
+      assert_eq!(data.timmy.id, v.person.id);
     } else {
       panic!("wrong type");
     }
 
     if let SearchCombinedView::Person(v) = &person_search[1] {
-      assert_eq!(data.timmy.id, v.person.id);
+      assert_eq!(data.sara.id, v.person.id);
     } else {
       panic!("wrong type");
     }
@@ -903,6 +928,23 @@ mod tests {
     assert_length!(1, person_search_by_name);
     if let SearchCombinedView::Person(v) = &person_search_by_name[0] {
       assert_eq!(data.timmy.id, v.person.id);
+    } else {
+      panic!("wrong type");
+    }
+
+    // Test Top sorting (uses post score)
+    let person_search_sort_top = SearchCombinedQuery {
+      type_: Some(SearchType::Users),
+      sort: Some(SearchSortType::Top),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+    assert_length!(2, person_search_sort_top);
+
+    // Sara should be first, as she has a higher score
+    if let SearchCombinedView::Person(v) = &person_search_sort_top[0] {
+      assert_eq!(data.sara.id, v.person.id);
     } else {
       panic!("wrong type");
     }
@@ -1020,6 +1062,24 @@ mod tests {
     // Should be zero because you disliked your own post
     assert_length!(0, post_search_disliked_only);
 
+    // Test top sort
+    let post_search_sort_top = SearchCombinedQuery {
+      type_: Some(SearchType::Posts),
+      sort: Some(SearchSortType::Top),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+    assert_length!(3, post_search_sort_top);
+
+    // Timmy_post_2 has a dislike, so it should be last
+    if let SearchCombinedView::Post(v) = &post_search_sort_top[2] {
+      assert_eq!(data.timmy_post_2.id, v.post.id);
+      assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+
     cleanup(data, pool).await?;
 
     Ok(())
@@ -1107,6 +1167,25 @@ mod tests {
     .await?;
 
     assert_length!(1, comment_search_disliked_only);
+
+    // Test top sort
+    let comment_search_sort_top = SearchCombinedQuery {
+      type_: Some(SearchType::Comments),
+      sort: Some(SearchSortType::Top),
+      ..Default::default()
+    }
+    .list(pool, &None)
+    .await?;
+    assert_length!(3, comment_search_sort_top);
+
+    // Sara comment 2 is disliked, so should be last
+    if let SearchCombinedView::Comment(v) = &comment_search_sort_top[2] {
+      assert_eq!(data.sara_comment_2.id, v.comment.id);
+      assert_eq!(data.timmy_post_2.id, v.post.id);
+      assert_eq!(data.community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
 
     cleanup(data, pool).await?;
 

@@ -27,6 +27,7 @@ use lemmy_db_schema::{
   PostListingMode,
   PostSortType,
   RegistrationMode,
+  SearchSortType,
   SearchType,
 };
 use lemmy_db_views::structs::{
@@ -66,8 +67,7 @@ pub struct Search {
   #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<SearchType>,
   #[cfg_attr(feature = "full", ts(optional))]
-  // TODO
-  pub sort: Option<PostSortType>,
+  pub sort: Option<SearchSortType>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub listing_type: Option<ListingType>,
   #[cfg_attr(feature = "full", ts(optional))]

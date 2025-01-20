@@ -3,15 +3,12 @@
 CREATE TABLE search_combined (
     id serial PRIMARY KEY,
     published timestamptz NOT NULL,
-    -- TODO Need to figure out all the possible sort types, unified into SearchSortType
-    -- This is difficult because other than published, there is no unified way to sort them.
-    --
-    -- All have published.
-    -- post and comment have top and time-limited scores and ranks.
-    -- persons have post and comment counts, and scores (not time-limited).
-    -- communities have subscribers, post and comment counts, and active users per X time.
-    --
-    -- I'm thinking just published and score (and use active_monthly users as the community score), is the best way to start.
+    -- This is used for the top sort
+    -- For persons: its post score
+    -- For comments: score,
+    -- For posts: score,
+    -- For community: users active monthly
+    score bigint NOT NULL DEFAULT 0,
     post_id int UNIQUE REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
     comment_id int UNIQUE REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
     community_id int UNIQUE REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
@@ -25,40 +22,48 @@ CREATE INDEX idx_search_combined_published ON search_combined (published DESC, i
 CREATE INDEX idx_search_combined_published_asc ON search_combined (reverse_timestamp_sort (published) DESC, id DESC);
 
 -- Updating the history
-INSERT INTO search_combined (published, post_id, comment_id, community_id, person_id)
+INSERT INTO search_combined (published, score, post_id, comment_id, community_id, person_id)
 SELECT
-    published,
+    p.published,
+    score,
     id,
     NULL::int,
     NULL::int,
     NULL::int
 FROM
-    post
+    post p
+    INNER JOIN post_aggregates pa ON p.id = pa.post_id
 UNION ALL
 SELECT
-    published,
+    c.published,
+    score,
     NULL::int,
     id,
     NULL::int,
     NULL::int
 FROM
-    comment
+    comment c
+    INNER JOIN comment_aggregates ca ON c.id = ca.comment_id
 UNION ALL
 SELECT
-    published,
+    c.published,
+    users_active_month,
     NULL::int,
     NULL::int,
     id,
     NULL::int
 FROM
-    community
+    community c
+    INNER JOIN community_aggregates ca ON c.id = ca.community_id
 UNION ALL
 SELECT
-    published,
+    p.published,
+    post_score,
     NULL::int,
     NULL::int,
     NULL::int,
     id
 FROM
-    person;
+    person p
+    INNER JOIN person_aggregates pa ON p.id = pa.person_id;
 

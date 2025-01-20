@@ -48,7 +48,7 @@ pub async fn search(
     community_id,
     creator_id: data.creator_id,
     type_: data.type_,
-    // TODO add sorts
+    sort: data.sort,
     listing_type: data.listing_type,
     title_only: data.title_only,
     post_url_only: data.post_url_only,

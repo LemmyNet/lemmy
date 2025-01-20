@@ -20,6 +20,7 @@ use serde_with::skip_serializing_none;
 pub struct SearchCombined {
   pub id: SearchCombinedId,
   pub published: DateTime<Utc>,
+  pub score: i64,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
   pub community_id: Option<CommunityId>,
