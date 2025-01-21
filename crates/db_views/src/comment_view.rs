@@ -609,26 +609,30 @@ impl CommentQuery<'_> {
 }
 
 trait HandleDeleted {
-  fn handle_deleted(&self, is_admin: bool) -> Self;
+  fn handle_deleted(self, is_admin: bool) -> Self;
 }
 
 impl HandleDeleted for CommentView {
-  fn handle_deleted(&self, is_admin: bool) -> Self {
-    let mut copied = self.to_owned();
+  fn handle_deleted(self, is_admin: bool) -> Self {
     if !is_admin && (self.comment.deleted || self.comment.removed) {
+      let mut copied = self.clone();
       copied.comment.content = String::new();
+      copied
+    } else {
+      self
     }
-    copied
   }
 }
 
 impl HandleDeleted for CommentSlimView {
-  fn handle_deleted(&self, is_admin: bool) -> Self {
-    let mut copied = self.to_owned();
+  fn handle_deleted(self, is_admin: bool) -> Self {
     if !is_admin && (self.comment.deleted || self.comment.removed) {
+      let mut copied = self.clone();
       copied.comment.content = String::new();
+      copied
+    } else {
+      self
     }
-    copied
   }
 }
 
