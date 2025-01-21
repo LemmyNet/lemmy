@@ -154,7 +154,6 @@ where
       {
         // Duplicate request, return error
         let (req, _pl) = req.into_parts();
-        // TODO: need to return LemmyError as well?
         let response = HttpResponse::UnprocessableEntity()
           .finish()
           .map_into_right_body();
