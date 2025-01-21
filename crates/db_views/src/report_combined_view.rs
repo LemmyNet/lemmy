@@ -47,8 +47,8 @@ use lemmy_db_schema::{
     combined::report::{report_combined_keys as key, ReportCombined},
     community::CommunityFollower,
   },
+  traits::InternalToCombinedView,
   utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
-  InternalToCombinedView,
 };
 use lemmy_utils::error::LemmyResult;
 

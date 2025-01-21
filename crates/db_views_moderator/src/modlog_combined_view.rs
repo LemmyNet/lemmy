@@ -61,8 +61,8 @@ use lemmy_db_schema::{
     post,
   },
   source::combined::modlog::{modlog_combined_keys as key, ModlogCombined},
+  traits::InternalToCombinedView,
   utils::{get_conn, DbPool},
-  InternalToCombinedView,
   ModlogActionType,
 };
 use lemmy_utils::error::LemmyResult;
