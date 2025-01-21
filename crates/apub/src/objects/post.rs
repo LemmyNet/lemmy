@@ -21,7 +21,7 @@ use activitypub_federation::{
 };
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorator};
+use html2text::{from_read_with_decorator, render::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
   request::generate_post_link_metadata,
@@ -198,7 +198,7 @@ impl Object for ApubPost {
           .map(StringReader::new)
           .map(|c| from_read_with_decorator(c, MAX_TITLE_LENGTH, TrivialDecorator::new()))
           .and_then(|c| {
-            c.lines().next().map(|s| {
+            c.unwrap_or_default().lines().next().map(|s| {
               s.replace(&format!("@{}", community.name), "")
                 .trim()
                 .to_string()
