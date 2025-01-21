@@ -34,7 +34,6 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     site::Site,
   },
-  traits::ToSlimView,
   utils::{
     actions,
     actions_alias,
@@ -299,6 +298,252 @@ fn queries<'a>() -> Queries<
   Queries::new(read, list)
 }
 
+/// Currently I've found no easy way to abstract any of the logic from the CommentView version
+/// above. For the meantime, just make sure that any logical changes you make above, are copied
+/// here.
+fn queries_slim<'a>() -> Queries<
+  impl ReadFn<'a, CommentSlimView, QueriesReadTypes<'a>>,
+  impl ListFn<'a, CommentSlimView, QueriesListTypes<'a>>,
+> {
+  let creator_is_admin = exists(
+    local_user::table.filter(
+      comment::creator_id
+        .eq(local_user::person_id)
+        .and(local_user::admin.eq(true)),
+    ),
+  );
+
+  let all_joins = move |query: comment::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
+    query
+      .inner_join(person::table)
+      .inner_join(post::table)
+      .inner_join(community::table.on(post::community_id.eq(community::id)))
+      .inner_join(comment_aggregates::table)
+      .left_join(actions(
+        community_actions::table,
+        my_person_id,
+        post::community_id,
+      ))
+      .left_join(actions(
+        comment_actions::table,
+        my_person_id,
+        comment_aggregates::comment_id,
+      ))
+      .left_join(actions(
+        person_actions::table,
+        my_person_id,
+        comment::creator_id,
+      ))
+      .left_join(actions(
+        instance_actions::table,
+        my_person_id,
+        community::instance_id,
+      ))
+      .left_join(actions_alias(
+        creator_community_actions,
+        comment::creator_id,
+        post::community_id,
+      ))
+      .select((
+        comment::all_columns,
+        person::all_columns,
+        comment_aggregates::all_columns,
+        creator_community_actions
+          .field(community_actions::received_ban)
+          .nullable()
+          .is_not_null(),
+        community_actions::received_ban.nullable().is_not_null(),
+        creator_community_actions
+          .field(community_actions::became_moderator)
+          .nullable()
+          .is_not_null(),
+        creator_is_admin,
+        CommunityFollower::select_subscribed_type(),
+        comment_actions::saved.nullable().is_not_null(),
+        person_actions::blocked.nullable().is_not_null(),
+        comment_actions::like_score.nullable(),
+      ))
+  };
+
+  let read = move |mut conn: DbConn<'a>,
+                   (comment_id, my_local_user): (CommentId, Option<&'a LocalUser>)| async move {
+    let mut query = all_joins(
+      comment::table.find(comment_id).into_boxed(),
+      my_local_user.person_id(),
+    );
+    query = my_local_user.visible_communities_only(query);
+
+    // Check permissions to view private community content.
+    // Specifically, if the community is private then only accepted followers may view its
+    // content, otherwise it is filtered out. Admins can view private community content
+    // without restriction.
+    if !my_local_user.is_admin() {
+      query = query.filter(
+        community::visibility
+          .ne(CommunityVisibility::Private)
+          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+      );
+    }
+    query.first(&mut conn).await
+  };
+
+  let list = move |mut conn: DbConn<'a>, (o, site): (CommentQuery<'a>, &'a Site)| async move {
+    // The left join below will return None in this case
+    let local_user_id_join = o.local_user.local_user_id().unwrap_or(LocalUserId(-1));
+
+    let mut query = all_joins(comment::table.into_boxed(), o.local_user.person_id());
+
+    if let Some(creator_id) = o.creator_id {
+      query = query.filter(comment::creator_id.eq(creator_id));
+    };
+
+    if let Some(post_id) = o.post_id {
+      query = query.filter(comment::post_id.eq(post_id));
+    };
+
+    if let Some(parent_path) = o.parent_path.as_ref() {
+      query = query.filter(comment::path.contained_by(parent_path));
+    };
+    //filtering out removed and deleted comments from search
+    if let Some(search_term) = o.search_term {
+      query = query.filter(
+        comment::content
+          .ilike(fuzzy_search(&search_term))
+          .and(not(comment::removed.or(comment::deleted))),
+      );
+    };
+
+    if let Some(community_id) = o.community_id {
+      query = query.filter(post::community_id.eq(community_id));
+    }
+
+    let is_subscribed = community_actions::followed.is_not_null();
+
+    match o.listing_type.unwrap_or_default() {
+      ListingType::Subscribed => query = query.filter(is_subscribed), /* TODO could be this: and(community_follower::person_id.eq(person_id_join)), */
+      ListingType::Local => {
+        query = query
+          .filter(community::local.eq(true))
+          .filter(community::hidden.eq(false).or(is_subscribed))
+      }
+      ListingType::All => query = query.filter(community::hidden.eq(false).or(is_subscribed)),
+      ListingType::ModeratorView => {
+        query = query.filter(community_actions::became_moderator.is_not_null());
+      }
+    }
+
+    if let Some(my_id) = o.local_user.person_id() {
+      let not_creator_filter = comment::creator_id.ne(my_id);
+      if o.liked_only.unwrap_or_default() {
+        query = query
+          .filter(not_creator_filter)
+          .filter(comment_actions::like_score.eq(1));
+      } else if o.disliked_only.unwrap_or_default() {
+        query = query
+          .filter(not_creator_filter)
+          .filter(comment_actions::like_score.eq(-1));
+      }
+    }
+
+    if !o.local_user.show_bot_accounts() {
+      query = query.filter(person::bot_account.eq(false));
+    };
+
+    if o.local_user.is_some() && o.listing_type.unwrap_or_default() != ListingType::ModeratorView {
+      // Filter out the rows with missing languages
+      query = query.filter(exists(
+        local_user_language::table.filter(
+          comment::language_id
+            .eq(local_user_language::language_id)
+            .and(local_user_language::local_user_id.eq(local_user_id_join)),
+        ),
+      ));
+
+      // Don't show blocked communities or persons
+      query = query
+        .filter(instance_actions::blocked.is_null())
+        .filter(community_actions::blocked.is_null())
+        .filter(person_actions::blocked.is_null());
+    };
+
+    if !o.local_user.show_nsfw(site) {
+      query = query
+        .filter(post::nsfw.eq(false))
+        .filter(community::nsfw.eq(false));
+    };
+
+    query = o.local_user.visible_communities_only(query);
+
+    if !o.local_user.is_admin() {
+      query = query.filter(
+        community::visibility
+          .ne(CommunityVisibility::Private)
+          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+      );
+    }
+
+    // A Max depth given means its a tree fetch
+    let (limit, offset) = if let Some(max_depth) = o.max_depth {
+      let depth_limit = if let Some(parent_path) = o.parent_path.as_ref() {
+        parent_path.0.split('.').count() as i32 + max_depth
+        // Add one because of root "0"
+      } else {
+        max_depth + 1
+      };
+
+      query = query.filter(nlevel(comment::path).le(depth_limit));
+
+      // only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth
+      // + !post_id isn't used anyways (afaik)
+      if o.post_id.is_some() || o.parent_path.is_some() {
+        // Always order by the parent path first
+        query = query.then_order_by(subpath(comment::path, 0, -1));
+      }
+
+      // TODO limit question. Limiting does not work for comment threads ATM, only max_depth
+      // For now, don't do any limiting for tree fetches
+      // https://stackoverflow.com/questions/72983614/postgres-ltree-how-to-limit-the-max-number-of-children-at-any-given-level
+
+      // Don't use the regular error-checking one, many more comments must ofter be fetched.
+      // This does not work for comment trees, and the limit should be manually set to a high number
+      //
+      // If a max depth is given, then you know its a tree fetch, and limits should be ignored
+      // TODO a kludge to prevent attacks. Limit comments to 300 for now.
+      // (i64::MAX, 0)
+      (300, 0)
+    } else {
+      // limit_and_offset_unlimited(o.page, o.limit)
+      limit_and_offset(o.page, o.limit)?
+    };
+
+    // distinguished comments should go first when viewing post
+    if o.post_id.is_some() || o.parent_path.is_some() {
+      query = query.then_order_by(comment::distinguished.desc());
+    }
+
+    query = match o.sort.unwrap_or(CommentSortType::Hot) {
+      CommentSortType::Hot => query
+        .then_order_by(comment_aggregates::hot_rank.desc())
+        .then_order_by(comment_aggregates::score.desc()),
+      CommentSortType::Controversial => {
+        query.then_order_by(comment_aggregates::controversy_rank.desc())
+      }
+      CommentSortType::New => query.then_order_by(comment::published.desc()),
+      CommentSortType::Old => query.then_order_by(comment::published.asc()),
+      CommentSortType::Top => query.then_order_by(comment_aggregates::score.desc()),
+    };
+
+    // Note: deleted and removed comments are done on the front side
+    query
+      .limit(limit)
+      .offset(offset)
+      .load::<CommentSlimView>(&mut conn)
+      .await
+  };
+
+  Queries::new(read, list)
+}
+
 impl CommentView {
   pub async fn read(
     pool: &mut DbPool<'_>,
@@ -312,26 +557,7 @@ impl CommentView {
     if my_local_user.is_some() && res.my_vote.is_none() {
       res.my_vote = Some(0);
     }
-    Ok(handle_deleted(res, is_admin))
-  }
-}
-
-impl ToSlimView for CommentView {
-  type SlimView = CommentSlimView;
-  fn map_to_slim(self) -> Self::SlimView {
-    Self::SlimView {
-      comment: self.comment,
-      creator: self.creator,
-      counts: self.counts,
-      creator_banned_from_community: self.creator_banned_from_community,
-      banned_from_community: self.banned_from_community,
-      creator_is_moderator: self.creator_is_moderator,
-      creator_is_admin: self.creator_is_admin,
-      subscribed: self.subscribed,
-      saved: self.saved,
-      creator_blocked: self.creator_blocked,
-      my_vote: self.my_vote,
-    }
+    Ok(res.handle_deleted(is_admin))
   }
 }
 
@@ -360,17 +586,50 @@ impl CommentQuery<'_> {
         .list(pool, (self, site))
         .await?
         .into_iter()
-        .map(|c| handle_deleted(c, is_admin))
+        .map(|c| c.handle_deleted(is_admin))
+        .collect(),
+    )
+  }
+
+  pub async fn list_slim(
+    self,
+    site: &Site,
+    pool: &mut DbPool<'_>,
+  ) -> Result<Vec<CommentSlimView>, Error> {
+    let is_admin = self.local_user.map(|u| u.admin).unwrap_or(false);
+    Ok(
+      queries_slim()
+        .list(pool, (self, site))
+        .await?
+        .into_iter()
+        .map(|c| c.handle_deleted(is_admin))
         .collect(),
     )
   }
 }
 
-fn handle_deleted(mut c: CommentView, is_admin: bool) -> CommentView {
-  if !is_admin && (c.comment.deleted || c.comment.removed) {
-    c.comment.content = String::new();
+trait HandleDeleted {
+  fn handle_deleted(&self, is_admin: bool) -> Self;
+}
+
+impl HandleDeleted for CommentView {
+  fn handle_deleted(&self, is_admin: bool) -> Self {
+    let mut copied = self.to_owned();
+    if !is_admin && (self.comment.deleted || self.comment.removed) {
+      copied.comment.content = String::new();
+    }
+    copied
   }
-  c
+}
+
+impl HandleDeleted for CommentSlimView {
+  fn handle_deleted(&self, is_admin: bool) -> Self {
+    let mut copied = self.to_owned();
+    if !is_admin && (self.comment.deleted || self.comment.removed) {
+      copied.comment.content = String::new();
+    }
+    copied
+  }
 }
 
 #[cfg(test)]
