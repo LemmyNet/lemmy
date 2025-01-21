@@ -388,6 +388,9 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     sql_query(update_community_stmt).execute(&mut conn).await?;
   }
 
+  let update_interactions_stmt = "update community_aggregates ca set interactions_month = mv.count_ from r.community_aggregates_interactions('1 month') mv where ca.community_id = mv.community_id_";
+  sql_query(update_interactions_stmt).execute(&mut conn).await?;
+
   info!("Done.");
   Ok(())
 }

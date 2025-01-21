@@ -212,6 +212,24 @@ GROUP BY
 END;
 $$;
 
+-- Community aggregate function for adding up total number of interactions
+CREATE OR REPLACE FUNCTION r.community_aggregates_interactions (i text)
+    RETURNS TABLE (
+        count_ bigint,
+        community_id_ integer)
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    RETURN query
+    SELECT
+        COALESCE(sum(comments + upvotes + downvotes), 0) as count_,
+        community_id as community_id_
+    FROM post_aggregates
+    WHERE published >= (CURRENT_TIMESTAMP - i::interval)
+    GROUP BY community_id;
+END;
+$$;
+
 -- Edit site aggregates to include voters and people who have read posts as active users
 CREATE OR REPLACE FUNCTION r.site_aggregates_activity (i text)
     RETURNS integer
