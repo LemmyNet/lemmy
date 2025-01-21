@@ -22,7 +22,7 @@ use lemmy_utils::{
 };
 use mime::{Mime, TEXT_HTML};
 use reqwest::{
-  header::{CONTENT_TYPE, RANGE},
+  header::{CONTENT_TYPE, LOCATION, RANGE},
   redirect::Policy,
   Client,
   ClientBuilder,
@@ -51,7 +51,7 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
 /// Fetches metadata for the given link and optionally generates thumbnail.
 #[tracing::instrument(skip_all)]
 pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResult<LinkMetadata> {
-  // Resolve the domain and throw an error if it points to any private/local IP,
+  // Resolve the domain and throw an error if it points to any internal IP,
   // using logic from nightly IpAddr::is_global.
   if !cfg!(debug_assertions) {
     // TODO: Replace with IpAddr::is_global() once stabilized
@@ -90,6 +90,16 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
     .send()
     .await?
     .error_for_status()?;
+
+  // Manually follow one redirect, using internal IP check
+  let location = response
+    .headers()
+    .get(LOCATION)
+    .and_then(|l| l.to_str().ok());
+  if let Some(location) = location {
+    let url = location.parse()?;
+    return Box::pin(fetch_link_metadata(&url, context)).await;
+  }
 
   let mut content_type: Option<Mime> = response
     .headers()
