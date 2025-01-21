@@ -21,6 +21,8 @@ CREATE INDEX idx_search_combined_published ON search_combined (published DESC, i
 
 CREATE INDEX idx_search_combined_published_asc ON search_combined (reverse_timestamp_sort (published) DESC, id DESC);
 
+CREATE INDEX idx_search_combined_score ON search_combined (score DESC, id DESC);
+
 -- Updating the history
 INSERT INTO search_combined (published, score, post_id, comment_id, community_id, person_id)
 SELECT
