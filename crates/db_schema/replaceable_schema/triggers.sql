@@ -889,3 +889,41 @@ CALL r.create_inbox_combined_trigger ('person_post_mention');
 
 CALL r.create_inbox_combined_trigger ('private_message');
 
+-- Prevent using delete instead of uplete on action tables
+CREATE FUNCTION r.require_uplete ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF pg_trigger_depth() = 1 AND NOT starts_with (current_query(), '/**/') THEN
+        RAISE 'using delete instead of uplete is not allowed for this table';
+    END IF;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER require_uplete
+    BEFORE DELETE ON comment_actions
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.require_uplete ();
+
+CREATE TRIGGER require_uplete
+    BEFORE DELETE ON community_actions
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.require_uplete ();
+
+CREATE TRIGGER require_uplete
+    BEFORE DELETE ON instance_actions
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.require_uplete ();
+
+CREATE TRIGGER require_uplete
+    BEFORE DELETE ON person_actions
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.require_uplete ();
+
+CREATE TRIGGER require_uplete
+    BEFORE DELETE ON post_actions
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.require_uplete ();
+
