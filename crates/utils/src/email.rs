@@ -43,7 +43,7 @@ pub async fn send_email(
   };
 
   // use usize::MAX as the line wrap length, since lettre handles the wrapping for us
-  let plain_text = html2text::from_read(html.as_bytes(), usize::MAX);
+  let plain_text = html2text::from_read(html.as_bytes(), usize::MAX)?;
 
   let smtp_from_address = &email_config.smtp_from_address;
 
