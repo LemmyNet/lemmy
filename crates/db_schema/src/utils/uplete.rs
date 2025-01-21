@@ -121,6 +121,9 @@ impl QueryFragment<Pg> for UpleteQuery {
   fn walk_ast<'b>(&'b self, mut out: AstPass<'_, 'b, Pg>) -> Result<(), Error> {
     assert_ne!(self.set_null_columns.len(), 0, "`set_null` was not called");
 
+    // This is checked by require_uplete triggers
+    out.push_sql("/**/");
+
     // Declare `update_keys` and `delete_keys` CTEs, which select primary keys
     for (prefix, subquery) in [
       ("WITH update_keys", &self.update_subquery),
@@ -357,7 +360,7 @@ mod tests {
     let update_count = "SELECT count(*) FROM update_result";
     let delete_count = "SELECT count(*) FROM delete_result";
 
-    format!(r#"WITH {with_queries} SELECT ({update_count}), ({delete_count}) -- binds: []"#)
+    format!(r#"/**/WITH {with_queries} SELECT ({update_count}), ({delete_count}) -- binds: []"#)
   }
 
   #[test]
