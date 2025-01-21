@@ -1,6 +1,7 @@
 pub mod api_routes_v3;
 pub mod api_routes_v4;
 pub mod code_migrations;
+pub mod idempotency_middleware;
 pub mod prometheus_metrics;
 pub mod scheduled_tasks;
 pub mod session_middleware;
@@ -18,6 +19,7 @@ use actix_web::{
 };
 use actix_web_prom::PrometheusMetricsBuilder;
 use clap::{Parser, Subcommand};
+use idempotency_middleware::{IdempotencyMiddleware, IdempotencySet};
 use lemmy_api::sitemap::get_sitemap;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -334,6 +336,9 @@ fn create_http_server(
     .build()
     .map_err(|e| LemmyErrorType::Unknown(format!("Should always be buildable: {e}")))?;
 
+  // Must create this outside of HTTP server so that duplicate requests get detected across threads.
+  let idempotency_set = IdempotencySet::default();
+
   // Create Http server
   let bind = (settings.bind, settings.port);
   let server = HttpServer::new(move || {
@@ -355,6 +360,7 @@ fn create_http_server(
       .app_data(Data::new(context.clone()))
       .app_data(Data::new(rate_limit_cell.clone()))
       .wrap(FederationMiddleware::new(federation_config.clone()))
+      .wrap(IdempotencyMiddleware::new(idempotency_set.clone()))
       .wrap(SessionMiddleware::new(context.clone()))
       .wrap(Condition::new(
         SETTINGS.prometheus.is_some(),
