@@ -13,7 +13,6 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     mod_log::moderator::{ModRemovePost, ModRemovePostForm},
     post::{Post, PostUpdateForm},
-    post_report::PostReport,
   },
   traits::Crud,
 };
