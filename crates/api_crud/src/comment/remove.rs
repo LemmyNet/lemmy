@@ -11,11 +11,10 @@ use lemmy_db_schema::{
   newtypes::PostOrCommentId,
   source::{
     comment::{Comment, CommentUpdateForm},
-    comment_report::CommentReport,
     local_user::LocalUser,
     mod_log::moderator::{ModRemoveComment, ModRemoveCommentForm},
   },
-  traits::{Crud, Reportable},
+  traits::Crud,
 };
 use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -68,9 +67,6 @@ pub async fn remove_comment(
   )
   .await
   .with_lemmy_type(LemmyErrorType::CouldntUpdateComment)?;
-
-  CommentReport::resolve_all_for_object(&mut context.pool(), comment_id, local_user_view.person.id)
-    .await?;
 
   // Mod tables
   let form = ModRemoveCommentForm {

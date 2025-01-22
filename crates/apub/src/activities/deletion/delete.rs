@@ -12,7 +12,6 @@ use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
-    comment_report::CommentReport,
     community::{Community, CommunityUpdateForm},
     mod_log::moderator::{
       ModRemoveComment,
@@ -23,9 +22,8 @@ use lemmy_db_schema::{
       ModRemovePostForm,
     },
     post::{Post, PostUpdateForm},
-    post_report::PostReport,
   },
-  traits::{Crud, Reportable},
+  traits::Crud,
 };
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
 use url::Url;
@@ -137,7 +135,6 @@ pub(in crate::activities) async fn receive_remove_action(
       .await?;
     }
     DeletableObjects::Post(post) => {
-      PostReport::resolve_all_for_object(&mut context.pool(), post.id, actor.id).await?;
       let form = ModRemovePostForm {
         mod_person_id: actor.id,
         post_id: post.id,
@@ -156,7 +153,6 @@ pub(in crate::activities) async fn receive_remove_action(
       .await?;
     }
     DeletableObjects::Comment(comment) => {
-      CommentReport::resolve_all_for_object(&mut context.pool(), comment.id, actor.id).await?;
       let form = ModRemoveCommentForm {
         mod_person_id: actor.id,
         comment_id: comment.id,

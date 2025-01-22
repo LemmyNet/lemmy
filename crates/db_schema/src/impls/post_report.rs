@@ -1,9 +1,6 @@
 use crate::{
   newtypes::{PersonId, PostId, PostReportId},
-  schema::post_report::{
-    dsl::{post_report, resolved, resolver_id, updated},
-    post_id,
-  },
+  schema::post_report::dsl::{post_report, resolved, resolver_id, updated},
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
   utils::{get_conn, DbPool},
@@ -121,24 +118,6 @@ mod tests {
 
     let unresolved_count = PostReport::unresolve(pool, report.id, person.id).await?;
     assert_eq!(unresolved_count, 1);
-
-    Person::delete(pool, person.id).await?;
-    Post::delete(pool, report.post_id).await?;
-
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_resolve_all_post_reports() -> Result<(), Error> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-
-    let (person, report) = init(pool).await?;
-
-    let resolved_count =
-      PostReport::resolve_all_for_object(pool, report.post_id, person.id).await?;
-    assert_eq!(resolved_count, 1);
 
     Person::delete(pool, person.id).await?;
     Post::delete(pool, report.post_id).await?;

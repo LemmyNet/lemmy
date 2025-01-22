@@ -1,9 +1,6 @@
 use crate::{
   newtypes::{CommentId, CommentReportId, PersonId},
-  schema::comment_report::{
-    comment_id,
-    dsl::{comment_report, resolved, resolver_id, updated},
-  },
+  schema::comment_report::dsl::{comment_report, resolved, resolver_id, updated},
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
   utils::{get_conn, DbPool},

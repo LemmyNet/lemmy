@@ -92,6 +92,12 @@ impl ReportCombinedViewInternal {
           .or(community_report::resolved)
           .is_distinct_from(true),
       )
+      .filter(
+        post::removed
+          .or(comment::removed)
+          .or(community::removed)
+          .is_distinct_from(false),
+      )
       .into_boxed();
 
     if let Some(community_id) = community_id {
@@ -343,13 +349,16 @@ impl ReportCombinedQuery {
       query = query
         .filter(
           post_report::resolved
-            .or(post::removed)
             .or(comment_report::resolved)
-            .or(comment::removed)
             .or(private_message_report::resolved)
             .or(community_report::resolved)
-            .or(community::removed)
             .is_distinct_from(true),
+        )
+        .filter(
+          post::removed
+            .or(comment::removed)
+            .or(community::removed)
+            .is_distinct_from(false),
         )
         // TODO: when a `then_asc` method is added, use it here, make the id sort direction match,
         // and remove the separate index; unless additional columns are added to this sort
@@ -504,7 +513,7 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm},
       local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm},
+      post::{Post, PostInsertForm, PostUpdateForm},
       post_report::{PostReport, PostReportForm},
       private_message::{PrivateMessage, PrivateMessageInsertForm},
       private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
@@ -897,26 +906,12 @@ mod tests {
       ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
     assert_eq!(2, report_count);
 
-    // Pretend the post was removed, and resolve all reports for that object.
-    // This is called manually in the API for post removals
-    PostReport::resolve_all_for_object(pool, inserted_jessica_report.post_id, data.timmy.id)
-      .await?;
-
-    let read_jessica_report_view_after_resolve =
-      PostReportView::read(pool, inserted_jessica_report.id, data.timmy.id).await?;
-    assert!(read_jessica_report_view_after_resolve.post_report.resolved);
-    assert_eq!(
-      read_jessica_report_view_after_resolve
-        .post_report
-        .resolver_id,
-      Some(data.timmy.id)
-    );
-    assert_eq!(
-      read_jessica_report_view_after_resolve
-        .resolver
-        .map(|r| r.id),
-      Some(data.timmy.id)
-    );
+    // Remove the post so that reports get treated as resolved
+    let form = PostUpdateForm {
+      removed: Some(true),
+      ..Default::default()
+    };
+    Post::update(pool, inserted_jessica_report.post_id, &form).await?;
 
     // Make sure the unresolved_post report got decremented in the trigger
     let agg_2 = PostAggregates::read(pool, data.post_2.id).await?;

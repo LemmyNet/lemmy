@@ -1,9 +1,6 @@
 use crate::{
   newtypes::{CommunityId, CommunityReportId, PersonId},
-  schema::community_report::{
-    community_id,
-    dsl::{community_report, resolved, resolver_id, updated},
-  },
+  schema::community_report::dsl::{community_report, resolved, resolver_id, updated},
   source::community_report::{CommunityReport, CommunityReportForm},
   traits::Reportable,
   utils::{get_conn, DbPool},
