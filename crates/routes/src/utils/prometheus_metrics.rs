@@ -1,9 +1,20 @@
 use actix_web::{rt::System, web, App, HttpServer};
-use lemmy_api_common::context::LemmyContext;
+use actix_web_prom::{PrometheusMetrics, PrometheusMetricsBuilder};
+use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_utils::{error::LemmyResult, settings::structs::PrometheusConfig};
 use prometheus::{default_registry, Encoder, Gauge, Opts, TextEncoder};
 use std::{sync::Arc, thread};
 use tracing::error;
+
+/// Creates a middleware that populates http metrics for each path, method, and status code
+pub fn new_prometheus_metrics() -> LemmyResult<PrometheusMetrics> {
+  Ok(
+    PrometheusMetricsBuilder::new("lemmy_api")
+      .registry(default_registry().clone())
+      .build()
+      .map_err(|e| LemmyErrorType::Unknown(format!("Should always be buildable: {e}")))?,
+  )
+}
 
 struct PromContext {
   lemmy: LemmyContext,
