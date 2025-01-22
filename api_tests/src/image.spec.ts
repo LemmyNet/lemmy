@@ -235,7 +235,6 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
   expect(post).toBeDefined();
 
   // remote image gets proxied after upload
-  console.log(post.thumbnail_url);
   expect(
     post.thumbnail_url?.startsWith(
       "http://lemmy-gamma:8561/api/v4/image/proxy?url",
