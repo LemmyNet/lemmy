@@ -222,11 +222,14 @@ CREATE OR REPLACE FUNCTION r.community_aggregates_interactions (i text)
 BEGIN
     RETURN query
     SELECT
-        COALESCE(sum(comments + upvotes + downvotes), 0) as count_,
-        community_id as community_id_
-    FROM post_aggregates
-    WHERE published >= (CURRENT_TIMESTAMP - i::interval)
-    GROUP BY community_id;
+        COALESCE(sum(comments + upvotes + downvotes), 0) AS count_,
+        community_id AS community_id_
+    FROM
+        post_aggregates
+    WHERE
+        published >= (CURRENT_TIMESTAMP - i::interval)
+    GROUP BY
+        community_id;
 END;
 $$;
 

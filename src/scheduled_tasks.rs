@@ -281,7 +281,13 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
     .bind::<Timestamptz, _>(previous_batch_last_published)
     .bind::<Integer, _>(update_batch_size)
     .get_results::<HotRanksUpdateResult>(conn)
-    .await.map_err(|e| LemmyErrorType::Unknown(format!("Failed to update {} hot_ranks: {}", "post_aggregates", e)))?;
+    .await
+    .map_err(|e| {
+      LemmyErrorType::Unknown(format!(
+        "Failed to update {} hot_ranks: {}",
+        "post_aggregates", e
+      ))
+    })?;
 
     processed_rows_count += updated_rows.len();
     previous_batch_result = updated_rows.last().map(|row| row.published);
@@ -389,7 +395,9 @@ async fn active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   }
 
   let update_interactions_stmt = "update community_aggregates ca set interactions_month = mv.count_ from r.community_aggregates_interactions('1 month') mv where ca.community_id = mv.community_id_";
-  sql_query(update_interactions_stmt).execute(&mut conn).await?;
+  sql_query(update_interactions_stmt)
+    .execute(&mut conn)
+    .await?;
 
   info!("Done.");
   Ok(())
