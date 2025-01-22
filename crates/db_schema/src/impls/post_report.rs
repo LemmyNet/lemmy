@@ -47,22 +47,6 @@ impl Reportable for PostReport {
       .await
   }
 
-  async fn resolve_all_for_object(
-    pool: &mut DbPool<'_>,
-    post_id_: PostId,
-    by_resolver_id: PersonId,
-  ) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    update(post_report.filter(post_id.eq(post_id_)))
-      .set((
-        resolved.eq(true),
-        resolver_id.eq(by_resolver_id),
-        updated.eq(Utc::now()),
-      ))
-      .execute(conn)
-      .await
-  }
-
   async fn unresolve(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,

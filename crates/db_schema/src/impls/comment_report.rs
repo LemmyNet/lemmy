@@ -58,22 +58,6 @@ impl Reportable for CommentReport {
       .await
   }
 
-  async fn resolve_all_for_object(
-    pool: &mut DbPool<'_>,
-    comment_id_: CommentId,
-    by_resolver_id: PersonId,
-  ) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    update(comment_report.filter(comment_id.eq(comment_id_)))
-      .set((
-        resolved.eq(true),
-        resolver_id.eq(by_resolver_id),
-        updated.eq(Utc::now()),
-      ))
-      .execute(conn)
-      .await
-  }
-
   /// unresolve a comment report
   ///
   /// * `conn` - the postgres connection

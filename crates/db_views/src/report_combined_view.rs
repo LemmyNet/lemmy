@@ -343,9 +343,12 @@ impl ReportCombinedQuery {
       query = query
         .filter(
           post_report::resolved
+            .or(post::removed)
             .or(comment_report::resolved)
+            .or(comment::removed)
             .or(private_message_report::resolved)
             .or(community_report::resolved)
+            .or(community::removed)
             .is_distinct_from(true),
         )
         // TODO: when a `then_asc` method is added, use it here, make the id sort direction match,

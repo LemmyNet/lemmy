@@ -58,22 +58,6 @@ impl Reportable for CommunityReport {
       .await
   }
 
-  async fn resolve_all_for_object(
-    pool: &mut DbPool<'_>,
-    community_id_: CommunityId,
-    by_resolver_id: PersonId,
-  ) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    update(community_report.filter(community_id.eq(community_id_)))
-      .set((
-        resolved.eq(true),
-        resolver_id.eq(by_resolver_id),
-        updated.eq(Utc::now()),
-      ))
-      .execute(conn)
-      .await
-  }
-
   /// unresolve a community report
   ///
   /// * `conn` - the postgres connection
