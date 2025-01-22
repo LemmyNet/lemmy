@@ -542,7 +542,7 @@ mod tests {
   async fn test_link_metadata() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ")?;
-    let sample_res = fetch_link_metadata(&sample_url, &context).await?;
+    let sample_res = fetch_link_metadata(&sample_url, &context, false).await?;
     assert_eq!(
       Some("FAQ · Wiki · IzzyOnDroid / repo · GitLab".to_string()),
       sample_res.opengraph_data.title
