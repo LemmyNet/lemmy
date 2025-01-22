@@ -163,6 +163,7 @@ pretty_assertions = "1.4.1"
 derive-new = "0.7.0"
 diesel-bind-if-some = "0.1.0"
 tuplex = "0.1.2"
+oasgen = { version = "0.22.0", features = ["actix", "chrono"] }
 
 [dependencies]
 lemmy_api = { workspace = true }

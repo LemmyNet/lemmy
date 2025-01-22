@@ -15,6 +15,8 @@ use diesel::{
 };
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
+#[cfg(feature = "full")]
+use oasgen::{OaSchema, Schema};
 use serde::{Deserialize, Serialize};
 use std::{
   fmt,
@@ -38,7 +40,7 @@ impl fmt::Display for PostId {
 }
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS, OaSchema))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The person id.
 pub struct PersonId(pub i32);
@@ -60,14 +62,14 @@ pub enum PostOrCommentId {
   Comment(CommentId),
 }
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize, OaSchema)]
 #[cfg_attr(feature = "full", derive(DieselNewType, TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The community id.
 pub struct CommunityId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS, OaSchema))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The local user id.
 pub struct LocalUserId(pub i32);
@@ -141,7 +143,7 @@ pub struct CommentReplyId(pub i32);
 #[derive(
   Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default, Ord, PartialOrd,
 )]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS, OaSchema))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The instance id.
 pub struct InstanceId(pub i32);
@@ -401,6 +403,15 @@ where
 {
   fn from(id: ObjectId<Kind>) -> Self {
     DbUrl(Box::new(id.into()))
+  }
+}
+
+#[cfg(feature = "full")]
+impl OaSchema for DbUrl {
+  fn schema() -> Schema {
+    let mut schema = Schema::new_object();
+    schema.properties_mut().insert("url", Schema::new_string());
+    schema
   }
 }
 

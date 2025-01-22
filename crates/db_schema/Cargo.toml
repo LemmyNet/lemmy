@@ -39,6 +39,7 @@ full = [
   "i-love-jesus",
   "tuplex",
   "diesel-bind-if-some",
+  "oasgen",
 ]
 
 [dependencies]
@@ -81,6 +82,7 @@ anyhow = { workspace = true }
 diesel-bind-if-some = { workspace = true, optional = true }
 derive-new.workspace = true
 tuplex = { workspace = true, optional = true }
+oasgen = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

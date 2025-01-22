@@ -29,11 +29,13 @@ pub extern crate lemmy_db_views_moderator;
 pub extern crate lemmy_utils;
 
 pub use lemmy_utils::error::LemmyErrorType;
+#[cfg(feature = "full")]
+use oasgen::OaSchema;
 use serde::{Deserialize, Serialize};
 use std::{cmp::min, time::Duration};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(ts_rs::TS))]
+#[cfg_attr(feature = "full", derive(ts_rs::TS, OaSchema))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Saves settings for your user.
 pub struct SuccessResponse {

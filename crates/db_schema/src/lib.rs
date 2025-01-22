@@ -41,6 +41,8 @@ pub mod utils;
 #[cfg(feature = "full")]
 pub mod schema_setup;
 
+#[cfg(feature = "full")]
+use oasgen::OaSchema;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
@@ -49,7 +51,7 @@ use ts_rs::TS;
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
-#[cfg_attr(feature = "full", derive(DbEnum, TS))]
+#[cfg_attr(feature = "full", derive(DbEnum, TS, OaSchema))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::PostSortTypeEnum"
@@ -84,7 +86,7 @@ pub enum PostSortType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
-#[cfg_attr(feature = "full", derive(DbEnum, TS))]
+#[cfg_attr(feature = "full", derive(DbEnum, TS, OaSchema))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::CommentSortTypeEnum"
@@ -104,7 +106,7 @@ pub enum CommentSortType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
-#[cfg_attr(feature = "full", derive(DbEnum, TS))]
+#[cfg_attr(feature = "full", derive(DbEnum, TS, OaSchema))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::ListingTypeEnum"
@@ -148,7 +150,7 @@ pub enum RegistrationMode {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
-#[cfg_attr(feature = "full", derive(DbEnum, TS))]
+#[cfg_attr(feature = "full", derive(DbEnum, TS, OaSchema))]
 #[cfg_attr(
   feature = "full",
   ExistingTypePath = "crate::schema::sql_types::PostListingModeEnum"

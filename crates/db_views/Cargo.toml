@@ -25,6 +25,7 @@ full = [
   "actix-web",
   "i-love-jesus",
   "lemmy_db_schema/full",
+  "oasgen",
 ]
 
 [dependencies]
@@ -42,6 +43,7 @@ actix-web = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 chrono = { workspace = true }
 derive-new.workspace = true
+oasgen = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

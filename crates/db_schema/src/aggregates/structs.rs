@@ -13,6 +13,8 @@ use chrono::{DateTime, Utc};
 use diesel::{dsl, expression_methods::NullableExpressionMethods};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
+#[cfg(feature = "full")]
+use oasgen::OaSchema;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use ts_rs::TS;
@@ -80,7 +82,7 @@ pub struct CommunityAggregates {
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable, TS)
+  derive(Queryable, Selectable, Associations, Identifiable, TS, OaSchema)
 )]
 #[cfg_attr(feature = "full", diesel(table_name = person_aggregates))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]

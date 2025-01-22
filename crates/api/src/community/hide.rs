@@ -16,8 +16,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use oasgen::oasgen;
 
 #[tracing::instrument(skip(context))]
+#[oasgen]
 pub async fn hide_community(
   data: Json<HideCommunity>,
   context: Data<LemmyContext>,

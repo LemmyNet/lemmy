@@ -11,6 +11,8 @@ use lemmy_db_views_actor::structs::{
   PendingFollow,
   PersonView,
 };
+#[cfg(feature = "full")]
+use oasgen::OaSchema;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -191,7 +193,7 @@ pub struct EditCommunity {
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", derive(TS, OaSchema))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Hide a community from the main view.
 pub struct HideCommunity {

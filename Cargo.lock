@@ -149,6 +149,7 @@ dependencies = [
  "bytestring",
  "cfg-if",
  "http 0.2.12",
+ "regex",
  "regex-lite",
  "serde",
  "tracing",
@@ -253,6 +254,7 @@ dependencies = [
  "mime",
  "once_cell",
  "pin-project-lite",
+ "regex",
  "regex-lite",
  "serde",
  "serde_json",
@@ -2430,6 +2432,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "inventory"
+version = "0.3.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b31349d02fe60f80bbbab1a9402364cad7460626d6030494b08ac4a2075bf81"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "ipnet"
 version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2570,6 +2581,7 @@ dependencies = [
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
  "lemmy_utils",
+ "oasgen",
  "pretty_assertions",
  "serial_test",
  "sitemap-rs",
@@ -2600,6 +2612,7 @@ dependencies = [
  "mime",
  "mime_guess",
  "moka",
+ "oasgen",
  "pretty_assertions",
  "regex",
  "reqwest 0.12.12",
@@ -2717,6 +2730,7 @@ dependencies = [
  "futures-util",
  "i-love-jesus",
  "lemmy_utils",
+ "oasgen",
  "pretty_assertions",
  "regex",
  "rustls 0.23.21",
@@ -2748,6 +2762,7 @@ dependencies = [
  "i-love-jesus",
  "lemmy_db_schema",
  "lemmy_utils",
+ "oasgen",
  "pretty_assertions",
  "serde",
  "serde_json",
@@ -3484,6 +3499,61 @@ dependencies = [
 ]
 
 [[package]]
+name = "oasgen"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec65779ae1c81966c5ba82a72bcfc52e2926b6f19636bed1c07e0383a6569df8"
+dependencies = [
+ "actix-web",
+ "futures",
+ "http 1.2.0",
+ "http-body 1.0.1",
+ "http-body-util",
+ "indexmap 2.7.0",
+ "inventory",
+ "oasgen-core",
+ "oasgen-macro",
+ "once_cell",
+ "openapiv3-extended",
+ "regex-lite",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+]
+
+[[package]]
+name = "oasgen-core"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "997846b6e7ad93869478e6a9d7ea08dc7263ea787433b5f2670a1177f1e7c7ce"
+dependencies = [
+ "actix-web",
+ "chrono",
+ "http 1.2.0",
+ "indexmap 2.7.0",
+ "inventory",
+ "openapiv3-extended",
+ "serde_json",
+ "serde_qs",
+ "structmeta",
+ "syn 2.0.96",
+]
+
+[[package]]
+name = "oasgen-macro"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d84e40b52bfe230f96cdc5fc4ea55d6b7e2875955d06ab6c1a801aa8d64b91d"
+dependencies = [
+ "oasgen-core",
+ "proc-macro2",
+ "quote",
+ "serde_derive_internals",
+ "structmeta",
+ "syn 2.0.96",
+]
+
+[[package]]
 name = "object"
 version = "0.36.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3497,6 +3567,19 @@ name = "once_cell"
 version = "1.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
+
+[[package]]
+name = "openapiv3-extended"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "756f9fddd9e5264d11c36c405a0b8a16bf7b2037bc8a424a0d14f74fd73dcb7f"
+dependencies = [
+ "anyhow",
+ "http 1.2.0",
+ "indexmap 2.7.0",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "overload"
@@ -4497,6 +4580,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_derive_internals"
+version = "0.29.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18d26a20a969b9e3fdf2fc2d9f21eda6c40e2de84c9408bb5d3b05d499aae711"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.96",
+]
+
+[[package]]
 name = "serde_json"
 version = "1.0.137"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4507,6 +4601,19 @@ dependencies = [
  "memchr",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serde_qs"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd34f36fe4c5ba9654417139a9b3a20d2e1de6012ee678ad14d240c22c78d8d6"
+dependencies = [
+ "actix-web",
+ "futures",
+ "percent-encoding",
+ "serde",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -4558,6 +4665,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.96",
+]
+
+[[package]]
+name = "serde_yaml"
+version = "0.9.34+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
+dependencies = [
+ "indexmap 2.7.0",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
 ]
 
 [[package]]
@@ -4812,6 +4932,29 @@ name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
+
+[[package]]
+name = "structmeta"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e1575d8d40908d70f6fd05537266b90ae71b15dbbe7a8b7dffa2b759306d329"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "structmeta-derive",
+ "syn 2.0.96",
+]
+
+[[package]]
+name = "structmeta-derive"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "152a0b65a590ff6c3da95cabe2353ee04e6167c896b28e3b14478c2636c922fc"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.96",
+]
 
 [[package]]
 name = "strum"
@@ -5506,6 +5649,12 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "untrusted"

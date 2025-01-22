@@ -37,6 +37,7 @@ full = [
   "jsonwebtoken",
   "mime",
   "moka",
+  "oasgen",
 ]
 
 [dependencies]
@@ -72,6 +73,7 @@ webpage = { version = "2.0", default-features = false, optional = true, features
 ] }
 encoding_rs = { version = "0.8.35", optional = true }
 jsonwebtoken = { version = "9.3.0", optional = true }
+oasgen = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

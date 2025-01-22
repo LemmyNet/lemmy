@@ -33,6 +33,7 @@ use lemmy_db_schema::{
   },
   SubscribedType,
 };
+use oasgen::OaSchema;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -104,7 +105,7 @@ pub struct CommunityReportView {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, OaSchema))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A local user view.

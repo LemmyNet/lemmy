@@ -1,10 +1,12 @@
+#[cfg(feature = "full")]
+use oasgen::OaSchema;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, ops::Deref};
 #[cfg(feature = "full")]
 use ts_rs::TS;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize, Default)]
-#[cfg_attr(feature = "full", derive(DieselNewType, TS))]
+#[cfg_attr(feature = "full", derive(DieselNewType, TS, OaSchema))]
 #[serde(transparent)]
 #[cfg_attr(feature = "full", ts(export))]
 pub struct SensitiveString(String);
