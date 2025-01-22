@@ -193,16 +193,10 @@ impl Object for ApubCommunity {
       LanguageTag::to_language_id_multiple(group.language, &mut context.pool()).await?;
 
     let timestamp = group.updated.or(group.published).unwrap_or_else(Utc::now);
-    let community: ApubCommunity = Community::insert_apub(&mut context.pool(), timestamp, &form)
-      .await?
-      .into();
+    let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
-    // Need to fetch mods synchronously, otherwise fetching a post in community with
-    // `posting_restricted_to_mods` can fail if mods havent been fetched yet.
-    if let Some(moderators) = group.attributed_to {
-      moderators.dereference(&community, context).await.ok();
-    }
+    let community: ApubCommunity = community.into();
 
     // These collections are not necessary for Lemmy to work, so ignore errors.
     let community_ = community.clone();
@@ -214,6 +208,9 @@ impl Object for ApubCommunity {
       }
       if let Some(featured) = group.featured {
         featured.dereference(&community_, &context_).await.ok();
+      }
+      if let Some(moderators) = group.attributed_to {
+        moderators.dereference(&community_, &context_).await.ok();
       }
       Ok(())
     });
