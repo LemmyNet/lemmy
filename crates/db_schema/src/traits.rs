@@ -204,3 +204,8 @@ pub trait InternalToCombinedView {
   /// Maps the combined DB row to an enum
   fn map_to_enum(self) -> Option<Self::CombinedView>;
 }
+
+pub trait ToSlimView {
+  type SlimView;
+  fn map_to_slim(self) -> Self::SlimView;
+}
