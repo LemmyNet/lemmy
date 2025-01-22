@@ -34,6 +34,9 @@ pub mod aliases {
 }
 pub mod source;
 #[cfg(feature = "full")]
+#[rustfmt::skip]
+mod table_pairs;
+#[cfg(feature = "full")]
 pub mod traits;
 #[cfg(feature = "full")]
 pub mod utils;

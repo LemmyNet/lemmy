@@ -1202,7 +1202,9 @@ diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
 diesel::joinable!(tag -> community (community_id));
 
-diesel::allow_tables_to_appear_in_same_query!(
+// TODO: patch file
+macro_rules! nothing { ($($foo:tt)*) => {} }
+nothing!(
     admin_allow_instance,
     admin_block_instance,
     admin_purge_comment,
