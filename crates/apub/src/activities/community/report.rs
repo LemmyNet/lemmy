@@ -29,6 +29,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Reportable},
 };
+use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -60,6 +61,13 @@ impl Report {
 
     // send report to the community where object was posted
     let mut inboxes = ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox());
+
+    // send to all moderators
+    let moderators =
+      CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
+    for m in moderators {
+      inboxes.add_inbox(m.moderator.actor_id.into());
+    }
 
     // also send report to user's home instance if possible
     let object_creator_id = match object_id.dereference_local(&context).await? {
