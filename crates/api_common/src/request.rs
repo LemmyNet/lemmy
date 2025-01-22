@@ -50,7 +50,11 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
 
 /// Fetches metadata for the given link and optionally generates thumbnail.
 #[tracing::instrument(skip_all)]
-pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResult<LinkMetadata> {
+pub async fn fetch_link_metadata(
+  url: &Url,
+  context: &LemmyContext,
+  recursion: bool,
+) -> LemmyResult<LinkMetadata> {
   // Resolve the domain and throw an error if it points to any internal IP,
   // using logic from nightly IpAddr::is_global.
   if !cfg!(debug_assertions) {
@@ -91,14 +95,14 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
     .await?
     .error_for_status()?;
 
-  // Manually follow one redirect, using internal IP check
+  // Manually follow one redirect, using internal IP check. Further redirects are ignored.
   let location = response
     .headers()
     .get(LOCATION)
     .and_then(|l| l.to_str().ok());
-  if let Some(location) = location {
+  if let (Some(location), false) = (location, recursion) {
     let url = location.parse()?;
-    return Box::pin(fetch_link_metadata(&url, context)).await;
+    return Box::pin(fetch_link_metadata(&url, context, true)).await;
   }
 
   let mut content_type: Option<Mime> = response
@@ -188,7 +192,9 @@ pub async fn generate_post_link_metadata(
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let metadata = match &post.url {
-    Some(url) => fetch_link_metadata(url, &context).await.unwrap_or_default(),
+    Some(url) => fetch_link_metadata(url, &context, false)
+      .await
+      .unwrap_or_default(),
     _ => Default::default(),
   };
 
