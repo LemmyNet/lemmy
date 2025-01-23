@@ -184,5 +184,3 @@ serde_json = { workspace = true }
 rustls = { workspace = true }
 tokio.workspace = true
 clap = { workspace = true }
-
-[dev-dependencies]
