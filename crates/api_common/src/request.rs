@@ -55,6 +55,10 @@ pub async fn fetch_link_metadata(
   context: &LemmyContext,
   recursion: bool,
 ) -> LemmyResult<LinkMetadata> {
+  if url.scheme() != "http" && url.scheme() != "https" {
+    return Err(LemmyErrorType::InvalidUrl.into());
+  }
+
   // Resolve the domain and throw an error if it points to any internal IP,
   // using logic from nightly IpAddr::is_global.
   if !cfg!(debug_assertions) {
