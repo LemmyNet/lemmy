@@ -1,9 +1,6 @@
 use crate::{
   newtypes::{CommentId, CommentReportId, PersonId},
-  schema::comment_report::{
-    comment_id,
-    dsl::{comment_report, resolved, resolver_id, updated},
-  },
+  schema::comment_report::dsl::{comment_report, resolved, resolver_id, updated},
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
   utils::{get_conn, DbPool},
@@ -49,22 +46,6 @@ impl Reportable for CommentReport {
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     update(comment_report.find(report_id_))
-      .set((
-        resolved.eq(true),
-        resolver_id.eq(by_resolver_id),
-        updated.eq(Utc::now()),
-      ))
-      .execute(conn)
-      .await
-  }
-
-  async fn resolve_all_for_object(
-    pool: &mut DbPool<'_>,
-    comment_id_: CommentId,
-    by_resolver_id: PersonId,
-  ) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    update(comment_report.filter(comment_id.eq(comment_id_)))
       .set((
         resolved.eq(true),
         resolver_id.eq(by_resolver_id),
