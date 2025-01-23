@@ -17,15 +17,13 @@ use lemmy_db_schema::{
   PostSortType,
 };
 use lemmy_db_views::structs::{
+  CommunityModeratorView,
+  InboxCombinedPaginationCursor,
+  InboxCombinedView,
   LocalImageView,
   PersonContentCombinedPaginationCursor,
   PersonContentCombinedView,
   PersonSavedCombinedPaginationCursor,
-};
-use lemmy_db_views_actor::structs::{
-  CommunityModeratorView,
-  InboxCombinedPaginationCursor,
-  InboxCombinedView,
   PersonView,
 };
 use serde::{Deserialize, Serialize};

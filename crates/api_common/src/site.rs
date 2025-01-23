@@ -27,22 +27,24 @@ use lemmy_db_schema::{
   PostListingMode,
   PostSortType,
   RegistrationMode,
+  SearchSortType,
   SearchType,
 };
 use lemmy_db_views::structs::{
   CommentView,
-  LocalUserView,
-  PostView,
-  RegistrationApplicationView,
-  SiteView,
-};
-use lemmy_db_views_actor::structs::{
   CommunityFollowerView,
   CommunityModeratorView,
   CommunityView,
+  LocalUserView,
+  ModlogCombinedPaginationCursor,
+  ModlogCombinedView,
   PersonView,
+  PostView,
+  RegistrationApplicationView,
+  SearchCombinedPaginationCursor,
+  SearchCombinedView,
+  SiteView,
 };
-use lemmy_db_views_moderator::structs::{ModlogCombinedPaginationCursor, ModlogCombinedView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -52,9 +54,10 @@ use ts_rs::TS;
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// Searches the site, given a query string, and some optional filters.
+/// Searches the site, given a search term, and some optional filters.
 pub struct Search {
-  pub q: String,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub search_term: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -64,13 +67,9 @@ pub struct Search {
   #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<SearchType>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub sort: Option<PostSortType>,
+  pub sort: Option<SearchSortType>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub listing_type: Option<ListingType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub title_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -79,19 +78,18 @@ pub struct Search {
   pub liked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<SearchCombinedPaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The search response, containing lists of the return type possibilities
-// TODO this should be redone as a list of tagged enums
 pub struct SearchResponse {
-  pub type_: SearchType,
-  pub comments: Vec<CommentView>,
-  pub posts: Vec<PostView>,
-  pub communities: Vec<CommunityView>,
-  pub users: Vec<PersonView>,
+  pub results: Vec<SearchCombinedView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

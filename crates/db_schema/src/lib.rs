@@ -104,6 +104,19 @@ pub enum CommentSortType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The search sort types.
+pub enum SearchSortType {
+  #[default]
+  New,
+  Top,
+  Old,
+}
+
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
+)]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
@@ -166,11 +179,14 @@ pub enum PostListingMode {
   SmallCard,
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
+)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The type of content returned from a search.
 pub enum SearchType {
+  #[default]
   All,
   Comments,
   Posts,

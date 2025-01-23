@@ -137,7 +137,7 @@ impl RegistrationApplicationQuery {
 #[cfg(test)]
 mod tests {
 
-  use crate::registration_application_view::{
+  use crate::registration_applications::registration_application_view::{
     RegistrationApplicationQuery,
     RegistrationApplicationView,
   };

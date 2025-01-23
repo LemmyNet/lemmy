@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   source::{activity::SentActivity, site::Site},
   utils::{ActualDbPool, DbPool},
 };
-use lemmy_db_views_actor::structs::CommunityFollowerView;
+use lemmy_db_views::structs::CommunityFollowerView;
 use lemmy_utils::error::LemmyResult;
 use reqwest::Url;
 use std::{

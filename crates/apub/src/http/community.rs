@@ -23,7 +23,7 @@ use actix_web::{
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::{source::community::Community, traits::ApubActor, CommunityVisibility};
-use lemmy_db_views_actor::structs::CommunityFollowerView;
+use lemmy_db_views::structs::CommunityFollowerView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::Deserialize;
 

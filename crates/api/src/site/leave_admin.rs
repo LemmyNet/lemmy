@@ -12,8 +12,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_db_views_actor::structs::PersonView;
+use lemmy_db_views::structs::{LocalUserView, PersonView, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   VERSION,

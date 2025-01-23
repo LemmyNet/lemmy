@@ -15,7 +15,7 @@ use lemmy_db_schema::{
   source::{community::Community, post::PostRead},
 };
 use lemmy_db_views::{
-  post_view::PostQuery,
+  post::post_view::PostQuery,
   structs::{LocalUserView, PaginationCursor, SiteView},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};

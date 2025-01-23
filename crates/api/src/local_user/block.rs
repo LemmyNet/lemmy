@@ -7,8 +7,7 @@ use lemmy_db_schema::{
   source::person_block::{PersonBlock, PersonBlockForm},
   traits::Blockable,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::PersonView;
+use lemmy_db_views::structs::{LocalUserView, PersonView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]
