@@ -13,7 +13,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   source::{comment::Comment, community::Community},
-  traits::{Crud, ToSlimView},
+  traits::Crud,
 };
 use lemmy_db_views::{
   comment_view::CommentQuery,
@@ -113,7 +113,7 @@ pub async fn list_comments_slim(
   let comments = list_comments_common(data, context, local_user_view)
     .await?
     .into_iter()
-    .map(ToSlimView::map_to_slim)
+    .map(CommentView::map_to_slim)
     .collect();
 
   Ok(Json(GetCommentsSlimResponse { comments }))

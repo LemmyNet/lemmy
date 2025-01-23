@@ -34,7 +34,6 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     site::Site,
   },
-  traits::ToSlimView,
   utils::{
     actions,
     actions_alias,
@@ -314,12 +313,9 @@ impl CommentView {
     }
     Ok(handle_deleted(res, is_admin))
   }
-}
 
-impl ToSlimView for CommentView {
-  type SlimView = CommentSlimView;
-  fn map_to_slim(self) -> Self::SlimView {
-    Self::SlimView {
+  pub fn map_to_slim(self) -> CommentSlimView {
+    CommentSlimView {
       comment: self.comment,
       creator: self.creator,
       counts: self.counts,
