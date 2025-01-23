@@ -11,6 +11,7 @@ use ts_rs::TS;
 pub struct CreateCommentReport {
   pub comment_id: CommentId,
   pub reason: String,
+  pub to_local_admins: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -57,6 +57,7 @@ pub async fn create_comment_report(
     comment_id,
     original_comment_text: comment_view.comment.content,
     reason,
+    to_local_admins: data.to_local_admins,
   };
 
   let report = CommentReport::report(&mut context.pool(), &report_form)

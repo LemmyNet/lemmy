@@ -11,6 +11,7 @@ use ts_rs::TS;
 pub struct CreatePostReport {
   pub post_id: PostId,
   pub reason: String,
+  pub to_local_admins: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

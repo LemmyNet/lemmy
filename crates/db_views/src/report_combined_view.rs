@@ -98,9 +98,16 @@ impl ReportCombinedViewInternal {
       query = query.filter(post::community_id.eq(community_id))
     }
 
-    // If its not an admin, get only the ones you mod
+    // If its not an admin, get only reports for communities you mod, and no admin reports
     if !user.local_user.admin {
-      query = query.filter(community_actions::became_moderator.is_not_null());
+      query = query
+        .filter(
+          post_report::to_local_admins
+            .or(comment_report::to_local_admins)
+            .or(community_report::to_local_admins)
+            .is_distinct_from(true),
+        )
+        .filter(community_actions::became_moderator.is_not_null());
     }
 
     query
@@ -320,11 +327,18 @@ impl ReportCombinedQuery {
 
     // If its not an admin, get only the ones you mod
     if !user.local_user.admin {
-      query = query.filter(
-        community_actions::became_moderator
-          .is_not_null()
-          .and(report_combined::community_report_id.is_null()),
-      );
+      query = query
+        .filter(
+          post_report::to_local_admins
+            .or(comment_report::to_local_admins)
+            .or(community_report::to_local_admins)
+            .is_distinct_from(true),
+        )
+        .filter(
+          community_actions::became_moderator
+            .is_not_null()
+            .and(report_combined::community_report_id.is_null()),
+        );
     }
 
     let mut query = PaginatedQueryBuilder::new(query);
@@ -633,6 +647,7 @@ mod tests {
       original_community_sidebar: None,
       original_community_icon: None,
       reason: "from sara".into(),
+      to_local_admins: false,
     };
     CommunityReport::report(pool, &sara_report_community_form).await?;
 
@@ -644,6 +659,7 @@ mod tests {
       original_post_url: None,
       original_post_body: None,
       reason: "from sara".into(),
+      to_local_admins: false,
     };
     let inserted_post_report = PostReport::report(pool, &sara_report_post_form).await?;
 
@@ -653,6 +669,7 @@ mod tests {
       comment_id: data.comment.id,
       original_comment_text: "A test comment rv".into(),
       reason: "from sara".into(),
+      to_local_admins: false,
     };
     CommentReport::report(pool, &sara_report_comment_form).await?;
 
@@ -835,6 +852,7 @@ mod tests {
       original_post_url: None,
       original_post_body: None,
       reason: "from sara".into(),
+      to_local_admins: false,
     };
 
     PostReport::report(pool, &sara_report_form).await?;
@@ -847,6 +865,7 @@ mod tests {
       original_post_url: None,
       original_post_body: None,
       reason: "from jessica".into(),
+      to_local_admins: false,
     };
 
     let inserted_jessica_report = PostReport::report(pool, &jessica_report_form).await?;
@@ -964,6 +983,7 @@ mod tests {
       comment_id: data.comment.id,
       original_comment_text: "this was it at time of creation".into(),
       reason: "from sara".into(),
+      to_local_admins: false,
     };
 
     CommentReport::report(pool, &sara_report_form).await?;
@@ -974,6 +994,7 @@ mod tests {
       comment_id: data.comment.id,
       original_comment_text: "this was it at time of creation".into(),
       reason: "from jessica".into(),
+      to_local_admins: false,
     };
 
     let inserted_jessica_report = CommentReport::report(pool, &jessica_report_form).await?;
@@ -1073,6 +1094,7 @@ mod tests {
       original_community_sidebar: None,
       original_community_icon: None,
       reason: "the ice cream incident".into(),
+      to_local_admins: false,
     };
     let community_report = CommunityReport::report(pool, &community_report_form).await?;
 
