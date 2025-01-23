@@ -239,7 +239,7 @@ pub enum PersonContentType {
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// A list of possible types for reports
+/// A list of possible types for reports.
 pub enum ReportType {
   All,
   Posts,
