@@ -22,7 +22,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
-  newtypes::CommunityId,
+  newtypes::{CommunityId, PostId},
   schema::{
     comment,
     comment_actions,
@@ -49,6 +49,7 @@ use lemmy_db_schema::{
   },
   traits::InternalToCombinedView,
   utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
+  ReportType,
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -148,6 +149,8 @@ pub struct PaginationCursorData(ReportCombined);
 
 #[derive(Default)]
 pub struct ReportCombinedQuery {
+  pub type_: Option<ReportType>,
+  pub post_id: Option<PostId>,
   pub community_id: Option<CommunityId>,
   pub unresolved_only: Option<bool>,
   pub page_after: Option<PaginationCursorData>,
@@ -167,6 +170,33 @@ impl ReportCombinedQuery {
 
     let conn = &mut get_conn(pool).await?;
 
+    let report_creator_join = post_report::creator_id
+      .eq(report_creator)
+      .or(comment_report::creator_id.eq(report_creator))
+      .or(private_message_report::creator_id.eq(report_creator))
+      .or(community_report::creator_id.eq(report_creator));
+
+    let item_creator_join = post::creator_id
+      .eq(item_creator)
+      .or(comment::creator_id.eq(item_creator))
+      .or(private_message::creator_id.eq(item_creator));
+
+    let resolver_join = private_message_report::resolver_id
+      .eq(resolver)
+      .or(post_report::resolver_id.eq(resolver))
+      .or(comment_report::resolver_id.eq(resolver))
+      .or(community_report::resolver_id.eq(resolver));
+
+    let post_join = post_report::post_id
+      .eq(post::id)
+      .or(comment::post_id.eq(post::id));
+
+    let community_join = community::table.on(
+      community_report::community_id
+        .eq(community::id)
+        .or(post::community_id.eq(community::id)),
+    );
+
     // Notes: since the post_report_id and comment_report_id are optional columns,
     // many joins must use an OR condition.
     // For example, the report creator must be the person table joined to either:
@@ -178,15 +208,7 @@ impl ReportCombinedQuery {
       .left_join(private_message_report::table)
       .left_join(community_report::table)
       // The report creator
-      .inner_join(
-        person::table.on(
-          post_report::creator_id
-            .eq(report_creator)
-            .or(comment_report::creator_id.eq(report_creator))
-            .or(private_message_report::creator_id.eq(report_creator))
-            .or(community_report::creator_id.eq(report_creator)),
-        ),
-      )
+      .inner_join(person::table.on(report_creator_join))
       // The comment
       .left_join(comment::table.on(comment_report::comment_id.eq(comment::id)))
       // The private message
@@ -195,30 +217,13 @@ impl ReportCombinedQuery {
           .on(private_message_report::private_message_id.eq(private_message::id)),
       )
       // The post
-      .left_join(
-        post::table.on(
-          post_report::post_id
-            .eq(post::id)
-            .or(comment::post_id.eq(post::id)),
-        ),
-      )
+      .left_join(post::table.on(post_join))
       // The item creator (`item_creator` is the id of this person)
-      .left_join(
-        aliases::person1.on(
-          post::creator_id
-            .eq(item_creator)
-            .or(comment::creator_id.eq(item_creator))
-            .or(private_message::creator_id.eq(item_creator)),
-        ),
-      )
+      .left_join(aliases::person1.on(item_creator_join))
+      // The resolver
+      .left_join(aliases::person2.on(resolver_join))
       // The community
-      .left_join(
-        community::table.on(
-          post::community_id
-            .eq(community::id)
-            .or(community_report::community_id.eq(community::id)),
-        ),
-      )
+      .left_join(community_join)
       .left_join(actions_alias(
         creator_community_actions,
         item_creator,
@@ -249,16 +254,6 @@ impl ReportCombinedQuery {
       .left_join(
         community_aggregates::table
           .on(community_report::community_id.eq(community_aggregates::community_id)),
-      )
-      // The resolver
-      .left_join(
-        aliases::person2.on(
-          private_message_report::resolver_id
-            .eq(resolver)
-            .or(post_report::resolver_id.eq(resolver))
-            .or(comment_report::resolver_id.eq(resolver))
-            .or(community_report::resolver_id.eq(resolver)),
-        ),
       )
       .left_join(actions(
         comment_actions::table,
@@ -318,6 +313,10 @@ impl ReportCombinedQuery {
       );
     }
 
+    if let Some(post_id) = self.post_id {
+      query = query.filter(post::id.eq(post_id));
+    }
+
     // If its not an admin, get only the ones you mod
     if !user.local_user.admin {
       query = query.filter(
@@ -335,6 +334,18 @@ impl ReportCombinedQuery {
       query = query.before(page_after).limit_and_offset_from_end();
     } else {
       query = query.after(page_after);
+    }
+
+    if let Some(type_) = self.type_ {
+      query = match type_ {
+        ReportType::All => query,
+        ReportType::Posts => query.filter(report_combined::post_report_id.is_not_null()),
+        ReportType::Comments => query.filter(report_combined::comment_report_id.is_not_null()),
+        ReportType::PrivateMessages => {
+          query.filter(report_combined::private_message_report_id.is_not_null())
+        }
+        ReportType::Communities => query.filter(report_combined::community_report_id.is_not_null()),
+      }
     }
 
     // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
@@ -508,6 +519,7 @@ mod tests {
     },
     traits::{Crud, Joinable, Reportable},
     utils::{build_db_pool_for_tests, DbPool},
+    ReportType,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -677,7 +689,7 @@ mod tests {
     let reports = ReportCombinedQuery::default()
       .list(pool, &data.admin_view)
       .await?;
-    assert_eq!(4, reports.len());
+    assert_length!(4, reports);
 
     // Make sure the report types are correct
     if let ReportCombinedView::Community(v) = &reports[3] {
@@ -709,22 +721,41 @@ mod tests {
       ReportCombinedViewInternal::get_report_count(pool, &data.admin_view, None).await?;
     assert_eq!(4, report_count_admin);
 
+    // Make sure the type_ filter is working
+    let reports_by_type = ReportCombinedQuery {
+      type_: Some(ReportType::Posts),
+      ..Default::default()
+    }
+    .list(pool, &data.admin_view)
+    .await?;
+    assert_length!(1, reports_by_type);
+
+    // Filter by the post id
+    // Should be 2, for the post, and the comment on that post
+    let reports_by_post_id = ReportCombinedQuery {
+      post_id: Some(data.post.id),
+      ..Default::default()
+    }
+    .list(pool, &data.admin_view)
+    .await?;
+    assert_length!(2, reports_by_post_id);
+
     // Timmy should only see 2 reports, since they're not an admin,
     // but they do mod the community
-    let reports = ReportCombinedQuery::default()
+    let timmys_reports = ReportCombinedQuery::default()
       .list(pool, &data.timmy_view)
       .await?;
-    assert_eq!(2, reports.len());
+    assert_length!(2, timmys_reports);
 
     // Make sure the report types are correct
-    if let ReportCombinedView::Post(v) = &reports[1] {
+    if let ReportCombinedView::Post(v) = &timmys_reports[1] {
       assert_eq!(data.post.id, v.post.id);
       assert_eq!(data.sara.id, v.creator.id);
       assert_eq!(data.timmy.id, v.post_creator.id);
     } else {
       panic!("wrong type");
     }
-    if let ReportCombinedView::Comment(v) = &reports[0] {
+    if let ReportCombinedView::Comment(v) = &timmys_reports[0] {
       assert_eq!(data.comment.id, v.comment.id);
       assert_eq!(data.post.id, v.post.id);
       assert_eq!(data.timmy.id, v.comment_creator.id);
@@ -1049,6 +1080,16 @@ mod tests {
     let report_count_after_resolved =
       ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
     assert_eq!(1, report_count_after_resolved);
+
+    // Filter by post id, which should still include the comments.
+    let reports_post_id_filter = ReportCombinedQuery {
+      post_id: Some(data.post.id),
+      ..Default::default()
+    }
+    .list(pool, &data.timmy_view)
+    .await?;
+
+    assert_length!(2, reports_post_id_filter);
 
     cleanup(data, pool).await?;
 
