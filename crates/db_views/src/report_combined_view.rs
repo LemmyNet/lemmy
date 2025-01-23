@@ -98,16 +98,17 @@ impl ReportCombinedViewInternal {
       query = query.filter(post::community_id.eq(community_id))
     }
 
-    // If its not an admin, get only reports for communities you mod, and no admin reports
+    // Only count reports for modded communities.
+    query = query.filter(community_actions::became_moderator.is_not_null());
+
+    // For admins also count those with `to_local_admins=true`
     if !user.local_user.admin {
-      query = query
-        .filter(
-          post_report::to_local_admins
-            .or(comment_report::to_local_admins)
-            .or(community_report::to_local_admins)
-            .is_distinct_from(true),
-        )
-        .filter(community_actions::became_moderator.is_not_null());
+      query = query.filter(
+        post_report::to_local_admins
+          .or(comment_report::to_local_admins)
+          .or(community_report::to_local_admins)
+          .is_distinct_from(true),
+      );
     }
 
     query
@@ -157,6 +158,8 @@ pub struct PaginationCursorData(ReportCombined);
 pub struct ReportCombinedQuery {
   pub community_id: Option<CommunityId>,
   pub unresolved_only: Option<bool>,
+  // For admins, also show reports with `to_local_admins=false`
+  pub show_mod_reports: Option<bool>,
   pub page_after: Option<PaginationCursorData>,
   pub page_back: Option<bool>,
 }
@@ -325,20 +328,27 @@ impl ReportCombinedQuery {
       );
     }
 
-    // If its not an admin, get only the ones you mod
+    // TODO: these two blocks need to be combined somehow, so that admin reports dont
+    // get filtered out due to community id where the admin is not moderator
+
+    let show_mod_reports = self.show_mod_reports.unwrap_or_default() && user.local_user.admin;
+    if !show_mod_reports {
+      // Only show reports for communities where the user is a mod
+      query = query.filter(
+        community_actions::became_moderator
+          .is_not_null()
+          .and(report_combined::community_report_id.is_null()),
+      );
+    }
+
+    // Only admins can view reports with `to_local_admins`
     if !user.local_user.admin {
-      query = query
-        .filter(
-          post_report::to_local_admins
-            .or(comment_report::to_local_admins)
-            .or(community_report::to_local_admins)
-            .is_distinct_from(true),
-        )
-        .filter(
-          community_actions::became_moderator
-            .is_not_null()
-            .and(report_combined::community_report_id.is_null()),
-        );
+      query = query.filter(
+        post_report::to_local_admins
+          .or(comment_report::to_local_admins)
+          .or(community_report::to_local_admins)
+          .is_distinct_from(true),
+      );
     }
 
     let mut query = PaginatedQueryBuilder::new(query);
@@ -1129,6 +1139,74 @@ mod tests {
     } else {
       panic!("wrong type");
     }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_local_admin_reports() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // create report to admins
+    let report_form = PostReportForm {
+      creator_id: data.sara.id,
+      post_id: data.post.id,
+      original_post_name: "Orig post".into(),
+      original_post_url: None,
+      original_post_body: None,
+      reason: "from sara".into(),
+      to_local_admins: true,
+    };
+    PostReport::report(pool, &report_form).await?;
+
+    // timmy is a mod and cannot see the report
+    let mod_reports = ReportCombinedQuery::default()
+      .list(pool, &data.timmy_view)
+      .await?;
+    assert_length!(0, mod_reports);
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+    assert_eq!(0, count);
+
+    // only admin can see the report
+    let admin_reports = ReportCombinedQuery::default()
+      .list(pool, &data.admin_view)
+      .await?;
+    assert_length!(1, admin_reports);
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.admin_view, None).await?;
+    assert_eq!(1, count);
+
+    // now create a mod report
+    let report_form = CommentReportForm {
+      creator_id: data.sara.id,
+      comment_id: data.comment.id,
+      original_comment_text: "this was it at time of creation".into(),
+      reason: "from sara".into(),
+      to_local_admins: false,
+    };
+    CommentReport::report(pool, &report_form).await?;
+
+    // this time the mod can see it
+    let mod_reports = ReportCombinedQuery::default()
+      .list(pool, &data.timmy_view)
+      .await?;
+    assert_length!(1, mod_reports);
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+    assert_eq!(1, count);
+
+    // but not the admin
+    let admin_reports = ReportCombinedQuery::default()
+      .list(pool, &data.timmy_view)
+      .await?;
+    assert_length!(0, admin_reports);
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.admin_view, None).await?;
+    assert_eq!(0, count);
+
+    // TODO: admin can see mod report if its over 3 days old, or with param `view_mod_reports`
 
     cleanup(data, pool).await?;
 
