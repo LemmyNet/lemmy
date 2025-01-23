@@ -41,8 +41,8 @@ use lemmy_db_schema::{
     combined::person_content::{person_content_combined_keys as key, PersonContentCombined},
     community::CommunityFollower,
   },
+  traits::InternalToCombinedView,
   utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool},
-  InternalToCombinedView,
   PersonContentType,
 };
 use lemmy_utils::error::LemmyResult;
