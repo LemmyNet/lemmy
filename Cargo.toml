@@ -140,6 +140,7 @@ tokio = { version = "1.43.0", features = ["full"] }
 regex = "1.11.1"
 diesel-derive-newtype = "2.1.2"
 diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
+enum-map = { version = "2.7" }
 strum = { version = "0.26.3", features = ["derive"] }
 itertools = "0.14.0"
 futures = "0.3.31"
@@ -155,7 +156,6 @@ futures-util = "0.3.31"
 tokio-postgres = "0.7.12"
 tokio-postgres-rustls = "0.13.0"
 urlencoding = "2.1.3"
-enum-map = "2.7"
 moka = { version = "0.12.10", features = ["future"] }
 i-love-jesus = { version = "0.1.0" }
 clap = { version = "4.5.27", features = ["derive", "env"] }
@@ -174,26 +174,13 @@ lemmy_api_common = { workspace = true }
 lemmy_routes = { workspace = true }
 lemmy_federate = { workspace = true }
 activitypub_federation = { workspace = true }
-diesel = { workspace = true }
-diesel-async = { workspace = true }
 actix-web = { workspace = true }
 tracing = { workspace = true }
 tracing-actix-web = { workspace = true }
 tracing-subscriber = { workspace = true }
-url = { workspace = true }
 reqwest-middleware = { workspace = true }
 reqwest-tracing = { workspace = true }
-clokwerk = { workspace = true }
 serde_json = { workspace = true }
 rustls = { workspace = true }
 tokio.workspace = true
-actix-cors = "0.7.0"
-futures-util = { workspace = true }
-chrono = { workspace = true }
-prometheus = { version = "0.13.4", features = ["process"] }
-serial_test = { workspace = true }
 clap = { workspace = true }
-actix-web-prom = "0.9.0"
-
-[dev-dependencies]
-pretty_assertions = { workspace = true }

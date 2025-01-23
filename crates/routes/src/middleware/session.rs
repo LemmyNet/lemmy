@@ -7,8 +7,10 @@ use actix_web::{
 };
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
-use lemmy_api::{local_user_view_from_jwt, read_auth_token};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{local_user_view_from_jwt, read_auth_token},
+};
 use std::{future::ready, rc::Rc};
 
 #[derive(Clone)]
@@ -67,9 +69,8 @@ where
 
       if let Some(jwt) = &jwt {
         // Ignore any invalid auth so the site can still be used
-        // TODO: this means it will be impossible to get any error message for invalid jwt. Need
-        //       to add a separate endpoint for that.
-        //       https://github.com/LemmyNet/lemmy/issues/3702
+        // This means it is be impossible to get any error message for invalid jwt. Need
+        // to use `/api/v4/account/validate_auth` for that.
         let local_user_view = local_user_view_from_jwt(jwt, &context).await.ok();
         if let Some(local_user_view) = local_user_view {
           req.extensions_mut().insert(local_user_view);
@@ -99,9 +100,8 @@ where
 #[cfg(test)]
 mod tests {
 
-  use crate::tests::test_context;
   use actix_web::test::TestRequest;
-  use lemmy_api_common::claims::Claims;
+  use lemmy_api_common::{claims::Claims, context::LemmyContext};
   use lemmy_db_schema::{
     source::{
       instance::Instance,
@@ -117,7 +117,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_session_auth() -> LemmyResult<()> {
-    let context = test_context().await;
+    let context = LemmyContext::init_test_context().await;
 
     let inserted_instance =
       Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;

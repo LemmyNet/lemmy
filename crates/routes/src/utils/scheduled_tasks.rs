@@ -1,3 +1,4 @@
+use crate::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use activitypub_federation::config::Data;
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
@@ -16,8 +17,8 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use lemmy_api_common::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
+  utils::send_webmention,
 };
-use lemmy_api_crud::post::create::send_webmention;
 use lemmy_db_schema::{
   schema::{
     captcha_answer,
@@ -48,7 +49,6 @@ use lemmy_db_schema::{
     DELETED_REPLACEMENT_TEXT,
   },
 };
-use lemmy_routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
@@ -553,7 +553,6 @@ async fn build_update_instance_form(
 mod tests {
 
   use super::*;
-  use crate::{scheduled_tasks::build_update_instance_form, tests::test_context};
   use lemmy_api_common::request::client_builder;
   use lemmy_utils::{
     error::{LemmyErrorType, LemmyResult},
@@ -586,7 +585,7 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_scheduled_tasks_no_errors() -> LemmyResult<()> {
-    let context = test_context().await;
+    let context = LemmyContext::init_test_context().await;
 
     startup_jobs(&mut context.pool()).await?;
     update_instance_software(&mut context.pool(), context.client()).await?;
