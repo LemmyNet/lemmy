@@ -2080,9 +2080,9 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
 name = "hyper"
-version = "0.14.30"
+version = "0.14.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a152ddd61dfaec7273fe8419ab357f33aee0d914c5f4efbf0d96fa749eea5ec9"
+checksum = "41dfc780fdec9373c01bae43289ea34c972e40ee3c9f6b3c8801a35f35586ce7"
 dependencies = [
  "bytes",
  "futures-channel",
@@ -2129,7 +2129,7 @@ checksum = "ec3efd23720e2049821a693cbc7e65ea87c72f1c58ff2f9522ff332b1491e590"
 dependencies = [
  "futures-util",
  "http 0.2.12",
- "hyper 0.14.30",
+ "hyper 0.14.32",
  "rustls 0.21.12",
  "tokio",
  "tokio-rustls 0.24.1",
@@ -2555,7 +2555,6 @@ version = "0.19.6-beta.7"
 dependencies = [
  "activitypub_federation",
  "actix-web",
- "actix-web-httpauth",
  "anyhow",
  "base64 0.22.1",
  "bcrypt",
@@ -2585,6 +2584,7 @@ version = "0.19.6-beta.7"
 dependencies = [
  "activitypub_federation",
  "actix-web",
+ "actix-web-httpauth",
  "anyhow",
  "chrono",
  "encoding_rs",
@@ -2614,6 +2614,7 @@ dependencies = [
  "url",
  "urlencoding",
  "uuid",
+ "webmention",
  "webpage",
 ]
 
@@ -2640,7 +2641,6 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
- "webmention",
 ]
 
 [[package]]
@@ -2833,20 +2833,29 @@ name = "lemmy_routes"
 version = "0.19.6-beta.7"
 dependencies = [
  "activitypub_federation",
+ "actix-cors",
  "actix-web",
+ "actix-web-prom",
  "anyhow",
  "chrono",
+ "clokwerk",
+ "diesel",
+ "diesel-async",
  "futures",
+ "futures-util",
  "http 1.2.0",
  "lemmy_api_common",
  "lemmy_db_schema",
  "lemmy_db_views",
  "lemmy_db_views_actor",
  "lemmy_utils",
+ "pretty_assertions",
+ "prometheus",
  "reqwest 0.12.12",
  "reqwest-middleware",
  "rss",
  "serde",
+ "serial_test",
  "tokio",
  "tracing",
  "url",
@@ -2857,15 +2866,8 @@ name = "lemmy_server"
 version = "0.19.6-beta.7"
 dependencies = [
  "activitypub_federation",
- "actix-cors",
  "actix-web",
- "actix-web-prom",
- "chrono",
  "clap",
- "clokwerk",
- "diesel",
- "diesel-async",
- "futures-util",
  "lemmy_api",
  "lemmy_api_common",
  "lemmy_api_crud",
@@ -2874,18 +2876,14 @@ dependencies = [
  "lemmy_federate",
  "lemmy_routes",
  "lemmy_utils",
- "pretty_assertions",
- "prometheus",
  "reqwest-middleware",
  "reqwest-tracing",
  "rustls 0.23.21",
  "serde_json",
- "serial_test",
  "tokio",
  "tracing",
  "tracing-actix-web",
  "tracing-subscriber",
- "url",
 ]
 
 [[package]]
@@ -4096,7 +4094,7 @@ dependencies = [
  "h2",
  "http 0.2.12",
  "http-body 0.4.6",
- "hyper 0.14.30",
+ "hyper 0.14.32",
  "hyper-rustls 0.24.2",
  "ipnet",
  "js-sys",
