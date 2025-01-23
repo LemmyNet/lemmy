@@ -96,7 +96,7 @@ impl ReportCombinedViewInternal {
         post::removed
           .or(comment::removed)
           .or(community::removed)
-          .is_distinct_from(false),
+          .is_distinct_from(true),
       )
       .into_boxed();
 
@@ -358,7 +358,7 @@ impl ReportCombinedQuery {
           post::removed
             .or(comment::removed)
             .or(community::removed)
-            .is_distinct_from(false),
+            .is_distinct_from(true),
         )
         // TODO: when a `then_asc` method is added, use it here, make the id sort direction match,
         // and remove the separate index; unless additional columns are added to this sort
