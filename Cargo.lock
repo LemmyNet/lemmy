@@ -10,8 +10,9 @@ checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 
 [[package]]
 name = "activitypub_federation"
-version = "0.6.1"
-source = "git+https://github.com/LemmyNet/activitypub-federation-rust.git?branch=more-url-validation#7f2c303c36af3a24f8f72b5d7100d8d02ad7a961"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce5c105760d36108026acde9cb779d8ef4714d5e551f248a9e8e0369b6671b78"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
@@ -2956,7 +2957,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -5765,7 +5766,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
