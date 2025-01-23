@@ -7,7 +7,7 @@ use crate::{
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_common::{
-  comment::{GetComments, GetCommentsResponse},
+  comment::{GetComments, GetCommentsResponse, GetCommentsSlimResponse},
   context::LemmyContext,
   utils::{check_conflicting_like_filters, check_private_instance},
 };
@@ -17,16 +17,17 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{
   comment_view::CommentQuery,
-  structs::{LocalUserView, SiteView},
+  structs::{CommentView, LocalUserView, SiteView},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
+/// A common fetcher for both the CommentView, and CommentSlimView.
 #[tracing::instrument(skip(context))]
-pub async fn list_comments(
+async fn list_comments_common(
   data: Query<GetComments>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<GetCommentsResponse>> {
+) -> LemmyResult<Vec<CommentView>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   check_private_instance(&local_user_view, &site_view.local_site)?;
 
@@ -73,7 +74,7 @@ pub async fn list_comments(
   let post_id = data.post_id;
   let local_user = local_user_view.as_ref().map(|l| &l.local_user);
 
-  let comments = CommentQuery {
+  CommentQuery {
     listing_type,
     sort,
     max_depth,
@@ -89,7 +90,31 @@ pub async fn list_comments(
   }
   .list(&site_view.site, &mut context.pool())
   .await
-  .with_lemmy_type(LemmyErrorType::CouldntGetComments)?;
+  .with_lemmy_type(LemmyErrorType::CouldntGetComments)
+}
+
+#[tracing::instrument(skip(context))]
+pub async fn list_comments(
+  data: Query<GetComments>,
+  context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
+) -> LemmyResult<Json<GetCommentsResponse>> {
+  let comments = list_comments_common(data, context, local_user_view).await?;
 
   Ok(Json(GetCommentsResponse { comments }))
+}
+
+#[tracing::instrument(skip(context))]
+pub async fn list_comments_slim(
+  data: Query<GetComments>,
+  context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
+) -> LemmyResult<Json<GetCommentsSlimResponse>> {
+  let comments = list_comments_common(data, context, local_user_view)
+    .await?
+    .into_iter()
+    .map(CommentView::map_to_slim)
+    .collect();
+
+  Ok(Json(GetCommentsSlimResponse { comments }))
 }

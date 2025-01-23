@@ -46,9 +46,9 @@ use lemmy_db_schema::{
     combined::inbox::{inbox_combined_keys as key, InboxCombined},
     community::CommunityFollower,
   },
+  traits::InternalToCombinedView,
   utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool},
   InboxDataType,
-  InternalToCombinedView,
 };
 use lemmy_utils::error::LemmyResult;
 
