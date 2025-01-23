@@ -16,16 +16,18 @@ export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queu
 PICTRS_PATH="api_tests/pict-rs"
 PICTRS_EXPECTED_HASH="8feb52c0dee1dd0b41caa0e92afd9d5e597fbb4d7174d7bba22a1ba72fa01dbc  pict-rs"
 
-# pictrs setup
+# Pictrs setup. Download file with hash check and up to 3 retries. 
 if [ ! -f "$PICTRS_PATH" ]; then
   retry=true
-  while $retry
+  count=0
+  while $retry && [ "$count" -lt 3 ]
   do
     # This one sometimes goes down
     # curl "https://git.asonix.dog/asonix/pict-rs/releases/download/v0.5.16/pict-rs-linux-amd64" -o "$PICTRS_PATH"
-    curl "https://codeberg.org/asonix/pict-rs/releases/download/v0.5.6/pict-rs-linux-amd64" -o "$PICTRS_PATH"
+    curl "https://codeberg.org/asonix/pict-rs/releases/download/v0.5.5/pict-rs-linux-amd64" -o "$PICTRS_PATH"
     PICTRS_HASH=$(sha256sum "$PICTRS_PATH")
     [[ "$PICTRS_HASH" != "$PICTRS_EXPECTED_HASH" ]] && retry=true || retry=false
+    let count=count+1
   done
   chmod +x "$PICTRS_PATH"
 fi
