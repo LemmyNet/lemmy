@@ -44,7 +44,8 @@ pub struct Settings {
   // Prometheus configuration.
   #[doku(example = "Some(Default::default())")]
   pub prometheus: Option<PrometheusConfig>,
-  /// Sets a response Access-Control-Allow-Origin CORS header
+  /// Sets a response Access-Control-Allow-Origin CORS header. Can also be set via environment:
+  /// `LEMMY_CORS_ORIGIN=example.org,site.com`
   /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
   #[doku(example = "lemmy.tld")]
   cors_origin: Vec<String>,
