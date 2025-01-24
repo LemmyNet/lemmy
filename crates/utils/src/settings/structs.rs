@@ -47,14 +47,14 @@ pub struct Settings {
   /// Sets a response Access-Control-Allow-Origin CORS header
   /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
   #[doku(example = "lemmy.tld")]
-  cors_origin: Option<String>,
+  cors_origin: Vec<String>,
 }
 
 impl Settings {
-  pub fn cors_origin(&self) -> Option<String> {
+  pub fn cors_origin(&self) -> Vec<String> {
     env::var("LEMMY_CORS_ORIGIN")
-      .ok()
-      .or(self.cors_origin.clone())
+      .ok().map(|e| e.split(',').map(ToString::to_string).collect())
+      .unwrap_or(self.cors_origin.clone())
   }
 }
 
