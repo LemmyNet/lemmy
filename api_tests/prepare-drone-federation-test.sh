@@ -33,6 +33,7 @@ if [ ! -f "$PICTRS_PATH" ]; then
 fi
 
 ./api_tests/pict-rs \
+  --log-targets WARN,ERROR,INFO \
   run -a 0.0.0.0:8080 \
   --danger-dummy-mode \
   --api-key "my-pictrs-key" \
