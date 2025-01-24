@@ -53,7 +53,8 @@ pub struct Settings {
 impl Settings {
   pub fn cors_origin(&self) -> Vec<String> {
     env::var("LEMMY_CORS_ORIGIN")
-      .ok().map(|e| e.split(',').map(ToString::to_string).collect())
+      .ok()
+      .map(|e| e.split(',').map(ToString::to_string).collect())
       .unwrap_or(self.cors_origin.clone())
   }
 }
