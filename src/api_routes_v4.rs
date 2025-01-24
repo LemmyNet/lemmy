@@ -26,6 +26,7 @@ use lemmy_api::{
     block::user_block_person,
     change_password::change_password,
     change_password_after_reset::change_password_after_reset,
+    donation_dialog_shown::donation_dialog_shown,
     generate_totp_secret::generate_totp_secret,
     get_captcha::get_captcha,
     list_banned::list_banned_users,
@@ -141,7 +142,7 @@ use lemmy_api_crud::{
   },
 };
 use lemmy_apub::api::{
-  list_comments::list_comments,
+  list_comments::{list_comments, list_comments_slim},
   list_person_content::list_person_content,
   list_posts::list_posts,
   read_community::get_community,
@@ -276,6 +277,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/like/list", get().to(list_comment_likes))
           .route("/save", put().to(save_comment))
           .route("/list", get().to(list_comments))
+          .route("/list/slim", get().to(list_comments_slim))
           .route("/report", post().to(create_comment_report))
           .route("/report/resolve", put().to(resolve_comment_report)),
       )
@@ -331,6 +333,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/unread_count", get().to(unread_count))
           .route("/list_logins", get().to(list_logins))
           .route("/validate_auth", get().to(validate_auth))
+          .route("/donation_dialog_shown", post().to(donation_dialog_shown))
           .route("/avatar", post().to(upload_user_avatar))
           .route("/avatar", delete().to(delete_user_avatar))
           .route("/banner", post().to(upload_user_banner))

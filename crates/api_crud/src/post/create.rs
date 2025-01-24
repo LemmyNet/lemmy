@@ -13,6 +13,7 @@ use lemmy_api_common::{
     honeypot_check,
     local_site_to_slur_regex,
     process_markdown_opt,
+    send_webmention,
   },
 };
 use lemmy_db_schema::{
@@ -25,13 +26,11 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
   utils::diesel_url_create,
-  CommunityVisibility,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  spawn_try_task,
   utils::{
     mention::scrape_text_for_mentions,
     slurs::check_slurs,
@@ -44,9 +43,6 @@ use lemmy_utils::{
     },
   },
 };
-use tracing::Instrument;
-use url::Url;
-use webmention::{Webmention, WebmentionError};
 
 #[tracing::instrument(skip(context))]
 pub async fn create_post(
@@ -169,24 +165,4 @@ pub async fn create_post(
   PostRead::mark_as_read(&mut context.pool(), &read_form).await?;
 
   build_post_response(&context, community_id, local_user_view, post_id).await
-}
-
-pub fn send_webmention(post: Post, community: Community) {
-  if let Some(url) = post.url.clone() {
-    if community.visibility == CommunityVisibility::Public {
-      spawn_try_task(async move {
-        let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
-        webmention.set_checked(true);
-        match webmention
-          .send()
-          .instrument(tracing::info_span!("Sending webmention"))
-          .await
-        {
-          Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
-          Ok(_) => Ok(()),
-          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
-        }
-      });
-    }
-  };
 }

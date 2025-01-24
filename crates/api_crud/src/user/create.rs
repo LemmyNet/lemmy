@@ -21,7 +21,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   aggregates::structs::PersonAggregates,
-  newtypes::{InstanceId, OAuthProviderId, SiteId},
+  newtypes::{InstanceId, OAuthProviderId},
   source::{
     actor_language::SiteLanguage,
     captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
@@ -139,21 +139,11 @@ pub async fn register(
     email: data.email.as_deref().map(str::to_lowercase),
     show_nsfw: Some(show_nsfw),
     accepted_application,
-    default_listing_type: Some(local_site.default_post_listing_type),
-    post_listing_mode: Some(local_site.default_post_listing_mode),
-    interface_language: language_tags.first().cloned(),
-    // If its the initial site setup, they are an admin
-    admin: Some(!local_site.site_setup),
     ..LocalUserInsertForm::new(inserted_person.id, Some(data.password.to_string()))
   };
 
-  let inserted_local_user = create_local_user(
-    &context,
-    language_tags,
-    &local_user_form,
-    local_site.site_id,
-  )
-  .await?;
+  let inserted_local_user =
+    create_local_user(&context, language_tags, local_user_form, &local_site).await?;
 
   if local_site.site_setup && require_registration_application {
     if let Some(answer) = data.answer.clone() {
@@ -369,20 +359,10 @@ pub async fn authenticate_with_oauth(
         show_nsfw: Some(show_nsfw),
         accepted_application: Some(!require_registration_application),
         email_verified: Some(oauth_provider.auto_verify_email),
-        post_listing_mode: Some(local_site.default_post_listing_mode),
-        interface_language: language_tags.first().cloned(),
-        // If its the initial site setup, they are an admin
-        admin: Some(!local_site.site_setup),
         ..LocalUserInsertForm::new(person.id, None)
       };
 
-      local_user = create_local_user(
-        &context,
-        language_tags,
-        &local_user_form,
-        local_site.site_id,
-      )
-      .await?;
+      local_user = create_local_user(&context, language_tags, local_user_form, &local_site).await?;
 
       // Create the oauth account
       let oauth_account_form =
@@ -472,28 +452,33 @@ fn get_language_tags(req: &HttpRequest) -> Vec<String> {
 async fn create_local_user(
   context: &Data<LemmyContext>,
   language_tags: Vec<String>,
-  local_user_form: &LocalUserInsertForm,
-  local_site_id: SiteId,
+  mut local_user_form: LocalUserInsertForm,
+  local_site: &LocalSite,
 ) -> Result<LocalUser, LemmyError> {
   let all_languages = Language::read_all(&mut context.pool()).await?;
   // use hashset to avoid duplicates
   let mut language_ids = HashSet::new();
 
   // Enable languages from `Accept-Language` header
-  for l in language_tags {
-    if let Some(found) = all_languages.iter().find(|all| all.code == l) {
+  for l in &language_tags {
+    if let Some(found) = all_languages.iter().find(|all| &all.code == l) {
       language_ids.insert(found.id);
     }
   }
 
   // Enable site languages. Ignored if all languages are enabled.
-  let discussion_languages = SiteLanguage::read(&mut context.pool(), local_site_id).await?;
+  let discussion_languages = SiteLanguage::read(&mut context.pool(), local_site.site_id).await?;
   language_ids.extend(discussion_languages);
 
   let language_ids = language_ids.into_iter().collect();
 
+  local_user_form.default_listing_type = Some(local_site.default_post_listing_type);
+  local_user_form.post_listing_mode = Some(local_site.default_post_listing_mode);
+  // If its the initial site setup, they are an admin
+  local_user_form.admin = Some(!local_site.site_setup);
+  local_user_form.interface_language = language_tags.first().cloned();
   let inserted_local_user =
-    LocalUser::create(&mut context.pool(), local_user_form, language_ids).await?;
+    LocalUser::create(&mut context.pool(), &local_user_form, language_ids).await?;
 
   Ok(inserted_local_user)
 }

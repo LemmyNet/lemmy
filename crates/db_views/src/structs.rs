@@ -92,6 +92,27 @@ pub struct CommentView {
 #[cfg_attr(feature = "full", derive(TS, Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
+/// A slimmer comment view, without the post, or community.
+pub struct CommentSlimView {
+  pub comment: Comment,
+  pub creator: Person,
+  pub counts: CommentAggregates,
+  pub creator_banned_from_community: bool,
+  pub banned_from_community: bool,
+  pub creator_is_moderator: bool,
+  pub creator_is_admin: bool,
+  pub subscribed: SubscribedType,
+  pub saved: bool,
+  pub creator_blocked: bool,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub my_vote: Option<i16>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", ts(export))]
 /// A community report view.
 pub struct CommunityReportView {
   pub community_report: CommunityReport,

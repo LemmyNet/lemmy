@@ -1,4 +1,5 @@
 use crate::{
+  claims::Claims,
   context::LemmyContext,
   request::{
     delete_image_from_pictrs,
@@ -7,6 +8,8 @@ use crate::{
   },
   site::{FederatedInstances, InstanceWithFederationState},
 };
+use actix_web::{http::header::Header, HttpRequest};
+use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
@@ -39,6 +42,7 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
   utils::DbPool,
+  CommunityVisibility,
   FederationMode,
   RegistrationMode,
 };
@@ -54,12 +58,13 @@ use lemmy_db_views_actor::structs::{
 };
 use lemmy_utils::{
   email::{send_email, translations::Lang},
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
   settings::{
     structs::{PictrsImageMode, Settings},
     SETTINGS,
   },
+  spawn_try_task,
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
     slurs::{build_slur_regex, remove_slurs},
@@ -72,9 +77,10 @@ use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
 use rosetta_i18n::{Language, LanguageId};
 use std::sync::LazyLock;
-use tracing::warn;
+use tracing::{warn, Instrument};
 use url::{ParseError, Url};
 use urlencoding::encode;
+use webmention::{Webmention, WebmentionError};
 
 pub const AUTH_COOKIE_NAME: &str = "jwt";
 
@@ -1143,6 +1149,55 @@ fn build_proxied_image_url(
     protocol_and_hostname,
     encode(link.as_str())
   ))
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn local_user_view_from_jwt(
+  jwt: &str,
+  context: &LemmyContext,
+) -> LemmyResult<LocalUserView> {
+  let local_user_id = Claims::validate(jwt, context)
+    .await
+    .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
+  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
+  check_user_valid(&local_user_view.person)?;
+
+  Ok(local_user_view)
+}
+
+pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
+  // Try reading jwt from auth header
+  if let Ok(header) = Authorization::<Bearer>::parse(req) {
+    Ok(Some(header.as_ref().token().to_string()))
+  }
+  // If that fails, try to read from cookie
+  else if let Some(cookie) = &req.cookie(AUTH_COOKIE_NAME) {
+    Ok(Some(cookie.value().to_string()))
+  }
+  // Otherwise, there's no auth
+  else {
+    Ok(None)
+  }
+}
+
+pub fn send_webmention(post: Post, community: Community) {
+  if let Some(url) = post.url.clone() {
+    if community.visibility == CommunityVisibility::Public {
+      spawn_try_task(async move {
+        let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
+        webmention.set_checked(true);
+        match webmention
+          .send()
+          .instrument(tracing::info_span!("Sending webmention"))
+          .await
+        {
+          Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
+          Ok(_) => Ok(()),
+          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
+        }
+      });
+    }
+  };
 }
 
 #[cfg(test)]
