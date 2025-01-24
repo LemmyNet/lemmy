@@ -187,20 +187,20 @@ steps:
       - mv target/debug/lemmy_server target/lemmy_server
     when: *slow_check_paths
 
-  # check_diesel_schema:
-  #   image: *rust_image
-  #   environment:
-  #     LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-  #     DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-  #     RUST_BACKTRACE: "1"
-  #     CARGO_HOME: .cargo_home
-  #   commands:
-  #     - cp crates/db_schema/src/schema.rs tmp.schema
-  #     - target/lemmy_server migration --all run
-  #     - <<: *install_diesel_cli
-  #     - diesel print-schema
-  #     - diff tmp.schema crates/db_schema/src/schema.rs
-  #   when: *slow_check_paths
+  check_diesel_schema:
+    image: *rust_image
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: "1"
+      CARGO_HOME: .cargo_home
+    commands:
+      - cp crates/db_schema/src/schema.rs tmp.schema
+      - target/lemmy_server migration --all run
+      - <<: *install_diesel_cli
+      - diesel print-schema
+      - diff tmp.schema crates/db_schema/src/schema.rs
+    when: *slow_check_paths
 
   # check_db_perf_tool:
   #   image: *rust_image
