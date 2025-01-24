@@ -8,6 +8,7 @@ use crate::structs::{
   ReportCombinedView,
   ReportCombinedViewInternal,
 };
+use chrono::{Days, Utc};
 use diesel::{
   result::Error,
   BoolExpressionMethods,
@@ -339,11 +340,23 @@ impl ReportCombinedQuery {
       .or(community_report::to_local_admins);
 
     if user.local_user.admin {
+      // By default admins only see reports with `to_local_admins == true`, for communities 
+      // where they are moderator, or reports which have been unresolved for more than 3 days. 
+      // With parameter `show_mod_reports` they can also see newer reports in other communities.
       let show_mod_reports = self.show_mod_reports.unwrap_or_default();
       if !show_mod_reports {
-        query = query.filter(filter_to_local_admins.or(filter_is_mod));
+        let three_days = Utc::now() - Days::new(3);
+        query = query.filter(
+          filter_to_local_admins
+            .or(filter_is_mod)
+            .or(post_report::published.lt(three_days))
+            .or(comment_report::published.lt(three_days))
+            .or(community_report::published.lt(three_days)),
+        );
       }
     } else {
+      // Mods can only see reports for communities where they are moderator, and
+      // which have `to_local_admins == false`.
       query = query
         .filter(filter_is_mod)
         .filter(filter_to_local_admins.is_distinct_from(true));
@@ -511,9 +524,13 @@ mod tests {
       ReportCombinedViewInternal,
     },
   };
+  use chrono::{Days, Utc};
+  use diesel::{update, ExpressionMethods, QueryDsl};
+  use diesel_async::RunQueryDsl;
   use lemmy_db_schema::{
     aggregates::structs::{CommentAggregates, PostAggregates},
     assert_length,
+    schema::comment_report,
     source::{
       comment::{Comment, CommentInsertForm},
       comment_report::{CommentReport, CommentReportForm},
@@ -529,7 +546,7 @@ mod tests {
       private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
     },
     traits::{Crud, Joinable, Reportable},
-    utils::{build_db_pool_for_tests, DbPool},
+    utils::{build_db_pool_for_tests, get_conn, DbPool},
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -1160,7 +1177,7 @@ mod tests {
       reason: "from sara".into(),
       to_local_admins: true,
     };
-    let post_report = PostReport::report(pool, &report_form).await?;
+    PostReport::report(pool, &report_form).await?;
 
     // timmy is a mod and cannot see the report
     let mod_reports = ReportCombinedQuery::default()
@@ -1190,7 +1207,7 @@ mod tests {
       reason: "from sara".into(),
       to_local_admins: false,
     };
-    CommentReport::report(pool, &report_form).await?;
+    let comment_report = CommentReport::report(pool, &report_form).await?;
 
     // this time the mod can see it
     let mod_reports = ReportCombinedQuery::default()
@@ -1217,7 +1234,15 @@ mod tests {
     .await?;
     assert_length!(1, admin_reports);
 
-    // TODO: admin can see mod report if its over 3 days old
+    // change a comment to be 3 days old, now admin can also see it by default
+    update(comment_report::dsl::comment_report.find(comment_report.id))
+      .set(comment_report::published.eq(Utc::now() - Days::new(3)))
+      .execute(&mut get_conn(pool).await?)
+      .await?;
+    let admin_reports = ReportCombinedQuery::default()
+      .list(pool, &data.admin_view)
+      .await?;
+    assert_length!(1, admin_reports);
 
     cleanup(data, pool).await?;
 
