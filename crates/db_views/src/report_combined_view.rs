@@ -340,8 +340,8 @@ impl ReportCombinedQuery {
       .or(community_report::to_local_admins);
 
     if user.local_user.admin {
-      // By default admins only see reports with `to_local_admins == true`, for communities 
-      // where they are moderator, or reports which have been unresolved for more than 3 days. 
+      // By default admins only see reports with `to_local_admins == true`, for communities
+      // where they are moderator, or reports which have been unresolved for more than 3 days.
       // With parameter `show_mod_reports` they can also see newer reports in other communities.
       let show_mod_reports = self.show_mod_reports.unwrap_or_default();
       if !show_mod_reports {

@@ -1,3 +1,9 @@
-alter table post_report add column to_local_admins bool not null default false;
-alter table comment_report add column to_local_admins bool not null default false;
-alter table community_report add column to_local_admins bool not null default false;
+ALTER TABLE post_report
+    ADD COLUMN to_local_admins bool NOT NULL DEFAULT FALSE;
+
+ALTER TABLE comment_report
+    ADD COLUMN to_local_admins bool NOT NULL DEFAULT FALSE;
+
+ALTER TABLE community_report
+    ADD COLUMN to_local_admins bool NOT NULL DEFAULT FALSE;
+
