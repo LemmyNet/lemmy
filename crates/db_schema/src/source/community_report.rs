@@ -42,6 +42,7 @@ pub struct CommunityReport {
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
+  pub to_local_admins: bool,
 }
 
 #[derive(Clone)]
@@ -57,4 +58,5 @@ pub struct CommunityReportForm {
   pub original_community_icon: Option<DbUrl>,
   pub original_community_banner: Option<DbUrl>,
   pub reason: String,
+  pub to_local_admins: bool,
 }

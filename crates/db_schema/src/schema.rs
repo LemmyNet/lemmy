@@ -179,6 +179,7 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+        to_local_admins -> Bool,
     }
 }
 
@@ -282,6 +283,7 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+        to_local_admins -> Bool,
     }
 }
 
@@ -911,6 +913,7 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published -> Timestamptz,
         updated -> Nullable<Timestamptz>,
+        to_local_admins -> Bool,
     }
 }
 

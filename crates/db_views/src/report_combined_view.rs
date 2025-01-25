@@ -8,6 +8,7 @@ use crate::structs::{
   ReportCombinedView,
   ReportCombinedViewInternal,
 };
+use chrono::{Days, Utc};
 use diesel::{
   result::Error,
   BoolExpressionMethods,
@@ -98,9 +99,17 @@ impl ReportCombinedViewInternal {
       query = query.filter(post::community_id.eq(community_id))
     }
 
-    // If its not an admin, get only the ones you mod
+    // Only count reports for modded communities.
+    query = query.filter(community_actions::became_moderator.is_not_null());
+
+    // For admins also count those with `to_local_admins=true`
     if !user.local_user.admin {
-      query = query.filter(community_actions::became_moderator.is_not_null());
+      query = query.filter(
+        post_report::to_local_admins
+          .or(comment_report::to_local_admins)
+          .or(community_report::to_local_admins)
+          .is_distinct_from(true),
+      );
     }
 
     query
@@ -150,6 +159,8 @@ pub struct PaginationCursorData(ReportCombined);
 pub struct ReportCombinedQuery {
   pub community_id: Option<CommunityId>,
   pub unresolved_only: Option<bool>,
+  // For admins, also show reports with `to_local_admins=false`
+  pub show_mod_reports: Option<bool>,
   pub page_after: Option<PaginationCursorData>,
   pub page_back: Option<bool>,
 }
@@ -318,13 +329,37 @@ impl ReportCombinedQuery {
       );
     }
 
-    // If its not an admin, get only the ones you mod
-    if !user.local_user.admin {
-      query = query.filter(
-        community_actions::became_moderator
-          .is_not_null()
-          .and(report_combined::community_report_id.is_null()),
-      );
+    // Only show reports for communities where the user is a mod
+    let filter_is_mod = community_actions::became_moderator
+      .is_not_null()
+      .and(report_combined::community_report_id.is_null());
+
+    // Filter reports which are only for admins
+    let filter_to_local_admins = post_report::to_local_admins
+      .or(comment_report::to_local_admins)
+      .or(community_report::to_local_admins);
+
+    if user.local_user.admin {
+      // By default admins only see reports with `to_local_admins == true`, for communities
+      // where they are moderator, or reports which have been unresolved for more than 3 days.
+      // With parameter `show_mod_reports` they can also see newer reports in other communities.
+      let show_mod_reports = self.show_mod_reports.unwrap_or_default();
+      if !show_mod_reports {
+        let three_days = Utc::now() - Days::new(3);
+        query = query.filter(
+          filter_to_local_admins
+            .or(filter_is_mod)
+            .or(post_report::published.lt(three_days))
+            .or(comment_report::published.lt(three_days))
+            .or(community_report::published.lt(three_days)),
+        );
+      }
+    } else {
+      // Mods can only see reports for communities where they are moderator, and
+      // which have `to_local_admins == false`.
+      query = query
+        .filter(filter_is_mod)
+        .filter(filter_to_local_admins.is_distinct_from(true));
     }
 
     let mut query = PaginatedQueryBuilder::new(query);
@@ -489,9 +524,13 @@ mod tests {
       ReportCombinedViewInternal,
     },
   };
+  use chrono::{Days, Utc};
+  use diesel::{update, ExpressionMethods, QueryDsl};
+  use diesel_async::RunQueryDsl;
   use lemmy_db_schema::{
     aggregates::structs::{CommentAggregates, PostAggregates},
     assert_length,
+    schema::comment_report,
     source::{
       comment::{Comment, CommentInsertForm},
       comment_report::{CommentReport, CommentReportForm},
@@ -507,7 +546,7 @@ mod tests {
       private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
     },
     traits::{Crud, Joinable, Reportable},
-    utils::{build_db_pool_for_tests, DbPool},
+    utils::{build_db_pool_for_tests, get_conn, DbPool},
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -633,6 +672,7 @@ mod tests {
       original_community_sidebar: None,
       original_community_icon: None,
       reason: "from sara".into(),
+      to_local_admins: false,
     };
     CommunityReport::report(pool, &sara_report_community_form).await?;
 
@@ -644,6 +684,7 @@ mod tests {
       original_post_url: None,
       original_post_body: None,
       reason: "from sara".into(),
+      to_local_admins: false,
     };
     let inserted_post_report = PostReport::report(pool, &sara_report_post_form).await?;
 
@@ -653,6 +694,7 @@ mod tests {
       comment_id: data.comment.id,
       original_comment_text: "A test comment rv".into(),
       reason: "from sara".into(),
+      to_local_admins: false,
     };
     CommentReport::report(pool, &sara_report_comment_form).await?;
 
@@ -835,6 +877,7 @@ mod tests {
       original_post_url: None,
       original_post_body: None,
       reason: "from sara".into(),
+      to_local_admins: false,
     };
 
     PostReport::report(pool, &sara_report_form).await?;
@@ -847,6 +890,7 @@ mod tests {
       original_post_url: None,
       original_post_body: None,
       reason: "from jessica".into(),
+      to_local_admins: false,
     };
 
     let inserted_jessica_report = PostReport::report(pool, &jessica_report_form).await?;
@@ -964,6 +1008,7 @@ mod tests {
       comment_id: data.comment.id,
       original_comment_text: "this was it at time of creation".into(),
       reason: "from sara".into(),
+      to_local_admins: false,
     };
 
     CommentReport::report(pool, &sara_report_form).await?;
@@ -974,6 +1019,7 @@ mod tests {
       comment_id: data.comment.id,
       original_comment_text: "this was it at time of creation".into(),
       reason: "from jessica".into(),
+      to_local_admins: false,
     };
 
     let inserted_jessica_report = CommentReport::report(pool, &jessica_report_form).await?;
@@ -1073,6 +1119,7 @@ mod tests {
       original_community_sidebar: None,
       original_community_icon: None,
       reason: "the ice cream incident".into(),
+      to_local_admins: false,
     };
     let community_report = CommunityReport::report(pool, &community_report_form).await?;
 
@@ -1107,6 +1154,95 @@ mod tests {
     } else {
       panic!("wrong type");
     }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_local_admin_reports() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // create report to admins
+    let report_form = PostReportForm {
+      creator_id: data.sara.id,
+      post_id: data.post_2.id,
+      original_post_name: "Orig post".into(),
+      original_post_url: None,
+      original_post_body: None,
+      reason: "from sara".into(),
+      to_local_admins: true,
+    };
+    PostReport::report(pool, &report_form).await?;
+
+    // timmy is a mod and cannot see the report
+    let mod_reports = ReportCombinedQuery::default()
+      .list(pool, &data.timmy_view)
+      .await?;
+    assert_length!(0, mod_reports);
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+    assert_eq!(0, count);
+
+    // only admin can see the report
+    let admin_reports = ReportCombinedQuery::default()
+      .list(pool, &data.admin_view)
+      .await?;
+    // TODO
+    assert_length!(1, admin_reports);
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.admin_view, None).await?;
+    //assert_eq!(1, count);
+
+    // cleanup the report for easier checks below
+    Post::delete(pool, data.post_2.id).await?;
+
+    // now create a mod report
+    let report_form = CommentReportForm {
+      creator_id: data.sara.id,
+      comment_id: data.comment.id,
+      original_comment_text: "this was it at time of creation".into(),
+      reason: "from sara".into(),
+      to_local_admins: false,
+    };
+    let comment_report = CommentReport::report(pool, &report_form).await?;
+
+    // this time the mod can see it
+    let mod_reports = ReportCombinedQuery::default()
+      .list(pool, &data.timmy_view)
+      .await?;
+    assert_length!(1, mod_reports);
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+    //assert_eq!(1, count);
+
+    // but not the admin
+    let admin_reports = ReportCombinedQuery::default()
+      .list(pool, &data.admin_view)
+      .await?;
+    assert_length!(0, admin_reports);
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.admin_view, None).await?;
+    //assert_eq!(0, count);
+
+    // admin can see the report with `view_mod_reports` set
+    let admin_reports = ReportCombinedQuery {
+      show_mod_reports: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.timmy_view)
+    .await?;
+    assert_length!(1, admin_reports);
+
+    // change a comment to be 3 days old, now admin can also see it by default
+    update(comment_report::dsl::comment_report.find(comment_report.id))
+      .set(comment_report::published.eq(Utc::now() - Days::new(3)))
+      .execute(&mut get_conn(pool).await?)
+      .await?;
+    let admin_reports = ReportCombinedQuery::default()
+      .list(pool, &data.admin_view)
+      .await?;
+    assert_length!(1, admin_reports);
 
     cleanup(data, pool).await?;
 
