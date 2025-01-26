@@ -13,118 +13,150 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{
     functions::{coalesce, lower},
-    DbConn,
+    get_conn,
     DbPool,
-    ListFn,
-    Queries,
-    ReadFn,
   },
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::future::{ready, Ready};
 
-enum ReadBy<'a> {
-  Id(LocalUserId),
-  Person(PersonId),
-  Name(&'a str),
-  NameOrEmail(&'a str),
-  Email(&'a str),
-  OAuthID(OAuthProviderId, &'a str),
+#[diesel::dsl::auto_type]
+fn joins() -> _ {
+  local_user::table
+    .inner_join(local_user_vote_display_mode::table)
+    .inner_join(person::table)
+    .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
 }
 
-enum ListMode {
-  AdminsWithEmails,
-}
+type SelectionType = (
+  (
+    local_user::id,
+    local_user::person_id,
+    local_user::password_encrypted,
+    local_user::email,
+    local_user::show_nsfw,
+    local_user::theme,
+    local_user::default_post_sort_type,
+    local_user::default_listing_type,
+    local_user::interface_language,
+    local_user::show_avatars,
+    local_user::send_notifications_to_email,
+    local_user::show_bot_accounts,
+    local_user::show_read_posts,
+    local_user::email_verified,
+    local_user::accepted_application,
+    local_user::totp_2fa_secret,
+    local_user::open_links_in_new_tab,
+    local_user::blur_nsfw,
+    local_user::infinite_scroll_enabled,
+    local_user::admin,
+    local_user::post_listing_mode,
+    local_user::totp_2fa_enabled,
+    local_user::enable_keyboard_navigation,
+    local_user::enable_animated_images,
+    local_user::enable_private_messages,
+    local_user::collapse_bot_comments,
+    local_user::default_comment_sort_type,
+    local_user::auto_mark_fetched_posts_as_read,
+    local_user::last_donation_notification,
+    local_user::hide_media,
+  ),
+  (
+    local_user_vote_display_mode::local_user_id,
+    local_user_vote_display_mode::score,
+    local_user_vote_display_mode::upvotes,
+    local_user_vote_display_mode::downvotes,
+    local_user_vote_display_mode::upvote_percentage,
+  ),
+  (
+    person::id,
+    person::name,
+    person::display_name,
+    person::avatar,
+    person::banned,
+    person::published,
+    person::updated,
+    person::actor_id,
+    person::bio,
+    person::local,
+    person::private_key,
+    person::public_key,
+    person::last_refreshed_at,
+    person::banner,
+    person::deleted,
+    person::inbox_url,
+    person::matrix_user_id,
+    person::bot_account,
+    person::ban_expires,
+    person::instance_id,
+  ),
+  (
+    person_aggregates::person_id,
+    person_aggregates::post_count,
+    person_aggregates::post_score,
+    person_aggregates::comment_count,
+    person_aggregates::comment_score,
+  ),
+);
 
-fn queries<'a>(
-) -> Queries<impl ReadFn<'a, LocalUserView, ReadBy<'a>>, impl ListFn<'a, LocalUserView, ListMode>> {
-  let selection = (
-    local_user::all_columns,
-    local_user_vote_display_mode::all_columns,
-    person::all_columns,
-    person_aggregates::all_columns,
-  );
-
-  let read = move |mut conn: DbConn<'a>, search: ReadBy<'a>| async move {
-    let mut query = local_user::table.into_boxed();
-    query = match search {
-      ReadBy::Id(local_user_id) => query.filter(local_user::id.eq(local_user_id)),
-      ReadBy::Email(from_email) => {
-        query.filter(lower(coalesce(local_user::email, "")).eq(from_email.to_lowercase()))
-      }
-      _ => query,
-    };
-    let mut query = query.inner_join(person::table);
-    query = match search {
-      ReadBy::Person(person_id) => query.filter(person::id.eq(person_id)),
-      ReadBy::Name(name) => query.filter(lower(person::name).eq(name.to_lowercase())),
-      ReadBy::NameOrEmail(name_or_email) => query.filter(
-        lower(person::name)
-          .eq(lower(name_or_email.to_lowercase()))
-          .or(lower(coalesce(local_user::email, "")).eq(name_or_email.to_lowercase())),
-      ),
-      _ => query,
-    };
-    let query = query
-      .inner_join(local_user_vote_display_mode::table)
-      .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)));
-
-    if let ReadBy::OAuthID(oauth_provider_id, oauth_user_id) = search {
-      query
-        .inner_join(oauth_account::table)
-        .filter(oauth_account::oauth_provider_id.eq(oauth_provider_id))
-        .filter(oauth_account::oauth_user_id.eq(oauth_user_id))
-        .select(selection)
-        .first(&mut conn)
-        .await
-    } else {
-      query.select(selection).first(&mut conn).await
-    }
-  };
-
-  let list = move |mut conn: DbConn<'a>, mode: ListMode| async move {
-    match mode {
-      ListMode::AdminsWithEmails => {
-        local_user::table
-          .inner_join(local_user_vote_display_mode::table)
-          .inner_join(person::table)
-          .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
-          .filter(local_user::email.is_not_null())
-          .filter(local_user::admin.eq(true))
-          .select(selection)
-          .load::<LocalUserView>(&mut conn)
-          .await
-      }
-    }
-  };
-
-  Queries::new(read, list)
-}
+const SELECTION: SelectionType = (
+  local_user::all_columns,
+  local_user_vote_display_mode::all_columns,
+  person::all_columns,
+  person_aggregates::all_columns,
+);
 
 impl LocalUserView {
   pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<Self, Error> {
-    queries().read(pool, ReadBy::Id(local_user_id)).await
+    let conn = &mut get_conn(pool).await?;
+    joins()
+      .filter(local_user::id.eq(local_user_id))
+      .select(SELECTION)
+      .first(conn)
+      .await
   }
 
   pub async fn read_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
-    queries().read(pool, ReadBy::Person(person_id)).await
+    let conn = &mut get_conn(pool).await?;
+    joins()
+      .filter(person::id.eq(person_id))
+      .select(SELECTION)
+      .first(conn)
+      .await
   }
 
   pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> Result<Self, Error> {
-    queries().read(pool, ReadBy::Name(name)).await
+    let conn = &mut get_conn(pool).await?;
+    joins()
+      .filter(lower(person::name).eq(name.to_lowercase()))
+      .select(SELECTION)
+      .first(conn)
+      .await
   }
 
   pub async fn find_by_email_or_name(
     pool: &mut DbPool<'_>,
     name_or_email: &str,
   ) -> Result<Self, Error> {
-    queries()
-      .read(pool, ReadBy::NameOrEmail(name_or_email))
+    let conn = &mut get_conn(pool).await?;
+    joins()
+      .filter(
+        lower(person::name)
+          .eq(lower(name_or_email.to_lowercase()))
+          .or(lower(coalesce(local_user::email, "")).eq(name_or_email.to_lowercase())),
+      )
+      .select(SELECTION)
+      .first(conn)
       .await
   }
 
   pub async fn find_by_email(pool: &mut DbPool<'_>, from_email: &str) -> Result<Self, Error> {
-    queries().read(pool, ReadBy::Email(from_email)).await
+    let conn = &mut get_conn(pool).await?;
+    joins()
+      .filter(lower(coalesce(local_user::email, "")).eq(from_email.to_lowercase()))
+      .select(SELECTION)
+      .first(conn)
+      .await
   }
 
   pub async fn find_by_oauth_id(
@@ -132,13 +164,24 @@ impl LocalUserView {
     oauth_provider_id: OAuthProviderId,
     oauth_user_id: &str,
   ) -> Result<Self, Error> {
-    queries()
-      .read(pool, ReadBy::OAuthID(oauth_provider_id, oauth_user_id))
+    let conn = &mut get_conn(pool).await?;
+    joins()
+      .inner_join(oauth_account::table)
+      .filter(oauth_account::oauth_provider_id.eq(oauth_provider_id))
+      .filter(oauth_account::oauth_user_id.eq(oauth_user_id))
+      .select(SELECTION)
+      .first(conn)
       .await
   }
 
   pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
-    queries().list(pool, ListMode::AdminsWithEmails).await
+    let conn = &mut get_conn(pool).await?;
+    joins()
+      .filter(local_user::email.is_not_null())
+      .filter(local_user::admin.eq(true))
+      .select(SELECTION)
+      .load::<Self>(conn)
+      .await
   }
 
   pub async fn create_test_user(
