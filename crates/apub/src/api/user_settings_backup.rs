@@ -323,8 +323,7 @@ pub(crate) mod tests {
     },
     traits::{Crud, Followable},
   };
-  use lemmy_db_views::structs::LocalUserView;
-  use lemmy_db_views_actor::structs::CommunityFollowerView;
+  use lemmy_db_views::structs::{CommunityFollowerView, LocalUserView};
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use std::time::Duration;

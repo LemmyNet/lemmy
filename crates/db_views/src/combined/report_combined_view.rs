@@ -480,7 +480,7 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
 mod tests {
 
   use crate::{
-    report_combined_view::ReportCombinedQuery,
+    combined::report_combined_view::ReportCombinedQuery,
     structs::{
       CommentReportView,
       LocalUserView,

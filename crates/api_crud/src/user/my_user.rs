@@ -6,8 +6,7 @@ use lemmy_db_schema::source::{
   instance_block::InstanceBlock,
   person_block::PersonBlock,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::{CommunityFollowerView, CommunityModeratorView};
+use lemmy_db_views::structs::{CommunityFollowerView, CommunityModeratorView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]

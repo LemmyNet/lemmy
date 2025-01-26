@@ -27,8 +27,7 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
   utils::diesel_url_create,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::CommunityModeratorView;
+use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{

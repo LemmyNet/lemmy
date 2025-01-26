@@ -47,14 +47,16 @@ use lemmy_db_schema::{
   RegistrationMode,
 };
 use lemmy_db_views::{
-  comment_view::CommentQuery,
-  structs::{LocalImageView, LocalUserView, SiteView},
-};
-use lemmy_db_views_actor::structs::{
-  CommunityFollowerView,
-  CommunityModeratorView,
-  CommunityPersonBanView,
-  CommunityView,
+  comment::comment_view::CommentQuery,
+  structs::{
+    CommunityFollowerView,
+    CommunityModeratorView,
+    CommunityPersonBanView,
+    CommunityView,
+    LocalImageView,
+    LocalUserView,
+    SiteView,
+  },
 };
 use lemmy_utils::{
   email::{send_email, translations::Lang},
@@ -1213,8 +1215,8 @@ mod tests {
     },
     ModlogActionType,
   };
-  use lemmy_db_views_moderator::{
-    modlog_combined_view::ModlogCombinedQuery,
+  use lemmy_db_views::{
+    combined::modlog_combined_view::ModlogCombinedQuery,
     structs::{ModRemoveCommentView, ModRemovePostView, ModlogCombinedView},
   };
   use pretty_assertions::assert_eq;
