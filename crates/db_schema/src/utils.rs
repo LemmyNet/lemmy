@@ -686,6 +686,7 @@ pub trait ListFn<'a, T, Args>: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>> 
 
 impl<'a, T, Args, F: Fn(DbConn<'a>, Args) -> ResultFuture<'a, Vec<T>>> ListFn<'a, T, Args> for F {}
 
+// TODO it should be possible to delete this
 /// Allows read and list functions to capture a shared closure that has an inferred return type,
 /// which is useful for join logic
 pub struct Queries<RF, LF> {

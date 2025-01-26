@@ -458,28 +458,20 @@ pub struct CommunityView {
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 pub enum CommunitySortType {
+  ActiveSixMonths,
   #[default]
-  Active,
+  ActiveMonthly,
+  ActiveWeekly,
+  ActiveDaily,
   Hot,
   New,
   Old,
-  TopDay,
-  TopWeek,
-  TopMonth,
-  TopYear,
-  TopAll,
-  MostComments,
-  NewComments,
-  TopHour,
-  TopSixHour,
-  TopTwelveHour,
-  TopThreeMonths,
-  TopSixMonths,
-  TopNineMonths,
-  Controversial,
-  Scaled,
   NameAsc,
   NameDesc,
+  Comments,
+  Posts,
+  Subscribers,
+  SubscribersLocal,
 }
 
 #[skip_serializing_none]
