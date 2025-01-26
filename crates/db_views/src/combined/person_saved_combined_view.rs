@@ -38,8 +38,8 @@ use lemmy_db_schema::{
     combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
     community::CommunityFollower,
   },
+  traits::InternalToCombinedView,
   utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool},
-  InternalToCombinedView,
   PersonContentType,
 };
 use lemmy_utils::error::LemmyResult;

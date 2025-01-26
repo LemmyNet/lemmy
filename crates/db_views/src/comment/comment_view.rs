@@ -1,4 +1,4 @@
-use crate::structs::CommentView;
+use crate::structs::{CommentSlimView, CommentView};
 use diesel::{
   dsl::{exists, not},
   pg::Pg,
@@ -312,6 +312,22 @@ impl CommentView {
       res.my_vote = Some(0);
     }
     Ok(handle_deleted(res, is_admin))
+  }
+
+  pub fn map_to_slim(self) -> CommentSlimView {
+    CommentSlimView {
+      comment: self.comment,
+      creator: self.creator,
+      counts: self.counts,
+      creator_banned_from_community: self.creator_banned_from_community,
+      banned_from_community: self.banned_from_community,
+      creator_is_moderator: self.creator_is_moderator,
+      creator_is_admin: self.creator_is_admin,
+      subscribed: self.subscribed,
+      saved: self.saved,
+      creator_blocked: self.creator_blocked,
+      my_vote: self.my_vote,
+    }
   }
 }
 
