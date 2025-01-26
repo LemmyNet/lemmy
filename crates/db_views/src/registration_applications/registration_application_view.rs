@@ -1,7 +1,8 @@
 use crate::structs::RegistrationApplicationView;
 use diesel::{
   dsl::count,
-  pg::Pg,
+  helper_types::Nullable,
+  query_source::AliasedField,
   result::Error,
   ExpressionMethods,
   JoinOnDsl,
@@ -13,98 +14,90 @@ use lemmy_db_schema::{
   aliases,
   newtypes::{PersonId, RegistrationApplicationId},
   schema::{local_user, person, registration_application},
-  utils::{get_conn, limit_and_offset, DbConn, DbPool, ListFn, Queries, ReadFn},
+  utils::{get_conn, limit_and_offset, DbPool},
 };
 
-enum ReadBy {
-  Id(RegistrationApplicationId),
-  Person(PersonId),
+#[diesel::dsl::auto_type]
+fn joins() -> _ {
+  registration_application::table
+    .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
+    .inner_join(person::table.on(local_user::person_id.eq(person::id)))
+    .left_join(
+      aliases::person1
+        .on(registration_application::admin_id.eq(aliases::person1.field(person::id).nullable())),
+    )
 }
 
-fn queries<'a>() -> Queries<
-  impl ReadFn<'a, RegistrationApplicationView, ReadBy>,
-  impl ListFn<'a, RegistrationApplicationView, RegistrationApplicationQuery>,
-> {
-  let all_joins = |query: registration_application::BoxedQuery<'a, Pg>| {
-    query
-      .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
-      .inner_join(person::table.on(local_user::person_id.eq(person::id)))
-      .left_join(
-        aliases::person1
-          .on(registration_application::admin_id.eq(aliases::person1.field(person::id).nullable())),
-      )
-      .order_by(registration_application::published.desc())
-      .select((
-        registration_application::all_columns,
-        local_user::all_columns,
-        person::all_columns,
-        aliases::person1.fields(person::all_columns).nullable(),
-      ))
-  };
+#[diesel::dsl::auto_type]
+/// A missing admin id, means the application is unread
+fn is_unread() -> _ {
+  registration_application::admin_id.is_null()
+}
 
-  let read = move |mut conn: DbConn<'a>, search: ReadBy| async move {
-    let mut query = all_joins(registration_application::table.into_boxed());
+type SelectionType = (
+  <registration_application::table as diesel::Table>::AllColumns,
+  <local_user::table as diesel::Table>::AllColumns,
+  <person::table as diesel::Table>::AllColumns,
+  Nullable<(
+    AliasedField<aliases::Person1, person::id>,
+    AliasedField<aliases::Person1, person::name>,
+    AliasedField<aliases::Person1, person::display_name>,
+    AliasedField<aliases::Person1, person::avatar>,
+    AliasedField<aliases::Person1, person::banned>,
+    AliasedField<aliases::Person1, person::published>,
+    AliasedField<aliases::Person1, person::updated>,
+    AliasedField<aliases::Person1, person::actor_id>,
+    AliasedField<aliases::Person1, person::bio>,
+    AliasedField<aliases::Person1, person::local>,
+    AliasedField<aliases::Person1, person::private_key>,
+    AliasedField<aliases::Person1, person::public_key>,
+    AliasedField<aliases::Person1, person::last_refreshed_at>,
+    AliasedField<aliases::Person1, person::banner>,
+    AliasedField<aliases::Person1, person::deleted>,
+    AliasedField<aliases::Person1, person::inbox_url>,
+    AliasedField<aliases::Person1, person::matrix_user_id>,
+    AliasedField<aliases::Person1, person::bot_account>,
+    AliasedField<aliases::Person1, person::ban_expires>,
+    AliasedField<aliases::Person1, person::instance_id>,
+  )>,
+);
 
-    query = match search {
-      ReadBy::Id(id) => query.filter(registration_application::id.eq(id)),
-      ReadBy::Person(person_id) => query.filter(person::id.eq(person_id)),
-    };
-
-    query.first(&mut conn).await
-  };
-
-  let list = move |mut conn: DbConn<'a>, o: RegistrationApplicationQuery| async move {
-    let mut query = all_joins(registration_application::table.into_boxed());
-
-    // If viewing all applications, order by newest, but if viewing unresolved only, show the oldest
-    // first (FIFO)
-    if o.unread_only {
-      query = query
-        .filter(registration_application::admin_id.is_null())
-        .order_by(registration_application::published.asc());
-    } else {
-      query = query.order_by(registration_application::published.desc());
-    }
-
-    if o.verified_email_only {
-      query = query.filter(local_user::email_verified.eq(true))
-    }
-
-    let (limit, offset) = limit_and_offset(o.page, o.limit)?;
-
-    query = query.limit(limit).offset(offset);
-
-    query.load::<RegistrationApplicationView>(&mut conn).await
-  };
-
-  Queries::new(read, list)
+fn selection() -> SelectionType {
+  (
+    registration_application::all_columns,
+    local_user::all_columns,
+    person::all_columns,
+    aliases::person1.fields(person::all_columns).nullable(),
+  )
 }
 
 impl RegistrationApplicationView {
   pub async fn read(pool: &mut DbPool<'_>, id: RegistrationApplicationId) -> Result<Self, Error> {
-    queries().read(pool, ReadBy::Id(id)).await
+    let conn = &mut get_conn(pool).await?;
+    joins()
+      .filter(registration_application::id.eq(id))
+      .select(selection())
+      .first(conn)
+      .await
   }
 
   pub async fn read_by_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
-    queries().read(pool, ReadBy::Person(person_id)).await
+    let conn = &mut get_conn(pool).await?;
+    joins()
+      .filter(person::id.eq(person_id))
+      .select(selection())
+      .first(conn)
+      .await
   }
+
   /// Returns the current unread registration_application count
   pub async fn get_unread_count(
     pool: &mut DbPool<'_>,
     verified_email_only: bool,
   ) -> Result<i64, Error> {
     let conn = &mut get_conn(pool).await?;
-    let person_alias_1 = diesel::alias!(person as person1);
 
-    let mut query = registration_application::table
-      .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
-      .inner_join(person::table.on(local_user::person_id.eq(person::id)))
-      .left_join(
-        person_alias_1
-          .on(registration_application::admin_id.eq(person_alias_1.field(person::id).nullable())),
-      )
-      .filter(registration_application::admin_id.is_null())
-      .into_boxed();
+    let mut query = joins().filter(is_unread()).into_boxed();
 
     if verified_email_only {
       query = query.filter(local_user::email_verified.eq(true))
@@ -130,7 +123,31 @@ impl RegistrationApplicationQuery {
     self,
     pool: &mut DbPool<'_>,
   ) -> Result<Vec<RegistrationApplicationView>, Error> {
-    queries().list(pool, self).await
+    let conn = &mut get_conn(pool).await?;
+    let o = self;
+
+    let mut query = joins().into_boxed();
+
+    if o.unread_only {
+      query = query
+        .filter(is_unread())
+        .order_by(registration_application::published.asc());
+    } else {
+      query = query.order_by(registration_application::published.desc());
+    }
+
+    if o.verified_email_only {
+      query = query.filter(local_user::email_verified.eq(true))
+    }
+
+    let (limit, offset) = limit_and_offset(o.page, o.limit)?;
+
+    query
+      .limit(limit)
+      .offset(offset)
+      .select(selection())
+      .load::<RegistrationApplicationView>(conn)
+      .await
   }
 }
 
