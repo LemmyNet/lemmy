@@ -47,6 +47,7 @@ use lemmy_db_schema::{
     combined::search::{search_combined_keys as key, SearchCombined},
     community::CommunityFollower,
   },
+  traits::InternalToCombinedView,
   utils::{
     actions,
     actions_alias,
@@ -56,7 +57,6 @@ use lemmy_db_schema::{
     DbPool,
     ReverseTimestampKey,
   },
-  InternalToCombinedView,
   ListingType,
   SearchSortType,
   SearchType,

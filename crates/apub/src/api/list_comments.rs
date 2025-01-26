@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{
   comment::comment_view::CommentQuery,
-  structs::{LocalUserView, SiteView},
+  structs::{CommentView, LocalUserView, SiteView},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
