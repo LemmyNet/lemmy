@@ -6,7 +6,7 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   schema::{community, community_actions, person},
   source::local_user::LocalUser,
-  utils::{action_query, get_conn, DbPool},
+  utils::{get_conn, DbPool},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -16,16 +16,6 @@ fn joins() -> _ {
     .filter(community_actions::became_moderator.is_not_null())
     .inner_join(community::table)
     .inner_join(person::table.on(person::id.eq(community_actions::person_id)))
-}
-
-#[diesel::dsl::auto_type]
-fn find_person(person_id: PersonId) -> _ {
-  community_actions::person_id.eq(person_id)
-}
-
-#[diesel::dsl::auto_type]
-fn find_community(community_id: CommunityId) -> _ {
-  community_actions::community_id.eq(community_id)
 }
 
 const SELECTION: (
@@ -42,8 +32,8 @@ impl CommunityModeratorView {
     let conn = &mut get_conn(pool).await?;
     select(exists(
       joins()
-        .filter(find_person(person_id))
-        .filter(find_community(community_id)),
+        .filter(community_actions::person_id.eq(person_id))
+        .filter(community_actions::community_id.eq(community_id)),
     ))
     .get_result::<bool>(conn)
     .await?
@@ -57,7 +47,7 @@ impl CommunityModeratorView {
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     select(exists(
-      action_query(community_actions::became_moderator).filter(find_person(person_id)),
+      joins().filter(community_actions::person_id.eq(person_id)),
     ))
     .get_result::<bool>(conn)
     .await?
@@ -71,7 +61,7 @@ impl CommunityModeratorView {
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     joins()
-      .filter(find_community(community_id))
+      .filter(community_actions::community_id.eq(community_id))
       .select(SELECTION)
       .order_by(community_actions::became_moderator)
       .load::<Self>(conn)
@@ -84,7 +74,9 @@ impl CommunityModeratorView {
     local_user: Option<&LocalUser>,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let mut query = joins().filter(find_person(person_id)).into_boxed();
+    let mut query = joins()
+      .filter(community_actions::person_id.eq(person_id))
+      .into_boxed();
 
     query = local_user.visible_communities_only(query);
 
