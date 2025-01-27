@@ -3,6 +3,7 @@ pub mod collection_add;
 pub mod collection_remove;
 pub mod lock_page;
 pub mod report;
+pub mod resolve_report;
 pub mod update;
 
 #[cfg(test)]
@@ -44,6 +45,8 @@ mod tests {
     )?;
 
     test_parse_lemmy_item::<Report>("assets/lemmy/activities/community/report_page.json")?;
+    todo!();
+
     Ok(())
   }
 }

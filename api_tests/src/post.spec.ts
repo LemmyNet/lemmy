@@ -687,6 +687,8 @@ test("Report a post", async () => {
     throw "Missing alpha post";
   }
 
+  // TODO: use mod from beta to resolve report
+
   // Send report from gamma
   let gammaPost = (await resolvePost(gamma, alphaPost.post)).post!;
   let gammaReport = (

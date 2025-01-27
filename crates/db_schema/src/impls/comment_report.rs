@@ -1,9 +1,6 @@
 use crate::{
   newtypes::{CommentId, CommentReportId, PersonId},
-  schema::comment_report::{
-    comment_id,
-    dsl::{comment_report, resolved, resolver_id, updated},
-  },
+  schema::comment_report,
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
   utils::{get_conn, DbPool},
@@ -12,10 +9,12 @@ use chrono::Utc;
 use diesel::{
   dsl::{insert_into, update},
   result::Error,
+  BoolExpressionMethods,
   ExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::error::LemmyResult;
 
 #[async_trait]
 impl Reportable for CommentReport {
@@ -31,7 +30,7 @@ impl Reportable for CommentReport {
     comment_report_form: &CommentReportForm,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(comment_report)
+    insert_into(comment_report::table)
       .values(comment_report_form)
       .get_result::<Self>(conn)
       .await
@@ -48,14 +47,39 @@ impl Reportable for CommentReport {
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    update(comment_report.find(report_id_))
+    update(comment_report::table.find(report_id_))
       .set((
-        resolved.eq(true),
-        resolver_id.eq(by_resolver_id),
-        updated.eq(Utc::now()),
+        comment_report::resolved.eq(true),
+        comment_report::resolver_id.eq(by_resolver_id),
+        comment_report::updated.eq(Utc::now()),
       ))
       .execute(conn)
       .await
+  }
+
+  async fn resolve_apub(
+    pool: &mut DbPool<'_>,
+    object_id: Self::ObjectIdType,
+    report_creator_id: PersonId,
+    resolver_id: PersonId,
+  ) -> LemmyResult<usize> {
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      update(
+        comment_report::table.filter(
+          comment_report::comment_id
+            .eq(object_id)
+            .and(comment_report::creator_id.eq(report_creator_id)),
+        ),
+      )
+      .set((
+        comment_report::resolved.eq(true),
+        comment_report::resolver_id.eq(resolver_id),
+        comment_report::updated.eq(Utc::now()),
+      ))
+      .execute(conn)
+      .await?,
+    )
   }
 
   async fn resolve_all_for_object(
@@ -64,11 +88,11 @@ impl Reportable for CommentReport {
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    update(comment_report.filter(comment_id.eq(comment_id_)))
+    update(comment_report::table.filter(comment_report::comment_id.eq(comment_id_)))
       .set((
-        resolved.eq(true),
-        resolver_id.eq(by_resolver_id),
-        updated.eq(Utc::now()),
+        comment_report::resolved.eq(true),
+        comment_report::resolver_id.eq(by_resolver_id),
+        comment_report::updated.eq(Utc::now()),
       ))
       .execute(conn)
       .await
@@ -85,11 +109,11 @@ impl Reportable for CommentReport {
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    update(comment_report.find(report_id_))
+    update(comment_report::table.find(report_id_))
       .set((
-        resolved.eq(false),
-        resolver_id.eq(by_resolver_id),
-        updated.eq(Utc::now()),
+        comment_report::resolved.eq(false),
+        comment_report::resolver_id.eq(by_resolver_id),
+        comment_report::updated.eq(Utc::now()),
       ))
       .execute(conn)
       .await
