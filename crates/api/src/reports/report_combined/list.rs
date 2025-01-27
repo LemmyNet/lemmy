@@ -15,9 +15,6 @@ pub async fn list_reports(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListReportsResponse>> {
-  let community_id = data.community_id;
-  let unresolved_only = data.unresolved_only;
-
   check_community_mod_of_any_or_admin_action(&local_user_view, &mut context.pool()).await?;
 
   // parse pagination token
@@ -29,8 +26,10 @@ pub async fn list_reports(
   let page_back = data.page_back;
 
   let reports = ReportCombinedQuery {
-    community_id,
-    unresolved_only,
+    community_id: data.community_id,
+    post_id: data.post_id,
+    type_: data.type_,
+    unresolved_only: data.unresolved_only,
     page_after,
     page_back,
   }

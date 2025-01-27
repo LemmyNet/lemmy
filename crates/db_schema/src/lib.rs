@@ -229,11 +229,23 @@ pub enum InboxDataType {
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// A list of possible types for the various modlog actions.
+/// A list of possible types for a person's content.
 pub enum PersonContentType {
   All,
   Comments,
   Posts,
+}
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A list of possible types for reports.
+pub enum ReportType {
+  All,
+  Posts,
+  Comments,
+  PrivateMessages,
+  Communities,
 }
 
 #[derive(
