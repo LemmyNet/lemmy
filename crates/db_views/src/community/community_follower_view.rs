@@ -17,11 +17,23 @@ use lemmy_db_schema::{
     community::{Community, CommunityFollower, CommunityFollowerState},
     person::Person,
   },
-  utils::{action_query, get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, limit_and_offset, DbPool},
   CommunityVisibility,
   SubscribedType,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+
+#[diesel::dsl::auto_type]
+fn joins() -> _ {
+  community_actions::table
+    .filter(community_actions::followed.is_not_null())
+    .inner_join(community::table)
+    .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
+}
+const SELECTION: (
+  <community::table as diesel::Table>::AllColumns,
+  <person::table as diesel::Table>::AllColumns,
+) = (community::all_columns, person::all_columns);
 
 impl CommunityFollowerView {
   /// return a list of local community ids and remote inboxes that at least one user of the given
@@ -53,15 +65,15 @@ impl CommunityFollowerView {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
+
   pub async fn get_community_follower_inboxes(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
   ) -> Result<Vec<DbUrl>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let res = action_query(community_actions::followed)
+    let res = joins()
       .filter(community_actions::community_id.eq(community_id))
       .filter(not(person::local))
-      .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
       .select(person::inbox_url)
       .distinct()
       .load::<DbUrl>(conn)
@@ -74,7 +86,7 @@ impl CommunityFollowerView {
     community_id: CommunityId,
   ) -> Result<i64, Error> {
     let conn = &mut get_conn(pool).await?;
-    let res = action_query(community_actions::followed)
+    let res = joins()
       .filter(community_actions::community_id.eq(community_id))
       .select(count_star())
       .first::<i64>(conn)
@@ -85,13 +97,11 @@ impl CommunityFollowerView {
 
   pub async fn for_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    action_query(community_actions::followed)
-      .inner_join(community::table)
-      .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
-      .select((community::all_columns, person::all_columns))
+    joins()
       .filter(community_actions::person_id.eq(person_id))
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
+      .select(SELECTION)
       .order_by(community::title)
       .load::<CommunityFollowerView>(conn)
       .await
@@ -140,10 +150,7 @@ impl CommunityFollowerView {
         ),
     ));
 
-    let mut query = action_query(community_actions::followed)
-      .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
-      .inner_join(community::table)
-      .into_boxed();
+    let mut query = joins().into_boxed();
     if all_communities {
       // if param is false, only return items for communities where user is a mod
       query = query
@@ -186,8 +193,7 @@ impl CommunityFollowerView {
     community_id: CommunityId,
   ) -> Result<i64, Error> {
     let conn = &mut get_conn(pool).await?;
-    action_query(community_actions::followed)
-      .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
+    joins()
       .filter(community_actions::community_id.eq(community_id))
       .filter(community_actions::follow_state.eq(CommunityFollowerState::ApprovalRequired))
       .select(count(community_actions::community_id))
@@ -204,7 +210,7 @@ impl CommunityFollowerView {
     }
     let conn = &mut get_conn(pool).await?;
     select(exists(
-      action_query(community_actions::followed)
+      joins()
         .filter(community_actions::community_id.eq(community.id))
         .filter(community_actions::person_id.eq(from_person_id))
         .filter(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
@@ -221,8 +227,7 @@ impl CommunityFollowerView {
   ) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
     select(exists(
-      action_query(community_actions::followed)
-        .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
+      joins()
         .filter(community_actions::community_id.eq(community_id))
         .filter(person::instance_id.eq(instance_id))
         .filter(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
@@ -240,8 +245,7 @@ impl CommunityFollowerView {
   ) -> Result<(), Error> {
     let conn = &mut get_conn(pool).await?;
     select(exists(
-      action_query(community_actions::followed)
-        .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
+      joins()
         .filter(community_actions::community_id.eq(community_id))
         .filter(person::instance_id.eq(instance_id))
         .filter(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
