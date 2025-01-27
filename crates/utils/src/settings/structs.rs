@@ -44,17 +44,19 @@ pub struct Settings {
   // Prometheus configuration.
   #[doku(example = "Some(Default::default())")]
   pub prometheus: Option<PrometheusConfig>,
-  /// Sets a response Access-Control-Allow-Origin CORS header
+  /// Sets a response Access-Control-Allow-Origin CORS header. Can also be set via environment:
+  /// `LEMMY_CORS_ORIGIN=example.org,site.com`
   /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin
   #[doku(example = "lemmy.tld")]
-  cors_origin: Option<String>,
+  cors_origin: Vec<String>,
 }
 
 impl Settings {
-  pub fn cors_origin(&self) -> Option<String> {
+  pub fn cors_origin(&self) -> Vec<String> {
     env::var("LEMMY_CORS_ORIGIN")
       .ok()
-      .or(self.cors_origin.clone())
+      .map(|e| e.split(',').map(ToString::to_string).collect())
+      .unwrap_or(self.cors_origin.clone())
   }
 }
 

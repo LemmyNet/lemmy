@@ -1,4 +1,7 @@
-use lemmy_db_schema::newtypes::CommunityId;
+use lemmy_db_schema::{
+  newtypes::{CommunityId, PostId},
+  ReportType,
+};
 use lemmy_db_views::structs::{ReportCombinedPaginationCursor, ReportCombinedView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -14,6 +17,12 @@ pub struct ListReports {
   /// Only shows the unresolved reports
   #[cfg_attr(feature = "full", ts(optional))]
   pub unresolved_only: Option<bool>,
+  /// Filter the type of report.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub type_: Option<ReportType>,
+  /// Filter by the post id. Can return either comment or post reports.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub post_id: Option<PostId>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
