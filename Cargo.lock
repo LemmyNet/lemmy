@@ -2747,7 +2747,6 @@ dependencies = [
  "serde_json",
  "serde_with",
  "serial_test",
- "strum",
  "test-context",
  "tokio",
  "tracing",
