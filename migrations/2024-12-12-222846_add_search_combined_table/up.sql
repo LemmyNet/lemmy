@@ -26,46 +26,42 @@ CREATE INDEX idx_search_combined_score ON search_combined (score DESC, id DESC);
 -- Updating the history
 INSERT INTO search_combined (published, score, post_id, comment_id, community_id, person_id)
 SELECT
-    p.published,
+    published,
     score,
-    id,
+    post_id,
     NULL::int,
     NULL::int,
     NULL::int
 FROM
-    post p
-    INNER JOIN post_aggregates pa ON p.id = pa.post_id
+    post_aggregates
 UNION ALL
 SELECT
-    c.published,
+    published,
     score,
     NULL::int,
-    id,
+    comment_id,
     NULL::int,
     NULL::int
 FROM
-    comment c
-    INNER JOIN comment_aggregates ca ON c.id = ca.comment_id
+    comment_aggregates
 UNION ALL
 SELECT
-    c.published,
+    published,
     users_active_month,
     NULL::int,
     NULL::int,
-    id,
+    community_id,
     NULL::int
 FROM
-    community c
-    INNER JOIN community_aggregates ca ON c.id = ca.community_id
+    community_aggregates
 UNION ALL
 SELECT
-    p.published,
+    published,
     post_score,
     NULL::int,
     NULL::int,
     NULL::int,
-    id
+    person_id
 FROM
-    person p
-    INNER JOIN person_aggregates pa ON p.id = pa.person_id;
+    person_aggregates;
 
