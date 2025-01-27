@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   schema::{community, community_actions, community_aggregates, instance_actions},
   source::{
-    community::{CommunityFollower, CommunityFollowerState},
+    community::{Community, CommunityFollower, CommunityFollowerState},
     local_user::LocalUser,
     site::Site,
   },
@@ -41,13 +41,6 @@ fn joins(person_id: Option<PersonId>) -> _ {
     .inner_join(community_aggregates::table)
     .left_join(community_actions_join)
     .left_join(instance_actions_join)
-}
-
-#[diesel::dsl::auto_type]
-fn hide_removed_or_deleted() -> _ {
-  community::removed
-    .eq(false)
-    .and(community::deleted.eq(false))
 }
 
 type SelectionType = (
@@ -82,7 +75,7 @@ impl CommunityView {
 
     // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin {
-      query = query.filter(hide_removed_or_deleted());
+      query = query.filter(Community::hide_removed_and_deleted());
     }
 
     query = my_local_user.visible_communities_only(query);
@@ -149,7 +142,7 @@ impl CommunityQuery<'_> {
 
     // Hide deleted and removed for non-admins or mods
     if !o.is_mod_or_admin {
-      query = query.filter(hide_removed_or_deleted()).filter(
+      query = query.filter(Community::hide_removed_and_deleted()).filter(
         community::hidden
           .eq(false)
           .or(community_actions::follow_state.is_not_null()),

@@ -268,6 +268,13 @@ impl Community {
       .get_result::<CommunityId>(conn)
       .await
   }
+
+  #[diesel::dsl::auto_type(no_type_alias)]
+  pub fn hide_removed_and_deleted() -> _ {
+    community::removed
+      .eq(false)
+      .and(community::deleted.eq(false))
+  }
 }
 
 impl CommunityModerator {
@@ -510,9 +517,7 @@ impl ApubActor for Community {
       .filter(community::local.eq(true))
       .filter(lower(community::name).eq(community_name.to_lowercase()));
     if !include_deleted {
-      q = q
-        .filter(community::deleted.eq(false))
-        .filter(community::removed.eq(false));
+      q = q.filter(Self::hide_removed_and_deleted())
     }
     q.first(conn).await.optional()
   }
