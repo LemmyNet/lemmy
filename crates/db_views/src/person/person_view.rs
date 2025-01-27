@@ -21,11 +21,6 @@ fn joins() -> _ {
     .left_join(local_user::table)
 }
 
-#[diesel::dsl::auto_type]
-fn hide_deleted() -> _ {
-  person::deleted.eq(false)
-}
-
 type SelectionType = (
   <person::table as diesel::Table>::AllColumns,
   <person_aggregates::table as diesel::Table>::AllColumns,
@@ -50,7 +45,7 @@ impl PersonView {
     let mut query = joins().filter(person::id.eq(person_id)).into_boxed();
 
     if !is_admin {
-      query = query.filter(hide_deleted());
+      query = query.filter(person::deleted.eq(false))
     }
 
     query.select(selection()).first(conn).await
@@ -59,7 +54,7 @@ impl PersonView {
   pub async fn admins(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     joins()
-      .filter(hide_deleted())
+      .filter(person::deleted.eq(false))
       .filter(local_user::admin.eq(true))
       .order_by(person::published)
       .select(selection())
@@ -70,7 +65,7 @@ impl PersonView {
   pub async fn banned(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     joins()
-      .filter(hide_deleted())
+      .filter(person::deleted.eq(false))
       .filter(
         person::banned.eq(true).and(
           person::ban_expires
