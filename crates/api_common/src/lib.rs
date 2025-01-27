@@ -35,7 +35,7 @@ use std::{cmp::min, time::Duration};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// Saves settings for your user.
+/// A response that completes successfully.
 pub struct SuccessResponse {
   pub success: bool,
 }
