@@ -1,12 +1,5 @@
 use crate::structs::{CommunityModeratorView, CommunitySortType, CommunityView, PersonView};
-use diesel::{
-  dsl::{IsNotNull, Nullable},
-  result::Error,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  NullableExpressionMethods,
-  QueryDsl,
-};
+use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   actions_utils::{community_actions_join, instance_actions_join},
@@ -14,7 +7,7 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   schema::{community, community_actions, community_aggregates, instance_actions},
   source::{
-    community::{Community, CommunityFollower, CommunityFollowerState},
+    community::{Community, CommunityFollowerState},
     local_user::LocalUser,
     site::Site,
   },
@@ -23,39 +16,21 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[diesel::dsl::auto_type]
-fn joins(person_id: Option<PersonId>) -> _ {
-  #[rustfmt::skip]
+impl CommunityView {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins(person_id: Option<PersonId>) -> _ {
+    #[rustfmt::skip]
   let community_actions_join = community_actions_join::<>(person_id);
 
-  #[rustfmt::skip]
+    #[rustfmt::skip]
   let instance_actions_join = instance_actions_join::<>(person_id);
 
-  community::table
-    .inner_join(community_aggregates::table)
-    .left_join(community_actions_join)
-    .left_join(instance_actions_join)
-}
+    community::table
+      .inner_join(community_aggregates::table)
+      .left_join(community_actions_join)
+      .left_join(instance_actions_join)
+  }
 
-type SelectionType = (
-  <community::table as diesel::Table>::AllColumns,
-  Nullable<community_actions::follow_state>,
-  IsNotNull<Nullable<community_actions::blocked>>,
-  <community_aggregates::table as diesel::Table>::AllColumns,
-  IsNotNull<Nullable<community_actions::received_ban>>,
-);
-
-fn selection() -> SelectionType {
-  (
-    community::all_columns,
-    CommunityFollower::select_subscribed_type(),
-    community_actions::blocked.nullable().is_not_null(),
-    community_aggregates::all_columns,
-    community_actions::received_ban.nullable().is_not_null(),
-  )
-}
-
-impl CommunityView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
@@ -63,7 +38,7 @@ impl CommunityView {
     is_mod_or_admin: bool,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let mut query = joins(my_local_user.person_id())
+    let mut query = Self::joins(my_local_user.person_id())
       .filter(community::id.eq(community_id))
       .into_boxed();
 
@@ -74,7 +49,7 @@ impl CommunityView {
 
     query = my_local_user.visible_communities_only(query);
 
-    query.select(selection()).first(conn).await
+    query.select(Self::as_select()).first(conn).await
   }
 
   pub async fn check_is_mod_or_admin(
@@ -132,7 +107,7 @@ impl CommunityQuery<'_> {
     let conn = &mut get_conn(pool).await?;
     let o = self;
 
-    let mut query = joins(o.local_user.person_id()).into_boxed();
+    let mut query = CommunityView::joins(o.local_user.person_id()).into_boxed();
 
     // Hide deleted and removed for non-admins or mods
     if !o.is_mod_or_admin {
@@ -184,7 +159,7 @@ impl CommunityQuery<'_> {
     let (limit, offset) = limit_and_offset(o.page, o.limit)?;
 
     query
-      .select(selection())
+      .select(CommunityView::as_select())
       .limit(limit)
       .offset(offset)
       .load::<CommunityView>(conn)

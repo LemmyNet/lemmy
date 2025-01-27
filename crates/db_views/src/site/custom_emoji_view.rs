@@ -16,13 +16,6 @@ use lemmy_db_schema::{
 };
 use std::collections::HashMap;
 
-#[diesel::dsl::auto_type]
-fn joins() -> _ {
-  custom_emoji::table.left_join(
-    custom_emoji_keyword::table.on(custom_emoji_keyword::custom_emoji_id.eq(custom_emoji::id)),
-  )
-}
-
 type SelectionType = (
   <custom_emoji::table as diesel::Table>::AllColumns,
   Nullable<<custom_emoji_keyword::table as diesel::Table>::AllColumns>,
@@ -36,10 +29,18 @@ fn selection() -> SelectionType {
 }
 type CustomEmojiTuple = (CustomEmoji, Option<CustomEmojiKeyword>);
 
+// TODO this type is a mess, it should not be using vectors in a view.
 impl CustomEmojiView {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins() -> _ {
+    custom_emoji::table.left_join(
+      custom_emoji_keyword::table.on(custom_emoji_keyword::custom_emoji_id.eq(custom_emoji::id)),
+    )
+  }
+
   pub async fn get(pool: &mut DbPool<'_>, emoji_id: CustomEmojiId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let emojis = joins()
+    let emojis = Self::joins()
       .filter(custom_emoji::id.eq(emoji_id))
       .select(selection())
       .load::<CustomEmojiTuple>(conn)
@@ -63,7 +64,7 @@ impl CustomEmojiView {
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let mut query = joins().into_boxed();
+    let mut query = Self::joins().into_boxed();
 
     if !ignore_page_limits {
       let (limit, offset) = limit_and_offset(page, limit)?;
@@ -75,10 +76,7 @@ impl CustomEmojiView {
     }
 
     let emojis = query
-      .select((
-        custom_emoji::all_columns,
-        custom_emoji_keyword::all_columns.nullable(), // (or all the columns if you want)
-      ))
+      .select(selection())
       .order(custom_emoji::category)
       .then_order_by(custom_emoji::id)
       .load::<CustomEmojiTuple>(conn)

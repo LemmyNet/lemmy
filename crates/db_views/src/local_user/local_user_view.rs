@@ -1,6 +1,13 @@
 use crate::structs::LocalUserView;
 use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
-use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl};
+use diesel::{
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  QueryDsl,
+  SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::{LocalUserId, OAuthProviderId, PersonId},
@@ -28,26 +35,12 @@ fn joins() -> _ {
     .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
 }
 
-type SelectionType = (
-  <local_user::table as diesel::Table>::AllColumns,
-  <local_user_vote_display_mode::table as diesel::Table>::AllColumns,
-  <person::table as diesel::Table>::AllColumns,
-  <person_aggregates::table as diesel::Table>::AllColumns,
-);
-
-const SELECTION: SelectionType = (
-  local_user::all_columns,
-  local_user_vote_display_mode::all_columns,
-  person::all_columns,
-  person_aggregates::all_columns,
-);
-
 impl LocalUserView {
   pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
     joins()
       .filter(local_user::id.eq(local_user_id))
-      .select(SELECTION)
+      .select(Self::as_select())
       .first(conn)
       .await
   }
@@ -56,7 +49,7 @@ impl LocalUserView {
     let conn = &mut get_conn(pool).await?;
     joins()
       .filter(person::id.eq(person_id))
-      .select(SELECTION)
+      .select(Self::as_select())
       .first(conn)
       .await
   }
@@ -65,7 +58,7 @@ impl LocalUserView {
     let conn = &mut get_conn(pool).await?;
     joins()
       .filter(lower(person::name).eq(name.to_lowercase()))
-      .select(SELECTION)
+      .select(Self::as_select())
       .first(conn)
       .await
   }
@@ -81,7 +74,7 @@ impl LocalUserView {
           .eq(lower(name_or_email.to_lowercase()))
           .or(lower(coalesce(local_user::email, "")).eq(name_or_email.to_lowercase())),
       )
-      .select(SELECTION)
+      .select(Self::as_select())
       .first(conn)
       .await
   }
@@ -90,7 +83,7 @@ impl LocalUserView {
     let conn = &mut get_conn(pool).await?;
     joins()
       .filter(lower(coalesce(local_user::email, "")).eq(from_email.to_lowercase()))
-      .select(SELECTION)
+      .select(Self::as_select())
       .first(conn)
       .await
   }
@@ -105,7 +98,7 @@ impl LocalUserView {
       .inner_join(oauth_account::table)
       .filter(oauth_account::oauth_provider_id.eq(oauth_provider_id))
       .filter(oauth_account::oauth_user_id.eq(oauth_user_id))
-      .select(SELECTION)
+      .select(Self::as_select())
       .first(conn)
       .await
   }
@@ -115,7 +108,7 @@ impl LocalUserView {
     joins()
       .filter(local_user::email.is_not_null())
       .filter(local_user::admin.eq(true))
-      .select(SELECTION)
+      .select(Self::as_select())
       .load::<Self>(conn)
       .await
   }

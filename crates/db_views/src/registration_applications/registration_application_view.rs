@@ -1,91 +1,48 @@
 use crate::structs::RegistrationApplicationView;
 use diesel::{
   dsl::count,
-  helper_types::Nullable,
-  query_source::AliasedField,
   result::Error,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::{PersonId, RegistrationApplicationId},
   schema::{local_user, person, registration_application},
+  source::registration_application::RegistrationApplication,
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
-#[diesel::dsl::auto_type]
-fn joins() -> _ {
-  registration_application::table
-    .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
-    .inner_join(person::table.on(local_user::person_id.eq(person::id)))
-    .left_join(
-      aliases::person1
-        .on(registration_application::admin_id.eq(aliases::person1.field(person::id).nullable())),
-    )
-}
-
-#[diesel::dsl::auto_type]
-/// A missing admin id, means the application is unread
-fn is_unread() -> _ {
-  registration_application::admin_id.is_null()
-}
-
-type SelectionType = (
-  <registration_application::table as diesel::Table>::AllColumns,
-  <local_user::table as diesel::Table>::AllColumns,
-  <person::table as diesel::Table>::AllColumns,
-  Nullable<(
-    AliasedField<aliases::Person1, person::id>,
-    AliasedField<aliases::Person1, person::name>,
-    AliasedField<aliases::Person1, person::display_name>,
-    AliasedField<aliases::Person1, person::avatar>,
-    AliasedField<aliases::Person1, person::banned>,
-    AliasedField<aliases::Person1, person::published>,
-    AliasedField<aliases::Person1, person::updated>,
-    AliasedField<aliases::Person1, person::actor_id>,
-    AliasedField<aliases::Person1, person::bio>,
-    AliasedField<aliases::Person1, person::local>,
-    AliasedField<aliases::Person1, person::private_key>,
-    AliasedField<aliases::Person1, person::public_key>,
-    AliasedField<aliases::Person1, person::last_refreshed_at>,
-    AliasedField<aliases::Person1, person::banner>,
-    AliasedField<aliases::Person1, person::deleted>,
-    AliasedField<aliases::Person1, person::inbox_url>,
-    AliasedField<aliases::Person1, person::matrix_user_id>,
-    AliasedField<aliases::Person1, person::bot_account>,
-    AliasedField<aliases::Person1, person::ban_expires>,
-    AliasedField<aliases::Person1, person::instance_id>,
-  )>,
-);
-
-fn selection() -> SelectionType {
-  (
-    registration_application::all_columns,
-    local_user::all_columns,
-    person::all_columns,
-    aliases::person1.fields(person::all_columns).nullable(),
-  )
-}
-
 impl RegistrationApplicationView {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins() -> _ {
+    registration_application::table
+      .inner_join(local_user::table.on(registration_application::local_user_id.eq(local_user::id)))
+      .inner_join(person::table.on(local_user::person_id.eq(person::id)))
+      .left_join(
+        aliases::person1
+          .on(registration_application::admin_id.eq(aliases::person1.field(person::id).nullable())),
+      )
+  }
+
   pub async fn read(pool: &mut DbPool<'_>, id: RegistrationApplicationId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    joins()
+    Self::joins()
       .filter(registration_application::id.eq(id))
-      .select(selection())
+      .select(Self::as_select())
       .first(conn)
       .await
   }
 
   pub async fn read_by_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    joins()
+    Self::joins()
       .filter(person::id.eq(person_id))
-      .select(selection())
+      .select(Self::as_select())
       .first(conn)
       .await
   }
@@ -97,7 +54,9 @@ impl RegistrationApplicationView {
   ) -> Result<i64, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let mut query = joins().filter(is_unread()).into_boxed();
+    let mut query = Self::joins()
+      .filter(RegistrationApplication::is_unread())
+      .into_boxed();
 
     if verified_email_only {
       query = query.filter(local_user::email_verified.eq(true))
@@ -126,11 +85,11 @@ impl RegistrationApplicationQuery {
     let conn = &mut get_conn(pool).await?;
     let o = self;
 
-    let mut query = joins().into_boxed();
+    let mut query = RegistrationApplicationView::joins().into_boxed();
 
     if o.unread_only {
       query = query
-        .filter(is_unread())
+        .filter(RegistrationApplication::is_unread())
         .order_by(registration_application::published.asc());
     } else {
       query = query.order_by(registration_application::published.desc());
@@ -145,7 +104,7 @@ impl RegistrationApplicationQuery {
     query
       .limit(limit)
       .offset(offset)
-      .select(selection())
+      .select(RegistrationApplicationView::as_select())
       .load::<RegistrationApplicationView>(conn)
       .await
   }

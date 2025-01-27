@@ -1,5 +1,13 @@
 use crate::structs::CommunityModeratorView;
-use diesel::{dsl::exists, result::Error, select, ExpressionMethods, JoinOnDsl, QueryDsl};
+use diesel::{
+  dsl::exists,
+  result::Error,
+  select,
+  ExpressionMethods,
+  JoinOnDsl,
+  QueryDsl,
+  SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
@@ -10,20 +18,15 @@ use lemmy_db_schema::{
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[diesel::dsl::auto_type]
-fn joins() -> _ {
-  community_actions::table
-    .filter(community_actions::became_moderator.is_not_null())
-    .inner_join(community::table)
-    .inner_join(person::table.on(person::id.eq(community_actions::person_id)))
-}
-
-const SELECTION: (
-  <community::table as diesel::Table>::AllColumns,
-  <person::table as diesel::Table>::AllColumns,
-) = (community::all_columns, person::all_columns);
-
 impl CommunityModeratorView {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins() -> _ {
+    community_actions::table
+      .filter(community_actions::became_moderator.is_not_null())
+      .inner_join(community::table)
+      .inner_join(person::table.on(person::id.eq(community_actions::person_id)))
+  }
+
   pub async fn check_is_community_moderator(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
@@ -31,7 +34,7 @@ impl CommunityModeratorView {
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     select(exists(
-      joins()
+      Self::joins()
         .filter(community_actions::person_id.eq(person_id))
         .filter(community_actions::community_id.eq(community_id)),
     ))
@@ -47,7 +50,7 @@ impl CommunityModeratorView {
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     select(exists(
-      joins().filter(community_actions::person_id.eq(person_id)),
+      Self::joins().filter(community_actions::person_id.eq(person_id)),
     ))
     .get_result::<bool>(conn)
     .await?
@@ -60,9 +63,9 @@ impl CommunityModeratorView {
     community_id: CommunityId,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    joins()
+    Self::joins()
       .filter(community_actions::community_id.eq(community_id))
-      .select(SELECTION)
+      .select(Self::as_select())
       .order_by(community_actions::became_moderator)
       .load::<Self>(conn)
       .await
@@ -74,7 +77,7 @@ impl CommunityModeratorView {
     local_user: Option<&LocalUser>,
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    let mut query = joins()
+    let mut query = Self::joins()
       .filter(community_actions::person_id.eq(person_id))
       .into_boxed();
 
@@ -90,15 +93,15 @@ impl CommunityModeratorView {
       query = query.filter(community::removed.eq(false))
     }
 
-    query.select(SELECTION).load::<Self>(conn).await
+    query.select(Self::as_select()).load::<Self>(conn).await
   }
 
   /// Finds all communities first mods / creators
   /// Ideally this should be a group by, but diesel doesn't support it yet
   pub async fn get_community_first_mods(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    joins()
-      .select(SELECTION)
+    Self::joins()
+      .select(Self::as_select())
       // A hacky workaround instead of group_bys
       // https://stackoverflow.com/questions/24042359/how-to-join-only-one-row-in-joined-table-with-postgres
       .distinct_on(community_actions::community_id)

@@ -1,70 +1,56 @@
 use crate::structs::PersonView;
 use diesel::{
-  dsl::Nullable,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::PersonId,
   schema::{local_user, person, person_aggregates},
-  utils::{functions::coalesce, get_conn, now, DbPool},
+  utils::{get_conn, now, DbPool},
 };
 
-#[diesel::dsl::auto_type]
-fn joins() -> _ {
-  person::table
-    .inner_join(person_aggregates::table)
-    .left_join(local_user::table)
-}
-
-type SelectionType = (
-  <person::table as diesel::Table>::AllColumns,
-  <person_aggregates::table as diesel::Table>::AllColumns,
-  coalesce<diesel::sql_types::Bool, Nullable<lemmy_db_schema::schema::local_user::admin>, bool>,
-);
-
-fn selection() -> SelectionType {
-  (
-    person::all_columns,
-    person_aggregates::all_columns,
-    coalesce(local_user::admin.nullable(), false),
-  )
-}
-
 impl PersonView {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins() -> _ {
+    person::table
+      .inner_join(person_aggregates::table)
+      .left_join(local_user::table)
+  }
+
   pub async fn read(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     is_admin: bool,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let mut query = joins().filter(person::id.eq(person_id)).into_boxed();
+    let mut query = Self::joins().filter(person::id.eq(person_id)).into_boxed();
 
     if !is_admin {
       query = query.filter(person::deleted.eq(false))
     }
 
-    query.select(selection()).first(conn).await
+    query.select(Self::as_select()).first(conn).await
   }
 
   pub async fn admins(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    joins()
+    Self::joins()
       .filter(person::deleted.eq(false))
       .filter(local_user::admin.eq(true))
       .order_by(person::published)
-      .select(selection())
+      .select(Self::as_select())
       .load::<Self>(conn)
       .await
   }
 
   pub async fn banned(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    joins()
+    Self::joins()
       .filter(person::deleted.eq(false))
       .filter(
         person::banned.eq(true).and(
@@ -74,7 +60,7 @@ impl PersonView {
         ),
       )
       .order_by(person::published)
-      .select(selection())
+      .select(Self::as_select())
       .load::<Self>(conn)
       .await
   }
