@@ -23,6 +23,19 @@ CREATE INDEX idx_search_combined_published_asc ON search_combined (reverse_times
 
 CREATE INDEX idx_search_combined_score ON search_combined (score DESC, id DESC);
 
+-- Add published to person_aggregates (it was missing for some reason)
+ALTER TABLE person_aggregates
+    ADD COLUMN published timestamptz NOT NULL DEFAULT now();
+
+UPDATE
+    person_aggregates pa
+SET
+    published = p.published
+FROM
+    person p
+WHERE
+    pa.person_id = p.id;
+
 -- Updating the history
 INSERT INTO search_combined (published, score, post_id, comment_id, community_id, person_id)
 SELECT
