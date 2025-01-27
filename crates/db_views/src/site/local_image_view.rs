@@ -7,48 +7,49 @@ use lemmy_db_schema::{
   utils::{get_conn, limit_and_offset, DbPool},
 };
 
+#[diesel::dsl::auto_type]
+fn joins() -> _ {
+  local_image::table
+    .inner_join(local_user::table)
+    .inner_join(person::table.on(local_user::person_id.eq(person::id)))
+}
+
+type SelectionType = (
+  <local_image::table as diesel::Table>::AllColumns,
+  <person::table as diesel::Table>::AllColumns,
+);
+
+const SELECTION: SelectionType = (local_image::all_columns, person::all_columns);
+
 impl LocalImageView {
-  async fn get_all_helper(
-    pool: &mut DbPool<'_>,
-    user_id: Option<LocalUserId>,
-    page: Option<i64>,
-    limit: Option<i64>,
-    ignore_page_limits: bool,
-  ) -> Result<Vec<Self>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let mut query = local_image::table
-      .inner_join(local_user::table)
-      .inner_join(person::table.on(local_user::person_id.eq(person::id)))
-      .select((local_image::all_columns, person::all_columns))
-      .order_by(local_image::published.desc())
-      .into_boxed();
-
-    if let Some(user_id) = user_id {
-      query = query.filter(local_image::local_user_id.eq(user_id))
-    }
-
-    if !ignore_page_limits {
-      let (limit, offset) = limit_and_offset(page, limit)?;
-      query = query.limit(limit).offset(offset);
-    }
-
-    query.load::<LocalImageView>(conn).await
-  }
-
   pub async fn get_all_paged_by_local_user_id(
     pool: &mut DbPool<'_>,
     user_id: LocalUserId,
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {
-    Self::get_all_helper(pool, Some(user_id), page, limit, false).await
+    let conn = &mut get_conn(pool).await?;
+    let (limit, offset) = limit_and_offset(page, limit)?;
+
+    joins()
+      .filter(local_image::local_user_id.eq(user_id))
+      .select(SELECTION)
+      .limit(limit)
+      .offset(offset)
+      .load::<Self>(conn)
+      .await
   }
 
   pub async fn get_all_by_local_user_id(
     pool: &mut DbPool<'_>,
     user_id: LocalUserId,
   ) -> Result<Vec<Self>, Error> {
-    Self::get_all_helper(pool, Some(user_id), None, None, true).await
+    let conn = &mut get_conn(pool).await?;
+    joins()
+      .filter(local_image::local_user_id.eq(user_id))
+      .select(SELECTION)
+      .load::<Self>(conn)
+      .await
   }
 
   pub async fn get_all(
@@ -56,6 +57,13 @@ impl LocalImageView {
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {
-    Self::get_all_helper(pool, None, page, limit, false).await
+    let conn = &mut get_conn(pool).await?;
+    let (limit, offset) = limit_and_offset(page, limit)?;
+    joins()
+      .select(SELECTION)
+      .limit(limit)
+      .offset(offset)
+      .load::<Self>(conn)
+      .await
   }
 }
