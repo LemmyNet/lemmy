@@ -1,9 +1,6 @@
 use crate::{
   newtypes::{PersonId, PostId, PostReportId},
-  schema::post_report::{
-    dsl::{post_report, resolved, resolver_id, updated},
-    post_id,
-  },
+  schema::post_report::dsl::{post_report, resolved, resolver_id, updated},
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
   utils::{get_conn, DbPool},
@@ -38,22 +35,6 @@ impl Reportable for PostReport {
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     update(post_report.find(report_id))
-      .set((
-        resolved.eq(true),
-        resolver_id.eq(by_resolver_id),
-        updated.eq(Utc::now()),
-      ))
-      .execute(conn)
-      .await
-  }
-
-  async fn resolve_all_for_object(
-    pool: &mut DbPool<'_>,
-    post_id_: PostId,
-    by_resolver_id: PersonId,
-  ) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    update(post_report.filter(post_id.eq(post_id_)))
       .set((
         resolved.eq(true),
         resolver_id.eq(by_resolver_id),
@@ -137,24 +118,6 @@ mod tests {
 
     let unresolved_count = PostReport::unresolve(pool, report.id, person.id).await?;
     assert_eq!(unresolved_count, 1);
-
-    Person::delete(pool, person.id).await?;
-    Post::delete(pool, report.post_id).await?;
-
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_resolve_all_post_reports() -> Result<(), Error> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-
-    let (person, report) = init(pool).await?;
-
-    let resolved_count =
-      PostReport::resolve_all_for_object(pool, report.post_id, person.id).await?;
-    assert_eq!(resolved_count, 1);
 
     Person::delete(pool, person.id).await?;
     Post::delete(pool, report.post_id).await?;

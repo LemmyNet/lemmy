@@ -1,9 +1,6 @@
 use crate::{
   newtypes::{CommunityId, CommunityReportId, PersonId},
-  schema::community_report::{
-    community_id,
-    dsl::{community_report, resolved, resolver_id, updated},
-  },
+  schema::community_report::dsl::{community_report, resolved, resolver_id, updated},
   source::community_report::{CommunityReport, CommunityReportForm},
   traits::Reportable,
   utils::{get_conn, DbPool},
@@ -49,22 +46,6 @@ impl Reportable for CommunityReport {
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
     update(community_report.find(report_id_))
-      .set((
-        resolved.eq(true),
-        resolver_id.eq(by_resolver_id),
-        updated.eq(Utc::now()),
-      ))
-      .execute(conn)
-      .await
-  }
-
-  async fn resolve_all_for_object(
-    pool: &mut DbPool<'_>,
-    community_id_: CommunityId,
-    by_resolver_id: PersonId,
-  ) -> Result<usize, Error> {
-    let conn = &mut get_conn(pool).await?;
-    update(community_report.filter(community_id.eq(community_id_)))
       .set((
         resolved.eq(true),
         resolver_id.eq(by_resolver_id),
