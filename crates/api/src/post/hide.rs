@@ -7,7 +7,6 @@ use lemmy_db_schema::source::post::PostHide;
 use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn hide_post(
   data: Json<HidePost>,
   context: Data<LemmyContext>,

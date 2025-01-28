@@ -18,7 +18,6 @@ use lemmy_utils::{
   VERSION,
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn leave_admin(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,

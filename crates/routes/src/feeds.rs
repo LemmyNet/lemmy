@@ -90,7 +90,6 @@ static RSS_NAMESPACE: LazyLock<BTreeMap<String, String>> = LazyLock::new(|| {
   h
 });
 
-#[tracing::instrument(skip_all)]
 async fn get_all_feed(
   info: web::Query<Params>,
   context: web::Data<LemmyContext>,
@@ -107,7 +106,6 @@ async fn get_all_feed(
   )
 }
 
-#[tracing::instrument(skip_all)]
 async fn get_local_feed(
   info: web::Query<Params>,
   context: web::Data<LemmyContext>,
@@ -124,7 +122,6 @@ async fn get_local_feed(
   )
 }
 
-#[tracing::instrument(skip_all)]
 async fn get_feed_data(
   context: &LemmyContext,
   listing_type: ListingType,
@@ -168,7 +165,6 @@ async fn get_feed_data(
   )
 }
 
-#[tracing::instrument(skip_all)]
 async fn get_feed(
   req: HttpRequest,
   info: web::Query<Params>,
@@ -229,7 +225,6 @@ async fn get_feed(
   )
 }
 
-#[tracing::instrument(skip_all)]
 async fn get_feed_user(
   context: &LemmyContext,
   sort_type: &PostSortType,
@@ -267,7 +262,6 @@ async fn get_feed_user(
   Ok(channel)
 }
 
-#[tracing::instrument(skip_all)]
 async fn get_feed_community(
   context: &LemmyContext,
   sort_type: &PostSortType,
@@ -312,7 +306,6 @@ async fn get_feed_community(
   Ok(channel)
 }
 
-#[tracing::instrument(skip_all)]
 async fn get_feed_front(
   context: &LemmyContext,
   sort_type: &PostSortType,
@@ -353,7 +346,6 @@ async fn get_feed_front(
   Ok(channel)
 }
 
-#[tracing::instrument(skip_all)]
 async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_user = local_user_view_from_jwt(jwt, context).await?;
@@ -387,7 +379,6 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
   Ok(channel)
 }
 
-#[tracing::instrument(skip_all)]
 fn create_reply_and_mention_items(
   inbox: Vec<InboxCombinedView>,
   protocol_and_hostname: &str,
@@ -441,7 +432,6 @@ fn create_reply_and_mention_items(
   Ok(reply_items)
 }
 
-#[tracing::instrument(skip_all)]
 fn build_item(
   creator_name: &str,
   published: &DateTime<Utc>,
@@ -471,7 +461,6 @@ fn build_item(
   })
 }
 
-#[tracing::instrument(skip_all)]
 fn create_post_items(posts: Vec<PostView>, protocol_and_hostname: &str) -> LemmyResult<Vec<Item>> {
   let mut items: Vec<Item> = Vec::new();
 

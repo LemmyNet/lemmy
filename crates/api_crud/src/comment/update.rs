@@ -28,7 +28,6 @@ use lemmy_utils::{
   utils::{mention::scrape_text_for_mentions, validation::is_valid_body_field},
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn update_comment(
   data: Json<EditComment>,
   context: Data<LemmyContext>,

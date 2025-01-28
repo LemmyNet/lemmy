@@ -36,7 +36,6 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl UndoBlockUser {
-  #[tracing::instrument(skip_all)]
   pub async fn send(
     target: &SiteOrCommunity,
     user: &ApubPerson,
@@ -89,14 +88,12 @@ impl ActivityHandler for UndoBlockUser {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     verify_domains_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context).await?;
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let expires = self.object.end_time;

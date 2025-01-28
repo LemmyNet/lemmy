@@ -10,7 +10,6 @@ use lemmy_db_schema::{source::tagline::Tagline, traits::Crud};
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
-#[tracing::instrument(skip(context))]
 pub async fn delete_tagline(
   data: Json<DeleteTagline>,
   context: Data<LemmyContext>,

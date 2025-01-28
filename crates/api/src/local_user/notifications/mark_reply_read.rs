@@ -7,7 +7,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn mark_reply_as_read(
   data: Json<MarkCommentReplyAsRead>,
   context: Data<LemmyContext>,

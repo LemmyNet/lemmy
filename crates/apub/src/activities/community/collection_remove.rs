@@ -36,7 +36,6 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CollectionRemove {
-  #[tracing::instrument(skip_all)]
   pub async fn send_remove_mod(
     community: &ApubCommunity,
     removed_mod: &ApubPerson,
@@ -107,7 +106,6 @@ impl ActivityHandler for CollectionRemove {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
@@ -116,7 +114,6 @@ impl ActivityHandler for CollectionRemove {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =

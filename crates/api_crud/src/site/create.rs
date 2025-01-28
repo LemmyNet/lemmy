@@ -41,7 +41,6 @@ use lemmy_utils::{
 };
 use url::Url;
 
-#[tracing::instrument(skip(context))]
 pub async fn create_site(
   data: Json<CreateSite>,
   context: Data<LemmyContext>,

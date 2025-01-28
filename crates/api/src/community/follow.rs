@@ -17,7 +17,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn follow_community(
   data: Json<FollowCommunity>,
   context: Data<LemmyContext>,

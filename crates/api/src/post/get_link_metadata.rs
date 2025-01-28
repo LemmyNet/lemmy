@@ -8,7 +8,6 @@ use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;
 
-#[tracing::instrument(skip(context))]
 pub async fn get_link_metadata(
   data: Query<GetSiteMetadata>,
   context: Data<LemmyContext>,

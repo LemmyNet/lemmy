@@ -70,7 +70,6 @@ pub struct UserSettingsBackup {
   pub blocked_instances: Vec<String>,
 }
 
-#[tracing::instrument(skip(context))]
 pub async fn export_settings(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
@@ -96,7 +95,6 @@ pub async fn export_settings(
   }))
 }
 
-#[tracing::instrument(skip(context))]
 pub async fn import_settings(
   data: Json<UserSettingsBackup>,
   local_user_view: LocalUserView,

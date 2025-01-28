@@ -20,7 +20,6 @@ use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::ops::Deref;
 
-#[tracing::instrument(skip(context))]
 pub async fn like_comment(
   data: Json<CreateCommentLike>,
   context: Data<LemmyContext>,

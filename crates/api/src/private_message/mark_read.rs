@@ -11,7 +11,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn mark_pm_as_read(
   data: Json<MarkPrivateMessageAsRead>,
   context: Data<LemmyContext>,

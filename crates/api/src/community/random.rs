@@ -13,7 +13,6 @@ use lemmy_db_schema::source::{
 use lemmy_db_views::structs::{CommunityView, LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn get_random_community(
   data: Query<GetRandomCommunity>,
   context: Data<LemmyContext>,

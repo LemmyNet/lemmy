@@ -16,7 +16,6 @@ use lemmy_db_schema::source::{
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn delete_account(
   data: Json<DeleteAccount>,
   context: Data<LemmyContext>,

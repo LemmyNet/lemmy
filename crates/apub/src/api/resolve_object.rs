@@ -14,7 +14,6 @@ use lemmy_db_schema::{source::local_site::LocalSite, utils::DbPool};
 use lemmy_db_views::structs::{CommentView, CommunityView, LocalUserView, PersonView, PostView};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn resolve_object(
   data: Query<ResolveObject>,
   context: Data<LemmyContext>,

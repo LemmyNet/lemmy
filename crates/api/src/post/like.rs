@@ -19,7 +19,6 @@ use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::ops::Deref;
 
-#[tracing::instrument(skip(context))]
 pub async fn like_post(
   data: Json<CreatePostLike>,
   context: Data<LemmyContext>,

@@ -1,6 +1,5 @@
 use std::future::Future;
 
-#[tracing::instrument(skip_all)]
 pub async fn retry<F, Fut, T>(f: F) -> Result<T, reqwest_middleware::Error>
 where
   F: Fn() -> Fut,
@@ -9,7 +8,6 @@ where
   retry_custom(|| async { Ok((f)().await) }).await
 }
 
-#[tracing::instrument(skip_all)]
 #[allow(clippy::expect_used)]
 async fn retry_custom<F, Fut, T>(f: F) -> Result<T, reqwest_middleware::Error>
 where

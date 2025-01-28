@@ -11,7 +11,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn distinguish_comment(
   data: Json<DistinguishComment>,
   context: Data<LemmyContext>,

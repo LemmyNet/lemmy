@@ -41,7 +41,6 @@ impl Object for SiteOrCommunityOrUser {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   async fn read_from_id(object_id: Url, data: &Data<Self::DataType>) -> LemmyResult<Option<Self>> {
     let site = ApubSite::read_from_id(object_id.clone(), data).await?;
     Ok(match site {
@@ -52,7 +51,6 @@ impl Object for SiteOrCommunityOrUser {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   async fn delete(self, data: &Data<Self::DataType>) -> LemmyResult<()> {
     match self {
       SiteOrCommunityOrUser::Site(p) => p.delete(data).await,
@@ -69,7 +67,6 @@ impl Object for SiteOrCommunityOrUser {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(
     apub: &Self::Kind,
     expected_domain: &Url,
@@ -83,7 +80,6 @@ impl Object for SiteOrCommunityOrUser {
     }
   }
 
-  #[tracing::instrument(skip_all)]
   async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> LemmyResult<Self> {
     Ok(match apub {
       SiteOrPersonOrGroup::Instance(a) => {

@@ -60,7 +60,6 @@ impl CreateOrUpdatePage {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   pub(crate) async fn send(
     post: Post,
     person_id: PersonId,
@@ -102,7 +101,6 @@ impl ActivityHandler for CreateOrUpdatePage {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
@@ -114,7 +112,6 @@ impl ActivityHandler for CreateOrUpdatePage {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let post = ApubPost::from_json(self.object, context).await?;

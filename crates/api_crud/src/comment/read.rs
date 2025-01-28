@@ -9,7 +9,6 @@ use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn get_comment(
   data: Query<GetComment>,
   context: Data<LemmyContext>,

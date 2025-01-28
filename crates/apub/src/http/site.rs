@@ -17,7 +17,6 @@ pub(crate) async fn get_apub_site_http(context: Data<LemmyContext>) -> LemmyResu
   create_apub_response(&apub)
 }
 
-#[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_site_outbox(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
   let outbox_id = format!(
     "{}/site_outbox",

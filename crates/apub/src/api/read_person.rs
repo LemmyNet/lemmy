@@ -9,7 +9,6 @@ use lemmy_api_common::{
 use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView, PersonView, SiteView};
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn read_person(
   data: Query<GetPersonDetails>,
   context: Data<LemmyContext>,

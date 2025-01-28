@@ -16,7 +16,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
-#[tracing::instrument(skip(context))]
 pub async fn update_tagline(
   data: Json<UpdateTagline>,
   context: Data<LemmyContext>,

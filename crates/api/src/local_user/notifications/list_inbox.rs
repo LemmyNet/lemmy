@@ -6,7 +6,6 @@ use lemmy_api_common::{
 use lemmy_db_views::{combined::inbox_combined_view::InboxCombinedQuery, structs::LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn list_inbox(
   data: Query<ListInbox>,
   context: Data<LemmyContext>,

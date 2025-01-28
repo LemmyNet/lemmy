@@ -44,7 +44,6 @@ use lemmy_utils::{
 };
 use std::ops::Deref;
 
-#[tracing::instrument(skip(context))]
 pub async fn update_post(
   data: Json<EditPost>,
   context: Data<LemmyContext>,

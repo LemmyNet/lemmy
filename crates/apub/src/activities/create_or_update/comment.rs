@@ -47,7 +47,6 @@ use serde_json::{from_value, to_value};
 use url::Url;
 
 impl CreateOrUpdateNote {
-  #[tracing::instrument(skip(comment, person_id, kind, context))]
   pub(crate) async fn send(
     comment: Comment,
     person_id: PersonId,
@@ -120,7 +119,6 @@ impl ActivityHandler for CreateOrUpdateNote {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let post = self.object.get_parents(context).await?.0;
     let community = self.community(context).await?;
@@ -136,7 +134,6 @@ impl ActivityHandler for CreateOrUpdateNote {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     // Need to do this check here instead of Note::from_json because we need the person who

@@ -193,7 +193,6 @@ pub async fn register(
   Ok(Json(login_response))
 }
 
-#[tracing::instrument(skip(context))]
 pub async fn authenticate_with_oauth(
   data: Json<AuthenticateWithOauth>,
   req: HttpRequest,

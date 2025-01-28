@@ -6,7 +6,6 @@ use lemmy_api_common::{
 use lemmy_db_views::structs::{LocalImageView, LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn list_media(
   data: Query<ListMedia>,
   context: Data<LemmyContext>,

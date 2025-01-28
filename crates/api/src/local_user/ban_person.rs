@@ -22,7 +22,6 @@ use lemmy_utils::{
   utils::validation::is_valid_body_field,
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn ban_from_site(
   data: Json<BanPerson>,
   context: Data<LemmyContext>,

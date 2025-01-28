@@ -72,7 +72,6 @@ impl BlockUser {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   pub async fn send(
     target: &SiteOrCommunity,
     user: &ApubPerson,
@@ -120,7 +119,6 @@ impl ActivityHandler for BlockUser {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     match self.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
@@ -148,7 +146,6 @@ impl ActivityHandler for BlockUser {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let expires = self.end_time;

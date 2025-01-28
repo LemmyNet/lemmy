@@ -24,7 +24,6 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl UndoFollow {
-  #[tracing::instrument(skip_all)]
   pub async fn send(
     actor: &ApubPerson,
     community: &ApubCommunity,
@@ -63,7 +62,6 @@ impl ActivityHandler for UndoFollow {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
     verify_person(&self.actor, context).await?;
@@ -74,7 +72,6 @@ impl ActivityHandler for UndoFollow {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let person = self.actor.dereference(context).await?;

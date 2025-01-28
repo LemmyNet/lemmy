@@ -9,7 +9,6 @@ use lemmy_db_schema::source::{
 use lemmy_db_views::structs::{CommunityFollowerView, CommunityModeratorView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn get_my_user(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,

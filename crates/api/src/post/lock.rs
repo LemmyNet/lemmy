@@ -17,7 +17,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn lock_post(
   data: Json<LockPost>,
   context: Data<LemmyContext>,
