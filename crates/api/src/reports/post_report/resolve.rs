@@ -35,6 +35,7 @@ pub async fn resolve_post_report(
       .await
       .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
   } else {
+    // TODO: not federated
     PostReport::unresolve(&mut context.pool(), report_id, person_id)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntResolveReport)?;
@@ -46,6 +47,7 @@ pub async fn resolve_post_report(
     SendActivityData::SendResolveReport {
       object_id: post_report_view.post.ap_id.inner().clone(),
       actor: local_user_view.person,
+      report_creator: report.creator,
       community: post_report_view.community.clone(),
     },
     &context,

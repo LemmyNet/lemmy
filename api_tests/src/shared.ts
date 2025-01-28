@@ -184,6 +184,12 @@ export async function setupLogins() {
 
   await allowInstance(delta, "lemmy-beta");
 
+  /*
+  await allowInstance(epsilon, "lemmy-alpha");
+  await allowInstance(epsilon, "lemmy-beta");
+  await allowInstance(epsilon, "lemmy-gamma");
+  */
+
   // Create the main alpha/beta communities
   // Ignore thrown errors of duplicates
   try {
@@ -199,7 +205,7 @@ export async function setupLogins() {
   }
 }
 
-async function allowInstance(api: LemmyHttp, instance: string) {
+export async function allowInstance(api: LemmyHttp, instance: string) {
   const params: AdminAllowInstanceParams = {
     instance,
     allow: true,

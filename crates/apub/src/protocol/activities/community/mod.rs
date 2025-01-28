@@ -8,6 +8,7 @@ pub mod update;
 
 #[cfg(test)]
 mod tests {
+  use super::resolve_report::ResolveReport;
   use crate::protocol::{
     activities::community::{
       announce::AnnounceActivity,
@@ -45,7 +46,9 @@ mod tests {
     )?;
 
     test_parse_lemmy_item::<Report>("assets/lemmy/activities/community/report_page.json")?;
-    todo!();
+    test_parse_lemmy_item::<ResolveReport>(
+      "assets/lemmy/activities/community/resolve_report_page.json",
+    )?;
 
     Ok(())
   }

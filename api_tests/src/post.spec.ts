@@ -39,16 +39,20 @@ import {
   listReports,
   getMyUser,
   listInbox,
+  allowInstance,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
 import {
+  AddModToCommunity,
   EditSite,
+  LemmyHttp,
   PersonPostMentionView,
   PostReport,
   PostReportView,
   ReportCombinedView,
   ResolveObject,
+  ResolvePostReport,
 } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
@@ -676,6 +680,11 @@ test("A and G subscribe to B (center) A posts, it gets announced to G", async ()
 });
 
 test("Report a post", async () => {
+  // TODO: epsilon should have no allowlist so dont know why this is necessary
+  await allowInstance(epsilon, "lemmy-alpha");
+  await allowInstance(epsilon, "lemmy-beta");
+  await allowInstance(epsilon, "lemmy-gamma");
+
   // Create post from alpha
   let alphaCommunity = (await resolveBetaCommunity(alpha)).community!;
   await followBeta(alpha);
@@ -687,7 +696,25 @@ test("Report a post", async () => {
     throw "Missing alpha post";
   }
 
-  // TODO: use mod from beta to resolve report
+  // add remote mod on epsilon
+  let epsilonCommunity = await resolveBetaCommunity(epsilon);
+  await followCommunity(
+    epsilon,
+    true,
+    epsilonCommunity.community!.community.id,
+  );
+
+  let betaCommunity = (await resolveBetaCommunity(beta)).community!;
+  let epsilonUser = (
+    await resolvePerson(beta, "@lemmy_epsilon@lemmy-epsilon:8581")
+  ).person!;
+  let mod_params: AddModToCommunity = {
+    community_id: betaCommunity.community.id,
+    person_id: epsilonUser.person.id,
+    added: true,
+  };
+  let res = await beta.addModToCommunity(mod_params);
+  expect(res.moderators.length).toBe(2);
 
   // Send report from gamma
   let gammaPost = (await resolvePost(gamma, alphaPost.post)).post!;
@@ -734,6 +761,45 @@ test("Report a post", async () => {
   //expect(alphaReport.original_post_url).toBe(gammaReport.original_post_url);
   expect(alphaReport.original_post_body).toBe(gammaReport.original_post_body);
   expect(alphaReport.reason).toBe(gammaReport.reason);
+
+  // Report was federated to remote mod instance
+  let epsilonReport = (
+    (await waitUntil(
+      () =>
+        listReports(epsilon).then(p =>
+          p.reports.find(r => {
+            return checkPostReportName(r, gammaReport);
+          }),
+        ),
+      res => !!res,
+    ))! as PostReportView
+  ).post_report;
+  expect(epsilonReport).toBeDefined();
+  expect(epsilonReport.resolved).toBe(false);
+  expect(epsilonReport.original_post_name).toBe(gammaReport.original_post_name);
+
+  // Resolve report as remote mod
+  let resolve_params: ResolvePostReport = {
+    report_id: epsilonReport.id,
+    resolved: true,
+  };
+  let resolve = await epsilon.resolvePostReport(resolve_params);
+  expect(resolve.post_report_view.post_report.resolved).toBeTruthy();
+
+  // Report should be marked resolved on community instance
+  let resolvedReport = (
+    (await waitUntil(
+      () =>
+        listReports(beta).then(p =>
+          p.reports.find(r => {
+            return checkPostReportName(r, gammaReport) && r.resolver != null;
+          }),
+        ),
+      res => !!res,
+    ))! as PostReportView
+  ).post_report;
+  expect(resolvedReport).toBeDefined();
+  expect(resolvedReport.resolved).toBe(true);
 });
 
 test("Fetch post via redirect", async () => {
@@ -854,7 +920,6 @@ test("Rewrite markdown links", async () => {
     "https://example.com/",
     `[link](${postRes1.post_view.post.ap_id})`,
   );
-  console.log(postRes2.post_view.post.body);
   expect(postRes2.post_view.post).toBeDefined();
 
   // fetch both posts from another instance

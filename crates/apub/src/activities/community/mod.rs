@@ -87,25 +87,28 @@ async fn report_inboxes(
   // send report to the community where object was posted
   let mut inboxes = ActivitySendTargets::to_inbox(community.shared_inbox_or_inbox());
 
-  // send to all moderators
-  let moderators = CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
-  for m in moderators {
-    inboxes.add_inbox(m.moderator.actor_id.into());
-  }
+  if community.local {
+    // send to all moderators
+    let moderators =
+      CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
+    for m in moderators {
+      inboxes.add_inbox(m.moderator.inbox_url.into());
+    }
 
-  // also send report to user's home instance if possible
-  let object_creator_id = match object_id.dereference_local(context).await? {
-    PostOrComment::Post(p) => p.creator_id,
-    PostOrComment::Comment(c) => c.creator_id,
-  };
-  let object_creator = Person::read(&mut context.pool(), object_creator_id).await?;
-  let object_creator_site: Option<ApubSite> =
-    Site::read_from_instance_id(&mut context.pool(), object_creator.instance_id)
-      .await
-      .ok()
-      .map(Into::into);
-  if let Some(inbox) = object_creator_site.map(|s| s.shared_inbox_or_inbox()) {
-    inboxes.add_inbox(inbox);
+    // also send report to user's home instance if possible
+    let object_creator_id = match object_id.dereference_local(context).await? {
+      PostOrComment::Post(p) => p.creator_id,
+      PostOrComment::Comment(c) => c.creator_id,
+    };
+    let object_creator = Person::read(&mut context.pool(), object_creator_id).await?;
+    let object_creator_site: Option<ApubSite> =
+      Site::read_from_instance_id(&mut context.pool(), object_creator.instance_id)
+        .await
+        .ok()
+        .map(Into::into);
+    if let Some(inbox) = object_creator_site.map(|s| s.shared_inbox_or_inbox()) {
+      inboxes.add_inbox(inbox);
+    }
   }
   Ok(inboxes)
 }

@@ -215,6 +215,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
 /// would be a waste of resources.
 #[tracing::instrument(skip(data))]
 async fn insert_received_activity(ap_id: &Url, data: &Data<LemmyContext>) -> LemmyResult<()> {
+  dbg!("receiving activity", ap_id.to_string());
   ReceivedActivity::create(&mut data.pool(), &ap_id.clone().into()).await?;
   Ok(())
 }

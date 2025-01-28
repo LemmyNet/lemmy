@@ -30,6 +30,7 @@ impl ResolveReport {
   pub(crate) async fn send(
     object_id: ObjectId<PostOrComment>,
     actor: &ApubPerson,
+    report_creator: &ApubPerson,
     community: &ApubCommunity,
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
@@ -38,8 +39,8 @@ impl ResolveReport {
       kind.clone(),
       &context.settings().get_protocol_and_hostname(),
     )?;
-    let object = Report::new(&object_id, actor, community, None, &context)?;
-    let report = ResolveReport {
+    let object = Report::new(&object_id, report_creator, community, None, &context)?;
+    let resolve = ResolveReport {
       actor: actor.id().into(),
       to: [community.id().into()],
       object,
@@ -48,7 +49,7 @@ impl ResolveReport {
     };
     let inboxes = report_inboxes(object_id, community, &context).await?;
 
-    send_lemmy_activity(&context, report, actor, inboxes, false).await
+    send_lemmy_activity(&context, resolve, actor, inboxes, false).await
   }
 }
 

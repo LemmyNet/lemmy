@@ -1,10 +1,14 @@
 use super::report_inboxes;
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
+  activity_lists::AnnouncableActivities,
   insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{
-    activities::community::report::{Report, ReportObject},
+    activities::community::{
+      announce::AnnounceActivity,
+      report::{Report, ReportObject},
+    },
     InCommunity,
   },
   PostOrComment,
@@ -118,6 +122,19 @@ impl ActivityHandler for Report {
         CommentReport::report(&mut context.pool(), &report_form).await?;
       }
     };
+
+    let community = self.community(context).await?;
+    if community.local {
+      // forward to remote mods
+      let ReportObject::Lemmy(object) = self.object.clone() else {
+        unimplemented!()
+      };
+      let announce = AnnouncableActivities::Report(self);
+      let announce = AnnounceActivity::new(announce.try_into()?, &community, context)?;
+      let inboxes = report_inboxes(object, &community, &context).await?;
+      send_lemmy_activity(context, announce, &community, inboxes.clone(), false).await?;
+    }
+
     Ok(())
   }
 }

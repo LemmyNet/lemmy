@@ -102,6 +102,7 @@ pub enum SendActivityData {
   SendResolveReport {
     object_id: Url,
     actor: Person,
+    report_creator: Person,
     community: Community,
   },
 }
