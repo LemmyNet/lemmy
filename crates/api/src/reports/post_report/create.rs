@@ -53,6 +53,7 @@ pub async fn create_post_report(
     original_post_url: post_view.post.url,
     original_post_body: post_view.post.body,
     reason,
+    to_local_admins: data.to_local_admins,
   };
 
   let report = PostReport::report(&mut context.pool(), &report_form)
