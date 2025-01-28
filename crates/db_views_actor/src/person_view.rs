@@ -88,10 +88,12 @@ fn queries<'a>(
       ListMode::Banned => {
         query = query
           .filter(
-            person::banned.eq(true).and(
-              person::ban_expires
-                .is_null()
-                .or(person::ban_expires.gt(now().nullable())),
+            person::local.eq(true).and(
+              person::banned.eq(true).and(
+                person::ban_expires
+                  .is_null()
+                  .or(person::ban_expires.gt(now().nullable())),
+              ),
             ),
           )
           .filter(person::deleted.eq(false));
