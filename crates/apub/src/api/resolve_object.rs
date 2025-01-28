@@ -11,8 +11,7 @@ use lemmy_api_common::{
   utils::check_private_instance,
 };
 use lemmy_db_schema::{source::local_site::LocalSite, utils::DbPool};
-use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};
-use lemmy_db_views_actor::structs::{CommunityView, PersonView};
+use lemmy_db_views::structs::{CommentView, CommunityView, LocalUserView, PersonView, PostView};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]

@@ -266,7 +266,7 @@ impl CommunityQuery<'_> {
 mod tests {
 
   use crate::{
-    community_view::CommunityQuery,
+    community::community_view::CommunityQuery,
     structs::{CommunitySortType, CommunityView},
   };
   use lemmy_db_schema::{

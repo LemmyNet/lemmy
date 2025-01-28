@@ -43,7 +43,7 @@ use lemmy_db_schema::{
   traits::Crud,
   CommunityVisibility,
 };
-use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
+use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::Serialize;
 use tracing::info;
