@@ -638,7 +638,7 @@ impl<'a> PostQuery<'a> {
 #[cfg(test)]
 mod tests {
   use crate::{
-    post_view::{PaginationCursorData, PostQuery, PostView},
+    post::post_view::{PaginationCursorData, PostQuery, PostView},
     structs::{LocalUserView, PostTags},
   };
   use chrono::Utc;
@@ -1604,7 +1604,7 @@ mod tests {
 
       listed_post_ids.extend(post_listings.iter().map(|p| p.post.id));
 
-      if let Some(p) = post_listings.into_iter().last() {
+      if let Some(p) = post_listings.into_iter().next_back() {
         page_after = Some(p.counts);
       } else {
         break;

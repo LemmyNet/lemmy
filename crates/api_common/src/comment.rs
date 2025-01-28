@@ -3,7 +3,7 @@ use lemmy_db_schema::{
   CommentSortType,
   ListingType,
 };
-use lemmy_db_views::structs::{CommentView, VoteView};
+use lemmy_db_views::structs::{CommentSlimView, CommentView, VoteView};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -142,6 +142,14 @@ pub struct GetComments {
 /// The comment list response.
 pub struct GetCommentsResponse {
   pub comments: Vec<CommentView>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A slimmer comment list response, without the post or community.
+pub struct GetCommentsSlimResponse {
+  pub comments: Vec<CommentSlimView>,
 }
 
 #[skip_serializing_none]

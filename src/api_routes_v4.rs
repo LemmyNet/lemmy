@@ -142,7 +142,7 @@ use lemmy_api_crud::{
   },
 };
 use lemmy_apub::api::{
-  list_comments::list_comments,
+  list_comments::{list_comments, list_comments_slim},
   list_person_content::list_person_content,
   list_posts::list_posts,
   read_community::get_community,
@@ -277,6 +277,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/like/list", get().to(list_comment_likes))
           .route("/save", put().to(save_comment))
           .route("/list", get().to(list_comments))
+          .route("/list/slim", get().to(list_comments_slim))
           .route("/report", post().to(create_comment_report))
           .route("/report/resolve", put().to(resolve_comment_report)),
       )

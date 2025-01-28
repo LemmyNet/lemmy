@@ -82,7 +82,7 @@ lettre = { version = "0.11.11", default-features = false, features = [
 ], optional = true }
 markdown-it = { version = "0.6.1", optional = true }
 ts-rs = { workspace = true, optional = true }
-enum-map = { workspace = true, optional = true }
+enum-map = { version = "2.7", optional = true }
 cfg-if = "1"
 clearurls = { version = "0.0.4", features = ["linkify"] }
 markdown-it-block-spoiler = "1.0.1"

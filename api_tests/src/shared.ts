@@ -324,9 +324,8 @@ export async function searchPostLocal(
   post: Post,
 ): Promise<SearchResponse> {
   let form: Search = {
-    q: post.name,
+    search_term: post.name,
     type_: "Posts",
-    sort: "TopAll",
     listing_type: "All",
   };
   return api.search(form);
@@ -339,7 +338,7 @@ export async function waitForPost(
   checker: (t: PostView | undefined) => boolean = p => !!p,
 ) {
   return waitUntil<PostView>(
-    () => searchPostLocal(api, post).then(p => p.posts[0]),
+    () => searchPostLocal(api, post).then(p => p.results[0] as PostView),
     checker,
   );
 }

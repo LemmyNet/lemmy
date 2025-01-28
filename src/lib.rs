@@ -1,14 +1,7 @@
 pub mod api_routes_v3;
 pub mod api_routes_v4;
-pub mod code_migrations;
-pub mod idempotency_middleware;
-pub mod prometheus_metrics;
-pub mod scheduled_tasks;
-pub mod session_middleware;
 
-use crate::{code_migrations::run_advanced_migrations, session_middleware::SessionMiddleware};
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
-use actix_cors::Cors;
 use actix_web::{
   dev::{ServerHandle, ServiceResponse},
   middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
@@ -17,9 +10,7 @@ use actix_web::{
   HttpResponse,
   HttpServer,
 };
-use actix_web_prom::PrometheusMetricsBuilder;
 use clap::{Parser, Subcommand};
-use idempotency_middleware::{IdempotencyMiddleware, IdempotencySet};
 use lemmy_api::sitemap::get_sitemap;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -39,7 +30,21 @@ use lemmy_apub::{
 };
 use lemmy_db_schema::{schema_setup, source::secret::Secret, utils::build_db_pool};
 use lemmy_federate::{Opts, SendManager};
-use lemmy_routes::{feeds, nodeinfo, webfinger};
+use lemmy_routes::{
+  feeds,
+  middleware::{
+    idempotency::{IdempotencyMiddleware, IdempotencySet},
+    session::SessionMiddleware,
+  },
+  nodeinfo,
+  utils::{
+    code_migrations::run_advanced_migrations,
+    cors_config,
+    prometheus_metrics::{new_prometheus_metrics, serve_prometheus},
+    scheduled_tasks,
+  },
+  webfinger,
+};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   rate_limit::RateLimitCell,
@@ -47,8 +52,6 @@ use lemmy_utils::{
   settings::{structs::Settings, SETTINGS},
   VERSION,
 };
-use prometheus::default_registry;
-use prometheus_metrics::serve_prometheus;
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
 use serde_json::json;
@@ -175,19 +178,17 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
 
   // Make sure the local site is set up.
   let site_view = SiteView::read_local(&mut (&pool).into()).await?;
-  let local_site = site_view.local_site;
-  let federation_enabled = local_site.federation_enabled;
+  let federation_enabled = site_view.local_site.federation_enabled;
 
   if federation_enabled {
     println!("Federation enabled, host is {}", &SETTINGS.hostname);
   }
 
-  check_private_instance_and_federation_enabled(&local_site)?;
-
   // Set up the rate limiter
   let rate_limit_config =
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
   let rate_limit_cell = RateLimitCell::new(rate_limit_config);
+  check_private_instance_and_federation_enabled(&site_view.local_site)?;
 
   println!(
     "Starting HTTP server at {}:{}",
@@ -205,7 +206,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     client.clone(),
     pictrs_client,
     secret.clone(),
-    rate_limit_cell.clone(),
+    rate_limit_cell,
   );
 
   if let Some(prometheus) = SETTINGS.prometheus.clone() {
@@ -221,8 +222,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     .debug(cfg!(debug_assertions))
     .http_signature_compat(true)
     .url_verifier(Box::new(VerifyUrlData(context.inner_pool().clone())));
-  if local_site.federation_signed_fetch {
-    let site: ApubSite = site_view.site.into();
+  if site_view.local_site.federation_signed_fetch {
+    let site: ApubSite = site_view.site.clone().into();
     federation_config_builder.signed_fetch_actor(&site);
   }
   let federation_config = federation_config_builder.build().await?;
@@ -329,14 +330,8 @@ fn create_http_server(
   settings: Settings,
   federation_enabled: bool,
 ) -> LemmyResult<ServerHandle> {
-  // this must come before the HttpServer creation
-  // creates a middleware that populates http metrics for each path, method, and status code
-  let prom_api_metrics = PrometheusMetricsBuilder::new("lemmy_api")
-    .registry(default_registry().clone())
-    .build()
-    .map_err(|e| LemmyErrorType::Unknown(format!("Should always be buildable: {e}")))?;
-
-  // Must create this outside of HTTP server so that duplicate requests get detected across threads.
+  // These must come before HttpServer creation so they can collect data across threads.
+  let prom_api_metrics = new_prometheus_metrics()?;
   let idempotency_set = IdempotencySet::default();
 
   // Create Http server
@@ -358,7 +353,6 @@ fn create_http_server(
       .wrap(TracingLogger::<DefaultRootSpanBuilder>::new())
       .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .app_data(Data::new(context.clone()))
-      .app_data(Data::new(rate_limit_cell.clone()))
       .wrap(FederationMiddleware::new(federation_config.clone()))
       .wrap(IdempotencyMiddleware::new(idempotency_set.clone()))
       .wrap(SessionMiddleware::new(context.clone()))
@@ -391,51 +385,4 @@ fn create_http_server(
   let handle = server.handle();
   tokio::task::spawn(server);
   Ok(handle)
-}
-
-fn cors_config(settings: &Settings) -> Cors {
-  let self_origin = settings.get_protocol_and_hostname();
-  let cors_origin_setting = settings.cors_origin();
-
-  // A default setting for either wildcard, or None
-  let cors_default = Cors::default()
-    .allow_any_origin()
-    .allow_any_method()
-    .allow_any_header()
-    .expose_any_header()
-    .max_age(3600);
-
-  match (cors_origin_setting.clone(), cfg!(debug_assertions)) {
-    (Some(origin), false) => {
-      // Need to call send_wildcard() explicitly, passing this into allowed_origin() results in
-      // error
-      if origin == "*" {
-        cors_default
-      } else {
-        Cors::default()
-          .allowed_origin(&origin)
-          .allowed_origin(&self_origin)
-          .allow_any_method()
-          .allow_any_header()
-          .expose_any_header()
-          .max_age(3600)
-      }
-    }
-    _ => cors_default,
-  }
-}
-
-#[cfg(test)]
-pub mod tests {
-  use activitypub_federation::config::Data;
-  use lemmy_api_common::context::LemmyContext;
-  use std::env::set_current_dir;
-
-  pub async fn test_context() -> Data<LemmyContext> {
-    // hack, necessary so that config file can be loaded from hardcoded, relative path.
-    // Ignore errors as this gets called once for every test (so changing dir again would fail).
-    set_current_dir("crates/utils").ok();
-
-    LemmyContext::init_test_context().await
-  }
 }

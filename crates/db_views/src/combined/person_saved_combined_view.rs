@@ -1,7 +1,7 @@
 use crate::structs::{
   LocalUserView,
   PersonContentCombinedView,
-  PersonContentViewInternal,
+  PersonContentCombinedViewInternal,
   PersonSavedCombinedPaginationCursor,
 };
 use diesel::{
@@ -38,8 +38,8 @@ use lemmy_db_schema::{
     combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
     community::CommunityFollower,
   },
+  traits::InternalToCombinedView,
   utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool},
-  InternalToCombinedView,
   PersonContentType,
 };
 use lemmy_utils::error::LemmyResult;
@@ -236,7 +236,9 @@ impl PersonSavedCombinedQuery {
       // Tie breaker
       .then_desc(key::id);
 
-    let res = query.load::<PersonContentViewInternal>(conn).await?;
+    let res = query
+      .load::<PersonContentCombinedViewInternal>(conn)
+      .await?;
 
     // Map the query results to the enum
     let out = res
@@ -253,7 +255,7 @@ impl PersonSavedCombinedQuery {
 mod tests {
 
   use crate::{
-    person_saved_combined_view::PersonSavedCombinedQuery,
+    combined::person_saved_combined_view::PersonSavedCombinedQuery,
     structs::{LocalUserView, PersonContentCombinedView},
   };
   use lemmy_db_schema::{

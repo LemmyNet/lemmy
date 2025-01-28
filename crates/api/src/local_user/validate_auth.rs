@@ -1,9 +1,12 @@
-use crate::{local_user_view_from_jwt, read_auth_token};
 use actix_web::{
   web::{Data, Json},
   HttpRequest,
 };
-use lemmy_api_common::{context::LemmyContext, SuccessResponse};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{local_user_view_from_jwt, read_auth_token},
+  SuccessResponse,
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 /// Returns an error message if the auth token is invalid for any reason. Necessary because other

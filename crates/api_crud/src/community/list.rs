@@ -4,8 +4,10 @@ use lemmy_api_common::{
   context::LemmyContext,
   utils::{check_private_instance, is_admin},
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_db_views_actor::community_view::CommunityQuery;
+use lemmy_db_views::{
+  community::community_view::CommunityQuery,
+  structs::{LocalUserView, SiteView},
+};
 use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]

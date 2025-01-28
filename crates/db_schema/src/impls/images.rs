@@ -66,7 +66,7 @@ impl LocalImage {
   }
 
   pub async fn delete_by_url(pool: &mut DbPool<'_>, url: &DbUrl) -> Result<Self, Error> {
-    let alias = url.as_str().split('/').last().ok_or(NotFound)?;
+    let alias = url.as_str().split('/').next_back().ok_or(NotFound)?;
     Self::delete_by_alias(pool, alias).await
   }
 }

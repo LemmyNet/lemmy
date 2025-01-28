@@ -125,5 +125,5 @@ pub(super) async fn do_get_image(
 pub(super) fn file_type(file_type: Option<String>, name: &str) -> String {
   file_type
     .clone()
-    .unwrap_or_else(|| name.split('.').last().unwrap_or("jpg").to_string())
+    .unwrap_or_else(|| name.split('.').next_back().unwrap_or("jpg").to_string())
 }

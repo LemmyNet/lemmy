@@ -4,7 +4,7 @@ use lemmy_db_schema::{
   CommunityVisibility,
   ListingType,
 };
-use lemmy_db_views_actor::structs::{
+use lemmy_db_views::structs::{
   CommunityModeratorView,
   CommunitySortType,
   CommunityView,

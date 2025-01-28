@@ -6,8 +6,7 @@ use lemmy_api_common::{
   person::{GetPersonDetails, GetPersonDetailsResponse},
   utils::{check_private_instance, is_admin, read_site_for_actor},
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_db_views_actor::structs::{CommunityModeratorView, PersonView};
+use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView, PersonView, SiteView};
 use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]

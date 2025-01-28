@@ -61,8 +61,8 @@ use lemmy_db_schema::{
     post,
   },
   source::combined::modlog::{modlog_combined_keys as key, ModlogCombined},
+  traits::InternalToCombinedView,
   utils::{get_conn, DbPool},
-  InternalToCombinedView,
   ModlogActionType,
 };
 use lemmy_utils::error::LemmyResult;
@@ -592,7 +592,7 @@ impl InternalToCombinedView for ModlogCombinedViewInternal {
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{modlog_combined_view::ModlogCombinedQuery, structs::ModlogCombinedView};
+  use crate::{combined::modlog_combined_view::ModlogCombinedQuery, structs::ModlogCombinedView};
   use lemmy_db_schema::{
     newtypes::PersonId,
     source::{

@@ -1,8 +1,10 @@
-use crate::local_user_view_from_jwt;
 use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{context::LemmyContext, utils::check_private_instance};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{check_private_instance, local_user_view_from_jwt},
+};
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
@@ -11,10 +13,10 @@ use lemmy_db_schema::{
   PostSortType,
 };
 use lemmy_db_views::{
-  post_view::PostQuery,
-  structs::{PostView, SiteView},
+  combined::inbox_combined_view::InboxCombinedQuery,
+  post::post_view::PostQuery,
+  structs::{InboxCombinedView, PostView, SiteView},
 };
-use lemmy_db_views_actor::{inbox_combined_view::InboxCombinedQuery, structs::InboxCombinedView};
 use lemmy_utils::{
   cache_header::cache_1hour,
   error::{LemmyError, LemmyErrorType, LemmyResult},
