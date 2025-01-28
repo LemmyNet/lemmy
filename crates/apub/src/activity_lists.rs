@@ -70,6 +70,7 @@ pub enum AnnouncableActivities {
   LockPost(LockPage),
   UndoLockPost(UndoLockPage),
   Report(Report),
+  ResolveReport(ResolveReport),
   // For compatibility with Pleroma/Mastodon (send only)
   Page(Page),
 }
@@ -94,6 +95,7 @@ impl InCommunity for AnnouncableActivities {
       LockPost(a) => a.community(context).await,
       UndoLockPost(a) => a.community(context).await,
       Report(a) => a.community(context).await,
+      ResolveReport(a) => a.community(context).await,
       Page(_) => Err(LemmyErrorType::NotFound.into()),
     }
   }

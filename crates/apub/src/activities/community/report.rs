@@ -126,12 +126,10 @@ impl ActivityHandler for Report {
     let community = self.community(context).await?;
     if community.local {
       // forward to remote mods
-      let ReportObject::Lemmy(object) = self.object.clone() else {
-        unimplemented!()
-      };
+      let object_id = self.object.object_id(context).await?;
       let announce = AnnouncableActivities::Report(self);
       let announce = AnnounceActivity::new(announce.try_into()?, &community, context)?;
-      let inboxes = report_inboxes(object, &community, &context).await?;
+      let inboxes = report_inboxes(object_id, &community, context).await?;
       send_lemmy_activity(context, announce, &community, inboxes.clone(), false).await?;
     }
 

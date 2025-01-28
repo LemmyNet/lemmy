@@ -1,10 +1,12 @@
 use super::report_inboxes;
 use crate::{
   activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
+  activity_lists::AnnouncableActivities,
   insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::{
     activities::community::{
+      announce::AnnounceActivity,
       report::Report,
       resolve_report::{ResolveReport, ResolveType},
     },
@@ -86,6 +88,17 @@ impl ActivityHandler for ResolveReport {
         CommentReport::resolve_apub(&mut context.pool(), comment.id, reporter.id, actor.id).await?;
       }
     };
+
+    let community = self.community(context).await?;
+    if community.local {
+      // forward to remote mods
+      let object_id = self.object.object.object_id(context).await?;
+      let announce = AnnouncableActivities::ResolveReport(self);
+      let announce = AnnounceActivity::new(announce.try_into()?, &community, context)?;
+      let inboxes = report_inboxes(object_id, &community, context).await?;
+      send_lemmy_activity(context, announce, &community, inboxes.clone(), false).await?;
+    }
+
     Ok(())
   }
 }
