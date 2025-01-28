@@ -10,6 +10,7 @@ use diesel::{
   Selectable,
 };
 use lemmy_db_schema::{
+  aliases,
   aggregates::structs::{
     CommentAggregates,
     CommunityAggregates,
@@ -17,7 +18,7 @@ use lemmy_db_schema::{
     PostAggregates,
     SiteAggregates,
   },
-  schema::{community_actions, local_user},
+  schema::{community_actions, local_user, person},
   source::{
     comment::Comment,
     comment_reply::CommentReply,
