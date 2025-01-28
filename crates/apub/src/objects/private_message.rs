@@ -1,3 +1,4 @@
+use super::verify_is_remote_object;
 use crate::{
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links,
@@ -9,10 +10,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  protocol::{
-    values::MediaTypeHtml,
-    verification::{verify_domains_match, verify_is_remote_object},
-  },
+  protocol::{values::MediaTypeHtml, verification::verify_domains_match},
   traits::Object,
 };
 use chrono::{DateTime, Utc};
