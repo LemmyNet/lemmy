@@ -374,7 +374,7 @@ fn handle_deleted(mut c: CommentView, is_admin: bool) -> CommentView {
 mod tests {
 
   use crate::{
-    comment_view::{CommentQuery, CommentSortType, CommentView, DbPool},
+    comment::comment_view::{CommentQuery, CommentSortType, CommentView, DbPool},
     structs::LocalUserView,
   };
   use lemmy_db_schema::{

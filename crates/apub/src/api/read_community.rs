@@ -11,8 +11,7 @@ use lemmy_db_schema::source::{
   community::Community,
   local_site::LocalSite,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
+use lemmy_db_views::structs::{CommunityModeratorView, CommunityView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]

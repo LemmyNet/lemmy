@@ -4,7 +4,7 @@ use lemmy_api_common::{
   reports::combined::{ListReports, ListReportsResponse},
   utils::check_community_mod_of_any_or_admin_action,
 };
-use lemmy_db_views::{report_combined_view::ReportCombinedQuery, structs::LocalUserView};
+use lemmy_db_views::{combined::report_combined_view::ReportCombinedQuery, structs::LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
 /// Lists reports for a community if an id is supplied

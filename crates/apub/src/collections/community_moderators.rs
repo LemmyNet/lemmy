@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
   traits::Joinable,
 };
-use lemmy_db_views_actor::structs::CommunityModeratorView;
+use lemmy_db_views::structs::CommunityModeratorView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 

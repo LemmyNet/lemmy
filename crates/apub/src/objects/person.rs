@@ -1,4 +1,3 @@
-use super::verify_is_remote_object;
 use crate::{
   activities::GetActorType,
   check_apub_id_valid_with_strictness,
@@ -13,7 +12,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  protocol::verification::verify_domains_match,
+  protocol::verification::{verify_domains_match, verify_is_remote_object},
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
