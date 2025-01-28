@@ -20,6 +20,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
+  actions_utils::community_actions_join,
   aliases::{self, creator_community_actions},
   newtypes::PersonId,
   schema::{

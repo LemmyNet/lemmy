@@ -67,6 +67,7 @@ use lemmy_db_schema::{
     tag::Tag,
   },
   utils::functions::coalesce,
+  Person1AliasAllColumnsTuple,
   SubscribedType,
 };
 use serde::{Deserialize, Serialize};
@@ -288,19 +289,28 @@ pub struct RegistrationApplicationView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
   #[cfg_attr(feature = "full", ts(optional))]
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<Person1AliasAllColumnsTuple>,
+      select_expression = aliases::person1.fields(person::all_columns).nullable()
+    )
+  )]
   pub admin: Option<Person>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A site view.
 pub struct SiteView {
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub site: Site,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub local_site: LocalSite,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub local_site_rate_limit: LocalSiteRateLimit,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub counts: SiteAggregates,
 }
 
@@ -609,8 +619,8 @@ pub struct PersonView {
   pub counts: PersonAggregates,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = coalesce(local_user::admin.nullable(), false),
-      select_expression_type = coalesce<diesel::sql_types::Bool, Nullable<lemmy_db_schema::schema::local_user::admin>, bool>
+      select_expression_type = coalesce<diesel::sql_types::Bool, Nullable<local_user::admin>, bool>,
+      select_expression = coalesce(local_user::admin.nullable(), false)
     )
   )]
   pub is_admin: bool,
@@ -628,13 +638,21 @@ pub struct PendingFollow {
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A private message view.
 pub struct PrivateMessageView {
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub private_message: PrivateMessage,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Person1AliasAllColumnsTuple,
+      select_expression = aliases::person1.fields(person::all_columns)
+    )
+  )]
   pub recipient: Person,
 }
 

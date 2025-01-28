@@ -27,18 +27,18 @@ use lemmy_db_schema::{
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::future::{ready, Ready};
 
-#[diesel::dsl::auto_type]
-fn joins() -> _ {
-  local_user::table
-    .inner_join(local_user_vote_display_mode::table)
-    .inner_join(person::table)
-    .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
-}
-
 impl LocalUserView {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins() -> _ {
+    local_user::table
+      .inner_join(local_user_vote_display_mode::table)
+      .inner_join(person::table)
+      .inner_join(person_aggregates::table.on(person::id.eq(person_aggregates::person_id)))
+  }
+
   pub async fn read(pool: &mut DbPool<'_>, local_user_id: LocalUserId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    joins()
+    Self::joins()
       .filter(local_user::id.eq(local_user_id))
       .select(Self::as_select())
       .first(conn)
@@ -47,7 +47,7 @@ impl LocalUserView {
 
   pub async fn read_person(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    joins()
+    Self::joins()
       .filter(person::id.eq(person_id))
       .select(Self::as_select())
       .first(conn)
@@ -56,7 +56,7 @@ impl LocalUserView {
 
   pub async fn read_from_name(pool: &mut DbPool<'_>, name: &str) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    joins()
+    Self::joins()
       .filter(lower(person::name).eq(name.to_lowercase()))
       .select(Self::as_select())
       .first(conn)
@@ -68,7 +68,7 @@ impl LocalUserView {
     name_or_email: &str,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    joins()
+    Self::joins()
       .filter(
         lower(person::name)
           .eq(lower(name_or_email.to_lowercase()))
@@ -81,7 +81,7 @@ impl LocalUserView {
 
   pub async fn find_by_email(pool: &mut DbPool<'_>, from_email: &str) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    joins()
+    Self::joins()
       .filter(lower(coalesce(local_user::email, "")).eq(from_email.to_lowercase()))
       .select(Self::as_select())
       .first(conn)
@@ -94,7 +94,7 @@ impl LocalUserView {
     oauth_user_id: &str,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    joins()
+    Self::joins()
       .inner_join(oauth_account::table)
       .filter(oauth_account::oauth_provider_id.eq(oauth_provider_id))
       .filter(oauth_account::oauth_user_id.eq(oauth_user_id))
@@ -105,7 +105,7 @@ impl LocalUserView {
 
   pub async fn list_admins_with_emails(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
-    joins()
+    Self::joins()
       .filter(local_user::email.is_not_null())
       .filter(local_user::admin.eq(true))
       .select(Self::as_select())

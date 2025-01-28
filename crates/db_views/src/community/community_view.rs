@@ -20,10 +20,10 @@ impl CommunityView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(person_id: Option<PersonId>) -> _ {
     #[rustfmt::skip]
-  let community_actions_join = community_actions_join::<>(person_id);
+    let community_actions_join = community_actions_join::<>(person_id);
 
     #[rustfmt::skip]
-  let instance_actions_join = instance_actions_join::<>(person_id);
+    let instance_actions_join = instance_actions_join::<>(person_id);
 
     community::table
       .inner_join(community_aggregates::table)
