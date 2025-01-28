@@ -47,7 +47,6 @@ impl Follow {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   pub async fn send(
     actor: &ApubPerson,
     community: &ApubCommunity,
@@ -76,7 +75,6 @@ impl ActivityHandler for Follow {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     verify_person(&self.actor, context).await?;
     let object = self.object.dereference(context).await?;
@@ -89,7 +87,6 @@ impl ActivityHandler for Follow {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;

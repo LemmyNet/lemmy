@@ -105,7 +105,7 @@ actix-web = { version = "4.9.0", default-features = false, features = [
   "macros",
   "rustls-0_23",
 ] }
-tracing = "0.1.41"
+tracing = { version = "0.1.41", default-features = false }
 tracing-actix-web = { version = "0.7.15", default-features = false }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 url = { version = "2.5.4", features = ["serde"] }

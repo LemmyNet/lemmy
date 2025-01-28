@@ -11,7 +11,6 @@ use lemmy_db_views::{
 };
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn list_person_saved(
   data: Query<ListPersonSaved>,
   context: Data<LemmyContext>,

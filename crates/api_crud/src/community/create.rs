@@ -44,7 +44,6 @@ use lemmy_utils::{
   },
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn create_community(
   data: Json<CreateCommunity>,
   context: Data<LemmyContext>,

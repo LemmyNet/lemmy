@@ -49,7 +49,7 @@ pub mod undo_delete;
 
 /// Parameter `reason` being set indicates that this is a removal by a mod. If its unset, this
 /// action was done by a normal user.
-#[tracing::instrument(skip_all)]
+
 pub(crate) async fn send_apub_delete_in_community(
   actor: Person,
   community: Community,
@@ -79,7 +79,6 @@ pub(crate) async fn send_apub_delete_in_community(
   .await
 }
 
-#[tracing::instrument(skip_all)]
 pub(crate) async fn send_apub_delete_private_message(
   actor: &ApubPerson,
   pm: DbPrivateMessage,
@@ -129,7 +128,6 @@ pub enum DeletableObjects {
 }
 
 impl DeletableObjects {
-  #[tracing::instrument(skip_all)]
   pub(crate) async fn read_from_db(
     ap_id: &Url,
     context: &Data<LemmyContext>,
@@ -163,7 +161,6 @@ impl DeletableObjects {
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub(in crate::activities) async fn verify_delete_activity(
   activity: &Delete,
   is_mod_action: bool,
@@ -218,7 +215,6 @@ pub(in crate::activities) async fn verify_delete_activity(
   Ok(())
 }
 
-#[tracing::instrument(skip_all)]
 async fn verify_delete_post_or_comment(
   actor: &ObjectId<ApubPerson>,
   object_id: &Url,
@@ -237,7 +233,7 @@ async fn verify_delete_post_or_comment(
 }
 
 /// Write deletion or restoring of an object to the database, and send websocket message.
-#[tracing::instrument(skip_all)]
+
 async fn receive_delete_action(
   object: &Url,
   actor: &ObjectId<ApubPerson>,

@@ -3,7 +3,6 @@ use lemmy_api_common::{context::LemmyContext, person::GetUnreadCountResponse};
 use lemmy_db_views::structs::{InboxCombinedViewInternal, LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn unread_count(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,

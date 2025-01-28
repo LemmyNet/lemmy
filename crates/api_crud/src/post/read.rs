@@ -17,7 +17,6 @@ use lemmy_db_views::{
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn get_post(
   data: Query<GetPost>,
   context: Data<LemmyContext>,
