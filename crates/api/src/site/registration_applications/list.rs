@@ -7,7 +7,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::{
-  registration_application_view::RegistrationApplicationQuery,
+  registration_applications::registration_application_view::RegistrationApplicationQuery,
   structs::LocalUserView,
 };
 use lemmy_utils::error::LemmyResult;

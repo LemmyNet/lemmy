@@ -40,7 +40,9 @@ use lemmy_db_schema::{
     post,
     post_actions,
     post_aggregates,
+    post_tag,
     private_message,
+    tag,
   },
   source::{
     combined::inbox::{inbox_combined_keys as key, InboxCombined},
@@ -244,6 +246,15 @@ impl InboxCombinedQuery {
 
     let community_join = post::community_id.eq(community::id);
 
+    let post_tags = post_tag::table
+      .inner_join(tag::table)
+      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
+        "json_agg(tag.*)",
+      ))
+      .filter(post_tag::post_id.eq(post::id))
+      .filter(tag::deleted.eq(false))
+      .single_value();
+
     let mut query = inbox_combined::table
       .left_join(comment_reply::table)
       .left_join(person_comment_mention::table)
@@ -308,6 +319,7 @@ impl InboxCombinedQuery {
         post_actions::hidden.nullable().is_not_null(),
         post_actions::like_score.nullable(),
         image_details::all_columns.nullable(),
+        post_tags,
         private_message::all_columns.nullable(),
         // Shared
         post::all_columns.nullable(),
@@ -520,6 +532,7 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
         hidden: v.post_hidden,
         my_vote: v.my_post_vote,
         image_details: v.image_details,
+        post_tags: v.post_tags,
         banned_from_community: v.banned_from_community,
       }))
     } else if let Some(private_message) = v.private_message {
@@ -538,7 +551,7 @@ impl InternalToCombinedView for InboxCombinedViewInternal {
 #[expect(clippy::indexing_slicing)]
 mod tests {
   use crate::{
-    inbox_combined_view::InboxCombinedQuery,
+    combined::inbox_combined_view::InboxCombinedQuery,
     structs::{InboxCombinedView, InboxCombinedViewInternal, PrivateMessageView},
   };
   use lemmy_db_schema::{

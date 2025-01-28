@@ -12,10 +12,9 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::{
-  post_view::PostQuery,
-  structs::{LocalUserView, PostView, SiteView},
+  post::post_view::PostQuery,
+  structs::{CommunityModeratorView, CommunityView, LocalUserView, PostView, SiteView},
 };
-use lemmy_db_views_actor::structs::{CommunityModeratorView, CommunityView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[tracing::instrument(skip(context))]

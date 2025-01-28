@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views::{
-  comment_view::CommentQuery,
+  comment::comment_view::CommentQuery,
   structs::{CommentView, LocalUserView, SiteView},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};

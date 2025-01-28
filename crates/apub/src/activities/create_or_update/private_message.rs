@@ -14,7 +14,7 @@ use activitypub_federation::{
 };
 use lemmy_api_common::context::LemmyContext;
 use lemmy_db_schema::source::activity::ActivitySendTargets;
-use lemmy_db_views_actor::structs::PrivateMessageView;
+use lemmy_db_views::structs::PrivateMessageView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 

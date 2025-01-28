@@ -488,7 +488,7 @@ test("Dont receive community activities after unsubscribe", async () => {
   // await longDelay();
 
   let postResBeta = searchPostLocal(beta, postRes.post_view.post);
-  expect((await postResBeta).posts.length).toBe(0);
+  expect((await postResBeta).results.length).toBe(0);
 });
 
 test("Fetch community, includes posts", async () => {

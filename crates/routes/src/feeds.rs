@@ -13,10 +13,10 @@ use lemmy_db_schema::{
   PostSortType,
 };
 use lemmy_db_views::{
-  post_view::PostQuery,
-  structs::{PostView, SiteView},
+  combined::inbox_combined_view::InboxCombinedQuery,
+  post::post_view::PostQuery,
+  structs::{InboxCombinedView, PostView, SiteView},
 };
-use lemmy_db_views_actor::{inbox_combined_view::InboxCombinedQuery, structs::InboxCombinedView};
 use lemmy_utils::{
   cache_header::cache_1hour,
   error::{LemmyError, LemmyErrorType, LemmyResult},
