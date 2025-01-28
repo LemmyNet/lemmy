@@ -3,7 +3,7 @@ use crate::{
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links,
   mentions::collect_non_local_mentions,
-  objects::{append_attachments_to_comment, read_from_string_or_source, verify_is_remote_object},
+  objects::{append_attachments_to_comment, read_from_string_or_source},
   protocol::{
     objects::{note::Note, LanguageTag},
     InCommunity,
@@ -13,7 +13,10 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::object::NoteType,
-  protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
+  protocol::{
+    values::MediaTypeMarkdownOrHtml,
+    verification::{verify_domains_match, verify_is_remote_object},
+  },
   traits::Object,
 };
 use chrono::{DateTime, Utc};
