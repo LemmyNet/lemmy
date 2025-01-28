@@ -1,4 +1,4 @@
-pub mod api_routes_http;
+pub mod api_routes_v3;
 pub mod code_migrations;
 pub mod prometheus_metrics;
 pub mod root_span_builder;
@@ -331,7 +331,7 @@ fn create_http_server(
 
     // The routes
     app
-      .configure(|cfg| api_routes_http::config(cfg, &rate_limit_cell))
+      .configure(|cfg| api_routes_v3::config(cfg, &rate_limit_cell))
       .configure(|cfg| {
         if federation_enabled {
           lemmy_apub::http::routes::config(cfg);
