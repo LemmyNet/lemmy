@@ -16,12 +16,10 @@ workspace = true
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_views = { workspace = true, features = ["full"] }
-lemmy_db_views_actor = { workspace = true, features = ["full"] }
 lemmy_api_common = { workspace = true, features = ["full"] }
 activitypub_federation = { workspace = true }
 bcrypt = { workspace = true }
 actix-web = { workspace = true }
-tracing = { workspace = true }
 url = { workspace = true }
 futures.workspace = true
 uuid = { workspace = true }

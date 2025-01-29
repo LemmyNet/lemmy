@@ -1,4 +1,3 @@
-use super::verify_is_remote_object;
 use crate::{
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links,
@@ -10,7 +9,10 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  protocol::{values::MediaTypeHtml, verification::verify_domains_match},
+  protocol::{
+    values::MediaTypeHtml,
+    verification::{verify_domains_match, verify_is_remote_object},
+  },
   traits::Object,
 };
 use chrono::{DateTime, Utc};
@@ -68,7 +70,6 @@ impl Object for ApubPrivateMessage {
     None
   }
 
-  #[tracing::instrument(skip_all)]
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
@@ -85,7 +86,6 @@ impl Object for ApubPrivateMessage {
     Err(LemmyErrorType::NotFound.into())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<PrivateMessage> {
     let creator_id = self.creator_id;
     let creator = Person::read(&mut context.pool(), creator_id).await?;
@@ -118,7 +118,6 @@ impl Object for ApubPrivateMessage {
     Ok(note)
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(
     note: &PrivateMessage,
     expected_domain: &Url,
@@ -139,7 +138,6 @@ impl Object for ApubPrivateMessage {
     }
   }
 
-  #[tracing::instrument(skip_all)]
   async fn from_json(
     note: PrivateMessage,
     context: &Data<Self::DataType>,

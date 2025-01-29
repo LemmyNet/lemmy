@@ -21,14 +21,12 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::PrivateMessageView;
+use lemmy_db_views::structs::{LocalUserView, PrivateMessageView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::{markdown::markdown_to_html, validation::is_valid_body_field},
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn create_private_message(
   data: Json<CreatePrivateMessage>,
   context: Data<LemmyContext>,

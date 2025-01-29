@@ -19,7 +19,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn feature_post(
   data: Json<FeaturePost>,
   context: Data<LemmyContext>,

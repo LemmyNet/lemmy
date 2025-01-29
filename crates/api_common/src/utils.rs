@@ -47,14 +47,16 @@ use lemmy_db_schema::{
   RegistrationMode,
 };
 use lemmy_db_views::{
-  comment_view::CommentQuery,
-  structs::{LocalImageView, LocalUserView, SiteView},
-};
-use lemmy_db_views_actor::structs::{
-  CommunityFollowerView,
-  CommunityModeratorView,
-  CommunityPersonBanView,
-  CommunityView,
+  comment::comment_view::CommentQuery,
+  structs::{
+    CommunityFollowerView,
+    CommunityModeratorView,
+    CommunityPersonBanView,
+    CommunityView,
+    LocalImageView,
+    LocalUserView,
+    SiteView,
+  },
 };
 use lemmy_utils::{
   email::{send_email, translations::Lang},
@@ -84,7 +86,6 @@ use webmention::{Webmention, WebmentionError};
 
 pub const AUTH_COOKIE_NAME: &str = "jwt";
 
-#[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
   pool: &mut DbPool<'_>,
   person: &Person,
@@ -94,7 +95,6 @@ pub async fn is_mod_or_admin(
   CommunityView::check_is_mod_or_admin(pool, person.id, community_id).await
 }
 
-#[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin_opt(
   pool: &mut DbPool<'_>,
   local_user_view: Option<&LocalUserView>,
@@ -114,7 +114,6 @@ pub async fn is_mod_or_admin_opt(
 /// Check that a person is either a mod of any community, or an admin
 ///
 /// Should only be used for read operations
-#[tracing::instrument(skip_all)]
 pub async fn check_community_mod_of_any_or_admin_action(
   local_user_view: &LocalUserView,
   pool: &mut DbPool<'_>,
@@ -152,7 +151,6 @@ pub fn is_top_mod(
 }
 
 /// Updates the read comment count for a post. Usually done when reading or creating a new comment.
-#[tracing::instrument(skip_all)]
 pub async fn update_read_comments(
   person_id: PersonId,
   post_id: PostId,
@@ -283,7 +281,6 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub async fn check_person_instance_community_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
@@ -297,7 +294,6 @@ pub async fn check_person_instance_community_block(
   Ok(())
 }
 
-#[tracing::instrument(skip_all)]
 pub async fn check_local_vote_mode(
   score: i16,
   post_or_comment_id: PostOrCommentId,
@@ -326,7 +322,6 @@ pub async fn check_local_vote_mode(
 }
 
 /// Dont allow bots to do certain actions, like voting
-#[tracing::instrument(skip_all)]
 pub fn check_bot_account(person: &Person) -> LemmyResult<()> {
   if person.bot_account {
     Err(LemmyErrorType::InvalidBotAction)?
@@ -335,7 +330,6 @@ pub fn check_bot_account(person: &Person) -> LemmyResult<()> {
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub fn check_private_instance(
   local_user_view: &Option<LocalUserView>,
   local_site: &LocalSite,
@@ -348,7 +342,6 @@ pub fn check_private_instance(
 }
 
 /// If private messages are disabled, dont allow them to be sent / received
-#[tracing::instrument(skip_all)]
 pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.local_user.enable_private_messages {
     Err(LemmyErrorType::CouldntCreatePrivateMessage)?
@@ -357,7 +350,6 @@ pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub async fn build_federated_instances(
   local_site: &LocalSite,
   pool: &mut DbPool<'_>,
@@ -1035,7 +1027,6 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub fn check_conflicting_like_filters(
   liked_only: Option<bool>,
   disliked_only: Option<bool>,
@@ -1151,7 +1142,6 @@ fn build_proxied_image_url(
   ))
 }
 
-#[tracing::instrument(skip_all)]
 pub async fn local_user_view_from_jwt(
   jwt: &str,
   context: &LemmyContext,
@@ -1213,8 +1203,8 @@ mod tests {
     },
     ModlogActionType,
   };
-  use lemmy_db_views_moderator::{
-    modlog_combined_view::ModlogCombinedQuery,
+  use lemmy_db_views::{
+    combined::modlog_combined_view::ModlogCombinedQuery,
     structs::{ModRemoveCommentView, ModRemovePostView, ModlogCombinedView},
   };
   use pretty_assertions::assert_eq;

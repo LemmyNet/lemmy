@@ -3,11 +3,9 @@ use lemmy_api_common::{
   context::LemmyContext,
   person::{ListInbox, ListInboxResponse},
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::inbox_combined_view::InboxCombinedQuery;
+use lemmy_db_views::{combined::inbox_combined_view::InboxCombinedQuery, structs::LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn list_inbox(
   data: Query<ListInbox>,
   context: Data<LemmyContext>,

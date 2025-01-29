@@ -4,7 +4,6 @@ use lemmy_db_schema::source::post::PostRead;
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS};
 
-#[tracing::instrument(skip(context))]
 pub async fn mark_posts_as_read(
   data: Json<MarkManyPostsAsRead>,
   context: Data<LemmyContext>,

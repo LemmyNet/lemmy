@@ -43,13 +43,11 @@ impl ActivityHandler for Delete {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     verify_delete_activity(self, self.summary.is_some(), context).await?;
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     if let Some(reason) = self.summary {
@@ -107,7 +105,6 @@ impl Delete {
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub(in crate::activities) async fn receive_remove_action(
   actor: &ApubPerson,
   object: &Url,

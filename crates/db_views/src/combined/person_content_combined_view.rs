@@ -3,7 +3,7 @@ use crate::structs::{
   LocalUserView,
   PersonContentCombinedPaginationCursor,
   PersonContentCombinedView,
-  PersonContentViewInternal,
+  PersonContentCombinedViewInternal,
   PostView,
 };
 use diesel::{
@@ -235,7 +235,9 @@ impl PersonContentCombinedQuery {
       // Tie breaker
       .then_desc(key::id);
 
-    let res = query.load::<PersonContentViewInternal>(conn).await?;
+    let res = query
+      .load::<PersonContentCombinedViewInternal>(conn)
+      .await?;
 
     // Map the query results to the enum
     let out = res
@@ -247,7 +249,7 @@ impl PersonContentCombinedQuery {
   }
 }
 
-impl InternalToCombinedView for PersonContentViewInternal {
+impl InternalToCombinedView for PersonContentCombinedViewInternal {
   type CombinedView = PersonContentCombinedView;
 
   fn map_to_enum(self) -> Option<Self::CombinedView> {
@@ -299,7 +301,7 @@ impl InternalToCombinedView for PersonContentViewInternal {
 mod tests {
 
   use crate::{
-    person_content_combined_view::PersonContentCombinedQuery,
+    combined::person_content_combined_view::PersonContentCombinedQuery,
     structs::PersonContentCombinedView,
   };
   use lemmy_db_schema::{

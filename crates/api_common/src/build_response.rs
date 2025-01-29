@@ -25,8 +25,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views::structs::{CommentView, LocalUserView, PostView};
-use lemmy_db_views_actor::structs::CommunityView;
+use lemmy_db_views::structs::{CommentView, CommunityView, LocalUserView, PostView};
 use lemmy_utils::{
   error::LemmyResult,
   utils::{markdown::markdown_to_html, mention::MentionData},
@@ -92,7 +91,7 @@ pub async fn build_post_response(
 }
 
 // TODO: this function is a mess and should be split up to handle email separately
-#[tracing::instrument(skip_all)]
+
 pub async fn send_local_notifs(
   mentions: Vec<MentionData>,
   post_or_comment_id: PostOrCommentId,

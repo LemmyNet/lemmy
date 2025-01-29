@@ -12,11 +12,9 @@ use lemmy_db_schema::{
   },
   traits::{Blockable, Followable},
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::CommunityView;
+use lemmy_db_views::structs::{CommunityView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn user_block_community(
   data: Json<BlockCommunity>,
   context: Data<LemmyContext>,

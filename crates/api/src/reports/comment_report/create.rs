@@ -22,7 +22,6 @@ use lemmy_db_views::structs::{CommentReportView, CommentView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 /// Creates a comment report and notifies the moderators of the community
-#[tracing::instrument(skip(context))]
 pub async fn create_comment_report(
   data: Json<CreateCommentReport>,
   context: Data<LemmyContext>,

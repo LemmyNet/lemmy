@@ -592,7 +592,7 @@ impl InternalToCombinedView for ModlogCombinedViewInternal {
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{modlog_combined_view::ModlogCombinedQuery, structs::ModlogCombinedView};
+  use crate::{combined::modlog_combined_view::ModlogCombinedQuery, structs::ModlogCombinedView};
   use lemmy_db_schema::{
     newtypes::PersonId,
     source::{

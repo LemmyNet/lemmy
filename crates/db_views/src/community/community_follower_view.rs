@@ -53,22 +53,6 @@ impl CommunityFollowerView {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
-  pub async fn get_community_follower_inboxes(
-    pool: &mut DbPool<'_>,
-    community_id: CommunityId,
-  ) -> Result<Vec<DbUrl>, Error> {
-    let conn = &mut get_conn(pool).await?;
-    let res = action_query(community_actions::followed)
-      .filter(community_actions::community_id.eq(community_id))
-      .filter(not(person::local))
-      .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
-      .select(person::inbox_url)
-      .distinct()
-      .load::<DbUrl>(conn)
-      .await?;
-
-    Ok(res)
-  }
   pub async fn count_community_followers(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,

@@ -20,7 +20,6 @@ pub(crate) struct PostQuery {
 }
 
 /// Return the ActivityPub json representation of a local post over HTTP.
-#[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_post(
   info: web::Path<PostQuery>,
   context: Data<LemmyContext>,

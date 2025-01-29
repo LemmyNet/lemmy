@@ -9,7 +9,6 @@ use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::error::LemmyResult;
 use tracing::error;
 
-#[tracing::instrument(skip(context))]
 pub async fn reset_password(
   data: Json<PasswordReset>,
   context: Data<LemmyContext>,

@@ -927,3 +927,126 @@ CREATE TRIGGER require_uplete
     FOR EACH STATEMENT
     EXECUTE FUNCTION r.require_uplete ();
 
+-- search: (post, comment, community, person)
+CREATE PROCEDURE r.create_search_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.search_combined_thing_insert ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                -- TODO need to figure out how to do the other columns here
+                INSERT INTO search_combined (published, thing_id)
+                    VALUES (NEW.published, NEW.id);
+                RETURN NEW;
+            END $$;
+    CREATE TRIGGER search_combined
+        AFTER INSERT ON thing
+        FOR EACH ROW
+        EXECUTE FUNCTION r.search_combined_thing_insert ( );
+        $b$,
+        'thing',
+        table_name);
+END;
+$a$;
+
+CALL r.create_search_combined_trigger ('post');
+
+CALL r.create_search_combined_trigger ('comment');
+
+CALL r.create_search_combined_trigger ('community');
+
+CALL r.create_search_combined_trigger ('person');
+
+-- You also need to triggers to update the `score` column.
+-- post | post_aggregates::score
+-- comment | comment_aggregates::score
+-- community | community_aggregates::users_active_monthly
+-- person | person_aggregates::post_score
+--
+-- Post score
+CREATE FUNCTION r.search_combined_post_score_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        search_combined
+    SET
+        score = NEW.score
+    WHERE
+        post_id = NEW.post_id;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER search_combined_post_score
+    AFTER UPDATE OF score ON post_aggregates
+    FOR EACH ROW
+    EXECUTE FUNCTION r.search_combined_post_score_update ();
+
+-- Comment score
+CREATE FUNCTION r.search_combined_comment_score_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        search_combined
+    SET
+        score = NEW.score
+    WHERE
+        comment_id = NEW.comment_id;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER search_combined_comment_score
+    AFTER UPDATE OF score ON comment_aggregates
+    FOR EACH ROW
+    EXECUTE FUNCTION r.search_combined_comment_score_update ();
+
+-- Person score
+CREATE FUNCTION r.search_combined_person_score_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        search_combined
+    SET
+        score = NEW.post_score
+    WHERE
+        person_id = NEW.person_id;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER search_combined_person_score
+    AFTER UPDATE OF post_score ON person_aggregates
+    FOR EACH ROW
+    EXECUTE FUNCTION r.search_combined_person_score_update ();
+
+-- Community score
+CREATE FUNCTION r.search_combined_community_score_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        search_combined
+    SET
+        score = NEW.users_active_month
+    WHERE
+        community_id = NEW.community_id;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER search_combined_community_score
+    AFTER UPDATE OF users_active_month ON community_aggregates
+    FOR EACH ROW
+    EXECUTE FUNCTION r.search_combined_community_score_update ();
+

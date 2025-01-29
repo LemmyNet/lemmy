@@ -146,7 +146,6 @@ fn build_totp_2fa(hostname: &str, username: &str, secret: &str) -> LemmyResult<T
 /// So when doing a site ban for a non-local user, you need to federate/send a
 /// community ban for every local community they've participated in.
 /// See https://github.com/LemmyNet/lemmy/issues/4118
-#[tracing::instrument(skip_all)]
 pub(crate) async fn ban_nonlocal_user_from_local_communities(
   local_user_view: &LocalUserView,
   target: &Person,
