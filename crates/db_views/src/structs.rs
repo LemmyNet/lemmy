@@ -1,11 +1,14 @@
 #[cfg(feature = "full")]
 use diesel::{
   deserialize::FromSqlRow,
+  dsl::exists,
   dsl::Nullable,
   expression::AsExpression,
   sql_types,
+  BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
+  QueryDsl,
   Queryable,
   Selectable,
 };
@@ -17,8 +20,8 @@ use lemmy_db_schema::{
     PostAggregates,
     SiteAggregates,
   },
-  aliases,
-  schema::{community_actions, local_user, person},
+  aliases::{creator_community_actions, person1},
+  schema::{comment, comment_actions, community_actions, local_user, person, person_actions},
   source::{
     comment::Comment,
     comment_reply::CommentReply,
@@ -104,24 +107,90 @@ pub struct CommentReportView {
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(TS, Queryable))]
+#[cfg_attr(feature = "full", derive(TS, Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", ts(export))]
 /// A comment view.
 pub struct CommentView {
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub comment: Comment,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub post: Post,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Community,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub counts: CommentAggregates,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression =
+        creator_community_actions
+          .field(community_actions::received_ban)
+          .nullable()
+          .is_not_null()
+    )
+  )]
   pub creator_banned_from_community: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression =
+        community_actions::received_ban.nullable().is_not_null()
+    )
+  )]
   pub banned_from_community: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression =
+        creator_community_actions
+          .field(community_actions::became_moderator)
+          .nullable()
+          .is_not_null()
+    )
+  )]
   pub creator_is_moderator: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression =
+        exists(
+          local_user::table.filter(
+            comment::creator_id
+              .eq(local_user::person_id)
+              .and(local_user::admin.eq(true))
+          )
+        )
+    )
+  )]
   pub creator_is_admin: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<community_actions::follow_state>,
+      select_expression =
+        CommunityFollower::select_subscribed_type(),
+    )
+  )]
   pub subscribed: SubscribedType,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression =
+        comment_actions::saved.nullable().is_not_null()
+    )
+  )]
   pub saved: bool,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression =
+        person_actions::blocked.nullable().is_not_null()
+    )
+  )]
   pub creator_blocked: bool,
   #[cfg_attr(feature = "full", ts(optional))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression =
+        comment_actions::like_score.nullable()
+    )
+  )]
   pub my_vote: Option<i16>,
 }
 
@@ -293,7 +362,7 @@ pub struct RegistrationApplicationView {
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Nullable<Person1AliasAllColumnsTuple>,
-      select_expression = aliases::person1.fields(person::all_columns).nullable()
+      select_expression = person1.fields(person::all_columns).nullable()
     )
   )]
   pub admin: Option<Person>,
@@ -651,7 +720,7 @@ pub struct PrivateMessageView {
   #[cfg_attr(feature = "full",
     diesel(
       select_expression_type = Person1AliasAllColumnsTuple,
-      select_expression = aliases::person1.fields(person::all_columns)
+      select_expression = person1.fields(person::all_columns)
     )
   )]
   pub recipient: Person,
