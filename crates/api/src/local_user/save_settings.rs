@@ -28,7 +28,6 @@ use lemmy_utils::{
 };
 use std::ops::Deref;
 
-#[tracing::instrument(skip(context))]
 pub async fn save_user_settings(
   data: Json<SaveUserSettings>,
   context: Data<LemmyContext>,

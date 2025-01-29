@@ -89,7 +89,6 @@ impl UrlVerifier for VerifyUrlData {
 /// - the correct scheme (either http or https)
 /// - URL being in the allowlist (if it is active)
 /// - URL not being in the blocklist (if it is active)
-#[tracing::instrument(skip(local_site_data))]
 fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> LemmyResult<()> {
   let domain = apub_id
     .domain()
@@ -213,7 +212,6 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
 ///
 /// This ensures that the same activity doesn't get received and processed more than once, which
 /// would be a waste of resources.
-#[tracing::instrument(skip(data))]
 async fn insert_received_activity(ap_id: &Url, data: &Data<LemmyContext>) -> LemmyResult<()> {
   ReceivedActivity::create(&mut data.pool(), &ap_id.clone().into()).await?;
   Ok(())

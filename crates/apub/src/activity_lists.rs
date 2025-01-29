@@ -73,7 +73,6 @@ pub enum AnnouncableActivities {
 
 #[async_trait::async_trait]
 impl InCommunity for AnnouncableActivities {
-  #[tracing::instrument(skip(self, context))]
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
     use AnnouncableActivities::*;
     match self {

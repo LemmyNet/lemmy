@@ -43,7 +43,6 @@ use lemmy_utils::{
   },
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn update_site(
   data: Json<EditSite>,
   context: Data<LemmyContext>,

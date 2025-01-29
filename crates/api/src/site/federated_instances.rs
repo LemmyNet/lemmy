@@ -7,7 +7,6 @@ use lemmy_api_common::{
 use lemmy_db_views::structs::SiteView;
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn get_federated_instances(
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<GetFederatedInstancesResponse>> {

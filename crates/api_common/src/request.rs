@@ -49,7 +49,6 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
 }
 
 /// Fetches metadata for the given link and optionally generates thumbnail.
-#[tracing::instrument(skip_all)]
 pub async fn fetch_link_metadata(
   url: &Url,
   context: &LemmyContext,
@@ -422,7 +421,6 @@ pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> Le
 }
 
 /// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
-#[tracing::instrument(skip_all)]
 async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> LemmyResult<Url> {
   let pictrs_config = context.settings().pictrs()?;
 
@@ -476,7 +474,6 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
 /// Fetches the image details for pictrs proxied images
 ///
 /// We don't need to check for image mode, as that's already been done
-#[tracing::instrument(skip_all)]
 pub async fn fetch_pictrs_proxied_image_details(
   image_url: &Url,
   context: &LemmyContext,
@@ -512,7 +509,7 @@ pub async fn fetch_pictrs_proxied_image_details(
 }
 
 // TODO: get rid of this by reading content type from db
-#[tracing::instrument(skip_all)]
+
 async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> LemmyResult<()> {
   let response = client.get(url.as_str()).send().await?;
   if response

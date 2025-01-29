@@ -14,7 +14,6 @@ use lemmy_db_schema::source::{
 use lemmy_db_views::structs::{CommunityModeratorView, CommunityView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn get_community(
   data: Query<GetCommunity>,
   context: Data<LemmyContext>,

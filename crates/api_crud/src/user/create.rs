@@ -193,7 +193,6 @@ pub async fn register(
   Ok(Json(login_response))
 }
 
-#[tracing::instrument(skip(context))]
 pub async fn authenticate_with_oauth(
   data: Json<AuthenticateWithOauth>,
   req: HttpRequest,
@@ -404,7 +403,7 @@ pub async fn authenticate_with_oauth(
     login_response.jwt = Some(jwt);
   }
 
-  return Ok(Json(login_response));
+  Ok(Json(login_response))
 }
 
 async fn create_person(

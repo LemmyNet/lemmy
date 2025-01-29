@@ -44,12 +44,10 @@ impl ActivityHandler for RawAnnouncableActivities {
     &self.actor
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, _data: &Data<Self::DataType>) -> Result<(), Self::Error> {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let activity: AnnouncableActivities = self.clone().try_into()?;
 
@@ -107,7 +105,6 @@ impl AnnounceActivity {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   pub async fn send(
     object: RawAnnouncableActivities,
     community: &ApubCommunity,
@@ -154,12 +151,10 @@ impl ActivityHandler for AnnounceActivity {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;

@@ -8,7 +8,6 @@ use lemmy_db_schema::source::local_site::LocalSite;
 use lemmy_db_views::{combined::modlog_combined_view::ModlogCombinedQuery, structs::LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn get_mod_log(
   data: Query<GetModlog>,
   context: Data<LemmyContext>,
