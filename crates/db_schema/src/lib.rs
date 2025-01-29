@@ -334,6 +334,7 @@ macro_rules! assert_length {
   }};
 }
 
+#[cfg(feature = "full")]
 /// A helper tuple for person alias columns
 pub type Person1AliasAllColumnsTuple = (
   AliasedField<aliases::Person1, person::id>,
