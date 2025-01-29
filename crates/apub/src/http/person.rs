@@ -16,7 +16,6 @@ pub struct PersonQuery {
 }
 
 /// Return the ActivityPub json representation of a local person over HTTP.
-
 pub(crate) async fn get_apub_person_http(
   info: web::Path<PersonQuery>,
   context: Data<LemmyContext>,

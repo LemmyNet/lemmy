@@ -9,7 +9,6 @@ use lemmy_db_views::structs::{CommentReportView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 /// Resolves or unresolves a comment report and notifies the moderators of the community
-
 pub async fn resolve_comment_report(
   data: Json<ResolveCommentReport>,
   context: Data<LemmyContext>,

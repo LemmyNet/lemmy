@@ -403,7 +403,7 @@ pub async fn authenticate_with_oauth(
     login_response.jwt = Some(jwt);
   }
 
-  return Ok(Json(login_response));
+  Ok(Json(login_response))
 }
 
 async fn create_person(

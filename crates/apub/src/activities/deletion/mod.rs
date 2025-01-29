@@ -49,7 +49,6 @@ pub mod undo_delete;
 
 /// Parameter `reason` being set indicates that this is a removal by a mod. If its unset, this
 /// action was done by a normal user.
-
 pub(crate) async fn send_apub_delete_in_community(
   actor: Person,
   community: Community,
@@ -233,7 +232,6 @@ async fn verify_delete_post_or_comment(
 }
 
 /// Write deletion or restoring of an object to the database, and send websocket message.
-
 async fn receive_delete_action(
   object: &Url,
   actor: &ObjectId<ApubPerson>,

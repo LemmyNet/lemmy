@@ -421,7 +421,6 @@ pub async fn delete_image_from_pictrs(alias: &str, context: &LemmyContext) -> Le
 }
 
 /// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
-
 async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> LemmyResult<Url> {
   let pictrs_config = context.settings().pictrs()?;
 
@@ -475,7 +474,6 @@ async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> L
 /// Fetches the image details for pictrs proxied images
 ///
 /// We don't need to check for image mode, as that's already been done
-
 pub async fn fetch_pictrs_proxied_image_details(
   image_url: &Url,
   context: &LemmyContext,

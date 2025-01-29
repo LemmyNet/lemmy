@@ -20,7 +20,6 @@ pub(crate) struct CommentQuery {
 }
 
 /// Return the ActivityPub json representation of a local comment over HTTP.
-
 pub(crate) async fn get_apub_comment(
   info: Path<CommentQuery>,
   context: Data<LemmyContext>,

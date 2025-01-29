@@ -38,7 +38,6 @@ pub struct CommunityIsFollowerQuery {
 }
 
 /// Return the ActivityPub json representation of a local community over HTTP.
-
 pub(crate) async fn get_apub_community_http(
   info: Path<CommunityPath>,
   context: Data<LemmyContext>,

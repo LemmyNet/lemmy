@@ -130,7 +130,6 @@ impl Object for ApubComment {
 
   /// Recursively fetches all parent comments. This can lead to a stack overflow so we need to
   /// Box::pin all large futures on the heap.
-
   async fn verify(
     note: &Note,
     expected_domain: &Url,
@@ -170,7 +169,6 @@ impl Object for ApubComment {
   /// Converts a `Note` to `Comment`.
   ///
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
-
   async fn from_json(note: Note, context: &Data<LemmyContext>) -> LemmyResult<ApubComment> {
     let creator = note.attributed_to.dereference(context).await?;
     let (post, parent_comment) = note.get_parents(context).await?;

@@ -22,7 +22,6 @@ use lemmy_db_views::{
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 /// A common fetcher for both the CommentView, and CommentSlimView.
-
 async fn list_comments_common(
   data: Query<GetComments>,
   context: Data<LemmyContext>,

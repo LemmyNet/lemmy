@@ -114,7 +114,6 @@ pub async fn is_mod_or_admin_opt(
 /// Check that a person is either a mod of any community, or an admin
 ///
 /// Should only be used for read operations
-
 pub async fn check_community_mod_of_any_or_admin_action(
   local_user_view: &LocalUserView,
   pool: &mut DbPool<'_>,
@@ -152,7 +151,6 @@ pub fn is_top_mod(
 }
 
 /// Updates the read comment count for a post. Usually done when reading or creating a new comment.
-
 pub async fn update_read_comments(
   person_id: PersonId,
   post_id: PostId,
@@ -324,7 +322,6 @@ pub async fn check_local_vote_mode(
 }
 
 /// Dont allow bots to do certain actions, like voting
-
 pub fn check_bot_account(person: &Person) -> LemmyResult<()> {
   if person.bot_account {
     Err(LemmyErrorType::InvalidBotAction)?
@@ -345,7 +342,6 @@ pub fn check_private_instance(
 }
 
 /// If private messages are disabled, dont allow them to be sent / received
-
 pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.local_user.enable_private_messages {
     Err(LemmyErrorType::CouldntCreatePrivateMessage)?
