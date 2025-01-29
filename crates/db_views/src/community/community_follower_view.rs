@@ -47,9 +47,7 @@ impl CommunityFollowerView {
     // that would work for all instances that support fully shared inboxes.
     // It would be a bit more complicated though to keep it in sync.
 
-    community_actions::table
-      .inner_join(community::table)
-      .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
+    Self::joins()
       .filter(person::instance_id.eq(instance_id))
       .filter(community::local) // this should be a no-op since community_followers table only has
       // local-person+remote-community or remote-person+local-community
@@ -77,6 +75,7 @@ impl CommunityFollowerView {
 
     Ok(res)
   }
+
   pub async fn count_community_followers(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,

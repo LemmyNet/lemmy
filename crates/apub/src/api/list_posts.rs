@@ -20,7 +20,6 @@ use lemmy_db_views::{
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn list_posts(
   data: Query<GetPosts>,
   context: Data<LemmyContext>,

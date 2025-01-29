@@ -95,7 +95,6 @@ pub struct ActivityQuery {
 }
 
 /// Return the ActivityPub json representation of a local activity over HTTP.
-#[tracing::instrument(skip_all)]
 pub(crate) async fn get_activity(
   info: web::Path<ActivityQuery>,
   context: web::Data<LemmyContext>,

@@ -29,7 +29,6 @@ use lemmy_utils::{
   utils::{slurs::check_slurs_opt, validation::is_valid_body_field},
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn update_community(
   data: Json<EditCommunity>,
   context: Data<LemmyContext>,

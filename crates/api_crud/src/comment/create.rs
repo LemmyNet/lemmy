@@ -33,7 +33,6 @@ use lemmy_utils::{
   MAX_COMMENT_DEPTH_LIMIT,
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn create_comment(
   data: Json<CreateComment>,
   context: Data<LemmyContext>,

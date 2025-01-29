@@ -18,7 +18,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn purge_comment(
   data: Json<PurgeComment>,
   context: Data<LemmyContext>,

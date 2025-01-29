@@ -14,7 +14,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{LocalUserView, PersonView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn add_admin(
   data: Json<AddAdmin>,
   context: Data<LemmyContext>,

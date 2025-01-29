@@ -9,7 +9,6 @@ use lemmy_utils::error::LemmyResult;
 
 /// Lists reports for a community if an id is supplied
 /// or returns all reports for communities a user moderates
-#[tracing::instrument(skip(context))]
 pub async fn list_reports(
   data: Query<ListReports>,
   context: Data<LemmyContext>,

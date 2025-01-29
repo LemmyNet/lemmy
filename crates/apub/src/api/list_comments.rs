@@ -22,7 +22,6 @@ use lemmy_db_views::{
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 /// A common fetcher for both the CommentView, and CommentSlimView.
-#[tracing::instrument(skip(context))]
 async fn list_comments_common(
   data: Query<GetComments>,
   context: Data<LemmyContext>,
@@ -93,7 +92,6 @@ async fn list_comments_common(
   .with_lemmy_type(LemmyErrorType::CouldntGetComments)
 }
 
-#[tracing::instrument(skip(context))]
 pub async fn list_comments(
   data: Query<GetComments>,
   context: Data<LemmyContext>,
@@ -104,7 +102,6 @@ pub async fn list_comments(
   Ok(Json(GetCommentsResponse { comments }))
 }
 
-#[tracing::instrument(skip(context))]
 pub async fn list_comments_slim(
   data: Query<GetComments>,
   context: Data<LemmyContext>,

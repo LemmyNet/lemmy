@@ -20,7 +20,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{CommunityModeratorView, LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn purge_community(
   data: Json<PurgeCommunity>,
   context: Data<LemmyContext>,

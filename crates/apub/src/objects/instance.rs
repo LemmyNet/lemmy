@@ -77,7 +77,6 @@ impl Object for ApubSite {
     Some(self.last_refreshed_at)
   }
 
-  #[tracing::instrument(skip_all)]
   async fn read_from_id(object_id: Url, data: &Data<Self::DataType>) -> LemmyResult<Option<Self>> {
     Ok(
       Site::read_from_apub_id(&mut data.pool(), &object_id.into())
@@ -90,7 +89,6 @@ impl Object for ApubSite {
     Err(FederationError::CantDeleteSite.into())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     let site_id = self.id;
     let langs = SiteLanguage::read(&mut data.pool(), site_id).await?;
@@ -118,7 +116,6 @@ impl Object for ApubSite {
     Ok(instance)
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(
     apub: &Self::Kind,
     expected_domain: &Url,
@@ -136,7 +133,6 @@ impl Object for ApubSite {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn from_json(apub: Self::Kind, context: &Data<Self::DataType>) -> LemmyResult<Self> {
     let domain = apub
       .id

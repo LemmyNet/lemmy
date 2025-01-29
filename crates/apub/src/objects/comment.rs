@@ -64,7 +64,6 @@ impl Object for ApubComment {
     None
   }
 
-  #[tracing::instrument(skip_all)]
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
@@ -76,7 +75,6 @@ impl Object for ApubComment {
     )
   }
 
-  #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     if !self.deleted {
       let form = CommentUpdateForm {
@@ -88,7 +86,6 @@ impl Object for ApubComment {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Note> {
     let creator_id = self.creator_id;
     let creator = Person::read(&mut context.pool(), creator_id).await?;
@@ -130,7 +127,6 @@ impl Object for ApubComment {
 
   /// Recursively fetches all parent comments. This can lead to a stack overflow so we need to
   /// Box::pin all large futures on the heap.
-  #[tracing::instrument(skip_all)]
   async fn verify(
     note: &Note,
     expected_domain: &Url,
@@ -170,7 +166,6 @@ impl Object for ApubComment {
   /// Converts a `Note` to `Comment`.
   ///
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
-  #[tracing::instrument(skip_all)]
   async fn from_json(note: Note, context: &Data<LemmyContext>) -> LemmyResult<ApubComment> {
     let creator = note.attributed_to.dereference(context).await?;
     let (post, parent_comment) = note.get_parents(context).await?;

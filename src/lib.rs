@@ -138,9 +138,6 @@ enum MigrationSubcommand {
 
 /// Placing the main function in lib.rs allows other crates to import it and embed Lemmy
 pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
-  // Print version number to log
-  println!("Starting Lemmy v{VERSION}");
-
   if let Some(CmdSubcommand::Migration {
     subcommand,
     all,
@@ -150,7 +147,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     let mut options = match subcommand {
       MigrationSubcommand::Run => schema_setup::Options::default().run(),
       MigrationSubcommand::Revert => schema_setup::Options::default().revert(),
-    };
+    }
+    .print_output();
 
     if !all {
       options = options.limit(number);
@@ -160,6 +158,9 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
 
     return Ok(());
   }
+
+  // Print version number to log
+  println!("Starting Lemmy v{VERSION}");
 
   // return error 503 while running db migrations and startup tasks
   let mut startup_server_handle = None;

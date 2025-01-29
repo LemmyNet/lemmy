@@ -59,7 +59,6 @@ pub mod voting;
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
-#[tracing::instrument(skip_all)]
 async fn verify_person(
   person_id: &ObjectId<ApubPerson>,
   context: &Data<LemmyContext>,
@@ -75,7 +74,6 @@ async fn verify_person(
 
 /// Fetches the person and community to verify their type, then checks if person is banned from site
 /// or community.
-#[tracing::instrument(skip_all)]
 pub(crate) async fn verify_person_in_community(
   person_id: &ObjectId<ApubPerson>,
   community: &ApubCommunity,
@@ -97,7 +95,6 @@ pub(crate) async fn verify_person_in_community(
 /// * `mod_id` - Activitypub ID of the mod or admin who performed the action
 /// * `object_id` - Activitypub ID of the actor or object that is being moderated
 /// * `community` - The community inside which moderation is happening
-#[tracing::instrument(skip_all)]
 pub(crate) async fn verify_mod_action(
   mod_id: &ObjectId<ApubPerson>,
   community: &Community,
@@ -190,7 +187,6 @@ pub(crate) trait GetActorType {
   fn actor_type(&self) -> ActorType;
 }
 
-#[tracing::instrument(skip_all)]
 async fn send_lemmy_activity<Activity, ActorT>(
   data: &Data<LemmyContext>,
   activity: Activity,

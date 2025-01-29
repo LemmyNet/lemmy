@@ -8,7 +8,6 @@ use lemmy_db_views::structs::{CommentView, LocalUserView, VoteView};
 use lemmy_utils::error::LemmyResult;
 
 /// Lists likes for a comment
-#[tracing::instrument(skip(context))]
 pub async fn list_comment_likes(
   data: Query<ListCommentLikes>,
   context: Data<LemmyContext>,

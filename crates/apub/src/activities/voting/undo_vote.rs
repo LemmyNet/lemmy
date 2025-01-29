@@ -53,7 +53,6 @@ impl ActivityHandler for UndoVote {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
@@ -62,7 +61,6 @@ impl ActivityHandler for UndoVote {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;
