@@ -1,8 +1,15 @@
 use crate::structs::{CommunityModeratorView, CommunitySortType, CommunityView, PersonView};
-use diesel::{result::Error, BoolExpressionMethods, ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  actions_utils::{community_actions_join, instance_actions_join},
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
   schema::{community, community_actions, community_aggregates, instance_actions},
@@ -19,11 +26,17 @@ use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 impl CommunityView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(person_id: Option<PersonId>) -> _ {
-    #[rustfmt::skip]
-    let community_actions_join = community_actions_join::<>(person_id);
+    let community_actions_join = community_actions::table.on(
+      community_actions::community_id
+        .eq(community::id)
+        .and(community_actions::person_id.nullable().eq(person_id)),
+    );
 
-    #[rustfmt::skip]
-    let instance_actions_join = instance_actions_join::<>(person_id);
+    let instance_actions_join = instance_actions::table.on(
+      instance_actions::instance_id
+        .eq(community::instance_id)
+        .and(instance_actions::person_id.nullable().eq(person_id)),
+    );
 
     community::table
       .inner_join(community_aggregates::table)
