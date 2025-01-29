@@ -9,7 +9,6 @@ use lemmy_db_views::structs::{LocalUserView, PostReportView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 /// Resolves or unresolves a post report and notifies the moderators of the community
-#[tracing::instrument(skip(context))]
 pub async fn resolve_post_report(
   data: Json<ResolvePostReport>,
   context: Data<LemmyContext>,

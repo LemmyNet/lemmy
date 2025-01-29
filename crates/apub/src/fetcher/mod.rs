@@ -20,7 +20,6 @@ pub mod user_or_community;
 ///
 /// In case the requesting user is logged in and the object was not found locally, it is attempted
 /// to fetch via webfinger from the original instance.
-#[tracing::instrument(skip_all)]
 pub async fn resolve_actor_identifier<ActorType, DbActor>(
   identifier: &str,
   context: &Data<LemmyContext>,

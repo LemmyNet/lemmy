@@ -16,7 +16,6 @@ pub struct PersonQuery {
 }
 
 /// Return the ActivityPub json representation of a local person over HTTP.
-#[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_person_http(
   info: web::Path<PersonQuery>,
   context: Data<LemmyContext>,
@@ -37,7 +36,6 @@ pub(crate) async fn get_apub_person_http(
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub(crate) async fn get_apub_person_outbox(
   info: web::Path<PersonQuery>,
   context: Data<LemmyContext>,
