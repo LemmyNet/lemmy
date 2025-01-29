@@ -232,10 +232,7 @@ impl InstanceWorker {
     } else {
       // this is the initial creation (instance first seen) of the federation queue for this
       // instance
-
-      // skip all past activities:
-      self.state.last_successful_id = Some(latest_id);
-      // save here to ensure it's not read as 0 again later if no activities have happened
+      self.state.last_successful_id = Some(ActivityId(0));
       self.save_and_send_state().await?;
       latest_id
     };

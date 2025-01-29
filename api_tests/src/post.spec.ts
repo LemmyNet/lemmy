@@ -680,29 +680,14 @@ test("A and G subscribe to B (center) A posts, it gets announced to G", async ()
 });
 
 test("Report a post", async () => {
-  // TODO: epsilon should have no allowlist so dont know why this is necessary
-  await allowInstance(epsilon, "lemmy-alpha");
-  await allowInstance(epsilon, "lemmy-beta");
-  await allowInstance(epsilon, "lemmy-gamma");
-
   // Create post from alpha
   let alphaCommunity = (await resolveBetaCommunity(alpha)).community!;
   await followBeta(alpha);
-  let postRes = await createPost(alpha, alphaCommunity.community.id);
-  expect(postRes.post_view.post).toBeDefined();
-
-  let alphaPost = (await resolvePost(alpha, postRes.post_view.post)).post;
-  if (!alphaPost) {
-    throw "Missing alpha post";
-  }
+  let alphaPost = await createPost(alpha, alphaCommunity.community.id);
+  expect(alphaPost.post_view.post).toBeDefined();
 
   // add remote mod on epsilon
-  let epsilonCommunity = await resolveBetaCommunity(epsilon);
-  await followCommunity(
-    epsilon,
-    true,
-    epsilonCommunity.community!.community.id,
-  );
+  await followBeta(epsilon);
 
   let betaCommunity = (await resolveBetaCommunity(beta)).community!;
   let epsilonUser = (
@@ -717,7 +702,7 @@ test("Report a post", async () => {
   expect(res.moderators.length).toBe(2);
 
   // Send report from gamma
-  let gammaPost = (await resolvePost(gamma, alphaPost.post)).post!;
+  let gammaPost = (await resolvePost(gamma, alphaPost.post_view.post)).post!;
   let gammaReport = (
     await reportPost(gamma, gammaPost.post.id, randomString(10))
   ).post_report_view.post_report;

@@ -184,12 +184,6 @@ export async function setupLogins() {
 
   await allowInstance(delta, "lemmy-beta");
 
-  /*
-  await allowInstance(epsilon, "lemmy-alpha");
-  await allowInstance(epsilon, "lemmy-beta");
-  await allowInstance(epsilon, "lemmy-gamma");
-  */
-
   // Create the main alpha/beta communities
   // Ignore thrown errors of duplicates
   try {
