@@ -43,7 +43,6 @@ use lemmy_utils::{
   },
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn create_post(
   data: Json<CreatePost>,
   context: Data<LemmyContext>,

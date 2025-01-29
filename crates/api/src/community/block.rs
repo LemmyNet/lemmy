@@ -15,7 +15,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{CommunityView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn user_block_community(
   data: Json<BlockCommunity>,
   context: Data<LemmyContext>,

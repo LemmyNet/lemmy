@@ -81,7 +81,6 @@ impl Object for ApubPost {
     None
   }
 
-  #[tracing::instrument(skip_all)]
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
@@ -93,7 +92,6 @@ impl Object for ApubPost {
     )
   }
 
-  #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     if !self.deleted {
       let form = PostUpdateForm {
@@ -106,7 +104,7 @@ impl Object for ApubPost {
   }
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
-  #[tracing::instrument(skip_all)]
+
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Page> {
     let creator_id = self.creator_id;
     let creator = Person::read(&mut context.pool(), creator_id).await?;
@@ -154,7 +152,6 @@ impl Object for ApubPost {
     Ok(page)
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(
     page: &Page,
     expected_domain: &Url,
@@ -176,7 +173,6 @@ impl Object for ApubPost {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> LemmyResult<ApubPost> {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;

@@ -91,7 +91,7 @@ pub async fn build_post_response(
 }
 
 // TODO: this function is a mess and should be split up to handle email separately
-#[tracing::instrument(skip_all)]
+
 pub async fn send_local_notifs(
   mentions: Vec<MentionData>,
   post_or_comment_id: PostOrCommentId,
