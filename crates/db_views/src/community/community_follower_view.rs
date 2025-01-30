@@ -145,7 +145,14 @@ impl CommunityFollowerView {
         ),
     ));
 
-    let mut query = Self::joins().into_boxed();
+    let mut query = Self::joins()
+      .select((
+        person::all_columns,
+        community::all_columns,
+        is_new_instance,
+        CommunityFollower::select_subscribed_type(),
+      ))
+      .into_boxed();
     if all_communities {
       // if param is false, only return items for communities where user is a mod
       query = query
@@ -160,12 +167,6 @@ impl CommunityFollowerView {
       .order_by(community_actions::followed.asc())
       .limit(limit)
       .offset(offset)
-      .select((
-        person::all_columns,
-        community::all_columns,
-        is_new_instance,
-        CommunityFollower::select_subscribed_type(),
-      ))
       .load::<(Person, Community, bool, SubscribedType)>(conn)
       .await?;
     Ok(

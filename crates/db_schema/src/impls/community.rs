@@ -20,8 +20,6 @@ use crate::{
   },
   traits::{ApubActor, Bannable, Crud, Followable, Joinable},
   utils::{
-    action_query,
-    find_action,
     functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
     get_conn,
     now,
@@ -308,7 +306,8 @@ impl CommunityModerator {
     for_person_id: PersonId,
   ) -> Result<Vec<CommunityId>, Error> {
     let conn = &mut get_conn(pool).await?;
-    action_query(community_actions::became_moderator)
+    community_actions::table
+      .filter(community_actions::became_moderator.is_not_null())
       .filter(community_actions::person_id.eq(for_person_id))
       .select(community_actions::community_id)
       .load::<CommunityId>(conn)
@@ -329,7 +328,8 @@ impl CommunityModerator {
     persons.push(mod_person_id);
     persons.dedup();
 
-    let res = action_query(community_actions::became_moderator)
+    let res = community_actions::table
+      .filter(community_actions::became_moderator.is_not_null())
       .filter(community_actions::community_id.eq(for_community_id))
       .filter(community_actions::person_id.eq_any(persons))
       .order_by(community_actions::became_moderator)
@@ -400,14 +400,14 @@ impl CommunityFollower {
     remote_community_id: CommunityId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    select(exists(
-      action_query(community_actions::followed)
-        .filter(community_actions::community_id.eq(remote_community_id)),
-    ))
-    .get_result::<bool>(conn)
-    .await?
-    .then_some(())
-    .ok_or(LemmyErrorType::CommunityHasNoFollowers.into())
+    let find_action = community_actions::table
+      .filter(community_actions::followed.is_not_null())
+      .filter(community_actions::community_id.eq(remote_community_id));
+    select(exists(find_action))
+      .get_result::<bool>(conn)
+      .await?
+      .then_some(())
+      .ok_or(LemmyErrorType::CommunityHasNoFollowers.into())
   }
 
   pub async fn approve(
@@ -417,16 +417,16 @@ impl CommunityFollower {
     approver_id: PersonId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(find_action(
-      community_actions::followed,
-      (follower_id, community_id),
-    ))
-    .set((
-      community_actions::follow_state.eq(CommunityFollowerState::Accepted),
-      community_actions::follow_approver_id.eq(approver_id),
-    ))
-    .execute(conn)
-    .await?;
+    let find_action = community_actions::table
+      .find((follower_id, community_id))
+      .filter(community_actions::followed.is_not_null());
+    diesel::update(find_action)
+      .set((
+        community_actions::follow_state.eq(CommunityFollowerState::Accepted),
+        community_actions::follow_approver_id.eq(approver_id),
+      ))
+      .execute(conn)
+      .await?;
     Ok(())
   }
 }
@@ -469,14 +469,14 @@ impl Followable for CommunityFollower {
     person_id: PersonId,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    diesel::update(find_action(
-      community_actions::follow_state,
-      (person_id, community_id),
-    ))
-    .set(community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted)))
-    .returning(Self::as_select())
-    .get_result::<Self>(conn)
-    .await
+    let find_action = community_actions::table
+      .find((person_id, community_id))
+      .filter(community_actions::follow_state.is_not_null());
+    diesel::update(find_action)
+      .set(community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted)))
+      .returning(Self::as_select())
+      .get_result::<Self>(conn)
+      .await
   }
   async fn unfollow(
     pool: &mut DbPool<'_>,

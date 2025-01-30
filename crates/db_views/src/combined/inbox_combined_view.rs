@@ -204,6 +204,7 @@ impl InboxCombinedViewInternal {
       // Don't count replies from blocked users
       .filter(person_actions::blocked.is_null())
       .filter(instance_actions::blocked.is_null())
+      .select(count(inbox_combined::id))
       .into_boxed();
 
     // These filters need to be kept in sync with the filters in queries().list()
@@ -211,10 +212,7 @@ impl InboxCombinedViewInternal {
       query = query.filter(not(person::bot_account));
     }
 
-    query
-      .select(count(inbox_combined::id))
-      .first::<i64>(conn)
-      .await
+    query.first::<i64>(conn).await
   }
 }
 

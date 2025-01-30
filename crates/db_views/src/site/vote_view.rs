@@ -1,11 +1,18 @@
 use crate::structs::VoteView;
-use diesel::{result::Error, ExpressionMethods, NullableExpressionMethods, QueryDsl};
+use diesel::{
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases::creator_community_actions,
   newtypes::{CommentId, PostId},
   schema::{comment, comment_actions, community_actions, person, post, post_actions},
-  utils::{action_query, actions_alias, get_conn, limit_and_offset, DbPool},
+  utils::{get_conn, limit_and_offset, DbPool},
 };
 
 impl VoteView {
@@ -18,14 +25,22 @@ impl VoteView {
     let conn = &mut get_conn(pool).await?;
     let (limit, offset) = limit_and_offset(page, limit)?;
 
-    action_query(post_actions::like_score)
+    let creator_community_actions_join = creator_community_actions.on(
+      creator_community_actions
+        .field(community_actions::community_id)
+        .eq(post::community_id)
+        .and(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(post_actions::person_id),
+        ),
+    );
+
+    post_actions::table
+      .filter(post_actions::like_score.is_not_null())
       .inner_join(person::table)
       .inner_join(post::table)
-      .left_join(actions_alias(
-        creator_community_actions,
-        post_actions::person_id,
-        post::community_id,
-      ))
+      .left_join(creator_community_actions_join)
       .filter(post_actions::post_id.eq(post_id))
       .select((
         person::all_columns,
@@ -51,14 +66,22 @@ impl VoteView {
     let conn = &mut get_conn(pool).await?;
     let (limit, offset) = limit_and_offset(page, limit)?;
 
-    action_query(comment_actions::like_score)
+    let creator_community_actions_join = creator_community_actions.on(
+      creator_community_actions
+        .field(community_actions::community_id)
+        .eq(post::community_id)
+        .and(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(comment_actions::person_id),
+        ),
+    );
+
+    comment_actions::table
+      .filter(comment_actions::like_score.is_not_null())
       .inner_join(person::table)
       .inner_join(comment::table.inner_join(post::table))
-      .left_join(actions_alias(
-        creator_community_actions,
-        comment_actions::person_id,
-        post::community_id,
-      ))
+      .left_join(creator_community_actions_join)
       .filter(comment_actions::comment_id.eq(comment_id))
       .select((
         person::all_columns,

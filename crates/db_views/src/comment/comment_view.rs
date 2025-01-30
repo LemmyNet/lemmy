@@ -168,7 +168,9 @@ impl CommentQuery<'_> {
     let my_person_id = o.local_user.person_id();
     let local_user_id = o.local_user.local_user_id();
 
-    let mut query = CommentView::joins(my_person_id).into_boxed();
+    let mut query = CommentView::joins(my_person_id)
+      .select(CommentView::as_select())
+      .into_boxed();
 
     if let Some(creator_id) = o.creator_id {
       query = query.filter(comment::creator_id.eq(creator_id));
@@ -314,16 +316,17 @@ impl CommentQuery<'_> {
       CommentSortType::Top => query.then_order_by(comment_aggregates::score.desc()),
     };
 
+    let res = query
+      .limit(limit)
+      .offset(offset)
+      .load::<CommentView>(conn)
+      .await?;
+
     let is_admin = o.local_user.map(|u| u.admin).unwrap_or(false);
 
     // Note: deleted and removed comments are done on the front side
     Ok(
-      query
-        .select(CommentView::as_select())
-        .limit(limit)
-        .offset(offset)
-        .load::<CommentView>(conn)
-        .await?
+      res
         .into_iter()
         .map(|c| handle_deleted(c, is_admin))
         .collect(),

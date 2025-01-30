@@ -42,7 +42,6 @@ use lemmy_db_schema::{
     site::Site,
   },
   utils::{
-    action_query,
     functions::coalesce,
     fuzzy_search,
     get_conn,
@@ -316,7 +315,8 @@ impl<'a> PostQuery<'a> {
     let self_person_id = self.local_user.expect("part of the above if").person_id;
     let largest_subscribed = {
       let conn = &mut get_conn(pool).await?;
-      action_query(community_actions::followed)
+      community_actions::table
+        .filter(community_actions::followed.is_not_null())
         .filter(community_actions::person_id.eq(self_person_id))
         .inner_join(community_aggregates.on(community_id.eq(community_actions::community_id)))
         .order_by(users_active_month.desc())

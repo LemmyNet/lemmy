@@ -39,15 +39,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  utils::{
-    find_action,
-    functions::coalesce,
-    get_conn,
-    now,
-    uplete,
-    DbPool,
-    DELETED_REPLACEMENT_TEXT,
-  },
+  utils::{functions::coalesce, get_conn, now, uplete, DbPool, DELETED_REPLACEMENT_TEXT},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use reqwest_middleware::ClientWithMiddleware;
@@ -425,6 +417,10 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
   let pool = &mut context.pool();
   let mut conn = get_conn(pool).await?;
 
+  let not_banned_action = community_actions::table
+    .find((person::id, community::id))
+    .filter(community_actions::received_ban.is_not_null());
+
   let scheduled_posts: Vec<_> = post::table
     .inner_join(community::table)
     .inner_join(person::table)
@@ -436,10 +432,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
     .filter(not(person::banned.or(person::deleted)))
     .filter(not(community::removed.or(community::deleted)))
     // ensure that user isnt banned from community
-    .filter(not(exists(find_action(
-      community_actions::received_ban,
-      (person::id, community::id),
-    ))))
+    .filter(not(exists(not_banned_action)))
     .select((post::all_columns, community::all_columns))
     .get_results::<(Post, Community)>(&mut conn)
     .await?;

@@ -121,7 +121,9 @@ impl CommunityQuery<'_> {
     let conn = &mut get_conn(pool).await?;
     let o = self;
 
-    let mut query = CommunityView::joins(o.local_user.person_id()).into_boxed();
+    let mut query = CommunityView::joins(o.local_user.person_id())
+      .select(CommunityView::as_select())
+      .into_boxed();
 
     // Hide deleted and removed for non-admins or mods
     if !o.is_mod_or_admin {
@@ -173,7 +175,6 @@ impl CommunityQuery<'_> {
     let (limit, offset) = limit_and_offset(o.page, o.limit)?;
 
     query
-      .select(CommunityView::as_select())
       .limit(limit)
       .offset(offset)
       .load::<CommunityView>(conn)

@@ -56,16 +56,14 @@ impl RegistrationApplicationView {
 
     let mut query = Self::joins()
       .filter(RegistrationApplication::is_unread())
+      .select(count(registration_application::id))
       .into_boxed();
 
     if verified_email_only {
       query = query.filter(local_user::email_verified.eq(true))
     }
 
-    query
-      .select(count(registration_application::id))
-      .first::<i64>(conn)
-      .await
+    query.first::<i64>(conn).await
   }
 }
 
