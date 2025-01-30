@@ -2,7 +2,7 @@
   # for more info about the config, check out the documentation
   # https://join-lemmy.org/docs/en/administration/configuration.html
 
-  # This is a minimal lemmy config for the dev / main branch. Do not use for a 
+  # This is a minimal lemmy config for the dev / main branch. Do not use for a
   # release / stable version.
 
   setup: {
@@ -11,7 +11,7 @@
     site_name: "lemmy-dev"
   }
   database: {
-    connection: "postgres://lemmy:password@postgres:5432/lemmy"
+    uri: "postgres://lemmy:password@postgres:5432/lemmy"
   }
 
   hostname: "localhost"
