@@ -20,13 +20,11 @@ use lemmy_db_schema::{
     PostAggregates,
     SiteAggregates,
   },
-  aliases::{creator_community_actions, person1},
-  schema::{comment, comment_actions, community_actions, local_user, person, person_actions},
   source::{
     comment::Comment,
     comment_reply::CommentReply,
     comment_report::CommentReport,
-    community::{Community, CommunityFollower},
+    community::Community,
     community_report::CommunityReport,
     custom_emoji::CustomEmoji,
     custom_emoji_keyword::CustomEmojiKeyword,
@@ -70,9 +68,15 @@ use lemmy_db_schema::{
     site::Site,
     tag::Tag,
   },
+  SubscribedType,
+};
+#[cfg(feature = "full")]
+use lemmy_db_schema::{
+  aliases::{creator_community_actions, person1},
+  schema::{comment, comment_actions, community_actions, local_user, person, person_actions},
+  source::community::CommunityFollower,
   utils::functions::coalesce,
   Person1AliasAllColumnsTuple,
-  SubscribedType,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
