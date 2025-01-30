@@ -22,7 +22,8 @@ use lemmy_utils::{
 };
 use mime::{Mime, TEXT_HTML};
 use reqwest::{
-  header::{CONTENT_TYPE, RANGE},
+  header::{CONTENT_TYPE, LOCATION, RANGE},
+  redirect::Policy,
   Client,
   ClientBuilder,
   Response,
@@ -43,11 +44,16 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
     .user_agent(user_agent.clone())
     .timeout(REQWEST_TIMEOUT)
     .connect_timeout(REQWEST_TIMEOUT)
+    .redirect(Policy::none())
     .use_rustls_tls()
 }
 
 /// Fetches metadata for the given link and optionally generates thumbnail.
-pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResult<LinkMetadata> {
+pub async fn fetch_link_metadata(
+  url: &Url,
+  context: &LemmyContext,
+  recursion: bool,
+) -> LemmyResult<LinkMetadata> {
   if url.scheme() != "http" && url.scheme() != "https" {
     return Err(LemmyErrorType::InvalidUrl.into());
   }
@@ -91,6 +97,16 @@ pub async fn fetch_link_metadata(url: &Url, context: &LemmyContext) -> LemmyResu
     .send()
     .await?
     .error_for_status()?;
+
+  // Manually follow one redirect, using internal IP check. Further redirects are ignored.
+  let location = response
+    .headers()
+    .get(LOCATION)
+    .and_then(|l| l.to_str().ok());
+  if let (Some(location), false) = (location, recursion) {
+    let url = location.parse()?;
+    return Box::pin(fetch_link_metadata(&url, context, true)).await;
+  }
 
   let mut content_type: Option<Mime> = response
     .headers()
@@ -179,7 +195,9 @@ pub async fn generate_post_link_metadata(
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let metadata = match &post.url {
-    Some(url) => fetch_link_metadata(url, &context).await.unwrap_or_default(),
+    Some(url) => fetch_link_metadata(url, &context, false)
+      .await
+      .unwrap_or_default(),
     _ => Default::default(),
   };
 
@@ -525,7 +543,7 @@ mod tests {
   async fn test_link_metadata() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ")?;
-    let sample_res = fetch_link_metadata(&sample_url, &context).await?;
+    let sample_res = fetch_link_metadata(&sample_url, &context, false).await?;
     assert_eq!(
       Some("FAQ · Wiki · IzzyOnDroid / repo · GitLab".to_string()),
       sample_res.opengraph_data.title

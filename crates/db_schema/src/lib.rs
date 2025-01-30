@@ -37,9 +37,6 @@ pub mod traits;
 pub mod utils;
 
 #[cfg(feature = "full")]
-pub mod actions_utils;
-
-#[cfg(feature = "full")]
 pub mod schema_setup;
 
 #[cfg(feature = "full")]
