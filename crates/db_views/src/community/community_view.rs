@@ -53,6 +53,7 @@ impl CommunityView {
     let conn = &mut get_conn(pool).await?;
     let mut query = Self::joins(my_local_user.person_id())
       .filter(community::id.eq(community_id))
+      .select(Self::as_select())
       .into_boxed();
 
     // Hide deleted and removed for non-admins or mods
@@ -62,7 +63,7 @@ impl CommunityView {
 
     query = my_local_user.visible_communities_only(query);
 
-    query.select(Self::as_select()).first(conn).await
+    query.first(conn).await
   }
 
   pub async fn check_is_mod_or_admin(

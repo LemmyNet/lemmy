@@ -26,7 +26,6 @@ use diesel::{
   ExpressionMethods,
   IntoSql,
   JoinOnDsl,
-  NullableExpressionMethods,
   QueryDsl,
   SelectableHelper,
 };
@@ -162,6 +161,8 @@ impl ModlogCombinedQuery {
 
     let mod_person = self.mod_person_id.unwrap_or(PersonId(-1));
     let show_mod_names = !(self.hide_modlog_names.unwrap_or_default());
+
+    // Unfortunately, you can't use auto_type or abstract the join, because of this as_sql
     let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
 
     // The modded / other person
@@ -264,7 +265,7 @@ impl ModlogCombinedQuery {
       .eq(instance::id)
       .or(admin_block_instance::instance_id.eq(instance::id));
 
-    let mut query = modlog_combined::table
+    let joins = modlog_combined::table
       .left_join(admin_allow_instance::table)
       .left_join(admin_block_instance::table)
       .left_join(admin_purge_comment::table)
@@ -293,33 +294,10 @@ impl ModlogCombinedQuery {
       // The instance
       .left_join(instance::table.on(instance_join))
       // The other / modded person
-      .left_join(aliases::person1.on(other_person_join))
-      .select((
-        admin_allow_instance::all_columns.nullable(),
-        admin_block_instance::all_columns.nullable(),
-        admin_purge_comment::all_columns.nullable(),
-        admin_purge_community::all_columns.nullable(),
-        admin_purge_person::all_columns.nullable(),
-        admin_purge_post::all_columns.nullable(),
-        mod_add::all_columns.nullable(),
-        mod_add_community::all_columns.nullable(),
-        mod_ban::all_columns.nullable(),
-        mod_ban_from_community::all_columns.nullable(),
-        mod_feature_post::all_columns.nullable(),
-        mod_hide_community::all_columns.nullable(),
-        mod_lock_post::all_columns.nullable(),
-        mod_remove_comment::all_columns.nullable(),
-        mod_remove_community::all_columns.nullable(),
-        mod_remove_post::all_columns.nullable(),
-        mod_transfer_community::all_columns.nullable(),
-        // Shared
-        person::all_columns.nullable(),
-        aliases::person1.fields(person::all_columns).nullable(),
-        instance::all_columns.nullable(),
-        community::all_columns.nullable(),
-        post::all_columns.nullable(),
-        comment::all_columns.nullable(),
-      ))
+      .left_join(aliases::person1.on(other_person_join));
+
+    let mut query = joins
+      .select(ModlogCombinedViewInternal::as_select())
       .into_boxed();
 
     if let Some(mod_person_id) = self.mod_person_id {

@@ -85,7 +85,9 @@ impl RegistrationApplicationQuery {
     let conn = &mut get_conn(pool).await?;
     let o = self;
 
-    let mut query = RegistrationApplicationView::joins().into_boxed();
+    let mut query = RegistrationApplicationView::joins()
+      .select(RegistrationApplicationView::as_select())
+      .into_boxed();
 
     if o.unread_only {
       query = query
@@ -104,7 +106,6 @@ impl RegistrationApplicationQuery {
     query
       .limit(limit)
       .offset(offset)
-      .select(RegistrationApplicationView::as_select())
       .load::<RegistrationApplicationView>(conn)
       .await
   }

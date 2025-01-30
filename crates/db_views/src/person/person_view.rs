@@ -28,13 +28,16 @@ impl PersonView {
     is_admin: bool,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let mut query = Self::joins().filter(person::id.eq(person_id)).into_boxed();
+    let mut query = Self::joins()
+      .filter(person::id.eq(person_id))
+      .select(Self::as_select())
+      .into_boxed();
 
     if !is_admin {
       query = query.filter(person::deleted.eq(false))
     }
 
-    query.select(Self::as_select()).first(conn).await
+    query.first(conn).await
   }
 
   pub async fn admins(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {

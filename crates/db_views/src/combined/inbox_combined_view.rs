@@ -160,7 +160,6 @@ impl InboxCombinedViewInternal {
       .left_join(comment::table.on(comment_join))
       .left_join(post::table.on(post_join))
       .left_join(community::table.on(community_join))
-      // TODO move these inners to to the top
       .inner_join(person::table.on(item_creator_join))
       .inner_join(recipient_join)
       .left_join(image_details_join)

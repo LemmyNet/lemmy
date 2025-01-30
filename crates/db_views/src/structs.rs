@@ -1019,36 +1019,64 @@ pub struct AdminAllowInstanceView {
 pub struct ModlogCombinedPaginationCursor(pub String);
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable))]
+#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A combined modlog view
 pub struct ModlogCombinedViewInternal {
   // Specific
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_allow_instance: Option<AdminAllowInstance>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_block_instance: Option<AdminBlockInstance>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_purge_comment: Option<AdminPurgeComment>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_purge_community: Option<AdminPurgeCommunity>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_purge_person: Option<AdminPurgePerson>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_purge_post: Option<AdminPurgePost>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_add: Option<ModAdd>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_add_community: Option<ModAddCommunity>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_ban: Option<ModBan>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_ban_from_community: Option<ModBanFromCommunity>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_feature_post: Option<ModFeaturePost>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_hide_community: Option<ModHideCommunity>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_lock_post: Option<ModLockPost>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_remove_comment: Option<ModRemoveComment>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_remove_community: Option<ModRemoveCommunity>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_remove_post: Option<ModRemovePost>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub mod_transfer_community: Option<ModTransferCommunity>,
   // Specific fields
 
   // Shared
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub moderator: Option<Person>,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Nullable<Person1AliasAllColumnsTuple>,
+      select_expression = person1.fields(person::all_columns).nullable()
+    )
+  )]
   pub other_person: Option<Person>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub instance: Option<Instance>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub community: Option<Community>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub post: Option<Post>,
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub comment: Option<Comment>,
 }
 

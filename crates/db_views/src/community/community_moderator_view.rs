@@ -79,6 +79,7 @@ impl CommunityModeratorView {
     let conn = &mut get_conn(pool).await?;
     let mut query = Self::joins()
       .filter(community_actions::person_id.eq(person_id))
+      .select(Self::as_select())
       .into_boxed();
 
     query = local_user.visible_communities_only(query);
@@ -93,7 +94,7 @@ impl CommunityModeratorView {
       query = query.filter(community::removed.eq(false))
     }
 
-    query.select(Self::as_select()).load::<Self>(conn).await
+    query.load::<Self>(conn).await
   }
 
   /// Finds all communities first mods / creators

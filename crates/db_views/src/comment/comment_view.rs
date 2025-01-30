@@ -96,6 +96,7 @@ impl CommentView {
 
     let mut query = Self::joins(my_local_user.person_id())
       .filter(comment::id.eq(comment_id))
+      .select(Self::as_select())
       .into_boxed();
 
     query = my_local_user.visible_communities_only(query);
@@ -112,7 +113,7 @@ impl CommentView {
       );
     }
 
-    let mut res = query.select(Self::as_select()).first::<Self>(conn).await?;
+    let mut res = query.first::<Self>(conn).await?;
 
     // If a person is given, then my_vote (res.9), if None, should be 0, not null
     // Necessary to differentiate between other person's votes
