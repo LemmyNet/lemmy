@@ -37,7 +37,6 @@ impl PrivateMessageView {
     let recipient_join = aliases::person1.on(private_message::recipient_id.eq(recipient_id));
 
     private_message::table
-      .find(private_message_id)
       .inner_join(creator_join)
       .inner_join(recipient_join)
       .left_join(person_actions_join)

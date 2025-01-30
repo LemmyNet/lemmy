@@ -38,7 +38,6 @@ full = [
   "rustls",
   "i-love-jesus",
   "tuplex",
-  "diesel-bind-if-some",
 ]
 
 [dependencies]
@@ -78,7 +77,6 @@ rustls = { workspace = true, optional = true }
 uuid.workspace = true
 i-love-jesus = { workspace = true, optional = true }
 anyhow = { workspace = true }
-diesel-bind-if-some = { workspace = true, optional = true }
 derive-new.workspace = true
 tuplex = { workspace = true, optional = true }
 
