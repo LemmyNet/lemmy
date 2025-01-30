@@ -157,7 +157,6 @@ i-love-jesus = { version = "0.1.0" }
 clap = { version = "4.5.27", features = ["derive", "env"] }
 pretty_assertions = "1.4.1"
 derive-new = "0.7.0"
-diesel-bind-if-some = "0.1.0"
 tuplex = "0.1.2"
 
 [dependencies]
