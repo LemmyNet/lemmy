@@ -1,5 +1,3 @@
-#![recursion_limit = "256"]
-
 #[cfg(feature = "full")]
 #[macro_use]
 extern crate diesel;
@@ -44,7 +42,9 @@ pub mod actions_utils;
 #[cfg(feature = "full")]
 pub mod schema_setup;
 
+#[cfg(feature = "full")]
 use diesel::query_source::AliasedField;
+#[cfg(feature = "full")]
 use schema::person;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};

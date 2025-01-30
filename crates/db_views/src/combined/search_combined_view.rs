@@ -48,21 +48,130 @@ use lemmy_db_schema::{
     community::CommunityFollower,
   },
   traits::InternalToCombinedView,
-  utils::{
-    actions,
-    actions_alias,
-    functions::coalesce,
-    fuzzy_search,
-    get_conn,
-    DbPool,
-    ReverseTimestampKey,
-  },
+  utils::{functions::coalesce, fuzzy_search, get_conn, DbPool, ReverseTimestampKey},
   ListingType,
   SearchSortType,
   SearchType,
 };
 use lemmy_utils::error::LemmyResult;
 use SearchSortType::*;
+
+impl SearchCombinedViewInternal {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins(my_person_id: Option<PersonId>) -> _ {
+    let item_creator = person::id;
+
+    let item_creator_join = person::table.on(
+      search_combined::person_id
+        .eq(item_creator.nullable())
+        .or(
+          search_combined::comment_id
+            .is_not_null()
+            .and(comment::creator_id.eq(item_creator)),
+        )
+        .or(
+          search_combined::post_id
+            .is_not_null()
+            .and(post::creator_id.eq(item_creator)),
+        )
+        .and(not(person::deleted)),
+    );
+
+    let comment_join = comment::table.on(
+      search_combined::comment_id
+        .eq(comment::id.nullable())
+        .and(not(comment::removed))
+        .and(not(comment::deleted)),
+    );
+
+    let post_join = post::table.on(
+      search_combined::post_id
+        .eq(post::id.nullable())
+        .or(comment::post_id.eq(post::id))
+        .and(not(post::removed))
+        .and(not(post::deleted)),
+    );
+
+    let community_join = community::table.on(
+      search_combined::community_id
+        .eq(community::id.nullable())
+        .or(post::community_id.eq(community::id))
+        .and(not(community::removed))
+        .and(not(community::deleted)),
+    );
+
+    let creator_community_actions_join = creator_community_actions.on(
+      creator_community_actions
+        .field(community_actions::community_id)
+        .eq(community::id)
+        .and(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(item_creator),
+        ),
+    );
+    let local_user_join = local_user::table.on(
+      item_creator
+        .eq(local_user::person_id)
+        .and(local_user::admin.eq(true)),
+    );
+
+    let community_actions_join = community_actions::table.on(
+      community_actions::community_id
+        .eq(community::id)
+        .and(community_actions::person_id.nullable().eq(my_person_id)),
+    );
+
+    let post_actions_join = post_actions::table.on(
+      post_actions::post_id
+        .eq(post::id)
+        .and(post_actions::person_id.nullable().eq(my_person_id)),
+    );
+
+    let person_actions_join = person_actions::table.on(
+      person_actions::target_id
+        .eq(item_creator)
+        .and(person_actions::person_id.nullable().eq(my_person_id)),
+    );
+
+    let comment_actions_join = comment_actions::table.on(
+      comment_actions::comment_id
+        .eq(comment::id)
+        .and(comment_actions::person_id.nullable().eq(my_person_id)),
+    );
+
+    let post_aggregates_join = post_aggregates::table.on(post::id.eq(post_aggregates::post_id));
+
+    let comment_aggregates_join = comment_aggregates::table
+      .on(search_combined::comment_id.eq(comment_aggregates::comment_id.nullable()));
+
+    let community_aggregates_join = community_aggregates::table
+      .on(search_combined::community_id.eq(community_aggregates::community_id.nullable()));
+
+    let image_details_join =
+      image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
+
+    let person_aggregates_join = person_aggregates::table
+      .on(search_combined::person_id.eq(person_aggregates::person_id.nullable()));
+
+    search_combined::table
+      .left_join(comment_join)
+      .left_join(post_join)
+      .left_join(item_creator_join)
+      .left_join(community_join)
+      .left_join(creator_community_actions_join)
+      .left_join(local_user_join)
+      .left_join(community_actions_join)
+      .left_join(post_actions_join)
+      .left_join(person_actions_join)
+      .left_join(person_aggregates_join)
+      .left_join(post_aggregates_join)
+      .left_join(comment_aggregates_join)
+      .left_join(community_aggregates_join)
+      .left_join(comment_actions_join)
+      .left_join(image_details_join)
+  }
+}
 
 impl SearchCombinedPaginationCursor {
   // get cursor for page that starts immediately after the given post
@@ -136,85 +245,7 @@ impl SearchCombinedQuery {
       .filter(tag::deleted.eq(false))
       .single_value();
 
-    let item_creator_join = search_combined::person_id
-      .eq(item_creator.nullable())
-      .or(
-        search_combined::comment_id
-          .is_not_null()
-          .and(comment::creator_id.eq(item_creator)),
-      )
-      .or(
-        search_combined::post_id
-          .is_not_null()
-          .and(post::creator_id.eq(item_creator)),
-      )
-      .and(not(person::deleted));
-
-    let comment_join = search_combined::comment_id
-      .eq(comment::id.nullable())
-      .and(not(comment::removed))
-      .and(not(comment::deleted));
-
-    let post_join = search_combined::post_id
-      .eq(post::id.nullable())
-      .or(comment::post_id.eq(post::id))
-      .and(not(post::removed))
-      .and(not(post::deleted));
-
-    let community_join = search_combined::community_id
-      .eq(community::id.nullable())
-      .or(post::community_id.eq(community::id))
-      .and(not(community::removed))
-      .and(not(community::deleted));
-
-    // Notes: since the post_id and comment_id are optional columns,
-    // many joins must use an OR condition.
-    // For example, the creator must be the person table joined to either:
-    // - post.creator_id
-    // - comment.creator_id
-    let mut query = search_combined::table
-      // The comment
-      .left_join(comment::table.on(comment_join))
-      // The post
-      .left_join(post::table.on(post_join))
-      // The item creator
-      .left_join(person::table.on(item_creator_join))
-      // The community
-      .left_join(community::table.on(community_join))
-      .left_join(actions_alias(
-        creator_community_actions,
-        item_creator,
-        community::id,
-      ))
-      .left_join(
-        local_user::table.on(
-          item_creator
-            .eq(local_user::person_id)
-            .and(local_user::admin.eq(true)),
-        ),
-      )
-      .left_join(actions(
-        community_actions::table,
-        my_person_id,
-        community::id,
-      ))
-      .left_join(actions(post_actions::table, my_person_id, post::id))
-      .left_join(actions(person_actions::table, my_person_id, item_creator))
-      .left_join(
-        person_aggregates::table
-          .on(search_combined::person_id.eq(person_aggregates::person_id.nullable())),
-      )
-      .left_join(post_aggregates::table.on(post::id.eq(post_aggregates::post_id)))
-      .left_join(
-        comment_aggregates::table
-          .on(search_combined::comment_id.eq(comment_aggregates::comment_id.nullable())),
-      )
-      .left_join(
-        community_aggregates::table
-          .on(search_combined::community_id.eq(community_aggregates::community_id.nullable())),
-      )
-      .left_join(actions(comment_actions::table, my_person_id, comment::id))
-      .left_join(image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable())))
+    let mut query = SearchCombinedViewInternal::joins(my_person_id)
       .select((
         // Post-specific
         post::all_columns.nullable(),
