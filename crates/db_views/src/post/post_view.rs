@@ -668,7 +668,7 @@ mod tests {
   use diesel_async::SimpleAsyncConnection;
   use lemmy_db_schema::{
     aggregates::structs::PostAggregates,
-    impls::{actor_language::UNDETERMINED_ID, post},
+    impls::actor_language::UNDETERMINED_ID,
     newtypes::LanguageId,
     source::{
       actor_language::LocalUserLanguage,
@@ -2327,7 +2327,7 @@ mod tests {
   #[test_context(Data)]
   #[tokio::test]
   #[serial]
-  async fn post_list_without_blocked_keywords(data: &mut Data) -> LemmyResult<()> {
+  async fn post_with_blocked_keywords(data: &mut Data) -> LemmyResult<()> {
     let pool = &data.pool();
     let pool = &mut pool.into();
 
@@ -2335,8 +2335,8 @@ mod tests {
     let name_blocked2 = format!("post2_{POST_KEYWORD_BLOCKED}2");
     let url = Some(Url::parse(&format!("https://google.com/{POST_KEYWORD_BLOCKED}"))?.into());
     let body = format!("post body with {POST_KEYWORD_BLOCKED}");
-    let name_not_blocked = "post_not_blocked".to_string();
-    let name_not_blocked2 = "post_not_blocked2".to_string();
+    let name_not_blocked = "post_with_name_not_blocked".to_string();
+    let name_not_blocked2 = "post_with_name_not_blocked2".to_string();
 
     let post_name_blocked = PostInsertForm::new(
       name_blocked.clone(),
@@ -2389,13 +2389,11 @@ mod tests {
       println!("Post body: {:?}", post.post.body);
       println!("Post url: {:?}", post.post.url);
     }
-    // Should only have names of the posts that don't have the blocked keyword
+    // Should not have any of the posts
     assert!(!names(&post_listings).contains(&name_blocked.as_str()));
     assert!(!names(&post_listings).contains(&name_blocked2.as_str()));
-    assert!(names(&post_listings).contains(&name_not_blocked.as_str()));
-    assert!(names(&post_listings).contains(&name_not_blocked2.as_str()));
-
-
+    assert!(!names(&post_listings).contains(&name_not_blocked.as_str()));
+    assert!(!names(&post_listings).contains(&name_not_blocked2.as_str()));
     Ok(())
   }
 }
