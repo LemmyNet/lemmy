@@ -222,7 +222,7 @@ CREATE OR REPLACE FUNCTION r.community_aggregates_interactions (i text)
 BEGIN
     RETURN query
     SELECT
-        COALESCE(sum(comments + upvotes + downvotes), 0) AS count_,
+        COALESCE(sum(comments + upvotes + downvotes)::bigint, 0) AS count_,
         community_id AS community_id_
     FROM
         post_aggregates

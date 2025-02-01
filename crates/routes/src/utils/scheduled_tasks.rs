@@ -261,18 +261,14 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
            AND (pa.hot_rank != 0 OR pa.hot_rank_active != 0)
            ORDER BY pa.published
            LIMIT $2
-          FOR UPDATE SKIP LOCKED),
-      community_interactions AS (
-          SELECT community_id, interactions_month
-          FROM community_aggregates
-          GROUP BY community_id)
+           FOR UPDATE SKIP LOCKED)
       UPDATE post_aggregates pa
       SET hot_rank = r.hot_rank(pa.score, pa.published),
           hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro),
-          scaled_rank = r.scaled_rank(pa.score, pa.published, ci.interactions_month)
-      FROM batch, community_interactions ci
+          scaled_rank = r.scaled_rank(pa.score, pa.published, ca.interactions_month)
+      FROM batch, community_aggregates ca
       WHERE pa.post_id = batch.post_id
-      AND pa.community_id = ci.community_id
+      AND pa.community_id = ca.community_id
       RETURNING pa.published;
 "#,
     )
