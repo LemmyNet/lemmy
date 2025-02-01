@@ -277,10 +277,7 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
     .get_results::<HotRanksUpdateResult>(conn)
     .await
     .map_err(|e| {
-      LemmyErrorType::Unknown(format!(
-        "Failed to update post_aggregates hot_ranks: {}",
-        e
-      ))
+      LemmyErrorType::Unknown(format!("Failed to update post_aggregates hot_ranks: {}", e))
     })?;
 
     processed_rows_count += updated_rows.len();
