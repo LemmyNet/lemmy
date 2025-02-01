@@ -8,7 +8,6 @@ use lemmy_db_schema::{source::private_message_report::PrivateMessageReport, trai
 use lemmy_db_views::structs::{LocalUserView, PrivateMessageReportView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn resolve_pm_report(
   data: Json<ResolvePrivateMessageReport>,
   context: Data<LemmyContext>,

@@ -20,6 +20,7 @@ use diesel::{
 use diesel_migrations::MigrationHarness;
 use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 use std::time::Instant;
+use tracing::debug;
 
 diesel::table! {
   pg_namespace (nspname) {
@@ -51,6 +52,7 @@ struct MigrationHarnessWrapper<'a> {
   conn: &'a mut PgConnection,
   #[cfg(test)]
   diff_checked_migration_name: Option<String>,
+  options: &'a Options,
 }
 
 impl MigrationHarnessWrapper<'_> {
@@ -66,7 +68,7 @@ impl MigrationHarnessWrapper<'_> {
       .map(|d| d.to_string())
       .unwrap_or_default();
     let name = migration.name();
-    println!("{duration} run {name}");
+    self.options.print(&format!("{duration} run {name}"));
 
     result
   }
@@ -111,7 +113,7 @@ impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
       .map(|d| d.to_string())
       .unwrap_or_default();
     let name = migration.name();
-    println!("{duration} revert {name}");
+    self.options.print(&format!("{duration} revert {name}"));
 
     result
   }
@@ -127,6 +129,7 @@ pub struct Options {
   enable_diff_check: bool,
   revert: bool,
   run: bool,
+  print_output: bool,
   limit: Option<u64>,
 }
 
@@ -150,6 +153,21 @@ impl Options {
   pub fn limit(mut self, limit: u64) -> Self {
     self.limit = Some(limit);
     self
+  }
+
+  /// If print_output is true, use println!.
+  /// Otherwise, use debug!
+  pub fn print_output(mut self) -> Self {
+    self.print_output = true;
+    self
+  }
+
+  fn print(&self, text: &str) {
+    if self.print_output {
+      println!("{text}");
+    } else {
+      debug!("{text}");
+    }
   }
 }
 
@@ -191,9 +209,9 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
 
   // Block concurrent attempts to run migrations until `conn` is closed, and disable the
   // trigger that prevents the Diesel CLI from running migrations
-  println!("Waiting for lock...");
+  options.print("Waiting for lock...");
   conn.batch_execute("SELECT pg_advisory_lock(0);")?;
-  println!("Running Database migrations (This may take a long time)...");
+  options.print("Running Database migrations (This may take a long time)...");
 
   // Drop `r` schema, so migrations don't need to be made to work both with and without things in
   // it existing
@@ -226,7 +244,7 @@ pub fn run(options: Options) -> LemmyResult<Branch> {
     Branch::ReplaceableSchemaNotRebuilt
   };
 
-  println!("Database migrations complete.");
+  options.print("Database migrations complete.");
 
   Ok(output)
 }
@@ -264,6 +282,7 @@ fn run_selected_migrations(
 ) -> diesel::migration::Result<()> {
   let mut wrapper = MigrationHarnessWrapper {
     conn,
+    options,
     #[cfg(test)]
     diff_checked_migration_name: options
       .enable_diff_check

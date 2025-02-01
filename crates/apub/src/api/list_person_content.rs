@@ -7,12 +7,11 @@ use lemmy_api_common::{
   utils::check_private_instance,
 };
 use lemmy_db_views::{
-  person_content_combined_view::PersonContentCombinedQuery,
+  combined::person_content_combined_view::PersonContentCombinedQuery,
   structs::{LocalUserView, SiteView},
 };
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn list_person_content(
   data: Query<ListPersonContent>,
   context: Data<LemmyContext>,

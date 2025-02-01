@@ -1,4 +1,4 @@
-use super::{convert_published_time, create::send_webmention};
+use super::convert_published_time;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
@@ -13,6 +13,7 @@ use lemmy_api_common::{
     get_url_blocklist,
     local_site_to_slur_regex,
     process_markdown_opt,
+    send_webmention,
   },
 };
 use lemmy_db_schema::{
@@ -43,7 +44,6 @@ use lemmy_utils::{
 };
 use std::ops::Deref;
 
-#[tracing::instrument(skip(context))]
 pub async fn update_post(
   data: Json<EditPost>,
   context: Data<LemmyContext>,

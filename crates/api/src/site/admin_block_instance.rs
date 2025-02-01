@@ -18,7 +18,6 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn admin_block_instance(
   data: Json<AdminBlockInstanceParams>,
   local_user_view: LocalUserView,

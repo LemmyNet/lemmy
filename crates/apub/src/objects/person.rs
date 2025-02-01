@@ -1,4 +1,3 @@
-use super::verify_is_remote_object;
 use crate::{
   activities::GetActorType,
   check_apub_id_valid_with_strictness,
@@ -13,7 +12,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  protocol::verification::verify_domains_match,
+  protocol::verification::{verify_domains_match, verify_is_remote_object},
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
@@ -72,7 +71,6 @@ impl Object for ApubPerson {
     Some(self.last_refreshed_at)
   }
 
-  #[tracing::instrument(skip_all)]
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
@@ -84,7 +82,6 @@ impl Object for ApubPerson {
     )
   }
 
-  #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let form = PersonUpdateForm {
       deleted: Some(true),
@@ -94,7 +91,6 @@ impl Object for ApubPerson {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn into_json(self, _context: &Data<Self::DataType>) -> LemmyResult<Person> {
     let kind = if self.bot_account {
       UserTypes::Service
@@ -122,7 +118,6 @@ impl Object for ApubPerson {
     Ok(person)
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(
     person: &Person,
     expected_domain: &Url,
@@ -142,7 +137,6 @@ impl Object for ApubPerson {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn from_json(person: Person, context: &Data<Self::DataType>) -> LemmyResult<ApubPerson> {
     let instance_id = fetch_instance_actor_for_object(&person.id, context).await?;
 

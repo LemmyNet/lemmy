@@ -1,8 +1,6 @@
 use crate::{
   activities::GetActorType,
-  check_apub_id_valid,
   fetcher::markdown_links::markdown_rewrite_remote_links_opt,
-  local_site_data_cached,
   objects::{instance::fetch_instance_actor_for_object, read_from_string_or_source_opt},
   protocol::{
     objects::{group::Group, LanguageTag},
@@ -40,7 +38,6 @@ use lemmy_db_schema::{
   traits::{ApubActor, Crud},
   CommunityVisibility,
 };
-use lemmy_db_views_actor::structs::CommunityFollowerView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,
@@ -75,7 +72,6 @@ impl Object for ApubCommunity {
     Some(self.last_refreshed_at)
   }
 
-  #[tracing::instrument(skip_all)]
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
@@ -87,7 +83,6 @@ impl Object for ApubCommunity {
     )
   }
 
-  #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let form = CommunityUpdateForm {
       deleted: Some(true),
@@ -97,7 +92,6 @@ impl Object for ApubCommunity {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn into_json(self, data: &Data<Self::DataType>) -> LemmyResult<Group> {
     let community_id = self.id;
     let langs = CommunityLanguage::read(&mut data.pool(), community_id).await?;
@@ -131,7 +125,6 @@ impl Object for ApubCommunity {
     Ok(group)
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(
     group: &Group,
     expected_domain: &Url,
@@ -141,7 +134,7 @@ impl Object for ApubCommunity {
   }
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
-  #[tracing::instrument(skip_all)]
+
   async fn from_json(group: Group, context: &Data<Self::DataType>) -> LemmyResult<ApubCommunity> {
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
@@ -193,16 +186,10 @@ impl Object for ApubCommunity {
       LanguageTag::to_language_id_multiple(group.language, &mut context.pool()).await?;
 
     let timestamp = group.updated.or(group.published).unwrap_or_else(Utc::now);
-    let community: ApubCommunity = Community::insert_apub(&mut context.pool(), timestamp, &form)
-      .await?
-      .into();
+    let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
-    // Need to fetch mods synchronously, otherwise fetching a post in community with
-    // `posting_restricted_to_mods` can fail if mods havent been fetched yet.
-    if let Some(moderators) = group.attributed_to {
-      moderators.dereference(&community, context).await.ok();
-    }
+    let community: ApubCommunity = community.into();
 
     // These collections are not necessary for Lemmy to work, so ignore errors.
     let community_ = community.clone();
@@ -214,6 +201,9 @@ impl Object for ApubCommunity {
       }
       if let Some(featured) = group.featured {
         featured.dereference(&community_, &context_).await.ok();
+      }
+      if let Some(moderators) = group.attributed_to {
+        moderators.dereference(&community_, &context_).await.ok();
       }
       Ok(())
     });
@@ -247,27 +237,6 @@ impl Actor for ApubCommunity {
 impl GetActorType for ApubCommunity {
   fn actor_type(&self) -> ActorType {
     ActorType::Community
-  }
-}
-
-impl ApubCommunity {
-  /// For a given community, returns the inboxes of all followers.
-  #[tracing::instrument(skip_all)]
-  pub(crate) async fn get_follower_inboxes(&self, context: &LemmyContext) -> LemmyResult<Vec<Url>> {
-    let id = self.id;
-
-    let local_site_data = local_site_data_cached(&mut context.pool()).await?;
-    let follows =
-      CommunityFollowerView::get_community_follower_inboxes(&mut context.pool(), id).await?;
-    let inboxes: Vec<Url> = follows
-      .into_iter()
-      .map(Into::into)
-      .filter(|inbox: &Url| inbox.host_str() != Some(&context.settings().hostname))
-      // Don't send to blocked instances
-      .filter(|inbox| check_apub_id_valid(inbox, &local_site_data).is_ok())
-      .collect();
-
-    Ok(inboxes)
   }
 }
 

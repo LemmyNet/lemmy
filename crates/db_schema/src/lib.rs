@@ -107,6 +107,19 @@ pub enum CommentSortType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// The search sort types.
+pub enum SearchSortType {
+  #[default]
+  New,
+  Top,
+  Old,
+}
+
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
+)]
 #[cfg_attr(feature = "full", derive(DbEnum, TS))]
 #[cfg_attr(
   feature = "full",
@@ -169,11 +182,14 @@ pub enum PostListingMode {
   SmallCard,
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
+)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The type of content returned from a search.
 pub enum SearchType {
+  #[default]
   All,
   Comments,
   Posts,
@@ -232,11 +248,23 @@ pub enum InboxDataType {
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// A list of possible types for the various modlog actions.
+/// A list of possible types for a person's content.
 pub enum PersonContentType {
   All,
   Comments,
   Posts,
+}
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// A list of possible types for reports.
+pub enum ReportType {
+  All,
+  Posts,
+  Comments,
+  PrivateMessages,
+  Communities,
 }
 
 #[derive(
@@ -293,13 +321,6 @@ pub enum FederationMode {
   Local,
   /// Disables
   Disable,
-}
-
-pub trait InternalToCombinedView {
-  type CombinedView;
-
-  /// Maps the combined DB row to an enum
-  fn map_to_enum(self) -> Option<Self::CombinedView>;
 }
 
 /// Wrapper for assert_eq! macro. Checks that vec matches the given length, and prints the

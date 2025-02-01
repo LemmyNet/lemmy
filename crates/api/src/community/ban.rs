@@ -24,14 +24,12 @@ use lemmy_db_schema::{
   },
   traits::{Bannable, Crud, Followable},
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::PersonView;
+use lemmy_db_views::structs::{LocalUserView, PersonView};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::validation::is_valid_body_field,
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn ban_from_community(
   data: Json<BanFromCommunity>,
   context: Data<LemmyContext>,
