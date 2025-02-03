@@ -134,13 +134,18 @@ impl CommunityQuery<'_> {
       );
     }
 
+    let is_subscribed = community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted));
+
     if let Some(listing_type) = o.listing_type {
       query = match listing_type {
-        ListingType::Subscribed => {
-          query.filter(community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted)))
+        ListingType::All => query.filter(community::hidden.eq(false).or(is_subscribed)),
+        ListingType::Subscribed => query.filter(is_subscribed),
+        ListingType::Local => query
+          .filter(community::local.eq(true))
+          .filter(community::hidden.eq(false).or(is_subscribed)),
+        ListingType::ModeratorView => {
+          query.filter(community_actions::became_moderator.is_not_null())
         }
-        ListingType::Local => query.filter(community::local.eq(true)),
-        _ => query,
       };
     }
 
