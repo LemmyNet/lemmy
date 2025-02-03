@@ -11,6 +11,7 @@ use actix_web::{
   HttpServer,
 };
 use clap::{Parser, Subcommand};
+use jemallocator::Jemalloc;
 use lemmy_api::sitemap::get_sitemap;
 use lemmy_api_common::{
   context::LemmyContext,
@@ -58,6 +59,9 @@ use serde_json::json;
 use std::{ops::Deref, time::Duration};
 use tokio::signal::unix::SignalKind;
 use tracing_actix_web::{DefaultRootSpanBuilder, TracingLogger};
+
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
 
 /// Timeout for HTTP requests while sending activities. A longer timeout provides better
 /// compatibility with other ActivityPub software that might allocate more time for synchronous
