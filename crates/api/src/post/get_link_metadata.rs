@@ -19,7 +19,7 @@ pub async fn get_link_metadata(
   _local_user_view: LocalUserView,
 ) -> LemmyResult<Json<GetSiteMetadataResponse>> {
   let url = Url::parse(&data.url).with_lemmy_type(LemmyErrorType::InvalidUrl)?;
-  let metadata = fetch_link_metadata(&url, &context).await?;
+  let metadata = fetch_link_metadata(&url, &context, false).await?;
 
   Ok(Json(GetSiteMetadataResponse { metadata }))
 }
