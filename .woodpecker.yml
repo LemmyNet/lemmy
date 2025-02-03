@@ -8,7 +8,7 @@ variables:
   # https://github.com/raskyld/lemmy-cross-toolchains
   - &rust_image "rust:1.83"
   - &rust_nightly_image "rustlang/rust:nightly"
-  - &install_pnpm "corepack enable pnpm"
+  - &install_pnpm "npm install -g corepack@latest && corepack enable pnpm"
   - &install_binstall "wget -O- https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xvz -C /usr/local/cargo/bin"
   - install_diesel_cli: &install_diesel_cli
       - apt-get update && apt-get install -y postgresql-client
