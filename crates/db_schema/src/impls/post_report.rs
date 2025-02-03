@@ -1,9 +1,7 @@
 use crate::{
+  diesel::BoolExpressionMethods,
   newtypes::{PersonId, PostId, PostReportId},
-  schema::post_report::{
-    dsl::{post_report, resolved, resolver_id, updated},
-    post_id,
-  },
+  schema::post_report,
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
   utils::{get_conn, DbPool},
@@ -16,6 +14,7 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_utils::error::LemmyResult;
 
 #[async_trait]
 impl Reportable for PostReport {
@@ -25,7 +24,7 @@ impl Reportable for PostReport {
 
   async fn report(pool: &mut DbPool<'_>, post_report_form: &PostReportForm) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    insert_into(post_report)
+    insert_into(post_report::table)
       .values(post_report_form)
       .get_result::<Self>(conn)
       .await
@@ -37,14 +36,39 @@ impl Reportable for PostReport {
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    update(post_report.find(report_id))
+    update(post_report::table.find(report_id))
       .set((
-        resolved.eq(true),
-        resolver_id.eq(by_resolver_id),
-        updated.eq(Utc::now()),
+        post_report::resolved.eq(true),
+        post_report::resolver_id.eq(by_resolver_id),
+        post_report::updated.eq(Utc::now()),
       ))
       .execute(conn)
       .await
+  }
+
+  async fn resolve_apub(
+    pool: &mut DbPool<'_>,
+    object_id: Self::ObjectIdType,
+    report_creator_id: PersonId,
+    resolver_id: PersonId,
+  ) -> LemmyResult<usize> {
+    let conn = &mut get_conn(pool).await?;
+    Ok(
+      update(
+        post_report::table.filter(
+          post_report::post_id
+            .eq(object_id)
+            .and(post_report::creator_id.eq(report_creator_id)),
+        ),
+      )
+      .set((
+        post_report::resolved.eq(true),
+        post_report::resolver_id.eq(resolver_id),
+        post_report::updated.eq(Utc::now()),
+      ))
+      .execute(conn)
+      .await?,
+    )
   }
 
   async fn resolve_all_for_object(
@@ -53,11 +77,11 @@ impl Reportable for PostReport {
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    update(post_report.filter(post_id.eq(post_id_)))
+    update(post_report::table.filter(post_report::post_id.eq(post_id_)))
       .set((
-        resolved.eq(true),
-        resolver_id.eq(by_resolver_id),
-        updated.eq(Utc::now()),
+        post_report::resolved.eq(true),
+        post_report::resolver_id.eq(by_resolver_id),
+        post_report::updated.eq(Utc::now()),
       ))
       .execute(conn)
       .await
@@ -69,11 +93,11 @@ impl Reportable for PostReport {
     by_resolver_id: PersonId,
   ) -> Result<usize, Error> {
     let conn = &mut get_conn(pool).await?;
-    update(post_report.find(report_id))
+    update(post_report::table.find(report_id))
       .set((
-        resolved.eq(false),
-        resolver_id.eq(by_resolver_id),
-        updated.eq(Utc::now()),
+        post_report::resolved.eq(false),
+        post_report::resolver_id.eq(by_resolver_id),
+        post_report::updated.eq(Utc::now()),
       ))
       .execute(conn)
       .await
