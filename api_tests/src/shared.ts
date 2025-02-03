@@ -199,7 +199,7 @@ export async function setupLogins() {
   }
 }
 
-async function allowInstance(api: LemmyHttp, instance: string) {
+export async function allowInstance(api: LemmyHttp, instance: string) {
   const params: AdminAllowInstanceParams = {
     instance,
     allow: true,

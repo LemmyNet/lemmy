@@ -17,6 +17,7 @@ use lemmy_utils::{
 use moka::future::Cache;
 use serde_json::Value;
 use std::sync::{Arc, LazyLock};
+use tracing::debug;
 use url::Url;
 
 pub mod activities;
@@ -213,6 +214,7 @@ pub(crate) async fn check_apub_id_valid_with_strictness(
 /// This ensures that the same activity doesn't get received and processed more than once, which
 /// would be a waste of resources.
 async fn insert_received_activity(ap_id: &Url, data: &Data<LemmyContext>) -> LemmyResult<()> {
+  debug!("Received activity {}", ap_id.to_string());
   ReceivedActivity::create(&mut data.pool(), &ap_id.clone().into()).await?;
   Ok(())
 }

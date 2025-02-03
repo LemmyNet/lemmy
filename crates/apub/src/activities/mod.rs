@@ -18,7 +18,7 @@ use crate::{
   },
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::{
-    community::report::Report,
+    community::{report::Report, resolve_report::ResolveReport},
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
     CreateOrUpdateType,
   },
@@ -378,7 +378,31 @@ pub async fn match_outgoing_activities(
         actor,
         community,
         reason,
-      } => Report::send(ObjectId::from(object_id), actor, community, reason, context).await,
+      } => {
+        Report::send(
+          ObjectId::from(object_id),
+          &actor.into(),
+          &community.into(),
+          reason,
+          context,
+        )
+        .await
+      }
+      SendResolveReport {
+        object_id,
+        actor,
+        report_creator,
+        community,
+      } => {
+        ResolveReport::send(
+          ObjectId::from(object_id),
+          &actor.into(),
+          &report_creator.into(),
+          &community.into(),
+          context,
+        )
+        .await
+      }
       AcceptFollower(community_id, person_id) => {
         send_accept_or_reject_follow(community_id, person_id, true, &context).await
       }

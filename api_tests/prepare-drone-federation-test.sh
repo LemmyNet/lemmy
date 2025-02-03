@@ -84,13 +84,11 @@ LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_gamma.hjson \
   target/lemmy_server >$LOG_DIR/lemmy_gamma.out 2>&1 &
 
 echo "start delta"
-# An instance with only an allowlist for beta
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_delta.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_delta" \
   target/lemmy_server >$LOG_DIR/lemmy_delta.out 2>&1 &
 
 echo "start epsilon"
-# An instance who has a blocklist, with lemmy-alpha blocked
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_epsilon.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_epsilon" \
   target/lemmy_server >$LOG_DIR/lemmy_epsilon.out 2>&1 &

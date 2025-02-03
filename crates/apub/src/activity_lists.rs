@@ -9,6 +9,7 @@ use crate::{
         collection_remove::CollectionRemove,
         lock_page::{LockPage, UndoLockPage},
         report::Report,
+        resolve_report::ResolveReport,
         update::UpdateCommunity,
       },
       create_or_update::{note_wrapper::CreateOrUpdateNoteWrapper, page::CreateOrUpdatePage},
@@ -45,6 +46,7 @@ pub enum SharedInboxActivities {
   RejectFollow(RejectFollow),
   UndoFollow(UndoFollow),
   Report(Report),
+  ResolveReport(ResolveReport),
   AnnounceActivity(AnnounceActivity),
   /// This is a catch-all and needs to be last
   RawAnnouncableActivities(RawAnnouncableActivities),
@@ -67,6 +69,8 @@ pub enum AnnouncableActivities {
   CollectionRemove(CollectionRemove),
   LockPost(LockPage),
   UndoLockPost(UndoLockPage),
+  Report(Report),
+  ResolveReport(ResolveReport),
   // For compatibility with Pleroma/Mastodon (send only)
   Page(Page),
 }
@@ -89,6 +93,8 @@ impl InCommunity for AnnouncableActivities {
       CollectionRemove(a) => a.community(context).await,
       LockPost(a) => a.community(context).await,
       UndoLockPost(a) => a.community(context).await,
+      Report(a) => a.community(context).await,
+      ResolveReport(a) => a.community(context).await,
       Page(_) => Err(LemmyErrorType::NotFound.into()),
     }
   }
