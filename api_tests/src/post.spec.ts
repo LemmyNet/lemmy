@@ -61,6 +61,11 @@ beforeAll(async () => {
   await setupLogins();
   betaCommunity = (await resolveBetaCommunity(alpha)).community;
   expect(betaCommunity).toBeDefined();
+
+  // Hack: Force outgoing federation queue for beta to be created on epsilon,
+  // otherwise report test fails
+  let person = await resolvePerson(epsilon, "@lemmy_beta@lemmy-beta:8551");
+  expect(person.person).toBeDefined();
 });
 
 afterAll(unfollows);
