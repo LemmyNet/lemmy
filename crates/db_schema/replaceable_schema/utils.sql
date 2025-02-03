@@ -71,7 +71,7 @@ current_setting('lemmy.protocol_and_hostname') || url_path
 --     not allowed for a `DELETE` trigger)
 --   * Transition tables are only provided to the trigger function, not to functions that it calls.
 --
--- This function can only be called once per table. The trigger function body given as the 2nd argument
+-- This function can only be called once per table. The trigger function body is given as the 2nd argument
 -- and can contain these names, which are replaced with a `SELECT` statement in parenthesis if needed:
 --   * `select_old_rows`
 --   * `select_new_rows`

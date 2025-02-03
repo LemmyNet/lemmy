@@ -9,7 +9,7 @@ use std::{
 use url::Url;
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct Settings {
   /// settings related to the postgresql database
   pub database: DatabaseConfig,
@@ -109,7 +109,6 @@ pub struct PictrsConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default, Document, PartialEq)]
-#[serde(deny_unknown_fields)]
 pub enum PictrsImageMode {
   /// Leave images unchanged, don't generate any local thumbnails for post urls. Instead the
   /// Opengraph image is directly returned as thumbnail
@@ -132,7 +131,7 @@ pub enum PictrsImageMode {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct DatabaseConfig {
   /// Configure the database by specifying URI pointing to a postgres instance
   ///
@@ -153,7 +152,7 @@ pub struct DatabaseConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Document, SmartDefault)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct EmailConfig {
   /// Hostname and port of the smtp server
   #[doku(example = "localhost:25")]
@@ -180,7 +179,7 @@ impl EmailConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default, Document)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct SetupConfig {
   /// Username for the admin user
   #[doku(example = "admin")]
@@ -197,7 +196,7 @@ pub struct SetupConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct PrometheusConfig {
   // Address that the Prometheus metrics will be served on.
   #[default(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)))]
@@ -210,7 +209,7 @@ pub struct PrometheusConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 // named federation"worker"config to disambiguate from the activitypub library configuration
 pub struct FederationWorkerConfig {
   /// Limit to the number of concurrent outgoing federation requests per target instance.
