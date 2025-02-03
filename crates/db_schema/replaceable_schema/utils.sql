@@ -33,16 +33,16 @@ now() - published) < '7 days' THEN
         0.0
     END;
 
-CREATE FUNCTION r.scaled_rank (score numeric, published timestamp with time zone, users_active_month numeric)
+CREATE FUNCTION r.scaled_rank (score numeric, published timestamp with time zone, interactions_month numeric)
     RETURNS double precision
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE
     -- Add 2 to avoid divide by zero errors
     -- Default for score = 1, active users = 1, and now, is (0.1728 / log(2 + 1)) = 0.3621
-    -- There may need to be a scale factor multiplied to users_active_month, to make
+    -- There may need to be a scale factor multiplied to interactions_month, to make
     -- the log curve less pronounced. This can be tuned in the future.
     RETURN (
-        r.hot_rank (score, published) / log(2 + users_active_month)
+        r.hot_rank (score, published) / log(2 + interactions_month)
 );
 
 -- For tables with `deleted` and `removed` columns, this function determines which rows to include in a count.
@@ -209,6 +209,27 @@ BEGIN
             AND pe.bot_account = FALSE) a
 GROUP BY
     community_id;
+END;
+$$;
+
+-- Community aggregate function for adding up total number of interactions
+CREATE OR REPLACE FUNCTION r.community_aggregates_interactions (i text)
+    RETURNS TABLE (
+        count_ bigint,
+        community_id_ integer)
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    RETURN query
+    SELECT
+        COALESCE(sum(comments + upvotes + downvotes)::bigint, 0) AS count_,
+        community_id AS community_id_
+    FROM
+        post_aggregates
+    WHERE
+        published >= (CURRENT_TIMESTAMP - i::interval)
+    GROUP BY
+        community_id;
 END;
 $$;
 
