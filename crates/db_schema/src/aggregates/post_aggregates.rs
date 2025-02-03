@@ -22,9 +22,10 @@ impl PostAggregates {
 
     // Diesel can't update based on a join, which is necessary for the scaled_rank
     // https://github.com/diesel-rs/diesel/issues/1478
-    // Just select the users_active_month manually for now, since its a single post anyway
-    let users_active_month = community_aggregates::table
-      .select(community_aggregates::users_active_month)
+    // Just select the metrics we need manually, for now, since its a single post anyway
+
+    let interactions_month = community_aggregates::table
+      .select(community_aggregates::interactions_month)
       .inner_join(post::table.on(community_aggregates::community_id.eq(post::community_id)))
       .filter(post::id.eq(post_id))
       .first::<i64>(conn)
@@ -40,7 +41,7 @@ impl PostAggregates {
         post_aggregates::scaled_rank.eq(scaled_rank(
           post_aggregates::score,
           post_aggregates::published,
-          users_active_month,
+          interactions_month,
         )),
       ))
       .get_result::<Self>(conn)
