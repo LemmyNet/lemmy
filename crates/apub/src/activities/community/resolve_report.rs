@@ -1,6 +1,11 @@
 use super::report_inboxes;
 use crate::{
-  activities::{generate_activity_id, send_lemmy_activity, verify_person_in_community},
+  activities::{
+    generate_activity_id,
+    send_lemmy_activity,
+    verify_mod_action,
+    verify_person_in_community,
+  },
   activity_lists::AnnouncableActivities,
   insert_received_activity,
   objects::{community::ApubCommunity, person::ApubPerson},
@@ -73,6 +78,7 @@ impl ActivityHandler for ResolveReport {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     verify_urls_match(self.to[0].inner(), self.object.to[0].inner())?;
+    verify_mod_action(&self.actor, &community, context).await?;
     Ok(())
   }
 
