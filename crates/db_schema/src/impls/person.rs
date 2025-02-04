@@ -10,7 +10,7 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Crud, Followable},
-  utils::{action_query, functions::lower, get_conn, now, uplete, DbPool},
+  utils::{functions::lower, get_conn, now, uplete, DbPool},
 };
 use chrono::Utc;
 use diesel::{
@@ -235,7 +235,8 @@ impl PersonFollower {
     for_person_id: PersonId,
   ) -> Result<Vec<Person>, Error> {
     let conn = &mut get_conn(pool).await?;
-    action_query(person_actions::followed)
+    person_actions::table
+      .filter(person_actions::followed.is_not_null())
       .inner_join(person::table.on(person_actions::person_id.eq(person::id)))
       .filter(person_actions::target_id.eq(for_person_id))
       .select(person::all_columns)

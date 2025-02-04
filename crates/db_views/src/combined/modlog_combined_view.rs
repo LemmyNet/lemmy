@@ -66,6 +66,146 @@ use lemmy_db_schema::{
   ModlogActionType,
 };
 use lemmy_utils::error::LemmyResult;
+impl ModlogCombinedViewInternal {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins(mod_person_id: Option<PersonId>, hide_modlog_names: Option<bool>) -> _ {
+    // The modded / other person
+    let other_person = aliases::person1.field(person::id);
+
+    let show_mod_names: bool = !(hide_modlog_names.unwrap_or_default());
+    let show_mod_names_expr = show_mod_names.into_sql::<diesel::sql_types::Bool>();
+
+    // The query for the admin / mod person
+    // It needs an OR condition to every mod table
+    // After this you can use person::id to refer to the moderator
+    let moderator_names_join = show_mod_names_expr
+      .or(person::id.nullable().eq(mod_person_id))
+      .and(
+        admin_allow_instance::admin_person_id
+          .eq(person::id)
+          .or(admin_block_instance::admin_person_id.eq(person::id))
+          .or(admin_purge_comment::admin_person_id.eq(person::id))
+          .or(admin_purge_community::admin_person_id.eq(person::id))
+          .or(admin_purge_person::admin_person_id.eq(person::id))
+          .or(admin_purge_post::admin_person_id.eq(person::id))
+          .or(mod_add::mod_person_id.eq(person::id))
+          .or(mod_add_community::mod_person_id.eq(person::id))
+          .or(mod_ban::mod_person_id.eq(person::id))
+          .or(mod_ban_from_community::mod_person_id.eq(person::id))
+          .or(mod_feature_post::mod_person_id.eq(person::id))
+          .or(mod_hide_community::mod_person_id.eq(person::id))
+          .or(mod_lock_post::mod_person_id.eq(person::id))
+          .or(mod_remove_comment::mod_person_id.eq(person::id))
+          .or(mod_remove_community::mod_person_id.eq(person::id))
+          .or(mod_remove_post::mod_person_id.eq(person::id))
+          .or(mod_transfer_community::mod_person_id.eq(person::id)),
+      );
+
+    let other_person_join = mod_add::other_person_id
+      .eq(other_person)
+      .or(mod_add_community::other_person_id.eq(other_person))
+      .or(mod_ban::other_person_id.eq(other_person))
+      .or(mod_ban_from_community::other_person_id.eq(other_person))
+      // Some tables don't have the other_person_id directly, so you need to join
+      .or(
+        mod_feature_post::id
+          .is_not_null()
+          .and(post::creator_id.eq(other_person)),
+      )
+      .or(
+        mod_lock_post::id
+          .is_not_null()
+          .and(post::creator_id.eq(other_person)),
+      )
+      .or(
+        mod_remove_comment::id
+          .is_not_null()
+          .and(comment::creator_id.eq(other_person)),
+      )
+      .or(
+        mod_remove_post::id
+          .is_not_null()
+          .and(post::creator_id.eq(other_person)),
+      )
+      .or(mod_transfer_community::other_person_id.eq(other_person));
+
+    let comment_join = mod_remove_comment::comment_id.eq(comment::id);
+
+    let post_join = admin_purge_comment::post_id
+      .eq(post::id)
+      .or(mod_feature_post::post_id.eq(post::id))
+      .or(mod_lock_post::post_id.eq(post::id))
+      .or(
+        mod_remove_comment::id
+          .is_not_null()
+          .and(comment::post_id.eq(post::id)),
+      )
+      .or(mod_remove_post::post_id.eq(post::id));
+
+    let community_join = admin_purge_post::community_id
+      .eq(community::id)
+      .or(mod_add_community::community_id.eq(community::id))
+      .or(mod_ban_from_community::community_id.eq(community::id))
+      .or(
+        mod_feature_post::id
+          .is_not_null()
+          .and(post::community_id.eq(community::id)),
+      )
+      .or(mod_hide_community::community_id.eq(community::id))
+      .or(
+        mod_lock_post::id
+          .is_not_null()
+          .and(post::community_id.eq(community::id)),
+      )
+      .or(
+        mod_remove_comment::id
+          .is_not_null()
+          .and(post::community_id.eq(community::id)),
+      )
+      .or(mod_remove_community::community_id.eq(community::id))
+      .or(
+        mod_remove_post::id
+          .is_not_null()
+          .and(post::community_id.eq(community::id)),
+      )
+      .or(mod_transfer_community::community_id.eq(community::id));
+
+    let instance_join = admin_allow_instance::instance_id
+      .eq(instance::id)
+      .or(admin_block_instance::instance_id.eq(instance::id));
+
+    modlog_combined::table
+      .left_join(admin_allow_instance::table)
+      .left_join(admin_block_instance::table)
+      .left_join(admin_purge_comment::table)
+      .left_join(admin_purge_community::table)
+      .left_join(admin_purge_person::table)
+      .left_join(admin_purge_post::table)
+      .left_join(mod_add::table)
+      .left_join(mod_add_community::table)
+      .left_join(mod_ban::table)
+      .left_join(mod_ban_from_community::table)
+      .left_join(mod_feature_post::table)
+      .left_join(mod_hide_community::table)
+      .left_join(mod_lock_post::table)
+      .left_join(mod_remove_comment::table)
+      .left_join(mod_remove_community::table)
+      .left_join(mod_remove_post::table)
+      .left_join(mod_transfer_community::table)
+      // The moderator
+      .left_join(person::table.on(moderator_names_join))
+      // The comment
+      .left_join(comment::table.on(comment_join))
+      // The post
+      .left_join(post::table.on(post_join))
+      // The community
+      .left_join(community::table.on(community_join))
+      // The instance
+      .left_join(instance::table.on(instance_join))
+      // The other / modded person
+      .left_join(aliases::person1.on(other_person_join))
+  }
+}
 
 impl ModlogCombinedPaginationCursor {
   // get cursor for page that starts immediately after the given post
@@ -159,167 +299,10 @@ pub struct ModlogCombinedQuery {
 impl ModlogCombinedQuery {
   pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<ModlogCombinedView>> {
     let conn = &mut get_conn(pool).await?;
-
-    let mod_person = self.mod_person_id.unwrap_or(PersonId(-1));
-    let show_mod_names = !(self.hide_modlog_names.unwrap_or_default());
-    let show_mod_names_expr = show_mod_names.as_sql::<diesel::sql_types::Bool>();
-
-    // The modded / other person
     let other_person = aliases::person1.field(person::id);
 
-    // The query for the admin / mod person
-    // It needs an OR condition to every mod table
-    // After this you can use person::id to refer to the moderator
-    let moderator_names_join = show_mod_names_expr.or(person::id.eq(mod_person)).and(
-      admin_allow_instance::admin_person_id
-        .eq(person::id)
-        .or(admin_block_instance::admin_person_id.eq(person::id))
-        .or(admin_purge_comment::admin_person_id.eq(person::id))
-        .or(admin_purge_community::admin_person_id.eq(person::id))
-        .or(admin_purge_person::admin_person_id.eq(person::id))
-        .or(admin_purge_post::admin_person_id.eq(person::id))
-        .or(mod_add::mod_person_id.eq(person::id))
-        .or(mod_add_community::mod_person_id.eq(person::id))
-        .or(mod_ban::mod_person_id.eq(person::id))
-        .or(mod_ban_from_community::mod_person_id.eq(person::id))
-        .or(mod_feature_post::mod_person_id.eq(person::id))
-        .or(mod_hide_community::mod_person_id.eq(person::id))
-        .or(mod_lock_post::mod_person_id.eq(person::id))
-        .or(mod_remove_comment::mod_person_id.eq(person::id))
-        .or(mod_remove_community::mod_person_id.eq(person::id))
-        .or(mod_remove_post::mod_person_id.eq(person::id))
-        .or(mod_transfer_community::mod_person_id.eq(person::id)),
-    );
-
-    let other_person_join = mod_add::other_person_id
-      .eq(other_person)
-      .or(mod_add_community::other_person_id.eq(other_person))
-      .or(mod_ban::other_person_id.eq(other_person))
-      .or(mod_ban_from_community::other_person_id.eq(other_person))
-      // Some tables don't have the other_person_id directly, so you need to join
-      .or(
-        mod_feature_post::id
-          .is_not_null()
-          .and(post::creator_id.eq(other_person)),
-      )
-      .or(
-        mod_lock_post::id
-          .is_not_null()
-          .and(post::creator_id.eq(other_person)),
-      )
-      .or(
-        mod_remove_comment::id
-          .is_not_null()
-          .and(comment::creator_id.eq(other_person)),
-      )
-      .or(
-        mod_remove_post::id
-          .is_not_null()
-          .and(post::creator_id.eq(other_person)),
-      )
-      .or(mod_transfer_community::other_person_id.eq(other_person));
-
-    let comment_join = mod_remove_comment::comment_id.eq(comment::id);
-
-    let post_join = admin_purge_comment::post_id
-      .eq(post::id)
-      .or(mod_feature_post::post_id.eq(post::id))
-      .or(mod_lock_post::post_id.eq(post::id))
-      .or(
-        mod_remove_comment::id
-          .is_not_null()
-          .and(comment::post_id.eq(post::id)),
-      )
-      .or(mod_remove_post::post_id.eq(post::id));
-
-    let community_join = admin_purge_post::community_id
-      .eq(community::id)
-      .or(mod_add_community::community_id.eq(community::id))
-      .or(mod_ban_from_community::community_id.eq(community::id))
-      .or(
-        mod_feature_post::id
-          .is_not_null()
-          .and(post::community_id.eq(community::id)),
-      )
-      .or(mod_hide_community::community_id.eq(community::id))
-      .or(
-        mod_lock_post::id
-          .is_not_null()
-          .and(post::community_id.eq(community::id)),
-      )
-      .or(
-        mod_remove_comment::id
-          .is_not_null()
-          .and(post::community_id.eq(community::id)),
-      )
-      .or(mod_remove_community::community_id.eq(community::id))
-      .or(
-        mod_remove_post::id
-          .is_not_null()
-          .and(post::community_id.eq(community::id)),
-      )
-      .or(mod_transfer_community::community_id.eq(community::id));
-
-    let instance_join = admin_allow_instance::instance_id
-      .eq(instance::id)
-      .or(admin_block_instance::instance_id.eq(instance::id));
-
-    let mut query = modlog_combined::table
-      .left_join(admin_allow_instance::table)
-      .left_join(admin_block_instance::table)
-      .left_join(admin_purge_comment::table)
-      .left_join(admin_purge_community::table)
-      .left_join(admin_purge_person::table)
-      .left_join(admin_purge_post::table)
-      .left_join(mod_add::table)
-      .left_join(mod_add_community::table)
-      .left_join(mod_ban::table)
-      .left_join(mod_ban_from_community::table)
-      .left_join(mod_feature_post::table)
-      .left_join(mod_hide_community::table)
-      .left_join(mod_lock_post::table)
-      .left_join(mod_remove_comment::table)
-      .left_join(mod_remove_community::table)
-      .left_join(mod_remove_post::table)
-      .left_join(mod_transfer_community::table)
-      // The moderator
-      .left_join(person::table.on(moderator_names_join))
-      // The comment
-      .left_join(comment::table.on(comment_join))
-      // The post
-      .left_join(post::table.on(post_join))
-      // The community
-      .left_join(community::table.on(community_join))
-      // The instance
-      .left_join(instance::table.on(instance_join))
-      // The other / modded person
-      .left_join(aliases::person1.on(other_person_join))
-      .select((
-        admin_allow_instance::all_columns.nullable(),
-        admin_block_instance::all_columns.nullable(),
-        admin_purge_comment::all_columns.nullable(),
-        admin_purge_community::all_columns.nullable(),
-        admin_purge_person::all_columns.nullable(),
-        admin_purge_post::all_columns.nullable(),
-        mod_add::all_columns.nullable(),
-        mod_add_community::all_columns.nullable(),
-        mod_ban::all_columns.nullable(),
-        mod_ban_from_community::all_columns.nullable(),
-        mod_feature_post::all_columns.nullable(),
-        mod_hide_community::all_columns.nullable(),
-        mod_lock_post::all_columns.nullable(),
-        mod_remove_comment::all_columns.nullable(),
-        mod_remove_community::all_columns.nullable(),
-        mod_remove_post::all_columns.nullable(),
-        mod_transfer_community::all_columns.nullable(),
-        // Shared
-        person::all_columns.nullable(),
-        aliases::person1.fields(person::all_columns).nullable(),
-        instance::all_columns.nullable(),
-        community::all_columns.nullable(),
-        post::all_columns.nullable(),
-        comment::all_columns.nullable(),
-      ))
+    let mut query = ModlogCombinedViewInternal::joins(self.mod_person_id, self.hide_modlog_names)
+      .select(ModlogCombinedViewInternal::as_select())
       .into_boxed();
 
     if let Some(mod_person_id) = self.mod_person_id {

@@ -49,34 +49,16 @@ use lemmy_db_schema::{
     community::CommunityFollower,
   },
   traits::InternalToCombinedView,
-  utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool},
+  utils::{functions::coalesce, get_conn, DbPool},
   InboxDataType,
 };
 use lemmy_utils::error::LemmyResult;
 
 impl InboxCombinedViewInternal {
-  /// Gets the number of unread mentions
-  pub async fn get_unread_count(
-    pool: &mut DbPool<'_>,
-    my_person_id: PersonId,
-    show_bot_accounts: bool,
-  ) -> Result<i64, Error> {
-    use diesel::dsl::count;
-    let conn = &mut get_conn(pool).await?;
-
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins(my_person_id: PersonId) -> _ {
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
-
-    let unread_filter = comment_reply::read
-      .eq(false)
-      .or(person_comment_mention::read.eq(false))
-      .or(person_post_mention::read.eq(false))
-      // If its unread, I only want the messages to me
-      .or(
-        private_message::read
-          .eq(false)
-          .and(private_message::recipient_id.eq(my_person_id)),
-      );
 
     let item_creator_join = comment::creator_id
       .eq(item_creator)
@@ -87,11 +69,13 @@ impl InboxCombinedViewInternal {
       )
       .or(private_message::creator_id.eq(item_creator));
 
-    let recipient_join = comment_reply::recipient_id
-      .eq(recipient_person)
-      .or(person_comment_mention::recipient_id.eq(recipient_person))
-      .or(person_post_mention::recipient_id.eq(recipient_person))
-      .or(private_message::recipient_id.eq(recipient_person));
+    let recipient_join = aliases::person1.on(
+      comment_reply::recipient_id
+        .eq(recipient_person)
+        .or(person_comment_mention::recipient_id.eq(recipient_person))
+        .or(person_post_mention::recipient_id.eq(recipient_person))
+        .or(private_message::recipient_id.eq(recipient_person)),
+    );
 
     let comment_join = comment_reply::comment_id
       .eq(comment::id)
@@ -112,27 +96,107 @@ impl InboxCombinedViewInternal {
       .eq(private_message::id.nullable())
       .and(not(private_message::deleted));
 
-    let mut query = inbox_combined::table
+    let community_join = post::community_id.eq(community::id);
+
+    let local_user_join = local_user::table.on(
+      item_creator
+        .eq(local_user::person_id)
+        .and(local_user::admin.eq(true)),
+    );
+
+    let post_aggregates_join = post_aggregates::table.on(post::id.eq(post_aggregates::post_id));
+    let comment_aggregates_join =
+      comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id));
+
+    let image_details_join =
+      image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
+
+    let creator_community_actions_join = creator_community_actions.on(
+      creator_community_actions
+        .field(community_actions::community_id)
+        .eq(post::community_id)
+        .and(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(item_creator),
+        ),
+    );
+
+    let community_actions_join = community_actions::table.on(
+      community_actions::community_id
+        .eq(post::community_id)
+        .and(community_actions::person_id.eq(my_person_id)),
+    );
+
+    let instance_actions_join = instance_actions::table.on(
+      instance_actions::instance_id
+        .eq(person::instance_id)
+        .and(instance_actions::person_id.eq(my_person_id)),
+    );
+
+    let post_actions_join = post_actions::table.on(
+      post_actions::post_id
+        .eq(post::id)
+        .and(post_actions::person_id.eq(my_person_id)),
+    );
+
+    let person_actions_join = person_actions::table.on(
+      person_actions::target_id
+        .eq(item_creator)
+        .and(person_actions::person_id.eq(my_person_id)),
+    );
+
+    let comment_actions_join = comment_actions::table.on(
+      comment_actions::comment_id
+        .eq(comment::id)
+        .and(comment_actions::person_id.eq(my_person_id)),
+    );
+
+    inbox_combined::table
       .left_join(comment_reply::table)
       .left_join(person_comment_mention::table)
       .left_join(person_post_mention::table)
       .left_join(private_message::table.on(private_message_join))
       .left_join(comment::table.on(comment_join))
       .left_join(post::table.on(post_join))
-      // The item creator
+      .left_join(community::table.on(community_join))
       .inner_join(person::table.on(item_creator_join))
-      // The recipient
-      .inner_join(aliases::person1.on(recipient_join))
-      .left_join(actions(
-        instance_actions::table,
-        Some(my_person_id),
-        person::instance_id,
-      ))
-      .left_join(actions(
-        person_actions::table,
-        Some(my_person_id),
-        item_creator,
-      ))
+      .inner_join(recipient_join)
+      .left_join(image_details_join)
+      .left_join(post_aggregates_join)
+      .left_join(comment_aggregates_join)
+      .left_join(creator_community_actions_join)
+      .left_join(local_user_join)
+      .left_join(community_actions_join)
+      .left_join(instance_actions_join)
+      .left_join(post_actions_join)
+      .left_join(person_actions_join)
+      .left_join(comment_actions_join)
+  }
+
+  /// Gets the number of unread mentions
+  pub async fn get_unread_count(
+    pool: &mut DbPool<'_>,
+    my_person_id: PersonId,
+    show_bot_accounts: bool,
+  ) -> Result<i64, Error> {
+    use diesel::dsl::count;
+    let conn = &mut get_conn(pool).await?;
+
+    let recipient_person = aliases::person1.field(person::id);
+
+    let unread_filter = comment_reply::read
+      .eq(false)
+      .or(person_comment_mention::read.eq(false))
+      .or(person_post_mention::read.eq(false))
+      // If its unread, I only want the messages to me
+      .or(
+        private_message::read
+          .eq(false)
+          .and(private_message::recipient_id.eq(my_person_id)),
+      );
+
+    let mut query = Self::joins(my_person_id)
       // Filter for your user
       .filter(recipient_person.eq(my_person_id))
       // Filter unreads
@@ -140,6 +204,7 @@ impl InboxCombinedViewInternal {
       // Don't count replies from blocked users
       .filter(person_actions::blocked.is_null())
       .filter(instance_actions::blocked.is_null())
+      .select(count(inbox_combined::id))
       .into_boxed();
 
     // These filters need to be kept in sync with the filters in queries().list()
@@ -147,10 +212,7 @@ impl InboxCombinedViewInternal {
       query = query.filter(not(person::bot_account));
     }
 
-    query
-      .select(count(inbox_combined::id))
-      .first::<i64>(conn)
-      .await
+    query.first::<i64>(conn).await
   }
 }
 
@@ -210,42 +272,6 @@ impl InboxCombinedQuery {
     let item_creator = person::id;
     let recipient_person = aliases::person1.field(person::id);
 
-    let item_creator_join = comment::creator_id
-      .eq(item_creator)
-      .or(
-        inbox_combined::person_post_mention_id
-          .is_not_null()
-          .and(post::creator_id.eq(item_creator)),
-      )
-      .or(private_message::creator_id.eq(item_creator));
-
-    let recipient_join = comment_reply::recipient_id
-      .eq(recipient_person)
-      .or(person_comment_mention::recipient_id.eq(recipient_person))
-      .or(person_post_mention::recipient_id.eq(recipient_person))
-      .or(private_message::recipient_id.eq(recipient_person));
-
-    let comment_join = comment_reply::comment_id
-      .eq(comment::id)
-      .or(person_comment_mention::comment_id.eq(comment::id))
-      // Filter out the deleted / removed
-      .and(not(comment::deleted))
-      .and(not(comment::removed));
-
-    let post_join = person_post_mention::post_id
-      .eq(post::id)
-      .or(comment::post_id.eq(post::id))
-      // Filter out the deleted / removed
-      .and(not(post::deleted))
-      .and(not(post::removed));
-
-    // This could be a simple join, but you need to check for deleted here
-    let private_message_join = inbox_combined::private_message_id
-      .eq(private_message::id.nullable())
-      .and(not(private_message::deleted));
-
-    let community_join = post::community_id.eq(community::id);
-
     let post_tags = post_tag::table
       .inner_join(tag::table)
       .select(diesel::dsl::sql::<diesel::sql_types::Json>(
@@ -255,54 +281,7 @@ impl InboxCombinedQuery {
       .filter(tag::deleted.eq(false))
       .single_value();
 
-    let mut query = inbox_combined::table
-      .left_join(comment_reply::table)
-      .left_join(person_comment_mention::table)
-      .left_join(person_post_mention::table)
-      .left_join(private_message::table.on(private_message_join))
-      .left_join(comment::table.on(comment_join))
-      .left_join(post::table.on(post_join))
-      .left_join(community::table.on(community_join))
-      // The item creator
-      .inner_join(person::table.on(item_creator_join))
-      // The recipient
-      .inner_join(aliases::person1.on(recipient_join))
-      .left_join(actions_alias(
-        creator_community_actions,
-        item_creator,
-        post::community_id,
-      ))
-      .left_join(
-        local_user::table.on(
-          item_creator
-            .eq(local_user::person_id)
-            .and(local_user::admin.eq(true)),
-        ),
-      )
-      .left_join(actions(
-        community_actions::table,
-        Some(my_person_id),
-        post::community_id,
-      ))
-      .left_join(actions(
-        instance_actions::table,
-        Some(my_person_id),
-        person::instance_id,
-      ))
-      .left_join(actions(post_actions::table, Some(my_person_id), post::id))
-      .left_join(actions(
-        person_actions::table,
-        Some(my_person_id),
-        item_creator,
-      ))
-      .left_join(post_aggregates::table.on(post::id.eq(post_aggregates::post_id)))
-      .left_join(comment_aggregates::table.on(comment::id.eq(comment_aggregates::comment_id)))
-      .left_join(actions(
-        comment_actions::table,
-        Some(my_person_id),
-        comment::id,
-      ))
-      .left_join(image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable())))
+    let mut query = InboxCombinedViewInternal::joins(my_person_id)
       .select((
         // Specific
         comment_reply::all_columns.nullable(),

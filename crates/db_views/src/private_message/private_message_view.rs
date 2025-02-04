@@ -1,41 +1,56 @@
 use crate::structs::PrivateMessageView;
-use diesel::{result::Error, ExpressionMethods, JoinOnDsl, QueryDsl};
+use diesel::{
+  result::Error,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  QueryDsl,
+  SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::PrivateMessageId,
   schema::{instance_actions, person, person_actions, private_message},
-  utils::{actions, get_conn, DbPool},
+  utils::{get_conn, DbPool},
 };
 
 impl PrivateMessageView {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins() -> _ {
+    let recipient_id = aliases::person1.field(person::id);
+
+    let person_actions_join = person_actions::table.on(
+      person_actions::target_id
+        .eq(private_message::creator_id)
+        .and(person_actions::person_id.eq(recipient_id)),
+    );
+
+    let instance_actions_join = instance_actions::table.on(
+      instance_actions::instance_id
+        .eq(person::instance_id)
+        .and(instance_actions::person_id.eq(recipient_id)),
+    );
+
+    let creator_join = person::table.on(private_message::creator_id.eq(person::id));
+
+    let recipient_join = aliases::person1.on(private_message::recipient_id.eq(recipient_id));
+
+    private_message::table
+      .inner_join(creator_join)
+      .inner_join(recipient_join)
+      .left_join(person_actions_join)
+      .left_join(instance_actions_join)
+  }
+
   pub async fn read(
     pool: &mut DbPool<'_>,
     private_message_id: PrivateMessageId,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-
-    private_message::table
-      .find(private_message_id)
-      .inner_join(person::table.on(private_message::creator_id.eq(person::id)))
-      .inner_join(
-        aliases::person1.on(private_message::recipient_id.eq(aliases::person1.field(person::id))),
-      )
-      .left_join(actions(
-        person_actions::table,
-        Some(aliases::person1.field(person::id)),
-        private_message::creator_id,
-      ))
-      .left_join(actions(
-        instance_actions::table,
-        Some(aliases::person1.field(person::id)),
-        person::instance_id,
-      ))
-      .select((
-        private_message::all_columns,
-        person::all_columns,
-        aliases::person1.fields(person::all_columns),
-      ))
+    Self::joins()
+      .filter(private_message::id.eq(private_message_id))
+      .select(Self::as_select())
       .first(conn)
       .await
   }

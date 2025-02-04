@@ -23,10 +23,75 @@ use lemmy_db_schema::{
     post_report,
   },
   source::community::CommunityFollower,
-  utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool},
+  utils::{functions::coalesce, get_conn, DbPool},
 };
 
 impl PostReportView {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins(my_person_id: PersonId) -> _ {
+    let recipient_id = aliases::person1.field(person::id);
+    let resolver_id = aliases::person2.field(person::id);
+
+    let community_join = community::table.on(post::community_id.eq(community::id));
+
+    let report_creator_join = person::table.on(post_report::creator_id.eq(person::id));
+
+    let post_creator_join = aliases::person1.on(post::creator_id.eq(recipient_id));
+
+    let creator_community_actions_join = creator_community_actions.on(
+      creator_community_actions
+        .field(community_actions::community_id)
+        .eq(post::community_id)
+        .and(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(post::creator_id),
+        ),
+    );
+
+    let community_actions_join = community_actions::table.on(
+      community_actions::community_id
+        .eq(post::community_id)
+        .and(community_actions::person_id.eq(my_person_id)),
+    );
+
+    let local_user_join = local_user::table.on(
+      post::creator_id
+        .eq(local_user::person_id)
+        .and(local_user::admin.eq(true)),
+    );
+
+    let post_actions_join = post_actions::table.on(
+      post_actions::post_id
+        .eq(post::id)
+        .and(post_actions::person_id.eq(my_person_id)),
+    );
+
+    let person_actions_join = person_actions::table.on(
+      person_actions::target_id
+        .eq(post::creator_id)
+        .and(person_actions::person_id.eq(my_person_id)),
+    );
+
+    let post_aggregates_join =
+      post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id));
+
+    let resolver_join = aliases::person2.on(post_report::resolver_id.eq(resolver_id.nullable()));
+
+    post_report::table
+      .inner_join(post::table)
+      .inner_join(community_join)
+      .inner_join(report_creator_join)
+      .inner_join(post_creator_join)
+      .left_join(creator_community_actions_join)
+      .left_join(community_actions_join)
+      .left_join(local_user_join)
+      .left_join(post_actions_join)
+      .left_join(person_actions_join)
+      .inner_join(post_aggregates_join)
+      .left_join(resolver_join)
+  }
+
   /// returns the PostReportView for the provided report_id
   ///
   /// * `report_id` - the report id to obtain
@@ -37,40 +102,8 @@ impl PostReportView {
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    post_report::table
-      .find(report_id)
-      .inner_join(post::table)
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(person::table.on(post_report::creator_id.eq(person::id)))
-      .inner_join(aliases::person1.on(post::creator_id.eq(aliases::person1.field(person::id))))
-      .left_join(actions_alias(
-        creator_community_actions,
-        post::creator_id,
-        post::community_id,
-      ))
-      .left_join(actions(
-        community_actions::table,
-        Some(my_person_id),
-        post::community_id,
-      ))
-      .left_join(
-        local_user::table.on(
-          post::creator_id
-            .eq(local_user::person_id)
-            .and(local_user::admin.eq(true)),
-        ),
-      )
-      .left_join(actions(post_actions::table, Some(my_person_id), post::id))
-      .left_join(actions(
-        person_actions::table,
-        Some(my_person_id),
-        post::creator_id,
-      ))
-      .inner_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
-      .left_join(
-        aliases::person2
-          .on(post_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
-      )
+    Self::joins(my_person_id)
+      .filter(post_report::id.eq(report_id))
       .select((
         post_report::all_columns,
         post::all_columns,

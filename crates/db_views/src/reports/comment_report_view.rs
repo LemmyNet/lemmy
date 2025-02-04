@@ -25,10 +25,78 @@ use lemmy_db_schema::{
     post,
   },
   source::community::CommunityFollower,
-  utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool},
+  utils::{functions::coalesce, get_conn, DbPool},
 };
 
 impl CommentReportView {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins(my_person_id: PersonId) -> _ {
+    let recipient_id = aliases::person1.field(person::id);
+    let resolver_id = aliases::person2.field(person::id);
+
+    let post_join = post::table.on(comment::post_id.eq(post::id));
+
+    let community_join = community::table.on(post::community_id.eq(community::id));
+
+    let report_creator_join = person::table.on(comment_report::creator_id.eq(person::id));
+
+    let local_user_join = local_user::table.on(
+      comment::creator_id
+        .eq(local_user::person_id)
+        .and(local_user::admin.eq(true)),
+    );
+
+    let comment_creator_join = aliases::person1.on(comment::creator_id.eq(recipient_id));
+
+    let comment_aggregates_join =
+      comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id));
+
+    let comment_actions_join = comment_actions::table.on(
+      comment_actions::comment_id
+        .eq(comment_report::comment_id)
+        .and(comment_actions::person_id.eq(my_person_id)),
+    );
+
+    let resolver_join = aliases::person2.on(comment_report::resolver_id.eq(resolver_id.nullable()));
+
+    let creator_community_actions_join = creator_community_actions.on(
+      creator_community_actions
+        .field(community_actions::community_id)
+        .eq(post::community_id)
+        .and(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(comment::creator_id),
+        ),
+    );
+
+    let person_actions_join = person_actions::table.on(
+      person_actions::target_id
+        .eq(comment::creator_id)
+        .and(person_actions::person_id.eq(my_person_id)),
+    );
+
+    let community_actions_join = community_actions::table.on(
+      community_actions::community_id
+        .eq(post::community_id)
+        .and(community_actions::person_id.eq(my_person_id)),
+    );
+
+    comment_report::table
+      .inner_join(comment::table)
+      .inner_join(post_join)
+      .inner_join(community_join)
+      .inner_join(report_creator_join)
+      .inner_join(comment_creator_join)
+      .inner_join(comment_aggregates_join)
+      .left_join(comment_actions_join)
+      .left_join(resolver_join)
+      .left_join(creator_community_actions_join)
+      .left_join(local_user_join)
+      .left_join(person_actions_join)
+      .left_join(community_actions_join)
+  }
+
   /// returns the CommentReportView for the provided report_id
   ///
   /// * `report_id` - the report id to obtain
@@ -38,47 +106,8 @@ impl CommentReportView {
     my_person_id: PersonId,
   ) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    comment_report::table
-      .find(report_id)
-      .inner_join(comment::table)
-      .inner_join(post::table.on(comment::post_id.eq(post::id)))
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
-      .inner_join(person::table.on(comment_report::creator_id.eq(person::id)))
-      .inner_join(aliases::person1.on(comment::creator_id.eq(aliases::person1.field(person::id))))
-      .inner_join(
-        comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
-      )
-      .left_join(actions(
-        comment_actions::table,
-        Some(my_person_id),
-        comment_report::comment_id,
-      ))
-      .left_join(
-        aliases::person2
-          .on(comment_report::resolver_id.eq(aliases::person2.field(person::id).nullable())),
-      )
-      .left_join(actions_alias(
-        creator_community_actions,
-        comment::creator_id,
-        post::community_id,
-      ))
-      .left_join(
-        local_user::table.on(
-          comment::creator_id
-            .eq(local_user::person_id)
-            .and(local_user::admin.eq(true)),
-        ),
-      )
-      .left_join(actions(
-        person_actions::table,
-        Some(my_person_id),
-        comment::creator_id,
-      ))
-      .left_join(actions(
-        community_actions::table,
-        Some(my_person_id),
-        post::community_id,
-      ))
+    Self::joins(my_person_id)
+      .filter(comment_report::id.eq(report_id))
       .select((
         comment_report::all_columns,
         comment::all_columns,
