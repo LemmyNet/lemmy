@@ -42,7 +42,7 @@ RUN --mount=type=cache,target=/lemmy/target set -ex; \
         # Compress the binary with upx
         wget https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-amd64_linux.tar.xz; \
         tar -xvf upx-4.2.4-amd64_linux.tar.xz; \
-        upx-4.2.4-amd64_linux/upx --best --lzma lemmy_server; \
+        ./upx-4.2.4-amd64_linux/upx --best --lzma lemmy_server; \
     fi
 
 # ARM64 builder
@@ -80,7 +80,7 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
         # Compress the binary with upx
         wget https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-arm64_linux.tar.xz; \
         tar -xvf upx-4.2.4-arm64_linux.tar.xz; \
-        upx-4.2.4-amd64_linux/upx --best --lzma lemmy_server; \
+        ./upx-4.2.4-amd64_linux/upx --best --lzma lemmy_server; \
     fi
 
 # amd64 base runner
