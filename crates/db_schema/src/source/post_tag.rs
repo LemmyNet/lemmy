@@ -1,0 +1,29 @@
+use crate::newtypes::{PostId, TagId};
+#[cfg(feature = "full")]
+use crate::schema::post_tag;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Associations, Identifiable)
+)]
+#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
+#[cfg_attr(feature = "full", diesel(belongs_to(crate::source::tag::Tag)))]
+#[cfg_attr(feature = "full", diesel(table_name = post_tag))]
+#[cfg_attr(feature = "full", diesel(primary_key(post_id, tag_id)))]
+#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+pub struct PostTag {
+  pub post_id: PostId,
+  pub tag_id: TagId,
+  pub published: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = post_tag))]
+pub struct PostTagForm {
+  pub post_id: PostId,
+  pub tag_id: TagId,
+}

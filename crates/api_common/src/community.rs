@@ -1,8 +1,9 @@
 use lemmy_db_schema::{
-  newtypes::{CommunityId, LanguageId, PersonId},
+  newtypes::{CommunityId, LanguageId, PersonId, TagId},
   source::site::Site,
   CommunityVisibility,
   ListingType,
+  ModlogActionType,
 };
 use lemmy_db_views_actor::structs::{
   CommunityModeratorView,
@@ -15,6 +16,65 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use ts_rs::TS;
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Create a tag for a community.
+pub struct CreateCommunityTag {
+  pub community_id: CommunityId,
+  pub id_slug: String,
+  pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct CommunityTagResponse {
+  pub id: TagId,
+  pub name: String,
+  pub community_id: CommunityId,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Update a community tag.
+pub struct UpdateCommunityTag {
+  pub tag_id: TagId,
+  pub name: String,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Delete a community tag.
+pub struct DeleteCommunityTag {
+  pub tag_id: TagId,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// List tags for a community.
+pub struct ListCommunityTags {
+  pub community_id: CommunityId,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct ListCommunityTagsResponse {
+  pub tags: Vec<CommunityTagResponse>,
+}
+
+// Rest of existing community.rs content...
+
+
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

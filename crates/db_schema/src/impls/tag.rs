@@ -1,14 +1,27 @@
 use crate::{
-  newtypes::TagId,
+  newtypes::{CommunityId, TagId},
   schema::{post_tag, tag},
   source::tag::{PostTagInsertForm, Tag, TagInsertForm},
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use diesel::{insert_into, result::Error, QueryDsl};
+use diesel::{insert_into, result::Error, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_utils::error::LemmyResult;
-
+impl Tag {
+  pub async fn get_by_community(
+    pool: &mut DbPool<'_>,
+    search_community_id: CommunityId,
+  ) -> Result<Vec<Self>, Error> {
+    use crate::schema::tag::dsl::*;
+    let conn = &mut get_conn(pool).await?;
+    tag
+      .filter(community_id.eq(search_community_id))
+      .filter(deleted.eq(false))
+      .load::<Tag>(conn)
+      .await
+  }
+}
 #[async_trait]
 impl Crud for Tag {
   type InsertForm = TagInsertForm;

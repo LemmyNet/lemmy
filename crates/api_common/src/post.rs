@@ -12,6 +12,24 @@ use serde_with::skip_serializing_none;
 use ts_rs::TS;
 
 #[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+/// Update tags for a post.
+pub struct UpdatePostTags {
+  pub post_id: PostId,
+  pub tags: Vec<TagId>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct UpdatePostTagsResponse {
+  pub post_view: PostView,
+}
+
+
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
