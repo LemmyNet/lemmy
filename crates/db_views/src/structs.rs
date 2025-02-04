@@ -175,6 +175,7 @@ pub struct CommentView {
     )
   )]
   pub subscribed: SubscribedType,
+  #[cfg_attr(feature = "full", ts(optional))]
   #[cfg_attr(feature = "full",
     diesel(
       select_expression =
@@ -325,6 +326,7 @@ pub struct PostView {
   pub creator_is_admin: bool,
   pub counts: PostAggregates,
   pub subscribed: SubscribedType,
+  #[cfg_attr(feature = "full", ts(optional))]
   pub saved: Option<DateTime<Utc>>,
   pub read: bool,
   pub hidden: bool,
@@ -478,7 +480,7 @@ pub enum ReportCombinedView {
 #[cfg_attr(feature = "full", derive(Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A combined person_content view
-pub struct PersonContentCombinedViewInternal {
+pub(crate) struct PersonContentCombinedViewInternal {
   // Post-specific
   pub post_counts: PostAggregates,
   pub post_unread_comments: i64,
@@ -1027,7 +1029,7 @@ pub struct ModlogCombinedPaginationCursor(pub String);
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A combined modlog view
-pub struct ModlogCombinedViewInternal {
+pub(crate) struct ModlogCombinedViewInternal {
   // Specific
   #[cfg_attr(feature = "full", diesel(embed))]
   pub admin_allow_instance: Option<AdminAllowInstance>,
@@ -1121,7 +1123,7 @@ pub struct SearchCombinedPaginationCursor(pub String);
 #[cfg_attr(feature = "full", derive(Queryable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A combined search view
-pub struct SearchCombinedViewInternal {
+pub(crate) struct SearchCombinedViewInternal {
   // Post-specific
   pub post: Option<Post>,
   pub post_counts: Option<PostAggregates>,
