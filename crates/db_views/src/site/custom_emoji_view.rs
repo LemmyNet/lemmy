@@ -1,5 +1,12 @@
 use crate::structs::CustomEmojiView;
-use diesel::{result::Error, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl};
+use diesel::{
+  dsl::Nullable,
+  result::Error,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::CustomEmojiId,
@@ -9,20 +16,33 @@ use lemmy_db_schema::{
 };
 use std::collections::HashMap;
 
+type SelectionType = (
+  <custom_emoji::table as diesel::Table>::AllColumns,
+  Nullable<<custom_emoji_keyword::table as diesel::Table>::AllColumns>,
+);
+
+fn selection() -> SelectionType {
+  (
+    custom_emoji::all_columns,
+    custom_emoji_keyword::all_columns.nullable(), // (or all the columns if you want)
+  )
+}
 type CustomEmojiTuple = (CustomEmoji, Option<CustomEmojiKeyword>);
 
+// TODO this type is a mess, it should not be using vectors in a view.
 impl CustomEmojiView {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins() -> _ {
+    custom_emoji::table.left_join(
+      custom_emoji_keyword::table.on(custom_emoji_keyword::custom_emoji_id.eq(custom_emoji::id)),
+    )
+  }
+
   pub async fn get(pool: &mut DbPool<'_>, emoji_id: CustomEmojiId) -> Result<Self, Error> {
     let conn = &mut get_conn(pool).await?;
-    let emojis = custom_emoji::table
-      .find(emoji_id)
-      .left_join(
-        custom_emoji_keyword::table.on(custom_emoji_keyword::custom_emoji_id.eq(custom_emoji::id)),
-      )
-      .select((
-        custom_emoji::all_columns,
-        custom_emoji_keyword::all_columns.nullable(), // (or all the columns if you want)
-      ))
+    let emojis = Self::joins()
+      .filter(custom_emoji::id.eq(emoji_id))
+      .select(selection())
       .load::<CustomEmojiTuple>(conn)
       .await?;
     if let Some(emoji) = CustomEmojiView::from_tuple_to_vec(emojis)
@@ -44,12 +64,7 @@ impl CustomEmojiView {
   ) -> Result<Vec<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
 
-    let mut query = custom_emoji::table
-      .left_join(
-        custom_emoji_keyword::table.on(custom_emoji_keyword::custom_emoji_id.eq(custom_emoji::id)),
-      )
-      .order(custom_emoji::category)
-      .into_boxed();
+    let mut query = Self::joins().into_boxed();
 
     if !ignore_page_limits {
       let (limit, offset) = limit_and_offset(page, limit)?;
@@ -60,13 +75,10 @@ impl CustomEmojiView {
       query = query.filter(custom_emoji::category.eq(category))
     }
 
-    query = query.then_order_by(custom_emoji::id);
-
     let emojis = query
-      .select((
-        custom_emoji::all_columns,
-        custom_emoji_keyword::all_columns.nullable(), // (or all the columns if you want)
-      ))
+      .select(selection())
+      .order(custom_emoji::category)
+      .then_order_by(custom_emoji::id)
       .load::<CustomEmojiTuple>(conn)
       .await?;
 

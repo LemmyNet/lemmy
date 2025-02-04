@@ -6,7 +6,7 @@ use crate::{
     instance_block::{InstanceBlock, InstanceBlockForm},
   },
   traits::Blockable,
-  utils::{action_query, find_action, get_conn, now, uplete, DbPool},
+  utils::{get_conn, now, uplete, DbPool},
 };
 use diesel::{
   dsl::{exists, insert_into, not},
@@ -27,14 +27,14 @@ impl InstanceBlock {
     for_instance_id: InstanceId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
-    select(not(exists(find_action(
-      instance_actions::blocked,
-      (for_person_id, for_instance_id),
-    ))))
-    .get_result::<bool>(conn)
-    .await?
-    .then_some(())
-    .ok_or(LemmyErrorType::InstanceIsBlocked.into())
+    let find_action = instance_actions::table
+      .find((for_person_id, for_instance_id))
+      .filter(instance_actions::blocked.is_not_null());
+    select(not(exists(find_action)))
+      .get_result::<bool>(conn)
+      .await?
+      .then_some(())
+      .ok_or(LemmyErrorType::InstanceIsBlocked.into())
   }
 
   pub async fn for_person(
@@ -42,7 +42,8 @@ impl InstanceBlock {
     person_id: PersonId,
   ) -> Result<Vec<Instance>, Error> {
     let conn = &mut get_conn(pool).await?;
-    action_query(instance_actions::blocked)
+    instance_actions::table
+      .filter(instance_actions::blocked.is_not_null())
       .inner_join(instance::table)
       .select(instance::all_columns)
       .filter(instance_actions::person_id.eq(person_id))

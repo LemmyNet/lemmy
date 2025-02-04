@@ -1,5 +1,3 @@
-#![recursion_limit = "256"]
-
 #[cfg(feature = "full")]
 #[macro_use]
 extern crate diesel;
@@ -41,6 +39,10 @@ pub mod utils;
 #[cfg(feature = "full")]
 pub mod schema_setup;
 
+#[cfg(feature = "full")]
+use diesel::query_source::AliasedField;
+#[cfg(feature = "full")]
+use schema::person;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
@@ -328,3 +330,28 @@ macro_rules! assert_length {
     assert_eq!($len, $vec.len(), "Vec has wrong length: {:?}", $vec)
   }};
 }
+
+#[cfg(feature = "full")]
+/// A helper tuple for person alias columns
+pub type Person1AliasAllColumnsTuple = (
+  AliasedField<aliases::Person1, person::id>,
+  AliasedField<aliases::Person1, person::name>,
+  AliasedField<aliases::Person1, person::display_name>,
+  AliasedField<aliases::Person1, person::avatar>,
+  AliasedField<aliases::Person1, person::banned>,
+  AliasedField<aliases::Person1, person::published>,
+  AliasedField<aliases::Person1, person::updated>,
+  AliasedField<aliases::Person1, person::actor_id>,
+  AliasedField<aliases::Person1, person::bio>,
+  AliasedField<aliases::Person1, person::local>,
+  AliasedField<aliases::Person1, person::private_key>,
+  AliasedField<aliases::Person1, person::public_key>,
+  AliasedField<aliases::Person1, person::last_refreshed_at>,
+  AliasedField<aliases::Person1, person::banner>,
+  AliasedField<aliases::Person1, person::deleted>,
+  AliasedField<aliases::Person1, person::inbox_url>,
+  AliasedField<aliases::Person1, person::matrix_user_id>,
+  AliasedField<aliases::Person1, person::bot_account>,
+  AliasedField<aliases::Person1, person::ban_expires>,
+  AliasedField<aliases::Person1, person::instance_id>,
+);

@@ -1,7 +1,6 @@
 use crate::structs::{CommentSlimView, CommentView};
 use diesel::{
   dsl::{exists, not},
-  pg::Pg,
   result::Error,
   BoolExpressionMethods,
   ExpressionMethods,
@@ -9,13 +8,14 @@ use diesel::{
   NullableExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{nlevel, subpath, Ltree, LtreeExtensions};
 use lemmy_db_schema::{
   aliases::creator_community_actions,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, LocalUserId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, PersonId, PostId},
   schema::{
     comment,
     comment_actions,
@@ -23,108 +23,82 @@ use lemmy_db_schema::{
     community,
     community_actions,
     instance_actions,
-    local_user,
     local_user_language,
     person,
     person_actions,
     post,
   },
-  source::{
-    community::{CommunityFollower, CommunityFollowerState},
-    local_user::LocalUser,
-    site::Site,
-  },
-  utils::{
-    actions,
-    actions_alias,
-    fuzzy_search,
-    limit_and_offset,
-    DbConn,
-    DbPool,
-    ListFn,
-    Queries,
-    ReadFn,
-  },
+  source::{community::CommunityFollowerState, local_user::LocalUser, site::Site},
+  utils::{fuzzy_search, get_conn, limit_and_offset, DbPool},
   CommentSortType,
   CommunityVisibility,
   ListingType,
 };
 
-type QueriesReadTypes<'a> = (CommentId, Option<&'a LocalUser>);
-type QueriesListTypes<'a> = (CommentQuery<'a>, &'a Site);
+impl CommentView {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins(my_person_id: Option<PersonId>) -> _ {
+    let community_join = community::table.on(post::community_id.eq(community::id));
 
-fn queries<'a>() -> Queries<
-  impl ReadFn<'a, CommentView, QueriesReadTypes<'a>>,
-  impl ListFn<'a, CommentView, QueriesListTypes<'a>>,
-> {
-  let creator_is_admin = exists(
-    local_user::table.filter(
-      comment::creator_id
-        .eq(local_user::person_id)
-        .and(local_user::admin.eq(true)),
-    ),
-  );
+    let community_actions_join = community_actions::table.on(
+      community_actions::community_id
+        .eq(post::community_id)
+        .and(community_actions::person_id.nullable().eq(my_person_id)),
+    );
 
-  let all_joins = move |query: comment::BoxedQuery<'a, Pg>, my_person_id: Option<PersonId>| {
-    query
+    let comment_actions_join = comment_actions::table.on(
+      comment_actions::comment_id
+        .eq(comment_aggregates::comment_id)
+        .and(comment_actions::person_id.nullable().eq(my_person_id)),
+    );
+
+    let person_actions_join = person_actions::table.on(
+      person_actions::target_id
+        .eq(comment::creator_id)
+        .and(person_actions::person_id.nullable().eq(my_person_id)),
+    );
+
+    let instance_actions_join = instance_actions::table.on(
+      instance_actions::instance_id
+        .eq(community::instance_id)
+        .and(instance_actions::person_id.nullable().eq(my_person_id)),
+    );
+
+    let comment_creator_community_actions_join = creator_community_actions.on(
+      creator_community_actions
+        .field(community_actions::community_id)
+        .eq(post::community_id)
+        .and(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(comment::creator_id),
+        ),
+    );
+
+    comment::table
       .inner_join(person::table)
       .inner_join(post::table)
-      .inner_join(community::table.on(post::community_id.eq(community::id)))
+      .inner_join(community_join)
       .inner_join(comment_aggregates::table)
-      .left_join(actions(
-        community_actions::table,
-        my_person_id,
-        post::community_id,
-      ))
-      .left_join(actions(
-        comment_actions::table,
-        my_person_id,
-        comment_aggregates::comment_id,
-      ))
-      .left_join(actions(
-        person_actions::table,
-        my_person_id,
-        comment::creator_id,
-      ))
-      .left_join(actions(
-        instance_actions::table,
-        my_person_id,
-        community::instance_id,
-      ))
-      .left_join(actions_alias(
-        creator_community_actions,
-        comment::creator_id,
-        post::community_id,
-      ))
-      .select((
-        comment::all_columns,
-        person::all_columns,
-        post::all_columns,
-        community::all_columns,
-        comment_aggregates::all_columns,
-        creator_community_actions
-          .field(community_actions::received_ban)
-          .nullable()
-          .is_not_null(),
-        community_actions::received_ban.nullable().is_not_null(),
-        creator_community_actions
-          .field(community_actions::became_moderator)
-          .nullable()
-          .is_not_null(),
-        creator_is_admin,
-        CommunityFollower::select_subscribed_type(),
-        comment_actions::saved.nullable().is_not_null(),
-        person_actions::blocked.nullable().is_not_null(),
-        comment_actions::like_score.nullable(),
-      ))
-  };
+      .left_join(community_actions_join)
+      .left_join(comment_actions_join)
+      .left_join(person_actions_join)
+      .left_join(instance_actions_join)
+      .left_join(comment_creator_community_actions_join)
+  }
 
-  let read = move |mut conn: DbConn<'a>,
-                   (comment_id, my_local_user): (CommentId, Option<&'a LocalUser>)| async move {
-    let mut query = all_joins(
-      comment::table.find(comment_id).into_boxed(),
-      my_local_user.person_id(),
-    );
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    comment_id: CommentId,
+    my_local_user: Option<&'_ LocalUser>,
+  ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+
+    let mut query = Self::joins(my_local_user.person_id())
+      .filter(comment::id.eq(comment_id))
+      .select(Self::as_select())
+      .into_boxed();
+
     query = my_local_user.visible_communities_only(query);
 
     // Check permissions to view private community content.
@@ -138,14 +112,65 @@ fn queries<'a>() -> Queries<
           .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
       );
     }
-    query.first(&mut conn).await
-  };
 
-  let list = move |mut conn: DbConn<'a>, (o, site): (CommentQuery<'a>, &'a Site)| async move {
+    let mut res = query.first::<Self>(conn).await?;
+
+    // If a person is given, then my_vote (res.9), if None, should be 0, not null
+    // Necessary to differentiate between other person's votes
+    if my_local_user.is_some() && res.my_vote.is_none() {
+      res.my_vote = Some(0);
+    }
+
+    let is_admin = my_local_user.map(|u| u.admin).unwrap_or(false);
+    Ok(handle_deleted(res, is_admin))
+  }
+
+  pub fn map_to_slim(self) -> CommentSlimView {
+    CommentSlimView {
+      comment: self.comment,
+      creator: self.creator,
+      counts: self.counts,
+      creator_banned_from_community: self.creator_banned_from_community,
+      banned_from_community: self.banned_from_community,
+      creator_is_moderator: self.creator_is_moderator,
+      creator_is_admin: self.creator_is_admin,
+      subscribed: self.subscribed,
+      saved: self.saved,
+      creator_blocked: self.creator_blocked,
+      my_vote: self.my_vote,
+    }
+  }
+}
+
+#[derive(Default)]
+pub struct CommentQuery<'a> {
+  pub listing_type: Option<ListingType>,
+  pub sort: Option<CommentSortType>,
+  pub community_id: Option<CommunityId>,
+  pub post_id: Option<PostId>,
+  pub parent_path: Option<Ltree>,
+  pub creator_id: Option<PersonId>,
+  pub local_user: Option<&'a LocalUser>,
+  pub search_term: Option<String>,
+  pub liked_only: Option<bool>,
+  pub disliked_only: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub max_depth: Option<i32>,
+}
+
+impl CommentQuery<'_> {
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let o = self;
+
     // The left join below will return None in this case
-    let local_user_id_join = o.local_user.local_user_id().unwrap_or(LocalUserId(-1));
+    let my_person_id = o.local_user.person_id();
+    let local_user_id = o.local_user.local_user_id();
 
-    let mut query = all_joins(comment::table.into_boxed(), o.local_user.person_id());
+    let mut query = CommentView::joins(my_person_id)
+      .select(CommentView::as_select())
+      .into_boxed();
 
     if let Some(creator_id) = o.creator_id {
       query = query.filter(comment::creator_id.eq(creator_id));
@@ -186,7 +211,7 @@ fn queries<'a>() -> Queries<
       }
     }
 
-    if let Some(my_id) = o.local_user.person_id() {
+    if let Some(my_id) = my_person_id {
       let not_creator_filter = comment::creator_id.ne(my_id);
       if o.liked_only.unwrap_or_default() {
         query = query
@@ -209,7 +234,11 @@ fn queries<'a>() -> Queries<
         local_user_language::table.filter(
           comment::language_id
             .eq(local_user_language::language_id)
-            .and(local_user_language::local_user_id.eq(local_user_id_join)),
+            .and(
+              local_user_language::local_user_id
+                .nullable()
+                .eq(local_user_id),
+            ),
         ),
       ));
 
@@ -287,74 +316,17 @@ fn queries<'a>() -> Queries<
       CommentSortType::Top => query.then_order_by(comment_aggregates::score.desc()),
     };
 
-    // Note: deleted and removed comments are done on the front side
-    query
+    let res = query
       .limit(limit)
       .offset(offset)
-      .load::<CommentView>(&mut conn)
-      .await
-  };
+      .load::<CommentView>(conn)
+      .await?;
 
-  Queries::new(read, list)
-}
+    let is_admin = o.local_user.map(|u| u.admin).unwrap_or(false);
 
-impl CommentView {
-  pub async fn read(
-    pool: &mut DbPool<'_>,
-    comment_id: CommentId,
-    my_local_user: Option<&'_ LocalUser>,
-  ) -> Result<Self, Error> {
-    let is_admin = my_local_user.map(|u| u.admin).unwrap_or(false);
-    // If a person is given, then my_vote (res.9), if None, should be 0, not null
-    // Necessary to differentiate between other person's votes
-    let mut res = queries().read(pool, (comment_id, my_local_user)).await?;
-    if my_local_user.is_some() && res.my_vote.is_none() {
-      res.my_vote = Some(0);
-    }
-    Ok(handle_deleted(res, is_admin))
-  }
-
-  pub fn map_to_slim(self) -> CommentSlimView {
-    CommentSlimView {
-      comment: self.comment,
-      creator: self.creator,
-      counts: self.counts,
-      creator_banned_from_community: self.creator_banned_from_community,
-      banned_from_community: self.banned_from_community,
-      creator_is_moderator: self.creator_is_moderator,
-      creator_is_admin: self.creator_is_admin,
-      subscribed: self.subscribed,
-      saved: self.saved,
-      creator_blocked: self.creator_blocked,
-      my_vote: self.my_vote,
-    }
-  }
-}
-
-#[derive(Default)]
-pub struct CommentQuery<'a> {
-  pub listing_type: Option<ListingType>,
-  pub sort: Option<CommentSortType>,
-  pub community_id: Option<CommunityId>,
-  pub post_id: Option<PostId>,
-  pub parent_path: Option<Ltree>,
-  pub creator_id: Option<PersonId>,
-  pub local_user: Option<&'a LocalUser>,
-  pub search_term: Option<String>,
-  pub liked_only: Option<bool>,
-  pub disliked_only: Option<bool>,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
-  pub max_depth: Option<i32>,
-}
-
-impl CommentQuery<'_> {
-  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<CommentView>, Error> {
-    let is_admin = self.local_user.map(|u| u.admin).unwrap_or(false);
+    // Note: deleted and removed comments are done on the front side
     Ok(
-      queries()
-        .list(pool, (self, site))
-        .await?
+      res
         .into_iter()
         .map(|c| handle_deleted(c, is_admin))
         .collect(),
@@ -362,6 +334,7 @@ impl CommentQuery<'_> {
   }
 }
 
+/// Only show deleted / removed content for admins.
 fn handle_deleted(mut c: CommentView, is_admin: bool) -> CommentView {
   if !is_admin && (c.comment.deleted || c.comment.removed) {
     c.comment.content = String::new();

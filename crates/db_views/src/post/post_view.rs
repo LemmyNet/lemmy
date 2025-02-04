@@ -19,7 +19,7 @@ use lemmy_db_schema::{
   aggregates::structs::{post_aggregates_keys as key, PostAggregates},
   aliases::creator_community_actions,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, LocalUserId, PersonId, PostId},
+  newtypes::{CommunityId, PersonId, PostId},
   schema::{
     community,
     community_actions,
@@ -42,9 +42,6 @@ use lemmy_db_schema::{
     site::Site,
   },
   utils::{
-    action_query,
-    actions,
-    actions_alias,
     functions::coalesce,
     fuzzy_search,
     get_conn,
@@ -52,11 +49,7 @@ use lemmy_db_schema::{
     now,
     paginate,
     Commented,
-    DbConn,
     DbPool,
-    ListFn,
-    Queries,
-    ReadFn,
     ReverseTimestampKey,
   },
   CommunityVisibility,
@@ -66,37 +59,83 @@ use lemmy_db_schema::{
 use tracing::debug;
 use PostSortType::*;
 
-type QueriesReadTypes<'a> = (PostId, Option<&'a LocalUser>, bool);
-type QueriesListTypes<'a> = (PostQuery<'a>, &'a Site);
+impl PostView {
+  // TODO while we can abstract the joins into a function, the selects are currently impossible to
+  // do, because they rely on a few types that aren't yet publicly exported in diesel:
+  // https://github.com/diesel-rs/diesel/issues/4462
 
-fn queries<'a>() -> Queries<
-  impl ReadFn<'a, PostView, QueriesReadTypes<'a>>,
-  impl ListFn<'a, PostView, QueriesListTypes<'a>>,
-> {
-  let creator_is_admin = exists(
-    local_user::table.filter(
-      post_aggregates::creator_id
-        .eq(local_user::person_id)
-        .and(local_user::admin.eq(true)),
-    ),
-  );
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins(my_person_id: Option<PersonId>) -> _ {
+    let community_actions_join = community_actions::table.on(
+      community_actions::community_id
+        .eq(post_aggregates::community_id)
+        .and(community_actions::person_id.nullable().eq(my_person_id)),
+    );
 
-  // TODO maybe this should go to localuser also
-  let all_joins = move |query: post_aggregates::BoxedQuery<'a, Pg>,
-                        my_person_id: Option<PersonId>| {
-    // We fetch post tags by letting postgresql aggregate them internally in a subquery into JSON.
-    // This is a simple way to join m rows into n rows without duplicating the data and getting
-    // complex diesel types. In pure SQL you would usually do this either using a LEFT JOIN + then
-    // aggregating the results in the application code. But this results in a lot of duplicate
-    // data transferred (since each post will be returned once per tag that it has) and more
-    // complicated application code. The diesel docs suggest doing three separate sequential queries
-    // in this case (see https://diesel.rs/guides/relations.html#many-to-many-or-mn ): First fetch
-    // the posts, then fetch all relevant post-tag-association tuples from the db, and then fetch
-    // all the relevant tag objects.
-    //
-    // If we want to filter by post tag we will have to add
-    // separate logic below since this subquery can't affect filtering, but it is simple (`WHERE
-    // exists (select 1 from post_community_post_tags where community_post_tag_id in (1,2,3,4)`).
+    let person_actions_join = person_actions::table.on(
+      person_actions::target_id
+        .eq(post_aggregates::creator_id)
+        .and(person_actions::person_id.nullable().eq(my_person_id)),
+    );
+
+    let post_actions_join = post_actions::table.on(
+      post_actions::post_id
+        .eq(post_aggregates::post_id)
+        .and(post_actions::person_id.nullable().eq(my_person_id)),
+    );
+
+    let instance_actions_join = instance_actions::table.on(
+      instance_actions::instance_id
+        .eq(post_aggregates::instance_id)
+        .and(instance_actions::person_id.nullable().eq(my_person_id)),
+    );
+
+    let post_creator_community_actions_join = creator_community_actions.on(
+      creator_community_actions
+        .field(community_actions::community_id)
+        .eq(post_aggregates::community_id)
+        .and(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(post_aggregates::creator_id),
+        ),
+    );
+
+    let image_details_join =
+      image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable()));
+
+    post_aggregates::table
+      .inner_join(person::table)
+      .inner_join(community::table)
+      .inner_join(post::table)
+      .left_join(image_details_join)
+      .left_join(community_actions_join)
+      .left_join(person_actions_join)
+      .left_join(post_actions_join)
+      .left_join(instance_actions_join)
+      .left_join(post_creator_community_actions_join)
+  }
+
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn creator_is_admin() -> _ {
+    exists(
+      local_user::table.filter(
+        post_aggregates::creator_id
+          .eq(local_user::person_id)
+          .and(local_user::admin.eq(true)),
+      ),
+    )
+  }
+
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    post_id: PostId,
+    my_local_user: Option<&'_ LocalUser>,
+    is_mod_or_admin: bool,
+  ) -> Result<Self, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let my_person_id = my_local_user.person_id();
+
     let post_tags = post_tag::table
       .inner_join(tag::table)
       .select(diesel::dsl::sql::<diesel::sql_types::Json>(
@@ -106,36 +145,8 @@ fn queries<'a>() -> Queries<
       .filter(tag::deleted.eq(false))
       .single_value();
 
-    query
-      .inner_join(person::table)
-      .inner_join(community::table)
-      .inner_join(post::table)
-      .left_join(image_details::table.on(post::thumbnail_url.eq(image_details::link.nullable())))
-      .left_join(actions(
-        community_actions::table,
-        my_person_id,
-        post_aggregates::community_id,
-      ))
-      .left_join(actions(
-        person_actions::table,
-        my_person_id,
-        post_aggregates::creator_id,
-      ))
-      .left_join(actions(
-        post_actions::table,
-        my_person_id,
-        post_aggregates::post_id,
-      ))
-      .left_join(actions(
-        instance_actions::table,
-        my_person_id,
-        post_aggregates::instance_id,
-      ))
-      .left_join(actions_alias(
-        creator_community_actions,
-        post_aggregates::creator_id,
-        post_aggregates::community_id,
-      ))
+    let mut query = Self::joins(my_person_id)
+      .filter(post_aggregates::post_id.eq(post_id))
       .select((
         post::all_columns,
         person::all_columns,
@@ -150,7 +161,7 @@ fn queries<'a>() -> Queries<
           .field(community_actions::became_moderator)
           .nullable()
           .is_not_null(),
-        creator_is_admin,
+        Self::creator_is_admin(),
         post_aggregates::all_columns,
         CommunityFollower::select_subscribed_type(),
         post_actions::saved.nullable().is_not_null(),
@@ -164,24 +175,7 @@ fn queries<'a>() -> Queries<
         ),
         post_tags,
       ))
-  };
-
-  let read = move |mut conn: DbConn<'a>,
-                   (post_id, my_local_user, is_mod_or_admin): (
-    PostId,
-    Option<&'a LocalUser>,
-    bool,
-  )| async move {
-    // The left join below will return None in this case
-    let my_person_id = my_local_user.person_id();
-    let person_id_join = my_person_id.unwrap_or(PersonId(-1));
-
-    let mut query = all_joins(
-      post_aggregates::table
-        .filter(post_aggregates::post_id.eq(post_id))
-        .into_boxed(),
-      my_person_id,
-    );
+      .into_boxed();
 
     // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin {
@@ -189,23 +183,23 @@ fn queries<'a>() -> Queries<
         .filter(
           community::removed
             .eq(false)
-            .or(post::creator_id.eq(person_id_join)),
+            .or(post::creator_id.nullable().eq(my_person_id)),
         )
         .filter(
           post::removed
             .eq(false)
-            .or(post::creator_id.eq(person_id_join)),
+            .or(post::creator_id.nullable().eq(my_person_id)),
         )
         // users can see their own deleted posts
         .filter(
           community::deleted
             .eq(false)
-            .or(post::creator_id.eq(person_id_join)),
+            .or(post::creator_id.nullable().eq(my_person_id)),
         )
         .filter(
           post::deleted
             .eq(false)
-            .or(post::creator_id.eq(person_id_join)),
+            .or(post::creator_id.nullable().eq(my_person_id)),
         )
         // private communities can only by browsed by accepted followers
         .filter(
@@ -219,18 +213,216 @@ fn queries<'a>() -> Queries<
 
     Commented::new(query)
       .text("PostView::read")
-      .first(&mut conn)
+      .first(conn)
       .await
-  };
+  }
+}
 
-  let list = move |mut conn: DbConn<'a>, (o, site): (PostQuery<'a>, &'a Site)| async move {
-    // The left join below will return None in this case
-    let local_user_id_join = o.local_user.local_user_id().unwrap_or(LocalUserId(-1));
-
-    let mut query = all_joins(
-      post_aggregates::table.into_boxed(),
-      o.local_user.person_id(),
+impl PaginationCursor {
+  // get cursor for page that starts immediately after the given post
+  pub fn after_post(view: &PostView) -> PaginationCursor {
+    // hex encoding to prevent ossification
+    PaginationCursor(format!("P{:x}", view.counts.post_id.0))
+  }
+  pub async fn read(
+    &self,
+    pool: &mut DbPool<'_>,
+    local_user: Option<&LocalUser>,
+  ) -> Result<PaginationCursorData, Error> {
+    let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
+    let post_id = PostId(
+      self
+        .0
+        .get(1..)
+        .and_then(|e| i32::from_str_radix(e, 16).ok())
+        .ok_or_else(err_msg)?,
     );
+    let post_aggregates = PostAggregates::read(pool, post_id).await?;
+    let post_actions = PostActionsCursor::read(pool, post_id, local_user.person_id()).await?;
+
+    Ok(PaginationCursorData {
+      post_aggregates,
+      post_actions,
+    })
+  }
+}
+
+// currently we use aggregates or actions as the pagination token.
+// we only use some of the properties, depending on which sort type we page by
+#[derive(Clone)]
+pub struct PaginationCursorData {
+  post_aggregates: PostAggregates,
+  post_actions: PostActionsCursor,
+}
+
+#[derive(Clone, Default)]
+pub struct PostQuery<'a> {
+  pub listing_type: Option<ListingType>,
+  pub sort: Option<PostSortType>,
+  pub creator_id: Option<PersonId>,
+  pub community_id: Option<CommunityId>,
+  // if true, the query should be handled as if community_id was not given except adding the
+  // literal filter
+  pub community_id_just_for_prefetch: bool,
+  pub local_user: Option<&'a LocalUser>,
+  pub search_term: Option<String>,
+  pub url_only: Option<bool>,
+  pub read_only: Option<bool>,
+  pub liked_only: Option<bool>,
+  pub disliked_only: Option<bool>,
+  pub title_only: Option<bool>,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub page_after: Option<PaginationCursorData>,
+  pub page_before_or_equal: Option<PostAggregates>,
+  pub page_back: Option<bool>,
+  pub show_hidden: Option<bool>,
+  pub show_read: Option<bool>,
+  pub show_nsfw: Option<bool>,
+  pub hide_media: Option<bool>,
+  pub no_comments_only: Option<bool>,
+}
+
+impl<'a> PostQuery<'a> {
+  #[allow(clippy::expect_used)]
+  async fn prefetch_upper_bound_for_page_before(
+    &self,
+    site: &Site,
+    pool: &mut DbPool<'_>,
+  ) -> Result<Option<PostQuery<'a>>, Error> {
+    // first get one page for the most popular community to get an upper bound for the page end for
+    // the real query. the reason this is needed is that when fetching posts for a single
+    // community PostgreSQL can optimize the query to use an index on e.g. (=, >=, >=, >=) and
+    // fetch only LIMIT rows but for the followed-communities query it has to query the index on
+    // (IN, >=, >=, >=) which it currently can't do at all (as of PG 16). see the discussion
+    // here: https://github.com/LemmyNet/lemmy/issues/2877#issuecomment-1673597190
+    //
+    // the results are correct no matter which community we fetch these for, since it basically
+    // covers the "worst case" of the whole page consisting of posts from one community
+    // but using the largest community decreases the pagination-frame so make the real query more
+    // efficient.
+    use lemmy_db_schema::schema::community_aggregates::dsl::{
+      community_aggregates,
+      community_id,
+      users_active_month,
+    };
+    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
+    if offset != 0 && self.page_after.is_some() {
+      return Err(Error::QueryBuilderError(
+        "legacy pagination cannot be combined with v2 pagination".into(),
+      ));
+    }
+    let self_person_id = self.local_user.expect("part of the above if").person_id;
+    let largest_subscribed = {
+      let conn = &mut get_conn(pool).await?;
+      community_actions::table
+        .filter(community_actions::followed.is_not_null())
+        .filter(community_actions::person_id.eq(self_person_id))
+        .inner_join(community_aggregates.on(community_id.eq(community_actions::community_id)))
+        .order_by(users_active_month.desc())
+        .select(community_id)
+        .limit(1)
+        .get_result::<CommunityId>(conn)
+        .await
+        .optional()?
+    };
+    let Some(largest_subscribed) = largest_subscribed else {
+      // nothing subscribed to? no posts
+      return Ok(None);
+    };
+
+    let mut v = Box::pin(
+      PostQuery {
+        community_id: Some(largest_subscribed),
+        community_id_just_for_prefetch: true,
+        ..self.clone()
+      }
+      .list(site, pool),
+    )
+    .await?;
+
+    // take last element of array. if this query returned less than LIMIT elements,
+    // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results
+    // (return original query)
+    if (v.len() as i64) < limit {
+      Ok(Some(self.clone()))
+    } else {
+      let item = if self.page_back.unwrap_or_default() {
+        // for backward pagination, get first element instead
+        v.into_iter().next()
+      } else {
+        v.pop()
+      };
+      let limit_cursor = Some(item.expect("else case").counts);
+      Ok(Some(PostQuery {
+        page_before_or_equal: limit_cursor,
+        ..self.clone()
+      }))
+    }
+  }
+
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
+    let o = if self.listing_type == Some(ListingType::Subscribed)
+      && self.community_id.is_none()
+      && self.local_user.is_some()
+      && self.page_before_or_equal.is_none()
+    {
+      if let Some(query) = self
+        .prefetch_upper_bound_for_page_before(site, pool)
+        .await?
+      {
+        query
+      } else {
+        self
+      }
+    } else {
+      self
+    };
+
+    let conn = &mut get_conn(pool).await?;
+
+    let my_person_id = o.local_user.person_id();
+    let my_local_user_id = o.local_user.local_user_id();
+
+    let post_tags = post_tag::table
+      .inner_join(tag::table)
+      .select(diesel::dsl::sql::<diesel::sql_types::Json>(
+        "json_agg(tag.*)",
+      ))
+      .filter(post_tag::post_id.eq(post_aggregates::post_id))
+      .filter(tag::deleted.eq(false))
+      .single_value();
+
+    let mut query = PostView::joins(my_person_id)
+      .select((
+        post::all_columns,
+        person::all_columns,
+        community::all_columns,
+        image_details::all_columns.nullable(),
+        creator_community_actions
+          .field(community_actions::received_ban)
+          .nullable()
+          .is_not_null(),
+        community_actions::received_ban.nullable().is_not_null(),
+        creator_community_actions
+          .field(community_actions::became_moderator)
+          .nullable()
+          .is_not_null(),
+        PostView::creator_is_admin(),
+        post_aggregates::all_columns,
+        CommunityFollower::select_subscribed_type(),
+        post_actions::saved.nullable().is_not_null(),
+        post_actions::read.nullable().is_not_null(),
+        post_actions::hidden.nullable().is_not_null(),
+        person_actions::blocked.nullable().is_not_null(),
+        post_actions::like_score.nullable(),
+        coalesce(
+          post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
+          post_aggregates::comments,
+        ),
+        post_tags,
+      ))
+      .into_boxed();
 
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));
@@ -360,9 +552,11 @@ fn queries<'a>() -> Queries<
       if o.local_user.is_some() {
         query = query.filter(exists(
           local_user_language::table.filter(
-            post::language_id
-              .eq(local_user_language::language_id)
-              .and(local_user_language::local_user_id.eq(local_user_id_join)),
+            post::language_id.eq(local_user_language::language_id).and(
+              local_user_language::local_user_id
+                .nullable()
+                .eq(my_local_user_id),
+            ),
           ),
         ));
       }
@@ -448,188 +642,8 @@ fn queries<'a>() -> Queries<
         "getting upper bound for next query",
         o.community_id_just_for_prefetch,
       )
-      .load::<PostView>(&mut conn)
+      .load::<PostView>(conn)
       .await
-  };
-
-  Queries::new(read, list)
-}
-
-impl PostView {
-  pub async fn read(
-    pool: &mut DbPool<'_>,
-    post_id: PostId,
-    my_local_user: Option<&'_ LocalUser>,
-    is_mod_or_admin: bool,
-  ) -> Result<Self, Error> {
-    queries()
-      .read(pool, (post_id, my_local_user, is_mod_or_admin))
-      .await
-  }
-}
-
-impl PaginationCursor {
-  // get cursor for page that starts immediately after the given post
-  pub fn after_post(view: &PostView) -> PaginationCursor {
-    // hex encoding to prevent ossification
-    PaginationCursor(format!("P{:x}", view.counts.post_id.0))
-  }
-  pub async fn read(
-    &self,
-    pool: &mut DbPool<'_>,
-    local_user: Option<&LocalUser>,
-  ) -> Result<PaginationCursorData, Error> {
-    let err_msg = || Error::QueryBuilderError("Could not parse pagination token".into());
-    let post_id = PostId(
-      self
-        .0
-        .get(1..)
-        .and_then(|e| i32::from_str_radix(e, 16).ok())
-        .ok_or_else(err_msg)?,
-    );
-    let post_aggregates = PostAggregates::read(pool, post_id).await?;
-    let post_actions = PostActionsCursor::read(pool, post_id, local_user.person_id()).await?;
-
-    Ok(PaginationCursorData {
-      post_aggregates,
-      post_actions,
-    })
-  }
-}
-
-// currently we use aggregates or actions as the pagination token.
-// we only use some of the properties, depending on which sort type we page by
-#[derive(Clone)]
-pub struct PaginationCursorData {
-  post_aggregates: PostAggregates,
-  post_actions: PostActionsCursor,
-}
-
-#[derive(Clone, Default)]
-pub struct PostQuery<'a> {
-  pub listing_type: Option<ListingType>,
-  pub sort: Option<PostSortType>,
-  pub creator_id: Option<PersonId>,
-  pub community_id: Option<CommunityId>,
-  // if true, the query should be handled as if community_id was not given except adding the
-  // literal filter
-  pub community_id_just_for_prefetch: bool,
-  pub local_user: Option<&'a LocalUser>,
-  pub search_term: Option<String>,
-  pub url_only: Option<bool>,
-  pub read_only: Option<bool>,
-  pub liked_only: Option<bool>,
-  pub disliked_only: Option<bool>,
-  pub title_only: Option<bool>,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
-  pub page_after: Option<PaginationCursorData>,
-  pub page_before_or_equal: Option<PostAggregates>,
-  pub page_back: Option<bool>,
-  pub show_hidden: Option<bool>,
-  pub show_read: Option<bool>,
-  pub show_nsfw: Option<bool>,
-  pub hide_media: Option<bool>,
-  pub no_comments_only: Option<bool>,
-}
-
-impl<'a> PostQuery<'a> {
-  #[allow(clippy::expect_used)]
-  async fn prefetch_upper_bound_for_page_before(
-    &self,
-    site: &Site,
-    pool: &mut DbPool<'_>,
-  ) -> Result<Option<PostQuery<'a>>, Error> {
-    // first get one page for the most popular community to get an upper bound for the page end for
-    // the real query. the reason this is needed is that when fetching posts for a single
-    // community PostgreSQL can optimize the query to use an index on e.g. (=, >=, >=, >=) and
-    // fetch only LIMIT rows but for the followed-communities query it has to query the index on
-    // (IN, >=, >=, >=) which it currently can't do at all (as of PG 16). see the discussion
-    // here: https://github.com/LemmyNet/lemmy/issues/2877#issuecomment-1673597190
-    //
-    // the results are correct no matter which community we fetch these for, since it basically
-    // covers the "worst case" of the whole page consisting of posts from one community
-    // but using the largest community decreases the pagination-frame so make the real query more
-    // efficient.
-    use lemmy_db_schema::schema::community_aggregates::dsl::{
-      community_aggregates,
-      community_id,
-      users_active_month,
-    };
-    let (limit, offset) = limit_and_offset(self.page, self.limit)?;
-    if offset != 0 && self.page_after.is_some() {
-      return Err(Error::QueryBuilderError(
-        "legacy pagination cannot be combined with v2 pagination".into(),
-      ));
-    }
-    let self_person_id = self.local_user.expect("part of the above if").person_id;
-    let largest_subscribed = {
-      let conn = &mut get_conn(pool).await?;
-      action_query(community_actions::followed)
-        .filter(community_actions::person_id.eq(self_person_id))
-        .inner_join(community_aggregates.on(community_id.eq(community_actions::community_id)))
-        .order_by(users_active_month.desc())
-        .select(community_id)
-        .limit(1)
-        .get_result::<CommunityId>(conn)
-        .await
-        .optional()?
-    };
-    let Some(largest_subscribed) = largest_subscribed else {
-      // nothing subscribed to? no posts
-      return Ok(None);
-    };
-
-    let mut v = queries()
-      .list(
-        pool,
-        (
-          PostQuery {
-            community_id: Some(largest_subscribed),
-            community_id_just_for_prefetch: true,
-            ..self.clone()
-          },
-          site,
-        ),
-      )
-      .await?;
-    // take last element of array. if this query returned less than LIMIT elements,
-    // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT results
-    // (return original query)
-    if (v.len() as i64) < limit {
-      Ok(Some(self.clone()))
-    } else {
-      let item = if self.page_back.unwrap_or_default() {
-        // for backward pagination, get first element instead
-        v.into_iter().next()
-      } else {
-        v.pop()
-      };
-      let limit_cursor = Some(item.expect("else case").counts);
-      Ok(Some(PostQuery {
-        page_before_or_equal: limit_cursor,
-        ..self.clone()
-      }))
-    }
-  }
-
-  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> Result<Vec<PostView>, Error> {
-    if self.listing_type == Some(ListingType::Subscribed)
-      && self.community_id.is_none()
-      && self.local_user.is_some()
-      && self.page_before_or_equal.is_none()
-    {
-      if let Some(query) = self
-        .prefetch_upper_bound_for_page_before(site, pool)
-        .await?
-      {
-        queries().list(pool, (query, site)).await
-      } else {
-        Ok(vec![])
-      }
-    } else {
-      queries().list(pool, (self, site)).await
-    }
   }
 }
 

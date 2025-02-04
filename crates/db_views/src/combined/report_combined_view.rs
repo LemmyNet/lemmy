@@ -22,7 +22,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::PaginatedQueryBuilder;
 use lemmy_db_schema::{
   aliases::{self, creator_community_actions},
-  newtypes::{CommunityId, PostId},
+  newtypes::{CommunityId, PersonId, PostId},
   schema::{
     comment,
     comment_actions,
@@ -48,12 +48,130 @@ use lemmy_db_schema::{
     community::CommunityFollower,
   },
   traits::InternalToCombinedView,
-  utils::{actions, actions_alias, functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
+  utils::{functions::coalesce, get_conn, DbPool, ReverseTimestampKey},
   ReportType,
 };
 use lemmy_utils::error::LemmyResult;
 
 impl ReportCombinedViewInternal {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins(my_person_id: PersonId) -> _ {
+    let report_creator = person::id;
+    let item_creator = aliases::person1.field(person::id);
+    let resolver = aliases::person2.field(person::id).nullable();
+
+    let comment_join = comment::table.on(comment_report::comment_id.eq(comment::id));
+    let private_message_join =
+      private_message::table.on(private_message_report::private_message_id.eq(private_message::id));
+
+    let post_join = post::table.on(
+      post_report::post_id
+        .eq(post::id)
+        .or(comment::post_id.eq(post::id)),
+    );
+
+    let community_actions_join = community_actions::table.on(
+      community_actions::community_id
+        .eq(community::id)
+        .and(community_actions::person_id.eq(my_person_id)),
+    );
+
+    let report_creator_join = person::table.on(
+      post_report::creator_id
+        .eq(report_creator)
+        .or(comment_report::creator_id.eq(report_creator))
+        .or(private_message_report::creator_id.eq(report_creator))
+        .or(community_report::creator_id.eq(report_creator)),
+    );
+
+    let item_creator_join = aliases::person1.on(
+      post::creator_id
+        .eq(item_creator)
+        .or(comment::creator_id.eq(item_creator))
+        .or(private_message::creator_id.eq(item_creator)),
+    );
+
+    let resolver_join = aliases::person2.on(
+      private_message_report::resolver_id
+        .eq(resolver)
+        .or(post_report::resolver_id.eq(resolver))
+        .or(comment_report::resolver_id.eq(resolver))
+        .or(community_report::resolver_id.eq(resolver)),
+    );
+
+    let community_join = community::table.on(
+      community_report::community_id
+        .eq(community::id)
+        .or(post::community_id.eq(community::id)),
+    );
+
+    let local_user_join = local_user::table.on(
+      item_creator
+        .eq(local_user::person_id)
+        .and(local_user::admin.eq(true)),
+    );
+
+    let creator_community_actions_join = creator_community_actions.on(
+      creator_community_actions
+        .field(community_actions::community_id)
+        .eq(post::community_id)
+        .and(
+          creator_community_actions
+            .field(community_actions::person_id)
+            .eq(item_creator),
+        ),
+    );
+
+    let post_actions_join = post_actions::table.on(
+      post_actions::post_id
+        .eq(post::id)
+        .and(post_actions::person_id.eq(my_person_id)),
+    );
+
+    let person_actions_join = person_actions::table.on(
+      person_actions::target_id
+        .eq(item_creator)
+        .and(person_actions::person_id.eq(my_person_id)),
+    );
+
+    let comment_actions_join = comment_actions::table.on(
+      comment_actions::comment_id
+        .eq(comment::id)
+        .and(comment_actions::person_id.eq(my_person_id)),
+    );
+
+    let post_aggregates_join =
+      post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id));
+
+    let comment_aggregates_join =
+      comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id));
+
+    let community_aggregates_join = community_aggregates::table
+      .on(community_report::community_id.eq(community_aggregates::community_id));
+
+    report_combined::table
+      .left_join(post_report::table)
+      .left_join(comment_report::table)
+      .left_join(private_message_report::table)
+      .left_join(community_report::table)
+      .inner_join(report_creator_join)
+      .left_join(comment_join)
+      .left_join(private_message_join)
+      .left_join(post_join)
+      .left_join(item_creator_join)
+      .left_join(resolver_join)
+      .left_join(community_join)
+      .left_join(creator_community_actions_join)
+      .left_join(local_user_join)
+      .left_join(community_actions_join)
+      .left_join(post_actions_join)
+      .left_join(person_actions_join)
+      .left_join(post_aggregates_join)
+      .left_join(comment_aggregates_join)
+      .left_join(community_aggregates_join)
+      .left_join(comment_actions_join)
+  }
+
   /// returns the current unresolved report count for the communities you mod
   pub async fn get_report_count(
     pool: &mut DbPool<'_>,
@@ -65,27 +183,7 @@ impl ReportCombinedViewInternal {
     let conn = &mut get_conn(pool).await?;
     let my_person_id = user.local_user.person_id;
 
-    let mut query = report_combined::table
-      .left_join(post_report::table)
-      .left_join(comment_report::table)
-      .left_join(private_message_report::table)
-      .left_join(community_report::table)
-      // Need to join to comment and post to get the community
-      .left_join(comment::table.on(comment_report::comment_id.eq(comment::id)))
-      // The post
-      .left_join(
-        post::table.on(
-          post_report::post_id
-            .eq(post::id)
-            .or(comment::post_id.eq(post::id)),
-        ),
-      )
-      .left_join(community::table.on(post::community_id.eq(community::id)))
-      .left_join(actions(
-        community_actions::table,
-        Some(my_person_id),
-        post::community_id,
-      ))
+    let mut query = Self::joins(my_person_id)
       .filter(
         post_report::resolved
           .or(comment_report::resolved)
@@ -93,21 +191,27 @@ impl ReportCombinedViewInternal {
           .or(community_report::resolved)
           .is_distinct_from(true),
       )
+      .select(count(report_combined::id))
       .into_boxed();
 
     if let Some(community_id) = community_id {
-      query = query.filter(post::community_id.eq(community_id))
+      query = query.filter(
+        community::id
+          .eq(community_id)
+          .and(report_combined::community_report_id.is_null()),
+      );
     }
 
     // If its not an admin, get only the ones you mod
     if !user.local_user.admin {
-      query = query.filter(community_actions::became_moderator.is_not_null());
+      query = query.filter(
+        community_actions::became_moderator
+          .is_not_null()
+          .and(report_combined::community_report_id.is_null()),
+      );
     }
 
-    query
-      .select(count(report_combined::id))
-      .first::<i64>(conn)
-      .await
+    query.first::<i64>(conn).await
   }
 }
 
@@ -164,102 +268,9 @@ impl ReportCombinedQuery {
     user: &LocalUserView,
   ) -> LemmyResult<Vec<ReportCombinedView>> {
     let my_person_id = user.local_user.person_id;
-    let report_creator = person::id;
-    let item_creator = aliases::person1.field(person::id);
-    let resolver = aliases::person2.field(person::id).nullable();
 
     let conn = &mut get_conn(pool).await?;
-
-    let report_creator_join = post_report::creator_id
-      .eq(report_creator)
-      .or(comment_report::creator_id.eq(report_creator))
-      .or(private_message_report::creator_id.eq(report_creator))
-      .or(community_report::creator_id.eq(report_creator));
-
-    let item_creator_join = post::creator_id
-      .eq(item_creator)
-      .or(comment::creator_id.eq(item_creator))
-      .or(private_message::creator_id.eq(item_creator));
-
-    let resolver_join = private_message_report::resolver_id
-      .eq(resolver)
-      .or(post_report::resolver_id.eq(resolver))
-      .or(comment_report::resolver_id.eq(resolver))
-      .or(community_report::resolver_id.eq(resolver));
-
-    let post_join = post_report::post_id
-      .eq(post::id)
-      .or(comment::post_id.eq(post::id));
-
-    let community_join = community::table.on(
-      community_report::community_id
-        .eq(community::id)
-        .or(post::community_id.eq(community::id)),
-    );
-
-    // Notes: since the post_report_id and comment_report_id are optional columns,
-    // many joins must use an OR condition.
-    // For example, the report creator must be the person table joined to either:
-    // - post_report.creator_id
-    // - comment_report.creator_id
-    let mut query = report_combined::table
-      .left_join(post_report::table)
-      .left_join(comment_report::table)
-      .left_join(private_message_report::table)
-      .left_join(community_report::table)
-      // The report creator
-      .inner_join(person::table.on(report_creator_join))
-      // The comment
-      .left_join(comment::table.on(comment_report::comment_id.eq(comment::id)))
-      // The private message
-      .left_join(
-        private_message::table
-          .on(private_message_report::private_message_id.eq(private_message::id)),
-      )
-      // The post
-      .left_join(post::table.on(post_join))
-      // The item creator (`item_creator` is the id of this person)
-      .left_join(aliases::person1.on(item_creator_join))
-      // The resolver
-      .left_join(aliases::person2.on(resolver_join))
-      // The community
-      .left_join(community_join)
-      .left_join(actions_alias(
-        creator_community_actions,
-        item_creator,
-        post::community_id,
-      ))
-      .left_join(
-        local_user::table.on(
-          item_creator
-            .eq(local_user::person_id)
-            .and(local_user::admin.eq(true)),
-        ),
-      )
-      .left_join(actions(
-        community_actions::table,
-        Some(my_person_id),
-        community::id,
-      ))
-      .left_join(actions(post_actions::table, Some(my_person_id), post::id))
-      .left_join(actions(
-        person_actions::table,
-        Some(my_person_id),
-        item_creator,
-      ))
-      .left_join(post_aggregates::table.on(post_report::post_id.eq(post_aggregates::post_id)))
-      .left_join(
-        comment_aggregates::table.on(comment_report::comment_id.eq(comment_aggregates::comment_id)),
-      )
-      .left_join(
-        community_aggregates::table
-          .on(community_report::community_id.eq(community_aggregates::community_id)),
-      )
-      .left_join(actions(
-        comment_actions::table,
-        Some(my_person_id),
-        comment_report::comment_id,
-      ))
+    let mut query = ReportCombinedViewInternal::joins(my_person_id)
       .select((
         // Post-specific
         post_report::all_columns.nullable(),
