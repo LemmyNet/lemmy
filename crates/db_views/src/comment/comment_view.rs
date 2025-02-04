@@ -135,7 +135,7 @@ impl CommentView {
       creator_is_moderator: self.creator_is_moderator,
       creator_is_admin: self.creator_is_admin,
       subscribed: self.subscribed,
-      saved: self.saved,
+      saved: self.saved.is_some(),
       creator_blocked: self.creator_blocked,
       my_vote: self.my_vote,
     }
@@ -894,7 +894,7 @@ mod tests {
       creator_is_admin: true,
       my_vote: None,
       subscribed: SubscribedType::NotSubscribed,
-      saved: false,
+      saved: None,
       creator_blocked: false,
       comment: Comment {
         id: data.inserted_comment_0.id,
