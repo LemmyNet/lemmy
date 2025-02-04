@@ -56,6 +56,7 @@ pub struct Group {
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) icon: Option<ImageObject>,
   /// banner
+  #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) image: Option<ImageObject>,
   // lemmy extension
   pub(crate) sensitive: Option<bool>,

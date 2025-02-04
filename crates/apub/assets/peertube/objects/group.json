@@ -16,57 +16,55 @@
         "@type": "sc:Text",
         "@id": "pt:support"
       },
-      "icons": "as:icon"
+      "lemmy": "https://join-lemmy.org/ns#",
+      "postingRestrictedToMods": "lemmy:postingRestrictedToMods"
     }
   ],
   "type": "Group",
-  "id": "https://peertube.stream/video-channels/vu",
-  "following": "https://peertube.stream/video-channels/vu/following",
-  "followers": "https://peertube.stream/video-channels/vu/followers",
-  "playlists": "https://peertube.stream/video-channels/vu/playlists",
-  "inbox": "https://peertube.stream/video-channels/vu/inbox",
-  "outbox": "https://peertube.stream/video-channels/vu/outbox",
-  "preferredUsername": "vu",
-  "url": "https://peertube.stream/video-channels/vu",
-  "name": "VU",
+  "id": "https://tilvids.com/video-channels/thelinuxexperiment_channel",
+  "following": "https://tilvids.com/video-channels/thelinuxexperiment_channel/following",
+  "followers": "https://tilvids.com/video-channels/thelinuxexperiment_channel/followers",
+  "playlists": "https://tilvids.com/video-channels/thelinuxexperiment_channel/playlists",
+  "inbox": "https://tilvids.com/video-channels/thelinuxexperiment_channel/inbox",
+  "outbox": "https://tilvids.com/video-channels/thelinuxexperiment_channel/outbox",
+  "preferredUsername": "thelinuxexperiment_channel",
+  "url": "https://tilvids.com/video-channels/thelinuxexperiment_channel",
+  "name": "The Linux Experiment",
   "endpoints": {
-    "sharedInbox": "https://peertube.stream/inbox"
+    "sharedInbox": "https://tilvids.com/inbox"
   },
   "publicKey": {
-    "id": "https://peertube.stream/video-channels/vu#main-key",
-    "owner": "https://peertube.stream/video-channels/vu",
-    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtcWpN7efQx5C7ecWkw3r\nX4ViPy/bl3d3iyVLyP6z/3+WAUKJxqR+QKlNzxM7NglzB0B48NYu2cg4iuwKkSK9\ntrfMC/Ze0H10Wo/5kUH5YQKzLo4syHOuuM+1rbZFBbzVFwk4k0qqLFTXQ+Y6WNSS\nG9OlFYZNpRaUkgF8Q/KCsngn68qsZ0gLly9FJb+6+j3IppLJNXrBpFB5qulWibL+\neN+3XMnaTm6ge6X+rFti5r6dh10grL0KU/eZKmGyadgdwYdvR/LLtBWwFIwSJShk\nuIPhcz2zbkwrV3AixLe76TLGXX5M9qczfsVYLupyU7TwPlFM2ENDtDdfp41sWaZa\nxQIDAQAB\n-----END PUBLIC KEY-----"
+    "id": "https://tilvids.com/video-channels/thelinuxexperiment_channel#main-key",
+    "owner": "https://tilvids.com/video-channels/thelinuxexperiment_channel",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7mWF3Il0lE+nWiArDK4B\n8Z9rUCYR/C9651CcqPFIpHFLkJgoAkYxeMqfCo7lbXil1abaQERjgAYAJtdfObvY\neqUrHejEHAClFIO5BilyTP8b02RVZX6xxtTNF7jUEePFI0xOtPtt3Yz+YP0c6rz6\noyCCpqTy8LRfDkD9RATQrYfFxZCQ2yo2SlCoymNrDjoVwPI0XMZWHyMthKcaVwAq\ni+dYd0pmNUxdY9V042tIg+YwR3mOYvkXCNqy1SDygcIY6N5kdqioFoKxMK3MFApK\nY7tkfZkZXLlBdzHjjtYGHictaZzNYl4HV6onx//A21w0A7dGimlYd5bYLwz/BteD\nTwIDAQAB\n-----END PUBLIC KEY-----"
   },
-  "published": "2020-12-10T16:07:08.406Z",
+  "published": "2020-06-30T13:45:17.984Z",
   "icon": [
     {
       "type": "Image",
       "mediaType": "image/jpeg",
       "height": 48,
       "width": 48,
-      "url": "https://peertube.stream/lazy-static/avatars/45ec87d5-c8ec-4fcf-948f-d5a928b56496.jpg"
+      "url": "https://tilvids.com/lazy-static/avatars/1bbe97f1-d283-4db4-8bdd-e5320564aff9.jpg"
     },
     {
       "type": "Image",
       "mediaType": "image/jpeg",
       "height": 120,
       "width": 120,
-      "url": "https://peertube.stream/lazy-static/avatars/3296c098-abbb-4fda-a67a-ab88e447ca19.jpg"
+      "url": "https://tilvids.com/lazy-static/avatars/13b0214b-edc0-4c5b-a04d-be648a3a370a.jpg"
     }
   ],
-  "image": {
-    "type": "Image",
-    "mediaType": "image/jpeg",
-    "height": 317,
-    "width": 1920,
-    "url": "https://peertube.stream/lazy-static/banners/550c0541-3021-4d4b-8654-54d0c4cda96d.jpg"
-  },
-  "summary": "VU c'est du lundi au samedi sur France 5 à 20h00 \nRetrouvez les meilleurs moments de la télévision, en 6 minutes.\n\nChaîne PeerTube non-officielle.",
-  "support": "Suivre VU :\n- Twitter : https://twitter.com/vufrancetv\n- Facebook :https://www.facebook.com/vufrancetv/\n- Site : https://www.france.tv/france-5/vu/",
-  "attributedTo": [
+  "image": [
     {
-      "type": "Person",
-      "id": "https://peertube.stream/accounts/createurs"
+      "type": "Image",
+      "mediaType": "image/jpeg",
+      "height": 317,
+      "width": 1920,
+      "url": "https://tilvids.com/lazy-static/banners/1a8d6881-30c8-47cb-8576-7af62d869c45.jpg"
     }
-  ]
+  ],
+  "summary": "I'm Nick, and I like to tinker with Linux stuff. I'll bumble through distro reviews, tutorials, and general helpful tidbits and impressions onLinux desktop environments, applications, and news. \n\nYou might see a bit of Linux gaming here and there, and some more personal opinion pieces, but in the end, it's more or less all about Linux and FOSS !\n\nIf you want to stay up to snuff, follow me on Mastodon: https://mastodon.social/@thelinuxEXP \n\nIf you can, consider supporting the channel here: \nhttps://www.patreon.com/thelinuxexperiment",
+  "support": "Support the channel on Patreon: \nhttps://www.patreon.com/thelinuxexperiment\n\nSupport on Liberapay:\nhttps://liberapay.com/TheLinuxExperiment/",
+  "postingRestrictedToMods": true
 }
