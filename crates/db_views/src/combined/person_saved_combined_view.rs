@@ -109,7 +109,7 @@ impl PersonSavedCombinedQuery {
           post_aggregates::comments.nullable() - post_actions::read_comments_amount.nullable(),
           post_aggregates::comments,
         ),
-        post_actions::saved.nullable().is_not_null(),
+        post_actions::saved.nullable(),
         post_actions::read.nullable().is_not_null(),
         post_actions::hidden.nullable().is_not_null(),
         post_actions::like_score.nullable(),
@@ -118,7 +118,7 @@ impl PersonSavedCombinedQuery {
         // Comment-specific
         comment::all_columns.nullable(),
         comment_aggregates::all_columns.nullable(),
-        comment_actions::saved.nullable().is_not_null(),
+        comment_actions::saved.nullable(),
         comment_actions::like_score.nullable(),
         // Shared
         post::all_columns,

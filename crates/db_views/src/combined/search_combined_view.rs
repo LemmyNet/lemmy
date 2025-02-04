@@ -255,7 +255,7 @@ impl SearchCombinedQuery {
           post_aggregates::comments,
         )
         .nullable(),
-        post_actions::saved.nullable().is_not_null(),
+        post_actions::saved.nullable(),
         post_actions::read.nullable().is_not_null(),
         post_actions::hidden.nullable().is_not_null(),
         post_actions::like_score.nullable(),
@@ -264,7 +264,7 @@ impl SearchCombinedQuery {
         // Comment-specific
         comment::all_columns.nullable(),
         comment_aggregates::all_columns.nullable(),
-        comment_actions::saved.nullable().is_not_null(),
+        comment_actions::saved.nullable(),
         comment_actions::like_score.nullable(),
         // Community-specific
         community::all_columns.nullable(),

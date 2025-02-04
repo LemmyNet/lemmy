@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel::{
   deserialize::FromSqlRow,
@@ -177,10 +178,10 @@ pub struct CommentView {
   #[cfg_attr(feature = "full",
     diesel(
       select_expression =
-        comment_actions::saved.nullable().is_not_null()
+        comment_actions::saved.nullable()
     )
   )]
-  pub saved: bool,
+  pub saved: Option<DateTime<Utc>>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression =
@@ -324,7 +325,7 @@ pub struct PostView {
   pub creator_is_admin: bool,
   pub counts: PostAggregates,
   pub subscribed: SubscribedType,
-  pub saved: bool,
+  pub saved: Option<DateTime<Utc>>,
   pub read: bool,
   pub hidden: bool,
   pub creator_blocked: bool,
@@ -481,7 +482,7 @@ pub struct PersonContentCombinedViewInternal {
   // Post-specific
   pub post_counts: PostAggregates,
   pub post_unread_comments: i64,
-  pub post_saved: bool,
+  pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
   pub post_hidden: bool,
   pub my_post_vote: Option<i16>,
@@ -490,7 +491,7 @@ pub struct PersonContentCombinedViewInternal {
   // Comment-specific
   pub comment: Option<Comment>,
   pub comment_counts: Option<CommentAggregates>,
-  pub comment_saved: bool,
+  pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   // Shared
   pub post: Post,
@@ -1125,7 +1126,7 @@ pub struct SearchCombinedViewInternal {
   pub post: Option<Post>,
   pub post_counts: Option<PostAggregates>,
   pub post_unread_comments: Option<i64>,
-  pub post_saved: bool,
+  pub post_saved: Option<DateTime<Utc>>,
   pub post_read: bool,
   pub post_hidden: bool,
   pub my_post_vote: Option<i16>,
@@ -1134,7 +1135,7 @@ pub struct SearchCombinedViewInternal {
   // // Comment-specific
   pub comment: Option<Comment>,
   pub comment_counts: Option<CommentAggregates>,
-  pub comment_saved: bool,
+  pub comment_saved: Option<DateTime<Utc>>,
   pub my_comment_vote: Option<i16>,
   // // Community-specific
   pub community: Option<Community>,
