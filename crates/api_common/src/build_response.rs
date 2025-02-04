@@ -258,7 +258,7 @@ pub async fn send_local_notifs(
                 &parent_user_view,
                 &lang.notification_comment_reply_subject(&person.name),
                 &lang.notification_comment_reply_body(
-                  &comment_link(comment),
+                  comment_link(comment),
                   &content,
                   &inbox_link,
                   &parent_comment.content,
@@ -310,7 +310,7 @@ pub async fn send_local_notifs(
                   &parent_user_view,
                   &lang.notification_post_reply_subject(&person.name),
                   &lang.notification_post_reply_body(
-                    &comment_link(comment),
+                    comment_link(comment),
                     &content,
                     &inbox_link,
                     &post.name,
