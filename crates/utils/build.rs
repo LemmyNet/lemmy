@@ -13,6 +13,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
       }
 
       let path = path.to_string_lossy();
+      rosetta_build::config()
+        .source(&lang, path.clone())
+        .fallback(&lang)
+        .generate()?;
+
       config = config.source(lang, path);
     }
   }
