@@ -41,7 +41,6 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CollectionAdd {
-  #[tracing::instrument(skip_all)]
   pub async fn send_add_mod(
     community: &ApubCommunity,
     added_mod: &ApubPerson,
@@ -54,13 +53,12 @@ impl CollectionAdd {
     )?;
     let add = CollectionAdd {
       actor: actor.id().into(),
-      to: vec![generate_to(community)?],
+      to: generate_to(community)?,
       object: added_mod.id(),
       target: generate_moderators_url(&community.actor_id)?.into(),
       cc: vec![community.id()],
       kind: AddType::Add,
       id: id.clone(),
-      audience: Some(community.id().into()),
     };
 
     let activity = AnnouncableActivities::CollectionAdd(add);
@@ -80,13 +78,12 @@ impl CollectionAdd {
     )?;
     let add = CollectionAdd {
       actor: actor.id().into(),
-      to: vec![generate_to(community)?],
+      to: generate_to(community)?,
       object: featured_post.ap_id.clone().into(),
       target: generate_featured_url(&community.actor_id)?.into(),
       cc: vec![community.id()],
       kind: AddType::Add,
       id: id.clone(),
-      audience: Some(community.id().into()),
     };
     let activity = AnnouncableActivities::CollectionAdd(add);
     send_activity_in_community(
@@ -114,7 +111,6 @@ impl ActivityHandler for CollectionAdd {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
@@ -123,7 +119,6 @@ impl ActivityHandler for CollectionAdd {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let (community, collection_type) =

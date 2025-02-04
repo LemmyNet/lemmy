@@ -7,10 +7,12 @@ pub mod community;
 #[cfg(feature = "full")]
 pub mod context;
 pub mod custom_emoji;
+pub mod image;
 pub mod oauth_provider;
 pub mod person;
 pub mod post;
 pub mod private_message;
+pub mod reports;
 #[cfg(feature = "full")]
 pub mod request;
 #[cfg(feature = "full")]
@@ -22,8 +24,6 @@ pub mod utils;
 
 pub extern crate lemmy_db_schema;
 pub extern crate lemmy_db_views;
-pub extern crate lemmy_db_views_actor;
-pub extern crate lemmy_db_views_moderator;
 pub extern crate lemmy_utils;
 
 pub use lemmy_utils::error::LemmyErrorType;
@@ -33,7 +33,7 @@ use std::{cmp::min, time::Duration};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(ts_rs::TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// Saves settings for your user.
+/// A response that completes successfully.
 pub struct SuccessResponse {
   pub success: bool,
 }

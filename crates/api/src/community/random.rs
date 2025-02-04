@@ -10,11 +10,9 @@ use lemmy_db_schema::source::{
   community::Community,
   local_site::LocalSite,
 };
-use lemmy_db_views::structs::LocalUserView;
-use lemmy_db_views_actor::structs::CommunityView;
+use lemmy_db_views::structs::{CommunityView, LocalUserView};
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn get_random_community(
   data: Query<GetRandomCommunity>,
   context: Data<LemmyContext>,
@@ -27,7 +25,7 @@ pub async fn get_random_community(
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
 
   let random_community_id =
-    Community::get_random_community_id(&mut context.pool(), &data.type_).await?;
+    Community::get_random_community_id(&mut context.pool(), &data.type_, data.show_nsfw).await?;
 
   let is_mod_or_admin = is_mod_or_admin_opt(
     &mut context.pool(),

@@ -3,7 +3,7 @@ use crate::{
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::{markdown_rewrite_remote_links_opt, to_local_url},
   local_site_data_cached,
-  objects::{read_from_string_or_source_opt, verify_is_remote_object},
+  objects::read_from_string_or_source_opt,
   protocol::{
     objects::{
       page::{Attachment, AttributedTo, Hashtag, HashtagType, Page, PageType},
@@ -16,12 +16,15 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
+  protocol::{
+    values::MediaTypeMarkdownOrHtml,
+    verification::{verify_domains_match, verify_is_remote_object},
+  },
   traits::Object,
 };
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use html2text::{from_read_with_decorator, render::text_renderer::TrivialDecorator};
+use html2text::{from_read_with_decorator, render::TrivialDecorator};
 use lemmy_api_common::{
   context::LemmyContext,
   request::generate_post_link_metadata,
@@ -36,7 +39,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_actor::structs::CommunityModeratorView;
+use lemmy_db_views::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,
@@ -78,7 +81,6 @@ impl Object for ApubPost {
     None
   }
 
-  #[tracing::instrument(skip_all)]
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
@@ -90,7 +92,6 @@ impl Object for ApubPost {
     )
   }
 
-  #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     if !self.deleted {
       let form = PostUpdateForm {
@@ -103,7 +104,7 @@ impl Object for ApubPost {
   }
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
-  #[tracing::instrument(skip_all)]
+
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Page> {
     let creator_id = self.creator_id;
     let creator = Person::read(&mut context.pool(), creator_id).await?;
@@ -133,7 +134,7 @@ impl Object for ApubPost {
       kind: PageType::Page,
       id: self.ap_id.clone().into(),
       attributed_to: AttributedTo::Lemmy(creator.actor_id.into()),
-      to: vec![generate_to(&community)?],
+      to: generate_to(&community)?,
       cc: vec![],
       name: Some(self.name.clone()),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
@@ -145,14 +146,12 @@ impl Object for ApubPost {
       language,
       published: Some(self.published),
       updated: self.updated,
-      audience: Some(community.actor_id.into()),
       in_reply_to: None,
       tag: vec![hashtag],
     };
     Ok(page)
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(
     page: &Page,
     expected_domain: &Url,
@@ -174,11 +173,14 @@ impl Object for ApubPost {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> LemmyResult<ApubPost> {
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
-    if community.posting_restricted_to_mods {
+
+    // Prevent posts from non-mod users in local, restricted community. If its a remote community
+    // then its possible that the restricted setting was enabled recently, so existing user posts
+    // should still be fetched.
+    if community.local && community.posting_restricted_to_mods {
       CommunityModeratorView::check_is_community_moderator(
         &mut context.pool(),
         community.id,
@@ -199,7 +201,7 @@ impl Object for ApubPost {
           .map(StringReader::new)
           .map(|c| from_read_with_decorator(c, MAX_TITLE_LENGTH, TrivialDecorator::new()))
           .and_then(|c| {
-            c.lines().next().map(|s| {
+            c.unwrap_or_default().lines().next().map(|s| {
               s.replace(&format!("@{}", community.name), "")
                 .trim()
                 .to_string()
@@ -249,8 +251,8 @@ impl Object for ApubPost {
       url: url.map(Into::into),
       body,
       alt_text,
-      published: page.published.map(Into::into),
-      updated: page.updated.map(Into::into),
+      published: page.published,
+      updated: page.updated,
       deleted: Some(false),
       nsfw: page.sensitive,
       ap_id: Some(page.id.clone().into()),

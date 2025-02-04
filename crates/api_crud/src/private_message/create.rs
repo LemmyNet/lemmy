@@ -27,7 +27,6 @@ use lemmy_utils::{
   utils::{markdown::markdown_to_html, validation::is_valid_body_field},
 };
 
-#[tracing::instrument(skip(context))]
 pub async fn create_private_message(
   data: Json<CreatePrivateMessage>,
   context: Data<LemmyContext>,

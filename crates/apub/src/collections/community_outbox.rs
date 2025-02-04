@@ -19,7 +19,7 @@ use activitypub_federation::{
 use futures::future::join_all;
 use lemmy_api_common::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_db_schema::{source::site::Site, utils::FETCH_LIMIT_MAX, PostSortType};
-use lemmy_db_views::post_view::PostQuery;
+use lemmy_db_views::post::post_view::PostQuery;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -33,7 +33,6 @@ impl Collection for ApubCommunityOutbox {
   type Kind = GroupOutbox;
   type Error = LemmyError;
 
-  #[tracing::instrument(skip_all)]
   async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     let site = Site::read_local(&mut data.pool()).await?;
 
@@ -69,7 +68,6 @@ impl Collection for ApubCommunityOutbox {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(
     group_outbox: &GroupOutbox,
     expected_domain: &Url,
@@ -79,7 +77,6 @@ impl Collection for ApubCommunityOutbox {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn from_json(
     apub: Self::Kind,
     _owner: &Self::Owner,

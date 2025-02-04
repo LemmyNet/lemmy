@@ -7,7 +7,6 @@ use lemmy_db_schema::source::post::{PostRead, PostReadForm};
 use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn mark_post_as_read(
   data: Json<MarkPostAsRead>,
   context: Data<LemmyContext>,

@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   source::community::{CommunityModerator, CommunityModeratorForm},
   traits::Joinable,
 };
-use lemmy_db_views_actor::structs::CommunityModeratorView;
+use lemmy_db_views::structs::CommunityModeratorView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -28,7 +28,6 @@ impl Collection for ApubCommunityModerators {
   type Kind = GroupModerators;
   type Error = LemmyError;
 
-  #[tracing::instrument(skip_all)]
   async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     let moderators = CommunityModeratorView::for_community(&mut data.pool(), owner.id).await?;
     let ordered_items = moderators
@@ -42,7 +41,6 @@ impl Collection for ApubCommunityModerators {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(
     group_moderators: &GroupModerators,
     expected_domain: &Url,
@@ -52,7 +50,6 @@ impl Collection for ApubCommunityModerators {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn from_json(
     apub: Self::Kind,
     owner: &Self::Owner,

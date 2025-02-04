@@ -9,15 +9,29 @@ then
 fi
 
 export RUST_BACKTRACE=1
-export RUST_LOG="warn,lemmy_server=$LEMMY_LOG_LEVEL,lemmy_federate=$LEMMY_LOG_LEVEL,lemmy_api=$LEMMY_LOG_LEVEL,lemmy_api_common=$LEMMY_LOG_LEVEL,lemmy_api_crud=$LEMMY_LOG_LEVEL,lemmy_apub=$LEMMY_LOG_LEVEL,lemmy_db_schema=$LEMMY_LOG_LEVEL,lemmy_db_views=$LEMMY_LOG_LEVEL,lemmy_db_views_actor=$LEMMY_LOG_LEVEL,lemmy_db_views_moderator=$LEMMY_LOG_LEVEL,lemmy_routes=$LEMMY_LOG_LEVEL,lemmy_utils=$LEMMY_LOG_LEVEL,lemmy_websocket=$LEMMY_LOG_LEVEL"
+export RUST_LOG="warn,lemmy_server=$LEMMY_LOG_LEVEL,lemmy_federate=$LEMMY_LOG_LEVEL,lemmy_api=$LEMMY_LOG_LEVEL,lemmy_api_common=$LEMMY_LOG_LEVEL,lemmy_api_crud=$LEMMY_LOG_LEVEL,lemmy_apub=$LEMMY_LOG_LEVEL,lemmy_db_schema=$LEMMY_LOG_LEVEL,lemmy_db_views=$LEMMY_LOG_LEVEL,lemmy_routes=$LEMMY_LOG_LEVEL,lemmy_utils=$LEMMY_LOG_LEVEL,lemmy_websocket=$LEMMY_LOG_LEVEL"
 
 export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queue has delays in the scale of 30s-5min
 
-# pictrs setup
-if [ ! -f "api_tests/pict-rs" ]; then
-  curl "https://git.asonix.dog/asonix/pict-rs/releases/download/v0.5.16/pict-rs-linux-amd64" -o api_tests/pict-rs
-  chmod +x api_tests/pict-rs
+PICTRS_PATH="api_tests/pict-rs"
+PICTRS_EXPECTED_HASH="8feb52c0dee1dd0b41caa0e92afd9d5e597fbb4d7174d7bba22a1ba72fa01dbc  pict-rs"
+
+# Pictrs setup. Download file with hash check and up to 3 retries. 
+if [ ! -f "$PICTRS_PATH" ]; then
+  retry=true
+  count=0
+  while $retry && [ "$count" -lt 3 ]
+  do
+    # This one sometimes goes down
+    # curl "https://git.asonix.dog/asonix/pict-rs/releases/download/v0.5.16/pict-rs-linux-amd64" -o "$PICTRS_PATH"
+    curl "https://codeberg.org/asonix/pict-rs/releases/download/v0.5.5/pict-rs-linux-amd64" -o "$PICTRS_PATH"
+    PICTRS_HASH=$(sha256sum "$PICTRS_PATH")
+    [[ "$PICTRS_HASH" != "$PICTRS_EXPECTED_HASH" ]] && retry=true || retry=false
+    let count=count+1
+  done
+  chmod +x "$PICTRS_PATH"
 fi
+
 ./api_tests/pict-rs \
   run -a 0.0.0.0:8080 \
   --danger-dummy-mode \
@@ -70,13 +84,11 @@ LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_gamma.hjson \
   target/lemmy_server >$LOG_DIR/lemmy_gamma.out 2>&1 &
 
 echo "start delta"
-# An instance with only an allowlist for beta
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_delta.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_delta" \
   target/lemmy_server >$LOG_DIR/lemmy_delta.out 2>&1 &
 
 echo "start epsilon"
-# An instance who has a blocklist, with lemmy-alpha blocked
 LEMMY_CONFIG_LOCATION=./docker/federation/lemmy_epsilon.hjson \
   LEMMY_DATABASE_URL="${LEMMY_DATABASE_URL}/lemmy_epsilon" \
   target/lemmy_server >$LOG_DIR/lemmy_epsilon.out 2>&1 &

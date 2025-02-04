@@ -49,7 +49,6 @@ impl Object for SiteOrCommunity {
   type Kind = InstanceOrGroup;
   type Error = LemmyError;
 
-  #[tracing::instrument(skip_all)]
   fn last_refreshed_at(&self) -> Option<DateTime<Utc>> {
     Some(match self {
       SiteOrCommunity::Site(i) => i.last_refreshed_at,
@@ -57,7 +56,6 @@ impl Object for SiteOrCommunity {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   async fn read_from_id(object_id: Url, data: &Data<Self::DataType>) -> LemmyResult<Option<Self>>
   where
     Self: Sized,
@@ -85,7 +83,6 @@ impl Object for SiteOrCommunity {
     })
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(
     apub: &Self::Kind,
     expected_domain: &Url,
@@ -97,7 +94,6 @@ impl Object for SiteOrCommunity {
     }
   }
 
-  #[tracing::instrument(skip_all)]
   async fn from_json(apub: Self::Kind, data: &Data<Self::DataType>) -> LemmyResult<Self>
   where
     Self: Sized,
@@ -208,12 +204,10 @@ pub(crate) async fn send_ban_from_community(
   }
 }
 
-fn to_and_audience(
-  target: &SiteOrCommunity,
-) -> LemmyResult<(Vec<Url>, Option<ObjectId<ApubCommunity>>)> {
+fn to(target: &SiteOrCommunity) -> LemmyResult<Vec<Url>> {
   Ok(if let SiteOrCommunity::Community(c) = target {
-    (vec![generate_to(c)?], Some(c.id().into()))
+    generate_to(c)?
   } else {
-    (vec![public()], None)
+    vec![public()]
   })
 }

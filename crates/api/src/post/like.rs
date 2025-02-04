@@ -5,9 +5,10 @@ use lemmy_api_common::{
   context::LemmyContext,
   post::{CreatePostLike, PostResponse},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_bot_account, check_community_user_action, check_local_vote_mode, VoteItem},
+  utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
 };
 use lemmy_db_schema::{
+  newtypes::PostOrCommentId,
   source::{
     local_site::LocalSite,
     post::{PostLike, PostLikeForm, PostRead, PostReadForm},
@@ -18,7 +19,6 @@ use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::ops::Deref;
 
-#[tracing::instrument(skip(context))]
 pub async fn like_post(
   data: Json<CreatePostLike>,
   context: Data<LemmyContext>,
@@ -29,7 +29,7 @@ pub async fn like_post(
 
   check_local_vote_mode(
     data.score,
-    VoteItem::Post(post_id),
+    PostOrCommentId::Post(post_id),
     &local_site,
     local_user_view.person.id,
     &mut context.pool(),

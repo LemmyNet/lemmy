@@ -27,39 +27,23 @@ use lemmy_db_schema::{
   PostListingMode,
   PostSortType,
   RegistrationMode,
+  SearchSortType,
   SearchType,
 };
 use lemmy_db_views::structs::{
   CommentView,
-  LocalUserView,
-  PostView,
-  RegistrationApplicationView,
-  SiteView,
-};
-use lemmy_db_views_actor::structs::{
   CommunityFollowerView,
   CommunityModeratorView,
   CommunityView,
+  LocalUserView,
+  ModlogCombinedPaginationCursor,
+  ModlogCombinedView,
   PersonView,
-};
-use lemmy_db_views_moderator::structs::{
-  AdminAllowInstanceView,
-  AdminBlockInstanceView,
-  AdminPurgeCommentView,
-  AdminPurgeCommunityView,
-  AdminPurgePersonView,
-  AdminPurgePostView,
-  ModAddCommunityView,
-  ModAddView,
-  ModBanFromCommunityView,
-  ModBanView,
-  ModFeaturePostView,
-  ModHideCommunityView,
-  ModLockPostView,
-  ModRemoveCommentView,
-  ModRemoveCommunityView,
-  ModRemovePostView,
-  ModTransferCommunityView,
+  PostView,
+  RegistrationApplicationView,
+  SearchCombinedPaginationCursor,
+  SearchCombinedView,
+  SiteView,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -70,9 +54,10 @@ use ts_rs::TS;
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
-/// Searches the site, given a query string, and some optional filters.
+/// Searches the site, given a search term, and some optional filters.
 pub struct Search {
-  pub q: String,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub search_term: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -82,36 +67,29 @@ pub struct Search {
   #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<SearchType>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub sort: Option<PostSortType>,
+  pub sort: Option<SearchSortType>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub listing_type: Option<ListingType>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub title_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub post_url_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub saved_only: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub liked_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub disliked_only: Option<bool>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<SearchCombinedPaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The search response, containing lists of the return type possibilities
-// TODO this should be redone as a list of tagged enums
 pub struct SearchResponse {
-  pub type_: SearchType,
-  pub comments: Vec<CommentView>,
-  pub posts: Vec<PostView>,
-  pub communities: Vec<CommunityView>,
-  pub users: Vec<PersonView>,
+  pub results: Vec<SearchCombinedView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -141,7 +119,7 @@ pub struct ResolveObjectResponse {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// Fetches the modlog.
@@ -151,10 +129,6 @@ pub struct GetModlog {
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_id: Option<CommunityId>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub page: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub limit: Option<i64>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ModlogActionType>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub other_person_id: Option<PersonId>,
@@ -162,31 +136,18 @@ pub struct GetModlog {
   pub post_id: Option<PostId>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_id: Option<CommentId>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_cursor: Option<ModlogCombinedPaginationCursor>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub page_back: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(TS))]
 #[cfg_attr(feature = "full", ts(export))]
 /// The modlog fetch response.
-// TODO this should be redone as a list of tagged enums
 pub struct GetModlogResponse {
-  pub removed_posts: Vec<ModRemovePostView>,
-  pub locked_posts: Vec<ModLockPostView>,
-  pub featured_posts: Vec<ModFeaturePostView>,
-  pub removed_comments: Vec<ModRemoveCommentView>,
-  pub removed_communities: Vec<ModRemoveCommunityView>,
-  pub banned_from_community: Vec<ModBanFromCommunityView>,
-  pub banned: Vec<ModBanView>,
-  pub added_to_community: Vec<ModAddCommunityView>,
-  pub transferred_to_community: Vec<ModTransferCommunityView>,
-  pub added: Vec<ModAddView>,
-  pub admin_purged_persons: Vec<AdminPurgePersonView>,
-  pub admin_purged_communities: Vec<AdminPurgeCommunityView>,
-  pub admin_purged_posts: Vec<AdminPurgePostView>,
-  pub admin_purged_comments: Vec<AdminPurgeCommentView>,
-  pub hidden_communities: Vec<ModHideCommunityView>,
-  pub admin_block_instance: Vec<AdminBlockInstanceView>,
-  pub admin_allow_instance: Vec<AdminAllowInstanceView>,
+  pub modlog: Vec<ModlogCombinedView>,
 }
 
 #[skip_serializing_none]
@@ -201,11 +162,6 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub icon: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub banner: Option<String>,
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub enable_nsfw: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
@@ -263,8 +219,6 @@ pub struct CreateSite {
   #[cfg_attr(feature = "full", ts(optional))]
   pub federation_enabled: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
-  pub federation_debug: Option<bool>,
-  #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_enabled: Option<bool>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_difficulty: Option<String>,
@@ -282,6 +236,8 @@ pub struct CreateSite {
   pub comment_upvotes: Option<FederationMode>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_downvotes: Option<FederationMode>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disable_donation_dialog: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -298,15 +254,6 @@ pub struct EditSite {
   /// A shorter, one line description of your site.
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
-  /// A url for your site's icon.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub icon: Option<String>,
-  /// A url for your site's banner.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub banner: Option<String>,
-  /// Whether to enable NSFW.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub enable_nsfw: Option<bool>,
   /// Limits community creation to admins only.
   #[cfg_attr(feature = "full", ts(optional))]
   pub community_creation_admin_only: Option<bool>,
@@ -385,9 +332,6 @@ pub struct EditSite {
   /// Whether to enable federation.
   #[cfg_attr(feature = "full", ts(optional))]
   pub federation_enabled: Option<bool>,
-  /// Enables federation debugging.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub federation_debug: Option<bool>,
   /// Whether to enable captchas for signups.
   #[cfg_attr(feature = "full", ts(optional))]
   pub captcha_enabled: Option<bool>,
@@ -421,6 +365,10 @@ pub struct EditSite {
   /// What kind of comment downvotes your site allows.
   #[cfg_attr(feature = "full", ts(optional))]
   pub comment_downvotes: Option<FederationMode>,
+  /// If this is true, users will never see the dialog asking to support Lemmy development with
+  /// donations.
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub disable_donation_dialog: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -455,6 +403,9 @@ pub struct GetSiteResponse {
   #[cfg_attr(feature = "full", ts(optional))]
   pub admin_oauth_providers: Option<Vec<OAuthProvider>>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
+  // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
+  // banners can be set.
+  pub image_upload_disabled: bool,
 }
 
 #[skip_serializing_none]

@@ -3,7 +3,7 @@ use crate::{
   check_apub_id_valid_with_strictness,
   fetcher::markdown_links::markdown_rewrite_remote_links,
   mentions::collect_non_local_mentions,
-  objects::{append_attachments_to_comment, read_from_string_or_source, verify_is_remote_object},
+  objects::{append_attachments_to_comment, read_from_string_or_source},
   protocol::{
     objects::{note::Note, LanguageTag},
     InCommunity,
@@ -13,7 +13,10 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::object::NoteType,
-  protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
+  protocol::{
+    values::MediaTypeMarkdownOrHtml,
+    verification::{verify_domains_match, verify_is_remote_object},
+  },
   traits::Object,
 };
 use chrono::{DateTime, Utc};
@@ -64,7 +67,6 @@ impl Object for ApubComment {
     None
   }
 
-  #[tracing::instrument(skip_all)]
   async fn read_from_id(
     object_id: Url,
     context: &Data<Self::DataType>,
@@ -76,7 +78,6 @@ impl Object for ApubComment {
     )
   }
 
-  #[tracing::instrument(skip_all)]
   async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     if !self.deleted {
       let form = CommentUpdateForm {
@@ -88,7 +89,6 @@ impl Object for ApubComment {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Note> {
     let creator_id = self.creator_id;
     let creator = Person::read(&mut context.pool(), creator_id).await?;
@@ -105,13 +105,13 @@ impl Object for ApubComment {
       post.ap_id.into()
     };
     let language = Some(LanguageTag::new_single(self.language_id, &mut context.pool()).await?);
-    let maa = collect_non_local_mentions(&self, community.actor_id.clone().into(), context).await?;
+    let maa = collect_non_local_mentions(&self, context).await?;
 
     let note = Note {
       r#type: NoteType::Note,
       id: self.ap_id.clone().into(),
       attributed_to: creator.actor_id.into(),
-      to: vec![generate_to(&community)?],
+      to: generate_to(&community)?,
       cc: maa.ccs,
       content: markdown_to_html(&self.content),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
@@ -122,7 +122,6 @@ impl Object for ApubComment {
       tag: maa.tags,
       distinguished: Some(self.distinguished),
       language,
-      audience: Some(community.actor_id.into()),
       attachment: vec![],
     };
 
@@ -131,7 +130,6 @@ impl Object for ApubComment {
 
   /// Recursively fetches all parent comments. This can lead to a stack overflow so we need to
   /// Box::pin all large futures on the heap.
-  #[tracing::instrument(skip_all)]
   async fn verify(
     note: &Note,
     expected_domain: &Url,
@@ -171,7 +169,6 @@ impl Object for ApubComment {
   /// Converts a `Note` to `Comment`.
   ///
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
-  #[tracing::instrument(skip_all)]
   async fn from_json(note: Note, context: &Data<LemmyContext>) -> LemmyResult<ApubComment> {
     let creator = note.attributed_to.dereference(context).await?;
     let (post, parent_comment) = note.get_parents(context).await?;
@@ -194,8 +191,8 @@ impl Object for ApubComment {
       post_id: post.id,
       content,
       removed: None,
-      published: note.published.map(Into::into),
-      updated: note.updated.map(Into::into),
+      published: note.published,
+      updated: note.updated,
       deleted: Some(false),
       ap_id: Some(note.id.into()),
       distinguished: note.distinguished,

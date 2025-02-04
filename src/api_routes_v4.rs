@@ -6,11 +6,6 @@ use lemmy_api::{
     list_comment_likes::list_comment_likes,
     save::save_comment,
   },
-  comment_report::{
-    create::create_comment_report,
-    list::list_comment_reports,
-    resolve::resolve_comment_report,
-  },
   community::{
     add_mod::add_mod_to_community,
     ban::ban_from_community,
@@ -31,18 +26,20 @@ use lemmy_api::{
     block::user_block_person,
     change_password::change_password,
     change_password_after_reset::change_password_after_reset,
+    donation_dialog_shown::donation_dialog_shown,
     generate_totp_secret::generate_totp_secret,
     get_captcha::get_captcha,
     list_banned::list_banned_users,
     list_logins::list_logins,
     list_media::list_media,
+    list_saved::list_person_saved,
     login::login,
     logout::logout,
     notifications::{
-      list_mentions::list_mentions,
-      list_replies::list_replies,
+      list_inbox::list_inbox,
       mark_all_read::mark_all_notifications_read,
-      mark_mention_read::mark_person_mention_as_read,
+      mark_comment_mention_read::mark_comment_mention_as_read,
+      mark_post_mention_read::mark_post_mention_as_read,
       mark_reply_read::mark_reply_as_read,
       unread_count::unread_count,
     },
@@ -65,16 +62,12 @@ use lemmy_api::{
     mark_read::mark_post_as_read,
     save::save_post,
   },
-  post_report::{
-    create::create_post_report,
-    list::list_post_reports,
-    resolve::resolve_post_report,
-  },
   private_message::mark_read::mark_pm_as_read,
-  private_message_report::{
-    create::create_pm_report,
-    list::list_pm_reports,
-    resolve::resolve_pm_report,
+  reports::{
+    comment_report::{create::create_comment_report, resolve::resolve_comment_report},
+    post_report::{create::create_post_report, resolve::resolve_post_report},
+    private_message_report::{create::create_pm_report, resolve::resolve_pm_report},
+    report_combined::list::list_reports,
   },
   site::{
     admin_allow_instance::admin_allow_instance,
@@ -96,7 +89,6 @@ use lemmy_api::{
       unread_count::get_unread_registration_application_count,
     },
   },
-  sitemap::get_sitemap,
 };
 use lemmy_api_crud::{
   comment::{
@@ -134,7 +126,6 @@ use lemmy_api_crud::{
   private_message::{
     create::create_private_message,
     delete::delete_private_message,
-    read::get_private_message,
     update::update_private_message,
   },
   site::{create::create_site, read::get_site_v4, update::update_site},
@@ -151,7 +142,8 @@ use lemmy_api_crud::{
   },
 };
 use lemmy_apub::api::{
-  list_comments::list_comments,
+  list_comments::{list_comments, list_comments_slim},
+  list_person_content::list_person_content,
   list_posts::list_posts,
   read_community::get_community,
   read_person::read_person,
@@ -159,20 +151,44 @@ use lemmy_apub::api::{
   search::search,
   user_settings_backup::{export_settings, import_settings},
 };
-use lemmy_routes::images::image_proxy;
+use lemmy_routes::images::{
+  delete::{
+    delete_community_banner,
+    delete_community_icon,
+    delete_image,
+    delete_site_banner,
+    delete_site_icon,
+    delete_user_avatar,
+    delete_user_banner,
+  },
+  download::{get_image, image_proxy},
+  pictrs_health,
+  upload::{
+    upload_community_banner,
+    upload_community_icon,
+    upload_image,
+    upload_site_banner,
+    upload_site_icon,
+    upload_user_avatar,
+    upload_user_banner,
+  },
+};
 use lemmy_utils::rate_limit::RateLimitCell;
 
 pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
     scope("/api/v4")
       .wrap(rate_limit.message())
-      .route("/image_proxy", get().to(image_proxy))
       // Site
       .service(
         scope("/site")
           .route("", get().to(get_site_v4))
           .route("", post().to(create_site))
-          .route("", put().to(update_site)),
+          .route("", put().to(update_site))
+          .route("/icon", post().to(upload_site_icon))
+          .route("/icon", delete().to(delete_site_icon))
+          .route("/banner", post().to(upload_site_banner))
+          .route("/banner", delete().to(delete_site_banner)),
       )
       .route("/modlog", get().to(get_mod_log))
       .service(
@@ -202,6 +218,10 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/transfer", post().to(transfer_community))
           .route("/ban_user", post().to(ban_from_community))
           .route("/mod", post().to(add_mod_to_community))
+          .route("/icon", post().to(upload_community_icon))
+          .route("/icon", delete().to(delete_community_icon))
+          .route("/banner", post().to(upload_community_banner))
+          .route("/banner", delete().to(delete_community_banner))
           .service(
             scope("/pending_follows")
               .route("/count", get().to(get_pending_follows_count))
@@ -235,7 +255,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/save", put().to(save_post))
           .route("/report", post().to(create_post_report))
           .route("/report/resolve", put().to(resolve_post_report))
-          .route("/report/list", get().to(list_post_reports))
           .route("/site_metadata", get().to(get_link_metadata)),
       )
       // Comment
@@ -258,21 +277,25 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/like/list", get().to(list_comment_likes))
           .route("/save", put().to(save_comment))
           .route("/list", get().to(list_comments))
+          .route("/list/slim", get().to(list_comments_slim))
           .route("/report", post().to(create_comment_report))
-          .route("/report/resolve", put().to(resolve_comment_report))
-          .route("/report/list", get().to(list_comment_reports)),
+          .route("/report/resolve", put().to(resolve_comment_report)),
       )
       // Private Message
       .service(
         scope("/private_message")
-          .route("/list", get().to(get_private_message))
           .route("", post().to(create_private_message))
           .route("", put().to(update_private_message))
           .route("/delete", post().to(delete_private_message))
           .route("/mark_as_read", post().to(mark_pm_as_read))
           .route("/report", post().to(create_pm_report))
-          .route("/report/resolve", put().to(resolve_pm_report))
-          .route("/report/list", get().to(list_pm_reports)),
+          .route("/report/resolve", put().to(resolve_pm_report)),
+      )
+      // Reports
+      .service(
+        scope("/report")
+          .wrap(rate_limit.message())
+          .route("/list", get().to(list_reports)),
       )
       // User
       .service(
@@ -288,43 +311,54 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/change_password", put().to(change_password))
           .route("/totp/generate", post().to(generate_totp_secret))
           .route("/totp/update", post().to(update_totp))
-          .route("/verify_email", post().to(verify_email)),
-      )
-      .route("/account/settings/save", put().to(save_user_settings))
-      .service(
-        scope("/account/settings")
-          .wrap(rate_limit.import_user_settings())
-          .route("/export", get().to(export_settings))
-          .route("/import", post().to(import_settings)),
+          .route("/verify_email", post().to(verify_email))
+          .route("/saved", get().to(list_person_saved)),
       )
       .service(
         scope("/account")
           .route("", get().to(get_my_user))
           .route("/list_media", get().to(list_media))
-          .route("/mention", get().to(list_mentions))
-          .route("/replies", get().to(list_replies))
+          .route("/inbox", get().to(list_inbox))
           .route("/delete", post().to(delete_account))
-          .route(
-            "/mention/mark_as_read",
-            post().to(mark_person_mention_as_read),
+          .service(
+            scope("/mention")
+              .route(
+                "/comment/mark_as_read",
+                post().to(mark_comment_mention_as_read),
+              )
+              .route("/post/mark_as_read", post().to(mark_post_mention_as_read)),
           )
-          .route(
-            "/mention/mark_as_read/all",
-            post().to(mark_all_notifications_read),
-          )
+          .route("/mark_as_read/all", post().to(mark_all_notifications_read))
           .route("/report_count", get().to(report_count))
           .route("/unread_count", get().to(unread_count))
           .route("/list_logins", get().to(list_logins))
           .route("/validate_auth", get().to(validate_auth))
+          .route("/donation_dialog_shown", post().to(donation_dialog_shown))
+          .route("/avatar", post().to(upload_user_avatar))
+          .route("/avatar", delete().to(delete_user_avatar))
+          .route("/banner", post().to(upload_user_banner))
+          .route("/banner", delete().to(delete_user_banner))
           .service(
             scope("/block")
               .route("/person", post().to(user_block_person))
               .route("/community", post().to(user_block_community))
               .route("/instance", post().to(user_block_instance)),
+          )
+          .route("/settings/save", put().to(save_user_settings))
+          // Account settings import / export have a strict rate limit
+          .service(
+            scope("/settings")
+              .wrap(rate_limit.import_user_settings())
+              .route("/export", get().to(export_settings))
+              .route("/import", post().to(import_settings)),
           ),
       )
       // User actions
-      .route("/person", get().to(read_person))
+      .service(
+        scope("/person")
+          .route("", get().to(read_person))
+          .route("/content", get().to(list_person_content)),
+      )
       // Admin Actions
       .service(
         scope("/admin")
@@ -387,6 +421,17 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .wrap(rate_limit.register())
           .route("/authenticate", post().to(authenticate_with_oauth)),
       )
-      .route("/sitemap.xml", get().to(get_sitemap)),
+      .service(
+        scope("/image")
+          .service(
+            resource("")
+              .wrap(rate_limit.image())
+              .route(post().to(upload_image))
+              .route(delete().to(delete_image)),
+          )
+          .route("/proxy", get().to(image_proxy))
+          .route("/health", get().to(pictrs_health))
+          .route("/{filename}", get().to(get_image)),
+      ),
   );
 }

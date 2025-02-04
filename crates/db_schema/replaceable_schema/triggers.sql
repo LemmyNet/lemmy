@@ -422,6 +422,25 @@ END;
 
 $$);
 
+CALL r.create_triggers ('community_report', $$
+BEGIN
+    UPDATE
+        community_aggregates AS a
+    SET
+        report_count = a.report_count + diff.report_count, unresolved_report_count = a.unresolved_report_count + diff.unresolved_report_count
+    FROM (
+        SELECT
+            (community_report).community_id, coalesce(sum(count_diff), 0) AS report_count, coalesce(sum(count_diff) FILTER (WHERE NOT (community_report).resolved), 0) AS unresolved_report_count
+    FROM select_old_and_new_rows AS old_and_new_rows GROUP BY (community_report).community_id) AS diff
+WHERE (diff.report_count, diff.unresolved_report_count) != (0, 0)
+    AND a.community_id = diff.community_id;
+
+RETURN NULL;
+
+END;
+
+$$);
+
 -- These triggers create and update rows in each aggregates table to match its associated table's rows.
 -- Deleting rows and updating IDs are already handled by `CASCADE` in foreign key constraints.
 CREATE FUNCTION r.comment_aggregates_from_comment ()
@@ -652,4 +671,382 @@ CREATE TRIGGER change_values
     BEFORE INSERT ON private_message
     FOR EACH ROW
     EXECUTE FUNCTION r.private_message_change_values ();
+
+-- Combined tables triggers
+-- These insert (published, item_id) into X_combined tables
+-- Reports (comment_report, post_report, private_message_report)
+CREATE PROCEDURE r.create_report_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.report_combined_thing_insert ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                INSERT INTO report_combined (published, thing_id)
+                    VALUES (NEW.published, NEW.id);
+                RETURN NEW;
+            END $$;
+    CREATE TRIGGER report_combined
+        AFTER INSERT ON thing
+        FOR EACH ROW
+        EXECUTE FUNCTION r.report_combined_thing_insert ( );
+        $b$,
+        'thing',
+        table_name);
+END;
+$a$;
+
+CALL r.create_report_combined_trigger ('post_report');
+
+CALL r.create_report_combined_trigger ('comment_report');
+
+CALL r.create_report_combined_trigger ('private_message_report');
+
+CALL r.create_report_combined_trigger ('community_report');
+
+-- person_content (comment, post)
+CREATE PROCEDURE r.create_person_content_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.person_content_combined_thing_insert ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                INSERT INTO person_content_combined (published, thing_id)
+                    VALUES (NEW.published, NEW.id);
+                RETURN NEW;
+            END $$;
+    CREATE TRIGGER person_content_combined
+        AFTER INSERT ON thing
+        FOR EACH ROW
+        EXECUTE FUNCTION r.person_content_combined_thing_insert ( );
+        $b$,
+        'thing',
+        table_name);
+END;
+$a$;
+
+CALL r.create_person_content_combined_trigger ('post');
+
+CALL r.create_person_content_combined_trigger ('comment');
+
+-- person_saved (comment, post)
+-- This one is a little different, because it triggers using x_actions.saved,
+-- Rather than any row insert
+CREATE PROCEDURE r.create_person_saved_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.person_saved_combined_change_values_thing ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                IF (TG_OP = 'DELETE') THEN
+                    DELETE FROM person_saved_combined AS p
+                    WHERE p.person_id = OLD.person_id
+                        AND p.thing_id = OLD.thing_id;
+                ELSIF (TG_OP = 'INSERT') THEN
+                    IF NEW.saved IS NOT NULL THEN
+                        INSERT INTO person_saved_combined (saved, person_id, thing_id)
+                            VALUES (NEW.saved, NEW.person_id, NEW.thing_id);
+                    END IF;
+                ELSIF (TG_OP = 'UPDATE') THEN
+                    IF NEW.saved IS NOT NULL THEN
+                        INSERT INTO person_saved_combined (saved, person_id, thing_id)
+                            VALUES (NEW.saved, NEW.person_id, NEW.thing_id);
+                        -- If saved gets set as null, delete the row
+                    ELSE
+                        DELETE FROM person_saved_combined AS p
+                        WHERE p.person_id = NEW.person_id
+                            AND p.thing_id = NEW.thing_id;
+                    END IF;
+                END IF;
+                RETURN NULL;
+            END $$;
+    CREATE TRIGGER person_saved_combined
+        AFTER INSERT OR DELETE OR UPDATE OF saved ON thing_actions
+        FOR EACH ROW
+        EXECUTE FUNCTION r.person_saved_combined_change_values_thing ( );
+    $b$,
+    'thing',
+    table_name);
+END;
+$a$;
+
+CALL r.create_person_saved_combined_trigger ('post');
+
+CALL r.create_person_saved_combined_trigger ('comment');
+
+-- modlog: (17 tables)
+-- admin_allow_instance
+-- admin_block_instance
+-- admin_purge_comment
+-- admin_purge_community
+-- admin_purge_person
+-- admin_purge_post
+-- mod_add
+-- mod_add_community
+-- mod_ban
+-- mod_ban_from_community
+-- mod_feature_post
+-- mod_hide_community
+-- mod_lock_post
+-- mod_remove_comment
+-- mod_remove_community
+-- mod_remove_post
+-- mod_transfer_community
+CREATE PROCEDURE r.create_modlog_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.modlog_combined_thing_insert ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                INSERT INTO modlog_combined (published, thing_id)
+                    VALUES (NEW.published, NEW.id);
+                RETURN NEW;
+            END $$;
+    CREATE TRIGGER modlog_combined
+        AFTER INSERT ON thing
+        FOR EACH ROW
+        EXECUTE FUNCTION r.modlog_combined_thing_insert ( );
+        $b$,
+        'thing',
+        table_name);
+END;
+$a$;
+
+CALL r.create_modlog_combined_trigger ('admin_allow_instance');
+
+CALL r.create_modlog_combined_trigger ('admin_block_instance');
+
+CALL r.create_modlog_combined_trigger ('admin_purge_comment');
+
+CALL r.create_modlog_combined_trigger ('admin_purge_community');
+
+CALL r.create_modlog_combined_trigger ('admin_purge_person');
+
+CALL r.create_modlog_combined_trigger ('admin_purge_post');
+
+CALL r.create_modlog_combined_trigger ('mod_add');
+
+CALL r.create_modlog_combined_trigger ('mod_add_community');
+
+CALL r.create_modlog_combined_trigger ('mod_ban');
+
+CALL r.create_modlog_combined_trigger ('mod_ban_from_community');
+
+CALL r.create_modlog_combined_trigger ('mod_feature_post');
+
+CALL r.create_modlog_combined_trigger ('mod_hide_community');
+
+CALL r.create_modlog_combined_trigger ('mod_lock_post');
+
+CALL r.create_modlog_combined_trigger ('mod_remove_comment');
+
+CALL r.create_modlog_combined_trigger ('mod_remove_community');
+
+CALL r.create_modlog_combined_trigger ('mod_remove_post');
+
+CALL r.create_modlog_combined_trigger ('mod_transfer_community');
+
+-- Inbox: (replies, comment mentions, post mentions, and private_messages)
+CREATE PROCEDURE r.create_inbox_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.inbox_combined_thing_insert ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                INSERT INTO inbox_combined (published, thing_id)
+                    VALUES (NEW.published, NEW.id);
+                RETURN NEW;
+            END $$;
+    CREATE TRIGGER inbox_combined
+        AFTER INSERT ON thing
+        FOR EACH ROW
+        EXECUTE FUNCTION r.inbox_combined_thing_insert ( );
+        $b$,
+        'thing',
+        table_name);
+END;
+$a$;
+
+CALL r.create_inbox_combined_trigger ('comment_reply');
+
+CALL r.create_inbox_combined_trigger ('person_comment_mention');
+
+CALL r.create_inbox_combined_trigger ('person_post_mention');
+
+CALL r.create_inbox_combined_trigger ('private_message');
+
+-- Prevent using delete instead of uplete on action tables
+CREATE FUNCTION r.require_uplete ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF pg_trigger_depth() = 1 AND NOT starts_with (current_query(), '/**/') THEN
+        RAISE 'using delete instead of uplete is not allowed for this table';
+    END IF;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER require_uplete
+    BEFORE DELETE ON comment_actions
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.require_uplete ();
+
+CREATE TRIGGER require_uplete
+    BEFORE DELETE ON community_actions
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.require_uplete ();
+
+CREATE TRIGGER require_uplete
+    BEFORE DELETE ON instance_actions
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.require_uplete ();
+
+CREATE TRIGGER require_uplete
+    BEFORE DELETE ON person_actions
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.require_uplete ();
+
+CREATE TRIGGER require_uplete
+    BEFORE DELETE ON post_actions
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION r.require_uplete ();
+
+-- search: (post, comment, community, person)
+CREATE PROCEDURE r.create_search_combined_trigger (table_name text)
+LANGUAGE plpgsql
+AS $a$
+BEGIN
+    EXECUTE replace($b$ CREATE FUNCTION r.search_combined_thing_insert ( )
+            RETURNS TRIGGER
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                -- TODO need to figure out how to do the other columns here
+                INSERT INTO search_combined (published, thing_id)
+                    VALUES (NEW.published, NEW.id);
+                RETURN NEW;
+            END $$;
+    CREATE TRIGGER search_combined
+        AFTER INSERT ON thing
+        FOR EACH ROW
+        EXECUTE FUNCTION r.search_combined_thing_insert ( );
+        $b$,
+        'thing',
+        table_name);
+END;
+$a$;
+
+CALL r.create_search_combined_trigger ('post');
+
+CALL r.create_search_combined_trigger ('comment');
+
+CALL r.create_search_combined_trigger ('community');
+
+CALL r.create_search_combined_trigger ('person');
+
+-- You also need to triggers to update the `score` column.
+-- post | post_aggregates::score
+-- comment | comment_aggregates::score
+-- community | community_aggregates::users_active_monthly
+-- person | person_aggregates::post_score
+--
+-- Post score
+CREATE FUNCTION r.search_combined_post_score_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        search_combined
+    SET
+        score = NEW.score
+    WHERE
+        post_id = NEW.post_id;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER search_combined_post_score
+    AFTER UPDATE OF score ON post_aggregates
+    FOR EACH ROW
+    EXECUTE FUNCTION r.search_combined_post_score_update ();
+
+-- Comment score
+CREATE FUNCTION r.search_combined_comment_score_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        search_combined
+    SET
+        score = NEW.score
+    WHERE
+        comment_id = NEW.comment_id;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER search_combined_comment_score
+    AFTER UPDATE OF score ON comment_aggregates
+    FOR EACH ROW
+    EXECUTE FUNCTION r.search_combined_comment_score_update ();
+
+-- Person score
+CREATE FUNCTION r.search_combined_person_score_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        search_combined
+    SET
+        score = NEW.post_score
+    WHERE
+        person_id = NEW.person_id;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER search_combined_person_score
+    AFTER UPDATE OF post_score ON person_aggregates
+    FOR EACH ROW
+    EXECUTE FUNCTION r.search_combined_person_score_update ();
+
+-- Community score
+CREATE FUNCTION r.search_combined_community_score_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        search_combined
+    SET
+        score = NEW.users_active_month
+    WHERE
+        community_id = NEW.community_id;
+    RETURN NULL;
+END
+$$;
+
+CREATE TRIGGER search_combined_community_score
+    AFTER UPDATE OF users_active_month ON community_aggregates
+    FOR EACH ROW
+    EXECUTE FUNCTION r.search_combined_community_score_update ();
 

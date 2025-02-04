@@ -1,24 +1,21 @@
-use crate::local_user_view_from_jwt;
 use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use lemmy_api_common::{context::LemmyContext, utils::check_private_instance};
+use lemmy_api_common::{
+  context::LemmyContext,
+  utils::{check_private_instance, local_user_view_from_jwt},
+};
 use lemmy_db_schema::{
   source::{community::Community, person::Person},
   traits::ApubActor,
-  CommentSortType,
   CommunityVisibility,
   ListingType,
   PostSortType,
 };
 use lemmy_db_views::{
-  post_view::PostQuery,
-  structs::{PostView, SiteView},
-};
-use lemmy_db_views_actor::{
-  comment_reply_view::CommentReplyQuery,
-  person_mention_view::PersonMentionQuery,
-  structs::{CommentReplyView, PersonMentionView},
+  combined::inbox_combined_view::InboxCombinedQuery,
+  post::post_view::PostQuery,
+  structs::{InboxCombinedView, PostView, SiteView},
 };
 use lemmy_utils::{
   cache_header::cache_1hour,
@@ -93,7 +90,6 @@ static RSS_NAMESPACE: LazyLock<BTreeMap<String, String>> = LazyLock::new(|| {
   h
 });
 
-#[tracing::instrument(skip_all)]
 async fn get_all_feed(
   info: web::Query<Params>,
   context: web::Data<LemmyContext>,
@@ -110,7 +106,6 @@ async fn get_all_feed(
   )
 }
 
-#[tracing::instrument(skip_all)]
 async fn get_local_feed(
   info: web::Query<Params>,
   context: web::Data<LemmyContext>,
@@ -127,7 +122,6 @@ async fn get_local_feed(
   )
 }
 
-#[tracing::instrument(skip_all)]
 async fn get_feed_data(
   context: &LemmyContext,
   listing_type: ListingType,
@@ -171,7 +165,6 @@ async fn get_feed_data(
   )
 }
 
-#[tracing::instrument(skip_all)]
 async fn get_feed(
   req: HttpRequest,
   info: web::Query<Params>,
@@ -232,7 +225,6 @@ async fn get_feed(
   )
 }
 
-#[tracing::instrument(skip_all)]
 async fn get_feed_user(
   context: &LemmyContext,
   sort_type: &PostSortType,
@@ -270,7 +262,6 @@ async fn get_feed_user(
   Ok(channel)
 }
 
-#[tracing::instrument(skip_all)]
 async fn get_feed_community(
   context: &LemmyContext,
   sort_type: &PostSortType,
@@ -315,7 +306,6 @@ async fn get_feed_community(
   Ok(channel)
 }
 
-#[tracing::instrument(skip_all)]
 async fn get_feed_front(
   context: &LemmyContext,
   sort_type: &PostSortType,
@@ -356,41 +346,23 @@ async fn get_feed_front(
   Ok(channel)
 }
 
-#[tracing::instrument(skip_all)]
 async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channel> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_user = local_user_view_from_jwt(jwt, context).await?;
-  let person_id = local_user.local_user.person_id;
-  let show_bot_accounts = local_user.local_user.show_bot_accounts;
-
-  let sort = CommentSortType::New;
+  let my_person_id = local_user.person.id;
+  let show_bot_accounts = Some(local_user.local_user.show_bot_accounts);
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
-  let replies = CommentReplyQuery {
-    recipient_id: (Some(person_id)),
-    my_person_id: (Some(person_id)),
-    show_bot_accounts: (show_bot_accounts),
-    sort: (Some(sort)),
-    limit: (Some(RSS_FETCH_LIMIT)),
+  let inbox = InboxCombinedQuery {
+    show_bot_accounts,
     ..Default::default()
   }
-  .list(&mut context.pool())
-  .await?;
-
-  let mentions = PersonMentionQuery {
-    recipient_id: (Some(person_id)),
-    my_person_id: (Some(person_id)),
-    show_bot_accounts: (show_bot_accounts),
-    sort: (Some(sort)),
-    limit: (Some(RSS_FETCH_LIMIT)),
-    ..Default::default()
-  }
-  .list(&mut context.pool())
+  .list(&mut context.pool(), my_person_id)
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
-  let items = create_reply_and_mention_items(replies, mentions, &protocol_and_hostname)?;
+  let items = create_reply_and_mention_items(inbox, &protocol_and_hostname)?;
 
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
@@ -407,45 +379,59 @@ async fn get_feed_inbox(context: &LemmyContext, jwt: &str) -> LemmyResult<Channe
   Ok(channel)
 }
 
-#[tracing::instrument(skip_all)]
 fn create_reply_and_mention_items(
-  replies: Vec<CommentReplyView>,
-  mentions: Vec<PersonMentionView>,
+  inbox: Vec<InboxCombinedView>,
   protocol_and_hostname: &str,
 ) -> LemmyResult<Vec<Item>> {
-  let mut reply_items: Vec<Item> = replies
+  let reply_items: Vec<Item> = inbox
     .iter()
-    .map(|r| {
-      let reply_url = format!("{}/comment/{}", protocol_and_hostname, r.comment.id);
-      build_item(
-        &r.creator.name,
-        &r.comment.published,
-        &reply_url,
-        &r.comment.content,
-        protocol_and_hostname,
-      )
+    .map(|r| match r {
+      InboxCombinedView::CommentReply(v) => {
+        let reply_url = format!("{}/comment/{}", protocol_and_hostname, v.comment.id);
+        build_item(
+          &v.creator.name,
+          &v.comment.published,
+          &reply_url,
+          &v.comment.content,
+          protocol_and_hostname,
+        )
+      }
+      InboxCombinedView::CommentMention(v) => {
+        let mention_url = format!("{}/comment/{}", protocol_and_hostname, v.comment.id);
+        build_item(
+          &v.creator.name,
+          &v.comment.published,
+          &mention_url,
+          &v.comment.content,
+          protocol_and_hostname,
+        )
+      }
+      InboxCombinedView::PostMention(v) => {
+        let mention_url = format!("{}/post/{}", protocol_and_hostname, v.post.id);
+        build_item(
+          &v.creator.name,
+          &v.post.published,
+          &mention_url,
+          &v.post.body.clone().unwrap_or_default(),
+          protocol_and_hostname,
+        )
+      }
+      InboxCombinedView::PrivateMessage(v) => {
+        let inbox_url = format!("{}/inbox", protocol_and_hostname);
+        build_item(
+          &v.creator.name,
+          &v.private_message.published,
+          &inbox_url,
+          &v.private_message.content,
+          protocol_and_hostname,
+        )
+      }
     })
     .collect::<LemmyResult<Vec<Item>>>()?;
 
-  let mut mention_items: Vec<Item> = mentions
-    .iter()
-    .map(|m| {
-      let mention_url = format!("{}/comment/{}", protocol_and_hostname, m.comment.id);
-      build_item(
-        &m.creator.name,
-        &m.comment.published,
-        &mention_url,
-        &m.comment.content,
-        protocol_and_hostname,
-      )
-    })
-    .collect::<LemmyResult<Vec<Item>>>()?;
-
-  reply_items.append(&mut mention_items);
   Ok(reply_items)
 }
 
-#[tracing::instrument(skip_all)]
 fn build_item(
   creator_name: &str,
   published: &DateTime<Utc>,
@@ -454,7 +440,6 @@ fn build_item(
   protocol_and_hostname: &str,
 ) -> LemmyResult<Item> {
   // TODO add images
-  let author_url = format!("{protocol_and_hostname}/u/{creator_name}");
   let guid = Some(Guid {
     permalink: true,
     value: url.to_owned(),
@@ -464,7 +449,8 @@ fn build_item(
   Ok(Item {
     title: Some(format!("Reply from {creator_name}")),
     author: Some(format!(
-      "/u/{creator_name} <a href=\"{author_url}\">(link)</a>"
+      "/u/{creator_name} <a href=\"{}\">(link)</a>",
+      format_args!("{protocol_and_hostname}/u/{creator_name}")
     )),
     pub_date: Some(published.to_rfc2822()),
     comments: Some(url.to_owned()),
@@ -475,7 +461,6 @@ fn build_item(
   })
 }
 
-#[tracing::instrument(skip_all)]
 fn create_post_items(posts: Vec<PostView>, protocol_and_hostname: &str) -> LemmyResult<Vec<Item>> {
   let mut items: Vec<Item> = Vec::new();
 

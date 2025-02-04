@@ -55,13 +55,11 @@ impl OAuthProvider {
   pub fn convert_providers_to_public(
     oauth_providers: Vec<OAuthProvider>,
   ) -> Vec<PublicOAuthProvider> {
-    let mut result = Vec::<PublicOAuthProvider>::new();
-    for oauth_provider in &oauth_providers {
-      if oauth_provider.enabled {
-        result.push(PublicOAuthProvider(oauth_provider.clone()));
-      }
-    }
-    result
+    oauth_providers
+      .into_iter()
+      .filter(|x| x.enabled)
+      .map(PublicOAuthProvider)
+      .collect()
   }
 
   pub async fn get_all_public(pool: &mut DbPool<'_>) -> Result<Vec<PublicOAuthProvider>, Error> {

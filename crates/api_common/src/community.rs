@@ -5,7 +5,7 @@ use lemmy_db_schema::{
   ListingType,
   ModlogActionType,
 };
-use lemmy_db_views_actor::structs::{
+use lemmy_db_views::structs::{
   CommunityModeratorView,
   CommunitySortType,
   CommunityView,
@@ -237,12 +237,6 @@ pub struct EditCommunity {
   /// A shorter, one line description of your community.
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
-  /// An icon URL.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub icon: Option<String>,
-  /// A banner URL.
-  #[cfg_attr(feature = "full", ts(optional))]
-  pub banner: Option<String>,
   /// Whether its an NSFW community.
   #[cfg_attr(feature = "full", ts(optional))]
   pub nsfw: Option<bool>,
@@ -334,6 +328,8 @@ pub struct TransferCommunity {
 pub struct GetRandomCommunity {
   #[cfg_attr(feature = "full", ts(optional))]
   pub type_: Option<ListingType>,
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub show_nsfw: Option<bool>,
 }
 
 #[skip_serializing_none]

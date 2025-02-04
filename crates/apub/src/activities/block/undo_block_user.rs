@@ -1,4 +1,4 @@
-use super::to_and_audience;
+use super::to;
 use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
@@ -36,7 +36,6 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl UndoBlockUser {
-  #[tracing::instrument(skip_all)]
   pub async fn send(
     target: &SiteOrCommunity,
     user: &ApubPerson,
@@ -46,7 +45,7 @@ impl UndoBlockUser {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
-    let (to, audience) = to_and_audience(target)?;
+    let to = to(target)?;
 
     let id = generate_activity_id(
       UndoType::Undo,
@@ -59,7 +58,6 @@ impl UndoBlockUser {
       cc: generate_cc(target, &mut context.pool()).await?,
       kind: UndoType::Undo,
       id: id.clone(),
-      audience,
       restore_data: Some(restore_data),
     };
 
@@ -90,17 +88,15 @@ impl ActivityHandler for UndoBlockUser {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     verify_domains_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context).await?;
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
-    let expires = self.object.end_time.map(Into::into);
+    let expires = self.object.end_time;
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.object.dereference(context).await?;
     match self.object.target.dereference(context).await? {

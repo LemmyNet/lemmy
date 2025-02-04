@@ -1,4 +1,4 @@
-use super::to_and_audience;
+use super::to;
 use crate::{
   activities::{
     block::{generate_cc, SiteOrCommunity},
@@ -54,7 +54,7 @@ impl BlockUser {
     expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<BlockUser> {
-    let (to, audience) = to_and_audience(target)?;
+    let to = to(target)?;
     Ok(BlockUser {
       actor: mod_.id().into(),
       to,
@@ -68,12 +68,10 @@ impl BlockUser {
         BlockType::Block,
         &context.settings().get_protocol_and_hostname(),
       )?,
-      audience,
       end_time: expires,
     })
   }
 
-  #[tracing::instrument(skip_all)]
   pub async fn send(
     target: &SiteOrCommunity,
     user: &ApubPerson,
@@ -121,7 +119,6 @@ impl ActivityHandler for BlockUser {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     match self.target.dereference(context).await? {
       SiteOrCommunity::Site(site) => {
@@ -149,10 +146,9 @@ impl ActivityHandler for BlockUser {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
-    let expires = self.end_time.map(Into::into);
+    let expires = self.end_time;
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;

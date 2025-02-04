@@ -8,12 +8,10 @@ use lemmy_db_schema::source::{
   oauth_provider::OAuthProvider,
   tagline::Tagline,
 };
-use lemmy_db_views::structs::{LocalUserView, SiteView};
-use lemmy_db_views_actor::structs::PersonView;
+use lemmy_db_views::structs::{LocalUserView, PersonView, SiteView};
 use lemmy_utils::{build_cache, error::LemmyResult, CacheLock, VERSION};
 use std::sync::LazyLock;
 
-#[tracing::instrument(skip(context))]
 pub async fn get_site_v3(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
@@ -25,7 +23,6 @@ pub async fn get_site_v3(
   Ok(site)
 }
 
-#[tracing::instrument(skip(context))]
 pub async fn get_site_v4(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
@@ -69,5 +66,6 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
     tagline,
     oauth_providers: Some(oauth_providers),
     admin_oauth_providers: Some(admin_oauth_providers),
+    image_upload_disabled: context.settings().pictrs()?.image_upload_disabled,
   })
 }

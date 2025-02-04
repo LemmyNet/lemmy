@@ -15,6 +15,9 @@ use std::sync::Arc;
 pub struct LemmyContext {
   pool: ActualDbPool,
   client: Arc<ClientWithMiddleware>,
+  /// Pictrs requests must bypass proxy. Unfortunately no_proxy can only be set on ClientBuilder
+  /// and not on RequestBuilder, so we need a separate client here.
+  pictrs_client: Arc<ClientWithMiddleware>,
   secret: Arc<Secret>,
   rate_limit_cell: RateLimitCell,
 }
@@ -23,12 +26,14 @@ impl LemmyContext {
   pub fn create(
     pool: ActualDbPool,
     client: ClientWithMiddleware,
+    pictrs_client: ClientWithMiddleware,
     secret: Secret,
     rate_limit_cell: RateLimitCell,
   ) -> LemmyContext {
     LemmyContext {
       pool,
       client: Arc::new(client),
+      pictrs_client: Arc::new(pictrs_client),
       secret: Arc::new(secret),
       rate_limit_cell,
     }
@@ -41,6 +46,9 @@ impl LemmyContext {
   }
   pub fn client(&self) -> &ClientWithMiddleware {
     &self.client
+  }
+  pub fn pictrs_client(&self) -> &ClientWithMiddleware {
+    &self.pictrs_client
   }
   pub fn settings(&self) -> &'static Settings {
     &SETTINGS
@@ -70,7 +78,13 @@ impl LemmyContext {
 
     let rate_limit_cell = RateLimitCell::with_test_config();
 
-    let context = LemmyContext::create(pool, client, secret, rate_limit_cell.clone());
+    let context = LemmyContext::create(
+      pool,
+      client.clone(),
+      client,
+      secret,
+      rate_limit_cell.clone(),
+    );
 
     FederationConfig::builder()
       .domain(context.settings().hostname.clone())

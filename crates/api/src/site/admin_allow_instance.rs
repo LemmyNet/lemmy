@@ -7,15 +7,17 @@ use lemmy_api_common::{
   LemmyErrorType,
   SuccessResponse,
 };
-use lemmy_db_schema::source::{
-  federation_allowlist::{FederationAllowList, FederationAllowListForm},
-  instance::Instance,
-  mod_log::admin::{AdminAllowInstance, AdminAllowInstanceForm},
+use lemmy_db_schema::{
+  source::{
+    federation_allowlist::{FederationAllowList, FederationAllowListForm},
+    instance::Instance,
+    mod_log::admin::{AdminAllowInstance, AdminAllowInstanceForm},
+  },
+  traits::Crud,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
-#[tracing::instrument(skip(context))]
 pub async fn admin_allow_instance(
   data: Json<AdminAllowInstanceParams>,
   local_user_view: LocalUserView,
@@ -47,7 +49,7 @@ pub async fn admin_allow_instance(
     reason: data.reason.clone(),
     allowed: data.allow,
   };
-  AdminAllowInstance::insert(&mut context.pool(), &mod_log_form).await?;
+  AdminAllowInstance::create(&mut context.pool(), &mod_log_form).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

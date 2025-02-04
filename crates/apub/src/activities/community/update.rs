@@ -43,12 +43,11 @@ pub(crate) async fn send_update_community(
   )?;
   let update = UpdateCommunity {
     actor: actor.id().into(),
-    to: vec![generate_to(&community)?],
+    to: generate_to(&community)?,
     object: Box::new(community.clone().into_json(&context).await?),
     cc: vec![community.id()],
     kind: UpdateType::Update,
     id: id.clone(),
-    audience: Some(community.id().into()),
   };
 
   let activity = AnnouncableActivities::UpdateCommunity(update);
@@ -76,7 +75,6 @@ impl ActivityHandler for UpdateCommunity {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
@@ -86,7 +84,6 @@ impl ActivityHandler for UpdateCommunity {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let community = self.community(context).await?;
@@ -98,8 +95,8 @@ impl ActivityHandler for UpdateCommunity {
         &None,
         &self.object.source,
       )),
-      published: self.object.published.map(Into::into),
-      updated: Some(self.object.updated.map(Into::into)),
+      published: self.object.published,
+      updated: Some(self.object.updated),
       nsfw: Some(self.object.sensitive.unwrap_or(false)),
       actor_id: Some(self.object.id.into()),
       public_key: Some(self.object.public_key.public_key_pem),

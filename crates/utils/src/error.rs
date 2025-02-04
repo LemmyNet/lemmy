@@ -1,6 +1,6 @@
 use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
-use std::{backtrace::Backtrace, fmt::Debug};
+use std::fmt::Debug;
 use strum::{Display, EnumIter};
 
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
@@ -23,7 +23,6 @@ pub enum LemmyErrorType {
   CouldntUpdateComment,
   CouldntUpdatePrivateMessage,
   CannotLeaveAdmin,
-  // TODO: also remove the translations of unused errors
   PictrsResponseError(String),
   PictrsPurgeResponseError(String),
   ImageUrlMissingPathSegments,
@@ -31,6 +30,8 @@ pub enum LemmyErrorType {
   PictrsApiKeyNotProvided,
   NoContentTypeHeader,
   NotAnImageType,
+  InvalidImageUpload,
+  ImageUploadDisabled,
   NotAModOrAdmin,
   NotTopMod,
   NotLoggedIn,
@@ -106,7 +107,7 @@ pub enum LemmyErrorType {
   CouldntHidePost,
   CouldntUpdateCommunity,
   CouldntUpdateReplies,
-  CouldntUpdatePersonMentions,
+  CouldntUpdatePersonCommentMentions,
   CouldntCreatePost,
   CouldntCreatePrivateMessage,
   CouldntUpdatePrivate,
@@ -164,8 +165,6 @@ pub enum LemmyErrorType {
 #[cfg_attr(feature = "full", ts(export))]
 #[non_exhaustive]
 pub enum FederationError {
-  // TODO: merge into a single NotFound error
-  CouldntFindActivity,
   InvalidCommunity,
   CannotCreatePostOrCommentInDeletedOrRemovedCommunity,
   CannotReceivePage,
@@ -193,7 +192,7 @@ pub enum FederationError {
 cfg_if! {
   if #[cfg(feature = "full")] {
 
-    use std::fmt;
+    use std::{fmt, backtrace::Backtrace};
     pub type LemmyResult<T> = Result<T, LemmyError>;
 
     pub struct LemmyError {
@@ -243,11 +242,10 @@ cfg_if! {
 
     impl actix_web::error::ResponseError for LemmyError {
       fn status_code(&self) -> actix_web::http::StatusCode {
-        if self.error_type == LemmyErrorType::IncorrectLogin {
-          return actix_web::http::StatusCode::UNAUTHORIZED;
-        }
-        match self.inner.downcast_ref::<diesel::result::Error>() {
-          Some(diesel::result::Error::NotFound) => actix_web::http::StatusCode::NOT_FOUND,
+        match self.error_type {
+          LemmyErrorType::IncorrectLogin => actix_web::http::StatusCode::UNAUTHORIZED,
+          LemmyErrorType::NotFound => actix_web::http::StatusCode::NOT_FOUND,
+          LemmyErrorType::RateLimitError => actix_web::http::StatusCode::TOO_MANY_REQUESTS,
           _ => actix_web::http::StatusCode::BAD_REQUEST,
         }
       }

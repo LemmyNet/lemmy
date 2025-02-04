@@ -18,7 +18,7 @@ use crate::{
   },
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::activities::{
-    community::report::Report,
+    community::{report::Report, resolve_report::ResolveReport},
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
     CreateOrUpdateType,
   },
@@ -43,7 +43,7 @@ use lemmy_db_schema::{
   traits::Crud,
   CommunityVisibility,
 };
-use lemmy_db_views_actor::structs::{CommunityPersonBanView, CommunityView};
+use lemmy_db_views::structs::{CommunityPersonBanView, CommunityView};
 use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::Serialize;
 use tracing::info;
@@ -59,7 +59,6 @@ pub mod voting;
 
 /// Checks that the specified Url actually identifies a Person (by fetching it), and that the person
 /// doesn't have a site ban.
-#[tracing::instrument(skip_all)]
 async fn verify_person(
   person_id: &ObjectId<ApubPerson>,
   context: &Data<LemmyContext>,
@@ -75,7 +74,6 @@ async fn verify_person(
 
 /// Fetches the person and community to verify their type, then checks if person is banned from site
 /// or community.
-#[tracing::instrument(skip_all)]
 pub(crate) async fn verify_person_in_community(
   person_id: &ObjectId<ApubPerson>,
   community: &ApubCommunity,
@@ -97,7 +95,6 @@ pub(crate) async fn verify_person_in_community(
 /// * `mod_id` - Activitypub ID of the mod or admin who performed the action
 /// * `object_id` - Activitypub ID of the actor or object that is being moderated
 /// * `community` - The community inside which moderation is happening
-#[tracing::instrument(skip_all)]
 pub(crate) async fn verify_mod_action(
   mod_id: &ObjectId<ApubPerson>,
   community: &Community,
@@ -136,23 +133,15 @@ pub(crate) fn verify_visibility(to: &[Url], cc: &[Url], community: &Community) -
 }
 
 /// Marks object as public only if the community is public
-pub(crate) fn generate_to(community: &Community) -> LemmyResult<Url> {
+pub(crate) fn generate_to(community: &Community) -> LemmyResult<Vec<Url>> {
+  let actor_id = community.actor_id.clone().into();
   if community.visibility == CommunityVisibility::Public {
-    Ok(public())
+    Ok(vec![actor_id, public()])
   } else {
-    Ok(Url::parse(&format!("{}/followers", community.actor_id))?)
-  }
-}
-
-pub(crate) fn verify_community_matches<T>(a: &ObjectId<ApubCommunity>, b: T) -> LemmyResult<()>
-where
-  T: Into<ObjectId<ApubCommunity>>,
-{
-  let b: ObjectId<ApubCommunity> = b.into();
-  if a != &b {
-    Err(FederationError::InvalidCommunity)?
-  } else {
-    Ok(())
+    Ok(vec![
+      actor_id.clone(),
+      Url::parse(&format!("{}/followers", actor_id))?,
+    ])
   }
 }
 
@@ -198,7 +187,6 @@ pub(crate) trait GetActorType {
   fn actor_type(&self) -> ActorType;
 }
 
-#[tracing::instrument(skip_all)]
 async fn send_lemmy_activity<Activity, ActorT>(
   data: &Data<LemmyContext>,
   activity: Activity,
@@ -390,7 +378,31 @@ pub async fn match_outgoing_activities(
         actor,
         community,
         reason,
-      } => Report::send(ObjectId::from(object_id), actor, community, reason, context).await,
+      } => {
+        Report::send(
+          ObjectId::from(object_id),
+          &actor.into(),
+          &community.into(),
+          reason,
+          context,
+        )
+        .await
+      }
+      SendResolveReport {
+        object_id,
+        actor,
+        report_creator,
+        community,
+      } => {
+        ResolveReport::send(
+          ObjectId::from(object_id),
+          &actor.into(),
+          &report_creator.into(),
+          &community.into(),
+          context,
+        )
+        .await
+      }
       AcceptFollower(community_id, person_id) => {
         send_accept_or_reject_follow(community_id, person_id, true, &context).await
       }

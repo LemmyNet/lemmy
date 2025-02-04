@@ -10,16 +10,12 @@ use lemmy_db_schema::{
 use lemmy_db_views::structs::{CommentView, LocalUserView};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-#[tracing::instrument(skip(context))]
 pub async fn save_comment(
   data: Json<SaveComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
-  let comment_saved_form = CommentSavedForm {
-    comment_id: data.comment_id,
-    person_id: local_user_view.person.id,
-  };
+  let comment_saved_form = CommentSavedForm::new(data.comment_id, local_user_view.person.id);
 
   if data.save {
     CommentSaved::save(&mut context.pool(), &comment_saved_form)

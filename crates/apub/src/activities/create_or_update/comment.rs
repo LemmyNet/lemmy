@@ -29,7 +29,7 @@ use lemmy_api_common::{
 };
 use lemmy_db_schema::{
   aggregates::structs::CommentAggregates,
-  newtypes::PersonId,
+  newtypes::{PersonId, PostOrCommentId},
   source::{
     activity::ActivitySendTargets,
     comment::{Comment, CommentLike, CommentLikeForm},
@@ -47,7 +47,6 @@ use serde_json::{from_value, to_value};
 use url::Url;
 
 impl CreateOrUpdateNote {
-  #[tracing::instrument(skip(comment, person_id, kind, context))]
   pub(crate) async fn send(
     comment: Comment,
     person_id: PersonId,
@@ -71,13 +70,12 @@ impl CreateOrUpdateNote {
 
     let create_or_update = CreateOrUpdateNote {
       actor: person.id().into(),
-      to: vec![generate_to(&community)?],
+      to: generate_to(&community)?,
       cc: note.cc.clone(),
       tag: note.tag.clone(),
       object: note,
       kind,
       id: id.clone(),
-      audience: Some(community.id().into()),
     };
 
     let tagged_users: Vec<ObjectId<ApubPerson>> = create_or_update
@@ -121,7 +119,6 @@ impl ActivityHandler for CreateOrUpdateNote {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let post = self.object.get_parents(context).await?.0;
     let community = self.community(context).await?;
@@ -137,7 +134,6 @@ impl ActivityHandler for CreateOrUpdateNote {
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     // Need to do this check here instead of Note::from_json because we need the person who
@@ -176,10 +172,17 @@ impl ActivityHandler for CreateOrUpdateNote {
     // TODO: for compatibility with other projects, it would be much better to read this from cc or
     // tags
     let mentions = scrape_text_for_mentions(&comment.content);
-
     // TODO: this fails in local community comment as CommentView::read() returns nothing
     //       without passing LocalUser
-    send_local_notifs(mentions, comment.id, &actor, do_send_email, context, None).await?;
+    send_local_notifs(
+      mentions,
+      PostOrCommentId::Comment(comment.id),
+      &actor,
+      do_send_email,
+      context,
+      None,
+    )
+    .await?;
     Ok(())
   }
 }

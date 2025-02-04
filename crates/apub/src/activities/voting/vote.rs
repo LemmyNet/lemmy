@@ -5,7 +5,7 @@ use crate::{
     voting::{undo_vote_comment, undo_vote_post, vote_comment, vote_post},
   },
   insert_received_activity,
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::person::ApubPerson,
   protocol::{
     activities::voting::vote::{Vote, VoteType},
     InCommunity,
@@ -26,7 +26,6 @@ impl Vote {
   pub(in crate::activities::voting) fn new(
     object_id: ObjectId<PostOrComment>,
     actor: &ApubPerson,
-    community: &ApubCommunity,
     kind: VoteType,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Vote> {
@@ -35,7 +34,6 @@ impl Vote {
       object: object_id,
       kind: kind.clone(),
       id: generate_activity_id(kind, &context.settings().get_protocol_and_hostname())?,
-      audience: Some(community.id().into()),
     })
   }
 }
@@ -53,14 +51,12 @@ impl ActivityHandler for Vote {
     self.actor.inner()
   }
 
-  #[tracing::instrument(skip_all)]
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_person_in_community(&self.actor, &community, context).await?;
     Ok(())
   }
 
-  #[tracing::instrument(skip_all)]
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     insert_received_activity(&self.id, context).await?;
     let actor = self.actor.dereference(context).await?;

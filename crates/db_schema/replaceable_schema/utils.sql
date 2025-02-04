@@ -33,16 +33,16 @@ now() - published) < '7 days' THEN
         0.0
     END;
 
-CREATE FUNCTION r.scaled_rank (score numeric, published timestamp with time zone, users_active_month numeric)
+CREATE FUNCTION r.scaled_rank (score numeric, published timestamp with time zone, interactions_month numeric)
     RETURNS double precision
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE
     -- Add 2 to avoid divide by zero errors
     -- Default for score = 1, active users = 1, and now, is (0.1728 / log(2 + 1)) = 0.3621
-    -- There may need to be a scale factor multiplied to users_active_month, to make
+    -- There may need to be a scale factor multiplied to interactions_month, to make
     -- the log curve less pronounced. This can be tuned in the future.
     RETURN (
-        r.hot_rank (score, published) / log(2 + users_active_month)
+        r.hot_rank (score, published) / log(2 + interactions_month)
 );
 
 -- For tables with `deleted` and `removed` columns, this function determines which rows to include in a count.
@@ -71,7 +71,7 @@ current_setting('lemmy.protocol_and_hostname') || url_path
 --     not allowed for a `DELETE` trigger)
 --   * Transition tables are only provided to the trigger function, not to functions that it calls.
 --
--- This function can only be called once per table. The trigger function body given as the 2nd argument
+-- This function can only be called once per table. The trigger function body is given as the 2nd argument
 -- and can contain these names, which are replaced with a `SELECT` statement in parenthesis if needed:
 --   * `select_old_rows`
 --   * `select_new_rows`
@@ -186,29 +186,50 @@ BEGIN
             AND pe.bot_account = FALSE
         UNION
         SELECT
-            pl.person_id,
+            pa.person_id,
             p.community_id
         FROM
-            post_like pl
-            INNER JOIN post p ON pl.post_id = p.id
-            INNER JOIN person pe ON pl.person_id = pe.id
+            post_actions pa
+            INNER JOIN post p ON pa.post_id = p.id
+            INNER JOIN person pe ON pa.person_id = pe.id
         WHERE
-            pl.published > ('now'::timestamp - i::interval)
+            pa.liked > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE
         UNION
         SELECT
-            cl.person_id,
+            ca.person_id,
             p.community_id
         FROM
-            comment_like cl
-            INNER JOIN comment c ON cl.comment_id = c.id
+            comment_actions ca
+            INNER JOIN comment c ON ca.comment_id = c.id
             INNER JOIN post p ON c.post_id = p.id
-            INNER JOIN person pe ON cl.person_id = pe.id
+            INNER JOIN person pe ON ca.person_id = pe.id
         WHERE
-            cl.published > ('now'::timestamp - i::interval)
+            ca.liked > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE) a
 GROUP BY
     community_id;
+END;
+$$;
+
+-- Community aggregate function for adding up total number of interactions
+CREATE OR REPLACE FUNCTION r.community_aggregates_interactions (i text)
+    RETURNS TABLE (
+        count_ bigint,
+        community_id_ integer)
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    RETURN query
+    SELECT
+        COALESCE(sum(comments + upvotes + downvotes)::bigint, 0) AS count_,
+        community_id AS community_id_
+    FROM
+        post_aggregates
+    WHERE
+        published >= (CURRENT_TIMESTAMP - i::interval)
+    GROUP BY
+        community_id;
 END;
 $$;
 
@@ -244,22 +265,22 @@ BEGIN
             AND pe.bot_account = FALSE
         UNION
         SELECT
-            pl.person_id
+            pa.person_id
         FROM
-            post_like pl
-            INNER JOIN person pe ON pl.person_id = pe.id
+            post_actions pa
+            INNER JOIN person pe ON pa.person_id = pe.id
         WHERE
-            pl.published > ('now'::timestamp - i::interval)
+            pa.liked > ('now'::timestamp - i::interval)
             AND pe.local = TRUE
             AND pe.bot_account = FALSE
         UNION
         SELECT
-            cl.person_id
+            ca.person_id
         FROM
-            comment_like cl
-            INNER JOIN person pe ON cl.person_id = pe.id
+            comment_actions ca
+            INNER JOIN person pe ON ca.person_id = pe.id
         WHERE
-            cl.published > ('now'::timestamp - i::interval)
+            ca.liked > ('now'::timestamp - i::interval)
             AND pe.local = TRUE
             AND pe.bot_account = FALSE) a;
     RETURN count_;

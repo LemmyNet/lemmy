@@ -1,14 +1,11 @@
 use activitypub_federation::config::Data;
-use actix_web::{http::header::Header, HttpRequest};
-use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
 use captcha::Captcha;
 use lemmy_api_common::{
-  claims::Claims,
   community::BanFromCommunity,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_expire_time, check_user_valid, local_site_to_slur_regex, AUTH_COOKIE_NAME},
+  utils::{check_expire_time, local_site_to_slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -26,20 +23,18 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::slurs::check_slurs,
 };
 use std::io::Cursor;
 use totp_rs::{Secret, TOTP};
 
 pub mod comment;
-pub mod comment_report;
 pub mod community;
 pub mod local_user;
 pub mod post;
-pub mod post_report;
 pub mod private_message;
-pub mod private_message_report;
+pub mod reports;
 pub mod site;
 pub mod sitemap;
 
@@ -97,21 +92,6 @@ pub(crate) fn check_report_reason(reason: &str, local_site: &LocalSite) -> Lemmy
   }
 }
 
-pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
-  // Try reading jwt from auth header
-  if let Ok(header) = Authorization::<Bearer>::parse(req) {
-    Ok(Some(header.as_ref().token().to_string()))
-  }
-  // If that fails, try to read from cookie
-  else if let Some(cookie) = &req.cookie(AUTH_COOKIE_NAME) {
-    Ok(Some(cookie.value().to_string()))
-  }
-  // Otherwise, there's no auth
-  else {
-    Ok(None)
-  }
-}
-
 pub(crate) fn check_totp_2fa_valid(
   local_user_view: &LocalUserView,
   totp_token: &Option<String>,
@@ -166,7 +146,6 @@ fn build_totp_2fa(hostname: &str, username: &str, secret: &str) -> LemmyResult<T
 /// So when doing a site ban for a non-local user, you need to federate/send a
 /// community ban for every local community they've participated in.
 /// See https://github.com/LemmyNet/lemmy/issues/4118
-#[tracing::instrument(skip_all)]
 pub(crate) async fn ban_nonlocal_user_from_local_communities(
   local_user_view: &LocalUserView,
   target: &Person,
@@ -243,20 +222,6 @@ pub(crate) async fn ban_nonlocal_user_from_local_communities(
   }
 
   Ok(())
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn local_user_view_from_jwt(
-  jwt: &str,
-  context: &LemmyContext,
-) -> LemmyResult<LocalUserView> {
-  let local_user_id = Claims::validate(jwt, context)
-    .await
-    .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
-  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
-  check_user_valid(&local_user_view.person)?;
-
-  Ok(local_user_view)
 }
 
 #[cfg(test)]

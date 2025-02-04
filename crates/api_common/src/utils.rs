@@ -1,4 +1,5 @@
 use crate::{
+  claims::Claims,
   context::LemmyContext,
   request::{
     delete_image_from_pictrs,
@@ -7,11 +8,13 @@ use crate::{
   },
   site::{FederatedInstances, InstanceWithFederationState},
 };
+use actix_web::{http::header::Header, HttpRequest};
+use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
-  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
   source::{
     comment::{Comment, CommentLike, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
@@ -39,27 +42,31 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
   utils::DbPool,
+  CommunityVisibility,
   FederationMode,
   RegistrationMode,
 };
 use lemmy_db_views::{
-  comment_view::CommentQuery,
-  structs::{LocalImageView, LocalUserView, SiteView},
-};
-use lemmy_db_views_actor::structs::{
-  CommunityFollowerView,
-  CommunityModeratorView,
-  CommunityPersonBanView,
-  CommunityView,
+  comment::comment_view::CommentQuery,
+  structs::{
+    CommunityFollowerView,
+    CommunityModeratorView,
+    CommunityPersonBanView,
+    CommunityView,
+    LocalImageView,
+    LocalUserView,
+    SiteView,
+  },
 };
 use lemmy_utils::{
   email::{send_email, translations::Lang},
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   rate_limit::{ActionType, BucketConfig},
   settings::{
     structs::{PictrsImageMode, Settings},
     SETTINGS,
   },
+  spawn_try_task,
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
     slurs::{build_slur_regex, remove_slurs},
@@ -72,13 +79,13 @@ use moka::future::Cache;
 use regex::{escape, Regex, RegexSet};
 use rosetta_i18n::{Language, LanguageId};
 use std::sync::LazyLock;
-use tracing::warn;
+use tracing::{warn, Instrument};
 use url::{ParseError, Url};
 use urlencoding::encode;
+use webmention::{Webmention, WebmentionError};
 
 pub const AUTH_COOKIE_NAME: &str = "jwt";
 
-#[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin(
   pool: &mut DbPool<'_>,
   person: &Person,
@@ -88,7 +95,6 @@ pub async fn is_mod_or_admin(
   CommunityView::check_is_mod_or_admin(pool, person.id, community_id).await
 }
 
-#[tracing::instrument(skip_all)]
 pub async fn is_mod_or_admin_opt(
   pool: &mut DbPool<'_>,
   local_user_view: Option<&LocalUserView>,
@@ -108,7 +114,6 @@ pub async fn is_mod_or_admin_opt(
 /// Check that a person is either a mod of any community, or an admin
 ///
 /// Should only be used for read operations
-#[tracing::instrument(skip_all)]
 pub async fn check_community_mod_of_any_or_admin_action(
   local_user_view: &LocalUserView,
   pool: &mut DbPool<'_>,
@@ -146,7 +151,6 @@ pub fn is_top_mod(
 }
 
 /// Updates the read comment count for a post. Usually done when reading or creating a new comment.
-#[tracing::instrument(skip_all)]
 pub async fn update_read_comments(
   person_id: PersonId,
   post_id: PostId,
@@ -277,7 +281,6 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub async fn check_person_instance_community_block(
   my_id: PersonId,
   potential_blocker_id: PersonId,
@@ -291,23 +294,16 @@ pub async fn check_person_instance_community_block(
   Ok(())
 }
 
-/// A vote item type used to check the vote mode.
-pub enum VoteItem {
-  Post(PostId),
-  Comment(CommentId),
-}
-
-#[tracing::instrument(skip_all)]
 pub async fn check_local_vote_mode(
   score: i16,
-  vote_item: VoteItem,
+  post_or_comment_id: PostOrCommentId,
   local_site: &LocalSite,
   person_id: PersonId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let (downvote_setting, upvote_setting) = match vote_item {
-    VoteItem::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
-    VoteItem::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
+  let (downvote_setting, upvote_setting) = match post_or_comment_id {
+    PostOrCommentId::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
+    PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
   };
 
   let downvote_fail = score == -1 && downvote_setting == FederationMode::Disable;
@@ -315,16 +311,17 @@ pub async fn check_local_vote_mode(
 
   // Undo previous vote for item if new vote fails
   if downvote_fail || upvote_fail {
-    match vote_item {
-      VoteItem::Post(post_id) => PostLike::remove(pool, person_id, post_id).await?,
-      VoteItem::Comment(comment_id) => CommentLike::remove(pool, person_id, comment_id).await?,
+    match post_or_comment_id {
+      PostOrCommentId::Post(post_id) => PostLike::remove(pool, person_id, post_id).await?,
+      PostOrCommentId::Comment(comment_id) => {
+        CommentLike::remove(pool, person_id, comment_id).await?
+      }
     };
   }
   Ok(())
 }
 
 /// Dont allow bots to do certain actions, like voting
-#[tracing::instrument(skip_all)]
 pub fn check_bot_account(person: &Person) -> LemmyResult<()> {
   if person.bot_account {
     Err(LemmyErrorType::InvalidBotAction)?
@@ -333,7 +330,6 @@ pub fn check_bot_account(person: &Person) -> LemmyResult<()> {
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub fn check_private_instance(
   local_user_view: &Option<LocalUserView>,
   local_site: &LocalSite,
@@ -346,7 +342,6 @@ pub fn check_private_instance(
 }
 
 /// If private messages are disabled, dont allow them to be sent / received
-#[tracing::instrument(skip_all)]
 pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.local_user.enable_private_messages {
     Err(LemmyErrorType::CouldntCreatePrivateMessage)?
@@ -355,7 +350,6 @@ pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub async fn build_federated_instances(
   local_site: &LocalSite,
   pool: &mut DbPool<'_>,
@@ -552,7 +546,9 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
         let urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
 
         // The urls are already validated on saving, so just escape them.
-        let regexes = urls.iter().map(|url| escape(&url.url));
+        // If this regex creation changes it must be synced with
+        // lemmy_utils::utils::markdown::create_url_blocklist_test_regex_set.
+        let regexes = urls.iter().map(|url| format!(r"\b{}\b", escape(&url.url)));
 
         let set = RegexSet::new(regexes)?;
         Ok(set)
@@ -678,13 +674,9 @@ async fn delete_local_user_images(person_id: PersonId, context: &LemmyContext) -
 
     // Delete their images
     for upload in pictrs_uploads {
-      delete_image_from_pictrs(
-        &upload.local_image.pictrs_alias,
-        &upload.local_image.pictrs_delete_token,
-        context,
-      )
-      .await
-      .ok();
+      delete_image_from_pictrs(&upload.local_image.pictrs_alias, context)
+        .await
+        .ok();
     }
   }
   Ok(())
@@ -1035,7 +1027,6 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub fn check_conflicting_like_filters(
   liked_only: Option<bool>,
   disliked_only: Option<bool>,
@@ -1058,7 +1049,7 @@ pub async fn process_markdown(
 
   markdown_check_for_blocked_urls(&text, url_blocklist)?;
 
-  if context.settings().pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
+  if context.settings().pictrs()?.image_mode == PictrsImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
     RemoteImage::create(&mut context.pool(), links.clone()).await?;
 
@@ -1126,37 +1117,7 @@ async fn proxy_image_link_internal(
 /// Rewrite a link to go through `/api/v4/image_proxy` endpoint. This is only for remote urls and
 /// if image_proxy setting is enabled.
 pub async fn proxy_image_link(link: Url, context: &LemmyContext) -> LemmyResult<DbUrl> {
-  proxy_image_link_internal(
-    link,
-    context.settings().pictrs_config()?.image_mode(),
-    context,
-  )
-  .await
-}
-
-pub async fn proxy_image_link_opt_api(
-  link: Option<Option<DbUrl>>,
-  context: &LemmyContext,
-) -> LemmyResult<Option<Option<DbUrl>>> {
-  if let Some(Some(link)) = link {
-    proxy_image_link(link.into(), context)
-      .await
-      .map(Some)
-      .map(Some)
-  } else {
-    Ok(link)
-  }
-}
-
-pub async fn proxy_image_link_api(
-  link: Option<DbUrl>,
-  context: &LemmyContext,
-) -> LemmyResult<Option<DbUrl>> {
-  if let Some(link) = link {
-    proxy_image_link(link.into(), context).await.map(Some)
-  } else {
-    Ok(link)
-  }
+  proxy_image_link_internal(link, context.settings().pictrs()?.image_mode, context).await
 }
 
 pub async fn proxy_image_link_opt_apub(
@@ -1175,26 +1136,76 @@ fn build_proxied_image_url(
   protocol_and_hostname: &str,
 ) -> Result<Url, url::ParseError> {
   Url::parse(&format!(
-    "{}/api/v4/image_proxy?url={}",
+    "{}/api/v4/image/proxy?url={}",
     protocol_and_hostname,
     encode(link.as_str())
   ))
+}
+
+pub async fn local_user_view_from_jwt(
+  jwt: &str,
+  context: &LemmyContext,
+) -> LemmyResult<LocalUserView> {
+  let local_user_id = Claims::validate(jwt, context)
+    .await
+    .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
+  let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
+  check_user_valid(&local_user_view.person)?;
+
+  Ok(local_user_view)
+}
+
+pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
+  // Try reading jwt from auth header
+  if let Ok(header) = Authorization::<Bearer>::parse(req) {
+    Ok(Some(header.as_ref().token().to_string()))
+  }
+  // If that fails, try to read from cookie
+  else if let Some(cookie) = &req.cookie(AUTH_COOKIE_NAME) {
+    Ok(Some(cookie.value().to_string()))
+  }
+  // Otherwise, there's no auth
+  else {
+    Ok(None)
+  }
+}
+
+pub fn send_webmention(post: Post, community: Community) {
+  if let Some(url) = post.url.clone() {
+    if community.visibility == CommunityVisibility::Public {
+      spawn_try_task(async move {
+        let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
+        webmention.set_checked(true);
+        match webmention
+          .send()
+          .instrument(tracing::info_span!("Sending webmention"))
+          .await
+        {
+          Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
+          Ok(_) => Ok(()),
+          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
+        }
+      });
+    }
+  };
 }
 
 #[cfg(test)]
 mod tests {
 
   use super::*;
-  use lemmy_db_schema::source::{
-    comment::CommentInsertForm,
-    community::CommunityInsertForm,
-    person::PersonInsertForm,
-    post::PostInsertForm,
+  use lemmy_db_schema::{
+    source::{
+      comment::CommentInsertForm,
+      community::CommunityInsertForm,
+      person::PersonInsertForm,
+      post::PostInsertForm,
+    },
+    ModlogActionType,
   };
-  use lemmy_db_views_moderator::structs::{
-    ModRemoveCommentView,
-    ModRemovePostView,
-    ModlogListParams,
+  use lemmy_db_views::{
+    combined::modlog_combined_view::ModlogCombinedQuery,
+    structs::{ModRemoveCommentView, ModRemovePostView, ModlogCombinedView},
   };
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -1254,7 +1265,7 @@ mod tests {
     )
     .await?;
     assert_eq!(
-      "https://lemmy-alpha/api/v4/image_proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
+      "https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
       proxied.as_str()
     );
 
@@ -1330,48 +1341,55 @@ mod tests {
     .await?;
 
     // Verify that their posts and comments are removed.
-    let params = ModlogListParams {
-      community_id: None,
-      mod_person_id: None,
-      other_person_id: None,
-      post_id: None,
-      comment_id: None,
-      page: None,
-      limit: None,
-      hide_modlog_names: false,
-    };
-
     // Posts
-    let post_modlog = ModRemovePostView::list(pool, params).await?;
+    let post_modlog = ModlogCombinedQuery {
+      type_: Some(ModlogActionType::ModRemovePost),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_eq!(2, post_modlog.len());
 
-    let mod_removed_posts = post_modlog
-      .iter()
-      .map(|p| p.mod_remove_post.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![true, true], mod_removed_posts);
-
-    let removed_posts = post_modlog
-      .iter()
-      .map(|p| p.post.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![true, true], removed_posts);
+    assert!(matches!(
+      &post_modlog[..],
+      [
+        ModlogCombinedView::ModRemovePost(ModRemovePostView {
+          mod_remove_post: ModRemovePost { removed: true, .. },
+          post: Post { removed: true, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemovePost(ModRemovePostView {
+          mod_remove_post: ModRemovePost { removed: true, .. },
+          post: Post { removed: true, .. },
+          ..
+        }),
+      ],
+    ));
 
     // Comments
-    let comment_modlog = ModRemoveCommentView::list(pool, params).await?;
+    let comment_modlog = ModlogCombinedQuery {
+      type_: Some(ModlogActionType::ModRemoveComment),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_eq!(2, comment_modlog.len());
 
-    let mod_removed_comments = comment_modlog
-      .iter()
-      .map(|p| p.mod_remove_comment.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![true, true], mod_removed_comments);
-
-    let removed_comments = comment_modlog
-      .iter()
-      .map(|p| p.comment.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![true, true], removed_comments);
+    assert!(matches!(
+      &comment_modlog[..],
+      [
+        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
+          mod_remove_comment: ModRemoveComment { removed: true, .. },
+          comment: Comment { removed: true, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
+          mod_remove_comment: ModRemoveComment { removed: true, .. },
+          comment: Comment { removed: true, .. },
+          ..
+        }),
+      ],
+    ));
 
     // Now restore the content, and make sure it got appended
     remove_or_restore_user_data(
@@ -1384,37 +1402,74 @@ mod tests {
     .await?;
 
     // Posts
-    let post_modlog = ModRemovePostView::list(pool, params).await?;
+    let post_modlog = ModlogCombinedQuery {
+      type_: Some(ModlogActionType::ModRemovePost),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_eq!(4, post_modlog.len());
 
-    let mod_restored_posts = post_modlog
-      .iter()
-      .map(|p| p.mod_remove_post.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![false, false, true, true], mod_restored_posts);
-
-    let restored_posts = post_modlog
-      .iter()
-      .map(|p| p.post.removed)
-      .collect::<Vec<bool>>();
-    // All of these will be false, cause its the current state of the post
-    assert_eq!(vec![false, false, false, false], restored_posts);
+    assert!(matches!(
+      &post_modlog[..],
+      [
+        ModlogCombinedView::ModRemovePost(ModRemovePostView {
+          mod_remove_post: ModRemovePost { removed: false, .. },
+          post: Post { removed: false, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemovePost(ModRemovePostView {
+          mod_remove_post: ModRemovePost { removed: false, .. },
+          post: Post { removed: false, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemovePost(ModRemovePostView {
+          mod_remove_post: ModRemovePost { removed: true, .. },
+          post: Post { removed: false, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemovePost(ModRemovePostView {
+          mod_remove_post: ModRemovePost { removed: true, .. },
+          post: Post { removed: false, .. },
+          ..
+        }),
+      ],
+    ));
 
     // Comments
-    let comment_modlog = ModRemoveCommentView::list(pool, params).await?;
+    let comment_modlog = ModlogCombinedQuery {
+      type_: Some(ModlogActionType::ModRemoveComment),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_eq!(4, comment_modlog.len());
 
-    let mod_restored_comments = comment_modlog
-      .iter()
-      .map(|p| p.mod_remove_comment.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![false, false, true, true], mod_restored_comments);
-
-    let restored_comments = comment_modlog
-      .iter()
-      .map(|p| p.comment.removed)
-      .collect::<Vec<bool>>();
-    assert_eq!(vec![false, false, false, false], restored_comments);
+    assert!(matches!(
+      &comment_modlog[..],
+      [
+        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
+          mod_remove_comment: ModRemoveComment { removed: false, .. },
+          comment: Comment { removed: false, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
+          mod_remove_comment: ModRemoveComment { removed: false, .. },
+          comment: Comment { removed: false, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
+          mod_remove_comment: ModRemoveComment { removed: true, .. },
+          comment: Comment { removed: false, .. },
+          ..
+        }),
+        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
+          mod_remove_comment: ModRemoveComment { removed: true, .. },
+          comment: Comment { removed: false, .. },
+          ..
+        }),
+      ],
+    ));
 
     Instance::delete(pool, inserted_instance.id).await?;
 
