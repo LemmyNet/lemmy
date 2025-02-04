@@ -2563,7 +2563,6 @@ dependencies = [
  "sitemap-rs",
  "tokio",
  "totp-rs",
- "tracing",
  "url",
 ]
 
