@@ -6,14 +6,10 @@ use lemmy_api_common::{
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
-  source::{
-    community::Community,
-    post::Post,
-    post_tag::PostTag, tag::PostTagInsertForm,
-  },
+  source::{community::Community, post::Post, post_tag::PostTag, tag::PostTagInsertForm},
   traits::Crud,
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::structs::{LocalUserView, PostView};
 use lemmy_utils::error::LemmyResult;
 
 #[tracing::instrument(skip(context))]
@@ -51,11 +47,11 @@ pub async fn update_post_tags(
   }
 
   // Get updated post view
-  let post_view = lemmy_db_views::post_view::PostView::read(
+  let post_view = PostView::read(
     &mut context.pool(),
-    data.post_id, 
-    Some(local_user_view),
-    false
+    data.post_id,
+    Some(&local_user_view.local_user),
+    false,
   )
   .await?;
 

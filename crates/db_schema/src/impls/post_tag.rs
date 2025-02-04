@@ -1,46 +1,44 @@
 use crate::{
   newtypes::{PostId, TagId},
   schema::post_tag,
-  source::post_tag::{PostTag, PostTagForm},
+  source::{
+    post_tag::{PostTag, PostTagForm},
+    tag::PostTagInsertForm,
+  },
   traits::Crud,
   utils::{get_conn, DbPool},
 };
 use diesel::{delete, insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
-/* impl PostTag {
-  pub async fn delete_for_post(pool: &mut DbPool<'_>, post_id: PostId) -> Result<(), diesel::result::Error> {
+impl PostTag {
+  pub async fn delete_for_post(
+    pool: &mut DbPool<'_>,
+    post_id: PostId,
+  ) -> Result<(), diesel::result::Error> {
     let conn = &mut get_conn(pool).await?;
     delete(post_tag::table.filter(post_tag::post_id.eq(post_id)))
       .execute(conn)
       .await?;
     Ok(())
   }
-}*/
+}
 
 #[async_trait::async_trait]
 impl Crud for PostTag {
-  type InsertForm = PostTagForm;
+  type InsertForm = PostTagInsertForm;
   type UpdateForm = PostTagForm;
   type IdType = (PostId, TagId);
 
   async fn create(
     pool: &mut DbPool<'_>,
-    form: &PostTagForm,
+    form: &PostTagInsertForm,
   ) -> Result<Self, diesel::result::Error> {
     let conn = &mut get_conn(pool).await?;
     insert_into(post_tag::table)
       .values(form)
       .get_result::<Self>(conn)
       .await
-    /*insert_into(post_tag::table)
-    .values((
-      post_tag::post_id.eq(form.post_id),
-      post_tag::tag_id.eq(form.tag_id),
-      post_tag::published.eq(published),
-    ))
-    .get_result::<Self>(conn)
-    .await*/
   }
 
   async fn update(

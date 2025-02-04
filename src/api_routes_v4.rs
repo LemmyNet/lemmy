@@ -18,6 +18,7 @@ use lemmy_api::{
       list::get_pending_follows_list,
     },
     random::get_random_community,
+    tag::{create_community_tag, delete_community_tag, list_community_tags, update_community_tag},
     transfer::transfer_community,
   },
   local_user::{
@@ -61,6 +62,7 @@ use lemmy_api::{
     mark_many_read::mark_posts_as_read,
     mark_read::mark_post_as_read,
     save::save_post,
+    tags::update_post_tags,
   },
   private_message::mark_read::mark_pm_as_read,
   reports::{
@@ -213,6 +215,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/list", get().to(list_communities))
           .route("/follow", post().to(follow_community))
           .route("/delete", post().to(delete_community))
+          .route("/post_tags", get().to(list_community_tags))
           // Mod Actions
           .route("/remove", post().to(remove_community))
           .route("/transfer", post().to(transfer_community))
@@ -222,6 +225,9 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("/icon", delete().to(delete_community_icon))
           .route("/banner", post().to(upload_community_banner))
           .route("/banner", delete().to(delete_community_banner))
+          .route("/post_tag", post().to(create_community_tag))
+          .route("/post_tag", put().to(update_community_tag))
+          .route("/post_tag", delete().to(delete_community_tag))
           .service(
             scope("/pending_follows")
               .route("/count", get().to(get_pending_follows_count))
@@ -244,6 +250,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimitCell) {
           .route("", put().to(update_post))
           .route("/delete", post().to(delete_post))
           .route("/remove", post().to(remove_post))
+          .route("/update_tags", post().to(update_post_tags))
           .route("/mark_as_read", post().to(mark_post_as_read))
           .route("/mark_as_read/many", post().to(mark_posts_as_read))
           .route("/hide", post().to(hide_post))

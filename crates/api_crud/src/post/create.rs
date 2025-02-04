@@ -23,6 +23,8 @@ use lemmy_db_schema::{
     community::Community,
     local_site::LocalSite,
     post::{Post, PostInsertForm, PostLike, PostLikeForm, PostRead, PostReadForm},
+    post_tag::PostTag,
+    tag::PostTagInsertForm,
   },
   traits::{Crud, Likeable},
   utils::diesel_url_create,
@@ -122,6 +124,16 @@ pub async fn create_post(
   let inserted_post = Post::create(&mut context.pool(), &post_form)
     .await
     .with_lemmy_type(LemmyErrorType::CouldntCreatePost)?;
+  // Create new post tags
+  if let Some(tags) = &data.tags {
+    for tag_id in tags {
+      let form = PostTagInsertForm {
+        post_id: inserted_post.id,
+        tag_id: *tag_id,
+      };
+      PostTag::create(&mut context.pool(), &form).await?;
+    }
+  }
 
   let community_id = community.id;
   let federate_post = if scheduled_publish_time.is_none() {

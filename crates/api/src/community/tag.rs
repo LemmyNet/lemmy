@@ -1,9 +1,5 @@
-use std::sync::LazyLock;
-
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use diesel::{ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
 use lemmy_api_common::{
   community::{
     CommunityTagResponse,
@@ -17,7 +13,6 @@ use lemmy_api_common::{
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
-  schema::tag::dsl,
   source::{
     community::Community,
     tag::{Tag, TagInsertForm},

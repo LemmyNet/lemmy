@@ -347,8 +347,9 @@ pub fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
 
 pub fn is_valid_tag_slug(id_slug: &str) -> LemmyResult<()> {
   // verify id slug
+  #[allow(clippy::expect_used)]
   static VALID_ID_SLUG: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^[a-z0-9_-]{2,30}$").expect("compile regex"));
+    LazyLock::new(|| Regex::new(r"^[a-z0-9_-]{3,40}$").expect("compile regex"));
   if !VALID_ID_SLUG.is_match(id_slug) {
     return Err(LemmyErrorType::InvalidBodyField.into());
   }

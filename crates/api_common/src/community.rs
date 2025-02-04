@@ -3,7 +3,6 @@ use lemmy_db_schema::{
   source::site::Site,
   CommunityVisibility,
   ListingType,
-  ModlogActionType,
 };
 use lemmy_db_views::structs::{
   CommunityModeratorView,
@@ -73,8 +72,6 @@ pub struct ListCommunityTagsResponse {
 }
 
 // Rest of existing community.rs content...
-
-
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
