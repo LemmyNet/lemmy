@@ -27,11 +27,13 @@ pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
             proxied.push(' ');
             proxied.push_str(extra);
           }
+          dbg!(start, end);
           src.replace_range(start..end, &proxied);
         }
       }
       Err(_) => {
         // If its not a valid url, replace with empty text
+        dbg!(start, end);
         src.replace_range(start..end, "");
       }
     }
@@ -60,7 +62,8 @@ fn find_urls<T: NodeValue + UrlAndTitle>(src: &str) -> Vec<(usize, usize)> {
   ast.walk(|node, _depth| {
     if let Some(image) = node.cast::<T>() {
       if let Some(srcmap) = node.srcmap {
-        let (_, node_offset) = srcmap.get_byte_offsets();
+        let (_, node_offset) = dbg!(srcmap.get_byte_offsets());
+        dbg!(node_offset, image.url_len(), image.title_len());
         let start_offset = node_offset - image.url_len() - 1 - image.title_len();
         let end_offset = node_offset - 1;
 
@@ -78,6 +81,12 @@ pub trait UrlAndTitle {
 
 impl UrlAndTitle for Image {
   fn url_len(&self) -> usize {
+    // TODO: performs urlencode but where?
+    /*
+    let decoded = urlencoding::decode(&self.url).unwrap();
+    dbg!(&self.url, &decoded);
+    decoded.len()
+    */
     self.url.len()
   }
 
@@ -102,17 +111,31 @@ mod tests {
 
   #[test]
   fn test_find_links() {
+    /*
     let links = markdown_find_links("[test](https://example.com)");
     assert_eq!(vec![(7, 26)], links);
 
     let links = find_urls::<Image>("![test](https://example.com)");
     assert_eq!(vec![(8, 27)], links);
+    */
+
+    let links = find_urls::<Image>("![ითხოვს](https://example.com/ითხოვს)");
+    assert_eq!(vec![(22, 60)], links);
+
+    let links = find_urls::<Image>("![test](https://example.com/%C3%A4%C3%B6%C3%BC.jpg)");
+    assert_eq!(vec![(20, 50)], links);
   }
 
   #[test]
   fn test_markdown_proxy_images() {
     let tests: Vec<_> =
       vec![
+        (
+          "path with special chars",
+          "![link](http://example.com/ითხოვს%C3%A4.jpg)",
+          // TODO: this looks wrong, `url` param should be urlencoded
+          "![link](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2ითხოვს%C3%A4.jpg)",
+        ),
         (
           "remote image proxied",
           "![link](http://example.com/image.jpg)",

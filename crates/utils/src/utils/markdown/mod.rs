@@ -8,6 +8,7 @@ mod link_rule;
 
 static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
   let mut parser = MarkdownIt::new();
+  /*
   markdown_it::plugins::cmark::add(&mut parser);
   markdown_it::plugins::extra::add(&mut parser);
   markdown_it_block_spoiler::add(&mut parser);
@@ -15,6 +16,8 @@ static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
   markdown_it_sup::add(&mut parser);
   markdown_it_ruby::add(&mut parser);
   markdown_it_footnote::add(&mut parser);
+  */
+  markdown_it::plugins::cmark::inline::image::add(&mut parser);
   link_rule::add(&mut parser);
 
   parser
@@ -49,7 +52,6 @@ mod tests {
 
   use super::*;
   use crate::utils::validation::check_urls_are_valid;
-  use image_links::markdown_rewrite_image_links;
   use pretty_assertions::assert_eq;
   use regex::escape;
 
@@ -142,63 +144,6 @@ mod tests {
 
       assert_eq!(
         result, expected,
-        "Testing {}, with original input '{}'",
-        msg, input
-      );
-    });
-  }
-
-  #[test]
-  fn test_markdown_proxy_images() {
-    let tests: Vec<_> =
-      vec![
-        (
-          "remote image proxied",
-          "![link](http://example.com/image.jpg)",
-          "![link](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)",
-        ),
-        (
-          "local image unproxied",
-          "![link](http://lemmy-alpha/image.jpg)",
-          "![link](http://lemmy-alpha/image.jpg)",
-        ),
-        (
-          "multiple image links",
-          "![link](http://example.com/image1.jpg) ![link](http://example.com/image2.jpg)",
-          "![link](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage1.jpg) ![link](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage2.jpg)",
-        ),
-        (
-          "empty link handled",
-          "![image]()",
-          "![image]()"
-        ),
-        (
-          "empty label handled",
-          "![](http://example.com/image.jpg)",
-          "![](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
-        ),
-        (
-          "invalid image link removed",
-          "![image](http-not-a-link)",
-          "![image]()"
-        ),
-        (
-          "label with nested markdown handled",
-          "![a *b* c](http://example.com/image.jpg)",
-          "![a *b* c](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
-        ),
-        (
-          "custom emoji support",
-          r#"![party-blob](https://www.hexbear.net/pictrs/image/83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#,
-          r#"![party-blob](https://lemmy-alpha/api/v4/image/proxy?url=https%3A%2F%2Fwww.hexbear.net%2Fpictrs%2Fimage%2F83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#
-        )
-      ];
-
-    tests.iter().for_each(|&(msg, input, expected)| {
-      let result = markdown_rewrite_image_links(input.to_string());
-
-      assert_eq!(
-        result.0, expected,
         "Testing {}, with original input '{}'",
         msg, input
       );
