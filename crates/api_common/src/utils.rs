@@ -14,7 +14,16 @@ use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
   aggregates::structs::{PersonPostAggregates, PersonPostAggregatesForm},
-  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId},
+  newtypes::{
+    CommentId,
+    CommunityId,
+    DbUrl,
+    InstanceId,
+    PersonId,
+    PostId,
+    PostOrCommentId,
+    PrivateMessageId,
+  },
   source::{
     comment::{Comment, CommentLike, CommentUpdateForm},
     community::{Community, CommunityModerator, CommunityUpdateForm},
@@ -954,29 +963,42 @@ pub async fn purge_user_account(person_id: PersonId, context: &LemmyContext) -> 
   Ok(())
 }
 
-pub enum EndpointType {
-  Community,
-  Person,
-  Post,
-  Comment,
-  PrivateMessage,
+pub enum ObjectType {
+  Community(String),
+  Person(String),
+  Post(PostId),
+  Comment(CommentId),
+  PrivateMessage(PrivateMessageId),
 }
 
-/// Generates an apub endpoint for a given domain, IE xyz.tld
-pub fn generate_local_apub_endpoint(
-  endpoint_type: EndpointType,
-  name: &str,
-  domain: &str,
-) -> Result<DbUrl, ParseError> {
-  let point = match endpoint_type {
-    EndpointType::Community => "c",
-    EndpointType::Person => "u",
-    EndpointType::Post => "post",
-    EndpointType::Comment => "comment",
-    EndpointType::PrivateMessage => "private_message",
+/// Generates url for object type on local domain
+pub fn local_url(endpoint_type: impl Into<ObjectType>, settings: &Settings) -> LemmyResult<DbUrl> {
+  let (point, name) = match endpoint_type.into() {
+    ObjectType::Community(name) => ("c", name),
+    ObjectType::Person(name) => ("u", name),
+    ObjectType::Post(id) => ("post", id.to_string()),
+    ObjectType::Comment(id) => ("comment", id.to_string()),
+    ObjectType::PrivateMessage(id) => ("private_message", id.to_string()),
   };
 
+  let domain = settings.get_protocol_and_hostname();
   Ok(Url::parse(&format!("{domain}/{point}/{name}"))?.into())
+}
+
+impl From<CommentId> for ObjectType {
+  fn from(val: CommentId) -> Self {
+    ObjectType::Comment(val)
+  }
+}
+impl From<PostId> for ObjectType {
+  fn from(val: PostId) -> Self {
+    ObjectType::Post(val)
+  }
+}
+impl From<PrivateMessageId> for ObjectType {
+  fn from(val: PrivateMessageId) -> Self {
+    ObjectType::PrivateMessage(val)
+  }
 }
 
 pub fn generate_followers_url(actor_id: &DbUrl) -> Result<DbUrl, ParseError> {

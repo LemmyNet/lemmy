@@ -8,12 +8,12 @@ use lemmy_api_common::{
   utils::{
     generate_followers_url,
     generate_inbox_url,
-    generate_local_apub_endpoint,
     get_url_blocklist,
     is_admin,
     local_site_to_slur_regex,
+    local_url,
     process_markdown_opt,
-    EndpointType,
+    ObjectType,
   },
 };
 use lemmy_db_schema::{
@@ -82,11 +82,7 @@ pub async fn create_community(
   check_community_visibility_allowed(data.visibility, &local_user_view)?;
 
   // Double check for duplicate community actor_ids
-  let community_actor_id = generate_local_apub_endpoint(
-    EndpointType::Community,
-    &data.name,
-    &context.settings().get_protocol_and_hostname(),
-  )?;
+  let community_actor_id = local_url(ObjectType::Community(data.name.clone()), context.settings())?;
   let community_dupe =
     Community::read_from_apub_id(&mut context.pool(), &community_actor_id).await?;
   if community_dupe.is_some() {

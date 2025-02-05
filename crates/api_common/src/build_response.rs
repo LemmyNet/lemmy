@@ -7,6 +7,7 @@ use crate::{
     check_person_instance_community_block,
     get_interface_language,
     is_mod_or_admin,
+    local_url,
     send_email_to_user,
   },
 };
@@ -141,14 +142,6 @@ pub async fn send_local_notifs(
   };
 
   let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
-  let comment_link = |comment: &Comment| {
-    format!(
-      "{}/post/{}/{}",
-      context.settings().get_protocol_and_hostname(),
-      post.id,
-      comment.id
-    )
-  };
 
   // Send the local mentions
   for mention in mentions
@@ -177,7 +170,10 @@ pub async fn send_local_notifs(
         PersonCommentMention::create(&mut context.pool(), &person_comment_mention_form)
           .await
           .ok();
-        (comment_link(comment), comment.content.clone())
+        (
+          local_url(comment.id, context.settings())?,
+          comment.content.clone(),
+        )
       } else {
         let person_post_mention_form = PersonPostMentionInsertForm {
           recipient_id: mention_user_view.person.id,
@@ -189,12 +185,10 @@ pub async fn send_local_notifs(
         PersonPostMention::create(&mut context.pool(), &person_post_mention_form)
           .await
           .ok();
-        let post_link = format!(
-          "{}/post/{}",
-          context.settings().get_protocol_and_hostname(),
-          post.id,
-        );
-        (post_link, post.body.clone().unwrap_or_default())
+        (
+          local_url(post.id, context.settings())?,
+          post.body.clone().unwrap_or_default(),
+        )
       };
 
       // Send an email to those local users that have notifications on
@@ -258,7 +252,7 @@ pub async fn send_local_notifs(
                 &parent_user_view,
                 &lang.notification_comment_reply_subject(&person.name),
                 &lang.notification_comment_reply_body(
-                  comment_link(comment),
+                  local_url(comment.id, context.settings())?,
                   &content,
                   &inbox_link,
                   &parent_comment.content,
@@ -311,7 +305,7 @@ pub async fn send_local_notifs(
                 &parent_user_view,
                 &lang.notification_post_reply_subject(&person.name),
                 &lang.notification_post_reply_body(
-                  comment_link(comment),
+                  local_url(comment.id, context.settings())?,
                   &content,
                   &inbox_link,
                   &post.name,
