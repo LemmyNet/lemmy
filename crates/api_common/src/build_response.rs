@@ -101,7 +101,6 @@ pub async fn send_local_notifs(
   local_user_view: Option<&LocalUserView>,
 ) -> LemmyResult<Vec<LocalUserId>> {
   let mut recipient_ids = Vec::new();
-  let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
 
   let (comment_opt, post, community) = match post_or_comment_id {
     PostOrCommentId::Post(post_id) => {
@@ -141,6 +140,16 @@ pub async fn send_local_notifs(
     }
   };
 
+  let inbox_link = format!("{}/inbox", context.settings().get_protocol_and_hostname());
+  let comment_link = |comment: &Comment| {
+    format!(
+      "{}/post/{}/{}",
+      context.settings().get_protocol_and_hostname(),
+      post.id,
+      comment.id
+    )
+  };
+
   // Send the local mentions
   for mention in mentions
     .iter()
@@ -156,7 +165,7 @@ pub async fn send_local_notifs(
       recipient_ids.push(mention_user_view.local_user.id);
 
       // Make the correct reply form depending on whether its a post or comment mention
-      let comment_content_or_post_body = if let Some(comment) = &comment_opt {
+      let (link, comment_content_or_post_body) = if let Some(comment) = &comment_opt {
         let person_comment_mention_form = PersonCommentMentionInsertForm {
           recipient_id: mention_user_view.person.id,
           comment_id: comment.id,
@@ -168,7 +177,7 @@ pub async fn send_local_notifs(
         PersonCommentMention::create(&mut context.pool(), &person_comment_mention_form)
           .await
           .ok();
-        comment.content.clone()
+        (comment_link(comment), comment.content.clone())
       } else {
         let person_post_mention_form = PersonPostMentionInsertForm {
           recipient_id: mention_user_view.person.id,
@@ -180,7 +189,12 @@ pub async fn send_local_notifs(
         PersonPostMention::create(&mut context.pool(), &person_post_mention_form)
           .await
           .ok();
-        post.body.clone().unwrap_or_default()
+        let post_link = format!(
+          "{}/post/{}",
+          context.settings().get_protocol_and_hostname(),
+          post.id,
+        );
+        (post_link, post.body.clone().unwrap_or_default())
       };
 
       // Send an email to those local users that have notifications on
@@ -190,7 +204,7 @@ pub async fn send_local_notifs(
         send_email_to_user(
           &mention_user_view,
           &lang.notification_mentioned_by_subject(&person.name),
-          &lang.notification_mentioned_by_body(&content, &inbox_link, &person.name),
+          &lang.notification_mentioned_by_body(&link, &content, &inbox_link, &person.name),
           context.settings(),
         )
         .await
@@ -243,7 +257,14 @@ pub async fn send_local_notifs(
               send_email_to_user(
                 &parent_user_view,
                 &lang.notification_comment_reply_subject(&person.name),
-                &lang.notification_comment_reply_body(&content, &inbox_link, &person.name),
+                &lang.notification_comment_reply_body(
+                  comment_link(comment),
+                  &content,
+                  &inbox_link,
+                  &parent_comment.content,
+                  &post.name,
+                  &person.name,
+                ),
                 context.settings(),
               )
               .await
@@ -289,7 +310,13 @@ pub async fn send_local_notifs(
               send_email_to_user(
                 &parent_user_view,
                 &lang.notification_post_reply_subject(&person.name),
-                &lang.notification_post_reply_body(&content, &inbox_link, &person.name),
+                &lang.notification_post_reply_body(
+                  comment_link(comment),
+                  &content,
+                  &inbox_link,
+                  &post.name,
+                  &person.name,
+                ),
                 context.settings(),
               )
               .await
