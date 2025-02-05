@@ -41,7 +41,7 @@ function assertUserFederation(userOne?: PersonView, userTwo?: PersonView) {
   expect(userOne?.person.name).toBe(userTwo?.person.name);
   expect(userOne?.person.display_name).toBe(userTwo?.person.display_name);
   expect(userOne?.person.bio).toBe(userTwo?.person.bio);
-  expect(userOne?.person.actor_id).toBe(userTwo?.person.actor_id);
+  expect(userOne?.person.ap_id).toBe(userTwo?.person.ap_id);
   expect(userOne?.person.avatar).toBe(userTwo?.person.avatar);
   expect(userOne?.person.banner).toBe(userTwo?.person.banner);
   expect(userOne?.person.published).toBe(userTwo?.person.published);
