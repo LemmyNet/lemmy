@@ -39,14 +39,12 @@ import {
   listReports,
   getMyUser,
   listInbox,
-  allowInstance,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
 import {
   AddModToCommunity,
   EditSite,
-  LemmyHttp,
   PersonPostMentionView,
   PostReport,
   PostReportView,
