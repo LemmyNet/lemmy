@@ -135,9 +135,9 @@ pub(crate) async fn send_lock_post(
     LockType::Lock,
     &context.settings().get_protocol_and_hostname(),
   )?;
-  let community_id = community.actor_id.inner().clone();
+  let community_id = community.ap_id.inner().clone();
   let lock = LockPage {
-    actor: actor.actor_id.clone().into(),
+    actor: actor.ap_id.clone().into(),
     to: generate_to(&community)?,
     object: ObjectId::from(post.ap_id),
     cc: vec![community_id.clone()],

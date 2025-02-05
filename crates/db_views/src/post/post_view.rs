@@ -814,7 +814,7 @@ mod tests {
       let tag_1 = Tag::create(
         pool,
         &TagInsertForm {
-          ap_id: Url::parse(&format!("{}/tags/test_tag1", inserted_community.actor_id))?.into(),
+          ap_id: Url::parse(&format!("{}/tags/test_tag1", inserted_community.ap_id))?.into(),
           name: "Test Tag 1".into(),
           community_id: inserted_community.id,
           published: None,
@@ -826,7 +826,7 @@ mod tests {
       let tag_2 = Tag::create(
         pool,
         &TagInsertForm {
-          ap_id: Url::parse(&format!("{}/tags/test_tag2", inserted_community.actor_id))?.into(),
+          ap_id: Url::parse(&format!("{}/tags/test_tag2", inserted_community.ap_id))?.into(),
           name: "Test Tag 2".into(),
           community_id: inserted_community.id,
           published: None,
@@ -896,7 +896,7 @@ mod tests {
         icon: None,
         banner: None,
         description: None,
-        actor_id: Url::parse("http://example.com")?.into(),
+        ap_id: Url::parse("http://example.com")?.into(),
         last_refreshed_at: Default::default(),
         inbox_url: Url::parse("http://example.com")?.into(),
         private_key: None,
@@ -1844,7 +1844,7 @@ mod tests {
         display_name: None,
         published: inserted_person.published,
         avatar: None,
-        actor_id: inserted_person.actor_id.clone(),
+        ap_id: inserted_person.ap_id.clone(),
         local: true,
         bot_account: false,
         banned: false,
@@ -1872,7 +1872,7 @@ mod tests {
         removed: false,
         deleted: false,
         nsfw: false,
-        actor_id: inserted_community.actor_id.clone(),
+        ap_id: inserted_community.ap_id.clone(),
         local: true,
         title: "nada".to_owned(),
         sidebar: None,

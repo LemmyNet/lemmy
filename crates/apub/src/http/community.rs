@@ -49,7 +49,7 @@ pub(crate) async fn get_apub_community_http(
       .into();
 
   if community.deleted || community.removed {
-    return create_apub_tombstone_response(community.actor_id.clone());
+    return create_apub_tombstone_response(community.ap_id.clone());
   }
   check_community_fetchable(&community)?;
 

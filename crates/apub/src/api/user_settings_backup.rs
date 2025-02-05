@@ -368,7 +368,7 @@ pub(crate) mod tests {
 
     let follows = CommunityFollowerView::for_person(pool, import_user.person.id).await?;
     assert_eq!(follows.len(), 1);
-    assert_eq!(follows[0].community.actor_id, community.actor_id);
+    assert_eq!(follows[0].community.ap_id, community.ap_id);
 
     Person::delete(pool, export_user.person.id).await?;
     Person::delete(pool, import_user.person.id).await?;

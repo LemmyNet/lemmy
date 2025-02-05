@@ -51,14 +51,14 @@ async fn get_webfinger_response(
       .await
       .ok()
       .flatten()
-      .map(|c| c.actor_id.into());
+      .map(|c| c.ap_id.into());
     let community_id: Option<Url> = Community::read_from_name(&mut context.pool(), name, false)
       .await
       .ok()
       .flatten()
       .and_then(|c| {
         if c.visibility == CommunityVisibility::Public {
-          let id: Url = c.actor_id.into();
+          let id: Url = c.ap_id.into();
           Some(id)
         } else {
           None

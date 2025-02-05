@@ -71,7 +71,7 @@ impl Person {
     let conn = &mut get_conn(pool).await?;
     insert_into(person::table)
       .values(form)
-      .on_conflict(person::actor_id)
+      .on_conflict(person::ap_id)
       .do_update()
       .set(form)
       .get_result::<Self>(conn)
@@ -155,7 +155,7 @@ impl ApubActor for Person {
     let conn = &mut get_conn(pool).await?;
     person::table
       .filter(person::deleted.eq(false))
-      .filter(person::actor_id.eq(object_id))
+      .filter(person::ap_id.eq(object_id))
       .first(conn)
       .await
       .optional()
@@ -282,7 +282,7 @@ mod tests {
       deleted: false,
       published: inserted_person.published,
       updated: None,
-      actor_id: inserted_person.actor_id.clone(),
+      ap_id: inserted_person.ap_id.clone(),
       bio: None,
       local: true,
       bot_account: false,
@@ -298,7 +298,7 @@ mod tests {
     let read_person = Person::read(pool, inserted_person.id).await?;
 
     let update_person_form = PersonUpdateForm {
-      actor_id: Some(inserted_person.actor_id.clone()),
+      ap_id: Some(inserted_person.ap_id.clone()),
       ..Default::default()
     };
     let updated_person = Person::update(pool, inserted_person.id, &update_person_form).await?;

@@ -35,8 +35,8 @@ pub struct Site {
   /// A shorter, one-line description of the site.
   #[cfg_attr(feature = "full", ts(optional))]
   pub description: Option<String>,
-  /// The federated actor_id.
-  pub actor_id: DbUrl,
+  /// The federated ap_id.
+  pub ap_id: DbUrl,
   /// The time the site was last refreshed.
   pub last_refreshed_at: DateTime<Utc>,
   /// The site inbox
@@ -69,7 +69,7 @@ pub struct SiteInsertForm {
   #[new(default)]
   pub description: Option<String>,
   #[new(default)]
-  pub actor_id: Option<DbUrl>,
+  pub ap_id: Option<DbUrl>,
   #[new(default)]
   pub last_refreshed_at: Option<DateTime<Utc>>,
   #[new(default)]
@@ -94,7 +94,7 @@ pub struct SiteUpdateForm {
   pub icon: Option<Option<DbUrl>>,
   pub banner: Option<Option<DbUrl>>,
   pub description: Option<Option<String>>,
-  pub actor_id: Option<DbUrl>,
+  pub ap_id: Option<DbUrl>,
   pub last_refreshed_at: Option<DateTime<Utc>>,
   pub inbox_url: Option<DbUrl>,
   pub private_key: Option<Option<String>>,

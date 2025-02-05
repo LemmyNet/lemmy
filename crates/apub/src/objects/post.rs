@@ -133,7 +133,7 @@ impl Object for ApubPost {
     let page = Page {
       kind: PageType::Page,
       id: self.ap_id.clone().into(),
-      attributed_to: AttributedTo::Lemmy(creator.actor_id.into()),
+      attributed_to: AttributedTo::Lemmy(creator.ap_id.into()),
       to: generate_to(&community)?,
       cc: vec![],
       name: Some(self.name.clone()),

@@ -1,4 +1,4 @@
-use crate::{fetcher::resolve_actor_identifier, objects::community::ApubCommunity};
+use crate::{fetcher::resolve_ap_identifier, objects::community::ApubCommunity};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_common::{
@@ -25,7 +25,7 @@ pub async fn search(
 
   let community_id = if let Some(name) = &data.community_name {
     Some(
-      resolve_actor_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, false)
+      resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, false)
         .await?,
     )
     .map(|c| c.id)

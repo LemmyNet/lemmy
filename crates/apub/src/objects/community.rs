@@ -109,9 +109,9 @@ impl Object for ApubCommunity {
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       sensitive: Some(self.nsfw),
-      featured: Some(generate_featured_url(&self.actor_id)?.into()),
+      featured: Some(generate_featured_url(&self.ap_id)?.into()),
       inbox: self.inbox_url.clone().into(),
-      outbox: generate_outbox_url(&self.actor_id)?.into(),
+      outbox: generate_outbox_url(&self.ap_id)?.into(),
       followers: self.followers_url.clone().map(Into::into),
       endpoints: None,
       public_key: self.public_key(),
@@ -119,7 +119,7 @@ impl Object for ApubCommunity {
       published: Some(self.published),
       updated: self.updated,
       posting_restricted_to_mods: Some(self.posting_restricted_to_mods),
-      attributed_to: Some(generate_moderators_url(&self.actor_id)?.into()),
+      attributed_to: Some(generate_moderators_url(&self.ap_id)?.into()),
       manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
     };
     Ok(group)
@@ -156,7 +156,7 @@ impl Object for ApubCommunity {
       updated: group.updated,
       deleted: Some(false),
       nsfw: Some(group.sensitive.unwrap_or(false)),
-      actor_id: Some(group.id.into()),
+      ap_id: Some(group.id.into()),
       local: Some(false),
       last_refreshed_at: Some(Utc::now()),
       icon,
@@ -214,7 +214,7 @@ impl Object for ApubCommunity {
 
 impl Actor for ApubCommunity {
   fn id(&self) -> Url {
-    self.actor_id.inner().clone()
+    self.ap_id.inner().clone()
   }
 
   fn public_key_pem(&self) -> &str {

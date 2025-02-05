@@ -62,7 +62,7 @@ impl Collection for ApubCommunityOutbox {
 
     Ok(GroupOutbox {
       r#type: OrderedCollectionType::OrderedCollection,
-      id: generate_outbox_url(&owner.actor_id)?.into(),
+      id: generate_outbox_url(&owner.ap_id)?.into(),
       total_items: ordered_items.len() as i32,
       ordered_items,
     })
