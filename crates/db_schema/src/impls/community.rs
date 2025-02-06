@@ -427,6 +427,9 @@ impl CommunityFollower {
   }
 }
 
+// TODO
+// I'd really like to have these on the impl, but unfortunately they have to be top level,
+// according to https://diesel.rs/guides/composing-applications.html
 #[diesel::dsl::auto_type]
 pub fn community_follower_select_subscribed_type() -> _ {
   community_actions::follow_state.nullable()

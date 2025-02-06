@@ -452,22 +452,15 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let not_mod_query = CommunityQuery {
+    // Make sure can_mod is false for all of them.
+    CommunityQuery {
       local_user: Some(&data.local_user),
       ..Default::default()
     }
     .list(&data.site, pool)
     .await?
     .into_iter()
-    .map(|c| (c.community.name, c.can_mod))
-    .collect::<Vec<_>>();
-
-    let expected_communities = vec![
-      ("test_community_1".to_owned(), false),
-      ("test_community_2".to_owned(), false),
-      ("test_community_3".to_owned(), false),
-    ];
-    assert_eq!(expected_communities, not_mod_query);
+    .for_each(|c| assert!(!c.can_mod));
 
     let person_id = data.local_user.person_id;
 

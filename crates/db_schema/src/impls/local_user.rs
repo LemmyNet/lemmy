@@ -299,6 +299,9 @@ impl LocalUser {
   }
 }
 
+// TODO
+// I'd really like to have these on the impl, but unfortunately they have to be top level,
+// according to https://diesel.rs/guides/composing-applications.html
 /// Checks to see if you can mod an item.
 ///
 /// Caveat: Since admin status isn't federated or ordered, it can't know whether
