@@ -37,6 +37,7 @@ pub struct PostReport {
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
+  pub to_local_admins: bool,
 }
 
 #[derive(Clone, Default)]
@@ -49,4 +50,5 @@ pub struct PostReportForm {
   pub original_post_url: Option<DbUrl>,
   pub original_post_body: Option<String>,
   pub reason: String,
+  pub to_local_admins: bool,
 }

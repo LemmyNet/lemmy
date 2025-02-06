@@ -30,6 +30,9 @@ pub struct ListReports {
   pub page_cursor: Option<ReportCombinedPaginationCursor>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub page_back: Option<bool>,
+  /// Only for admins: also show reports destined to community mods
+  #[cfg_attr(feature = "full", ts(optional))]
+  pub show_mod_reports: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

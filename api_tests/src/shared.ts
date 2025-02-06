@@ -801,8 +801,9 @@ export async function reportPost(
 
 export async function listReports(
   api: LemmyHttp,
+  show_mod_reports: boolean = false,
 ): Promise<ListReportsResponse> {
-  let form: ListReports = {};
+  let form: ListReports = { show_mod_reports };
   return api.listReports(form);
 }
 

@@ -31,6 +31,7 @@ pub async fn list_reports(
     unresolved_only: data.unresolved_only,
     page_after,
     page_back,
+    show_mod_reports: data.show_mod_reports,
   }
   .list(&mut context.pool(), &local_user_view)
   .await?;
