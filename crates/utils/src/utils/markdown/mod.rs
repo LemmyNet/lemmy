@@ -1,5 +1,12 @@
 use crate::{error::LemmyResult, settings::SETTINGS, LemmyErrorType};
-use markdown_it::{plugins::cmark::inline::image::Image, MarkdownIt};
+use markdown_it::{
+  parser::linkfmt::LinkFormatter,
+  plugins::cmark::{
+    block::fence,
+    inline::{image, image::Image},
+  },
+  MarkdownIt,
+};
 use regex::RegexSet;
 use std::sync::LazyLock;
 use url::Url;
@@ -37,7 +44,18 @@ pub fn markdown_to_html(text: &str) -> String {
 
 /// Rewrites all links to remote domains in markdown, so they go through `/api/v3/image_proxy`.
 pub fn markdown_rewrite_image_links(mut src: String) -> (String, Vec<Url>) {
-  let ast = MARKDOWN_PARSER.parse(&src);
+  // Use separate markdown parser here, with most features disabled for faster parsing,
+  // and a dummy link formatter which doesnt normalize links.
+  static PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
+    let mut p = MarkdownIt::new();
+    p.link_formatter = Box::new(NoopLinkFormatter {});
+    image::add(&mut p);
+    fence::add(&mut p);
+    link_rule::add(&mut p);
+    p
+  });
+
+  let ast = PARSER.parse(&src);
   let mut links_offsets = vec![];
 
   // Walk the syntax tree to find positions of image links
@@ -104,6 +122,25 @@ pub fn markdown_check_for_blocked_urls(text: &str, blocklist: &RegexSet) -> Lemm
     Err(LemmyErrorType::BlockedUrl)?
   }
   Ok(())
+}
+
+/// markdown-it normalizes links by default, which breaks the link rewriting. So we use a dummy
+/// formatter here which does nothing. Note this isnt actually used to render the markdown.
+#[derive(Debug)]
+struct NoopLinkFormatter;
+
+impl LinkFormatter for NoopLinkFormatter {
+  fn validate_link(&self, _url: &str) -> Option<()> {
+    Some(())
+  }
+
+  fn normalize_link(&self, url: &str) -> String {
+    url.to_owned()
+  }
+
+  fn normalize_link_text(&self, url: &str) -> String {
+    url.to_owned()
+  }
 }
 
 #[cfg(test)]
@@ -231,7 +268,12 @@ mod tests {
           "custom emoji support",
           r#"![party-blob](https://www.hexbear.net/pictrs/image/83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#,
           r#"![party-blob](https://lemmy-alpha/api/v3/image_proxy?url=https%3A%2F%2Fwww.hexbear.net%2Fpictrs%2Fimage%2F83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#
-        )
+        ),
+        (
+          "image with special chars",
+          "ითხოვს ![ითხოვს](http://example.com/ითხოვს%C3%A4.jpg)",
+          "ითხოვს ![ითხოვს](https://lemmy-alpha/api/v3/image_proxy?url=http%3A%2F%2Fexample.com%2F%E1%83%98%E1%83%97%E1%83%AE%E1%83%9D%E1%83%95%E1%83%A1%25C3%25A4.jpg)",
+        ),
       ];
 
     tests.iter().for_each(|&(msg, input, expected)| {
