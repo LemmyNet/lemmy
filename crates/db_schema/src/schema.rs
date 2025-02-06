@@ -917,7 +917,7 @@ diesel::table! {
 diesel::table! {
     post_keyword_block (id) {
         id -> Int4,
-        #[max_length = 50]
+        #[max_length = 20]
         keyword -> Varchar,
         person_id -> Int4,
     }
