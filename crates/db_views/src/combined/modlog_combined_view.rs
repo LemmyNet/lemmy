@@ -76,7 +76,6 @@ impl ModlogCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(
     mod_person_id: Option<PersonId>,
-    // TODO maybe hide_modlog_names could be refactored
     hide_modlog_names: Option<bool>,
     my_person_id: Option<PersonId>,
   ) -> _ {
@@ -383,11 +382,11 @@ impl ModlogCombinedQuery<'_> {
 
     let is_subscribed = community_actions::followed.is_not_null();
     query = match self.listing_type.unwrap_or(ListingType::All) {
+      ListingType::All => query,
       ListingType::Subscribed => query.filter(is_subscribed),
       ListingType::Local => query
         .filter(community::local.eq(true))
         .filter(community::hidden.eq(false).or(is_subscribed)),
-      ListingType::All => query.filter(community::hidden.eq(false).or(is_subscribed)),
       ListingType::ModeratorView => query.filter(community_actions::became_moderator.is_not_null()),
     };
 

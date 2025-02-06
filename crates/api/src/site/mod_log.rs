@@ -21,7 +21,6 @@ pub async fn get_mod_log(
   let listing_type = data.listing_type;
   let community_id = data.community_id;
 
-  // TODO should be reworked
   let is_mod_or_admin = if let Some(local_user_view) = &local_user_view {
     check_community_mod_of_any_or_admin_action(local_user_view, &mut context.pool())
       .await
