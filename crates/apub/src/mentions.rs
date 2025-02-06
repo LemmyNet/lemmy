@@ -51,7 +51,7 @@ pub async fn collect_non_local_mentions(
 
   // Add the mention tag
   let parent_creator_tag = Mention {
-    href: parent_creator.actor_id.clone().into(),
+    href: parent_creator.ap_id.clone().into(),
     name: Some(format!(
       "@{}@{}",
       &parent_creator.name,
@@ -74,7 +74,7 @@ pub async fn collect_non_local_mentions(
     let identifier = format!("{}@{}", mention.name, mention.domain);
     let person = webfinger_resolve_actor::<LemmyContext, ApubPerson>(&identifier, context).await;
     if let Ok(person) = person {
-      addressed_ccs.push(person.actor_id.to_string().parse()?);
+      addressed_ccs.push(person.ap_id.to_string().parse()?);
 
       let mention_tag = Mention {
         href: person.id(),

@@ -1,4 +1,4 @@
-use crate::{fetcher::resolve_actor_identifier, objects::person::ApubPerson};
+use crate::{fetcher::resolve_ap_identifier, objects::person::ApubPerson};
 use activitypub_federation::config::Data;
 use lemmy_api_common::{context::LemmyContext, LemmyErrorType};
 use lemmy_db_schema::{
@@ -83,7 +83,7 @@ async fn resolve_person_id_from_id_or_username(
     Some(id) => *id,
     None => {
       if let Some(username) = username {
-        resolve_actor_identifier::<ApubPerson, Person>(username, context, local_user_view, true)
+        resolve_ap_identifier::<ApubPerson, Person>(username, context, local_user_view, true)
           .await?
           .id
       } else {

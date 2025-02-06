@@ -47,9 +47,9 @@ pub async fn send_accept_or_reject_follow(
   let person = Person::read(&mut context.pool(), person_id).await?;
 
   let follow = Follow {
-    actor: person.actor_id.into(),
-    to: Some([community.actor_id.clone().into()]),
-    object: community.actor_id.into(),
+    actor: person.ap_id.into(),
+    to: Some([community.ap_id.clone().into()]),
+    object: community.ap_id.into(),
     kind: FollowType::Follow,
     id: generate_activity_id(
       FollowType::Follow,

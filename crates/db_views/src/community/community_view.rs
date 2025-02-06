@@ -280,7 +280,7 @@ mod tests {
       icon: None,
       banner: None,
       description: None,
-      actor_id: url.clone().into(),
+      ap_id: url.clone().into(),
       last_refreshed_at: Default::default(),
       inbox_url: url.into(),
       private_key: None,

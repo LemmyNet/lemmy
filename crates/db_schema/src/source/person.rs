@@ -34,8 +34,8 @@ pub struct Person {
   pub published: DateTime<Utc>,
   #[cfg_attr(feature = "full", ts(optional))]
   pub updated: Option<DateTime<Utc>>,
-  /// The federated actor_id.
-  pub actor_id: DbUrl,
+  /// The federated ap_id.
+  pub ap_id: DbUrl,
   /// An optional bio, in markdown.
   #[cfg_attr(feature = "full", ts(optional))]
   pub bio: Option<String>,
@@ -84,7 +84,7 @@ pub struct PersonInsertForm {
   #[new(default)]
   pub updated: Option<DateTime<Utc>>,
   #[new(default)]
-  pub actor_id: Option<DbUrl>,
+  pub ap_id: Option<DbUrl>,
   #[new(default)]
   pub bio: Option<String>,
   #[new(default)]
@@ -115,7 +115,7 @@ pub struct PersonUpdateForm {
   pub avatar: Option<Option<DbUrl>>,
   pub banned: Option<bool>,
   pub updated: Option<Option<DateTime<Utc>>>,
-  pub actor_id: Option<DbUrl>,
+  pub ap_id: Option<DbUrl>,
   pub bio: Option<Option<String>>,
   pub local: Option<bool>,
   pub public_key: Option<String>,
